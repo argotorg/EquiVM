@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.Dispatch
 import Benchmarks.Morpho.MorphoBlue.BodyCommon
 import Benchmarks.Morpho.MorphoBlue.Storage
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Morpho `isLltvEnabled(uint256)`
 
@@ -24,7 +26,7 @@ def isLltvEnabledArgs (cd : ByteArray) : Store :=
 theorem morphoIsLltvEnabledBodyReturns (v : MorphoImmutables) (evm : EVM.State)
     (hcv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsize : evm.executionEnv.calldata.size < 2 ^ 255 + 4) :
-    ExecTransitionBody config contract evm (isLltvEnabledArgs evm.executionEnv.calldata)
+    ExecTransitionBody fork config contract evm (isLltvEnabledArgs evm.executionEnv.calldata)
       isLltvEnabledTransition.body
       (.returned
         { contract := contract,
@@ -47,7 +49,7 @@ theorem morphoIsLltvEnabledXReturns {σ σ₀ A I} {g : Sat256} (v : MorphoImmut
     (hsel : selIs I (morphoSelBytes 20))
     (hcv : I.weiValue = ⟨0⟩) (hlen : 36 ≤ I.calldata.size)
     (hbound : I.calldata.size < 2 ^ 255 + 4) :
-    RDret (deployedRuntime v) g (initState σ σ₀ g A I) σ
+    RDret fork (deployedRuntime v) g (initState σ σ₀ g A I) σ
       (UInt256.isZero (UInt256.isZero (UInt256.land
         (solcSlotWordAt (solcMappingSlot ⟨5⟩ (calldataWord I.calldata 4)) σ I) ⟨255⟩))).toByteArray := by
   have hsz : 4 ≤ I.calldata.size := by omega
@@ -61,7 +63,7 @@ theorem morphoIsLltvEnabledXReturns {σ σ₀ A I} {g : Sat256} (v : MorphoImmut
     (by simpa only [wordAddNegFour] using hcond) rdGuard
   have ret := morphoBlocks.morpho_block_3774
     (immWords := wordsOf (immStore v)) (by decide) rdReturn
-  change RDret _ _ _ _
+  change RDret fork _ _ _ _
     (let mem := twoWordHashMem (calldataWord I.calldata 4) ⟨5⟩ solcFreePtrMem
      ((UInt256.isZero (UInt256.isZero (UInt256.land
        (solcSlotWordAt (keccakWord ⟨0⟩ ⟨64⟩ mem) σ I) ⟨255⟩))).toByteArray.write 0 mem
@@ -77,7 +79,7 @@ theorem morphoIsLltvEnabledXReverts {σ σ₀ A I} {g : Sat256} (v : MorphoImmut
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 20))
     (hbad : I.weiValue ≠ ⟨0⟩ ∨ I.calldata.size < 36 ∨ 2 ^ 255 + 4 ≤ I.calldata.size) :
-    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 20) rfl hsel
   obtain ⟨k, C, rd⟩ := morphoReachIsLltvEnabledBody (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hsz hsize hsel
@@ -104,7 +106,7 @@ theorem morphoIsLltvEnabledXReverts {σ σ₀ A I} {g : Sat256} (v : MorphoImmut
 theorem morphoIsLltvEnabledBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 20)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hd : selectorDispatchMsg contract I.calldata = some isLltvEnabledTransition :=
     morphoSelectorDispatch_of_selIs (by decide) hsel
   by_cases hlen : 36 ≤ I.calldata.size

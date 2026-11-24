@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SourceSignedBits
 import Benchmarks.UniswapV3.Pool.SignedComparison
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -10,7 +12,7 @@ theorem smod_xstep {s : EVM.State} {code : ByteArray} {pcv a b : UInt256} {t : L
     (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
     (hdec : decode code pcv = some (.SMOD, .none))
     (hstk : s.machineState.stack = a :: b :: t) (hov : t.length + 1 ≤ 1024) :
-    Xstep (D_J code 0) s =
+    Xstep fork (D_J code 0) s =
       if s.machineState.gasAvailable.toNat < 5 then .error .OutOfGass
       else .ok (stBinop5 s (UInt256.smod a b) t, .none) := by
   have hd : decode s.executionEnv.code s.machineState.pc = some (.SMOD, .none) := by
@@ -25,9 +27,9 @@ theorem smod_xstep {s : EVM.State} {code : ByteArray} {pcv a b : UInt256} {t : L
 theorem RD.smod {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : EVM.State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : Nat} {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.SMOD, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.smod a b :: t) mem aw rdata acc
+    RD fork code ee g s0 (pc + ⟨1⟩) (UInt256.smod a b :: t) mem aw rdata acc
       (k + 1) (C + 5) :=
   RD.stepBinop5 h (fun _ hc hp hs ↦ smod_xstep hc hp hdec hs hov)
 

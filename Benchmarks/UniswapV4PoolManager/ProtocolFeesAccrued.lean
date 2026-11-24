@@ -5,6 +5,8 @@ import Benchmarks.UniswapV4PoolManager.ProtocolFeesSource
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_010
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_011
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # PoolManager `protocolFeesAccrued(address)`
 
@@ -27,7 +29,7 @@ theorem protocolFeesAccruedBodyReturns (evm : EVM.State) (locals imms : Store) (
     (hcanon : w.toNat < EVM.addressModulus)
     (harg : locals.get? "arg0" = some (.address (AccountAddress.ofNat w.toNat)))
     (hbase : locals.get? "protocolFeesAccrued" = none) :
-    ExecTransitionBody config contract evm locals protocolFeesAccruedTransition.body
+    ExecTransitionBody fork config contract evm locals protocolFeesAccruedTransition.body
       (.returned (calldataFrame contract locals imms evm) evm
         (some [.int (Int.ofNat
           (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (mappingSlotWord w ⟨1⟩)).toNat)])) imms := by
@@ -43,11 +45,11 @@ theorem protocolFeesAccruedTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {rdata : ByteArray} {aw : UInt256} {σ : AccountMap} {k C : Nat}
     {w : UInt256} {R : List UInt256} (v : PoolManagerImmutables)
     (hstack : R.length + 4 ≤ 1024) (hcanon : w.toNat < EVM.addressModulus)
-    (h : RD (deployedRuntime v) I g s0 ⟨3018⟩ (w :: solcAddrMask :: R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨3018⟩ (w :: solcAddrMask :: R)
       entryMemory aw rdata σ k C) :
-    RDret (deployedRuntime v) g s0 σ (solcSlotWordAt (mappingSlotWord w ⟨1⟩) σ I).toByteArray := by
+    RDret fork (deployedRuntime v) g s0 σ (solcSlotWordAt (mappingSlotWord w ⟨1⟩) σ I).toByteArray := by
   have hret := poolManagerBlocks.poolManager_block_3018 hstack h
-  change RDret (deployedRuntime v) g s0 σ
+  change RDret fork (deployedRuntime v) g s0 σ
     (((solcSlotWordAt (keccakWord ⟨0⟩ ⟨64⟩ (twoWordHashMem (UInt256.land w solcAddrMask) ⟨1⟩ entryMemory)) σ I).toByteArray.write 0
       (twoWordHashMem (UInt256.land w solcAddrMask) ⟨1⟩ entryMemory)
       (memLoad ⟨64⟩ (twoWordHashMem (UInt256.land w solcAddrMask) ⟨1⟩ entryMemory)).toNat 32).readWithPadding
@@ -57,15 +59,15 @@ theorem protocolFeesAccruedTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
 theorem poolManagerProtocolFeesAccruedBodyCore {σ σ₀ A I} {g : UInt256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 31)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (poolManagerSelBytes 31) rfl hsel
   have hd : dispatchMsg contract I.calldata = some protocolFeesAccruedTransition := by
     apply poolManagerDispatch_protocolFeesAccrued <;> first
     | exact hsel
     | exact selectorNe_of_selIs hsel (by decide +kernel)
-  obtain ⟨k, C, rdEntry⟩ := poolManagerReachProtocolFeesAccruedBody (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, rdEntry⟩ := poolManagerReachProtocolFeesAccruedBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
-  change RD (deployedRuntime v) I (Sat256.ofUInt256 g)
+  change RD fork (deployedRuntime v) I (Sat256.ofUInt256 g)
     (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2942⟩ [solcSelectorWord I]
     entryMemory ⟨3⟩ .empty σ k C at rdEntry
   have hjump : (D_J (immutableLayout.runtime poolManagerBytecode (wordsOf (immStore v))) 0).contains
@@ -89,7 +91,7 @@ theorem poolManagerProtocolFeesAccruedBodyCore {σ σ₀ A I} {g : UInt256} (v :
               (transitionSignature protocolFeesAccruedTransition).paramTypes I.calldata =
               some ((∅ : Store).insert "arg0" (.address (AccountAddress.ofNat (calldataWord I.calldata 4).toNat))) :=
             decodeCalldata_address_ok hlen hhi hcanon
-          have hbody := protocolFeesAccruedBodyReturns (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          have hbody := protocolFeesAccruedBodyReturns (fork := fork) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             ((∅ : Store).insert "arg0" (.address (AccountAddress.ofNat (calldataWord I.calldata 4).toNat)))
             (immStore v) (calldataWord I.calldata 4) hwv hhi hcanon (store_get_self _ _ _)
             ((store_get_ne ∅ _ (by decide : ("arg0" == "protocolFeesAccrued") = false)).trans (store_get_empty _))
@@ -116,7 +118,7 @@ theorem poolManagerProtocolFeesAccruedBody {σ σ₀ A I} {g : UInt256} (v : Poo
     (_hWF : Syntax.poolManagerWF σ I)
     (_hGas : Syntax.poolManagerGasBound g)
     (hsel : selIs I (poolManagerSelBytes 31)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) :=
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) :=
   poolManagerProtocolFeesAccruedBodyCore v hcode hsize hsel
 
 end Benchmarks.UniswapV4PoolManager

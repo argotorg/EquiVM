@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.SwapStepModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -10,7 +12,7 @@ macro "swap_step_get" : tactic => `(tactic| (
   rfl))
 
 theorem swapStepZerosSource (imms : Store) (evm : EVM.State) (a : SwapStepArgs) :
-    ExecBlock config (swapStepFrame imms a) evm (swapStepFunction.body.take 4)
+    ExecBlock fork config (swapStepFrame imms a) evm (swapStepFunction.body.take 4)
       (.ok (swapStepZeroFrame imms a) evm) := by
   let f1 : Frame := {swapStepFrame imms a with
     locals := (swapStepLocals a).insert "sqrtRatioNextX96" (.int 0)}
@@ -25,7 +27,7 @@ theorem swapStepZerosSource (imms : Store) (evm : EVM.State) (a : SwapStepArgs) 
   exact ExecBlock.consNormal (ExecStmt.letDecl (by simp only [evalExpr?, pure])) ExecBlock.nil
 
 theorem swapStepDirectionSource (imms : Store) (evm : EVM.State) (a : SwapStepArgs) :
-    ExecStmt config (swapStepZeroFrame imms a) evm (swapStepFunction.body[4]!)
+    ExecStmt fork config (swapStepZeroFrame imms a) evm (swapStepFunction.body[4]!)
       (.ok (swapStepDirectionFrame imms a) evm) := by
   have hc := evalExpr_var_get (cfg := config) (evm := evm) (frame := swapStepZeroFrame imms a)
     (name := "sqrtRatioCurrentX96") (value := .int (Int.ofNat a.current.toNat)) (by swap_step_get)
@@ -39,9 +41,9 @@ theorem swapStepDirectionSource (imms : Store) (evm : EVM.State) (a : SwapStepAr
   exact Int.ofNat_le
 
 theorem swapStepPrefixSource (imms : Store) (evm : EVM.State) (a : SwapStepArgs) :
-    ExecBlock config (swapStepFrame imms a) evm (swapStepFunction.body.take 6)
+    ExecBlock fork config (swapStepFrame imms a) evm (swapStepFunction.body.take 6)
       (.ok (swapStepReadyFrame imms a) evm) := by
-  change ExecBlock config (swapStepFrame imms a) evm
+  change ExecBlock fork config (swapStepFrame imms a) evm
     (swapStepFunction.body.take 4 ++ [swapStepFunction.body[4]!, swapStepFunction.body[5]!]) _
   apply execBlock_append_ok (swapStepZerosSource imms evm a)
   refine ExecBlock.consNormal (swapStepDirectionSource imms evm a) ?_

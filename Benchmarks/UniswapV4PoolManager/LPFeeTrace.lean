@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.Routines
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_033
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_038
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -13,10 +15,10 @@ theorem decodeFee164Trace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+4 ≤ 1024)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨11887⟩ (ret :: R) mem aw rdata σ k C) :
+    (h : RD fork (deployedRuntime v) I g s0 ⟨11887⟩ (ret :: R) mem aw rdata σ k C) :
     ((calldataWord I.calldata 164).toNat < 2^24 ∧
-      ∃ k' C', RD (deployedRuntime v) I g s0 ret (calldataWord I.calldata 164 :: R) mem aw rdata σ k' C') ∨
-    (¬(calldataWord I.calldata 164).toNat < 2^24 ∧ RDrev (deployedRuntime v) g s0) := by
+      ∃ k' C', RD fork (deployedRuntime v) I g s0 ret (calldataWord I.calldata 164 :: R) mem aw rdata σ k' C') ∨
+    (¬(calldataWord I.calldata 164).toNat < 2^24 ∧ RDrev fork (deployedRuntime v) g s0) := by
   by_cases hf : (calldataWord I.calldata 164).toNat < 2^24
   · refine .inl ⟨hf, ?_⟩
     have hc : UInt256.land (calldataWord I.calldata 164) (UInt256.ofNat 16777215) =
@@ -38,9 +40,9 @@ theorem lpFeeValidateTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw ret fee : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+4 ≤ 1024) (hc : fee.toNat < 2^24)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨13966⟩ (fee :: ret :: R) mem aw rdata σ k C) :
-    if fee.toNat ≤ 1000000 then ∃ k' C', RD (deployedRuntime v) I g s0 ret R mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) I g s0 ⟨13966⟩ (fee :: ret :: R) mem aw rdata σ k C) :
+    if fee.toNat ≤ 1000000 then ∃ k' C', RD fork (deployedRuntime v) I g s0 ret R mem aw rdata σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hclean : UInt256.land (UInt256.ofNat 16777215) fee = fee :=
     (u256_land_comm _ _).trans (u256LandMaskCleanOfToNat _ _ rfl hc)
   by_cases hv : fee.toNat ≤ 1000000

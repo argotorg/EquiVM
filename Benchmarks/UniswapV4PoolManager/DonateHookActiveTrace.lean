@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.HookCallPaidTrace
 import Benchmarks.UniswapV4PoolManager.DonateHookReplyMemory
 import Benchmarks.UniswapV4PoolManager.HookReturnMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -19,12 +21,12 @@ theorem donateHookActiveTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hf : free.toNat+len.toNat+448 < UInt256.size) (hsrc : src.toNat+len.toNat ≤ I.calldata.size)
     (hgas : g.toNat < 324518553658429321982441292826060) (hpaid : Cₘ aw ≤ C)
     (hfree : memLoad (UInt256.ofNat 64) mem = free)
-    (h : RD (deployedRuntime v) I g s0 (donateHookEncodePc after)
+    (h : RD fork (deployedRuntime v) I g s0 (donateHookEncodePc after)
       (donateHookEncodeStack after (accountWord hook) hookPtr keyPtr src amount0 amount1 len delta R)
       mem aw rdata evm.accountMap k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
     ∃ post z out,
-      callViaEVM evm hook 0 (donateHookPayload after I.source key amount0 amount1
+      callViaEVM fork evm hook 0 (donateHookPayload after I.source key amount0 amount1
         (I.calldata.extract src.toNat (src.toNat+len.toNat))) (z, post, out) ∧
       post.executionEnv = I ∧ post.σ₀ = s0.σ₀ ∧ out.size < 2^138 ∧
       (if z = true ∧ hookReplyValid (donateHookPayload after I.source key amount0 amount1
@@ -32,11 +34,11 @@ theorem donateHookActiveTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
         HookReturnMemory 4000 mem
           (donateHookReplyMemory after I.calldata mem src.toNat free len I.source key amount0 amount1 out)
           free (donateHookReplyFree free len out) ∧
-        ∃ aw' k' C', Cₘ aw' ≤ C' ∧ RD (deployedRuntime v) I g s0 (donateHookCallRet after)
+        ∃ aw' k' C', Cₘ aw' ≤ C' ∧ RD fork (deployedRuntime v) I g s0 (donateHookCallRet after)
           (donateHookFree free len :: donateHookSavedStack after hookPtr keyPtr src amount0 amount1 len delta R)
           (donateHookReplyMemory after I.calldata mem src.toNat free len I.source key amount0 amount1 out)
           aw' out post.accountMap k' C'
-      else RDrev (deployedRuntime v) g s0) := by
+      else RDrev fork (deployedRuntime v) g s0) := by
   have hsaved : (donateHookSavedStack after hookPtr keyPtr src amount0 amount1 len delta R).length ≤ R.length+6 := by
     cases after <;> simp only [donateHookSavedStack, Bool.false_eq_true, if_false, if_true, List.length_cons] <;> omega
   rcases donateHookPrepareTrace v after hstack hk hc hb hf hgas hpaid hfree h with

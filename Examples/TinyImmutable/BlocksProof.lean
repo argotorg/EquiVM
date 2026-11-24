@@ -1,6 +1,8 @@
 import Examples.TinyImmutable.Common
 import Examples.TinyImmutable.BlocksAuto
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open TinyImmutable.Immutables
 open Reasoning.Immutables (wordsOf)
@@ -11,9 +13,9 @@ namespace TinyImmutable
 theorem tinyBlocksReachSelector {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
     (hcode : I.code = deployedRuntime v) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨25⟩ []
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨25⟩ []
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have hvalid15 : (D_J (immutableLayout.runtime tinyImmutableBytecode (wordsOf (immStore v))) 0).contains
       (UInt256.ofNat 15) = true := by
     exact tinyContains15 v
@@ -32,7 +34,7 @@ theorem tinyBlocksReachOwnerBody {σ σ₀ A I} {g : Sat256} (v : TinyImmutables
     (hcode : I.code = deployedRuntime v) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (howner : (ownerSelBytes == I.calldata.extract 0 4) = true) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨67⟩
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨67⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨k, C, rd25⟩ := tinyBlocksReachSelector v hcode hwv hsz hsize
   have hvalid : (D_J (immutableLayout.runtime tinyImmutableBytecode (wordsOf (immStore v))) 0).contains
@@ -52,7 +54,7 @@ theorem tinyBlocksReachQuoteBody {σ σ₀ A I} {g : Sat256} (v : TinyImmutables
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (howner : (ownerSelBytes == I.calldata.extract 0 4) = false)
     (hquote : (quoteSelBytes == I.calldata.extract 0 4) = true) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨148⟩
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨148⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨k, C, rd25⟩ := tinyBlocksReachSelector v hcode hwv hsz hsize
   have hownerCond : UInt256.eq ⟨2376452955⟩ (solcSelectorWord I) = ⟨0⟩ := by
@@ -79,7 +81,7 @@ theorem tinyBlocksReachScaleBody {σ σ₀ A I} {g : Sat256} (v : TinyImmutables
     (howner : (ownerSelBytes == I.calldata.extract 0 4) = false)
     (hquote : (quoteSelBytes == I.calldata.extract 0 4) = false)
     (hscale : (scaleSelBytes == I.calldata.extract 0 4) = true) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨181⟩
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨181⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨k, C, rd25⟩ := tinyBlocksReachSelector v hcode hwv hsz hsize
   have hownerCond : UInt256.eq ⟨2376452955⟩ (solcSelectorWord I) = ⟨0⟩ := by
@@ -110,8 +112,8 @@ theorem tinyBlocksReachScaleBody {σ σ₀ A I} {g : Sat256} (v : TinyImmutables
 
 theorem tinyBlocksX_callvalue_ne {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
     (hcode : I.code = deployedRuntime v) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+    RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd12 := tinyImmutableBlocks.tinyImmutable_block_0_fallthrough
     (immWords := wordsOf (immStore v)) (by decide) (isZero_eq_zero_of_ne hwv) rd0
   have hrev := tinyImmutableBlocks.tinyImmutable_block_12 (immWords := wordsOf (immStore v))
@@ -121,8 +123,8 @@ theorem tinyBlocksX_callvalue_ne {σ σ₀ A I} {g : Sat256} (v : TinyImmutables
 theorem tinyBlocksX_short {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
     (hcode : I.code = deployedRuntime v) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
-    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+    RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have hvalid15 : (D_J (immutableLayout.runtime tinyImmutableBytecode (wordsOf (immStore v))) 0).contains
       (UInt256.ofNat 15) = true := by
     exact tinyContains15 v
@@ -143,7 +145,7 @@ theorem tinyBlocksX_noMatch {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
     (howner : (ownerSelBytes == I.calldata.extract 0 4) = false)
     (hquote : (quoteSelBytes == I.calldata.extract 0 4) = false)
     (hscale : (scaleSelBytes == I.calldata.extract 0 4) = false) :
-    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
   obtain ⟨k, C, rd25⟩ := tinyBlocksReachSelector v hcode hwv hsz hsize
   have hownerCond : UInt256.eq ⟨2376452955⟩ (solcSelectorWord I) = ⟨0⟩ := by
     rw [solcSelectorWord, tinyOwnerEvmSelector hsz, howner]
@@ -172,10 +174,10 @@ theorem tinyBlocksX_noMatch {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
 theorem RD.tinyBlocksReturnWord167 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : Nat} {v : TinyImmutables} {val : UInt256} {R : List UInt256}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD (deployedRuntime v) ee g s0 ⟨167⟩ (val :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨167⟩ (val :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata acc k C)
     (hov : R.length + 5 ≤ 1024) :
-    RDret (deployedRuntime v) g s0 acc (UInt256.toByteArray val) := by
+    RDret fork (deployedRuntime v) g s0 acc (UInt256.toByteArray val) := by
   have hvalid : (D_J (immutableLayout.runtime tinyImmutableBytecode (wordsOf (immStore v))) 0).contains
       (UInt256.ofNat 139) = true := by
     exact tinyContains139 v
@@ -201,10 +203,10 @@ theorem RD.tinyBlocksReturnWord167 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
 theorem RD.tinyBlocksReturnAddress106 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : Nat} {v : TinyImmutables} {val ret : UInt256} {R : List UInt256}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD (deployedRuntime v) ee g s0 ⟨106⟩ (val :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨106⟩ (val :: ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata acc k C)
     (hov : R.length + 9 ≤ 1024) :
-    RDret (deployedRuntime v) g s0 acc
+    RDret fork (deployedRuntime v) g s0 acc
       (UInt256.toByteArray (UInt256.land val solcAddrMask)) := by
   have rd139 := tinyImmutableBlocks.tinyImmutable_block_106 (immWords := wordsOf (immStore v))
     (by simp only [List.length_cons] at hov ⊢; omega) h

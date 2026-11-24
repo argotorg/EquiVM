@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.Dispatch
 import Benchmarks.UniswapV4PoolManager.Routines
 import Benchmarks.UniswapV4PoolManager.TransferFromBalance
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # PoolManager `transferFrom(address,address,uint256,uint256)`
 
@@ -73,15 +75,15 @@ theorem transferFromAuthCore {σ σ₀ A I} {g : UInt256} {args : Store}
       (calldataFrame contract args (immStore v) (initState σ σ₀ (Sat256.ofUInt256 g) A I))
       sender receiver (calldataWord I.calldata 68) (calldataWord I.calldata 100))
     (hstack : R.length + 12 ≤ 1024)
-    (h : RD (deployedRuntime v) I (Sat256.ofUInt256 g)
+    (h : RD fork (deployedRuntime v) I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨453⟩
       (receiver :: sender :: R) entryMemory ⟨3⟩ .empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let id := calldataWord I.calldata 68
   let amount := calldataWord I.calldata 100
   let f := calldataFrame contract args (immStore v) evm0
-  have hauth := transferFromAuthExec (evm := evm0) hargs hcs
+  have hauth := transferFromAuthExec (fork := fork) (evm := evm0) hargs hcs
   by_cases hneed : transferFromNeedsAllowance evm0 sender
   · rw [transferFromAuthResult, if_pos hneed] at hauth
     obtain ⟨awo, ko, Co, rd647⟩ := transferFromNeedAllowanceTrace v hstack entryMemory_size hcs hneed h
@@ -90,7 +92,7 @@ theorem transferFromAuthCore {σ σ₀ A I} {g : UInt256} {args : Store}
       (nestedMappingMemory_load64 _ _ _ entryMemory_size).trans entryMemory_load64
     obtain ⟨awa, ka, Ca, rdAllowed⟩ := transferFromAllowanceReadTrace v hstack hmemO rd647
     let allowed := transferFromAllowed evm0 sender id
-    change RD (deployedRuntime v) I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+    change RD fork (deployedRuntime v) I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (if solcSlotWordAt (allowanceSlot sender (accountWord I.source) id) σ I = maxAllowanceWord then ⟨723⟩ else ⟨730⟩)
       (amount :: solcSlotWordAt (allowanceSlot sender (accountWord I.source) id) σ I ::
         transferFromStack sender receiver id amount R)
@@ -158,15 +160,15 @@ theorem transferFromAuthCore {σ σ₀ A I} {g : UInt256} {args : Store}
 theorem poolManagerTransferFromBodyCore {σ σ₀ A I} {g : UInt256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 32)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (poolManagerSelBytes 32) rfl hsel
   have hd : dispatchMsg contract I.calldata = some transferFromTransition := by
     apply poolManagerDispatch_transferFrom <;> first
     | exact hsel
     | exact selectorNe_of_selIs hsel (by decide +kernel)
-  obtain ⟨k, C, rdEntry⟩ := poolManagerReachTransferFromBody (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, rdEntry⟩ := poolManagerReachTransferFromBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
-  change RD (deployedRuntime v) I (Sat256.ofUInt256 g)
+  change RD fork (deployedRuntime v) I (Sat256.ofUInt256 g)
     (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨390⟩ []
     entryMemory ⟨3⟩ .empty σ k C at rdEntry
   have hj816 : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 816) = true := by
@@ -223,7 +225,7 @@ theorem poolManagerTransferFromBody {σ σ₀ A I} {g : UInt256} (v : PoolManage
     (_hWF : Syntax.poolManagerWF σ I)
     (_hGas : Syntax.poolManagerGasBound g)
     (hsel : selIs I (poolManagerSelBytes 32)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) :=
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) :=
   poolManagerTransferFromBodyCore v hcode hsize hsel
 
 end Benchmarks.UniswapV4PoolManager

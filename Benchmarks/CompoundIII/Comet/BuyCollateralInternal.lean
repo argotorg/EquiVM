@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.BuyCollateralReservesEvm
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -15,10 +17,10 @@ theorem cometBuyCollateralAfterLock {v : CometWithExtendedAssetListImmutables}
     (hmin : calldataWord ee.calldata 36 = minimum) (hbase : calldataWord ee.calldata 68 = base)
     (hfree : memLoad ⟨64⟩ mem = free) (hlo : 96 ≤ free.toNat)
     (hb : free.toNat + 928 + 768 * v.numAssets.toNat < 2^64) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨6403⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨6403⟩
       (EVM.word asset.val :: EVM.word recipient.val :: R) mem aw rdata σ k C) :
-    ∃ result, BuyCollateralAfterLock v asset recipient minimum base evm result ∧
-      returnOutcomeRun (deployedRuntime v) g s0 ByteArray.empty result := by
+    ∃ result, BuyCollateralAfterLock fork v asset recipient minimum base evm result ∧
+      returnOutcomeRun fork (deployedRuntime v) g s0 ByteArray.empty result := by
   have hp : pauseBitWord evm ⟨4, by decide⟩ =
       UInt256.land (UInt256.shiftRight (solcSlotWordAt ⟨1⟩ σ ee) ⟨248⟩) ⟨16⟩ := by
     rw [pauseBitWord, pauseFlagsWord_eq_shift, hs.storageRead]
@@ -62,10 +64,10 @@ theorem cometBuyCollateralCall {v : CometWithExtendedAssetListImmutables}
     (hstack : R.length + 37 ≤ 1024)
     (hmin : calldataWord ee.calldata 36 = minimum) (hbase : calldataWord ee.calldata 68 = base)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨6395⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨6395⟩
       (EVM.word asset.val :: EVM.word recipient.val :: R) solcFreePtrMem aw rdata σ k C) :
-    ∃ result, BuyCollateralTrace v asset recipient minimum base evm result ∧
-      returnOutcomeRun (deployedRuntime v) g s0 ByteArray.empty result := by
+    ∃ result, BuyCollateralTrace fork v asset recipient minimum base evm result ∧
+      returnOutcomeRun fork (deployedRuntime v) g s0 ByteArray.empty result := by
   have r1 := cometWithExtendedAssetList_block_6395 (immWords := wordsOf (immStore v))
     (by change R.length + 2 + 2 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h

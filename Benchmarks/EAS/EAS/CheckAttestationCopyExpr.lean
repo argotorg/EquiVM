@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.CheckAttestationCopySyntax
 import Benchmarks.EAS.EAS.CalldataWordSource
 import Benchmarks.EAS.EAS.NaturalWordExpr
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -19,7 +21,7 @@ theorem checkAttestationCopyWordSource {L imms : Store} {evm : EVM.State} {e : E
     (htr : (name==(name++"$allocation"))=false) (hrc : (name=="$EAS.freeMemory")=false)
     (he : evalExpr? config {contract := contract,locals := L,immutables := imms} evm e=.ok (.int (Int.ofNat ptr.toNat)))
     (hh : L.get? "$EAS.freeMemory"=some (.int (Int.ofNat heap))) :
-    ExecBlock config {contract := contract,locals := L,immutables := imms} evm (checkAttestationCopyWord e name)
+    ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm (checkAttestationCopyWord e name)
       (.ok {contract := contract,locals := (heapResultLocals L (name++"$allocation") name "$EAS.freeMemory"
         (.int (Int.ofNat (calldataWord evm.executionEnv.calldata ptr.toNat).toNat)) heap),immutables := imms} evm) := by
   have hargs : evalExprs? config {contract := contract,locals := L,immutables := imms} evm [e,.var "$EAS.freeMemory"]=

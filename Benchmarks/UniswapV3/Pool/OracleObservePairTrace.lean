@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.OracleObserveExactTrace
 import Benchmarks.UniswapV3.Pool.OracleInterpolationTrace
 import Benchmarks.UniswapV3.Pool.OracleObserveReturnTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -14,7 +16,7 @@ theorem oracleObservePairX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {tickArg secondsAgoRaw timeRaw ret time secondsAgo targetRaw : UInt256}
     {tick : Int} {before after : OracleObservation} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13381⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13381⟩
       (afterPtr :: beforePtr :: ⟨0⟩ :: ⟨0⟩ :: targetRaw :: ⟨0⟩ :: ⟨0⟩ :: card :: liquidity ::
         index :: tickArg :: secondsAgoRaw :: timeRaw :: ⟨8⟩ :: ret :: R) mem aw rdata σ k C)
     (hn : secondsAgo ≠ ⟨0⟩) (hin : index.toNat < 65535)
@@ -26,7 +28,7 @@ theorem oracleObservePairX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hcover : free.toNat ≤ aw.toNat * 32 + 32)
     (htarget : UInt256.land (UInt256.ofNat 4294967295) targetRaw = oracleDelta time secondsAgo)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 26 ≤ 1024) :
-    OracleObserveSingleOutcome v ee g s0 σ rdata ret R time secondsAgo tick index liquidity card
+    OracleObserveSingleOutcome fork v ee g s0 σ rdata ret R time secondsAgo tick index liquidity card
       mem aw free C := by
   obtain ⟨vb, va⟩ := hrun.valid (oracleDelta_lt _ _)
   have r1 := oracleObserveCompareBeforeX (v := v) rd hm hb hbefore hbe hcover

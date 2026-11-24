@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.AttestPublicRun
 import Benchmarks.EAS.EAS.AttestPrelude
 import Benchmarks.EAS.EAS.CalldataPlans
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables ABI.Solc08Calldata
 namespace Benchmarks.EAS.EAS
@@ -9,7 +11,7 @@ set_option maxRecDepth 10000
 theorem easAttestBody {σ σ₀ A I} {g : UInt256} (v : EASImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (easSelBytes 20)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (easSelBytes 20) rfl hsel
   have hd : dispatchMsg contract I.calldata = some attestTransition := by
     apply easDispatch_attest (hsel := hsel)
@@ -19,7 +21,7 @@ theorem easAttestBody {σ σ₀ A I} {g : UInt256} (v : EASImmutables)
       decide +kernel
   have hplans : easPlans (bytesToWord (I.calldata.toList.take 4)).toNat = [attestRequestPlan] :=
     easPlans_of_selector hsel (by native_decide)
-  obtain ⟨k,C,rd⟩ := easReachAttestBody (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
+  obtain ⟨k,C,rd⟩ := easReachAttestBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
   by_cases h36 : 36 ≤ I.calldata.size
   · by_cases hbig : I.calldata.size < 2^255+4
     · have rd1 := easBlocks.eas_block_407_fallthrough (immWords := wordsOf (immStore v)) (by simp)
@@ -37,7 +39,7 @@ theorem easAttestBody {σ σ₀ A I} {g : UInt256} (v : EASImmutables)
           · have hv : attestValid I.calldata := ⟨hh.1,hh.2,href,hdata⟩
             rw [if_pos hv] at hdec
             let args := (∅ : Store).insert "request" (attestRequestValue I.calldata (attestRoot I.calldata))
-            have hprefix := attestPublicPrefixSource (L := args) (imms := immStore v)
+            have hprefix := attestPublicPrefixSource (fork := fork) (L := args) (imms := immStore v)
               (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I) hsz hsize (by change I.calldata.size-4 < 2^255; omega)
             have hreq : (attestPublicPrefixLocals args I.calldata).get? "request" =
                 some (attestRequestValue I.calldata (attestRoot I.calldata)) := by

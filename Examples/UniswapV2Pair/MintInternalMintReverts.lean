@@ -1,6 +1,8 @@
 import Reasoning.SolcRoutines
 import Examples.UniswapV2Pair.MintInternalMintRuntime
 
+variable {fork : Ethereum.Fork}
+
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
@@ -21,14 +23,14 @@ theorem solcErrorStringRevertTail_size164 {code : ByteArray} {g : Sat256}
     {pc len rawWord shift word : UInt256} {op : Operation.POp} {width : ℕ}
     {stk : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD code ee g s0 pc stk mem (UInt256.ofNat 3) rdata acc k C)
+    (h : RD fork code ee g s0 pc stk mem (UInt256.ofNat 3) rdata acc k C)
     (hwf : solcErrorStringRevertTailWf code pc len rawWord shift op width)
     (hpush : op ≠ .PUSH0)
     (hword : UInt256.shiftLeft rawWord shift = word)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : stk.length + 5 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   rcases hwf with
     ⟨hd0, hd2, hd3, hd4, hd8, hd10, hd11, hd12, hd13, hd15, hd17, hd18,
       hd19, hd20, hd22, hd24, hd25, hd26, hd27, hdRawOut, hdShl, hd68,
@@ -94,7 +96,7 @@ theorem solcCheckedAddStringRevert_size164 {code : ByteArray} {g : Sat256}
     {pc okPc len rawWord shift word : UInt256} {op : Operation.POp} {width : ℕ}
     {a b ret : UInt256} {R : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD code ee g s0 pc (b :: a :: ret :: R) mem (UInt256.ofNat 3) rdata acc k C)
+    (h : RD fork code ee g s0 pc (b :: a :: ret :: R) mem (UInt256.ofNat 3) rdata acc k C)
     (hadd : solcCheckedAddSuccessWf code pc okPc)
     (htail : solcErrorStringRevertTailWf code (solcCheckedArithmeticRevertPc pc)
       len rawWord shift op width)
@@ -104,7 +106,7 @@ theorem solcCheckedAddStringRevert_size164 {code : ByteArray} {g : Sat256}
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 9 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   rcases hadd with
     ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd8, hd11, _, _, _, _, _, _⟩
   have hsum_lt2 : a.toNat + b.toNat < 2 * UInt256.size := by
@@ -186,10 +188,10 @@ theorem evalExpr_mintFunction_to_balance_add_revert
 theorem uniswapMintFunctionBodyReverts_totalSupplyOverflow
     (evm : EVM.State) (recipient : AccountAddress) (value : UInt256)
     (hover : UInt256.size ≤ mintFunctionTotalSupplyNewNat evm value) :
-    ExecFuncBody config { contract := contract, locals := mintFunctionCallStore recipient value }
+    ExecFuncBody fork config { contract := contract, locals := mintFunctionCallStore recipient value }
       evm mintFunction.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
-  change ExecBlock config { contract := contract, locals := mintFunctionCallStore recipient value }
+  change ExecBlock fork config { contract := contract, locals := mintFunctionCallStore recipient value }
     evm
     [ .assign .storage totalSupplyRef
         (u256 (.binary .add (.storage totalSupplyRef) (.var "value"))),
@@ -205,10 +207,10 @@ theorem uniswapMintFunctionBodyReverts_balanceOverflow
     (hfitSupply : mintFunctionTotalSupplyNewNat evm value < UInt256.size)
     (hover : UInt256.size ≤ mintFunctionToBalanceNewNat evm recipient value)
     (hperm : evm.executionEnv.perm = true) :
-    ExecFuncBody config { contract := contract, locals := mintFunctionCallStore recipient value }
+    ExecFuncBody fork config { contract := contract, locals := mintFunctionCallStore recipient value }
       evm mintFunction.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
-  change ExecBlock config { contract := contract, locals := mintFunctionCallStore recipient value }
+  change ExecBlock fork config { contract := contract, locals := mintFunctionCallStore recipient value }
     evm
     [ .assign .storage totalSupplyRef
         (u256 (.binary .add (.storage totalSupplyRef) (.var "value"))),
@@ -232,7 +234,7 @@ theorem uniswapMintFunctionCallRevert_totalSupplyOverflow
       .ok [mintFunctionToValue recipient, mintFunctionValueValue value])
     (hover : UInt256.size ≤ mintFunctionTotalSupplyNewNat evm value)
     (himm : caller.immutables = ∅ := by first | rfl | assumption) :
-    ExecStmt config caller evm (.internalCall "_mint" args retVar) .reverted := by
+    ExecStmt fork config caller evm (.internalCall "_mint" args retVar) .reverted := by
   exact internalCallFunctionRevert
     (cfg := config) (caller := caller) (evm := evm)
     (name := "_mint") (retVar := retVar) (args := args)
@@ -254,7 +256,7 @@ theorem uniswapMintFunctionCallRevert_balanceOverflow
     (hover : UInt256.size ≤ mintFunctionToBalanceNewNat evm recipient value)
     (himm : caller.immutables = ∅ := by first | rfl | assumption)
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config caller evm (.internalCall "_mint" args retVar) .reverted := by
+    ExecStmt fork config caller evm (.internalCall "_mint" args retVar) .reverted := by
   exact internalCallFunctionRevert
     (cfg := config) (caller := caller) (evm := evm)
     (name := "_mint") (retVar := retVar) (args := args)
@@ -264,7 +266,7 @@ theorem uniswapMintFunctionCallRevert_balanceOverflow
     (bindParams_mintFunction_call recipient value)
     (by
       simpa [hcontract, himm] using
-        (uniswapMintFunctionBodyReverts_balanceOverflow (hperm := by assumption) evm recipient value hfitSupply hover))
+        (uniswapMintFunctionBodyReverts_balanceOverflow (fork := fork) (hperm := by assumption) evm recipient value hfitSupply hover))
 
 set_option maxHeartbeats 1000000 in
 theorem RD.solcErrorStringRevertTail_feeToStaticcall_size164
@@ -272,14 +274,14 @@ theorem RD.solcErrorStringRevertTail_feeToStaticcall_size164
     {pc len rawWord shift word : UInt256} {op : Operation.POp} {width : ℕ}
     {stk : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD code ee g s0 pc stk mem feeToStaticcallActiveWords rdata acc k C)
+    (h : RD fork code ee g s0 pc stk mem feeToStaticcallActiveWords rdata acc k C)
     (hwf : solcErrorStringRevertTailWf code pc len rawWord shift op width)
     (hpush : op ≠ .PUSH0)
     (hword : UInt256.shiftLeft rawWord shift = word)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : stk.length + 5 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   rcases hwf with
     ⟨hd0, hd2, hd3, hd4, hd8, hd10, hd11, hd12, hd13, hd15, hd17, hd18,
       hd19, hd20, hd22, hd24, hd25, hd26, hd27, hdRawOut, hdShl, hd68,
@@ -350,7 +352,7 @@ theorem RD.solcCheckedAddStringRevert_feeToStaticcall_size164
     {pc okPc len rawWord shift word : UInt256} {op : Operation.POp} {width : ℕ}
     {a b ret : UInt256} {R : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD code ee g s0 pc (b :: a :: ret :: R) mem feeToStaticcallActiveWords rdata acc k C)
+    (h : RD fork code ee g s0 pc (b :: a :: ret :: R) mem feeToStaticcallActiveWords rdata acc k C)
     (hadd : solcCheckedAddSuccessWf code pc okPc)
     (htail : solcErrorStringRevertTailWf code (solcCheckedArithmeticRevertPc pc)
       len rawWord shift op width)
@@ -360,7 +362,7 @@ theorem RD.solcCheckedAddStringRevert_feeToStaticcall_size164
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 9 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   rcases hadd with
     ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd8, hd11, _, _, _, _, _, _⟩
   have hsum_lt2 : a.toNat + b.toNat < 2 * UInt256.size := by
@@ -403,13 +405,13 @@ theorem RD.uniswapSafeMathAddOverflow_feeToStaticcall_size164
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {a b ret : UInt256} {R : List UInt256} {mem : ByteArray}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD uniswapV2PairBytecode ee g s0 ⟨8515⟩ (b :: a :: ret :: R)
+    (h : RD fork uniswapV2PairBytecode ee g s0 ⟨8515⟩ (b :: a :: ret :: R)
       mem feeToStaticcallActiveWords rdata acc k C)
     (hover : UInt256.size ≤ a.toNat + b.toNat)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 9 ≤ 1024) :
-    RDrev uniswapV2PairBytecode g s0 := by
+    RDrev fork uniswapV2PairBytecode g s0 := by
   exact RD.solcCheckedAddStringRevert_feeToStaticcall_size164
     (code := uniswapV2PairBytecode) (pc := ⟨8515⟩) (okPc := ⟨2911⟩)
     (len := ⟨20⟩)
@@ -431,13 +433,13 @@ theorem uniswapInternalMintRuntimeTotalSupplyOverflowReverts
     {σ : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ}
     {value recipient ret : UInt256} {R : List UInt256}
-    (rd8128 : RD uniswapV2PairBytecode ee g s0 ⟨8128⟩
+    (rd8128 : RD fork uniswapV2PairBytecode ee g s0 ⟨8128⟩
       (value :: recipient :: ret :: R) mem feeToStaticcallActiveWords rdata σ k C)
     (hover : UInt256.size ≤ (solcSlotWordAt ⟨0⟩ σ ee).toNat + value.toNat)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 12 ≤ 1024) :
-    RDrev uniswapV2PairBytecode g s0 := by
+    RDrev fork uniswapV2PairBytecode g s0 := by
   obtain ⟨_, _, rd8515⟩ :=
     uniswapInternalMintRuntimeTotalSupplyAddEntry rd8128 (by omega)
   exact RD.uniswapSafeMathAddOverflow_feeToStaticcall_size164
@@ -451,7 +453,7 @@ theorem uniswapInternalMintRuntimeBalanceOverflowReverts
     {σ : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ}
     {value recipient ret : UInt256} {R : List UInt256}
-    (rd8128 : RD uniswapV2PairBytecode ee g s0 ⟨8128⟩
+    (rd8128 : RD fork uniswapV2PairBytecode ee g s0 ⟨8128⟩
       (value :: recipient :: ret :: R) mem feeToStaticcallActiveWords rdata σ k C)
     (hperm : ee.perm = true)
     (htotalFit : (solcSlotWordAt ⟨0⟩ σ ee).toNat + value.toNat < UInt256.size)
@@ -463,7 +465,7 @@ theorem uniswapInternalMintRuntimeBalanceOverflowReverts
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 16 ≤ 1024) :
-    RDrev uniswapV2PairBytecode g s0 := by
+    RDrev fork uniswapV2PairBytecode g s0 := by
   obtain ⟨_, _, rd8515Total⟩ :=
     uniswapInternalMintRuntimeTotalSupplyAddEntry rd8128 (by omega)
   obtain ⟨_, _, rd8147⟩ :=

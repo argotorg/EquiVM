@@ -6,6 +6,8 @@ import Benchmarks.CompoundIII.Comet.TransferBaseTailModel
 import Benchmarks.CompoundIII.Comet.WithdrawBaseModel
 import Benchmarks.CompoundIII.Comet.SupplyBaseModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -23,45 +25,45 @@ def transferBaseUpdates (v : CometWithExtendedAssetListImmutables) (original evm
     (withdrawBaseBasic original dst) (withdrawBaseNext original src amount)
     (supplyBaseNext original dst amount)
 
-inductive TransferBaseAfterAccrue (v : CometWithExtendedAssetListImmutables)
+inductive TransferBaseAfterAccrue (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables)
     (src dst : AccountAddress) (amount : UInt256) (evm : EVM.State) : InternalOutcome → Prop where
   | mathFailed (hf : ¬ TransferBaseMathFits evm (withdrawBaseBasic evm src).principal
       (withdrawBaseBasic evm dst).principal amount) :
-      TransferBaseAfterAccrue v src dst amount evm .reverted
+      TransferBaseAfterAccrue fork v src dst amount evm .reverted
   | totalsReverted (hf : TransferBaseMathFits evm (withdrawBaseBasic evm src).principal
       (withdrawBaseBasic evm dst).principal amount)
       (ht : transferBaseTotals evm src dst amount = .reverted) :
-      TransferBaseAfterAccrue v src dst amount evm .reverted
+      TransferBaseAfterAccrue fork v src dst amount evm .reverted
   | totalsStatic (hf : TransferBaseMathFits evm (withdrawBaseBasic evm src).principal
       (withdrawBaseBasic evm dst).principal amount)
       (ht : transferBaseTotals evm src dst amount = .staticViolation) :
-      TransferBaseAfterAccrue v src dst amount evm .staticViolation
+      TransferBaseAfterAccrue fork v src dst amount evm .staticViolation
   | updateReverted {evm'} (hf : TransferBaseMathFits evm (withdrawBaseBasic evm src).principal
       (withdrawBaseBasic evm dst).principal amount)
       (ht : transferBaseTotals evm src dst amount = .ok evm')
       (hu : transferBaseUpdates v evm evm' src dst amount = .reverted) :
-      TransferBaseAfterAccrue v src dst amount evm .reverted
+      TransferBaseAfterAccrue fork v src dst amount evm .reverted
   | updateStatic {evm'} (hf : TransferBaseMathFits evm (withdrawBaseBasic evm src).principal
       (withdrawBaseBasic evm dst).principal amount)
       (ht : transferBaseTotals evm src dst amount = .ok evm')
       (hu : transferBaseUpdates v evm evm' src dst amount = .staticViolation) :
-      TransferBaseAfterAccrue v src dst amount evm .staticViolation
+      TransferBaseAfterAccrue fork v src dst amount evm .staticViolation
   | done {evm' evm'' result} (hf : TransferBaseMathFits evm (withdrawBaseBasic evm src).principal
       (withdrawBaseBasic evm dst).principal amount)
       (ht : transferBaseTotals evm src dst amount = .ok evm')
       (hu : transferBaseUpdates v evm evm' src dst amount = .ok evm'')
-      (tail : TransferBaseTailTrace v src
+      (tail : TransferBaseTailTrace fork v src
         (withdrawBaseBalance evm (withdrawBaseBasic evm src).principal amount) evm'' result) :
-      TransferBaseAfterAccrue v src dst amount evm result
+      TransferBaseAfterAccrue fork v src dst amount evm result
 
-inductive TransferBaseTrace (v : CometWithExtendedAssetListImmutables)
+inductive TransferBaseTrace (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables)
     (src dst : AccountAddress) (amount : UInt256) (evm : EVM.State) : InternalOutcome → Prop where
-  | reverted (ha : accrueOutcome v evm = .reverted) : TransferBaseTrace v src dst amount evm .reverted
+  | reverted (ha : accrueOutcome v evm = .reverted) : TransferBaseTrace fork v src dst amount evm .reverted
   | staticViolation (ha : accrueOutcome v evm = .staticViolation) :
-      TransferBaseTrace v src dst amount evm .staticViolation
+      TransferBaseTrace fork v src dst amount evm .staticViolation
   | done {evm' result} (ha : accrueOutcome v evm = .ok evm')
-      (tail : TransferBaseAfterAccrue v src dst amount evm' result) :
-      TransferBaseTrace v src dst amount evm result
+      (tail : TransferBaseAfterAccrue fork v src dst amount evm' result) :
+      TransferBaseTrace fork v src dst amount evm result
 
 def transferBaseReadBlock : List Stmt :=
   [.letDecl "srcUser" (some (.tuple

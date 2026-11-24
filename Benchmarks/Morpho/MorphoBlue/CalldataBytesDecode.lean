@@ -3,6 +3,8 @@ import Benchmarks.Morpho.MorphoBlue.Dispatch
 import Benchmarks.Morpho.MorphoBlue.RuntimeBlocks_031
 import Benchmarks.EAS.Attester.WordHelpers
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -15,18 +17,18 @@ theorem morphoDecodeCalldataBytes {v : MorphoImmutables} {ee : ExecutionEnv} {g 
     (hstack : R.length + 8 ≤ 1024) (hstart : start.toNat < 2 ^ 65)
     (hsize : ee.calldata.size < UInt256.size)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 11752)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 11752)
       (start :: UInt256.ofNat ee.calldata.size :: ret :: R) mem aw out σ k C) :
     (¬ (ee.calldata.size < 2 ^ 255 ∧ CalldataBytesBounds ee.calldata start.toNat) ∧
-      RDrev (deployedRuntime v) g s0) ∨
+      RDrev fork (deployedRuntime v) g s0) ∨
     (ee.calldata.size < 2 ^ 255 ∧ CalldataBytesBounds ee.calldata start.toNat ∧ ∃ k' C',
-      RD (deployedRuntime v) ee g s0 ret
+      RD fork (deployedRuntime v) ee g s0 ret
         (calldataWord ee.calldata start.toNat :: (start + UInt256.ofNat 32) :: R) mem aw out σ k' C') := by
   have h31 : (start + UInt256.ofNat 31).toNat = start.toNat + 31 :=
     uadd_word_ofNat_toNat start 31 (by norm_num [UInt256.size] at hstart ⊢; omega)
   have hlow : (start + UInt256.ofNat 31).toNat < 2 ^ 255 := by rw [h31]; omega
   have hbad (hc : UInt256.isZero (UInt256.slt (start + UInt256.ofNat 31)
-      (UInt256.ofNat ee.calldata.size)) ≠ UInt256.ofNat 0) : RDrev (deployedRuntime v) g s0 := by
+      (UInt256.ofNat ee.calldata.size)) ≠ UInt256.ofNat 0) : RDrev fork (deployedRuntime v) g s0 := by
     have rd := morphoBlocks.morpho_block_11752_taken (immWords := wordsOf (immStore v))
       (by omega) hc (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
     exact morphoBlocks.morpho_block_712 (immWords := wordsOf (immStore v))
@@ -43,7 +45,7 @@ theorem morphoDecodeCalldataBytes {v : MorphoImmutables} {ee : ExecutionEnv} {g 
     decide
   have rd0 := morphoBlocks.morpho_block_11752_fallthrough (immWords := wordsOf (immStore v))
     (by omega) (by rw [slt_lit_one_low hh (by rw [h31]; omega)]; rfl) h
-  change RD _ _ _ _ _ (ret :: UInt256.ofNat ee.calldata.size :: start :: R) _ _ _ _ _ _ at rd0
+  change RD fork _ _ _ _ _ (ret :: UInt256.ofNat ee.calldata.size :: start :: R) _ _ _ _ _ _ at rd0
   let len := calldataWord ee.calldata start.toNat
   by_cases hn : len.toNat ≤ solcMaxU64
   swap
@@ -57,7 +59,7 @@ theorem morphoDecodeCalldataBytes {v : MorphoImmutables} {ee : ExecutionEnv} {g 
         (by change R.length + 4 + 2 ≤ 1024; omega) rd⟩
   have rd1 := morphoBlocks.morpho_block_11765_fallthrough (immWords := wordsOf (immStore v))
     (by omega) (ugt_zero hn) rd0
-  change RD _ _ _ _ _ (UInt256.ofNat ee.calldata.size :: ret :: len :: start :: R) _ _ _ _ _ _ at rd1
+  change RD fork _ _ _ _ _ (UInt256.ofNat ee.calldata.size :: ret :: len :: start :: R) _ _ _ _ _ _ at rd1
   have hend : ((start + len) + UInt256.ofNat 32).toNat = start.toNat + len.toNat + 32 := by
     have hb : start.toNat + len.toNat + 32 < UInt256.size := by
       norm_num [solcMaxU64, UInt256.size] at hn ⊢; omega

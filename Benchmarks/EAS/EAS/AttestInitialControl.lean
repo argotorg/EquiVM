@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.AttestResultAllocate
 import Benchmarks.EAS.EAS.AttestUIDMemory
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -40,8 +42,8 @@ theorem easAttestEntry {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {schema data attester available last ret : UInt256} {R : List UInt256}
     (v : EASImmutables) (kind : AttestCallKind) (hstack : R.length+7 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 kind.entryPC (attestEntryStack kind schema data attester available last ret R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨7214⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 kind.entryPC (attestEntryStack kind schema data attester available last ret R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨7214⟩
       (kind.firstReturn::attestFirstSaved kind schema data attester available last ret R)
       (attestEntryMemory kind mem data attester) aw' rdata σ k' C' := by
   have hd : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 7214) = true := by rw [easPatchedValidJumps v]; jump_dest
@@ -53,9 +55,9 @@ theorem easAttestUIDPrepare {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {schema data attester available last ret len result : UInt256} {R : List UInt256}
     (v : EASImmutables) (kind : AttestCallKind) (hstack : R.length+10 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 kind.secondReturn
+    (rd : RD fork (deployedRuntime v) ee g s0 kind.secondReturn
       (result::attestSecondSaved kind schema data attester available last ret len R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨7240⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨7240⟩
       (len::kind.uidReturn::attestUIDSaved kind schema data attester available last ret len result R)
       (attestResultRegisterMemory kind mem result) aw' rdata σ k' C' := by
   have hd : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 7240) = true := by rw [easPatchedValidJumps v]; jump_dest
@@ -71,9 +73,9 @@ theorem easAttestSchemaPrepare {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hr : 96 ≤ result.toNat) (hs : result.toNat+64 ≤ heap.toNat) (hh : heap.toNat ≤ 2^64-1)
     (hsize : 96 ≤ mem.size) (hheap : memLoad (UInt256.ofNat 64) mem = heap)
     (hreg : kind = .many → memLoad (UInt256.ofNat 128) mem = result)
-    (rd : RD (deployedRuntime v) ee g s0 kind.uidReturn
+    (rd : RD fork (deployedRuntime v) ee g s0 kind.uidReturn
       (uidPtr::attestUIDSaved kind schema data attester available last ret len result R) mem aw rdata σ k C) :
-    ∃ gasArg aw' k' C', RD (deployedRuntime v) ee g s0
+    ∃ gasArg aw' k' C', RD fork (deployedRuntime v) ee g s0
       (schemaCallPC (attestCallSchemaSite kind schema available last ret len))
       (gasArg::UInt256.land (EVM.word v._schemaRegistry.val) solcAddrMask::heap::⟨36⟩::heap::⟨0⟩::
         schemaCallSaved (attestCallSchemaSite kind schema available last ret len) heap

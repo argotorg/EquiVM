@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.ExactlyOneZero
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
@@ -47,7 +49,7 @@ theorem evalZeroFloorSub {cfg : Config} {frame : Frame} {evm : EVM.State} {ex ey
 def zeroFloorSubFrame (x y : UInt256) (imms : Store) : Frame := exactlyOneZeroFrame x y imms
 
 theorem morphoZeroFloorSubBody (x y : UInt256) (evm : EVM.State) (imms : Store) :
-    ExecFuncBody config (zeroFloorSubFrame x y imms) evm zeroFloorSubFunction.body
+    ExecFuncBody fork config (zeroFloorSubFrame x y imms) evm zeroFloorSubFunction.body
       (.returned (zeroFloorSubFrame x y imms) evm (some [.int (Int.ofNat (zeroFloorSubWord x y).toNat)])) := by
   apply ExecFuncBody.execBlockRet
   apply ABlock.start.returns
@@ -60,7 +62,7 @@ theorem morphoZeroFloorSubCall (x y : UInt256) (evm : EVM.State) (locals imms : 
     (args : List Expr) (retVar : Ident)
     (he : evalExprs? config { contract := contract, locals := locals, immutables := imms } evm args =
       .ok [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)]) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm
       (.internalCall "UtilsLib_zeroFloorSub" args retVar)
       (.ok { contract := contract, locals := locals.insert retVar (.int (Int.ofNat (zeroFloorSubWord x y).toNat)),
               immutables := imms } evm) :=

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.AmountDeltaPrefix
 import Benchmarks.UniswapV3.Pool.AmountDeltaBounds
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -62,9 +64,9 @@ theorem evalAmount1DeltaArgs (imms : Store) (evm : EVM.State) (a : AmountDeltaAr
   rfl
 
 theorem amount1DeltaZeroSource (imms : Store) (evm : EVM.State) (a : AmountDeltaArgs) :
-    ExecBlock config (amountDeltaFrame imms a) evm ((amountDeltaFunction true).body.take 3)
+    ExecBlock fork config (amountDeltaFrame imms a) evm ((amountDeltaFunction true).body.take 3)
       (.ok (amount1DeltaZeroFrame imms a) evm) := by
-  change ExecBlock config (amountDeltaFrame imms a) evm
+  change ExecBlock fork config (amountDeltaFrame imms a) evm
     ((amountDeltaFunction true).body.take 2 ++ [(amountDeltaFunction true).body[2]!]) _
   exact execBlock_append_ok (amountDeltaPrefixSource imms evm true a)
     (ExecBlock.consNormal (ExecStmt.letDecl (by simp only [evalExpr?, pure])) ExecBlock.nil)

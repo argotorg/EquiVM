@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.FlashUpdate
 import Benchmarks.UniswapV3.Pool.FlashValues
 import Benchmarks.UniswapV3.Pool.FlashPaidTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -12,7 +14,7 @@ theorem flashUpdatesX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {aw paid1 paid0 after1 after0 before1 before0 fee1 fee0 liquidity amount0 amount1 : UInt256}
     {recipient : AccountAddress} {mem rdata : ByteArray} {R : List UInt256}
     {v : UniswapV3PoolImmutables} (locals : Store)
-    (rd : RD (deployedRuntime v) ee g s0
+    (rd : RD fork (deployedRuntime v) ee g s0
       (if paid0 = ⟨0⟩ then flashUpdateExit false else flashProtocolEntry false)
       (flashUpdateRest paid1 paid0 after1 after0 before1 before0 fee1 fee0 liquidity R)
       mem aw rdata σ k C) (hs : SourceState s0 ee σ evm) (hperm : ee.perm = true)
@@ -20,14 +22,14 @@ theorem flashUpdatesX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hp0 : locals.get? "paid0" = some (.int (Int.ofNat paid0.toNat)))
     (hp1 : locals.get? "paid1" = some (.int (Int.ofNat paid1.toNat)))
     (hliquidity : liquidity.toNat < 2 ^ 128) (hov : R.length + 27 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧
-      ExecBlock config {contract := contract, locals := locals, immutables := immStore v} evm
+    (RDrev fork (deployedRuntime v) g s0 ∧
+      ExecBlock fork config {contract := contract, locals := locals, immutables := immStore v} evm
         ((flashTransition.body.drop 23).take 2) .reverted) ∨
     ∃ evm' σ' locals' k' C', SourceState s0 ee σ' evm' ∧
-      ExecBlock config {contract := contract, locals := locals, immutables := immStore v} evm
+      ExecBlock fork config {contract := contract, locals := locals, immutables := immStore v} evm
         ((flashTransition.body.drop 23).take 2)
         (.ok {contract := contract, locals := locals', immutables := immStore v} evm') ∧
-      RD (deployedRuntime v) ee g s0 ⟨7421⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨7421⟩
         (flashUpdateRest paid1 paid0 after1 after0 before1 before0 fee1 fee0 liquidity R)
         mem aw rdata σ' k' C' ∧ FlashCoreValues locals' recipient amount0 amount1 liquidity ∧
       locals'.get? "paid0" = some (.int (Int.ofNat paid0.toNat)) ∧

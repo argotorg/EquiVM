@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.AccrueSourceStart
 import Benchmarks.Morpho.MorphoBlue.BorrowRateABI
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
@@ -31,7 +33,7 @@ theorem accrueAfterCall_locals (p : MarketParamsWords) (imms : Store) (elapsed :
   (accrueBeforeCall_locals p imms elapsed evm).insert "borrowRate" _ (by decide)
 
 theorem morphoAccrueCallPrelude (p : MarketParamsWords) (imms : Store) (elapsed : UInt256) (evm : EVM.State) :
-    ABlock config evm (accrueAfterElapsed p imms elapsed) accrueIrmBody
+    ABlock fork config evm (accrueAfterElapsed p imms elapsed) accrueIrmBody
       (accrueBeforeCall p imms elapsed evm) (accrueIrmBody.drop 2) := by
   apply (ABlock.start.letStep ((accrueElapsed_locals p imms elapsed).evalIrm imms evm)).letStep
   have hl := (accrueElapsed_locals p imms elapsed).insert "irm"
@@ -60,17 +62,17 @@ theorem decodeBorrowRate_word {out : ByteArray} (hlen : 32 ≤ out.size) (hhi : 
 
 theorem morphoAccrueSourceCallOk (p : MarketParamsWords) (imms : Store) (elapsed : UInt256)
     (evm evm' : EVM.State) (out : ByteArray)
-    (hcall : typedCallViaEVM config evm (AccountAddress.ofNat p.irm.toNat) "borrowRate" 0
+    (hcall : typedCallViaEVM fork config evm (AccountAddress.ofNat p.irm.toNat) "borrowRate" 0
       [p.value, marketStateValue evm.accountMap evm.executionEnv p.id] (true, evm', out))
     (hlen : 32 ≤ out.size) (hout : out.size < 2 ^ 138) :
-    ExecStmt config (accrueBeforeCall p imms elapsed evm) evm accrueIrmBody[2]!
+    ExecStmt fork config (accrueBeforeCall p imms elapsed evm) evm accrueIrmBody[2]!
       (.ok (accrueAfterCall p imms elapsed evm (calldataWord out 0)) evm') := by
   have htarget : EVM.address (AccountAddress.ofNat p.irm.toNat).val =
       AccountAddress.ofNat p.irm.toNat := by
     apply Fin.ext
     exact Nat.mod_eq_of_lt (AccountAddress.ofNat p.irm.toNat).isLt
   rw [← htarget] at hcall
-  change ExecStmt config (accrueBeforeCall p imms elapsed evm) evm
+  change ExecStmt fork config (accrueBeforeCall p imms elapsed evm) evm
     (.externalCall (.var "irm") "borrowRate" (.intLit 0) [.var "marketParams", .var "marketState"] "borrowRate")
     (.ok (accrueAfterCall p imms elapsed evm (calldataWord out 0)) evm')
   exact ExecStmt.externalCallSuccess (hperm := Or.inl rfl) (value := [.int (Int.ofNat (calldataWord out 0).toNat)])
@@ -80,10 +82,10 @@ theorem morphoAccrueSourceCallOk (p : MarketParamsWords) (imms : Store) (elapsed
 
 theorem morphoAccrueSourceCallReverts (p : MarketParamsWords) (imms : Store) (elapsed : UInt256)
     (evm evm' : EVM.State) (z : Bool) (out : ByteArray)
-    (hcall : typedCallViaEVM config evm (AccountAddress.ofNat p.irm.toNat) "borrowRate" 0
+    (hcall : typedCallViaEVM fork config evm (AccountAddress.ofNat p.irm.toNat) "borrowRate" 0
       [p.value, marketStateValue evm.accountMap evm.executionEnv p.id] (z, evm', out))
     (hbad : ¬ (z = true ∧ 32 ≤ out.size)) :
-    ExecBlock config (accrueAfterElapsed p imms elapsed) evm accrueIrmBody .reverted := by
+    ExecBlock fork config (accrueAfterElapsed p imms elapsed) evm accrueIrmBody .reverted := by
   apply (morphoAccrueCallPrelude p imms elapsed evm).run
   apply ExecBlock.consRevert
   have htarget : EVM.address (AccountAddress.ofNat p.irm.toNat).val =

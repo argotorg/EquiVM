@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.MintInternalMintRuntime
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 set_option maxRecDepth 2000000
 namespace UniswapV2Pair
@@ -9,10 +11,10 @@ theorem uniswapInternalBurnRuntimeBalanceSubEntry
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {σ : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {value holder ret : UInt256} {R : List UInt256}
-    (rd8302 : RD uniswapV2PairBytecode I g s0 ⟨8302⟩ (value :: holder :: ret :: R)
+    (rd8302 : RD fork uniswapV2PairBytecode I g s0 ⟨8302⟩ (value :: holder :: ret :: R)
       mem feeToStaticcallActiveWords rdata σ k C)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨6879⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨6879⟩
       (value :: uniswapCodeOwnerStorageWord I σ
         (uniswapInternalMintBalanceHashSlot holder mem) ::
         ⟨8343⟩ :: value :: holder :: ret :: R)
@@ -47,11 +49,11 @@ theorem uniswapInternalBurnRuntimeStoreBalanceSupplySubEntry
     {σ : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ}
     {newBalance value holder ret : UInt256} {R : List UInt256}
-    (rd8343 : RD uniswapV2PairBytecode I g s0 ⟨8343⟩
+    (rd8343 : RD fork uniswapV2PairBytecode I g s0 ⟨8343⟩
       (newBalance :: value :: holder :: ret :: R)
       mem feeToStaticcallActiveWords rdata σ k C)
     (hperm : I.perm = true) (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨6879⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨6879⟩
       (value :: uniswapCodeOwnerStorageWord I
         (sstoreAccountMap I.codeOwner σ
           (uniswapInternalMintBalanceHashSlot holder mem) newBalance) ⟨0⟩ ::
@@ -89,14 +91,14 @@ theorem uniswapInternalBurnRuntimeStoreSupplyEmitAndJump
     {σ : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ}
     {newSupply value holder ret : UInt256} {R : List UInt256}
-    (rd8388 : RD uniswapV2PairBytecode I g s0 ⟨8388⟩
+    (rd8388 : RD fork uniswapV2PairBytecode I g s0 ⟨8388⟩
       (newSupply :: value :: holder :: ret :: R)
       mem feeToStaticcallActiveWords rdata σ k C)
     (hperm : I.perm = true) (hmem : 160 ≤ mem.size)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ret R
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ret R
       (uniswapInternalMintLogMem value mem) feeToStaticcallActiveWords rdata
       (sstoreAccountMap I.codeOwner σ ⟨0⟩ newSupply) k' C' := by
   have rd8393 := evm_run rd8388 with [jumpdest, push1 ⟨0⟩, swap1, dup2]
@@ -120,7 +122,7 @@ theorem uniswapInternalBurnRuntimeStoreSupplyEmitAndJump
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup6, and, swap2]
   have rd8447 := rd8414.pushConst
     (⟨100389287136786176327247604509743168900146139575972864366142685224231313322991⟩ : UInt256)
-    (width := 32) (op := .PUSH32) (by native_decide) (by decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by native_decide) (by decide +kernel) (by evm_ov)
   have rd8456 := evm_run rd8447 with [
     swap2, swap1, dup2, swap1, sub, push1 ⟨32⟩, add, swap1]
   have rd8457 := rd8456.log3 0 feeToStaticcallActiveWords (by native_decide) hperm

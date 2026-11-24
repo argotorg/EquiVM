@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.ConditionalMappingMemory
 import Benchmarks.UniswapV4PoolManager.BlockResultTrace
 import Benchmarks.UniswapV4PoolManager.Signed128Range
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -27,12 +29,12 @@ theorem accountDeltaCallCostTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
     (hcurrency : UInt256.land currencyWord solcAddrMask = accountWord currency)
     (hd : signedFits ⟨128, by decide⟩ delta)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨12528⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨12528⟩
       (currencyWord :: EVM.wordOfInt delta :: accountWord target :: ret :: R)
       mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0 (fun _ post =>
+    blockResultTrace fork (deployedRuntime v) g s0 (fun _ post =>
       post = accountDeltaPost evm target currency delta ∧ ∃ aw' k' C',
-        C+Cₘ aw' ≤ C'+Cₘ aw ∧ RD (deployedRuntime v) I g s0 ret R (accountDeltaMemory mem target currency delta)
+        C+Cₘ aw' ≤ C'+Cₘ aw ∧ RD fork (deployedRuntime v) I g s0 ret R (accountDeltaMemory mem target currency delta)
           aw' rdata post.accountMap k' C') (fun _ _ => False)
       (accountDeltaCallResult f evm target currency delta retVar) := by
   classical
@@ -65,12 +67,12 @@ theorem accountDeltaCallTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hcurrency : UInt256.land currencyWord solcAddrMask = accountWord currency)
     (hd : signedFits ⟨128, by decide⟩ delta)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨12528⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨12528⟩
       (currencyWord :: EVM.wordOfInt delta :: accountWord target :: ret :: R)
       mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0 (fun _ post =>
+    blockResultTrace fork (deployedRuntime v) g s0 (fun _ post =>
       post = accountDeltaPost evm target currency delta ∧ ∃ aw' k' C',
-        RD (deployedRuntime v) I g s0 ret R (accountDeltaMemory mem target currency delta)
+        RD fork (deployedRuntime v) I g s0 ret R (accountDeltaMemory mem target currency delta)
           aw' rdata post.accountMap k' C') (fun _ _ => False)
       (accountDeltaCallResult f evm target currency delta retVar) := by
   have hr := accountDeltaCallCostTrace f retVar v hstack hI hcurrency hd hret h

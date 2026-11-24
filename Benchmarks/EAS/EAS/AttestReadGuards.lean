@@ -2,6 +2,8 @@ import Benchmarks.EAS.EAS.AttestIterationSource
 import Benchmarks.EAS.EAS.AttestLoopControl
 import Benchmarks.EAS.EAS.RequestGuardsRun
 import Benchmarks.EAS.EAS.RecordProcessLocals
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -39,16 +41,16 @@ theorem attestReadGuardsRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g
     (hp : memLoad (UInt256.ofNat ((attestRequestArrayPtr site mem).toNat+32+32*i)) mem = refUIDPtr site t3)
     (hv : AttestationRequestMemoryView mem (refUIDPtr site t3) dataPtr rs[i])
     (hsv : SchemaMemoryView mem (requestSchemaPtr site) s)
-    (rd : RD (deployedRuntime v) ee g s0 (requestReadPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (requestReadPC site)
       (recordNextStack site schema (UInt256.ofNat i) t3 t4 R) mem aw rdata σ k C) :
     if (rs[i].expirationTime.toNat = 0 ∨ (easTimeWord ee).toNat < rs[i].expirationTime.toNat) ∧ (s.revocable || !rs[i].revocable) = true then
-      ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm attestReadGuardsBody
+      ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm attestReadGuardsBody
         (.ok {contract := contract,locals := attestReadGuardsLocals L rs[i] (easTimeWord ee) heap,immutables := immStore v} evm) ∧
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (recordPreparePC site)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (recordPreparePC site)
         (uidSaved site (refUIDPtr site t3+UInt256.ofNat 32) (schema::UInt256.ofNat i::t3::t4::R)) mem aw' rdata σ k' C'
-    else ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm attestReadGuardsBody .reverted ∧
-      RDrev (deployedRuntime v) g s0 := by
-  have hread := attestReadRequest_source (imms := immStore v) (evm := evm) hd hi hb hh
+    else ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm attestReadGuardsBody .reverted ∧
+      RDrev fork (deployedRuntime v) g s0 := by
+  have hread := attestReadRequest_source (fork := fork) (imms := immStore v) (evm := evm) hd hi hb hh
   obtain ⟨aw1,k1,C1,hr1⟩ := easAttestRequestRead v site (by omega) hb harray hl rd
   have hg := requestGuardsRun (L := attestRequestLocals L rs[i] heap) v site hstack hstate
     (heapResultLocals_result _ _ _ _ _ _ (by decide))

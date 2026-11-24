@@ -2,6 +2,8 @@ import Benchmarks.EAS.Attester.AttestABI
 import Reasoning.ExternalCall
 import Reasoning.ABIComposite
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.EAS.Attester
@@ -62,9 +64,9 @@ theorem encodedInput_extract (input : UInt256) :
 theorem attestSourcePrefix {imms : Store} {eas : EVM.Address} {schema input : UInt256}
     {evm : State} {result : ExecResult} (hvalue : evm.executionEnv.weiValue = ⟨0⟩)
     (hget : imms.get? "_eas" = some (.address eas))
-    (hrest : ExecBlock config (attestCallFrame imms eas schema input) evm
+    (hrest : ExecBlock fork config (attestCallFrame imms eas schema input) evm
       (attestTransition.body.drop 4) result) :
-    ExecBlock config (attestFrame imms schema input) evm attestTransition.body result := by
+    ExecBlock fork config (attestFrame imms schema input) evm attestTransition.body result := by
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hvalue)) ?_
   refine ExecBlock.consNormal (ExecStmt.letDecl (value := .address eas) ?_) ?_
   · change evalExpr? config (attestFrame imms schema input) evm (.immutable "_eas") = _
@@ -113,26 +115,26 @@ theorem attestSourceArgs {imms : Store} {eas : EVM.Address} {schema input : UInt
 theorem attestSourceFailure {imms : Store} {eas : EVM.Address} {schema input : UInt256}
     {evm evm' : State} {out : ByteArray} (hvalue : evm.executionEnv.weiValue = ⟨0⟩)
     (hget : imms.get? "_eas" = some (.address eas))
-    (hcall : typedCallViaEVM config evm eas "attest" 0 [attestRequest schema input]
+    (hcall : typedCallViaEVM fork config evm eas "attest" 0 [attestRequest schema input]
       (false, evm', out)) :
-    ExecTransitionBody config contract evm (attestLocals schema input) attestTransition.body
+    ExecTransitionBody fork config contract evm (attestLocals schema input) attestTransition.body
       .reverted imms := by
   apply ExecFuncBody.execBlockRevert
   apply attestSourcePrefix hvalue hget
-  exact ExecBlock.consRevert (ExecStmt.externalCallFailure (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0) attestSourceReceiver
+  exact ExecBlock.consRevert (ExecStmt.externalCallFailure (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0) attestSourceReceiver
     (by simp only [evalExpr?, pure]) attestSourceArgs
     (by simpa only [address_of_val] using hcall))
 
 theorem attestSourceDecodeFailure {imms : Store} {eas : EVM.Address} {schema input : UInt256}
     {evm evm' : State} {out : ByteArray} (hvalue : evm.executionEnv.weiValue = ⟨0⟩)
     (hget : imms.get? "_eas" = some (.address eas))
-    (hcall : typedCallViaEVM config evm eas "attest" 0 [attestRequest schema input]
+    (hcall : typedCallViaEVM fork config evm eas "attest" 0 [attestRequest schema input]
       (true, evm', out)) (hdec : config.externalABI.decode? "attest" out = none) :
-    ExecTransitionBody config contract evm (attestLocals schema input) attestTransition.body
+    ExecTransitionBody fork config contract evm (attestLocals schema input) attestTransition.body
       .reverted imms := by
   apply ExecFuncBody.execBlockRevert
   apply attestSourcePrefix hvalue hget
-  exact ExecBlock.consRevert (ExecStmt.externalCallReturnDecodeRevert (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0)
+  exact ExecBlock.consRevert (ExecStmt.externalCallReturnDecodeRevert (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0)
     attestSourceReceiver (by simp only [evalExpr?, pure]) attestSourceArgs
     (by simpa only [address_of_val] using hcall) hdec)
 
@@ -143,15 +145,15 @@ def attestFinalFrame (imms : Store) (eas : EVM.Address) (schema input uid : UInt
 theorem attestSourceSuccess {imms : Store} {eas : EVM.Address} {schema input uid : UInt256}
     {evm evm' : State} {out : ByteArray} (hvalue : evm.executionEnv.weiValue = ⟨0⟩)
     (hget : imms.get? "_eas" = some (.address eas))
-    (hcall : typedCallViaEVM config evm eas "attest" 0 [attestRequest schema input]
+    (hcall : typedCallViaEVM fork config evm eas "attest" 0 [attestRequest schema input]
       (true, evm', out))
     (hdec : config.externalABI.decode? "attest" out = some [wordBytes32Value uid]) :
-    ExecTransitionBody config contract evm (attestLocals schema input) attestTransition.body
+    ExecTransitionBody fork config contract evm (attestLocals schema input) attestTransition.body
       (.returned (attestFinalFrame imms eas schema input uid) evm'
         (some [wordBytes32Value uid])) imms := by
   apply ExecFuncBody.execBlockRet
   apply attestSourcePrefix hvalue hget
-  refine ExecBlock.consNormal (ExecStmt.externalCallSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0)
+  refine ExecBlock.consNormal (ExecStmt.externalCallSuccess (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0)
     attestSourceReceiver (by simp only [evalExpr?, pure]) attestSourceArgs
     (by simpa only [address_of_val] using hcall) hdec) ?_
   refine ExecBlock.consReturn (ExecStmt.return ?_)

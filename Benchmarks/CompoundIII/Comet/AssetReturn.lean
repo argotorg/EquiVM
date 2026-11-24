@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.AssetMemory
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_016
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_019
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -34,9 +36,9 @@ theorem cometAssetPublicReturn {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {out mem rdata : ByteArray}
     {aw ptr free : UInt256} {σ : AccountMap} {k C : Nat}
     (hv : AssetCanonical out) (hm : AssetMemory mem ptr free out)
-    (h : RD (deployedRuntime v) ee g s0 ⟨3164⟩ [ptr, ⟨2570⟩]
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨3164⟩ [ptr, ⟨2570⟩]
       mem aw rdata σ k C) :
-    RDret (deployedRuntime v) g s0 σ (wordBytes (assetWords out)) := by
+    RDret fork (deployedRuntime v) g s0 σ (wordBytes (assetWords out)) := by
   have r1 := cometWithExtendedAssetList_block_3164
     (immWords := wordsOf (immStore v)) (by decide)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
@@ -55,9 +57,9 @@ theorem cometAssetPublicReturn {v : CometWithExtendedAssetListImmutables}
 theorem cometGetAssetInfoReturn {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {out : ByteArray} {aw i : UInt256}
     {σ : AccountMap} {k C : Nat} (hv : AssetValid out) (hhi : out.size < UInt256.size)
-    (h : RD (deployedRuntime v) ee g s0 ⟨3164⟩ [⟨640⟩, ⟨2570⟩]
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨3164⟩ [⟨640⟩, ⟨2570⟩]
       (getAssetInfoMemory i out) aw out σ k C) :
-    RDret (deployedRuntime v) g s0 σ (wordBytes (assetWords out)) := by
+    RDret fork (deployedRuntime v) g s0 σ (wordBytes (assetWords out)) := by
   exact cometAssetPublicReturn (v := v) hv.2 (free := ⟨896⟩)
     ⟨by decide, by rw [getAssetInfoMemory_size i out hv.1 hhi]; decide,
       by decide, by decide, getAssetInfoMemory_free i out, getAssetInfoMemory_word i out⟩ h

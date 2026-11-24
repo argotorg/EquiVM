@@ -3,6 +3,8 @@ import Benchmarks.Dss.Jug.DripBodyAgeOneTactic
 import Mathlib.Util.ParseCommand
 import Lean.Elab.Tactic
 
+variable {fork : Ethereum.Fork}
+
 open Lean Elab Tactic
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
@@ -55,11 +57,11 @@ by_cases hRmulOverflowNZero :
     exact address_of_val _
   have hΘE :
       (σ', g'', A', true, out) =
-        Ethereum.EVM.Θ evm.accountMap evm.σ₀ Ain
+        Ethereum.EVM.Θ fork evm.accountMap evm.σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat evm.executionEnv.codeOwner))
           evm.executionEnv.sender
           (AccountAddress.ofUInt256 (dripVatTargetWord σ I))
-          (toExecute evm.accountMap
+          (toExecute fork evm.accountMap
             (AccountAddress.ofUInt256 (dripVatTargetWord σ I)))
           callGas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((dripVatIlksCalldataMem I (dripIlkHashMem I)).readWithPadding
@@ -71,7 +73,7 @@ by_cases hRmulOverflowNZero :
   let σ'_stele := σ'
   let A'_stele := A'
   have hcallStele :
-      typedCallViaEVM config evm (EVM.address (dripVatAddress σ I)) "ilks" 0
+      typedCallViaEVM fork config evm (EVM.address (dripVatAddress σ I)) "ilks" 0
         [.fixedBytes bytes32Width (fileDutyIlkBytes I)]
         (true, { evm with accountMap := σ', substate := A' }, out) true := by
     simpa [evm] using
@@ -95,7 +97,7 @@ by_cases hRmulOverflowNZero :
     rw [← hrhoPostWord]
     exact hage0Evm
   have hbody :
-      ExecTransitionBody config contract evm locals dripTransition.body .reverted := by
+      ExecTransitionBody fork config contract evm locals dripTransition.body .reverted := by
     simpa [evm, locals, initState, solcSlotWordAt] using
       (jugDripSourceBodyVatIlksRmulOverflowReverts
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -162,12 +164,12 @@ by_cases hRmulOverflowNZero :
       exact address_of_val _
     have hΘE :
         (σ', g'', A', true, out) =
-          Ethereum.EVM.Θ evm.accountMap evm.σ₀ Ain
+          Ethereum.EVM.Θ fork evm.accountMap evm.σ₀ Ain
             (AccountAddress.ofUInt256
               (UInt256.ofNat evm.executionEnv.codeOwner))
             evm.executionEnv.sender
             (AccountAddress.ofUInt256 (dripVatTargetWord σ I))
-            (toExecute evm.accountMap
+            (toExecute fork evm.accountMap
               (AccountAddress.ofUInt256 (dripVatTargetWord σ I)))
             callGas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
             ((dripVatIlksCalldataMem I (dripIlkHashMem I)).readWithPadding
@@ -177,7 +179,7 @@ by_cases hRmulOverflowNZero :
     let σ'_stele := σ'
     let A'_stele := A'
     have hcallStele :
-        typedCallViaEVM config evm (EVM.address (dripVatAddress σ I)) "ilks" 0
+        typedCallViaEVM fork config evm (EVM.address (dripVatAddress σ I)) "ilks" 0
           [.fixedBytes bytes32Width (fileDutyIlkBytes I)]
           (true, { evm with accountMap := σ', substate := A' }, out) true := by
       simpa [evm] using
@@ -213,7 +215,7 @@ by_cases hRmulOverflowNZero :
         (addr := dripVatAddress σ'_stele I)
         (dripVatAddress_eq_target σ'_stele I) hfoldCodeStele
     have hbody :
-        ExecTransitionBody config contract evm locals dripTransition.body
+        ExecTransitionBody fork config contract evm locals dripTransition.body
           .reverted := by
       simpa [evm, locals, initState, solcSlotWordAt] using
         (jugDripSourceBodyVatFoldNoCodeReverts
@@ -278,12 +280,12 @@ by_cases hRmulOverflowNZero :
         exact address_of_val _
       have hΘE :
           (σ', g'', A', true, out) =
-            Ethereum.EVM.Θ evm.accountMap evm.σ₀ Ain
+            Ethereum.EVM.Θ fork evm.accountMap evm.σ₀ Ain
               (AccountAddress.ofUInt256
                 (UInt256.ofNat evm.executionEnv.codeOwner))
               evm.executionEnv.sender
               (AccountAddress.ofUInt256 (dripVatTargetWord σ I))
-              (toExecute evm.accountMap
+              (toExecute fork evm.accountMap
                 (AccountAddress.ofUInt256 (dripVatTargetWord σ I)))
               callGas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
               ((dripVatIlksCalldataMem I (dripIlkHashMem I)).readWithPadding
@@ -293,7 +295,7 @@ by_cases hRmulOverflowNZero :
       let σ'_stele := σ'
       let A'_stele := A'
       have hcallStele :
-          typedCallViaEVM config evm (EVM.address (dripVatAddress σ I)) "ilks" 0
+          typedCallViaEVM fork config evm (EVM.address (dripVatAddress σ I)) "ilks" 0
             [.fixedBytes bytes32Width (fileDutyIlkBytes I)]
             (true, { evm with accountMap := σ', substate := A' }, out) true := by
         simpa [evm] using
@@ -317,7 +319,7 @@ by_cases hRmulOverflowNZero :
         rw [← hrhoPostWord]
         exact hage0Evm
       have hbody :
-          ExecTransitionBody config contract evm locals dripTransition.body
+          ExecTransitionBody fork config contract evm locals dripTransition.body
             .reverted := by
         simpa [evm, locals, initState, solcSlotWordAt] using
           (jugDripSourceBodyVatIlksDiffBoundReverts
@@ -417,12 +419,12 @@ by_cases hRmulOverflowNZero :
             exact address_of_val _
           have hΘE :
               (σ', g'', A', true, out) =
-                Ethereum.EVM.Θ evm.accountMap evm.σ₀ Ain
+                Ethereum.EVM.Θ fork evm.accountMap evm.σ₀ Ain
                   (AccountAddress.ofUInt256
                     (UInt256.ofNat evm.executionEnv.codeOwner))
                   evm.executionEnv.sender
                   (AccountAddress.ofUInt256 (dripVatTargetWord σ I))
-                  (toExecute evm.accountMap
+                  (toExecute fork evm.accountMap
                     (AccountAddress.ofUInt256 (dripVatTargetWord σ I)))
                   callGas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
                   ((dripVatIlksCalldataMem I
@@ -433,7 +435,7 @@ by_cases hRmulOverflowNZero :
           let σ'_stele := σ'
           let A'_stele := A'
           have hcallStele :
-              typedCallViaEVM config evm (EVM.address (dripVatAddress σ I)) "ilks" 0
+              typedCallViaEVM fork config evm (EVM.address (dripVatAddress σ I)) "ilks" 0
                 [.fixedBytes bytes32Width (fileDutyIlkBytes I)]
                 (true, { evm with accountMap := σ', substate := A' }, out) true := by
             simpa [evm] using
@@ -475,12 +477,12 @@ by_cases hRmulOverflowNZero :
               hzeroMax
           have hΘFoldE :
               (σ'', gFold'', AFold', false, foldOut) =
-                Ethereum.EVM.Θ evmVatE.accountMap evmVatE.σ₀ AinFold
+                Ethereum.EVM.Θ fork evmVatE.accountMap evmVatE.σ₀ AinFold
                   (AccountAddress.ofUInt256
                     (UInt256.ofNat evmVatE.executionEnv.codeOwner))
                   evmVatE.executionEnv.sender
                   (AccountAddress.ofUInt256 (dripVatTargetWord σ' I))
-                  (toExecute evmVatE.accountMap
+                  (toExecute fork evmVatE.accountMap
                     (AccountAddress.ofUInt256 (dripVatTargetWord σ' I)))
                   callGasFold (UInt256.ofNat evmVatE.executionEnv.gasPrice)
                   ⟨0⟩ ⟨0⟩
@@ -493,7 +495,7 @@ by_cases hRmulOverflowNZero :
           let σ''_stele := σ''
           let A''_stele := AFold'
           have hfoldCallStele :
-              typedCallViaEVM config evmVatS
+              typedCallViaEVM fork config evmVatS
                 (EVM.address (dripVatAddress σ'_stele I)) "fold" 0
                 [.fixedBytes bytes32Width (fileDutyIlkBytes I),
                   .address (AccountAddress.ofUInt256 (dripVowTargetWord σ'_stele I)),
@@ -534,7 +536,7 @@ by_cases hRmulOverflowNZero :
               (dripVatCode_pos_of_codeSize_ne_zero                 (σ := σ'_stele) (σ₀ := σ₀) (A := A'_stele)
                 (I := I) (g := g) hfoldCodeSteleNe)
           have hbody :
-              ExecTransitionBody config contract evm locals dripTransition.body
+              ExecTransitionBody fork config contract evm locals dripTransition.body
                 .reverted := by
             simpa [evm, evmVatS, locals, initState, solcSlotWordAt] using
               (jugDripSourceBodyVatFoldCallFailedReverts
@@ -610,12 +612,12 @@ by_cases hRmulOverflowNZero :
             exact address_of_val _
           have hΘE :
               (σ', g'', A', true, out) =
-                Ethereum.EVM.Θ evm.accountMap evm.σ₀ Ain
+                Ethereum.EVM.Θ fork evm.accountMap evm.σ₀ Ain
                   (AccountAddress.ofUInt256
                     (UInt256.ofNat evm.executionEnv.codeOwner))
                   evm.executionEnv.sender
                   (AccountAddress.ofUInt256 (dripVatTargetWord σ I))
-                  (toExecute evm.accountMap
+                  (toExecute fork evm.accountMap
                     (AccountAddress.ofUInt256 (dripVatTargetWord σ I)))
                   callGas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
                   ((dripVatIlksCalldataMem I
@@ -626,7 +628,7 @@ by_cases hRmulOverflowNZero :
           let σ'_stele := σ'
           let A'_stele := A'
           have hcallStele :
-              typedCallViaEVM config evm (EVM.address (dripVatAddress σ I)) "ilks" 0
+              typedCallViaEVM fork config evm (EVM.address (dripVatAddress σ I)) "ilks" 0
                 [.fixedBytes bytes32Width (fileDutyIlkBytes I)]
                 (true, { evm with accountMap := σ', substate := A' }, out) true := by
             simpa [evm] using
@@ -668,12 +670,12 @@ by_cases hRmulOverflowNZero :
               hzeroMax
           have hΘFoldE :
               (σ'', gFold'', AFold', true, foldOut) =
-                Ethereum.EVM.Θ evmVatE.accountMap evmVatE.σ₀ AinFold
+                Ethereum.EVM.Θ fork evmVatE.accountMap evmVatE.σ₀ AinFold
                   (AccountAddress.ofUInt256
                     (UInt256.ofNat evmVatE.executionEnv.codeOwner))
                   evmVatE.executionEnv.sender
                   (AccountAddress.ofUInt256 (dripVatTargetWord σ' I))
-                  (toExecute evmVatE.accountMap
+                  (toExecute fork evmVatE.accountMap
                     (AccountAddress.ofUInt256 (dripVatTargetWord σ' I)))
                   callGasFold (UInt256.ofNat evmVatE.executionEnv.gasPrice)
                   ⟨0⟩ ⟨0⟩
@@ -686,7 +688,7 @@ by_cases hRmulOverflowNZero :
           let σ''_stele := σ''
           let A''_stele := AFold'
           have hfoldCallStele :
-              typedCallViaEVM config evmVatS
+              typedCallViaEVM fork config evmVatS
                 (EVM.address (dripVatAddress σ'_stele I)) "fold" 0
                 [.fixedBytes bytes32Width (fileDutyIlkBytes I),
                   .address (AccountAddress.ofUInt256 (dripVowTargetWord σ'_stele I)),
@@ -754,7 +756,7 @@ by_cases hRmulOverflowNZero :
                 hfitRmul hprevMax hfoldCodeStele
                 (by simpa [evmVatS] using hfoldCallStele))
           have hbody (hpt : I.perm = true) :
-              ExecTransitionBody config contract evm locals dripTransition.body
+              ExecTransitionBody fork config contract evm locals dripTransition.body
                 (.returned { contract := contract, locals := finalLocals } evmRhoS
                   (some [.int (Int.ofNat (dripVatIlksPrevWord out).toNat)])) := by
             simpa [evm, evmVatS, evmFoldS, finalLocals, evmRhoS, locals,

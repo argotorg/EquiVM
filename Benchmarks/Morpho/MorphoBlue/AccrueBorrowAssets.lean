@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.Uint128Arithmetic
 import Benchmarks.Morpho.MorphoBlue.MarketWrites
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -16,10 +18,10 @@ variable {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
   {id interest : UInt256} {R : List UInt256}
 
 theorem morphoAccrueBorrowReachAdd (hstack : R.length + 18 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13574)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13574)
       ([interest, UInt256.ofNat 0, UInt256.ofNat 64, uint128Mask, id, UInt256.ofNat 32,
         solcAddrMask, interest, UInt256.ofNat 3] ++ R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12664)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12664)
       ([marketFieldWord σ ee id 2, interest, UInt256.ofNat 13601, uint128Mask, marketFieldSlot id 2,
         solcSlotWordAt (marketFieldSlot id 2) σ ee, UInt256.ofNat 0, UInt256.ofNat 64,
         uint128Mask, id, UInt256.ofNat 32, solcAddrMask, interest, UInt256.ofNat 3] ++ R)
@@ -30,7 +32,7 @@ theorem morphoAccrueBorrowReachAdd (hstack : R.length + 18 ≤ 1024)
   have hh : keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64)
       (twoWordHashMem id (UInt256.ofNat 3) mem) = solcMappingSlot ⟨3⟩ id :=
     twoWordHashMem_solcMappingSlot_any _ _ _
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     ([UInt256.land (solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64)
       (twoWordHashMem id (UInt256.ofNat 3) mem) + UInt256.ofNat 1) σ ee) uint128Mask,
       interest, UInt256.ofNat 13601, uint128Mask,
@@ -46,10 +48,10 @@ theorem morphoAccrueBorrowReachAdd (hstack : R.length + 18 ≤ 1024)
 theorem morphoAccrueBorrowAddOk (hstack : R.length + 18 ≤ 1024)
     (hi : interest.toNat < 2 ^ 128)
     (hsum : (marketFieldWord σ ee id 2).toNat + interest.toNat < 2 ^ 128)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13574)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13574)
       ([interest, UInt256.ofNat 0, UInt256.ofNat 64, uint128Mask, id, UInt256.ofNat 32,
         solcAddrMask, interest, UInt256.ofNat 3] ++ R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13601)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13601)
       ([marketFieldWord σ ee id 2 + interest, uint128Mask, marketFieldSlot id 2,
         solcSlotWordAt (marketFieldSlot id 2) σ ee, UInt256.ofNat 0, UInt256.ofNat 64,
         uint128Mask, id, UInt256.ofNat 32, solcAddrMask, interest, UInt256.ofNat 3] ++ R)
@@ -63,21 +65,21 @@ theorem morphoAccrueBorrowAddOk (hstack : R.length + 18 ≤ 1024)
 theorem morphoAccrueBorrowAddReverts (hstack : R.length + 18 ≤ 1024)
     (hi : interest.toNat < 2 ^ 128)
     (hover : 2 ^ 128 ≤ (marketFieldWord σ ee id 2).toNat + interest.toNat)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13574)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13574)
       ([interest, UInt256.ofNat 0, UInt256.ofNat 64, uint128Mask, id, UInt256.ofNat 32,
-        solcAddrMask, interest, UInt256.ofNat 3] ++ R) mem aw rdata σ k C) : RDrev (deployedRuntime v) g s0 := by
+        solcAddrMask, interest, UInt256.ofNat 3] ++ R) mem aw rdata σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨aw1, k1, C1, rd1⟩ := morphoAccrueBorrowReachAdd (v := v) hstack h
   exact morphoCheckedAdd128Reverts (v := v) (by simp only [List.append, List.length_cons]; omega)
     (halfWord_bound _ _) hi hover rd1
 
 theorem morphoAccrueBorrowStore (hstack : R.length + 13 ≤ 1024) (hp : ee.perm = true)
     (hc : (marketFieldWord σ ee id 2 + interest).toNat < 2 ^ 128)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13601)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13601)
       ([marketFieldWord σ ee id 2 + interest, uint128Mask, marketFieldSlot id 2,
         solcSlotWordAt (marketFieldSlot id 2) σ ee, UInt256.ofNat 0, UInt256.ofNat 64,
         uint128Mask, id, UInt256.ofNat 32, solcAddrMask, interest, UInt256.ofNat 3] ++ R)
       mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 15480)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 15480)
       ([interest, UInt256.ofNat 13650, UInt256.lnot uint128Mask, UInt256.ofNat 0, UInt256.ofNat 64,
         uint128Mask, id, UInt256.ofNat 32, solcAddrMask, interest, UInt256.ofNat 3] ++ R)
       mem aw rdata (accrueBorrowAssetsAccounts σ ee id interest) k' C' := by
@@ -92,9 +94,9 @@ theorem morphoAccrueBorrowStore (hstack : R.length + 13 ≤ 1024) (hp : ee.perm 
 
 theorem morphoAccrueBorrowStoreStatic {x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 : UInt256}
     (hstack : R.length + 12 ≤ 1024) (hperm : ee.perm = false)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13601)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13601)
       (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: R)
-      mem aw rdata σ k C) : RDstatic (deployedRuntime v) g s0 := by
+      mem aw rdata σ k C) : RDstatic fork (deployedRuntime v) g s0 := by
   let r0 := h
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.Morpho.MorphoBlue.immutableLayout, Benchmarks.Morpho.MorphoBlue.morphoBytecode, wordsOf (immStore v), (⟨13601⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, morphoBlocks.immutableLayout_inBounds, morphoBlocks.immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.and (by immutable_decode(Benchmarks.Morpho.MorphoBlue.immutableLayout, Benchmarks.Morpho.MorphoBlue.morphoBytecode, wordsOf (immStore v), (⟨13602⟩ : UInt256), UInt8.ofNat 22, .AND, none, morphoBlocks.immutableLayout_inBounds, morphoBlocks.immutableTemplate_size64)) (by evm_ov)

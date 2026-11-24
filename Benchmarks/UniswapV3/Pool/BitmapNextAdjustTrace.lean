@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.BitmapNextCompressedWords
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_035
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,11 +13,11 @@ theorem bitmapNextAdjustX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (tick spacing : Int)
     (htlo : -(2 ^ 23 : Int) ≤ tick) (hthi : tick < 2 ^ 23) (hn : spacing ≠ 0)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨11366⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨11366⟩
       ((if bitmapNextAdjust tick spacing then ⟨1⟩ else ⟨0⟩) ::
         EVM.wordOfInt (tick.tdiv spacing) :: R)
         mem aw rdata σ k C) (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨11376⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨11376⟩
       (EVM.wordOfInt (bitmapNextCompressed tick spacing) :: R) mem aw rdata σ k' C' := by
   by_cases h : bitmapNextAdjust tick spacing
   · rw [if_pos h] at rd

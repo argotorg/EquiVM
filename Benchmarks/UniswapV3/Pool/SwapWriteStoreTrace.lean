@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapSlotWords
 import Benchmarks.UniswapV3.Pool.SwapWriteGuard
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,13 +13,13 @@ theorem swapWriteStoreX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p cache snap exactWord free index cardinality : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (s : SwapStateData)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨4077⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨4077⟩
       ([cardinality, index, ⟨0⟩, ⟨0⟩, p, exactWord, cache, snap] ++ R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hs : SwapStateMemory mem p s)
     (hfit : s.Fits) (hperm : ee.perm = true) (hb : p.toNat + 224 ≤ 2 ^ 200)
     (hov : R.length + 15 ≤ 1024) :
     ∃ aw' k' C',
-      RD (deployedRuntime v) ee g s0 ⟨4268⟩ ([p, exactWord, cache, snap] ++ R) mem aw' rdata
+      RD fork (deployedRuntime v) ee g s0 ⟨4268⟩ ([p, exactWord, cache, snap] ++ R) mem aw' rdata
         (sstoreAccountMap ee.codeOwner σ ⟨0⟩
           (swapSlotFieldsWord (solcSlotWordAt ⟨0⟩ σ ee) s.price (EVM.wordOfInt s.tick)
             index cardinality)) k' C' ∧ HeapMemory mem aw' free := by
@@ -49,12 +51,12 @@ theorem swapPriceStoreX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p free : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (s : SwapStateData)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨4218⟩ (p :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨4218⟩ (p :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hs : SwapStateMemory mem p s)
     (hperm : ee.perm = true) (hb : p.toNat + 224 ≤ 2 ^ 200)
     (hov : R.length + 7 ≤ 1024) :
     ∃ aw' k' C',
-      RD (deployedRuntime v) ee g s0 ⟨4268⟩ (p :: R) mem aw' rdata
+      RD fork (deployedRuntime v) ee g s0 ⟨4268⟩ (p :: R) mem aw' rdata
         (sstoreAccountMap ee.codeOwner σ ⟨0⟩
           (swapSlotFieldWord (solcSlotWordAt ⟨0⟩ σ ee) s.price false)) k' C' ∧
       HeapMemory mem aw' free := by

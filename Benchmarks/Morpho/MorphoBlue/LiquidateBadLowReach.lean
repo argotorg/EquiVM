@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.LiquidateBadMathRefine
 import Benchmarks.Morpho.MorphoBlue.SupplyMathReach
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -58,9 +60,9 @@ theorem liquidateBadSupplyStack (σ : AccountMap) (ee : ExecutionEnv) (mem : Byt
   rfl
 
 theorem morphoLiquidateBadLowReachSupply (hstack : R.length + 40 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (liquidateBadLowEntry false)
+    (h : RD fork (deployedRuntime v) ee g s0 (liquidateBadLowEntry false)
       (badAssets :: liquidateBadTail id assets seized shares badAssets badShares srcOff len R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12846)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12846)
       ([marketFieldWord σ ee id (liquidateBadLowField false), badAssets, liquidateBadLowStore false] ++
         liquidateBadLowStoreTail false σ ee id assets seized shares badAssets badShares srcOff len R)
       (twoWordHashMem id (UInt256.ofNat 3) mem) aw' out σ k' C' := by
@@ -70,9 +72,9 @@ theorem morphoLiquidateBadLowReachSupply (hstack : R.length + 40 ≤ 1024)
   exact ⟨a1, k1, C1, rd1⟩
 
 theorem morphoLiquidateBadLowReachBorrow (hstack : R.length + 40 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (liquidateBadLowEntry true)
+    (h : RD fork (deployedRuntime v) ee g s0 (liquidateBadLowEntry true)
       (badAssets :: liquidateBadTail id assets seized shares badAssets badShares srcOff len R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12846)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12846)
       ([marketFieldWord σ ee id (liquidateBadLowField true), badAssets, liquidateBadLowStore true] ++
         liquidateBadLowStoreTail true σ ee id assets seized shares badAssets badShares srcOff len R)
       (twoWordHashMem id (UInt256.ofNat 3) mem) aw' out σ k' C' := by
@@ -82,9 +84,9 @@ theorem morphoLiquidateBadLowReachBorrow (hstack : R.length + 40 ≤ 1024)
   exact ⟨a1, k1, C1, rd1⟩
 
 theorem morphoLiquidateBadLowReachSub (borrow : Bool) (hstack : R.length + 40 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (liquidateBadLowEntry borrow)
+    (h : RD fork (deployedRuntime v) ee g s0 (liquidateBadLowEntry borrow)
       (badAssets :: liquidateBadTail id assets seized shares badAssets badShares srcOff len R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12846)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12846)
       ([marketFieldWord σ ee id (liquidateBadLowField borrow), badAssets, liquidateBadLowStore borrow] ++
         liquidateBadLowStoreTail borrow σ ee id assets seized shares badAssets badShares srcOff len R)
       (twoWordHashMem id (UInt256.ofNat 3) mem) aw' out σ k' C' := by
@@ -94,17 +96,17 @@ theorem morphoLiquidateBadLowReachSub (borrow : Bool) (hstack : R.length + 40 �
 
 theorem morphoLiquidateBadLowStore (borrow : Bool) (hstack : R.length + 40 ≤ 1024) (hperm : ee.perm = true)
     (hc : value.toNat < 2 ^ 128)
-    (h : RD (deployedRuntime v) ee g s0 (liquidateBadLowStore borrow)
+    (h : RD fork (deployedRuntime v) ee g s0 (liquidateBadLowStore borrow)
       (value :: liquidateBadLowStoreTail borrow σ ee id assets seized shares badAssets badShares srcOff len R)
       mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 15480)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 15480)
       (liquidateBadNextCastStack borrow id assets seized shares badAssets badShares srcOff len R)
       mem aw' out (storeMarketFieldAccounts σ ee id (liquidateBadLowField borrow) value) k' C' := by
   have hc' : UInt256.land value uint128Mask = value := halfWord_low_clean value hc
   cases borrow
   · obtain ⟨a1, k1, C1, rd1⟩ := morphoBlocks.morpho_block_3122_packed (immWords := wordsOf (immStore v))
       (by change R.length + 8 + 8 ≤ 1024; omega) hperm (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
-    change RD _ _ _ _ _ _ _ _ _
+    change RD fork _ _ _ _ _ _ _ _ _
       (sstoreAccountMap ee.codeOwner σ (marketFieldSlot id 0)
         (UInt256.lor (UInt256.land (solcSlotWordAt (marketFieldSlot id 0) σ ee) (UInt256.lnot uint128Mask))
           (UInt256.land value uint128Mask))) _ _ at rd1
@@ -112,7 +114,7 @@ theorem morphoLiquidateBadLowStore (borrow : Bool) (hstack : R.length + 40 ≤ 1
     exact ⟨a1, k1, C1, rd1⟩
   · obtain ⟨a1, k1, C1, rd1⟩ := morphoBlocks.morpho_block_3062_packed (immWords := wordsOf (immStore v))
       (by change R.length + 9 + 7 ≤ 1024; omega) hperm (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
-    change RD _ _ _ _ _ _ _ _ _
+    change RD fork _ _ _ _ _ _ _ _ _
       (sstoreAccountMap ee.codeOwner σ (marketFieldSlot id 2)
         (UInt256.lor (UInt256.land (solcSlotWordAt (marketFieldSlot id 2) σ ee) (UInt256.lnot uint128Mask))
           (UInt256.land value uint128Mask))) _ _ at rd1

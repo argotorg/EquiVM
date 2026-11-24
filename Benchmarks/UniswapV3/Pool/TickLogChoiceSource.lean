@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.TickLogBoundsSource
 import Benchmarks.UniswapV3.Pool.TickSqrtSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -25,9 +27,9 @@ theorem tickLogCalleeSource {frame : Frame} {evm : EVM.State} (log : UInt256)
     (hc : frame.contract = contract)
     (hh : frame.locals.get? "tickHi" = some (.int (tickLogHigh log)))
     (hv : (tickLogHigh log).natAbs ≤ 887272) :
-    ExecStmt config frame evm (.internalCall "TickMath_getSqrtRatioAtTick" [.var "tickHi"] "__c0")
+    ExecStmt fork config frame evm (.internalCall "TickMath_getSqrtRatioAtTick" [.var "tickHi"] "__c0")
       (.ok (tickLogCalleeFrame frame log) evm) := by
-  obtain ⟨out, hbody⟩ := tickSqrtReturns frame.immutables evm (tickLogHigh log)
+  obtain ⟨out, hbody⟩ := tickSqrtReturns (fork := fork) frame.immutables evm (tickLogHigh log)
     (tickLogTick_bounds _).1 (tickLogTick_bounds _).2 hv
   have hf : {frame with locals := tickSqrtLocals (tickLogHigh log)} =
       tickSqrtFrame frame.immutables (tickLogHigh log) := by
@@ -48,9 +50,9 @@ theorem tickLogCalleeSourceReverts {frame : Frame} {evm : EVM.State} (log : UInt
     (hc : frame.contract = contract)
     (hh : frame.locals.get? "tickHi" = some (.int (tickLogHigh log)))
     (hv : ¬ (tickLogHigh log).natAbs ≤ 887272) :
-    ExecStmt config frame evm (.internalCall "TickMath_getSqrtRatioAtTick" [.var "tickHi"] "__c0")
+    ExecStmt fork config frame evm (.internalCall "TickMath_getSqrtRatioAtTick" [.var "tickHi"] "__c0")
       .reverted := by
-  have hbody := tickSqrtReverts frame.immutables evm (tickLogHigh log)
+  have hbody := tickSqrtReverts (fork := fork) frame.immutables evm (tickLogHigh log)
     (tickLogTick_bounds _).1 (tickLogTick_bounds _).2 hv
   have hf : {frame with locals := tickSqrtLocals (tickLogHigh log)} =
       tickSqrtFrame frame.immutables (tickLogHigh log) := by
@@ -94,11 +96,11 @@ theorem evalTickLogChoice {frame : Frame} {evm : EVM.State} (log price : UInt256
 theorem tickLogFinalSource {frame : Frame} {evm : EVM.State} (tick : Int)
     (hc : frame.locals.get? "__cond1" = some (.int tick))
     (ht : frame.locals.get? "tick" = some (.int 0)) :
-    ∃ out, ExecBlock config frame evm (tickLogFunction.body.drop 75)
+    ∃ out, ExecBlock fork config frame evm (tickLogFunction.body.drop 75)
       (.returned out evm (some [.int tick])) := by
   let out : Frame := {frame with locals := frame.locals.insert "tick" (.int tick)}
   refine ⟨out, ExecBlock.consNormal (stele' := out) (evm' := evm)
-    (ExecStmt.assign (hperm := Or.inl rfl) (evalExpr_var_get (cfg := config) (evm := evm) hc)
+    (ExecStmt.assign (fork := fork) (hperm := Or.inl rfl) (evalExpr_var_get (cfg := config) (evm := evm) hc)
       (assignLocalVarBase_frame ht)) ?_⟩
   apply ExecBlock.consReturn
   apply ExecStmt.return
@@ -113,7 +115,7 @@ theorem tickLogChoiceSource {frame : Frame} {evm : EVM.State} (log price : UInt2
     (hp : frame.locals.get? "sqrtPriceX96" = some (.int (Int.ofNat price.toNat)))
     (hcond : frame.locals.get? "__cond1" = some (.int 0))
     (ht : frame.locals.get? "tick" = some (.int 0)) (hv : tickLogSafe log) :
-    ∃ out, ExecBlock config frame evm (tickLogFunction.body.drop 74)
+    ∃ out, ExecBlock fork config frame evm (tickLogFunction.body.drop 74)
       (.returned out evm (some [.int (tickLogChoice log price)])) := by
   have heq := evalTickLogBoundsEqual (evm := evm) log hl hh
   by_cases he : tickLogLow log = tickLogHigh log
@@ -127,7 +129,7 @@ theorem tickLogChoiceSource {frame : Frame} {evm : EVM.State} (log price : UInt2
     rw [tickLogChoice_eq, if_pos he]
     refine ExecBlock.consNormal (stele' := chosen) (evm' := evm) (ExecStmt.iteTrue ?_ ?_) hr
     · simpa only [he, decide_true] using heq
-    · exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inl rfl) (evalExpr_var_get (cfg := config) hl)
+    · exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inl rfl) (evalExpr_var_get (cfg := config) hl)
         (assignLocalVarBase_frame hcond)) ExecBlock.nil
   · have hv' : (tickLogHigh log).natAbs ≤ 887272 := hv.resolve_left he
     let mid := tickLogCalleeFrame frame log
@@ -155,7 +157,7 @@ theorem tickLogChoiceSource {frame : Frame} {evm : EVM.State} (log price : UInt2
       (ExecStmt.iteFalse ?_ ?_) hr⟩
     · simpa only [he, decide_false] using heq
     · refine ExecBlock.consNormal (tickLogCalleeSource log hc hh hv') ?_
-      exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inl rfl) evalChoice (assignLocalVarBase_frame
+      exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inl rfl) evalChoice (assignLocalVarBase_frame
         ((hkeep "__cond1" (by decide)).trans hcond))) ExecBlock.nil
 
 theorem tickLogChoiceSourceReverts {frame : Frame} {evm : EVM.State} (log : UInt256)
@@ -163,7 +165,7 @@ theorem tickLogChoiceSourceReverts {frame : Frame} {evm : EVM.State} (log : UInt
     (hl : frame.locals.get? "tickLow" = some (.int (tickLogLow log)))
     (hh : frame.locals.get? "tickHi" = some (.int (tickLogHigh log)))
     (hv : ¬ tickLogSafe log) :
-    ExecBlock config frame evm (tickLogFunction.body.drop 74) .reverted := by
+    ExecBlock fork config frame evm (tickLogFunction.body.drop 74) .reverted := by
   have he : tickLogLow log ≠ tickLogHigh log := fun h ↦ hv (Or.inl h)
   have hs : ¬ (tickLogHigh log).natAbs ≤ 887272 := fun h ↦ hv (Or.inr h)
   refine ExecBlock.consRevert (ExecStmt.iteFalse ?_

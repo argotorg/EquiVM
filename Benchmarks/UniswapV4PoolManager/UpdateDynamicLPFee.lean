@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.Dispatch
 import Benchmarks.UniswapV4PoolManager.PoolKeyDecodeTrace
 import Benchmarks.UniswapV4PoolManager.UpdateFeeTrace
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # PoolManager `updateDynamicLPFee((address,address,uint24,int24,address),uint24)`
 
@@ -24,15 +26,15 @@ theorem poolManagerUpdateDynamicLPFeeBody {σ σ₀ A I} {g : UInt256} (v : Pool
     (_hWF : Syntax.poolManagerWF σ I)
     (_hGas : Syntax.poolManagerGasBound g)
     (hsel : selIs I (poolManagerSelBytes 21)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (poolManagerSelBytes 21) rfl hsel
   have hd : dispatchMsg contract I.calldata = some updateDynamicLPFeeTransition := by
     apply poolManagerDispatch_updateDynamicLPFee <;> first
     | exact hsel
     | exact selectorNe_of_selIs hsel (by decide +kernel)
-  obtain ⟨k, C, rdEntry⟩ := poolManagerReachUpdateDynamicLPFeeBody (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, rdEntry⟩ := poolManagerReachUpdateDynamicLPFeeBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
-  change RD (deployedRuntime v) I (Sat256.ofUInt256 g)
+  change RD fork (deployedRuntime v) I (Sat256.ofUInt256 g)
     (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8530⟩ [solcSelectorWord I]
     entryMemory ⟨3⟩ .empty σ k C at rdEntry
   have hjump : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 816) = true := by
@@ -72,7 +74,7 @@ theorem poolManagerUpdateDynamicLPFeeBody {σ σ₀ A I} {g : UInt256} (v : Pool
             have hpools : args.get? "_pools" = none :=
               (store_get_ne2 _ _ _ (by decide : ("key" == "_pools") = false)
                 (by decide : ("newDynamicLPFee" == "_pools") = false)).trans (store_get_empty _)
-            have hbody := updateFeeBody (evm := evm) (imms := immStore v) hwv hhi hcanon hfeeCanon hk he hpools
+            have hbody := updateFeeBody (fork := fork) (evm := evm) (imms := immStore v) hwv hhi hcanon hfeeCanon hk he hpools
             have htrace := updateFeeTrace (evm := evm) v (by simp) hI hcanon hfeeCanon rdBody
             rw [updateFeeResult, hI] at hbody
             unfold updateFeeTraceResult at htrace

@@ -1,6 +1,8 @@
 import Examples.SimpleAuction.Storage
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -18,7 +20,7 @@ abbrev highestBidderReturnWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
 theorem simpleAuctionHighestBidderBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocals : locals.get? "highestBidder" = none) :
-    ExecTransitionBody simpleAuctionConfig simpleAuctionContract evm locals highestBidderGetter.body
+    ExecTransitionBody fork simpleAuctionConfig simpleAuctionContract evm locals highestBidderGetter.body
       (.returned { contract := simpleAuctionContract, locals := locals } evm
         (some [(.address (AccountAddress.ofNat
           (UInt256.land (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩)
@@ -72,9 +74,9 @@ theorem simpleAuctionDecode_highestBidder {I : ExecutionEnv} (hsz : 4 ≤ I.call
 
 theorem simpleAuctionX_highestBidder {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨274⟩
+    (hreach : ∃ k C, RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨274⟩
       [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret simpleAuctionBytecode g (initState σ σ₀ g A I) σ
+    RDret fork simpleAuctionBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (highestBidderReturnWord σ I)) := by
   obtain ⟨_, _, rd274⟩ := hreach
   have rd285 := evm_run rd274 with [
@@ -103,9 +105,9 @@ theorem simpleAuctionX_highestBidder {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem simpleAuctionHighestBidderX_nonpayable {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hwv : I.weiValue ≠ ⟨0⟩)
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨274⟩
+    (hreach : ∃ k C, RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨274⟩
       [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev simpleAuctionBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork simpleAuctionBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd274⟩ := hreach
   have rd282 := evm_run rd274 with [
     jumpdest, callvalue, dup1, iszero, push2 ⟨285⟩,
@@ -116,18 +118,18 @@ theorem simpleAuctionHighestBidderBody {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = simpleAuctionBytecode) (_hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x91, 0xf9, 0x01, 0x57]⟩)
-    (hreach : ∃ k C, RD simpleAuctionBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork simpleAuctionBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨274⟩
       [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeRefinementFor simpleAuctionConfig simpleAuctionContract
+    runtimeRefinementFor fork simpleAuctionConfig simpleAuctionContract
       σ σ₀ g A I := by
   have hsz := simpleAuctionHighestBidderSelector_size hsel
   have hd := simpleAuctionDispatch_highestBidder (cd := I.calldata) hsel
   have hdec := simpleAuctionDecode_highestBidder (I := I) hsz
   by_cases hwv : I.weiValue = ⟨0⟩
   · have hbody :
-        ExecTransitionBody simpleAuctionConfig simpleAuctionContract
+        ExecTransitionBody fork simpleAuctionConfig simpleAuctionContract
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
           highestBidderGetter.body
           (.returned { contract := simpleAuctionContract, locals := ∅ }
@@ -141,7 +143,7 @@ theorem simpleAuctionHighestBidderBody {σ σ₀ A I}
       |>.reEquivExecutionGen hcode hd hdec hbody (by rfl)
         (returnEquiv_of_encode (solcAddressReturnEncoding (addrTy := addr) rfl (highestBidderWord σ I)))
   · have hbody :
-        ExecTransitionBody simpleAuctionConfig simpleAuctionContract
+        ExecTransitionBody fork simpleAuctionConfig simpleAuctionContract
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
           highestBidderGetter.body .reverted := by
       simpa [highestBidderGetter, initState] using

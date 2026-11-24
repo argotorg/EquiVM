@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.TimeArrayEVM
 import Benchmarks.EAS.EAS.OffchainEVM
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -9,8 +11,8 @@ theorem easMultiOffchain_call {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap}
     {k C : Nat} {i length start time : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length + 14 ≤ 1024) (hi : i.toNat < length.toNat)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨4089⟩ (i :: length :: start :: time :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨7001⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨4089⟩ (i :: length :: start :: time :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨7001⟩
       (keyValueToWord (.address ee.source) :: timeArrayWord ee start i :: time :: ⟨4132⟩ :: i :: ⟨1⟩ :: length :: start :: time :: R)
       mem aw rdata σ k' C' := by
   have rd1 := easBlocks.eas_block_4089_taken (immWords := wordsOf (immStore v))
@@ -30,8 +32,8 @@ theorem easMultiOffchain_step {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length + 14 ≤ 1024) (hi : i.toNat < length.toNat)
     (hz : UInt256.land (solcSlotWord σ ee (offchainSlot (keyValueToWord (.address ee.source)) (timeArrayWord ee start i))) easUint64Mask = ⟨0⟩)
     (hp : ee.perm = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨4089⟩ (i :: length :: start :: time :: R) mem aw rdata σ k C) :
-    ∃ mem' aw' k' C', RD (deployedRuntime v) ee g s0 ⟨4089⟩ ((i + ⟨1⟩) :: length :: start :: time :: R)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨4089⟩ (i :: length :: start :: time :: R) mem aw rdata σ k C) :
+    ∃ mem' aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨4089⟩ ((i + ⟨1⟩) :: length :: start :: time :: R)
       mem' aw' rdata (offchainAccounts σ ee ee.source (timeArrayWord ee start i) time) k' C' := by
   obtain ⟨k1, C1, rd1⟩ := easMultiOffchain_call v hstack hi rd
   obtain ⟨aw2, k2, C2, rd2⟩ := easOffchain_ok v (revoker := ee.source)
@@ -45,8 +47,8 @@ theorem easMultiOffchain_end {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap}
     {k C : Nat} {i length start time : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length + 8 ≤ 1024) (hi : length.toNat ≤ i.toNat)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨4089⟩ (i :: length :: start :: time :: R) mem aw rdata σ k C) :
-    RDret (deployedRuntime v) g s0 σ time.toByteArray := by
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨4089⟩ (i :: length :: start :: time :: R) mem aw rdata σ k C) :
+    RDret fork (deployedRuntime v) g s0 σ time.toByteArray := by
   have rd1 := easBlocks.eas_block_4089_fallthrough (immWords := wordsOf (immStore v))
     (by simp only [List.length_cons]; omega) (ult_zero hi) rd
   have hr := easBlocks.eas_block_4097 (immWords := wordsOf (immStore v)) hstack rd1

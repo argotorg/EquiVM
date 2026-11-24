@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.CollateralMappingMemory
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_064
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_049
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -16,16 +18,16 @@ theorem cometSupplyCollateralBalance {v : CometWithExtendedAssetListImmutables}
     {aw ptr totalPtr amount ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (sender dst asset : AccountAddress) (hstack : R.length + 28 ≤ 1024)
     (ha : amount.toNat < 2^128) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨13952⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨13952⟩
       (EVM.word asset.val :: ptr :: totalPtr :: amount :: EVM.word sender.val ::
         EVM.word dst.val :: ret :: R) mem aw out σ k C) :
     ((withdrawCollateralBalance evm dst asset).toNat + amount.toNat < 2^128 ∧
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨14040⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨14040⟩
         (supplyCollateralWriteStack sender dst asset ptr totalPtr amount
           (withdrawCollateralBalance evm dst asset) (supplyCollateralNext evm dst asset amount) ret R)
         (userCollateralMemory mem dst asset) aw' out σ k' C') ∨
     (¬ (withdrawCollateralBalance evm dst asset).toNat + amount.toNat < 2^128 ∧
-      RDrev (deployedRuntime v) g s0) := by
+      RDrev fork (deployedRuntime v) g s0) := by
   have r1 := cometWithExtendedAssetList_block_13952
     (immWords := wordsOf (immStore v)) (by change R.length + 1 + 24 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
@@ -44,7 +46,7 @@ theorem cometSupplyCollateralBalance {v : CometWithExtendedAssetListImmutables}
   have hread : solcSlotWordAt (userCollateralSlot dst asset) σ ee =
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (userCollateralSlot dst asset) := by
     simpa only [hs.env] using (hs.storageRead (userCollateralSlot dst asset)).symm
-  change RD _ _ _ _ _ (UInt256.land _ (solcSlotWordAt (userCollateralSlot dst asset) σ ee) :: _)
+  change RD fork _ _ _ _ _ (UInt256.land _ (solcSlotWordAt (userCollateralSlot dst asset) σ ee) :: _)
     _ _ _ _ _ _ at r5
   rw [hread, u256_land_comm] at r5
   have r6 := cometWithExtendedAssetList_block_14033

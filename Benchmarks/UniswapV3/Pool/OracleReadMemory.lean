@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.OracleReadCost
 import Benchmarks.UniswapV3.Pool.MemoryGasBound
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -42,12 +44,12 @@ theorem oracleReadHeadAtX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p index : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (start : Nat)
     (hstart : start = 20474 ∨ start = 20610 ∨ start = 18869)
-    (rd : RD (deployedRuntime v) ee g s0 (UInt256.ofNat start)
+    (rd : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat start)
       (index :: UInt256.ofNat 8 :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw p) (hb : p.toNat + 128 ≤ 2 ^ 200) (hov : R.length + 6 ≤ 1024) :
     let last := oracleStoredObservation index σ ee
     ∃ k' C', C + 1 + (Cₘ (oracleReadHeadAw mem aw) - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat (start + 86))
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat (start + 86))
         (p :: UInt256.ofNat 96 :: (if last.initialized then ⟨1⟩ else ⟨0⟩) :: p :: R)
         (observationReadHeadMem mem p last) (oracleReadHeadAw mem aw) rdata σ k' C' := by
   dsimp only
@@ -63,12 +65,12 @@ theorem oracleReadHeadAtX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem oracleReadHeadX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p index : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (second : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (UInt256.ofNat (oracleReadStart second))
+    (rd : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat (oracleReadStart second))
       (index :: UInt256.ofNat 8 :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw p) (hb : p.toNat + 128 ≤ 2 ^ 200) (hov : R.length + 6 ≤ 1024) :
     let last := oracleStoredObservation index σ ee
     ∃ k' C', C + 1 + (Cₘ (oracleReadHeadAw mem aw) - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat (oracleReadStart second + 86))
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat (oracleReadStart second + 86))
         (p :: UInt256.ofNat 96 :: (if last.initialized then ⟨1⟩ else ⟨0⟩) :: p :: R)
         (observationReadHeadMem mem p last) (oracleReadHeadAw mem aw) rdata σ k' C' := by
   exact oracleReadHeadAtX (v := v) (oracleReadStart second)

@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.RateModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -53,7 +55,7 @@ theorem evalRateBase (v : CometWithExtendedAssetListImmutables) (b : Bool)
 
 theorem rateCallable_block (v : CometWithExtendedAssetListImmutables) (b : Bool)
     (u : UInt256) (evm : EVM.State) :
-    ExecBlock config (rateEntryFrame v u) evm (rateCallable b).body
+    ExecBlock fork config (rateEntryFrame v u) evm (rateCallable b).body
       (if RateValid (rateParams v b) u then
         .returned (rateFinalFrame v b u) evm (some [.int (rateWord (rateParams v b) u).toNat])
        else .reverted) := by
@@ -65,7 +67,7 @@ theorem rateCallable_block (v : CometWithExtendedAssetListImmutables) (b : Bool)
     rfl
   have hk := evalRateKink v b f0 evm rfl
   have hc := naturalLeSource hu hk
-  change ExecBlock config f0 evm _ (if RateValid p u then
+  change ExecBlock fork config f0 evm _ (if RateValid p u then
     .returned (rateFinalFrame v b u) evm (some [.int (rateWord p u).toNat]) else .reverted)
   by_cases hle : u.toNat ≤ p.kink.toNat
   · have hcond : evalExpr? config f0 evm
@@ -183,14 +185,14 @@ theorem rateCallable_block (v : CometWithExtendedAssetListImmutables) (b : Bool)
 
 theorem rateCallable_returns (v : CometWithExtendedAssetListImmutables) (b : Bool)
     (u : UInt256) (evm : EVM.State) (hvalid : RateValid (rateParams v b) u) :
-    ExecFuncBody config (rateEntryFrame v u) evm (rateCallable b).body
+    ExecFuncBody fork config (rateEntryFrame v u) evm (rateCallable b).body
       (.returned (rateFinalFrame v b u) evm (some [.int (rateWord (rateParams v b) u).toNat])) := by
   apply ExecFuncBody.execBlockRet
   simpa only [if_pos hvalid] using rateCallable_block v b u evm
 
 theorem rateCallable_reverts (v : CometWithExtendedAssetListImmutables) (b : Bool)
     (u : UInt256) (evm : EVM.State) (hvalid : ¬ RateValid (rateParams v b) u) :
-    ExecFuncBody config (rateEntryFrame v u) evm (rateCallable b).body .reverted := by
+    ExecFuncBody fork config (rateEntryFrame v u) evm (rateCallable b).body .reverted := by
   apply ExecFuncBody.execBlockRevert
   simpa only [if_neg hvalid] using rateCallable_block v b u evm
 
@@ -199,10 +201,10 @@ theorem rate_call_ok (v : CometWithExtendedAssetListImmutables) (b : Bool)
     (hc : frame.contract = contract) (hi : frame.immutables = immStore v)
     (hu : evalExpr? config frame evm expr = .ok (.int u.toNat))
     (hvalid : RateValid (rateParams v b) u) :
-    ExecStmt config frame evm (.internalCall (rateCallableName b) [expr] ret)
+    ExecStmt fork config frame evm (.internalCall (rateCallableName b) [expr] ret)
       (.ok { frame with locals := frame.locals.insert ret (.int (rateWord (rateParams v b) u).toNat) }
         evm) := by
-  exact ExecStmt.internalCallReturn (callee := rateCallable b)
+  exact ExecStmt.internalCallReturn (fork := fork) (callee := rateCallable b)
     (cfg := config) (stele := frame) (evm := evm) (args := [expr]) (argVals := [.int u.toNat])
     (by simp only [evalExprs?, hu, pure, bind, EvalResult.bind])
     (by rw [hc]; exact rateCallable_lookup b) rfl
@@ -213,7 +215,7 @@ theorem rate_call_revert (v : CometWithExtendedAssetListImmutables) (b : Bool)
     (hc : frame.contract = contract) (hi : frame.immutables = immStore v)
     (hu : evalExpr? config frame evm expr = .ok (.int u.toNat))
     (hvalid : ¬ RateValid (rateParams v b) u) :
-    ExecStmt config frame evm (.internalCall (rateCallableName b) [expr] ret) .reverted := by
+    ExecStmt fork config frame evm (.internalCall (rateCallableName b) [expr] ret) .reverted := by
   exact ExecStmt.internalCallRevert (callee := rateCallable b)
     (cfg := config) (stele := frame) (evm := evm) (args := [expr]) (argVals := [.int u.toNat])
     (by simp only [evalExprs?, hu, pure, bind, EvalResult.bind])

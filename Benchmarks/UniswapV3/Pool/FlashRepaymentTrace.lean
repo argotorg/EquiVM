@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.LowGasSafeAdd
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_024
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -13,13 +15,13 @@ def flashRepayValid (before fee after : UInt256) : Prop :=
 theorem flashRepaymentX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw junk before0 before1 fee0 fee1 after0 after1 : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨7003⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨7003⟩
       (after1 :: junk :: after0 :: before1 :: before0 :: fee1 :: fee0 :: R) mem aw rdata σ k C)
     (hov : R.length + 13 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧
+    (RDrev fork (deployedRuntime v) g s0 ∧
       ¬ (flashRepayValid before0 fee0 after0 ∧ flashRepayValid before1 fee1 after1)) ∨
     (flashRepayValid before0 fee0 after0 ∧ flashRepayValid before1 fee1 after1 ∧
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨7139⟩
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨7139⟩
         (after1 :: after0 :: before1 :: before0 :: fee1 :: fee0 :: R) mem aw rdata σ k' C') := by
   have rdAdd0 := uniswapV3Pool_block_7003 (immWords := wordsOf (immStore v)) (by evm_ov)
     (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; jump_dest) rd

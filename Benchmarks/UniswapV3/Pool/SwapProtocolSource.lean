@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.SwapAccountingSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -48,13 +50,13 @@ theorem swapProtocolUpdateSource {frame : Frame} {evm : EVM.State}
     (hc : frame.locals.get? "cache" = some c.value)
     (hs : frame.locals.get? "state" = some s.value)
     (hd : frame.locals.get? "step" = some d.value) (hn : 0 < c.feeProtocol.toNat) :
-    ExecBlock config frame evm swapProtocolBody
+    ExecBlock fork config frame evm swapProtocolBody
       (.ok (swapProtocolUpdateFrame frame c s d) evm) := by
   have hfee := evalExpr_structField (name := "feeAmount")
     (evalExpr_var_get (cfg := config) (evm := evm) hd) rfl
   have hdivisor := evalExpr_structField (name := "feeProtocol")
     (evalExpr_var_get (cfg := config) (evm := evm) hc) rfl
-  have hex0 : ExecStmt config frame evm swapProtocolBody[0]!
+  have hex0 : ExecStmt fork config frame evm swapProtocolBody[0]!
       (.ok (swapProtocolDeltaFrame frame c d) evm) :=
     ExecStmt.letDecl (evalExpr_word_div hfee hdivisor (by omega))
   have hstep : (swapProtocolDeltaFrame frame c d).locals.get? "step" = some d.value := by
@@ -62,7 +64,7 @@ theorem swapProtocolUpdateSource {frame : Frame} {evm : EVM.State}
       using hd
   have hdelta : (swapProtocolDeltaFrame frame c d).locals.get? "delta" =
       some (.int (Int.ofNat (swapProtocolDelta c d).toNat)) := Std.HashMap.getElem?_insert_self
-  have hex1 : ExecStmt config (swapProtocolDeltaFrame frame c d) evm swapProtocolBody[1]!
+  have hex1 : ExecStmt fork config (swapProtocolDeltaFrame frame c d) evm swapProtocolBody[1]!
       (.ok (swapProtocolFeeFrame frame c d) evm) :=
     ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
       (evalExpr_word_sub (evalExpr_structField (name := "feeAmount")
@@ -75,7 +77,7 @@ theorem swapProtocolUpdateSource {frame : Frame} {evm : EVM.State}
       some (.int (Int.ofNat (swapProtocolDelta c d).toNat)) := by
     simpa only [swapProtocolFeeFrame, swapIterationFrame,
       Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert] using hdelta
-  have hex2 : ExecStmt config (swapProtocolFeeFrame frame c d) evm swapProtocolBody[2]!
+  have hex2 : ExecStmt fork config (swapProtocolFeeFrame frame c d) evm swapProtocolBody[2]!
       (.ok (swapProtocolUpdateFrame frame c s d) evm) :=
     ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
       (evalExpr_uint128AddCast (evalExpr_structField (name := "protocolFee")
@@ -88,7 +90,7 @@ theorem swapProtocolSource {frame : Frame} {evm : EVM.State}
     (hc : frame.locals.get? "cache" = some c.value)
     (hs : frame.locals.get? "state" = some s.value)
     (hd : frame.locals.get? "step" = some d.value) :
-    ExecStmt config frame evm swapLoopBody[14]! (.ok (swapProtocolFrame frame c s d) evm) := by
+    ExecStmt fork config frame evm swapLoopBody[14]! (.ok (swapProtocolFrame frame c s d) evm) := by
   have hfee := evalExpr_structField (name := "feeProtocol")
     (evalExpr_var_get (cfg := config) (evm := evm) hc) rfl
   have hz : evalExpr? config frame evm (.intLit 0) = .ok (.int (Int.ofNat (⟨0⟩ : UInt256).toNat)) :=

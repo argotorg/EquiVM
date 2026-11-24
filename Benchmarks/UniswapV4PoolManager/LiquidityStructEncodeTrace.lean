@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.LiquidityEncodeMemory
 import Benchmarks.UniswapV4PoolManager.NatSubBounds
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -14,11 +16,11 @@ theorem beforeLiquidityKeyEncodeTrace {I : ExecutionEnv} {g : Sat256} {s0 : Stat
     (v : PoolManagerImmutables) (hstack : R.length+16 ≤ 1024)
     (hk : PoolKeyView mem keyPtr key) (hc : PoolKeyCanonical key)
     (hb : keyPtr.toNat+160 ≤ free.toNat) (hf : free.toNat+228 < UInt256.size)
-    (h : RD (deployedRuntime v) I g s0 ⟨14027⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨14027⟩
       ((free+UInt256.ofNat 36) :: accountWord sender :: keyPtr :: paramsPtr :: src :: len :: R)
       (writeWord mem (free+UInt256.ofNat 32).toNat selector) aw rdata σ k C) :
     ∃ aw' k' C', C+200+Cₘ aw' ≤ C'+Cₘ aw ∧
-      RD (deployedRuntime v) I g s0 ⟨14152⟩
+      RD fork (deployedRuntime v) I g s0 ⟨14152⟩
         (paramsPtr :: UInt256.ofNat 14199 :: (free+UInt256.ofNat 36) :: UInt256.ofNat 352 ::
           len :: src :: UInt256.ofNat 13903 :: R)
         (wordCallMemory mem (free.toNat+32) selector (accountWord sender :: poolKeyWordList key))
@@ -42,9 +44,9 @@ theorem modifyLiquidityParamsEncodeTrace {I : ExecutionEnv} {g : Sat256} {s0 : S
     (hb : ptr.toNat+128 ≤ dest.toNat+192)
     (hp : ptr.toNat+128 < UInt256.size) (hf : dest.toNat+320 < UInt256.size)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨14152⟩ (ptr :: ret :: dest :: R) mem aw rdata σ k C) :
+    (h : RD fork (deployedRuntime v) I g s0 ⟨14152⟩ (ptr :: ret :: dest :: R) mem aw rdata σ k C) :
     ∃ aw' k' C', C+118+Cₘ aw' ≤ C'+Cₘ aw ∧
-      RD (deployedRuntime v) I g s0 ret (dest :: R)
+      RD fork (deployedRuntime v) I g s0 ret (dest :: R)
         (wordSequenceMemory mem (dest.toNat+192) (modifyLiquidityWords p)) aw' rdata σ k' C' := by
   have hm := modifyLiquidityEncodeMemory hv hl hu hb hp hf
   have hr := poolManager_block_14152 hstack hret h

@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.Values
 import Benchmarks.UniswapV4PoolManager.Routines
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_038
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -14,7 +16,7 @@ theorem noDelegateCall_lookup : lookupCallable? contract "checkNotDelegateCall" 
 
 theorem noDelegateCallBody {f : Frame} {evm : EVM.State} (v : PoolManagerImmutables)
     (him : f.immutables = immStore v) :
-    ExecFuncBody config f evm noDelegateCallFunction.body
+    ExecFuncBody fork config f evm noDelegateCallFunction.body
       (if evm.executionEnv.codeOwner = v.original then .returned f evm none else .reverted) := by
   have horig : evalExpr? config f evm (.immutable "original") = .ok (.address v.original) := by
     simp only [evalExpr?, him, immStore_get_original, EvalResult.ofOption]
@@ -31,10 +33,10 @@ theorem noDelegateCallBody {f : Frame} {evm : EVM.State} (v : PoolManagerImmutab
 
 theorem noDelegateCallCall {f : Frame} {evm : EVM.State} (v : PoolManagerImmutables)
     (hf : f.contract = contract) (him : f.immutables = immStore v) (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "checkNotDelegateCall" [] retVar)
+    ExecStmt fork config f evm (.internalCall "checkNotDelegateCall" [] retVar)
       (if evm.executionEnv.codeOwner = v.original then
         .ok {f with locals := f.locals.insert retVar .unit} evm else .reverted) := by
-  have hb := noDelegateCallBody (f := {f with locals := ∅}) (evm := evm) v him
+  have hb := noDelegateCallBody (fork := fork) (f := {f with locals := ∅}) (evm := evm) v him
   have hl : lookupCallable? f.contract "checkNotDelegateCall" = some noDelegateCallFunction.toCallable := by
     rw [hf]; exact noDelegateCall_lookup
   by_cases he : evm.executionEnv.codeOwner = v.original
@@ -47,9 +49,9 @@ theorem noDelegateCallTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+3 ≤ 1024)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨13583⟩ (ret :: R) mem aw rdata σ k C) :
-    if I.codeOwner = v.original then ∃ k' C', RD (deployedRuntime v) I g s0 ret R mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) I g s0 ⟨13583⟩ (ret :: R) mem aw rdata σ k C) :
+    if I.codeOwner = v.original then ∃ k' C', RD fork (deployedRuntime v) I g s0 ret R mem aw rdata σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   have heq : accountWord I.codeOwner = accountWord v.original ↔ I.codeOwner = v.original := by
     simpa only [accountWord_address] using
       (accountWord_eq_iff I.codeOwner (accountWord v.original) (accountWord_canonical v.original)).symm

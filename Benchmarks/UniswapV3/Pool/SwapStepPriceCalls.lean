@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapStepInitialGet
 import Benchmarks.UniswapV3.Pool.NextPriceSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -44,7 +46,7 @@ theorem evalSwapStepPriceArgs (imms : Store) (evm : EVM.State) (a : SwapStepArgs
 theorem swapStepPriceCallReturns (imms : Store) (evm : EVM.State) (a : SwapStepArgs)
     (input : Bool) (hi : swapStepExactIn a = input) (ha : a.Fits)
     (hv : nextPriceValid input (swapStepNextArgs a)) :
-    ExecStmt config (swapStepInitialFrame imms a input) evm
+    ExecStmt fork config (swapStepInitialFrame imms a input) evm
       (.internalCall (nextPriceName input) (swapStepPriceCallArgs input)
         (swapStepPriceCallName input))
       (.ok (swapStepPriceCallFrame imms a input) evm) := by
@@ -58,7 +60,7 @@ theorem swapStepPriceCallReturns (imms : Store) (evm : EVM.State) (a : SwapStepA
 theorem swapStepPriceCallReverts (imms : Store) (evm : EVM.State) (a : SwapStepArgs)
     (input : Bool) (hi : swapStepExactIn a = input)
     (hv : ¬nextPriceValid input (swapStepNextArgs a)) :
-    ExecStmt config (swapStepInitialFrame imms a input) evm
+    ExecStmt fork config (swapStepInitialFrame imms a input) evm
       (.internalCall (nextPriceName input) (swapStepPriceCallArgs input)
         (swapStepPriceCallName input))
       .reverted := by

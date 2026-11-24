@@ -5,6 +5,8 @@ import Benchmarks.UniswapV4PoolManager.PoolSwapBoundaryTickTrace
 import Benchmarks.UniswapV4PoolManager.PoolSwapRepriceTrace
 import Benchmarks.UniswapV4PoolManager.BlockResultTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -42,11 +44,11 @@ theorem poolSwapTickTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f : 
     (ht : memLoad (step+UInt256.ofNat 32) mem = s.tickNext)
     (hl : memLoad (state+UInt256.ofNat 64) (tickCrossMemory mem id s.tickNext) = r.liquidity)
     (ht' : memLoad (step+UInt256.ofNat 32) (poolSwapCrossMemory mem id state s evm zeroForOne r.liquidity) = s.tickNext)
-    (h : RD (deployedRuntime v) I g s0 ⟨19833⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨19833⟩
       ([x0, tag, x1, params, remaining, calculated, fee, protocol, amount, UInt256.fromBool (!zeroForOne), step, poolSlot id, state] ++ R)
       mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0
-      (fun _ post => ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨19964⟩
+    blockResultTrace fork (deployedRuntime v) g s0
+      (fun _ post => ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨19964⟩
         ([tag, x1, params, remaining, calculated, fee, protocol, amount, UInt256.fromBool (!zeroForOne), step, poolSlot id, state] ++ R)
         (poolSwapTickMemory mem id state evm s r zeroForOne) (poolSwapTickAW aw step state s r)
         rdata post.accountMap k' C') (fun _ _ => False) (poolSwapTickResult f evm id s r zeroForOne) := by

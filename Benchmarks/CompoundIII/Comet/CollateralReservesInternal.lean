@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.CollateralReservesSource
 import Benchmarks.CompoundIII.Comet.CollateralReservesArithmetic
 import Benchmarks.CompoundIII.Comet.TokenBalanceResponse
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -21,16 +23,16 @@ theorem cometCollateralReservesInternal {v : CometWithExtendedAssetListImmutable
     (hptr : ptr.toNat + 36 < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨9561⟩ (EVM.word asset.val :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨9561⟩ (EVM.word asset.val :: ret :: R)
       mem aw rdata σ k C) :
     ∃ (evm' : EVM.State) (σ' : AccountMap) (z : Bool) (out : ByteArray),
-      callViaEVM evm asset 0 (tokenBalancePayload evm.executionEnv.codeOwner)
+      callViaEVM fork evm asset 0 (tokenBalancePayload evm.executionEnv.codeOwner)
         (z, evm', out) false ∧ SourceState s0 ee σ' evm' ∧ out.size < 2^138 ∧
       if CollateralReservesValid evm' asset z out then
-        ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret
+        ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret
           (collateralReservesValue evm' asset out :: R)
           (collateralReservesMemory mem ptr ee.codeOwner asset out) aw' out σ' k' C'
-      else RDrev (deployedRuntime v) g s0 := by
+      else RDrev fork (deployedRuntime v) g s0 := by
   have r1 := cometWithExtendedAssetList_block_9561
     (immWords := wordsOf (immStore v)) (by change R.length + 1 + 8 ≤ 1024; omega) h
   have ht : UInt256.land
@@ -48,7 +50,7 @@ theorem cometCollateralReservesInternal {v : CometWithExtendedAssetListImmutable
     (tokenBalanceInputMemory_payload hb)
     (by rw [tokenBalancePayload_size]; decide)
     (by change R.length + 3 + 1 ≤ 1024; omega)
-  have hc' : callViaEVM evm asset 0 (tokenBalancePayload evm.executionEnv.codeOwner)
+  have hc' : callViaEVM fork evm asset 0 (tokenBalancePayload evm.executionEnv.codeOwner)
       (z, evm', out) false := by
     have ht' : AccountAddress.ofUInt256 (EVM.word asset.val) = asset :=
       accountAddress_roundtrip asset

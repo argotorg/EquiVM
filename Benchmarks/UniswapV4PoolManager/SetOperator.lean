@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.Routines
 import Benchmarks.UniswapV4PoolManager.MappingMemory
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_024
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -41,16 +43,16 @@ theorem setOperatorBodyReturns (evm : EVM.State) (locals imms : Store) (operator
     (hap : locals.get? "approved" = some (wordToElem .bool approved))
     (hbase : locals.get? "isOperator" = none)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm locals setOperatorTransition.body
+    ExecTransitionBody fork config contract evm locals setOperatorTransition.body
       (.returned (calldataFrame contract locals imms evm) (setOperatorPost evm operator approved)
         (some [.bool true])) imms := by
   have ha := (store_get_ne locals (.bytes evm.executionEnv.calldata) (by decide : ("__calldata" == "approved") = false)).trans hap
   have ho := (store_get_ne locals (.bytes evm.executionEnv.calldata) (by decide : ("__calldata" == "operator") = false)).trans hop
   apply ExecFuncBody.execBlockRet
   apply nonpayableCalldataBlock hwv hhi
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) (evalLocalValue ha)
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (evalLocalValue ha)
     (setOperatorAssign evm locals imms operator approved hcanon hop hbase)) ?_
-  refine ExecBlock.consNormal (ExecStmt.emit (hperm := by simpa only [setOperatorPost, storageStore_executionEnv] using hperm)
+  refine ExecBlock.consNormal (ExecStmt.emit (fork := fork) (hperm := by simpa only [setOperatorPost, storageStore_executionEnv] using hperm)
     (vals := [.address evm.executionEnv.source, .address (AccountAddress.ofNat operator.toNat),
       wordToElem .bool approved]) ?_) ?_
   · simp only [evalExprs?, evalExpr?, calldataFrame, ha, ho, EvalResult.ofOption,
@@ -64,7 +66,7 @@ theorem setOperatorBodyStatic (evm : EVM.State) (locals imms : Store) (operator 
     (hop : locals.get? "operator" = some (.address (AccountAddress.ofNat operator.toNat)))
     (hap : locals.get? "approved" = some (wordToElem .bool approved))
     (hbase : locals.get? "isOperator" = none) (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm locals setOperatorTransition.body .staticViolation imms := by
+    ExecTransitionBody fork config contract evm locals setOperatorTransition.body .staticViolation imms := by
   apply ExecFuncBody.execBlockStatic
   apply nonpayableCalldataBlock hwv hhi
   exact ExecBlock.consStatic (ExecStmt.assignStatic
@@ -77,10 +79,10 @@ theorem setOperatorTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {operator approved : UInt256} {R : List UInt256} (v : PoolManagerImmutables)
     (hstack : R.length + 7 ≤ 1024)
     (hc : operator.toNat < EVM.addressModulus) (hperm : I.perm = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨8385⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨8385⟩
       (operator :: UInt256.isZero (UInt256.isZero approved) :: R) entryMemory aw rdata σ k C) :
     let slot := mappingSlotWord operator (mappingSlotWord (accountWord I.source) ⟨3⟩)
-    RDret (deployedRuntime v) g s0
+    RDret fork (deployedRuntime v) g s0
       (sstoreAccountMap I.codeOwner σ slot (setBoolOffset0Word (solcSlotWordAt slot σ I) approved))
       (UInt256.toByteArray ⟨1⟩) := by
   have hret := poolManagerBlocks.poolManager_block_8385 hstack hperm h
@@ -91,7 +93,7 @@ theorem setOperatorTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
   let slot := keccakWord ⟨0⟩ ⟨64⟩ m2
   let stored := UInt256.lor (UInt256.land normalized ⟨255⟩)
     (UInt256.land (solcSlotWordAt slot σ I) (UInt256.lnot ⟨255⟩))
-  change RDret (deployedRuntime v) g s0 (sstoreAccountMap I.codeOwner σ slot stored)
+  change RDret fork (deployedRuntime v) g s0 (sstoreAccountMap I.codeOwner σ slot stored)
     (((⟨1⟩ : UInt256).toByteArray.write 0 written (memLoad ⟨64⟩ written).toNat 32).readWithPadding
       (memLoad ⟨64⟩ written).toNat 32) at hret
   have hs1 : m1.size = 96 := twoWordHashMem_size_96 _ _ entryMemory_size
@@ -112,14 +114,14 @@ theorem setOperatorTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     rw [hslot2, boolNormalize_mask, u256_lor_comm]
     rfl
   have hout := eventWordThenReturn hp2 (by rw [hs2]) (by decide) (by rw [hs2]; native_decide) normalized ⟨1⟩
-  exact (congrArg₂ (fun acc bytes => RDret (deployedRuntime v) g s0 acc bytes) hacc hout).mp hret
+  exact (congrArg₂ (fun acc bytes => RDret fork (deployedRuntime v) g s0 acc bytes) hacc hout).mp hret
 
 open poolManagerBlocks in
 theorem setOperatorStaticTrace {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024)
     (hperm : ee.perm = false)
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 8385) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : RDstatic (immutableLayout.runtime poolManagerBytecode immWords) g s0 := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 8385) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : RDstatic fork (immutableLayout.runtime poolManagerBytecode immWords) g s0 := by
   let r0 := h
   have r1 := r0.push20 (UInt256.ofNat 1461501637330902918203684832716283019655932542975) (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨8385⟩ : UInt256), UInt8.ofNat 115, .Push .PUSH20, some ((UInt256.ofNat 1461501637330902918203684832716283019655932542975), 20), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.swap1 (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨8406⟩ : UInt256), UInt8.ofNat 144, .SWAP1, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
@@ -159,15 +161,15 @@ theorem setOperatorStaticTrace {immWords : String → UInt256} {ee : ExecutionEn
 theorem poolManagerSetOperatorBodyCore {σ σ₀ A I} {g : UInt256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 16)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (poolManagerSelBytes 16) rfl hsel
   have hd : dispatchMsg contract I.calldata = some setOperatorTransition := by
     apply poolManagerDispatch_setOperator <;> first
     | exact hsel
     | exact selectorNe_of_selIs hsel (by decide +kernel)
-  obtain ⟨k, C, rdEntry⟩ := poolManagerReachSetOperatorBody (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, rdEntry⟩ := poolManagerReachSetOperatorBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
-  change RD (deployedRuntime v) I (Sat256.ofUInt256 g)
+  change RD fork (deployedRuntime v) I (Sat256.ofUInt256 g)
     (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8315⟩ [solcSelectorWord I]
     entryMemory ⟨3⟩ .empty σ k C at rdEntry
   have hjump : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 816) = true := by
@@ -208,7 +210,7 @@ theorem poolManagerSetOperatorBodyCore {σ σ₀ A I} {g : UInt256} (v : PoolMan
                   _ _ hwv hhi hcanon hop (store_get_self _ _ _) hbase hperm)
             | true =>
               have hret := setOperatorTrace v (by simp) hcanon hperm rdReturn
-              have hbody := setOperatorBodyReturns (hperm := by assumption) (initState σ σ₀ (Sat256.ofUInt256 g) A I) args
+              have hbody := setOperatorBodyReturns (fork := fork) (hperm := by assumption) (initState σ σ₀ (Sat256.ofUInt256 g) A I) args
                 (immStore v) _ _ hwv hhi hcanon hop (store_get_self _ _ _) hbase
               exact hret.reEquivExecutionGen hcode hd hdec hbody
                 (storageStore_accountMap (initState σ σ₀ (Sat256.ofUInt256 g) A I) I.codeOwner
@@ -244,7 +246,7 @@ theorem poolManagerSetOperatorBody {σ σ₀ A I} {g : UInt256} (v : PoolManager
     (_hWF : Syntax.poolManagerWF σ I)
     (_hGas : Syntax.poolManagerGasBound g)
     (hsel : selIs I (poolManagerSelBytes 16)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) :=
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) :=
   poolManagerSetOperatorBodyCore v hcode hsize hsel
 
 end Benchmarks.UniswapV4PoolManager

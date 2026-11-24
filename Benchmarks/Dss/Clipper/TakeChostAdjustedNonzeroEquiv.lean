@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Clipper.TakeChostNonzeroEquiv
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -22,7 +24,7 @@ theorem clipperTakeChostAdjustEquiv
       (List.map Param.name takeTransition.params)
       (transitionSignature takeTransition).paramTypes I.calldata =
         some (clipperTakeStore I))
-    (rd4223 : RD code I (Sat256.ofUInt256 g)
+    (rd4223 : RD fork code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4223⟩
       (((UInt256.sub tab (solcSlotWord σPost I ⟨9⟩)).div price) ::
         UInt256.sub tab (solcSlotWord σPost I ⟨9⟩) :: tab :: lot :: price ::
@@ -68,10 +70,10 @@ theorem clipperTakeChostAdjustEquiv
     (hstatus :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := Stele.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
-      ExecStmt config (Frame.mk contract (clipperTakeLocalsTic evmLock I) (immStore v))
+      ExecStmt fork config (Frame.mk contract (clipperTakeLocalsTic evmLock I) (immStore v))
         evmLock (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
         (.ok (Frame.mk contract (clipperTakeLocalsSt evmLock I false price) (immStore v)) evmPrice))
-    (hcontinue : ClipperTakeStoreContinuationEquiv v code σ
+    (hcontinue : ClipperTakeStoreContinuationEquiv fork v code σ
       σ₀ A I g ((UInt256.sub tab (solcSlotWord σPost I ⟨9⟩)).div price)
       (UInt256.sub tab (solcSlotWord σPost I ⟨9⟩))
       (UInt256.sub tab (UInt256.sub tab (solcSlotWord σPost I ⟨9⟩)))
@@ -79,7 +81,7 @@ theorem clipperTakeChostAdjustEquiv
         ((UInt256.sub tab (solcSlotWord σPost I ⟨9⟩)).div price))
       price tic packed stopped dataLen dataStart who max amt id sel)
     (hdepth : I.depth.val < 1024) (hperm : I.perm = true) :
-    runtimeRefinementFor config contract
+    runtimeRefinementFor fork config contract
       σ σ₀ g A I (immStore v) := by
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmLock := Stele.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
@@ -246,7 +248,7 @@ theorem clipperTakeChostAdjustEquiv
   have hsourceVatNoCode :
       (UInt256.ofNat ((evmPrice.lookupAccount v.vat).option 0
         (fun acc => acc.code.size))).toNat = 0 →
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (clipperTakeStore I) takeTransition.body .reverted (immStore v) := by
     intro hnoCode
@@ -254,7 +256,7 @@ theorem clipperTakeChostAdjustEquiv
       (σ := σ) (σ₀ := σ₀) (A := A)
       (I := I) (g := g) (evmPrice := evmPrice) v price hwv hlocked hstopped husr
       hmax hstatus
-    have hpref := clipperTakeChostAdjustVatFluxNoCodeTailBlock v evmLock evmPrice
+    have hpref := clipperTakeChostAdjustVatFluxNoCodeTailBlock (fork := fork) v evmLock evmPrice
       I price slice hmul hmul' hlt' hsliceLt' hremainingLt' hchostTab' hprice
       hsliceAdjustedLe' hnoCode
     simpa [evm0, evmLock, sourceSlice, hslice, clipperTakeAfterSliceStmts,
@@ -270,12 +272,12 @@ theorem clipperTakeChostAdjustEquiv
   have hsourceVatFailure : ∀ {evmVat : EVM.State} {outVat : ByteArray},
       0 < (UInt256.ofNat ((evmPrice.lookupAccount v.vat).option 0
         (fun acc => acc.code.size))).toNat →
-      typedCallViaEVM config evmPrice (EVM.address v.vat) "flux" 0
+      typedCallViaEVM fork config evmPrice (EVM.address v.vat) "flux" 0
         [v.ilk, .address evmPrice.executionEnv.codeOwner,
           .address (AccountAddress.ofNat who.toNat),
           .int (Int.ofNat ((UInt256.sub tab (solcSlotWord σPost I ⟨9⟩)).div price).toNat)]
         (false, evmVat, outVat) true →
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (clipperTakeStore I) takeTransition.body .reverted (immStore v) := by
     intro evmVat outVat hvatCode hcallVat
@@ -294,12 +296,12 @@ theorem clipperTakeChostAdjustEquiv
   have hsourceFluxSuccess : ∀ {evmVat : EVM.State} {outVat : ByteArray},
       0 < (UInt256.ofNat ((evmPrice.lookupAccount v.vat).option 0
         (fun acc => acc.code.size))).toNat →
-      typedCallViaEVM config evmPrice (EVM.address v.vat) "flux" 0
+      typedCallViaEVM fork config evmPrice (EVM.address v.vat) "flux" 0
         [v.ilk, .address evmPrice.executionEnv.codeOwner,
           .address (AccountAddress.ofNat who.toNat),
           .int (Int.ofNat ((UInt256.sub tab (solcSlotWord σPost I ⟨9⟩)).div price).toNat)]
         (true, evmVat, outVat) true →
-      ExecBlock config
+      ExecBlock fork config
         (Frame.mk contract (clipperTakeLocalsSlice evmLock evmPrice I false price slice) (immStore v)) evmPrice
         (checkedMulUintInto "owe0" (.var "slice") (.var "price") ++
           [ .letDecl "owe" (some uint256) (.var "owe0"),
@@ -313,10 +315,10 @@ theorem clipperTakeChostAdjustEquiv
         hsliceAdjustedLe' hvatCode
         (by simpa [hwhoMasked, hchostRawEq, htab] using hcallVat))
   have hsourceCloseReverted :
-      ExecBlock config
+      ExecBlock fork config
         (Frame.mk contract (clipperTakeLocalsSlice evmLock evmPrice I false price slice) (immStore v)) evmPrice
         (clipperTakeAfterSliceStmts) .reverted →
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (clipperTakeStore I) takeTransition.body .reverted (immStore v) := by
     intro htail
@@ -326,10 +328,10 @@ theorem clipperTakeChostAdjustEquiv
       hmax hstatus
     simpa [evm0, evmLock, sourceSlice, hslice] using htail
   have hsourceCloseReturned : ∀ {finalFrame : Frame} {finalEvm : EVM.State},
-      ExecBlock config
+      ExecBlock fork config
         (Frame.mk contract (clipperTakeLocalsSlice evmLock evmPrice I false price slice) (immStore v)) evmPrice
         (clipperTakeAfterSliceStmts) (.ok finalFrame finalEvm) →
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (clipperTakeStore I) takeTransition.body
         (.returned finalFrame finalEvm none) (immStore v) := by
@@ -386,7 +388,7 @@ theorem clipperTakeChostAdjustNonzeroEquiv
       (List.map Param.name takeTransition.params)
       (transitionSignature takeTransition).paramTypes I.calldata =
         some (clipperTakeStore I))
-    (rd4223 : RD code I (Sat256.ofUInt256 g)
+    (rd4223 : RD fork code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4223⟩
       (((UInt256.sub tab (solcSlotWord σPost I ⟨9⟩)).div price) ::
         UInt256.sub tab (solcSlotWord σPost I ⟨9⟩) :: tab :: lot :: price ::
@@ -432,11 +434,11 @@ theorem clipperTakeChostAdjustNonzeroEquiv
     (hstatus :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := Stele.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
-      ExecStmt config (Frame.mk contract (clipperTakeLocalsTic evmLock I) (immStore v))
+      ExecStmt fork config (Frame.mk contract (clipperTakeLocalsTic evmLock I) (immStore v))
         evmLock (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
         (.ok (Frame.mk contract (clipperTakeLocalsSt evmLock I false price) (immStore v)) evmPrice))
     (hdepth : I.depth.val < 1024) (hperm : I.perm = true) :
-    runtimeRefinementFor config contract
+    runtimeRefinementFor fork config contract
       σ σ₀ g A I (immStore v) := by
   let chost := solcSlotWord σPost I ⟨9⟩
   let owe := UInt256.sub tab chost
@@ -467,7 +469,7 @@ theorem clipperTakeChostAdjustNonzeroEquiv
     rw [hsubNat] at hnat
     change lot.toNat - sliceAdjusted.toNat = 0 at hnat
     omega
-  have hcontinue : ClipperTakeStoreContinuationEquiv v code σ
+  have hcontinue : ClipperTakeStoreContinuationEquiv fork v code σ
       σ₀ A I g
       ((UInt256.sub tab (solcSlotWord σPost I ⟨9⟩)).div price)
       (UInt256.sub tab (solcSlotWord σPost I ⟨9⟩))

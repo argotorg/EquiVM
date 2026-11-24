@@ -2,6 +2,8 @@ import Benchmarks.Safe.Runs1e6.WordCallResult
 import Benchmarks.Safe.Runs1e6.Bytes32ReturnDecoder
 import Benchmarks.Safe.Runs1e6.PreModuleCallEncoding
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.Runs1e6
@@ -71,9 +73,9 @@ theorem evalContractSignatureResult (evm : EVM.State) (owner : EVM.Address) (has
 
 theorem safeContractSignatureSource {evm evm' : EVM.State} {owner : EVM.Address}
     {hash : UInt256} {signature out : ByteArray} {z : Bool}
-    (hc : callViaEVM evm (EVM.address owner) 0 (contractSignatureCallBytes hash signature)
+    (hc : callViaEVM fork evm (EVM.address owner) 0 (contractSignatureCallBytes hash signature)
       (z, evm', out) false) :
-    ExecFuncBody config (contractSignatureFrame owner hash signature) evm
+    ExecFuncBody fork config (contractSignatureFrame owner hash signature) evm
       validateContractSignatureFunction.body
       (.returned (contractSignatureFinalFrame owner hash signature z out) evm'
         (some [.bool (contractSignatureResult z out)])) := by

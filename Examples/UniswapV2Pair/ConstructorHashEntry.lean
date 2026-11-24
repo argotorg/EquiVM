@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.ConstructorMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace UniswapV2Pair
@@ -10,9 +12,9 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapConstructorTypeHash {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {R : List UInt256} {k C : Nat}
     {acc : AccountMap}
-    (rd23 : RD uniswapV2PairInitcode I g s0 ⟨23⟩ R solcFreePtrMem ⟨3⟩ ByteArray.empty acc k C)
+    (rd23 : RD fork uniswapV2PairInitcode I g s0 ⟨23⟩ R solcFreePtrMem ⟨3⟩ ByteArray.empty acc k C)
     (hov : R.length + 9 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairInitcode I g s0 ⟨49⟩
+    ∃ k' C', RD fork uniswapV2PairInitcode I g s0 ⟨49⟩
       (constructorTypeHashWord :: ⟨64⟩ :: ⟨128⟩ :: ⟨128⟩ :: ⟨1⟩ :: R)
       constructorTypeInputMem ⟨7⟩ ByteArray.empty acc k' C' := by
   have rd25 := evm_run rd23 with [push1 ⟨64⟩]

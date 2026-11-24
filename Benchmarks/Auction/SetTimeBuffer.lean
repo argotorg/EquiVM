@@ -1,6 +1,8 @@
 import Benchmarks.Auction.SetterSource
 import Benchmarks.Auction.Uint256Setter
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 100000
@@ -10,14 +12,14 @@ namespace Auction
 theorem setTimeBufferBodySplit (evm : EVM.State) (value : UInt256)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (ho : solcSourceWord evm.executionEnv = ownerWord evm.accountMap evm.executionEnv) :
-    (evm.executionEnv.perm = true → ExecTransitionBody auctionConfig auctionContract evm
+    (evm.executionEnv.perm = true → ExecTransitionBody fork auctionConfig auctionContract evm
       ((∅ : Store).insert "_timeBuffer" (.int (Int.ofNat value.toNat)))
       setTimeBufferTransition.body
       (.returned
         { contract := auctionContract
           locals := (∅ : Store).insert "_timeBuffer" (.int (Int.ofNat value.toNat)) }
         (Stele.EVM.storageStore evm evm.executionEnv.codeOwner ⟨203⟩ value) none)) ∧
-      (evm.executionEnv.perm = false → ExecTransitionBody auctionConfig auctionContract evm
+      (evm.executionEnv.perm = false → ExecTransitionBody fork auctionConfig auctionContract evm
       ((∅ : Store).insert "_timeBuffer" (.int (Int.ofNat value.toNat)))
       setTimeBufferTransition.body .staticViolation) := by
   exact ownerSetUint256Split evm _ "timeBuffer" "_timeBuffer" ⟨203⟩ value hwv ho
@@ -27,7 +29,7 @@ theorem setTimeBufferBody (evm : EVM.State) (value : UInt256)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (ho : solcSourceWord evm.executionEnv = ownerWord evm.accountMap evm.executionEnv)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody auctionConfig auctionContract evm
+    ExecTransitionBody fork auctionConfig auctionContract evm
       ((∅ : Store).insert "_timeBuffer" (.int (Int.ofNat value.toNat)))
       setTimeBufferTransition.body
       (.returned
@@ -39,8 +41,8 @@ theorem setTimeBufferBody (evm : EVM.State) (value : UInt256)
 theorem setTimeBufferBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (entryBytes 7))
-    (hreach : EntryReached 7 σ σ₀ A I g) :
-    runtimeRefinementFor auctionConfig auctionContract
+    (hreach : EntryReached fork 7 σ σ₀ A I g) :
+    runtimeRefinementFor fork auctionConfig auctionContract
       σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
   · have hd := dispatchEntry 7 hsel
@@ -69,13 +71,13 @@ theorem setTimeBufferBodyCore {σ σ₀ A I} {g : UInt256}
               ((setTimeBufferBodySplit
                 (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 (calldataWord I.calldata 4) hwv ho).2 hperm)
-          have hbody := setTimeBufferBody (hperm := hperm)
+          have hbody := setTimeBufferBody (fork := fork) (hperm := hperm)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (calldataWord I.calldata 4) hwv ho
           exact (auctionStop rd413 (by evm_ov)).reEquivExecutionGen
             hcode hd hdec hbody (by simp [storageStore_accountMap, initState, setterSlot])
             (.fallthrough rfl rfl (by native_decide))
-        · have hbody : ExecTransitionBody auctionConfig auctionContract
+        · have hbody : ExecTransitionBody fork auctionConfig auctionContract
               (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               ((∅ : Store).insert "_timeBuffer"
                 (.int (Int.ofNat (calldataWord I.calldata 4).toNat)))

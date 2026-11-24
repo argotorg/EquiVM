@@ -5,6 +5,8 @@ import Benchmarks.Safe.V1_0227664.Blocks.Runtime_027
 import Benchmarks.Safe.V1_0227664.Blocks.Runtime_028
 import Benchmarks.Safe.V1_0227664.Blocks.Runtime_029
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V1_0227664.RuntimeBlocks
 
@@ -14,7 +16,7 @@ set_option maxRecDepth 100000
 
 theorem safeCheckSignaturesTrace (p : SignatureCheckInput) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata ptr src} {executor ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6340⟩
+    (h : RD fork safeBytecode I g s0 ⟨6340⟩
       (UInt256.ofNat src :: p.hash :: executor :: ret :: R) mem aw rdata σ k C)
     (he : p.executor = AccountAddress.ofUInt256 executor)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ) (hworld : evm.σ₀ = s0.σ₀)
@@ -23,12 +25,12 @@ theorem safeCheckSignaturesTrace (p : SignatureCheckInput) (evm : EVM.State)
     (ha : src + 32 + p.signatures.size ≤ ptr) (hp : ptr < 2 ^ 220)
     (hn : p.signatures.size < 2 ^ 64) (hov : R.length + 49 ≤ 1024)
     (hret : (D_J safeBytecode 0).contains ret = true) :
-    (RDrev safeBytecode g s0 ∧
-      ExecFuncBody config p.frame evm checkSignaturesImplFunction.body .reverted) ∨
+    (RDrev fork safeBytecode g s0 ∧
+      ExecFuncBody fork config p.frame evm checkSignaturesImplFunction.body .reverted) ∨
     ∃ f' evm' σ' mem' ptr' aw' out k' C',
-      ExecFuncBody config p.frame evm checkSignaturesImplFunction.body (.returned f' evm' none) ∧
+      ExecFuncBody fork config p.frame evm checkSignaturesImplFunction.body (.returned f' evm' none) ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧ evm'.σ₀ = s0.σ₀ ∧
-      RD safeBytecode I g s0 ret R mem' aw' out σ' k' C' ∧
+      RD fork safeBytecode I g s0 ret R mem' aw' out σ' k' C' ∧
       BytesMemory mem' src p.signatures ∧ memLoad ⟨64⟩ mem' = UInt256.ofNat ptr' ∧
       memLoad ⟨96⟩ mem' = ⟨0⟩ ∧ ptr ≤ ptr' ∧ ptr' ≤ ptr + 2 ^ 204 ∧
       mem'.size ≤ max mem.size (ptr + 2 ^ 204) ∧ MemoryPreserves mem mem' 96 ptr := by

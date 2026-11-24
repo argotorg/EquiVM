@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.TickLogSource
 import Benchmarks.UniswapV3.Pool.BlockTimestamp
 import Benchmarks.UniswapV3.Pool.Slot0Storage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -38,7 +40,7 @@ theorem evalInitializeUninitialized (v : UniswapV3PoolImmutables) (evm : EVM.Sta
 theorem initializeGuardSource (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (price : UInt256) (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hzero : slot0FieldWord 0 20 evm.accountMap evm.executionEnv = ⟨0⟩) :
-    ExecBlock config (initializeFrame v price) evm (initializeTransition.body.take 2)
+    ExecBlock fork config (initializeFrame v price) evm (initializeTransition.body.take 2)
       (.ok (initializeFrame v price) evm) := by
   apply (ABlock.start.requireStep (evalCallvalueEq_true hwv)).run
   exact ExecBlock.consNormal (ExecStmt.requireTrue
@@ -47,7 +49,7 @@ theorem initializeGuardSource (v : UniswapV3PoolImmutables) (evm : EVM.State)
 theorem initializeRevertsAlreadyInitialized (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (price : UInt256) (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hzero : slot0FieldWord 0 20 evm.accountMap evm.executionEnv ≠ ⟨0⟩) :
-    ExecTransitionBody config contract evm (initializeLocals price)
+    ExecTransitionBody fork config contract evm (initializeLocals price)
       initializeTransition.body .reverted (immStore v) := by
   apply ExecFuncBody.execBlockRevert
   apply (ABlock.start.requireStep (evalCallvalueEq_true hwv)).requireRevert
@@ -62,7 +64,7 @@ theorem evalInitializeTickArgs (v : UniswapV3PoolImmutables) (evm : EVM.State) (
 
 theorem initializeTickCall (v : UniswapV3PoolImmutables) (evm : EVM.State) (price : UInt256)
     (hp : price.toNat < 2 ^ 160) (hv : tickLogValid price) (hs : tickLogSafe (tickLogResult price)) :
-    ExecStmt config (initializeFrame v price) evm
+    ExecStmt fork config (initializeFrame v price) evm
       (.internalCall "TickMath_getTickAtSqrtRatio" [.var "sqrtPriceX96"] "tick")
       (.ok (initializeTickFrame v price (tickLogChoice (tickLogResult price) price)) evm) := by
   obtain ⟨out, hbody⟩ := tickLogReturns (immStore v) evm price hp hv hs
@@ -74,9 +76,9 @@ theorem initializeRevertsTick (v : UniswapV3PoolImmutables) (evm : EVM.State) (p
     (hzero : slot0FieldWord 0 20 evm.accountMap evm.executionEnv = ⟨0⟩)
     (hp : price.toNat < 2 ^ 160)
     (hv : ¬ (tickLogValid price ∧ tickLogSafe (tickLogResult price))) :
-    ExecTransitionBody config contract evm (initializeLocals price)
+    ExecTransitionBody fork config contract evm (initializeLocals price)
       initializeTransition.body .reverted (immStore v) := by
-  have hbody : ExecFuncBody config (tickLogFrame (immStore v) price) evm tickLogFunction.body
+  have hbody : ExecFuncBody fork config (tickLogFrame (immStore v) price) evm tickLogFunction.body
       .reverted := by
     by_cases hvalid : tickLogValid price
     · exact tickLogCalleeReverts _ evm price hp hvalid (fun hs ↦ hv ⟨hvalid, hs⟩)
@@ -89,7 +91,7 @@ theorem initializeRevertsTick (v : UniswapV3PoolImmutables) (evm : EVM.State) (p
 
 theorem initializeTimestampCall (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (price : UInt256) (tick : Int) :
-    ExecStmt config (initializeTickFrame v price tick) evm
+    ExecStmt fork config (initializeTickFrame v price tick) evm
       (.internalCall "_blockTimestamp" [] "__c1")
       (.ok (initializeTimeFrame v price tick evm.executionEnv) evm) :=
   internalCallFunctionReturn (callee := blockTimestampFunction) (argVals := []) (locals := ∅)
@@ -101,10 +103,10 @@ theorem initializeBeforeOracleSource (v : UniswapV3PoolImmutables) (evm : EVM.St
     (price : UInt256) (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hzero : slot0FieldWord 0 20 evm.accountMap evm.executionEnv = ⟨0⟩)
     (hp : price.toNat < 2 ^ 160) (hv : tickLogValid price) (hs : tickLogSafe (tickLogResult price)) :
-    ExecBlock config (initializeFrame v price) evm (initializeTransition.body.take 4)
+    ExecBlock fork config (initializeFrame v price) evm (initializeTransition.body.take 4)
       (.ok (initializeTimeFrame v price (tickLogChoice (tickLogResult price) price)
         evm.executionEnv) evm) := by
-  change ExecBlock _ _ _ (initializeTransition.body.take 2 ++
+  change ExecBlock fork _ _ _ (initializeTransition.body.take 2 ++
     (initializeTransition.body.drop 2).take 2) _
   exact execBlock_append_ok (initializeGuardSource v evm price hwv hzero)
     (ExecBlock.consNormal (initializeTickCall v evm price hp hv hs)

@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.DonateDecodeTrace
 import Benchmarks.UniswapV4PoolManager.DonateBodyCorrect
 import Benchmarks.UniswapV4PoolManager.BlockCorrectComposition
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # PoolManager `donate((address,address,uint24,int24,address),uint256,uint256,bytes)`
 
@@ -25,15 +27,15 @@ theorem poolManagerDonateBody {σ σ₀ A I} {g : UInt256} (v : PoolManagerImmut
     (_hWF : Syntax.poolManagerWF σ I)
     (hGas : Syntax.poolManagerGasBound g)
     (hsel : selIs I (poolManagerSelBytes 15)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (poolManagerSelBytes 15) rfl hsel
   have hd : dispatchMsg contract I.calldata = some donateTransition := by
     apply poolManagerDispatch_donate <;> first
     | exact hsel
     | exact selectorNe_of_selIs hsel (by decide +kernel)
-  obtain ⟨k, C, rdEntry⟩ := poolManagerReachDonateBody (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, rdEntry⟩ := poolManagerReachDonateBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
-  change RD (deployedRuntime v) I (Sat256.ofUInt256 g)
+  change RD fork (deployedRuntime v) I (Sat256.ofUInt256 g)
     (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨9980⟩ [solcSelectorWord I]
     entryMemory ⟨3⟩ .empty σ k C at rdEntry
   have hjump : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 816) = true := by
@@ -93,8 +95,8 @@ theorem poolManagerDonateBody {σ σ₀ A I} {g : UInt256} (v : PoolManagerImmut
               hvalid.2.2.1 haw1 (by rw [hsrcNat]; exact hbounds.2.2.2)
               hvalid.2.1 hGas rdBody with hog | ⟨result, hbody, htrace⟩
           · exact reEquiv_outOfGas (Xi_error_of_X (g := g) (by rw [← hcode] at hog; exact hog))
-          · have hpre := donatePreludeSource (imms := immStore v) (evm := evm) hwv hhi hkeyarg
-            have hb : ExecTransitionBody config contract evm args donateTransition.body result (immStore v) := by
+          · have hpre := donatePreludeSource (fork := fork) (imms := immStore v) (evm := evm) hwv hhi hkeyarg
+            have hb : ExecTransitionBody fork config contract evm args donateTransition.body result (immStore v) := by
               simpa only [List.take_append_drop] using
                 execFuncBody_prepend hpre (execFuncBody_of_trace hbody htrace)
             exact abiResultTrace_refinement hcode hd hdec hb htrace rfl rfl

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.OracleWriteCardinalitySource
 import Benchmarks.UniswapV3.Pool.OracleObservationStore
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -24,7 +26,7 @@ theorem evalOracleWriteTransformArgs (imms : Store) (evm : EVM.State) (a : Oracl
 
 theorem oracleWriteTransformCall (imms : Store) (evm : EVM.State) (a : OracleWriteArgs)
     (htick : -(2 ^ 23 : Int) ≤ a.tick ∧ a.tick < 2 ^ 23) :
-    ExecStmt config (oracleWriteIndexFrame imms a evm) evm
+    ExecStmt fork config (oracleWriteIndexFrame imms a evm) evm
       (.internalCall "Oracle_transform" oracleWriteTransformArgs "__c0")
       (.ok (oracleWriteTransformedFrame imms a evm) evm) :=
   internalCallFunctionReturn (callee := oracleTransformFunction)
@@ -37,9 +39,9 @@ theorem oracleWriteTransformCall (imms : Store) (evm : EVM.State) (a : OracleWri
 theorem oracleWriteTransformedSource (imms : Store) (evm : EVM.State) (a : OracleWriteArgs)
     (hin : a.index.toNat < 65535) (hsame : oracleWriteSame a evm = false)
     (hn : (oracleWriteCardinality a).toNat ≠ 0) (hfit : a.Fits) :
-    ExecBlock config (oracleWriteFrame imms a) evm (oracleWriteFunction.body.take 7)
+    ExecBlock fork config (oracleWriteFrame imms a) evm (oracleWriteFunction.body.take 7)
       (.ok (oracleWriteTransformedFrame imms a evm) evm) := by
-  change ExecBlock config (oracleWriteFrame imms a) evm
+  change ExecBlock fork config (oracleWriteFrame imms a) evm
     (oracleWriteFunction.body.take 6 ++ [oracleWriteFunction.body[6]!]) _
   exact execBlock_append_ok (oracleWriteIndexSource imms evm a hin hsame hn)
     (ExecBlock.consNormal (oracleWriteTransformCall imms evm a hfit.2.2.1) ExecBlock.nil)
@@ -49,7 +51,7 @@ def oracleWriteFinalState (a : OracleWriteArgs) (evm : EVM.State) : EVM.State :=
 
 theorem oracleWriteAssignSource (imms : Store) (evm : EVM.State) (a : OracleWriteArgs)
     (hn : (oracleWriteCardinality a).toNat ≠ 0) (hfit : a.Fits) :
-    ExecStmt config (oracleWriteTransformedFrame imms a evm) evm (oracleWriteFunction.body[7]!)
+    ExecStmt fork config (oracleWriteTransformedFrame imms a evm) evm (oracleWriteFunction.body[7]!)
       (if evm.executionEnv.perm then .ok (oracleWriteTransformedFrame imms a evm) (oracleWriteFinalState a evm) else .staticViolation) :=
   execStmt_assign_storage (evalExpr_var_get (by oracle_write_get))
     (assignOracleObservation (oracleWriteTransformedFrame imms a evm).locals imms evm
@@ -60,7 +62,7 @@ theorem oracleWriteReturns (imms : Store) (evm : EVM.State) (a : OracleWriteArgs
     (hin : a.index.toNat < 65535) (hsame : oracleWriteSame a evm = false)
     (hn : (oracleWriteCardinality a).toNat ≠ 0) (hfit : a.Fits)
     (hperm : evm.executionEnv.perm = true) :
-    ExecFuncBody config (oracleWriteFrame imms a) evm oracleWriteFunction.body
+    ExecFuncBody fork config (oracleWriteFrame imms a) evm oracleWriteFunction.body
       (.returned (oracleWriteTransformedFrame imms a evm) (oracleWriteFinalState a evm)
         (some [.int (Int.ofNat (oracleWriteIndex a).toNat),
           .int (Int.ofNat (oracleWriteCardinality a).toNat)])) := by
@@ -81,7 +83,7 @@ theorem oracleWriteStatic (imms : Store) (evm : EVM.State) (a : OracleWriteArgs)
     (hin : a.index.toNat < 65535) (hsame : oracleWriteSame a evm = false)
     (hn : (oracleWriteCardinality a).toNat ≠ 0) (hfit : a.Fits)
     (hp : evm.executionEnv.perm = false) :
-    ExecFuncBody config (oracleWriteFrame imms a) evm oracleWriteFunction.body .staticViolation := by
+    ExecFuncBody fork config (oracleWriteFrame imms a) evm oracleWriteFunction.body .staticViolation := by
   apply ExecFuncBody.execBlockStatic
   rw [← List.take_append_drop 7 oracleWriteFunction.body]
   apply execBlock_append_ok (oracleWriteTransformedSource imms evm a hin hsame hn hfit)

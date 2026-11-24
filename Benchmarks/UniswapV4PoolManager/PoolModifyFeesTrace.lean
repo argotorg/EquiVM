@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.PoolModifyPositionTrace
 import Benchmarks.UniswapV4PoolManager.PoolModifyFeeDeltaTrace
 import Benchmarks.UniswapV4PoolManager.PoolModifyFeeFrames
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -13,11 +15,11 @@ def poolModifyFeesOutputStack (fees ptr x0 x1 x2 x4 x5 x9 : UInt256) (p : PoolMo
   ptr :: p.lower :: p.upper :: EVM.wordOfInt p.delta :: x0 :: x1 :: x2 :: fees :: x4 :: x5 ::
     ⟨6222⟩ :: ⟨6240⟩ :: fees :: x9 :: ⟨64⟩ :: R
 
-def poolModifyFeesNormal (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 evm : State)
+def poolModifyFeesNormal (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 evm : State)
     (mem rdata : ByteArray) (free id ptr x0 x1 x2 x4 x5 x9 : UInt256)
     (p : PoolModifyParams) (R : List UInt256) (_ : Frame) (post : State) : Prop :=
   post.executionEnv = I ∧ post.σ₀ = evm.σ₀ ∧ ∃ aw k C,
-    RD (deployedRuntime v) I g s0 (if p.delta < 0 then ⟨6620⟩ else ⟨6036⟩)
+    RD fork (deployedRuntime v) I g s0 (if p.delta < 0 then ⟨6620⟩ else ⟨6036⟩)
       (poolModifyFeesOutputStack (poolModifyFeeDeltaWord evm id p) ptr x0 x1 x2 x4 x5 x9 p R)
       (poolModifyFeesMemory mem free id p) aw rdata post.accountMap k C
 
@@ -33,11 +35,11 @@ theorem poolModifyFeesTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (ha : UInt256.land (memLoad params mem) solcAddrMask = accountWord p.owner)
     (hs : memLoad (params+UInt256.ofNat 160) mem = p.salt)
     (hp : 64 ≤ params.toNat) (hps : params.toNat+192 ≤ mem.size) (hpf : params.toNat+160 < UInt256.size)
-    (h : RD (deployedRuntime v) I g s0 ⟨5722⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨5722⟩
       (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: p.upper :: EVM.wordOfInt p.delta :: p.lower :: x9 :: params :: R)
       mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0
-      (poolModifyFeesNormal v I g s0 evm mem rdata free id ptr x0 x1 x2 x4 x5 x9 p R)
+    blockResultTrace fork (deployedRuntime v) g s0
+      (poolModifyFeesNormal fork v I g s0 evm mem rdata free id ptr x0 x1 x2 x4 x5 x9 p R)
       (fun _ _ => False) (poolModifyFeesResult f evm id p) := by
   obtain ⟨aw1, k1, C1, rd1⟩ := poolModifyFeesPreludeTrace v (by omega) hI hm hmem hl hu
     hfree hfl hfh ha hs hp hps hpf h

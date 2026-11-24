@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.PoolKeySource
 import Benchmarks.UniswapV4PoolManager.SourceComposition
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -13,7 +15,7 @@ def donatePreludeFrame (locals imms : Store) (evm : State) (key : PoolKeyWords) 
 theorem donatePreludeSource {locals imms : Store} {evm : State} {key : PoolKeyWords}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hhi : evm.executionEnv.calldata.size < calldataLimit)
     (hk : locals.get? "key" = some (.tuple (poolKeyValues key))) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm
       (donateTransition.body.take 5) (.ok (donatePreludeFrame locals imms evm key) evm) := by
   apply nonpayableCalldataBlock hwv hhi
   have hkey := poolKeyFromTuple_eval (evalLocalValue (cfg := config)

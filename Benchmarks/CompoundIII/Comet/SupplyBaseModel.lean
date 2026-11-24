@@ -6,6 +6,8 @@ import Benchmarks.CompoundIII.Comet.TransferInModel
 import Benchmarks.CompoundIII.Comet.UpdateBaseModel
 import Benchmarks.CompoundIII.Comet.AccrueInternalModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -66,15 +68,15 @@ inductive SupplyBaseAfterTransfer (v : CometWithExtendedAssetListImmutables)
       (tail : SupplyBaseAfterAccrue v sender dst amount evm' result) :
       SupplyBaseAfterTransfer v sender dst amount evm result
 
-inductive SupplyBaseTrace (v : CometWithExtendedAssetListImmutables)
+inductive SupplyBaseTrace (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables)
     (sender dst : AccountAddress) (amount : UInt256) (evm : EVM.State) :
     InternalOutcome → Prop where
-  | transferFailed (ht : TransferInTrace v.baseToken sender amount evm none) :
-      SupplyBaseTrace v sender dst amount evm .reverted
+  | transferFailed (ht : TransferInTrace fork v.baseToken sender amount evm none) :
+      SupplyBaseTrace fork v sender dst amount evm .reverted
   | transferOk {evm' received result}
-      (ht : TransferInTrace v.baseToken sender amount evm (some (evm', received)))
+      (ht : TransferInTrace fork v.baseToken sender amount evm (some (evm', received)))
       (tail : SupplyBaseAfterTransfer v sender dst received evm' result) :
-      SupplyBaseTrace v sender dst amount evm result
+      SupplyBaseTrace fork v sender dst amount evm result
 
 def supplyBaseReadBlock : List Stmt :=
   [.letDecl "dstUser" (some (.tuple

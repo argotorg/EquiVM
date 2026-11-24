@@ -1,6 +1,8 @@
 import Benchmarks.Safe.V1_0227664.OwnerCount
 import Benchmarks.Safe.V1_0227664.Threshold
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V1_0227664
@@ -28,7 +30,7 @@ theorem safeThresholdChangeUnchanged (evm : EVM.State) (locals : Store) (value :
     (he : evalExpr? config { contract := contract, locals := locals } evm (.var "_threshold") =
       .ok (.int (Int.ofNat value.toNat)))
     (ht : storedThreshold evm = value) :
-    ExecStmt config { contract := contract, locals := locals } evm thresholdChangeStmt
+    ExecStmt fork config { contract := contract, locals := locals } evm thresholdChangeStmt
       (.ok { contract := contract, locals := locals } evm) :=
   .iteFalse (by simpa only [ht, ne_eq, not_true_eq_false, decide_false] using
     safeThresholdChangeGuard evm locals value hb he) .nil
@@ -40,7 +42,7 @@ theorem safeThresholdChangeChanged (evm : EVM.State) (locals : Store) (value : U
     (ht : storedThreshold evm ≠ value)
     (hle : value.toNat ≤ (ownerCount evm).toNat) (hnz : value ≠ ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config { contract := contract, locals := locals } evm thresholdChangeStmt
+    ExecStmt fork config { contract := contract, locals := locals } evm thresholdChangeStmt
       (.ok (resumeAfterInternalCall { contract := contract, locals := locals }
         "_thresholdChanged" none)
         (Stele.EVM.storageStore evm evm.executionEnv.codeOwner ⟨4⟩ value)) := by
@@ -48,7 +50,7 @@ theorem safeThresholdChangeChanged (evm : EVM.State) (locals : Store) (value : U
     (caller := { contract := contract, locals := locals })
     (name := "changeThresholdBody") (retVar := "_thresholdChanged")
     (callee := changeThresholdBodyFunction) (evalExprs?_singleton he) rfl rfl
-    (safeThresholdSource (hperm := by assumption) evm value hle hnz)
+    (safeThresholdSource (fork := fork) (hperm := by assumption) evm value hle hnz)
   exact .iteTrue (by simpa [ht] using safeThresholdChangeGuard evm locals value hb he)
     (.consNormal hcall .nil)
 
@@ -57,9 +59,9 @@ theorem safeThresholdChangeRevert (evm : EVM.State) (locals : Store) (value : UI
     (he : evalExpr? config { contract := contract, locals := locals } evm (.var "_threshold") =
       .ok (.int (Int.ofNat value.toNat)))
     (ht : storedThreshold evm ≠ value)
-    (hbody : ExecFuncBody config (thresholdFrame value) evm changeThresholdBodyFunction.body
+    (hbody : ExecFuncBody fork config (thresholdFrame value) evm changeThresholdBodyFunction.body
       .reverted) :
-    ExecStmt config { contract := contract, locals := locals } evm thresholdChangeStmt
+    ExecStmt fork config { contract := contract, locals := locals } evm thresholdChangeStmt
       .reverted := by
   have hcall := internalCallFunctionRevert
     (caller := { contract := contract, locals := locals })

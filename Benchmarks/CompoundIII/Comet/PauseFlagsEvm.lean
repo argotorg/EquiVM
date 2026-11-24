@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.PauseWrites
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_021
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -20,9 +22,9 @@ theorem cometBoolShift {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {ret : UInt256} {R : List UInt256} (b : Bool) (bit : Fin 5)
     (hstack : R.length + 6 ≤ 1024)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨11118⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨11118⟩
       (boolWord b :: UInt256.ofNat 3543 :: UInt256.ofNat bit.val :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (UInt256.shiftLeft (boolWord b) (UInt256.ofNat bit.val) :: R) mem aw rdata σ k' C' := by
   obtain ⟨k1, C1, rd1⟩ := cometToUInt8 (v := v) b
     (by change R.length + 2 + 4 ≤ 1024; omega)
@@ -40,10 +42,10 @@ theorem cometPauseFlags {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray} {aw : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (a : PauseInputs)
     (hstack : R.length + 15 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 ⟨3489⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨3489⟩
       (boolWord a.buy :: boolWord a.withdraw :: boolWord a.supply :: boolWord a.transfer ::
         boolWord a.absorb :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨11083⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨11083⟩
       (⟨1⟩ :: pauseFlagWord a :: ⟨3624⟩ :: boolWord a.withdraw :: boolWord a.absorb ::
         boolWord a.buy :: ⟨3677⟩ :: boolWord a.supply :: boolWord a.transfer :: pauseTopic :: R)
       mem aw rdata σ k' C' := by

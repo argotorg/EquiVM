@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.SwapTargetStepTrace
 import Benchmarks.UniswapV4PoolManager.PoolSwapComputeStoreTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -24,20 +26,20 @@ theorem poolSwapComputeTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
       (UInt256.ofNat 340282366920938463463374607431768211455) = liquidity)
     (hs : memLoad params (poolSwapComputeStoreMemory (swapStepStartMemory mem next step ⟨96⟩) step state
       (swapStepWord price (swapTargetWord zeroForOne next limit) liquidity remaining fee)) = specified)
-    (h : RD (deployedRuntime v) I g s0 ⟨19479⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨19479⟩
       ([next, solcAddrMask, step, ⟨96⟩, ⟨1⟩, ⟨64⟩,
         UInt256.ofNat 340282366920938463463374607431768211455, state, fee,
         if zeroForOne then ⟨0⟩ else ⟨1⟩, remaining, x1, params, x3, x4, fee,
         protocol, amountToProtocol, dir, step, pool, state] ++ R)
       mem aw rdata σ k C) :
     (swapStepFits price (swapTargetWord zeroForOne next limit) liquidity remaining fee →
-      ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0
+      ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0
         (if 0 < EVM.signed specified then ⟨19740⟩ else ⟨20320⟩)
         ([remaining, x1, params, x3, x4, fee, protocol, amountToProtocol, dir, step, pool, state] ++ R)
         (poolSwapComputeStoreMemory (swapStepStartMemory mem next step ⟨96⟩) step state
           (swapStepWord price (swapTargetWord zeroForOne next limit) liquidity remaining fee))
         (poolSwapComputeAW aw step state params) rdata σ k' C') ∧
-    (¬swapStepFits price (swapTargetWord zeroForOne next limit) liquidity remaining fee → RDrev (deployedRuntime v) g s0) := by
+    (¬swapStepFits price (swapTargetWord zeroForOne next limit) liquidity remaining fee → RDrev fork (deployedRuntime v) g s0) := by
   have hrun := swapTargetStepTrace (R := pool :: state :: R) v zeroForOne
     (by change R.length+2+34 ≤ 1024; omega) hn hlim hf hp ht hl h
   constructor

@@ -1,5 +1,8 @@
 import Benchmarks.EAS.Attester.Bytecode
 
+/-- The fork these executable checks run the bytecode and the specification under. -/
+private def fork : Ethereum.Fork := .cancun
+
 /-!
 # Executable Attester audit
 
@@ -37,9 +40,10 @@ def runCall (evm : State) (target : AccountAddress) (value : Int) (payload : Byt
   let valueWord := EVM.wordOfInt value
   if valueWord ≤ (evm.accountMap.get? evm.executionEnv.codeOwner |>.elim ⟨0⟩ (·.balance)) ∧
       evm.executionEnv.depth ≠ 1024 then
-    let (accounts, _, substate, ok, out) := Θ evm.accountMap evm.σ₀ evm.substate
+    let (accounts, _, substate, ok, out) := Θ fork evm.accountMap evm.σ₀
+      evm.substate
       evm.executionEnv.codeOwner evm.executionEnv.sender target
-      (Ethereum.toExecute evm.accountMap target) (.ofNat 1000000)
+      (Ethereum.toExecute fork evm.accountMap target) (.ofNat 1000000)
       (.ofNat evm.executionEnv.gasPrice) valueWord valueWord payload
       (evm.executionEnv.depth + 1) evm.executionEnv.header evm.executionEnv.blobVersionedHashes
       evm.executionEnv.blocks (perm && evm.executionEnv.perm)
@@ -110,7 +114,7 @@ def beforeCall : Nat → Array UInt256 → State → Option State
   | 0, _, _ => none
   | fuel + 1, jumps, s =>
     if (decode s.executionEnv.code s.machineState.pc).map Prod.fst == some .CALL then some s
-    else match Xstep jumps s with
+    else match Xstep fork jumps s with
       | .ok (next, none) => beforeCall fuel jumps next
       | _ => none
 
@@ -118,7 +122,7 @@ def beforePC (pc : Nat) : Nat → Array UInt256 → State → Option State
   | 0, _, _ => none
   | fuel + 1, jumps, s =>
     if s.machineState.pc.toNat == pc then some s
-    else match Xstep jumps s with
+    else match Xstep fork jumps s with
       | .ok (next, none) => beforePC pc fuel jumps next
       | _ => none
 
@@ -174,7 +178,7 @@ def check (name : String) (data calleeCode : ByteArray) (value := 0) (perm := tr
       let out ← EvalResult.ofOption .typeError
         (ABI.encodeReturnValues? t.returnType (returned.getD []))
       pure (c, out)
-  let result := Ξ s.accountMap s.σ₀ (.ofNat 5000000) s.substate s.executionEnv
+  let result := Ξ fork s.accountMap s.σ₀ (.ofNat 5000000) s.substate s.executionEnv
   match source, result with
   | .ok (c, expected), .ok (.success (accounts, _, _) out) =>
     unless expected == out do throw (IO.userError s!"{name}: return bytes differ")
@@ -248,7 +252,7 @@ def checkConstructor (target value : Nat) : IO Unit := do
   let locals := (bindParams? (constructorDecl.params.map Param.toFunctionParam) args).get!
   let source := runBody 100 ⟨⟨contract, locals, initialImmutables contract⟩, s, []⟩
     constructorDecl.body
-  let actual := Ξ s.accountMap s.σ₀ (.ofNat 5000000) s.substate s.executionEnv
+  let actual := Ξ fork s.accountMap s.σ₀ (.ofNat 5000000) s.substate s.executionEnv
   match source, actual with
   | .revert, .ok (.revert _ _) => pure ()
   | .ok (c, none), .ok (.success (accounts, _, _) out) =>
@@ -264,7 +268,7 @@ def checkMalformedConstructor : IO Unit := do
   for tail in [.empty, (word 0x200).extract 1 32, word (2^160)] do
     let s := runtimeState .empty .empty
     let env := { s.executionEnv with code := attesterCreationBytecode ++ tail }
-    match Ξ s.accountMap s.σ₀ (.ofNat 5000000) s.substate env with
+    match Ξ fork s.accountMap s.σ₀ (.ofNat 5000000) s.substate env with
     | .ok (.revert _ _) => pure ()
     | _ => throw (IO.userError "malformed constructor arguments did not revert")
 

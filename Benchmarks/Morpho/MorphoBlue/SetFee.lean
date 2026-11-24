@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.SetFeeGuards
 import Benchmarks.Morpho.MorphoBlue.SetFeeFinish
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -12,7 +14,7 @@ theorem morphoSetFeeXReverts {σ σ₀ A I} {g : Sat256} (v : MorphoImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 4))
     (hbad : I.weiValue ≠ ⟨0⟩ ∨ I.calldata.size < 196 ∨ 2 ^ 255 + 4 ≤ I.calldata.size) :
-    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 4) rfl hsel
   obtain ⟨k, C, rd⟩ := morphoReachSetFeeBody (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hsz hsize hsel
@@ -40,12 +42,12 @@ theorem morphoSetFeeReachDecode {σ σ₀ A I} {g : Sat256} (v : MorphoImmutable
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 4)) (hcv : I.weiValue = ⟨0⟩)
     (hlen : 196 ≤ I.calldata.size) (hbound : I.calldata.size < 2 ^ 255 + 4) :
-    ∃ aw k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 11655)
+    ∃ aw k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 11655)
       [UInt256.ofNat 9639, UInt256.ofNat 128, UInt256.ofNat 0]
       (marketParamsAllocatedMem solcFreePtrMem) aw ByteArray.empty σ k C := by
   obtain ⟨k, C, rd⟩ := morphoReachSetFeeBody (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode (by omega) hsize hsel
-  change RD _ _ _ _ _ _ solcFreePtrMem _ _ _ _ _ at rd
+  change RD fork _ _ _ _ _ _ solcFreePtrMem _ _ _ _ _ at rd
   have rd0 := morphoBlocks.morpho_block_9582_fallthrough (immWords := wordsOf (immStore v)) (by simp [morphoBlocks.morpho_block_9582_fallthrough_stack]) hcv rd
   have hcond := solcCalldataStaticLenCheckOk (words := 6) hlen hbound hsize
   have rd1 := morphoBlocks.morpho_block_9589_fallthrough (immWords := wordsOf (immStore v)) (by simp [morphoBlocks.morpho_block_9582_fallthrough_stack])
@@ -62,7 +64,7 @@ theorem morphoSetFeeReachDecode {σ σ₀ A I} {g : Sat256} (v : MorphoImmutable
 theorem morphoSetFeeBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 4)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hd : selectorDispatchMsg contract I.calldata = some setFeeTransition :=
     morphoSelectorDispatch_of_selIs (by decide) hsel
   let p := marketParamsFromCalldata I.calldata
@@ -79,7 +81,7 @@ theorem morphoSetFeeBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutables)
             (σ := σ) (σ₀ := σ₀) (A := A) (g := .ofUInt256 g) v hcode hsize hsel hcv hlen hbound
           obtain ⟨aw1, k1, C1, rd1⟩ := morphoDecodeMarketParamsOk (v := v) (by simp)
             (by rw [morphoPatchedValidJumps v]; jump_dest) hc rd0
-          change RD _ _ _ _ (UInt256.ofNat 9639) [UInt256.ofNat 128, UInt256.ofNat 0]
+          change RD fork _ _ _ _ (UInt256.ofNat 9639) [UInt256.ofNat 128, UInt256.ofNat 0]
             (createMarketDecodedMem p) _ _ _ _ _ at rd1
           by_cases hg : SetFeeGuards σ I p fee
           · obtain ⟨aw2, k2, C2, rd2⟩ := morphoSetFeeEnter (v := v) p hg rd1
@@ -90,7 +92,7 @@ theorem morphoSetFeeBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutables)
               (createMarketHeap_morpho hm (by decide) 512 (by decide) (lt_usize _ (by decide)))
               (by decide) hm.params (by decide) (by rw [hm.size]; decide) (by decide)
               (by rw [morphoPatchedValidJumps v]; jump_dest) rd2
-            have pref := morphoSetFeeSourceGuards p fee hc (initState σ σ₀ (.ofUInt256 g) A I)
+            have pref := morphoSetFeeSourceGuards (fork := fork) p fee hc (initState σ σ₀ (.ofUInt256 g) A I)
               (immStore v) hcv hbound hg
             have hl := setFeeFrame_market p fee I.calldata (immStore v)
             have hparams := hl.evalParams (immStore v) (initState σ σ₀ (.ofUInt256 g) A I)
@@ -121,7 +123,7 @@ theorem morphoSetFeeBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutables)
               · have hx := morphoSetFeeFinish (v := v) p.id fee hp
                   (by have hfit := hg.2.2.2; unfold maxMarketFee at hfit; omega) hr
                 have hsfinal := storeMarketField_bridge hs' p.id ⟨5, by decide⟩ fee
-                have hstele : ExecTransitionBody config contract (initState σ σ₀ (.ofUInt256 g) A I)
+                have hstele : ExecTransitionBody fork config contract (initState σ σ₀ (.ofUInt256 g) A I)
                     (setFeeArgs p fee) setFeeTransition.body
                     (.returned frame (storeMarketField evm' p.id ⟨5, by decide⟩ fee) none) (immStore v) := by
                   apply ExecFuncBody.execBlockOK

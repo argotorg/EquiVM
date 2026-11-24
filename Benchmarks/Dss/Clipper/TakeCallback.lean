@@ -3,6 +3,8 @@ import Reasoning.Stepping
 import Reasoning.Reach
 import Benchmarks.Dss.Clipper.TakeVatMoveSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -343,7 +345,7 @@ theorem RD.clipperTakeSkipClipperCallWhoVat {code : ByteArray}
     {price slice owe tabNew lotNew tic packed stopped dataLen dataStart who max amt id :
       UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨4414⟩
+    (rd : RD fork code ee g s0 ⟨4414⟩
       (⟨260⟩ :: clipperTakeVatFluxSelectorWord :: clipperTakeVatTarget v ::
         slice :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped ::
         dataLen :: dataStart :: who :: max :: amt :: id :: R)
@@ -351,7 +353,7 @@ theorem RD.clipperTakeSkipClipperCallWhoVat {code : ByteArray}
     (hdataLen : dataLen ≠ ⟨0⟩)
     (hwhoVat : UInt256.land who solcAddrMask = clipperTakeVatTarget v)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨4701⟩
+    ∃ k' C', RD fork code ee g s0 ⟨4701⟩
       (UInt256.land (solcSlotWord σ ee ⟨1⟩) solcAddrMask ::
         slice :: owe :: tabNew :: lotNew :: price :: tic ::
         packed :: stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: R)
@@ -433,7 +435,7 @@ theorem RD.clipperTakeSkipClipperCallWhoDog {code : ByteArray}
     {price slice owe tabNew lotNew tic packed stopped dataLen dataStart who max amt id :
       UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨4414⟩
+    (rd : RD fork code ee g s0 ⟨4414⟩
       (⟨260⟩ :: clipperTakeVatFluxSelectorWord :: clipperTakeVatTarget v ::
         slice :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped ::
         dataLen :: dataStart :: who :: max :: amt :: id :: R)
@@ -444,7 +446,7 @@ theorem RD.clipperTakeSkipClipperCallWhoDog {code : ByteArray}
       UInt256.land who solcAddrMask =
         UInt256.land (solcSlotWord σ ee ⟨1⟩) solcAddrMask)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨4701⟩
+    ∃ k' C', RD fork code ee g s0 ⟨4701⟩
       (UInt256.land (solcSlotWord σ ee ⟨1⟩) solcAddrMask ::
         slice :: owe :: tabNew :: lotNew :: price :: tic ::
         packed :: stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: R)
@@ -568,7 +570,7 @@ theorem RD.clipperTakeClipperCallGuardTrue {code : ByteArray}
     {price slice owe tabNew lotNew tic packed stopped dataLen dataStart who max amt id :
       UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨4414⟩
+    (rd : RD fork code ee g s0 ⟨4414⟩
       (⟨260⟩ :: clipperTakeVatFluxSelectorWord :: clipperTakeVatTarget v ::
         slice :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped ::
         dataLen :: dataStart :: who :: max :: amt :: id :: R)
@@ -579,7 +581,7 @@ theorem RD.clipperTakeClipperCallGuardTrue {code : ByteArray}
       UInt256.land who solcAddrMask ≠
         UInt256.land (solcSlotWord σ ee ⟨1⟩) solcAddrMask)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨4530⟩
+    ∃ k' C', RD fork code ee g s0 ⟨4530⟩
       (UInt256.land (solcSlotWord σ ee ⟨1⟩) solcAddrMask ::
         slice :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped ::
         dataLen :: dataStart :: who :: max :: amt :: id :: R)
@@ -1257,7 +1259,7 @@ theorem RD.clipperTakeClipperCallExtcodesizeGuard {code : ByteArray}
     {dog slice owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id :
       UInt256}
     {R : List UInt256} {mem o : ByteArray} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨4530⟩
+    (rd : RD fork code ee g s0 ⟨4530⟩
       (dog :: slice :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped ::
         dataLen :: dataStart :: who :: max :: amt :: id :: R)
       mem (UInt256.ofNat 9) o σ k C)
@@ -1268,7 +1270,7 @@ theorem RD.clipperTakeClipperCallExtcodesizeGuard {code : ByteArray}
     (hpayload : dataStart.toNat + dataLen.toNat ≤ ee.calldata.size)
     (hov : R.length + 32 ≤ 1024) :
     ∃ (aw : UInt256) (k' C' : ℕ),
-      RD code ee g s0 ⟨4664⟩
+      RD fork code ee g s0 ⟨4664⟩
         (UInt256.land solcAddrMask who :: UInt256.land solcAddrMask who :: ⟨0⟩ ::
           ⟨128⟩ :: UInt256.ofNat (164 + ABI.paddedSize dataLen.toNat) :: ⟨128⟩ ::
           ⟨0⟩ :: (⟨292⟩ + UInt256.ofNat (ABI.paddedSize dataLen.toNat)) ::

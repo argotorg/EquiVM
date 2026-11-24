@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.QuoteSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -17,13 +19,13 @@ theorem quoteCollateralTransition_body : quoteCollateralTransition.body = callda
 theorem quoteCollateral_source {σ σ₀ A I} {g : Sat256}
     (v : CometWithExtendedAssetListImmutables) {result : Option (EVM.State × UInt256)}
     (hv : I.weiValue = ⟨0⟩) (hhi : I.calldata.size < 2^255 + 4)
-    (ht : QuoteTrace v (AccountAddress.ofNat (calldataWord I.calldata 4).toNat)
+    (ht : QuoteTrace fork v (AccountAddress.ofNat (calldataWord I.calldata 4).toNat)
       (calldataWord I.calldata 36) (initState σ σ₀ g A I) result) :
     match result with
-    | none => ExecTransitionBody config contract (initState σ σ₀ g A I) (quoteArgs I)
+    | none => ExecTransitionBody fork config contract (initState σ σ₀ g A I) (quoteArgs I)
         quoteCollateralTransition.body .reverted (immStore v)
     | some (evm', value) => ∃ final,
-        ExecTransitionBody config contract (initState σ σ₀ g A I) (quoteArgs I)
+        ExecTransitionBody fork config contract (initState σ σ₀ g A I) (quoteArgs I)
           quoteCollateralTransition.body (.returned final evm' (some [.int value.toNat]))
           (immStore v) := by
   let frame := calldataLocalFrame

@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.FullMathRoundCostTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_058
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_060
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -13,13 +15,13 @@ theorem swapStepInputFeeTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw amount fee x0 x1 x2 x3 x4 x5 : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+21 ≤ 1024) (hf : fee.toNat < 2^24)
-    (h : RD (deployedRuntime v) I g s0 ⟨20382⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨20382⟩
       ([swapStepFeeComplement fee, fee, x0, x1, x2, x3, x4, x5, amount] ++ R) mem aw rdata σ k C) :
     (swapStepFeeFits amount fee → ∃ k' C', C ≤ C' ∧
-      RD (deployedRuntime v) I g s0 ⟨19695⟩
+      RD fork (deployedRuntime v) I g s0 ⟨19695⟩
         ([swapStepFeeWord amount fee, x0, x1, x2, x3, x4, x5, amount] ++ R)
         mem aw rdata σ k' C') ∧
-    (¬swapStepFeeFits amount fee → RDrev (deployedRuntime v) g s0) := by
+    (¬swapStepFeeFits amount fee → RDrev fork (deployedRuntime v) g s0) := by
   have hclean := u256LandMaskCleanOfToNat fee (UInt256.ofNat 16777215) rfl hf
   have rd1 := poolManagerBlocks.poolManager_block_20382 (by change R.length+12 ≤ 1024; omega)
     (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) h
@@ -39,13 +41,13 @@ theorem swapStepOutputFeeTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw amount fee j0 j1 j2 x0 x1 x2 x3 x4 x5 x6 : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+26 ≤ 1024) (hf : fee.toNat < 2^24)
-    (h : RD (deployedRuntime v) I g s0 ⟨20684⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨20684⟩
       ([j0, j1, j2, amount, x0, x1, x2, x3, x4, x5, x6, fee] ++ R) mem aw rdata σ k C) :
     (swapStepFeeFits amount fee → ∃ k' C', C ≤ C' ∧
-      RD (deployedRuntime v) I g s0 ⟨19714⟩
+      RD fork (deployedRuntime v) I g s0 ⟨19714⟩
         ([swapStepFeeWord amount fee, j0, j1, j2, amount, x0, x1, x2, x3, x4, x5, x6, fee] ++ R)
         mem aw rdata σ k' C') ∧
-    (¬swapStepFeeFits amount fee → RDrev (deployedRuntime v) g s0) := by
+    (¬swapStepFeeFits amount fee → RDrev fork (deployedRuntime v) g s0) := by
   have hclean := u256LandMaskCleanOfToNat fee (UInt256.ofNat 16777215) rfl hf
   have rd1 := poolManagerBlocks.poolManager_block_20684 (by change R.length+17 ≤ 1024; omega)
     (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) h

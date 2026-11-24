@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.LiquidityHookSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -61,8 +63,8 @@ theorem beforeLiquidityBody {f : Frame} {evm post : State} {hook : AccountAddres
     (hd : f.locals.get? "hookData" = some (.bytes data))
     (hc : PoolKeyCanonical key) (hl : int24Canonical p.lower) (hu : int24Canonical p.upper)
     (hcall : ∀ add, evm.executionEnv.source ≠ hook → beforeLiquidityEnabled hook p add →
-      callViaEVM evm hook 0 (beforeLiquidityPayload add evm.executionEnv.source key p data) (z, post, out)) :
-    ExecFuncBody config f evm beforeLiquidityFunction.body
+      callViaEVM fork evm hook 0 (beforeLiquidityPayload add evm.executionEnv.source key p data) (z, post, out)) :
+    ExecFuncBody fork config f evm beforeLiquidityFunction.body
       (beforeLiquidityResult f evm post hook key p data z out) := by
   have hsender : evalExpr? config f evm (.env .caller) = .ok (.address evm.executionEnv.source) := by
     simp only [evalExpr?, envValue, pure]
@@ -73,10 +75,10 @@ theorem beforeLiquidityBody {f : Frame} {evm post : State} {hook : AccountAddres
     exact ExecBlock.consReturn (ExecStmt.iteTrue (heq.trans (by rw [decide_eq_true hself]))
       (ExecBlock.consReturn (ExecStmt.return rfl)))
   · rw [beforeLiquidityBlockResult, if_neg hself]
-    have hg : ExecStmt config f evm beforeLiquidityFunction.body[0]! (.ok f evm) :=
+    have hg : ExecStmt fork config f evm beforeLiquidityFunction.body[0]! (.ok f evm) :=
       ExecStmt.iteFalse (heq.trans (by rw [decide_eq_false hself])) ExecBlock.nil
     have hb (add : Bool) (ha : beforeLiquidityEnabled hook p add) :
-        ExecBlock config f evm (beforeLiquidityBranch add)
+        ExecBlock fork config f evm (beforeLiquidityBranch add)
           (hookPayloadResult f post z (beforeLiquidityPayload add evm.executionEnv.source key p data) out) := by
       apply hookPayloadBlock hf hs (liquidityHookPayload_eval false add hsender
         (evalLocalValue hk) (evalLocalValue hp)

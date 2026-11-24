@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapStepPriceCalls
 import Benchmarks.UniswapV3.Pool.SwapStepInitialSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -30,7 +32,7 @@ theorem evalSwapStepPriceTest (imms : Store) (evm : EVM.State) (a : SwapStepArgs
 
 theorem swapStepTargetAssign (imms : Store) (evm : EVM.State) (a : SwapStepArgs)
     (input : Bool) (hr : swapStepReachTarget a = true) :
-    ExecStmt config (swapStepInitialFrame imms a input) evm
+    ExecStmt fork config (swapStepInitialFrame imms a input) evm
       (.assign .localVar ⟨"sqrtRatioNextX96", []⟩ (.var "sqrtRatioTargetX96"))
       (.ok (swapStepPriceFrame imms a input) evm) := by
   simp only [swapStepPriceFrame, swapStepPrice, hr, if_true]
@@ -39,7 +41,7 @@ theorem swapStepTargetAssign (imms : Store) (evm : EVM.State) (a : SwapStepArgs)
 
 theorem swapStepNextAssign (imms : Store) (evm : EVM.State) (a : SwapStepArgs)
     (input : Bool) (hi : swapStepExactIn a = input) (hr : swapStepReachTarget a = false) :
-    ExecStmt config (swapStepPriceCallFrame imms a input) evm
+    ExecStmt fork config (swapStepPriceCallFrame imms a input) evm
       (.assign .localVar ⟨"sqrtRatioNextX96", []⟩ (.var (swapStepPriceCallName input)))
       (.ok (swapStepPriceFrame imms a input) evm) := by
   have hg : (swapStepPriceCallFrame imms a input).locals.get? "sqrtRatioNextX96" =
@@ -55,15 +57,15 @@ theorem swapStepNextAssign (imms : Store) (evm : EVM.State) (a : SwapStepArgs)
 theorem swapStepPriceChoiceSource (imms : Store) (evm : EVM.State) (a : SwapStepArgs)
     (input : Bool) (hi : swapStepExactIn a = input) (ha : a.Fits)
     (hv : if swapStepReachTarget a then True else nextPriceValid input (swapStepNextArgs a)) :
-    ExecStmt config (swapStepInitialFrame imms a input) evm
+    ExecStmt fork config (swapStepInitialFrame imms a input) evm
       ((swapStepPriceBranch input)[if input then 4 else 3]!)
       (.ok (swapStepPriceFrame imms a input) evm) := by
   have hg := evalSwapStepPriceTest imms evm a input hi
   cases hr : swapStepReachTarget a
   · have hn : nextPriceValid input (swapStepNextArgs a) := by
       simpa only [hr, Bool.false_eq_true, if_false] using hv
-    have hc := swapStepPriceCallReturns imms evm a input hi ha hn
-    have hs := swapStepNextAssign imms evm a input hi hr
+    have hc := swapStepPriceCallReturns (fork := fork) imms evm a input hi ha hn
+    have hs := swapStepNextAssign (fork := fork) imms evm a input hi hr
     cases input <;> apply ExecStmt.iteFalse (by simpa only [hr] using hg)
     all_goals
       exact ExecBlock.consNormal
@@ -72,16 +74,16 @@ theorem swapStepPriceChoiceSource (imms : Store) (evm : EVM.State) (a : SwapStep
         (ExecBlock.consNormal
           (by simpa only [swapStepPriceCallName, Bool.false_eq_true, if_false, if_true] using hs)
           ExecBlock.nil)
-  · have hs := swapStepTargetAssign imms evm a input hr
+  · have hs := swapStepTargetAssign (fork := fork) imms evm a input hr
     cases input <;> apply ExecStmt.iteTrue (by simpa only [hr] using hg)
     all_goals exact ExecBlock.consNormal hs ExecBlock.nil
 
 theorem swapStepPriceBranchSource (imms : Store) (evm : EVM.State) (a : SwapStepArgs)
     (ha : a.Fits) (hv : swapStepPriceValid a) :
-    ExecBlock config (swapStepReadyFrame imms a) evm (swapStepPriceBranch (swapStepExactIn a))
+    ExecBlock fork config (swapStepReadyFrame imms a) evm (swapStepPriceBranch (swapStepExactIn a))
       (.ok (swapStepPriceFrame imms a (swapStepExactIn a)) evm) := by
-  have hp := swapStepInitialSource imms evm a (swapStepExactIn a) ha hv.1 hv.2.1
-  have hc := swapStepPriceChoiceSource imms evm a (swapStepExactIn a) rfl ha hv.2.2
+  have hp := swapStepInitialSource (fork := fork) imms evm a (swapStepExactIn a) ha hv.1 hv.2.1
+  have hc := swapStepPriceChoiceSource (fork := fork) imms evm a (swapStepExactIn a) rfl ha hv.2.2
   cases hi : swapStepExactIn a
   all_goals
     simp only [hi] at hp hc

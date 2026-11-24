@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Clipper.KickFeedPricePeek
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -55,14 +57,14 @@ theorem RD.clipperKickGetFeedPriceValBlnToParExtcodesizeGuard
     {σ : AccountMap}
     {has val pipWord ret scratch lot tab : UInt256} {R : List UInt256}
     {mem o : ByteArray} {k C : Nat}
-    (rd : RD code ee g s0 ⟨9079⟩
+    (rd : RD fork code ee g s0 ⟨9079⟩
       (has :: val :: pipWord :: ret :: scratch :: lot :: tab :: R)
       mem (UInt256.ofNat 6) o σ k C)
     (hmul : val.toNat * (⟨1000000000⟩ : UInt256).toNat < UInt256.size)
     (hmem : mem.size = 192)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 100 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨9164⟩
+    ∃ k' C', RD fork code ee g s0 ⟨9164⟩
       (clipperSpotterTarget σ ee :: clipperSpotterTarget σ ee :: ⟨0⟩ :: ⟨128⟩ ::
         ⟨4⟩ :: ⟨128⟩ :: ⟨32⟩ :: ⟨132⟩ :: clipperSpotterParSelectorWord ::
         clipperSpotterTarget σ ee :: UInt256.mul val ⟨1000000000⟩ :: ⟨9225⟩ ::
@@ -96,7 +98,7 @@ theorem RD.clipperKickGetFeedPriceValBlnToParExtcodesizeGuard
   have hpc9103 :
       (⟨9096⟩ : UInt256) + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
         ⟨1⟩ + ⟨1⟩ = ⟨9103⟩ := by native_decide
-  obtain ⟨_, _, rd9103⟩ : ∃ k C, RD code ee g s0 ⟨9103⟩
+  obtain ⟨_, _, rd9103⟩ : ∃ k C, RD fork code ee g s0 ⟨9103⟩
       (solcSlotWord σ ee ⟨3⟩ :: ⟨0⟩ :: UInt256.mul val ⟨1000000000⟩ ::
         ⟨9225⟩ :: has :: val :: pipWord :: ret :: scratch :: lot :: tab :: R)
       mem (UInt256.ofNat 6) o σ k C := by
@@ -116,7 +118,7 @@ theorem RD.clipperKickGetFeedPriceValBlnToParExtcodesizeGuard
   have hpc9110 :
       (⟨9103⟩ : UInt256) + ⟨1⟩ + UInt256.ofNat 3 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ =
         ⟨9110⟩ := by native_decide
-  obtain ⟨_, _, rd9110⟩ : ∃ k C, RD code ee g s0 ⟨9110⟩
+  obtain ⟨_, _, rd9110⟩ : ∃ k C, RD fork code ee g s0 ⟨9110⟩
       (solcSlotWord σ ee ⟨3⟩ :: UInt256.mul val ⟨1000000000⟩ ::
         ⟨9225⟩ :: has :: val :: pipWord :: ret :: scratch :: lot :: tab :: R)
       mem (UInt256.ofNat 6) o σ k C := by
@@ -134,7 +136,7 @@ theorem RD.clipperKickGetFeedPriceValBlnToParExtcodesizeGuard
   have hpc9119 :
       (⟨9110⟩ : UInt256) + UInt256.ofNat 2 + UInt256.ofNat 2 +
         UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ = ⟨9119⟩ := by native_decide
-  obtain ⟨_, _, rd9119⟩ : ∃ k C, RD code ee g s0 ⟨9119⟩
+  obtain ⟨_, _, rd9119⟩ : ∃ k C, RD fork code ee g s0 ⟨9119⟩
       (clipperSpotterTarget σ ee :: UInt256.mul val ⟨1000000000⟩ ::
         ⟨9225⟩ :: has :: val :: pipWord :: ret :: scratch :: lot :: tab :: R)
       mem (UInt256.ofNat 6) o σ k C := by
@@ -158,7 +160,7 @@ theorem RD.clipperKickGetFeedPriceValBlnToParExtcodesizeGuard
   have hmaskTargetLeft :
       UInt256.land solcAddrMask (clipperSpotterTarget σ ee) =
         clipperSpotterTarget σ ee := by rw [u256_land_comm]; exact hmaskTarget
-  obtain ⟨_, _, rd9128⟩ : ∃ k C, RD code ee g s0 ⟨9128⟩
+  obtain ⟨_, _, rd9128⟩ : ∃ k C, RD fork code ee g s0 ⟨9128⟩
       (clipperSpotterTarget σ ee :: UInt256.mul val ⟨1000000000⟩ ::
         ⟨9225⟩ :: has :: val :: pipWord :: ret :: scratch :: lot :: tab :: R)
       mem (UInt256.ofNat 6) o σ k C := by
@@ -183,7 +185,7 @@ theorem RD.clipperKickGetFeedPriceValBlnToParExtcodesizeGuard
       (⟨9128⟩ : UInt256) + UInt256.ofNat 5 + UInt256.ofNat 2 + ⟨1⟩ +
         ⟨1⟩ + UInt256.ofNat 5 + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ =
         ⟨9148⟩ := by native_decide
-  obtain ⟨_, _, rd9148⟩ : ∃ k C, RD code ee g s0 ⟨9148⟩
+  obtain ⟨_, _, rd9148⟩ : ∃ k C, RD fork code ee g s0 ⟨9148⟩
       (⟨128⟩ :: clipperSpotterParSelectorWord :: clipperSpotterTarget σ ee ::
         UInt256.mul val ⟨1000000000⟩ :: ⟨9225⟩ :: has :: val :: pipWord :: ret ::
         scratch :: lot :: tab :: R)
@@ -286,7 +288,7 @@ theorem RD.clipperKickGetFeedPriceParPostCall {code : ByteArray}
     {s0 : State} {σ : AccountMap} {I : ExecutionEnv} {g : UInt256}
     {target valBln has val pipWord ret scratch lot tab : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {k C : ℕ}
-    (rd : RD code I (Sat256.ofUInt256 g) s0 ⟨9164⟩
+    (rd : RD fork code I (Sat256.ofUInt256 g) s0 ⟨9164⟩
       (target :: target :: ⟨0⟩ :: ⟨128⟩ :: ⟨4⟩ :: ⟨128⟩ :: ⟨32⟩ ::
         ⟨132⟩ :: clipperSpotterParSelectorWord :: target :: valBln :: ⟨9225⟩ ::
         has :: val :: pipWord :: ret :: scratch :: lot :: tab :: R)
@@ -299,12 +301,12 @@ theorem RD.clipperKickGetFeedPriceParPostCall {code : ByteArray}
     (hov : R.length + 100 ≤ 1024) :
     ∃ (σ' : AccountMap) (z : Bool)
       (o : ByteArray) (A' : Substate) (k' C' : ℕ),
-      RD code I (Sat256.ofUInt256 g) s0 ⟨9180⟩
+      RD fork code I (Sat256.ofUInt256 g) s0 ⟨9180⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨132⟩ :: clipperSpotterParSelectorWord ::
           target :: valBln :: ⟨9225⟩ :: has :: val :: pipWord :: ret :: scratch ::
           lot :: tab :: R)
         (clipperSpotterParPostCallMem mem o) (UInt256.ofNat 6) o σ' k' C'
-    ∧ typedCallViaEVM config
+    ∧ typedCallViaEVM fork config
         {s0 with accountMap := σ, executionEnv := I}
         (EVM.address (clipperGetFeedPriceSpotterAddress
           {s0 with accountMap := σ, executionEnv := I}))
@@ -357,14 +359,14 @@ theorem RD.clipperKickGetFeedPriceParDecodeShortReverts
     {acc : AccountMap}
     {valBln has val pipWord ret scratch lot tab : UInt256} {R : List UInt256}
     {mem o : ByteArray} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨9201⟩
+    (rd : RD fork code ee g s0 ⟨9201⟩
       (valBln :: ⟨9225⟩ :: has :: val :: pipWord :: ret :: scratch :: lot :: tab :: R)
       mem (UInt256.ofNat 6) o acc k C)
     (hmem : mem.size = 192)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hshort : o.size < 32) (hout : o.size < UInt256.size)
     (hov : R.length + 30 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding 64 32))) =
@@ -404,7 +406,7 @@ theorem RD.clipperKickGetFeedPriceParDecodeOkToRdiv
     {acc : AccountMap}
     {valBln has val pipWord ret scratch lot tab : UInt256} {R : List UInt256}
     {mem o : ByteArray} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨9201⟩
+    (rd : RD fork code ee g s0 ⟨9201⟩
       (valBln :: ⟨9225⟩ :: has :: val :: pipWord :: ret :: scratch :: lot :: tab :: R)
       mem (UInt256.ofNat 6) o acc k C)
     (hmem : mem.size = 192)
@@ -412,7 +414,7 @@ theorem RD.clipperKickGetFeedPriceParDecodeOkToRdiv
     (hread128 : mem.readWithPadding 128 32 = o.extract 0 32)
     (hlo : 32 ≤ o.size) (hout : o.size < UInt256.size)
     (hov : R.length + 40 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨9290⟩
+    ∃ k' C', RD fork code ee g s0 ⟨9290⟩
       (clipperSpotterParWord o :: valBln :: ⟨9225⟩ :: has :: val :: pipWord ::
         ret :: scratch :: lot :: tab :: R)
       mem (UInt256.ofNat 6) o acc k' C' := by

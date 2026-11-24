@@ -4,6 +4,8 @@ import Benchmarks.Safe.V3_77901a5.Storage
 import Benchmarks.Safe.V3_77901a5.Routines
 import Benchmarks.Safe.V3_77901a5.Blocks.Runtime_008
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V3_77901a5.RuntimeBlocks
 
@@ -16,7 +18,7 @@ def signedMessagesArgs (key : UInt256) : Store :=
 
 theorem safeSignedMessagesSource (evm : EVM.State) (key : UInt256)
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract evm (signedMessagesArgs key) signedmessagesTransition.body
+    ExecTransitionBody fork config contract evm (signedMessagesArgs key) signedmessagesTransition.body
       (.returned { contract := contract, locals := signedMessagesArgs key } evm
         (some [.int (Int.ofNat
           (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (mapSlot key ⟨7⟩)).toNat)])) := by
@@ -38,14 +40,14 @@ theorem safeSignedMessagesSource (evm : EVM.State) (key : UInt256)
 
 set_option maxRecDepth 100000 in
 theorem safeSignedMessagesTrace {I g s0 σ k C} {key : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨957⟩ (key :: ⟨974⟩ :: R) solcFreePtrMem
+    (h : RD fork safeBytecode I g s0 ⟨957⟩ (key :: ⟨974⟩ :: R) solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hov : R.length + 4 ≤ 1024) :
-    RDret safeBytecode g s0 σ (solcSlotWordAt (mapSlot key ⟨7⟩) σ I).toByteArray := by
+    RDret fork safeBytecode g s0 σ (solcSlotWordAt (mapSlot key ⟨7⟩) σ I).toByteArray := by
   obtain ⟨_, _, h974⟩ := safeRuntime_block_957 hov (by jump_dest) h
   have hret := safeReturnWordFromScratch h974 (by simp; omega)
     (solcMappingHashMem_size ⟨7⟩ key) (solcMappingHashMem_read64 ⟨7⟩ key)
-  change RDret safeBytecode g s0 σ (solcSlotWordAt
+  change RDret fork safeBytecode g s0 σ (solcSlotWordAt
     (keccakWord ⟨0⟩ (UInt256.ofNat 64) (solcMappingHashMem ⟨7⟩ key)) σ I).toByteArray at hret
   rw [show keccakWord ⟨0⟩ (UInt256.ofNat 64) (solcMappingHashMem ⟨7⟩ key) =
     mapSlot key ⟨7⟩ from solcMappingKeccakSlot ⟨7⟩ key] at hret
@@ -56,10 +58,10 @@ theorem safeSignedmessagesBodyCore
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some signedmessagesTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨hlong, hword⟩ := selectorDispatchFacts 0x5a 0xe6 0xbd 0x37 ⟨0x5ae6bd37⟩
     hdispatch signedmessagesSelectorBytes (by decide)
-  obtain ⟨k, C, h931⟩ := safeReachEntry (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, h931⟩ := safeReachEntry (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) ⟨0x5ae6bd37⟩ 1 ⟨931⟩ hcode hsize hlong hword
     (by native_decide)
   by_cases hvalue : I.weiValue = ⟨0⟩
@@ -71,7 +73,7 @@ theorem safeSignedmessagesBodyCore
       · obtain ⟨_, _, h957⟩ := safeDecodeWord h9894 (by simp)
           (solcDecodeLenCheckOk_4_32 hlen hbig hsize) (by jump_dest)
         have hret := safeSignedMessagesTrace h957 (by simp)
-        have hbody := safeSignedMessagesSource (initState σ σ₀ (.ofUInt256 g) A I)
+        have hbody := safeSignedMessagesSource (fork := fork) (initState σ σ₀ (.ofUInt256 g) A I)
           (calldataWord I.calldata 4) hvalue
         refine RDret.reEquivElim hcode hret fun _ _ hsuccess ↦ ?_
         exact reEquivSelectorExecution hdispatch (decodeCalldataBytes32Word hlen hbig) hbody
@@ -98,7 +100,7 @@ theorem safeSignedmessagesRefines
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some signedmessagesTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact safeSignedmessagesBodyCore hcode hsize hdispatch
 
 end Benchmarks.Safe.V3_77901a5

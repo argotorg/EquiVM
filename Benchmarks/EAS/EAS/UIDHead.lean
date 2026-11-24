@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.UIDSites
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -43,8 +45,8 @@ theorem easUIDFirst {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {src heap dataPtr bump : UInt256} {a : AttestationRecord} {R : List UInt256} (v : EASImmutables) (site : UIDSite)
     (hstack : R.length+24 ≤ 1024) (hview : AttestationMemoryView mem src dataPtr a)
     (hh : heap.toNat ≤ 2^64-1) (hheap : memLoad (UInt256.ofNat 64) mem = heap)
-    (rd : RD (deployedRuntime v) ee g s0 (uidStartPC site) (bump::uidSaved site src R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (uidHeadPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (uidStartPC site) (bump::uidSaved site src R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (uidHeadPC site)
       (uidHeadStack mem src heap dataPtr a (heap::(heap+UInt256.ofNat 32)::bump::uidSaved site src R))
       (uidFirstMemory mem (heap.toNat+32) a) aw' rdata σ k' C' := by
   obtain ⟨_,_,ha,_,_,hb,href⟩ := hview.uidFields
@@ -67,9 +69,9 @@ theorem easUIDSecond {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {src heap dataPtr : UInt256} {a : AttestationRecord} {R : List UInt256} (v : EASImmutables) (site : UIDSite)
     (hstack : R.length+14 ≤ 1024) (hview : AttestationMemoryView mem src dataPtr a)
     (hh : heap.toNat ≤ 2^64-1) (hdisj : dataPtr.toNat+32 ≤ heap.toNat)
-    (rd : RD (deployedRuntime v) ee g s0 (uidHeadPC site) (uidHeadStack mem src heap dataPtr a R)
+    (rd : RD fork (deployedRuntime v) ee g s0 (uidHeadPC site) (uidHeadStack mem src heap dataPtr a R)
       (uidFirstMemory mem (heap.toNat+32) a) aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 4400)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 4400)
       ((dataPtr+UInt256.ofNat 32)::(heap+UInt256.ofNat 153)::UInt256.ofNat a.data.size::uidCopyReturnPC site::
         UInt256.ofNat a.data.size::heap::R)
       (uidHeadMemory mem (heap.toNat+32) a) aw' rdata σ k' C' := by
@@ -87,7 +89,7 @@ theorem easUIDSecond {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     obtain ⟨aw',k',C',rd'⟩ := easBlocks.eas_block_8254_packed (immWords := wordsOf (immStore v)) (by omega)
       (by rw [easPatchedValidJumpsRuntime v]; jump_dest) rd
     refine ⟨aw',k',C',?_⟩
-    change RD (deployedRuntime v) ee g s0 (UInt256.ofNat 4400)
+    change RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 4400)
       ((UInt256.ofNat 32+dataPtr)::(heap+UInt256.ofNat 153)::memLoad dataPtr m2::
         UInt256.ofNat 8374::memLoad dataPtr m2::heap::R) m2 aw' rdata σ k' C' at rd'
     simpa only [hm,u256_add_comm (UInt256.ofNat 32) dataPtr,hl,uidCopyReturnPC] using rd'
@@ -95,7 +97,7 @@ theorem easUIDSecond {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     obtain ⟨aw',k',C',rd'⟩ := easBlocks.eas_block_10470_packed (immWords := wordsOf (immStore v)) (by omega)
       (by rw [easPatchedValidJumpsRuntime v]; jump_dest) rd
     refine ⟨aw',k',C',?_⟩
-    change RD (deployedRuntime v) ee g s0 (UInt256.ofNat 4400)
+    change RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 4400)
       ((UInt256.ofNat 32+dataPtr)::(heap+UInt256.ofNat 153)::memLoad dataPtr m2::
         UInt256.ofNat 10590::memLoad dataPtr m2::heap::R) m2 aw' rdata σ k' C' at rd'
     simpa only [hm,u256_add_comm (UInt256.ofNat 32) dataPtr,hl,uidCopyReturnPC] using rd'

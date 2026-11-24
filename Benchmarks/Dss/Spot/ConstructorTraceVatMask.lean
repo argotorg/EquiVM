@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Spot.ConstructorTraceVatMaskHigh
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Spotter constructor vat mask trace
 -/
@@ -14,13 +16,13 @@ theorem spotCtorVatMaskJoinReach
     {σ σWards σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat : AccountAddress) {k C : ℕ}
     (rd102 :
-      RD (spotCtorCode vat) I g
+      RD fork (spotCtorCode vat) I g
         (initState σ σ₀ g A I) ⟨102⟩
         [UInt256.land (solcSlotWord σWards I ⟨2⟩) (UInt256.lnot solcAddrMask), ⟨2⟩,
           ⟨1⟩, UInt256.land (EVM.word vat.val) solcAddrMask]
         (spotCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
         σWards k C) :
-    ∃ k' C', RD (spotCtorCode vat) I g
+    ∃ k' C', RD fork (spotCtorCode vat) I g
       (initState σ σ₀ g A I) ⟨108⟩
       [⟨2⟩, spotCtorVatStored σWards I vat, ⟨1⟩]
       (spotCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
@@ -38,11 +40,11 @@ theorem spotCtorVatBeforeStoreReach
     {σ σWards σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat : AccountAddress) {k C : ℕ}
     (rd75 :
-      RD (spotCtorCode vat) I g
+      RD fork (spotCtorCode vat) I g
         (initState σ σ₀ g A I) ⟨75⟩
         [⟨1⟩, EVM.word vat.val] (spotCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
         σWards k C) :
-    ∃ k' C', RD (spotCtorCode vat) I g
+    ∃ k' C', RD fork (spotCtorCode vat) I g
       (initState σ σ₀ g A I) ⟨108⟩
       [⟨2⟩, spotCtorVatStored σWards I vat, ⟨1⟩]
       (spotCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty

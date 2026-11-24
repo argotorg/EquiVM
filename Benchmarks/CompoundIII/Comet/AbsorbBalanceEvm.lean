@@ -6,6 +6,8 @@ import Benchmarks.CompoundIII.Comet.RuntimeBlocks_077
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_078
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_079
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -17,19 +19,19 @@ theorem cometAbsorbBalance {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray} {aw : UInt256}
     {σ : AccountMap} {k C : Nat} {i bits reserved old principal price saved delta : UInt256}
     {R : List UInt256} (hstack : R.length + 18 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 ⟨17156⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨17156⟩
       (i :: bits :: reserved :: old :: principal :: price :: saved :: delta :: R)
       mem aw rdata σ k C) :
     if AbsorbBalanceValid v old delta price then
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨17240⟩
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨17240⟩
         (principal :: old :: absorbBalanceWord v old delta price :: price :: saved ::
           collateralBaseScale v :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have r1 := cometWithExtendedAssetList_block_17156 (immWords := wordsOf (immStore v))
     (by omega) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
   simp only [cometWithExtendedAssetList_block_17156_stack, wordsOf_immStore_baseScale,
     wordOfInt_ofNat_toNat] at r1
-  change RD _ _ _ _ _ (delta :: collateralBaseScale v :: UInt256.ofNat 17219 :: price ::
+  change RD fork _ _ _ _ _ (delta :: collateralBaseScale v :: UInt256.ofNat 17219 :: price ::
     UInt256.ofNat 10598 :: UInt256.ofNat 17224 :: UInt256.ofNat 17230 :: old :: principal ::
       price :: saved :: collateralBaseScale v :: R) _ _ _ _ _ _ at r1
   by_cases hm : delta.toNat * (collateralBaseScale v).toNat < UInt256.size
@@ -44,7 +46,7 @@ theorem cometAbsorbBalance {v : CometWithExtendedAssetListImmutables}
     by_cases hz : price ≠ ⟨0⟩
     · rw [if_pos hz] at hd
       obtain ⟨k4, C4, r4⟩ := hd
-      change RD _ _ _ _ _ (absorbDeltaBalance v delta price :: UInt256.ofNat 17224 ::
+      change RD fork _ _ _ _ _ (absorbDeltaBalance v delta price :: UInt256.ofNat 17224 ::
         UInt256.ofNat 17230 :: old :: principal :: price :: saved :: collateralBaseScale v :: R)
         _ _ _ _ _ _ at r4
       have r5 := cometWithExtendedAssetList_block_10598 (immWords := wordsOf (immStore v))
@@ -66,7 +68,7 @@ theorem cometAbsorbBalance {v : CometWithExtendedAssetListImmutables}
         · rw [if_pos hsum] at ha
           rw [if_pos (show AbsorbBalanceValid v old delta price from ⟨⟨hm, hz⟩, hd, hsum⟩)]
           obtain ⟨k8, C8, r8⟩ := ha
-          change RD _ _ _ _ _ (absorbBalanceSum v old delta price :: old :: principal ::
+          change RD fork _ _ _ _ _ (absorbBalanceSum v old delta price :: old :: principal ::
             price :: saved :: collateralBaseScale v :: R) _ _ _ _ _ _ at r8
           by_cases hp : (absorbBalanceSum v old delta price).toNat < 2^255
           · have hs : UInt256.slt (absorbBalanceSum v old delta price) (UInt256.ofNat 0) =

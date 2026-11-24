@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.AbsDiffWords
 import Benchmarks.UniswapV4PoolManager.WordLocals
 import Benchmarks.UniswapV4PoolManager.PoolCheckSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -13,7 +15,7 @@ theorem absDiff_lookup : lookupCallable? contract "SqrtPriceMath_absDiff" =
 theorem absDiffBody {f : Frame} {evm : EVM.State} {a b : UInt256}
     (ha : f.locals.get? "a" = some (.int (Int.ofNat a.toNat)))
     (hb : f.locals.get? "b" = some (.int (Int.ofNat b.toNat))) :
-    ExecFuncBody config f evm absDiffFunction.body
+    ExecFuncBody fork config f evm absDiffFunction.body
       (.returned f evm (some [.int (Int.ofNat (absDiffWord a b).toNat)])) := by
   have hea := evalLocalValue (cfg := config) (f := f) (evm := evm) ha
   have heb := evalLocalValue (cfg := config) (f := f) (evm := evm) hb
@@ -32,11 +34,11 @@ theorem absDiffCall {f : Frame} {evm : EVM.State} {a b : UInt256} {ea eb : Expr}
     (hf : f.contract = contract)
     (ha : evalExpr? config f evm ea = .ok (.int (Int.ofNat a.toNat)))
     (hb : evalExpr? config f evm eb = .ok (.int (Int.ofNat b.toNat))) (ret : Ident) :
-    ExecStmt config f evm (.internalCall "SqrtPriceMath_absDiff" [ea, eb] ret)
+    ExecStmt fork config f evm (.internalCall "SqrtPriceMath_absDiff" [ea, eb] ret)
       (.ok (wordLocal f ret (absDiffWord a b)) evm) := by
   let fc : Frame := {f with locals := (((∅ : Store).insert "b" (.int (Int.ofNat b.toNat))).insert
     "a" (.int (Int.ofNat a.toNat)))}
-  have hbody := absDiffBody (f := fc) (evm := evm) (store_get_self _ _ _)
+  have hbody := absDiffBody (fork := fork) (f := fc) (evm := evm) (store_get_self _ _ _)
     ((store_get_ne _ _ (by decide : ("a" == "b") = false)).trans (store_get_self _ _ _))
   have hargs : evalExprs? config f evm [ea, eb] =
       .ok [.int (Int.ofNat a.toNat), .int (Int.ofNat b.toNat)] := by

@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.AccrueMathRoutines
 import Benchmarks.Morpho.MorphoBlue.AccrueRoutinesStart
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -19,11 +21,11 @@ variable {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 
 theorem morphoAccrueLogReturn {j0 j7 j10 : UInt256} (hstack : R.length + 23 ≤ 1024)
     (hp : ee.perm = true) (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13706)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13706)
       ([j0, UInt256.ofNat 3, UInt256.ofNat 0, UInt256.ofNat 64, uint128Mask, id,
         UInt256.ofNat 32, j7, interest, shares, j10] ++ accrueMathTail id rate ret R)
       mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret R
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret R
       (twoWordHashMem id (UInt256.ofNat 3) (accrueEventMem mem rate interest shares)) aw' rdata
       (storeMarketFieldAccounts σ ee id ⟨4, by decide⟩
         (halfWord false (UInt256.ofNat ee.header.timestamp))) k' C' := by
@@ -35,9 +37,9 @@ theorem morphoAccrueLogReturn {j0 j7 j10 : UInt256} (hstack : R.length + 23 ≤ 
 
 theorem morphoAccrueFeeLogReturn (hstack : R.length + 24 ≤ 1024)
     (hp : ee.perm = true) (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13863)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13863)
       ([interest, shares] ++ accrueMathTail id rate ret R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret R
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret R
       (twoWordHashMem id (UInt256.ofNat 3) (accrueEventMem mem rate interest shares)) aw' rdata
       (storeMarketFieldAccounts σ ee id ⟨4, by decide⟩
         (halfWord false (UInt256.ofNat ee.header.timestamp))) k' C' := by

@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.CollateralCheckEvm
 import Benchmarks.CompoundIII.Comet.AddressGetter
 import Benchmarks.CompoundIII.Comet.FreeWordReturn
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -17,10 +19,10 @@ def collateralCheckPublicBody (borrow : Bool) : List Stmt :=
 theorem collateralCheckPublic_returns {σ σ₀ A I} {g : Sat256}
     {v : CometWithExtendedAssetListImmutables} {borrow value : Bool} {evm' : EVM.State}
     (hv : I.weiValue = ⟨0⟩) (hhi : I.calldata.size < 2^255 + 4)
-    (ht : CollateralCheckTrace v borrow
+    (ht : CollateralCheckTrace fork v borrow
       (AccountAddress.ofNat (calldataWord I.calldata 4).toNat)
       (initState σ σ₀ g A I) (some (evm', value))) :
-    ∃ frame, ExecTransitionBody config contract (initState σ σ₀ g A I)
+    ∃ frame, ExecTransitionBody fork config contract (initState σ σ₀ g A I)
       (addressGetterArgs "account" I) (collateralCheckPublicBody borrow)
       (.returned frame evm' (some [.bool value])) (immStore v) := by
   let frame := calldataLocalFrame
@@ -41,10 +43,10 @@ theorem collateralCheckPublic_returns {σ σ₀ A I} {g : Sat256}
 theorem collateralCheckPublic_reverts {σ σ₀ A I} {g : Sat256}
     {v : CometWithExtendedAssetListImmutables} {borrow : Bool}
     (hv : I.weiValue = ⟨0⟩) (hhi : I.calldata.size < 2^255 + 4)
-    (ht : CollateralCheckTrace v borrow
+    (ht : CollateralCheckTrace fork v borrow
       (AccountAddress.ofNat (calldataWord I.calldata 4).toNat)
       (initState σ σ₀ g A I) none) :
-    ExecTransitionBody config contract (initState σ σ₀ g A I)
+    ExecTransitionBody fork config contract (initState σ σ₀ g A I)
       (addressGetterArgs "account" I) (collateralCheckPublicBody borrow)
       .reverted (immStore v) := by
   let frame := calldataLocalFrame
@@ -69,9 +71,9 @@ theorem cometReturnBool {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray} {aw : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (value : Bool)
     (hstack : R.length + 4 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 ⟨1455⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨1455⟩
       (boolWord value :: ⟨32⟩ :: R) mem aw rdata σ k C) :
-    RDret (deployedRuntime v) g s0 σ (boolWord value).toByteArray := by
+    RDret fork (deployedRuntime v) g s0 σ (boolWord value).toByteArray := by
   have hr := cometWithExtendedAssetList_block_1455
     (immWords := wordsOf (immStore v)) hstack h
   have hn : UInt256.isZero (UInt256.isZero (boolWord value)) = boolWord value := by
@@ -79,16 +81,16 @@ theorem cometReturnBool {v : CometWithExtendedAssetListImmutables}
   rw [hn] at hr
   exact freeWordReturnData mem (boolWord value) ▸ hr
 
-def CollateralCheckPublicResult (v : CometWithExtendedAssetListImmutables) (borrow : Bool)
+def CollateralCheckPublicResult (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables) (borrow : Bool)
     (I : ExecutionEnv) (g : Sat256) (s0 : EVM.State) : Prop :=
   if I.weiValue = ⟨0⟩ ∧ 36 ≤ I.calldata.size ∧ I.calldata.size < 2^255 + 4 ∧
       (calldataWord I.calldata 4).toNat < EVM.addressModulus then
-    ∃ result, CollateralCheckTrace v borrow
+    ∃ result, CollateralCheckTrace fork v borrow
       (AccountAddress.ofNat (calldataWord I.calldata 4).toNat) s0 result ∧
       match result with
-      | none => RDrev (deployedRuntime v) g s0
-      | some (evm', value) => RDret (deployedRuntime v) g s0 evm'.accountMap
+      | none => RDrev fork (deployedRuntime v) g s0
+      | some (evm', value) => RDret fork (deployedRuntime v) g s0 evm'.accountMap
           (boolWord value).toByteArray
-  else RDrev (deployedRuntime v) g s0
+  else RDrev fork (deployedRuntime v) g s0
 
 end Benchmarks.CompoundIII.Comet

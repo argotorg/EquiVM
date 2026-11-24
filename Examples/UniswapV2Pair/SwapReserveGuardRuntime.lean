@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.SwapOutputGuardRuntime
 import Examples.UniswapV2Pair.GetReserves
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -9,9 +11,9 @@ theorem uniswapSwapRuntimeReservesLoaded
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {σ : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {R : List UInt256} {k C : Nat}
-    (rd1628 : RD uniswapV2PairBytecode I g s0 ⟨1628⟩ R mem aw rdata σ k C)
+    (rd1628 : RD fork uniswapV2PairBytecode I g s0 ⟨1628⟩ R mem aw rdata σ k C)
     (hov : R.length + 10 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨1645⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨1645⟩
       (reserve1Word σ I :: reserve0Word σ I :: R) mem aw rdata σ k' C' := by
   have rd2852 := evm_run rd1628 with [jumpdest, push1 ⟨0⟩, dup1, push2 ⟨1639⟩,
     push2 ⟨2852⟩, jump (by jump_dest)]
@@ -25,20 +27,20 @@ theorem uniswapSwapReserveGuardRuntimeCases
     {σ : AccountMap}
     {mem rdata : ByteArray} {aw reserve1 reserve0 dataLen dataPtr toWord amount1Out amount0Out : UInt256}
     {R : List UInt256} {k C : Nat}
-    (rd1645 : RD uniswapV2PairBytecode I g s0 ⟨1645⟩
+    (rd1645 : RD fork uniswapV2PairBytecode I g s0 ⟨1645⟩
       (reserve1 :: reserve0 :: dataLen :: dataPtr :: toWord :: amount1Out :: amount0Out :: R)
       mem aw rdata σ k C)
     (hclean0 : UInt256.land reserve0 reserve112Mask = reserve0)
     (hclean1 : UInt256.land reserve1 reserve112Mask = reserve1)
     (hov : R.length + 17 ≤ 1024) :
     (¬ (amount0Out.toNat < reserve0.toNat ∧ amount1Out.toNat < reserve1.toNat)) ∧
-      RDrev uniswapV2PairBytecode g s0 ∨
+      RDrev fork uniswapV2PairBytecode g s0 ∨
     (amount0Out.toNat < reserve0.toNat ∧ amount1Out.toNat < reserve1.toNat) ∧ ∃ k' C',
-      RD uniswapV2PairBytecode I g s0 ⟨1735⟩
+      RD fork uniswapV2PairBytecode I g s0 ⟨1735⟩
         (reserve1 :: reserve0 :: dataLen :: dataPtr :: toWord :: amount1Out :: amount0Out :: R)
         mem aw rdata σ k' C' := by
   have hmask : UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨112⟩) ⟨1⟩ = reserve112Mask := by native_decide
-  have hto1676 : ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨1676⟩
+  have hto1676 : ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨1676⟩
       ((if amount0Out.toNat < reserve0.toNat ∧ amount1Out.toNat < reserve1.toNat then ⟨1⟩ else ⟨0⟩) ::
         reserve1 :: reserve0 :: dataLen :: dataPtr :: toWord :: amount1Out :: amount0Out :: R)
         mem aw rdata σ k' C' := by

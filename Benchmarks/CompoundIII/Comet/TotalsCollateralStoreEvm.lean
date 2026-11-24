@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.TotalsCollateralMemory
 import Benchmarks.CompoundIII.Comet.CollateralStoreEvm
 import Benchmarks.CompoundIII.Comet.High128Write
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -15,9 +17,9 @@ theorem cometStoreTotalsCollateral {v : CometWithExtendedAssetListImmutables}
     (asset : AccountAddress) (hstack : R.length + 12 ≤ 1024)
     (htotal : total.toNat < 2^128) (hm : TotalsCollateralMemory mem ptr total reserved)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨13749⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨13749⟩
       (totalsCollateralSlot asset :: ptr :: ret :: R) mem aw rdata σ k C) :
-    internalMemoryRun (deployedRuntime v) ee g s0 mem rdata ret R
+    internalMemoryRun fork (deployedRuntime v) ee g s0 mem rdata ret R
       (if evm.executionEnv.perm then .ok (storeTotalsCollateral evm asset total reserved)
         else .staticViolation) := by
   have hclean : UInt256.land total

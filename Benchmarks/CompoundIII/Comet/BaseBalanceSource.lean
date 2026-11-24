@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.WithdrawBaseMathModel
 import Benchmarks.CompoundIII.Comet.SupplyBaseMathModel
 import Benchmarks.CompoundIII.Comet.SignedPresentValueSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -70,14 +72,14 @@ theorem baseBalance_source (frame : Frame) (evm : EVM.State) (principal amount :
     (hc : frame.contract = contract)
     (hp : frame.locals.get? principalName = some (.int (signed104 principal)))
     (ha : frame.locals.get? "amount" = some (.int amount.toNat)) :
-    ExecBlock config frame evm (baseBalanceBlock subtract principalName presentName castName balanceName)
+    ExecBlock fork config frame evm (baseBalanceBlock subtract principalName presentName castName balanceName)
       (if BaseBalanceFits subtract evm principal amount then
         .ok (baseBalanceFrame frame subtract evm principal amount presentName castName balanceName) evm
       else .reverted) := by
   simp only [baseBalanceFrame]
   have hpe : evalExpr? config frame evm (.var principalName) =
       .ok (.int (signed104 principal)) := by simp only [evalExpr?, hp, EvalResult.ofOption]
-  have hcall := signedPresent_call frame evm principal _ presentName hc hpe
+  have hcall := signedPresent_call (fork := fork) frame evm principal _ presentName hc hpe
   let f1 : Frame := { frame with
     locals := frame.locals.insert presentName (.int (signedPresentValueInt evm principal)) }
   have hae : evalExpr? config f1 evm (.var "amount") = .ok (.int amount.toNat) := by
@@ -88,7 +90,7 @@ theorem baseBalance_source (frame : Frame) (evm : EVM.State) (principal amount :
   by_cases hm : -(2^103 : Int) < signed104 principal
   · rw [if_pos hm] at hcall
     by_cases hcast : amount.toNat < 2^255
-    · have hsign := signed256_call_ok f1 evm amount _ castName hc hae hcast
+    · have hsign := signed256_call_ok (fork := fork) f1 evm amount _ castName hc hae hcast
       let f2 : Frame := { f1 with locals := f1.locals.insert castName (.int amount.toNat) }
       have he : evalExpr? config f2 evm
           (.binary (if subtract then .sub else .add) (.var presentName) (.var castName)) =

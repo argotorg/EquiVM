@@ -1,6 +1,8 @@
 import Reasoning.Memory
 import Benchmarks.Dss.Flipper.DealEVM
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Flipper
@@ -40,9 +42,9 @@ theorem flipperDealX_ticExpired_catMem {σ I} {g : Sat256} {s0 : State}
     (hticNe : bidTicWord (dealId I) σ I ≠ ⟨0⟩)
     (hticLt : (bidTicWord (dealId I) σ I).toNat <
       (UInt256.ofNat I.header.timestamp).toNat)
-    (h : RD flipperBytecode I g s0 ⟨5365⟩ [dealId I, ret, sel]
+    (h : RD fork flipperBytecode I g s0 ⟨5365⟩ [dealId I, ret, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ⟨5558⟩ [dealId I, ret, sel]
+    ∃ k' C', RD fork flipperBytecode I g s0 ⟨5558⟩ [dealId I, ret, sel]
       (dealHashMem2 I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   obtain ⟨k', C', rd5558⟩ := flipperDealX_ticExpired hticNe hticLt h
   exact ⟨k', C', by simpa [dealHashMem1_eq_dealHashMem2 I] using rd5558⟩

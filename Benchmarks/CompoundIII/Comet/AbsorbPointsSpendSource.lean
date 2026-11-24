@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.AbsorbPointsModel
 import Benchmarks.CompoundIII.Comet.SafeUintSource
 import Benchmarks.CompoundIII.Comet.NarrowArithmetic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -27,7 +29,7 @@ theorem absorbPointsSpend_source (frame : Frame) (evm : State) (p : LiquidatorPo
     (gasUsed : UInt256) (hc : frame.contract = contract)
     (hp : frame.locals.get? "points" = some (liquidatorPointsValue p))
     (hg : frame.locals.get? "gasUsed" = some (.int gasUsed.toNat)) :
-    ExecBlock config frame evm absorbPointsSpendBlock
+    ExecBlock fork config frame evm absorbPointsSpendBlock
       (if AbsorbPointsSpendValid p gasUsed (UInt256.ofNat evm.executionEnv.header.baseFeePerGas) then
         .ok (absorbPointsSpendFrame frame p gasUsed
           (UInt256.ofNat evm.executionEnv.header.baseFeePerGas)) evm else .reverted) := by
@@ -41,7 +43,7 @@ theorem absorbPointsSpend_source (frame : Frame) (evm : State) (p : LiquidatorPo
   by_cases hmul : gasUsed.toNat * fee.toNat < UInt256.size
   · have hecost : evalExpr? config frame evm absorbPointsSpendExpr = .ok (.int cost.toNat) :=
       checkedMulSourceOk hegas hefee hmul
-    have hcall := safeUint_call ⟨128, by decide⟩ "safe128" safe128Callable_lookup
+    have hcall := safeUint_call (fork := fork) ⟨128, by decide⟩ "safe128" safe128Callable_lookup
       frame evm cost absorbPointsSpendExpr "__c4" hc hecost
     by_cases hcost : cost.toNat < 2^128
     · rw [if_pos hcost] at hcall
@@ -59,7 +61,7 @@ theorem absorbPointsSpend_source (frame : Frame) (evm : State) (p : LiquidatorPo
         have hadd := checkedNarrowAddSourceOk ⟨128, by decide⟩ (by decide)
           (evalLiquidatorPointsLocalField 2 hep) hec hsum
         exact ExecBlock.consNormal hcall (ExecBlock.consNormal
-          (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hadd (assignLiquidatorPointsLocalField 2 (p.spend + cost) hp1))
+          (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hadd (assignLiquidatorPointsLocalField 2 (p.spend + cost) hp1))
           ExecBlock.nil)
       · rw [if_neg (show ¬ AbsorbPointsSpendValid p gasUsed fee from fun hv ↦ hsum hv.2.2)]
         exact ExecBlock.consNormal hcall (ExecBlock.consRevert (ExecStmt.assignExprRevert

@@ -10,6 +10,8 @@ import Benchmarks.Dss.DaiJoin.Vat
 import Benchmarks.Dss.DaiJoin.Wards
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS DaiJoin benchmark correctness stub
 
@@ -26,8 +28,8 @@ namespace Benchmarks.Dss.DaiJoin
 
 theorem daiJoinCorrect :
     runtimeRefinement config daiJoinBytecode contract := by
-  refine runtimeRefinement.intro ?_
-  intro σ σ₀ g A I hcode hsize
+  refine runtimeRefinementOn.intro ?_
+  intro fork _hfork σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hcage : selIs I (daiJoinSelBytes 0)
     · exact daiJoinCageBodyCoreAnyPerm hcode hsize hwv hcage

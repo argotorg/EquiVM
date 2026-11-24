@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.RecordBytesEntry
 import Benchmarks.EAS.EAS.RuntimeBlocks_032
 import Benchmarks.EAS.EAS.RuntimeBlocks_037
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -21,13 +23,13 @@ theorem easBytesCleanDispatch {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {src dataPtr slot word len old t1 t2 t3 t4 : UInt256} {R : List UInt256}
     (v : EASImmutables) (site : UIDSite) (hstack : R.length+24 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 (recordBytesDecodedPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (recordBytesDecodedPC site)
       (old::dataPtr::len::slot::recordBytesSaved site word src t1 t2 t3 t4 R) mem aw rdata σ k C) :
     if old.toNat < 32 ∨ old.toNat ≤ len.toNat then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (recordBytesCleanPC site)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (recordBytesCleanPC site)
         (old::dataPtr::len::slot::recordBytesSaved site word src t1 t2 t3 t4 R) mem aw' rdata σ k' C'
     else
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (bytesClearSetupPC site)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (bytesClearSetupPC site)
         (old::dataPtr::len::slot::bytesClearSetupSaved site word src t1 t2 t3 t4 R) mem aw' rdata σ k' C' := by
   by_cases ho : old.toNat < 32
   · rw [if_pos (Or.inl ho)]

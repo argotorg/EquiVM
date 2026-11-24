@@ -1,6 +1,8 @@
 import Benchmarks.Auction.PaymentSource
 import Benchmarks.Auction.PaymentFallback
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -8,7 +10,7 @@ namespace Auction
 /-- Full refinement of `_safeTransferETHWithFallback`, from its entry at 3337 to the caller's
 return destination. The cursor result records allocations without assuming dense memory. -/
 theorem paymentRoutine {I g s0 amount recipient ret R mem aw ptr rdata σ k C evm locals}
-    (h : RD auctionBytecode I g s0 ⟨3337⟩ (amount :: recipient :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨3337⟩ (amount :: recipient :: ret :: R)
       mem aw rdata σ k C)
     (hs : SourceState s0 I σ evm) (hperm : I.perm = true)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 2 ^ 140 ≤ 2 ^ 200)
@@ -16,16 +18,16 @@ theorem paymentRoutine {I g s0 amount recipient ret R mem aw ptr rdata σ k C ev
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 24 ≤ 1024) :
     (∃ (evm' : EVM.State) (σ' : AccountMap)
         (locals' : Store) (mem' : ByteArray) (aw' ptr' : UInt256) (out : ByteArray) (k' C' : Nat),
-      ExecFuncBody auctionConfig { contract := auctionContract, locals := locals } evm
+      ExecFuncBody fork auctionConfig { contract := auctionContract, locals := locals } evm
         safeTransferETHWithFallback.body
         (.returned { contract := auctionContract, locals := locals' } evm'
           (some [.int (Int.ofNat ptr'.toNat)])) ∧
       SourceState s0 I σ' evm' ∧
-      RD auctionBytecode I g s0 ret R mem' aw' out σ' k' C' ∧
+      RD fork auctionBytecode I g s0 ret R mem' aw' out σ' k' C' ∧
       MemoryCursor mem' aw' ptr' ∧ MemoryPrefix mem mem' ptr.toNat ∧
       ptr.toNat ≤ ptr'.toNat ∧ ptr'.toNat ≤ ptr.toNat + 2 ^ 140 ∧ aw.toNat ≤ aw'.toNat) ∨
-    (ExecFuncBody auctionConfig { contract := auctionContract, locals := locals } evm
-      safeTransferETHWithFallback.body .reverted ∧ RDrev auctionBytecode g s0) := by
+    (ExecFuncBody fork auctionConfig { contract := auctionContract, locals := locals } evm
+      safeTransferETHWithFallback.body .reverted ∧ RDrev fork auctionBytecode g s0) := by
   have rd4768 := evm_run h with [jumpdest, push2 ⟨3347⟩, dup3, dup3, push2 ⟨4768⟩,
     jump (by jump_dest)]
   have hbraw : ptr.toNat + 2 ^ 139 ≤ 2 ^ 200 := by omega

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.DonatePoolCorrect
 import Benchmarks.UniswapV4PoolManager.BeforeDonateHookTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -24,12 +26,12 @@ theorem donateBeforeCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hcd : I.calldata.size < 2^255)
     (hgas : g.toNat < 324518553658429321982441292826060) (hpaid : Cₘ aw ≤ C+49)
     (hfree : memLoad (UInt256.ofNat 64) mem = free)
-    (h : RD (deployedRuntime v) I g s0 ⟨10153⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨10153⟩
       (keyPtr :: src :: amount1 :: amount0 :: len :: poolSlot id :: id :: junk :: R)
       mem aw rdata evm.accountMap k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
-    ∃ result, ExecBlock config f evm (donateTransition.body.drop 13) result ∧
-      abiResultTrace donateTransition.returnType (deployedRuntime v) g s0 result := by
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    ∃ result, ExecBlock fork config f evm (donateTransition.body.drop 13) result ∧
+      abiResultTrace fork donateTransition.returnType (deployedRuntime v) g s0 result := by
   let hook := AccountAddress.ofNat key.hooks.toNat
   have hw : accountWord hook = key.hooks :=
     (accountWord_fromId key.hooks).trans (solcAddrMask_clean hc.2.2.2.2)
@@ -51,7 +53,7 @@ theorem donateBeforeCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
   | returned cf post values =>
     obtain ⟨hIp, hσp, rfl, out, data, nextFree, aw1, k1, C1, j0, j1, hm, hp1, rd1⟩ := ht
     let ff : Frame := {f with locals := f.locals.insert "__c5" .unit}
-    change ExecStmt config f evm donateTransition.body[13]! (.ok ff post) at hstmt
+    change ExecStmt fork config f evm donateTransition.body[13]! (.ok ff post) at hstmt
     have hfff : ff.contract = contract := hf
     have hkff : ff.locals.get? "key" = some (poolKeyValue key) :=
       (store_get_ne _ _ (by decide : ("__c5" == "key") = false)).trans hk

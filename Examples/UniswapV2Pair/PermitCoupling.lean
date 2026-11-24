@@ -1,5 +1,7 @@
 import Reasoning.ExternalCall
 import Examples.UniswapV2Pair.PermitSource
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -15,7 +17,7 @@ theorem uniswapPermitHashPrefixAt {base cur : EVM.State} {I : ExecutionEnv}
     (hdigest :
       evalExpr? config { contract := contract, locals := permitAfterStructHashStore base I structHash }
         cur permitDigestExpr = .ok digest) :
-    ExecBlock config { contract := contract, locals := permitAfterNonceLoadStore base I } cur
+    ExecBlock fork config { contract := contract, locals := permitAfterNonceLoadStore base I } cur
       [ .letDecl "structHash" (some bytes32) permitStructHashExpr,
         .letDecl "digest" (some bytes32) permitDigestExpr ]
       (.ok { contract := contract, locals := permitAfterDigestStore base I structHash digest } cur) := by
@@ -30,10 +32,10 @@ theorem uniswapPermitHashEcrecoverSuccessAt {base cur cur' : EVM.State} {I : Exe
     (hdigest :
       evalExpr? config { contract := contract, locals := permitAfterStructHashStore base I structHash }
         cur permitDigestExpr = .ok digest)
-    (hcall : typedCallViaEVM config cur (AccountAddress.ofNat 1) "ecrecover" 0
+    (hcall : typedCallViaEVM fork config cur (AccountAddress.ofNat 1) "ecrecover" 0
       [digest, permitVValue I, permitRValue I, permitSValue I] (true, cur', out) false)
     (hdec : config.externalABI.decode? "ecrecover" out = some [recovered]) :
-    ExecBlock config { contract := contract, locals := permitAfterNonceLoadStore base I } cur
+    ExecBlock fork config { contract := contract, locals := permitAfterNonceLoadStore base I } cur
       [ .letDecl "structHash" (some bytes32) permitStructHashExpr,
         .letDecl "digest" (some bytes32) permitDigestExpr,
         .externalCall (.cast (.intLit 1) addrSt) "ecrecover" (.intLit 0)
@@ -41,7 +43,7 @@ theorem uniswapPermitHashEcrecoverSuccessAt {base cur cur' : EVM.State} {I : Exe
       (.ok (show Frame from
         { contract := contract,
           locals := permitAfterEcrecoverStore base I structHash digest recovered }) cur') := by
-  have hhash := uniswapPermitHashPrefixAt (base := base) (cur := cur)
+  have hhash := uniswapPermitHashPrefixAt (fork := fork) (base := base) (cur := cur)
     (I := I) hstruct hdigest
   have hecrecover := uniswapPermitEcrecoverCallSuccessAt (base := base) (cur := cur)
     (cur' := cur') (I := I) (structHash := structHash) (digest := digest)
@@ -57,15 +59,15 @@ theorem uniswapPermitHashEcrecoverFailureAt {base cur cur' : EVM.State} {I : Exe
     (hdigest :
       evalExpr? config { contract := contract, locals := permitAfterStructHashStore base I structHash }
         cur permitDigestExpr = .ok digest)
-    (hcall : typedCallViaEVM config cur (AccountAddress.ofNat 1) "ecrecover" 0
+    (hcall : typedCallViaEVM fork config cur (AccountAddress.ofNat 1) "ecrecover" 0
       [digest, permitVValue I, permitRValue I, permitSValue I] (false, cur', out) false) :
-    ExecBlock config { contract := contract, locals := permitAfterNonceLoadStore base I } cur
+    ExecBlock fork config { contract := contract, locals := permitAfterNonceLoadStore base I } cur
       [ .letDecl "structHash" (some bytes32) permitStructHashExpr,
         .letDecl "digest" (some bytes32) permitDigestExpr,
         .externalCall (.cast (.intLit 1) addrSt) "ecrecover" (.intLit 0)
           [.var "digest", .var "v", .var "r", .var "s"] "recoveredAddress" (perm := false) ]
       .reverted := by
-  have hhash := uniswapPermitHashPrefixAt (base := base) (cur := cur)
+  have hhash := uniswapPermitHashPrefixAt (fork := fork) (base := base) (cur := cur)
     (I := I) hstruct hdigest
   have hecrecover := uniswapPermitEcrecoverCallFailureAt (base := base) (cur := cur)
     (cur' := cur') (I := I) (structHash := structHash) (digest := digest)
@@ -81,16 +83,16 @@ theorem uniswapPermitHashEcrecoverDecodeRevertAt {base cur cur' : EVM.State}
     (hdigest :
       evalExpr? config { contract := contract, locals := permitAfterStructHashStore base I structHash }
         cur permitDigestExpr = .ok digest)
-    (hcall : typedCallViaEVM config cur (AccountAddress.ofNat 1) "ecrecover" 0
+    (hcall : typedCallViaEVM fork config cur (AccountAddress.ofNat 1) "ecrecover" 0
       [digest, permitVValue I, permitRValue I, permitSValue I] (true, cur', out) false)
     (hdec : config.externalABI.decode? "ecrecover" out = none) :
-    ExecBlock config { contract := contract, locals := permitAfterNonceLoadStore base I } cur
+    ExecBlock fork config { contract := contract, locals := permitAfterNonceLoadStore base I } cur
       [ .letDecl "structHash" (some bytes32) permitStructHashExpr,
         .letDecl "digest" (some bytes32) permitDigestExpr,
         .externalCall (.cast (.intLit 1) addrSt) "ecrecover" (.intLit 0)
           [.var "digest", .var "v", .var "r", .var "s"] "recoveredAddress" (perm := false) ]
       .reverted := by
-  have hhash := uniswapPermitHashPrefixAt (base := base) (cur := cur)
+  have hhash := uniswapPermitHashPrefixAt (fork := fork) (base := base) (cur := cur)
     (I := I) hstruct hdigest
   have hecrecover := uniswapPermitEcrecoverCallDecodeRevertAt (base := base) (cur := cur)
     (cur' := cur') (I := I) (structHash := structHash) (digest := digest)
@@ -106,12 +108,12 @@ theorem uniswapPermitHashEcrecoverRequireSuccessAt {base cur cur' : EVM.State}
     (hdigest :
       evalExpr? config { contract := contract, locals := permitAfterStructHashStore base I structHash }
         cur permitDigestExpr = .ok digest)
-    (hcall : typedCallViaEVM config cur (AccountAddress.ofNat 1) "ecrecover" 0
+    (hcall : typedCallViaEVM fork config cur (AccountAddress.ofNat 1) "ecrecover" 0
       [digest, permitVValue I, permitRValue I, permitSValue I] (true, cur', out) false)
     (hdec : config.externalABI.decode? "ecrecover" out = some [recovered])
     (hnz : recovered ≠ .address (AccountAddress.ofNat 0))
     (heq : recovered = permitOwnerValue I) :
-    ExecBlock config { contract := contract, locals := permitAfterNonceLoadStore base I } cur
+    ExecBlock fork config { contract := contract, locals := permitAfterNonceLoadStore base I } cur
       [ .letDecl "structHash" (some bytes32) permitStructHashExpr,
         .letDecl "digest" (some bytes32) permitDigestExpr,
         .externalCall (.cast (.intLit 1) addrSt) "ecrecover" (.intLit 0)
@@ -126,7 +128,7 @@ theorem uniswapPermitHashEcrecoverRequireSuccessAt {base cur cur' : EVM.State}
     (cur' := cur') (I := I) (structHash := structHash) (digest := digest)
     (recovered := recovered) (out := out) hstruct hdigest hcall hdec
   have hrequire :
-      ExecBlock config
+      ExecBlock fork config
         { contract := contract,
           locals := permitAfterEcrecoverStore base I structHash digest recovered } cur'
         [ .require (.binary .and
@@ -151,11 +153,11 @@ theorem uniswapPermitHashEcrecoverRequireZeroRevertAt {base cur cur' : EVM.State
     (hdigest :
       evalExpr? config { contract := contract, locals := permitAfterStructHashStore base I structHash }
         cur permitDigestExpr = .ok digest)
-    (hcall : typedCallViaEVM config cur (AccountAddress.ofNat 1) "ecrecover" 0
+    (hcall : typedCallViaEVM fork config cur (AccountAddress.ofNat 1) "ecrecover" 0
       [digest, permitVValue I, permitRValue I, permitSValue I] (true, cur', out) false)
     (hdec : config.externalABI.decode? "ecrecover" out = some [recovered])
     (hzero : recovered = .address (AccountAddress.ofNat 0)) :
-    ExecBlock config { contract := contract, locals := permitAfterNonceLoadStore base I } cur
+    ExecBlock fork config { contract := contract, locals := permitAfterNonceLoadStore base I } cur
       [ .letDecl "structHash" (some bytes32) permitStructHashExpr,
         .letDecl "digest" (some bytes32) permitDigestExpr,
         .externalCall (.cast (.intLit 1) addrSt) "ecrecover" (.intLit 0)
@@ -168,7 +170,7 @@ theorem uniswapPermitHashEcrecoverRequireZeroRevertAt {base cur cur' : EVM.State
     (cur' := cur') (I := I) (structHash := structHash) (digest := digest)
     (recovered := recovered) (out := out) hstruct hdigest hcall hdec
   have hrequire :
-      ExecBlock config
+      ExecBlock fork config
         { contract := contract,
           locals := permitAfterEcrecoverStore base I structHash digest recovered } cur'
         [ .require (.binary .and
@@ -191,13 +193,13 @@ theorem uniswapPermitHashEcrecoverRequireMismatchRevertAt {base cur cur' : EVM.S
     (hdigest :
       evalExpr? config { contract := contract, locals := permitAfterStructHashStore base I structHash }
         cur permitDigestExpr = .ok digest)
-    (hcall : typedCallViaEVM config cur (AccountAddress.ofNat 1) "ecrecover" 0
+    (hcall : typedCallViaEVM fork config cur (AccountAddress.ofNat 1) "ecrecover" 0
       [digest, permitVValue I, permitRValue I, permitSValue I] (true, cur', out) false)
     (hdec : config.externalABI.decode? "ecrecover" out = some [recovered])
     (haddr : recovered = .address recoveredAddr)
     (hnz : recoveredAddr ≠ AccountAddress.ofNat 0)
     (hne : .address recoveredAddr ≠ permitOwnerValue I) :
-    ExecBlock config { contract := contract, locals := permitAfterNonceLoadStore base I } cur
+    ExecBlock fork config { contract := contract, locals := permitAfterNonceLoadStore base I } cur
       [ .letDecl "structHash" (some bytes32) permitStructHashExpr,
         .letDecl "digest" (some bytes32) permitDigestExpr,
         .externalCall (.cast (.intLit 1) addrSt) "ecrecover" (.intLit 0)
@@ -210,7 +212,7 @@ theorem uniswapPermitHashEcrecoverRequireMismatchRevertAt {base cur cur' : EVM.S
     (cur' := cur') (I := I) (structHash := structHash) (digest := digest)
     (recovered := recovered) (out := out) hstruct hdigest hcall hdec
   have hrequire :
-      ExecBlock config
+      ExecBlock fork config
         { contract := contract,
           locals := permitAfterEcrecoverStore base I structHash digest recovered } cur'
         [ .require (.binary .and
@@ -232,13 +234,13 @@ theorem uniswapPermitAfterNonceSuccessAt {base cur cur' : EVM.State}
     (hdigest :
       evalExpr? config { contract := contract, locals := permitAfterStructHashStore base I structHash }
         cur permitDigestExpr = .ok digest)
-    (hcall : typedCallViaEVM config cur (AccountAddress.ofNat 1) "ecrecover" 0
+    (hcall : typedCallViaEVM fork config cur (AccountAddress.ofNat 1) "ecrecover" 0
       [digest, permitVValue I, permitRValue I, permitSValue I] (true, cur', out) false)
     (hdec : config.externalABI.decode? "ecrecover" out = some [recovered])
     (hnz : recovered ≠ .address (AccountAddress.ofNat 0))
     (heq : recovered = permitOwnerValue I)
     (hperm : cur.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := permitAfterNonceLoadStore base I } cur
+    ExecBlock fork config { contract := contract, locals := permitAfterNonceLoadStore base I } cur
       permitAfterNonceBody
       (.ok (show Frame from
         { contract := contract,
@@ -247,7 +249,7 @@ theorem uniswapPermitAfterNonceSuccessAt {base cur cur' : EVM.State}
   have hprefix := uniswapPermitHashEcrecoverRequireSuccessAt (base := base) (cur := cur)
     (cur' := cur') (I := I) (structHash := structHash) (digest := digest)
     (recovered := recovered) (out := out) hstruct hdigest hcall hdec hnz heq
-  have happ := uniswapPermitApproveCallSuccessAt
+  have happ := uniswapPermitApproveCallSuccessAt (fork := fork)
     (hperm := by simpa only [typedCallViaEVM_executionEnv_eq hcall] using hperm) (base := base) (cur := cur')
     (I := I) (structHash := structHash) (digest := digest) (recovered := recovered)
   have hblock := execBlock_append hprefix happ
@@ -261,9 +263,9 @@ theorem uniswapPermitAfterNonceEcrecoverFailureAt {base cur cur' : EVM.State}
     (hdigest :
       evalExpr? config { contract := contract, locals := permitAfterStructHashStore base I structHash }
         cur permitDigestExpr = .ok digest)
-    (hcall : typedCallViaEVM config cur (AccountAddress.ofNat 1) "ecrecover" 0
+    (hcall : typedCallViaEVM fork config cur (AccountAddress.ofNat 1) "ecrecover" 0
       [digest, permitVValue I, permitRValue I, permitSValue I] (false, cur', out) false) :
-    ExecBlock config { contract := contract, locals := permitAfterNonceLoadStore base I } cur
+    ExecBlock fork config { contract := contract, locals := permitAfterNonceLoadStore base I } cur
       permitAfterNonceBody .reverted := by
   have hprefix := uniswapPermitHashEcrecoverFailureAt (base := base) (cur := cur)
     (cur' := cur') (I := I) (structHash := structHash) (digest := digest)
@@ -286,10 +288,10 @@ theorem uniswapPermitAfterNonceEcrecoverDecodeRevertAt {base cur cur' : EVM.Stat
     (hdigest :
       evalExpr? config { contract := contract, locals := permitAfterStructHashStore base I structHash }
         cur permitDigestExpr = .ok digest)
-    (hcall : typedCallViaEVM config cur (AccountAddress.ofNat 1) "ecrecover" 0
+    (hcall : typedCallViaEVM fork config cur (AccountAddress.ofNat 1) "ecrecover" 0
       [digest, permitVValue I, permitRValue I, permitSValue I] (true, cur', out) false)
     (hdec : config.externalABI.decode? "ecrecover" out = none) :
-    ExecBlock config { contract := contract, locals := permitAfterNonceLoadStore base I } cur
+    ExecBlock fork config { contract := contract, locals := permitAfterNonceLoadStore base I } cur
       permitAfterNonceBody .reverted := by
   have hprefix := uniswapPermitHashEcrecoverDecodeRevertAt (base := base) (cur := cur)
     (cur' := cur') (I := I) (structHash := structHash) (digest := digest)
@@ -312,11 +314,11 @@ theorem uniswapPermitAfterNonceRequireZeroRevertAt {base cur cur' : EVM.State}
     (hdigest :
       evalExpr? config { contract := contract, locals := permitAfterStructHashStore base I structHash }
         cur permitDigestExpr = .ok digest)
-    (hcall : typedCallViaEVM config cur (AccountAddress.ofNat 1) "ecrecover" 0
+    (hcall : typedCallViaEVM fork config cur (AccountAddress.ofNat 1) "ecrecover" 0
       [digest, permitVValue I, permitRValue I, permitSValue I] (true, cur', out) false)
     (hdec : config.externalABI.decode? "ecrecover" out = some [recovered])
     (hzero : recovered = .address (AccountAddress.ofNat 0)) :
-    ExecBlock config { contract := contract, locals := permitAfterNonceLoadStore base I } cur
+    ExecBlock fork config { contract := contract, locals := permitAfterNonceLoadStore base I } cur
       permitAfterNonceBody .reverted := by
   have hprefix := uniswapPermitHashEcrecoverRequireZeroRevertAt (base := base) (cur := cur)
     (cur' := cur') (I := I) (structHash := structHash) (digest := digest)
@@ -337,13 +339,13 @@ theorem uniswapPermitAfterNonceRequireMismatchRevertAt {base cur cur' : EVM.Stat
     (hdigest :
       evalExpr? config { contract := contract, locals := permitAfterStructHashStore base I structHash }
         cur permitDigestExpr = .ok digest)
-    (hcall : typedCallViaEVM config cur (AccountAddress.ofNat 1) "ecrecover" 0
+    (hcall : typedCallViaEVM fork config cur (AccountAddress.ofNat 1) "ecrecover" 0
       [digest, permitVValue I, permitRValue I, permitSValue I] (true, cur', out) false)
     (hdec : config.externalABI.decode? "ecrecover" out = some [recovered])
     (haddr : recovered = .address recoveredAddr)
     (hnz : recoveredAddr ≠ AccountAddress.ofNat 0)
     (hne : .address recoveredAddr ≠ permitOwnerValue I) :
-    ExecBlock config { contract := contract, locals := permitAfterNonceLoadStore base I } cur
+    ExecBlock fork config { contract := contract, locals := permitAfterNonceLoadStore base I } cur
       permitAfterNonceBody .reverted := by
   have hprefix := uniswapPermitHashEcrecoverRequireMismatchRevertAt (base := base)
     (cur := cur) (cur' := cur') (I := I) (structHash := structHash)
@@ -358,11 +360,11 @@ theorem uniswapPermitAfterNonceRequireMismatchRevertAt {base cur cur' : EVM.Stat
 
 theorem uniswapPermitNonceStorePrefix (evm : EVM.State) (I : ExecutionEnv)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := permitStore I } evm
+    ExecBlock fork config { contract := contract, locals := permitStore I } evm
       permitNonceStorePrefixBody
       (.ok { contract := contract, locals := permitAfterNonceLoadStore evm I }
         (permitAfterNonceState evm I)) := by
-  change ExecBlock config { contract := contract, locals := permitStore I } evm
+  change ExecBlock fork config { contract := contract, locals := permitStore I } evm
     [ .letDecl "domainSeparator" (some bytes32) (.storage domainSeparatorRef),
       .letDecl "nonce" (some uint256) (.storage (noncesRef (.var "owner"))),
       .assign .storage (noncesRef (.var "owner"))
@@ -380,23 +382,23 @@ theorem uniswapPermitNonceStorePrefix (evm : EVM.State) (I : ExecutionEnv)
     ExecBlock.nil
 
 theorem uniswapPermitBlockAfterNonce {evm : EVM.State} {I : ExecutionEnv} {result}
-    (hrest : ExecBlock config
+    (hrest : ExecBlock fork config
       { contract := contract, locals := permitAfterNonceLoadStore evm I }
       (permitAfterNonceState evm I) permitAfterNonceBody result)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := permitStore I } evm
+    ExecBlock fork config { contract := contract, locals := permitStore I } evm
       permitAfterDeadlineBody result := by
-  have hblock := execBlock_append (uniswapPermitNonceStorePrefix (hperm := by assumption) evm I) hrest
+  have hblock := execBlock_append (uniswapPermitNonceStorePrefix (fork := fork) (hperm := by assumption) evm I) hrest
   simpa [permitAfterDeadlineBody, permitNonceStorePrefixBody, permitAfterNonceBody] using hblock
 
 theorem uniswapPermitDeadlinePrefix (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hnotExpired : ¬ (permitDeadlineWord I).toNat <
       (UInt256.ofNat evm.executionEnv.header.timestamp).toNat) :
-    ExecBlock config { contract := contract, locals := permitStore I } evm
+    ExecBlock fork config { contract := contract, locals := permitStore I } evm
       permitDeadlinePrefixBody
       (.ok { contract := contract, locals := permitStore I } evm) := by
-  change ExecBlock config { contract := contract, locals := permitStore I } evm
+  change ExecBlock fork config { contract := contract, locals := permitStore I } evm
     [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
       .require (.binary .ge (.var "deadline") now) ]
     (.ok { contract := contract, locals := permitStore I } evm)
@@ -409,9 +411,9 @@ theorem uniswapPermitBlockAfterDeadline {evm : EVM.State} {I : ExecutionEnv} {re
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hnotExpired : ¬ (permitDeadlineWord I).toNat <
       (UInt256.ofNat evm.executionEnv.header.timestamp).toNat)
-    (hrest : ExecBlock config { contract := contract, locals := permitStore I } evm
+    (hrest : ExecBlock fork config { contract := contract, locals := permitStore I } evm
       permitAfterDeadlineBody result) :
-    ExecBlock config { contract := contract, locals := permitStore I } evm
+    ExecBlock fork config { contract := contract, locals := permitStore I } evm
       permitTransition.body result := by
   have hblock := execBlock_append
     (uniswapPermitDeadlinePrefix evm I hwv hnotExpired) hrest
@@ -420,12 +422,12 @@ theorem uniswapPermitBlockAfterDeadline {evm : EVM.State} {I : ExecutionEnv} {re
 theorem uniswapPermitX_expired {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hexpired : (permitDeadlineWord I).toNat <
       (UInt256.ofNat I.header.timestamp).toNat)
-    (hdecoded : ∃ k C, RD uniswapV2PairBytecode I g
+    (hdecoded : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨5473⟩
       [permitSWord I, permitRWord I, permitVWord I, permitDeadlineWord I,
         permitValueWord I, permitSpenderMaskedWord I, permitOwnerMaskedWord I, ⟨570⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd5473⟩ := hdecoded
   have hlt :
       UInt256.lt (permitDeadlineWord I) (UInt256.ofNat I.header.timestamp) = ⟨1⟩ := by
@@ -451,12 +453,12 @@ theorem uniswapPermitX_expired {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem uniswapPermitX_deadlineOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hnotExpired : ¬ (permitDeadlineWord I).toNat <
       (UInt256.ofNat I.header.timestamp).toNat)
-    (hdecoded : ∃ k C, RD uniswapV2PairBytecode I g
+    (hdecoded : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨5473⟩
       [permitSWord I, permitRWord I, permitVWord I, permitDeadlineWord I,
         permitValueWord I, permitSpenderMaskedWord I, permitOwnerMaskedWord I, ⟨570⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g
+    ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨5547⟩
       [permitSWord I, permitRWord I, permitVWord I, permitDeadlineWord I,
         permitValueWord I, permitSpenderMaskedWord I, permitOwnerMaskedWord I, ⟨570⟩, sel]
@@ -473,13 +475,13 @@ theorem uniswapPermitX_deadlineOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   exact ⟨_, _, rd5547⟩
 
 theorem uniswapPermitX_nonceStoredSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hdeadlineOk : ∃ k C, RD uniswapV2PairBytecode I g
+    (hdeadlineOk : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨5547⟩
       [permitSWord I, permitRWord I, permitVWord I, permitDeadlineWord I,
         permitValueWord I, permitSpenderMaskedWord I, permitOwnerMaskedWord I, ⟨570⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     (I.perm = true ∧
-    ∃ k C, RD uniswapV2PairBytecode I g
+    ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨5589⟩
       [permitNonceWord σ I, ⟨1⟩, ⟨64⟩, ⟨32⟩, ⟨0⟩, permitOwnerMaskedWord I,
         solcAddrMask, permitDomainSeparatorWord σ I, permitSWord I, permitRWord I,
@@ -487,7 +489,7 @@ theorem uniswapPermitX_nonceStoredSplit {σ σ₀ A I} {g : Sat256} {sel : UInt2
         permitOwnerMaskedWord I, ⟨570⟩, sel]
       (permitNonceHashMem I) (UInt256.ofNat 3) ByteArray.empty
       (permitAfterNonceAccountMap σ I) k C) ∨
-      (I.perm = false ∧ RDstatic uniswapV2PairBytecode g (initState σ σ₀ g A I)) := by
+      (I.perm = false ∧ RDstatic fork uniswapV2PairBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd5547⟩ := hdeadlineOk
   have hmask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
@@ -530,12 +532,12 @@ theorem uniswapPermitX_nonceStoredSplit {σ σ₀ A I} {g : Sat256} {sel : UInt2
 
 theorem uniswapPermitX_nonceStored {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hperm : I.perm = true)
-    (hdeadlineOk : ∃ k C, RD uniswapV2PairBytecode I g
+    (hdeadlineOk : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨5547⟩
       [permitSWord I, permitRWord I, permitVWord I, permitDeadlineWord I,
         permitValueWord I, permitSpenderMaskedWord I, permitOwnerMaskedWord I, ⟨570⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g
+    ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨5589⟩
       [permitNonceWord σ I, ⟨1⟩, ⟨64⟩, ⟨32⟩, ⟨0⟩, permitOwnerMaskedWord I,
         solcAddrMask, permitDomainSeparatorWord σ I, permitSWord I, permitRWord I,
@@ -547,16 +549,16 @@ theorem uniswapPermitX_nonceStored {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 
 theorem uniswapPermitX_nonceStoredStatic {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hperm : I.perm = false)
-    (hdeadlineOk : ∃ k C, RD uniswapV2PairBytecode I g
+    (hdeadlineOk : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨5547⟩
       [permitSWord I, permitRWord I, permitVWord I, permitDeadlineWord I,
         permitValueWord I, permitSpenderMaskedWord I, permitOwnerMaskedWord I, ⟨570⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDstatic uniswapV2PairBytecode g (initState σ σ₀ g A I) :=
+    RDstatic fork uniswapV2PairBytecode g (initState σ σ₀ g A I) :=
   permSplit_false hperm (uniswapPermitX_nonceStoredSplit hdeadlineOk)
 
 theorem uniswapPermitX_structHashed {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hnonceEvm : ∃ k C, RD uniswapV2PairBytecode I g
+    (hnonceEvm : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨5589⟩
       [permitNonceWord σ I, ⟨1⟩, ⟨64⟩, ⟨32⟩, ⟨0⟩, permitOwnerMaskedWord I,
         solcAddrMask, permitDomainSeparatorWord σ I, permitSWord I, permitRWord I,
@@ -564,7 +566,7 @@ theorem uniswapPermitX_structHashed {σ σ₀ A I} {g : Sat256} {sel : UInt256}
         permitOwnerMaskedWord I, ⟨570⟩, sel]
       (permitNonceHashMem I) (UInt256.ofNat 3) ByteArray.empty
       (permitAfterNonceAccountMap σ I) k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g
+    ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨5688⟩
       [permitStructHashWord σ I, ⟨64⟩, ⟨32⟩, ⟨0⟩, ⟨128⟩, ⟨1⟩,
         permitDomainSeparatorWord σ I, permitSWord I, permitRWord I, permitVWord I,
@@ -591,7 +593,7 @@ theorem uniswapPermitX_structHashed {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       permitStructHashDataMem, permitStructHashDataWrites, permitTypehashWord] using rd5688⟩
 
 theorem uniswapPermitX_digestHashed {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hstructEvm : ∃ k C, RD uniswapV2PairBytecode I g
+    (hstructEvm : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨5688⟩
       [permitStructHashWord σ I, ⟨64⟩, ⟨32⟩, ⟨0⟩, ⟨128⟩, ⟨1⟩,
         permitDomainSeparatorWord σ I, permitSWord I, permitRWord I, permitVWord I,
@@ -599,7 +601,7 @@ theorem uniswapPermitX_digestHashed {σ σ₀ A I} {g : Sat256} {sel : UInt256}
         permitOwnerMaskedWord I, ⟨570⟩, sel]
       (permitStructHashMem σ I) (UInt256.ofNat 11) ByteArray.empty
       (permitAfterNonceAccountMap σ I) k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g
+    ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨5746⟩
       [permitDigestWord σ I, ⟨64⟩, ⟨32⟩, ⟨0⟩, ⟨128⟩, ⟨1⟩, ⟨450⟩,
         permitSWord I, permitRWord I, permitVWord I, permitDeadlineWord I,
@@ -631,7 +633,7 @@ theorem uniswapPermitX_digestHashed {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 
 theorem uniswapPermitX_ecrecoverStaticcallMade
     {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hdigestEvm : ∃ k C, RD uniswapV2PairBytecode I g
+    (hdigestEvm : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨5746⟩
       [permitDigestWord σ I, ⟨64⟩, ⟨32⟩, ⟨0⟩, ⟨128⟩, ⟨1⟩, ⟨450⟩,
         permitSWord I, permitRWord I, permitVWord I, permitDeadlineWord I,
@@ -642,16 +644,15 @@ theorem uniswapPermitX_ecrecoverStaticcallMade
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ
-          (permitAfterNonceAccountMap σ I) σ₀ A_in
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ fork (permitAfterNonceAccountMap σ I) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
-          (toExecute (permitAfterNonceAccountMap σ I)
+          (toExecute fork (permitAfterNonceAccountMap σ I)
             (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((permitEcrecoverInputMem σ I).readWithPadding 482 128)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
-      ∧ RD uniswapV2PairBytecode I g
+      ∧ RD fork uniswapV2PairBytecode I g
           (initState σ σ₀ g A I) ⟨5814⟩
           [(if z then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨610⟩, ⟨1⟩, ⟨0⟩,
             permitDigestWord σ I, permitSWord I, permitRWord I, permitVWord I,
@@ -684,7 +685,7 @@ theorem uniswapPermitX_ecrecoverStaticcallMade
 
 theorem uniswapPermitX_ecrecoverStaticcallDepthReverts
     {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hdigestEvm : ∃ k C, RD uniswapV2PairBytecode I g
+    (hdigestEvm : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨5746⟩
       [permitDigestWord σ I, ⟨64⟩, ⟨32⟩, ⟨0⟩, ⟨128⟩, ⟨1⟩, ⟨450⟩,
         permitSWord I, permitRWord I, permitVWord I, permitDeadlineWord I,
@@ -692,7 +693,7 @@ theorem uniswapPermitX_ecrecoverStaticcallDepthReverts
       (permitDigestMem σ I) (UInt256.ofNat 15) ByteArray.empty
       (permitAfterNonceAccountMap σ I) k C)
     (hdepth : I.depth = 1024) :
-    RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd5746⟩ := hdigestEvm
   have hstructMemSize : (permitStructHashMem σ I).size = 352 := by
     simpa [permitStructHashMem] using
@@ -716,16 +717,15 @@ theorem uniswapPermitX_ecrecoverStatusAndReturnDecoded
     (hstatic : ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ
-          (permitAfterNonceAccountMap σ I) σ₀ A_in
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ fork (permitAfterNonceAccountMap σ I) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
-          (toExecute (permitAfterNonceAccountMap σ I)
+          (toExecute fork (permitAfterNonceAccountMap σ I)
             (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((permitEcrecoverInputMem σ I).readWithPadding 482 128)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
-      ∧ RD uniswapV2PairBytecode I g
+      ∧ RD fork uniswapV2PairBytecode I g
           (initState σ σ₀ g A I) ⟨5814⟩
           [(if z then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨610⟩, ⟨1⟩, ⟨0⟩,
             permitDigestWord σ I, permitSWord I, permitRWord I, permitVWord I,
@@ -737,19 +737,18 @@ theorem uniswapPermitX_ecrecoverStatusAndReturnDecoded
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ
-          (permitAfterNonceAccountMap σ I) σ₀ A_in
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ fork (permitAfterNonceAccountMap σ I) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
-          (toExecute (permitAfterNonceAccountMap σ I)
+          (toExecute fork (permitAfterNonceAccountMap σ I)
             (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((permitEcrecoverInputMem σ I).readWithPadding 482 128)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
       ∧ (z = false →
-        RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I))
+        RDrev fork uniswapV2PairBytecode g (initState σ σ₀ g A I))
       ∧ (z = true → 32 ≤ o.size →
-        ∃ k' C', RD uniswapV2PairBytecode I g
+        ∃ k' C', RD fork uniswapV2PairBytecode I g
           (initState σ σ₀ g A I) ⟨5844⟩
           (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)) ::
             permitDigestWord σ I :: permitSWord I :: permitRWord I :: permitVWord I ::
@@ -803,16 +802,15 @@ theorem uniswapPermitX_ecrecoverStatusAndReturnDecodedAll
     (hstatic : ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ
-          (permitAfterNonceAccountMap σ I) σ₀ A_in
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ fork (permitAfterNonceAccountMap σ I) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
-          (toExecute (permitAfterNonceAccountMap σ I)
+          (toExecute fork (permitAfterNonceAccountMap σ I)
             (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((permitEcrecoverInputMem σ I).readWithPadding 482 128)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
-      ∧ RD uniswapV2PairBytecode I g
+      ∧ RD fork uniswapV2PairBytecode I g
           (initState σ σ₀ g A I) ⟨5814⟩
           [(if z then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨610⟩, ⟨1⟩, ⟨0⟩,
             permitDigestWord σ I, permitSWord I, permitRWord I, permitVWord I,
@@ -824,19 +822,18 @@ theorem uniswapPermitX_ecrecoverStatusAndReturnDecodedAll
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ
-          (permitAfterNonceAccountMap σ I) σ₀ A_in
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ fork (permitAfterNonceAccountMap σ I) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
-          (toExecute (permitAfterNonceAccountMap σ I)
+          (toExecute fork (permitAfterNonceAccountMap σ I)
             (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((permitEcrecoverInputMem σ I).readWithPadding 482 128)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
       ∧ (z = false →
-        RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I))
+        RDrev fork uniswapV2PairBytecode g (initState σ σ₀ g A I))
       ∧ (z = true → o.size < 32 →
-        ∃ k' C', RD uniswapV2PairBytecode I g
+        ∃ k' C', RD fork uniswapV2PairBytecode I g
           (initState σ σ₀ g A I) ⟨5844⟩
           (UInt256.ofNat (fromByteArrayBigEndian (o.readWithPadding 0 32)) ::
             permitDigestWord σ I :: permitSWord I :: permitRWord I :: permitVWord I ::
@@ -845,7 +842,7 @@ theorem uniswapPermitX_ecrecoverStatusAndReturnDecodedAll
           (permitEcrecoverStaticcallMem σ I o)
           (UInt256.ofNat 20) o σ' k' C')
       ∧ (z = true → 32 ≤ o.size →
-        ∃ k' C', RD uniswapV2PairBytecode I g
+        ∃ k' C', RD fork uniswapV2PairBytecode I g
           (initState σ σ₀ g A I) ⟨5844⟩
           (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)) ::
             permitDigestWord σ I :: permitSWord I :: permitRWord I :: permitVWord I ::
@@ -864,7 +861,7 @@ theorem uniswapPermitX_ecrecoverStatusAndReturnDecodedAll
     simpa [permitDigestMem] using
       permitRuntimeDigestMem_size (permitDomainSeparatorWord σ I) (permitStructHashWord σ I)
         hstructMemSize
-  have hguardOk : z = true → ∃ k' C', RD uniswapV2PairBytecode I g
+  have hguardOk : z = true → ∃ k' C', RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨5832⟩
       (⟨610⟩ :: ⟨1⟩ :: ⟨0⟩ :: permitDigestWord σ I :: permitSWord I ::
         permitRWord I :: permitVWord I :: permitDeadlineWord I :: permitValueWord I ::
@@ -918,7 +915,7 @@ theorem uniswapPermitX_ecrecoverStatusAndReturnDecodedAllAt
     {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {σ' : AccountMap}
     {z : Bool} {o : ByteArray} {k C : ℕ}
-    (rd5814 : RD uniswapV2PairBytecode I g
+    (rd5814 : RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨5814⟩
       [(if z then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨610⟩, ⟨1⟩, ⟨0⟩,
         permitDigestWord σ I, permitSWord I, permitRWord I, permitVWord I,
@@ -928,9 +925,9 @@ theorem uniswapPermitX_ecrecoverStatusAndReturnDecodedAllAt
       (UInt256.ofNat 20) o σ' k C)
     (hoSize : o.size < UInt256.size) :
     (z = false →
-      RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I))
+      RDrev fork uniswapV2PairBytecode g (initState σ σ₀ g A I))
     ∧ (z = true → o.size < 32 →
-      ∃ k' C', RD uniswapV2PairBytecode I g
+      ∃ k' C', RD fork uniswapV2PairBytecode I g
         (initState σ σ₀ g A I) ⟨5844⟩
         (UInt256.ofNat (fromByteArrayBigEndian (o.readWithPadding 0 32)) ::
           permitDigestWord σ I :: permitSWord I :: permitRWord I :: permitVWord I ::
@@ -939,7 +936,7 @@ theorem uniswapPermitX_ecrecoverStatusAndReturnDecodedAllAt
         (permitEcrecoverStaticcallMem σ I o)
         (UInt256.ofNat 20) o σ' k' C')
     ∧ (z = true → 32 ≤ o.size →
-      ∃ k' C', RD uniswapV2PairBytecode I g
+      ∃ k' C', RD fork uniswapV2PairBytecode I g
         (initState σ σ₀ g A I) ⟨5844⟩
         (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)) ::
           permitDigestWord σ I :: permitSWord I :: permitRWord I :: permitVWord I ::
@@ -956,7 +953,7 @@ theorem uniswapPermitX_ecrecoverStatusAndReturnDecodedAllAt
     simpa [permitDigestMem] using
       permitRuntimeDigestMem_size (permitDomainSeparatorWord σ I) (permitStructHashWord σ I)
         hstructMemSize
-  have hguardOk : z = true → ∃ k' C', RD uniswapV2PairBytecode I g
+  have hguardOk : z = true → ∃ k' C', RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨5832⟩
       (⟨610⟩ :: ⟨1⟩ :: ⟨0⟩ :: permitDigestWord σ I :: permitSWord I ::
         permitRWord I :: permitVWord I :: permitDeadlineWord I :: permitValueWord I ::
@@ -1013,17 +1010,16 @@ theorem uniswapPermitEcrecoverTypedCall_source
     (hdepth : I.depth.val < 1024)
     (hsz228 : 228 ≤ I.calldata.size)
     (hΘ : ∃ (g'' : UInt256) (A'_evm : Substate),
-      (σ', g'', A'_evm, z, o) = Ethereum.EVM.Θ
-        (permitAfterNonceAccountMap σ I) σ₀ A_in
+      (σ', g'', A'_evm, z, o) = Ethereum.EVM.Θ fork (permitAfterNonceAccountMap σ I) σ₀ A_in
         (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
         (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
-        (toExecute (permitAfterNonceAccountMap σ I)
+        (toExecute fork (permitAfterNonceAccountMap σ I)
           (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
         callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
         ((permitEcrecoverInputMem σ I).readWithPadding 482 128)
         (I.depth + 1) I.header I.blobVersionedHashes I.blocks false) :
     ∃ evmCallS : EVM.State,
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (permitAfterNonceState
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) I)
         (AccountAddress.ofNat 1) "ecrecover" 0
@@ -1054,10 +1050,11 @@ theorem uniswapPermitEcrecoverTypedCall_source
     exact hcd
   have hΘE :
       (σ', g'', A'_evm, z, o) =
-        Ethereum.EVM.Θ evmE.accountMap evmE.σ₀ A_in
+        Ethereum.EVM.Θ fork evmE.accountMap evmE.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat evmE.executionEnv.codeOwner))
           evmE.executionEnv.sender (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
-          (toExecute evmE.accountMap (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
+          (toExecute fork evmE.accountMap (AccountAddress.ofUInt256 (⟨1⟩ :
+            UInt256)))
           callGas (UInt256.ofNat evmE.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((permitEcrecoverInputMem σ I).readWithPadding 482 128)
           (evmE.executionEnv.depth + 1) evmE.executionEnv.header evmE.executionEnv.blobVersionedHashes evmE.executionEnv.blocks false := by
@@ -1081,7 +1078,7 @@ theorem uniswapPermitEcrecoverTypedCall_source
       executionEnv := I} : EVM.State) = evmNonceS
     rw [hMap, ← hOriginal, ← hEnv]
   have hcallE :
-      typedCallViaEVM config evmE (AccountAddress.ofNat 1) "ecrecover" 0
+      typedCallViaEVM fork config evmE (AccountAddress.ofNat 1) "ecrecover" 0
         [permitDigestValue σ I, permitVValue I, permitRValue I, permitSValue I]
         (z, {evmE with accountMap := σ', substate := A'_evm}, o) false := by
     exact callCoincides (targetWord := (⟨1⟩ : UInt256))
@@ -1106,16 +1103,15 @@ theorem uniswapPermitEcrecoverStaticcallTyped_source
     (hstatic : ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ
-          (permitAfterNonceAccountMap σ I) σ₀ A_in
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ fork (permitAfterNonceAccountMap σ I) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
-          (toExecute (permitAfterNonceAccountMap σ I)
+          (toExecute fork (permitAfterNonceAccountMap σ I)
             (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((permitEcrecoverInputMem σ I).readWithPadding 482 128)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
-      ∧ RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      ∧ RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5814⟩
           [(if z then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨610⟩, ⟨1⟩, ⟨0⟩,
             permitDigestWord σ I, permitSWord I, permitRWord I, permitVWord I,
@@ -1126,7 +1122,7 @@ theorem uniswapPermitEcrecoverStaticcallTyped_source
   ∧ o.size < UInt256.size) :
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (k C : ℕ) (evmCallS : EVM.State),
-      RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5814⟩
         [(if z then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨610⟩, ⟨1⟩, ⟨0⟩,
           permitDigestWord σ I, permitSWord I, permitRWord I, permitVWord I,
@@ -1134,7 +1130,7 @@ theorem uniswapPermitEcrecoverStaticcallTyped_source
           permitOwnerMaskedWord I, ⟨570⟩, sel]
         (permitEcrecoverStaticcallMem σ I o)
         (UInt256.ofNat 20) o σ' k C
-      ∧ typedCallViaEVM config
+      ∧ typedCallViaEVM fork config
           (permitAfterNonceState
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) I)
           (AccountAddress.ofNat 1) "ecrecover" 0
@@ -1153,7 +1149,7 @@ theorem uniswapPermitEcrecoverStaticcallTyped_source
 theorem uniswapPermitX_ecrecoverSignatureGuardOk
     {σ σ₀ A I} {g : Sat256} {sel recovered : UInt256}
     {σ' : AccountMap} {o : ByteArray}
-    (hdecoded : ∃ k C, RD uniswapV2PairBytecode I g
+    (hdecoded : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨5844⟩
       (recovered :: permitDigestWord σ I :: permitSWord I :: permitRWord I :: permitVWord I ::
         permitDeadlineWord I :: permitValueWord I :: permitSpenderMaskedWord I ::
@@ -1162,7 +1158,7 @@ theorem uniswapPermitX_ecrecoverSignatureGuardOk
       (UInt256.ofNat 20) o σ' k C)
     (hnz : UInt256.land recovered solcAddrMask ≠ ⟨0⟩)
     (hmatch : UInt256.land recovered solcAddrMask = permitOwnerMaskedWord I) :
-    ∃ k C, RD uniswapV2PairBytecode I g
+    ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨5965⟩
       (recovered :: permitDigestWord σ I :: permitSWord I :: permitRWord I :: permitVWord I ::
         permitDeadlineWord I :: permitValueWord I :: permitSpenderMaskedWord I ::
@@ -1194,7 +1190,7 @@ theorem uniswapPermitX_ecrecoverSignatureGuardOk
 theorem uniswapPermitX_approveAndReturn
     {σ σ₀ A I} {g : Sat256} {sel recovered : UInt256}
     {σ' : AccountMap} {o : ByteArray}
-    (hok : ∃ k C, RD uniswapV2PairBytecode I g
+    (hok : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨5965⟩
       (recovered :: permitDigestWord σ I :: permitSWord I :: permitRWord I :: permitVWord I ::
         permitDeadlineWord I :: permitValueWord I :: permitSpenderMaskedWord I ::
@@ -1203,7 +1199,7 @@ theorem uniswapPermitX_approveAndReturn
       (UInt256.ofNat 20) o σ' k C)
     (hperm : I.perm = true)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
-    RDret uniswapV2PairBytecode g (initState σ σ₀ g A I)
+    RDret fork uniswapV2PairBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ'
         (mapSlot (permitSpenderMaskedWord I) (mapSlot (permitOwnerMaskedWord I) ⟨2⟩))
         (permitValueWord I))
@@ -1242,7 +1238,7 @@ theorem uniswapPermitX_approveAndReturn
 theorem uniswapPermitX_approveAndReturnShort
     {σ σ₀ A I} {g : Sat256} {sel recovered : UInt256}
     {σ' : AccountMap} {o : ByteArray}
-    (hok : ∃ k C, RD uniswapV2PairBytecode I g
+    (hok : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨5965⟩
       (recovered :: permitDigestWord σ I :: permitSWord I :: permitRWord I :: permitVWord I ::
         permitDeadlineWord I :: permitValueWord I :: permitSpenderMaskedWord I ::
@@ -1251,7 +1247,7 @@ theorem uniswapPermitX_approveAndReturnShort
       (UInt256.ofNat 20) o σ' k C)
     (hperm : I.perm = true)
     (hshort : o.size < 32) (hoSize : o.size < UInt256.size) :
-    RDret uniswapV2PairBytecode g (initState σ σ₀ g A I)
+    RDret fork uniswapV2PairBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ'
         (mapSlot (permitSpenderMaskedWord I) (mapSlot (permitOwnerMaskedWord I) ⟨2⟩))
         (permitValueWord I))
@@ -1290,7 +1286,7 @@ theorem uniswapPermitX_approveAndReturnShort
 theorem uniswapPermitX_ecrecoverSignatureGuardZeroReverts
     {σ σ₀ A I} {g : Sat256} {sel recovered : UInt256}
     {σ' : AccountMap} {o : ByteArray}
-    (hdecoded : ∃ k C, RD uniswapV2PairBytecode I g
+    (hdecoded : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨5844⟩
       (recovered :: permitDigestWord σ I :: permitSWord I :: permitRWord I :: permitVWord I ::
         permitDeadlineWord I :: permitValueWord I :: permitSpenderMaskedWord I ::
@@ -1299,7 +1295,7 @@ theorem uniswapPermitX_ecrecoverSignatureGuardZeroReverts
       (UInt256.ofNat 20) o σ' k C)
     (hzero : UInt256.land recovered solcAddrMask = ⟨0⟩)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
-    RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd5844⟩ := hdecoded
   exact RD.uniswapPermitEcrecoverSignatureGuardZeroReverts
     (baseMem := permitDigestMem σ I) (digest := permitDigestWord σ I)
@@ -1312,7 +1308,7 @@ theorem uniswapPermitX_ecrecoverSignatureGuardZeroReverts
 theorem uniswapPermitX_ecrecoverSignatureGuardZeroRevertsShort
     {σ σ₀ A I} {g : Sat256} {sel recovered : UInt256}
     {σ' : AccountMap} {o : ByteArray}
-    (hdecoded : ∃ k C, RD uniswapV2PairBytecode I g
+    (hdecoded : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨5844⟩
       (recovered :: permitDigestWord σ I :: permitSWord I :: permitRWord I :: permitVWord I ::
         permitDeadlineWord I :: permitValueWord I :: permitSpenderMaskedWord I ::
@@ -1321,7 +1317,7 @@ theorem uniswapPermitX_ecrecoverSignatureGuardZeroRevertsShort
       (UInt256.ofNat 20) o σ' k C)
     (hzero : UInt256.land recovered solcAddrMask = ⟨0⟩)
     (hshort : o.size < 32) (hoSize : o.size < UInt256.size) :
-    RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd5844⟩ := hdecoded
   exact RD.uniswapPermitEcrecoverSignatureGuardZeroRevertsShort
     (baseMem := permitDigestMem σ I) (digest := permitDigestWord σ I)
@@ -1334,7 +1330,7 @@ theorem uniswapPermitX_ecrecoverSignatureGuardZeroRevertsShort
 theorem uniswapPermitX_ecrecoverSignatureGuardMismatchReverts
     {σ σ₀ A I} {g : Sat256} {sel recovered : UInt256}
     {σ' : AccountMap} {o : ByteArray}
-    (hdecoded : ∃ k C, RD uniswapV2PairBytecode I g
+    (hdecoded : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨5844⟩
       (recovered :: permitDigestWord σ I :: permitSWord I :: permitRWord I :: permitVWord I ::
         permitDeadlineWord I :: permitValueWord I :: permitSpenderMaskedWord I ::
@@ -1344,7 +1340,7 @@ theorem uniswapPermitX_ecrecoverSignatureGuardMismatchReverts
     (hnz : UInt256.land recovered solcAddrMask ≠ ⟨0⟩)
     (hmismatch : UInt256.land recovered solcAddrMask ≠ permitOwnerMaskedWord I)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
-    RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd5844⟩ := hdecoded
   have hownerClean :
       UInt256.land (permitOwnerMaskedWord I) solcAddrMask = permitOwnerMaskedWord I := by
@@ -1369,7 +1365,7 @@ theorem uniswapPermitX_ecrecoverSignatureGuardMismatchReverts
 theorem uniswapPermitX_ecrecoverSignatureGuardMismatchRevertsShort
     {σ σ₀ A I} {g : Sat256} {sel recovered : UInt256}
     {σ' : AccountMap} {o : ByteArray}
-    (hdecoded : ∃ k C, RD uniswapV2PairBytecode I g
+    (hdecoded : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨5844⟩
       (recovered :: permitDigestWord σ I :: permitSWord I :: permitRWord I :: permitVWord I ::
         permitDeadlineWord I :: permitValueWord I :: permitSpenderMaskedWord I ::
@@ -1379,7 +1375,7 @@ theorem uniswapPermitX_ecrecoverSignatureGuardMismatchRevertsShort
     (hnz : UInt256.land recovered solcAddrMask ≠ ⟨0⟩)
     (hmismatch : UInt256.land recovered solcAddrMask ≠ permitOwnerMaskedWord I)
     (hshort : o.size < 32) (hoSize : o.size < UInt256.size) :
-    RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd5844⟩ := hdecoded
   have hownerClean :
       UInt256.land (permitOwnerMaskedWord I) solcAddrMask = permitOwnerMaskedWord I := by

@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PoolModifyLimits
 import Benchmarks.UniswapV4PoolManager.TickSpacingCheckTrace
 import Benchmarks.UniswapV4PoolManager.BlockResultTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -18,11 +20,11 @@ theorem poolModifyLimitsExactTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : Sta
     (hl : memLoad (ptr+UInt256.ofNat 32) mem = gl)
     (hu : memLoad (ptr+UInt256.ofNat 96) mem = gu)
     (hgl : gl.toNat < 2^128) (hgu : gu.toNat < 2^128)
-    (h : RD (deployedRuntime v) I g s0 (if 0 ≤ delta then ⟨7329⟩ else ⟨7256⟩)
+    (h : RD fork (deployedRuntime v) I g s0 (if 0 ≤ delta then ⟨7329⟩ else ⟨7256⟩)
       (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: params :: R)
       mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0 (fun _ post => post = evm ∧ ∃ k' C',
-      RD (deployedRuntime v) I g s0 ⟨7256⟩
+    blockResultTrace fork (deployedRuntime v) g s0 (fun _ post => post = evm ∧ ∃ k' C',
+      RD fork (deployedRuntime v) I g s0 ⟨7256⟩
         (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: params :: R)
         mem (poolModifyLimitsActiveWords aw params ptr delta) rdata post.accountMap k' C') (fun _ _ => False)
       (poolModifyLimitsResult f evm delta (EVM.signed spacing) gl gu) := by
@@ -49,11 +51,11 @@ theorem poolModifyLimitsTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hl : memLoad (ptr+UInt256.ofNat 32) mem = gl)
     (hu : memLoad (ptr+UInt256.ofNat 96) mem = gu)
     (hgl : gl.toNat < 2^128) (hgu : gu.toNat < 2^128)
-    (h : RD (deployedRuntime v) I g s0 (if 0 ≤ delta then ⟨7329⟩ else ⟨7256⟩)
+    (h : RD fork (deployedRuntime v) I g s0 (if 0 ≤ delta then ⟨7329⟩ else ⟨7256⟩)
       (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: params :: R)
       mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0 (fun _ post => post = evm ∧ ∃ aw' k' C',
-      RD (deployedRuntime v) I g s0 ⟨7256⟩
+    blockResultTrace fork (deployedRuntime v) g s0 (fun _ post => post = evm ∧ ∃ aw' k' C',
+      RD fork (deployedRuntime v) I g s0 ⟨7256⟩
         (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: params :: R)
         mem aw' rdata post.accountMap k' C') (fun _ _ => False)
       (poolModifyLimitsResult f evm delta (EVM.signed spacing) gl gu) := by

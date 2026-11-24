@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.Dispatch
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -16,7 +18,7 @@ def price0CumulativeLastWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
 theorem uniswapPrice0CumulativeLastBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocals : locals.get? "price0CumulativeLast" = none) :
-    ExecTransitionBody config contract evm locals price0CumulativeLastTransition.body
+    ExecTransitionBody fork config contract evm locals price0CumulativeLastTransition.body
       (.returned { contract := contract, locals := locals } evm
         (some [(.int (Int.ofNat
           (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨9⟩).toNat))])) := by
@@ -31,10 +33,10 @@ theorem uniswapPrice0CumulativeLastBodyReturns (evm : EVM.State) (locals : Store
 
 /-- From `price0CumulativeLast()`'s body entry (pc 1025), bytecode returns slot 9. -/
 theorem uniswapX_price0CumulativeLast {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨1025⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret uniswapV2PairBytecode g (initState σ σ₀ g A I) σ
+    RDret fork uniswapV2PairBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (price0CumulativeLastWord σ I)) := by
   exact RD.uniswapWordGetterExternal (entry := ⟨1025⟩) (routine := ⟨3271⟩)
     (slot := ⟨9⟩) hreach uniswap_word_getter_entry_wf uniswap_word_slot_getter_wf
@@ -54,12 +56,12 @@ theorem uniswapPrice0CumulativeLastBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (price0CumulativeLastTransition.params.map Param.name)
         (transitionSignature price0CumulativeLastTransition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1025⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         price0CumulativeLastTransition.body
         (.returned { contract := contract, locals := ∅ }
@@ -81,7 +83,7 @@ theorem uniswapPrice0CumulativeLastBody
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x59, 0x09, 0xc0, 0xd5]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some price0CumulativeLastTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x59, 0x09, 0xc0, 0xd5]⟩ rfl hsel
   exact uniswapPrice0CumulativeLastBodyCore hcode hwv hdispatch

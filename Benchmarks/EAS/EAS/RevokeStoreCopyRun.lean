@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.RevokeSource
 import Benchmarks.EAS.EAS.RevokeStore
 import Benchmarks.EAS.EAS.CopyStoredRun
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -18,7 +20,7 @@ theorem revokeStoreCopyRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g 
     (ha : L.get? "attestation" = some (.storageRef (attestationER r.uid) attestationType))
     (hr : L.get? "request" = some r.struct) (hh : L.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap.toNat)))
     (hlo : 96 ≤ heap.toNat) (hfree : memLoad (UInt256.ofNat 64) mem = heap)
-    (rd : RD (deployedRuntime v) ee g s0 site.kind.writePC
+    (rd : RD fork (deployedRuntime v) ee g s0 site.kind.writePC
       (revokeWriteStack site.kind request idx (dbSlot r.uid) site.schema (UInt256.ofNat site.revoker.val)
         (revokeGuardRest site ee R)) mem aw rdata σ k C) :
     (∃ evm' σ' mem' aw' k' C' next dataPtr,
@@ -28,17 +30,17 @@ theorem revokeStoreCopyRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g 
       AttestationMemoryView mem' heap dataPtr (storedAttestationRecord evm' r.uid) ∧
       heap.toNat+320 ≤ next ∧ dataPtr.toNat+32+32*(((storedAttestationRecord evm' r.uid).data.size+31)/32) ≤ next ∧
       memLoad (UInt256.ofNat 64) mem' = UInt256.ofNat next ∧
-      ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm revokeStoreCopyBody
+      ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm revokeStoreCopyBody
         (.ok {contract := contract,locals := (revokeStoreCopyLocals L (easTimeWord ee) heap.toNat next
           (storedAttestationRecord evm' r.uid)),immutables := immStore v} evm') ∧
-      RD (deployedRuntime v) ee g s0 site.kind.copyReturnPC
+      RD fork (deployedRuntime v) ee g s0 site.kind.copyReturnPC
         (heap::revokeCopySaved site ee request idx r.uid R) mem' aw' rdata σ' k' C') ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm revokeStoreCopyBody .reverted ∧
-      RDrev (deployedRuntime v) g s0) ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm revokeStoreCopyBody .staticViolation ∧
-      RDstatic (deployedRuntime v) g s0) := by
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm revokeStoreCopyBody .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) ∨
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm revokeStoreCopyBody .staticViolation ∧
+      RDstatic fork (deployedRuntime v) g s0) := by
   let L1 := readTimeLocals L "__c1$allocation" "__c1" (easTimeWord ee) heap.toNat
-  have htime := readTimeBlock_source (cfg := config) (imms := immStore v) (evm := evm) "__c1$allocation" "__c1" hh
+  have htime := readTimeBlock_source (fork := fork) (cfg := config) (imms := immStore v) (evm := evm) "__c1$allocation" "__c1" hh
     (by decide) (by decide) (by decide)
   rw [hs.env] at htime
   have ha1 : L1.get? "attestation" = some (.storageRef (attestationER r.uid) attestationType) :=
@@ -56,7 +58,7 @@ theorem revokeStoreCopyRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g 
     let f := revokeTimeField r.uid (easTimeWord ee)
     have hs1 : SourceState s0 ee (f.accounts σ ee) (f.apply evm) :=
       hs.readModifyWrite f.loc.slot (fun old => packedSliceWord old f.word (8*f.loc.offset.val) (8*f.loc.size.val))
-    have hwrite := revokeWriteTime_source (imms := immStore v) (evm := evm) ha1 ht1
+    have hwrite := revokeWriteTime_source (fork := fork) (imms := immStore v) (evm := evm) ha1 ht1
     simp only [hs.env, hp, if_true] at hwrite
     have he : evalExprs? config {contract := contract,locals := L1,immutables := immStore v} (f.apply evm) revokeCopyArgs =
         .ok [wordBytes32Value r.uid,.int (Int.ofNat heap.toNat)] := by

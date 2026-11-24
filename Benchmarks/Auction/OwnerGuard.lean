@@ -1,5 +1,7 @@
 import Benchmarks.Auction.Storage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -10,9 +12,9 @@ def ownerErrorWord : UInt256 :=
   ⟨0x4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e6572⟩
 
 theorem ownerErrorRevert {I g s0 R rdata acc k C}
-    (h : RD auctionBytecode I g s0 ⟨5522⟩ (⟨132⟩ :: ⟨994⟩ :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨5522⟩ (⟨132⟩ :: ⟨994⟩ :: R)
       (solcErrorStringMem0 solcFreePtrMem) (UInt256.ofNat 5) rdata acc k C)
-    (hov : R.length + 7 ≤ 1024) : RDrev auctionBytecode g s0 := by
+    (hov : R.length + 7 ≤ 1024) : RDrev fork auctionBytecode g s0 := by
   have rd5532 := evm_run h with [
     jumpdest, push1 ⟨32⟩, dup1, dup3,
     raw mstore 3 (solcErrorStringMem1 solcFreePtrMem) (UInt256.ofNat 6)
@@ -130,10 +132,10 @@ theorem ownerFailures : ∀ i : OwnerSite, ownerFailWf i := by
   native_decide
 
 theorem ownerPrefix {I g s0 R rdata σ k C} (i : OwnerSite)
-    (h : RD auctionBytecode I g s0 (ownerPc i) R solcFreePtrMem (UInt256.ofNat 3)
+    (h : RD fork auctionBytecode I g s0 (ownerPc i) R solcFreePtrMem (UInt256.ofNat 3)
       rdata σ k C)
     (hov : R.length + 5 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 (ownerComparePc i)
+    ∃ k' C', RD fork auctionBytecode I g s0 (ownerComparePc i)
       (UInt256.eq (solcSourceWord I) (ownerWord σ I) :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k' C' := by
   obtain ⟨h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, _⟩ := ownerPrefixes i
@@ -146,10 +148,10 @@ theorem ownerPrefix {I g s0 R rdata σ k C} (i : OwnerSite)
     raw and h8 (by evm_ov), raw caller h9 (by evm_ov), raw eq h10 (by evm_ov) ]⟩
 
 theorem ownerAllowed {I g s0 R rdata σ k C} (i : OwnerSite)
-    (h : RD auctionBytecode I g s0 (ownerPc i) R solcFreePtrMem (UInt256.ofNat 3)
+    (h : RD fork auctionBytecode I g s0 (ownerPc i) R solcFreePtrMem (UInt256.ofNat 3)
       rdata σ k C)
     (ho : solcSourceWord I = ownerWord σ I) (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 (ownerSuccessPc i) R
+    ∃ k' C', RD fork auctionBytecode I g s0 (ownerSuccessPc i) R
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k' C' := by
   obtain ⟨_, _, rd⟩ := ownerPrefix i h (by omega)
   obtain ⟨_, _, _, _, _, _, _, _, _, _, _, hp, hj, hd⟩ := ownerPrefixes i
@@ -158,10 +160,10 @@ theorem ownerAllowed {I g s0 R rdata σ k C} (i : OwnerSite)
     raw jumpiT hj (by rw [ho, uInt256_eq_self]; decide) hd (by evm_ov) ]⟩
 
 theorem ownerDenied {I g s0 R rdata σ k C} (i : OwnerSite)
-    (h : RD auctionBytecode I g s0 (ownerPc i) R solcFreePtrMem (UInt256.ofNat 3)
+    (h : RD fork auctionBytecode I g s0 (ownerPc i) R solcFreePtrMem (UInt256.ofNat 3)
       rdata σ k C)
     (ho : solcSourceWord I ≠ ownerWord σ I) (hov : R.length + 7 ≤ 1024) :
-    RDrev auctionBytecode g s0 := by
+    RDrev fork auctionBytecode g s0 := by
   obtain ⟨_, _, rd⟩ := ownerPrefix i h (by omega)
   obtain ⟨_, _, _, _, _, _, _, _, _, _, _, hp, hj, _⟩ := ownerPrefixes i
   have rdFail := evm_run rd with [

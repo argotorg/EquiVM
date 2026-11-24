@@ -4,6 +4,8 @@ import Benchmarks.Safe.V2_0e91d99.Blocks.Runtime_011
 import Benchmarks.Safe.V2_0e91d99.Blocks.Runtime_012
 import Benchmarks.Safe.V2_0e91d99.Blocks.Runtime_027
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V2_0e91d99.RuntimeBlocks
 
@@ -17,10 +19,10 @@ theorem safeSetguardBodyCore
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some setguardTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨hlong, hword⟩ := selectorDispatchFacts 0xe1 0x9a 0x9d 0xd9 ⟨0xe19a9dd9⟩
     hdispatch setguardSelectorBytes (by decide)
-  obtain ⟨k, C, hentry⟩ := safeReachEntry (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, hentry⟩ := safeReachEntry (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) ⟨0xe19a9dd9⟩ 0 ⟨1439⟩ hcode hsize hlong hword
     (by native_decide)
   by_cases hv : I.weiValue = ⟨0⟩
@@ -41,7 +43,7 @@ theorem safeSetguardBodyCore
             decodeCalldata_address_ok hlen hbig hc
           by_cases ha : I.source = I.codeOwner
           · obtain ⟨_, _, h₅⟩ := safeAuthorizedTrace h₄ (by simp) ha (by jump_dest)
-            change RD safeBytecode I (.ofUInt256 g) (initState σ σ₀ (.ofUInt256 g) A I) ⟨6006⟩
+            change RD fork safeBytecode I (.ofUInt256 g) (initState σ σ₀ (.ofUInt256 g) A I) ⟨6006⟩
               [calldataWord I.calldata 4, ⟨664⟩, selWord I] _ _ _ σ _ _ at h₅
             by_cases hz : calldataWord I.calldata 4 = ⟨0⟩
             · obtain ⟨_, _, he⟩ := safeGuardZeroTrace (hz ▸ h₅) (by simp)
@@ -114,7 +116,7 @@ theorem safeSetguardRefines
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some setguardTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact safeSetguardBodyCore hcode hsize hdispatch
 
 end Benchmarks.Safe.V2_0e91d99

@@ -1,6 +1,8 @@
 import Benchmarks.Safe.ViaIR.CalldataLengthRounding
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_034
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -10,11 +12,11 @@ set_option maxRecDepth 2000
 
 theorem safeIRAllocateValidTrace {I g s0 σ k C aw mem rdata ptr len}
     {ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7128⟩
+    (h : RD fork safeBytecode I g s0 ⟨7128⟩
       (UInt256.ofNat ptr :: UInt256.ofNat len :: ret :: R) mem aw rdata σ k C)
     (hlen : len + 31 < UInt256.size) (hb : ptr + ABI.paddedSize len < 2 ^ 64)
     (hov : R.length + 6 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ret R
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ret R
       (writeWord mem 64 (UInt256.ofNat (ptr + ABI.paddedSize len))) aw' rdata σ k' C' := by
   have hfit : ptr + ABI.paddedSize len < UInt256.size := lt_trans hb (by decide)
   have hadd : UInt256.ofNat ptr + UInt256.ofNat (ABI.paddedSize len) =
@@ -34,13 +36,13 @@ theorem safeIRAllocateValidTrace {I g s0 σ k C aw mem rdata ptr len}
 
 theorem safeIRAllocateTrace {I g s0 σ k C aw mem rdata ptr len}
     {ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7128⟩
+    (h : RD fork safeBytecode I g s0 ⟨7128⟩
       (UInt256.ofNat ptr :: UInt256.ofNat len :: ret :: R) mem aw rdata σ k C)
     (hlen : len + 31 < UInt256.size) (hb : ptr + ABI.paddedSize len < UInt256.size)
     (hov : R.length + 6 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    RDrev safeBytecode g s0 ∨
+    RDrev fork safeBytecode g s0 ∨
       ∃ aw' k' C', ptr + ABI.paddedSize len < 2 ^ 64 ∧
-        RD safeBytecode I g s0 ret R
+        RD fork safeBytecode I g s0 ret R
           (writeWord mem 64 (UInt256.ofNat (ptr + ABI.paddedSize len))) aw' rdata σ k' C' := by
   have hadd : UInt256.ofNat ptr + UInt256.ofNat (ABI.paddedSize len) =
       UInt256.ofNat (ptr + ABI.paddedSize len) := wordOfNatAdd _ _ hb

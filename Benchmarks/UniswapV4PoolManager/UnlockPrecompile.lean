@@ -2,15 +2,17 @@ import Benchmarks.UniswapV4PoolManager.PrecompileReply
 import Benchmarks.UniswapV4PoolManager.UnlockCallbackPrefix
 import Benchmarks.UniswapV4PoolManager.CallGasEvidence
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 
 theorem ZeroCallGasEvidence.unlock_precompile_size {evm evm' : State}
     {target : AccountAddress} {data out : ByteArray} {z : Bool}
-    (w : ZeroCallGasEvidence evm target (unlockCallbackSelector++bytesReturnEncoding data) evm' z out)
-    (hp : target ∈ π) (hb : BytesReturnBounds out) : out.size ≤ 64 := by
+    (w : ZeroCallGasEvidence fork evm target (unlockCallbackSelector++bytesReturnEncoding data) evm' z out)
+    (hp : target ∈ π fork) (hb : BytesReturnBounds out) : out.size ≤ 64 := by
   have ht := w.theta.symm
-  have he : toExecute evm.accountMap target = .Precompiled target := by
+  have he : toExecute fork evm.accountMap target = .Precompiled target := by
     unfold toExecute
     rw [if_pos hp]
   rw [he] at ht

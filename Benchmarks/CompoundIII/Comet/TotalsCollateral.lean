@@ -6,6 +6,8 @@ import Benchmarks.CompoundIII.Comet.RuntimeBlocks_016
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_021
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_022
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # CometWithExtendedAssetList `totalsCollateral(address)`
 
@@ -25,7 +27,7 @@ set_option maxRecDepth 10000
 
 theorem totalsCollateral_returns {σ σ₀ A I} {g : Sat256} (imms : Store)
     (hvalue : I.weiValue = ⟨0⟩) (hhi : I.calldata.size < 2 ^ 255 + 4) :
-    ∃ frame, ExecTransitionBody config contract (initState σ σ₀ g A I)
+    ∃ frame, ExecTransitionBody fork config contract (initState σ σ₀ g A I)
       (addressGetterArgs "arg0" I) totalsCollateralTransition.body
       (.returned frame (initState σ σ₀ g A I)
         (some [.int (low128 (totalsCollateralWord σ I
@@ -55,7 +57,7 @@ theorem totalsCollateralX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAsse
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 27)) :
-    AddressGetterResult (deployedRuntime v) I g (initState σ σ₀ g A I) σ
+    AddressGetterResult fork (deployedRuntime v) I g (initState σ σ₀ g A I) σ
       ((low128 (totalsCollateralWord σ I (AccountAddress.ofNat (calldataWord I.calldata 4).toNat))).toByteArray ++
         (high128 (totalsCollateralWord σ I (AccountAddress.ofNat (calldataWord I.calldata 4).toNat))).toByteArray) := by
   obtain ⟨k, C, rd⟩ := cometWithExtendedAssetListReachTotalsCollateralBody
@@ -98,7 +100,7 @@ theorem totalsCollateralX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAsse
             mloadFreePtrValue (by rw [hmem]; decide)
               (twoWordHashMem_read64 w ⟨2⟩ solcFreePtrMem_size solcFreePtrMem_read64)
           let val := solcSlotWordAt (solcMappingSlot ⟨2⟩ w) σ I
-          change RD _ _ _ _ _
+          change RD fork _ _ _ _ _
             [memLoad (UInt256.ofNat 64) mem,
               UInt256.land (UInt256.ofNat (2 ^ 128 - 1))
                 (solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) mem) σ I),
@@ -137,7 +139,7 @@ theorem totalsCollateralX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAsse
 theorem cometWithExtendedAssetListTotalsCollateralBody {σ σ₀ A I} {g : UInt256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 27)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (cometWithExtendedAssetListSelBytes 27) rfl hsel
   let w := totalsCollateralWord σ I (AccountAddress.ofNat (calldataWord I.calldata 4).toNat)
   apply addressGetterValues_refines (t := totalsCollateralTransition)

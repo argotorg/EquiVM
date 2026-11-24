@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.AuthorizationSigSourceDecode
 import Benchmarks.Morpho.MorphoBlue.SafeTransferEncode
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -20,14 +22,14 @@ theorem morphoAuthorizationSigDecode {v : MorphoImmutables} {ee : ExecutionEnv} 
     {k C : Nat} {R : List UInt256}
     (hstack : R.length + 20 ≤ 1024) (hs : 4 ≤ ee.calldata.size)
     (hsize : ee.calldata.size < UInt256.size)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5766) (UInt256.ofNat 0 :: R) solcFreePtrMem aw out σ k C) :
-    (¬ AuthorizationSigBounds ee.calldata ∧ RDrev (deployedRuntime v) g s0) ∨
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5766) (UInt256.ofNat 0 :: R) solcFreePtrMem aw out σ k C) :
+    (¬ AuthorizationSigBounds ee.calldata ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (AuthorizationSigBounds ee.calldata ∧ ∃ aw' k' C',
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5940)
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5940)
         (authorizationDecodedStack (authorizationFromCalldata ee.calldata) R)
         (authorizationDecodedMem (authorizationFromCalldata ee.calldata)) aw' out σ k' C') := by
   have hbad (hc : UInt256.slt (UInt256.sub (UInt256.ofNat ee.calldata.size) ⟨4⟩)
-      (UInt256.ofNat 256) = ⟨1⟩) : RDrev (deployedRuntime v) g s0 := by
+      (UInt256.ofNat 256) = ⟨1⟩) : RDrev fork (deployedRuntime v) g s0 := by
     have rd := morphoBlocks.morpho_block_5766_taken (immWords := wordsOf (immStore v))
       (by simp; omega) (by rw [u256_add_comm, wordAddNegFour, hc]; decide)
       (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h

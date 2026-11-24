@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.VerifyAttestEVM
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -13,12 +15,12 @@ theorem verifyAttestRun {L : Store} {ee : ExecutionEnv} {g : Sat256} {s0 evm : E
     (hv : DelegatedAttestMemoryView mem ptr dataPtr bytesPtr sigPtr r heap.toNat)
     (hh : memLoad (UInt256.ofNat 64) mem = heap) (hheap : heap.toNat ≤ 2^64-1)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13494⟩ (ptr::ret::R) mem aw rdata σ k C) :
-    HeapReturnOrStatic config (deployedRuntime v) ee g s0 {contract := contract,locals := L,immutables := immStore v}
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13494⟩ (ptr::ret::R) mem aw rdata σ k C) :
+    HeapReturnOrStatic fork config (deployedRuntime v) ee g s0 {contract := contract,locals := L,immutables := immStore v}
       evm verifyAttestFunction.body (.tuple []) ret R mem heap.toNat := by
   let nonce := nonceWord evm r.attester
   let L1 := verifyAttestReadLocals L r nonce heap.toNat
-  have hp1 := verifyAttestReadSource (imms := immStore v) (evm := evm) hreq hn hf
+  have hp1 := verifyAttestReadSource (fork := fork) (imms := immStore v) (evm := evm) hreq hn hf
   have hfacts := verifyAttestReadLocals_facts (nonce := nonce) (heap := heap.toNat) hreq hn
   have hreq1 : L1.get? "request" = some r.struct := hfacts.1
   have hd1 : L1.get? "data" = some r.data.struct := hfacts.2.1
@@ -32,8 +34,8 @@ theorem verifyAttestRun {L : Store} {ee : ExecutionEnv} {g : Sat256} {s0 evm : E
   simp only [List.append_assoc]
   refine HeapReturnOrStatic.prepend ?_ hp1 (MemoryPrefix.refl _ _) (le_refl _)
   by_cases hp : ee.perm = true
-  · have hw := nonceWriteSource (hperm := by simpa only [hs.env] using hp) (L := L1) (imms := immStore v) (evm := evm) (a := r.attester) hnone1 hn1 he1
-    have hwb : ExecBlock config {contract := contract,locals := L1,immutables := immStore v} evm
+  · have hw := nonceWriteSource (fork := fork) (hperm := by simpa only [hs.env] using hp) (L := L1) (imms := immStore v) (evm := evm) (a := r.attester) hnone1 hn1 he1
+    have hwb : ExecBlock fork config {contract := contract,locals := L1,immutables := immStore v} evm
         [nonceWrite (.field (.var "request") "attester")]
         (.ok {contract := contract,locals := L1,immutables := immStore v} (nonceStore evm r.attester)) :=
       ExecBlock.consNormal hw ExecBlock.nil
@@ -51,13 +53,13 @@ theorem verifyAttestRun {L : Store} {ee : ExecutionEnv} {g : Sat256} {s0 evm : E
       let L2 := allocateBlockLocals L1 next
       let L3 := verifyAttestHashLocals L2 r nonce
       have hnxt : (UInt256.ofNat next).toNat = next := ulit_toNat' _ (by change next < 2^256; dsimp only [next]; omega)
-      have hpa : ExecBlock config {contract := contract,locals := L1,immutables := immStore v} (nonceStore evm r.attester)
+      have hpa : ExecBlock fork config {contract := contract,locals := L1,immutables := immStore v} (nonceStore evm r.attester)
           (allocateBlock (.intLit 288)) (.ok {contract := contract,locals := L2,immutables := immStore v} (nonceStore evm r.attester)) :=
         allocateBlock_ok (by simp only [evalExpr?,pure]; rfl) hf1 hg
       have hreq2 : L2.get? "request" = some r.struct := (allocateBlockLocals_get (by decide) (by decide) (by decide)).trans hreq1
       have hd2 : L2.get? "data" = some r.data.struct := (allocateBlockLocals_get (by decide) (by decide) (by decide)).trans hd1
       have hn2 : L2.get? "nonce" = some (.int (Int.ofNat nonce.toNat)) := (allocateBlockLocals_get (by decide) (by decide) (by decide)).trans hn1
-      have hph := verifyAttestHashSource (imms := immStore v) (evm := nonceStore evm r.attester) hreq2 hd2 hn2
+      have hph := verifyAttestHashSource (fork := fork) (imms := immStore v) (evm := nonceStore evm r.attester) hreq2 hd2 hn2
       have hprefix : MemoryPrefix mem mem1 heap.toNat :=
         (verifyAttestScratch_prefix mem r heap.toNat).trans (verifyBuffer_prefix _ _ _)
       have hv1 := (hv.preserve hprefix hb).mono hg.2
@@ -101,8 +103,8 @@ theorem verifyAttestCallRun {L : Store} {args : List Expr} {retVar : Ident}
     (hv : DelegatedAttestMemoryView mem ptr dataPtr bytesPtr sigPtr r heap.toNat)
     (hh : memLoad (UInt256.ofNat 64) mem = heap) (hheap : heap.toNat ≤ 2^64-1)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13494⟩ (ptr::ret::R) mem aw rdata σ k C) :
-    HeapCallOrStatic config (deployedRuntime v) ee g s0 {contract := contract,locals := L,immutables := immStore v}
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13494⟩ (ptr::ret::R) mem aw rdata σ k C) :
+    HeapCallOrStatic fork config (deployedRuntime v) ee g s0 {contract := contract,locals := L,immutables := immStore v}
       evm "_verifyAttest" args retVar (.tuple []) ret R mem heap.toNat := by
   exact (verifyAttestRun (L := verifyAttestArgs r heap.toNat) v
     (by simp only [verifyAttestArgs,store_get_self])

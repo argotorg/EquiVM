@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.TickScanWords
 import Benchmarks.UniswapV4PoolManager.LeastSignificantBitTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_062
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -13,10 +15,10 @@ theorem tickScanRightNextTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw masked compressed spacing initialized step state fee direction pool
       x0 x1 params x3 x4 x6 x7 : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+31 ≤ 1024)
-    (h : RD (deployedRuntime v) I g s0 (if masked = ⟨0⟩ then ⟨21441⟩ else ⟨21205⟩)
+    (h : RD fork (deployedRuntime v) I g s0 (if masked = ⟨0⟩ then ⟨21441⟩ else ⟨21205⟩)
       ([step, state, fee, direction, UInt256.isZero masked, masked, spacing, compressed, initialized,
         x0, x1, params, x3, x4, fee, x6, x7, direction, step, pool, state] ++ R) mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨19401⟩
+    ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨19401⟩
       ([initialized, tickScanResultWord compressed spacing masked false, UInt256.ofNat (2^256-887272),
         step, UInt256.ofNat 96, UInt256.ofNat 1, UInt256.ofNat 64, UInt256.ofNat (2^128-1),
         state, fee, direction, x0, x1, params, x3, x4, fee, x6, x7, direction, step, pool, state] ++ R)

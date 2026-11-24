@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.BytesCleanDispatch
 import Benchmarks.EAS.EAS.RuntimeBlocks_036
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -23,9 +25,9 @@ theorem easBytesWriteDispatch {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {src dataPtr slot word len old t1 t2 t3 t4 : UInt256} {R : List UInt256}
     (v : EASImmutables) (site : UIDSite) (hstack : R.length+24 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 (recordBytesCleanPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (recordBytesCleanPC site)
       (old::dataPtr::len::slot::recordBytesSaved site word src t1 t2 t3 t4 R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (if len.toNat < 32 then bytesShortPC site else bytesLongPC site)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (if len.toNat < 32 then bytesShortPC site else bytesLongPC site)
       (dataPtr::UInt256.ofNat 32::len::slot::bytesWriteSaved site word src t1 t2 t3 t4 R) mem aw' rdata σ k' C' := by
   by_cases hs : len.toNat < 32
   · rw [if_pos hs]

@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.NextAmount0Source
 import Benchmarks.UniswapV4PoolManager.NextAmount0SubTrace
 import Benchmarks.UniswapV4PoolManager.NextAmount0AddCoreTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -14,10 +16,10 @@ theorem nextAmount0AddTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : PoolManagerImmutables) (hstack : R.length+16 ≤ 1024)
     (hp : price.toNat < 2^160) (hl : liquidity.toNat < 2^128) (hprice : price ≠ ⟨0⟩)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨23815⟩ (price :: liquidity :: amount :: ret :: R) mem aw rdata σ k C) :
+    (h : RD fork (deployedRuntime v) I g s0 ⟨23815⟩ (price :: liquidity :: amount :: ret :: R) mem aw rdata σ k C) :
     if nextAmount0Fits price liquidity amount true then ∃ k' C', C ≤ C' ∧
-      RD (deployedRuntime v) I g s0 ret (nextAmount0Word price liquidity amount true :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+      RD fork (deployedRuntime v) I g s0 ret (nextAmount0Word price liquidity amount true :: R) mem aw rdata σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hpc : UInt256.land price (UInt256.ofNat 1461501637330902918203684832716283019655932542975) = price :=
     solcAddrMask_clean hp
   by_cases hz : amount = ⟨0⟩

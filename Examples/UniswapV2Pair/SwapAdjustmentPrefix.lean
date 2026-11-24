@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.SwapInputGuardSource
 import Examples.UniswapV2Pair.SwapAdjustmentCases
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -24,10 +26,10 @@ theorem swapAfterInputsFrame_adjustmentGets (caller : Frame) (amount0In amount1I
     (store_get_ne _ _ (by decide)).trans (store_get_self _ _ _), store_get_self _ _ _⟩
 
 theorem uniswapSwapBodyReverts_adjustment (evm evmB : EVM.State) (I : ExecutionEnv) (caller : Frame)
-    (hprefix : ExecBlock config { contract := contract, locals := swapStore I } evm swapInputGuardPrefix
+    (hprefix : ExecBlock fork config { contract := contract, locals := swapStore I } evm swapInputGuardPrefix
       (.ok caller evmB))
-    (hadjustment : ExecBlock config caller evmB swapAdjustmentStmts .reverted) :
-    ExecTransitionBody config contract evm (swapStore I) swapTransition.body .reverted := by
+    (hadjustment : ExecBlock fork config caller evmB swapAdjustmentStmts .reverted) :
+    ExecTransitionBody fork config contract evm (swapStore I) swapTransition.body .reverted := by
   exact ExecFuncBody.execBlockRevert (by
     simpa only [swapTransition, swapInputGuardPrefix, swapInputsPrefix, swapBalancesPrefix,
       swapCallbackPrefix, swapTransferPrefix, swapRecipientGuardPrefix, swapTokenPrefix,

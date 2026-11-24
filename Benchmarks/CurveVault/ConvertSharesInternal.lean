@@ -1,5 +1,7 @@
 import Benchmarks.CurveVault.ConversionFinish
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -7,16 +9,16 @@ def vaultConversionLocals (argName : String) (value : UInt256) (isFloor : Bool) 
   (((∅ : Store).insert "_total_assets" (.int (Int.ofNat total.toNat))).insert
     "_is_floor" (.bool isFloor)).insert argName (.int (Int.ofNat value.toNat))
 
-def vaultConversionRoutineOutcome (s0 evm : State) (I : ExecutionEnv) (g : Sat256)
+def vaultConversionRoutineOutcome (fork : Ethereum.Fork) (s0 evm : State) (I : ExecutionEnv) (g : Sat256)
     (fn : FunctionDecl) (locals : Store) (mem : ByteArray) (dest returnPc : UInt256) (R : List UInt256) : Prop :=
   (∃ (evm' : State) (σ' : AccountMap) (locals' : Store) (scratch : ByteArray)
       (value aw' : UInt256) (out : ByteArray) (k' C' : Nat),
-    ExecFuncBody config {contract := contract, locals := locals} evm fn.body
+    ExecFuncBody fork config {contract := contract, locals := locals} evm fn.body
       (.returned {contract := contract, locals := locals'} evm' (some [.int (Int.ofNat value.toNat)])) ∧
     SourceState s0 I σ' evm' ∧ WordMemoryRange mem scratch 576 UInt256.size ∧
-    RD vaultBytecode I g s0 returnPc R
+    RD fork vaultBytecode I g s0 returnPc R
       (value.toByteArray.write 0 scratch dest.toNat 32) aw' out σ' k' C') ∨
-  (ExecFuncBody config {contract := contract, locals := locals} evm fn.body .reverted ∧ RDrev vaultBytecode g s0)
+  (ExecFuncBody fork config {contract := contract, locals := locals} evm fn.body .reverted ∧ RDrev fork vaultBytecode g s0)
 
 theorem vaultConvertSharesRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap}
@@ -27,9 +29,9 @@ theorem vaultConvertSharesRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
     (hmt : memLoad (UInt256.ofNat 384) mem = total)
     (hstack : R.length + 14 ≤ 1024)
     (hvalid : (D_J vaultBytecode 0).contains returnPc = true)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 7108)
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 7108)
       (dest :: returnPc :: R) mem aw rdata σ k C) :
-    vaultConversionRoutineOutcome s0 evm I g vaultConvertSharesFunction
+    vaultConversionRoutineOutcome fork s0 evm I g vaultConvertSharesFunction
       (vaultConversionLocals "_assets" assets isFloor total) mem dest returnPc R := by
   have hbody : vaultConvertSharesFunction.body =
       vaultConversionPrefix ++ (vaultSharesArithmeticBody ++ vaultConversionFinishBody) := rfl
@@ -89,7 +91,7 @@ theorem vaultConvertSharesRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
           rw [store_get_ne _ _ (by decide +kernel), store_get_ne _ _ (by decide +kernel),
             store_get_ne _ _ (by decide +kernel)]
           exact hf
-        have hfinish := vaultConversionFinishReturns (evm := evm') hnumLocal hdenLocal hflagLocal hd
+        have hfinish := vaultConversionFinishReturns (fork := fork) (evm := evm') hnumLocal hdenLocal hflagLocal hd
         refine Or.inl ⟨evm', σ', vaultConversionResultLocals locals2 isFloor (vaultConversionResult isFloor n d),
           scratch, vaultConversionResult isFloor n d, aw3, out, k3, C3, ?_, hs', ?_, rdRet⟩
         · apply ExecFuncBody.execBlockRet

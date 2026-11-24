@@ -2,6 +2,8 @@ import Benchmarks.EAS.EAS.FixedAllocate
 import Benchmarks.EAS.EAS.WordSequence
 import Benchmarks.EAS.EAS.RuntimeBlocks_026
 import Benchmarks.EAS.EAS.RuntimeBlocks_027
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -22,8 +24,8 @@ theorem easOneRequestAllocate {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hlo : 96 ≤ heap.toNat) (hh : heap.toNat+256 ≤ 2^64-1)
     (hheap : memLoad (UInt256.ofNat 64) mem = heap)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨6864⟩ (ret::R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (heap::R)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨6864⟩ (ret::R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (heap::R)
       (oneRequestArrayMemory mem heap) aw' rdata σ k' C' := by
   have hh0 : heap.toNat ≤ 2^64-1 := by omega
   have hn64 : allocateNext heap.toNat 64 = heap.toNat+64 := fixedAllocation_next .bytes64 hh0
@@ -40,11 +42,11 @@ theorem easOneRequestAllocate {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (by change allocateNext heap.toNat 64 ≤ 2^64-1 ∧ heap.toNat ≤ allocateNext heap.toNat 64; rw [hn64]; constructor <;> omega)
     (by rw [easPatchedValidJumps v]; jump_dest) r1
   obtain ⟨a3,k3,C3,r3⟩ := easBlocks.eas_block_6881_packed (immWords := wordsOf (immStore v)) (by omega) r2
-  change RD (deployedRuntime v) ee g s0 ⟨6924⟩ (⟨0⟩::heap::⟨32⟩::ret::heap::R)
+  change RD fork (deployedRuntime v) ee g s0 ⟨6924⟩ (⟨0⟩::heap::⟨32⟩::ret::heap::R)
     (Reasoning.Theory.writeWord (Reasoning.Theory.writeWord mem 64 (UInt256.ofNat (allocateNext heap.toNat 64))) heap.toNat ⟨1⟩)
     a3 rdata σ k3 C3 at r3
   rw [hn64] at r3
-  change RD (deployedRuntime v) ee g s0 ⟨6924⟩ (⟨0⟩::heap::⟨32⟩::ret::heap::R)
+  change RD fork (deployedRuntime v) ee g s0 ⟨6924⟩ (⟨0⟩::heap::⟨32⟩::ret::heap::R)
     (oneRequestHeadMemory mem heap) a3 rdata σ k3 C3 at r3
   obtain ⟨a4,k4,C4,r4⟩ := easBlocks.eas_block_6924_taken_packed (immWords := wordsOf (immStore v))
     (by simp only [List.length_cons]; omega) (by decide)
@@ -75,7 +77,7 @@ theorem easOneRequestAllocate {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     rw [hn,hp,hoff 32 (by decide),hoff 64 (by decide),hoff 96 (by decide),hoff 128 (by decide),hoff 160 (by decide)]
     simp only [Nat.add_assoc,Nat.reduceAdd,show UInt256.ofNat 0 = (⟨0⟩ : UInt256) from rfl,show UInt256.ofNat 96 = (⟨96⟩ : UInt256) from rfl]
   rw [hm] at r7
-  change RD (deployedRuntime v) ee g s0 ⟨6924⟩ (⟨32⟩::heap::⟨32⟩::ret::heap::R)
+  change RD fork (deployedRuntime v) ee g s0 ⟨6924⟩ (⟨32⟩::heap::⟨32⟩::ret::heap::R)
       (oneRequestArrayMemory mem heap) a7 rdata σ k7 C7 at r7
   obtain ⟨a8,k8,C8,r8⟩ := easBlocks.eas_block_6924_fallthrough_packed (immWords := wordsOf (immStore v))
     (by simp only [List.length_cons]; omega) (by decide) r7

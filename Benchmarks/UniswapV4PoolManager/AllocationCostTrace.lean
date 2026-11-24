@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.AllocationTrace
 import Benchmarks.UniswapV4PoolManager.BytesMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -52,10 +54,10 @@ theorem allocateCheckedTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+5 ≤ 1024)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨11822⟩ (ptr :: len :: ret :: R) mem aw rdata σ k C) :
-    (¬AllocationBounds ptr len ∧ RD (deployedRuntime v) I g s0 ⟨7857⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨11822⟩ (ptr :: len :: ret :: R) mem aw rdata σ k C) :
+    (¬AllocationBounds ptr len ∧ RD fork (deployedRuntime v) I g s0 ⟨7857⟩
       (allocationEnd ptr len :: ret :: R) mem aw rdata σ (k+18) (C+59)) ∨
-    (AllocationBounds ptr len ∧ RD (deployedRuntime v) I g s0 ret R
+    (AllocationBounds ptr len ∧ RD fork (deployedRuntime v) I g s0 ret R
       (writeWord mem 64 (allocationEnd ptr len)) (M aw (UInt256.ofNat 64) ⟨32⟩) rdata σ
         (k+21) (C+73+memExpansionCost aw (UInt256.ofNat 64) ⟨32⟩)) := by
   by_cases hb : AllocationBounds ptr len

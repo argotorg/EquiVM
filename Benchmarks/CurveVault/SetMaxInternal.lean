@@ -1,5 +1,7 @@
 import Benchmarks.CurveVault.SetMaxGuard
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -11,14 +13,14 @@ theorem vaultSetMaxRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hv : locals.get? "_max_supply" = some (.int (Int.ofNat (calldataWord I.calldata 4).toNat)))
     (hfactory : (codeOwnerStorageWord I σ ⟨4⟩).toNat < EVM.addressModulus)
     (hperm : I.perm = true) (hstack : R.length + 7 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 861) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 861) R mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (locals' : Store),
-      ExecFuncBody config {contract := contract, locals := locals} (vaultSetLock evm ⟨1⟩) vaultSetMaxFunction.body
+      ExecFuncBody fork config {contract := contract, locals := locals} (vaultSetLock evm ⟨1⟩) vaultSetMaxFunction.body
         (.returned {contract := contract, locals := locals'} evm' none) ∧
       SourceState s0 I σ' evm' ∧
-      RDret vaultBytecode g s0 (tstoreAccountMap I.codeOwner σ' ⟨0⟩ ⟨0⟩) ByteArray.empty) ∨
-    (ExecFuncBody config {contract := contract, locals := locals} (vaultSetLock evm ⟨1⟩)
-      vaultSetMaxFunction.body .reverted ∧ RDrev vaultBytecode g s0) := by
+      RDret fork vaultBytecode g s0 (tstoreAccountMap I.codeOwner σ' ⟨0⟩ ⟨0⟩) ByteArray.empty) ∨
+    (ExecFuncBody fork config {contract := contract, locals := locals} (vaultSetLock evm ⟨1⟩)
+      vaultSetMaxFunction.body .reverted ∧ RDrev fork vaultBytecode g s0) := by
   rcases vaultSetMaxAdminCall hs hbase hfactory hperm hstack h with
     ⟨evm1, σ1, out, aw1, k1, C1, hcanon, hfactory1, hcall, hs1, rd932⟩ | ⟨hcall, hrev⟩
   swap
@@ -47,7 +49,7 @@ theorem vaultSetMaxRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
   let evm2 := Stele.EVM.storageStore evm1 I.codeOwner ⟨5⟩ value
   let σ2 := sstoreAccountMap I.codeOwner σ1 ⟨5⟩ value
   have hs2 : SourceState s0 I σ2 evm2 := hs1.storageWrite _ _
-  have hwrite : ExecStmt config {contract := contract, locals := locals1} evm1 vaultSetMaxFunction.body[2]!
+  have hwrite : ExecStmt fork config {contract := contract, locals := locals1} evm1 vaultSetMaxFunction.body[2]!
       (.ok {contract := contract, locals := locals1} evm2) := by
     apply ExecStmt.assign (hperm := Or.inr ((congrArg ExecutionEnv.perm hs1.env).trans hperm)) (evalExpr_varUInt256 hv1)
     simpa only [hs1.env] using vaultAssignScalarUint256 evm1 locals1 "maxSupply" ⟨5⟩ value hmax1 rfl rfl (by decide +kernel)
@@ -57,6 +59,6 @@ theorem vaultSetMaxRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
   apply ExecBlock.consNormal hcall
   apply ExecBlock.consNormal (ExecStmt.requireTrue hguard)
   apply ExecBlock.consNormal hwrite
-  exact ExecBlock.consNormal (ExecStmt.emit (hperm := (congrArg ExecutionEnv.perm hs2.env).trans hperm) (evalExprs?_singleton (evalExpr_varUInt256 hv1))) ExecBlock.nil
+  exact ExecBlock.consNormal (ExecStmt.emit (fork := fork) (hperm := (congrArg ExecutionEnv.perm hs2.env).trans hperm) (evalExprs?_singleton (evalExpr_varUInt256 hv1))) ExecBlock.nil
 
 end Benchmarks.CurveVault

@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.CopyRequestArrayStep
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -15,10 +17,10 @@ theorem copyRequestArrayLoopInvalid {L : Store} (evm : EVM.State) {ee : Executio
     (hbad : ∃ t, i≤t ∧ t<rs.length ∧ ¬(calldataWord ee.calldata (offset.toNat+32*t)).toNat≤2^64-1)
     (hf : CopyRequestArrayLocals L rs heap.toNat i) (hm : CopyRequestArrayMemory mem array rs i heap.toNat)
     (hh : heap.toNat≤2^64-1) (hfree : memLoad (UInt256.ofNat 64) mem=heap)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5594⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5594⟩
       (UInt256.ofNat (array.toNat+32+32*i)::UInt256.ofNat (offset.toNat+32*i)::offset::
         UInt256.ofNat (offset.toNat+32*rs.length)::UInt256.ofNat ee.calldata.size::ret::array::R) mem aw out σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    RDrev fork (deployedRuntime v) g s0 := by
   induction n generalizing i L mem aw heap k C with
   | zero => obtain ⟨t,ht,hlt,_⟩ := hbad;omega
   | succ n ih =>
@@ -51,9 +53,9 @@ theorem easCopyRequestArrayInvalid (evm : EVM.State) {ee : ExecutionEnv} {g : Sa
     (hbad : ¬(offset.toNat+32*rs.length≤ee.calldata.size ∧
       ∀ t, t<rs.length → (calldataWord ee.calldata (offset.toNat+32*t)).toNat≤2^64-1))
     (hlo : 96≤heap.toNat) (hh : heap.toNat≤2^64-1) (hfree : memLoad (UInt256.ofNat 64) mem=heap)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5544⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5544⟩
       (offset::UInt256.ofNat rs.length::UInt256.ofNat ee.calldata.size::ret::R) mem aw out σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    RDrev fork (deployedRuntime v) g s0 := by
   have hn : (UInt256.ofNat rs.length).toNat=rs.length := ulit_toNat' _ (by change _<2^256;omega)
   have he : offset+UInt256.shiftLeft (UInt256.ofNat rs.length) (UInt256.ofNat 5)=UInt256.ofNat (offset.toNat+32*rs.length) := by
     have hs : UInt256.shiftLeft (UInt256.ofNat rs.length) (UInt256.ofNat 5)=UInt256.ofNat (32*rs.length) := shiftLeft5_ofNat_eq (by change _<2^256;omega)
@@ -80,7 +82,7 @@ theorem easCopyRequestArrayInvalid (evm : EVM.State) {ee : ExecutionEnv} {g : Sa
       apply u256_inj
       rw [uadd_word_ofNat_toNat _ _ (by change _<2^256;omega),ulit_toNat' _ (by change _<2^256;omega)]
     rw [hdptr] at r1
-    have hr1 : RD (deployedRuntime v) ee g s0 ⟨5594⟩
+    have hr1 : RD fork (deployedRuntime v) ee g s0 ⟨5594⟩
         (UInt256.ofNat (heap.toNat+32+32*0)::UInt256.ofNat (offset.toNat+32*0)::offset::
           UInt256.ofNat (offset.toNat+32*rs.length)::UInt256.ofNat ee.calldata.size::ret::heap::R)
         (arrayAllocationHeaderMemory mem heap rs.length) a1 out σ k1 C1 := by

@@ -4,6 +4,8 @@ import Reasoning.WordArithmetic
 import Benchmarks.Dss.End.Pack
 import Reasoning.MemCascade
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -89,14 +91,14 @@ theorem endFree_solcErrorStringRevertTail_aw7 {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {pc len rawWord shift word : UInt256}
     {op : Operation.POp} {width : ℕ} {stk : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD code ee g s0 pc stk mem (UInt256.ofNat 7) rdata acc k C)
+    (h : RD fork code ee g s0 pc stk mem (UInt256.ofNat 7) rdata acc k C)
     (hwf : solcErrorStringRevertTailWf code pc len rawWord shift op width)
     (hpush : op ≠ .PUSH0)
     (hword : UInt256.shiftLeft rawWord shift = word)
     (hmem : mem.size = 196)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : stk.length + 5 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   rcases hwf with
     ⟨hd0, hd2, hd3, hd4, hd8, hd10, hd11, hd12, hd13, hd15, hd17, hd18,
       hd19, hd20, hd22, hd24, hd25, hd26, hd27, hdRawOut, hdShl, hd68,
@@ -1223,7 +1225,7 @@ theorem endFreeSourceLiveReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : solcSlotWordAt ⟨8⟩ σ I ≠ ⟨0⟩) :
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 (endFreeStore I) freeTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 (endFreeStore I) freeTransition.body .reverted := by
   intro evm0
   have hliveLoad :
       Stele.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨8⟩ ≠ ⟨0⟩ := by
@@ -1262,7 +1264,7 @@ theorem endFreeBodyReverts_urnsNoCode {σ σ₀ A I} {g : UInt256}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) = ⟨0⟩) :
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 (endFreeStore I) freeTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 (endFreeStore I) freeTransition.body .reverted := by
   intro evm0
   have hliveLoad :
       Stele.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨8⟩ = ⟨0⟩ := by
@@ -1293,7 +1295,7 @@ theorem endFreeBodyReverts_urnsNoCode {σ σ₀ A I} {g : UInt256}
         (.binary .gt (.extCodeSize (.storage vatRef)) (.intLit 0)) = .ok (.bool false) :=
     endEvalExpr_extCodeGuard_false hreceiver hcodeZero
   have hurnsBlock :
-      ExecBlock config { contract := contract, locals := endFreeStore I } evm0
+      ExecBlock fork config { contract := contract, locals := endFreeStore I } evm0
         endFreeUrnsCallStmts .reverted := by
     simpa [endFreeUrnsCallStmts, checkedExternalCallStmts] using
       checkedExternalCallNoCode
@@ -1303,12 +1305,12 @@ theorem endFreeBodyReverts_urnsNoCode {σ σ₀ A I} {g : UInt256}
         (args := [.var "ilk", sender]) (perm := true)
         hguardUrns
   have hurnsWithTail :
-      ExecBlock config { contract := contract, locals := endFreeStore I } evm0
+      ExecBlock fork config { contract := contract, locals := endFreeStore I } evm0
         (endFreeUrnsCallStmts ++ endFreeAfterUrnsStmts) .reverted := by
     exact execBlock_append_term
       (s2 := endFreeAfterUrnsStmts) hurnsBlock (by intro f' e' h; cases h)
   have hblock :
-      ExecBlock config { contract := contract, locals := endFreeStore I } evm0
+      ExecBlock fork config { contract := contract, locals := endFreeStore I } evm0
         freeTransition.body .reverted := by
     simp only [freeTransition, nonpayable, List.cons_append, List.nil_append]
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
@@ -1324,13 +1326,13 @@ theorem endFreeBodyReverts_urnsCallFailed {σ σ₀ A I} {g : UInt256}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endPackVatAddr σ I)) "urns" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I), .address I.source]
         (false, evmUrns, out) true) :
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 (endFreeStore I) freeTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 (endFreeStore I) freeTransition.body .reverted := by
   intro evm0
   have hliveLoad :
       Stele.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨8⟩ = ⟨0⟩ := by
@@ -1365,7 +1367,7 @@ theorem endFreeBodyReverts_urnsCallFailed {σ σ₀ A I} {g : UInt256}
           .ok [.fixedBytes bytes32Width (endBytes32ArgBytes I), .address I.source] :=
     evalExprs_endFree_urnsArgs evm0 I (by simp [evm0, initState])
   have hurnsBlock :
-      ExecBlock config { contract := contract, locals := endFreeStore I } evm0
+      ExecBlock fork config { contract := contract, locals := endFreeStore I } evm0
         endFreeUrnsCallStmts .reverted := by
     simpa [endFreeUrnsCallStmts, checkedExternalCallStmts] using
       checkedExternalCallFailure (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
@@ -1377,12 +1379,12 @@ theorem endFreeBodyReverts_urnsCallFailed {σ σ₀ A I} {g : UInt256}
         (out := out) (perm := true)
         hguardUrns hreceiver hargs (by simpa [evm0] using hcall)
   have hurnsWithTail :
-      ExecBlock config { contract := contract, locals := endFreeStore I } evm0
+      ExecBlock fork config { contract := contract, locals := endFreeStore I } evm0
         (endFreeUrnsCallStmts ++ endFreeAfterUrnsStmts) .reverted := by
     exact execBlock_append_term
       (s2 := endFreeAfterUrnsStmts) hurnsBlock (by intro f' e' h; cases h)
   have hblock :
-      ExecBlock config { contract := contract, locals := endFreeStore I } evm0
+      ExecBlock fork config { contract := contract, locals := endFreeStore I } evm0
         freeTransition.body .reverted := by
     simp only [freeTransition, nonpayable, List.cons_append, List.nil_append]
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
@@ -1398,14 +1400,14 @@ theorem endFreeBodyReverts_urnsDecodeShort {σ σ₀ A I} {g : UInt256}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endPackVatAddr σ I)) "urns" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I), .address I.source]
         (true, evmUrns, out) true)
     (hshort : out.size < 64) :
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 (endFreeStore I) freeTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 (endFreeStore I) freeTransition.body .reverted := by
   intro evm0
   have hliveLoad :
       Stele.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨8⟩ = ⟨0⟩ := by
@@ -1440,7 +1442,7 @@ theorem endFreeBodyReverts_urnsDecodeShort {σ σ₀ A I} {g : UInt256}
           .ok [.fixedBytes bytes32Width (endBytes32ArgBytes I), .address I.source] :=
     evalExprs_endFree_urnsArgs evm0 I (by simp [evm0, initState])
   have hurnsBlock :
-      ExecBlock config { contract := contract, locals := endFreeStore I } evm0
+      ExecBlock fork config { contract := contract, locals := endFreeStore I } evm0
         endFreeUrnsCallStmts .reverted := by
     simpa [endFreeUrnsCallStmts, checkedExternalCallStmts] using
       checkedExternalCallDecodeRevert (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
@@ -1453,12 +1455,12 @@ theorem endFreeBodyReverts_urnsDecodeShort {σ σ₀ A I} {g : UInt256}
         hguardUrns hreceiver hargs (by simpa [evm0] using hcall)
         (endFreeUrnsDecode_none_short hshort)
   have hurnsWithTail :
-      ExecBlock config { contract := contract, locals := endFreeStore I } evm0
+      ExecBlock fork config { contract := contract, locals := endFreeStore I } evm0
         (endFreeUrnsCallStmts ++ endFreeAfterUrnsStmts) .reverted := by
     exact execBlock_append_term
       (s2 := endFreeAfterUrnsStmts) hurnsBlock (by intro f' e' h; cases h)
   have hblock :
-      ExecBlock config { contract := contract, locals := endFreeStore I } evm0
+      ExecBlock fork config { contract := contract, locals := endFreeStore I } evm0
         freeTransition.body .reverted := by
     simp only [freeTransition, nonpayable, List.cons_append, List.nil_append]
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
@@ -1474,14 +1476,14 @@ theorem endFreePrefixUrnsSuccess {σ σ₀ A I} {g : UInt256}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endPackVatAddr σ I)) "urns" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I), .address I.source]
         (true, evmUrns, out) true)
     (hlo : 64 ≤ out.size) :
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecBlock config { contract := contract, locals := endFreeStore I } evm0
+    ExecBlock fork config { contract := contract, locals := endFreeStore I } evm0
       (nonpayable ++
         [ .require (.binary .eq (.storage liveRef) (.intLit 0)) ] ++
         endFreeUrnsCallStmts)
@@ -1520,10 +1522,10 @@ theorem endFreePrefixUrnsSuccess {σ σ₀ A I} {g : UInt256}
           .ok [.fixedBytes bytes32Width (endBytes32ArgBytes I), .address I.source] :=
     evalExprs_endFree_urnsArgs evm0 I (by simp [evm0, initState])
   have hurnsBlock :
-      ExecBlock config { contract := contract, locals := endFreeStore I } evm0
+      ExecBlock fork config { contract := contract, locals := endFreeStore I } evm0
         endFreeUrnsCallStmts
         (.ok { contract := contract, locals := endFreeStoreVatUrn I out } evmUrns) := by
-    have hblock := checkedExternalCallSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+    have hblock := checkedExternalCallSuccess (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
       (cfg := config) (C := contract) (evm := evm0) (evm' := evmUrns)
       (locals := endFreeStore I) (receiver := .storage vatRef)
       (retVar := "vatUrn") (name := "urns") (target := endPackVatAddr σ I)
@@ -1679,7 +1681,7 @@ theorem evalExprs_endFree_grabArgs (evm : EVM.State) (I : ExecutionEnv)
 theorem endFreeTailReverts_artNonzero (evm : EVM.State) (I : ExecutionEnv)
     (out : ByteArray)
     (hart : endFreeUrnArtWord out ≠ ⟨0⟩) :
-    ExecBlock config { contract := contract, locals := endFreeStoreVatUrn I out } evm
+    ExecBlock fork config { contract := contract, locals := endFreeStoreVatUrn I out } evm
       endFreeAfterUrnsStmts .reverted := by
   have hinkTuple := evalExpr_endFree_vatUrn_ink evm I out
   have hartTuple := evalExpr_endFree_vatUrn_art_afterInk evm I out
@@ -1705,7 +1707,7 @@ theorem endFreeTailReverts_inkOverflow (evm : EVM.State) (I : ExecutionEnv)
     (out : ByteArray)
     (hart : endFreeUrnArtWord out = ⟨0⟩)
     (hink : 2 ^ 255 < (endFreeUrnInkWord out).toNat) :
-    ExecBlock config { contract := contract, locals := endFreeStoreVatUrn I out } evm
+    ExecBlock fork config { contract := contract, locals := endFreeStoreVatUrn I out } evm
       endFreeAfterUrnsStmts .reverted := by
   have hinkTuple := evalExpr_endFree_vatUrn_ink evm I out
   have hartTuple := evalExpr_endFree_vatUrn_art_afterInk evm I out
@@ -1748,7 +1750,7 @@ theorem endFreeTailReverts_grabNoCode (evm : EVM.State) (I : ExecutionEnv)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord evm.accountMap
         (endPackVatWord evm.accountMap I) = ⟨0⟩) :
-    ExecBlock config { contract := contract, locals := endFreeStoreVatUrn I out } evm
+    ExecBlock fork config { contract := contract, locals := endFreeStoreVatUrn I out } evm
       endFreeAfterUrnsStmts .reverted := by
   have hinkTuple := evalExpr_endFree_vatUrn_ink evm I out
   have hartTuple := evalExpr_endFree_vatUrn_art_afterInk evm I out
@@ -1799,7 +1801,7 @@ theorem endFreeTailReverts_grabNoCode (evm : EVM.State) (I : ExecutionEnv)
         (.binary .gt (.extCodeSize (.storage vatRef)) (.intLit 0)) = .ok (.bool false) :=
     endEvalExpr_extCodeGuard_false hreceiver hcodeZero
   have hgrabBlock :
-      ExecBlock config { contract := contract, locals := endFreeStoreArt I out } evm
+      ExecBlock fork config { contract := contract, locals := endFreeStoreArt I out } evm
         (checkedExternalCallStmts (.storage vatRef) "grab" (.intLit 0)
           [.var "ilk", sender, sender, vowAddr, asInt256 (.unary .neg (asInt256 (.var "ink"))),
             .intLit 0] "_grab")
@@ -1831,7 +1833,7 @@ theorem endFreeTailReverts_grabCallFailed (evm evmGrab : EVM.State) (I : Executi
       Reasoning.Theory.extCodeSizeWord evm.accountMap
         (endPackVatWord evm.accountMap I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config evm
+      typedCallViaEVM fork config evm
         (EVM.address (endPackVatAddr evm.accountMap I)) "grab" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I),
           .address I.source,
@@ -1840,7 +1842,7 @@ theorem endFreeTailReverts_grabCallFailed (evm evmGrab : EVM.State) (I : Executi
           .int (-(Int.ofNat (endFreeUrnInkWord out).toNat)),
           .int 0]
         (false, evmGrab, grabOut) true) :
-    ExecBlock config { contract := contract, locals := endFreeStoreVatUrn I out } evm
+    ExecBlock fork config { contract := contract, locals := endFreeStoreVatUrn I out } evm
       endFreeAfterUrnsStmts .reverted := by
   have hinkTuple := evalExpr_endFree_vatUrn_ink evm I out
   have hartTuple := evalExpr_endFree_vatUrn_art_afterInk evm I out
@@ -1902,7 +1904,7 @@ theorem endFreeTailReverts_grabCallFailed (evm evmGrab : EVM.State) (I : Executi
           .int 0] :=
     evalExprs_endFree_grabArgs evm I out hsrc howner hink
   have hgrabBlock :
-      ExecBlock config { contract := contract, locals := endFreeStoreArt I out } evm
+      ExecBlock fork config { contract := contract, locals := endFreeStoreArt I out } evm
         (checkedExternalCallStmts (.storage vatRef) "grab" (.intLit 0)
           [.var "ilk", sender, sender, vowAddr, asInt256 (.unary .neg (asInt256 (.var "ink"))),
             .intLit 0] "_grab")
@@ -1952,7 +1954,7 @@ theorem endFreeTailReturns_grabSuccessSplit (evm evmGrab : EVM.State) (I : Execu
       Reasoning.Theory.extCodeSizeWord evm.accountMap
         (endPackVatWord evm.accountMap I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config evm
+      typedCallViaEVM fork config evm
         (EVM.address (endPackVatAddr evm.accountMap I)) "grab" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I),
           .address I.source,
@@ -1961,11 +1963,11 @@ theorem endFreeTailReturns_grabSuccessSplit (evm evmGrab : EVM.State) (I : Execu
           .int (-(Int.ofNat (endFreeUrnInkWord out).toNat)),
           .int 0]
         (true, evmGrab, grabOut) true) :
-    (evm.executionEnv.perm = true → ExecBlock config { contract := contract, locals := endFreeStoreVatUrn I out } evm
+    (evm.executionEnv.perm = true → ExecBlock fork config { contract := contract, locals := endFreeStoreVatUrn I out } evm
       endFreeAfterUrnsStmts
       (.ok { contract := contract, locals := endFreeStoreGrab I out } evmGrab)) ∧
       (evm.executionEnv.perm = false →
-        ExecBlock config { contract := contract, locals := endFreeStoreVatUrn I out } evm
+        ExecBlock fork config { contract := contract, locals := endFreeStoreVatUrn I out } evm
           endFreeAfterUrnsStmts .staticViolation) := by
   have hinkTuple := evalExpr_endFree_vatUrn_ink evm I out
   have hartTuple := evalExpr_endFree_vatUrn_art_afterInk evm I out
@@ -2027,14 +2029,14 @@ theorem endFreeTailReturns_grabSuccessSplit (evm evmGrab : EVM.State) (I : Execu
           .int 0] :=
     evalExprs_endFree_grabArgs evm I out hsrc howner hink
   have hgrabBlock :
-      ExecBlock config { contract := contract, locals := endFreeStoreArt I out } evm
+      ExecBlock fork config { contract := contract, locals := endFreeStoreArt I out } evm
         (checkedExternalCallStmts (.storage vatRef) "grab" (.intLit 0)
           [.var "ilk", sender, sender, vowAddr, asInt256 (.unary .neg (asInt256 (.var "ink"))),
             .intLit 0] "_grab")
         (.ok { contract := contract, locals := endFreeStoreGrab I out } evmGrab) := by
     have hdec : config.externalABI.decode? "grab" grabOut = some [] := by
       simp [config, externalABI, decodeVoid?]
-    have hblock := checkedExternalCallSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+    have hblock := checkedExternalCallSuccess (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
       (cfg := config) (C := contract) (evm := evm) (evm' := evmGrab)
       (locals := endFreeStoreArt I out) (receiver := .storage vatRef)
       (retVar := "_grab") (name := "grab") (target := endPackVatAddr evm.accountMap I)
@@ -2054,9 +2056,9 @@ theorem endFreeTailReturns_grabSuccessSplit (evm evmGrab : EVM.State) (I : Execu
     simpa [checkedExternalCallStmts, endFreeStoreGrab, collapseReturns] using hblock
   have hargsEvent := evalExprs_endFreeEvent evmGrab I out
   have hfinish {result : ExecResult}
-      (htail : ExecBlock config { contract := contract, locals := endFreeStoreGrab I out }
+      (htail : ExecBlock fork config { contract := contract, locals := endFreeStoreGrab I out }
         evmGrab [.emit "Free" [.var "ilk", sender, .var "ink"]] result) :
-      ExecBlock config { contract := contract, locals := endFreeStoreVatUrn I out } evm
+      ExecBlock fork config { contract := contract, locals := endFreeStoreVatUrn I out } evm
         endFreeAfterUrnsStmts result := by
     simp only [endFreeAfterUrnsStmts, List.cons_append, List.nil_append]
     refine ExecBlock.consNormal (ExecStmt.letDecl hinkTuple) ?_
@@ -2066,7 +2068,7 @@ theorem endFreeTailReturns_grabSuccessSplit (evm evmGrab : EVM.State) (I : Execu
     exact execBlock_append_ok hgrabBlock htail
   constructor
   · intro hperm
-    exact hfinish (ExecBlock.consNormal (ExecStmt.emit (hperm := by rw [typedCallViaEVM_executionEnv_eq hcall]; exact hperm) hargsEvent) ExecBlock.nil)
+    exact hfinish (ExecBlock.consNormal (ExecStmt.emit (fork := fork) (hperm := by rw [typedCallViaEVM_executionEnv_eq hcall]; exact hperm) hargsEvent) ExecBlock.nil)
   · intro hperm
     exact hfinish (ExecBlock.consStatic (ExecStmt.emitStatic hargsEvent
       (by rw [typedCallViaEVM_executionEnv_eq hcall]; exact hperm)))
@@ -2078,7 +2080,7 @@ theorem endFreeBodyReverts_artNonzero {σ σ₀ A I} {g : UInt256}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endPackVatAddr σ I)) "urns" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I), .address I.source]
@@ -2086,10 +2088,10 @@ theorem endFreeBodyReverts_artNonzero {σ σ₀ A I} {g : UInt256}
     (hlo : 64 ≤ out.size)
     (hart : endFreeUrnArtWord out ≠ ⟨0⟩) :
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 (endFreeStore I) freeTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 (endFreeStore I) freeTransition.body .reverted := by
   intro evm0
   have hprefix :
-      ExecBlock config { contract := contract, locals := endFreeStore I } evm0
+      ExecBlock fork config { contract := contract, locals := endFreeStore I } evm0
         (nonpayable ++
           [ .require (.binary .eq (.storage liveRef) (.intLit 0)) ] ++
           endFreeUrnsCallStmts)
@@ -2099,9 +2101,9 @@ theorem endFreeBodyReverts_artNonzero {σ σ₀ A I} {g : UInt256}
         (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) (evmUrns := evmUrns) (out := out)
         hwv hlive hcodeSize hcall hlo
-  have htail := endFreeTailReverts_artNonzero evmUrns I out hart
+  have htail := endFreeTailReverts_artNonzero (fork := fork) evmUrns I out hart
   have hblock :
-      ExecBlock config { contract := contract, locals := endFreeStore I } evm0
+      ExecBlock fork config { contract := contract, locals := endFreeStore I } evm0
         freeTransition.body .reverted := by
     have hseq := execBlock_append
       (s2 := endFreeAfterUrnsStmts) hprefix htail
@@ -2116,7 +2118,7 @@ theorem endFreeBodyReverts_inkOverflow {σ σ₀ A I} {g : UInt256}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endPackVatAddr σ I)) "urns" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I), .address I.source]
@@ -2125,10 +2127,10 @@ theorem endFreeBodyReverts_inkOverflow {σ σ₀ A I} {g : UInt256}
     (hart : endFreeUrnArtWord out = ⟨0⟩)
     (hink : 2 ^ 255 < (endFreeUrnInkWord out).toNat) :
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 (endFreeStore I) freeTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 (endFreeStore I) freeTransition.body .reverted := by
   intro evm0
   have hprefix :
-      ExecBlock config { contract := contract, locals := endFreeStore I } evm0
+      ExecBlock fork config { contract := contract, locals := endFreeStore I } evm0
         (nonpayable ++
           [ .require (.binary .eq (.storage liveRef) (.intLit 0)) ] ++
           endFreeUrnsCallStmts)
@@ -2138,9 +2140,9 @@ theorem endFreeBodyReverts_inkOverflow {σ σ₀ A I} {g : UInt256}
         (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) (evmUrns := evmUrns) (out := out)
         hwv hlive hcodeSize hcall hlo
-  have htail := endFreeTailReverts_inkOverflow evmUrns I out hart hink
+  have htail := endFreeTailReverts_inkOverflow (fork := fork) evmUrns I out hart hink
   have hblock :
-      ExecBlock config { contract := contract, locals := endFreeStore I } evm0
+      ExecBlock fork config { contract := contract, locals := endFreeStore I } evm0
         freeTransition.body .reverted := by
     have hseq := execBlock_append
       (s2 := endFreeAfterUrnsStmts) hprefix htail
@@ -2155,7 +2157,7 @@ theorem endFreeBodyReverts_grabNoCode {σ σ₀ A I} {g : UInt256}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endPackVatAddr σ I)) "urns" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I), .address I.source]
@@ -2168,10 +2170,10 @@ theorem endFreeBodyReverts_grabNoCode {σ σ₀ A I} {g : UInt256}
       Reasoning.Theory.extCodeSizeWord evmUrns.accountMap
         (endPackVatWord evmUrns.accountMap I) = ⟨0⟩) :
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 (endFreeStore I) freeTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 (endFreeStore I) freeTransition.body .reverted := by
   intro evm0
   have hprefix :
-      ExecBlock config { contract := contract, locals := endFreeStore I } evm0
+      ExecBlock fork config { contract := contract, locals := endFreeStore I } evm0
         (nonpayable ++
           [ .require (.binary .eq (.storage liveRef) (.intLit 0)) ] ++
           endFreeUrnsCallStmts)
@@ -2182,9 +2184,9 @@ theorem endFreeBodyReverts_grabNoCode {σ σ₀ A I} {g : UInt256}
         (A := A) (I := I) (g := g) (evmUrns := evmUrns) (out := out)
         hwv hlive hcodeSize hcall hlo
   have htail :=
-    endFreeTailReverts_grabNoCode evmUrns I out howner hart hink hgrabCodeSize
+    endFreeTailReverts_grabNoCode (fork := fork) evmUrns I out howner hart hink hgrabCodeSize
   have hblock :
-      ExecBlock config { contract := contract, locals := endFreeStore I } evm0
+      ExecBlock fork config { contract := contract, locals := endFreeStore I } evm0
         freeTransition.body .reverted := by
     have hseq := execBlock_append
       (s2 := endFreeAfterUrnsStmts) hprefix htail
@@ -2199,7 +2201,7 @@ theorem endFreeBodyReverts_grabCallFailed {σ σ₀ A I} {g : UInt256}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endPackVatAddr σ I)) "urns" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I), .address I.source]
@@ -2213,7 +2215,7 @@ theorem endFreeBodyReverts_grabCallFailed {σ σ₀ A I} {g : UInt256}
       Reasoning.Theory.extCodeSizeWord evmUrns.accountMap
         (endPackVatWord evmUrns.accountMap I) ≠ ⟨0⟩)
     (hgrabCall :
-      typedCallViaEVM config evmUrns
+      typedCallViaEVM fork config evmUrns
         (EVM.address (endPackVatAddr evmUrns.accountMap I)) "grab" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I),
           .address I.source,
@@ -2223,10 +2225,10 @@ theorem endFreeBodyReverts_grabCallFailed {σ σ₀ A I} {g : UInt256}
           .int 0]
         (false, evmGrab, grabOut) true) :
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 (endFreeStore I) freeTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 (endFreeStore I) freeTransition.body .reverted := by
   intro evm0
   have hprefix :
-      ExecBlock config { contract := contract, locals := endFreeStore I } evm0
+      ExecBlock fork config { contract := contract, locals := endFreeStore I } evm0
         (nonpayable ++
           [ .require (.binary .eq (.storage liveRef) (.intLit 0)) ] ++
           endFreeUrnsCallStmts)
@@ -2240,7 +2242,7 @@ theorem endFreeBodyReverts_grabCallFailed {σ σ₀ A I} {g : UInt256}
     endFreeTailReverts_grabCallFailed evmUrns evmGrab I out grabOut hsrc howner hart
       hink hgrabCodeSize hgrabCall
   have hblock :
-      ExecBlock config { contract := contract, locals := endFreeStore I } evm0
+      ExecBlock fork config { contract := contract, locals := endFreeStore I } evm0
         freeTransition.body .reverted := by
     have hseq := execBlock_append
       (s2 := endFreeAfterUrnsStmts) hprefix htail
@@ -2255,7 +2257,7 @@ theorem endFreeBodyReturns_grabSuccessSplit {σ σ₀ A I} {g : UInt256}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endPackVatAddr σ I)) "urns" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I), .address I.source]
@@ -2269,7 +2271,7 @@ theorem endFreeBodyReturns_grabSuccessSplit {σ σ₀ A I} {g : UInt256}
       Reasoning.Theory.extCodeSizeWord evmUrns.accountMap
         (endPackVatWord evmUrns.accountMap I) ≠ ⟨0⟩)
     (hgrabCall :
-      typedCallViaEVM config evmUrns
+      typedCallViaEVM fork config evmUrns
         (EVM.address (endPackVatAddr evmUrns.accountMap I)) "grab" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I),
           .address I.source,
@@ -2279,13 +2281,13 @@ theorem endFreeBodyReturns_grabSuccessSplit {σ σ₀ A I} {g : UInt256}
           .int 0]
         (true, evmGrab, grabOut) true) :
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    (I.perm = true → ExecTransitionBody config contract evm0 (endFreeStore I) freeTransition.body
+    (I.perm = true → ExecTransitionBody fork config contract evm0 (endFreeStore I) freeTransition.body
       (.returned { contract := contract, locals := endFreeStoreGrab I out } evmGrab none)) ∧
-      (I.perm = false → ExecTransitionBody config contract evm0 (endFreeStore I)
+      (I.perm = false → ExecTransitionBody fork config contract evm0 (endFreeStore I)
         freeTransition.body .staticViolation) := by
   intro evm0
   have hprefix :
-      ExecBlock config { contract := contract, locals := endFreeStore I } evm0
+      ExecBlock fork config { contract := contract, locals := endFreeStore I } evm0
         (nonpayable ++
           [ .require (.binary .eq (.storage liveRef) (.intLit 0)) ] ++
           endFreeUrnsCallStmts)
@@ -2298,9 +2300,9 @@ theorem endFreeBodyReturns_grabSuccessSplit {σ σ₀ A I} {g : UInt256}
   have htailSplit := endFreeTailReturns_grabSuccessSplit
     evmUrns evmGrab I out grabOut hsrc howner hart hink hgrabCodeSize hgrabCall
   have hfinish {result : ExecResult}
-      (htail : ExecBlock config { contract := contract, locals := endFreeStoreVatUrn I out }
+      (htail : ExecBlock fork config { contract := contract, locals := endFreeStoreVatUrn I out }
         evmUrns endFreeAfterUrnsStmts result) :
-      ExecBlock config { contract := contract, locals := endFreeStore I } evm0
+      ExecBlock fork config { contract := contract, locals := endFreeStore I } evm0
         freeTransition.body result := by
     simpa [freeTransition, nonpayable, endFreeUrnsCallStmts, endFreeAfterUrnsStmts,
       checkedExternalCallStmts, List.cons_append, List.nil_append, List.append_assoc] using
@@ -2316,10 +2318,10 @@ theorem endFreeBodyReturns_grabSuccessSplit {σ σ₀ A I} {g : UInt256}
 theorem endFreeX_liveZero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {k C : ℕ}
     (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨0⟩)
-    (h : RD endBytecode I g (initState σ σ₀ g A I) endFreeBodyPc
+    (h : RD fork endBytecode I g (initState σ σ₀ g A I) endFreeBodyPc
       [endFreeIlkWord I, endFreeReturnPc, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨7760⟩
+    ∃ k' C', RD fork endBytecode I g (initState σ σ₀ g A I) ⟨7760⟩
       [endFreeIlkWord I, endFreeReturnPc, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd7693 := evm_run h with [
@@ -2343,16 +2345,16 @@ theorem endFreeX_liveZero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem endFreeX_liveNonzero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {k C : ℕ}
     (hlive : solcSlotWordAt ⟨8⟩ σ I ≠ ⟨0⟩)
-    (h : RD endBytecode I g (initState σ σ₀ g A I) endFreeBodyPc
+    (h : RD fork endBytecode I g (initState σ σ₀ g A I) endFreeBodyPc
       [endFreeIlkWord I, endFreeReturnPc, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev endBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork endBytecode g (initState σ σ₀ g A I) := by
   have rd7693 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨8⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd7694raw⟩ := rd7693.sload (by native_decide) (by evm_ov)
   have rd7694 : ∃ k' C',
-      RD endBytecode I g (initState σ σ₀ g A I) ⟨7694⟩
+      RD fork endBytecode I g (initState σ σ₀ g A I) ⟨7694⟩
         (solcSlotWordAt ⟨8⟩ σ I :: endFreeIlkWord I :: endFreeReturnPc :: sel :: [])
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
     exact ⟨_, _, by simpa [solcSlotWordAt, solcSlotWord] using rd7694raw⟩
@@ -2380,10 +2382,10 @@ theorem endFreeX_liveNonzero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 
 theorem endFreeX_urnsExtcodesizeGuard {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {k C : ℕ}
-    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨7760⟩
+    (h : RD fork endBytecode I g (initState σ σ₀ g A I) ⟨7760⟩
       [endFreeIlkWord I, endFreeReturnPc, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨7831⟩
+    ∃ k' C', RD fork endBytecode I g (initState σ σ₀ g A I) ⟨7831⟩
       (endPackVatWord σ I :: endPackVatWord σ I :: ⟨0⟩ :: endFreeUrnsOutPtr ::
         endFreeUrnsInSize :: endFreeUrnsOutPtr :: endFreeUrnsOutSize ::
         endFreeUrnsEndPtr :: endFreeUrnsSelectorWord :: endPackVatWord σ I ::
@@ -2426,7 +2428,7 @@ theorem endFreeX_urnsExtcodesizeGuard {σ σ₀ A I} {g : Sat256} {sel : UInt256
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd7764raw⟩ := rd7763.sload (by native_decide) (by evm_ov)
   have rd7764 : ∃ k' C',
-      RD endBytecode I g (initState σ σ₀ g A I) ⟨7764⟩
+      RD fork endBytecode I g (initState σ σ₀ g A I) ⟨7764⟩
         (solcSlotWordAt ⟨1⟩ σ I :: endFreeIlkWord I :: endFreeReturnPc :: sel :: [])
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
     exact ⟨_, _, by simpa [solcSlotWordAt, solcSlotWord] using rd7764raw⟩
@@ -2501,11 +2503,11 @@ theorem endFreeX_urnsExtcodesizeGuard {σ σ₀ A I} {g : Sat256} {sel : UInt256
 
 theorem endFreeX_urnsNoCode {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {k C : ℕ}
-    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨7760⟩
+    (h : RD fork endBytecode I g (initState σ σ₀ g A I) ⟨7760⟩
       [endFreeIlkWord I, endFreeReturnPc, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) = ⟨0⟩) :
-    RDrev endBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork endBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd7831⟩ := endFreeX_urnsExtcodesizeGuard h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨7831⟩) (okPc := ⟨7843⟩) rd7831
     hcodeSize
@@ -2515,11 +2517,11 @@ theorem endFreeX_urnsNoCode {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 
 theorem endFreeX_urnsCallReady {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {k C : ℕ}
-    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨7760⟩
+    (h : RD fork endBytecode I g (initState σ σ₀ g A I) ⟨7760⟩
       [endFreeIlkWord I, endFreeReturnPc, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩) :
-    ∃ gasWord k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨7846⟩
+    ∃ gasWord k' C', RD fork endBytecode I g (initState σ σ₀ g A I) ⟨7846⟩
       (gasWord :: endPackVatWord σ I :: ⟨0⟩ :: endFreeUrnsOutPtr ::
         endFreeUrnsInSize :: endFreeUrnsOutPtr :: endFreeUrnsOutSize ::
         endFreeUrnsEndPtr :: endFreeUrnsSelectorWord :: endPackVatWord σ I ::
@@ -2537,7 +2539,7 @@ theorem endFreeX_urnsCallReady {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 
 theorem endFreeX_urnsPostCall {σ σ₀ A I} {g : Sat256}
     {sel gasWord : UInt256} {k C : ℕ}
-    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨7846⟩
+    (h : RD fork endBytecode I g (initState σ σ₀ g A I) ⟨7846⟩
       (gasWord :: endPackVatWord σ I :: ⟨0⟩ :: endFreeUrnsOutPtr ::
         endFreeUrnsInSize :: endFreeUrnsOutPtr :: endFreeUrnsOutSize ::
         endFreeUrnsEndPtr :: endFreeUrnsSelectorWord :: endPackVatWord σ I ::
@@ -2548,15 +2550,15 @@ theorem endFreeX_urnsPostCall {σ σ₀ A I} {g : Sat256}
     ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, out) = Ethereum.EVM.Θ σ σ₀ Ain
+        (σ', g'', A', z, out) = Ethereum.EVM.Θ fork σ σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endPackVatWord σ I))
-          (toExecute σ (AccountAddress.ofUInt256 (endPackVatWord σ I)))
+          (toExecute fork σ (AccountAddress.ofUInt256 (endPackVatWord σ I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endFreeUrnsCalldataMem I solcFreePtrMem).readWithPadding
             endFreeUrnsOutPtr.toNat endFreeUrnsInSize.toNat)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
-      ∧ RD endBytecode I g (initState σ σ₀ g A I) ⟨7847⟩
+      ∧ RD fork endBytecode I g (initState σ σ₀ g A I) ⟨7847⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: endFreeUrnsEndPtr :: endFreeUrnsSelectorWord ::
             endPackVatWord σ I :: ⟨0⟩ :: ⟨0⟩ :: endFreeIlkWord I ::
             endFreeReturnPc :: sel :: [])
@@ -2578,7 +2580,7 @@ theorem endFreeX_urnsPostCall {σ σ₀ A I} {g : Sat256}
 
 theorem endFreeX_urnsCallDepthLimit {σ σ₀ A I} {g : Sat256}
     {sel gasWord : UInt256} {k C : ℕ}
-    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨7846⟩
+    (h : RD fork endBytecode I g (initState σ σ₀ g A I) ⟨7846⟩
       (gasWord :: endPackVatWord σ I :: ⟨0⟩ :: endFreeUrnsOutPtr ::
         endFreeUrnsInSize :: endFreeUrnsOutPtr :: endFreeUrnsOutSize ::
         endFreeUrnsEndPtr :: endFreeUrnsSelectorWord :: endPackVatWord σ I ::
@@ -2586,7 +2588,7 @@ theorem endFreeX_urnsCallDepthLimit {σ σ₀ A I} {g : Sat256}
       (endFreeUrnsCalldataMem I solcFreePtrMem) (UInt256.ofNat 7)
       ByteArray.empty σ k C)
     (hdepth : I.depth = 1024) :
-    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨7847⟩
+    ∃ k' C', RD fork endBytecode I g (initState σ σ₀ g A I) ⟨7847⟩
       (⟨0⟩ :: endFreeUrnsEndPtr :: endFreeUrnsSelectorWord :: endPackVatWord σ I ::
         ⟨0⟩ :: ⟨0⟩ :: endFreeIlkWord I :: endFreeReturnPc :: sel :: [])
       (endFreeUrnsCalldataMem I solcFreePtrMem) (UInt256.ofNat 7)
@@ -2608,12 +2610,12 @@ theorem endFreeX_urnsCallDepthLimit {σ σ₀ A I} {g : Sat256}
 
 theorem endFreeX_urnsCallFailed {σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {mem rdata : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨7847⟩
+    (h : RD fork endBytecode I g (initState σ σ₀ g A I) ⟨7847⟩
       (⟨0⟩ :: endFreeUrnsEndPtr :: endFreeUrnsSelectorWord :: endPackVatWord σ I ::
         ⟨0⟩ :: ⟨0⟩ :: endFreeIlkWord I :: endFreeReturnPc :: sel :: [])
       mem (UInt256.ofNat 7) rdata σ' k C)
     (hrdataSize : rdata.size < UInt256.size) :
-    RDrev endBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork endBytecode g (initState σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨7847⟩) (okPc := ⟨7863⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -2624,11 +2626,11 @@ theorem endFreeX_urnsCallFailed {σ σ' σ₀ A I} {g : Sat256}
 theorem endFreeX_urnsCallSucceeded {σ σ₀ A I} {g : Sat256}
     {sel : UInt256} {mem rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
-    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨7847⟩
+    (h : RD fork endBytecode I g (initState σ σ₀ g A I) ⟨7847⟩
       (⟨1⟩ :: endFreeUrnsEndPtr :: endFreeUrnsSelectorWord :: endPackVatWord σ I ::
         ⟨0⟩ :: ⟨0⟩ :: endFreeIlkWord I :: endFreeReturnPc :: sel :: [])
       mem (UInt256.ofNat 7) rdata acc k C) :
-    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨7865⟩
+    ∃ k' C', RD fork endBytecode I g (initState σ σ₀ g A I) ⟨7865⟩
       (endFreeUrnsEndPtr :: endFreeUrnsSelectorWord :: endPackVatWord σ I ::
         ⟨0⟩ :: ⟨0⟩ :: endFreeIlkWord I :: endFreeReturnPc :: sel :: [])
       mem (UInt256.ofNat 7) rdata acc k' C' := by
@@ -2641,12 +2643,12 @@ theorem endFreeX_urnsCallSucceeded {σ σ₀ A I} {g : Sat256}
 theorem endFreeX_urnsReturnDecodeOk {σ σ₀ A I} {g : Sat256}
     {sel : UInt256} {out : ByteArray}
     {acc : AccountMap} {k C : ℕ}
-    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨7865⟩
+    (h : RD fork endBytecode I g (initState σ σ₀ g A I) ⟨7865⟩
       (endFreeUrnsEndPtr :: endFreeUrnsSelectorWord :: endPackVatWord σ I ::
         ⟨0⟩ :: ⟨0⟩ :: endFreeIlkWord I :: endFreeReturnPc :: sel :: [])
       (endFreeUrnsPostCallMem I out) (UInt256.ofNat 7) out acc k C)
     (hlo : 64 ≤ out.size) (hout : out.size < UInt256.size) :
-    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨7900⟩
+    ∃ k' C', RD fork endBytecode I g (initState σ σ₀ g A I) ⟨7900⟩
       (endFreeUrnArtWord out :: endFreeUrnInkWord out :: endFreeIlkWord I ::
         endFreeReturnPc :: sel :: [])
       (endFreeUrnsPostCallMem I out) (UInt256.ofNat 7) out acc k' C' := by
@@ -2705,12 +2707,12 @@ theorem endFreeX_urnsReturnDecodeOk {σ σ₀ A I} {g : Sat256}
 theorem endFreeX_urnsReturnDecodeShort {σ σ₀ A I} {g : Sat256}
     {sel : UInt256} {out : ByteArray}
     {acc : AccountMap} {k C : ℕ}
-    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨7865⟩
+    (h : RD fork endBytecode I g (initState σ σ₀ g A I) ⟨7865⟩
       (endFreeUrnsEndPtr :: endFreeUrnsSelectorWord :: endPackVatWord σ I ::
         ⟨0⟩ :: ⟨0⟩ :: endFreeIlkWord I :: endFreeReturnPc :: sel :: [])
       (endFreeUrnsPostCallMem I out) (UInt256.ofNat 7) out acc k C)
     (hshort : out.size < 64) (hout : out.size < UInt256.size) :
-    RDrev endBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork endBytecode g (initState σ σ₀ g A I) := by
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ (endFreeUrnsPostCallMem I out).size then ⟨0⟩
         else UInt256.ofNat
@@ -2750,10 +2752,10 @@ theorem endFreeX_artNonzero {σ σ₀ A I} {g : Sat256}
     (hart : art ≠ ⟨0⟩)
     (hmem : mem.size = 196)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨7900⟩
+    (h : RD fork endBytecode I g (initState σ σ₀ g A I) ⟨7900⟩
       (art :: ink :: endFreeIlkWord I :: endFreeReturnPc :: sel :: [])
       mem (UInt256.ofNat 7) rdata acc k C) :
-    RDrev endBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork endBytecode g (initState σ σ₀ g A I) := by
   have rd7905 := evm_run h with [
     raw dup1 (by native_decide) (by evm_ov),
     raw iszero (by native_decide) (by evm_ov),
@@ -2763,7 +2765,7 @@ theorem endFreeX_artNonzero {σ σ₀ A I} {g : Sat256}
   have rd7906 := rd7905.jumpiNT (by native_decide)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   have rd7906' :
-      RD endBytecode I g (initState σ σ₀ g A I) ⟨7906⟩
+      RD fork endBytecode I g (initState σ σ₀ g A I) ⟨7906⟩
         (art :: ink :: endFreeIlkWord I :: endFreeReturnPc :: sel :: [])
         mem (UInt256.ofNat 7) rdata acc (k + 1 + 1 + 1 + 1)
         (C + 3 + 3 + 3 + 10) := by
@@ -2784,10 +2786,10 @@ theorem endFreeX_artNonzero {σ σ₀ A I} {g : Sat256}
 theorem endFreeX_artZero {σ σ₀ A I} {g : Sat256}
     {sel ink : UInt256} {mem rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
-    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨7900⟩
+    (h : RD fork endBytecode I g (initState σ σ₀ g A I) ⟨7900⟩
       (⟨0⟩ :: ink :: endFreeIlkWord I :: endFreeReturnPc :: sel :: [])
       mem (UInt256.ofNat 7) rdata acc k C) :
-    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨7969⟩
+    ∃ k' C', RD fork endBytecode I g (initState σ σ₀ g A I) ⟨7969⟩
       (⟨0⟩ :: ink :: endFreeIlkWord I :: endFreeReturnPc :: sel :: [])
       mem (UInt256.ofNat 7) rdata acc k' C' := by
   have rd7969pre := evm_run h with [
@@ -2803,10 +2805,10 @@ theorem endFreeX_inkInRange {σ σ₀ A I} {g : Sat256}
     {sel art ink : UInt256} {mem rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     (hink : ink.toNat ≤ 2 ^ 255)
-    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨7969⟩
+    (h : RD fork endBytecode I g (initState σ σ₀ g A I) ⟨7969⟩
       (art :: ink :: endFreeIlkWord I :: endFreeReturnPc :: sel :: [])
       mem (UInt256.ofNat 7) rdata acc k C) :
-    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨8041⟩
+    ∃ k' C', RD fork endBytecode I g (initState σ σ₀ g A I) ⟨8041⟩
       (art :: ink :: endFreeIlkWord I :: endFreeReturnPc :: sel :: [])
       mem (UInt256.ofNat 7) rdata acc k' C' := by
   have hlimit : endFreeInt256LimitWord.toNat = 2 ^ 255 := by native_decide
@@ -2834,10 +2836,10 @@ theorem endFreeX_inkOverflow {σ σ₀ A I} {g : Sat256}
     (hink : 2 ^ 255 < ink.toNat)
     (hmem : mem.size = 196)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨7969⟩
+    (h : RD fork endBytecode I g (initState σ σ₀ g A I) ⟨7969⟩
       (art :: ink :: endFreeIlkWord I :: endFreeReturnPc :: sel :: [])
       mem (UInt256.ofNat 7) rdata acc k C) :
-    RDrev endBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork endBytecode g (initState σ σ₀ g A I) := by
   have hlimit : endFreeInt256LimitWord.toNat = 2 ^ 255 := by native_decide
   have hgt : UInt256.gt ink endFreeInt256LimitWord = ⟨1⟩ := by
     apply ugt_one
@@ -2856,7 +2858,7 @@ theorem endFreeX_inkOverflow {σ σ₀ A I} {g : Sat256}
   have rd7982 := rd8041pre.jumpiNT (by native_decide)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   have rd7982' :
-      RD endBytecode I g (initState σ σ₀ g A I) ⟨7982⟩
+      RD fork endBytecode I g (initState σ σ₀ g A I) ⟨7982⟩
         (art :: ink :: endFreeIlkWord I :: endFreeReturnPc :: sel :: [])
         mem (UInt256.ofNat 7) rdata acc (k + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1)
         (C + 1 + 3 + 3 + 3 + 3 + 3 + 3 + 3 + 10) := by
@@ -2876,10 +2878,10 @@ theorem endFreeX_inkOverflow {σ σ₀ A I} {g : Sat256}
 
 theorem endFreeX_grabExtcodesizeGuard {σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {out : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨8041⟩
+    (h : RD fork endBytecode I g (initState σ σ₀ g A I) ⟨8041⟩
       (⟨0⟩ :: endFreeUrnInkWord out :: endFreeIlkWord I :: endFreeReturnPc :: sel :: [])
       (endFreeUrnsPostCallMem I out) (UInt256.ofNat 7) out σ' k C) :
-    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨8143⟩
+    ∃ k' C', RD fork endBytecode I g (initState σ σ₀ g A I) ⟨8143⟩
       (endPackVatWord σ' I :: endPackVatWord σ' I :: ⟨0⟩ ::
         endFreeGrabOutPtr :: endFreeGrabInSize :: endFreeGrabOutPtr ::
         endFreeGrabOutSize :: endFreeGrabEndPtr :: endFreeGrabSelectorWord ::
@@ -2934,7 +2936,7 @@ theorem endFreeX_grabExtcodesizeGuard {σ σ' σ₀ A I} {g : Sat256}
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd8045raw⟩ := rd8044.sload (by native_decide) (by evm_ov)
   have rd8045 : ∃ k' C',
-      RD endBytecode I g (initState σ σ₀ g A I) ⟨8045⟩
+      RD fork endBytecode I g (initState σ σ₀ g A I) ⟨8045⟩
         (solcSlotWordAt ⟨1⟩ σ' I :: ⟨0⟩ :: endFreeUrnInkWord out ::
           endFreeIlkWord I :: endFreeReturnPc :: sel :: [])
         (endFreeUrnsPostCallMem I out) (UInt256.ofNat 7) out σ' k' C' := by
@@ -2945,7 +2947,7 @@ theorem endFreeX_grabExtcodesizeGuard {σ σ' σ₀ A I} {g : Sat256}
     raw dup1 (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd8049raw⟩ := rd8048.sload (by native_decide) (by evm_ov)
   have rd8049 : ∃ k' C',
-      RD endBytecode I g (initState σ σ₀ g A I) ⟨8049⟩
+      RD fork endBytecode I g (initState σ σ₀ g A I) ⟨8049⟩
         (solcSlotWordAt ⟨4⟩ σ' I :: ⟨4⟩ :: solcSlotWordAt ⟨1⟩ σ' I ::
           ⟨0⟩ :: endFreeUrnInkWord out :: endFreeIlkWord I :: endFreeReturnPc ::
           sel :: [])
@@ -3065,7 +3067,7 @@ theorem endFreeX_grabExtcodesizeGuard {σ σ' σ₀ A I} {g : Sat256}
     raw dup8 (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov)]
   have rd8143 : ∃ k' C',
-      RD endBytecode I g (initState σ σ₀ g A I) ⟨8143⟩
+      RD fork endBytecode I g (initState σ σ₀ g A I) ⟨8143⟩
         (endPackVatWord σ' I :: endPackVatWord σ' I :: ⟨0⟩ ::
           endFreeGrabOutPtr :: endFreeGrabInSize :: endFreeGrabOutPtr ::
           endFreeGrabOutSize :: endFreeGrabEndPtr :: endFreeGrabSelectorWord ::
@@ -3082,12 +3084,12 @@ theorem endFreeX_grabExtcodesizeGuard {σ σ' σ₀ A I} {g : Sat256}
 
 theorem endFreeX_grabNoCode {σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {out : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨8041⟩
+    (h : RD fork endBytecode I g (initState σ σ₀ g A I) ⟨8041⟩
       (⟨0⟩ :: endFreeUrnInkWord out :: endFreeIlkWord I :: endFreeReturnPc :: sel :: [])
       (endFreeUrnsPostCallMem I out) (UInt256.ofNat 7) out σ' k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ' (endPackVatWord σ' I) = ⟨0⟩) :
-    RDrev endBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork endBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd8143⟩ := endFreeX_grabExtcodesizeGuard h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨8143⟩) (okPc := ⟨8155⟩) rd8143
     hcodeSize
@@ -3097,12 +3099,12 @@ theorem endFreeX_grabNoCode {σ σ' σ₀ A I} {g : Sat256}
 
 theorem endFreeX_grabCallReady {σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {out : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨8041⟩
+    (h : RD fork endBytecode I g (initState σ σ₀ g A I) ⟨8041⟩
       (⟨0⟩ :: endFreeUrnInkWord out :: endFreeIlkWord I :: endFreeReturnPc :: sel :: [])
       (endFreeUrnsPostCallMem I out) (UInt256.ofNat 7) out σ' k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ' (endPackVatWord σ' I) ≠ ⟨0⟩) :
-    ∃ gasWord k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨8158⟩
+    ∃ gasWord k' C', RD fork endBytecode I g (initState σ σ₀ g A I) ⟨8158⟩
       (gasWord :: endPackVatWord σ' I :: ⟨0⟩ :: endFreeGrabOutPtr ::
         endFreeGrabInSize :: endFreeGrabOutPtr :: endFreeGrabOutSize ::
         endFreeGrabEndPtr :: endFreeGrabSelectorWord :: endPackVatWord σ' I ::
@@ -3120,7 +3122,7 @@ theorem endFreeX_grabCallReady {σ σ' σ₀ A I} {g : Sat256}
 
 theorem endFreeX_grabPostCall {σ σ' σ₀ A I} {g : Sat256}
     {sel gasWord : UInt256} {out : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨8158⟩
+    (h : RD fork endBytecode I g (initState σ σ₀ g A I) ⟨8158⟩
       (gasWord :: endPackVatWord σ' I :: ⟨0⟩ :: endFreeGrabOutPtr ::
         endFreeGrabInSize :: endFreeGrabOutPtr :: endFreeGrabOutSize ::
         endFreeGrabEndPtr :: endFreeGrabSelectorWord :: endPackVatWord σ' I ::
@@ -3131,15 +3133,15 @@ theorem endFreeX_grabPostCall {σ σ' σ₀ A I} {g : Sat256}
     ∃ (σ'' : AccountMap)
       (z : Bool) (ret : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ'', g'', A', z, ret) = Ethereum.EVM.Θ σ' σ₀ Ain
+        (σ'', g'', A', z, ret) = Ethereum.EVM.Θ fork σ' σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endPackVatWord σ' I))
-          (toExecute σ' (AccountAddress.ofUInt256 (endPackVatWord σ' I)))
+          (toExecute fork σ' (AccountAddress.ofUInt256 (endPackVatWord σ' I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endFreeGrabCalldataMem σ' I out).readWithPadding
             endFreeGrabOutPtr.toNat endFreeGrabInSize.toNat)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
-      ∧ RD endBytecode I g (initState σ σ₀ g A I) ⟨8159⟩
+      ∧ RD fork endBytecode I g (initState σ σ₀ g A I) ⟨8159⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: endFreeGrabEndPtr :: endFreeGrabSelectorWord ::
             endPackVatWord σ' I :: ⟨0⟩ :: endFreeUrnInkWord out :: endFreeIlkWord I ::
             endFreeReturnPc :: sel :: [])
@@ -3166,7 +3168,7 @@ theorem endFreeX_grabPostCall {σ σ' σ₀ A I} {g : Sat256}
 
 theorem endFreeX_grabCallDepthLimit {σ σ' σ₀ A I} {g : Sat256}
     {sel gasWord : UInt256} {out : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨8158⟩
+    (h : RD fork endBytecode I g (initState σ σ₀ g A I) ⟨8158⟩
       (gasWord :: endPackVatWord σ' I :: ⟨0⟩ :: endFreeGrabOutPtr ::
         endFreeGrabInSize :: endFreeGrabOutPtr :: endFreeGrabOutSize ::
         endFreeGrabEndPtr :: endFreeGrabSelectorWord :: endPackVatWord σ' I ::
@@ -3174,7 +3176,7 @@ theorem endFreeX_grabCallDepthLimit {σ σ' σ₀ A I} {g : Sat256}
         sel :: [])
       (endFreeGrabCalldataMem σ' I out) (UInt256.ofNat 11) out σ' k C)
     (hdepth : I.depth = 1024) :
-    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨8159⟩
+    ∃ k' C', RD fork endBytecode I g (initState σ σ₀ g A I) ⟨8159⟩
       (⟨0⟩ :: endFreeGrabEndPtr :: endFreeGrabSelectorWord :: endPackVatWord σ' I ::
         ⟨0⟩ :: endFreeUrnInkWord out :: endFreeIlkWord I :: endFreeReturnPc :: sel :: [])
       (endFreeGrabCalldataMem σ' I out) (UInt256.ofNat 11)
@@ -3196,12 +3198,12 @@ theorem endFreeX_grabCallDepthLimit {σ σ' σ₀ A I} {g : Sat256}
 
 theorem endFreeX_grabCallFailed {σ σpre σpost σ₀ A I} {g : Sat256}
     {sel : UInt256} {out mem rdata : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨8159⟩
+    (h : RD fork endBytecode I g (initState σ σ₀ g A I) ⟨8159⟩
       (⟨0⟩ :: endFreeGrabEndPtr :: endFreeGrabSelectorWord :: endPackVatWord σpre I ::
         ⟨0⟩ :: endFreeUrnInkWord out :: endFreeIlkWord I :: endFreeReturnPc :: sel :: [])
       mem (UInt256.ofNat 11) rdata σpost k C)
     (hrdataSize : rdata.size < UInt256.size) :
-    RDrev endBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork endBytecode g (initState σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨8159⟩) (okPc := ⟨8175⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -3211,11 +3213,11 @@ theorem endFreeX_grabCallFailed {σ σpre σpost σ₀ A I} {g : Sat256}
 
 theorem endFreeX_grabCallSucceeded {σ σpre σpost σ₀ A I} {g : Sat256}
     {sel : UInt256} {out mem rdata : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨8159⟩
+    (h : RD fork endBytecode I g (initState σ σ₀ g A I) ⟨8159⟩
       (⟨1⟩ :: endFreeGrabEndPtr :: endFreeGrabSelectorWord :: endPackVatWord σpre I ::
         ⟨0⟩ :: endFreeUrnInkWord out :: endFreeIlkWord I :: endFreeReturnPc :: sel :: [])
       mem (UInt256.ofNat 11) rdata σpost k C) :
-    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨8177⟩
+    ∃ k' C', RD fork endBytecode I g (initState σ σ₀ g A I) ⟨8177⟩
       (endFreeGrabEndPtr :: endFreeGrabSelectorWord :: endPackVatWord σpre I ::
         ⟨0⟩ :: endFreeUrnInkWord out :: endFreeIlkWord I :: endFreeReturnPc :: sel :: [])
       mem (UInt256.ofNat 11) rdata σpost k' C' := by
@@ -3228,13 +3230,13 @@ theorem endFreeX_grabCallSucceeded {σ σpre σpost σ₀ A I} {g : Sat256}
 theorem endFreeX_grabLogReturnSplit {I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} {σ : AccountMap} {out ret : ByteArray}
     {acc : AccountMap}
-    (h : RD endBytecode I g s0 ⟨8177⟩
+    (h : RD fork endBytecode I g s0 ⟨8177⟩
       (endFreeGrabEndPtr :: endFreeGrabSelectorWord :: endPackVatWord σ I ::
         ⟨0⟩ :: endFreeUrnInkWord out :: endFreeIlkWord I :: endFreeReturnPc :: sel :: [])
       (endFreeGrabPostCallMem σ I out ret) (UInt256.ofNat 11) ret acc k C) :
     (I.perm = true ∧
-      RDret endBytecode g s0 acc ByteArray.empty) ∨
-      (I.perm = false ∧ RDstatic endBytecode g s0) := by
+      RDret fork endBytecode g s0 acc ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic fork endBytecode g s0) := by
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ (endFreeGrabPostCallMem σ I out ret).size then ⟨0⟩
         else UInt256.ofNat
@@ -3285,7 +3287,7 @@ theorem endFreeX_grabLogReturnSplit {I} {g : Sat256} {s0 : State} {k C : ℕ}
     raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
     raw add (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
-  have rd8234 : ∃ k' C', RD endBytecode I g s0 ⟨8234⟩
+  have rd8234 : ∃ k' C', RD fork endBytecode I g s0 ⟨8234⟩
       [⟨128⟩, ⟨32⟩,
         ⟨0xf26f2b994a5e16f0960958e62541681f9e3e84d4caac2e487d25e0c75243f0d8⟩,
         endFreeIlkWord I, solcSourceWord I, ⟨0⟩, endFreeUrnInkWord out,
@@ -3358,7 +3360,7 @@ theorem endReachFreeBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I endFreeConcreteSelector) :
-    ∃ k C, RD endBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork endBytecode I g (initState σ σ₀ g A I)
         endFreeEntryPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   have hword : endSelWord I = ⟨0xc83062c6⟩ :=
@@ -3386,10 +3388,10 @@ theorem endReachFreeBody {σ σ₀ A I} {g : Sat256}
 
 theorem endFreeX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD endBytecode I g
+    (hreach : ∃ k C, RD fork endBytecode I g
       (initState σ σ₀ g A I) endFreeEntryPc [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD endBytecode I g
+    ∃ k C, RD fork endBytecode I g
       (initState σ σ₀ g A I) endFreeBodyPc
       [endFreeIlkWord I, endFreeReturnPc, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -3410,10 +3412,10 @@ theorem endFreeX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem endFreeX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
-    (hreach : ∃ k C, RD endBytecode I g
+    (hreach : ∃ k C, RD fork endBytecode I g
       (initState σ σ₀ g A I) endFreeEntryPc [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev endBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork endBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -3433,10 +3435,10 @@ theorem endFreeBodyCoreDecodeFailed_short
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some freeTransition)
-    (hreach : ∃ k C, RD endBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork endBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) endFreeEntryPc [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact (endFreeX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch (endDecode_free_none_short hsz4 hshort)
 
@@ -3444,14 +3446,14 @@ theorem endFreeBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (selectorOf freeTransition)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsel' : selIs I endFreeConcreteSelector := by
     simpa [endFreeConcreteSelector] using hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I endFreeConcreteSelector (by rfl) hsel'
   have hdispatch : dispatchMsg contract I.calldata = some freeTransition :=
     endDispatchFree hsel
-  have hreach := endReachFreeBody
+  have hreach := endReachFreeBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel'
   by_cases hsz36 : 36 ≤ I.calldata.size
@@ -3471,7 +3473,7 @@ theorem endFreeBody {σ σ₀ A I} {g : UInt256}
             ⟨0⟩
       ·
         have hbody :
-            ExecTransitionBody config contract evmStele (endFreeStore I)
+            ExecTransitionBody fork config contract evmStele (endFreeStore I)
               freeTransition.body .reverted := by
           simpa [evmStele] using
             endFreeBodyReverts_urnsNoCode
@@ -3506,7 +3508,7 @@ theorem endFreeBody {σ σ₀ A I} {g : UInt256}
               _ = AccountAddress.ofUInt256 (endPackVatWord σ I) :=
                     hAddressId (AccountAddress.ofUInt256 (endPackVatWord σ I))
           have hcallStele :
-              typedCallViaEVM config evmStele
+              typedCallViaEVM fork config evmStele
                 (EVM.address (endPackVatAddr σ I)) "urns" 0
                 [.fixedBytes bytes32Width (endBytes32ArgBytes I), .address I.source]
                 (z,
@@ -3528,7 +3530,7 @@ theorem endFreeBody {σ σ₀ A I} {g : UInt256}
               (by simpa [initState] using hΘeq))
           cases z
           · have hbody :
-                ExecTransitionBody config contract evmStele (endFreeStore I)
+                ExecTransitionBody fork config contract evmStele (endFreeStore I)
                   freeTransition.body .reverted := by
               simpa [evmStele] using
                 endFreeBodyReverts_urnsCallFailed
@@ -3557,7 +3559,7 @@ theorem endFreeBody {σ σ₀ A I} {g : UInt256}
             obtain ⟨_, _, rd7865⟩ := endFreeX_urnsCallSucceeded rd7847
             by_cases hshort : out.size < 64
             · have hbody :
-                  ExecTransitionBody config contract evmStele (endFreeStore I)
+                  ExecTransitionBody fork config contract evmStele (endFreeStore I)
                     freeTransition.body .reverted := by
                 simpa [evmStele, evmUrnsStele] using
                   endFreeBodyReverts_urnsDecodeShort
@@ -3572,7 +3574,7 @@ theorem endFreeBody {σ σ₀ A I} {g : UInt256}
               obtain ⟨_, _, rd7900⟩ := endFreeX_urnsReturnDecodeOk rd7865 hlo hout
               by_cases hartNonzero : endFreeUrnArtWord out ≠ ⟨0⟩
               · have hbody :
-                    ExecTransitionBody config contract evmStele (endFreeStore I)
+                    ExecTransitionBody fork config contract evmStele (endFreeStore I)
                       freeTransition.body .reverted := by
                   simpa [evmStele, evmUrnsStele] using
                     endFreeBodyReverts_artNonzero
@@ -3594,7 +3596,7 @@ theorem endFreeBody {σ σ₀ A I} {g : UInt256}
                 obtain ⟨_, _, rd7969⟩ := endFreeX_artZero rd7900zero
                 by_cases hinkOverflow : 2 ^ 255 < (endFreeUrnInkWord out).toNat
                 · have hbody :
-                      ExecTransitionBody config contract evmStele (endFreeStore I)
+                      ExecTransitionBody fork config contract evmStele (endFreeStore I)
                         freeTransition.body .reverted := by
                     simpa [evmStele, evmUrnsStele] using
                       endFreeBodyReverts_inkOverflow
@@ -3618,7 +3620,7 @@ theorem endFreeBody {σ σ₀ A I} {g : UInt256}
                           (endPackVatWord evmUrnsStele.accountMap I) = ⟨0⟩ := by
                       simpa [evmUrnsStele] using hgrabCode
                     have hbody :
-                        ExecTransitionBody config contract evmStele (endFreeStore I)
+                        ExecTransitionBody fork config contract evmStele (endFreeStore I)
                           freeTransition.body .reverted := by
                       simpa [evmStele, evmUrnsStele] using
                         endFreeBodyReverts_grabNoCode
@@ -3660,7 +3662,7 @@ theorem endFreeBody {σ σ₀ A I} {g : UInt256}
                           _ = AccountAddress.ofUInt256 (endPackVatWord σ' I) :=
                                 hAddressId (AccountAddress.ofUInt256 (endPackVatWord σ' I))
                       have hgrabCallStele :
-                          typedCallViaEVM config evmUrnsStele
+                          typedCallViaEVM fork config evmUrnsStele
                             (EVM.address (endPackVatAddr evmUrnsStele.accountMap I)) "grab" 0
                             [.fixedBytes bytes32Width (endBytes32ArgBytes I),
                               .address I.source, .address I.source,
@@ -3693,7 +3695,7 @@ theorem endFreeBody {σ σ₀ A I} {g : UInt256}
                           (by simpa [evmUrnsEvm, initState] using hΘGrabEq))
                       cases zGrab
                       · have hbody :
-                            ExecTransitionBody config contract evmStele (endFreeStore I)
+                            ExecTransitionBody fork config contract evmStele (endFreeStore I)
                               freeTransition.body .reverted := by
                           simpa [evmStele, evmUrnsStele] using
                             endFreeBodyReverts_grabCallFailed
@@ -3723,11 +3725,11 @@ theorem endFreeBody {σ σ₀ A I} {g : UInt256}
                         have hretSplit := endFreeX_grabLogReturnSplit
                           (σ := σ') (out := out) (ret := ret) rd8177
                         have hbodySplit :
-                            (I.perm = true → ExecTransitionBody config contract evmStele (endFreeStore I)
+                            (I.perm = true → ExecTransitionBody fork config contract evmStele (endFreeStore I)
                               freeTransition.body
                               (.returned { contract := contract, locals := endFreeStoreGrab I out }
                                 evmGrabStele none)) ∧
-                            (I.perm = false → ExecTransitionBody config contract evmStele
+                            (I.perm = false → ExecTransitionBody fork config contract evmStele
                               (endFreeStore I) freeTransition.body .staticViolation) := by
                           simpa [evmStele, evmUrnsStele, evmGrabStele] using
                             endFreeBodyReturns_grabSuccessSplit
@@ -3757,10 +3759,11 @@ theorem endFreeBody {σ σ₀ A I} {g : UInt256}
                       obtain ⟨_, _, rd8159⟩ :=
                         endFreeX_grabCallDepthLimit rdGrabReady hgrabDepthEq
                       let A_grab :=
-                        (evmUrnsStele.addAccessedAccount
-                          (EVM.address (endPackVatAddr evmUrnsStele.accountMap I))).substate
+                        (Ethereum.EVM.callSubstate fork
+                          evmUrnsStele.accountMap (EVM.address (endPackVatAddr
+                          evmUrnsStele.accountMap I)) evmUrnsStele.substate)
                       have hgrabCallStele :
-                          typedCallViaEVM config evmUrnsStele
+                          typedCallViaEVM fork config evmUrnsStele
                             (EVM.address (endPackVatAddr evmUrnsStele.accountMap I)) "grab" 0
                             [.fixedBytes bytes32Width (endBytes32ArgBytes I),
                               .address I.source,
@@ -3785,7 +3788,7 @@ theorem endFreeBody {σ σ₀ A I} {g : UInt256}
                             (endFreeGrabEncode_eq evmUrnsStele.accountMap I out hsz36 hinkOk)
                             (by simpa [evmUrnsStele, evmStele, initState] using hgrabDepthEq))
                       have hbody :
-                          ExecTransitionBody config contract evmStele (endFreeStore I)
+                          ExecTransitionBody fork config contract evmStele (endFreeStore I)
                             freeTransition.body .reverted := by
                         simpa [evmStele, evmUrnsStele] using
                           endFreeBodyReverts_grabCallFailed
@@ -3806,9 +3809,10 @@ theorem endFreeBody {σ σ₀ A I} {g : UInt256}
           obtain ⟨_, _, rd7847⟩ :=
             endFreeX_urnsCallDepthLimit (g := Sat256.ofUInt256 g) hcallReady hdepthEq
           let A_urns :=
-            (evmStele.addAccessedAccount (EVM.address (endPackVatAddr σ I))).substate
+            (Ethereum.EVM.callSubstate fork evmStele.accountMap (EVM.address
+              (endPackVatAddr σ I)) evmStele.substate)
           have hcallStele :
-              typedCallViaEVM config evmStele
+              typedCallViaEVM fork config evmStele
                 (EVM.address (endPackVatAddr σ I)) "urns" 0
                 [.fixedBytes bytes32Width (endBytes32ArgBytes I), .address I.source]
                 (false, { evmStele with substate := A_urns }, ByteArray.empty) true := by
@@ -3820,7 +3824,7 @@ theorem endFreeBody {σ σ₀ A I} {g : UInt256}
                 (endFreeUrnsEncode_eq I hsz36 solcFreePtrMem_size)
                 (by simpa [evmStele, initState] using hdepthEq))
           have hbody :
-              ExecTransitionBody config contract evmStele (endFreeStore I)
+              ExecTransitionBody fork config contract evmStele (endFreeStore I)
                 freeTransition.body .reverted := by
             simpa [evmStele] using
               endFreeBodyReverts_urnsCallFailed
@@ -3834,7 +3838,7 @@ theorem endFreeBody {σ σ₀ A I} {g : UInt256}
             |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
     ·
       have hbody :
-          ExecTransitionBody config contract
+          ExecTransitionBody fork config contract
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (endFreeStore I) freeTransition.body .reverted := by
         simpa using

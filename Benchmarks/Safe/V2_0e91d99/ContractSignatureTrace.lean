@@ -2,6 +2,8 @@ import Benchmarks.Safe.V2_0e91d99.ContractSignaturePrepare
 import Benchmarks.Safe.V2_0e91d99.ContractSignatureReturn
 import Benchmarks.Safe.V2_0e91d99.RawStaticCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V2_0e91d99
@@ -9,7 +11,7 @@ namespace Benchmarks.Safe.V2_0e91d99
 theorem safeContractSignatureTrace (words : List UInt256)
     {I g s0 σ k C aw mem rdata ptr src subptr} {signature : ByteArray}
     {hash offset owner ret : UInt256} {R : List UInt256} (evm : EVM.State)
-    (h : RD safeBytecode I g s0 ⟨7036⟩
+    (h : RD fork safeBytecode I g s0 ⟨7036⟩
       (UInt256.ofNat signature.size :: offset :: UInt256.ofNat src :: hash :: owner :: ret :: R)
       mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ) (hworld : evm.σ₀ = s0.σ₀)
@@ -26,12 +28,12 @@ theorem safeContractSignatureTrace (words : List UInt256)
     (hsmall : contractSignatureCallLength signature.size ≤ maxReturnDataSizeByGas)
     (hov : R.length + 33 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
     ∃ evm' σ' z out,
-      callViaEVM evm (EVM.address (AccountAddress.ofUInt256 owner)) 0
+      callViaEVM fork evm (EVM.address (AccountAddress.ofUInt256 owner)) 0
         (contractSignatureCallBytes hash signature) (z, evm', out) false ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧ evm'.σ₀ = s0.σ₀ ∧
       out.size < 2 ^ 138 ∧
-      ((RDrev safeBytecode g s0 ∧ contractSignatureResult z out = false) ∨
-        ∃ aw' k' C', RD safeBytecode I g s0 ret R
+      ((RDrev fork safeBytecode g s0 ∧ contractSignatureResult z out = false) ∨
+        ∃ aw' k' C', RD fork safeBytecode I g s0 ret R
           (signatureReturnMemory (contractSignatureCallMemory mem ptr signature.size hash words)
             ptr out) aw' out σ' k' C' ∧ contractSignatureResult z out = true) := by
   have hptr : ptr + 32 < UInt256.size := by omega
@@ -51,7 +53,7 @@ theorem safeContractSignatureTrace (words : List UInt256)
     rw [addressOfAddress]
     simpa only [accountAddress_ofUInt256_eq_ofNat_toNat] using
       (addressOfNat_eq_of_masked_word owner).symm
-  have hc' : callViaEVM evm (EVM.address (AccountAddress.ofUInt256 owner)) 0
+  have hc' : callViaEVM fork evm (EVM.address (AccountAddress.ofUInt256 owner)) 0
       (contractSignatureCallBytes hash signature) (z, evm', out) false := by
     simpa only [ht, ulit_toNat' ptr (by omega),
       ulit_toNat' (contractSignatureCallLength signature.size) hcl,

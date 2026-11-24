@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.SignedComparison
 import Benchmarks.UniswapV4PoolManager.WordBoolean
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_022
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -10,29 +12,29 @@ namespace Benchmarks.UniswapV4PoolManager
 open poolManagerBlocks
 set_option maxRecDepth 5000
 
-def beforeLiquidityBranchTrace (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256)
+def beforeLiquidityBranchTrace (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256)
     (s0 : State) (mem rdata : ByteArray) (σ : AccountMap) (add : Bool) (hook : AccountAddress)
     (src params len key a b : UInt256) (R : List UInt256) : Prop :=
-  ∃ j0 j1 aw k C, Cₘ aw ≤ C ∧ RD (deployedRuntime v) I g s0 (beforeLiquidityEncodePc add)
+  ∃ j0 j1 aw k C, Cₘ aw ≤ C ∧ RD fork (deployedRuntime v) I g s0 (beforeLiquidityEncodePc add)
     (beforeLiquidityEncodeStack add j0 j1 (accountWord hook) src params len key (a :: b :: R)) mem aw rdata σ k C
 
-def beforeLiquiditySelection (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256)
+def beforeLiquiditySelection (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256)
     (s0 : State) (mem rdata : ByteArray) (σ : AccountMap) (hook : AccountAddress) (p : ModifyLiquidityWords)
     (src params len key a b : UInt256) (R : List UInt256) : Prop :=
   if beforeLiquidityEnabled hook p true then
-    beforeLiquidityBranchTrace v I g s0 mem rdata σ true hook src params len key a b R
+    beforeLiquidityBranchTrace fork v I g s0 mem rdata σ true hook src params len key a b R
   else if beforeLiquidityEnabled hook p false then
-    beforeLiquidityBranchTrace v I g s0 mem rdata σ false hook src params len key a b R
-  else beforeLiquidityContinuation v I g s0 mem rdata σ src params len key a b R
+    beforeLiquidityBranchTrace fork v I g s0 mem rdata σ false hook src params len key a b R
+  else beforeLiquidityContinuation fork v I g s0 mem rdata σ src params len key a b R
 
 theorem beforeLiquiditySelectTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw src params len key a b : UInt256} {hook : AccountAddress} {p : ModifyLiquidityWords}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+12 ≤ 1024) (hpaid : Cₘ aw ≤ C)
     (hd : memLoad (params+UInt256.ofNat 64) mem = p.delta)
-    (h : RD (deployedRuntime v) I g s0 ⟨7902⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨7902⟩
       (accountWord hook :: accountWord hook :: src :: params :: len :: key :: a :: b :: R) mem aw rdata σ k C) :
-    beforeLiquiditySelection v I g s0 mem rdata σ hook p src params len key a b R := by
+    beforeLiquiditySelection fork v I g s0 mem rdata σ hook p src params len key a b R := by
   have hpay : Cₘ (M aw (params+UInt256.ofNat 64) ⟨32⟩) ≤
       C+(40+memExpansionCost aw (params+UInt256.ofNat 64) ⟨32⟩) := by
     dsimp only [memExpansionCost]; omega

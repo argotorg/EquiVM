@@ -1,29 +1,31 @@
 import Benchmarks.Morpho.MorphoBlue.SupplyMarketReach
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
 
-inductive SupplyMarketRefines (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
+inductive SupplyMarketRefines (fork : Ethereum.Fork) (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     (p : MarketParamsWords) (assets shares account srcOff len : UInt256) (data : ByteArray)
     (locals imms : Store) (evm : EVM.State) (mem : ByteArray) (fp : UInt256) (R : List UInt256) : Prop where
-  | reverted : ExecBlock config { contract := contract, locals := locals, immutables := imms }
-      evm (supplyTransition.body.drop 13) .reverted → RDrev (deployedRuntime v) g s0 →
-      SupplyMarketRefines v ee g s0 p assets shares account srcOff len data locals imms evm mem fp R
+  | reverted : ExecBlock fork config { contract := contract, locals := locals, immutables := imms }
+      evm (supplyTransition.body.drop 13) .reverted → RDrev fork (deployedRuntime v) g s0 →
+      SupplyMarketRefines fork v ee g s0 p assets shares account srcOff len data locals imms evm mem fp R
   | ok {locals' evm' σ' mem' fp' aw' out' k' C'} :
-      StateBlock config { contract := contract, locals := locals, immutables := imms }
+      StateBlock fork config { contract := contract, locals := locals, immutables := imms }
         evm (supplyTransition.body.drop 13) { contract := contract, locals := locals', immutables := imms }
         evm' (supplyTransition.body.drop 16) → SupplyLocals p assets shares account data locals' →
       locals'.get? "__memory" = locals.get? "__memory" →
       locals'.get? "__c6" = some (.int (Int.ofNat assets.toNat)) →
       SourceState s0 ee σ' evm' → MorphoHeap mem' fp' 160 → HeapAdvance mem fp mem' fp' 128 →
       (marketFieldWord σ' ee p.id 0).toNat + assets.toNat < 2 ^ 128 →
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat 4124)
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 4124)
         ((marketFieldWord σ' ee p.id 0 + assets) :: supplyStoreTail σ' ee p.id assets shares account srcOff len R)
         mem' aw' out' σ' k' C' →
-      SupplyMarketRefines v ee g s0 p assets shares account srcOff len data locals imms evm mem fp R
+      SupplyMarketRefines fork v ee g s0 p assets shares account srcOff len data locals imms evm mem fp R
 
 theorem morphoSupplyMarketRefine {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : State} {aw fp assets shares account srcOff len : UInt256} {out mem : ByteArray}
@@ -31,10 +33,10 @@ theorem morphoSupplyMarketRefine {v : MorphoImmutables} {ee : ExecutionEnv} {g :
     (locals imms : Store) (hstack : R.length + 32 ≤ 1024) (hperm : ee.perm = true)
     (hl : SupplyLocals p assets shares account data locals) (hs : SourceState s0 ee σ evm)
     (hm : MorphoHeap mem fp 288)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 15480)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 15480)
       ([shares, UInt256.ofNat 4031, UInt256.ofNat 4056] ++ supplyUpdateTail p.id assets shares account srcOff len R)
       mem aw out σ k C) :
-    SupplyMarketRefines v ee g s0 p assets shares account srcOff len data locals imms evm mem fp R := by
+    SupplyMarketRefines fork v ee g s0 p assets shares account srcOff len data locals imms evm mem fp R := by
   by_cases hc : shares.toNat < 2 ^ 128
   swap
   · exact .reverted (ExecBlock.consRevert (morphoToUint128CallReverts shares evm locals imms
@@ -42,12 +44,12 @@ theorem morphoSupplyMarketRefine {v : MorphoImmutables} {ee : ExecutionEnv} {g :
       (morphoToUint128Reverts (v := v) (by change R.length + 12 + 16 ≤ 1024; omega)
         (hm.alloc64Guard (by decide)) hm.size (by rw [hm.free]; exact hm.lower)
         hm.errorGap hm.errorHi (Nat.le_of_not_gt hc) h)
-  have he1 := morphoToUint128CallOk shares evm locals imms (.var "shares") "__c5" (hl.evalShares imms evm) hc
+  have he1 := morphoToUint128CallOk (fork := fork) shares evm locals imms (.var "shares") "__c5" (hl.evalShares imms evm) hc
   let l1 := locals.insert "__c5" (.int (Int.ofNat shares.toNat))
   have hl1 : SupplyLocals p assets shares account data l1 := hl.insert _ _ (by decide) (by decide)
   have hs1 : evalExpr? config { contract := contract, locals := l1, immutables := imms } evm (.var "__c5") =
       .ok (.int (Int.ofNat shares.toNat)) := by simp only [evalExpr?, l1, store_get_self, EvalResult.ofOption]
-  have ab1 : StateBlock config { contract := contract, locals := locals, immutables := imms }
+  have ab1 : StateBlock fork config { contract := contract, locals := locals, immutables := imms }
       evm (supplyTransition.body.drop 13) { contract := contract, locals := l1, immutables := imms }
       evm (supplyTransition.body.drop 14) := StateBlock.start.step he1
   obtain ⟨a1, k1, C1, rd1⟩ := morphoToUint128Ok (v := v) (by change R.length + 12 + 16 ≤ 1024; omega)
@@ -61,7 +63,7 @@ theorem morphoSupplyMarketRefine {v : MorphoImmutables} {ee : ExecutionEnv} {g :
       "__c5" shares hl1.toMarketLocals hs1 (by simpa only [hs.env, ← hs.accounts] using Nat.le_of_not_gt hf)))
       (morphoCheckedAdd128Reverts (v := v) (by change R.length + 13 + 6 ≤ 1024; omega)
         (halfWord_bound _ _) hc (Nat.le_of_not_gt hf) rd2)
-  have hass := morphoAccrueAssetsAssign p l1 imms evm ⟨1, by decide⟩ "__c5" shares hl1.toMarketLocals hs1
+  have hass := morphoAccrueAssetsAssign (fork := fork) p l1 imms evm ⟨1, by decide⟩ "__c5" shares hl1.toMarketLocals hs1
     (by simpa only [hs.env, ← hs.accounts] using hf)
   simp only [show evm.executionEnv.perm = true from
     (congrArg ExecutionEnv.perm hs.env).trans hperm, if_true] at hass
@@ -74,7 +76,7 @@ theorem morphoSupplyMarketRefine {v : MorphoImmutables} {ee : ExecutionEnv} {g :
   have heq : SourceState s0 ee σ1 e1 := by
     simpa only [e1, σ1, hs.env, ← hs.accounts] using storeMarketField_bridge hs p.id ⟨1, by decide⟩
       (marketFieldWord σ ee p.id 1 + shares)
-  have ab2 : StateBlock config { contract := contract, locals := locals, immutables := imms }
+  have ab2 : StateBlock fork config { contract := contract, locals := locals, immutables := imms }
       evm (supplyTransition.body.drop 13) { contract := contract, locals := l1, immutables := imms }
       e1 (supplyTransition.body.drop 15) := ab1.step hass
   have rd5 := morphoBlocks.morpho_block_4056 (immWords := wordsOf (immStore v))
@@ -87,12 +89,12 @@ theorem morphoSupplyMarketRefine {v : MorphoImmutables} {ee : ExecutionEnv} {g :
       (morphoToUint128Reverts (v := v) (by change R.length + 11 + 16 ≤ 1024; omega)
         (hm2.alloc64Guard (by decide)) hm2.size (by rw [hm2.free]; exact hm2.lower)
         hm2.errorGap hm2.errorHi (Nat.le_of_not_gt hca) rd5)
-  have he2 := morphoToUint128CallOk assets e1 l1 imms (.var "assets") "__c6" (hl1.evalAssets imms e1) hca
+  have he2 := morphoToUint128CallOk (fork := fork) assets e1 l1 imms (.var "assets") "__c6" (hl1.evalAssets imms e1) hca
   let l2 := l1.insert "__c6" (.int (Int.ofNat assets.toNat))
   have hl2 : SupplyLocals p assets shares account data l2 := hl1.insert _ _ (by decide) (by decide)
   have ha2 : evalExpr? config { contract := contract, locals := l2, immutables := imms } e1 (.var "__c6") =
       .ok (.int (Int.ofNat assets.toNat)) := by simp only [evalExpr?, l2, store_get_self, EvalResult.ofOption]
-  have ab3 : StateBlock config { contract := contract, locals := locals, immutables := imms }
+  have ab3 : StateBlock fork config { contract := contract, locals := locals, immutables := imms }
       evm (supplyTransition.body.drop 13) { contract := contract, locals := l2, immutables := imms }
       e1 (supplyTransition.body.drop 16) := ab2.step he2
   obtain ⟨a6, k6, C6, rd6⟩ := morphoToUint128Ok (v := v) (by change R.length + 11 + 16 ≤ 1024; omega)

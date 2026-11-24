@@ -1,6 +1,8 @@
 import Examples.OpenZeppelinBench.Ownable2Step.Storage
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -18,7 +20,7 @@ abbrev ownerReturnWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
 theorem ownable2StepOwnerBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocals : locals.get? "_owner" = none) :
-    ExecTransitionBody config contract evm locals ownerTransition.body
+    ExecTransitionBody fork config contract evm locals ownerTransition.body
       (.returned { contract := contract, locals := locals } evm
         (some [(.address (AccountAddress.ofNat
           (UInt256.land (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)
@@ -35,10 +37,10 @@ theorem ownable2StepOwnerBodyReturns (evm : EVM.State) (locals : Store)
         (hty := hty) (hloc := by rfl), storageLocLoad_address_offset0])
 
 theorem ownable2StepX_owner {σ σ₀ A I} {g : Sat256}
-    (hreach : ∃ k C, RD ownable2StepBenchBytecode I g
+    (hreach : ∃ k C, RD fork ownable2StepBenchBytecode I g
       (initState σ σ₀ g A I) ⟨107⟩ [ownable2StepSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret ownable2StepBenchBytecode g (initState σ σ₀ g A I) σ
+    RDret fork ownable2StepBenchBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (ownerReturnWord σ I)) := by
   obtain ⟨_, _, rd107⟩ := hreach
   have rd108 := evm_run rd107 with [jumpdest, push0]
@@ -88,17 +90,17 @@ theorem ownable2StepOwnerBody {σ σ₀ A I}
     (hcode : I.code = ownable2StepBenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x8d, 0xa5, 0xcb, 0x5b]⟩)
-    (hreach : ∃ k C, RD ownable2StepBenchBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork ownable2StepBenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨107⟩
       [ownable2StepSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
   have hsz := ownable2StepOwnerSelector_size hsel
   have hd := ownable2StepDispatch_owner (cd := I.calldata) hsel
   have hdec := ownable2StepDecode_owner (I := I) hsz
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ ownerTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)

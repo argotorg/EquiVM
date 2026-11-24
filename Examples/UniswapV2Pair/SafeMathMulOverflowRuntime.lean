@@ -1,6 +1,8 @@
 import Reasoning.WordArithmetic
 import Examples.UniswapV2Pair.Bytecode
 import Examples.UniswapV2Pair.ErrorDynamicRuntime
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -15,14 +17,14 @@ theorem RD.uniswapSafeMathMulOverflow_dynamic
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {a b ret aw ptr : UInt256} {R : List UInt256} {mem : ByteArray}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD uniswapV2PairBytecode ee g s0 ⟨6780⟩ (b :: a :: ret :: R)
+    (h : RD fork uniswapV2PairBytecode ee g s0 ⟨6780⟩ (b :: a :: ret :: R)
       mem aw rdata acc k C)
     (hover : UInt256.size ≤ a.toNat * b.toNat)
     (hin : 96 ≤ mem.size) (hlo : 96 ≤ ptr.toNat) (hgap : ptr.toNat - mem.size < USize.size)
     (hfit : ptr.toNat + 131 < UInt256.size) (haw : aw.toNat * 32 < UInt256.size)
     (hawLo : 96 ≤ aw.toNat * 32) (hread64 : mem.readWithPadding 64 32 = ptr.toByteArray)
     (hov : R.length + 9 ≤ 1024) :
-    RDrev uniswapV2PairBytecode g s0 := by
+    RDrev fork uniswapV2PairBytecode g s0 := by
   have hb : b ≠ ⟨0⟩ := by
     intro hb
     subst b

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.Common
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 
@@ -10,21 +12,21 @@ theorem typedStaticCallBridge {cfg : Config} {code : ByteArray} {I : ExecutionEn
     {gasArg target inOffset inSize outOffset outSize : UInt256} {R : List UInt256}
     {name : Ident} {args : List Value}
     (hI : evm.executionEnv = I) (hσ0 : evm.σ₀ = s0.σ₀)
-    (h : RD code I g s0 pc (gasArg :: target :: inOffset :: inSize :: outOffset :: outSize :: R)
+    (h : RD fork code I g s0 pc (gasArg :: target :: inOffset :: inSize :: outOffset :: outSize :: R)
       mem aw rdata evm.accountMap k C)
     (hdec : decode code pc = some (.STATICCALL, .none))
     (hcd : cfg.externalABI.encode? name args = some (mem.readWithPadding inOffset.toNat inSize.toNat))
     (hsmall : (mem.readWithPadding inOffset.toNat inSize.toNat).size ≤ Ethereum.EVM.maxReturnDataSizeByGas)
     (hstack : R.length+1 ≤ 1024) :
     ∃ evm' z out k' C',
-      typedCallViaEVM cfg evm (AccountAddress.ofUInt256 target) name 0 args (z, evm', out) false ∧
+      typedCallViaEVM fork cfg evm (AccountAddress.ofUInt256 target) name 0 args (z, evm', out) false ∧
       evm'.executionEnv = I ∧ evm'.σ₀ = s0.σ₀ ∧
-      RD code I g s0 (pc+⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: R)
+      RD fork code I g s0 (pc+⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: R)
         (callOutputMem mem out outOffset outSize) (callActiveWords aw inOffset inSize outOffset outSize)
         out evm'.accountMap k' C' ∧ out.size < 2^138 := by
   by_cases hd : I.depth = 1024
   · obtain ⟨k', C', hr⟩ := RD.solcStaticcallDepthLimit h hdec hd hstack
-    have hc := callNotMade_depthLimit (cfg := cfg) (evm := evm) (tgt := AccountAddress.ofUInt256 target)
+    have hc := callNotMade_depthLimit (fork := fork) (cfg := cfg) (evm := evm) (tgt := AccountAddress.ofUInt256 target)
       (callPerm := false) hcd (by rw [hI]; exact hd)
     exact ⟨_, false, .empty, k', C', hc, hI, hσ0, hr, by decide⟩
   · have hdepth : I.depth.val < 1024 := by

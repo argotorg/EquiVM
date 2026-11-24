@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Flipper.DentRefundEVM
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxHeartbeats 0
@@ -56,11 +58,11 @@ theorem flipperDentBodyFrom4733Refund
     (hcallerStele : solcSourceWord I ≠ bidGuyWord (dentId I) σ I)
     (hmemSize : mem.size = 96)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (h : RD flipperBytecode I (Sat256.ofUInt256 g)
+    (h : RD fork flipperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4733⟩
       [dentBid I, dentLot I, dentId I, ⟨323⟩, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let memHash := twoWordHashMem (dentId I) ⟨1⟩ mem
   have hhashSize : memHash.size = 96 := by
     dsimp [memHash]
@@ -78,7 +80,7 @@ theorem flipperDentBodyFrom4733Refund
       flipperVatCode_zero_of_codeSize_zero
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hrefundZeroStele
     have hbody :
-        ExecTransitionBody config contract
+        ExecTransitionBody fork config contract
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (dentLocals I) dentTransition.body .reverted := by
       simpa using
@@ -102,9 +104,9 @@ theorem flipperDentBodyFrom4733Refund
       let evmRefundStele :=
         { evm0Stele with
           substate :=
-            (evm0Stele.addAccessedAccount
-              (EVM.address
-                (flipperVatAddress evm0Stele.accountMap evm0Stele.executionEnv))).substate }
+            (Ethereum.EVM.callSubstate fork evm0Stele.accountMap (EVM.address
+                (flipperVatAddress evm0Stele.accountMap evm0Stele.executionEnv)) evm0Stele.substate)
+                  }
       have hrefundEncode :
           config.externalABI.encode? "move" (dentRefundMoveArgValsOf evm0Stele I) =
             some ((dentVatRefundCallMem memHash σ I).readWithPadding 128 100) := by
@@ -114,7 +116,7 @@ theorem flipperDentBodyFrom4733Refund
           using dentVatRefundCallMem_encode (mem := memHash) (σ := σ) (I := I)
             hhashSize
       have hcallRefundStele :
-          typedCallViaEVM config evm0Stele
+          typedCallViaEVM fork config evm0Stele
             (EVM.address (flipperVatAddress evm0Stele.accountMap evm0Stele.executionEnv))
             "move" 0 (dentRefundMoveArgValsOf evm0Stele I)
             (false, evmRefundStele, ByteArray.empty) true := by
@@ -125,7 +127,7 @@ theorem flipperDentBodyFrom4733Refund
           (calldata := (dentVatRefundCallMem memHash σ I).readWithPadding 128 100)
           (callPerm := true) hrefundEncode (by simpa [evm0Stele, initState] using hdepthEq)
       have hbody :
-          ExecTransitionBody config contract evm0Stele (dentLocals I) dentTransition.body
+          ExecTransitionBody fork config contract evm0Stele (dentLocals I) dentTransition.body
             .reverted := by
         simpa [evm0Stele] using
           (flipperDentSourceBodyRefundCallFailure
@@ -155,7 +157,7 @@ theorem flipperDentBodyFrom4733Refund
           substate := A_ref
           }
       have hcallRefundEvm :
-          typedCallViaEVM config evm0Evm
+          typedCallViaEVM fork config evm0Evm
             (EVM.address (flipperVatAddress σ I)) "move" 0
             (dentRefundMoveArgValsOf evm0Evm I) (zRefund, evmRefundEvm, outRefund)
             true := by
@@ -178,12 +180,12 @@ theorem flipperDentBodyFrom4733Refund
       have hrefundArgsEq :
           dentRefundMoveArgValsOf evm0Evm I = dentRefundMoveArgValsOf evm0Stele I := rfl
       have hcallRefundStele :
-          typedCallViaEVM config evm0Stele
+          typedCallViaEVM fork config evm0Stele
             (EVM.address (flipperVatAddress evm0Stele.accountMap evm0Stele.executionEnv))
             "move" 0 (dentRefundMoveArgValsOf evm0Stele I)
             (zRefund, evmRefundStele, outRefund) true := by
         have hcallRefundSteleRaw' :
-            typedCallViaEVM config evm0Stele
+            typedCallViaEVM fork config evm0Stele
               (EVM.address (flipperVatAddress σ I)) "move" 0
               (dentRefundMoveArgValsOf evm0Evm I) (zRefund, evmRefundStele, outRefund)
               true := by
@@ -192,13 +194,13 @@ theorem flipperDentBodyFrom4733Refund
         exact hcallRefundSteleRaw'
       cases zRefund
       · have hcallRefundSteleFalse :
-            typedCallViaEVM config evm0Stele
+            typedCallViaEVM fork config evm0Stele
               (EVM.address (flipperVatAddress evm0Stele.accountMap evm0Stele.executionEnv))
               "move" 0 (dentRefundMoveArgValsOf evm0Stele I)
               (false, evmRefundStele, outRefund) true := by
           simpa using hcallRefundStele
         have hbody :
-            ExecTransitionBody config contract evm0Stele (dentLocals I) dentTransition.body
+            ExecTransitionBody fork config contract evm0Stele (dentLocals I) dentTransition.body
               .reverted := by
           simpa [evm0Stele] using
             (flipperDentSourceBodyRefundCallFailure
@@ -209,7 +211,7 @@ theorem flipperDentBodyFrom4733Refund
               hfitBeg hdec hcallerStele hrefundCodeStele hcallRefundSteleFalse)
         exact (flipperDentX_refundCallFailure (by simpa using rd4873) houtRefund)
           |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
-      · have rd4873True : RD flipperBytecode I (Sat256.ofUInt256 g)
+      · have rd4873True : RD fork flipperBytecode I (Sat256.ofUInt256 g)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4873⟩
             (⟨1⟩ :: ⟨228⟩ :: ⟨3140843579⟩ ::
               flipperVatTargetWord σ I :: dentBid I :: dentLot I :: dentId I ::
@@ -296,7 +298,7 @@ theorem flipperDentBodyFrom4733Refund
           dsimp [memFlux]
           exact dentVatHashMem_read64_228 (I := I) hrefundMemSize hrefundMemRead64
         have hcallRefundSteleTrue :
-            typedCallViaEVM config evm0Stele
+            typedCallViaEVM fork config evm0Stele
               (EVM.address (flipperVatAddress evm0Stele.accountMap evm0Stele.executionEnv))
               "move" 0 (dentRefundMoveArgValsOf evm0Stele I)
               (true, evmRefundStele, outRefund) true := by
@@ -326,10 +328,10 @@ theorem flipperDentBodyFrom4733Refund
                 (addr := flipperVatAddress evmGuyStele.accountMap I)
                 (flipperVatAddress_eq_target evmGuyStele.accountMap I) hfluxZeroStele
           have hbody :
-              ExecTransitionBody config contract evm0Stele (dentLocals I) dentTransition.body
+              ExecTransitionBody fork config contract evm0Stele (dentLocals I) dentTransition.body
                 .reverted := by
             simpa [evm0Stele, evmGuyStele] using
-              (flipperDentSourceBodyFluxNoCodeAfterRefund (hperm := by assumption)
+              (flipperDentSourceBodyFluxNoCodeAfterRefund (fork := fork) (hperm := by assumption)
                 (σ := σ) (σ₀ := σ₀)
                 (A := A) (I := I) (g := g) (evmRefund := evmRefundStele)
                 (outRefund := outRefund)
@@ -380,7 +382,7 @@ theorem flipperDentBodyFrom4733Refund
               substate := A_flux
               }
           have hcallFluxEvm :
-              typedCallViaEVM config evmGuyCallEvm
+              typedCallViaEVM fork config evmGuyCallEvm
                 (EVM.address
                   (flipperVatAddress evmGuyCallEvm.accountMap evmGuyCallEvm.executionEnv))
                 "flux" 0 (dentFluxArgValsOf evmGuyCallEvm I)
@@ -432,13 +434,13 @@ theorem flipperDentBodyFrom4733Refund
                       hloadUsr
                 · simpa using congrArg (fun w => (UInt256.sub w (dentLot I)).toNat) hloadLot
           have hcallFluxStele :
-              typedCallViaEVM config evmGuyStele
+              typedCallViaEVM fork config evmGuyStele
                 (EVM.address
                   (flipperVatAddress evmGuyStele.accountMap evmGuyStele.executionEnv))
                 "flux" 0 (dentFluxArgValsOf evmGuyStele I)
                 (zFlux, evmFluxStele, outFlux) true := by
             have hcallFluxSteleRaw' :
-                typedCallViaEVM config evmGuyStele
+                typedCallViaEVM fork config evmGuyStele
                   (EVM.address
                     (flipperVatAddress evmGuyCallEvm.accountMap evmGuyCallEvm.executionEnv))
                   "flux" 0 (dentFluxArgValsOf evmGuyCallEvm I)
@@ -448,17 +450,17 @@ theorem flipperDentBodyFrom4733Refund
             exact hcallFluxSteleRaw'
           cases zFlux
           · have hcallFluxSteleFalse :
-                typedCallViaEVM config evmGuyStele
+                typedCallViaEVM fork config evmGuyStele
                   (EVM.address
                     (flipperVatAddress evmGuyStele.accountMap evmGuyStele.executionEnv))
                   "flux" 0 (dentFluxArgValsOf evmGuyStele I)
                   (false, evmFluxStele, outFlux) true := by
               simpa using hcallFluxStele
             have hbody :
-                ExecTransitionBody config contract evm0Stele (dentLocals I) dentTransition.body
+                ExecTransitionBody fork config contract evm0Stele (dentLocals I) dentTransition.body
                   .reverted := by
               simpa [evm0Stele, evmGuyStele] using
-                (flipperDentSourceBodyFluxCallFailureAfterRefund (hperm := by assumption)
+                (flipperDentSourceBodyFluxCallFailureAfterRefund (fork := fork) (hperm := by assumption)
                   (σ := σ) (σ₀ := σ₀)
                   (A := A) (I := I) (g := g) (evmRefund := evmRefundStele)
                   (evmFlux := evmFluxStele) (outRefund := outRefund) (outFlux := outFlux)
@@ -467,7 +469,7 @@ theorem flipperDentBodyFrom4733Refund
                   hfluxCodeStele hcallFluxSteleFalse)
             exact (flipperDentX_fluxCallFailure (by simpa using rd5053) houtFlux)
               |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
-          · have rd5053True : RD flipperBytecode I (Sat256.ofUInt256 g)
+          · have rd5053True : RD fork flipperBytecode I (Sat256.ofUInt256 g)
                 (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5053⟩
                 (⟨1⟩ :: ⟨260⟩ :: ⟨1628552750⟩ ::
                   flipperVatTargetWord (dentAfterRefundMap σ_ref I) I :: dentBid I ::
@@ -482,7 +484,7 @@ theorem flipperDentBodyFrom4733Refund
               norm_num
             obtain ⟨_, _, rd6272⟩ := flipperDentX_storeLotToAdd48 hperm hfluxMemGe rd5073
             have hcallFluxSteleTrue :
-                typedCallViaEVM config evmGuyStele
+                typedCallViaEVM fork config evmGuyStele
                   (EVM.address
                     (flipperVatAddress evmGuyStele.accountMap evmGuyStele.executionEnv))
                   "flux" 0 (dentFluxArgValsOf evmGuyStele I)
@@ -543,7 +545,7 @@ theorem flipperDentBodyFrom4733Refund
                     (bidPackedSlotOfWord (dentId I)))
                   (tendTicNewWord evmLotStele.accountMap I))
               have hbody :
-                  ExecTransitionBody config contract evm0Stele (dentLocals I)
+                  ExecTransitionBody fork config contract evm0Stele (dentLocals I)
                     dentTransition.body
                     (.returned
                       { contract := contract,
@@ -551,7 +553,7 @@ theorem flipperDentBodyFrom4733Refund
                           dentLocalsAfterRefundWithTicFrom σ evmLotStele.accountMap I }
                       evmTicStele none) := by
                 simpa [evm0Stele, evmGuyStele, evmLotStele, evmTicStele] using
-                  (flipperDentSourceBodySuccessAfterRefund (hperm := by assumption)
+                  (flipperDentSourceBodySuccessAfterRefund (fork := fork) (hperm := by assumption)
                     (σ := σ) (σ₀ := σ₀)
                     (A := A) (I := I) (g := g) (evmRefund := evmRefundStele)
                     (evmFlux := evmFluxStele) (outRefund := outRefund) (outFlux := outFlux)
@@ -615,10 +617,10 @@ theorem flipperDentBodyFrom4733Refund
                   rw [← httlEq, httlEvmMap]
                 simpa [httlSteleMap] using hoverTicEvm
               have hbody :
-                  ExecTransitionBody config contract evm0Stele (dentLocals I)
+                  ExecTransitionBody fork config contract evm0Stele (dentLocals I)
                     dentTransition.body .reverted := by
                 simpa [evm0Stele, evmGuyStele, evmLotStele] using
-                  (flipperDentSourceBodyAdd48OverflowAfterRefund (hperm := by assumption)
+                  (flipperDentSourceBodyAdd48OverflowAfterRefund (fork := fork) (hperm := by assumption)
                     (σ := σ) (σ₀ := σ₀)
                     (A := A) (I := I) (g := g) (evmRefund := evmRefundStele)
                     (evmFlux := evmFluxStele) (outRefund := outRefund) (outFlux := outFlux)

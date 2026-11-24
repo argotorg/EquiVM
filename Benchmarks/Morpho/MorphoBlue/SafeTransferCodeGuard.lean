@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.SafeTransferGuards
 import Benchmarks.Morpho.MorphoBlue.SafeTransferFrames
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -35,9 +37,9 @@ theorem morphoTransferCodeMessage {v : MorphoImmutables} {ee : ExecutionEnv} {g 
     {s0 : State} {mem out : ByteArray} {aw ptr cond next : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (hstack : R.length + 11 ≤ 1024)
     (hfree : memLoad (UInt256.ofNat 64) mem = ptr) (hfit : ptr.toNat + 64 < 2 ^ 64)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14491)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14491)
       (UInt256.ofNat 585 :: cond :: next :: R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
       (cond :: ptr :: next :: R) (safeTransferNoCodeMem mem) aw' out σ k' C' := by
   obtain ⟨a0, k0, C0, rd0⟩ := morphoBlocks.morpho_block_14491_packed
     (immWords := wordsOf (immStore v)) (by change R.length + 2 + 5 ≤ 1024; omega)
@@ -66,9 +68,9 @@ theorem morphoTransferCodeOk {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat
     {k C : Nat} {R : List UInt256} (hstack : R.length + 11 ≤ 1024)
     (hfree : memLoad (UInt256.ofNat 64) mem = ptr) (hfit : ptr.toNat + 64 < 2 ^ 64)
     (hc : cond ≠ UInt256.ofNat 0) (hvalid : (D_J (deployedRuntime v) 0).contains next = true)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14491)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14491)
       (UInt256.ofNat 585 :: cond :: next :: R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 next R (safeTransferNoCodeMem mem) aw' out σ k' C' := by
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 next R (safeTransferNoCodeMem mem) aw' out σ k' C' := by
   obtain ⟨a0, k0, C0, rd0⟩ := morphoTransferCodeMessage hstack hfree hfit h
   obtain ⟨k1, C1, rd1⟩ := morphoRequireTrue (by omega) hvalid (isZero_eq_zero_of_ne hc) rd0
   exact ⟨a0, k1, C1, rd1⟩
@@ -77,8 +79,8 @@ theorem morphoTransferCodeRevert {v : MorphoImmutables} {ee : ExecutionEnv} {g :
     {s0 : State} {mem out : ByteArray} {aw ptr cond next : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (hstack : R.length + 11 ≤ 1024)
     (hm : MorphoHeap mem ptr 0) (hbad : 2 ^ 64 ≤ ptr.toNat + 64 ∨ cond = UInt256.ofNat 0)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14491)
-      (UInt256.ofNat 585 :: cond :: next :: R) mem aw out σ k C) : RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14491)
+      (UInt256.ofNat 585 :: cond :: next :: R) mem aw out σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   by_cases hf : ptr.toNat + 64 < 2 ^ 64
   · have hc := hbad.resolve_left (by omega)
     obtain ⟨a0, k0, C0, rd0⟩ := morphoTransferCodeMessage hstack hm.free hf h

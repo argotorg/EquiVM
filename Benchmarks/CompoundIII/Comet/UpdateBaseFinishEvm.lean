@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.UserBasicStoreEvm
 import Benchmarks.CompoundIII.Comet.InternalMemoryOutcome
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_016
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -22,10 +24,10 @@ theorem cometUpdateBaseFinish {v : CometWithExtendedAssetListImmutables}
     (hstack : R.length + 13 ≤ 1024) (hm : UserBasicMemory mem ptr basic)
     (hptr : 96 ≤ ptr.toNat) (hs : SourceState s0 ee σ evm)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨11931⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨11931⟩
       (principal :: ⟨0⟩ :: ⟨0⟩ :: EVM.word addr.val :: ⟨11980⟩ :: ptr :: ⟨3121⟩ :: ret :: R)
       mem aw rdata σ k C) :
-    internalMemoryRun (deployedRuntime v) ee g s0
+    internalMemoryRun fork (deployedRuntime v) ee g s0
       (updateBaseFinishMemory mem ptr evm addr principal) rdata ret R
       (if ee.perm then .ok (storeUserBasic evm addr (basicSetIndex evm basic principal))
         else .staticViolation) := by
@@ -44,7 +46,7 @@ theorem cometUpdateBaseFinish {v : CometWithExtendedAssetListImmutables}
       (EVM.word addr.val) = EVM.word addr.val :=
     solcAddrMask_clean_left (word_val_addr_canonical addr)
   rw [haddr] at r3
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64)
       (updateBaseFinishMemory mem ptr evm addr principal) :: ptr :: ⟨3121⟩ :: ret :: R)
     (updateBaseFinishMemory mem ptr evm addr principal) _ _ _ _ _ at r3

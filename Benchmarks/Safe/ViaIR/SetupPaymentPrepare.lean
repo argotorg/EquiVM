@@ -2,6 +2,8 @@ import Benchmarks.Safe.ViaIR.PaymentOutcome
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_047
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_048
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -42,11 +44,11 @@ theorem safeSetupPaymentBounds (p : PaymentInput) (I : ExecutionEnv)
 
 theorem safeSetupPaymentReceiverTrace (p : PaymentInput) {I g s0 σ k C aw mem rdata}
     {ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨10429⟩
+    (h : RD fork safeBytecode I g s0 ⟨10429⟩
       (p.gasUsed :: UInt256.ofNat p.gasToken.val :: UInt256.ofNat p.refundReceiver.val ::
         ret :: R) mem aw rdata σ k C)
     (hov : R.length + 12 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨10452⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨10452⟩
       (UInt256.ofNat p.gasToken.val :: ⟨0⟩ :: p.gasUsed :: ret ::
         UInt256.ofNat (p.receiver I).val :: R) mem aw rdata σ k' C' := by
   have hc : (UInt256.ofNat p.refundReceiver.val).toNat < EVM.addressModulus :=
@@ -76,9 +78,9 @@ theorem safeSetupPaymentReceiverTrace (p : PaymentInput) {I g s0 σ k C aw mem r
 
 theorem safeSetupPaymentNativePriceTrace (p : PaymentInput) {I g s0 σ k C aw mem rdata}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨10473⟩ (⟨0⟩ :: p.gasUsed :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨10473⟩ (⟨0⟩ :: p.gasUsed :: R) mem aw rdata σ k C)
     (hprice : p.gasPrice = ⟨1⟩) (hov : R.length + 12 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨9466⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨9466⟩
       (p.gasUsed :: p.nativePrice I :: ⟨10499⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: R)
       mem aw rdata σ k' C' := by
   have h₁ := safeRuntime_block_10473 (by simp; omega) h
@@ -107,18 +109,18 @@ theorem safeSetupPaymentNativePriceTrace (p : PaymentInput) {I g s0 σ k C aw me
 
 theorem safeSetupPaymentArithmetic (p : PaymentInput) {I g s0 σ k C aw mem rdata}
     {ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨10429⟩
+    (h : RD fork safeBytecode I g s0 ⟨10429⟩
       (p.gasUsed :: UInt256.ofNat p.gasToken.val :: UInt256.ofNat p.refundReceiver.val ::
         ret :: R) mem aw rdata σ k C)
     (hbase : p.baseGas = ⟨0⟩) (hprice : p.gasPrice = ⟨1⟩)
     (hov : R.length + 24 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 (setupPaymentAfterArithmeticPC p)
+    ∃ k' C', RD fork safeBytecode I g s0 (setupPaymentAfterArithmeticPC p)
       (UInt256.mul p.gasTotal (paymentPrice p I) :: setupPaymentArithmeticSaved p I ret R)
       mem aw rdata σ k' C' := by
   obtain ⟨k₁, C₁, h₁⟩ := safeSetupPaymentReceiverTrace p h (by omega)
   have ht : p.gasTotal = p.gasUsed := by rw [PaymentInput.gasTotal, hbase, u256_add_zero]
   have hprod := (safeSetupPaymentBounds p I hbase hprice).2
-  have hmul : ∃ k₂ C₂, RD safeBytecode I g s0 ⟨9466⟩
+  have hmul : ∃ k₂ C₂, RD fork safeBytecode I g s0 ⟨9466⟩
       (p.gasTotal :: paymentPrice p I :: setupPaymentAfterArithmeticPC p ::
         setupPaymentArithmeticSaved p I ret R) mem aw rdata σ k₂ C₂ := by
     by_cases hz : p.gasToken = EVM.address 0

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.WordArrayPrefix
 import Benchmarks.UniswapV3.Pool.MemoryGasBound
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 
@@ -37,10 +39,10 @@ theorem zeroCopy_cursor {mem : ByteArray} {aw free : UInt256} (hm : MemoryCursor
 -- LIBRARY CANDIDATE: reserve a variable amount while keeping addresses below the memory bound.
 theorem memoryGasReserveOrOOG {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : EVM.State}
     {pc aw p : UInt256} {stack : List UInt256} {mem rdata : ByteArray} {σ : AccountMap}
-    {k C allowance reserve : Nat} (rd : RD code ee g s0 pc stack mem aw rdata σ k C)
+    {k C allowance reserve : Nat} (rd : RD fork code ee g s0 pc stack mem aw rdata σ k C)
     (h : MemoryGasBound aw C allowance) (ha : allowance ≤ 2 ^ 200)
     (hp : p.toNat ≤ aw.toNat * 32 + 32) (hr : reserve ≤ 2 ^ 199) :
-    X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨ p.toNat + reserve ≤ 2 ^ 200 := by
+    X fork (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨ p.toNat + reserve ≤ 2 ^ 200 := by
   rcases rd with hoog | ⟨s, _, _, _, _, _, _, hc, _⟩
   · exact Or.inl hoog
   · have hwords := h.words_lt hc ha

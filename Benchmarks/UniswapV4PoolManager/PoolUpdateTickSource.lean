@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PoolUpdateTickPrelude
 import Benchmarks.UniswapV4PoolManager.PoolUpdateTickFinishSource
 import Benchmarks.UniswapV4PoolManager.TickGrossWords
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -18,10 +20,10 @@ theorem poolUpdateTickBody {f : Frame} {evm : EVM.State} {id : UInt256} {tick de
     (ht : f.locals.get? "tick" = some (.int tick))
     (hd : f.locals.get? "liquidityDelta" = some (.int delta))
     (hu : f.locals.get? "upper" = some (.bool upper)) :
-    ∃ f', ExecFuncBody config f evm poolUpdateTickFunction.body (poolUpdateTickResult f' evm id tick delta upper) := by
+    ∃ f', ExecFuncBody fork config f evm poolUpdateTickFunction.body (poolUpdateTickResult f' evm id tick delta upper) := by
   let packed := tickFieldWord evm id tick .liquidityPacked
   let f6 := poolUpdateTickPreludeFrame f evm id tick
-  have hpre := poolUpdateTickPrelude (evm := evm) hs ht
+  have hpre := poolUpdateTickPrelude (fork := fork) (evm := evm) hs ht
   have hg6 : f6.locals.get? "liquidityGrossBefore" = some (.int (Int.ofNat (tickGrossWord packed).toNat)) :=
     (store_get_ne _ _ (by decide : ("liquidityNetBefore" == "liquidityGrossBefore") = false)).trans (store_get_self _ _ _)
   have hd6 : f6.locals.get? "liquidityDelta" = some (.int delta) := by
@@ -29,7 +31,7 @@ theorem poolUpdateTickBody {f : Frame} {evm : EVM.State} {id : UInt256} {tick de
   have hf6 : f6.contract = contract := by
     dsimp only [f6, poolUpdateTickPreludeFrame]
     exact hf
-  have hcall := liquidityAddCall (f := f6) (evm := evm) (x := tickGrossWord packed) (y := delta)
+  have hcall := liquidityAddCall (fork := fork) (f := f6) (evm := evm) (x := tickGrossWord packed) (y := delta)
     (ex := .var "liquidityGrossBefore") (ey := .var "liquidityDelta")
     hf6 (evalLocalValue hg6) (evalLocalValue hd6) "__c0"
   by_cases hfit : liquidityAddFits (tickGrossWord packed) delta
@@ -39,7 +41,7 @@ theorem poolUpdateTickBody {f : Frame} {evm : EVM.State} {id : UInt256} {tick de
     let f8 : Frame := {f7 with locals := f7.locals.insert "liquidityGrossAfter" (.int after)}
     let f9 : Frame := {f8 with locals := f8.locals.insert "flipped" (.bool (tickFlipped packed delta))}
     have hafter : Int.ofNat (EVM.wordOfInt after).toNat = after := tickGrossAfter_value hfit
-    have hassign : ExecStmt config f7 evm poolUpdateTickFunction.body[7]! (.ok f8 evm) :=
+    have hassign : ExecStmt fork config f7 evm poolUpdateTickFunction.body[7]! (.ok f8 evm) :=
       ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalLocalValue (store_get_self _ _ _)) (assignLocalValue
         ((store_get_ne5 _ _ _ _ _ _ (by decide : ("info" == "liquidityGrossAfter") = false)
           (by decide : ("liquidityPacked" == "liquidityGrossAfter") = false)
@@ -60,7 +62,7 @@ theorem poolUpdateTickBody {f : Frame} {evm : EVM.State} {id : UInt256} {tick de
       simp only [bind, EvalResult.bind, evalBinaryOp?, BEq.beq, Value.bool.injEq, tickFlipped, after]
       cases decide (tickGrossAfterInt packed delta = 0) <;>
         cases decide (Int.ofNat (tickGrossWord packed).toNat = 0) <;> rfl
-    have hflip : ExecStmt config f8 evm poolUpdateTickFunction.body[8]! (.ok f9 evm) :=
+    have hflip : ExecStmt fork config f8 evm poolUpdateTickFunction.body[8]! (.ok f9 evm) :=
       ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hflipExpr (assignLocalValue
         ((store_get_ne2 _ _ _ (by decide : ("__c0" == "flipped") = false)
           (by decide : ("liquidityGrossAfter" == "flipped") = false)).trans
@@ -68,7 +70,7 @@ theorem poolUpdateTickBody {f : Frame} {evm : EVM.State} {id : UInt256} {tick de
           (by decide : ("info" == "flipped") = false) (by decide : ("liquidityPacked" == "flipped") = false)
           (by decide : ("liquidityGrossBefore" == "flipped") = false)
           (by decide : ("liquidityNetBefore" == "flipped") = false)).trans (store_get_self _ _ _))))
-    have hp : ExecBlock config f evm (poolUpdateTickFunction.body.take 9) (.ok f9 evm) :=
+    have hp : ExecBlock fork config f evm (poolUpdateTickFunction.body.take 9) (.ok f9 evm) :=
       execBlock_append hpre (ExecBlock.consNormal hcall (ExecBlock.consNormal hassign
         (ExecBlock.consNormal hflip ExecBlock.nil)))
     have hs9 : f9.locals.get? "self" = some (poolRefValue id) := by

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.BeforeSwapReplySource
 import Benchmarks.UniswapV4PoolManager.SwapHookSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -35,8 +37,8 @@ theorem beforeSwapBranchSource {f : Frame} {evm post : State} {hook : AccountAdd
     (hh : f.locals.get? "hookReturn" = some oldHook)
     (hf : f.locals.get? "lpFeeOverride" = some oldFee)
     (hkey : PoolKeyCanonical key) (hlimit : p.priceLimit.toNat < 2^160)
-    (hcall : callViaEVM evm hook 0 (beforeSwapPayload evm.executionEnv.source key p data) (z, post, out)) :
-    ExecBlock config f evm beforeSwapBranchStmts
+    (hcall : callViaEVM fork evm hook 0 (beforeSwapPayload evm.executionEnv.source key p data) (z, post, out)) :
+    ExecBlock fork config f evm beforeSwapBranchStmts
       (beforeSwapBranchResult f post hook key p.amountSpecified z
         (beforeSwapPayload evm.executionEnv.source key p data) out) := by
   let payload := beforeSwapPayload evm.executionEnv.source key p data
@@ -57,7 +59,7 @@ theorem beforeSwapBranchSource {f : Frame} {evm post : State} {hook : AccountAdd
   · rw [if_pos hv] at hinvoke
     rw [beforeSwapBranchResult, if_pos hv]
     have hget := beforeSwapHookFrame_get f payload out
-    have hreply := beforeSwapReplySource (evm := post)
+    have hreply := beforeSwapReplySource (fork := fork) (evm := post)
       ((hget "self" (by decide) (by decide)).trans hs)
       ((hget "key" (by decide) (by decide)).trans hk)
       ((hget "amountToSwap" (by decide) (by decide)).trans ha)

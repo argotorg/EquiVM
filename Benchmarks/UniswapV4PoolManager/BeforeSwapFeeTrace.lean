@@ -5,6 +5,8 @@ import Benchmarks.UniswapV4PoolManager.EntryTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_043
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_044
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -30,9 +32,9 @@ theorem beforeSwapFeeTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hk : PoolKeyView mem keyPtr key) (hc : key.fee.toNat < 2^24)
     (hr : BytesObjectView mem ptr out) (hsize : 96 ≤ out.size)
     (hfit : ptr.toNat+96 < UInt256.size)
-    (h : RD (deployedRuntime v) I g s0 ⟨15473⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨15473⟩
       (keyPtr :: hook :: ptr :: ret :: ⟨0⟩ :: R) mem aw out σ k C) :
-    ∃ aw' k' C', C+Cₘ aw' ≤ C'+Cₘ aw ∧ RD (deployedRuntime v) I g s0 ⟨15491⟩
+    ∃ aw' k' C', C+Cₘ aw' ≤ C'+Cₘ aw ∧ RD fork (deployedRuntime v) I g s0 ⟨15491⟩
       (hook :: ptr :: ret :: beforeSwapRawFee key out :: R) mem aw' out σ k' C' := by
   have hkey : memLoad (UInt256.ofNat 64+keyPtr) mem = key.fee := by
     rw [u256_add_comm]

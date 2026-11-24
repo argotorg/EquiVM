@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.LiquidateCallbackABI
 import Benchmarks.Morpho.MorphoBlue.LiquidateEvent
 import Benchmarks.Morpho.MorphoBlue.FinalizeVoid
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -18,8 +20,8 @@ variable {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 
 theorem morphoLiquidateCallbackNoCode (hstack : R.length + 24 ≤ 1024)
     (hc : extCodeSizeWord σ (UInt256.ofNat ee.source.val) = UInt256.ofNat 0)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 2764)
-      (liquidateTransferTail assets seized srcOff len R) mem aw out σ k C) : RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 2764)
+      (liquidateTransferTail assets seized srcOff len R) mem aw out σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨a, k, C, rd⟩ := morphoBlocks.morpho_block_2764_taken_packed (immWords := wordsOf (immStore v))
     (by change R.length + 6 + 2 ≤ 1024; omega) (by rw [hc]; decide)
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
@@ -29,9 +31,9 @@ theorem morphoLiquidateCallbackNoCode (hstack : R.length + 24 ≤ 1024)
 theorem morphoLiquidateCallbackPrepare (hstack : R.length + 24 ≤ 1024)
     (hm : MorphoHeap mem ptr 0) (hlen : len.toNat ≤ solcMaxU64)
     (hc : extCodeSizeWord σ (UInt256.ofNat ee.source.val) ≠ UInt256.ofNat 0)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 2764)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 2764)
       (liquidateTransferTail assets seized srcOff len R) mem aw out σ k C) :
-    ∃ gasArg aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 2836)
+    ∃ gasArg aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 2836)
       ([gasArg, UInt256.ofNat ee.source.val, UInt256.ofNat 0, ptr,
         UInt256.ofNat (100 + paddedSize len.toNat), ptr, UInt256.ofNat 0,
         ptr, UInt256.ofNat 0, assets, seized, UInt256.ofNat 128] ++ R)
@@ -53,9 +55,9 @@ theorem morphoLiquidateCallbackPrepare (hstack : R.length + 24 ≤ 1024)
 
 theorem morphoLiquidateCallbackFailure (hstack : R.length + 24 ≤ 1024)
     (hout : out.size < UInt256.size)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 2837)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 2837)
       ([UInt256.ofNat 0, ptr, UInt256.ofNat 0, assets, seized, UInt256.ofNat 128] ++ R)
-      mem aw out σ k C) : RDrev (deployedRuntime v) g s0 := by
+      mem aw out σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨a1, k1, C1, rd1⟩ := morphoBlocks.morpho_block_2837_taken_packed (immWords := wordsOf (immStore v))
     (by change R.length + 5 + 3 ≤ 1024; omega) (by decide)
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
@@ -65,10 +67,10 @@ theorem morphoLiquidateCallbackFailure (hstack : R.length + 24 ≤ 1024)
 
 theorem morphoLiquidateCallbackSuccess (hstack : R.length + 24 ≤ 1024)
     (hptr : ptr.toNat < 2 ^ 64)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 2837)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 2837)
       ([UInt256.ofNat 1, ptr, UInt256.ofNat 0, assets, seized, UInt256.ofNat 128] ++ R)
       mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 2710)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 2710)
       ([UInt256.ofNat 0, UInt256.ofNat 0, UInt256.ofNat 0, assets, seized, UInt256.ofNat 128] ++ R)
       (writeWord mem 64 ptr) aw' out σ k' C' := by
   obtain ⟨a1, k1, C1, rd1⟩ := morphoBlocks.morpho_block_2837_fallthrough_packed (immWords := wordsOf (immStore v))

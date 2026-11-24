@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.AttestationRequest
 import Benchmarks.EAS.EAS.GetSchemaSource
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 
@@ -50,13 +52,13 @@ theorem attestRequestGuards_source {L imms : Store} {evm : EVM.State}
     (hr : L.get? "request" = some r.struct) (hs : L.get? "schemaRecord" = some s.value)
     (ht : L.get? "__c1" = some (.int (Int.ofNat time.toNat))) :
     if (r.expirationTime.toNat = 0 ∨ time.toNat < r.expirationTime.toNat) ∧ (s.revocable || !r.revocable) = true then
-      ExecBlock config {contract := contract,locals := L,immutables := imms} evm attestRequestGuards
+      ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm attestRequestGuards
         (.ok {contract := contract,locals := L,immutables := imms} evm)
-    else ExecBlock config {contract := contract,locals := L,immutables := imms} evm attestRequestGuards .reverted := by
+    else ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm attestRequestGuards .reverted := by
   have he := attestTimeExpr_eval (cfg := config) (frame := {contract := contract,locals := L,immutables := imms}) (evm := evm) hr ht
   have hf := attestRevocableExpr_eval (cfg := config) (frame := {contract := contract,locals := L,immutables := imms}) (evm := evm) hr hs
   by_cases htime : r.expirationTime.toNat = 0 ∨ time.toNat < r.expirationTime.toNat
-  · have ht := ExecStmt.requireTrue (by simpa only [decide_eq_true htime] using he)
+  · have ht := ExecStmt.requireTrue (fork := fork) (by simpa only [decide_eq_true htime] using he)
     cases hb : s.revocable || !r.revocable with
     | false =>
       rw [if_neg (by simp only [hb,Bool.false_eq_true,and_false,not_false_eq_true])]

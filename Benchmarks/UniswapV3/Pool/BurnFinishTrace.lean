@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.CollectFinish
 import Benchmarks.UniswapV3.Pool.HeapWordPairReturn
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_031
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,12 +13,12 @@ set_option maxRecDepth 10000
 theorem burnFinishX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : EVM.State} {k C : Nat} {aw p key amount a0 a1 x0 x1 lower upper : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨9833⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨9833⟩
       (x0 :: x1 :: key :: a1 :: a0 :: amount :: upper :: lower :: ⟨621⟩ :: R)
       mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hperm : ee.perm = true) (ha : amount.toNat < 2 ^ 128)
     (hm : HeapMemory mem aw p) (hb : p.toNat + 96 ≤ 2 ^ 200) (hov : R.length + 16 ≤ 1024) :
-    RDret (deployedRuntime v) g s0 (storeSlot0Unlocked evm true).accountMap
+    RDret fork (deployedRuntime v) g s0 (storeSlot0Unlocked evm true).accountMap
       (a0.toByteArray ++ a1.toByteArray) := by
   obtain ⟨k1, C1, r1⟩ := uniswapV3Pool_block_9833 (immWords := wordsOf (immStore v))
     (by evm_ov) hperm rd

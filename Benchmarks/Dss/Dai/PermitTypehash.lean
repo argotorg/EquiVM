@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Dai.Dispatch
 import Benchmarks.Dss.Dai.Storage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Dai
@@ -30,7 +32,7 @@ theorem daiDecode_permitTypehash_ok {I : ExecutionEnv}
 /-- The Stele `PERMIT_TYPEHASH()` body returns Maker's permit typehash constant. -/
 theorem daiPermitTypehashBodyReturns (evm : EVM.State)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract evm permitTypehashStore permitTypehashTransition.body
+    ExecTransitionBody fork config contract evm permitTypehashStore permitTypehashTransition.body
       (.returned { contract := contract, locals := permitTypehashStore } evm
         (some [(.fixedBytes bytes32Width (EVM.Word.toBytesBE permitTypehashWord))])) := by
   exact ExecFuncBody.execBlockRet <|
@@ -42,10 +44,10 @@ theorem daiPermitTypehashBodyReturns (evm : EVM.State)
 /-! ## EVM trace -/
 
 theorem daiX_permitTypehash_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD daiBytecode I g
+    (hreach : ∃ k C, RD fork daiBytecode I g
       (initState σ σ₀ g A I) ⟨596⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret daiBytecode g (initState σ σ₀ g A I) σ
+    RDret fork daiBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray permitTypehashWord) := by
   exact RD.daiWordConstGetterExternal
     (entry := ⟨596⟩) (returnPc := ⟨524⟩) (routine := ⟨1964⟩)
@@ -67,12 +69,12 @@ theorem daiPermitTypehashBodyCoreOk
         (permitTypehashTransition.params.map Param.name)
         (transitionSignature permitTypehashTransition).paramTypes I.calldata =
           some permitTypehashStore)
-    (hreach : ∃ k C, RD daiBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork daiBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨596⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         permitTypehashStore
         permitTypehashTransition.body
@@ -93,12 +95,12 @@ theorem daiPermitTypehashBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (daiSelBytes 12)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (daiSelBytes 12) (by native_decide) hsel
   have hdispatch : dispatchMsg contract I.calldata = some permitTypehashTransition :=
     daiDispatchPermitTypehash hsel
-  have hreach := daiReachPermitTypehashBody
+  have hreach := daiReachPermitTypehashBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   exact daiPermitTypehashBodyCoreOk hcode hsize hwv hdispatch

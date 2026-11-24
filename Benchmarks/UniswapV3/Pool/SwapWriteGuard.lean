@@ -4,6 +4,8 @@ import Benchmarks.UniswapV3.Pool.Slot0Memory
 import Benchmarks.UniswapV3.Pool.SafeCast128Trace
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_017
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -14,14 +16,14 @@ theorem swapWriteGuardX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p cache snap exactWord free : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (s : SwapStateData) (initial : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3999⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3999⟩
       ([p, exactWord, cache, snap] ++ R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hs : SwapStateMemory mem p s)
     (hsnap : Slot0Memory mem snap initial.accountMap initial.executionEnv)
     (hfit : s.Fits) (hbp : p.toNat + 224 ≤ 2 ^ 200)
     (hbs : snap.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 7 ≤ 1024) :
     ∃ aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0
+      RD fork (deployedRuntime v) ee g s0
         (if s.tick = slot0TickValue initial.accountMap initial.executionEnv then ⟨4218⟩ else ⟨4021⟩)
         ([p, exactWord, cache, snap] ++ R) mem aw' rdata σ k' C' ∧
       HeapMemory mem aw' free ∧ aw.toNat ≤ aw'.toNat := by

@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.PoolModifyAmountResult
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -13,8 +15,8 @@ theorem poolModifyFinish {f : Frame} {evm : State} {id fees : UInt256} {p : Pool
     (hc : PoolModifyContext f id p) (ht : poolTicksValid p.lower p.upper)
     (hdlo : -(2^127 : Int) ≤ p.delta) (hdhi : p.delta < 2^127)
     (hd : f.locals.get? "delta" = some (.int 0)) (hf : f.locals.get? "feeDelta" = some (.int (EVM.signed fees))) :
-    ExecBlock config f evm (poolModifyFunction.body.drop 24) (poolModifyFinishResult f evm id p fees) := by
-  have hamt := poolModifyAmounts (evm := evm) hc ht hdlo hdhi hd
+    ExecBlock fork config f evm (poolModifyFunction.body.drop 24) (poolModifyFinishResult f evm id p fees) := by
+  have hamt := poolModifyAmounts (fork := fork) (evm := evm) hc ht hdlo hdhi hd
   apply execBlock_continue (execBlock_singleton hamt)
   intro f1 post hpost
   have hdelta := poolModifyAmountsResult_delta hd hpost

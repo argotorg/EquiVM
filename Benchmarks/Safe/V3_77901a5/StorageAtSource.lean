@@ -3,6 +3,8 @@ import Benchmarks.Safe.V3_77901a5.LocalArrays
 import Benchmarks.Safe.V3_77901a5.WordArrayMemory
 import Reasoning.ABIViews
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V3_77901a5
@@ -68,7 +70,7 @@ theorem safeStorageAtNextLocals {locals offset len words value}
 
 theorem safeStorageAtStep (evm : EVM.State) {locals offset len words}
     (hl : StorageAtLocals locals offset len words) (hi : words.length + 1 < UInt256.size) :
-    ExecBlock config { contract := contract, locals := locals } evm storageAtLoopBody
+    ExecBlock fork config { contract := contract, locals := locals } evm storageAtLoopBody
       (.ok { contract := contract, locals :=
         storageAtNextLocals locals words (storageAtWord evm offset words.length) } evm) := by
   let value := storageAtWord evm offset words.length
@@ -126,9 +128,9 @@ theorem safeStorageAtInitialLocals (offset len : UInt256) :
 theorem safeStorageAtPrefix (evm : EVM.State) (offset len : UInt256) {result : ExecResult}
     (hv : evm.executionEnv.weiValue = ⟨0⟩)
     (hl : (UInt256.shiftLeft len (UInt256.ofNat 5)).toNat ≤ 2 ^ 64 - 1)
-    (htail : ExecBlock config { contract := contract, locals := storageAtInitialLocals offset len }
+    (htail : ExecBlock fork config { contract := contract, locals := storageAtInitialLocals offset len }
       evm [storageAtLoop, .return [.var "result"]] result) :
-    ExecBlock config { contract := contract, locals := storageAtArgs offset len }
+    ExecBlock fork config { contract := contract, locals := storageAtArgs offset len }
       evm getstorageatTransition.body result := by
   refine .consNormal (.requireTrue (evalCallvalueEq_true hv))
     (.consNormal (.requireTrue (by
@@ -140,7 +142,7 @@ theorem safeStorageAtPrefix (evm : EVM.State) (offset len : UInt256) {result : E
 theorem safeStorageAtLengthRevert (evm : EVM.State) (offset len : UInt256)
     (hv : evm.executionEnv.weiValue = ⟨0⟩)
     (hl : ¬(UInt256.shiftLeft len (UInt256.ofNat 5)).toNat ≤ 2 ^ 64 - 1) :
-    ExecTransitionBody config contract evm (storageAtArgs offset len)
+    ExecTransitionBody fork config contract evm (storageAtArgs offset len)
       getstorageatTransition.body .reverted :=
   .execBlockRevert (.consNormal (.requireTrue (evalCallvalueEq_true hv))
     (.consRevert (.requireFalse (by

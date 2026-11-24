@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.FlashLoanDecode
 import Benchmarks.Morpho.MorphoBlue.SafeTransferInternal
 import Benchmarks.Morpho.MorphoBlue.AccrueSourceFinish
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
@@ -31,14 +33,14 @@ theorem FlashLoanInputs.assetsGuard {frame token assets data} (hi : FlashLoanInp
 theorem morphoFlashLoanPrelude (token : AccountAddress) (assets : UInt256) (data : ByteArray)
     (evm : EVM.State) (imms : Store) (hcv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsize : evm.executionEnv.calldata.size < 2 ^ 255 + 4) :
-    ABlock config evm { contract := contract, locals := flashLoanArgs token assets data, immutables := imms }
+    ABlock fork config evm { contract := contract, locals := flashLoanArgs token assets data, immutables := imms }
       flashLoanTransition.body (flashLoanFrame token assets data evm.executionEnv.calldata imms)
       (flashLoanTransition.body.drop 3) := calldataPrelude_ok hcv hsize
 
 theorem morphoFlashLoanSourceZero (token : AccountAddress) (assets : UInt256) (data : ByteArray)
     (evm : EVM.State) (imms : Store) (hcv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsize : evm.executionEnv.calldata.size < 2 ^ 255 + 4) (hz : assets = ⟨0⟩) :
-    ExecTransitionBody config contract evm (flashLoanArgs token assets data) flashLoanTransition.body .reverted imms := by
+    ExecTransitionBody fork config contract evm (flashLoanArgs token assets data) flashLoanTransition.body .reverted imms := by
   apply ExecFuncBody.execBlockRevert
   apply (morphoFlashLoanPrelude token assets data evm imms hcv hsize).requireRevert
   simpa only [hz, ne_eq, not_true_eq_false, decide_false] using
@@ -47,7 +49,7 @@ theorem morphoFlashLoanSourceZero (token : AccountAddress) (assets : UInt256) (d
 theorem morphoFlashLoanSourceGuard (token : AccountAddress) (assets : UInt256) (data : ByteArray)
     (evm : EVM.State) (imms : Store) (hcv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsize : evm.executionEnv.calldata.size < 2 ^ 255 + 4) (hz : assets ≠ ⟨0⟩) :
-    ABlock config evm { contract := contract, locals := flashLoanArgs token assets data, immutables := imms }
+    ABlock fork config evm { contract := contract, locals := flashLoanArgs token assets data, immutables := imms }
       flashLoanTransition.body (flashLoanFrame token assets data evm.executionEnv.calldata imms)
       (flashLoanTransition.body.drop 4) := by
   apply (morphoFlashLoanPrelude token assets data evm imms hcv hsize).requireStep
@@ -64,7 +66,7 @@ theorem morphoFlashLoanSourceStatic (token : AccountAddress) (assets : UInt256) 
     (evm : EVM.State) (imms : Store) (hcv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsize : evm.executionEnv.calldata.size < 2 ^ 255 + 4) (hz : assets ≠ ⟨0⟩)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (flashLoanArgs token assets data) flashLoanTransition.body .staticViolation imms := by
+    ExecTransitionBody fork config contract evm (flashLoanArgs token assets data) flashLoanTransition.body .staticViolation imms := by
   apply ExecFuncBody.execBlockStatic
   apply (morphoFlashLoanSourceGuard token assets data evm imms hcv hsize hz).run
   exact ExecBlock.consStatic (ExecStmt.emitStatic
@@ -74,7 +76,7 @@ theorem morphoFlashLoanSourceEnter (token : AccountAddress) (assets : UInt256) (
     (evm : EVM.State) (imms : Store) (hcv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsize : evm.executionEnv.calldata.size < 2 ^ 255 + 4) (hz : assets ≠ ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ABlock config evm { contract := contract, locals := flashLoanArgs token assets data, immutables := imms }
+    ABlock fork config evm { contract := contract, locals := flashLoanArgs token assets data, immutables := imms }
       flashLoanTransition.body (flashLoanFrame token assets data evm.executionEnv.calldata imms)
       (flashLoanTransition.body.drop 5) := by
   exact (morphoFlashLoanSourceGuard token assets data evm imms hcv hsize hz).emitStep

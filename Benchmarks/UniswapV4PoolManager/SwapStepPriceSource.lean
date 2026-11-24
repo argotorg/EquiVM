@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.NextPriceSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 
@@ -27,15 +29,15 @@ theorem swapStepPriceSource {f : Frame} {evm : EVM.State} {price liquidity amoun
     (ha : evalExpr? config f evm ea = .ok (.int (Int.ofNat amount.toNat)))
     (hb : f.locals.get? "zeroForOne" = some (.bool zeroForOne))
     (hn : f.locals.get? "sqrtPriceNextX96" = some old) :
-    ExecBlock config f evm (swapStepPriceStmts ea input)
+    ExecBlock fork config f evm (swapStepPriceStmts ea input)
       (if nextPriceFits price liquidity amount input zeroForOne then
         .ok (swapStepPriceFrame f price liquidity amount input zeroForOne) evm else .reverted) := by
-  have hc := nextPriceCall input zeroForOne hf hp (evalLocalValue hs) (evalLocalValue hl) ha
+  have hc := nextPriceCall (fork := fork) input zeroForOne hf hp (evalLocalValue hs) (evalLocalValue hl) ha
     (evalLocalValue hb) (swapStepPriceRet input)
   by_cases hfit : nextPriceFits price liquidity amount input zeroForOne
   · rw [if_pos hfit] at hc ⊢
     exact ExecBlock.consNormal hc (ExecBlock.consNormal
-      (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) wordLocal_eval (assignLocalValue ((store_get_ne _ _
+      (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) wordLocal_eval (assignLocalValue ((store_get_ne _ _
         (by cases input <;> decide : (swapStepPriceRet input == "sqrtPriceNextX96") = false)).trans hn))) ExecBlock.nil)
   · rw [if_neg hfit] at hc ⊢
     exact ExecBlock.consRevert hc

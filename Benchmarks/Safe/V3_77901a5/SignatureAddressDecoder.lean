@@ -1,5 +1,7 @@
 import Benchmarks.Safe.V3_77901a5.SignatureAddressDecodeSteps
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V3_77901a5
@@ -8,7 +10,7 @@ set_option maxRecDepth 100000
 
 theorem safeDecodeSignatureAddressValid (counted : Bool)
     {I g s0 σ k C aw rdata len} {ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 (signatureDecodePC counted)
+    (h : RD fork safeBytecode I g s0 (signatureDecodePC counted)
       (⟨4⟩ :: UInt256.ofNat I.calldata.size :: ret :: R) solcFreePtrMem aw rdata σ k C)
     (hh : 4 + signatureAddressHead counted ≤ I.calldata.size)
     (hs : I.calldata.size < 2 ^ 255)
@@ -19,7 +21,7 @@ theorem safeDecodeSignatureAddressValid (counted : Bool)
     (hn : len ≤ 2 ^ 64 - 192)
     (hin : 4 + (calldataWord I.calldata 68).toNat + 32 + len ≤ I.calldata.size)
     (hov : R.length + 18 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ret (signatureDecodedStack counted I.calldata R)
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ret (signatureDecodedStack counted I.calldata R)
       (memoryBytesDecoded (I.calldata.extract (4 + (calldataWord I.calldata 68).toNat + 32)
         (4 + (calldataWord I.calldata 68).toNat + 32 + len))) aw' rdata σ k' C' := by
   have hsize : I.calldata.size < UInt256.size := lt_size_of_lt_sign hs
@@ -43,11 +45,11 @@ theorem safeDecodeSignatureAddressValid (counted : Bool)
 
 theorem safeDecodeSignatureAddressEvidence (counted : Bool)
     {I g s0 σ k C aw rdata} {ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 (signatureDecodePC counted)
+    (h : RD fork safeBytecode I g s0 (signatureDecodePC counted)
       (⟨4⟩ :: UInt256.ofNat I.calldata.size :: ret :: R) solcFreePtrMem aw rdata σ k C)
     (hlong : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hov : R.length + 18 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    RDrev safeBytecode g s0 ∨
+    RDrev fork safeBytecode g s0 ∨
     ∃ len aw' k' C', 4 + signatureAddressHead counted ≤ I.calldata.size ∧
       I.calldata.size < 2 ^ 255 ∧
       (calldataWord I.calldata 4).toNat < EVM.addressModulus ∧
@@ -55,7 +57,7 @@ theorem safeDecodeSignatureAddressEvidence (counted : Bool)
       calldataWord I.calldata (4 + (calldataWord I.calldata 68).toNat) =
         UInt256.ofNat len ∧ len ≤ 2 ^ 64 - 192 ∧
       4 + (calldataWord I.calldata 68).toNat + 32 + len ≤ I.calldata.size ∧
-      RD safeBytecode I g s0 ret (signatureDecodedStack counted I.calldata R)
+      RD fork safeBytecode I g s0 ret (signatureDecodedStack counted I.calldata R)
         (memoryBytesDecoded (I.calldata.extract (4 + (calldataWord I.calldata 68).toNat + 32)
           (4 + (calldataWord I.calldata 68).toNat + 32 + len))) aw' rdata σ k' C' := by
   have hhead : (UInt256.ofNat (signatureAddressHead counted)).toNat =
@@ -95,14 +97,14 @@ theorem safeDecodeSignatureAddressEvidence (counted : Bool)
 
 theorem safeDecodeSignatureAddressTooLarge (counted : Bool)
     {I g s0 σ k C aw rdata len} {ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 (signatureDecodePC counted)
+    (h : RD fork safeBytecode I g s0 (signatureDecodePC counted)
       (⟨4⟩ :: UInt256.ofNat I.calldata.size :: ret :: R) solcFreePtrMem aw rdata σ k C)
     (hlong : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hw : calldataWord I.calldata (4 + (calldataWord I.calldata 68).toNat) =
       UInt256.ofNat len)
     (hn : len < UInt256.size) (hbad : ¬len ≤ 2 ^ 64 - 192)
     (hov : R.length + 18 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    RDrev safeBytecode g s0 := by
+    RDrev fork safeBytecode g s0 := by
   obtain hr | ⟨len', aw', k', C', hh, hs, hc, hoff, hw', hn', hin, hr⟩ :=
     safeDecodeSignatureAddressEvidence counted h hlong hsize hov hret
   · exact hr

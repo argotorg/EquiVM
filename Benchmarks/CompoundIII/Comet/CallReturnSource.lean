@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.VoidCallSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -10,11 +12,11 @@ theorem boolTrueReturnEquiv :
   returnEquiv.returned rfl boolTrueReturnEncoding
 
 -- GENERALIZES explicitVoidSourceResult to a fixed list of return values.
-def explicitSourceResult (cfg : Config) (frame : Frame) (evm : EVM.State)
+def explicitSourceResult (fork : Ethereum.Fork) (cfg : Config) (frame : Frame) (evm : EVM.State)
     (body : List Stmt) (values : List Value) : InternalOutcome → Prop
-  | .ok evm' => ∃ final, ExecFuncBody cfg frame evm body (.returned final evm' (some values))
-  | .reverted => ExecFuncBody cfg frame evm body .reverted
-  | .staticViolation => ExecFuncBody cfg frame evm body .staticViolation
+  | .ok evm' => ∃ final, ExecFuncBody fork cfg frame evm body (.returned final evm' (some values))
+  | .reverted => ExecFuncBody fork cfg frame evm body .reverted
+  | .staticViolation => ExecFuncBody fork cfg frame evm body .staticViolation
 
 -- GENERALIZES voidCallPrologue_source to a post-call return expression list.
 theorem callReturnPrologue_source {cfg frame evm stmt final ret result exprs values}
@@ -22,8 +24,8 @@ theorem callReturnPrologue_source {cfg frame evm stmt final ret result exprs val
     (hhi : evm.executionEnv.calldata.size < 2^255 + 4)
     (he : ∀ evm', evalExprs? cfg { final with locals := final.locals.insert ret .unit }
       evm' exprs = .ok values)
-    (hc : ExecStmt cfg (calldataLocalFrame frame evm) evm stmt (internalStmtResult final ret result)) :
-    explicitSourceResult cfg frame evm (calldataPrologue [stmt, .return exprs]) values result := by
+    (hc : ExecStmt fork cfg (calldataLocalFrame frame evm) evm stmt (internalStmtResult final ret result)) :
+    explicitSourceResult fork cfg frame evm (calldataPrologue [stmt, .return exprs]) values result := by
   cases result with
   | ok evm' =>
     exact ⟨_, ExecFuncBody.execBlockRet ((calldataPrologue_ok hv hhi).run

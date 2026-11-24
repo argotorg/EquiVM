@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.FullMathSource
 import Benchmarks.UniswapV4PoolManager.FullMathRoundWords
 import Benchmarks.UniswapV4PoolManager.Values
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -16,7 +18,7 @@ theorem fullMathRoundTail {f : Frame} {evm : EVM.State} {a b d : UInt256}
     (hb : f.locals.get? "b" = some (.int (Int.ofNat b.toNat)))
     (hd : f.locals.get? "denominator" = some (.int (Int.ofNat d.toNat)))
     (hr : f.locals.get? "result" = some (.int (Int.ofNat (fullMathWord a b d).toNat))) :
-    ∃ f', ExecFuncBody config f evm (fullMathRoundFunction.body.drop 3)
+    ∃ f', ExecFuncBody fork config f evm (fullMathRoundFunction.body.drop 3)
       (if fullMathRoundFits a b d then
         .returned f' evm (some [.int (Int.ofNat (fullMathRoundWord a b d).toNat)])
        else .reverted) := by
@@ -38,7 +40,7 @@ theorem fullMathRoundTail {f : Frame} {evm : EVM.State} {a b d : UInt256}
       (show evalExpr? config f evm (.intLit 1) = .ok (.int (Int.ofNat (⟨1⟩ : UInt256).toNat)) by
         simp only [evalExpr?, pure]; rfl)
     let f1 := wordLocal f "result" (fullMathWord a b d + ⟨1⟩)
-    have hadd : ExecStmt config f evm
+    have hadd : ExecStmt fork config f evm
         (.assign .localVar {base := "result"} (.cast (.binary .add (.var "result") (.intLit 1))
           (.elem (.int (.uint ⟨256, by decide⟩))))) (.ok f1 evm) :=
       ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) he (assignLocalValue hr)
@@ -72,7 +74,7 @@ theorem fullMathRoundBody {f : Frame} {evm : EVM.State} {a b d : UInt256}
     (ha : f.locals.get? "a" = some (.int (Int.ofNat a.toNat)))
     (hb : f.locals.get? "b" = some (.int (Int.ofNat b.toNat)))
     (hd : f.locals.get? "denominator" = some (.int (Int.ofNat d.toNat))) :
-    ∃ f', ExecFuncBody config f evm fullMathRoundFunction.body
+    ∃ f', ExecFuncBody fork config f evm fullMathRoundFunction.body
       (if fullMathRoundFits a b d then
         .returned f' evm (some [.int (Int.ofNat (fullMathRoundWord a b d).toNat)])
        else .reverted) := by
@@ -85,13 +87,13 @@ theorem fullMathRoundBody {f : Frame} {evm : EVM.State} {a b d : UInt256}
     simp only [f0, wordLocal_get, beq_iff_eq, String.reduceEq, ↓reduceIte, hb]
   have hd0 : f0.locals.get? "denominator" = some (.int (Int.ofNat d.toNat)) := by
     simp only [f0, wordLocal_get, beq_iff_eq, String.reduceEq, ↓reduceIte, hd]
-  have h0 : ExecStmt config f evm fullMathRoundFunction.body[0]! (.ok f0 evm) :=
+  have h0 : ExecStmt fork config f evm fullMathRoundFunction.body[0]! (.ok f0 evm) :=
     ExecStmt.letDecl (by simp only [evalExpr?, pure]; rfl)
-  have hcall := fullMathCall (f := f0) (evm := evm) hf (evalLocalValue ha0) (evalLocalValue hb0)
+  have hcall := fullMathCall (fork := fork) (f := f0) (evm := evm) hf (evalLocalValue ha0) (evalLocalValue hb0)
     (evalLocalValue hd0) "__c0"
   by_cases hfit : fullMathFits a b d
   · rw [if_pos hfit] at hcall
-    have h2 : ExecStmt config f1 evm fullMathRoundFunction.body[2]! (.ok f2 evm) :=
+    have h2 : ExecStmt fork config f1 evm fullMathRoundFunction.body[2]! (.ok f2 evm) :=
       ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) wordLocal_eval (assignLocalValue
         ((store_get_ne _ _ (by decide : ("__c0" == "result") = false)).trans (store_get_self _ _ _)))
     obtain ⟨f3, htail⟩ := fullMathRoundTail (f := f2) (evm := evm) hfit
@@ -110,7 +112,7 @@ theorem fullMathRoundCall {f : Frame} {evm : EVM.State} {a b d : UInt256} {ea eb
     (ha : evalExpr? config f evm ea = .ok (.int (Int.ofNat a.toNat)))
     (hb : evalExpr? config f evm eb = .ok (.int (Int.ofNat b.toNat)))
     (hd : evalExpr? config f evm ed = .ok (.int (Int.ofNat d.toNat))) (ret : Ident) :
-    ExecStmt config f evm (.internalCall "FullMath_mulDivRoundingUp" [ea, eb, ed] ret)
+    ExecStmt fork config f evm (.internalCall "FullMath_mulDivRoundingUp" [ea, eb, ed] ret)
       (if fullMathRoundFits a b d then .ok (wordLocal f ret (fullMathRoundWord a b d)) evm else .reverted) := by
   let fc : Frame := {f with locals := ((((∅ : Store).insert "denominator"
     (.int (Int.ofNat d.toNat))).insert "b" (.int (Int.ofNat b.toNat))).insert

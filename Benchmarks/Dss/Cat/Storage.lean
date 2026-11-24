@@ -2,6 +2,8 @@ import Reasoning.SolcRoutines
 import Benchmarks.Dss.Cat.Common
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
@@ -33,14 +35,14 @@ namespace Benchmarks.Dss.Cat.RD
 theorem catStoreLiveZeroSplit {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 pc (ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
+    (h : RD fork code ee g s0 pc (ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : catStoreLiveZeroWf code pc)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 3 ≤ 1024) :
     (ee.perm = true ∧
-      ∃ k' C', RD code ee g s0 ret R mem (UInt256.ofNat 3) rdata
+      ∃ k' C', RD fork code ee g s0 ret R mem (UInt256.ofNat 3) rdata
         (sstoreAccountMap ee.codeOwner σ ⟨2⟩ ⟨0⟩) k' C') ∨
-      (ee.perm = false ∧ RDstatic code g s0) := by
+      (ee.perm = false ∧ RDstatic fork code g s0) := by
   rcases hwf with ⟨hd0, hd1, hd3, hd5, hd6⟩
   have rdStore := evm_run h with [
     raw jumpdest hd0 (by evm_ov),
@@ -159,14 +161,14 @@ abbrev catNotAuthorizedRawWord : UInt256 :=
 theorem RD.catAuthCheckRevert {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc okPc key ret : UInt256} {R : List UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 pc (key :: ret :: R)
+    (h : RD fork code ee g s0 pc (key :: ret :: R)
         solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcAuthCheckWf code pc okPc)
     (htail : solcErrorStringRevertTailWf code (solcAuthTailPc pc) ⟨18⟩
       catNotAuthorizedRawWord ⟨114⟩ .PUSH18 18)
     (hauth : solcSlotWord σ ee (solcMappingSlot ⟨0⟩ (solcSourceWord ee)) ≠ ⟨1⟩)
     (hov : R.length + 7 ≤ 1024) :
-    RDrev code g s0 :=
+    RDrev fork code g s0 :=
   Reasoning.Reach.RD.solcAuthCheckRevert18 h hwf htail hauth hov
 
 /-! ## Mapping store routines (`wards[usr] := 0/1`)

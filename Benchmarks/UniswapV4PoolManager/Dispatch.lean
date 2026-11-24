@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_002
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_003
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_004
 
+variable {fork : Ethereum.Fork}
+
 /-! EVM dispatcher paths, composed from the generated block summaries. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -20,14 +22,14 @@ set_option maxRecDepth 2000000
 theorem poolManagerReachBalanceOfBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 0)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 11477)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 11477)
       [(UInt256.ofNat 160), (UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 160).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨16635278⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x00 0xfd 0xd5 0x8e ⟨16635278⟩ (by native_decide)
       (by simpa [poolManagerSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := poolManagerBlocks.poolManager_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := poolManagerBlocks.poolManager_block_18_taken (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨16635278⟩ (solcSelectorWord I)) ≠ ⟨0⟩ by rw [hword]; native_decide)) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd1
   exact ⟨_, _, by simpa [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory, poolManagerBlocks.poolManager_block_18_taken_stack, deployedRuntime] using rd2⟩
@@ -36,14 +38,14 @@ theorem poolManagerReachBalanceOfBody {σ σ₀ A I} {g : Sat256} (v : PoolManag
 theorem poolManagerReachSupportsInterfaceBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 1)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 11286)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 11286)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 160).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨33540519⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x01 0xff 0xc9 0xa7 ⟨33540519⟩ (by native_decide)
       (by simpa [poolManagerSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := poolManagerBlocks.poolManager_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := poolManagerBlocks.poolManager_block_18_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨16635278⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := poolManagerBlocks.poolManager_block_35_taken (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory, poolManagerBlocks.poolManager_block_18_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨33540519⟩ (solcSelectorWord I)) ≠ ⟨0⟩ by rw [hword]; native_decide)) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd2
@@ -53,14 +55,14 @@ theorem poolManagerReachSupportsInterfaceBody {σ σ₀ A I} {g : Sat256} (v : P
 theorem poolManagerReachTransferBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 2)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 11116)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 11116)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 160).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨157011382⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x09 0x5b 0xcd 0xb6 ⟨157011382⟩ (by native_decide)
       (by simpa [poolManagerSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := poolManagerBlocks.poolManager_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := poolManagerBlocks.poolManager_block_18_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨16635278⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := poolManagerBlocks.poolManager_block_35_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory, poolManagerBlocks.poolManager_block_18_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨33540519⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -71,14 +73,14 @@ theorem poolManagerReachTransferBody {σ σ₀ A I} {g : Sat256} (v : PoolManage
 theorem poolManagerReachSettleBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 3)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 10885)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 10885)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 160).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨299524276⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x11 0xda 0x60 0xb4 ⟨299524276⟩ (by native_decide)
       (by simpa [poolManagerSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := poolManagerBlocks.poolManager_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := poolManagerBlocks.poolManager_block_18_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨16635278⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := poolManagerBlocks.poolManager_block_35_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory, poolManagerBlocks.poolManager_block_18_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨33540519⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -91,14 +93,14 @@ theorem poolManagerReachSettleBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerI
 theorem poolManagerReachInitializeBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 4)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 3990)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 3990)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 160).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨1651952574⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x62 0x76 0xcb 0xbe ⟨1651952574⟩ (by native_decide)
       (by simpa [poolManagerSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := poolManagerBlocks.poolManager_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := poolManagerBlocks.poolManager_block_18_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨16635278⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := poolManagerBlocks.poolManager_block_35_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory, poolManagerBlocks.poolManager_block_18_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨33540519⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -124,14 +126,14 @@ theorem poolManagerReachInitializeBody {σ σ₀ A I} {g : Sat256} (v : PoolMana
 theorem poolManagerReachMintBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 5)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 10709)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 10709)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 160).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨359541238⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x15 0x6e 0x29 0xf6 ⟨359541238⟩ (by native_decide)
       (by simpa [poolManagerSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := poolManagerBlocks.poolManager_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := poolManagerBlocks.poolManager_block_18_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨16635278⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := poolManagerBlocks.poolManager_block_35_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory, poolManagerBlocks.poolManager_block_18_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨33540519⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -145,14 +147,14 @@ theorem poolManagerReachMintBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerImm
 theorem poolManagerReachExtsload_bytes32Body {σ σ₀ A I} {g : Sat256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 6)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 10651)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 10651)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 160).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨506375855⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x1e 0x2e 0xae 0xaf ⟨506375855⟩ (by native_decide)
       (by simpa [poolManagerSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := poolManagerBlocks.poolManager_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := poolManagerBlocks.poolManager_block_18_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨16635278⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := poolManagerBlocks.poolManager_block_35_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory, poolManagerBlocks.poolManager_block_18_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨33540519⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -167,14 +169,14 @@ theorem poolManagerReachExtsload_bytes32Body {σ σ₀ A I} {g : Sat256} (v : Po
 theorem poolManagerReachExtsload_bytes32_uint256Body {σ σ₀ A I} {g : Sat256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 7)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 9693)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 9693)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 160).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨905798426⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x35 0xfd 0x63 0x1a ⟨905798426⟩ (by native_decide)
       (by simpa [poolManagerSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := poolManagerBlocks.poolManager_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := poolManagerBlocks.poolManager_block_18_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨16635278⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := poolManagerBlocks.poolManager_block_35_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory, poolManagerBlocks.poolManager_block_18_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨33540519⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -192,14 +194,14 @@ theorem poolManagerReachExtsload_bytes32_uint256Body {σ σ₀ A I} {g : Sat256}
 theorem poolManagerReachExtsload_bytes32_arrayBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 8)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 2431)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 2431)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 160).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨3687855615⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xdb 0xd0 0x35 0xff ⟨3687855615⟩ (by native_decide)
       (by simpa [poolManagerSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := poolManagerBlocks.poolManager_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := poolManagerBlocks.poolManager_block_18_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨16635278⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := poolManagerBlocks.poolManager_block_35_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory, poolManagerBlocks.poolManager_block_18_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨33540519⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -234,14 +236,14 @@ theorem poolManagerReachExtsload_bytes32_arrayBody {σ σ₀ A I} {g : Sat256} (
 theorem poolManagerReachTakeBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 9)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 10976)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 10976)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 160).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨185441289⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x0b 0x0d 0x9c 0x09 ⟨185441289⟩ (by native_decide)
       (by simpa [poolManagerSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := poolManagerBlocks.poolManager_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := poolManagerBlocks.poolManager_block_18_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨16635278⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := poolManagerBlocks.poolManager_block_35_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory, poolManagerBlocks.poolManager_block_18_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨33540519⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -253,14 +255,14 @@ theorem poolManagerReachTakeBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerImm
 theorem poolManagerReachSetProtocolFeeControllerBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 10)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 9809)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 9809)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 160).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨762778505⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x2d 0x77 0x13 0x89 ⟨762778505⟩ (by native_decide)
       (by simpa [poolManagerSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := poolManagerBlocks.poolManager_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := poolManagerBlocks.poolManager_block_18_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨16635278⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := poolManagerBlocks.poolManager_block_35_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory, poolManagerBlocks.poolManager_block_18_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨33540519⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -277,14 +279,14 @@ theorem poolManagerReachSetProtocolFeeControllerBody {σ σ₀ A I} {g : Sat256}
 theorem poolManagerReachCollectProtocolFeesBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 11)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 3121)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 3121)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 160).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨2170665076⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x81 0x61 0xb8 0x74 ⟨2170665076⟩ (by native_decide)
       (by simpa [poolManagerSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := poolManagerBlocks.poolManager_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := poolManagerBlocks.poolManager_block_18_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨16635278⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := poolManagerBlocks.poolManager_block_35_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory, poolManagerBlocks.poolManager_block_18_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨33540519⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -313,14 +315,14 @@ theorem poolManagerReachCollectProtocolFeesBody {σ σ₀ A I} {g : Sat256} (v :
 theorem poolManagerReachSettleForBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 12)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 9593)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 9593)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 160).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨1037327067⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x3d 0xd4 0x5a 0xdb ⟨1037327067⟩ (by native_decide)
       (by simpa [poolManagerSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := poolManagerBlocks.poolManager_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := poolManagerBlocks.poolManager_block_18_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨16635278⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := poolManagerBlocks.poolManager_block_35_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory, poolManagerBlocks.poolManager_block_18_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨33540519⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -339,14 +341,14 @@ theorem poolManagerReachSettleForBody {σ σ₀ A I} {g : Sat256} (v : PoolManag
 theorem poolManagerReachApproveBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 13)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 9461)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 9461)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 160).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨1114277011⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x42 0x6a 0x84 0x93 ⟨1114277011⟩ (by native_decide)
       (by simpa [poolManagerSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := poolManagerBlocks.poolManager_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := poolManagerBlocks.poolManager_block_18_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨16635278⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := poolManagerBlocks.poolManager_block_35_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory, poolManagerBlocks.poolManager_block_18_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨33540519⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -366,14 +368,14 @@ theorem poolManagerReachApproveBody {σ σ₀ A I} {g : Sat256} (v : PoolManager
 theorem poolManagerReachUnlockBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 14)) :
-    ∃ k C, C = 348 ∧ RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 8810)
+    ∃ k C, C = 348 ∧ RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 8810)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 160).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨1221104785⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x48 0xc8 0x94 0x91 ⟨1221104785⟩ (by native_decide)
       (by simpa [poolManagerSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := poolManagerBlocks.poolManager_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := poolManagerBlocks.poolManager_block_18_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨16635278⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := poolManagerBlocks.poolManager_block_35_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory, poolManagerBlocks.poolManager_block_18_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨33540519⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -395,14 +397,14 @@ theorem poolManagerReachUnlockBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerI
 theorem poolManagerReachDonateBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 15)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 9980)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 9980)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 160).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨591554263⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x23 0x42 0x66 0xd7 ⟨591554263⟩ (by native_decide)
       (by simpa [poolManagerSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := poolManagerBlocks.poolManager_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := poolManagerBlocks.poolManager_block_18_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨16635278⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := poolManagerBlocks.poolManager_block_35_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory, poolManagerBlocks.poolManager_block_18_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨33540519⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -418,14 +420,14 @@ theorem poolManagerReachDonateBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerI
 theorem poolManagerReachSetOperatorBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 16)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 8315)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 8315)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 160).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨1435136663⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x55 0x8a 0x72 0x97 ⟨1435136663⟩ (by native_decide)
       (by simpa [poolManagerSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := poolManagerBlocks.poolManager_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := poolManagerBlocks.poolManager_block_18_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨16635278⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := poolManagerBlocks.poolManager_block_35_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory, poolManagerBlocks.poolManager_block_18_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨33540519⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -448,14 +450,14 @@ theorem poolManagerReachSetOperatorBody {σ σ₀ A I} {g : Sat256} (v : PoolMan
 theorem poolManagerReachAllowanceBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 17)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 8163)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 8163)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 160).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨1502280167⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x59 0x8a 0xf9 0xe7 ⟨1502280167⟩ (by native_decide)
       (by simpa [poolManagerSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := poolManagerBlocks.poolManager_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := poolManagerBlocks.poolManager_block_18_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨16635278⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := poolManagerBlocks.poolManager_block_35_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory, poolManagerBlocks.poolManager_block_18_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨33540519⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -479,14 +481,14 @@ theorem poolManagerReachAllowanceBody {σ σ₀ A I} {g : Sat256} (v : PoolManag
 theorem poolManagerReachModifyLiquidityBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 18)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 5199)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 5199)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 160).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨1517015002⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x5a 0x6b 0xcf 0xda ⟨1517015002⟩ (by native_decide)
       (by simpa [poolManagerSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := poolManagerBlocks.poolManager_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := poolManagerBlocks.poolManager_block_18_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨16635278⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := poolManagerBlocks.poolManager_block_35_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory, poolManagerBlocks.poolManager_block_18_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨33540519⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -511,14 +513,14 @@ theorem poolManagerReachModifyLiquidityBody {σ σ₀ A I} {g : Sat256} (v : Poo
 theorem poolManagerReachSyncBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 19)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 2662)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 2662)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 160).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨2776895892⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xa5 0x84 0x11 0x94 ⟨2776895892⟩ (by native_decide)
       (by simpa [poolManagerSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := poolManagerBlocks.poolManager_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := poolManagerBlocks.poolManager_block_18_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨16635278⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := poolManagerBlocks.poolManager_block_35_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory, poolManagerBlocks.poolManager_block_18_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨33540519⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -551,14 +553,14 @@ theorem poolManagerReachSyncBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerImm
 theorem poolManagerReachOwnerBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 20)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 3041)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 3041)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 160).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨2376452955⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x8d 0xa5 0xcb 0x5b ⟨2376452955⟩ (by native_decide)
       (by simpa [poolManagerSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := poolManagerBlocks.poolManager_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := poolManagerBlocks.poolManager_block_18_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨16635278⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := poolManagerBlocks.poolManager_block_35_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory, poolManagerBlocks.poolManager_block_18_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨33540519⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -588,14 +590,14 @@ theorem poolManagerReachOwnerBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerIm
 theorem poolManagerReachUpdateDynamicLPFeeBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 21)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 8530)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 8530)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 160).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨1383437905⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x52 0x75 0x96 0x51 ⟨1383437905⟩ (by native_decide)
       (by simpa [poolManagerSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := poolManagerBlocks.poolManager_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := poolManagerBlocks.poolManager_block_18_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨16635278⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := poolManagerBlocks.poolManager_block_35_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory, poolManagerBlocks.poolManager_block_18_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨33540519⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -617,14 +619,14 @@ theorem poolManagerReachUpdateDynamicLPFeeBody {σ σ₀ A I} {g : Sat256} (v : 
 theorem poolManagerReachExttload_bytes32_arrayBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 22)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 2865)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 2865)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 160).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨2616616031⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x9b 0xf6 0x64 0x5f ⟨2616616031⟩ (by native_decide)
       (by simpa [poolManagerSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := poolManagerBlocks.poolManager_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := poolManagerBlocks.poolManager_block_18_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨16635278⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := poolManagerBlocks.poolManager_block_35_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory, poolManagerBlocks.poolManager_block_18_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨33540519⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -656,14 +658,14 @@ theorem poolManagerReachExttload_bytes32_arrayBody {σ σ₀ A I} {g : Sat256} (
 theorem poolManagerReachExttload_bytes32Body {σ σ₀ A I} {g : Sat256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 23)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 2292)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 2292)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 160).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨4046830250⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xf1 0x35 0xba 0xaa ⟨4046830250⟩ (by native_decide)
       (by simpa [poolManagerSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := poolManagerBlocks.poolManager_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := poolManagerBlocks.poolManager_block_18_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨16635278⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := poolManagerBlocks.poolManager_block_35_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory, poolManagerBlocks.poolManager_block_18_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨33540519⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -700,14 +702,14 @@ theorem poolManagerReachExttload_bytes32Body {σ σ₀ A I} {g : Sat256} (v : Po
 theorem poolManagerReachSwapBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 24)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1279)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1279)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 160).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨4090335564⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xf3 0xcd 0x91 0x4c ⟨4090335564⟩ (by native_decide)
       (by simpa [poolManagerSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := poolManagerBlocks.poolManager_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := poolManagerBlocks.poolManager_block_18_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨16635278⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := poolManagerBlocks.poolManager_block_35_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory, poolManagerBlocks.poolManager_block_18_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨33540519⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -746,14 +748,14 @@ theorem poolManagerReachSwapBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerImm
 theorem poolManagerReachIsOperatorBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 25)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 2517)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 2517)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 160).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨3057007858⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xb6 0x36 0x3c 0xf2 ⟨3057007858⟩ (by native_decide)
       (by simpa [poolManagerSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := poolManagerBlocks.poolManager_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := poolManagerBlocks.poolManager_block_18_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨16635278⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := poolManagerBlocks.poolManager_block_35_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory, poolManagerBlocks.poolManager_block_18_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨33540519⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -787,14 +789,14 @@ theorem poolManagerReachIsOperatorBody {σ σ₀ A I} {g : Sat256} (v : PoolMana
 theorem poolManagerReachClearBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 26)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 3463)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 3463)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 160).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨2163258444⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x80 0xf0 0xb4 0x4c ⟨2163258444⟩ (by native_decide)
       (by simpa [poolManagerSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := poolManagerBlocks.poolManager_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := poolManagerBlocks.poolManager_block_18_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨16635278⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := poolManagerBlocks.poolManager_block_35_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory, poolManagerBlocks.poolManager_block_18_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨33540519⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -822,14 +824,14 @@ theorem poolManagerReachClearBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerIm
 theorem poolManagerReachSetProtocolFeeBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 27)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 3673)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 3673)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 160).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨2122829437⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x7e 0x87 0xce 0x7d ⟨2122829437⟩ (by native_decide)
       (by simpa [poolManagerSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := poolManagerBlocks.poolManager_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := poolManagerBlocks.poolManager_block_18_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨16635278⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := poolManagerBlocks.poolManager_block_35_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory, poolManagerBlocks.poolManager_block_18_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨33540519⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -856,14 +858,14 @@ theorem poolManagerReachSetProtocolFeeBody {σ σ₀ A I} {g : Sat256} (v : Pool
 theorem poolManagerReachProtocolFeeControllerBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 28)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 2350)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 2350)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 160).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨4029539250⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xf0 0x2d 0xe3 0xb2 ⟨4029539250⟩ (by native_decide)
       (by simpa [poolManagerSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := poolManagerBlocks.poolManager_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := poolManagerBlocks.poolManager_block_18_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨16635278⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := poolManagerBlocks.poolManager_block_35_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory, poolManagerBlocks.poolManager_block_18_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨33540519⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -899,14 +901,14 @@ theorem poolManagerReachProtocolFeeControllerBody {σ σ₀ A I} {g : Sat256} (v
 theorem poolManagerReachTransferOwnershipBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 29)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 2120)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 2120)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 160).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨4076725131⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xf2 0xfd 0xe3 0x8b ⟨4076725131⟩ (by native_decide)
       (by simpa [poolManagerSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := poolManagerBlocks.poolManager_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := poolManagerBlocks.poolManager_block_18_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨16635278⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := poolManagerBlocks.poolManager_block_35_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory, poolManagerBlocks.poolManager_block_18_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨33540519⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -944,14 +946,14 @@ theorem poolManagerReachTransferOwnershipBody {σ σ₀ A I} {g : Sat256} (v : P
 theorem poolManagerReachBurnBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 30)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 820)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 820)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 160).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨4113140426⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xf5 0x29 0x8a 0xca ⟨4113140426⟩ (by native_decide)
       (by simpa [poolManagerSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := poolManagerBlocks.poolManager_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := poolManagerBlocks.poolManager_block_18_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨16635278⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := poolManagerBlocks.poolManager_block_35_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory, poolManagerBlocks.poolManager_block_18_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨33540519⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -991,14 +993,14 @@ theorem poolManagerReachBurnBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerImm
 theorem poolManagerReachProtocolFeesAccruedBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 31)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 2942)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 2942)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 160).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨2548616526⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x97 0xe8 0xcd 0x4e ⟨2548616526⟩ (by native_decide)
       (by simpa [poolManagerSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := poolManagerBlocks.poolManager_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := poolManagerBlocks.poolManager_block_18_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨16635278⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := poolManagerBlocks.poolManager_block_35_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory, poolManagerBlocks.poolManager_block_18_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨33540519⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -1029,14 +1031,14 @@ theorem poolManagerReachProtocolFeesAccruedBody {σ σ₀ A I} {g : Sat256} (v :
 theorem poolManagerReachTransferFromBody {σ σ₀ A I} {g : Sat256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 32)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 390)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 390)
       []
       ((UInt256.ofNat 160).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨4271441050⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xfe 0x99 0x04 0x9a ⟨4271441050⟩ (by native_decide)
       (by simpa [poolManagerSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := poolManagerBlocks.poolManager_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := poolManagerBlocks.poolManager_block_18_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨16635278⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := poolManagerBlocks.poolManager_block_35_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory, poolManagerBlocks.poolManager_block_18_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨33540519⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -1077,8 +1079,8 @@ theorem poolManagerReachTransferFromBody {σ σ₀ A I} {g : Sat256} (v : PoolMa
 theorem poolManagerX_short {σ σ₀ A I} {g : Sat256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v)
     (hshort : I.calldata.size < 4) :
-    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+    RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := poolManagerBlocks.poolManager_block_0_fallthrough (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) rd0
   have rd2 := poolManagerBlocks.poolManager_block_15 (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_fallthrough_stack, poolManagerBlocks.poolManager_block_0_fallthrough_memory]) rd1
   simpa [poolManagerBlocks.poolManager_block_0_fallthrough_stack, poolManagerBlocks.poolManager_block_0_fallthrough_memory, deployedRuntime] using rd2
@@ -1088,8 +1090,8 @@ theorem poolManagerX_noMatch {σ σ₀ A I} {g : Sat256} (v : PoolManagerImmutab
     (hcode : I.code = deployedRuntime v)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 33 → (poolManagerSelBytes i == I.calldata.extract 0 4) = false) :
-    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+    RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := poolManagerBlocks.poolManager_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := poolManagerBlocks.poolManager_block_18_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨16635278⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [solcSelectorWord, balanceOfEvmSelector hsz, hnm 0 (by omega)]; decide)) rd1
   have rd3 := poolManagerBlocks.poolManager_block_35_fallthrough (immWords := wordsOf (immStore v)) (by simp [poolManagerBlocks.poolManager_block_0_taken_stack, poolManagerBlocks.poolManager_block_0_taken_memory, poolManagerBlocks.poolManager_block_18_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨33540519⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [solcSelectorWord, supportsInterfaceEvmSelector hsz, hnm 1 (by omega)]; decide)) rd2

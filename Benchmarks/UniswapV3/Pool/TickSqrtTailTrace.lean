@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.TickSqrtStartTrace
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_039
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -10,10 +12,10 @@ set_option maxRecDepth 10000
 theorem tickSqrtInvertX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ratio absTick junk tick : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨12379⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨12379⟩
       (ratio :: absTick :: junk :: tick :: R) mem aw rdata σ k C)
     (hn : ratio ≠ ⟨0⟩) (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨12406⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨12406⟩
       (tickSqrtInvert (tickSqrtTick tick) ratio :: absTick :: junk :: tick :: R)
       mem aw rdata σ k' C' := by
   have ht : -(2 ^ 23 : Int) ≤ tickSqrtTick tick ∧ tickSqrtTick tick < 2 ^ 23 :=
@@ -40,13 +42,13 @@ theorem tickSqrtInvertX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem tickSqrtRoundX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ratio junk0 junk1 junk2 ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨12406⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨12406⟩
       (ratio :: junk0 :: junk1 :: junk2 :: ret :: R) mem aw rdata σ k C)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (tickSqrtRound ratio :: R) mem aw rdata σ k' C' := by
   let bit : UInt256 := if UInt256.mod ratio (UInt256.ofNat (2 ^ 32)) = ⟨0⟩ then ⟨0⟩ else ⟨1⟩
-  have hb : ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨12429⟩
+  have hb : ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨12429⟩
       (bit :: ratio :: junk0 :: junk1 :: junk2 :: ret :: R) mem aw rdata σ k' C' := by
     by_cases hz : UInt256.mod ratio (UInt256.ofNat (2 ^ 32)) = ⟨0⟩
     · have r1 := uniswapV3Pool_block_12406_taken (immWords := wordsOf (immStore v))

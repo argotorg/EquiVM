@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.FlashStart
 import Benchmarks.UniswapV3.Pool.FlashDecodeTrace
 import Benchmarks.UniswapV3.Pool.BalanceFreshMemory
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # UniswapV3Pool `flash(address,uint256,uint256,bytes)`
 
@@ -24,14 +26,14 @@ theorem uniswapV3PoolFlashBody {σ σ₀ A I} {g : UInt256} (v : UniswapV3PoolIm
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (uniswapV3PoolSelBytes 9)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (uniswapV3PoolSelBytes 9) rfl hsel
   have hd : dispatchMsg contract I.calldata = some flashTransition := by
     apply uniswapV3PoolDispatch_flash <;>
       first | exact hsel | exact selectorMismatch_of_match hsel (by decide +kernel)
-  obtain ⟨k, C, rdEntry⟩ := uniswapV3PoolReachFlashBody (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, rdEntry⟩ := uniswapV3PoolReachFlashBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hwv hsz hsize hsel
-  change RD (deployedRuntime v) I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+  change RD fork (deployedRuntime v) I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
     ⟨1136⟩ [solcSelectorWord I] solcFreePtrMem ⟨3⟩ ByteArray.empty σ k C at rdEntry
   rcases flashDecodeX (v := v) rdEntry hsz hsize (by simp) with
     ⟨hbad, rdBad⟩ | ⟨hvalid, kDecoded, CDecoded, rdDecoded⟩
@@ -60,7 +62,7 @@ theorem uniswapV3PoolFlashBody {σ σ₀ A I} {g : UInt256} (v : UniswapV3PoolIm
         apply ExecFuncBody.execBlockRevert
         rw [← List.take_append_drop 6 flashTransition.body]
         exact execBlock_append_ok hsourceStart hsourceBad
-      · have hsource : ExecTransitionBody config contract evm (flashLocals a) flashTransition.body
+      · have hsource : ExecTransitionBody fork config contract evm (flashLocals a) flashTransition.body
             (.returned {contract := contract, locals := localsFinal, immutables := immStore v}
               evmFinal none) (immStore v) := by
           apply ExecFuncBody.execBlockOK

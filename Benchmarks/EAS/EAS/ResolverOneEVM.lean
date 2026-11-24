@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.ResolverCallData
 import Benchmarks.EAS.EAS.ResolverReturn
 import Benchmarks.EAS.EAS.ResolverCallSites
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -15,8 +17,8 @@ theorem resolverOneStart {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {k C : Nat} {src ptr target value : UInt256} {R : List UInt256} (v : EASImmutables) (rev : Bool)
     (hstack : R.length+12 ≤ 1024) (hb : ptr.toNat+36 < UInt256.size)
     (hh : memLoad (UInt256.ofNat 64) mem = ptr)
-    (rd : RD (deployedRuntime v) ee g s0 (resolverOneEntryPC rev) (target::src::⟨32⟩::value::R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨4502⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 (resolverOneEntryPC rev) (target::src::⟨32⟩::value::R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨4502⟩
       (src::(ptr+UInt256.ofNat 36)::resolverOnePreparePC rev::ptr::value::ptr::target::ptr::⟨32⟩::ptr::R)
       (resolverOneHeaderMemory mem ptr rev) aw' rdata σ k' C' := by
   have hm := resolverOneHeaderMemory_eq mem ptr rev hh hb
@@ -39,9 +41,9 @@ theorem resolverOnePrepare {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap}
     {k C : Nat} {finish ptr target value : UInt256} {R : List UInt256} (v : EASImmutables) (rev : Bool)
     (hstack : R.length+8 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 (resolverOnePreparePC rev)
+    (rd : RD fork (deployedRuntime v) ee g s0 (resolverOnePreparePC rev)
       (finish::ptr::value::ptr::target::ptr::⟨32⟩::ptr::R) mem aw rdata σ k C) :
-    ∃ gasArg aw' k' C', RD (deployedRuntime v) ee g s0 (resolverOneCallPC rev)
+    ∃ gasArg aw' k' C', RD fork (deployedRuntime v) ee g s0 (resolverOneCallPC rev)
       (gasArg::target::value::ptr::UInt256.sub finish ptr::ptr::⟨32⟩::ptr::R) mem aw' rdata σ k' C' := by
   exact resolverPrepare v false rev hstack rd
 
@@ -60,16 +62,16 @@ theorem resolverOneEVM {ee : ExecutionEnv} {g : Sat256} {s0 evm : EVM.State}
     (hstate : SourceState s0 ee σ evm) (hview : AttestationMemoryView mem src dataPtr a)
     (hs : src.toNat+320 ≤ ptr.toNat) (hd : dataPtr.toNat+32+32*((a.data.size+31)/32) ≤ ptr.toNat)
     (hheap : ptr.toNat ≤ 2^64-1) (hh : memLoad (UInt256.ofNat 64) mem = ptr)
-    (rd : RD (deployedRuntime v) ee g s0 (resolverOneEntryPC rev)
+    (rd : RD fork (deployedRuntime v) ee g s0 (resolverOneEntryPC rev)
       (target::src::⟨32⟩::value::R) mem aw rdata σ k C) :
     ∃ (evm' : EVM.State) (σ' : AccountMap) (success : Bool) (out : ByteArray),
-      callViaEVM evm (AccountAddress.ofUInt256 target) (Int.ofNat value.toNat) (resolverOnePayload a rev) (success, evm', out) ∧
+      callViaEVM fork evm (AccountAddress.ofUInt256 target) (Int.ofNat value.toNat) (resolverOnePayload a rev) (success, evm', out) ∧
       SourceState s0 ee σ' evm' ∧ out.size < 2^138 ∧
       (if resolverCallValid ptr.toNat success out then
-        ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (resolverOneDonePC rev)
+        ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (resolverOneDonePC rev)
           (UInt256.ofNat (deployedRuntime v).size::calldataWord out 0::R)
           (resolverOneCallOutput mem src ptr dataPtr rev out) aw' out σ' k' C'
-       else RDrev (deployedRuntime v) g s0) := by
+       else RDrev fork (deployedRuntime v) g s0) := by
   let head := resolverOneHeaderMemory mem ptr rev
   let dst := ptr+UInt256.ofNat 36
   have hb : ptr.toNat+420+32*((a.data.size+31)/32) < UInt256.size := by
@@ -102,7 +104,7 @@ theorem resolverOneEVM {ee : ExecutionEnv} {g : Sat256} {s0 evm : EVM.State}
     callBridge (calldata := resolverOnePayload a rev) rd3 hstate hperm (resolverOneCall_decode v rev) hinput hsmall
       (by simp only [List.length_cons]; omega)
   have hpc : resolverOneCallPC rev + (⟨1⟩ : UInt256) = resolverOneAfterCallPC rev := by cases rev <;> rfl
-  change RD (deployedRuntime v) ee g s0 (resolverOneCallPC rev + (⟨1⟩ : UInt256))
+  change RD fork (deployedRuntime v) ee g s0 (resolverOneCallPC rev + (⟨1⟩ : UInt256))
     ((if success then ⟨1⟩ else ⟨0⟩)::ptr::R)
     (callOutputMem (resolverOneEncodedMemory mem src ptr dataPtr rev) out ptr ⟨32⟩) _ out σ' k4 C4 at rd4
   rw [hpc] at rd4

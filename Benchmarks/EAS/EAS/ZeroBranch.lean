@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.MappingWordLoad
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 
@@ -11,9 +13,9 @@ theorem zeroBranch {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
     (hd1 : decode code (pc+⟨1⟩) = some (.Push .PUSH2,some (dest,2)))
     (hd4 : decode code (pc+⟨4⟩) = some (.JUMPI,.none))
     (hvalid : (D_J code 0).contains dest = true)
-    (rd : RD code ee g s0 pc (word::R) mem aw rdata σ k C) :
-    if word = ⟨0⟩ then ∃ k' C', RD code ee g s0 dest R mem aw rdata σ k' C'
-    else ∃ k' C', RD code ee g s0 (pc+⟨5⟩) R mem aw rdata σ k' C' := by
+    (rd : RD fork code ee g s0 pc (word::R) mem aw rdata σ k C) :
+    if word = ⟨0⟩ then ∃ k' C', RD fork code ee g s0 dest R mem aw rdata σ k' C'
+    else ∃ k' C', RD fork code ee g s0 (pc+⟨5⟩) R mem aw rdata σ k' C' := by
   have r1 := RD.iszero rd hd0 (by omega)
   have r2 := RD.push2 r1 dest hd1 (by simp only [List.length_cons]; omega)
   by_cases hz : word = ⟨0⟩

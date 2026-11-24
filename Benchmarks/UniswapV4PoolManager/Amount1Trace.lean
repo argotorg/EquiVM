@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.FullMath96Trace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_065
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_038
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -15,11 +17,11 @@ theorem amount1Trace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : PoolManagerImmutables) (hstack : R.length+14 ≤ 1024)
     (ha : a.toNat < 2^160) (hb : b.toNat < 2^160) (hl : liquidity.toNat < 2^128)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 (if roundUp then ⟨23010⟩ else ⟨23101⟩)
+    (h : RD fork (deployedRuntime v) I g s0 (if roundUp then ⟨23010⟩ else ⟨23101⟩)
       (a :: b :: liquidity :: ret :: R) mem aw rdata σ k C) :
-    if amount1Fits a b liquidity then ∃ k' C', RD (deployedRuntime v) I g s0 ret
+    if amount1Fits a b liquidity then ∃ k' C', RD fork (deployedRuntime v) I g s0 ret
       (amount1Word a b liquidity roundUp :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hac := u256LandMaskCleanOfToNat a (UInt256.ofNat 1461501637330902918203684832716283019655932542975) rfl ha
   have hbc := u256LandMaskCleanOfToNat b (UInt256.ofNat 1461501637330902918203684832716283019655932542975) rfl hb
   have hlc := u256LandMaskCleanOfToNat liquidity (UInt256.ofNat 340282366920938463463374607431768211455) rfl hl

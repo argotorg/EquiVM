@@ -4,6 +4,8 @@ import Reasoning.ABIComposite
 import Benchmarks.Dss.Flopper.Bids
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -392,9 +394,9 @@ theorem RD.flopperCheckedMulReturns
     (hRlen : R.length ≤ 1010)
     (hret : (D_J flopperBytecode 0).contains ret = true)
     (hfit : x.toNat * y.toNat < UInt256.size)
-    (rd4674 : RD flopperBytecode I g s0 ⟨4674⟩ (y :: x :: ret :: R)
+    (rd4674 : RD fork flopperBytecode I g s0 ⟨4674⟩ (y :: x :: ret :: R)
       mem aw rdata acc k C) :
-    ∃ k' C', RD flopperBytecode I g s0 ret (x * y :: R) mem aw rdata acc k' C' := by
+    ∃ k' C', RD fork flopperBytecode I g s0 ret (x * y :: R) mem aw rdata acc k' C' := by
   have rd4701prep := evm_run rd4674 with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
@@ -473,9 +475,9 @@ theorem RD.flopperCheckedMulOverflowReverts
     {aw : UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1010)
     (hover : UInt256.size ≤ x.toNat * y.toNat)
-    (rd4674 : RD flopperBytecode I g s0 ⟨4674⟩ (y :: x :: ret :: R)
+    (rd4674 : RD fork flopperBytecode I g s0 ⟨4674⟩ (y :: x :: ret :: R)
       mem aw rdata acc k C) :
-    RDrev flopperBytecode g s0 := by
+    RDrev fork flopperBytecode g s0 := by
   have hyNe : y ≠ ⟨0⟩ := by
     intro hzero
     have hprod0 : x.toNat * y.toNat = 0 := by simp [hzero]
@@ -533,18 +535,18 @@ theorem RD.flopperAuctionDeleteTailSplit
     (hMstore32Aw : UInt256.ofNat (MachineState.M aw.toNat 32 32) = aw)
     (hKeccakAw : UInt256.ofNat (MachineState.M aw.toNat 0 64) = aw)
     (hov : R.length + 10 ≤ 1024)
-    (h : RD flopperBytecode I g s0 ⟨1180⟩
+    (h : RD fork flopperBytecode I g s0 ⟨1180⟩
       (drop0 :: drop1 :: drop2 :: scratch :: id :: ⟨334⟩ :: R)
       mem aw rdata σ k C) :
     (I.perm = true ∧
-      RDret flopperBytecode g s0
+      RDret fork flopperBytecode g s0
         (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner
             (sstoreAccountMap I.codeOwner σ (auctionBidSlot id) ⟨0⟩)
             (auctionLotSlot id) ⟨0⟩)
           (auctionPackedSlot id) ⟨0⟩)
         ByteArray.empty) ∨
-      (I.perm = false ∧ RDstatic flopperBytecode g s0) := by
+      (I.perm = false ∧ RDstatic fork flopperBytecode g s0) := by
   let mem1 := wordAt0Mem id mem
   let mem2 := twoWordHashMem id ⟨1⟩ mem
   let base := solcMappingSlot ⟨1⟩ id

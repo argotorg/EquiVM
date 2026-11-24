@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapIterationStartTrace
 import Benchmarks.UniswapV3.Pool.SwapIterationMemory
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_014
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -12,7 +14,7 @@ theorem swapIterationPriceStoreSource {frame : Frame} {evm : EVM.State}
     (d : SwapIterationData) (price : UInt256)
     (hd : frame.locals.get? "step" = some d.value)
     (hr : frame.locals.get? "__c3" = some (.int (Int.ofNat price.toNat))) :
-    ExecStmt config frame evm swapLoopBody[7]!
+    ExecStmt fork config frame evm swapLoopBody[7]!
       (.ok (swapIterationFrame frame {d with priceNext := price}) evm) := by
   exact ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalExpr_var_get hr) (assignLocalField_frame hd rfl rfl)
 
@@ -27,7 +29,7 @@ theorem swapIterationPriceStoreX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat2
     {aw p q free exactWord cache snap dataStart dataLength ret priceRaw price : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : SwapArgs) (s : SwapStateData) (d : SwapIterationData)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3202⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3202⟩
       (priceRaw :: q :: swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
       mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hs : SwapStateMemory mem p s)
@@ -36,7 +38,7 @@ theorem swapIterationPriceStoreX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat2
     (hq : 96 ≤ q.toNat) (hdisj : p.toNat + 224 ≤ q.toNat)
     (hb : q.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 18 ≤ 1024) :
     ∃ aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 (if a.zeroForOne then ⟨3260⟩ else ⟨3231⟩)
+      RD fork (deployedRuntime v) ee g s0 (if a.zeroForOne then ⟨3260⟩ else ⟨3231⟩)
         ([s.price, ⟨3347⟩, q] ++
           swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
         (writeWord mem (q + UInt256.ofNat 96).toNat price) aw' rdata σ k' C' ∧
@@ -57,7 +59,7 @@ theorem swapIterationPriceStoreX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat2
       omega))
   have hload := SwapStateMemory.load_price hs' (by change _ < 2 ^ 256; omega)
   dsimp only [Reasoning.Theory.writeWord] at hload
-  have rr : RD (deployedRuntime v) ee g s0 (if a.zeroForOne then ⟨3260⟩ else ⟨3231⟩)
+  have rr : RD fork (deployedRuntime v) ee g s0 (if a.zeroForOne then ⟨3260⟩ else ⟨3231⟩)
       ([s.price, ⟨3347⟩, q] ++
         swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
       (writeWord mem (q + UInt256.ofNat 96).toNat price)

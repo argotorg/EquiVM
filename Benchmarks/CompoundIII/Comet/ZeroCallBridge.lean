@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.Common
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -8,7 +10,7 @@ namespace Benchmarks.CompoundIII.Comet
 -- GENERALIZES Reasoning.ExternalCall.callBridge to zero-value CALL in either permission mode.
 theorem zeroCallBridge {code I g s0 pc R mem aw rdata σ k C evm}
     {gasArg target inOffset inSize outOffset outSize : UInt256} {calldata : ByteArray}
-    (h : RD code I g s0 pc
+    (h : RD fork code I g s0 pc
       (gasArg :: target :: ⟨0⟩ :: inOffset :: inSize :: outOffset :: outSize :: R)
       mem aw rdata σ k C)
     (hs : SourceState s0 I σ evm)
@@ -17,17 +19,17 @@ theorem zeroCallBridge {code I g s0 pc R mem aw rdata σ k C evm}
     (hsmall : calldata.size ≤ Ethereum.EVM.maxReturnDataSizeByGas)
     (hov : R.length + 1 ≤ 1024) :
     ∃ (evm' : EVM.State) (σ' : AccountMap) (z : Bool) (out : ByteArray) (k' C' : Nat),
-      callViaEVM evm (AccountAddress.ofUInt256 target) 0 calldata (z, evm', out) ∧
+      callViaEVM fork evm (AccountAddress.ofUInt256 target) 0 calldata (z, evm', out) ∧
       SourceState s0 I σ' evm' ∧
-      RD code I g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: R)
+      RD fork code I g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: R)
         (out.write 0 mem outOffset.toNat (min outSize (UInt256.ofNat out.size)).toNat)
         (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat inSize.toNat)
           outOffset.toNat outSize.toNat)) out σ' k' C' ∧ out.size < 2^138 := by
   by_cases hd : I.depth = 1024
   · obtain ⟨k', C', rd⟩ := h.callDepthLimit hdec hd hov
-    let evm' := { evm with substate := (evm.addAccessedAccount
-      (AccountAddress.ofUInt256 target)).substate }
-    have hc : callViaEVM evm (AccountAddress.ofUInt256 target) 0 calldata
+    let evm' := { evm with substate := (Ethereum.EVM.callSubstate fork
+      evm.accountMap (AccountAddress.ofUInt256 target) evm.substate) }
+    have hc : callViaEVM fork evm (AccountAddress.ofUInt256 target) 0 calldata
         (false, evm', ByteArray.empty) := by
       apply callViaEVM.callNotMade rfl rfl
       rintro ⟨_, hn⟩
@@ -44,7 +46,7 @@ theorem zeroCallBridge {code I g s0 pc R mem aw rdata σ k C evm}
     have ho : out.size < 2^138 :=
       Theta_returnData_size_lt_2pow138_of_eq _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hθ hsmall
     let evm' := { evm with accountMap := σ', substate := As }
-    have hc : callViaEVM evm (AccountAddress.ofUInt256 target) 0 calldata
+    have hc : callViaEVM fork evm (AccountAddress.ofUInt256 target) 0 calldata
         (z, evm', out) := by
       apply callViaEVM.callMade (valueWord := ⟨0⟩) (g' := gasLeft) (A' := As)
         wordOfInt_zero.symm ?_ rfl (Fin.zero_le _) ?_

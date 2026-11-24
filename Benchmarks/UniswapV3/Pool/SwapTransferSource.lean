@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapAmountsSource
 import Benchmarks.UniswapV3.Pool.PoolTokenTransfer
 import Benchmarks.UniswapV3.Pool.LiquidityDeltaModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -83,10 +85,10 @@ theorem swapTransferReturns (v : UniswapV3PoolImmutables) (locals : Store)
     (calleeFrame : Frame)
     (hr : locals.get? "recipient" = some (.address recipient))
     (ha : locals.get? (poolAmountName second) = some (.int amount)) (hneg : amount < 0)
-    (hcall : ExecFuncBody config
+    (hcall : ExecFuncBody fork config
       (safeTransferFrame (immStore v) (poolToken v second) recipient (swapTransferValue amount))
       evm safeTransferFunction.body (.returned calleeFrame evm' none)) :
-    ExecStmt config {contract := contract, locals := locals, immutables := immStore v} evm
+    ExecStmt fork config {contract := contract, locals := locals, immutables := immStore v} evm
       (swapTransferStmt second)
       (.ok (swapTransferFrame {contract := contract, locals := locals, immutables := immStore v}
         second amount) evm') := by
@@ -105,10 +107,10 @@ theorem swapTransferReverts (v : UniswapV3PoolImmutables) (locals : Store)
     (evm : EVM.State) (second : Bool) (recipient : AccountAddress) (amount : Int)
     (hr : locals.get? "recipient" = some (.address recipient))
     (ha : locals.get? (poolAmountName second) = some (.int amount)) (hneg : amount < 0)
-    (hcall : ExecFuncBody config
+    (hcall : ExecFuncBody fork config
       (safeTransferFrame (immStore v) (poolToken v second) recipient (swapTransferValue amount))
       evm safeTransferFunction.body .reverted) :
-    ExecStmt config {contract := contract, locals := locals, immutables := immStore v} evm
+    ExecStmt fork config {contract := contract, locals := locals, immutables := immStore v} evm
       (swapTransferStmt second) .reverted := by
   refine ExecStmt.iteTrue ?_ (ExecBlock.consRevert ?_)
   · simpa only [hneg, decide_true] using

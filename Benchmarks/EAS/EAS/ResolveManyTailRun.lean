@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.ResolveManyLoopRun
 import Benchmarks.EAS.EAS.HeapPost
 import Benchmarks.EAS.EAS.ResolveManyResolverRun
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -16,10 +18,10 @@ theorem resolveManyTailRun {locals imms : Store} {ee : ExecutionEnv} {g : Sat256
     (hvalues : WordArrayMemoryView mem values words ptr.toNat)
     (hheap : ptr.toNat ≤ 2^64-1) (hh : memLoad (UInt256.ofNat 64) mem = ptr)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 (resolveManyLoopPC rev)
+    (rd : RD fork (deployedRuntime v) ee g s0 (resolveManyLoopPC rev)
       (resolveManyLoopStack rev 0 array (UInt256.ofNat target.val) values available last.toUInt256 ⟨0⟩ words.length (ret::R))
       mem aw rdata σ k C) :
-    HeapReturnPostOrStatic ((resolveManyTotal words words.length).toNat ≤ available.toNat) config (deployedRuntime v) ee g s0 {contract := contract, locals := locals, immutables := imms}
+    HeapReturnPostOrStatic fork ((resolveManyTotal words words.length).toNat ≤ available.toNat) config (deployedRuntime v) ee g s0 {contract := contract, locals := locals, immutables := imms}
       evm ([.while timeArrayGuard resolveManyIteration,resolveManyResolver,resolveManyRefund] ++ resolveManyReturn)
       (.int (Int.ofNat (resolveManyTotal words words.length).toNat)) ret (resolveManyTotal words words.length::R) mem ptr.toNat := by
   obtain ⟨available',hloop⟩ := resolveManyLoopRun (imms := imms) v hf (by simp only [List.length_cons]; omega) hs hvalues hheap hh rd

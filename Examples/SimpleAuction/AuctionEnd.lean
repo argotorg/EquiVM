@@ -3,6 +3,8 @@ import Examples.SimpleAuction.Storage
 import Reasoning.SteleBody
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -115,16 +117,16 @@ theorem simpleAuctionDecode_auctionEnd {I : ExecutionEnv} (hsz : 4 ≤ I.calldat
 
 theorem simpleAuctionAuctionEndBodyReverts_nonpayable {evm : EVM.State} {locals : Store}
     (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecTransitionBody simpleAuctionConfig simpleAuctionContract evm locals
+    ExecTransitionBody fork simpleAuctionConfig simpleAuctionContract evm locals
       auctionEndTransition.body .reverted := by
   exact bodyReverts_nonPayable h
 
 theorem simpleAuctionX_auctionEnd_nonpayable {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue ≠ ⟨0⟩)
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g
+    (hreach : ∃ k C, RD fork simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨124⟩ [simpleAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev simpleAuctionBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork simpleAuctionBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd124⟩ := hreach
   have rd132 := evm_run rd124 with [
     jumpdest, callvalue, dup1, iszero, push2 ⟨135⟩,
@@ -134,10 +136,10 @@ theorem simpleAuctionX_auctionEnd_nonpayable {σ σ₀ A I} {g : Sat256}
 
 theorem simpleAuctionX_auctionEndToBody {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g
+    (hreach : ∃ k C, RD fork simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨124⟩ [simpleAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨555⟩
+    ∃ k C, RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨555⟩
       [⟨122⟩, simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C := by
   obtain ⟨_, _, rd124⟩ := hreach
@@ -148,16 +150,16 @@ theorem simpleAuctionX_auctionEndToBody {σ σ₀ A I} {g : Sat256}
 
 theorem simpleAuctionX_auctionEnd_timeRevert {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g
+    (hreach : ∃ k C, RD fork simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨124⟩ [simpleAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (htime : (auctionEndTimestampWord I).toNat < (auctionEndAuctionEndWord σ I).toNat) :
-    RDrev simpleAuctionBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork simpleAuctionBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd555⟩ := simpleAuctionX_auctionEndToBody
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hreach
   have rd558 := evm_run rd555 with [jumpdest, push1 ⟨1⟩]
   obtain ⟨_, _, rd559₀⟩ := rd558.sload (by decide) (by evm_ov)
-  obtain ⟨_, _, rd559⟩ : ∃ k C, RD simpleAuctionBytecode I g
+  obtain ⟨_, _, rd559⟩ : ∃ k C, RD fork simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨559⟩
       [auctionEndAuctionEndWord σ I, ⟨122⟩, simpleAuctionSelWord I] solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -190,18 +192,18 @@ theorem simpleAuctionX_auctionEnd_timeRevert {σ σ₀ A I} {g : Sat256}
 
 theorem simpleAuctionX_auctionEnd_afterTime {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g
+    (hreach : ∃ k C, RD fork simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨124⟩ [simpleAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (htime : (auctionEndAuctionEndWord σ I).toNat ≤ (auctionEndTimestampWord I).toNat) :
-    ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨590⟩
+    ∃ k C, RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨590⟩
       [⟨122⟩, simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C := by
   obtain ⟨_, _, rd555⟩ := simpleAuctionX_auctionEndToBody
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hreach
   have rd558 := evm_run rd555 with [jumpdest, push1 ⟨1⟩]
   obtain ⟨_, _, rd559₀⟩ := rd558.sload (by decide) (by evm_ov)
-  obtain ⟨_, _, rd559⟩ : ∃ k C, RD simpleAuctionBytecode I g
+  obtain ⟨_, _, rd559⟩ : ∃ k C, RD fork simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨559⟩
       [auctionEndAuctionEndWord σ I, ⟨122⟩, simpleAuctionSelWord I] solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -218,17 +220,17 @@ theorem simpleAuctionX_auctionEnd_afterTime {σ σ₀ A I} {g : Sat256}
 
 theorem simpleAuctionX_auctionEnd_endedRevert {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g
+    (hreach : ∃ k C, RD fork simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨124⟩ [simpleAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (htime : (auctionEndAuctionEndWord σ I).toNat ≤ (auctionEndTimestampWord I).toNat)
     (hended : auctionEndEndedWord σ I ≠ ⟨0⟩) :
-    RDrev simpleAuctionBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork simpleAuctionBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd590⟩ := simpleAuctionX_auctionEnd_afterTime
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hreach htime
   have rd593 := evm_run rd590 with [jumpdest, push1 ⟨5⟩]
   obtain ⟨_, _, rd594₀⟩ := rd593.sload (by decide) (by evm_ov)
-  obtain ⟨_, _, rd594⟩ : ∃ k C, RD simpleAuctionBytecode I g
+  obtain ⟨_, _, rd594⟩ : ∃ k C, RD fork simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨594⟩
       [auctionEndEndedRawWord σ I, ⟨122⟩, simpleAuctionSelWord I] solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -260,19 +262,19 @@ theorem simpleAuctionX_auctionEnd_endedRevert {σ σ₀ A I} {g : Sat256}
 
 theorem simpleAuctionX_auctionEnd_afterNotEnded {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g
+    (hreach : ∃ k C, RD fork simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨124⟩ [simpleAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (htime : (auctionEndAuctionEndWord σ I).toNat ≤ (auctionEndTimestampWord I).toNat)
     (hended : auctionEndEndedWord σ I = ⟨0⟩) :
-    ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨626⟩
+    ∃ k C, RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨626⟩
       [⟨122⟩, simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C := by
   obtain ⟨_, _, rd590⟩ := simpleAuctionX_auctionEnd_afterTime
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hreach htime
   have rd593 := evm_run rd590 with [jumpdest, push1 ⟨5⟩]
   obtain ⟨_, _, rd594₀⟩ := rd593.sload (by decide) (by evm_ov)
-  obtain ⟨_, _, rd594⟩ : ∃ k C, RD simpleAuctionBytecode I g
+  obtain ⟨_, _, rd594⟩ : ∃ k C, RD fork simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨594⟩
       [auctionEndEndedRawWord σ I, ⟨122⟩, simpleAuctionSelWord I] solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -288,21 +290,21 @@ theorem simpleAuctionX_auctionEnd_afterNotEnded {σ σ₀ A I} {g : Sat256}
 
 theorem simpleAuctionX_auctionEnd_afterStoreAndLog {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g
+    (hreach : ∃ k C, RD fork simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨124⟩ [simpleAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (htime : (auctionEndAuctionEndWord σ I).toNat ≤ (auctionEndTimestampWord I).toNat)
     (hended : auctionEndEndedWord σ I = ⟨0⟩) :
-    (I.perm = true ∧ ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨714⟩
+    (I.perm = true ∧ ∃ k C, RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨714⟩
       [⟨122⟩, simpleAuctionSelWord I]
       (auctionEndEventMem (auctionEndAfterEndedMap σ I) I) (UInt256.ofNat 6)
       ByteArray.empty (auctionEndAfterEndedMap σ I) k C)
-    ∨ (I.perm = false ∧ RDstatic simpleAuctionBytecode g (initState σ σ₀ g A I)) := by
+    ∨ (I.perm = false ∧ RDstatic fork simpleAuctionBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd626⟩ := simpleAuctionX_auctionEnd_afterNotEnded
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hreach htime hended
   have rd630 := evm_run rd626 with [jumpdest, push1 ⟨5⟩, dup1]
   obtain ⟨_, _, rd631₀⟩ := rd630.sload (by decide) (by evm_ov)
-  obtain ⟨_, _, rd631⟩ : ∃ k C, RD simpleAuctionBytecode I g
+  obtain ⟨_, _, rd631⟩ : ∃ k C, RD fork simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨631⟩
       [auctionEndEndedRawWord σ I, ⟨5⟩, ⟨122⟩, simpleAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -329,7 +331,7 @@ theorem simpleAuctionX_auctionEnd_afterStoreAndLog {σ σ₀ A I} {g : Sat256}
     exact Or.inr ⟨hpf, rd639.sstoreStatic hpf (by decide) (by evm_ov)⟩
   refine Or.inl ⟨hp, ?_⟩
   obtain ⟨_, _, rd640₀⟩ := rd639.sstore hp (by decide) (by evm_ov)
-  obtain ⟨_, _, rd640⟩ : ∃ k C, RD simpleAuctionBytecode I g
+  obtain ⟨_, _, rd640⟩ : ∃ k C, RD fork simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨640⟩
       [⟨122⟩, simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (auctionEndAfterEndedMap σ I) k C := by
@@ -337,14 +339,14 @@ theorem simpleAuctionX_auctionEnd_afterStoreAndLog {σ σ₀ A I} {g : Sat256}
   let σa := auctionEndAfterEndedMap σ I
   have rd642 := evm_run rd640 with [push1 ⟨2⟩]
   obtain ⟨_, _, rd643₀⟩ := rd642.sload (by decide) (by evm_ov)
-  obtain ⟨_, _, rd643⟩ : ∃ k C, RD simpleAuctionBytecode I g
+  obtain ⟨_, _, rd643⟩ : ∃ k C, RD fork simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨643⟩
       [auctionEndHighestBidderRawWord σa I, ⟨122⟩, simpleAuctionSelWord I] solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty σa k C := by
     exact ⟨_, _, by simpa [σa, auctionEndHighestBidderRawWord] using rd643₀⟩
   have rd645 := evm_run rd643 with [push1 ⟨3⟩]
   obtain ⟨_, _, rd646₀⟩ := rd645.sload (by decide) (by evm_ov)
-  obtain ⟨_, _, rd646⟩ : ∃ k C, RD simpleAuctionBytecode I g
+  obtain ⟨_, _, rd646⟩ : ∃ k C, RD fork simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨646⟩
       [auctionEndHighestBidWord σa I, auctionEndHighestBidderRawWord σa I,
         ⟨122⟩, simpleAuctionSelWord I] solcFreePtrMem
@@ -370,7 +372,7 @@ theorem simpleAuctionX_auctionEnd_afterStoreAndLog {σ σ₀ A I} {g : Sat256}
     raw mstore 3 (auctionEndEventMem σa I) (UInt256.ofNat 6) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov)]
   have rd704 := rd670.pushConst auctionEndedTopic (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by decide +kernel) (by decide +kernel) (by evm_ov)
   have rd713 := evm_run rd704 with [
     swap2, add, push1 ⟨64⟩,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
@@ -387,12 +389,12 @@ theorem simpleAuctionX_auctionEnd_afterStoreAndLog {σ σ₀ A I} {g : Sat256}
 
 theorem simpleAuctionX_auctionEnd_toCall {σ σ₀ A I} {g : Sat256}
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g
+    (hreach : ∃ k C, RD fork simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨124⟩ [simpleAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (htime : (auctionEndAuctionEndWord σ I).toNat ≤ (auctionEndTimestampWord I).toNat)
     (hended : auctionEndEndedWord σ I = ⟨0⟩) :
-    ∃ gasArg k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨742⟩
+    ∃ gasArg k C, RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨742⟩
       [gasArg, auctionEndBeneficiaryWord (auctionEndAfterEndedMap σ I) I,
         auctionEndHighestBidWord (auctionEndAfterEndedMap σ I) I,
         ⟨128⟩, ⟨0⟩, ⟨128⟩, ⟨0⟩, ⟨128⟩,
@@ -407,14 +409,14 @@ theorem simpleAuctionX_auctionEnd_toCall {σ σ₀ A I} {g : Sat256}
   let σa := auctionEndAfterEndedMap σ I
   have rd716 := evm_run rd714 with [push0, dup1]
   obtain ⟨_, _, rd717₀⟩ := rd716.sload (by decide) (by evm_ov)
-  obtain ⟨_, _, rd717⟩ : ∃ k C, RD simpleAuctionBytecode I g
+  obtain ⟨_, _, rd717⟩ : ∃ k C, RD fork simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨717⟩
       [auctionEndBeneficiaryRawWord σa I, ⟨0⟩, ⟨122⟩, simpleAuctionSelWord I]
       (auctionEndEventMem σa I) (UInt256.ofNat 6) ByteArray.empty σa k C := by
     exact ⟨_, _, by simpa [σa, auctionEndBeneficiaryRawWord] using rd717₀⟩
   have rd719 := evm_run rd717 with [push1 ⟨3⟩]
   obtain ⟨_, _, rd720₀⟩ := rd719.sload (by decide) (by evm_ov)
-  obtain ⟨_, _, rd720⟩ : ∃ k C, RD simpleAuctionBytecode I g
+  obtain ⟨_, _, rd720⟩ : ∃ k C, RD fork simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨720⟩
       [auctionEndHighestBidWord σa I, auctionEndBeneficiaryRawWord σa I,
         ⟨0⟩, ⟨122⟩, simpleAuctionSelWord I]
@@ -438,10 +440,10 @@ theorem simpleAuctionX_auctionEnd_toCall {σ σ₀ A I} {g : Sat256}
 theorem simpleAuctionX_auctionEnd_postCallEmpty_toRequire {σ σ₀ A I} {g : Sat256}
     {acc : AccountMap}
     {mem : ByteArray} {aw : UInt256} {k C : ℕ} {z high benef : UInt256}
-    (rd : RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨743⟩
+    (rd : RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨743⟩
       [z, ⟨128⟩, high, benef, ⟨0⟩, ⟨122⟩, simpleAuctionSelWord I]
       mem aw ByteArray.empty acc k C) :
-    ∃ k' C', RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨798⟩
+    ∃ k' C', RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨798⟩
       [z, ⟨122⟩, simpleAuctionSelWord I] mem aw ByteArray.empty acc k' C' := by
   refine ⟨_, _, evm_run rd with [
     swap3, pop, pop, pop,
@@ -453,7 +455,7 @@ theorem simpleAuctionX_auctionEnd_postCallEmpty_toRequire {σ σ₀ A I} {g : Sa
 theorem simpleAuctionX_auctionEnd_postCallNonempty_toRequire {σ σ₀ A I} {g : Sat256}
     {acc : AccountMap}
     {mem : ByteArray} {k C : ℕ} {z high benef : UInt256} {o : ByteArray}
-    (rd : RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨743⟩
+    (rd : RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨743⟩
       [z, ⟨128⟩, high, benef, ⟨0⟩, ⟨122⟩, simpleAuctionSelWord I]
       mem (UInt256.ofNat 6) o acc k C)
     (hfp : (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
@@ -461,7 +463,7 @@ theorem simpleAuctionX_auctionEnd_postCallNonempty_toRequire {σ σ₀ A I} {g :
           (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)
     (ho0 : o.size ≠ 0) (hosz : o.size < UInt256.size) :
-    ∃ mem' aw' k' C', RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨798⟩
+    ∃ mem' aw' k' C', RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨798⟩
       [z, ⟨122⟩, simpleAuctionSelWord I] mem' aw' o acc k' C' := by
   let rdsz : UInt256 := UInt256.ofNat o.size
   have hrdsz_toNat : rdsz.toNat = o.size := by
@@ -514,9 +516,9 @@ theorem simpleAuctionX_auctionEnd_postCallNonempty_toRequire {σ σ₀ A I} {g :
 theorem simpleAuctionX_auctionEnd_requireSuccess_return {σ σ₀ A I} {g : Sat256}
     {acc : AccountMap}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {k C : ℕ}
-    (rd : RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨798⟩
+    (rd : RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨798⟩
       [⟨1⟩, ⟨122⟩, simpleAuctionSelWord I] mem aw rdata acc k C) :
-    RDret simpleAuctionBytecode g (initState σ σ₀ g A I) acc ByteArray.empty := by
+    RDret fork simpleAuctionBytecode g (initState σ σ₀ g A I) acc ByteArray.empty := by
   have rd122 := evm_run rd with [
     dup1, push2 ⟨806⟩, jumpiT (by decide) (by jump_dest),
     jumpdest, pop, jump (by jump_dest), jumpdest]
@@ -525,9 +527,9 @@ theorem simpleAuctionX_auctionEnd_requireSuccess_return {σ σ₀ A I} {g : Sat2
 theorem simpleAuctionX_auctionEnd_requireSuccess_revert {σ σ₀ A I} {g : Sat256}
     {acc : AccountMap}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {k C : ℕ}
-    (rd : RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨798⟩
+    (rd : RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨798⟩
       [⟨0⟩, ⟨122⟩, simpleAuctionSelWord I] mem aw rdata acc k C) :
-    RDrev simpleAuctionBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork simpleAuctionBytecode g (initState σ σ₀ g A I) := by
   have rd803 := evm_run rd with [dup1, push2 ⟨806⟩, jumpiNT (by decide), push0, push0]
   exact RD.rev _ rd803 (by decide)
     (by rfl)
@@ -535,7 +537,7 @@ theorem simpleAuctionX_auctionEnd_requireSuccess_revert {σ σ₀ A I} {g : Sat2
 
 theorem simpleAuctionX_auctionEnd_callMade {σ σ₀ A I} {g : Sat256}
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g
+    (hreach : ∃ k C, RD fork simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨124⟩ [simpleAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (htime : (auctionEndAuctionEndWord σ I).toNat ≤ (auctionEndTimestampWord I).toNat)
@@ -546,17 +548,16 @@ theorem simpleAuctionX_auctionEnd_callMade {σ σ₀ A I} {g : Sat256}
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ
-          (auctionEndAfterEndedMap σ I) σ₀ A_in
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ fork (auctionEndAfterEndedMap σ I) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (auctionEndBeneficiaryWord (auctionEndAfterEndedMap σ I) I))
-          (toExecute (auctionEndAfterEndedMap σ I)
+          (toExecute fork (auctionEndAfterEndedMap σ I)
             (AccountAddress.ofUInt256 (auctionEndBeneficiaryWord (auctionEndAfterEndedMap σ I) I)))
           callGas (UInt256.ofNat I.gasPrice)
           (auctionEndHighestBidWord (auctionEndAfterEndedMap σ I) I)
           (auctionEndHighestBidWord (auctionEndAfterEndedMap σ I) I)
           ByteArray.empty (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
-      ∧ RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨743⟩
+      ∧ RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨743⟩
           [(if z then ⟨1⟩ else ⟨0⟩), ⟨128⟩,
             auctionEndHighestBidWord (auctionEndAfterEndedMap σ I) I,
             auctionEndBeneficiaryWord (auctionEndAfterEndedMap σ I) I,
@@ -577,11 +578,10 @@ theorem simpleAuctionX_auctionEnd_callMade {σ σ₀ A I} {g : Sat256}
       (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat = ByteArray.empty := by
     exact byteArray_readWithPadding_zero _ _
   have hΘ' : ∃ (g'' : UInt256) (A' : Substate),
-      (σ', g'', A', z, o) = Ethereum.EVM.Θ
-        (auctionEndAfterEndedMap σ I) σ₀ A_in
+      (σ', g'', A', z, o) = Ethereum.EVM.Θ fork (auctionEndAfterEndedMap σ I) σ₀ A_in
         (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
         (AccountAddress.ofUInt256 (auctionEndBeneficiaryWord (auctionEndAfterEndedMap σ I) I))
-        (toExecute (auctionEndAfterEndedMap σ I)
+        (toExecute fork (auctionEndAfterEndedMap σ I)
           (AccountAddress.ofUInt256 (auctionEndBeneficiaryWord (auctionEndAfterEndedMap σ I) I)))
         callGas (UInt256.ofNat I.gasPrice)
         (auctionEndHighestBidWord (auctionEndAfterEndedMap σ I) I)
@@ -602,13 +602,13 @@ theorem simpleAuctionX_auctionEnd_callMade {σ σ₀ A I} {g : Sat256}
 
 theorem simpleAuctionX_auctionEnd_callDepthRevert {σ σ₀ A I} {g : Sat256}
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g
+    (hreach : ∃ k C, RD fork simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨124⟩ [simpleAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (htime : (auctionEndAuctionEndWord σ I).toNat ≤ (auctionEndTimestampWord I).toNat)
     (hended : auctionEndEndedWord σ I = ⟨0⟩)
     (hdepth : I.depth = 1024) :
-    RDrev simpleAuctionBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork simpleAuctionBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨gasArg, _, _, rd742⟩ := simpleAuctionX_auctionEnd_toCall
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     hperm hwv hreach htime hended
@@ -620,7 +620,7 @@ theorem simpleAuctionX_auctionEnd_callDepthRevert {σ σ₀ A I} {g : Sat256}
 
 theorem simpleAuctionX_auctionEnd_callInsufficientRevert {σ σ₀ A I} {g : Sat256}
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g
+    (hreach : ∃ k C, RD fork simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨124⟩ [simpleAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (htime : (auctionEndAuctionEndWord σ I).toNat ≤ (auctionEndTimestampWord I).toNat)
@@ -628,7 +628,7 @@ theorem simpleAuctionX_auctionEnd_callInsufficientRevert {σ σ₀ A I} {g : Sat
     (hbalance : ¬ auctionEndHighestBidWord (auctionEndAfterEndedMap σ I) I ≤
       (auctionEndAfterEndedMap σ I |>.get? I.codeOwner |>.elim ⟨0⟩ (·.balance)))
     (hdepth : I.depth.val < 1024) :
-    RDrev simpleAuctionBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork simpleAuctionBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨gasArg, _, _, rd742⟩ := simpleAuctionX_auctionEnd_toCall
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     hperm hwv hreach htime hended
@@ -821,7 +821,7 @@ theorem simpleAuctionAuctionEndBodyReverts_time (evm : EVM.State)
     (htime :
       (UInt256.ofNat evm.executionEnv.header.timestamp).toNat <
         (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩).toNat) :
-    ExecTransitionBody simpleAuctionConfig simpleAuctionContract evm ∅
+    ExecTransitionBody fork simpleAuctionConfig simpleAuctionContract evm ∅
       auctionEndTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   unfold auctionEndTransition
@@ -834,7 +834,7 @@ theorem simpleAuctionAuctionEndBodyReverts_ended (evm : EVM.State)
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩).toNat ≤
         (UInt256.ofNat evm.executionEnv.header.timestamp).toNat)
     (hnz : auctionEndEndedWordState evm ≠ ⟨0⟩) :
-    ExecTransitionBody simpleAuctionConfig simpleAuctionContract evm ∅
+    ExecTransitionBody fork simpleAuctionConfig simpleAuctionContract evm ∅
       auctionEndTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   unfold auctionEndTransition
@@ -851,14 +851,14 @@ theorem simpleAuctionAuctionEndBodyReverts_callFailure
         (UInt256.ofNat evm.executionEnv.header.timestamp).toNat)
     (hended : auctionEndEndedWordState evm = ⟨0⟩)
     (hcall :
-      callViaEVM (auctionEndAfterEndedState evm)
+      callViaEVM fork (auctionEndAfterEndedState evm)
         (EVM.address
           (AccountAddress.ofNat
             (auctionEndBeneficiaryWordState (auctionEndAfterEndedState evm)).toNat))
         (Int.ofNat (auctionEndHighestBidWordState (auctionEndAfterEndedState evm)).toNat)
         ByteArray.empty (false, evm', out))
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody simpleAuctionConfig simpleAuctionContract evm ∅
+    ExecTransitionBody fork simpleAuctionConfig simpleAuctionContract evm ∅
       auctionEndTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   unfold auctionEndTransition
@@ -886,7 +886,7 @@ theorem simpleAuctionAuctionEndBodyStatic (evm : EVM.State)
         (UInt256.ofNat evm.executionEnv.header.timestamp).toNat)
     (hended : auctionEndEndedWordState evm = ⟨0⟩)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody simpleAuctionConfig simpleAuctionContract evm ∅
+    ExecTransitionBody fork simpleAuctionConfig simpleAuctionContract evm ∅
       auctionEndTransition.body .staticViolation := by
   refine ExecFuncBody.execBlockStatic ?_
   unfold auctionEndTransition
@@ -905,14 +905,14 @@ theorem simpleAuctionAuctionEndBodyReturns_callSuccess
         (UInt256.ofNat evm.executionEnv.header.timestamp).toNat)
     (hended : auctionEndEndedWordState evm = ⟨0⟩)
     (hcall :
-      callViaEVM (auctionEndAfterEndedState evm)
+      callViaEVM fork (auctionEndAfterEndedState evm)
         (EVM.address
           (AccountAddress.ofNat
             (auctionEndBeneficiaryWordState (auctionEndAfterEndedState evm)).toNat))
         (Int.ofNat (auctionEndHighestBidWordState (auctionEndAfterEndedState evm)).toNat)
         ByteArray.empty (true, evm', out))
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody simpleAuctionConfig simpleAuctionContract evm ∅ auctionEndTransition.body
+    ExecTransitionBody fork simpleAuctionConfig simpleAuctionContract evm ∅ auctionEndTransition.body
       (.returned { contract := simpleAuctionContract, locals := auctionEndCallStore true out }
         evm' none) := by
   refine ExecFuncBody.execBlockOK ?_
@@ -991,7 +991,7 @@ theorem auctionEndAfterEndedState_balance_init {σ σ₀ A I} {g : Sat256} :
 
 theorem simpleAuctionX_auctionEnd_afterCall_revert {σ σ₀ A I} {g : Sat256}
     {acc : AccountMap} {o : ByteArray} {k C : ℕ}
-    (rd : RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨743⟩
+    (rd : RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨743⟩
       [⟨0⟩, ⟨128⟩,
         auctionEndHighestBidWord (auctionEndAfterEndedMap σ I) I,
         auctionEndBeneficiaryWord (auctionEndAfterEndedMap σ I) I,
@@ -999,7 +999,7 @@ theorem simpleAuctionX_auctionEnd_afterCall_revert {σ σ₀ A I} {g : Sat256}
       (auctionEndEventMem (auctionEndAfterEndedMap σ I) I) (UInt256.ofNat 6) o
       acc k C)
     (hosz : o.size < UInt256.size) :
-    RDrev simpleAuctionBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork simpleAuctionBytecode g (initState σ σ₀ g A I) := by
   by_cases ho : o.size = 0
   · have hoempty : o = ByteArray.empty := byteArray_eq_empty_of_size_eq_zero o ho
     subst o
@@ -1015,7 +1015,7 @@ theorem simpleAuctionX_auctionEnd_afterCall_revert {σ σ₀ A I} {g : Sat256}
 
 theorem simpleAuctionX_auctionEnd_afterCall_return {σ σ₀ A I} {g : Sat256}
     {acc : AccountMap} {o : ByteArray} {k C : ℕ}
-    (rd : RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨743⟩
+    (rd : RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨743⟩
       [⟨1⟩, ⟨128⟩,
         auctionEndHighestBidWord (auctionEndAfterEndedMap σ I) I,
         auctionEndBeneficiaryWord (auctionEndAfterEndedMap σ I) I,
@@ -1023,7 +1023,7 @@ theorem simpleAuctionX_auctionEnd_afterCall_return {σ σ₀ A I} {g : Sat256}
       (auctionEndEventMem (auctionEndAfterEndedMap σ I) I) (UInt256.ofNat 6) o
       acc k C)
     (hosz : o.size < UInt256.size) :
-    RDret simpleAuctionBytecode g (initState σ σ₀ g A I) acc ByteArray.empty := by
+    RDret fork simpleAuctionBytecode g (initState σ σ₀ g A I) acc ByteArray.empty := by
   by_cases ho : o.size = 0
   · have hoempty : o = ByteArray.empty := byteArray_eq_empty_of_size_eq_zero o ho
     subst o
@@ -1041,12 +1041,12 @@ theorem simpleAuctionAuctionEndBody {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = simpleAuctionBytecode)
     (hsel : selIs I ⟨#[0x2a, 0x24, 0xf4, 0x6c]⟩)
-    (hreach : ∃ k C, RD simpleAuctionBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork simpleAuctionBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨124⟩
       [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C)
  :
-    runtimeRefinementFor simpleAuctionConfig simpleAuctionContract
+    runtimeRefinementFor fork simpleAuctionConfig simpleAuctionContract
       σ σ₀ g A I := by
   have hsel' : ((⟨#[0x2a, 0x24, 0xf4, 0x6c]⟩ : ByteArray) ==
       I.calldata.extract 0 4) = true := by
@@ -1059,7 +1059,7 @@ theorem simpleAuctionAuctionEndBody {σ σ₀ A I}
   · by_cases htimeBad :
         (auctionEndTimestampWord I).toNat < (auctionEndAuctionEndWord σ I).toNat
     · have hbody :
-          ExecTransitionBody simpleAuctionConfig simpleAuctionContract evm ∅
+          ExecTransitionBody fork simpleAuctionConfig simpleAuctionContract evm ∅
             auctionEndTransition.body .reverted :=
         simpleAuctionAuctionEndBodyReverts_time evm
           (by simpa [evm, initState] using hwv)
@@ -1080,7 +1080,7 @@ theorem simpleAuctionAuctionEndBody {σ σ₀ A I}
         swap
         · -- static mode: both sides halt at the `ended` write
           have hpf : I.perm = false := by simpa using hperm
-          have hbody := simpleAuctionAuctionEndBodyStatic evm
+          have hbody := simpleAuctionAuctionEndBodyStatic (fork := fork) evm
             (by simpa [evm, initState] using hwv)
             (by
               simpa [evm, initState, auctionEndAuctionEndWord, auctionEndTimestampWord,
@@ -1094,11 +1094,12 @@ theorem simpleAuctionAuctionEndBody {σ σ₀ A I}
         by_cases hdepthEq : I.depth = 1024
         · let evmSFail : EVM.State :=
             { evmAfter with
-              substate := (evmAfter.addAccessedAccount
+              substate := (Ethereum.EVM.callSubstate fork evmAfter.accountMap
                 (EVM.address
-                  (AccountAddress.ofNat (auctionEndBeneficiaryWordState evmAfter).toNat))).substate }
+                  (AccountAddress.ofNat (auctionEndBeneficiaryWordState evmAfter).toNat))
+                    evmAfter.substate) }
           have hcall :
-              callViaEVM evmAfter
+              callViaEVM fork evmAfter
                 (EVM.address
                   (AccountAddress.ofNat (auctionEndBeneficiaryWordState evmAfter).toNat))
                 (Int.ofNat (auctionEndHighestBidWordState evmAfter).toNat)
@@ -1111,7 +1112,7 @@ theorem simpleAuctionAuctionEndBody {σ σ₀ A I}
                 simpa [evmAfter, evm, initState, auctionEndAfterEndedState_executionEnv]
                   using hdepthEq)
           have hbody :
-              ExecTransitionBody simpleAuctionConfig simpleAuctionContract evm ∅
+              ExecTransitionBody fork simpleAuctionConfig simpleAuctionContract evm ∅
                 auctionEndTransition.body .reverted :=
             simpleAuctionAuctionEndBodyReverts_callFailure (hperm := hperm) evm evmSFail ByteArray.empty
               (by simpa [evm, initState] using hwv)
@@ -1183,7 +1184,7 @@ theorem simpleAuctionAuctionEndBody {σ σ₀ A I}
                   (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
                   (g := Sat256.ofUInt256 g))
             have hcallE :
-                callViaEVM evmAfter targetE valueE ByteArray.empty (z, evmECall, out) := by
+                callViaEVM fork evmAfter targetE valueE ByteArray.empty (z, evmECall, out) := by
               refine callViaEVM.callMade
                 (valueWord := auctionEndHighestBidWord evmAfter.accountMap evmAfter.executionEnv)
                 (σ' := σ') (g' := g'') (A' := A')
@@ -1200,12 +1201,12 @@ theorem simpleAuctionAuctionEndBody {σ σ₀ A I}
                 exact hdepthEq (by
                   simpa [evmAfter, evm, initState, auctionEndAfterEndedState_executionEnv] using hd)
             have houtsz : out.size < UInt256.size := by
-              have hsizeΘ := Theta_returnData_size_lt
+              have hsizeΘ := Theta_returnData_size_lt (fork := fork)
                 (auctionEndAfterEndedMap σ I) σ₀ A_in
                 (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
                 (AccountAddress.ofUInt256 (auctionEndBeneficiaryWord
                   (auctionEndAfterEndedMap σ I) I))
-                (toExecute (auctionEndAfterEndedMap σ I)
+                (toExecute fork (auctionEndAfterEndedMap σ I)
                   (AccountAddress.ofUInt256 (auctionEndBeneficiaryWord
                     (auctionEndAfterEndedMap σ I) I)))
                 callGas (UInt256.ofNat I.gasPrice)
@@ -1244,7 +1245,7 @@ theorem simpleAuctionAuctionEndBody {σ σ₀ A I}
                 valueE = Int.ofNat (auctionEndHighestBidWordState evmAfter).toNat := by
               simpa [valueE, hValueTarget]
             have hcallS :
-                callViaEVM evmAfter
+                callViaEVM fork evmAfter
                   (EVM.address
                     (AccountAddress.ofNat (auctionEndBeneficiaryWordState evmAfter).toNat))
                   (Int.ofNat (auctionEndHighestBidWordState evmAfter).toNat)
@@ -1252,7 +1253,7 @@ theorem simpleAuctionAuctionEndBody {σ σ₀ A I}
               simpa [evmSCall, hTargetEq, hValueEq] using hcallE
             cases z
             · have hbody :
-                  ExecTransitionBody simpleAuctionConfig simpleAuctionContract evm ∅
+                  ExecTransitionBody fork simpleAuctionConfig simpleAuctionContract evm ∅
                     auctionEndTransition.body .reverted :=
                 simpleAuctionAuctionEndBodyReverts_callFailure (hperm := hperm) evm evmSCall out
                   (by simpa [evm, initState] using hwv)
@@ -1261,7 +1262,7 @@ theorem simpleAuctionAuctionEndBody {σ σ₀ A I}
                       Stele.EVM.storageLoad, State.lookupAccount] using htimeLe)
                   hendedSState
                   (by simpa [evmAfter] using hcallS)
-              have hrev : RDrev simpleAuctionBytecode (Sat256.ofUInt256 g)
+              have hrev : RDrev fork simpleAuctionBytecode (Sat256.ofUInt256 g)
                   (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
                 simpleAuctionX_auctionEnd_afterCall_revert
                   (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -1269,7 +1270,7 @@ theorem simpleAuctionAuctionEndBody {σ σ₀ A I}
                   (rd := by simpa using rd743) houtsz
               exact hrev.reEquivExecutionRevert hcode hd hdec hbody
             · have hbody :
-                  ExecTransitionBody simpleAuctionConfig simpleAuctionContract evm ∅
+                  ExecTransitionBody fork simpleAuctionConfig simpleAuctionContract evm ∅
                     auctionEndTransition.body
                     (.returned { contract := simpleAuctionContract, locals := auctionEndCallStore true out }
                       evmSCall none) :=
@@ -1280,7 +1281,7 @@ theorem simpleAuctionAuctionEndBody {σ σ₀ A I}
                       Stele.EVM.storageLoad, State.lookupAccount] using htimeLe)
                   hendedSState
                   (by simpa [evmAfter] using hcallS)
-              have hret : RDret simpleAuctionBytecode (Sat256.ofUInt256 g)
+              have hret : RDret fork simpleAuctionBytecode (Sat256.ofUInt256 g)
                   (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                   σ' ByteArray.empty :=
                 simpleAuctionX_auctionEnd_afterCall_return
@@ -1292,9 +1293,10 @@ theorem simpleAuctionAuctionEndBody {σ σ₀ A I}
                 (returnEquiv.fallthrough rfl rfl (by native_decide))
           · let evmSFail : EVM.State :=
               { evmAfter with
-                substate := (evmAfter.addAccessedAccount
-                  (EVM.address
-                    (AccountAddress.ofNat (auctionEndBeneficiaryWordState evmAfter).toNat))).substate }
+                substate := (Ethereum.EVM.callSubstate fork
+                  evmAfter.accountMap (EVM.address
+                    (AccountAddress.ofNat (auctionEndBeneficiaryWordState evmAfter).toNat))
+                      evmAfter.substate) }
             have hHighE :
                 auctionEndHighestBidWordState evmAfter =
                   auctionEndHighestBidWord (auctionEndAfterEndedMap σ I) I := by
@@ -1312,7 +1314,7 @@ theorem simpleAuctionAuctionEndBody {σ σ₀ A I}
                   (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
                   (g := Sat256.ofUInt256 g))
             have hcall :
-                callViaEVM evmAfter
+                callViaEVM fork evmAfter
                   (EVM.address
                     (AccountAddress.ofNat (auctionEndBeneficiaryWordState evmAfter).toNat))
                   (Int.ofNat (auctionEndHighestBidWordState evmAfter).toNat)
@@ -1334,7 +1336,7 @@ theorem simpleAuctionAuctionEndBody {σ σ₀ A I}
                   simpa only [hHighE] using hvalueBal'
                 exact hbalance (by simpa only [hBalE] using hvalueBalE)
             have hbody :
-                ExecTransitionBody simpleAuctionConfig simpleAuctionContract evm ∅
+                ExecTransitionBody fork simpleAuctionConfig simpleAuctionContract evm ∅
                   auctionEndTransition.body .reverted :=
               simpleAuctionAuctionEndBodyReverts_callFailure (hperm := hperm) evm evmSFail ByteArray.empty
                 (by simpa [evm, initState] using hwv)
@@ -1347,7 +1349,7 @@ theorem simpleAuctionAuctionEndBody {σ σ₀ A I}
                 hperm hwv hreach htimeLe hendedZero hbalance hdepthLt)
               |>.reEquivExecutionRevert hcode hd hdec hbody
       · have hbody :
-            ExecTransitionBody simpleAuctionConfig simpleAuctionContract evm ∅
+            ExecTransitionBody fork simpleAuctionConfig simpleAuctionContract evm ∅
               auctionEndTransition.body .reverted :=
           simpleAuctionAuctionEndBodyReverts_ended evm
             (by simpa [evm, initState] using hwv)
@@ -1361,7 +1363,7 @@ theorem simpleAuctionAuctionEndBody {σ σ₀ A I}
             htimeLe hendedZero)
           |>.reEquivExecutionRevert hcode hd hdec hbody
   · have hbody :
-        ExecTransitionBody simpleAuctionConfig simpleAuctionContract evm ∅
+        ExecTransitionBody fork simpleAuctionConfig simpleAuctionContract evm ∅
           auctionEndTransition.body .reverted :=
       simpleAuctionAuctionEndBodyReverts_nonpayable
         (by simpa [evm, initState] using hwv)

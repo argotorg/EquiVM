@@ -2,6 +2,8 @@ import Examples.UniswapV2Pair.ExternalWrappers
 import Examples.UniswapV2Pair.Dispatch
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -139,7 +141,7 @@ theorem uniswapDecode_approve_ok_noncanon {I : ExecutionEnv}
 theorem uniswapApproveBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (approveStore I) approveTransition.body
+    ExecTransitionBody fork config contract evm (approveStore I) approveTransition.body
       (.returned { contract := contract, locals := approveStore I } (approvePostState evm I)
         (some [(.bool true)])) := by
   refine ExecFuncBody.execBlockRet ?_
@@ -154,7 +156,7 @@ theorem uniswapApproveBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     assignment. -/
 theorem uniswapApproveBodyStatic (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (approveStore I) approveTransition.body
+    ExecTransitionBody fork config contract evm (approveStore I) approveTransition.body
       .staticViolation := by
   refine ExecFuncBody.execBlockStatic ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
@@ -167,10 +169,10 @@ theorem uniswapApproveBodyStatic (evm : EVM.State) (I : ExecutionEnv)
     jumps to the external approve routine at pc 2894. -/
 theorem uniswapApproveX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨753⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨2894⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨2894⟩
         [approveValueWord I, approveSpenderMaskedWord I, ⟨797⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd775⟩ := RD.addressUint256ExternalLenOk
@@ -191,10 +193,10 @@ This covers calldata with a selector present but fewer than two ABI words. The d
 theorem uniswapApproveX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨753⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
   exact RD.addressUint256ExternalShort
     (entry := ⟨753⟩) (ret := ⟨797⟩) (routine := ⟨2894⟩)
     hreach uniswap_address_uint256_external_entry_wf hsz4 hsize hshort
@@ -204,16 +206,16 @@ theorem uniswapApproveX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem RD.uniswapApproveExternalToInternal {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {value spender ret : UInt256} {R : List UInt256} {mem : ByteArray}
     {aw : UInt256} {rdata : ByteArray} {acc : AccountMap}
-    (h : RD uniswapV2PairBytecode ee g s0 ⟨2894⟩ (value :: spender :: ret :: R)
+    (h : RD fork uniswapV2PairBytecode ee g s0 ⟨2894⟩ (value :: spender :: ret :: R)
         mem aw rdata acc k C)
     (hov : R.length + 10 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode ee g s0 ⟨7412⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode ee g s0 ⟨7412⟩
       (value :: spender :: uniswapSourceWord ee :: ⟨2907⟩ :: ⟨0⟩ :: value :: spender :: ret :: R)
       mem aw rdata acc k' C' := by
   simpa [uniswapSourceWord] using
     RD.solcCallerTransferThunk
       (pc := ⟨2894⟩) (contPc := ⟨2907⟩) (routinePc := ⟨7412⟩) h
-      (by dsimp [solcCallerTransferThunkWf]; repeat' first | apply And.intro | decide)
+      (by dsimp [solcCallerTransferThunkWf]; repeat' first | apply And.intro | decide +kernel)
       (by jump_dest) hov
 
 /-- The external `approve(address,uint256)` continuation receives `_approve`'s unit return and
@@ -222,11 +224,11 @@ theorem RD.uniswapApproveExternalFinish {g : Sat256} {s0 : State} {ee : Executio
     {k C : ℕ} {value spender ret : UInt256} {R : List UInt256} {mem : ByteArray}
     {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD uniswapV2PairBytecode ee g s0 ⟨2907⟩
+    (h : RD fork uniswapV2PairBytecode ee g s0 ⟨2907⟩
         (⟨0⟩ :: value :: spender :: ret :: R) mem aw rdata acc k C)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 5 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode ee g s0 ret (⟨1⟩ :: R) mem aw rdata acc k' C' := by
+    ∃ k' C', RD fork uniswapV2PairBytecode ee g s0 ret (⟨1⟩ :: R) mem aw rdata acc k' C' := by
   have rd2916 := evm_run h with [
     jumpdest, pop, push1 ⟨1⟩, jumpdest, swap3, swap2, pop, pop]
   exact ⟨_, _, rd2916.jump (by decide) hret (by evm_ov)⟩
@@ -235,10 +237,10 @@ theorem RD.uniswapApproveExternalFinish {g : Sat256} {s0 : State} {ee : Executio
     to the shared internal `_approve` routine at pc 7412. -/
 theorem uniswapApproveX_toInternal {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨753⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7412⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7412⟩
       (approveValueWord I :: approveSpenderMaskedWord I :: uniswapSourceWord I :: ⟨2907⟩ ::
         ⟨0⟩ :: approveValueWord I :: approveSpenderMaskedWord I :: ⟨797⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -253,10 +255,10 @@ theorem uniswapApproveX_toInternal {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     nested-mapping hash inside the shared internal `_approve` routine. -/
 theorem uniswapApproveX_innerHash {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨753⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7441⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7441⟩
       (mapSlot (uniswapSourceWord I) ⟨2⟩ :: ⟨64⟩ :: ⟨32⟩ :: ⟨0⟩ ::
         uniswapSourceWord I :: solcAddrMask :: approveValueWord I :: approveSpenderMaskedWord I ::
         uniswapSourceWord I :: ⟨2907⟩ :: ⟨0⟩ :: approveValueWord I ::
@@ -278,10 +280,10 @@ theorem uniswapApproveX_innerHash {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem uniswapApproveX_store {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hperm : I.perm = true)
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨753⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7457⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7457⟩
       (⟨32⟩ :: ⟨64⟩ :: uniswapSourceWord I :: approveSpenderMaskedWord I ::
         approveValueWord I :: approveSpenderMaskedWord I :: uniswapSourceWord I :: ⟨2907⟩ ::
         ⟨0⟩ :: approveValueWord I :: approveSpenderMaskedWord I :: ⟨797⟩ :: [sel])
@@ -310,10 +312,10 @@ theorem uniswapApproveX_store {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem uniswapApproveX_emit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hperm : I.perm = true)
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨753⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨2907⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨2907⟩
       (⟨0⟩ :: approveValueWord I :: approveSpenderMaskedWord I :: ⟨797⟩ :: [sel])
       (uniswapApproveLogMem (uniswapSourceWord I) (approveSpenderMaskedWord I)
         (approveValueWord I))
@@ -336,10 +338,10 @@ theorem uniswapApproveX_emit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem uniswapApproveX_success {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hperm : I.perm = true)
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨753⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret uniswapV2PairBytecode g (initState σ σ₀ g A I)
+    RDret fork uniswapV2PairBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ
         (mapSlot (approveSpenderMaskedWord I) (mapSlot (uniswapSourceWord I) ⟨2⟩))
         (approveValueWord I))
@@ -392,13 +394,13 @@ theorem uniswapApproveBodyCoreOk
     (hdecode :
       config.externalABI.decodeCalldata? (approveTransition.params.map Param.name)
         (transitionSignature approveTransition).paramTypes I.calldata = some (approveStore I))
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨753⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
-      ExecTransitionBody config contract evmS (approveStore I) approveTransition.body
+      ExecTransitionBody fork config contract evmS (approveStore I) approveTransition.body
         (.returned { contract := contract, locals := approveStore I }
           (approvePostState evmS I) (some [(.bool true)])) := by
     exact uniswapApproveBodyReturns (hperm := by assumption) evmS I (by simp only [evmS, initState]; exact hwv)
@@ -431,10 +433,10 @@ theorem uniswapApproveBodyCoreDecodeFailed_short
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68)
     (hdispatch : dispatchMsg contract I.calldata = some approveTransition)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨753⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hdec := uniswapDecode_approve_none_short (I := I) hsz4 hshort
   exact (uniswapApproveX_shortarg (g := Sat256.ofUInt256 g)
       hsz4 hsize hshort hreach)
@@ -449,7 +451,7 @@ theorem uniswapApproveBodyOk
     (hsel : selIs I ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩)
     (hsz68 : 68 ≤ I.calldata.size)
     (hdispatch : dispatchMsg contract I.calldata = some approveTransition)
-    : runtimeRefinementFor config contract σ σ₀ g A I := by
+    : runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩ rfl hsel
   exact uniswapApproveBodyCoreOk hcode hsize hperm hwv hsz68
@@ -465,7 +467,7 @@ theorem uniswapApproveBodyDecodeFailed_short
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩)
     (hshort : I.calldata.size < 68)
     (hdispatch : dispatchMsg contract I.calldata = some approveTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩ rfl hsel
   exact uniswapApproveBodyCoreDecodeFailed_short hcode hsize hsz4 hshort hdispatch
@@ -477,7 +479,7 @@ theorem uniswapApproveBody
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some approveTransition)
-    : runtimeRefinementFor config contract σ σ₀ g A I := by
+    : runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hsz68 : 68 ≤ I.calldata.size
   · exact uniswapApproveBodyOk hcode hsize hperm hwv hsel hsz68 hdispatch
   · exact uniswapApproveBodyDecodeFailed_short hcode hsize hwv hsel (by omega) hdispatch
@@ -489,14 +491,14 @@ theorem uniswapApproveBodyAnyPerm
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some approveTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hperm : I.perm = true
   · exact uniswapApproveBody hcode hsize hperm hwv hsel hdispatch
   replace hperm : I.perm = false := by simpa using hperm
   by_cases hsz68 : 68 ≤ I.calldata.size
   · have hsz4 : 4 ≤ I.calldata.size :=
       calldata_size_ge_of_selIs I ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩ rfl hsel
-    obtain ⟨_, _, rd7441⟩ := uniswapApproveX_innerHash (σ := σ) (σ₀ := σ₀) (A := A)
+    obtain ⟨_, _, rd7441⟩ := uniswapApproveX_innerHash (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
       (g := Sat256.ofUInt256 g) hsz68 hsize
       (uniswapReachApproveBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
     have hcanonMasked : (approveSpenderMaskedWord I).toNat < EVM.addressModulus := by

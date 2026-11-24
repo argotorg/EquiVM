@@ -1,5 +1,7 @@
 import Benchmarks.CurveVault.TransferFromPrepare
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -15,14 +17,14 @@ theorem vaultTransferFromRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State
     (ht : locals.get? "_to" = some (.address (AccountAddress.ofNat recipient.toNat)))
     (hv : locals.get? "_value" = some (.int (Int.ofNat (calldataWord I.calldata 68).toNat)))
     (hperm : I.perm = true) (hstack : R.length + 7 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 5726) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 5726) R mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (locals' : Store),
-      ExecFuncBody config {contract := contract, locals := locals} (vaultSetLock evm ⟨1⟩) vaultTransferFromFunction.body
+      ExecFuncBody fork config {contract := contract, locals := locals} (vaultSetLock evm ⟨1⟩) vaultTransferFromFunction.body
         (.returned {contract := contract, locals := locals'} evm' (some [.bool true])) ∧
       SourceState s0 I σ' evm' ∧
-      RDret vaultBytecode g s0 (tstoreAccountMap I.codeOwner σ' ⟨0⟩ ⟨0⟩) (⟨1⟩ : UInt256).toByteArray) ∨
-    (ExecFuncBody config {contract := contract, locals := locals} (vaultSetLock evm ⟨1⟩)
-      vaultTransferFromFunction.body .reverted ∧ RDrev vaultBytecode g s0) := by
+      RDret fork vaultBytecode g s0 (tstoreAccountMap I.codeOwner σ' ⟨0⟩ ⟨0⟩) (⟨1⟩ : UInt256).toByteArray) ∨
+    (ExecFuncBody fork config {contract := contract, locals := locals} (vaultSetLock evm ⟨1⟩)
+      vaultTransferFromFunction.body .reverted ∧ RDrev fork vaultBytecode g s0) := by
   let evm0 := vaultSetLock evm ⟨1⟩
   let σ0 := tstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨1⟩
   let old := codeOwnerStorageWord I σ0 (vaultAllowanceSlot (AccountAddress.ofNat sender.toNat) I.source)
@@ -36,7 +38,7 @@ theorem vaultTransferFromRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State
     (by rw [evalExpr?]; simp only [hf, EvalResult.ofOption])
     (by simp only [evalExpr?, envValue, hs0.env, pure])
   rw [hs0.storageRead] at hread
-  have hlet : ExecStmt config {contract := contract, locals := locals} evm0 vaultTransferFromFunction.body[0]!
+  have hlet : ExecStmt fork config {contract := contract, locals := locals} evm0 vaultTransferFromFunction.body[0]!
       (.ok {contract := contract, locals := locals0} evm0) := ExecStmt.letDecl hread
   have ha0 : locals0.get? "allowance_" = some (.int (Int.ofNat old.toNat)) := store_get_self _ _ _
   have hf0 : locals0.get? "_from" = some (.address (AccountAddress.ofNat sender.toNat)) := by
@@ -55,15 +57,15 @@ theorem vaultTransferFromRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State
     rw [hframe0.load 192 (by omega) (by omega) (by omega) (by decide +kernel), hmf]
   have hprefix :
       (∃ (evm1 : State) (σ1 : AccountMap) (locals1 : Store) (mem1 : ByteArray) (aw1 : UInt256) (k1 C1 : Nat),
-        ExecBlock config {contract := contract, locals := locals} evm0 (vaultTransferFromFunction.body.take 2)
+        ExecBlock fork config {contract := contract, locals := locals} evm0 (vaultTransferFromFunction.body.take 2)
           (.ok {contract := contract, locals := locals1} evm1) ∧
         SourceState s0 I σ1 evm1 ∧ WordMemoryRange mem mem1 192 256 ∧
         locals1.get? "_from" = some (.address (AccountAddress.ofNat sender.toNat)) ∧
         locals1.get? "_to" = some (.address (AccountAddress.ofNat recipient.toNat)) ∧
         locals1.get? "_value" = some (.int (Int.ofNat (calldataWord I.calldata 68).toNat)) ∧
-        RD vaultBytecode I g s0 (UInt256.ofNat 5845) R mem1 aw1 rdata σ1 k1 C1) ∨
-      (ExecFuncBody config {contract := contract, locals := locals} evm0 vaultTransferFromFunction.body .reverted ∧
-        RDrev vaultBytecode g s0) := by
+        RD fork vaultBytecode I g s0 (UInt256.ofNat 5845) R mem1 aw1 rdata σ1 k1 C1) ∨
+      (ExecFuncBody fork config {contract := contract, locals := locals} evm0 vaultTransferFromFunction.body .reverted ∧
+        RDrev fork vaultBytecode g s0) := by
     by_cases hmax : old = UInt256.ofNat (UInt256.size - 1)
     · rw [if_pos hmax] at rdNext
       refine Or.inl ⟨evm0, σ0, locals0, mem0, aw0, k0, C0, ?_, hs0, hframe0, hf0, ht0, hv0, rdNext⟩

@@ -2,6 +2,8 @@ import Benchmarks.Safe.Main.OwnerGuardTraces
 import Benchmarks.Safe.Main.ThresholdChange
 import Reasoning.SteleArithmetic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.Main
@@ -56,10 +58,10 @@ theorem safeRemoveOwnerPrefix (evm : EVM.State) (prev key threshold : UInt256) {
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩)
     (hauth : evm.executionEnv.source = evm.executionEnv.codeOwner)
     (hnz : ownerCount evm ≠ ⟨0⟩)
-    (htail : ExecBlock config (removeOwnerFrame prev key threshold) (removeOwnerCountState evm)
+    (htail : ExecBlock fork config (removeOwnerFrame prev key threshold) (removeOwnerCountState evm)
       removeOwnerTail result)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config (removeOwnerFrame prev key threshold) evm removeownerTransition.body
+    ExecBlock fork config (removeOwnerFrame prev key threshold) evm removeownerTransition.body
       result :=
   .consNormal (.requireTrue (evalCallvalueEq_true hvalue))
     (.consNormal (.requireTrue (by simpa [hauth] using safeEvalAuthorized evm _))
@@ -71,7 +73,7 @@ theorem safeRemoveOwnerUnderflow (evm : EVM.State) (prev key threshold : UInt256
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩)
     (hauth : evm.executionEnv.source = evm.executionEnv.codeOwner)
     (hz : ownerCount evm = ⟨0⟩) :
-    ExecTransitionBody config contract evm (removeOwnerArgs prev key threshold)
+    ExecTransitionBody fork config contract evm (removeOwnerArgs prev key threshold)
       removeownerTransition.body .reverted := by
   have he := evalExpr_checkedSub256_revert
     (safeEvalOwnerCount evm _ (safeRemoveOwnerLocal prev key threshold "ownerCount" (by decide)))
@@ -84,7 +86,7 @@ theorem safeRemoveOwnerStatic (evm : EVM.State) (prev key threshold : UInt256)
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩)
     (hauth : evm.executionEnv.source = evm.executionEnv.codeOwner)
     (hnz : ownerCount evm ≠ ⟨0⟩) (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (removeOwnerArgs prev key threshold)
+    ExecTransitionBody fork config contract evm (removeOwnerArgs prev key threshold)
       removeownerTransition.body .staticViolation :=
   .execBlockStatic (.consNormal (.requireTrue (evalCallvalueEq_true hvalue))
     (.consNormal (.requireTrue (by simpa [hauth] using safeEvalAuthorized evm _))
@@ -105,14 +107,14 @@ theorem safeRemoveOwnerCountGuard (evm : EVM.State) (prev key threshold : UInt25
 
 theorem safeRemoveOwnerCountTooSmall (evm : EVM.State) (prev key threshold : UInt256)
     (hle : ¬threshold.toNat ≤ (ownerCount evm).toNat) :
-    ExecBlock config (removeOwnerFrame prev key threshold) evm removeOwnerTail .reverted :=
+    ExecBlock fork config (removeOwnerFrame prev key threshold) evm removeOwnerTail .reverted :=
   .consRevert (.requireFalse (by
     simpa [hle] using safeRemoveOwnerCountGuard evm prev key threshold))
 
 theorem safeRemoveOwnerCanRemove (evm : EVM.State) (prev key threshold : UInt256)
     (hp : prev.toNat < EVM.addressModulus) (hc : key.toNat < EVM.addressModulus)
     (hv : validOwner evm.accountMap evm.executionEnv key) (hl : ownerLink evm prev = key) :
-    ExecStmt config (removeOwnerFrame prev key threshold) evm
+    ExecStmt fork config (removeOwnerFrame prev key threshold) evm
       (.internalCall "requireCanRemoveOwner" [.var "prevOwner", .var "owner"] "_ok")
       (.ok (removeOwnerFrame₁ prev key threshold) evm) := by
   apply internalCallFunctionReturn (callee := requireCanRemoveOwnerFunction)
@@ -127,10 +129,10 @@ theorem safeRemoveOwnerCanRemove (evm : EVM.State) (prev key threshold : UInt256
 
 theorem safeRemoveOwnerGuardRevert (evm : EVM.State) (prev key threshold : UInt256)
     (hle : threshold.toNat ≤ (ownerCount evm).toNat)
-    (hbody : ExecFuncBody config (canRemoveOwnerFrame prev key) evm
+    (hbody : ExecFuncBody fork config (canRemoveOwnerFrame prev key) evm
       requireCanRemoveOwnerFunction.body .reverted) :
-    ExecBlock config (removeOwnerFrame prev key threshold) evm removeOwnerTail .reverted := by
-  have hcall : ExecStmt config (removeOwnerFrame prev key threshold) evm
+    ExecBlock fork config (removeOwnerFrame prev key threshold) evm removeOwnerTail .reverted := by
+  have hcall : ExecStmt fork config (removeOwnerFrame prev key threshold) evm
       (.internalCall "requireCanRemoveOwner" [.var "prevOwner", .var "owner"] "_ok") .reverted := by
     apply internalCallFunctionRevert (callee := requireCanRemoveOwnerFunction)
       (argVals := [.address (AccountAddress.ofNat prev.toNat),
@@ -173,10 +175,10 @@ theorem safeRemoveOwnerLinksPrefix (evm : EVM.State) (prev key threshold : UInt2
     (hp : prev.toNat < EVM.addressModulus) (hc : key.toNat < EVM.addressModulus)
     (hle : threshold.toNat ≤ (ownerCount evm).toNat)
     (hv : validOwner evm.accountMap evm.executionEnv key) (hl : ownerLink evm prev = key)
-    (ht : ExecStmt config (removeOwnerFrame₁ prev key threshold) (removeOwnerLinks evm prev key)
+    (ht : ExecStmt fork config (removeOwnerFrame₁ prev key threshold) (removeOwnerLinks evm prev key)
       thresholdChangeStmt result)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config (removeOwnerFrame prev key threshold) evm removeOwnerTail result := by
+    ExecBlock fork config (removeOwnerFrame prev key threshold) evm removeOwnerTail result := by
   have hb := safeRemoveOwnerLocal₁ prev key threshold "owners" (by decide)
   have hload := safeEvalOwnerLink evm _ _ key hb hc (safeRemoveOwnerEval₁ evm prev key threshold)
   have hfirst := safeAssignOwnerLink evm _ _ prev (ownerLink evm key) hb hp
@@ -194,7 +196,7 @@ theorem safeRemoveOwnerLinksPrefix (evm : EVM.State) (prev key threshold : UInt2
 theorem safeRemoveOwnerUnauthorized (evm : EVM.State) (locals : Store)
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩)
     (hauth : evm.executionEnv.source ≠ evm.executionEnv.codeOwner) :
-    ExecTransitionBody config contract evm locals removeownerTransition.body .reverted :=
+    ExecTransitionBody fork config contract evm locals removeownerTransition.body .reverted :=
   .execBlockRevert (nonpayableSecondRequireReverts hvalue
     (by simpa [hauth] using safeEvalAuthorized evm _))
 

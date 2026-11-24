@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.TotalsStorage
 import Benchmarks.CompoundIII.Comet.GetterSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -49,7 +51,7 @@ theorem presentValueCallable_lookup (borrow : Bool) :
 theorem presentValueCallable_returns (evm : EVM.State) (imms : Store)
     (borrow : Bool) (index principal : UInt256)
     (hi : index.toNat < 2^64) (hp : principal.toNat < 2^104) :
-    ExecFuncBody config
+    ExecFuncBody fork config
       { contract := contract, locals := presentValueLocals borrow index principal, immutables := imms }
       evm (presentValueCallable borrow).body
       (.returned
@@ -82,17 +84,17 @@ theorem presentValue_call (frame : Frame) (evm : EVM.State) (borrow : Bool)
     (hi : index.toNat < 2^64) (hp : principal.toNat < 2^104)
     (heI : evalExpr? config frame evm indexExpr = .ok (.int index.toNat))
     (heP : evalExpr? config frame evm principalExpr = .ok (.int principal.toNat)) :
-    ExecStmt config frame evm
+    ExecStmt fork config frame evm
       (.internalCall (presentValueName borrow) [indexExpr, principalExpr] ret)
       (.ok { frame with
         locals := frame.locals.insert ret (.int (presentValueWord index principal).toNat) } evm) := by
-  exact ExecStmt.internalCallReturn (callee := presentValueCallable borrow)
+  exact ExecStmt.internalCallReturn (fork := fork) (callee := presentValueCallable borrow)
     (locals := presentValueLocals borrow index principal)
     (cfg := config) (stele := frame) (evm := evm)
     (args := [indexExpr, principalExpr]) (argVals := [.int index.toNat, .int principal.toNat])
     (by simp only [evalExprs?, heI, heP, pure, bind, EvalResult.bind])
     (by rw [hc]; exact presentValueCallable_lookup borrow)
     (by cases borrow <;> rfl)
-    (by simpa only [hc] using presentValueCallable_returns evm frame.immutables borrow index principal hi hp)
+    (by simpa only [hc] using presentValueCallable_returns (fork := fork) evm frame.immutables borrow index principal hi hp)
 
 end Benchmarks.CompoundIII.Comet

@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_006
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_012
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_013
 
+variable {fork : Ethereum.Fork}
+
 /-! The `clear` bytecode after canonical ABI decoding. -/
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
@@ -14,8 +16,8 @@ set_option maxRecDepth 5000
 theorem clearLoadTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} {evm : EVM.State}
     {mem rdata : ByteArray} {aw : UInt256} {currency : AccountAddress} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length + 5 ≤ 1024) (hI : evm.executionEnv = I)
-    (h : RD (deployedRuntime v) I g s0 ⟨3558⟩ (accountWord currency :: R) mem aw rdata evm.accountMap k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) I g s0 ⟨12458⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨3558⟩ (accountWord currency :: R) mem aw rdata evm.accountMap k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 ⟨12458⟩
       (calldataWord I.calldata 36 :: ⟨3604⟩ :: transientWord evm (currencyDeltaSlot I.source currency) :: accountWord currency :: R)
       (currencyDeltaMemory I.source currency mem) aw' rdata evm.accountMap k' C' := by
   have hj : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 12458) = true := by
@@ -25,7 +27,7 @@ theorem clearLoadTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} {evm : EVM.S
       currencyDeltaMemory I.source currency mem := by
     change twoWordHashMem (accountWord I.source) (UInt256.land (accountWord currency) solcAddrMask) mem = _
     rw [solcAddrMask_clean (accountWord_canonical currency)]; rfl
-  change RD (deployedRuntime v) I g s0 ⟨12458⟩
+  change RD fork (deployedRuntime v) I g s0 ⟨12458⟩
     (calldataWord I.calldata 36 :: ⟨3604⟩ :: codeOwnerTransientWord I evm.accountMap
       (keccakWord ⟨0⟩ ⟨64⟩ (poolManagerBlocks.poolManager_block_3558_memory
         (ee := I) (mem := mem) (x0 := accountWord currency))) :: accountWord currency :: R)
@@ -37,22 +39,22 @@ theorem clearLoadTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} {evm : EVM.S
   rw [hhash, ← transientWord_accountMap hI] at hcast
   exact ⟨_, _, _, hcast⟩
 
-def clearTraceResult (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
+def clearTraceResult (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
     (evm : EVM.State) (currency : AccountAddress) (amount : UInt256) : Prop :=
-  if transientWord evm lockSlot = ⟨0⟩ then RDrev (deployedRuntime v) g s0 else
+  if transientWord evm lockSlot = ⟨0⟩ then RDrev fork (deployedRuntime v) g s0 else
   if amount.toNat < 2^127 then
     if Int.ofNat amount.toNat = currencyDeltaValue evm I.source currency then
-      if amount.toNat ≠ 0 ∧ I.perm = false then RDstatic (deployedRuntime v) g s0 else
-      RDret (deployedRuntime v) g s0 (accountDeltaPost evm I.source currency (-(Int.ofNat amount.toNat))).accountMap .empty
-    else RDrev (deployedRuntime v) g s0
-  else RDrev (deployedRuntime v) g s0
+      if amount.toNat ≠ 0 ∧ I.perm = false then RDstatic fork (deployedRuntime v) g s0 else
+      RDret fork (deployedRuntime v) g s0 (accountDeltaPost evm I.source currency (-(Int.ofNat amount.toNat))).accountMap .empty
+    else RDrev fork (deployedRuntime v) g s0
+  else RDrev fork (deployedRuntime v) g s0
 
 theorem clearTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} {evm : EVM.State}
     {mem rdata : ByteArray} {aw amount : UInt256} {currency : AccountAddress} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length + 9 ≤ 1024) (hI : evm.executionEnv = I)
     (ha : calldataWord I.calldata 36 = amount)
-    (h : RD (deployedRuntime v) I g s0 ⟨3518⟩ (accountWord currency :: R) mem aw rdata evm.accountMap k C) :
-    clearTraceResult v I g s0 evm currency amount := by
+    (h : RD fork (deployedRuntime v) I g s0 ⟨3518⟩ (accountWord currency :: R) mem aw rdata evm.accountMap k C) :
+    clearTraceResult fork v I g s0 evm currency amount := by
   rw [clearTraceResult]
   by_cases hl : transientWord evm lockSlot = ⟨0⟩
   · rw [if_pos hl]
@@ -93,7 +95,7 @@ theorem clearTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} {evm : EVM.State
           (by change R.length + 5 ≤ 1024; omega) hjAccount hnext
         have hlo : -(2^127 : Int) ≤ -(Int.ofNat amount.toNat) := by simp only [Int.ofNat_eq_natCast]; omega
         have hhi : -(Int.ofNat amount.toNat) < (2^127 : Int) := by simp only [Int.ofNat_eq_natCast]; omega
-        change RD (deployedRuntime v) I g s0 ⟨12528⟩
+        change RD fork (deployedRuntime v) I g s0 ⟨12528⟩
           (accountWord currency :: UInt256.signextend ⟨15⟩ (UInt256.sub ⟨0⟩ amount) :: accountWord I.source :: ⟨3631⟩ :: R)
           (currencyDeltaMemory I.source currency mem) aw' rdata evm.accountMap _ _ at haccount
         rw [← wordOfInt_neg_natCast_eq_sub_zero, signextend128_wordOfInt hlo hhi] at haccount

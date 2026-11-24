@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.ConstructorAssetMemory
 import Benchmarks.CompoundIII.Comet.CreationBlocks_007
 import Benchmarks.CompoundIII.Comet.CreationBlocks_008
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open cometWithExtendedAssetListCreationBlocks
 
@@ -16,10 +18,10 @@ theorem cometConstructorAssetFields {tail : ByteArray} {ee : ExecutionEnv} {g : 
     (hstack : R.length + 15 ≤ 1024) (hsrc : 96 ≤ src) (hdisj : src + 224 ≤ dst)
     (hin : src + 224 ≤ mem.size) (hsmall : dst + 224 < UInt256.size)
     (hread : ∀ j, j < 7 → memLoad (UInt256.ofNat (src + 32 * j)) mem = a.word j)
-    (h : RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨2524⟩
+    (h : RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨2524⟩
       (entry :: ⟨672⟩ :: ⟨32⟩ :: UInt256.ofNat dst :: ⟨928⟩ :: argSize :: count ::
         UInt256.ofNat src :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨664⟩
+    ∃ aw' k' C', RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨664⟩
       (⟨672⟩ :: ⟨32⟩ :: (entry + ⟨32⟩) :: ⟨928⟩ :: argSize :: count ::
         (UInt256.ofNat src + ⟨224⟩) :: R)
       (writeWord (constructorAssetFieldMemory mem dst a 7) entry.toNat (UInt256.ofNat dst))
@@ -40,7 +42,7 @@ theorem cometConstructorAssetFields {tail : ByteArray} {ee : ExecutionEnv} {g : 
     rw [constructorAssetFieldMemory_load hj hsrc hdisj hin (by omega), hread j hj]
   have step0 := cometWithExtendedAssetListCreation_block_2524 (by omega)
     (by native_decide) h
-  change RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨2747⟩
+  change RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨2747⟩
     (UInt256.ofNat src :: ⟨2535⟩ :: entry :: ⟨672⟩ :: ⟨32⟩ :: UInt256.ofNat dst :: ⟨928⟩ ::
       argSize :: count :: UInt256.ofNat src :: R)
     (constructorAssetFieldMemory mem dst a 0) _ rdata σ _ _ at step0
@@ -58,7 +60,7 @@ theorem cometConstructorAssetFields {tail : ByteArray} {ee : ExecutionEnv} {g : 
     rw [hdst]
     rfl
   rw [hm1] at step1
-  change RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨2747⟩
+  change RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨2747⟩
     ((UInt256.ofNat src + UInt256.ofNat 32) :: ⟨2551⟩ :: entry :: ⟨672⟩ :: ⟨32⟩ ::
       UInt256.ofNat dst :: ⟨928⟩ :: argSize :: count :: UInt256.ofNat src :: R)
     (constructorAssetFieldMemory mem dst a 1) _ rdata σ _ _ at step1
@@ -77,7 +79,7 @@ theorem cometConstructorAssetFields {tail : ByteArray} {ee : ExecutionEnv} {g : 
     rw [hdstadd 32 (by decide)]
     rfl
   rw [hm2] at step2
-  change RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨2810⟩
+  change RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨2810⟩
     ((UInt256.ofNat src + UInt256.ofNat 64) :: ⟨2570⟩ :: entry :: ⟨672⟩ :: ⟨32⟩ ::
       UInt256.ofNat dst :: ⟨928⟩ :: argSize :: count :: UInt256.ofNat src :: R)
     (constructorAssetFieldMemory mem dst a 2) _ rdata σ _ _ at step2
@@ -96,7 +98,7 @@ theorem cometConstructorAssetFields {tail : ByteArray} {ee : ExecutionEnv} {g : 
     rw [hdstadd 64 (by decide)]
     rfl
   rw [hm3] at step3
-  change RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨2768⟩
+  change RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨2768⟩
     ((UInt256.ofNat src + UInt256.ofNat 96) :: ⟨2589⟩ :: entry :: ⟨672⟩ :: ⟨32⟩ ::
       UInt256.ofNat dst :: ⟨928⟩ :: argSize :: count :: UInt256.ofNat src :: R)
     (constructorAssetFieldMemory mem dst a 3) _ rdata σ _ _ at step3
@@ -116,7 +118,7 @@ theorem cometConstructorAssetFields {tail : ByteArray} {ee : ExecutionEnv} {g : 
     rw [hdstadd 96 (by decide)]
     rfl
   rw [hm4] at step4
-  change RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨2768⟩
+  change RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨2768⟩
     ((UInt256.ofNat src + UInt256.ofNat 128) :: ⟨2608⟩ :: entry :: ⟨672⟩ :: ⟨32⟩ ::
       UInt256.ofNat dst :: ⟨928⟩ :: argSize :: count :: UInt256.ofNat src :: R)
     (constructorAssetFieldMemory mem dst a 4) _ rdata σ _ _ at step4
@@ -136,7 +138,7 @@ theorem cometConstructorAssetFields {tail : ByteArray} {ee : ExecutionEnv} {g : 
     rw [hdstadd 128 (by decide)]
     rfl
   rw [hm5] at step5
-  change RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨2768⟩
+  change RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨2768⟩
     ((UInt256.ofNat src + UInt256.ofNat 160) :: ⟨2627⟩ :: entry :: ⟨672⟩ :: ⟨32⟩ ::
       UInt256.ofNat dst :: ⟨928⟩ :: argSize :: count :: UInt256.ofNat src :: R)
     (constructorAssetFieldMemory mem dst a 5) _ rdata σ _ _ at step5

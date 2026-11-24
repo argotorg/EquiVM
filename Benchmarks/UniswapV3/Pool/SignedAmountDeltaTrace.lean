@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SignedAmountDeltaEntryTrace
 import Benchmarks.UniswapV3.Pool.SafeCast256Trace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -10,12 +12,12 @@ set_option maxRecDepth 10000
 theorem signedAmountDeltaFinishX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (second : Bool) (a : SignedAmountDeltaArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨19616⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨19616⟩
       (amountDeltaResult second (signedAmountDeltaUnsigned a) ::
         signedAmountDeltaSavedWords a ++ ret :: R) mem aw rdata σ k C)
     (hfit : a.Fits) (hv : signedAmountDeltaValid second a)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 10 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (EVM.wordOfInt (signedAmountDeltaResult second a) :: R) mem aw rdata σ k' C' := by
   have hb : safeCast256Valid (amountDeltaResult second (signedAmountDeltaUnsigned a)) :=
     amountDeltaResult_lt255 second _ (signedAmountDeltaUnsignedFits a hfit) hv
@@ -44,12 +46,12 @@ theorem signedAmountDeltaFinishX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat2
 theorem signedAmountDeltaX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (second : Bool) (a : SignedAmountDeltaArgs)
-    (rd : RD (deployedRuntime v) ee g s0 (UInt256.ofNat (signedAmountDeltaEntry second))
+    (rd : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat (signedAmountDeltaEntry second))
       (signedAmountDeltaEntryWords a ++ ret :: R) mem aw rdata σ k C)
     (hfit : a.Fits) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
     (hov : R.length + 36 ≤ 1024) :
-    (¬signedAmountDeltaValid second a ∧ RDrev (deployedRuntime v) g s0) ∨
-      (signedAmountDeltaValid second a ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    (¬signedAmountDeltaValid second a ∧ RDrev fork (deployedRuntime v) g s0) ∨
+      (signedAmountDeltaValid second a ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
         (EVM.wordOfInt (signedAmountDeltaResult second a) :: R) mem aw rdata σ k' C') := by
   obtain ⟨_, _, r1⟩ := signedAmountDeltaEntryX (v := v) second a rd hfit (by omega)
   rcases amountDeltaX (v := v) second (signedAmountDeltaUnsigned a) r1

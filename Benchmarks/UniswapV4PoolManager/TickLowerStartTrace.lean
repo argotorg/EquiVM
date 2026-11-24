@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.Signed128Range
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_020
 import Benchmarks.UniswapV4PoolManager.MemoryGas
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -21,11 +23,11 @@ theorem tickLowerStartExactTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State
     (v : PoolManagerImmutables) (hstack : R.length+20 ≤ 1024) (hI : evm.executionEnv = I)
     (hm : memLoad (UInt256.ofNat 128) mem = poolSlot id) (ht : int24Canonical tick)
     (hd : signedFits ⟨128, by decide⟩ delta)
-    (h : RD (deployedRuntime v) I g s0 ⟨6949⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨6949⟩
       (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: EVM.wordOfInt delta :: tick :: R)
       mem aw rdata evm.accountMap k C) :
     let packed := tickFieldWord evm id (EVM.signed tick) .liquidityPacked
-    ∃ k' C', RD (deployedRuntime v) I g s0 ⟨17774⟩
+    ∃ k' C', RD fork (deployedRuntime v) I g s0 ⟨17774⟩
       (tickGrossWord packed :: EVM.wordOfInt delta :: ⟨7009⟩ ::
         tickLowerLiquidityTail id tick packed x0 x1 x2 x3 x4 x5 x6 delta R)
       (twoWordHashMem tick (poolSlot id+⟨4⟩) mem) (M aw (UInt256.ofNat 128) ⟨32⟩) rdata evm.accountMap k' C' := by
@@ -66,11 +68,11 @@ theorem tickLowerStartTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (v : PoolManagerImmutables) (hstack : R.length+20 ≤ 1024) (hI : evm.executionEnv = I)
     (hm : memLoad (UInt256.ofNat 128) mem = poolSlot id) (ht : int24Canonical tick)
     (hd : signedFits ⟨128, by decide⟩ delta)
-    (h : RD (deployedRuntime v) I g s0 ⟨6949⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨6949⟩
       (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: EVM.wordOfInt delta :: tick :: R)
       mem aw rdata evm.accountMap k C) :
     let packed := tickFieldWord evm id (EVM.signed tick) .liquidityPacked
-    ∃ aw' k' C', RD (deployedRuntime v) I g s0 ⟨17774⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 ⟨17774⟩
       (tickGrossWord packed :: EVM.wordOfInt delta :: ⟨7009⟩ ::
         tickLowerLiquidityTail id tick packed x0 x1 x2 x3 x4 x5 x6 delta R)
       (twoWordHashMem tick (poolSlot id+⟨4⟩) mem) aw' rdata evm.accountMap k' C' := by

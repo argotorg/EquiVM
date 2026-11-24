@@ -1,6 +1,8 @@
 import Benchmarks.Safe.ViaIR.WordBufferCopy
 import Benchmarks.Safe.ViaIR.MemoryBytesDecoded
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -75,13 +77,13 @@ theorem forwardCopyMemory_payload (mem : ByteArray) (src dst len : Nat)
 set_option maxRecDepth 100000 in
 theorem safeForwardBytesCopy {I g s0 σ k C aw mem rdata src dst len}
     {ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7384⟩
+    (h : RD fork safeBytecode I g s0 ⟨7384⟩
       (⟨0⟩ :: UInt256.ofNat src :: UInt256.ofNat dst :: ret :: UInt256.ofNat len :: R)
       mem aw rdata σ k C)
     (hl : 32 ≤ len) (hm : dst + 32 ≤ mem.size) (ha : src + len ≤ dst)
     (hb : dst + len + 96 < UInt256.size)
     (hov : R.length + 12 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ret
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ret
       (UInt256.ofNat (dst + 32 + 32 * ((len + 31) / 32)) :: R)
       (forwardCopyMemory mem (src + 32) (dst + 32) len) aw' rdata σ k' C' := by
   let first := memLoad (UInt256.ofNat (src + 32)) mem
@@ -100,7 +102,7 @@ theorem safeForwardBytesCopy {I g s0 σ k C aw mem rdata src dst len}
     uadd_ofNat_toNat (by omega) (by decide) (by omega)
   simp only [safeRuntime_block_7416_stack, safeRuntime_block_7416_memory,
     u256_add_zero, u256_zero_add, hs, hd] at h₂
-  change RD safeBytecode I g s0 ⟨7384⟩
+  change RD fork safeBytecode I g s0 ⟨7384⟩
     (UInt256.ofNat 32 :: UInt256.ofNat src :: UInt256.ofNat dst :: ret :: UInt256.ofNat len :: R)
     m _ rdata σ _ _ at h₂
   obtain ⟨_, _, _, h₃⟩ := safeByteBufferCopyLoopAfter words h₂ (by simp; omega)

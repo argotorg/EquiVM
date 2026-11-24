@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.RepayCallbackTail
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -18,13 +20,13 @@ theorem morphoRepayTail {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     (hfit : debt.toNat < 2 ^ 128)
     (hlen : len.toNat ≤ solcMaxU64) (hsrc : srcOff.toNat + len.toNat ≤ ee.calldata.size)
     (hdata : ee.calldata.readWithPadding srcOff.toNat len.toNat = data) (hdataSize : data.size = len.toNat)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 10767)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 10767)
       (debt :: repayMarketTail p.id assets shares account srcOff len [])
       mem aw out σ k C) :
-    ReturnBlockRefines config (deployedRuntime v) ee g s0
+    ReturnBlockRefines fork config (deployedRuntime v) ee g s0
       { contract := contract, locals := locals, immutables := imms } evm
       (repayTransition.body.drop 18) repayTransition.returnType := by
-  have hass : ExecStmt config { contract := contract, locals := locals, immutables := imms }
+  have hass : ExecStmt fork config { contract := contract, locals := locals, immutables := imms }
       evm repayTransition.body[18]!
       (.ok { contract := contract, locals := locals, immutables := imms }
         (storeMarketField evm p.id ⟨2, by decide⟩ debt)) := by
@@ -36,7 +38,7 @@ theorem morphoRepayTail {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
   let e1 := storeMarketField evm p.id ⟨2, by decide⟩ debt
   let σ1 := storeMarketFieldAccounts σ ee p.id ⟨2, by decide⟩ debt
   have hs1 : SourceState s0 ee σ1 e1 := storeMarketField_bridge hs p.id ⟨2, by decide⟩ debt
-  have hevent : StateBlock config { contract := contract, locals := locals, immutables := imms } evm
+  have hevent : StateBlock fork config { contract := contract, locals := locals, immutables := imms } evm
       (repayTransition.body.drop 18) { contract := contract, locals := locals, immutables := imms } e1
       (repayTransition.body.drop 20) :=
     (StateBlock.start.step hass).step (repayEmit p assets shares account data locals imms e1 hl
@@ -56,7 +58,7 @@ theorem morphoRepayTail {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     have hg : evalExpr? config { contract := contract, locals := locals, immutables := imms } e1
         (.binary .gt (.arrayLength .localVar ⟨"data", []⟩) (.intLit 0)) = .ok (.bool false) := by
       rw [supplyDataGuard hl imms e1, hd]; rfl
-    have hab : StateBlock config { contract := contract, locals := locals, immutables := imms } evm
+    have hab : StateBlock fork config { contract := contract, locals := locals, immutables := imms } evm
         (repayTransition.body.drop 18) { contract := contract, locals := locals, immutables := imms } e1
         (repayTransition.body.drop 21) := hevent.step (ExecStmt.iteFalse hg ExecBlock.nil)
     exact (morphoLoanTransferPairAt p locals imms "__c9" (by decide) (by decide) hc hl hs1 hm2

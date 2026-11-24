@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.RecordDataRun
 import Benchmarks.EAS.EAS.RecordScalarRun
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -14,20 +16,20 @@ theorem recordStoreRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g : Sa
     (ha : L.get? "attestation" = some a.value) (hu : L.get? "uid" = some (wordBytes32Value word))
     (hd : L.get? "_db" = none) (hview : AttestationMemoryView mem src dataPtr a) (hlen : a.data.size < 2^64)
     (hdata : dataPtr.toNat+32+32*((a.data.size+31)/32) ≤ src.toNat) (hb : src.toNat+320 < UInt256.size)
-    (rd : RD (deployedRuntime v) ee g s0 (uidAvailablePC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (uidAvailablePC site)
       (word::bump::uidSaved site src (t1::t2::t3::t4::R)) mem aw rdata σ k C) :
     (∃ evm' σ' mem' aw' k' C', ee.perm = true ∧
-      ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm recordStoreBody
+      ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm recordStoreBody
         (.ok {contract := contract,locals := recordScalarLocals L a word,immutables := immStore v} evm') ∧
       SourceState s0 ee σ' evm' ∧ MemoryPrefix mem mem' src.toNat ∧
       AttestationMemoryView mem' src dataPtr {a with uid := word} ∧
       memLoad (UInt256.ofNat 64) mem' = memLoad (UInt256.ofNat 64) mem ∧
-      RD (deployedRuntime v) ee g s0 (bytesWrittenPC site)
+      RD fork (deployedRuntime v) ee g s0 (bytesWrittenPC site)
         (bytesWriteSaved site word src t1 t2 t3 t4 R) mem' aw' rdata σ' k' C') ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm recordStoreBody .reverted ∧
-      RDrev (deployedRuntime v) g s0) ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm recordStoreBody .staticViolation ∧
-      RDstatic (deployedRuntime v) g s0) := by
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm recordStoreBody .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) ∨
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm recordStoreBody .staticViolation ∧
+      RDstatic fork (deployedRuntime v) g s0) := by
   cases hp : ee.perm with
   | false =>
     refine Or.inr (Or.inr ⟨?_,easRecordWriteStatic v site (by omega) hp rd⟩)
@@ -35,7 +37,7 @@ theorem recordStoreRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g : Sa
   | true =>
     obtain ⟨aw1,k1,C1,hr1⟩ := easRecordScalarWrites v site (by omega) hp hview hlen hdata hb rd
     have hs1 := attestationWriteHead_sourceState hs (dbSlot word) {a with uid := word}
-    have hsol1 := recordScalarSource (hperm := by simpa only [hs.env] using hp) (imms := immStore v) (evm := evm) ha hu hd
+    have hsol1 := recordScalarSource (fork := fork) (hperm := by simpa only [hs.env] using hp) (imms := immStore v) (evm := evm) ha hu hd
     have hv1 := recordStoreMemory_view hview word hdata hb
     have hr := recordDataRun v site hstack hp hs1 (recordScalarLocals_attestation L a word)
       ((recordScalarLocals_get L a word "uid" (by decide)).trans hu)

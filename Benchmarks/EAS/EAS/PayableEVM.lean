@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.PayableSites
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -10,13 +12,13 @@ theorem payableReturn {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length+16 ≤ 1024) (hb : out.size < UInt256.size)
     (hlo : 96 ≤ ptr.toNat) (hin : ptr.toNat+32 ≤ mem.size) (hbound : ptr.toNat+32 < UInt256.size)
     (hword : 32 ≤ out.size → memLoad ptr mem = calldataWord out 0)
-    (rd : RD (deployedRuntime v) ee g s0 (payableAfterCallPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (payableAfterCallPC site)
       ((if success then ⟨1⟩ else ⟨0⟩)::ptr::payableSavedTail site a b c d e target R) mem aw out σ k C) :
     if resolverCallValid ptr.toNat success out then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (payableDonePC site)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (payableDonePC site)
         (UInt256.ofNat (deployedRuntime v).size::calldataWord out 0::payableSavedTail site a b c d e target R)
         (resolverReturnMemory mem ptr out) aw' out σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   cases success with
   | false =>
     rw [if_neg (show ¬ resolverCallValid ptr.toNat false out from fun h => Bool.noConfusion h.1)]
@@ -48,16 +50,16 @@ theorem payableEVM {ee : ExecutionEnv} {g : Sat256} {s0 evm : EVM.State}
     {ptr junk a b c d e target : UInt256} {R : List UInt256} (v : EASImmutables) (site : PayableSite)
     (hstack : R.length+16 ≤ 1024) (hs : SourceState s0 ee σ evm)
     (hheap : ptr.toNat ≤ 2^64-1) (hlo : 96 ≤ ptr.toNat) (hh : memLoad (UInt256.ofNat 64) mem = ptr)
-    (rd : RD (deployedRuntime v) ee g s0 (payableEntryPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (payableEntryPC site)
       (junk::payableSavedTail site a b c d e target R) mem aw rdata σ k C) :
     ∃ (evm' : EVM.State) (σ' : AccountMap) (success : Bool) (out : ByteArray),
-      callViaEVM evm (AccountAddress.ofUInt256 target) 0 payablePayload (success,evm',out) false ∧
+      callViaEVM fork evm (AccountAddress.ofUInt256 target) 0 payablePayload (success,evm',out) false ∧
       SourceState s0 ee σ' evm' ∧ out.size < 2^138 ∧
       (if resolverCallValid ptr.toNat success out then
-        ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (payableDonePC site)
+        ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (payableDonePC site)
           (UInt256.ofNat (deployedRuntime v).size::calldataWord out 0::payableSavedTail site a b c d e target R)
           (payableOutputMemory mem ptr out) aw' out σ' k' C'
-       else RDrev (deployedRuntime v) g s0) := by
+       else RDrev fork (deployedRuntime v) g s0) := by
   obtain ⟨gasArg,aw1,k1,C1,rd1⟩ := payableStart v site (by omega) hh rd
   obtain ⟨evm',σ',success,out,k2,C2,hcall,hs',rd2,hout⟩ :=
     staticcallBridge (calldata := payablePayload) rd1 hs (payableCall_decode v site)

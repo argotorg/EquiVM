@@ -2,6 +2,8 @@ import Benchmarks.Safe.ViaIR.CodePrefixMemory
 import Benchmarks.Safe.ViaIR.ExternalCode
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_049
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -30,16 +32,16 @@ theorem safeEvalDelegatedAccount (evm : EVM.State) (frame : Frame) :
 set_option maxRecDepth 100000 in
 theorem safeDelegatedAccountTrace {I g s0 σ k C aw mem rdata} {flag : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨10956⟩ (flag :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨10956⟩ (flag :: R) mem aw rdata σ k C)
     (hov : R.length + 6 ≤ 1024) (hmem : 32 ≤ mem.size) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨10950⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨10950⟩
       (UInt256.isZero (decide (delegatedAccount σ I)).toUInt256 :: R)
       ((thisCode σ I).write 0 mem 0 3) aw' rdata σ k' C' := by
   have hcopy := safeRuntime_block_10956 (by omega) h
   obtain ⟨k₁, C₁, hcopied⟩ := rdExtcodecopy hcopy (by native_decide) (by omega)
   obtain ⟨aw', k', C', hdone⟩ := safeRuntime_block_10964_packed (by omega) (by jump_dest) hcopied
   simp only [safeRuntime_block_10964_stack] at hdone
-  change RD safeBytecode I g s0 ⟨10950⟩
+  change RD fork safeBytecode I g s0 ⟨10950⟩
     (UInt256.isZero (UInt256.eq
       (UInt256.shiftRight (memLoad ⟨0⟩ ((thisCode σ I).write 0 mem 0 3))
         (UInt256.ofNat 232)) (UInt256.ofNat 15663360)) :: R)

@@ -1,18 +1,20 @@
 import Benchmarks.CompoundIII.Comet.WithdrawBaseAfterSource
 import Benchmarks.CompoundIII.Comet.AccrueInternalSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
 namespace Benchmarks.CompoundIII.Comet
 
 theorem withdrawBase_source {v src recipient amount evm result}
-    (ht : WithdrawBaseTrace v src recipient amount evm result) :
-    internalSourceResult config (withdrawBaseEntry (immStore v) src recipient amount)
+    (ht : WithdrawBaseTrace fork v src recipient amount evm result) :
+    internalSourceResult fork config (withdrawBaseEntry (immStore v) src recipient amount)
       evm withdrawBaseCallable.body result := by
-  have ha := accrue_call v (withdrawBaseEntry (immStore v) src recipient amount) evm "__c0" rfl rfl
+  have ha := accrue_call (fork := fork) v (withdrawBaseEntry (immStore v) src recipient amount) evm "__c0" rfl rfl
   apply internalBlockResult.toSource
-  change internalBlockResult config (withdrawBaseEntry (immStore v) src recipient amount)
+  change internalBlockResult fork config (withdrawBaseEntry (immStore v) src recipient amount)
     evm (.internalCall "accrueInternal" [] "__c0" :: withdrawBaseAfterAccrueBlock) result
   cases ht with
   | reverted he =>
@@ -26,13 +28,13 @@ theorem withdrawBase_source {v src recipient amount evm result}
     exact (withdrawBaseAfterAccrue_source tail).prepend ha
 
 theorem withdrawBase_call {v src recipient amount evm result}
-    (ht : WithdrawBaseTrace v src recipient amount evm result) (frame : Frame)
+    (ht : WithdrawBaseTrace fork v src recipient amount evm result) (frame : Frame)
     (srcExpr toExpr amountExpr : Expr) (ret : Ident)
     (hc : frame.contract = contract) (hi : frame.immutables = immStore v)
     (hs : evalExpr? config frame evm srcExpr = .ok (.address src))
     (hto : evalExpr? config frame evm toExpr = .ok (.address recipient))
     (ham : evalExpr? config frame evm amountExpr = .ok (.int amount.toNat)) :
-    ExecStmt config frame evm (.internalCall "withdrawBase" [srcExpr, toExpr, amountExpr] ret)
+    ExecStmt fork config frame evm (.internalCall "withdrawBase" [srcExpr, toExpr, amountExpr] ret)
       (internalStmtResult frame ret result) := by
   apply internalVoidCall (callee := withdrawBaseCallable)
     (locals := (withdrawBaseEntry (immStore v) src recipient amount).locals)

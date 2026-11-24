@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.CopyStoredSource
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -41,7 +43,7 @@ theorem getAttestationTail_ok {evm : EVM.State} {locals imms : Store} {word : UI
     (hk : locals.get? "uid" = some (wordBytes32Value word))
     (hh : locals.get? "$EAS.freeMemory" = some (.int 544))
     (hv : copyStoredValid evm word 544) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm getAttestationTail
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm getAttestationTail
       (.returned {contract := contract, locals := getAttestationFinalLocals locals evm word, immutables := imms}
         evm (some [getAttestationTuple evm word])) := by
   refine ExecBlock.consNormal (copyStoredCall_ok (heap := 544)
@@ -65,7 +67,7 @@ theorem getAttestationTail_revert {evm : EVM.State} {locals imms : Store} {word 
     (hk : locals.get? "uid" = some (wordBytes32Value word))
     (hh : locals.get? "$EAS.freeMemory" = some (.int 544))
     (hv : ¬ copyStoredValid evm word 544) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm getAttestationTail .reverted := by
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm getAttestationTail .reverted := by
   exact ExecBlock.consRevert (copyStoredCall_revert (heap := 544)
     (by simp only [evalExprs?, evalExpr?, hk, hh, EvalResult.ofOption, EvalResult.bind, bind, pure]; rfl) hv)
 
@@ -75,7 +77,7 @@ def getAttestationPrefixLocals (locals : Store) (evm : EVM.State) : Store :=
 theorem getAttestationPrefix_ok {evm : EVM.State} {locals imms : Store}
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩) (hsz : 4 ≤ evm.executionEnv.calldata.size)
     (hsize : evm.executionEnv.calldata.size < UInt256.size) (hguard : evm.executionEnv.calldata.size - 4 < 2^255) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm
       (easEntryPrefix ++ allocateBlock (.intLit 320))
       (.ok {contract := contract, locals := getAttestationPrefixLocals locals evm, immutables := imms} evm) := by
   apply execBlock_append (easEntryPrefix_ok hvalue hsz hsize hguard)
@@ -95,7 +97,7 @@ theorem getAttestationSource_ok {evm : EVM.State} {locals imms : Store} {word : 
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩) (hsz : 4 ≤ evm.executionEnv.calldata.size)
     (hsize : evm.executionEnv.calldata.size < UInt256.size) (hguard : evm.executionEnv.calldata.size - 4 < 2^255)
     (hv : copyStoredValid evm word 544) :
-    ExecTransitionBody config contract evm locals getAttestationTransition.body
+    ExecTransitionBody fork config contract evm locals getAttestationTransition.body
       (.returned {contract := contract, locals := getAttestationFinalLocals (getAttestationPrefixLocals locals evm) evm word, immutables := imms}
         evm (some [getAttestationTuple evm word])) imms := by
   rw [getAttestation_body, ← List.append_assoc]
@@ -108,7 +110,7 @@ theorem getAttestationSource_revert {evm : EVM.State} {locals imms : Store} {wor
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩) (hsz : 4 ≤ evm.executionEnv.calldata.size)
     (hsize : evm.executionEnv.calldata.size < UInt256.size) (hguard : evm.executionEnv.calldata.size - 4 < 2^255)
     (hv : ¬ copyStoredValid evm word 544) :
-    ExecTransitionBody config contract evm locals getAttestationTransition.body .reverted imms := by
+    ExecTransitionBody fork config contract evm locals getAttestationTransition.body .reverted imms := by
   rw [getAttestation_body, ← List.append_assoc]
   apply ExecFuncBody.execBlockRevert
   apply execBlock_append (getAttestationPrefix_ok hvalue hsz hsize hguard)

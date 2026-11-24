@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.OracleSurroundingFirst
 import Benchmarks.UniswapV3.Pool.OracleSurroundingResult
 import Benchmarks.UniswapV3.Pool.OracleSearchTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -12,7 +14,7 @@ theorem oracleSurroundingSearchX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat2
     {s0 : EVM.State} {k C allowance : Nat} {aw p afterPtr beforePtr card liquidity index : UInt256}
     {tickRaw targetRaw timeRaw ret time target : UInt256} {tick : Int} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨19122⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨19122⟩
       (oracleSurroundingStack afterPtr beforePtr card liquidity index tickRaw targetRaw timeRaw ret R)
       mem aw rdata σ k C)
     (hf : oracleSurroundingFirst time target index σ ee = false)
@@ -23,8 +25,8 @@ theorem oracleSurroundingSearchX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat2
     (hm : HeapMemory mem aw p) (hbudget : MemoryGasBound aw C allowance)
     (hallowance : allowance ≤ 2 ^ 200) (hcover : p.toNat ≤ aw.toNat * 32 + 32)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 40 ≤ 1024) :
-    X (g.toNat + 1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
-      Nonempty (OracleSurroundingExit v ee g s0 σ rdata ret R time target tick index liquidity card
+    X fork (g.toNat + 1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+      Nonempty (OracleSurroundingExit fork v ee g s0 σ rdata ret R time target tick index liquidity card
         mem aw p C) := by
   have r1 := uniswapV3Pool_block_19122 (immWords := wordsOf (immStore v)) (by evm_ov)
     (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; jump_dest) rd

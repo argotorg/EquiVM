@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.Common
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 
@@ -15,9 +17,9 @@ theorem lowLevelCallWithPermSource {cfg : Config} {frame : Frame} {evm evm' : EV
     (hr : evalExpr? cfg frame evm receiver = .ok (.address target))
     (hv : evalExpr? cfg frame evm eth = .ok (.int value))
     (hd : evalExpr? cfg frame evm cdata = .ok (.bytes calldata))
-    (hc : callViaEVM evm target value calldata (z, evm', out) perm)
+    (hc : callViaEVM fork evm target value calldata (z, evm', out) perm)
     (hperm : EVM.wordOfInt value = ⟨0⟩ ∨ evm.executionEnv.perm = true) :
-    ExecStmt cfg frame evm (.lowLevelCall receiver eth cdata success data perm)
+    ExecStmt fork cfg frame evm (.lowLevelCall receiver eth cdata success data perm)
       (.ok { frame with locals := (frame.locals.insert success (.bool z)).insert data (.bytes out) }
         evm') := by
   have ht : EVM.address target.val = target := by
@@ -34,16 +36,16 @@ theorem RD.staticcallSource {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : EVM.State} {pc : UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {gasArg target inOffset inSize outOffset outSize : UInt256} {R : List UInt256}
-    (rd : RD code ee g s0 pc
+    (rd : RD fork code ee g s0 pc
       (gasArg :: target :: inOffset :: inSize :: outOffset :: outSize :: R) mem aw rdata σ k C)
     (hdec : decode code pc = some (.STATICCALL, .none))
     (hov : R.length + 1 ≤ 1024)
     (hacc : evm.accountMap = σ) (hσ₀ : evm.σ₀ = s0.σ₀) (henv : evm.executionEnv = ee) :
     ∃ (z : Bool) (out : ByteArray) (σ' : AccountMap) (A' : Substate) (k' C' : Nat),
-      callViaEVM evm (AccountAddress.ofUInt256 target) 0
+      callViaEVM fork evm (AccountAddress.ofUInt256 target) 0
         (mem.readWithPadding inOffset.toNat inSize.toNat)
         (z, { evm with accountMap := σ', substate := A' }, out) false ∧
-      RD code ee g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: R)
+      RD fork code ee g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: R)
         (callOutputMem mem out outOffset outSize)
         (callActiveWords aw inOffset inSize outOffset outSize) out σ' k' C' ∧
       out.size < UInt256.size := by
@@ -65,7 +67,8 @@ theorem RD.staticcallSource {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
       change ee.depth.val = 1024
       omega
     obtain ⟨k', C', rd'⟩ := rd.solcStaticcallDepthLimit hdec hdepth' hov
-    refine ⟨false, .empty, σ, (evm.addAccessedAccount (AccountAddress.ofUInt256 target)).substate,
+    refine ⟨false, .empty, σ, (Ethereum.EVM.callSubstate fork evm.accountMap
+      (AccountAddress.ofUInt256 target) evm.substate),
       k', C', ?_, rd', by decide⟩
     apply callViaEVM.callNotMade (perm := false) rfl
     · rw [hacc]

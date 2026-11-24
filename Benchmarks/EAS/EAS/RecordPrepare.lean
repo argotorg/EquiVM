@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.RequestMemory
 import Benchmarks.EAS.EAS.RecordCreateEVM
 import Benchmarks.EAS.EAS.RefUIDSites
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -16,9 +18,9 @@ theorem easRecordPrepare {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : EASImmutables) (site : UIDSite) (hstack : R.length+26 ≤ 1024)
     (hv : AttestationRequestMemoryView mem (refUIDPtr site t3) dataPtr r)
     (hh : memLoad (UInt256.ofNat 64) mem = heap)
-    (rd : RD (deployedRuntime v) ee g s0 (recordPreparePC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (recordPreparePC site)
       (uidSaved site (refUIDPtr site t3+UInt256.ofNat 32) (schema::idx::t3::t4::R)) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 4854)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 4854)
       (heap::recordCreatePC site::recordCreateStack site heap dataPtr schema idx t3 t4 r R) mem aw' rdata σ k' C' := by
   cases site with
   | single s1 s2 s3 s4 s5 s6 s7 s8 =>

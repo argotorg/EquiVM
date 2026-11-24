@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.AccrueIndicesEvm
 import Benchmarks.CompoundIII.Comet.AccrualTimeEvm
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -13,8 +15,8 @@ theorem cometAccrueInternal {v : CometWithExtendedAssetListImmutables}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} {ret : UInt256} {R : List UInt256}
     (hstack : R.length + 37 ≤ 1024) (hs : SourceState s0 ee σ evm)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7886⟩ (ret :: R) mem aw rdata σ k C) :
-    internalRun (deployedRuntime v) ee g s0 mem aw rdata ret R (accrueOutcome v evm) := by
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7886⟩ (ret :: R) mem aw rdata σ k C) :
+    internalRun fork (deployedRuntime v) ee g s0 mem aw rdata ret R (accrueOutcome v evm) := by
   let time := timestampWord ee
   let w1 := solcSlotWordAt ⟨1⟩ σ ee
   let elapsed := currentElapsed time w1
@@ -32,7 +34,7 @@ theorem cometAccrueInternal {v : CometWithExtendedAssetListImmutables}
     obtain ⟨k3, C3, r3⟩ := cometWithExtendedAssetList_block_7894
       (immWords := wordsOf (immStore v)) (by simp only [List.length_cons]; omega)
       (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r2
-    change RD _ _ _ _ _
+    change RD fork _ _ _ _ _
       (UInt256.land (UInt256.shiftRight w1 ⟨208⟩) ⟨1099511627775⟩ ::
         ⟨7926⟩ :: ⟨7936⟩ :: time :: ret :: R) _ _ _ _ _ _ at r3
     rw [← lastAccrualWord_eq] at r3
@@ -49,7 +51,7 @@ theorem cometAccrueInternal {v : CometWithExtendedAssetListImmutables}
       have r6 := cometWithExtendedAssetList_block_7926 (immWords := wordsOf (immStore v))
         (by simp only [List.length_cons]; omega)
         (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r5
-      change RD _ _ _ _ _ (UInt256.land (UInt256.ofNat 1099511627775) elapsed :: time :: ret :: R)
+      change RD fork _ _ _ _ _ (UInt256.land (UInt256.ofNat 1099511627775) elapsed :: time :: ret :: R)
         _ _ _ _ _ _ at r6
       rw [mask40Clean elapsed hdt] at r6
       by_cases hz : elapsed = ⟨0⟩

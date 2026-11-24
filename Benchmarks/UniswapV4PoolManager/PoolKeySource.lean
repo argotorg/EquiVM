@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.PoolKeyMemory
 import Benchmarks.UniswapV4PoolManager.CurrencyId
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -89,7 +91,7 @@ theorem poolId_lookup : lookupCallable? contract "PoolIdLibrary_toId" = some poo
 
 theorem poolIdBody {f : Frame} {evm : EVM.State} {key : PoolKeyWords}
     (hc : PoolKeyCanonical key) (hk : f.locals.get? "poolKey" = some (poolKeyValue key)) :
-    ExecFuncBody config f evm poolIdFunction.body
+    ExecFuncBody fork config f evm poolIdFunction.body
       (.returned f evm (some [wordBytes32Value (poolKeyId key)])) := by
   have he := evalLocalValue (cfg := config) (evm := evm) hk
   have h0 := evalAddressUint160 (evalStructField he (field := "currency0") rfl)
@@ -110,7 +112,7 @@ theorem poolIdBody {f : Frame} {evm : EVM.State} {key : PoolKeyWords}
 theorem poolIdCall {f : Frame} {evm : EVM.State} {e : Expr} {key : PoolKeyWords}
     (hf : f.contract = contract) (hc : PoolKeyCanonical key)
     (he : evalExpr? config f evm e = .ok (poolKeyValue key)) (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "PoolIdLibrary_toId" [e] retVar)
+    ExecStmt fork config f evm (.internalCall "PoolIdLibrary_toId" [e] retVar)
       (.ok {f with locals := f.locals.insert retVar (wordBytes32Value (poolKeyId key))} evm) := by
   apply internalCallFunctionReturn (argVals := [poolKeyValue key])
     (value := some [wordBytes32Value (poolKeyId key)]) (evalExprs?_singleton he)

@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.TransferInternalSource
 import Benchmarks.CompoundIII.Comet.VoidCallSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -17,10 +19,10 @@ theorem transferAssetTransition_body : transferAssetTransition.body = calldataPr
       .var "amount"] "__c0", .return []] := rfl
 
 theorem transferAssetPublic_source {v dst asset amount evm result}
-    (ht : TransferInternalTrace v evm.executionEnv.source evm.executionEnv.source
+    (ht : TransferInternalTrace fork v evm.executionEnv.source evm.executionEnv.source
       dst asset amount evm result)
     (hv : evm.executionEnv.weiValue = ⟨0⟩) (hhi : evm.executionEnv.calldata.size < 2^255 + 4) :
-    explicitVoidSourceResult config
+    explicitVoidSourceResult fork config
       { contract := contract, locals := transferAssetArgs dst asset amount, immutables := immStore v }
       evm transferAssetTransition.body result := by
   rw [transferAssetTransition_body]

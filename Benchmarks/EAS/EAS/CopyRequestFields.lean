@@ -2,6 +2,8 @@ import Benchmarks.EAS.EAS.CalldataAddress
 import Benchmarks.EAS.EAS.WordSequence
 import Benchmarks.EAS.EAS.Storage
 import Benchmarks.EAS.EAS.RuntimeBlocks_021
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -25,12 +27,12 @@ theorem easCopyRequestFields {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {src heap stop ret : UInt256} {R : List UInt256}
     (v : EASImmutables) (hstack : R.length+11 ≤ 1024) (hh : heap.toNat ≤ 2^64-1)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5369⟩ (stop::heap::ret::src::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5369⟩ (stop::heap::ret::src::R) mem aw rdata σ k C) :
     if requestCopyFieldsValid ee.calldata src then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨5459⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨5459⟩
         (requestCopyWord ee.calldata src 128::src::stop::heap::ret::heap::R)
         (requestCopyFieldsMemory mem ee.calldata heap src) aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨a1,k1,C1,r1⟩ := easBlocks.eas_block_5369_packed (immWords := wordsOf (immStore v)) (by omega)
     (by rw [easPatchedValidJumpsRuntime v]; jump_dest) rd
   have haddr := easCalldataAddress v (by simp only [List.length_cons]; omega)

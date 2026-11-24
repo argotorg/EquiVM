@@ -6,6 +6,8 @@ import Benchmarks.Dss.Flipper.BidAccess
 import Benchmarks.Dss.Flipper.Dispatch
 import Reasoning.MemCascade
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -705,7 +707,7 @@ theorem flipperReachKickBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flipperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (flipperSelBytes 9)) :
-    ∃ k C, RD flipperBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork flipperBytecode I g (initState σ σ₀ g A I)
         ⟨360⟩ [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : flipperSelWord I = ⟨0x351de600⟩ :=
@@ -738,11 +740,11 @@ theorem RD.flipperKickDecodeToRoutine {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {ret de sel : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
     {acc : AccountMap}
-    (h : RD code ee g s0 ⟨382⟩ (de :: ⟨4⟩ :: ret :: sel :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 ⟨382⟩ (de :: ⟨4⟩ :: ret :: sel :: R) mem aw rdata acc k C)
     (hwf : code = flipperBytecode)
     (hroutine : (D_J code 0).contains ⟨1992⟩ = true)
     (hov : R.length + 9 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨1992⟩
+    ∃ k' C', RD fork code ee g s0 ⟨1992⟩
       (calldataWord ee.calldata 132 :: calldataWord ee.calldata 100 ::
         calldataWord ee.calldata 68 ::
         UInt256.land solcAddrMask (calldataWord ee.calldata 36) ::
@@ -795,10 +797,10 @@ theorem RD.flipperKickDecodeToRoutine {code : ByteArray} {g : Sat256}
 
 theorem flipperKickX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz164 : 164 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD flipperBytecode I g
+    (hreach : ∃ k C, RD fork flipperBytecode I g
       (initState σ σ₀ g A I) ⟨360⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD flipperBytecode I g (initState σ σ₀ g A I) ⟨1992⟩
+    ∃ k C, RD fork flipperBytecode I g (initState σ σ₀ g A I) ⟨1992⟩
       [kickBid I, kickLot I, kickTab I, kickGalKey I, kickUsrKey I, ⟨426⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
@@ -818,10 +820,10 @@ theorem flipperKickX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem flipperKickX_authOk {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hauth : solcSlotWordAt (flipperCallerWardsSlot I) σ I = ⟨1⟩)
-    (h : RD flipperBytecode I g s0 ⟨1992⟩
+    (h : RD fork flipperBytecode I g s0 ⟨1992⟩
       [kickBid I, kickLot I, kickTab I, kickGalKey I, kickUsrKey I, ⟨426⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ⟨2074⟩
+    ∃ k' C', RD fork flipperBytecode I g s0 ⟨2074⟩
       [⟨0⟩, kickBid I, kickLot I, kickTab I, kickGalKey I, kickUsrKey I, ⟨426⟩, sel]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -867,10 +869,10 @@ theorem flipperKickX_authOk {σ I} {g : Sat256} {s0 : State}
 theorem flipperKickX_authRevert {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hauth : solcSlotWordAt (flipperCallerWardsSlot I) σ I ≠ ⟨1⟩)
-    (h : RD flipperBytecode I g s0 ⟨1992⟩
+    (h : RD fork flipperBytecode I g s0 ⟨1992⟩
       [kickBid I, kickLot I, kickTab I, kickGalKey I, kickUsrKey I, ⟨426⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flipperBytecode g s0 := by
+    RDrev fork flipperBytecode g s0 := by
   have hauthSolc :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩ := by
     simpa [flipperCallerWardsSlot, solcSlotWordAt] using hauth
@@ -927,18 +929,18 @@ theorem flipperKickX_authRevert {σ I} {g : Sat256} {s0 : State}
 theorem flipperKickX_kicksOverflow {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hmax : UInt256.size - 1 ≤ (kickKicksWord σ I).toNat)
-    (h : RD flipperBytecode I g s0 ⟨2074⟩
+    (h : RD fork flipperBytecode I g s0 ⟨2074⟩
       [⟨0⟩, kickBid I, kickLot I, kickTab I, kickGalKey I, kickUsrKey I, ⟨426⟩, sel]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flipperBytecode g s0 := by
+    RDrev fork flipperBytecode g s0 := by
   have rd2081raw := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
     raw not (by native_decide) (by evm_ov),
     raw push1 ⟨6⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd2081sload⟩ := rd2081raw.sload (by native_decide) (by evm_ov)
-  have rd2082Exists : ∃ k' C', RD flipperBytecode I g s0 ⟨2082⟩
+  have rd2082Exists : ∃ k' C', RD fork flipperBytecode I g s0 ⟨2082⟩
       [UInt256.lt (kickKicksWord σ I) (UInt256.lnot ⟨0⟩), ⟨0⟩, kickBid I,
         kickLot I, kickTab I, kickGalKey I, kickUsrKey I, ⟨426⟩, sel]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
@@ -986,24 +988,24 @@ theorem flipperKickDecodePushMask6276 :
 theorem flipperKickX_toAdd48Split {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hkicksLt : (kickKicksWord σ I).toNat < UInt256.size - 1)
-    (h : RD flipperBytecode I g s0 ⟨2074⟩
+    (h : RD fork flipperBytecode I g s0 ⟨2074⟩
       [⟨0⟩, kickBid I, kickLot I, kickTab I, kickGalKey I, kickUsrKey I, ⟨426⟩, sel]
       (kickAuthMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     (I.perm = true ∧
-      ∃ k' C', RD flipperBytecode I g s0 ⟨6272⟩
+      ∃ k' C', RD fork flipperBytecode I g s0 ⟨6272⟩
         [kickTauWord (kickAfterGuyMap σ I) I, kickNow I, ⟨2235⟩,
           kickIdWord σ I, kickBid I, kickLot I, kickTab I, kickGalKey I, kickUsrKey I,
           ⟨426⟩, sel]
         (kickBidHashMem σ I) (UInt256.ofNat 3) ByteArray.empty
         (kickAfterGuyMap σ I) k' C') ∨
-      (I.perm = false ∧ RDstatic flipperBytecode g s0) := by
+      (I.perm = false ∧ RDstatic fork flipperBytecode g s0) := by
   have rd2081raw := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
     raw not (by native_decide) (by evm_ov),
     raw push1 ⟨6⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd2081sload⟩ := rd2081raw.sload (by native_decide) (by evm_ov)
-  have rd2082Exists : ∃ k' C', RD flipperBytecode I g s0 ⟨2082⟩
+  have rd2082Exists : ∃ k' C', RD fork flipperBytecode I g s0 ⟨2082⟩
       [UInt256.lt (kickKicksWord σ I) (UInt256.lnot ⟨0⟩), ⟨0⟩, kickBid I,
         kickLot I, kickTab I, kickGalKey I, kickUsrKey I, ⟨426⟩, sel]
       (kickAuthMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -1026,7 +1028,7 @@ theorem flipperKickX_toAdd48Split {σ I} {g : Sat256} {s0 : State}
     raw push1 ⟨6⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov)]
   obtain ⟨k2155, C2155, rd2155raw⟩ := rd2154pre.sload (by native_decide) (by evm_ov)
-  have rd2155 : RD flipperBytecode I g s0 ⟨2155⟩
+  have rd2155 : RD fork flipperBytecode I g s0 ⟨2155⟩
       [kickKicksWord σ I, ⟨6⟩, kickBid I, kickLot I, kickTab I, kickGalKey I,
         kickUsrKey I, ⟨426⟩, sel]
       (kickAuthMem I) (UInt256.ofNat 3) ByteArray.empty σ k2155 C2155 := by
@@ -1046,7 +1048,7 @@ theorem flipperKickX_toAdd48Split {σ I} {g : Sat256} {s0 : State}
       rd2163pre.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
   refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨k2164, C2164, rd2164⟩ := rd2163pre.sstore hperm hstoreDec (by evm_ov)
-  have rd2164' : RD flipperBytecode I g s0 ⟨2164⟩
+  have rd2164' : RD fork flipperBytecode I g s0 ⟨2164⟩
       [⟨1⟩, kickIdWord σ I, kickBid I, kickLot I, kickTab I, kickGalKey I,
         kickUsrKey I, ⟨426⟩, sel]
       (kickAuthMem I) (UInt256.ofNat 3) ByteArray.empty
@@ -1078,7 +1080,7 @@ theorem flipperKickX_toAdd48Split {σ I} {g : Sat256} {s0 : State}
     raw dup4 (by native_decide) (by evm_ov),
     raw dup2 (by native_decide) (by evm_ov)]
   obtain ⟨k2181, C2181, rd2181⟩ := rd2178.sstore hperm (by native_decide) (by evm_ov)
-  have rd2181' : RD flipperBytecode I g s0 ⟨2181⟩
+  have rd2181' : RD fork flipperBytecode I g s0 ⟨2181⟩
       [bidBaseOfWord (kickIdWord σ I), ⟨1⟩, kickIdWord σ I, kickBid I,
         kickLot I, kickTab I, kickGalKey I, kickUsrKey I, ⟨426⟩, sel]
       (kickBidHashMem σ I) (UInt256.ofNat 3) ByteArray.empty
@@ -1091,7 +1093,7 @@ theorem flipperKickX_toAdd48Split {σ I} {g : Sat256} {s0 : State}
     raw dup5 (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
   obtain ⟨k2187, C2187, rd2187⟩ := rd2186pre.sstore hperm (by native_decide) (by evm_ov)
-  have rd2187' : RD flipperBytecode I g s0 ⟨2187⟩
+  have rd2187' : RD fork flipperBytecode I g s0 ⟨2187⟩
       [bidBaseOfWord (kickIdWord σ I), kickIdWord σ I, kickBid I, kickLot I,
         kickTab I, kickGalKey I, kickUsrKey I, ⟨426⟩, sel]
       (kickBidHashMem σ I) (UInt256.ofNat 3) ByteArray.empty
@@ -1102,7 +1104,7 @@ theorem flipperKickX_toAdd48Split {σ I} {g : Sat256} {s0 : State}
     raw add (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov)]
   obtain ⟨k2192, C2192, rd2192raw⟩ := rd2191pre.sload (by native_decide) (by evm_ov)
-  have rd2192 : RD flipperBytecode I g s0 ⟨2192⟩
+  have rd2192 : RD fork flipperBytecode I g s0 ⟨2192⟩
       [solcSlotWordAt (bidPackedSlotOfWord (kickIdWord σ I)) (kickAfterLotMap σ I) I,
         bidPackedSlotOfWord (kickIdWord σ I), kickIdWord σ I, kickBid I, kickLot I,
         kickTab I, kickGalKey I, kickUsrKey I, ⟨426⟩, sel]
@@ -1135,7 +1137,7 @@ theorem flipperKickX_toAdd48Split {σ I} {g : Sat256} {s0 : State}
     raw swap1 (by native_decide) (by evm_ov)]
   rw [hmask160, hstoredGuy] at rd2205pre
   obtain ⟨k2206, C2206, rd2206⟩ := rd2205pre.sstore hperm (by native_decide) (by evm_ov)
-  have rd2206' : RD flipperBytecode I g s0 ⟨2206⟩
+  have rd2206' : RD fork flipperBytecode I g s0 ⟨2206⟩
       [kickIdWord σ I, kickBid I, kickLot I, kickTab I, kickGalKey I, kickUsrKey I,
         ⟨426⟩, sel]
       (kickBidHashMem σ I) (UInt256.ofNat 3) ByteArray.empty
@@ -1143,7 +1145,7 @@ theorem flipperKickX_toAdd48Split {σ I} {g : Sat256} {s0 : State}
     simpa [kickAfterGuyMap] using rd2206
   have rd2208 := rd2206'.push1 ⟨5⟩ (by native_decide) (by evm_ov)
   obtain ⟨k2209, C2209, rd2209raw⟩ := rd2208.sload (by native_decide) (by evm_ov)
-  have rd2209 : RD flipperBytecode I g s0 ⟨2209⟩
+  have rd2209 : RD fork flipperBytecode I g s0 ⟨2209⟩
       [solcSlotWordAt ⟨5⟩ (kickAfterGuyMap σ I) I, kickIdWord σ I, kickBid I,
         kickLot I, kickTab I, kickGalKey I, kickUsrKey I, ⟨426⟩, sel]
       (kickBidHashMem σ I) (UInt256.ofNat 3) ByteArray.empty
@@ -1180,12 +1182,12 @@ theorem flipperKickX_toAdd48Split {σ I} {g : Sat256} {s0 : State}
 theorem flipperKickX_add48Success {σ σtau I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hfit : (kickNow48 I).toNat + (kickTauWord σtau I).toNat < 2 ^ 48)
-    (h : RD flipperBytecode I g s0 ⟨6272⟩
+    (h : RD fork flipperBytecode I g s0 ⟨6272⟩
       [kickTauWord σtau I, kickNow I, ⟨2235⟩, kickIdWord σ I, kickBid I,
         kickLot I, kickTab I, kickGalKey I, kickUsrKey I, ⟨426⟩, sel]
       (kickBidHashMem σ I) (UInt256.ofNat 3) ByteArray.empty
       (kickAfterGuyMap σ I) k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ⟨2235⟩
+    ∃ k' C', RD fork flipperBytecode I g s0 ⟨2235⟩
       [kickNow I + kickTauWord σtau I, kickIdWord σ I, kickBid I, kickLot I,
         kickTab I, kickGalKey I, kickUsrKey I, ⟨426⟩, sel]
       (kickBidHashMem σ I) (UInt256.ofNat 3) ByteArray.empty
@@ -1230,12 +1232,12 @@ theorem flipperKickX_add48Success {σ σtau I} {g : Sat256} {s0 : State}
 theorem flipperKickX_add48Overflow {σ σtau I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hover : 2 ^ 48 ≤ (kickNow48 I).toNat + (kickTauWord σtau I).toNat)
-    (h : RD flipperBytecode I g s0 ⟨6272⟩
+    (h : RD fork flipperBytecode I g s0 ⟨6272⟩
       [kickTauWord σtau I, kickNow I, ⟨2235⟩, kickIdWord σ I, kickBid I,
         kickLot I, kickTab I, kickGalKey I, kickUsrKey I, ⟨426⟩, sel]
       (kickBidHashMem σ I) (UInt256.ofNat 3) ByteArray.empty
       (kickAfterGuyMap σ I) k C) :
-    RDrev flipperBytecode g s0 := by
+    RDrev fork flipperBytecode g s0 := by
   have rd6289 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov),
@@ -1271,10 +1273,10 @@ theorem flipperKickX_add48Overflow {σ σtau I} {g : Sat256} {s0 : State}
 theorem flipperKickX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 164)
-    (hreach : ∃ k C, RD flipperBytecode I g
+    (hreach : ∃ k C, RD fork flipperBytecode I g
       (initState σ σ₀ g A I) ⟨360⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flipperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flipperBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨160⟩ = ⟨1⟩ := by
     apply ult_one
@@ -1327,13 +1329,13 @@ theorem flipperKickSourceBodyAuthReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : solcSlotWordAt (flipperCallerWardsSlot I) σ I ≠ ⟨1⟩) :
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 (kickLocals I)
+    ExecTransitionBody fork config contract evm0 (kickLocals I)
       (nonpayable ++ auth ++ kickAfterAuthStmts) .reverted := by
   intro evm0
   have hguard := flipperAuthGuardEval_false
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (locals := kickLocals I) (kickLocals_get_wards I) hauth
-  have hblock := nonpayableSecondRequireReverts
+  have hblock := nonpayableSecondRequireReverts (fork := fork)
     (cfg := config) (stele := { contract := contract, locals := kickLocals I })
     (evm := evm0) (guard := kickAuthGuard) (rest := kickAfterAuthStmts)
     (by simp [evm0, initState]; exact hwv)
@@ -1346,7 +1348,7 @@ theorem flipperKickSourceBodyKicksOverflow {σ σ₀ A I} {g : UInt256}
     (hauth : solcSlotWordAt (flipperCallerWardsSlot I) σ I = ⟨1⟩)
     (hmax : UInt256.size - 1 ≤ (kickKicksWord σ I).toNat) :
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 (kickLocals I)
+    ExecTransitionBody fork config contract evm0 (kickLocals I)
       (nonpayable ++ auth ++ kickAfterAuthStmts) .reverted := by
   intro evm0
   have hauthGuard := flipperAuthGuardEval_true
@@ -1357,7 +1359,7 @@ theorem flipperKickSourceBodyKicksOverflow {σ σ₀ A I} {g : UInt256}
     (g := Sat256.ofUInt256 g) (locals := kickLocals I)
     (kickLocals_get_kicks I) hmax
   have hblock :
-      ExecBlock config { contract := contract, locals := kickLocals I } evm0
+      ExecBlock fork config { contract := contract, locals := kickLocals I } evm0
         ([ .require (.binary .eq (.env .callvalue) (.intLit 0)),
            .require kickAuthGuard,
            .require kickKicksGuard ] ++ kickAfterKicksStmts)

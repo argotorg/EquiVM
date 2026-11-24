@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.TotalSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -52,7 +54,7 @@ def reservesReadyFrame (v : CometWithExtendedAssetListImmutables) (w0 w1 time : 
 theorem reservesSnapshot_result (v : CometWithExtendedAssetListImmutables) (evm : EVM.State) :
     let w1 := Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩
     let time := timestampWord evm.executionEnv
-    ExecBlock config
+    ExecBlock fork config
       { contract := contract, locals := (∅ : Store).insert "__c0" (.int time.toNat),
         immutables := immStore v } evm reservesSnapshotBlock
       (.ok (reservesSnapshotFrame v w1 time) evm) := by
@@ -70,7 +72,7 @@ theorem reservesIndices_result (v : CometWithExtendedAssetListImmutables) (evm :
     let w0 := Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩
     let w1 := Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩
     let time := timestampWord evm.executionEnv
-    ExecBlock config (reservesSnapshotFrame v w1 time) evm reservesIndicesBlock
+    ExecBlock fork config (reservesSnapshotFrame v w1 time) evm reservesIndicesBlock
       (if CurrentIndicesValid v w0 w1 time then .ok (reservesReadyFrame v w0 w1 time) evm
         else .reverted) := by
   dsimp only
@@ -118,7 +120,7 @@ theorem reservesStart_result (v : CometWithExtendedAssetListImmutables) (evm : E
     let w0 := Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩
     let w1 := Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩
     let time := timestampWord evm.executionEnv
-    ExecBlock config { contract := contract, locals := ∅, immutables := immStore v }
+    ExecBlock fork config { contract := contract, locals := ∅, immutables := immStore v }
       evm reservesStartBlock
       (if CurrentIndicesValid v w0 w1 time then .ok (reservesReadyFrame v w0 w1 time) evm
         else .reverted) := by

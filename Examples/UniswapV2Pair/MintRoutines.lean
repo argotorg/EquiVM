@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.Common
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -295,13 +297,13 @@ theorem uniswapMintFunctionBody
     (hfitSupply : mintFunctionTotalSupplyNewNat evm value < UInt256.size)
     (hfitBalance : mintFunctionToBalanceNewNat evm recipient value < UInt256.size)
     (hperm : evm.executionEnv.perm = true) :
-    ExecFuncBody config { contract := contract, locals := mintFunctionCallStore recipient value }
+    ExecFuncBody fork config { contract := contract, locals := mintFunctionCallStore recipient value }
       evm
       mintFunction.body
       (.returned { contract := contract, locals := mintFunctionCallStore recipient value }
         (mintFunctionPostState evm recipient value) none) := by
   refine ExecFuncBody.execBlockOK ?_
-  change ExecBlock config { contract := contract, locals := mintFunctionCallStore recipient value } evm
+  change ExecBlock fork config { contract := contract, locals := mintFunctionCallStore recipient value } evm
     [ .assign .storage totalSupplyRef
         (u256 (.binary .add (.storage totalSupplyRef) (.var "value"))),
       .assign .storage (balanceOfRef (.var "to"))
@@ -329,7 +331,7 @@ theorem uniswapMintFunctionCallSuccess {caller : Frame} {evm : EVM.State}
     (hfitBalance : mintFunctionToBalanceNewNat evm recipient value < UInt256.size)
     (himm : caller.immutables = ∅ := by first | rfl | assumption)
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config caller evm (.internalCall "_mint" args retVar)
+    ExecStmt fork config caller evm (.internalCall "_mint" args retVar)
       (.ok (resumeAfterInternalCall caller retVar none)
         (mintFunctionPostState evm recipient value)) := by
   exact internalCallFunctionReturn
@@ -345,6 +347,6 @@ theorem uniswapMintFunctionCallSuccess {caller : Frame} {evm : EVM.State}
     (bindParams_mintFunction_call recipient value)
     (by
       simpa [hcontract, himm] using
-        (uniswapMintFunctionBody (hperm := by assumption) evm recipient value hfitSupply hfitBalance))
+        (uniswapMintFunctionBody (fork := fork) (hperm := by assumption) evm recipient value hfitSupply hfitBalance))
 
 end UniswapV2Pair

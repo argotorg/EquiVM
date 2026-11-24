@@ -4,6 +4,8 @@ import Benchmarks.UniswapV3.Pool.OracleTransform
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_044
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_046
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -14,13 +16,13 @@ theorem oracleObserveZeroReturnX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat2
     {s0 : EVM.State} {k C : Nat} {aw p ret ptr cardinality liquidity index tickRaw timeRaw : UInt256}
     {last : OracleObservation} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13340⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13340⟩
       (ptr :: ⟨0⟩ :: ⟨0⟩ :: cardinality :: liquidity :: index :: tickRaw :: ⟨0⟩ :: timeRaw ::
         UInt256.ofNat 8 :: ret :: R) mem aw rdata σ k C)
     (hh : HeapMemory mem aw p) (hm : ObservationMemory mem ptr last)
     (hb : ptr.toNat + 128 ≤ 2 ^ 200)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 14 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret
       (last.secondsPerLiquidity :: EVM.wordOfInt last.tickCumulative :: R) mem aw' rdata σ k' C' ∧
       HeapMemory mem aw' p := by
   have hl := hm.load_tick (by change _ < 2 ^ 256; omega)
@@ -43,7 +45,7 @@ theorem oracleObserveZeroFinishX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat2
     {s0 : EVM.State} {k C : Nat} {aw p ret cardinality liquidity index tickRaw timeRaw time : UInt256}
     {tick : Int} {last : OracleObservation} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13311⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13311⟩
       ((if last.initialized then ⟨1⟩ else ⟨0⟩) :: UInt256.ofNat 4294967295 :: p ::
         last.timestamp :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: cardinality :: liquidity :: index :: tickRaw ::
         ⟨0⟩ :: timeRaw :: UInt256.ofNat 8 :: ret :: R)
@@ -53,7 +55,7 @@ theorem oracleObserveZeroFinishX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat2
     (htick : UInt256.signextend (UInt256.ofNat 2) tickRaw = EVM.wordOfInt tick)
     (hliq : liquidity.toNat < 2 ^ 128)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 30 ≤ 1024) :
-    ∃ mem' aw' p' k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ mem' aw' p' k' C', RD fork (deployedRuntime v) ee g s0 ret
       ((oracleObserveZeroResult last time tick liquidity).secondsPerLiquidity ::
         EVM.wordOfInt (oracleObserveZeroResult last time tick liquidity).tickCumulative :: R)
       mem' aw' rdata σ k' C' ∧ HeapMemory mem' aw' p' ∧
@@ -123,7 +125,7 @@ theorem oracleObserveZeroFinishX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat2
 theorem oracleObserveSingleZeroX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p ret cardinality liquidity index tickRaw timeRaw time : UInt256}
     {tick : Int} {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13193⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13193⟩
       (cardinality :: liquidity :: index :: tickRaw :: ⟨0⟩ :: timeRaw :: UInt256.ofNat 8 :: ret :: R)
       mem aw rdata σ k C)
     (hh : HeapMemory mem aw p) (hb : p.toNat + 384 ≤ 2 ^ 200) (hin : index.toNat < 65535)
@@ -132,7 +134,7 @@ theorem oracleObserveSingleZeroX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat2
     (hliq : liquidity.toNat < 2 ^ 128)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 30 ≤ 1024) :
     let last := oracleObserveZeroResult (oracleStoredObservation index σ ee) time tick liquidity
-    ∃ mem' aw' p' k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ mem' aw' p' k' C', RD fork (deployedRuntime v) ee g s0 ret
       (last.secondsPerLiquidity :: EVM.wordOfInt last.tickCumulative :: R) mem' aw' rdata σ k' C' ∧
       HeapMemory mem' aw' p' ∧ p'.toNat ≤ p.toNat + 384 ∧ MemoryPrefix mem mem' p.toNat := by
   dsimp only
@@ -152,11 +154,11 @@ theorem oracleObserveSingleZeroX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat2
 theorem oracleObserveSingleZeroInvalidX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret cardinality liquidity index tickRaw timeRaw : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13193⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13193⟩
       (cardinality :: liquidity :: index :: tickRaw :: ⟨0⟩ :: timeRaw :: UInt256.ofNat 8 :: ret :: R)
       mem aw rdata σ k C)
     (hidx : index.toNat < 2 ^ 16) (hin : ¬ index.toNat < 65535) (hov : R.length + 15 ≤ 1024) :
-    RDinvalid (deployedRuntime v) g s0 := by
+    RDinvalid fork (deployedRuntime v) g s0 := by
   have hindex : UInt256.land (UInt256.ofNat 65535) index = index := by
     rw [u256_land_comm]
     exact u256LandMaskCleanOfToNat (bits := 16) index _ (by decide) hidx

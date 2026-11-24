@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.ApplyDelta
 
+variable {fork : Ethereum.Fork}
+
 /-! Shared source proof for the PoolManager's currency accounting helper. -/
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
@@ -57,7 +59,7 @@ theorem accountDeltaBodyExec {f : Frame} {evm : EVM.State} {target currency : Ac
     (hc : f.locals.get? "currency" = some (.address currency))
     (hd : f.locals.get? "delta" = some (.int delta))
     (ht : f.locals.get? "target" = some (.address target)) :
-    ExecFuncBody config f evm accountDeltaFunction.body (accountDeltaResult f evm target currency delta) := by
+    ExecFuncBody fork config f evm accountDeltaFunction.body (accountDeltaResult f evm target currency delta) := by
   let previous := currencyDeltaValue evm target currency
   let next := previous + delta
   have heq := evalIntEq (cfg := config) (evm := evm) (evalLocalValue hd)
@@ -68,9 +70,9 @@ theorem accountDeltaBodyExec {f : Frame} {evm : EVM.State} {target currency : Ac
     exact ExecFuncBody.execBlockRet (ExecBlock.consReturn (ExecStmt.iteTrue
       (heq.trans (by rw [decide_eq_true hz])) (ExecBlock.consReturn (ExecStmt.return rfl))))
   · rw [if_neg hz]
-    have hguard : ExecStmt config f evm accountDeltaFunction.body[0]! (.ok f evm) :=
+    have hguard : ExecStmt fork config f evm accountDeltaFunction.body[0]! (.ok f evm) :=
       ExecStmt.iteFalse (heq.trans (by rw [decide_eq_false hz])) ExecBlock.nil
-    have hcall := applyDeltaCall (evm := evm) hf (evalLocalValue hc) (evalLocalValue ht) (evalLocalValue hd) "__c0"
+    have hcall := applyDeltaCall (fork := fork) (evm := evm) hf (evalLocalValue hc) (evalLocalValue ht) (evalLocalValue hd) "__c0"
     rw [applyDeltaCallResult] at hcall
     by_cases hfit : int256Fits next
     · rw [if_pos hfit] at hcall ⊢
@@ -99,7 +101,7 @@ theorem accountDeltaBodyExec {f : Frame} {evm : EVM.State} {target currency : Ac
         refine ExecBlock.consNormal (ExecStmt.letDecl (evalTupleProjection (evalLocalValue htuple2) (by rfl))) ?_
         by_cases hn : next = 0
         · rw [accountDeltaPost, if_neg hz, if_pos hn, accountDeltaFrame, if_pos hn]
-          have hcount := deltaCountCall (f := f3) (evm := evm1) hf false "__c1"
+          have hcount := deltaCountCall (fork := fork) (f := f3) (evm := evm1) hf false "__c1"
           rw [henv, if_neg hp] at hcount
           exact ExecBlock.consNormal (ExecStmt.iteTrue (hnextEq.trans (by rw [decide_eq_true hn]))
             (ExecBlock.consNormal hcount ExecBlock.nil)) ExecBlock.nil
@@ -107,7 +109,7 @@ theorem accountDeltaBodyExec {f : Frame} {evm : EVM.State} {target currency : Ac
           by_cases hpv : previous = 0
           · have hpv' : currencyDeltaValue evm target currency = 0 := hpv
             simp only [if_pos hpv']
-            have hcount := deltaCountCall (f := f3) (evm := evm1) hf true "__c2"
+            have hcount := deltaCountCall (fork := fork) (f := f3) (evm := evm1) hf true "__c2"
             rw [henv, if_neg hp] at hcount
             exact ExecBlock.consNormal (ExecStmt.iteFalse (hnextEq.trans (by rw [decide_eq_false hn]))
               (ExecBlock.consNormal (ExecStmt.iteTrue (hprevEq.trans (by rw [decide_eq_true hpv]))
@@ -134,10 +136,10 @@ theorem accountDeltaCall {f : Frame} {evm : EVM.State} {target currency : Accoun
     (hc : evalExpr? config f evm ec = .ok (.address currency))
     (hd : evalExpr? config f evm ed = .ok (.int delta))
     (ht : evalExpr? config f evm et = .ok (.address target)) (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "_accountDelta" [ec, ed, et] retVar)
+    ExecStmt fork config f evm (.internalCall "_accountDelta" [ec, ed, et] retVar)
       (accountDeltaCallResult f evm target currency delta retVar) := by
   let locals := (((∅ : Store).insert "target" (.address target)).insert "delta" (.int delta)).insert "currency" (.address currency)
-  have hbody := accountDeltaBodyExec (f := {f with locals := locals}) (evm := evm) hf
+  have hbody := accountDeltaBodyExec (fork := fork) (f := {f with locals := locals}) (evm := evm) hf
     (store_get_self _ _ _)
     ((store_get_ne _ _ (by decide : ("currency" == "delta") = false)).trans (store_get_self _ _ _))
     ((store_get_ne _ _ (by decide : ("currency" == "target") = false)).trans

@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.WithdrawPositionRefine
 import Benchmarks.Morpho.MorphoBlue.MarketSubtract
 import Benchmarks.Morpho.MorphoBlue.RepayMathReach
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -23,16 +25,16 @@ variable {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
   {σ : AccountMap} {k C : Nat} {R : List UInt256}
 
 theorem morphoWithdrawMarketSharesReachSub (hstack : R.length + 28 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 7788)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 7788)
       ([shares, UInt256.ofNat 7813] ++ withdrawUpdateTail id assets shares account receiver R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12846)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12846)
       ([marketFieldWord σ ee id 1, shares, UInt256.ofNat 2278, marketFieldSlot id 1, UInt256.ofNat 7813] ++
         withdrawUpdateTail id assets shares account receiver R)
       (twoWordHashMem id (UInt256.ofNat 3) mem) aw' out σ k' C' := by
   obtain ⟨a1, k1, C1, rd1⟩ := morphoBlocks.morpho_block_7788_packed (immWords := wordsOf (immStore v))
     (by change R.length + 10 + 10 ≤ 1024; omega)
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     ([UInt256.shiftRight (solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64)
         (twoWordHashMem id (UInt256.ofNat 3) mem)) σ ee) (UInt256.ofNat 128), shares, UInt256.ofNat 2278,
       keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) (twoWordHashMem id (UInt256.ofNat 3) mem), UInt256.ofNat 7813] ++
@@ -41,16 +43,16 @@ theorem morphoWithdrawMarketSharesReachSub (hstack : R.length + 28 ≤ 1024)
   exact ⟨a1, k1, C1, rd1⟩
 
 theorem morphoWithdrawMarketAssetsReachSub (hstack : R.length + 28 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 7822)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 7822)
       (assets :: withdrawUpdateTail id assets shares account receiver R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12846)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12846)
       ([marketFieldWord σ ee id 0, assets, UInt256.ofNat 7898] ++
         withdrawStoreTail σ ee id assets shares account receiver R)
       (twoWordHashMem id (UInt256.ofNat 3) mem) aw' out σ k' C' := by
   obtain ⟨a1, k1, C1, rd1⟩ := morphoBlocks.morpho_block_7822_packed (immWords := wordsOf (immStore v))
     (by change R.length + 10 + 12 ≤ 1024; omega)
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     ([UInt256.land (solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64)
       (twoWordHashMem id (UInt256.ofNat 3) mem)) σ ee) uint128Mask, assets, UInt256.ofNat 7898,
       uint128Mask, UInt256.lnot uint128Mask,
@@ -63,10 +65,10 @@ theorem morphoWithdrawMarketAssetsReachSub (hstack : R.length + 28 ≤ 1024)
 
 theorem morphoWithdrawStoreLiquidity (hstack : R.length + 28 ≤ 1024)
     (hp : ee.perm = true) (value : UInt256) (hc : value.toNat < 2 ^ 128)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 7898)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 7898)
       (value :: withdrawStoreTail σ ee id assets shares account receiver R) mem aw out σ k C) :
     let σ' := storeMarketFieldAccounts σ ee id ⟨0, by decide⟩ value
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12880)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12880)
       ([UInt256.ofNat 585, UInt256.isZero (UInt256.lt (marketFieldWord σ' ee id 0)
         (marketFieldWord σ' ee id 2)), UInt256.ofNat 7950] ++
         withdrawEventTail id assets shares account receiver R)
@@ -76,7 +78,7 @@ theorem morphoWithdrawStoreLiquidity (hstack : R.length + 28 ≤ 1024)
     (by change R.length + 10 + 9 ≤ 1024; omega) hp
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
   dsimp only [morphoBlocks.morpho_block_7898_stack] at rd1
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     ([UInt256.ofNat 585, UInt256.isZero (UInt256.lt
       (UInt256.land (solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64)
         (twoWordHashMem id (UInt256.ofNat 3) mem))

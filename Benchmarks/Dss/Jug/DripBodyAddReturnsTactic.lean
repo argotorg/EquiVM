@@ -2,6 +2,8 @@ import Benchmarks.Dss.Jug.DripBodyNZeroTactic
 import Mathlib.Util.ParseCommand
 import Lean.Elab.Tactic
 
+variable {fork : Ethereum.Fork}
+
 open Lean Elab Tactic
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
@@ -19,7 +21,7 @@ let age :=
     (solcSlotWordAt (fileDutyRhoSlotFor I) σ' I)
 have _rpowNZeroProgress :
     age = ⟨0⟩ →
-      ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
+      ∃ k' C', RD fork jugBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1524⟩
         (jugRay :: ⟨1530⟩ :: dripVatIlksPrevWord out :: ⟨0⟩ ::
           fileDutyIlkWord I :: ⟨357⟩ :: jugSelWord I :: [])
@@ -37,7 +39,7 @@ have _rpowNZeroProgress :
 have _rpowRmulNZeroProgress :
     age = ⟨0⟩ →
       jugRay.toNat * (dripVatIlksPrevWord out).toNat < UInt256.size →
-        ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
+        ∃ k' C', RD fork jugBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1530⟩
           (dripVatIlksPrevWord out :: dripVatIlksPrevWord out :: ⟨0⟩ ::
             fileDutyIlkWord I :: ⟨357⟩ :: jugSelWord I :: [])
@@ -54,7 +56,7 @@ have _diffNZeroBoundRevert :
     age = ⟨0⟩ →
       jugRay.toNat * (dripVatIlksPrevWord out).toNat < UInt256.size →
         ¬ ((dripVatIlksPrevWord out).toNat : Int) ≤ Reasoning.Theory.maxInt256 →
-          RDrev jugBytecode (Sat256.ofUInt256 g)
+          RDrev fork jugBytecode (Sat256.ofUInt256 g)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   intro hage0 hfitRmul hprevMaxNot
   obtain ⟨_, _, rd1530⟩ := _rpowRmulNZeroProgress hage0 hfitRmul
@@ -69,7 +71,7 @@ have _diffNZeroProgress :
     age = ⟨0⟩ →
       jugRay.toNat * (dripVatIlksPrevWord out).toNat < UInt256.size →
         ((dripVatIlksPrevWord out).toNat : Int) ≤ Reasoning.Theory.maxInt256 →
-          ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
+          ∃ k' C', RD fork jugBytecode I (Sat256.ofUInt256 g)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1570⟩
             (⟨0⟩ :: dripVowTargetWord σ' I :: fileDutyIlkWord I ::
               dripVatFoldSelectorWord :: dripVatTargetWord σ' I ::
@@ -94,7 +96,7 @@ have _foldNZeroCallReady :
         ((dripVatIlksPrevWord out).toNat : Int) ≤ Reasoning.Theory.maxInt256 →
           Reasoning.Theory.extCodeSizeWord σ'
             (dripVatTargetWord σ' I) ≠ ⟨0⟩ →
-            ∃ gasWord k' C', RD jugBytecode I (Sat256.ofUInt256 g)
+            ∃ gasWord k' C', RD fork jugBytecode I (Sat256.ofUInt256 g)
               (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1650⟩
               (gasWord :: dripVatTargetWord σ' I :: ⟨0⟩ ::
                 dripVatFoldOutPtr :: dripVatFoldInSize :: dripVatFoldOutPtr ::
@@ -148,7 +150,7 @@ have _foldNZeroNoCode :
         ((dripVatIlksPrevWord out).toNat : Int) ≤ Reasoning.Theory.maxInt256 →
           Reasoning.Theory.extCodeSizeWord σ'
             (dripVatTargetWord σ' I) = ⟨0⟩ →
-            RDrev jugBytecode (Sat256.ofUInt256 g)
+            RDrev fork jugBytecode (Sat256.ofUInt256 g)
               (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   intro hage0 hfitRmul hprevMax hfoldCode
   let foldBaseMem :=

@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Clipper.TakePostStatus
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -314,14 +316,14 @@ theorem RD.clipperTakeVatMoveExtcodesizeGuard {code : ByteArray}
     {dog slice owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id :
       UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {k C : ℕ}
-    (rd4701 : RD code ee g s0 ⟨4701⟩
+    (rd4701 : RD fork code ee g s0 ⟨4701⟩
       (dog :: slice :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped ::
         dataLen :: dataStart :: who :: max :: amt :: id :: R)
       mem (UInt256.ofNat 9) rdata σ k C)
     (hmem : mem.size = 260)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨4813⟩
+    ∃ k' C', RD fork code ee g s0 ⟨4813⟩
       (clipperTakeVatTarget v :: clipperTakeVatTarget v :: ⟨0⟩ :: ⟨128⟩ ::
         ⟨100⟩ :: ⟨128⟩ :: ⟨0⟩ :: ⟨228⟩ :: clipperTakeVatMoveSelectorWord ::
         clipperTakeVatTarget v :: dog :: slice :: owe :: tabNew :: lotNew :: price :: tic ::
@@ -461,7 +463,7 @@ theorem RD.clipperTakeVatMoveNoCode {code : ByteArray}
     {dog slice owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id :
       UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {k C : ℕ}
-    (rd4701 : RD code ee g s0 ⟨4701⟩
+    (rd4701 : RD fork code ee g s0 ⟨4701⟩
       (dog :: slice :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped ::
         dataLen :: dataStart :: who :: max :: amt :: id :: R)
       mem (UInt256.ofNat 9) rdata σ k C)
@@ -470,7 +472,7 @@ theorem RD.clipperTakeVatMoveNoCode {code : ByteArray}
     (hcodeSizeVat :
       Reasoning.Theory.extCodeSizeWord σ (clipperTakeVatTarget v) = ⟨0⟩)
     (hov : R.length + 32 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   obtain ⟨_, _, rd4813⟩ :=
     RD.clipperTakeVatMoveExtcodesizeGuard (v := v) (hpatch := hpatch)
       rd4701 hmem hread64 hov
@@ -491,7 +493,7 @@ theorem RD.clipperTakeVatMovePostCall {σ₀ σStart σ I}
     {R : List UInt256} {baseMem rdata : ByteArray} (v : ClipperImmutables)
     {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (rd4813 : RD code I g (initState σStart σ₀ g A I) ⟨4813⟩
+    (rd4813 : RD fork code I g (initState σStart σ₀ g A I) ⟨4813⟩
       (clipperTakeVatTarget v :: clipperTakeVatTarget v :: ⟨0⟩ :: ⟨128⟩ ::
         ⟨100⟩ :: ⟨128⟩ :: ⟨0⟩ :: ⟨228⟩ :: clipperTakeVatMoveSelectorWord ::
         clipperTakeVatTarget v :: dog :: slice :: owe :: tabNew :: lotNew :: price :: tic ::
@@ -505,7 +507,7 @@ theorem RD.clipperTakeVatMovePostCall {σ₀ σStart σ I}
     (hov : R.length + 32 ≤ 1024) :
     ∃ (σ_vat : AccountMap)
       (zVat : Bool) (outVat : ByteArray) (A_vat : Substate) (k' C' : ℕ),
-      RD code I g (initState σStart σ₀ g A I) ⟨4829⟩
+      RD fork code I g (initState σStart σ₀ g A I) ⟨4829⟩
         ((if zVat then ⟨1⟩ else ⟨0⟩) :: ⟨228⟩ :: clipperTakeVatMoveSelectorWord ::
           clipperTakeVatTarget v :: dog :: slice :: owe :: tabNew :: lotNew :: price ::
           tic :: packed :: stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: R)
@@ -516,7 +518,7 @@ theorem RD.clipperTakeVatMovePostCall {σ₀ σStart σ I}
             (⟨128⟩ : UInt256).toNat (⟨100⟩ : UInt256).toNat)
             (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat))
         outVat σ_vat k' C' ∧
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         { initState σStart σ₀ g A I with
           accountMap := σ }
         (EVM.address v.vat) "move" 0
@@ -580,10 +582,10 @@ theorem RD.clipperTakeVatMoveCallFailure {code : ByteArray}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
-    (rd : RD code ee g s0 ⟨4829⟩ (⟨0⟩ :: R) mem aw o acc k C)
+    (rd : RD fork code ee g s0 ⟨4829⟩ (⟨0⟩ :: R) mem aw o acc k C)
     (hosz : o.size < UInt256.size)
     (hov : R.length + 5 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨4829⟩) (okPc := ⟨4845⟩)
     rd (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by clipper_runtime_decode) (by clipper_runtime_decode)
@@ -602,13 +604,13 @@ theorem RD.clipperTakeVatMoveCallSuccessToDogDigs {code : ByteArray}
     {dog slice owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id :
       UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨4829⟩
+    (rd : RD fork code ee g s0 ⟨4829⟩
       (⟨1⟩ :: ⟨228⟩ :: clipperTakeVatMoveSelectorWord :: clipperTakeVatTarget v ::
         dog :: slice :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped ::
         dataLen :: dataStart :: who :: max :: amt :: id :: R)
       mem aw o acc k C)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨4850⟩
+    ∃ k' C', RD fork code ee g s0 ⟨4850⟩
       (dog :: slice :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped ::
         dataLen :: dataStart :: who :: max :: amt :: id :: R)
       mem aw o acc k' C' := by

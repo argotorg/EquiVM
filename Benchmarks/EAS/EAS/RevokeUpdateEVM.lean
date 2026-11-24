@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.RevokeValuesLog
 import Benchmarks.EAS.EAS.RecordUID
 import Benchmarks.EAS.EAS.RevocationRequestMemory
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -21,9 +23,9 @@ theorem easRevokeUpdate {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hvl : memLoad site.values mem = UInt256.ofNat site.length)
     (hr : RevocationRequestMemoryView mem request r) (hre : request.toNat+64 ≤ site.records.toNat)
     (hh : memLoad (UInt256.ofNat 64) mem = heap)
-    (rd : RD (deployedRuntime v) ee g s0 site.kind.copyReturnPC
+    (rd : RD fork (deployedRuntime v) ee g s0 site.kind.copyReturnPC
       (src::revokeCopySaved site ee request (UInt256.ofNat i) r.uid R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 site.kind.loopPC
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 site.kind.loopPC
       (revokeLoopStack site ee (UInt256.ofNat (i+1)) R)
       (revokeUpdateMemory mem site src heap r.value r.uid i) aw' rdata σ k' C' := by
   obtain ⟨aw1,k1,C1,rd1⟩ := easRevokeArrayStore v site hstack hi (by omega) hac hal rd

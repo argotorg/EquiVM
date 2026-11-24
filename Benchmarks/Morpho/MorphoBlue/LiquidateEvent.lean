@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.LiquidateBadDebtRefine
 import Benchmarks.Morpho.MorphoBlue.HeapWordSequence
 import Benchmarks.Morpho.MorphoBlue.SafeTransferInternal
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -18,7 +20,7 @@ theorem liquidateEmit (p : MarketParamsWords) (assets seized shares account badA
     (data : ByteArray) (locals imms : Store) (evm : EVM.State)
     (hl : LiquidateEventLocals p account seized shares data assets badAssets badShares locals)
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm
       liquidateTransition.body[31]! (.ok { contract := contract, locals := locals, immutables := imms } evm) := by
   apply ExecStmt.emit (hperm := hperm)
   change evalExprs? config _ _ [.var "id", .env .caller, .var "borrower", .var "repaidAssets",
@@ -39,9 +41,9 @@ theorem morphoLiquidateEvent {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat
     {s0 : State} {aw fp trash id assets seized shares badAssets badShares srcOff len : UInt256} {out mem : ByteArray}
     {σ : AccountMap} {k C spare : Nat} {R : List UInt256} (hstack : R.length + 32 ≤ 1024)
     (hperm : ee.perm = true) (hm : MorphoHeap mem fp spare) :
-    RD (deployedRuntime v) ee g s0 (UInt256.ofNat 2574)
+    RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 2574)
       (liquidateEventTail trash id assets seized shares badAssets badShares srcOff len R) mem aw out σ k C →
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14666)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14666)
       ([UInt256.land (memLoad (UInt256.ofNat 160) (liquidateEventMem mem fp assets shares seized badAssets badShares)) solcAddrMask,
         UInt256.ofNat ee.source.val, seized, UInt256.ofNat 2704] ++ liquidateTransferTail assets seized srcOff len R)
       (liquidateEventMem mem fp assets shares seized badAssets badShares) aw' out σ k' C' := by

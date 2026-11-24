@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.SignedAmountsSource
 import Benchmarks.UniswapV4PoolManager.SafeCast128Source
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 
@@ -24,13 +26,13 @@ theorem checkedSignedAmount {f : Frame} {evm : State} {a b : UInt256} {delta : I
     (hea : evalExpr? config f evm ea = .ok (.int (Int.ofNat a.toNat)))
     (heb : evalExpr? config f evm eb = .ok (.int (Int.ofNat b.toNat)))
     (hed : evalExpr? config f evm ed = .ok (.int delta)) (one : Bool) (amountRet castRet : Ident) :
-    ExecBlock config f evm (checkedSignedAmountBlock one ea eb ed amountRet castRet)
+    ExecBlock fork config f evm (checkedSignedAmountBlock one ea eb ed amountRet castRet)
       (checkedSignedAmountResult f evm one a b delta amountRet castRet) := by
-  have hcall := signedAmountCall hf ha hb hdlo hdhi hea heb hed one amountRet
+  have hcall := signedAmountCall (fork := fork) hf ha hb hdlo hdhi hea heb hed one amountRet
   by_cases hfit : signedAmountFits one a b delta
   · rw [if_pos hfit] at hcall
     let f1 := {f with locals := f.locals.insert amountRet (.int (EVM.signed (signedAmountWord one a b delta)))}
-    have hcast := signedToInt128Call (f := f1) (evm := evm) hf (evalLocalValue (store_get_self _ _ _)) castRet
+    have hcast := signedToInt128Call (fork := fork) (f := f1) (evm := evm) hf (evalLocalValue (store_get_self _ _ _)) castRet
     by_cases hc : signedFits ⟨128, by decide⟩ (EVM.signed (signedAmountWord one a b delta))
     · rw [checkedSignedAmountResult, if_pos ⟨hfit, hc⟩]
       rw [if_pos hc] at hcast

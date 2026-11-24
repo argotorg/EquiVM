@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.AccrueMathRoutines
 import Benchmarks.Morpho.MorphoBlue.MarketWrites
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -21,9 +23,9 @@ variable {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
   {id rate interest shares ret : UInt256} {R : List UInt256}
 
 theorem morphoAccruePositionReachAdd (hstack : R.length + 22 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13793)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13793)
       ([shares, interest, solcAddrMask] ++ accrueMathTail id rate ret R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12651)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12651)
       ([solcSlotWordAt (accrueFeePositionSlot σ ee id) σ ee, shares, UInt256.ofNat 13826,
         accrueFeePositionSlot σ ee id, interest, shares] ++ accrueMathTail id rate ret R)
       (accrueFeePositionMem σ ee id mem) aw' rdata σ k' C' := by
@@ -39,7 +41,7 @@ theorem morphoAccruePositionReachAdd (hstack : R.length + 22 ≤ 1024)
   have hm2 : m2 = accrueFeePositionMem σ ee id mem := by dsimp only [m2]; rw [hh1]; rfl
   have hh2 : keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) (accrueFeePositionMem σ ee id mem) =
       accrueFeePositionSlot σ ee id := twoWordHashMem_solcMappingSlot_any _ _ _
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     ([solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) m2) σ ee, shares,
       UInt256.ofNat 13826, keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) m2, interest, shares] ++
       accrueMathTail id rate ret R) m2 _ _ _ _ _ at rd1
@@ -48,9 +50,9 @@ theorem morphoAccruePositionReachAdd (hstack : R.length + 22 ≤ 1024)
 
 theorem morphoAccruePositionAddOk (hstack : R.length + 22 ≤ 1024)
     (hfit : (solcSlotWordAt (accrueFeePositionSlot σ ee id) σ ee).toNat + shares.toNat < UInt256.size)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13793)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13793)
       ([shares, interest, solcAddrMask] ++ accrueMathTail id rate ret R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13826)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13826)
       ([solcSlotWordAt (accrueFeePositionSlot σ ee id) σ ee + shares,
         accrueFeePositionSlot σ ee id, interest, shares] ++ accrueMathTail id rate ret R)
       (accrueFeePositionMem σ ee id mem) aw' rdata σ k' C' := by
@@ -62,18 +64,18 @@ theorem morphoAccruePositionAddOk (hstack : R.length + 22 ≤ 1024)
 
 theorem morphoAccruePositionAddReverts (hstack : R.length + 22 ≤ 1024)
     (hover : UInt256.size ≤ (solcSlotWordAt (accrueFeePositionSlot σ ee id) σ ee).toNat + shares.toNat)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13793)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13793)
       ([shares, interest, solcAddrMask] ++ accrueMathTail id rate ret R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨aw1, k1, C1, rd1⟩ := morphoAccruePositionReachAdd (v := v) hstack h
   exact morphoCheckedAddReverts (v := v)
     (by simp only [accrueMathTail, List.append, List.length_append, List.length_cons, List.length_nil]; omega) hover rd1
 
 theorem morphoAccruePositionStore (hstack : R.length + 18 ≤ 1024) (hp : ee.perm = true)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13826)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13826)
       ([solcSlotWordAt (accrueFeePositionSlot σ ee id) σ ee + shares,
         accrueFeePositionSlot σ ee id, interest, shares] ++ accrueMathTail id rate ret R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 15480)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 15480)
       ([shares, UInt256.ofNat 13840, UInt256.ofNat 13863, interest, shares] ++ accrueMathTail id rate ret R)
       mem aw rdata (sstoreAccountMap ee.codeOwner σ (accrueFeePositionSlot σ ee id)
         (solcSlotWordAt (accrueFeePositionSlot σ ee id) σ ee + shares)) k' C' := by

@@ -6,6 +6,8 @@ import Benchmarks.UniswapV4PoolManager.SignedComparison
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_014
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_016
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -18,12 +20,12 @@ theorem initializeValidationTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : PoolManagerImmutables) (hstack : R.length+17 ≤ 1024)
     (hv : PoolKeyView mem keyPtr key) (hc : PoolKeyCanonical key)
     (haw : aw.toNat ≤ 2048) (hp : keyPtr.toNat ≤ 1024)
-    (h : RD (deployedRuntime v) I g s0 ⟨4088⟩ (price :: keyPtr :: price :: R) mem aw rdata σ k C) :
+    (h : RD fork (deployedRuntime v) I g s0 ⟨4088⟩ (price :: keyPtr :: price :: R) mem aw rdata σ k C) :
     if initializeKeyValid key then ∃ aw' k' C', aw'.toNat ≤ 2048 ∧
-      RD (deployedRuntime v) I g s0 ⟨4257⟩
+      RD fork (deployedRuntime v) I g s0 ⟨4257⟩
         (initialLPFeeWord key.fee :: (keyPtr+⟨32⟩) :: (keyPtr+⟨64⟩) :: (keyPtr+⟨128⟩) ::
           keyPtr :: price :: (keyPtr+⟨96⟩) :: price :: R) mem aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hs : UInt256.signextend (UInt256.ofNat 2) (memLoad (keyPtr+UInt256.ofNat 96) mem) =
       key.tickSpacing := (congrArg (UInt256.signextend (UInt256.ofNat 2)) (hv.load (i := 3) rfl)).trans
         ((signextend24_eq_iff _).mpr hc.2.2.2.1)

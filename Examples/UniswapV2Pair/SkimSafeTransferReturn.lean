@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.SkimSafeTransferRuntime
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -19,7 +21,7 @@ theorem RD.uniswapSafeTransferReturnNonemptyHugeReverts {g : Sat256} {s0 : State
     {status returnPc base gasMarker value toWord token ret : UInt256}
     {R : List UInt256} {callMem out : ByteArray}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (status :: returnPc :: UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ret :: R)
       callMem gasMarker out σ k C)
@@ -39,7 +41,7 @@ theorem RD.uniswapSafeTransferReturnNonemptyHugeReverts {g : Sat256} {s0 : State
       Cₘ (UInt256.ofNat (MachineState.M gasMarker.toNat ((base + ⟨32⟩).toNat) out.size)) -
         Cₘ gasMarker)
     (hR : R.length + 16 ≤ 1024) :
-    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+    RDrev fork UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   let rdsz : UInt256 := UInt256.ofNat out.size
   have hrdsz_ne : rdsz ≠ ⟨0⟩ := by
     intro hzero
@@ -93,10 +95,10 @@ theorem RD.uniswapSafeTransferReturnFailureMessageFrom6697Reverts {g : Sat256} {
     {ee : ExecutionEnv} {k C : ℕ} {base status value toWord token ret : UInt256}
     {R : List UInt256} {mem0 out : ByteArray}
     {σ : AccountMap} {aw0 : UInt256}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6697⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6697⟩
       (base :: status :: value :: toWord :: token :: ret :: R) mem0 aw0 out σ k C)
     (hR : R.length + 16 ≤ 1024) :
-    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+    RDrev fork UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   let fp0 : UInt256 :=
     if (⟨64⟩ : UInt256).toNat ≥ mem0.size then
       ⟨0⟩
@@ -187,10 +189,10 @@ theorem RD.uniswapSafeTransferReturnNonemptyFailureReverts {g : Sat256} {s0 : St
     {ee : ExecutionEnv} {k C : ℕ} {base value toWord token ret : UInt256}
     {R : List UInt256} {mem0 out : ByteArray}
     {σ : AccountMap} {aw0 : UInt256}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6652⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6652⟩
       (base :: ⟨0⟩ :: value :: toWord :: token :: ret :: R) mem0 aw0 out σ k C)
     (hR : R.length + 16 ≤ 1024) :
-    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+    RDrev fork UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   have rd6692 := evm_run h with [
     dup2, dup1, iszero, push2 ⟨6692⟩, jumpiT (by native_decide) (by jump_dest)]
   have rd6697 := evm_run rd6692 with [
@@ -203,7 +205,7 @@ theorem RD.uniswapSafeTransferReturnNonemptyTrueStatusToLengthLoaded {g : Sat256
     {base retPtr value toWord token ret : UInt256}
     {R : List UInt256} {mem0 out : ByteArray}
     {σ : AccountMap} {aw0 : UInt256}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6652⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6652⟩
       (base :: ⟨1⟩ :: value :: toWord :: token :: ret :: R) mem0 aw0 out σ k C)
     (houtNe : out.size ≠ 0) (houtSize : out.size < 2 ^ 255)
     (hloadBase :
@@ -213,7 +215,7 @@ theorem RD.uniswapSafeTransferReturnNonemptyTrueStatusToLengthLoaded {g : Sat256
     (hawBase : UInt256.ofNat (MachineState.M aw0.toNat base.toNat 32) = aw0)
     (hretPtr : (⟨32⟩ : UInt256) + base = retPtr)
     (hR : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6676⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6676⟩
       (UInt256.ofNat out.size :: retPtr :: base :: ⟨1⟩ ::
         value :: toWord :: token :: ret :: R)
       mem0 aw0 out σ k' C' := by
@@ -245,10 +247,10 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSafeTransferReturnNonemptyShortReverts {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {next : UInt256} {T : List UInt256} {mem0 out : ByteArray}
     {σ : AccountMap} {aw0 : UInt256}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6676⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6676⟩
       (UInt256.ofNat out.size :: next :: T) mem0 aw0 out σ k C)
     (hs : out.size < 32) (ho : out.size < 2 ^ 255) (hT : T.length + 4 ≤ 1024) :
-    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+    RDrev fork UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   have rd6684₀ := evm_run h with [push1 ⟨32⟩, dup2, lt, iszero, push2 ⟨6689⟩]
   have hlt : UInt256.lt (UInt256.ofNat out.size) (⟨32⟩ : UInt256) = ⟨1⟩ :=
     Reasoning.Theory.ult_one (by
@@ -266,7 +268,7 @@ theorem RD.uniswapSafeTransferReturnNonemptyFalseReverts {g : Sat256} {s0 : Stat
     {ee : ExecutionEnv} {k C : ℕ} {base retPtr value toWord token ret : UInt256}
     {R : List UInt256} {mem0 out : ByteArray}
     {σ : AccountMap} {aw0 : UInt256}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6676⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6676⟩
       (UInt256.ofNat out.size :: retPtr :: base :: ⟨1⟩ :: value :: toWord :: token ::
         ret :: R)
       mem0 aw0 out σ k C)
@@ -278,7 +280,7 @@ theorem RD.uniswapSafeTransferReturnNonemptyFalseReverts {g : Sat256} {s0 : Stat
       UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32)))
     (hawRet : UInt256.ofNat (MachineState.M aw0.toNat retPtr.toNat 32) = aw0)
     (hR : R.length + 16 ≤ 1024) :
-    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+    RDrev fork UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   have rd6684₀ := evm_run h with [push1 ⟨32⟩, dup2, lt, iszero, push2 ⟨6689⟩]
   have hlt : UInt256.lt (UInt256.ofNat out.size) (⟨32⟩ : UInt256) = ⟨0⟩ := by
     apply Reasoning.Theory.ult_zero
@@ -306,7 +308,7 @@ theorem RD.uniswapSafeTransferReturnNonemptyTrueToRet {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {base retPtr value toWord token ret : UInt256}
     {R : List UInt256} {mem0 out : ByteArray}
     {σ : AccountMap} {aw0 : UInt256}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6676⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6676⟩
       (UInt256.ofNat out.size :: retPtr :: base :: ⟨1⟩ :: value :: toWord :: token ::
         ret :: R)
       mem0 aw0 out σ k C)
@@ -319,7 +321,7 @@ theorem RD.uniswapSafeTransferReturnNonemptyTrueToRet {g : Sat256} {s0 : State}
     (hawRet : UInt256.ofNat (MachineState.M aw0.toNat retPtr.toNat 32) = aw0)
     (hret : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ret = true)
     (hR : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret R mem0 aw0 out σ k' C' := by
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret R mem0 aw0 out σ k' C' := by
   have rd6684₀ := evm_run h with [push1 ⟨32⟩, dup2, lt, iszero, push2 ⟨6689⟩]
   have hlt : UInt256.lt (UInt256.ofNat out.size) (⟨32⟩ : UInt256) = ⟨0⟩ := by
     apply Reasoning.Theory.ult_zero
@@ -346,7 +348,7 @@ theorem RD.uniswapSafeTransferReturnNonemptyReturnToCheck {g : Sat256} {s0 : Sta
     {status callRetOffset maskedToken value toWord token ret dataPtr finalAw : UInt256}
     {R : List UInt256} {mem0 memFinal out : ByteArray}
     {σ : AccountMap} {aw0 : UInt256}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (status :: callRetOffset :: maskedToken :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ret :: R) mem0 aw0 out σ k C)
     (houtNe : out.size ≠ 0) (houtSize : out.size < 2 ^ 255)
@@ -373,7 +375,7 @@ theorem RD.uniswapSafeTransferReturnNonemptyReturnToCheck {g : Sat256} {s0 : Sta
         (MachineState.M aw0.toNat ((dataPtr + ⟨32⟩).toNat) out.size) =
       finalAw)
     (hR : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6652⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6652⟩
       (dataPtr :: status :: value :: toWord :: token :: ret :: R)
       memFinal finalAw out σ k' C' := by
   let rdsz : UInt256 := UInt256.ofNat out.size
@@ -453,14 +455,14 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSkimSafeTransferNonemptyReturnToCheck {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {self value toWord token token1 ret sel status : UInt256}
     {o out : ByteArray} {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (status :: ⟨360⟩ :: UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ret :: token1 :: token :: toWord :: ⟨570⟩ ::
         sel :: [])
       (skimSafeTransferCallMem2 self o toWord value) (UInt256.ofNat 13) out σ k C)
     (houtNe : out.size ≠ 0) (houtSize : out.size < 2 ^ 255)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6652⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6652⟩
       (⟨292⟩ :: status :: value :: toWord :: token :: ret :: token1 :: token :: toWord ::
         ⟨570⟩ :: sel :: [])
       (skimSafeTransferReturnDataMem self o toWord value out)
@@ -487,12 +489,12 @@ theorem RD.uniswapSafeTransferEmptyFailureReverts {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {callRetOffset maskedToken value toWord token ret : UInt256}
     {R : List UInt256} {mem out : ByteArray}
     {σ : AccountMap} {aw : UInt256}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (⟨0⟩ :: callRetOffset :: maskedToken :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ret :: R)
       mem aw out σ k C)
     (hout : out.size = 0) (hR : R.length + 16 ≤ 1024) :
-    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+    RDrev fork UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   have rd6607 := evm_run h with [
     swap2, pop, pop, returndatasize, dup1, push1 ⟨0⟩, dup2, eq, push2 ⟨6641⟩]
   have rd6607' := rd6607
@@ -507,7 +509,7 @@ theorem RD.uniswapSafeTransferEmptyReturnToRet {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {callRetOffset maskedToken value toWord token ret : UInt256}
     {R : List UInt256} {mem out : ByteArray}
     {σ : AccountMap} {aw : UInt256}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (⟨1⟩ :: callRetOffset :: maskedToken :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ret :: R)
       mem aw out σ k C)
@@ -521,7 +523,7 @@ theorem RD.uniswapSafeTransferEmptyReturnToRet {g : Sat256} {s0 : State}
     (haw96 : UInt256.ofNat (MachineState.M aw.toNat (⟨96⟩ : UInt256).toNat 32) = aw)
     (hret : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ret = true)
     (hR : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret R mem aw out σ k' C' := by
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret R mem aw out σ k' C' := by
   have rd6607 := evm_run h with [
     swap2, pop, pop, returndatasize, dup1, push1 ⟨0⟩, dup2, eq, push2 ⟨6641⟩]
   have rd6607' := rd6607

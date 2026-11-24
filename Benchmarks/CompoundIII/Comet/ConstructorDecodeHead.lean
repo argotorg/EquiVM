@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.ConstructorMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open cometWithExtendedAssetListCreationBlocks
 
@@ -10,11 +12,11 @@ theorem cometConstructorDecodeHead {σ σ₀ A I} {g : Sat256} {c : ConstructorC
     {aw : UInt256} {k C : Nat}
     (hsize : 22161 + 224 * c.assetConfigs.length < UInt256.size)
     (hsmall : 1664 + 224 * c.assetConfigs.length < 2^64)
-    (h : RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+    (h : RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
       (initState σ σ₀ g A I) ⟨33⟩
       [⟨21425⟩, constructorArgumentSizeWord c, constructorArgumentSizeWord c, ⟨928⟩]
       (constructorAllocatedMemory c) aw ByteArray.empty σ k C) :
-    ∃ aw' k' C', RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+    ∃ aw' k' C', RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
       (initState σ σ₀ g A I) ⟨2711⟩
       [UInt256.ofNat (1664 + 224 * c.assetConfigs.length), ⟨672⟩, ⟨99⟩,
         ⟨928⟩, ⟨32⟩, constructorArgumentSizeWord c,
@@ -68,15 +70,15 @@ theorem cometConstructorDecodeStart {σ σ₀ A I} {g : Sat256} {c : Constructor
     (hcode : I.code = cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray)
     (hv : I.weiValue = ⟨0⟩) (hsize : 22161 + 224 * c.assetConfigs.length < UInt256.size) :
     if 1664 + 224 * c.assetConfigs.length < 2^64 then
-      ∃ aw k C, RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+      ∃ aw k C, RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
         (initState σ σ₀ g A I) ⟨2711⟩
         [UInt256.ofNat (1664 + 224 * c.assetConfigs.length), ⟨672⟩, ⟨99⟩,
           ⟨928⟩, ⟨32⟩, constructorArgumentSizeWord c,
           UInt256.ofNat (1664 + 224 * c.assetConfigs.length)]
         (constructorCopiedMemory c) aw ByteArray.empty σ k C
-    else RDrev (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) g
+    else RDrev fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) g
       (initState σ σ₀ g A I) := by
-  obtain ⟨aw, k, C, rentry⟩ := cometConstructorEntry (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨aw, k, C, rentry⟩ := cometConstructorEntry (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := g) hcode hv hsize
   split
   · rename_i hsmall

@@ -3,6 +3,8 @@ import Benchmarks.EAS.EAS.OffchainSource
 import Benchmarks.EAS.EAS.ScalarDecode
 import Benchmarks.EAS.EAS.ReturnWord
 import Benchmarks.EAS.EAS.TimePublic
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -36,14 +38,14 @@ private theorem offchainPublicSource_ok {evm : EVM.State} {locals imms : Store} 
     (hkey : locals.get? "data" = some (wordBytes32Value word))
     (hz : offchainWord evm evm.executionEnv.source word = ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm locals revokeOffchainTransition.body
+    ExecTransitionBody fork config contract evm locals revokeOffchainTransition.body
       (.returned {contract := contract, locals := timePublicFinalLocals locals evm.executionEnv, immutables := imms}
         (offchainStore evm evm.executionEnv.source word (easTimeWord evm.executionEnv))
         (some [.int (Int.ofNat (easTimeWord evm.executionEnv).toNat)])) imms := by
   rw [offchainPublic_body, ← List.append_assoc]
   apply ExecFuncBody.execBlockRet
   apply execBlock_append (timeEntrySource hv hsz hsize hs)
-  exact timePublicFinish (offchainCall_ok (hperm := hperm) (offchainPublicArgs hkey) hz)
+  exact timePublicFinish (offchainCall_ok (fork := fork) (hperm := hperm) (offchainPublicArgs hkey) hz)
 
 private theorem offchainPublicSource_revert {evm : EVM.State} {locals imms : Store} {word : UInt256}
     (hv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -52,7 +54,7 @@ private theorem offchainPublicSource_revert {evm : EVM.State} {locals imms : Sto
     (hs : evm.executionEnv.calldata.size - 4 < 2^255)
     (hkey : locals.get? "data" = some (wordBytes32Value word))
     (hz : offchainWord evm evm.executionEnv.source word ≠ ⟨0⟩) :
-    ExecTransitionBody config contract evm locals revokeOffchainTransition.body .reverted imms := by
+    ExecTransitionBody fork config contract evm locals revokeOffchainTransition.body .reverted imms := by
   rw [offchainPublic_body, ← List.append_assoc]
   apply ExecFuncBody.execBlockRevert
   apply execBlock_append (timeEntrySource hv hsz hsize hs)
@@ -65,7 +67,7 @@ private theorem offchainPublicSource_static {evm : EVM.State} {locals imms : Sto
     (hs : evm.executionEnv.calldata.size - 4 < 2^255)
     (hkey : locals.get? "data" = some (wordBytes32Value word))
     (hz : offchainWord evm evm.executionEnv.source word = ⟨0⟩) (hp : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm locals revokeOffchainTransition.body .staticViolation imms := by
+    ExecTransitionBody fork config contract evm locals revokeOffchainTransition.body .staticViolation imms := by
   rw [offchainPublic_body, ← List.append_assoc]
   apply ExecFuncBody.execBlockStatic
   apply execBlock_append (timeEntrySource hv hsz hsize hs)
@@ -74,7 +76,7 @@ private theorem offchainPublicSource_static {evm : EVM.State} {locals imms : Sto
 theorem easRevokeOffchainBody {σ σ₀ A I} {g : UInt256} (v : EASImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (easSelBytes 11)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (easSelBytes 11) rfl hsel
   have hd : dispatchMsg contract I.calldata = some revokeOffchainTransition := by
     apply easDispatch_revokeOffchain (hsel := hsel)
@@ -82,7 +84,7 @@ theorem easRevokeOffchainBody {σ σ₀ A I} {g : UInt256} (v : EASImmutables)
       change ¬ (_ == I.calldata.extract 0 4) = true
       rw [← byteArray_eq_of_beq hsel]
       decide +kernel
-  obtain ⟨k, C, rd⟩ := easReachRevokeOffchainBody (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, rd⟩ := easReachRevokeOffchainBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
   by_cases hv : I.weiValue = ⟨0⟩
   · have rd1 := easBlocks.eas_block_2258_fallthrough (immWords := wordsOf (immStore v)) (by simp) hv rd
@@ -111,7 +113,7 @@ theorem easRevokeOffchainBody {σ σ₀ A I} {g : UInt256} (v : EASImmutables)
               (by simp) hz hp (by rw [easPatchedValidJumps v]; jump_dest) rd3
             have hr := easReturnWord v (by simp) rd4
             refine RDret.reEquivExecutionGen hcode hr hd hdec
-              (offchainPublicSource_ok (hperm := hp) hv hsz hsize hs (store_get_self _ _ _) hsourcezero) ?_ ?_
+              (offchainPublicSource_ok (fork := fork) (hperm := hp) hv hsz hsize hs (store_get_self _ _ _) hsourcezero) ?_ ?_
             · exact (offchainStore_accounts (initState σ σ₀ (Sat256.ofUInt256 g) A I) I.source word time).symm
             · exact returnEquiv_of_encode (uintReturnEncoding ⟨64, by decide⟩ time
                 (u256LandMaskToNatLtOfToNat _ _ (by decide)))

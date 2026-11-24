@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.AttestLoopLocals
 import Benchmarks.EAS.EAS.AttestRecordRun
 import Benchmarks.EAS.EAS.RecordTailRecord
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -26,14 +28,14 @@ theorem attestIterationRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g 
     (hheap : memLoad (UInt256.ofNat 64) mem = heap)
     (hm : RecordTailMemoryView mem site t3 t4 uidPtr ptrs values uids rs[i].value heap.toNat (recordPadding mem heap.toNat))
     (hlength : ats.length = ptrs.length) (hptrlen : ptrs.length = rs.length)
-    (rd : RD (deployedRuntime v) ee g s0 (requestReadPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (requestReadPC site)
       (recordNextStack site schema (UInt256.ofNat i) t3 t4 R) mem aw rdata σ k C) :
     (∃ L' evm' σ' mp aw' k' C' heap' word,
       let a := {newAttestation rs[i] schema (easTimeWord ee) attester with uid := word}
       let final := recordTailMemory mp site heap t3 t4 rs[i].value uidPtr word i
       ee.perm = true ∧ heap.toNat+320 ≤ heap' ∧ heap' ≤ 2^64-1 ∧
       AttestLoopLocals L' rs s schema attester available last (ats.set i a) (values.set i rs[i].value) (uids.set i word) used (i+1) heap' ∧
-      ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm attestIteration
+      ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm attestIteration
         (.ok {contract := contract,locals := L',immutables := immStore v} evm') ∧
       SourceState s0 ee σ' evm' ∧ MemoryPrefix mem final uidPtr.toNat ∧ MemoryPrefix mem mp heap.toNat ∧
       AttestationMemoryView mp heap dataPtr a ∧ AttestationMemoryView final heap dataPtr a ∧
@@ -42,12 +44,12 @@ theorem attestIterationRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g 
       WordArrayMemoryView final (recordArrayPtr site t3 t4) (ptrs.set i heap) heap' ∧
       WordArrayMemoryView final (recordValuesPtr site t4) (values.set i rs[i].value) heap' ∧
       memLoad (UInt256.ofNat 64) final = UInt256.ofNat heap' ∧
-      RD (deployedRuntime v) ee g s0 (recordNextPC site)
+      RD fork (deployedRuntime v) ee g s0 (recordNextPC site)
         (recordNextStack site schema (UInt256.ofNat (i+1)) t3 t4 R) final aw' rdata σ' k' C') ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm attestIteration .reverted ∧
-      RDrev (deployedRuntime v) g s0) ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm attestIteration .staticViolation ∧
-      RDstatic (deployedRuntime v) g s0) := by
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm attestIteration .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) ∨
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm attestIteration .staticViolation ∧
+      RDstatic fork (deployedRuntime v) g s0) := by
   have hfront := attestReadGuardsRun v site (by omega) hs hf.data hf.index hf.schemaRecord hf.heap hi harray hl hp hv hsv rd
   rw [attestIteration_parts]
   split at hfront

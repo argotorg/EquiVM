@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.AssetMembershipSelected
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -14,11 +16,11 @@ def assetMembershipChangeStack (add : Bool) (offset : UInt256) (account : Accoun
   if add then offset :: EVM.word account.val :: ptr :: ret :: R
   else EVM.word account.val :: ptr :: ret :: R
 
-def AssetMembershipRun (v : CometWithExtendedAssetListImmutables) (ee : ExecutionEnv)
+def AssetMembershipRun (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables) (ee : ExecutionEnv)
     (g : Sat256) (s0 : State) (mem rdata : ByteArray) (account : AccountAddress)
     (ret : UInt256) (R : List UInt256) (result : InternalOutcome) : Prop :=
   ∃ mem', (mem' = mem ∨ mem' = twoWordHashMem (EVM.word account.val) ⟨5⟩ mem) ∧
-    internalMemoryRun (deployedRuntime v) ee g s0 mem' rdata ret R result
+    internalMemoryRun fork (deployedRuntime v) ee g s0 mem' rdata ret R result
 
 theorem assetMembershipWrite_low (evm : EVM.State) (account : AccountAddress)
     (offset : UInt256) (add : Bool) (ho : offset.toNat < 16) :
@@ -41,9 +43,9 @@ theorem cometMembershipChange {v : CometWithExtendedAssetListImmutables}
     (account : AccountAddress) (add : Bool) (hstack : R.length + 14 ≤ 1024)
     (hoffset : memLoad ptr mem = offset) (ho : offset.toNat < 256)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 (assetMembershipChangePc add)
+    (h : RD fork (deployedRuntime v) ee g s0 (assetMembershipChangePc add)
       (assetMembershipChangeStack add offset account ptr ret R) mem aw rdata σ k C) :
-    AssetMembershipRun v ee g s0 mem rdata account ret R
+    AssetMembershipRun fork v ee g s0 mem rdata account ret R
       (assetMembershipWriteResult evm account offset add) := by
   have hright : UInt256.land offset (UInt256.ofNat 255) = offset :=
     u256LandMaskCleanOfToNat _ _ (bits := 8) rfl ho

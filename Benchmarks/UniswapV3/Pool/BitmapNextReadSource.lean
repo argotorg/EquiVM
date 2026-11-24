@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.BitmapNextMaskSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -48,7 +50,7 @@ theorem evalBitmapNextMasked (imms : Store) (evm : EVM.State) (tick spacing : In
 
 theorem bitmapNextReadInitialized (imms : Store) (evm : EVM.State)
     (tick spacing : Int) (lte : Bool) :
-    ExecStmt config (bitmapNextReadFrame imms evm tick spacing lte) evm
+    ExecStmt fork config (bitmapNextReadFrame imms evm tick spacing lte) evm
       (.assign .localVar ⟨"initialized", []⟩ (.binary .ne (.var "masked") (.intLit 0)))
       (.ok (bitmapNextInitFrame imms evm tick spacing lte) evm) := by
   have he : evalExpr? config (bitmapNextReadFrame imms evm tick spacing lte) evm (.var "masked") =
@@ -71,11 +73,11 @@ theorem bitmapNextReadInitialized (imms : Store) (evm : EVM.State)
   exact not_congr ⟨uint256_toNat_eq_zero, fun h ↦ congrArg UInt256.toNat h⟩
 
 theorem bitmapNextReadSource (imms : Store) (evm : EVM.State) (tick spacing : Int) (lte : Bool) :
-    ExecBlock config (bitmapNextBitFrame imms tick spacing lte) evm
+    ExecBlock fork config (bitmapNextBitFrame imms tick spacing lte) evm
       (((bitmapNextBranch lte).drop 3).take 4)
       (.ok (bitmapNextCondFrame imms evm tick spacing lte) evm) := by
   have hr := evalBitmapNextMasked imms evm tick spacing lte
-  have hi := bitmapNextReadInitialized imms evm tick spacing lte
+  have hi := bitmapNextReadInitialized (fork := fork) imms evm tick spacing lte
   cases lte <;>
     exact ExecBlock.consNormal (bitmapNextMaskSource imms evm tick spacing _)
       (ExecBlock.consNormal (ExecStmt.letDecl hr)

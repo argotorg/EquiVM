@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.DonateEventCorrect
 import Benchmarks.UniswapV4PoolManager.AccountPoolCallTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -22,12 +24,12 @@ theorem donateAccountingCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hfit : free.toNat+len.toNat+448 < UInt256.size) (hsrc : src.toNat+len.toNat ≤ I.calldata.size)
     (hgas : g.toNat < 324518553658429321982441292826060) (hpaid : Cₘ aw ≤ C)
     (hfree : memLoad (UInt256.ofNat 64) mem = free)
-    (h : RD (deployedRuntime v) I g s0 ⟨10284⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨10284⟩
       (j0 :: j1 :: id :: (keyPtr+UInt256.ofNat 128) :: keyPtr :: src :: amount1 :: amount0 :: len :: delta :: ⟨32⟩ :: junk :: R)
       mem aw rdata evm.accountMap k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
-    ∃ result, ExecBlock config f evm (donateTransition.body.drop 17) result ∧
-      abiResultTrace donateTransition.returnType (deployedRuntime v) g s0 result := by
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    ∃ result, ExecBlock fork config f evm (donateTransition.body.drop 17) result ∧
+      abiResultTrace fork donateTransition.returnType (deployedRuntime v) g s0 result := by
   have rd := poolManagerBlocks.poolManager_block_10284
     (by simp only [List.length_cons]; omega)
     (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) h
@@ -35,10 +37,10 @@ theorem donateAccountingCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (R := [id, keyPtr+UInt256.ofNat 128, keyPtr, src, amount1, amount0, len, delta, ⟨32⟩, junk]++R)
     f "__c7" v (by simp only [List.length_append, List.length_cons, List.length_nil]; omega)
     hI hkey (by omega) (by rw [deployedRuntime_jumps]; jump_dest) rd
-  have hs := accountPoolCall hf (evalLocalValue (evm := evm) hk) (evalLocalValue hd)
+  have hs := accountPoolCall (fork := fork) hf (evalLocalValue (evm := evm) hk) (evalLocalValue hd)
     (show evalExpr? config f evm (.env .caller) = .ok (.address I.source) by
       simp only [evalExpr?, envValue, hI, pure]) "__c7"
-  change ExecStmt config f evm donateTransition.body[17]!
+  change ExecStmt fork config f evm donateTransition.body[17]!
     (resumeCallResult f "__c7" (accountPoolResult (accountPoolCalleeFrame f key delta I.source) evm key delta I.source)) at hs
   generalize hx : resumeCallResult f "__c7"
     (accountPoolResult (accountPoolCalleeFrame f key delta I.source) evm key delta I.source) = result at hs ht

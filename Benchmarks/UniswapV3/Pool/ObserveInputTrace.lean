@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.Slot0Memory
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_030
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_031
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -86,11 +88,11 @@ theorem observeStorageArgs (σ : AccountMap) (I : ExecutionEnv) :
 
 theorem observeInputX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256} {s0 : EVM.State}
     {rdata : ByteArray} {k C n start : Nat} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨9458⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨9458⟩
       (UInt256.ofNat ee.header.timestamp :: ⟨9566⟩ :: ⟨96⟩ :: ⟨96⟩ ::
         UInt256.ofNat n :: UInt256.ofNat start :: R) solcFreePtrMem ⟨3⟩ rdata σ k C)
     (hn : n ≤ 2 ^ 32) (hstart : start < UInt256.size) (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨16967⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨16967⟩
       (slot0FieldWord 25 2 σ ee :: poolLiquidityWord σ ee :: slot0FieldWord 23 2 σ ee ::
         EVM.wordOfInt (slot0TickValue σ ee) :: ⟨128⟩ :: UInt256.ofNat ee.header.timestamp ::
         ⟨8⟩ :: ⟨9566⟩ :: ⟨96⟩ :: ⟨96⟩ :: UInt256.ofNat n :: UInt256.ofNat start :: R)
@@ -102,7 +104,7 @@ theorem observeInputX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256} {s0 : E
   have hfirst : M (M (M (⟨3⟩ : UInt256) (UInt256.ofNat 64) ⟨32⟩)
       (UInt256.ofNat 64) ⟨32⟩) (UInt256.ofNat 128) ⟨32⟩ = ⟨5⟩ := by decide
   simp only [observeInputMem_eq ee start n hn hstart, uniswapV3Pool_block_9458_stack, hload, hfirst] at r1
-  change RD (deployedRuntime v) ee g s0 ⟨9538⟩
+  change RD fork (deployedRuntime v) ee g s0 ⟨9538⟩
     (UInt256.div (solcSlotWordAt ⟨0⟩ σ ee) (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 184)) ::
       UInt256.ofNat 65535 :: solcSlotWordAt ⟨4⟩ σ ee :: solcSlotWordAt ⟨0⟩ σ ee :: UInt256.ofNat n ::
       UInt256.signextend (UInt256.ofNat 2) (UInt256.div (solcSlotWordAt ⟨0⟩ σ ee)

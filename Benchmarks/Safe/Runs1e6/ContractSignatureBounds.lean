@@ -2,6 +2,8 @@ import Benchmarks.Safe.Runs1e6.ContractSignatureCheckSource
 import Benchmarks.Safe.Runs1e6.BytesMemory
 import Benchmarks.Safe.Runs1e6.SafeAddTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Runs1e6.RuntimeBlocks
 
@@ -13,13 +15,13 @@ set_option maxRecDepth 100000
 
 theorem safeCheckContractBounds (p : ContractSignatureInput)
     {I g s0 σ k C aw mem rdata src} {owner ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨8484⟩
+    (h : RD fork safeBytecode I g s0 ⟨8484⟩
       (p.offset :: UInt256.ofNat src :: p.hash :: owner :: ret :: R) mem aw rdata σ k C)
     (hm : BytesMemory mem src p.signatures)
     (hb : src + 64 + p.signatures.size < UInt256.size) (hov : R.length + 20 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧ ¬(p.start ≤ p.signatures.size ∧ p.finish ≤ p.signatures.size)) ∨
+    (RDrev fork safeBytecode g s0 ∧ ¬(p.start ≤ p.signatures.size ∧ p.finish ≤ p.signatures.size)) ∨
       ∃ aw' k' C', p.start ≤ p.signatures.size ∧ p.finish ≤ p.signatures.size ∧
-        RD safeBytecode I g s0 ⟨8633⟩
+        RD fork safeBytecode I g s0 ⟨8633⟩
           (p.len :: p.offset :: UInt256.ofNat src :: p.hash :: owner :: ret :: R)
           mem aw' rdata σ k' C' := by
   have hlen := hm.length
@@ -63,7 +65,7 @@ theorem safeCheckContractBounds (p : ContractSignatureInput)
     rw [haddr]
     exact hm.word hs (by have hs' : p.offset.toNat + 32 ≤ p.signatures.size := hs; omega)
   have h₄ := safeRuntime_block_8544 (by simp; omega) (by jump_dest) h₃
-  change RD safeBytecode I g s0 ⟨8703⟩ _ _ _ _ _ _ _ at h₄
+  change RD fork safeBytecode I g s0 ⟨8703⟩ _ _ _ _ _ _ _ at h₄
   simp only [safeRuntime_block_8544_stack, hread, hlen] at h₄
   obtain ⟨_, _, h₅⟩ := safeAddTrace h₄ hsfit (by simp; omega) (by jump_dest)
   have h₆ := safeRuntime_block_8580 (by simp; omega) (by jump_dest) h₅

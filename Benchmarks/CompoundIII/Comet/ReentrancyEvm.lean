@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.InternalMemoryOutcome
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_057
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_015
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -15,8 +17,8 @@ theorem cometReentrancyWriteStatic {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray} {aw slot ret : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 3 ≤ 1024)
     (hperm : ee.perm = false)
-    (h : RD (deployedRuntime v) ee g s0 ⟨12270⟩ (slot :: ret :: R) mem aw rdata σ k C) :
-    RDstatic (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨12270⟩ (slot :: ret :: R) mem aw rdata σ k C) :
+    RDstatic fork (deployedRuntime v) g s0 := by
   have r1 := h.push1 (UInt256.ofNat 1)
     (by immutable_decode(immutableLayout, cometWithExtendedAssetListBytecode,
       wordsOf (immStore v), (⟨12270⟩ : UInt256), UInt8.ofNat 96, .Push .PUSH1,
@@ -35,8 +37,8 @@ theorem cometReentrancyBefore {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 6 ≤ 1024)
     (hs : SourceState s0 ee σ evm)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨12245⟩ (ret :: R) mem aw rdata σ k C) :
-    internalMemoryRun (deployedRuntime v) ee g s0 (reentrancyMemory v mem) rdata ret R
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨12245⟩ (ret :: R) mem aw rdata σ k C) :
+    internalMemoryRun fork (deployedRuntime v) ee g s0 (reentrancyMemory v mem) rdata ret R
       (reentrancyOutcome evm true) := by
   have hcopy : memLoad (UInt256.ofNat 0)
       ((immutableLayout.runtime cometWithExtendedAssetListBytecode (wordsOf (immStore v))).write
@@ -69,7 +71,7 @@ theorem cometReentrancyBefore {v : CometWithExtendedAssetListImmutables}
           rw [hcond, decide_eq_false hl]; rfl) h
     dsimp only [cometWithExtendedAssetList_block_12245_fallthrough_stack] at r1
     rw [hcopy] at r1
-    change RD _ _ _ _ _ (reentrancySlot :: ret :: R) (reentrancyMemory v mem) _ _ _ _ _ at r1
+    change RD fork _ _ _ _ _ (reentrancySlot :: ret :: R) (reentrancyMemory v mem) _ _ _ _ _ at r1
     cases hp : evm.executionEnv.perm
     · simp only [reentrancyOutcome, hl, decide_false, Bool.and_false, Bool.false_eq_true,
         if_false, reentrancyWriteOutcome, hp, internalMemoryRun]
@@ -84,9 +86,9 @@ theorem cometReentrancyAfterStop {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 evm : State} {mem rdata : ByteArray} {aw : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 6 ≤ 1024)
     (hperm : ee.perm = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨2308⟩ R mem aw rdata σ k C) :
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨2308⟩ R mem aw rdata σ k C) :
     ∃ σ', SourceState s0 ee σ' (reentrancyState evm false) ∧
-      RDret (deployedRuntime v) g s0 σ' ByteArray.empty := by
+      RDret fork (deployedRuntime v) g s0 σ' ByteArray.empty := by
   have hr := cometWithExtendedAssetList_block_2308
     (immWords := wordsOf (immStore v)) hstack hperm h
   have hcopy : memLoad (UInt256.ofNat 0)

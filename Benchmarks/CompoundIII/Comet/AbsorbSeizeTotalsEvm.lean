@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.CollateralStoreEvm
 import Benchmarks.CompoundIII.Comet.CheckedSub128Evm
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_079
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -15,9 +17,9 @@ theorem cometAbsorbSeizeTotals {v : CometWithExtendedAssetListImmutables}
     {aw delta seized : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (asset : AccountAddress) (hstack : R.length + 9 ≤ 1024) (hseized : seized.toNat < 2^128)
     (hperm : ee.perm = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨17682⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨17682⟩
       (totalsCollateralSlot asset :: delta :: seized :: R) mem aw rdata σ k C) :
-    internalMemoryRun (deployedRuntime v) ee g s0 mem rdata ⟨17713⟩ (delta :: seized :: R)
+    internalMemoryRun fork (deployedRuntime v) ee g s0 mem rdata ⟨17713⟩ (delta :: seized :: R)
       (absorbSeizeTotalOutcome evm asset seized) := by
   obtain ⟨k1, C1, r1⟩ := cometWithExtendedAssetList_block_17682
     (immWords := wordsOf (immStore v)) (by omega)
@@ -25,7 +27,7 @@ theorem cometAbsorbSeizeTotals {v : CometWithExtendedAssetListImmutables}
   have r2 := cometWithExtendedAssetList_block_2451 (immWords := wordsOf (immStore v))
     (by change R.length + 4 + 5 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r1
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     (UInt256.land (UInt256.ofNat (2^128-1)) (solcSlotWord σ ee (totalsCollateralSlot asset)) ::
       seized :: totalsCollateralSlot asset :: delta :: seized :: R) _ _ _ _ _ _ at r2
   rw [u256_land_comm (UInt256.ofNat (2^128-1)), ← hs.storageRead] at r2

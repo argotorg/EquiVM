@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.SignedResultTrace
 import Benchmarks.UniswapV4PoolManager.SignedWordBounds
 import Benchmarks.UniswapV4PoolManager.ABIResultTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -17,11 +19,11 @@ theorem swapCallerCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hk : f.locals.get? "key" = some (poolKeyValue key))
     (hd : f.locals.get? "swapDelta" = some (.int (EVM.signed delta)))
     (hkey : PoolKeyView mem keyPtr key) (hkl : 64 ≤ keyPtr.toNat)
-    (h : RD (deployedRuntime v) I g s0 ⟨1944⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨1944⟩
       ([discard, ignored, keyPtr, ⟨1954⟩, delta, UInt256.ofNat 32, junk] ++ R)
       mem aw rdata evm.accountMap k C) :
-    ∃ result, ExecBlock config f evm (swapTransition.body.drop 30) result ∧
-      abiResultTrace swapTransition.returnType (deployedRuntime v) g s0 result := by
+    ∃ result, ExecBlock fork config f evm (swapTransition.body.drop 30) result ∧
+      abiResultTrace fork swapTransition.returnType (deployedRuntime v) g s0 result := by
   have rd := poolManagerBlocks.poolManager_block_1944 (R := [UInt256.ofNat 32, junk] ++ R)
     (by simp only [List.length_append, List.length_cons, List.length_nil]; omega)
     (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) h
@@ -29,17 +31,17 @@ theorem swapCallerCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (R := [delta, UInt256.ofNat 32, junk] ++ R) f "__c8" v
     (by simp only [List.length_append, List.length_cons, List.length_nil]; omega) hI hkey hkl
     (by rw [deployedRuntime_jumps]; jump_dest) rd
-  have hs := accountPoolCall hf (evalLocalValue (evm := evm) hk) (evalLocalValue hd)
+  have hs := accountPoolCall (fork := fork) hf (evalLocalValue (evm := evm) hk) (evalLocalValue hd)
     (show evalExpr? config f evm (.env .caller) = .ok (.address I.source) by
       simp only [evalExpr?, envValue, hI, pure]) "__c8"
-  change ExecStmt config f evm swapTransition.body[30]!
+  change ExecStmt fork config f evm swapTransition.body[30]!
     (resumeCallResult f "__c8" (accountPoolResult (accountPoolCalleeFrame f key delta I.source) evm key delta I.source)) at hs
   generalize hx : resumeCallResult f "__c8"
     (accountPoolResult (accountPoolCalleeFrame f key delta I.source) evm key delta I.source) = result at hs ht
   cases result with
   | ok ff post =>
       obtain ⟨rfl, rfl, aw1, k1, C1, rd1⟩ := ht
-      have hreturn : ExecStmt config {f with locals := f.locals.insert "__c8" .unit}
+      have hreturn : ExecStmt fork config {f with locals := f.locals.insert "__c8" .unit}
           (accountPoolPost evm key delta I.source) swapTransition.body[31]!
           (.returned {f with locals := f.locals.insert "__c8" .unit} (accountPoolPost evm key delta I.source)
             (some [.int (EVM.signed delta)])) := by

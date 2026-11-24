@@ -1,23 +1,25 @@
 import Benchmarks.CompoundIII.Comet.InternalOutcome
 import Benchmarks.CompoundIII.Comet.GetterSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
 
 -- LIBRARY CANDIDATE: terminal source outcomes of a function with an explicit void return.
-def explicitVoidSourceResult (cfg : Config) (frame : Frame) (evm : EVM.State)
+def explicitVoidSourceResult (fork : Ethereum.Fork) (cfg : Config) (frame : Frame) (evm : EVM.State)
     (body : List Stmt) : InternalOutcome → Prop
-  | .ok evm' => ∃ final, ExecFuncBody cfg frame evm body (.returned final evm' (some []))
-  | .reverted => ExecFuncBody cfg frame evm body .reverted
-  | .staticViolation => ExecFuncBody cfg frame evm body .staticViolation
+  | .ok evm' => ∃ final, ExecFuncBody fork cfg frame evm body (.returned final evm' (some []))
+  | .reverted => ExecFuncBody fork cfg frame evm body .reverted
+  | .staticViolation => ExecFuncBody fork cfg frame evm body .staticViolation
 
 -- LIBRARY CANDIDATE: lift a void call through the nonpayable/calldata prologue.
 theorem voidCallPrologue_source {cfg frame evm stmt final ret result}
     (hv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < 2^255 + 4)
-    (hc : ExecStmt cfg (calldataLocalFrame frame evm) evm stmt (internalStmtResult final ret result)) :
-    explicitVoidSourceResult cfg frame evm (calldataPrologue [stmt, .return []]) result := by
+    (hc : ExecStmt fork cfg (calldataLocalFrame frame evm) evm stmt (internalStmtResult final ret result)) :
+    explicitVoidSourceResult fork cfg frame evm (calldataPrologue [stmt, .return []]) result := by
   cases result with
   | ok evm' =>
     exact ⟨_, ExecFuncBody.execBlockRet ((calldataPrologue_ok hv hhi).run

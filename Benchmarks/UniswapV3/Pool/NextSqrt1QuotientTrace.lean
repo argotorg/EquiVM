@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.NextSqrt1PrefixTrace
 import Benchmarks.UniswapV3.Pool.FullMathRoundTrace
 import Benchmarks.UniswapV3.Pool.UnsafeDivRoundTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -12,14 +14,14 @@ theorem nextSqrt1QuotientX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret priceRaw liquidityRaw : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : NextSqrtArgs)
-    (rd : RD (deployedRuntime v) ee g s0 (nextSqrt1QuotientPC a)
+    (rd : RD fork (deployedRuntime v) ee g s0 (nextSqrt1QuotientPC a)
       (⟨0⟩ :: ⟨0⟩ :: (if a.add then ⟨1⟩ else ⟨0⟩) :: a.amount ::
         liquidityRaw :: priceRaw :: ret :: R) mem aw rdata σ k C)
     (hl : UInt256.land liquidityRaw (UInt256.ofNat (2 ^ 128 - 1)) = a.liquidity)
     (hov : R.length + 28 ≤ 1024) :
     (¬nextSqrt1QuotientValid a ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    (nextSqrt1QuotientValid a ∧ ∃ k' C', RD (deployedRuntime v) ee g s0
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    (nextSqrt1QuotientValid a ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0
       (if a.add then ⟨19792⟩ else ⟨19898⟩)
       (nextSqrt1Quotient a :: ⟨0⟩ :: ⟨0⟩ :: (if a.add then ⟨1⟩ else ⟨0⟩) ::
         a.amount :: liquidityRaw :: priceRaw :: ret :: R) mem aw rdata σ k' C') := by

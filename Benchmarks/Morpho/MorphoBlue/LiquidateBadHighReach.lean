@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.LiquidateBadLowRefine
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -12,17 +14,17 @@ variable {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
   {σ : AccountMap} {k C : Nat} {R : List UInt256}
 
 theorem morphoLiquidateBadHighReachSub (hstack : R.length + 40 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 3140)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 3140)
       ([badShares, UInt256.ofNat 3169] ++ liquidateBadTail id assets seized shares badAssets badShares srcOff len R)
       mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12846)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12846)
       ([marketFieldWord σ ee id 3, badShares, UInt256.ofNat 2278, marketFieldSlot id 3, UInt256.ofNat 3169] ++
         liquidateBadTail id assets seized shares badAssets badShares srcOff len R)
       (twoWordHashMem id (UInt256.ofNat 3) mem) aw' out σ k' C' := by
   obtain ⟨a1, k1, C1, rd1⟩ := morphoBlocks.morpho_block_3140_packed (immWords := wordsOf (immStore v))
     (by change R.length + 3 + 14 ≤ 1024; omega)
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     ([UInt256.shiftRight (solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64)
         (twoWordHashMem id (UInt256.ofNat 3) mem) + UInt256.ofNat 1) σ ee) (UInt256.ofNat 128),
       badShares, UInt256.ofNat 2278,
@@ -34,9 +36,9 @@ theorem morphoLiquidateBadHighReachSub (hstack : R.length + 40 ≤ 1024)
 
 theorem morphoLiquidateBadClear (hstack : R.length + 40 ≤ 1024) (hperm : ee.perm = true)
     (ha : account.toNat < EVM.addressModulus) (haccount : calldataWord ee.calldata 164 = account)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 3169)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 3169)
       (liquidateBadTail id assets seized shares badAssets badShares srcOff len R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 2574)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 2574)
       (liquidateEventTail (UInt256.ofNat (deployedRuntime v).size) id assets seized shares badAssets badShares srcOff len R)
       (supplyPositionMem id account mem) aw' out
       (storePositionPackedAccounts σ ee id account false (UInt256.ofNat 0)) k' C' := by
@@ -54,7 +56,7 @@ theorem morphoLiquidateBadClear (hstack : R.length + 40 ≤ 1024) (hperm : ee.pe
   have hm2 : m2 = supplyPositionMem id account mem := by dsimp only [m2]; rw [hh1]; rfl
   dsimp only [morphoBlocks.morpho_block_3169_memory] at rd1
   rw [haddr] at rd1
-  change RD _ _ _ _ _ _ m2 _ _
+  change RD fork _ _ _ _ _ _ m2 _ _
     (sstoreAccountMap ee.codeOwner σ (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) m2 + UInt256.ofNat 1)
       (UInt256.land (solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) m2 + UInt256.ofNat 1) σ ee)
         (UInt256.lnot uint128Mask))) _ _ at rd1

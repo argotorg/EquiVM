@@ -3,6 +3,8 @@ import Benchmarks.Safe.ViaIR.AddressAddressWordDecoder
 import Benchmarks.Safe.ViaIR.RemoveOwnerTrace
 import Benchmarks.Safe.ViaIR.IRLengthCheck
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -16,10 +18,10 @@ theorem safeRemoveownerBodyCore
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some removeownerTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨hlong, hword⟩ := selectorDispatchFacts 0xf8 0xdc 0x5d 0xd9 ⟨0xf8dc5dd9⟩
     hdispatch removeownerSelectorBytes (by decide)
-  obtain ⟨k, C, h592⟩ := safeReachEntry (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, h592⟩ := safeReachEntry (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) ⟨0xf8dc5dd9⟩ 29 ⟨592⟩ hcode hsize hlong hword
     (by native_decide)
   have hlenWord := safeIRArgumentSizeSub hlong hsize
@@ -46,14 +48,14 @@ theorem safeRemoveownerBodyCore
               let prev := calldataWord I.calldata 4
               let key := calldataWord I.calldata 36
               let threshold := calldataWord I.calldata 68
-              change RD safeBytecode I (.ofUInt256 g) evm ⟨639⟩
+              change RD fork safeBytecode I (.ofUInt256 g) evm ⟨639⟩
                 [key, prev, threshold, ⟨0⟩] _ _ _ σ _ _ at h639
               have hcount : ownerCount evm = solcSlotWordAt ⟨3⟩ σ I :=
                 storageLoad_codeOwner_eq_solcSlotWordAt evm I ⟨3⟩ rfl
               by_cases hz : ownerCount evm = ⟨0⟩
               · have hzero : solcSlotWordAt ⟨3⟩ σ I = ⟨0⟩ := hcount.symm.trans hz
                 have hrev := safeDecrementUnderflow h639 (by simp) hzero
-                have hbody := safeRemoveOwnerUnderflow evm prev key threshold hvalue hauth hz
+                have hbody := safeRemoveOwnerUnderflow (fork := fork) evm prev key threshold hvalue hauth hz
                 exact RDrev.reEquivElim hcode hrev fun _ _ hΞ ↦
                   reEquivSelectorExecution hdispatch hdec hbody (.revert hΞ rfl)
               · obtain ⟨_, _, h649⟩ := safeDecrementTrace h639 (by simp)
@@ -61,7 +63,7 @@ theorem safeRemoveownerBodyCore
                 cases hperm : I.perm with
                 | false =>
                     have hstatic := safeRemoveOwnerCountStatic h649 (by simp) hperm
-                    have hbody := safeRemoveOwnerStatic evm prev key threshold hvalue hauth hz hperm
+                    have hbody := safeRemoveOwnerStatic (fork := fork) evm prev key threshold hvalue hauth hz hperm
                     exact RDstatic.reEquivElim hcode hstatic fun hΞ ↦
                       reEquivSelectorExecution hdispatch hdec hbody (.staticHalt hΞ rfl)
                 | true =>
@@ -104,8 +106,8 @@ theorem safeRemoveownerBodyCore
                           · have hret := safeRemoveOwnerThresholdUnchanged h748 (by simp) hperm
                               (by rwa [hlthreshold] at ht)
                             have hbody := ExecFuncBody.execBlockOK
-                              (safeRemoveOwnerPrefix (hperm := hperm) evm prev key threshold hvalue hauth hz
-                                (safeRemoveOwnerLinksPrefix (hperm := by simpa only [hcenv] using hperm) counted prev key threshold hp hc hle
+                              (safeRemoveOwnerPrefix (fork := fork) (hperm := hperm) evm prev key threshold hvalue hauth hz
+                                (safeRemoveOwnerLinksPrefix (fork := fork) (hperm := by simpa only [hcenv] using hperm) counted prev key threshold hp hc hle
                                   hv hl
                                   (safeThresholdChangeUnchanged linked _ threshold hb he ht)))
                             refine reEquivReturnElim hcode hret fun _ _ hsuccess ↦ ?_
@@ -121,8 +123,8 @@ theorem safeRemoveownerBodyCore
                             · by_cases htz : threshold = ⟨0⟩
                               · have hrev := safeRemoveOwnerThresholdZero (htz ▸ h804) (by simp)
                                 have hbody := ExecFuncBody.execBlockRevert
-                                  (safeRemoveOwnerPrefix (hperm := hperm) evm prev key threshold hvalue hauth hz
-                                    (safeRemoveOwnerLinksPrefix (hperm := by simpa only [hcenv] using hperm) counted prev key threshold hp hc hle
+                                  (safeRemoveOwnerPrefix (fork := fork) (hperm := hperm) evm prev key threshold hvalue hauth hz
+                                    (safeRemoveOwnerLinksPrefix (fork := fork) (hperm := by simpa only [hcenv] using hperm) counted prev key threshold hp hc hle
                                       hv hl (safeThresholdChangeRevert linked _ threshold hb he ht
                                         (htz ▸ safeThresholdSourceZero linked))))
                                 exact RDrev.reEquivElim hcode hrev fun _ _ hΞ ↦
@@ -130,9 +132,9 @@ theorem safeRemoveownerBodyCore
                               · have hret := safeRemoveOwnerThresholdTrace h804 (by simp) hperm
                                   (by rwa [hlcount] at hle') htz
                                 have hbody := ExecFuncBody.execBlockOK
-                                  (safeRemoveOwnerPrefix (hperm := hperm) evm prev key threshold hvalue hauth hz
-                                    (safeRemoveOwnerLinksPrefix (hperm := by simpa only [hcenv] using hperm) counted prev key threshold hp hc hle
-                                      hv hl (safeThresholdChangeChanged (hperm := by simpa only [hlenv] using hperm) linked _ threshold hb he ht
+                                  (safeRemoveOwnerPrefix (fork := fork) (hperm := hperm) evm prev key threshold hvalue hauth hz
+                                    (safeRemoveOwnerLinksPrefix (fork := fork) (hperm := by simpa only [hcenv] using hperm) counted prev key threshold hp hc hle
+                                      hv hl (safeThresholdChangeChanged (fork := fork) (hperm := by simpa only [hlenv] using hperm) linked _ threshold hb he ht
                                         hle' htz)))
                                 refine reEquivReturnElim hcode hret fun _ _ hsuccess ↦ ?_
                                 exact reEquivSelectorExecution hdispatch hdec hbody
@@ -142,8 +144,8 @@ theorem safeRemoveownerBodyCore
                             · have hrev := safeRemoveOwnerThresholdTooLarge h804 (by simp)
                                 (by rwa [hlcount] at hle')
                               have hbody := ExecFuncBody.execBlockRevert
-                                (safeRemoveOwnerPrefix (hperm := hperm) evm prev key threshold hvalue hauth hz
-                                  (safeRemoveOwnerLinksPrefix (hperm := by simpa only [hcenv] using hperm) counted prev key threshold hp hc hle
+                                (safeRemoveOwnerPrefix (fork := fork) (hperm := hperm) evm prev key threshold hvalue hauth hz
+                                  (safeRemoveOwnerLinksPrefix (fork := fork) (hperm := by simpa only [hcenv] using hperm) counted prev key threshold hp hc hle
                                     hv hl (safeThresholdChangeRevert linked _ threshold hb he ht
                                       (safeThresholdSourceTooLarge linked threshold hle'))))
                               exact RDrev.reEquivElim hcode hrev fun _ _ hΞ ↦
@@ -152,7 +154,7 @@ theorem safeRemoveownerBodyCore
                             solcFreePtrMem_size (by rwa [hcacc, hcenv] at hv)
                             (by rwa [ownerLink_eq_at, hcacc, hcenv] at hl)
                           have hbody := ExecFuncBody.execBlockRevert
-                            (safeRemoveOwnerPrefix (hperm := hperm) evm prev key threshold hvalue hauth hz
+                            (safeRemoveOwnerPrefix (fork := fork) (hperm := hperm) evm prev key threshold hvalue hauth hz
                               (safeRemoveOwnerGuardRevert counted prev key threshold hle
                                 (safeCanRemoveOwnerSourceUnlinked counted prev key hp hc hv hl)))
                           exact RDrev.reEquivElim hcode hrev fun _ _ hΞ ↦
@@ -160,7 +162,7 @@ theorem safeRemoveownerBodyCore
                       · have hrev := safeCanRemoveOwnerTraceInvalid h10772 (by simp) hc
                           (by rw [solcFreePtrMem_size]; omega) (by rwa [hcacc, hcenv] at hv)
                         have hbody := ExecFuncBody.execBlockRevert
-                          (safeRemoveOwnerPrefix (hperm := hperm) evm prev key threshold hvalue hauth hz
+                          (safeRemoveOwnerPrefix (fork := fork) (hperm := hperm) evm prev key threshold hvalue hauth hz
                             (safeRemoveOwnerGuardRevert counted prev key threshold hle
                               (safeCanRemoveOwnerSourceInvalid counted prev key hc hv)))
                         exact RDrev.reEquivElim hcode hrev fun _ _ hΞ ↦
@@ -168,7 +170,7 @@ theorem safeRemoveownerBodyCore
                     · have hrev := safeRemoveOwnerCountRevert h649 (by simp) hperm
                         (by rwa [hcounted] at hle)
                       have hbody := ExecFuncBody.execBlockRevert
-                        (safeRemoveOwnerPrefix (hperm := hperm) evm prev key threshold hvalue hauth hz
+                        (safeRemoveOwnerPrefix (fork := fork) (hperm := hperm) evm prev key threshold hvalue hauth hz
                           (safeRemoveOwnerCountTooSmall counted prev key threshold hle))
                       exact RDrev.reEquivElim hcode hrev fun _ _ hΞ ↦
                         reEquivSelectorExecution hdispatch hdec hbody (.revert hΞ rfl)
@@ -209,7 +211,7 @@ theorem safeRemoveownerRefines
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some removeownerTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact safeRemoveownerBodyCore hcode hsize hdispatch
 
 end Benchmarks.Safe.ViaIR

@@ -2,6 +2,8 @@ import Benchmarks.EAS.EAS.ArrayAllocateSource
 import Benchmarks.EAS.EAS.DefaultArrayRecords
 import Benchmarks.EAS.EAS.AttestLoopLocals
 import Benchmarks.EAS.EAS.AttestIterationSource
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -24,7 +26,7 @@ def attestArraysLocals (L : Store) (len middle next : Nat) : Store :=
 
 theorem attestArrayDecl_source {cfg : Config} {L imms : Store} {evm : EVM.State} {len : Nat}
     (hl : L.get? "length" = some (.int (Int.ofNat len))) :
-    ExecStmt cfg {contract := contract,locals := L,immutables := imms} evm attestArrayDecl
+    ExecStmt fork cfg {contract := contract,locals := L,immutables := imms} evm attestArrayDecl
       (.ok {contract := contract,locals := (L.insert "attestations"
         (.array ((List.replicate len defaultAttestationRecord).map AttestationRecord.value))),immutables := imms} evm) := by
   unfold attestArrayDecl
@@ -34,7 +36,7 @@ theorem attestArrayDecl_source {cfg : Config} {L imms : Store} {evm : EVM.State}
 
 theorem attestValuesDecl_source {cfg : Config} {L imms : Store} {evm : EVM.State} {len : Nat}
     (hl : L.get? "length" = some (.int (Int.ofNat len))) :
-    ExecBlock cfg {contract := contract,locals := L,immutables := imms} evm [attestValuesDecl,attestIndexDecl]
+    ExecBlock fork cfg {contract := contract,locals := L,immutables := imms} evm [attestValuesDecl,attestIndexDecl]
       (.ok {contract := contract,locals := (L.insert "values"
         (.array ((List.replicate len (⟨0⟩ : UInt256)).map (fun w => Value.int (Int.ofNat w.toNat))))).insert "i" (.int 0),immutables := imms} evm) := by
   unfold attestValuesDecl attestIndexDecl
@@ -67,27 +69,27 @@ theorem attestArraysSource {L imms : Store} {evm : EVM.State} {len heap : Nat}
     if len ≤ 2^64-1 then
       if middle ≤ 2^64-1 ∧ heap ≤ middle then
         if next ≤ 2^64-1 ∧ middle ≤ next then
-          ExecBlock config {contract := contract,locals := L,immutables := imms} evm attestArraysBody
+          ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm attestArraysBody
             (.ok {contract := contract,locals := attestArraysLocals L len middle next,immutables := imms} evm)
-        else ExecBlock config {contract := contract,locals := L,immutables := imms} evm attestArraysBody .reverted
-      else ExecBlock config {contract := contract,locals := L,immutables := imms} evm attestArraysBody .reverted
-    else ExecBlock config {contract := contract,locals := L,immutables := imms} evm attestArraysBody .reverted := by
+        else ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm attestArraysBody .reverted
+      else ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm attestArraysBody .reverted
+    else ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm attestArraysBody .reverted := by
   dsimp only
-  have h1 := arrayAllocateSource (cfg := config) (imms := imms) (evm := evm) hl hh 352
+  have h1 := arrayAllocateSource (fork := fork) (cfg := config) (imms := imms) (evm := evm) hl hh 352
   by_cases hlen : len ≤ 2^64-1
   · rw [if_pos hlen] at h1 ⊢
     by_cases hg1 : allocateNext heap (32+352*len) ≤ 2^64-1 ∧ heap ≤ allocateNext heap (32+352*len)
     · rw [if_pos hg1] at h1 ⊢
       have hl1 : (allocateBlockLocals L (allocateNext heap (32+352*len))).get? "length" = some (.int (Int.ofNat len)) :=
         (allocateBlockLocals_get (by decide) (by decide) (by decide)).trans hl
-      have hd := attestArrayDecl_source (cfg := config) (imms := imms) (evm := evm) hl1
+      have hd := attestArrayDecl_source (fork := fork) (cfg := config) (imms := imms) (evm := evm) hl1
       have hl2 : (attestArrayLocals L len (allocateNext heap (32+352*len))).get? "length" = some (.int (Int.ofNat len)) := by
         simpa only [attestArrayLocals,store_get_ne _ _ (by decide : ("attestations" == "length") = false)] using hl1
       have hh2 : (attestArrayLocals L len (allocateNext heap (32+352*len))).get? "$EAS.freeMemory" =
           some (.int (Int.ofNat (allocateNext heap (32+352*len)))) := by
         simp only [attestArrayLocals,store_get_ne _ _ (by decide : ("attestations" == "$EAS.freeMemory") = false),
           allocateBlockLocals,unpackHeapLocals,store_get_self]
-      have h2 := arrayAllocateSource (cfg := config) (imms := imms) (evm := evm) hl2 hh2 32
+      have h2 := arrayAllocateSource (fork := fork) (cfg := config) (imms := imms) (evm := evm) hl2 hh2 32
       rw [if_pos hlen] at h2
       have hprefix := execBlock_append h1 (ExecBlock.consNormal hd ExecBlock.nil)
       split at h2

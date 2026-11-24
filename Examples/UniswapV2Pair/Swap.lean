@@ -19,6 +19,8 @@ import Examples.UniswapV2Pair.SwapTailSource
 import Examples.UniswapV2Pair.SwapEventRuntime
 import Examples.UniswapV2Pair.UpdateDynamicCallRuntimeCases
 import Examples.UniswapV2Pair.SwapCallbackInput
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 2000000
@@ -30,7 +32,7 @@ theorem uniswapSwapBody
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x02, 0x2c, 0x0d, 0x9f]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some swapTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hsz132 : 132 ≤ I.calldata.size
   · by_cases hoff : solcLegacyMaxU32 < swapDataOffset I
     · exact uniswapSwapBodyDecodeFailed_offsetHuge hcode hsize hwv hsel hsz132 hoff
@@ -44,7 +46,7 @@ theorem uniswapSwapBody
           · have hpayloadLe := swapPayloadPresent_le (I := I) hlenWord hpayload
             have hsz4 : 4 ≤ I.calldata.size := by omega
             obtain ⟨_, _, rd1475⟩ := uniswapSwapDecodeRuntimeOk hsize hsz132 hoff hlenWord hlenHuge hpayloadLe
-              (uniswapReachSwapBody (σ := σ) (σ₀ := σ₀) (A := A)
+              (uniswapReachSwapBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
                 (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
             let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
             have hstorage : Stele.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨12⟩ =
@@ -59,7 +61,7 @@ theorem uniswapSwapBody
             · have hunlocked := not_not.mp hlocked
               obtain ⟨_, _, rd1556⟩ := RD.uniswapSwapLockEntered rd1475 hunlocked hperm
                 (by simp only [List.length_cons, List.length_nil]; omega)
-              have hlockSource := uniswapLockEnterPrefix (hperm := hperm) evmS (swapStore I)
+              have hlockSource := uniswapLockEnterPrefix (fork := fork) (hperm := hperm) evmS (swapStore I)
                 (by simpa only [evmS, initState] using hwv) (by simp [swapStore]) (hstorage.trans hunlocked)
               let evmL := uniswapLockEnteredState evmS
               have hpost : sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩ = evmL.accountMap := by
@@ -217,7 +219,7 @@ theorem uniswapSwapBody
                         · have hbalancesPrefix := execBlock_append hcallbackPrefix hbalances
                           obtain ⟨hb0Source, hb1Source, hr0Source, hr1Source, ho0Source, ho1Source⟩ :=
                             swapBeforeInputsFrame_gets evmL I balance0 balance1
-                          have hinputs := uniswapSwapInputsSource evmB balance0 balance1
+                          have hinputs := uniswapSwapInputsSource (fork := fork) evmB balance0 balance1
                             (uniswapReserve0Word evmL) (uniswapReserve1Word evmL)
                             (swapAmount0OutWord I) (swapAmount1OutWord I)
                             hb0Source hb1Source hr0Source hr1Source ho0Source ho1Source
@@ -271,7 +273,7 @@ theorem uniswapSwapBody
                                   (uniswapSwapBodyReverts_invariant evmS evmB I _ hadjustmentPrefix
                                     (uniswapSwapInvariantSourceRevert evmB _ _ _ _ hadj0Inv hadj1Inv
                                       hr0Inv hr1Inv hc0 hc1 hnotInvariant))
-                              · have hrequire := uniswapSwapInvariantSourceSuccess evmB _ _ _ _
+                              · have hrequire := uniswapSwapInvariantSourceSuccess (fork := fork) evmB _ _ _ _
                                   hadj0Inv hadj1Inv hr0Inv hr1Inv hc0 hc1 hvalidInvariant
                                 have hinvariantPrefix := execBlock_append hadjustmentPrefix
                                   (ExecBlock.consNormal hrequire ExecBlock.nil)
@@ -310,7 +312,7 @@ theorem uniswapSwapBody
                                     (by simp only [List.length_cons, List.length_nil]; omega)
                                   have rdRet := RD.uniswapSwapUnlockAndStop rd2797 hperm
                                     (by simp only [List.length_cons, List.length_nil]; omega)
-                                  have hbody := uniswapSwapBodyReturns_afterUpdate (hperm := by simpa only [heU] using hperm) evmS evmB evmU I _
+                                  have hbody := uniswapSwapBodyReturns_afterUpdate (fork := fork) (hperm := by simpa only [heU] using hperm) evmS evmB evmU I _
                                     hinvariantPrefix hupdate
                                     (swapBeforeUpdateFrame_unlocked evmL I balance0 balance1 amount0In amount1In)
                                   have haFinal : sstoreAccountMap I.codeOwner σU ⟨12⟩ ⟨1⟩ =
@@ -335,7 +337,7 @@ theorem uniswapSwapBodyAnyPerm
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x02, 0x2c, 0x0d, 0x9f]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some swapTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hperm : I.perm = true
   · exact uniswapSwapBody hcode hsize hperm hwv hsel hdispatch
   replace hperm : I.perm = false := by simpa using hperm
@@ -353,7 +355,7 @@ theorem uniswapSwapBodyAnyPerm
             have hsz4 : 4 ≤ I.calldata.size := by omega
             obtain ⟨_, _, rd1475⟩ := uniswapSwapDecodeRuntimeOk hsize hsz132 hoff hlenWord
               hlenHuge hpayloadLe
-              (uniswapReachSwapBody (σ := σ) (σ₀ := σ₀) (A := A)
+              (uniswapReachSwapBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
                 (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
             let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
             have hstorage : Stele.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨12⟩ =

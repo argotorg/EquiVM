@@ -1,6 +1,8 @@
 import Benchmarks.EAS.Attester.MultiAttestSourceReturn
 import Benchmarks.EAS.Attester.MultiAttestStartTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.EAS.Attester.Immutables attesterRuntimeBlocks
 
@@ -14,7 +16,7 @@ theorem multiAttestExternalCorrect (imms : Store) (hfit : immutablesFit contract
     (hd : decodeArrays? uint256 I.calldata = some (.array schemas, .array rows))
     (hshape : BatchShape I.calldata) (hrows : BatchRowsValid I.calldata)
     (heas : imms.get? "_eas" = some (.address eas))
-    (hp : ExecBlock config
+    (hp : ExecBlock fork config
       ⟨contract, multiAttestLocals schemas rows, restrictImmutables contract imms⟩
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (multiAttestTransition.body.take 7)
       (.ok ⟨contract, locals, restrictImmutables contract imms⟩
@@ -23,7 +25,7 @@ theorem multiAttestExternalCorrect (imms : Store) (hfit : immutablesFit contract
     (hrequest : locals.get? "multiRequests" = some (multiAttestRequests I.calldata))
     (halloc : locals.get? "allocationEnd" = some (.int (Int.ofNat (multiAttestBuiltFree
         I.calldata))))
-    (rd : RD (immutableLayout.runtime attesterBytecode (wordsOf imms)) I (Sat256.ofUInt256 g)
+    (rd : RD fork (immutableLayout.runtime attesterBytecode (wordsOf imms)) I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1772⟩
       [UInt256.ofNat (multiAttestEncodedEnd I.calldata), ⟨1152239886⟩,
         UInt256.land (wordsOf imms "_eas") solcAddrMask, ⟨128⟩,
@@ -31,7 +33,7 @@ theorem multiAttestExternalCorrect (imms : Store) (hfit : immutablesFit contract
         UInt256.ofNat (arrayDataNat I.calldata 36), UInt256.ofNat (arrayCount I.calldata 4),
         UInt256.ofNat (arrayDataNat I.calldata 4), ⟨121⟩, solcSelectorWord I]
       (multiAttestEncodedMemory I.calldata) aw ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I (restrictImmutables contract imms) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (restrictImmutables contract imms) := by
   have hc := decodeArrays_some_checks hd
   have hdispatch := attesterMultiAttestDispatch hselector
   have hdec := multiAttestDecode_some hd
@@ -55,9 +57,9 @@ theorem multiAttestExternalCorrect (imms : Store) (hfit : immutablesFit contract
       ulit_toNat' _ (by omega : multiAttestEncodedEnd I.calldata - multiAttestBuiltFree I.calldata <
         UInt256.size)] using multiAttestRequests_encoding hc hshape hrows
   have hfailure {evm' : State} {out : ByteArray}
-      (hcall : typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I) eas
+      (hcall : typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I) eas
         "multiAttest" 0 [multiAttestRequests I.calldata] (false, evm', out)) :
-      ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (multiAttestLocals schemas rows) multiAttestTransition.body .reverted
         (restrictImmutables contract imms) := by
     apply ExecFuncBody.execBlockRevert
@@ -97,7 +99,7 @@ theorem multiAttestExternalCorrect (imms : Store) (hfit : immutablesFit contract
         callOutputMem_zero _ _ _
       rw [houtput] at rd'
       obtain ⟨aw1, k1, C1, h1⟩ := multiAttestReachReturnDecoder rd' (by simp) hc hshape hrows hout
-      have hsource := multiAttestSourceReturn
+      have hsource := multiAttestSourceReturn (fork := fork)
         (imms := restrictImmutables contract imms)
         (evm := { initState σ σ₀ (Sat256.ofUInt256 g) A I with accountMap := σ', substate := A' })
         (locals := multiAttestCallLocals locals

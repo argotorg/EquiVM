@@ -1,5 +1,7 @@
 import Benchmarks.Auction.Common
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 100000
@@ -7,10 +9,10 @@ set_option maxRecDepth 100000
 namespace Reasoning.Reach
 
 theorem RD.auctionReturn32 {ee g s0 val R rdata acc k C}
-    (h : RD auctionBytecode ee g s0 ⟨318⟩ ((⟨160⟩ : UInt256) :: R)
+    (h : RD fork auctionBytecode ee g s0 ⟨318⟩ ((⟨160⟩ : UInt256) :: R)
       (solcReturnMem val) (UInt256.ofNat 5) rdata acc k C)
     (hov : R.length + 5 ≤ 1024) :
-    RDret auctionBytecode g s0 acc (UInt256.toByteArray val) := by
+    RDret fork auctionBytecode g s0 acc (UInt256.toByteArray val) := by
   exact evm_run h with [
     jumpdest, push1 ⟨64⟩,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide) mem_cost
@@ -24,10 +26,10 @@ theorem RD.auctionReturn32 {ee g s0 val R rdata acc k C}
       (by evm_ov) ]
 
 theorem RD.auctionReturnWord {ee g s0 val R rdata acc k C}
-    (h : RD auctionBytecode ee g s0 ⟨308⟩ (val :: R)
+    (h : RD fork auctionBytecode ee g s0 ⟨308⟩ (val :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata acc k C)
     (hov : R.length + 5 ≤ 1024) :
-    RDret auctionBytecode g s0 acc (UInt256.toByteArray val) := by
+    RDret fork auctionBytecode g s0 acc (UInt256.toByteArray val) := by
   have rd318 := evm_run h with [
     jumpdest, push1 ⟨64⟩,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost
@@ -39,10 +41,10 @@ theorem RD.auctionReturnWord {ee g s0 val R rdata acc k C}
   exact rd318.auctionReturn32 hov
 
 theorem RD.auctionReturnAddress {ee g s0 val R rdata acc k C}
-    (h : RD auctionBytecode ee g s0 ⟨358⟩ (val :: R)
+    (h : RD fork auctionBytecode ee g s0 ⟨358⟩ (val :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata acc k C)
     (hov : R.length + 6 ≤ 1024) :
-    RDret auctionBytecode g s0 acc (UInt256.toByteArray (UInt256.land val solcAddrMask)) := by
+    RDret fork auctionBytecode g s0 acc (UInt256.toByteArray (UInt256.land val solcAddrMask)) := by
   have rd318 := evm_run h with [
     jumpdest, push1 ⟨64⟩,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost

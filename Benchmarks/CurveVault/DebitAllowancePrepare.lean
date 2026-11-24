@@ -1,6 +1,8 @@
 import Benchmarks.CurveVault.AllowanceMemory
 import Benchmarks.CurveVault.AllowanceSpendSites
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -14,12 +16,12 @@ theorem vaultDebitAllowancePrepare (isWithdraw : Bool) {I : ExecutionEnv} {g : S
     (hcanon : owner.toNat < EVM.addressModulus)
     (hold : codeOwnerStorageWord I σ (vaultAllowanceSlot (AccountAddress.ofNat owner.toNat) I.source) = old)
     (hstack : R.length + 4 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat (if isWithdraw then 4431 else 5104)) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat (if isWithdraw then 4431 else 5104)) R mem aw rdata σ k C) :
     ∃ (mem' : ByteArray) (aw' : UInt256) (k' C' : Nat),
       (vaultDebitAllowanceFlow isWithdraw).allowanceOffset + 32 ≤ mem'.size ∧
       WordMemoryRange mem mem' 192 (vaultDebitAllowanceFlow isWithdraw).allowanceOffset ∧
       memLoad (UInt256.ofNat (vaultDebitAllowanceFlow isWithdraw).allowanceOffset) mem' = old ∧
-      RD vaultBytecode I g s0
+      RD fork vaultBytecode I g s0
         (UInt256.ofNat (if old = UInt256.ofNat (UInt256.size - 1)
           then (vaultDebitAllowanceFlow isWithdraw).next else (vaultDebitAllowanceFlow isWithdraw).entry))
         R mem' aw' rdata σ k' C' := by
@@ -40,7 +42,7 @@ theorem vaultDebitAllowancePrepare (isWithdraw : Bool) {I : ExecutionEnv} {g : S
   have hread : memLoad (UInt256.ofNat off) scratch = old := by
     rw [hm]
     exact memLoad_write_back _ _ off (by cases isWithdraw <;> decide +kernel) hgap
-  have hrd : ∃ aw' k' C', RD vaultBytecode I g s0
+  have hrd : ∃ aw' k' C', RD fork vaultBytecode I g s0
       (UInt256.ofNat (if old = UInt256.ofNat (UInt256.size - 1)
         then (vaultDebitAllowanceFlow isWithdraw).next else (vaultDebitAllowanceFlow isWithdraw).entry))
       R scratch aw' rdata σ k' C' := by

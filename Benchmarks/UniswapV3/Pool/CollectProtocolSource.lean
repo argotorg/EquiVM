@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.PoolTokenTransfer
 import Benchmarks.UniswapV3.Pool.Slot0Storage
 import Benchmarks.UniswapV3.Pool.FactoryOwner
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -24,7 +26,7 @@ def collectProtocolInitFrame (v : UniswapV3PoolImmutables) (recipient : AccountA
 
 theorem collectProtocolInitBlock (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (recipient : AccountAddress) (req0 req1 : UInt256) (hwv : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecBlock config (collectProtocolFrame v recipient req0 req1) evm
+    ExecBlock fork config (collectProtocolFrame v recipient req0 req1) evm
       (collectProtocolTransition.body.take 3) (.ok (collectProtocolInitFrame v recipient req0 req1) evm) := by
   apply (ABlock.start.requireStep (evalCallvalueEq_true hwv)).run
   exact ExecBlock.consNormal (ExecStmt.letDecl (by simp only [evalExpr?, pure]))
@@ -40,7 +42,7 @@ theorem evalCollectProtocolUnlocked (v : UniswapV3PoolImmutables) (evm : EVM.Sta
 
 theorem collectProtocolAssignLock (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (recipient : AccountAddress) (req0 req1 : UInt256) :
-    ExecStmt config (collectProtocolInitFrame v recipient req0 req1) evm
+    ExecStmt fork config (collectProtocolInitFrame v recipient req0 req1) evm
       (.assign .storage ⟨"slot0", [.field "unlocked"]⟩ (.boolLit false))
       (if evm.executionEnv.perm then .ok (collectProtocolInitFrame v recipient req0 req1) (storeSlot0Unlocked evm false) else .staticViolation) := by
   exact execStmt_assign_storage (by simp only [evalExpr?, pure])
@@ -50,10 +52,10 @@ theorem collectProtocolLockPrefix (v : UniswapV3PoolImmutables) (evm : EVM.State
     (recipient : AccountAddress) (req0 req1 : UInt256) (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : slot0FieldWord 30 1 evm.accountMap evm.executionEnv ≠ ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config (collectProtocolFrame v recipient req0 req1) evm
+    ExecBlock fork config (collectProtocolFrame v recipient req0 req1) evm
       (collectProtocolTransition.body.take 5)
       (.ok (collectProtocolInitFrame v recipient req0 req1) (storeSlot0Unlocked evm false)) := by
-  change ExecBlock config _ _ (collectProtocolTransition.body.take 3 ++
+  change ExecBlock fork config _ _ (collectProtocolTransition.body.take 3 ++
     [.require (.storage ⟨"slot0", [.field "unlocked"]⟩),
      .assign .storage ⟨"slot0", [.field "unlocked"]⟩ (.boolLit false)]) _
   apply execBlock_append_ok (collectProtocolInitBlock v evm recipient req0 req1 hwv)
@@ -65,7 +67,7 @@ theorem collectProtocolLockPrefix (v : UniswapV3PoolImmutables) (evm : EVM.State
 theorem collectProtocolRevertsLocked (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (recipient : AccountAddress) (req0 req1 : UInt256) (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocked : slot0FieldWord 30 1 evm.accountMap evm.executionEnv = ⟨0⟩) :
-    ExecTransitionBody config contract evm (collectProtocolLocals recipient req0 req1)
+    ExecTransitionBody fork config contract evm (collectProtocolLocals recipient req0 req1)
       collectProtocolTransition.body .reverted (immStore v) := by
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 3 collectProtocolTransition.body]
@@ -78,7 +80,7 @@ theorem collectProtocolStatic (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (recipient : AccountAddress) (req0 req1 : UInt256) (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : slot0FieldWord 30 1 evm.accountMap evm.executionEnv ≠ ⟨0⟩)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (collectProtocolLocals recipient req0 req1)
+    ExecTransitionBody fork config contract evm (collectProtocolLocals recipient req0 req1)
       collectProtocolTransition.body .staticViolation (immStore v) := by
   apply ExecFuncBody.execBlockStatic
   rw [← List.take_append_drop 3 collectProtocolTransition.body]
@@ -96,11 +98,11 @@ def collectProtocolOwnerFrame (v : UniswapV3PoolImmutables) (recipient : Account
 
 theorem collectProtocolCallOwner (v : UniswapV3PoolImmutables) (evm evm' : EVM.State)
     (recipient : AccountAddress) (req0 req1 : UInt256) (owner : AccountAddress) (calleeFrame : Frame)
-    (hfactory : ExecFuncBody config
+    (hfactory : ExecFuncBody fork config
       { contract := contract, locals := ∅, immutables := immStore v }
       (storeSlot0Unlocked evm false) factoryOwnerFunction.body
       (.returned calleeFrame evm' (some [.address owner]))) :
-    ExecStmt config (collectProtocolInitFrame v recipient req0 req1) (storeSlot0Unlocked evm false)
+    ExecStmt fork config (collectProtocolInitFrame v recipient req0 req1) (storeSlot0Unlocked evm false)
       (.internalCall "factoryOwner" [] "__c0")
       (.ok (collectProtocolOwnerFrame v recipient req0 req1 owner) evm') := by
   exact internalCallFunctionReturn (args := []) (argVals := []) (locals := ∅)
@@ -123,15 +125,15 @@ theorem evalCollectProtocolOwner (v : UniswapV3PoolImmutables) (evm : EVM.State)
 theorem collectProtocolFactoryReverts (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (recipient : AccountAddress) (req0 req1 : UInt256) (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : slot0FieldWord 30 1 evm.accountMap evm.executionEnv ≠ ⟨0⟩)
-    (hfactory : ExecFuncBody config
+    (hfactory : ExecFuncBody fork config
       { contract := contract, locals := ∅, immutables := immStore v }
       (storeSlot0Unlocked evm false) factoryOwnerFunction.body .reverted)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (collectProtocolLocals recipient req0 req1)
+    ExecTransitionBody fork config contract evm (collectProtocolLocals recipient req0 req1)
       collectProtocolTransition.body .reverted (immStore v) := by
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 5 collectProtocolTransition.body]
-  apply execBlock_append_ok (collectProtocolLockPrefix (hperm := hperm) v evm recipient req0 req1 hwv hunlocked)
+  apply execBlock_append_ok (collectProtocolLockPrefix (fork := fork) (hperm := hperm) v evm recipient req0 req1 hwv hunlocked)
   apply ExecBlock.consRevert
   exact internalCallFunctionRevert (argVals := []) (locals := ∅)
     (by simp only [evalExprs?, pure]) factoryOwnerLookup rfl hfactory
@@ -140,17 +142,17 @@ theorem collectProtocolRevertsOwner (v : UniswapV3PoolImmutables) (evm evm' : EV
     (recipient : AccountAddress) (req0 req1 : UInt256) (owner : AccountAddress) (calleeFrame : Frame)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : slot0FieldWord 30 1 evm.accountMap evm.executionEnv ≠ ⟨0⟩)
-    (hfactory : ExecFuncBody config
+    (hfactory : ExecFuncBody fork config
       { contract := contract, locals := ∅, immutables := immStore v }
       (storeSlot0Unlocked evm false) factoryOwnerFunction.body
       (.returned calleeFrame evm' (some [.address owner])))
     (howner : evm'.executionEnv.source ≠ owner)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (collectProtocolLocals recipient req0 req1)
+    ExecTransitionBody fork config contract evm (collectProtocolLocals recipient req0 req1)
       collectProtocolTransition.body .reverted (immStore v) := by
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 5 collectProtocolTransition.body]
-  apply execBlock_append_ok (collectProtocolLockPrefix (hperm := hperm) v evm recipient req0 req1 hwv hunlocked)
+  apply execBlock_append_ok (collectProtocolLockPrefix (fork := fork) (hperm := hperm) v evm recipient req0 req1 hwv hunlocked)
   apply ExecBlock.consNormal (collectProtocolCallOwner v evm evm' recipient req0 req1 owner calleeFrame hfactory)
   apply ExecBlock.consRevert
   apply ExecStmt.requireFalse
@@ -160,18 +162,18 @@ theorem collectProtocolOwnerPrefix (v : UniswapV3PoolImmutables) (evm evm' : EVM
     (recipient : AccountAddress) (req0 req1 : UInt256) (owner : AccountAddress) (calleeFrame : Frame)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : slot0FieldWord 30 1 evm.accountMap evm.executionEnv ≠ ⟨0⟩)
-    (hfactory : ExecFuncBody config
+    (hfactory : ExecFuncBody fork config
       { contract := contract, locals := ∅, immutables := immStore v }
       (storeSlot0Unlocked evm false) factoryOwnerFunction.body
       (.returned calleeFrame evm' (some [.address owner])))
     (howner : evm'.executionEnv.source = owner)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config (collectProtocolFrame v recipient req0 req1) evm (collectProtocolTransition.body.take 7)
+    ExecBlock fork config (collectProtocolFrame v recipient req0 req1) evm (collectProtocolTransition.body.take 7)
       (.ok (collectProtocolOwnerFrame v recipient req0 req1 owner) evm') := by
-  change ExecBlock _ _ _ (collectProtocolTransition.body.take 5 ++
+  change ExecBlock fork _ _ _ (collectProtocolTransition.body.take 5 ++
     [.internalCall "factoryOwner" [] "__c0",
      .require (.binary .eq (.env .caller) (.var "__c0"))]) _
-  apply execBlock_append_ok (collectProtocolLockPrefix (hperm := hperm) v evm recipient req0 req1 hwv hunlocked)
+  apply execBlock_append_ok (collectProtocolLockPrefix (fork := fork) (hperm := hperm) v evm recipient req0 req1 hwv hunlocked)
   apply ExecBlock.consNormal (collectProtocolCallOwner v evm evm' recipient req0 req1 owner calleeFrame hfactory)
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ExecBlock.nil
   simpa only [howner, decide_true] using evalCollectProtocolOwner v evm' recipient req0 req1 owner
@@ -198,7 +200,7 @@ theorem collectProtocolAssignMin (locals imms : Store) (evm : EVM.State)
     (hget : locals.get? (poolRequestedName second) = some (.int (Int.ofNat requested.toNat)))
     (hbase : locals.get? "protocolFees" = none)
     (hold : locals.get? (poolAmountName second) = some old) :
-    ExecStmt config {contract := contract, locals := locals, immutables := imms} evm
+    ExecStmt fork config {contract := contract, locals := locals, immutables := imms} evm
       (.assign .localVar ⟨poolAmountName second, []⟩ (collectProtocolMinExpr second))
       (.ok {contract := contract, locals := locals.insert (poolAmountName second) (.int (Int.ofNat (minWord requested
           (protocolFeesWord second evm.accountMap evm.executionEnv)).toNat)), immutables := imms} evm) :=
@@ -213,7 +215,7 @@ def collectProtocolAmountsFrame (v : UniswapV3PoolImmutables) (recipient : Accou
 
 theorem collectProtocolAmounts (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (recipient : AccountAddress) (req0 req1 : UInt256) (owner : AccountAddress) :
-    ExecBlock config (collectProtocolOwnerFrame v recipient req0 req1 owner) evm
+    ExecBlock fork config (collectProtocolOwnerFrame v recipient req0 req1 owner) evm
       ((collectProtocolTransition.body.drop 7).take 2)
       (.ok (collectProtocolAmountsFrame v recipient req0 req1 owner
         (minWord req0 (protocolFeesWord false evm.accountMap evm.executionEnv))

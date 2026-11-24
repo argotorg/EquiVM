@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.TickLogSeriesWords
 import Benchmarks.UniswapV3.Pool.TickLogSquaresTrace
 import Benchmarks.UniswapV3.Pool.WordComplements
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -27,10 +29,10 @@ def tickLogAccStack1 (r : UInt256) (msb : Nat) (R : List UInt256) : List UInt256
 theorem tickLogAcc1X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C msb : Nat} {aw r : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14403⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14403⟩
       (tickLogSquaresStack r (UInt256.ofNat msb) R) mem aw rdata σ k C)
     (hov : R.length + 18 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨14514⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨14514⟩
       (tickLogAccStack1 r msb R) mem aw rdata σ k' C' := by
   have h0 : UInt256.lor (UInt256.land (UInt256.ofNat 9223372036854775808)
       (UInt256.shiftRight (tickLogSquareAt r 0) (UInt256.ofNat 192)))
@@ -61,10 +63,10 @@ def tickLogAccStack (r : UInt256) (msb : Nat) (R : List UInt256) : List UInt256 
 theorem tickLogAcc2X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C msb : Nat} {aw r : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14514⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14514⟩
       (tickLogAccStack1 r msb R) mem aw rdata σ k C)
     (hov : R.length + 13 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨14638⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨14638⟩
       (tickLogAccStack r msb R) mem aw rdata σ k' C' := by
   have h4 : UInt256.lor (UInt256.land (UInt256.ofNat 576460752303423488)
       (UInt256.shiftRight (tickLogSquareAt r 4) (UInt256.ofNat 196)))
@@ -107,10 +109,10 @@ theorem tickLogAcc2X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem tickLogAccX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C msb : Nat} {aw r : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14273⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14273⟩
       (UInt256.ofNat msb :: r :: R) mem aw rdata σ k C)
     (hov : R.length + 18 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨14638⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨14638⟩
       (tickLogAccStack r msb R) mem aw rdata σ k' C' := by
   obtain ⟨k', C', r1⟩ := tickLogSquaresX rd hov
   obtain ⟨k'', C'', r2⟩ := tickLogAcc1X r1 hov

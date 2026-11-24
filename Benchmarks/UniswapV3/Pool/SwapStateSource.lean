@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapCacheSource
 import Benchmarks.UniswapV3.Pool.FeeGrowthStorage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -64,7 +66,7 @@ macro "swap_exact_get" : tactic =>
   `(tactic| (simp only [swapExactFrame, swapCachedFrame]; swap_time_get))
 
 theorem swapExactInputSource (v : UniswapV3PoolImmutables) (a : SwapArgs) (evm : EVM.State) :
-    ExecStmt config (swapCachedFrame v a evm) (storeSlot0Unlocked evm false)
+    ExecStmt fork config (swapCachedFrame v a evm) (storeSlot0Unlocked evm false)
       swapTransition.body[11]!
       (.ok (swapExactFrame v a evm) (storeSlot0Unlocked evm false)) := by
   apply ExecStmt.letDecl
@@ -114,7 +116,7 @@ theorem evalSwapInitialState (v : UniswapV3PoolImmutables) (a : SwapArgs) (evm :
   rfl
 
 theorem swapStateSource (v : UniswapV3PoolImmutables) (a : SwapArgs) (evm : EVM.State) :
-    ExecBlock config (swapCachedFrame v a evm) (storeSlot0Unlocked evm false)
+    ExecBlock fork config (swapCachedFrame v a evm) (storeSlot0Unlocked evm false)
       ((swapTransition.body.drop 11).take 2)
       (.ok (swapReadyFrame v a evm) (storeSlot0Unlocked evm false)) := by
   exact ExecBlock.consNormal (swapExactInputSource v a evm)
@@ -126,12 +128,12 @@ theorem swapInitSource (v : UniswapV3PoolImmutables) (a : SwapArgs) (evm : EVM.S
     (hu : slot0FieldWord 30 1 evm.accountMap evm.executionEnv ≠ ⟨0⟩)
     (hl : swapLimitValid a evm)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config (swapFrame v a) evm (swapTransition.body.take 13)
+    ExecBlock fork config (swapFrame v a) evm (swapTransition.body.take 13)
       (.ok (swapReadyFrame v a evm) (storeSlot0Unlocked evm false)) := by
-  change ExecBlock config _ _ (swapTransition.body.take 9 ++
+  change ExecBlock fork config _ _ (swapTransition.body.take 9 ++
     (swapTransition.body.drop 9).take 2 ++ (swapTransition.body.drop 11).take 2) _
   exact execBlock_append_ok
-    (execBlock_append_ok (swapLockSource (hperm := by assumption) v a evm hwv hself hn hu hl) (swapCacheSource v a evm))
+    (execBlock_append_ok (swapLockSource (fork := fork) (hperm := by assumption) v a evm hwv hself hn hu hl) (swapCacheSource v a evm))
     (swapStateSource v a evm)
 
 end Benchmarks.UniswapV3.Pool

@@ -5,6 +5,8 @@ import Benchmarks.UniswapV4PoolManager.Arithmetic
 import Benchmarks.UniswapV4PoolManager.StorageStaticTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_012
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -19,11 +21,11 @@ theorem collectTransferTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f
     (ht : f.locals.get? "recipient" = some (.address recipient))
     (ha : f.locals.get? "amountCollected" = some (.int (Int.ofNat amount.toNat)))
     (hmem : mem.size = 96) (hfree : memLoad ⟨64⟩ mem = ⟨160⟩)
-    (h : RD (deployedRuntime v) I g s0 ⟨12792⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨12792⟩
       (accountWord currency :: accountWord recipient :: amount :: ⟨1954⟩ :: amount :: ⟨32⟩ :: R)
       mem aw rdata evm.accountMap k C) :
-    ∃ result, ExecFuncBody config f evm (collectProtocolFeesTransition.body.drop 9) result ∧
-      uint256ResultTrace (deployedRuntime v) g s0 result := by
+    ∃ result, ExecFuncBody fork config f evm (collectProtocolFeesTransition.body.drop 9) result ∧
+      uint256ResultTrace fork (deployedRuntime v) g s0 result := by
   let cf : Frame := {f with locals := (((∅ : Store).insert "amount" (.int (Int.ofNat amount.toNat))).insert
     "to" (.address recipient)).insert "currency" (.address currency)}
   have hgap : (⟨160⟩ : UInt256).toNat-mem.size < USize.size := by rw [hmem]; native_decide
@@ -63,15 +65,15 @@ theorem collectDebitTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f : 
     (ha : f.locals.get? "amountCollected" = some (.int (Int.ofNat amount.toNat)))
     (hb : f.locals.get? "protocolFeesAccrued" = none)
     (hmem : mem.size = 96) (hfree : memLoad ⟨64⟩ mem = ⟨160⟩)
-    (h : RD (deployedRuntime v) I g s0 ⟨3283⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨3283⟩
       (accountWord currency :: accountWord currency :: accountWord recipient :: amount :: ⟨1954⟩ :: amount :: ⟨32⟩ :: R)
       mem aw rdata evm.accountMap k C) :
-    ∃ result, ExecFuncBody config f evm (collectProtocolFeesTransition.body.drop 8) result ∧
-      uint256ResultTrace (deployedRuntime v) g s0 result := by
+    ∃ result, ExecFuncBody fork config f evm (collectProtocolFeesTransition.body.drop 8) result ∧
+      uint256ResultTrace fork (deployedRuntime v) g s0 result := by
   obtain ⟨aw', k', C', rdSub⟩ := poolManagerBlocks.poolManager_block_3283_packed (by omega)
     (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) h
   let nextMem := twoWordHashMem (accountWord currency) ⟨1⟩ mem
-  change RD _ _ _ _ ⟨12269⟩ (solcSlotWordAt (keccakWord ⟨0⟩ ⟨64⟩ nextMem) evm.accountMap I :: amount ::
+  change RD fork _ _ _ _ ⟨12269⟩ (solcSlotWordAt (keccakWord ⟨0⟩ ⟨64⟩ nextMem) evm.accountMap I :: amount ::
     ⟨3304⟩ :: keccakWord ⟨0⟩ ⟨64⟩ nextMem :: accountWord currency :: accountWord recipient :: amount ::
       ⟨1954⟩ :: amount :: ⟨32⟩ :: R) nextMem aw' rdata evm.accountMap k' C' at rdSub
   have hslot : keccakWord ⟨0⟩ ⟨64⟩ nextMem = protocolFeesSlot currency := mappingMemory_slot _ _ hmem
@@ -105,7 +107,7 @@ theorem collectDebitTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f : 
       obtain ⟨result, hb', hr⟩ := collectTransferTrace (f := f) v hstack
         ((storageStore_executionEnv _ _ _ _).trans hI) ((storageStore_σ₀ _ _ _ _).trans hσ0) hf hc ht ha
         (twoWordHashMem_size_96 _ _ hmem) ((mappingMemory_load64 _ _ hmem).trans hfree) rdTransfer
-      exact ⟨result, execFuncBody_prepend (execBlock_singleton (ExecStmt.assign (hperm := Or.inr (by simpa only [hI] using Bool.eq_true_of_not_eq_false hp)) heval hwrite)) hb', hr⟩
+      exact ⟨result, execFuncBody_prepend (execBlock_singleton (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [hI] using Bool.eq_true_of_not_eq_false hp)) heval hwrite)) hb', hr⟩
   · exact ⟨.reverted, .execBlockRevert (ExecBlock.consRevert (ExecStmt.assignExprRevert
       (checkedSubSourceUnderflow hread (evalLocalValue ha) (Nat.lt_of_not_ge hfit)))),
       checkedSubReverts v (by simp; omega) (Nat.lt_of_not_ge hfit) rdSub⟩

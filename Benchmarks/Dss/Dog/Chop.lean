@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Dog.Dispatch
 import Reasoning.ABIComposite
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Dog.Immutables
 
@@ -85,7 +87,7 @@ theorem dogReachChopBody {v : DogImmutables} {code : ByteArray}
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (dogSelBytes 4)) :
-    ∃ k C, RD code I g (initState σ σ₀ g A I) ⟨629⟩
+    ∃ k C, RD fork code I g (initState σ σ₀ g A I) ⟨629⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨0xd7926538⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xd7 0x92 0x65 0x38 ⟨0xd7926538⟩
@@ -110,7 +112,7 @@ theorem dogReachChopBody {v : DogImmutables} {code : ByteArray}
     rw [dogPushAtPatchedEqTemplate1405 (pc := selArmPush4Pc (⟨32⟩ : UInt256))
       hpatch (by native_decide)]
     native_decide
-  have h43 : RD code I g (initState σ σ₀ g A I) ⟨43⟩
+  have h43 : RD fork code I g (initState σ σ₀ g A I) ⟨43⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ (k32 + 5) (C32 + 22) := by
     simpa [selArmNextPc, hrootWidth] using
@@ -122,7 +124,7 @@ theorem dogReachChopBody {v : DogImmutables} {code : ByteArray}
     rw [dogPushAtPatchedEqTemplate1405 (pc := selArmPush4Pc (⟨43⟩ : UInt256))
       hpatch (by native_decide)]
     native_decide
-  have h54 : RD code I g (initState σ σ₀ g A I) ⟨54⟩
+  have h54 : RD fork code I g (initState σ σ₀ g A I) ⟨54⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ (k32 + 5 + 5) (C32 + 22 + 22) := by
     simpa [selArmNextPc, hhighWidth] using
@@ -165,10 +167,10 @@ theorem dogChopBodyCoreOk
     (hdecode :
       config.externalABI.decodeCalldata? (chopTransition.params.map Param.name)
         (transitionSignature chopTransition).paramTypes I.calldata = some (chopLocals I))
-    (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨629⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   let key := chopArgWord I
   let slot := solcMappingSlot ⟨1⟩ key + ⟨1⟩
   let locals := chopLocals I
@@ -177,7 +179,7 @@ theorem dogChopBodyCoreOk
   have hkeyLen : (chopArgBytes I).length = bytes32Width.val + 1 :=
     chopArgBytes_len I hsz36
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
         chopTransition.body
         (.returned { contract := contract, locals := locals, immutables := immStore v }
@@ -239,7 +241,7 @@ theorem dogChopBodyCoreOk
     (dogPatchedDJumpPrefix1405 ⟨448⟩ hpatch (by native_decide))
     (by simp only [List.length_singleton]; omega)
   have hret :
-      RDret code (Sat256.ofUInt256 g)
+      RDret fork code (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (UInt256.toByteArray (solcSlotWordAt slot σ I)) := by
     have hret' := RD.solcReturnWordFromMem
@@ -284,10 +286,10 @@ theorem dogChopBodyCoreDecodeFailed_short
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some chopTransition)
-    (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨629⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -323,12 +325,12 @@ theorem dogChopBodyCore {v : DogImmutables} {code : ByteArray}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (dogSelBytes 4)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (dogSelBytes 4) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some chopTransition :=
     dogDispatchChop hsel
-  have hreach := dogReachChopBody (σ := σ)
+  have hreach := dogReachChopBody (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hpatch hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size

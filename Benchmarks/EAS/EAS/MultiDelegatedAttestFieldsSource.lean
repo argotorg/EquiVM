@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.MultiDelegatedAttestLocals
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach ABI.Solc08Calldata
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -37,11 +39,11 @@ theorem multiDelegatedAttestFieldsSource {L imms : Store} {evm : EVM.State} {sch
     (hr : L.get? "multiDelegatedRequest"=some (.tuple [schema,if vd then .array data else decodeFailure,
       if vs then .array sigs else decodeFailure,attester])) :
     if vd ∧ 0<data.length ∧ vs ∧ data.length=sigs.length then
-      ExecBlock config {contract := contract,locals := L,immutables := imms} evm multiDelegatedAttestFields
+      ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm multiDelegatedAttestFields
         (.ok {contract := contract,locals := multiDelegatedAttestFieldLocals L data sigs,immutables := imms} evm)
-    else ExecBlock config {contract := contract,locals := L,immutables := imms} evm multiDelegatedAttestFields .reverted := by
+    else ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm multiDelegatedAttestFields .reverted := by
   let L1 := L.insert "data" (if vd then .array data else decodeFailure)
-  have hread1 : ExecStmt config {contract := contract,locals := L,immutables := imms} evm
+  have hread1 : ExecStmt fork config {contract := contract,locals := L,immutables := imms} evm
       (.letDecl "data" (some (.dynamicArray requestDataABI)) (.tupleGet (.var "multiDelegatedRequest") 1))
       (.ok {contract := contract,locals := L1,immutables := imms} evm) := by
     apply ExecStmt.letDecl
@@ -50,14 +52,14 @@ theorem multiDelegatedAttestFieldsSource {L imms : Store} {evm : EVM.State} {sch
   have hd1 : L1.get? "data"=some (if vd then .array data else decodeFailure) := store_get_self _ _ _
   by_cases hdv : vd
   · rw [if_pos hdv] at hd1
-    have hc1 := multiDelegatedAttestCheck_array (imms := imms) (evm := evm) hd1
+    have hc1 := multiDelegatedAttestCheck_array (fork := fork) (imms := imms) (evm := evm) hd1
     have he1 := localArrayNonempty_eval (imms := imms) (evm := evm) hd1
     by_cases hn : 0<data.length
     · rw [decide_eq_true hn] at he1
       let L2 := L1.insert "signatures" (if vs then .array sigs else decodeFailure)
       have hr1 : L1.get? "multiDelegatedRequest"=some (.tuple [schema,if vd then .array data else decodeFailure,
           if vs then .array sigs else decodeFailure,attester]) := (store_get_ne _ _ (by decide)).trans hr
-      have hread2 : ExecStmt config {contract := contract,locals := L1,immutables := imms} evm
+      have hread2 : ExecStmt fork config {contract := contract,locals := L1,immutables := imms} evm
           (.letDecl "signatures" (some (.dynamicArray signatureABI)) (.tupleGet (.var "multiDelegatedRequest") 2))
           (.ok {contract := contract,locals := L2,immutables := imms} evm) := by
         apply ExecStmt.letDecl
@@ -66,16 +68,16 @@ theorem multiDelegatedAttestFieldsSource {L imms : Store} {evm : EVM.State} {sch
       have hs2 : L2.get? "signatures"=some (if vs then .array sigs else decodeFailure) := store_get_self _ _ _
       by_cases hsv : vs
       · rw [if_pos hsv] at hs2
-        have hc2 := multiDelegatedAttestCheck_array (imms := imms) (evm := evm) hs2
+        have hc2 := multiDelegatedAttestCheck_array (fork := fork) (imms := imms) (evm := evm) hs2
         have hd2 : L2.get? "data"=some (.array data) := (store_get_ne _ _ (by decide)).trans hd1
         have he2 := localArrayLengthsEq_eval (imms := imms) (evm := evm) hd2 hs2
         by_cases heq : data.length=sigs.length
         · rw [if_pos ⟨hdv,hn,hsv,heq⟩,multiDelegatedAttestFields]
           rw [decide_eq_true heq] at he2
-          have hinit : ExecStmt config {contract := contract,locals := L2,immutables := imms} evm
+          have hinit : ExecStmt fork config {contract := contract,locals := L2,immutables := imms} evm
               (.letDecl "j" (some abiUInt256) (.intLit 0))
               (.ok {contract := contract,locals := multiDelegatedAttestFieldLocals L data sigs,immutables := imms} evm) := by
-            have hinit := ExecStmt.letDecl (cfg := config) (stele := {contract := contract,locals := L2,immutables := imms})
+            have hinit := ExecStmt.letDecl (fork := fork) (cfg := config) (stele := {contract := contract,locals := L2,immutables := imms})
               (evm := evm) (name := "j") (ty := some abiUInt256) (by simp only [evalExpr?,pure] : evalExpr? config {contract := contract,locals := L2,immutables := imms} evm (.intLit 0)=.ok (.int 0))
             simpa only [L2,L1,if_pos hdv,if_pos hsv] using hinit
           exact ExecBlock.consNormal hread1 (ExecBlock.consNormal hc1 (ExecBlock.consNormal (ExecStmt.requireTrue he1)

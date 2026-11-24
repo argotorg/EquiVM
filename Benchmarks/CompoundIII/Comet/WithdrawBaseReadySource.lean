@@ -5,6 +5,8 @@ import Benchmarks.CompoundIII.Comet.WithdrawBaseTailSource
 import Benchmarks.CompoundIII.Comet.UpdateBaseSource
 import Benchmarks.CompoundIII.Comet.InternalBlockComposition
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -15,18 +17,18 @@ attribute [local irreducible] signed104
 
 theorem withdrawBaseInitial_source (v : CometWithExtendedAssetListImmutables)
     (src recipient : AccountAddress) (amount : UInt256) (evm : EVM.State) :
-    ExecBlock config (withdrawBaseAccruedFrame v src recipient amount) evm
+    ExecBlock fork config (withdrawBaseAccruedFrame v src recipient amount) evm
       (withdrawBaseReadBlock ++ withdrawBaseMathBlock)
       (if WithdrawBaseMathFits evm (withdrawBaseBasic evm src).principal amount then
         .ok (withdrawBaseReadyFrame v src recipient amount evm) evm else .reverted) := by
   let frame := withdrawBaseAccruedFrame v src recipient amount
   let read := withdrawBaseReadFrame frame evm src
-  have hread := withdrawBaseRead_source frame evm src rfl (by
+  have hread := withdrawBaseRead_source (fork := fork) frame evm src rfl (by
     simp only [frame, withdrawBaseAccruedFrame, withdrawBaseEntry,
       Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert]; rfl) (by
     simp only [frame, withdrawBaseAccruedFrame, withdrawBaseEntry,
       Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert, Std.HashMap.getElem?_empty]; rfl)
-  have hmath := withdrawBaseMath_source read evm (withdrawBaseBasic evm src).principal amount rfl
+  have hmath := withdrawBaseMath_source (fork := fork) read evm (withdrawBaseBasic evm src).principal amount rfl
     (by simp only [read, withdrawBaseReadFrame, Std.HashMap.get?_eq_getElem?,
           Std.HashMap.getElem?_insert]; rfl)
     (by simp only [read, frame, withdrawBaseReadFrame, withdrawBaseAccruedFrame, withdrawBaseEntry,
@@ -35,7 +37,7 @@ theorem withdrawBaseInitial_source (v : CometWithExtendedAssetListImmutables)
 
 theorem withdrawBaseReady_totals (v : CometWithExtendedAssetListImmutables)
     (src recipient : AccountAddress) (amount : UInt256) (evm : EVM.State) :
-    ExecBlock config (withdrawBaseReadyFrame v src recipient amount evm) evm withdrawBaseTotalsBlock
+    ExecBlock fork config (withdrawBaseReadyFrame v src recipient amount evm) evm withdrawBaseTotalsBlock
       (withdrawBaseTotalsResult (withdrawBaseReadyFrame v src recipient amount evm) evm
         (withdrawBaseSupplied evm src amount) (withdrawBaseBorrowed evm src amount)) := by
   have hfargs := withdrawBaseReady_args v src recipient amount evm
@@ -52,7 +54,7 @@ theorem withdrawBaseReady_totals (v : CometWithExtendedAssetListImmutables)
 theorem withdrawBaseReady_update {v src recipient amount evm}
     (evm' : EVM.State)
     (hf : WithdrawBaseMathFits evm (withdrawBaseBasic evm src).principal amount) :
-    ExecStmt config (withdrawBaseReadyFrame v src recipient amount evm) evm' withdrawBaseUpdateStmt
+    ExecStmt fork config (withdrawBaseReadyFrame v src recipient amount evm) evm' withdrawBaseUpdateStmt
       (internalStmtResult (withdrawBaseReadyFrame v src recipient amount evm) "__c5"
         (updateBaseOutcome v evm' src (withdrawBaseBasic evm src) (withdrawBaseNext evm src amount))) := by
   have hfargs := withdrawBaseReady_args v src recipient amount evm
@@ -66,15 +68,15 @@ theorem withdrawBaseReady_finish {v src recipient amount evm evm' evm'' result}
     (hf : WithdrawBaseMathFits evm (withdrawBaseBasic evm src).principal amount)
     (hu : updateBaseOutcome v evm' src (withdrawBaseBasic evm src)
       (withdrawBaseNext evm src amount) = .ok evm'')
-    (tail : WithdrawBaseTailTrace v src recipient amount
+    (tail : WithdrawBaseTailTrace fork v src recipient amount
       (withdrawBaseBalance evm (withdrawBaseBasic evm src).principal amount) evm'' result) :
-    internalBlockResult config (withdrawBaseReadyFrame v src recipient amount evm) evm'
+    internalBlockResult fork config (withdrawBaseReadyFrame v src recipient amount evm) evm'
       (withdrawBaseUpdateStmt :: withdrawBaseTail) result := by
   let ready := withdrawBaseReadyFrame v src recipient amount evm
   have hfargs := withdrawBaseReady_args v src recipient amount evm
-  have hcall := withdrawBaseReady_update (v := v) (recipient := recipient) evm' hf
+  have hcall := withdrawBaseReady_update (fork := fork) (v := v) (recipient := recipient) evm' hf
   simp only [hu, internalStmtResult] at hcall
-  have hb := withdrawBaseTail_source (hperm := updateBaseOutcome_result_perm hu) tail
+  have hb := withdrawBaseTail_source (fork := fork) (hperm := updateBaseOutcome_result_perm hu) tail
     { ready with locals := ready.locals.insert "__c5" .unit } (withdrawBaseSupplied evm src amount)
     (hfargs.insert "__c5" .unit (by decide)) (withdrawSupplyAmount_lt _ _)
     (by simpa only [Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert] using

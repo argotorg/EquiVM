@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Flipper.BidDelete
 import Benchmarks.Dss.Flipper.ExternalTargets
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -355,7 +357,7 @@ theorem flipperDealSourceBodyTicZero {σ σ₀ A I} {g : UInt256}
     (htic : bidTicWord (dealId I) σ I = ⟨0⟩) :
     let locals := dealLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals dealTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals dealTransition.body .reverted := by
   intro locals evm0
   have hguard :
       evalExpr? config { contract := contract, locals := locals } evm0 dealFinishedGuard =
@@ -364,7 +366,7 @@ theorem flipperDealSourceBodyTicZero {σ σ₀ A I} {g : UInt256}
       evalExpr_dealFinishedGuard_false_tic_zero
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) htic
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 dealTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 dealTransition.body
         .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -381,7 +383,7 @@ theorem flipperDealSourceBodyNotFinished {σ σ₀ A I} {g : UInt256}
       (bidEndWord (dealId I) σ I).toNat) :
     let locals := dealLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals dealTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals dealTransition.body .reverted := by
   intro locals evm0
   have hguard :
       evalExpr? config { contract := contract, locals := locals } evm0 dealFinishedGuard =
@@ -391,7 +393,7 @@ theorem flipperDealSourceBodyNotFinished {σ σ₀ A I} {g : UInt256}
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
         hticNe hticGe hendGe
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 dealTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 dealTransition.body
         .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -411,7 +413,7 @@ theorem flipperDealSourceBodyCatNoCode {σ σ₀ A I} {g : UInt256}
           (flipperCatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat = 0) :
     let locals := dealLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals dealTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals dealTransition.body .reverted := by
   intro locals evm0
   have hcat : evalExpr? config { contract := contract, locals := locals } evm0 (.storage catRef) =
       .ok (.address (flipperCatAddress evm0.accountMap evm0.executionEnv)) := by
@@ -423,7 +425,7 @@ theorem flipperDealSourceBodyCatNoCode {σ σ₀ A I} {g : UInt256}
       evalExpr_flipperCatCodeGuard_false_ofLocals (evm := evm0) (locals := locals) hcat
         hnoCode
   have hcallBlock :
-      ExecBlock config { contract := contract, locals := locals } evm0
+      ExecBlock fork config { contract := contract, locals := locals } evm0
         (checkedExternalCallStmts (.storage catRef) "claw" (.intLit 0)
           [.storage (bidsF (.var "id") "tab")] "_clawRet")
         .reverted := by
@@ -433,7 +435,7 @@ theorem flipperDealSourceBodyCatNoCode {σ σ₀ A I} {g : UInt256}
         (name := "claw") (sendVal := 0)
         (args := [.storage (bidsF (.var "id") "tab")]) hguardCat
   have hcallFull :
-      ExecBlock config { contract := contract, locals := locals } evm0
+      ExecBlock fork config { contract := contract, locals := locals } evm0
         (checkedExternalCallStmts (.storage catRef) "claw" (.intLit 0)
           [.storage (bidsF (.var "id") "tab")] "_clawRet" ++
         (
@@ -451,7 +453,7 @@ theorem flipperDealSourceBodyCatNoCode {σ σ₀ A I} {g : UInt256}
         [ .delete (bidRef (.var "id")) ])
       hcallBlock (by intro f' e' h; cases h)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 dealTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 dealTransition.body
         .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -474,13 +476,13 @@ theorem flipperDealSourceBodyCatCallFailure {σ σ₀ A I} {g : UInt256}
           (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
             (flipperCatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallCat :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (flipperCatAddress σ I)) "claw" 0
         (dealClawArgVals (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         (false, evmCat, outCat) true) :
     let locals := dealLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals dealTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals dealTransition.body .reverted := by
   intro locals evm0
   have hcat : evalExpr? config { contract := contract, locals := locals } evm0 (.storage catRef) =
       .ok (.address (flipperCatAddress evm0.accountMap evm0.executionEnv)) := by
@@ -496,12 +498,12 @@ theorem flipperDealSourceBodyCatCallFailure {σ σ₀ A I} {g : UInt256}
         [.storage (bidsF (.var "id") "tab")] = .ok (dealClawArgVals evm0) := by
     simpa [locals] using evalExprs_dealClawArgs (evm := evm0)
   have hcallCat' :
-      typedCallViaEVM config evm0
+      typedCallViaEVM fork config evm0
         (EVM.address (flipperCatAddress evm0.accountMap evm0.executionEnv)) "claw" 0
         (dealClawArgVals evm0) (false, evmCat, outCat) true := by
     simpa [evm0, initState, flipperCatAddress] using hcallCat
   have hcallBlock :
-      ExecBlock config { contract := contract, locals := locals } evm0
+      ExecBlock fork config { contract := contract, locals := locals } evm0
         (checkedExternalCallStmts (.storage catRef) "claw" (.intLit 0)
           [.storage (bidsF (.var "id") "tab")] "_clawRet")
         .reverted := by
@@ -514,7 +516,7 @@ theorem flipperDealSourceBodyCatCallFailure {σ σ₀ A I} {g : UInt256}
         (argVals := dealClawArgVals evm0) (out := outCat) (perm := true)
         hguardCat hcat hargs hcallCat'
   have hcallFull :
-      ExecBlock config { contract := contract, locals := locals } evm0
+      ExecBlock fork config { contract := contract, locals := locals } evm0
         (checkedExternalCallStmts (.storage catRef) "claw" (.intLit 0)
           [.storage (bidsF (.var "id") "tab")] "_clawRet" ++
         (checkedExternalCallStmts (.storage vatRef) "flux" (.intLit 0)
@@ -531,7 +533,7 @@ theorem flipperDealSourceBodyCatCallFailure {σ σ₀ A I} {g : UInt256}
         [ .delete (bidRef (.var "id")) ])
       hcallBlock (by intro f' e' h; cases h)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 dealTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 dealTransition.body
         .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -554,7 +556,7 @@ theorem flipperDealSourceBodySuccessSplit {σ σ₀ A I} {g : UInt256}
           (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
             (flipperCatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallCat :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (flipperCatAddress σ I)) "claw" 0
         (dealClawArgVals (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         (true, evmCat, outCat) true)
@@ -564,7 +566,7 @@ theorem flipperDealSourceBodySuccessSplit {σ σ₀ A I} {g : UInt256}
           ((evmCat.lookupAccount (flipperVatAddress evmCat.accountMap evmCat.executionEnv)).option
             0 (fun acc => acc.code.size))).toNat)
     (hcallVat :
-      typedCallViaEVM config evmCat
+      typedCallViaEVM fork config evmCat
         (EVM.address (flipperVatAddress evmCat.accountMap evmCat.executionEnv)) "flux" 0
         (dealFluxArgValsOf evmCat (dealId I)) (true, evmVat, outVat) true) :
     let locals := dealLocals I
@@ -572,9 +574,9 @@ theorem flipperDealSourceBodySuccessSplit {σ σ₀ A I} {g : UInt256}
     let locals1 := (dealLocals I).insert "_clawRet" (collapseReturns [])
     let locals2 := locals1.insert "_fluxRet" (collapseReturns [])
     let evmDeleted := bidDeletedEVM evmVat (dealId I)
-    (I.perm = true → ExecTransitionBody config contract evm0 locals dealTransition.body
+    (I.perm = true → ExecTransitionBody fork config contract evm0 locals dealTransition.body
       (.returned { contract := contract, locals := locals2 } evmDeleted none)) ∧
-      (I.perm = false → ExecTransitionBody config contract evm0 locals
+      (I.perm = false → ExecTransitionBody fork config contract evm0 locals
         dealTransition.body .staticViolation) := by
   intro locals evm0 locals1 locals2 evmDeleted
   have hcat : evalExpr? config { contract := contract, locals := locals } evm0 (.storage catRef) =
@@ -591,14 +593,14 @@ theorem flipperDealSourceBodySuccessSplit {σ σ₀ A I} {g : UInt256}
         [.storage (bidsF (.var "id") "tab")] = .ok (dealClawArgVals evm0) := by
     simpa [locals] using evalExprs_dealClawArgs (evm := evm0)
   have hcallCat' :
-      typedCallViaEVM config evm0
+      typedCallViaEVM fork config evm0
         (EVM.address (flipperCatAddress evm0.accountMap evm0.executionEnv)) "claw" 0
         (dealClawArgVals evm0) (true, evmCat, outCat) true := by
     simpa [evm0, initState, flipperCatAddress] using hcallCat
   have hdecCat : config.externalABI.decode? "claw" outCat = some [] := by
     simp [config, externalABI, decodeVoid?]
   have hcatBlock :
-      ExecBlock config { contract := contract, locals := locals } evm0
+      ExecBlock fork config { contract := contract, locals := locals } evm0
         (checkedExternalCallStmts (.storage catRef) "claw" (.intLit 0)
           [.storage (bidsF (.var "id") "tab")] "_clawRet")
         (.ok { contract := contract, locals := locals1 } evmCat) := by
@@ -631,7 +633,7 @@ theorem flipperDealSourceBodySuccessSplit {σ σ₀ A I} {g : UInt256}
   have hdecVat : config.externalABI.decode? "flux" outVat = some [] := by
     simp [config, externalABI, decodeVoid?]
   have hvatBlock :
-      ExecBlock config { contract := contract, locals := locals1 } evmCat
+      ExecBlock fork config { contract := contract, locals := locals1 } evmCat
         (checkedExternalCallStmts (.storage vatRef) "flux" (.intLit 0)
           [.storage ilkRef, thisAddr, .storage (bidsF (.var "id") "guy"),
             .storage (bidsF (.var "id") "lot")] "_fluxRet")
@@ -646,12 +648,12 @@ theorem flipperDealSourceBodySuccessSplit {σ σ₀ A I} {g : UInt256}
         (argVals := dealFluxArgValsOf evmCat (dealId I)) (out := outVat) (perm := true)
         (value := []) hguardVat hvat hargsVat hcallVat hdecVat
   have hprefix {result : ExecResult}
-      (hdelete : ExecBlock config { contract := contract, locals := locals2 }
+      (hdelete : ExecBlock fork config { contract := contract, locals := locals2 }
         evmVat [.delete (bidRef (.var "id"))] result) :
-      ExecBlock config { contract := contract, locals := locals } evm0
+      ExecBlock fork config { contract := contract, locals := locals } evm0
         dealTransition.body result := by
     have htail :
-        ExecBlock config { contract := contract, locals := locals1 } evmCat
+        ExecBlock fork config { contract := contract, locals := locals1 } evmCat
           (checkedExternalCallStmts (.storage vatRef) "flux" (.intLit 0)
             [.storage ilkRef, thisAddr, .storage (bidsF (.var "id") "guy"),
               .storage (bidsF (.var "id") "lot")] "_fluxRet" ++
@@ -659,7 +661,7 @@ theorem flipperDealSourceBodySuccessSplit {σ σ₀ A I} {g : UInt256}
           result := by
       exact execBlock_append hvatBlock hdelete
     have hcalls :
-        ExecBlock config { contract := contract, locals := locals } evm0
+        ExecBlock fork config { contract := contract, locals := locals } evm0
           (checkedExternalCallStmts (.storage catRef) "claw" (.intLit 0)
             [.storage (bidsF (.var "id") "tab")] "_clawRet" ++
           (checkedExternalCallStmts (.storage vatRef) "flux" (.intLit 0)
@@ -669,7 +671,7 @@ theorem flipperDealSourceBodySuccessSplit {σ σ₀ A I} {g : UInt256}
           result := by
       exact execBlock_append hcatBlock htail
     have hblock :
-        ExecBlock config { contract := contract, locals := locals } evm0 dealTransition.body
+        ExecBlock fork config { contract := contract, locals := locals } evm0 dealTransition.body
           result := by
       refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
       · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -688,7 +690,7 @@ theorem flipperDealSourceBodySuccessSplit {σ σ₀ A I} {g : UInt256}
         typedCallViaEVM_executionEnv_eq hcallCat]
       exact hperm
     exact ExecFuncBody.execBlockOK
-      (hprefix (ExecBlock.consNormal (ExecStmt.delete (hperm := hp) hdelete) ExecBlock.nil))
+      (hprefix (ExecBlock.consNormal (ExecStmt.delete (fork := fork) (hperm := hp) hdelete) ExecBlock.nil))
   · intro hperm
     have hp : evmVat.executionEnv.perm = false := by
       rw [typedCallViaEVM_executionEnv_eq hcallVat,
@@ -710,7 +712,7 @@ theorem flipperDealSourceBodyVatNoCode {σ σ₀ A I} {g : UInt256}
           (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
             (flipperCatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallCat :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (flipperCatAddress σ I)) "claw" 0
         (dealClawArgVals (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         (true, evmCat, outCat) true)
@@ -721,7 +723,7 @@ theorem flipperDealSourceBodyVatNoCode {σ σ₀ A I} {g : UInt256}
     let locals := dealLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let locals1 := (dealLocals I).insert "_clawRet" (collapseReturns [])
-    ExecTransitionBody config contract evm0 locals dealTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals dealTransition.body .reverted := by
   intro locals evm0 locals1
   have hcat : evalExpr? config { contract := contract, locals := locals } evm0 (.storage catRef) =
       .ok (.address (flipperCatAddress evm0.accountMap evm0.executionEnv)) := by
@@ -737,14 +739,14 @@ theorem flipperDealSourceBodyVatNoCode {σ σ₀ A I} {g : UInt256}
         [.storage (bidsF (.var "id") "tab")] = .ok (dealClawArgVals evm0) := by
     simpa [locals] using evalExprs_dealClawArgs (evm := evm0)
   have hcallCat' :
-      typedCallViaEVM config evm0
+      typedCallViaEVM fork config evm0
         (EVM.address (flipperCatAddress evm0.accountMap evm0.executionEnv)) "claw" 0
         (dealClawArgVals evm0) (true, evmCat, outCat) true := by
     simpa [evm0, initState, flipperCatAddress] using hcallCat
   have hdecCat : config.externalABI.decode? "claw" outCat = some [] := by
     simp [config, externalABI, decodeVoid?]
   have hcatBlock :
-      ExecBlock config { contract := contract, locals := locals } evm0
+      ExecBlock fork config { contract := contract, locals := locals } evm0
         (checkedExternalCallStmts (.storage catRef) "claw" (.intLit 0)
           [.storage (bidsF (.var "id") "tab")] "_clawRet")
         (.ok { contract := contract, locals := locals1 } evmCat) := by
@@ -766,7 +768,7 @@ theorem flipperDealSourceBodyVatNoCode {σ σ₀ A I} {g : UInt256}
         (.binary .gt (.extCodeSize (.storage vatRef)) (.intLit 0)) = .ok (.bool false) := by
     exact evalExpr_flipperVatCodeGuard_false_ofLocals hvat hvatNoCode
   have hvatBlock :
-      ExecBlock config { contract := contract, locals := locals1 } evmCat
+      ExecBlock fork config { contract := contract, locals := locals1 } evmCat
         (checkedExternalCallStmts (.storage vatRef) "flux" (.intLit 0)
           [.storage ilkRef, thisAddr, .storage (bidsF (.var "id") "guy"),
             .storage (bidsF (.var "id") "lot")] "_fluxRet")
@@ -778,7 +780,7 @@ theorem flipperDealSourceBodyVatNoCode {σ σ₀ A I} {g : UInt256}
         (args := [.storage ilkRef, thisAddr, .storage (bidsF (.var "id") "guy"),
           .storage (bidsF (.var "id") "lot")]) hguardVat
   have htail :
-      ExecBlock config { contract := contract, locals := locals1 } evmCat
+      ExecBlock fork config { contract := contract, locals := locals1 } evmCat
         (checkedExternalCallStmts (.storage vatRef) "flux" (.intLit 0)
           [.storage ilkRef, thisAddr, .storage (bidsF (.var "id") "guy"),
             .storage (bidsF (.var "id") "lot")] "_fluxRet" ++
@@ -787,7 +789,7 @@ theorem flipperDealSourceBodyVatNoCode {σ σ₀ A I} {g : UInt256}
     exact execBlock_append_term (s2 := [ .delete (bidRef (.var "id")) ])
       hvatBlock (by intro f' e' h; cases h)
   have hcalls :
-      ExecBlock config { contract := contract, locals := locals } evm0
+      ExecBlock fork config { contract := contract, locals := locals } evm0
         (checkedExternalCallStmts (.storage catRef) "claw" (.intLit 0)
           [.storage (bidsF (.var "id") "tab")] "_clawRet" ++
         (checkedExternalCallStmts (.storage vatRef) "flux" (.intLit 0)
@@ -797,7 +799,7 @@ theorem flipperDealSourceBodyVatNoCode {σ σ₀ A I} {g : UInt256}
         .reverted := by
     exact execBlock_append hcatBlock htail
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 dealTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 dealTransition.body
         .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -820,7 +822,7 @@ theorem flipperDealSourceBodyVatCallFailure {σ σ₀ A I} {g : UInt256}
           (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
             (flipperCatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallCat :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (flipperCatAddress σ I)) "claw" 0
         (dealClawArgVals (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         (true, evmCat, outCat) true)
@@ -830,13 +832,13 @@ theorem flipperDealSourceBodyVatCallFailure {σ σ₀ A I} {g : UInt256}
           ((evmCat.lookupAccount (flipperVatAddress evmCat.accountMap evmCat.executionEnv)).option
             0 (fun acc => acc.code.size))).toNat)
     (hcallVat :
-      typedCallViaEVM config evmCat
+      typedCallViaEVM fork config evmCat
         (EVM.address (flipperVatAddress evmCat.accountMap evmCat.executionEnv)) "flux" 0
         (dealFluxArgValsOf evmCat (dealId I)) (false, evmVat, outVat) true) :
     let locals := dealLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let locals1 := (dealLocals I).insert "_clawRet" (collapseReturns [])
-    ExecTransitionBody config contract evm0 locals dealTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals dealTransition.body .reverted := by
   intro locals evm0 locals1
   have hcat : evalExpr? config { contract := contract, locals := locals } evm0 (.storage catRef) =
       .ok (.address (flipperCatAddress evm0.accountMap evm0.executionEnv)) := by
@@ -852,14 +854,14 @@ theorem flipperDealSourceBodyVatCallFailure {σ σ₀ A I} {g : UInt256}
         [.storage (bidsF (.var "id") "tab")] = .ok (dealClawArgVals evm0) := by
     simpa [locals] using evalExprs_dealClawArgs (evm := evm0)
   have hcallCat' :
-      typedCallViaEVM config evm0
+      typedCallViaEVM fork config evm0
         (EVM.address (flipperCatAddress evm0.accountMap evm0.executionEnv)) "claw" 0
         (dealClawArgVals evm0) (true, evmCat, outCat) true := by
     simpa [evm0, initState, flipperCatAddress] using hcallCat
   have hdecCat : config.externalABI.decode? "claw" outCat = some [] := by
     simp [config, externalABI, decodeVoid?]
   have hcatBlock :
-      ExecBlock config { contract := contract, locals := locals } evm0
+      ExecBlock fork config { contract := contract, locals := locals } evm0
         (checkedExternalCallStmts (.storage catRef) "claw" (.intLit 0)
           [.storage (bidsF (.var "id") "tab")] "_clawRet")
         (.ok { contract := contract, locals := locals1 } evmCat) := by
@@ -890,7 +892,7 @@ theorem flipperDealSourceBodyVatCallFailure {σ σ₀ A I} {g : UInt256}
       (by simpa [locals1] using dealLocalsAfterClaw_get_bids I)
       (by simpa [locals1] using dealLocalsAfterClaw_get_ilk I)
   have hvatBlock :
-      ExecBlock config { contract := contract, locals := locals1 } evmCat
+      ExecBlock fork config { contract := contract, locals := locals1 } evmCat
         (checkedExternalCallStmts (.storage vatRef) "flux" (.intLit 0)
           [.storage ilkRef, thisAddr, .storage (bidsF (.var "id") "guy"),
             .storage (bidsF (.var "id") "lot")] "_fluxRet")
@@ -905,7 +907,7 @@ theorem flipperDealSourceBodyVatCallFailure {σ σ₀ A I} {g : UInt256}
         (argVals := dealFluxArgValsOf evmCat (dealId I)) (out := outVat) (perm := true)
         hguardVat hvat hargsVat hcallVat
   have htail :
-      ExecBlock config { contract := contract, locals := locals1 } evmCat
+      ExecBlock fork config { contract := contract, locals := locals1 } evmCat
         (checkedExternalCallStmts (.storage vatRef) "flux" (.intLit 0)
           [.storage ilkRef, thisAddr, .storage (bidsF (.var "id") "guy"),
             .storage (bidsF (.var "id") "lot")] "_fluxRet" ++
@@ -914,7 +916,7 @@ theorem flipperDealSourceBodyVatCallFailure {σ σ₀ A I} {g : UInt256}
     exact execBlock_append_term (s2 := [ .delete (bidRef (.var "id")) ])
       hvatBlock (by intro f' e' h; cases h)
   have hcalls :
-      ExecBlock config { contract := contract, locals := locals } evm0
+      ExecBlock fork config { contract := contract, locals := locals } evm0
         (checkedExternalCallStmts (.storage catRef) "claw" (.intLit 0)
           [.storage (bidsF (.var "id") "tab")] "_clawRet" ++
         (checkedExternalCallStmts (.storage vatRef) "flux" (.intLit 0)
@@ -924,7 +926,7 @@ theorem flipperDealSourceBodyVatCallFailure {σ σ₀ A I} {g : UInt256}
         .reverted := by
     exact execBlock_append hcatBlock htail
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 dealTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 dealTransition.body
         .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)

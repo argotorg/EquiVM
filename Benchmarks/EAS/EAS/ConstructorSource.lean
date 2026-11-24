@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.ConstructorData
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -11,7 +13,7 @@ theorem wordValue_fits_uint256 (w : UInt256) : elemValueFits (.int (.uint ⟨256
   · exact Int.ofNat_lt.mpr (show w.toNat < 2^256 from w.val.isLt)
 
 theorem easCtorPrefixSource {L imms : Store} {evm : EVM.State} (hv : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecBlock config {contract := contract,locals := L,immutables := imms} evm easCtorPrefix
+    ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm easCtorPrefix
       (.ok {contract := contract,locals := easCtorHashLocals L,immutables := easCtorImms1 imms} evm) := by
   apply ExecBlock.consNormal (ExecStmt.letDecl (value := .int 512) (by simp only [evalExpr?,pure]))
   apply ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hv))
@@ -34,16 +36,16 @@ theorem easCtorPrefixSource {L imms : Store} {evm : EVM.State} (hv : evm.executi
   exact ExecBlock.nil
 
 theorem easCtorDomainSource {L imms : Store} {evm : EVM.State} :
-    ExecBlock config {contract := contract,locals := easCtorHashLocals L,immutables := imms} evm easCtorDomainBlock
+    ExecBlock fork config {contract := contract,locals := easCtorHashLocals L,immutables := imms} evm easCtorDomainBlock
       (.ok {contract := contract,locals := easCtorLocals L evm.executionEnv.codeOwner,immutables := imms} evm) := by
   have he : evalExprs? config {contract := contract,locals := easCtorHashLocals L,immutables := imms} evm easCtorDomainArgs =
       .ok [wordBytes32Value easCtorType,wordBytes32Value easCtorName,wordBytes32Value easCtorVersion,.int (Int.ofNat 512)] := by
     simp (disch := decide) only [easCtorDomainArgs,evalExprs?,evalExpr?,easCtorHashLocals,store_get_ne,store_get_self,
       EvalResult.ofOption,bind,EvalResult.bind,pure]
     rfl
-  have hc := internalCallFunctionReturn (retVar := "domain$allocation") he buildDomain_lookup
+  have hc := internalCallFunctionReturn (fork := fork) (retVar := "domain$allocation") he buildDomain_lookup
     (buildDomain_bind easCtorType easCtorName easCtorVersion 512)
-    (buildDomainSource_ok (buildDomainArgs_type _ _ _ _) (buildDomainArgs_name _ _ _ _)
+    (buildDomainSource_ok (fork := fork) (buildDomainArgs_type _ _ _ _) (buildDomainArgs_name _ _ _ _)
       (buildDomainArgs_version _ _ _ _) (buildDomainArgs_heap _ _ _ _) (by native_decide))
   have hh : (easCtorHashLocals L).get? "$EAS.freeMemory" = some (.int (Int.ofNat 512)) := by
     simp (disch := decide) only [easCtorHashLocals,store_get_ne,store_get_self]
@@ -52,7 +54,7 @@ theorem easCtorDomainSource {L imms : Store} {evm : EVM.State} :
   exact heapResultBlock_ok hc hh (by decide) (by decide) (by decide)
 
 theorem easCtorSetDomainSource {L imms : Store} {evm : EVM.State} :
-    ExecBlock config {contract := contract,locals := easCtorLocals L evm.executionEnv.codeOwner,immutables := easCtorImms1 imms}
+    ExecBlock fork config {contract := contract,locals := easCtorLocals L evm.executionEnv.codeOwner,immutables := easCtorImms1 imms}
       evm easCtorSetDomain
       (.ok {contract := contract,locals := easCtorLocals L evm.executionEnv.codeOwner,immutables := easCtorImms2 imms evm.executionEnv.codeOwner} evm) := by
   refine ExecBlock.consNormal (ExecStmt.setImmutable (ty := .int (.uint ⟨256,by decide⟩))
@@ -83,24 +85,24 @@ theorem easCtorGuard_eval {imms L : Store} {evm : EVM.State} {registry : Account
     evalBinaryOp?,beq_eq_decide,Value.address.injEq,decide_not]
 
 theorem easCtorSourceNonpayable {σ σ₀ A I} {g : UInt256} (registry : AccountAddress)
-    (hv : I.weiValue ≠ ⟨0⟩) : steleCtorExec config contract [.address registry] σ σ₀ g A I .reverted := by
+    (hv : I.weiValue ≠ ⟨0⟩) : steleCtorExec fork config contract [.address registry] σ σ₀ g A I .reverted := by
   refine steleCtorExec.intro (evmState := initState σ σ₀ (Sat256.ofUInt256 g) A I) (argsStore := easCtorArgs registry) rfl rfl rfl ?_
   rw [easCtorBody]
-  change ExecFuncBody config _ _ (.letDecl "$EAS.freeMemory" none (.intLit 512) :: .require (.binary .eq (.env .callvalue) (.intLit 0)) :: _) _
+  change ExecFuncBody fork config _ _ (.letDecl "$EAS.freeMemory" none (.intLit 512) :: .require (.binary .eq (.env .callvalue) (.intLit 0)) :: _) _
   apply ExecFuncBody.execBlockRevert
   apply ExecBlock.consNormal (ExecStmt.letDecl (value := .int 512) (by simp only [evalExpr?,pure]))
   exact blockReverts_nonPayable (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I) hv
 
 theorem easCtorSource {σ σ₀ A I} {g : UInt256} (registry : AccountAddress)
     (hv : I.weiValue = ⟨0⟩) :
-    if registry = ⟨0,by decide⟩ then steleCtorExec config contract [.address registry] σ σ₀ g A I .reverted else
-      steleCtorExec config contract [.address registry] σ σ₀ g A I
+    if registry = ⟨0,by decide⟩ then steleCtorExec fork config contract [.address registry] σ σ₀ g A I .reverted else
+      steleCtorExec fork config contract [.address registry] σ σ₀ g A I
         (.returned {contract := contract,locals := easCtorLocals (easCtorArgs registry) I.codeOwner,immutables := easCtorImms I.codeOwner registry}
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) none) := by
   let evm := initState σ σ₀ (Sat256.ofUInt256 g) A I
-  have hp := easCtorPrefixSource (L := easCtorArgs registry) (imms := initialImmutables contract) (evm := evm) hv
-  have hc := easCtorDomainSource (L := easCtorArgs registry) (imms := easCtorImms1 (initialImmutables contract)) (evm := evm)
-  have hd := easCtorSetDomainSource (L := easCtorArgs registry) (imms := initialImmutables contract) (evm := evm)
+  have hp := easCtorPrefixSource (fork := fork) (L := easCtorArgs registry) (imms := initialImmutables contract) (evm := evm) hv
+  have hc := easCtorDomainSource (fork := fork) (L := easCtorArgs registry) (imms := easCtorImms1 (initialImmutables contract)) (evm := evm)
+  have hd := easCtorSetDomainSource (fork := fork) (L := easCtorArgs registry) (imms := initialImmutables contract) (evm := evm)
   have hfront := execBlock_append (execBlock_append hp hc) hd
   have hget := easCtorLocals_registry registry evm.executionEnv.codeOwner
   by_cases hz : registry = ⟨0,by decide⟩

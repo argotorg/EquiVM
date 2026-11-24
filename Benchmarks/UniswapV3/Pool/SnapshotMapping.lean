@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.TickOutsideWords
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_031
 import Reasoning.HeapMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -88,13 +90,13 @@ theorem snapshotMapMemory_eq (mem : ByteArray) (lower upper : Int) (lowerRaw upp
 theorem snapshotMapLowerX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw a b c lowerRaw upperRaw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (lower upper : Int)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨9975⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨9975⟩
       (a :: b :: c :: upperRaw :: lowerRaw :: R) mem aw rdata σ k C)
     (hs : mem.size = 96) (ha : ActiveWords aw)
     (hl : UInt256.signextend (UInt256.ofNat 2) lowerRaw = EVM.wordOfInt lower)
     (hu : UInt256.signextend (UInt256.ofNat 2) upperRaw = EVM.wordOfInt upper)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨10065⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨10065⟩
       (snapshotLowerStack lower upper σ ee a b c lowerRaw upperRaw R)
       (snapshotMapMem mem lower upper) aw rdata σ k' C' := by
   have h0 : M aw (UInt256.ofNat 0) ⟨32⟩ = aw :=

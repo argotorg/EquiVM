@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PoolUpdateTickFeeTrace
 import Benchmarks.UniswapV4PoolManager.SignedComparison
 import Benchmarks.UniswapV4PoolManager.MemoryGas
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -12,13 +14,13 @@ theorem tickLowerFeeGuardExactTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : St
     {mem rdata : ByteArray} {aw id tick x0 x1 : UInt256} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+6 ≤ 1024) (hI : evm.executionEnv = I)
     (hm : memLoad (UInt256.ofNat 128) mem = poolSlot id)
-    (h : RD (deployedRuntime v) I g s0 ⟨7662⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨7662⟩
       (tick :: x0 :: x1 :: tickSlot id (EVM.signed tick) :: R) mem aw rdata evm.accountMap k C) :
     if EVM.signed tick ≤ EVM.signed (slot0TickWord (poolSlot0Word evm id)) then
-      if I.perm = false then RDstatic (deployedRuntime v) g s0 else ∃ k' C',
-        RD (deployedRuntime v) I g s0 ⟨7679⟩ (x0 :: x1 :: tickSlot id (EVM.signed tick) :: R)
+      if I.perm = false then RDstatic fork (deployedRuntime v) g s0 else ∃ k' C',
+        RD fork (deployedRuntime v) I g s0 ⟨7679⟩ (x0 :: x1 :: tickSlot id (EVM.signed tick) :: R)
           mem (M aw (UInt256.ofNat 128) ⟨32⟩) rdata (tickFeeWrites evm id (EVM.signed tick)).accountMap k' C'
-    else ∃ k' C', RD (deployedRuntime v) I g s0 ⟨7679⟩
+    else ∃ k' C', RD fork (deployedRuntime v) I g s0 ⟨7679⟩
       (x0 :: x1 :: tickSlot id (EVM.signed tick) :: R) mem (M aw (UInt256.ofNat 128) ⟨32⟩) rdata evm.accountMap k' C' := by
   have hword : solcSlotWordAt (memLoad (UInt256.ofNat 128) mem) evm.accountMap I = poolSlot0Word evm id := by
     rw [hm]
@@ -55,15 +57,15 @@ theorem tickUpperFeeGuardExactTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : St
     {mem rdata : ByteArray} {aw id tick x0 x1 x3 x4 x5 x6 x7 x8 x9 : UInt256} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+14 ≤ 1024) (hI : evm.executionEnv = I)
     (hm : memLoad (UInt256.ofNat 128) mem = poolSlot id)
-    (h : RD (deployedRuntime v) I g s0 ⟨7617⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨7617⟩
       (x0 :: x1 :: tickSlot id (EVM.signed tick) :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: tick :: R)
       mem aw rdata evm.accountMap k C) :
     if EVM.signed tick ≤ EVM.signed (slot0TickWord (poolSlot0Word evm id)) then
-      if I.perm = false then RDstatic (deployedRuntime v) g s0 else ∃ k' C',
-        RD (deployedRuntime v) I g s0 ⟨7132⟩
+      if I.perm = false then RDstatic fork (deployedRuntime v) g s0 else ∃ k' C',
+        RD fork (deployedRuntime v) I g s0 ⟨7132⟩
           (x0 :: x1 :: tickSlot id (EVM.signed tick) :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: tick :: R)
           mem (M aw (UInt256.ofNat 128) ⟨32⟩) rdata (tickFeeWrites evm id (EVM.signed tick)).accountMap k' C'
-    else ∃ k' C', RD (deployedRuntime v) I g s0 ⟨7132⟩
+    else ∃ k' C', RD fork (deployedRuntime v) I g s0 ⟨7132⟩
       (x0 :: x1 :: tickSlot id (EVM.signed tick) :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: tick :: R)
       mem (M aw (UInt256.ofNat 128) ⟨32⟩) rdata evm.accountMap k' C' := by
   have hword : solcSlotWordAt (memLoad (UInt256.ofNat 128) mem) evm.accountMap I = poolSlot0Word evm id := by
@@ -99,13 +101,13 @@ theorem tickLowerFeeGuardTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {mem rdata : ByteArray} {aw id tick x0 x1 : UInt256} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+6 ≤ 1024) (hI : evm.executionEnv = I)
     (hm : memLoad (UInt256.ofNat 128) mem = poolSlot id)
-    (h : RD (deployedRuntime v) I g s0 ⟨7662⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨7662⟩
       (tick :: x0 :: x1 :: tickSlot id (EVM.signed tick) :: R) mem aw rdata evm.accountMap k C) :
     if EVM.signed tick ≤ EVM.signed (slot0TickWord (poolSlot0Word evm id)) then
-      if I.perm = false then RDstatic (deployedRuntime v) g s0 else ∃ aw' k' C',
-        RD (deployedRuntime v) I g s0 ⟨7679⟩ (x0 :: x1 :: tickSlot id (EVM.signed tick) :: R)
+      if I.perm = false then RDstatic fork (deployedRuntime v) g s0 else ∃ aw' k' C',
+        RD fork (deployedRuntime v) I g s0 ⟨7679⟩ (x0 :: x1 :: tickSlot id (EVM.signed tick) :: R)
           mem aw' rdata (tickFeeWrites evm id (EVM.signed tick)).accountMap k' C'
-    else ∃ aw' k' C', RD (deployedRuntime v) I g s0 ⟨7679⟩
+    else ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 ⟨7679⟩
       (x0 :: x1 :: tickSlot id (EVM.signed tick) :: R) mem aw' rdata evm.accountMap k' C' := by
   have hr := tickLowerFeeGuardExactTrace v hstack hI hm h
   split_ifs at hr ⊢
@@ -115,15 +117,15 @@ theorem tickUpperFeeGuardTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {mem rdata : ByteArray} {aw id tick x0 x1 x3 x4 x5 x6 x7 x8 x9 : UInt256} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+14 ≤ 1024) (hI : evm.executionEnv = I)
     (hm : memLoad (UInt256.ofNat 128) mem = poolSlot id)
-    (h : RD (deployedRuntime v) I g s0 ⟨7617⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨7617⟩
       (x0 :: x1 :: tickSlot id (EVM.signed tick) :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: tick :: R)
       mem aw rdata evm.accountMap k C) :
     if EVM.signed tick ≤ EVM.signed (slot0TickWord (poolSlot0Word evm id)) then
-      if I.perm = false then RDstatic (deployedRuntime v) g s0 else ∃ aw' k' C',
-        RD (deployedRuntime v) I g s0 ⟨7132⟩
+      if I.perm = false then RDstatic fork (deployedRuntime v) g s0 else ∃ aw' k' C',
+        RD fork (deployedRuntime v) I g s0 ⟨7132⟩
           (x0 :: x1 :: tickSlot id (EVM.signed tick) :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: tick :: R)
           mem aw' rdata (tickFeeWrites evm id (EVM.signed tick)).accountMap k' C'
-    else ∃ aw' k' C', RD (deployedRuntime v) I g s0 ⟨7132⟩
+    else ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 ⟨7132⟩
       (x0 :: x1 :: tickSlot id (EVM.signed tick) :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: tick :: R)
       mem aw' rdata evm.accountMap k' C' := by
   have hr := tickUpperFeeGuardExactTrace v hstack hI hm h

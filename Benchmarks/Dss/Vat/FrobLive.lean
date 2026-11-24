@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Vat.FrobLiveSuccess
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Vat
@@ -244,12 +246,12 @@ theorem hsourceRevertFromPrefix {evm : EVM.State} {I : ExecutionEnv}
     {p tail : List Stmt}
     (hbody : frobTransition.body = p ++ tail)
     (hsrcPrefixRevert :
-      ExecBlock config { contract := contract, locals := frobStore I } evm p
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm p
         .reverted) :
-    ExecTransitionBody config contract evm (frobStore I) frobTransition.body
+    ExecTransitionBody fork config contract evm (frobStore I) frobTransition.body
       .reverted := by
   have hblock :
-      ExecBlock config { contract := contract, locals := frobStore I } evm
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm
         frobTransition.body .reverted := by
     rw [hbody]
     exact execBlock_append_term (s2 := tail) hsrcPrefixRevert
@@ -258,7 +260,7 @@ theorem hsourceRevertFromPrefix {evm : EVM.State} {I : ExecutionEnv}
 
 theorem hsourceRevertFromUrnInkAdd {evm : EVM.State} {I : ExecutionEnv}
     (hsrcPrefixRevert :
-      ExecBlock config { contract := contract, locals := frobStore I } evm
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm
         ((nonpayable ++ requireLive ++
           [ .letDecl "urnInk" (some uint256)
               (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -272,7 +274,7 @@ theorem hsourceRevertFromUrnInkAdd {evm : EVM.State} {I : ExecutionEnv}
             .require (.binary .ne (.var "ilkRate") (.intLit 0)) ]) ++
           checkedAddSignedInto "urnInkNew" (.var "urnInk") (.var "dink"))
         .reverted) :
-    ExecTransitionBody config contract evm (frobStore I) frobTransition.body
+    ExecTransitionBody fork config contract evm (frobStore I) frobTransition.body
       .reverted := by
   exact hsourceRevertFromPrefix
     (tail :=
@@ -327,7 +329,7 @@ theorem hsourceRevertFromUrnInkAdd {evm : EVM.State} {I : ExecutionEnv}
     hsrcPrefixRevert
 theorem hsourceRevertFromUrnArtAdd {evm : EVM.State} {I : ExecutionEnv}
     (hsrcPrefixRevert :
-      ExecBlock config { contract := contract, locals := frobStore I } evm
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm
         ((nonpayable ++ requireLive ++
           [ .letDecl "urnInk" (some uint256)
               (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -342,7 +344,7 @@ theorem hsourceRevertFromUrnArtAdd {evm : EVM.State} {I : ExecutionEnv}
           checkedAddSignedInto "urnInkNew" (.var "urnInk") (.var "dink") ++
           checkedAddSignedInto "urnArtNew" (.var "urnArt") (.var "dart"))
         .reverted) :
-    ExecTransitionBody config contract evm (frobStore I) frobTransition.body
+    ExecTransitionBody fork config contract evm (frobStore I) frobTransition.body
       .reverted := by
   exact hsourceRevertFromPrefix
     (tail :=
@@ -396,7 +398,7 @@ theorem hsourceRevertFromUrnArtAdd {evm : EVM.State} {I : ExecutionEnv}
     hsrcPrefixRevert
 theorem hsourceRevertFromIlkArtAdd {evm : EVM.State} {I : ExecutionEnv}
     (hsrcPrefixRevert :
-      ExecBlock config { contract := contract, locals := frobStore I } evm
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm
         ((nonpayable ++ requireLive ++
           [ .letDecl "urnInk" (some uint256)
               (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -412,7 +414,7 @@ theorem hsourceRevertFromIlkArtAdd {evm : EVM.State} {I : ExecutionEnv}
           checkedAddSignedInto "urnArtNew" (.var "urnArt") (.var "dart") ++
           checkedAddSignedInto "ilkArtNew" (.var "ilkArt") (.var "dart"))
         .reverted) :
-    ExecTransitionBody config contract evm (frobStore I) frobTransition.body
+    ExecTransitionBody fork config contract evm (frobStore I) frobTransition.body
       .reverted := by
   exact hsourceRevertFromPrefix
     (tail :=
@@ -465,7 +467,7 @@ theorem hsourceRevertFromIlkArtAdd {evm : EVM.State} {I : ExecutionEnv}
     hsrcPrefixRevert
 theorem hsourceRevertFromDtabMul {evm : EVM.State} {I : ExecutionEnv}
     (hsrcPrefixRevert :
-      ExecBlock config { contract := contract, locals := frobStore I } evm
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm
         ((nonpayable ++ requireLive ++
           [ .letDecl "urnInk" (some uint256)
               (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -482,7 +484,7 @@ theorem hsourceRevertFromDtabMul {evm : EVM.State} {I : ExecutionEnv}
           checkedAddSignedInto "ilkArtNew" (.var "ilkArt") (.var "dart") ++
           checkedMulSignedInto "dtab" (.var "ilkRate") (.var "dart"))
         .reverted) :
-    ExecTransitionBody config contract evm (frobStore I) frobTransition.body
+    ExecTransitionBody fork config contract evm (frobStore I) frobTransition.body
       .reverted := by
   exact hsourceRevertFromPrefix
     (tail :=
@@ -534,7 +536,7 @@ theorem hsourceRevertFromDtabMul {evm : EVM.State} {I : ExecutionEnv}
     hsrcPrefixRevert
 theorem hsourceRevertFromTabMul {evm : EVM.State} {I : ExecutionEnv}
     (hsrcPrefixRevert :
-      ExecBlock config { contract := contract, locals := frobStore I } evm
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm
         ((nonpayable ++ requireLive ++
           [ .letDecl "urnInk" (some uint256)
               (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -552,7 +554,7 @@ theorem hsourceRevertFromTabMul {evm : EVM.State} {I : ExecutionEnv}
           checkedMulSignedInto "dtab" (.var "ilkRate") (.var "dart") ++
           checkedMulUintInto "tab" (.var "ilkRate") (.var "urnArtNew"))
         .reverted) :
-    ExecTransitionBody config contract evm (frobStore I) frobTransition.body
+    ExecTransitionBody fork config contract evm (frobStore I) frobTransition.body
       .reverted := by
   exact hsourceRevertFromPrefix
     (tail :=
@@ -603,7 +605,7 @@ theorem hsourceRevertFromTabMul {evm : EVM.State} {I : ExecutionEnv}
     hsrcPrefixRevert
 theorem hsourceRevertFromDebtAdd {evm : EVM.State} {I : ExecutionEnv}
     (hsrcPrefixRevert :
-      ExecBlock config { contract := contract, locals := frobStore I } evm
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm
         ((nonpayable ++ requireLive ++
           [ .letDecl "urnInk" (some uint256)
               (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -622,7 +624,7 @@ theorem hsourceRevertFromDebtAdd {evm : EVM.State} {I : ExecutionEnv}
           checkedMulUintInto "tab" (.var "ilkRate") (.var "urnArtNew") ++
           checkedAddSignedInto "debtNew" (.storage debtRef) (.var "dtab"))
         .reverted) :
-    ExecTransitionBody config contract evm (frobStore I) frobTransition.body
+    ExecTransitionBody fork config contract evm (frobStore I) frobTransition.body
       .reverted := by
   exact hsourceRevertFromPrefix
     (tail :=
@@ -672,7 +674,7 @@ theorem hsourceRevertFromDebtAdd {evm : EVM.State} {I : ExecutionEnv}
     hsrcPrefixRevert
 theorem hsourceStaticFromDebtStore {evm : EVM.State} {I : ExecutionEnv}
     (hsrcPrefixStatic :
-      ExecBlock config { contract := contract, locals := frobStore I } evm
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm
         ((nonpayable ++ requireLive ++
           [ .letDecl "urnInk" (some uint256)
               (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -692,7 +694,7 @@ theorem hsourceStaticFromDebtStore {evm : EVM.State} {I : ExecutionEnv}
           checkedAddSignedInto "debtNew" (.storage debtRef) (.var "dtab") ++
           [ .assign .storage debtRef (.var "debtNew") ])
         .staticViolation) :
-    ExecTransitionBody config contract evm (frobStore I) frobTransition.body
+    ExecTransitionBody fork config contract evm (frobStore I) frobTransition.body
       .staticViolation := by
   have hblock := execBlock_append_term
     (s2 :=
@@ -743,7 +745,7 @@ theorem hsourceStaticFromDebtStore {evm : EVM.State} {I : ExecutionEnv}
 
 theorem hsourceRevertFromCeilingMul {evm : EVM.State} {I : ExecutionEnv}
     (hsrcPrefixRevert :
-      ExecBlock config { contract := contract, locals := frobStore I } evm
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm
         ((nonpayable ++ requireLive ++
           [ .letDecl "urnInk" (some uint256)
               (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -764,7 +766,7 @@ theorem hsourceRevertFromCeilingMul {evm : EVM.State} {I : ExecutionEnv}
           [ .assign .storage debtRef (.var "debtNew") ] ++
           checkedMulUintInto "ceilingDebt" (.var "ilkArtNew") (.var "ilkRate"))
         .reverted) :
-    ExecTransitionBody config contract evm (frobStore I) frobTransition.body
+    ExecTransitionBody fork config contract evm (frobStore I) frobTransition.body
       .reverted := by
   exact hsourceRevertFromPrefix
     (tail :=
@@ -812,7 +814,7 @@ theorem hsourceRevertFromCeilingMul {evm : EVM.State} {I : ExecutionEnv}
     hsrcPrefixRevert
 theorem hsourceRevertFromInkSpotMul {evm : EVM.State} {I : ExecutionEnv}
     (hsrcPrefixRevert :
-      ExecBlock config { contract := contract, locals := frobStore I } evm
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm
         ((nonpayable ++ requireLive ++
           [ .letDecl "urnInk" (some uint256)
               (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -834,7 +836,7 @@ theorem hsourceRevertFromInkSpotMul {evm : EVM.State} {I : ExecutionEnv}
           checkedMulUintInto "ceilingDebt" (.var "ilkArtNew") (.var "ilkRate") ++
           checkedMulUintInto "inkSpot" (.var "urnInkNew") (.var "ilkSpot"))
         .reverted) :
-    ExecTransitionBody config contract evm (frobStore I) frobTransition.body
+    ExecTransitionBody fork config contract evm (frobStore I) frobTransition.body
       .reverted := by
   exact hsourceRevertFromPrefix
     (tail :=
@@ -881,7 +883,7 @@ theorem hsourceRevertFromInkSpotMul {evm : EVM.State} {I : ExecutionEnv}
     hsrcPrefixRevert
 theorem hsourceRevertFromCeilingRequire {evm : EVM.State} {I : ExecutionEnv}
     (hsrcPrefixRevert :
-      ExecBlock config { contract := contract, locals := frobStore I } evm
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm
         ((nonpayable ++ requireLive ++
           [ .letDecl "urnInk" (some uint256)
               (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -909,7 +911,7 @@ theorem hsourceRevertFromCeilingRequire {evm : EVM.State} {I : ExecutionEnv}
                   (.binary .le (.var "ceilingDebt") (.var "ilkLine"))
                   (.binary .le (.var "debtNew") (.storage LineRef)))) ])
         .reverted) :
-    ExecTransitionBody config contract evm (frobStore I) frobTransition.body
+    ExecTransitionBody fork config contract evm (frobStore I) frobTransition.body
       .reverted := by
   exact hsourceRevertFromPrefix
     (tail :=
@@ -950,7 +952,7 @@ theorem hsourceRevertFromCeilingRequire {evm : EVM.State} {I : ExecutionEnv}
     hsrcPrefixRevert
 theorem hsourceRevertFromSafetyRequire {evm : EVM.State} {I : ExecutionEnv}
     (hsrcPrefixRevert :
-      ExecBlock config { contract := contract, locals := frobStore I } evm
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm
         ((nonpayable ++ requireLive ++
           [ .letDecl "urnInk" (some uint256)
               (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -984,7 +986,7 @@ theorem hsourceRevertFromSafetyRequire {evm : EVM.State} {I : ExecutionEnv}
                   (.binary .ge (.var "dink") (.intLit 0)))
                 (.binary .le (.var "tab") (.var "inkSpot"))) ])
         .reverted) :
-    ExecTransitionBody config contract evm (frobStore I) frobTransition.body
+    ExecTransitionBody fork config contract evm (frobStore I) frobTransition.body
       .reverted := by
   exact hsourceRevertFromPrefix
     (tail :=
@@ -1019,7 +1021,7 @@ theorem hsourceRevertFromSafetyRequire {evm : EVM.State} {I : ExecutionEnv}
     hsrcPrefixRevert
 theorem hsourceRevertFromAuthorizationDust {evm : EVM.State} {I : ExecutionEnv}
     (hsrcPrefixRevert :
-      ExecBlock config { contract := contract, locals := frobStore I } evm
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm
         ((nonpayable ++ requireLive ++
           [ .letDecl "urnInk" (some uint256)
               (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -1068,7 +1070,7 @@ theorem hsourceRevertFromAuthorizationDust {evm : EVM.State} {I : ExecutionEnv}
               (eitherExpr (.binary .eq (.var "urnArtNew") (.intLit 0))
                 (.binary .ge (.var "tab") (.var "ilkDust"))) ])
         .reverted) :
-    ExecTransitionBody config contract evm (frobStore I) frobTransition.body
+    ExecTransitionBody fork config contract evm (frobStore I) frobTransition.body
       .reverted := by
   exact hsourceRevertFromPrefix
     (tail :=
@@ -1090,7 +1092,7 @@ theorem hsourceRevertFromAuthorizationDust {evm : EVM.State} {I : ExecutionEnv}
 theorem hsourceRevertFromFinalStoreTail {evm evmDebt : EVM.State} {I : ExecutionEnv}
     {localsSafe : Store}
     (hsourceDust :
-      ExecBlock config { contract := contract, locals := frobStore I } evm
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm
         ((nonpayable ++ requireLive ++
           [ .letDecl "urnInk" (some uint256)
               (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -1140,7 +1142,7 @@ theorem hsourceRevertFromFinalStoreTail {evm evmDebt : EVM.State} {I : Execution
                 (.binary .ge (.var "tab") (.var "ilkDust"))) ])
         (.ok { contract := contract, locals := localsSafe } evmDebt))
     (htail :
-      ExecBlock config { contract := contract, locals := localsSafe } evmDebt
+      ExecBlock fork config { contract := contract, locals := localsSafe } evmDebt
         (checkedSubSignedInto "gemNew" (.storage (gemRef (.var "i") (.var "v")))
           (.var "dink") ++
           [ .assign .storage (gemRef (.var "i") (.var "v")) (.var "gemNew") ] ++
@@ -1154,7 +1156,7 @@ theorem hsourceRevertFromFinalStoreTail {evm evmDebt : EVM.State} {I : Execution
             .assign .storage (ilksF (.var "i") "line") (.var "ilkLine"),
             .assign .storage (ilksF (.var "i") "dust") (.var "ilkDust") ])
         .reverted) :
-    ExecTransitionBody config contract evm (frobStore I) frobTransition.body
+    ExecTransitionBody fork config contract evm (frobStore I) frobTransition.body
       .reverted := by
   have hblock := execBlock_append hsourceDust htail
   exact ExecFuncBody.execBlockRevert (by
@@ -1245,14 +1247,14 @@ theorem vatFrobBodyCoreLiveRateZeroRevert
         (transitionSignature frobTransition).paramTypes I.calldata = some (frobStore I))
     (hdecoded :
       ∃ k C,
-        RD vatBytecode I (Sat256.ofUInt256 g)
+        RD fork vatBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2975⟩
           [frobDartWord I, frobDinkWord I, frobWMaskedWord I, frobVMaskedWord I,
             frobUMaskedWord I, frobIWord I, ⟨524⟩, vatSelWord I]
           solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hlive : solcSlotWordAt ⟨10⟩ σ I = ⟨1⟩)
     (hrateZeroEvm : solcSlotWord σ I (frobIlkRateSlot I) = ⟨0⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨_, _, hafterLive⟩ := vatFrobLiveOk
     (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -1271,7 +1273,7 @@ theorem vatFrobBodyCoreLiveRateZeroRevert
   have hbodyRaw :
       let locals := frobStore I
       let evm0' := initState σ σ₀ (Sat256.ofUInt256 g) A I
-      ExecTransitionBody config contract evm0' locals frobTransition.body
+      ExecTransitionBody fork config contract evm0' locals frobTransition.body
         .reverted := by
     exact vatFrobSourceBodyRateZero
         (σ := σ) (σ₀ := σ₀)
@@ -1306,7 +1308,7 @@ theorem vatFrobBodyCoreLiveRateZeroRevert
             hrateWord]
           native_decide)
   have hbody :
-      ExecTransitionBody config contract evm0 (frobStore I) frobTransition.body
+      ExecTransitionBody fork config contract evm0 (frobStore I) frobTransition.body
         .reverted := by
     simpa [evm0] using hbodyRaw
   obtain ⟨_, _, hafterUrn⟩ := RD.vatFrobUrnLoads hafterLive
@@ -1465,7 +1467,7 @@ theorem execFrobLoadedPrefixDtabMulRevertRange {evm : EVM.State}
     (urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust : UInt256)
     (dtab : Int)
     (hprefix :
-      ExecBlock config { contract := contract, locals := frobStore I } evm pre
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm pre
         (.ok
           { contract := contract,
             locals := frobStoreIlkDust I urnInk urnArt ilkArt ilkRate ilkSpot
@@ -1485,7 +1487,7 @@ theorem execFrobLoadedPrefixDtabMulRevertRange {evm : EVM.State}
       ilkArt.toNat ≤ (frobDartWord I + ilkArt).toNat)
     (hdtab : dtab = Int.ofNat ilkRate.toNat * frobDartInt I)
     (hbad : dtab < -((2 : Int) ^ 255) ∨ dtab ≥ (2 : Int) ^ 255) :
-    ExecBlock config { contract := contract, locals := frobStore I } evm
+    ExecBlock fork config { contract := contract, locals := frobStore I } evm
       (pre ++
         checkedAddSignedInto "urnInkNew" (.var "urnInk") (.var "dink") ++
         checkedAddSignedInto "urnArtNew" (.var "urnArt") (.var "dart") ++
@@ -1529,7 +1531,7 @@ theorem execFrobLoadedPrefixDtabMulRevertRange {evm : EVM.State}
       frobStoreIlkDust_get_dart I urnInk urnArt ilkArt ilkRate ilkSpot ilkLine
         ilkDust
   have hdtabBlock :
-      ExecBlock config { contract := contract, locals := localsIlk } evm
+      ExecBlock fork config { contract := contract, locals := localsIlk } evm
         (checkedMulSignedInto "dtab" (.var "ilkRate") (.var "dart"))
         .reverted :=
     execFrobDtabMulCheckedRevertRange
@@ -1545,7 +1547,7 @@ theorem execFrobLoadedPrefixDtabMulRevertMaxSlt {evm : EVM.State}
     (urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust : UInt256)
     (dtab : Int)
     (hprefix :
-      ExecBlock config { contract := contract, locals := frobStore I } evm pre
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm pre
         (.ok
           { contract := contract,
             locals := frobStoreIlkDust I urnInk urnArt ilkArt ilkRate ilkSpot
@@ -1565,7 +1567,7 @@ theorem execFrobLoadedPrefixDtabMulRevertMaxSlt {evm : EVM.State}
       ilkArt.toNat ≤ (frobDartWord I + ilkArt).toNat)
     (hdtab : dtab = Int.ofNat ilkRate.toNat * frobDartInt I)
     (hRateMaxFail : UInt256.slt ilkRate ⟨0⟩ ≠ ⟨0⟩) :
-    ExecBlock config { contract := contract, locals := frobStore I } evm
+    ExecBlock fork config { contract := contract, locals := frobStore I } evm
       (pre ++
         checkedAddSignedInto "urnInkNew" (.var "urnInk") (.var "dink") ++
         checkedAddSignedInto "urnArtNew" (.var "urnArt") (.var "dart") ++
@@ -1618,7 +1620,7 @@ theorem execFrobLoadedPrefixDtabMulRevertMaxSlt {evm : EVM.State}
     have hdtabHi : dtab < (2 : Int) ^ 255 :=
       not_le.mp (fun h => hbad (Or.inr h))
     have hdtabBlock :
-        ExecBlock config { contract := contract, locals := localsIlk } evm
+        ExecBlock fork config { contract := contract, locals := localsIlk } evm
           (checkedMulSignedInto "dtab" (.var "ilkRate") (.var "dart"))
           .reverted :=
       execFrobDtabMulCheckedRevertMaxSlt
@@ -1635,7 +1637,7 @@ theorem execFrobLoadedPrefixTabMulRevertOverflow {evm : EVM.State}
     (urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust : UInt256)
     (dtab : Int)
     (hprefix :
-      ExecBlock config { contract := contract, locals := frobStore I } evm pre
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm pre
         (.ok
           { contract := contract,
             locals := frobStoreIlkDust I urnInk urnArt ilkArt ilkRate ilkSpot
@@ -1662,7 +1664,7 @@ theorem execFrobLoadedPrefixTabMulRevertOverflow {evm : EVM.State}
             (frobDartWord I)) ilkRate ≠ ⟨0⟩)
     (htabOverflow : UInt256.size ≤ ilkRate.toNat *
       (frobDartWord I + urnArt).toNat) :
-    ExecBlock config { contract := contract, locals := frobStore I } evm
+    ExecBlock fork config { contract := contract, locals := frobStore I } evm
       (pre ++
         checkedAddSignedInto "urnInkNew" (.var "urnInk") (.var "dink") ++
         checkedAddSignedInto "urnArtNew" (.var "urnArt") (.var "dart") ++
@@ -1718,7 +1720,7 @@ theorem execFrobLoadedPrefixTabMulRevertOverflow {evm : EVM.State}
     rw [hdtab]
     exact hdtabRange.2
   have hdtabBlock :
-      ExecBlock config { contract := contract, locals := localsIlk } evm
+      ExecBlock fork config { contract := contract, locals := localsIlk } evm
         (checkedMulSignedInto "dtab" (.var "ilkRate") (.var "dart"))
         (.ok
           { contract := contract,
@@ -1746,7 +1748,7 @@ theorem execFrobLoadedPrefixTabMulRevertOverflow {evm : EVM.State}
     rw [store_get_ne _ _ (by decide)]
     rw [store_get_self]
   have htabBlock :
-      ExecBlock config
+      ExecBlock fork config
         { contract := contract, locals := (localsIlk.insert "dtab" (.int dtab)) } evm
         (checkedMulUintInto "tab" (.var "ilkRate") (.var "urnArtNew"))
         .reverted := by
@@ -1765,7 +1767,7 @@ theorem execFrobLoadedPrefixThroughTabOk {evm : EVM.State}
     (urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust : UInt256)
     (dtab : Int)
     (hprefix :
-      ExecBlock config { contract := contract, locals := frobStore I } evm pre
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm pre
         (.ok
           { contract := contract,
             locals := frobStoreIlkDust I urnInk urnArt ilkArt ilkRate ilkSpot
@@ -1806,7 +1808,7 @@ theorem execFrobLoadedPrefixThroughTabOk {evm : EVM.State}
         (.int (Int.ofNat ilkArtNew.toNat)))
     let localsDtab := localsIlk.insert "dtab" (.int dtab)
     let tab := UInt256.mul ilkRate urnArtNew
-    ExecBlock config { contract := contract, locals := frobStore I } evm
+    ExecBlock fork config { contract := contract, locals := frobStore I } evm
       (pre ++
         checkedAddSignedInto "urnInkNew" (.var "urnInk") (.var "dink") ++
         checkedAddSignedInto "urnArtNew" (.var "urnArt") (.var "dart") ++
@@ -1857,7 +1859,7 @@ theorem execFrobLoadedPrefixThroughTabOk {evm : EVM.State}
     rw [hdtab]
     exact hdtabRange.2
   have hdtabBlock :
-      ExecBlock config { contract := contract, locals := localsIlk } evm
+      ExecBlock fork config { contract := contract, locals := localsIlk } evm
         (checkedMulSignedInto "dtab" (.var "ilkRate") (.var "dart"))
         (.ok { contract := contract, locals := localsDtab } evm) := by
     simpa [localsDtab] using
@@ -1889,7 +1891,7 @@ theorem execFrobLoadedPrefixThroughTabOk {evm : EVM.State}
     rw [store_get_ne _ _ (by decide)]
     rw [store_get_self]
   have htabBlock :
-      ExecBlock config { contract := contract, locals := localsDtab } evm
+      ExecBlock fork config { contract := contract, locals := localsDtab } evm
         (checkedMulUintInto "tab" (.var "ilkRate") (.var "urnArtNew"))
         (.ok
           { contract := contract,
@@ -1910,7 +1912,7 @@ theorem execFrobLoadedPrefixThroughDebtSplit {evm : EVM.State}
     (urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust : UInt256)
     (dtab : Int) (debtOld debtNew dtabWord : UInt256)
     (hprefix :
-      ExecBlock config { contract := contract, locals := frobStore I } evm pre
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm pre
         (.ok
           { contract := contract,
             locals := frobStoreIlkDust I urnInk urnArt ilkArt ilkRate ilkSpot
@@ -1961,7 +1963,7 @@ theorem execFrobLoadedPrefixThroughDebtSplit {evm : EVM.State}
     let tab := UInt256.mul ilkRate urnArtNew
     let localsTab := localsDtab.insert "tab" (.int (Int.ofNat tab.toNat))
     (evm.executionEnv.perm = true →
-    ExecBlock config { contract := contract, locals := frobStore I } evm
+    ExecBlock fork config { contract := contract, locals := frobStore I } evm
       (pre ++
         checkedAddSignedInto "urnInkNew" (.var "urnInk") (.var "dink") ++
         checkedAddSignedInto "urnArtNew" (.var "urnArt") (.var "dart") ++
@@ -1976,7 +1978,7 @@ theorem execFrobLoadedPrefixThroughDebtSplit {evm : EVM.State}
         (Stele.EVM.storageStore evm evm.executionEnv.codeOwner foldDebtSlot
           debtNew))) ∧
     (evm.executionEnv.perm = false →
-      ExecBlock config { contract := contract, locals := frobStore I } evm
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm
         (pre ++
           checkedAddSignedInto "urnInkNew" (.var "urnInk") (.var "dink") ++
           checkedAddSignedInto "urnArtNew" (.var "urnArt") (.var "dart") ++
@@ -2020,15 +2022,15 @@ theorem execFrobLoadedPrefixThroughDebtSplit {evm : EVM.State}
     rw [store_get_ne _ _ (by decide)]
     simp [localsDtab]
   have hdebtBlock :=
-    execFrobDebtAddStoreSplit
+    execFrobDebtAddStoreSplit (fork := fork)
       (evm := evm) (locals := localsTab)
       debtOld debtNew dtabWord dtab hbaseDebt hdtabGet hdebtLoad hdtabMod hnew
       (signedAddGuardNegCond_of_word hdtabLo hdtabHi hdtabMod hDebtNeg)
       (signedAddGuardPosCond_of_word hdtabLo hdtabHi hdtabMod hDebtPos)
-  have hpre : ∀ r, ExecBlock config { contract := contract, locals := localsTab } evm
+  have hpre : ∀ r, ExecBlock fork config { contract := contract, locals := localsTab } evm
       (checkedAddSignedInto "debtNew" (.storage debtRef) (.var "dtab") ++
         [ .assign .storage debtRef (.var "debtNew") ]) r →
-      ExecBlock config { contract := contract, locals := frobStore I } evm
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm
         (pre ++
           checkedAddSignedInto "urnInkNew" (.var "urnInk") (.var "dink") ++
           checkedAddSignedInto "urnArtNew" (.var "urnArt") (.var "dart") ++
@@ -2051,7 +2053,7 @@ theorem execFrobLoadedPrefixThroughDebtOk {evm : EVM.State}
     (urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust : UInt256)
     (dtab : Int) (debtOld debtNew dtabWord : UInt256)
     (hprefix :
-      ExecBlock config { contract := contract, locals := frobStore I } evm pre
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm pre
         (.ok
           { contract := contract,
             locals := frobStoreIlkDust I urnInk urnArt ilkArt ilkRate ilkSpot
@@ -2102,7 +2104,7 @@ theorem execFrobLoadedPrefixThroughDebtOk {evm : EVM.State}
     let localsDtab := localsIlk.insert "dtab" (.int dtab)
     let tab := UInt256.mul ilkRate urnArtNew
     let localsTab := localsDtab.insert "tab" (.int (Int.ofNat tab.toNat))
-    ExecBlock config { contract := contract, locals := frobStore I } evm
+    ExecBlock fork config { contract := contract, locals := frobStore I } evm
       (pre ++
         checkedAddSignedInto "urnInkNew" (.var "urnInk") (.var "dink") ++
         checkedAddSignedInto "urnArtNew" (.var "urnArt") (.var "dart") ++
@@ -2125,7 +2127,7 @@ theorem execFrobLoadedPrefixDebtAddRevertGuardNeg {evm : EVM.State}
     (urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust : UInt256)
     (dtab : Int) (debtOld debtNew dtabWord : UInt256)
     (hprefix :
-      ExecBlock config { contract := contract, locals := frobStore I } evm pre
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm pre
         (.ok
           { contract := contract,
             locals := frobStoreIlkDust I urnInk urnArt ilkArt ilkRate ilkSpot
@@ -2161,7 +2163,7 @@ theorem execFrobLoadedPrefixDebtAddRevertGuardNeg {evm : EVM.State}
     (hnew : debtNew = dtabWord + debtOld)
     (hDebtNegFail :
       ¬ (UInt256.slt dtabWord ⟨0⟩ = ⟨0⟩ ∨ UInt256.gt debtNew debtOld = ⟨0⟩)) :
-    ExecBlock config { contract := contract, locals := frobStore I } evm
+    ExecBlock fork config { contract := contract, locals := frobStore I } evm
       (pre ++
         checkedAddSignedInto "urnInkNew" (.var "urnInk") (.var "dink") ++
         checkedAddSignedInto "urnArtNew" (.var "urnArt") (.var "dart") ++
@@ -2215,7 +2217,7 @@ theorem execFrobLoadedPrefixDebtAddRevertGuardNeg {evm : EVM.State}
     rw [store_get_ne _ _ (by decide)]
     simp [localsDtab]
   have hdebtBlock :
-      ExecBlock config { contract := contract, locals := localsTab } evm
+      ExecBlock fork config { contract := contract, locals := localsTab } evm
         (checkedAddSignedInto "debtNew" (.storage debtRef) (.var "dtab"))
         .reverted := by
     exact execFrobDebtAddCheckedRevertGuardNeg
@@ -2235,7 +2237,7 @@ theorem execFrobLoadedPrefixDebtAddRevertGuardPos {evm : EVM.State}
     (urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust : UInt256)
     (dtab : Int) (debtOld debtNew dtabWord : UInt256)
     (hprefix :
-      ExecBlock config { contract := contract, locals := frobStore I } evm pre
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm pre
         (.ok
           { contract := contract,
             locals := frobStoreIlkDust I urnInk urnArt ilkArt ilkRate ilkSpot
@@ -2273,7 +2275,7 @@ theorem execFrobLoadedPrefixDebtAddRevertGuardPos {evm : EVM.State}
       UInt256.slt dtabWord ⟨0⟩ = ⟨0⟩ ∨ UInt256.gt debtNew debtOld = ⟨0⟩)
     (hDebtPosFail :
       ¬ (UInt256.sgt dtabWord ⟨0⟩ = ⟨0⟩ ∨ UInt256.lt debtNew debtOld = ⟨0⟩)) :
-    ExecBlock config { contract := contract, locals := frobStore I } evm
+    ExecBlock fork config { contract := contract, locals := frobStore I } evm
       (pre ++
         checkedAddSignedInto "urnInkNew" (.var "urnInk") (.var "dink") ++
         checkedAddSignedInto "urnArtNew" (.var "urnArt") (.var "dart") ++
@@ -2327,7 +2329,7 @@ theorem execFrobLoadedPrefixDebtAddRevertGuardPos {evm : EVM.State}
     rw [store_get_ne _ _ (by decide)]
     simp [localsDtab]
   have hdebtBlock :
-      ExecBlock config { contract := contract, locals := localsTab } evm
+      ExecBlock fork config { contract := contract, locals := localsTab } evm
         (checkedAddSignedInto "debtNew" (.storage debtRef) (.var "dtab"))
         .reverted := by
     exact execFrobDebtAddCheckedRevertGuardPos
@@ -2348,7 +2350,7 @@ theorem execFrobLoadedPrefixThroughSafetyOk {evm : EVM.State}
     (urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust : UInt256)
     (dtab : Int) (debtOld debtNew dtabWord Line : UInt256)
     (hprefix :
-      ExecBlock config { contract := contract, locals := frobStore I } evm pre
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm pre
         (.ok
           { contract := contract,
             locals := frobStoreIlkDust I urnInk urnArt ilkArt ilkRate ilkSpot
@@ -2428,7 +2430,7 @@ theorem execFrobLoadedPrefixThroughSafetyOk {evm : EVM.State}
       Stele.EVM.storageStore evm evm.executionEnv.codeOwner foldDebtSlot debtNew
     let ceilingDebt := UInt256.mul ilkArtNew ilkRate
     let inkSpot := UInt256.mul urnInkNew ilkSpot
-    ExecBlock config { contract := contract, locals := frobStore I } evm
+    ExecBlock fork config { contract := contract, locals := frobStore I } evm
       (pre ++
         checkedAddSignedInto "urnInkNew" (.var "urnInk") (.var "dink") ++
         checkedAddSignedInto "urnArtNew" (.var "urnArt") (.var "dart") ++
@@ -2703,7 +2705,7 @@ theorem execFrobLoadedPrefixThroughSafetyOk {evm : EVM.State}
         rw [store_get_self])
       (by simpa [tab, inkSpot, urnInkNew, urnArtNew] using hSafetyReq)
   have hsafeBlock :
-      ExecBlock config { contract := contract, locals := localsDebt } evmDebt
+      ExecBlock fork config { contract := contract, locals := localsDebt } evmDebt
         (checkedMulUintInto "ceilingDebt" (.var "ilkArtNew") (.var "ilkRate") ++
           checkedMulUintInto "inkSpot" (.var "urnInkNew") (.var "ilkSpot") ++
           [ .require
@@ -2746,7 +2748,7 @@ theorem execFrobLoadedPrefixCeilingMulRevertOverflow {evm : EVM.State}
     (urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust : UInt256)
     (dtab : Int) (debtOld debtNew dtabWord : UInt256)
     (hprefix :
-      ExecBlock config { contract := contract, locals := frobStore I } evm pre
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm pre
         (.ok
           { contract := contract,
             locals := frobStoreIlkDust I urnInk urnArt ilkArt ilkRate ilkSpot
@@ -2787,7 +2789,7 @@ theorem execFrobLoadedPrefixCeilingMulRevertOverflow {evm : EVM.State}
     (hover :
       UInt256.size ≤ (frobDartWord I + ilkArt).toNat * ilkRate.toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := frobStore I } evm
+    ExecBlock fork config { contract := contract, locals := frobStore I } evm
       (pre ++
         checkedAddSignedInto "urnInkNew" (.var "urnInk") (.var "dink") ++
         checkedAddSignedInto "urnArtNew" (.var "urnArt") (.var "dart") ++
@@ -2853,7 +2855,7 @@ theorem execFrobLoadedPrefixCeilingMulRevertOverflow {evm : EVM.State}
       frobStoreIlkDust_get_rate I urnInk urnArt ilkArt ilkRate ilkSpot ilkLine
         ilkDust
   have hceilBlock :
-      ExecBlock config { contract := contract, locals := localsDebt } evmDebt
+      ExecBlock fork config { contract := contract, locals := localsDebt } evmDebt
         (checkedMulUintInto "ceilingDebt" (.var "ilkArtNew") (.var "ilkRate"))
         .reverted := by
     exact execFrobCeilingDebtCheckedRevertOverflow
@@ -2873,7 +2875,7 @@ theorem execFrobLoadedPrefixInkSpotMulRevertOverflow {evm : EVM.State}
     (urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust : UInt256)
     (dtab : Int) (debtOld debtNew dtabWord : UInt256)
     (hprefix :
-      ExecBlock config { contract := contract, locals := frobStore I } evm pre
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm pre
         (.ok
           { contract := contract,
             locals := frobStoreIlkDust I urnInk urnArt ilkArt ilkRate ilkSpot
@@ -2919,7 +2921,7 @@ theorem execFrobLoadedPrefixInkSpotMulRevertOverflow {evm : EVM.State}
     (hover :
       UInt256.size ≤ (frobDinkWord I + urnInk).toNat * ilkSpot.toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := frobStore I } evm
+    ExecBlock fork config { contract := contract, locals := frobStore I } evm
       (pre ++
         checkedAddSignedInto "urnInkNew" (.var "urnInk") (.var "dink") ++
         checkedAddSignedInto "urnArtNew" (.var "urnArt") (.var "dart") ++
@@ -3024,7 +3026,7 @@ theorem execFrobLoadedPrefixInkSpotMulRevertOverflow {evm : EVM.State}
       frobStoreIlkDust_get_spot I urnInk urnArt ilkArt ilkRate ilkSpot ilkLine
         ilkDust
   have hceilBlock :
-      ExecBlock config { contract := contract, locals := localsDebt } evmDebt
+      ExecBlock fork config { contract := contract, locals := localsDebt } evmDebt
         (checkedMulUintInto "ceilingDebt" (.var "ilkArtNew") (.var "ilkRate"))
         (.ok
           { contract := contract,
@@ -3036,7 +3038,7 @@ theorem execFrobLoadedPrefixInkSpotMulRevertOverflow {evm : EVM.State}
       ilkArtNew ilkRate ceilingDebt hlocalsDebtIlkArtNew hlocalsDebtRate
       (by rfl) hCeilingFitGuard.1 hCeilingFitGuard.2
   have hinkBlock :
-      ExecBlock config
+      ExecBlock fork config
         { contract := contract,
           locals := localsDebt.insert "ceilingDebt"
             (.int (Int.ofNat ceilingDebt.toNat)) }
@@ -3069,7 +3071,7 @@ theorem execFrobLoadedPrefixCeilingRequireRevert {evm : EVM.State}
     (urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust : UInt256)
     (dtab : Int) (debtOld debtNew dtabWord Line : UInt256)
     (hprefix :
-      ExecBlock config { contract := contract, locals := frobStore I } evm pre
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm pre
         (.ok
           { contract := contract,
             locals := frobStoreIlkDust I urnInk urnArt ilkArt ilkRate ilkSpot
@@ -3128,7 +3130,7 @@ theorem execFrobLoadedPrefixCeilingRequireRevert {evm : EVM.State}
               ilkLine.toNat ∧
             debtNew.toNat ≤ Line.toNat))
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := frobStore I } evm
+    ExecBlock fork config { contract := contract, locals := frobStore I } evm
       (pre ++
         checkedAddSignedInto "urnInkNew" (.var "urnInk") (.var "dink") ++
         checkedAddSignedInto "urnArtNew" (.var "urnArt") (.var "dart") ++
@@ -3346,7 +3348,7 @@ theorem execFrobLoadedPrefixCeilingRequireRevert {evm : EVM.State}
       hlineLoadDebt hCeilingBad.1
       (by simpa [ceilingDebt, ilkArtNew] using hCeilingBad.2)
   have hblock :
-      ExecBlock config { contract := contract, locals := localsDebt } evmDebt
+      ExecBlock fork config { contract := contract, locals := localsDebt } evmDebt
         (checkedMulUintInto "ceilingDebt" (.var "ilkArtNew") (.var "ilkRate") ++
           checkedMulUintInto "inkSpot" (.var "urnInkNew") (.var "ilkSpot") ++
           [ .require
@@ -3377,7 +3379,7 @@ theorem execFrobLoadedPrefixSafetyRequireRevert {evm : EVM.State}
     (urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust : UInt256)
     (dtab : Int) (debtOld debtNew dtabWord Line : UInt256)
     (hprefix :
-      ExecBlock config { contract := contract, locals := frobStore I } evm pre
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm pre
         (.ok
           { contract := contract,
             locals := frobStoreIlkDust I urnInk urnArt ilkArt ilkRate ilkSpot
@@ -3440,7 +3442,7 @@ theorem execFrobLoadedPrefixSafetyRequireRevert {evm : EVM.State}
         (UInt256.mul (frobDinkWord I + urnInk) ilkSpot).toNat <
           (UInt256.mul ilkRate (frobDartWord I + urnArt)).toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := frobStore I } evm
+    ExecBlock fork config { contract := contract, locals := frobStore I } evm
       (pre ++
         checkedAddSignedInto "urnInkNew" (.var "urnInk") (.var "dink") ++
         checkedAddSignedInto "urnArtNew" (.var "urnArt") (.var "dart") ++
@@ -3725,7 +3727,7 @@ theorem execFrobLoadedPrefixSafetyRequireRevert {evm : EVM.State}
       hSafetyBad.1
       (by simpa [tab, inkSpot, urnInkNew, urnArtNew] using hSafetyBad.2)
   have hblock :
-      ExecBlock config { contract := contract, locals := localsDebt } evmDebt
+      ExecBlock fork config { contract := contract, locals := localsDebt } evmDebt
         (checkedMulUintInto "ceilingDebt" (.var "ilkArtNew") (.var "ilkRate") ++
           checkedMulUintInto "inkSpot" (.var "urnInkNew") (.var "ilkSpot") ++
           [ .require
@@ -3768,7 +3770,7 @@ theorem vatFrobBodyCoreLiveAddOverflowReverts
         (transitionSignature frobTransition).paramTypes I.calldata = some (frobStore I))
     (hdecoded :
       ∃ k C,
-        RD vatBytecode I (Sat256.ofUInt256 g)
+        RD fork vatBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2975⟩
           [frobDartWord I, frobDinkWord I, frobWMaskedWord I, frobVMaskedWord I,
             frobUMaskedWord I, frobIWord I, ⟨524⟩, vatSelWord I]
@@ -3776,7 +3778,7 @@ theorem vatFrobBodyCoreLiveAddOverflowReverts
     (hlive : solcSlotWordAt ⟨10⟩ σ I = ⟨1⟩)
     (hrateZeroEvm : ¬ solcSlotWord σ I (frobIlkRateSlot I) = ⟨0⟩)
     (hAddFail : ¬ frobLiveAddArithmeticGuards σ I) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨_, _, hafterLive⟩ := vatFrobLiveOk
     (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -3804,7 +3806,7 @@ theorem vatFrobBodyCoreLiveAddOverflowReverts
   have hsourcePrefixRaw :
       let locals := frobStore I
       let evm0' := initState σ σ₀ (Sat256.ofUInt256 g) A I
-      ExecBlock config { contract := contract, locals := locals } evm0'
+      ExecBlock fork config { contract := contract, locals := locals } evm0'
         (nonpayable ++ requireLive ++
           [ .letDecl "urnInk" (some uint256)
               (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -3851,7 +3853,7 @@ theorem vatFrobBodyCoreLiveAddOverflowReverts
             (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         hratePos
   have hsourcePrefix :
-      ExecBlock config { contract := contract, locals := frobStore I } evm0
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm0
         (nonpayable ++ requireLive ++
           [ .letDecl "urnInk" (some uint256)
               (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -3898,7 +3900,7 @@ theorem vatFrobBodyCoreLiveAddOverflowReverts
           (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
           (solcSlotWord σ I (frobIlkArtSlot I)) = ⟨0⟩) →
       ∃ k' C',
-        RD vatBytecode I (Sat256.ofUInt256 g)
+        RD fork vatBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3306⟩
           [frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I),
             ⟨416⟩, ⟨192⟩, frobDartWord I, frobDinkWord I,
@@ -3977,7 +3979,7 @@ theorem vatFrobBodyCoreLiveAddOverflowReverts
                 exact hIlkPos (by
                   simpa [ilkArt, solcSlotWordAt] using hsrc)
               have hsrcPrefixRevert :
-                  ExecBlock config { contract := contract, locals := frobStore I } evm0
+                  ExecBlock fork config { contract := contract, locals := frobStore I } evm0
                     ((nonpayable ++ requireLive ++
                       [ .letDecl "urnInk" (some uint256)
                           (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -4042,7 +4044,7 @@ theorem vatFrobBodyCoreLiveAddOverflowReverts
               exact hIlkNeg (by
                 simpa [ilkArt, solcSlotWordAt] using hsrc)
             have hsrcPrefixRevert :
-                ExecBlock config { contract := contract, locals := frobStore I } evm0
+                ExecBlock fork config { contract := contract, locals := frobStore I } evm0
                   ((nonpayable ++ requireLive ++
                     [ .letDecl "urnInk" (some uint256)
                         (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -4102,7 +4104,7 @@ theorem vatFrobBodyCoreLiveAddOverflowReverts
             exact hArtPos (by
               simpa [urnArt, solcSlotWordAt] using hsrc)
           have hsrcPrefixRevert :
-              ExecBlock config { contract := contract, locals := frobStore I } evm0
+              ExecBlock fork config { contract := contract, locals := frobStore I } evm0
                 ((nonpayable ++ requireLive ++
                   [ .letDecl "urnInk" (some uint256)
                       (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -4153,7 +4155,7 @@ theorem vatFrobBodyCoreLiveAddOverflowReverts
           exact hArtNeg (by
             simpa [urnArt, solcSlotWordAt] using hsrc)
         have hsrcPrefixRevert :
-            ExecBlock config { contract := contract, locals := frobStore I } evm0
+            ExecBlock fork config { contract := contract, locals := frobStore I } evm0
               ((nonpayable ++ requireLive ++
                 [ .letDecl "urnInk" (some uint256)
                     (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -4199,7 +4201,7 @@ theorem vatFrobBodyCoreLiveAddOverflowReverts
             UInt256.gt (frobDinkWord I + urnInk) urnInk = ⟨0⟩ := by
         simpa [urnInk, solcSlotWordAt] using hInkNeg
       have hsrcPrefixRevert :
-          ExecBlock config { contract := contract, locals := frobStore I } evm0
+          ExecBlock fork config { contract := contract, locals := frobStore I } evm0
             ((nonpayable ++ requireLive ++
               [ .letDecl "urnInk" (some uint256)
                   (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -4232,7 +4234,7 @@ theorem vatFrobBodyCoreLiveAddOverflowReverts
       exact hInkNeg (by
         simpa [urnInk, solcSlotWordAt] using hsrc)
     have hsrcPrefixRevert :
-        ExecBlock config { contract := contract, locals := frobStore I } evm0
+        ExecBlock fork config { contract := contract, locals := frobStore I } evm0
           ((nonpayable ++ requireLive ++
             [ .letDecl "urnInk" (some uint256)
                 (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -4272,7 +4274,7 @@ theorem vatFrobBodyCoreLiveMulOverflowReverts
         (transitionSignature frobTransition).paramTypes I.calldata = some (frobStore I))
     (hdecoded :
       ∃ k C,
-        RD vatBytecode I (Sat256.ofUInt256 g)
+        RD fork vatBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2975⟩
           [frobDartWord I, frobDinkWord I, frobWMaskedWord I, frobVMaskedWord I,
             frobUMaskedWord I, frobIWord I, ⟨524⟩, vatSelWord I]
@@ -4281,7 +4283,7 @@ theorem vatFrobBodyCoreLiveMulOverflowReverts
     (hrateZeroEvm : ¬ solcSlotWord σ I (frobIlkRateSlot I) = ⟨0⟩)
     (hAdd : frobLiveAddArithmeticGuards σ I)
     (hMulFail : ¬ frobLiveMulArithmeticGuards σ I) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨_, _, hafterLive⟩ := vatFrobLiveOk
     (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -4309,7 +4311,7 @@ theorem vatFrobBodyCoreLiveMulOverflowReverts
   have hsourcePrefixRaw :
       let locals := frobStore I
       let evm0' := initState σ σ₀ (Sat256.ofUInt256 g) A I
-      ExecBlock config { contract := contract, locals := locals } evm0'
+      ExecBlock fork config { contract := contract, locals := locals } evm0'
         (nonpayable ++ requireLive ++
           [ .letDecl "urnInk" (some uint256)
               (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -4356,7 +4358,7 @@ theorem vatFrobBodyCoreLiveMulOverflowReverts
             (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         hratePos
   have hsourcePrefix :
-      ExecBlock config { contract := contract, locals := frobStore I } evm0
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm0
         (nonpayable ++ requireLive ++
           [ .letDecl "urnInk" (some uint256)
               (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -4403,7 +4405,7 @@ theorem vatFrobBodyCoreLiveMulOverflowReverts
           (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
           (solcSlotWord σ I (frobIlkArtSlot I)) = ⟨0⟩) →
       ∃ k' C',
-        RD vatBytecode I (Sat256.ofUInt256 g)
+        RD fork vatBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3306⟩
           [frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I),
             ⟨416⟩, ⟨192⟩, frobDartWord I, frobDinkWord I,
@@ -4455,7 +4457,7 @@ theorem vatFrobBodyCoreLiveMulOverflowReverts
             (frobDartWord I))
           (solcSlotWord σ I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
       ∃ k' C',
-        RD vatBytecode I (Sat256.ofUInt256 g)
+        RD fork vatBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3329⟩
           [UInt256.mul (frobDartWord I)
               (solcSlotWord σ I (frobIlkRateSlot I)),
@@ -4627,7 +4629,7 @@ theorem vatFrobBodyCoreLiveFinalArithmeticOverflowReverts
         (transitionSignature frobTransition).paramTypes I.calldata = some (frobStore I))
     (hdecoded :
       ∃ k C,
-        RD vatBytecode I (Sat256.ofUInt256 g)
+        RD fork vatBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2975⟩
           [frobDartWord I, frobDinkWord I, frobWMaskedWord I, frobVMaskedWord I,
             frobUMaskedWord I, frobIWord I, ⟨524⟩, vatSelWord I]
@@ -4638,7 +4640,7 @@ theorem vatFrobBodyCoreLiveFinalArithmeticOverflowReverts
     (hDebtSafety : frobLiveDebtCeilingSafetyGuards σ I)
     (hWishAuthDust : frobLiveWishAuthDustGuards σ I)
     (hFinalArithmeticFail : ¬ frobLiveFinalArithmeticGuards σ I) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   classical
   obtain ⟨_, _, hafterLive⟩ := vatFrobLiveOk
     (σ := σ) (σ₀ := σ₀)
@@ -4667,7 +4669,7 @@ theorem vatFrobBodyCoreLiveFinalArithmeticOverflowReverts
   have hsourcePrefixRaw :
       let locals := frobStore I
       let evm0' := initState σ σ₀ (Sat256.ofUInt256 g) A I
-      ExecBlock config { contract := contract, locals := locals } evm0'
+      ExecBlock fork config { contract := contract, locals := locals } evm0'
         (nonpayable ++ requireLive ++
           [ .letDecl "urnInk" (some uint256)
               (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -4714,7 +4716,7 @@ theorem vatFrobBodyCoreLiveFinalArithmeticOverflowReverts
             (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         hratePos
   have hsourcePrefix :
-      ExecBlock config { contract := contract, locals := frobStore I } evm0
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm0
         (nonpayable ++ requireLive ++
           [ .letDecl "urnInk" (some uint256)
               (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -4917,7 +4919,7 @@ theorem vatFrobBodyCoreLiveFinalArithmeticOverflowReverts
       storageLoad_storageStore_ne evm0 evm0.executionEnv.codeOwner hne
     exact hstore.trans hload0
   have hsourceSafety :
-      ExecBlock config { contract := contract, locals := frobStore I } evm0
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm0
         ((nonpayable ++ requireLive ++
           [ .letDecl "urnInk" (some uint256)
               (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -5071,7 +5073,7 @@ theorem vatFrobBodyCoreLiveFinalArithmeticOverflowReverts
     simpa [tab, urnArtNew, urnArt, ilkRate, ilkDust, solcSlotWordAt] using hDust
   have hDustOk := frobDustSourceCond_of_evm hDustSource
   have hauthDust :
-      ExecBlock config { contract := contract, locals := localsSafe } evmDebt
+      ExecBlock fork config { contract := contract, locals := localsSafe } evmDebt
         [ .require
             (eitherExpr
               (bothExpr
@@ -5095,7 +5097,7 @@ theorem vatFrobBodyCoreLiveFinalArithmeticOverflowReverts
       hloadU hloadV hloadW hsafeUrnArtNew hsafeTab hsafeIlkDust
       hUOk hVOk hWOk hDustOk
   have hsourceDust :
-      ExecBlock config { contract := contract, locals := frobStore I } evm0
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm0
         ((nonpayable ++ requireLive ++
           [ .letDecl "urnInk" (some uint256)
               (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -5217,7 +5219,7 @@ theorem vatFrobBodyCoreLiveFinalArithmeticOverflowReverts
             UInt256.lt gemNew gemOld = ⟨0⟩ := by
         simpa [gemNew, gemOld] using hGemNeg
       have hgemDone :
-          ExecBlock config { contract := contract, locals := localsSafe } evmDebt
+          ExecBlock fork config { contract := contract, locals := localsSafe } evmDebt
             (checkedSubSignedInto "gemNew"
                 (.storage (gemRef (.var "i") (.var "v"))) (.var "dink") ++
               [ .assign .storage (gemRef (.var "i") (.var "v")) (.var "gemNew") ])
@@ -5301,7 +5303,7 @@ theorem vatFrobBodyCoreLiveFinalArithmeticOverflowReverts
               exact hDaiPos (by
                 simpa [daiNew, dtabWord, gemNew, frobAfterGem] using h)⟩)
           have hdaiRevert :
-              ExecBlock config { contract := contract, locals := localsGem } evmGem
+              ExecBlock fork config { contract := contract, locals := localsGem } evmGem
                 (checkedAddSignedInto "daiNew"
                   (.storage (daiRef (.var "w"))) (.var "dtab"))
                 .reverted := by
@@ -5351,7 +5353,7 @@ theorem vatFrobBodyCoreLiveFinalArithmeticOverflowReverts
             exact hDaiNeg (by
               simpa [daiNew, dtabWord, gemNew, frobAfterGem] using h)))
         have hdaiRevert :
-            ExecBlock config { contract := contract, locals := localsGem } evmGem
+            ExecBlock fork config { contract := contract, locals := localsGem } evmGem
               (checkedAddSignedInto "daiNew"
                 (.storage (daiRef (.var "w"))) (.var "dtab"))
               .reverted := by
@@ -5402,7 +5404,7 @@ theorem vatFrobBodyCoreLiveFinalArithmeticOverflowReverts
             simpa [frobGemNew, frobAfterDebt, frobDebtNew, foldDebtSlot] using
               hGemNeg⟩)
       have hgemRevert :
-          ExecBlock config { contract := contract, locals := localsSafe } evmDebt
+          ExecBlock fork config { contract := contract, locals := localsSafe } evmDebt
             (checkedSubSignedInto "gemNew"
               (.storage (gemRef (.var "i") (.var "v"))) (.var "dink"))
             .reverted := by
@@ -5428,7 +5430,7 @@ theorem vatFrobBodyCoreLiveFinalArithmeticOverflowReverts
       (Or.inl (by
         simpa [frobGemNew, frobAfterDebt, frobDebtNew, foldDebtSlot] using hGemPos))
     have hgemRevert :
-        ExecBlock config { contract := contract, locals := localsSafe } evmDebt
+        ExecBlock fork config { contract := contract, locals := localsSafe } evmDebt
           (checkedSubSignedInto "gemNew"
             (.storage (gemRef (.var "i") (.var "v"))) (.var "dink"))
           .reverted := by
@@ -5453,7 +5455,7 @@ theorem vatFrobBodyCoreLiveArithmeticOverflowReverts
         (transitionSignature frobTransition).paramTypes I.calldata = some (frobStore I))
     (hdecoded :
       ∃ k C,
-        RD vatBytecode I (Sat256.ofUInt256 g)
+        RD fork vatBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2975⟩
           [frobDartWord I, frobDinkWord I, frobWMaskedWord I, frobVMaskedWord I,
             frobUMaskedWord I, frobIWord I, ⟨524⟩, vatSelWord I]
@@ -5461,7 +5463,7 @@ theorem vatFrobBodyCoreLiveArithmeticOverflowReverts
     (hlive : solcSlotWordAt ⟨10⟩ σ I = ⟨1⟩)
     (hrateZeroEvm : ¬ solcSlotWord σ I (frobIlkRateSlot I) = ⟨0⟩)
     (hArithmeticFail : ¬ frobLiveArithmeticPrefixGuards σ I) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   classical
   by_cases hAdd : frobLiveAddArithmeticGuards σ I
   · by_cases hMul : frobLiveMulArithmeticGuards σ I
@@ -5491,7 +5493,7 @@ theorem vatFrobBodyCoreLiveDebtCeilingSafetyReverts
         (transitionSignature frobTransition).paramTypes I.calldata = some (frobStore I))
     (hdecoded :
       ∃ k C,
-        RD vatBytecode I (Sat256.ofUInt256 g)
+        RD fork vatBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2975⟩
           [frobDartWord I, frobDinkWord I, frobWMaskedWord I, frobVMaskedWord I,
             frobUMaskedWord I, frobIWord I, ⟨524⟩, vatSelWord I]
@@ -5500,7 +5502,7 @@ theorem vatFrobBodyCoreLiveDebtCeilingSafetyReverts
     (hrateZeroEvm : ¬ solcSlotWord σ I (frobIlkRateSlot I) = ⟨0⟩)
     (hArithmetic : frobLiveArithmeticPrefixGuards σ I)
     (hDebtSafetyFail : ¬ (I.perm = true ∧ frobLiveDebtCeilingSafetyGuards σ I)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   classical
   obtain ⟨_, _, hafterLive⟩ := vatFrobLiveOk
     (σ := σ) (σ₀ := σ₀)
@@ -5529,7 +5531,7 @@ theorem vatFrobBodyCoreLiveDebtCeilingSafetyReverts
   have hsourcePrefixRaw :
       let locals := frobStore I
       let evm0' := initState σ σ₀ (Sat256.ofUInt256 g) A I
-      ExecBlock config { contract := contract, locals := locals } evm0'
+      ExecBlock fork config { contract := contract, locals := locals } evm0'
         (nonpayable ++ requireLive ++
           [ .letDecl "urnInk" (some uint256)
               (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -5576,7 +5578,7 @@ theorem vatFrobBodyCoreLiveDebtCeilingSafetyReverts
             (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         hratePos
   have hsourcePrefix :
-      ExecBlock config { contract := contract, locals := frobStore I } evm0
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm0
         (nonpayable ++ requireLive ++
           [ .letDecl "urnInk" (some uint256)
               (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -6111,7 +6113,7 @@ theorem vatFrobBodyCoreLiveWishAuthDustReverts
         (transitionSignature frobTransition).paramTypes I.calldata = some (frobStore I))
     (hdecoded :
       ∃ k C,
-        RD vatBytecode I (Sat256.ofUInt256 g)
+        RD fork vatBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2975⟩
           [frobDartWord I, frobDinkWord I, frobWMaskedWord I, frobVMaskedWord I,
             frobUMaskedWord I, frobIWord I, ⟨524⟩, vatSelWord I]
@@ -6121,7 +6123,7 @@ theorem vatFrobBodyCoreLiveWishAuthDustReverts
     (hArithmetic : frobLiveArithmeticPrefixGuards σ I)
     (hDebtSafety : frobLiveDebtCeilingSafetyGuards σ I)
     (hWishAuthDustFail : ¬ frobLiveWishAuthDustGuards σ I) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   classical
   obtain ⟨_, _, hafterLive⟩ := vatFrobLiveOk
     (σ := σ) (σ₀ := σ₀)
@@ -6150,7 +6152,7 @@ theorem vatFrobBodyCoreLiveWishAuthDustReverts
   have hsourcePrefixRaw :
       let locals := frobStore I
       let evm0' := initState σ σ₀ (Sat256.ofUInt256 g) A I
-      ExecBlock config { contract := contract, locals := locals } evm0'
+      ExecBlock fork config { contract := contract, locals := locals } evm0'
         (nonpayable ++ requireLive ++
           [ .letDecl "urnInk" (some uint256)
               (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -6197,7 +6199,7 @@ theorem vatFrobBodyCoreLiveWishAuthDustReverts
             (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         hratePos
   have hsourcePrefix :
-      ExecBlock config { contract := contract, locals := frobStore I } evm0
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm0
         (nonpayable ++ requireLive ++
           [ .letDecl "urnInk" (some uint256)
               (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -6399,7 +6401,7 @@ theorem vatFrobBodyCoreLiveWishAuthDustReverts
       storageLoad_storageStore_ne evm0 evm0.executionEnv.codeOwner hne
     exact hstore.trans hload0
   have hsourceSafety :
-      ExecBlock config { contract := contract, locals := frobStore I } evm0
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm0
         ((nonpayable ++ requireLive ++
           [ .letDecl "urnInk" (some uint256)
               (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -6702,7 +6704,7 @@ theorem vatFrobBodyCoreLiveWishAuthDustReverts
     rw [store_get_ne _ _ (by decide)]
     simp [localsLoaded, frobStoreIlkDust]
   have mkAuthRevert :
-      ExecBlock config { contract := contract, locals := localsSafe } evmDebt
+      ExecBlock fork config { contract := contract, locals := localsSafe } evmDebt
         [ .require
             (eitherExpr
               (bothExpr
@@ -6719,7 +6721,7 @@ theorem vatFrobBodyCoreLiveWishAuthDustReverts
             (eitherExpr (.binary .eq (.var "urnArtNew") (.intLit 0))
               (.binary .ge (.var "tab") (.var "ilkDust"))) ]
         .reverted →
-      ExecTransitionBody config contract evm0 (frobStore I) frobTransition.body
+      ExecTransitionBody fork config contract evm0 (frobStore I) frobTransition.body
         .reverted := by
     intro hauthRevert
     exact hsourceRevertFromAuthorizationDust (by
@@ -6943,13 +6945,13 @@ theorem vatFrobBodyCoreLive
         (transitionSignature frobTransition).paramTypes I.calldata = some (frobStore I))
     (hdecoded :
       ∃ k C,
-        RD vatBytecode I (Sat256.ofUInt256 g)
+        RD fork vatBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2975⟩
           [frobDartWord I, frobDinkWord I, frobWMaskedWord I, frobVMaskedWord I,
             frobUMaskedWord I, frobIWord I, ⟨524⟩, vatSelWord I]
           solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hlive : solcSlotWordAt ⟨10⟩ σ I = ⟨1⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   classical
   by_cases hrateZeroEvm : solcSlotWord σ I (frobIlkRateSlot I) = ⟨0⟩
   · exact vatFrobBodyCoreLiveRateZeroRevert

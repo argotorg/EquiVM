@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.ResolveManySource
 import Benchmarks.EAS.Attester.LocalArray
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 
@@ -11,7 +13,7 @@ def localArrayGuard (index array : Ident) : Expr :=
 -- GENERALIZES resolveManyIncrementSource to any local counter.
 theorem execLocalCastIncrement {cfg : Config} {frame : Frame} {evm : EVM.State} {name : Ident} {i : Nat}
     (hi : frame.locals.get? name = some (.int (Int.ofNat i))) (hb : i+1 < UInt256.size) :
-    ExecStmt cfg frame evm (localCastIncrement name)
+    ExecStmt fork cfg frame evm (localCastIncrement name)
       (.ok {frame with locals := frame.locals.insert name (.int (Int.ofNat (i+1)))} evm) := by
   have he := evalCastUint256Add (cfg := cfg) (evm := evm) (frame := frame)
     (a := .var name) (b := .intLit 1) (x := i) (y := 1) (evalLocalValue hi) (by simp only [evalExpr?]; rfl)
@@ -36,7 +38,7 @@ theorem execLocalWordArrayCopy {cfg : Config} {frame : Frame} {evm : EVM.State}
     (hi : frame.locals.get? di = some (.int (Int.ofNat i)))
     (hj : frame.locals.get? si = some (.int (Int.ofNat j)))
     (hib : i < words.length) (hjb : j < values.length) :
-    ExecStmt cfg frame evm (.assign .localVar {base := dst,steps := [.aindex (.var di)]} (.index (.var src) (.var si)))
+    ExecStmt fork cfg frame evm (.assign .localVar {base := dst,steps := [.aindex (.var di)]} (.index (.var src) (.var si)))
       (.ok {frame with locals := frame.locals.insert dst (.array ((words.set i values[j]).map wordBytes32Value))} evm) := by
   have he : evalExpr? cfg frame evm (.index (.var src) (.var si)) = .ok (wordBytes32Value values[j]) :=
     evalArrayIndex (evalLocalValue hs) (evalLocalValue hj) (by simpa only [List.length_map] using hjb) (List.getElem_map ..) rfl

@@ -1,5 +1,7 @@
 import Benchmarks.EAS.Attester.MultiAttestSourceInner
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory
 
 namespace Benchmarks.EAS.Attester
@@ -28,7 +30,7 @@ theorem attestSourceRowEmpty {C : ContractDecl} {imms : Store} {evm : State}
     (hi : locals.get? "i" = some (.int (Int.ofNat i)))
     (hr : locals.get? "schemaInputs" = some (.array rows))
     (hrow : rows[i]? = some (.array [])) :
-    ExecBlock config ⟨C, locals, imms⟩ evm attestOuterBody .reverted := by
+    ExecBlock fork config ⟨C, locals, imms⟩ evm attestOuterBody .reverted := by
   refine ExecBlock.consNormal
     (ExecStmt.letDecl (evalLocalArrayIndex hr hi hrow rfl)) ?_
   refine ExecBlock.consNormal (ExecStmt.letDecl (evalLocalArrayLength (values := []) ?_)) ?_
@@ -58,7 +60,7 @@ theorem attestSourceRow {C : ContractDecl} {imms : Store} {evm : State}
     (ha : locals.get? "allocationEnd" = some (.int (Int.ofNat allocation)))
     (hsnorm : normalizeRawBoolWord? schema = .ok schema)
     (hinputs : ∀ k < inputs.length, inputs[k]? = some (.int (Int.ofNat (values k).toNat))) :
-    ∃ result, ExecBlock config ⟨C, locals, imms⟩ evm attestOuterBody
+    ∃ result, ExecBlock fork config ⟨C, locals, imms⟩ evm attestOuterBody
       (.ok ⟨C, result, imms⟩ evm) ∧
       result.get? "multiRequests" =
         some (.array (requests.set i (.tuple [schema,
@@ -72,22 +74,22 @@ theorem attestSourceRow {C : ContractDecl} {imms : Store} {evm : State}
   let l1 := l0.insert "inputLength" (.int (Int.ofNat inputs.length))
   let la := l1.insert "allocationEnd" (.int (Int.ofNat (allocation + 480 * inputs.length)))
   let l2 := la.insert "data" (.array (List.replicate inputs.length emptyPair))
-  have h0 : ExecStmt config ⟨C, locals, imms⟩ evm
+  have h0 : ExecStmt fork config ⟨C, locals, imms⟩ evm
       (.letDecl "inputs" (some uint256Array) (.index (.var "schemaInputs") (.var "i")))
       (.ok ⟨C, l0, imms⟩ evm) :=
     ExecStmt.letDecl (evalLocalArrayIndex hr hi hrow rfl)
   have hu0 : l0.get? "inputs" = some (.array inputs) := by simp [l0]
-  have h1 : ExecStmt config ⟨C, l0, imms⟩ evm
+  have h1 : ExecStmt fork config ⟨C, l0, imms⟩ evm
       (.letDecl "inputLength" (some uint256) (.arrayLength .localVar ⟨"inputs", []⟩))
       (.ok ⟨C, l1, imms⟩ evm) := ExecStmt.letDecl (evalLocalArrayLength hu0)
   have hn1 : l1.get? "inputLength" = some (.int (Int.ofNat inputs.length)) := by simp [l1]
-  have h2 : ExecStmt config ⟨C, l1, imms⟩ evm
+  have h2 : ExecStmt fork config ⟨C, l1, imms⟩ evm
       (.require (.binary .ne (.var "inputLength") (.intLit 0))) (.ok ⟨C, l1, imms⟩ evm) :=
     ExecStmt.requireTrue (by simpa only [decide_eq_true (by omega : inputs.length ≠ 0)] using
       (evalLocalNatNeZero (cfg := config) (stele := ⟨C, l1, imms⟩) (evm := evm) hn1))
   have ha1 : l1.get? "allocationEnd" = some (.int (Int.ofNat allocation)) := by
     simpa [l1, l0, Std.HashMap.getElem?_insert] using ha
-  have halloc : ExecStmt config ⟨C, l1, imms⟩ evm
+  have halloc : ExecStmt fork config ⟨C, l1, imms⟩ evm
       (.assign .localVar ⟨"allocationEnd", []⟩
         (.binary .add (.var "allocationEnd") (.binary .mul (.intLit 480) (.var "inputLength"))))
       (.ok ⟨C, la, imms⟩ evm) := by
@@ -97,7 +99,7 @@ theorem attestSourceRow {C : ContractDecl} {imms : Store} {evm : State}
     · exact assignLocalValue ha1
   have hna : la.get? "inputLength" = some (.int (Int.ofNat inputs.length)) := by
     simpa [la, Std.HashMap.getElem?_insert] using hn1
-  have h3 : ExecStmt config ⟨C, la, imms⟩ evm
+  have h3 : ExecStmt fork config ⟨C, la, imms⟩ evm
       (.letDecl "data" (some (.dynamicArray attestationRequestDataTy))
         (.newArray attestationRequestDataSt (.var "inputLength"))) (.ok ⟨C, l2, imms⟩ evm) :=
     ExecStmt.letDecl (evalLocalNewArray hna hdefault)
@@ -133,7 +135,7 @@ theorem attestSourceRow {C : ContractDecl} {imms : Store} {evm : State}
   · exact ExecBlock.consNormal h0 (ExecBlock.consNormal h1 (ExecBlock.consNormal h2
       (ExecBlock.consNormal halloc (ExecBlock.consNormal h3 (ExecBlock.consNormal hinner
           (ExecBlock.consNormal
-        (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hvalue (assignLocalArrayIndex hq3 hi3 hindex)) ExecBlock.nil))))))
+        (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hvalue (assignLocalArrayIndex hq3 hi3 hindex)) ExecBlock.nil))))))
   · simpa only [Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert,
       show ("multiRequests" == "allocationEnd") = false from rfl,
       Bool.false_eq_true, if_false] using ha3

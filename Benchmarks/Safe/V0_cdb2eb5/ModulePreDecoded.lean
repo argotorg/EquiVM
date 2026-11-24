@@ -1,5 +1,7 @@
 import Benchmarks.Safe.V0_cdb2eb5.ModuleMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V0_cdb2eb5
@@ -7,22 +9,22 @@ namespace Benchmarks.Safe.V0_cdb2eb5
 set_option maxRecDepth 100000 in
 theorem safeModulePreDecodedTrace (evm : EVM.State) (payload : ByteArray)
     {I g s0 σ k C aw rdata} {target value operation ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7340⟩
+    (h : RD fork safeBytecode I g s0 ⟨7340⟩
       (operation :: ⟨128⟩ :: value :: target :: ret :: R)
       (memoryBytesDecoded payload) aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ) (hworld : evm.σ₀ = s0.σ₀)
     (hn : payload.size ≤ 2 ^ 64 - 192) (ho : operation.toNat < 2)
     (hov : R.length + 30 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    (RDrev safeBytecode g s0 ∧
-      ExecFuncBody config (preModuleFrame (AccountAddress.ofUInt256 target)
+    (RDrev fork safeBytecode g s0 ∧
+      ExecFuncBody fork config (preModuleFrame (AccountAddress.ofUInt256 target)
         value payload operation) evm preModuleExecutionFunction.body .reverted) ∨
     ∃ frame evm' σ' mem' aw' rdata' hash k' C',
-      ExecFuncBody config (preModuleFrame (AccountAddress.ofUInt256 target)
+      ExecFuncBody fork config (preModuleFrame (AccountAddress.ofUInt256 target)
         value payload operation) evm preModuleExecutionFunction.body
         (.returned frame evm' (some [.address (AccountAddress.ofUInt256 (preModuleGuardWord evm)),
           .fixedBytes bytes32Width (EVM.Word.toBytesBE hash)])) ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧ evm'.σ₀ = s0.σ₀ ∧
-      RD safeBytecode I g s0 ret (hash :: preModuleGuardWord evm :: R)
+      RD fork safeBytecode I g s0 ret (hash :: preModuleGuardWord evm :: R)
         mem' aw' rdata' σ' k' C' ∧
       modulePreMemoryForm payload target value operation (UInt256.ofNat I.source.val) mem' := by
   let words := modulePayloadWords payload

@@ -4,6 +4,8 @@ import Examples.VyperERC20.TotalSupply
 import Examples.VyperERC20.Storage
 import Examples.ERC20.Common
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -67,7 +69,7 @@ theorem erc20Decode_balanceOf_none_noncanon {I : ExecutionEnv}
 
 theorem erc20BalanceOfBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody vyperERC20Config erc20Contract evm (balanceOfStore I)
+    ExecTransitionBody fork vyperERC20Config erc20Contract evm (balanceOfStore I)
       ERC20.balanceOfTransition.body
       (.returned { contract := erc20Contract, locals := balanceOfStore I } evm
         (some [(.int (Int.ofNat
@@ -161,9 +163,9 @@ theorem erc20X_balanceOfFromEntry {σ σ₀ A I} {g : Sat256}
     (hsz36 : 36 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hcanon : (balanceOfOwnerWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨623⟩
+    (hreach : ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨623⟩
       [balanceOfSelectorWord] balanceOfDispatchMem (UInt256.ofNat 1) ByteArray.empty σ k C) :
-    RDret vyperERC20Bytecode g (initState σ σ₀ g A I) σ
+    RDret fork vyperERC20Bytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (balanceOfWord σ I)) := by
   obtain ⟨k, C, rd623⟩ := hreach
   have hslot := balanceOfKeccakSlot I hcanon
@@ -298,12 +300,12 @@ theorem balanceOfDispatchMem_mload0 :
 theorem erc20X_balanceOfReach {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vyperERC20Bytecode)
     (hsel : ((⟨#[0x70, 0xa0, 0x82, 0x31]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨623⟩
+    ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨623⟩
       [balanceOfSelectorWord] balanceOfDispatchMem (UInt256.ofNat 1) ByteArray.empty
       σ k C := by
   have hsz := erc20BalanceOfSelector_size hsel
   have hword := balanceOfSelectorWord_of_calldata (I := I) hsz hsel
-  have rd0 := RD.initState (σ := σ) (σ₀ := σ₀)
+  have rd0 := RD.initState (fork := fork) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode
   have rdBeforeCopy0 := evm_run rd0 with [
     push0,
@@ -340,10 +342,10 @@ theorem erc20BalanceOfX_shortarg {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨623⟩
+    (hreach : ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨623⟩
       [balanceOfSelectorWord] balanceOfDispatchMem (UInt256.ofNat 1) ByteArray.empty
       σ k C) :
-    RDrev vyperERC20Bytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vyperERC20Bytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd623⟩ := hreach
   have hsizeGuard := calldataSizeGuardShort (n := I.calldata.size) (m := 36)
     hsize (by norm_num [UInt256.size]) hshort
@@ -371,10 +373,10 @@ theorem erc20BalanceOfX_noncanon_owner {σ σ₀ A I} {g : Sat256}
     (hsz36 : 36 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hnc : ¬ (balanceOfOwnerWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨623⟩
+    (hreach : ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨623⟩
       [balanceOfSelectorWord] balanceOfDispatchMem (UInt256.ofNat 1) ByteArray.empty
       σ k C) :
-    RDrev vyperERC20Bytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vyperERC20Bytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd623⟩ := hreach
   have hsizeGuard := calldataSizeGuardOk (n := I.calldata.size) (m := 36) hsz36 hsize
   have hsizeGuard36 : UInt256.lt (UInt256.ofNat I.calldata.size) ⟨36⟩ = ⟨0⟩ := by
@@ -430,15 +432,15 @@ theorem erc20BalanceOfBodyCore
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : ((⟨#[0x70, 0xa0, 0x82, 0x31]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vyperERC20Bytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨623⟩
       [balanceOfSelectorWord] balanceOfDispatchMem (UInt256.ofNat 1) ByteArray.empty
       σ k C) :
-    runtimeRefinementFor vyperERC20Config erc20Contract
+    runtimeRefinementFor fork vyperERC20Config erc20Contract
       σ σ₀ g A I := by
   have hd := erc20Dispatch_balanceOf (cd := I.calldata) hsel
   have hbody :
-      ExecTransitionBody vyperERC20Config erc20Contract
+      ExecTransitionBody fork vyperERC20Config erc20Contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (balanceOfStore I)
         ERC20.balanceOfTransition.body
@@ -486,10 +488,10 @@ theorem erc20BalanceOfRuntimeSuccess
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : ((⟨#[0x70, 0xa0, 0x82, 0x31]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    runtimeRefinementFor vyperERC20Config erc20Contract
+    runtimeRefinementFor fork vyperERC20Config erc20Contract
       σ σ₀ g A I := by
   exact erc20BalanceOfBodyCore hcode hwv hsize hsel
-    (erc20X_balanceOfReach (σ := σ)
+    (erc20X_balanceOfReach (fork := fork) (σ := σ)
       (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) hcode hsel)
 
 end VyperERC20

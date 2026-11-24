@@ -1,6 +1,8 @@
 import Reasoning.WordArithmetic
 import Benchmarks.Dss.Spot.ConstructorBase
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Spotter constructor Stele source semantics
 -/
@@ -177,7 +179,7 @@ theorem spotCtorBodySuccess
     let evm2 := spotCtorAfterVatState evm1 vat
     let evm3 := spotCtorAfterParState evm2
     let evm4 := spotCtorAfterLiveState evm3
-    ExecBlock config { contract := contract, locals := locals } evm0 constructorDecl.body
+    ExecBlock fork config { contract := contract, locals := locals } evm0 constructorDecl.body
       (.ok { contract := contract, locals := locals } evm4) := by
   intro locals evm0 evm1 evm2 evm3 evm4
   have hassignWards :
@@ -207,18 +209,18 @@ theorem spotCtorBodySuccess
   simp only [constructorDecl, nonpayable, List.cons_append, List.nil_append]
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hassignWards) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [evm1, spotCtorAfterWardsState, storageStore_executionEnv, evm0, initState] using hperm)) ?_ hassignVat) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hassignWards) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [evm1, spotCtorAfterWardsState, storageStore_executionEnv, evm0, initState] using hperm)) ?_ hassignVat) ?_
   · simpa [locals] using evalExpr_spotCtorLocalVat (evm := evm1) vat
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [evm2, evm1, spotCtorAfterWardsState, spotCtorAfterVatState, storageStore_executionEnv, evm0, initState] using hperm)) (by rw [evalExpr?]; rfl) hassignPar) ?_
-  exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [evm3, evm2, evm1, spotCtorAfterWardsState, spotCtorAfterVatState, spotCtorAfterParState, storageStore_executionEnv, evm0, initState] using hperm)) (by rw [evalExpr?]; rfl) hassignLive) ExecBlock.nil
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [evm2, evm1, spotCtorAfterWardsState, spotCtorAfterVatState, storageStore_executionEnv, evm0, initState] using hperm)) (by rw [evalExpr?]; rfl) hassignPar) ?_
+  exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [evm3, evm2, evm1, spotCtorAfterWardsState, spotCtorAfterVatState, spotCtorAfterParState, storageStore_executionEnv, evm0, initState] using hperm)) (by rw [evalExpr?]; rfl) hassignLive) ExecBlock.nil
 
 theorem spotSteleCtorExecSuccess
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (vat : AccountAddress)
     (hwv : I.weiValue = ⟨0⟩)
     (hperm : I.perm = true) :
-    steleCtorExec config contract [.address vat] σ σ₀ g A I
+    steleCtorExec fork config contract [.address vat] σ σ₀ g A I
       (.returned { contract := contract, locals := spotCtorLocals vat }
         (spotCtorAfterLiveState
           (spotCtorAfterParState
@@ -236,14 +238,14 @@ theorem spotSteleCtorExecSuccess
   · rfl
   · simpa [ExecTransitionBody, contract, constructorDecl] using
       ExecFuncBody.execBlockOK
-        (spotCtorBodySuccess (hperm := hperm)
+        (spotCtorBodySuccess (fork := fork) (hperm := hperm)
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) vat hwv)
 
 theorem spotSteleCtorExecReverts_nonpayable
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (vat : AccountAddress)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    steleCtorExec config contract [.address vat] σ σ₀ g A I .reverted := by
+    steleCtorExec fork config contract [.address vat] σ σ₀ g A I .reverted := by
   refine steleCtorExec.intro
     (evmState := initState σ σ₀
       (Sat256.ofUInt256 g) A I)

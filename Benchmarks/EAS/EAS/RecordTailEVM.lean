@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.RecordEventEVM
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -24,9 +26,9 @@ theorem easRecordTail {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hvalue : memLoad (refUIDPtr site t3+UInt256.ofNat 160) (recordFirstMemory mem site src t3 t4 i) = value)
     (hptr : recordUIDsPtr site (recordSecondMemory mem site src t3 t4 value i) = uidPtr)
     (hul : memLoad uidPtr (recordSecondMemory mem site src t3 t4 value i) = UInt256.ofNat len)
-    (rd : RD (deployedRuntime v) ee g s0 (refUIDReadyPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (refUIDReadyPC site)
       (refUIDReadyStack site dummy word src t1 (UInt256.ofNat i) t3 t4 R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (recordNextPC site)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (recordNextPC site)
       (recordNextStack site t1 (UInt256.ofNat (i+1)) t3 t4 R)
       (recordTailMemory mem site src t3 t4 value uidPtr word i) aw' rdata σ k' C' := by
   obtain ⟨aw1,k1,C1,hr1⟩ := easRecordArrayStore v site hstack hi hb hin hl rd

@@ -1,20 +1,22 @@
 import Benchmarks.CompoundIII.Comet.PauseCommon
 import Benchmarks.CompoundIII.Comet.PermissionSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
 
 theorem pause_call (frame : Frame) (evm : EVM.State) (bit : Fin 5) (ret : Ident)
     (hc : frame.contract = contract) :
-    ExecStmt config frame evm (.internalCall (pauseFunctionName bit) [] ret)
+    ExecStmt fork config frame evm (.internalCall (pauseFunctionName bit) [] ret)
       (.ok { frame with
         locals := frame.locals.insert ret
           (.bool (decide ((pauseBitWord evm bit).toNat ≠ 0))) } evm) := by
-  exact ExecStmt.internalCallReturn (callee := pauseCallable bit) (locals := ∅)
+  exact ExecStmt.internalCallReturn (fork := fork) (callee := pauseCallable bit) (locals := ∅)
     (args := []) (argVals := [])
     rfl (by rw [hc]; exact pauseCallable_lookup bit) rfl
-    (by simpa only [hc] using pauseCallable_returns evm frame.immutables bit)
+    (by simpa only [hc] using pauseCallable_returns (fork := fork) evm frame.immutables bit)
 
 def AuthorizationValid (evm : EVM.State) (bit : Fin 5)
     (operator owner : AccountAddress) : Prop :=
@@ -42,7 +44,7 @@ theorem authorization_source (frame : Frame) (evm : EVM.State) (bit : Fin 5) (ow
     (hc : frame.contract = contract)
     (ho : frame.locals.get? "operator" = some (.address operator))
     (hs : frame.locals.get? ownerName = some (.address src)) :
-    ExecBlock config frame evm (authorizationBlock bit ownerName)
+    ExecBlock fork config frame evm (authorizationBlock bit ownerName)
       (if AuthorizationValid evm bit operator src then .ok (authorizationFrame frame evm bit operator src) evm
         else .reverted) := by
   let ready : Frame := { frame with
@@ -50,14 +52,14 @@ theorem authorization_source (frame : Frame) (evm : EVM.State) (bit : Fin 5) (ow
       (.bool (decide ((pauseBitWord evm bit).toNat ≠ 0))) }
   have howner : ready.locals.get? ownerName = frame.locals.get? ownerName := by
     simp [ready, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert, Ne.symm hkey]
-  have hp := pause_call frame evm bit "__c1" hc
+  have hp := pause_call (fork := fork) frame evm bit "__c1" hc
   have hn : evalExpr? config ready evm (.unary .not (.var "__c1")) =
       .ok (.bool (decide ((pauseBitWord evm bit).toNat = 0))) := by
     simp only [evalExpr?, ready, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert,
       EvalResult.ofOption]
     simp [bind, EvalResult.bind, evalUnaryOp?]
   by_cases hz : (pauseBitWord evm bit).toNat = 0
-  · have ha := hasPermission_call ready evm src operator (.var ownerName) (.var "operator") "__c2" hc
+  · have ha := hasPermission_call (fork := fork) ready evm src operator (.var ownerName) (.var "operator") "__c2" hc
       (by simp only [evalExpr?, howner, hs, EvalResult.ofOption])
       (by simp only [evalExpr?, ready, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert]
           change EvalResult.ofOption .unboundVariable (frame.locals.get? "operator") = _

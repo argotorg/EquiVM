@@ -1,6 +1,8 @@
 import Benchmarks.CurveVault.DebitBurn
 import Benchmarks.CurveVault.DebitMinimum
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -20,14 +22,14 @@ theorem vaultRedeemAfterConversion {I : ExecutionEnv} {g : Sat256} {s0 evm : Sta
     (hmv : memLoad (UInt256.ofNat 704) mem = assets)
     (hrcanon : receiver.toNat < EVM.addressModulus) (hocanon : owner.toNat < EVM.addressModulus)
     (hperm : I.perm = true) (hstack : R.length + 9 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 5272) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 5272) R mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (locals' : Store),
-      ExecBlock config {contract := contract, locals := locals} evm ((vaultDebitFunction false).body.drop 3)
+      ExecBlock fork config {contract := contract, locals := locals} evm ((vaultDebitFunction false).body.drop 3)
         (.returned {contract := contract, locals := locals'} evm' (some [.int (Int.ofNat assets.toNat)])) ∧
       SourceState s0 I σ' evm' ∧
-      RDret vaultBytecode g s0 (tstoreAccountMap I.codeOwner σ' ⟨0⟩ ⟨0⟩) assets.toByteArray) ∨
-    (ExecBlock config {contract := contract, locals := locals} evm ((vaultDebitFunction false).body.drop 3)
-      .reverted ∧ RDrev vaultBytecode g s0) := by
+      RDret fork vaultBytecode g s0 (tstoreAccountMap I.codeOwner σ' ⟨0⟩ ⟨0⟩) assets.toByteArray) ∨
+    (ExecBlock fork config {contract := contract, locals := locals} evm ((vaultDebitFunction false).body.drop 3)
+      .reverted ∧ RDrev fork vaultBytecode g s0) := by
   let prepared := vaultDebitMinimumMemory false mem
   have hmem : prepared = assets.toByteArray.write 0 mem 672 32 := by
     change (memLoad (UInt256.ofNat 704) mem).toByteArray.write 0 mem 672 32 = _

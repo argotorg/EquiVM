@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.SwapWrapperTailTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -31,12 +33,12 @@ theorem swapWrapperMemory_of_pool {before mem : ByteArray} {state free : UInt256
   · intro base data hs hb he
     exact (h.saved base data hs hb he).swapWrapperTail _ _ _ _ _ _ (by omega) (by omega)
 
-def swapWrapperReturn (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
+def swapWrapperReturn (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
     (mem rdata : ByteArray) (state params x8 x9 x10 x11 x12 x13 hookPtr junk : UInt256)
     (R : List UInt256) (post : State) (values : Option (List Value)) : Prop :=
   ∃ delta out free aw k C, post.executionEnv = I ∧ post.σ₀ = s0.σ₀ ∧
     values = some [.int (EVM.signed delta)] ∧ Cₘ aw ≤ C ∧
-    RD (deployedRuntime v) I g s0 ⟨1930⟩
+    RD fork (deployedRuntime v) I g s0 ⟨1930⟩
       ([memLoad hookPtr out, UInt256.ofNat 1461501637330902918203684832716283019655932542975,
         x12, params, delta, x8, x9, x10, x11, x12, x13, hookPtr, UInt256.ofNat 32, junk]++R)
       out aw rdata post.accountMap k C ∧ SwapWrapperMemory mem out state free
@@ -48,9 +50,9 @@ theorem swapWrapperReturn_of_tail {v : PoolManagerImmutables} {I : ExecutionEnv}
     (hI : evm.executionEnv = I) (hσ : evm.σ₀ = s0.σ₀)
     (hm : PoolSwapReturnMemory mem out state free r) (hl : 96 ≤ state.toNat)
     (hf : state.toNat+352 < UInt256.size)
-    (ht : swapWrapperTailReturn v I g s0 evm out rdata free delta fee amount params x8 x9 x10
+    (ht : swapWrapperTailReturn fork v I g s0 evm out rdata free delta fee amount params x8 x9 x10
       x11 x12 x13 hookPtr junk currency r R post values) :
-    swapWrapperReturn v I g s0 mem rdata state params x8 x9 x10 x11 x12 x13 hookPtr junk R post values := by
+    swapWrapperReturn fork v I g s0 mem rdata state params x8 x9 x10 x11 x12 x13 hookPtr junk R post values := by
   obtain ⟨rfl, hv, aw, k, C, hp, rd⟩ := ht
   exact ⟨delta, _, free, aw, k, C, (swapWrapperFeePost_executionEnv ..).trans hI,
     (swapWrapperFeePost_σ₀ ..).trans hσ, hv, hp, rd, swapWrapperMemory_of_pool hm delta fee amount currency hl hf⟩

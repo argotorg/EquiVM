@@ -2,6 +2,8 @@ import Benchmarks.Safe.V2_0e91d99.ExecTransactionPrepare
 import Benchmarks.Safe.V2_0e91d99.ExecTransactionGuardTrace
 import Benchmarks.Safe.V2_0e91d99.ExecTransactionAfterGuard
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V2_0e91d99
@@ -9,7 +11,7 @@ namespace Benchmarks.Safe.V2_0e91d99
 set_option maxRecDepth 100000 in
 theorem safeExecTransactionBodyTrace (evm : EVM.State)
     {I g s0 σ k C aw rdata dataLen sigLen} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3533⟩
+    (h : RD fork safeBytecode I g s0 ⟨3533⟩
       (execTransactionDecodedStack I.calldata dataLen ⟨128⟩ (⟨759⟩ :: R))
       (memoryBytesDecoded (execTransactionCalldataInput I.calldata dataLen sigLen).signatures)
       aw rdata σ k C)
@@ -17,18 +19,18 @@ theorem safeExecTransactionBodyTrace (evm : EVM.State)
     (hb : ExecTransactionCalldataBounds I.calldata dataLen sigLen)
     (ho : (calldataWord I.calldata 100).toNat < 2) (hn : sigLen ≤ 2 ^ 64 - 192)
     (hov : R.length + 70 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧ ExecTransitionBody config contract evm
+    (RDrev fork safeBytecode g s0 ∧ ExecTransitionBody fork config contract evm
       (execTransactionCalldataInput I.calldata dataLen sigLen).args
       exectransactionTransition.body .reverted) ∨
-    (RDstatic safeBytecode g s0 ∧ ExecTransitionBody config contract evm
+    (RDstatic fork safeBytecode g s0 ∧ ExecTransitionBody fork config contract evm
       (execTransactionCalldataInput I.calldata dataLen sigLen).args
       exectransactionTransition.body .staticViolation) ∨
     ∃ frame' evm' σ' z,
-      ExecTransitionBody config contract evm
+      ExecTransitionBody fork config contract evm
         (execTransactionCalldataInput I.calldata dataLen sigLen).args
         exectransactionTransition.body (.returned frame' evm' (some [.bool z])) ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧ evm'.σ₀ = s0.σ₀ ∧
-      RDret safeBytecode g s0 σ' z.toUInt256.toByteArray := by
+      RDret fork safeBytecode g s0 σ' z.toUInt256.toByteArray := by
   let p := execTransactionCalldataInput I.calldata dataLen sigLen
   obtain ⟨hr, hs⟩ | ⟨hr, hs⟩ |
       ⟨evm₁, mem₁, ptr₁, out₁, aw₁, k₁, C₁, prefix₁, he₁, hw₁, h₁,

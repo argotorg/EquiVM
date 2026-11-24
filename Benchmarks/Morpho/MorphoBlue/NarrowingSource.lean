@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.MarketStorageCommon
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
@@ -31,7 +33,7 @@ theorem toUint128_eval_guard (x : UInt256) (imms : Store) (evm : EVM.State) :
 
 theorem morphoToUint128BodyOk (x : UInt256) (evm : EVM.State) (imms : Store)
     (hfit : x.toNat < 2 ^ 128) :
-    ExecFuncBody config (toUint128Frame x imms) evm toUint128Function.body
+    ExecFuncBody fork config (toUint128Frame x imms) evm toUint128Function.body
       (.returned (toUint128Frame x imms) evm (some [.int (Int.ofNat x.toNat)])) := by
   apply ExecFuncBody.execBlockRet
   apply (ABlock.start.requireStep (by simpa only [decide_eq_true hfit] using (toUint128_eval_guard x imms evm))).returns
@@ -39,7 +41,7 @@ theorem morphoToUint128BodyOk (x : UInt256) (evm : EVM.State) (imms : Store)
 
 theorem morphoToUint128BodyReverts (x : UInt256) (evm : EVM.State) (imms : Store)
     (hover : 2 ^ 128 ≤ x.toNat) :
-    ExecFuncBody config (toUint128Frame x imms) evm toUint128Function.body .reverted := by
+    ExecFuncBody fork config (toUint128Frame x imms) evm toUint128Function.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   exact ABlock.start.requireRevert (by simpa only [decide_eq_false (Nat.not_lt_of_ge hover)] using (toUint128_eval_guard x imms evm))
 
@@ -47,7 +49,7 @@ theorem morphoToUint128CallOk (x : UInt256) (evm : EVM.State) (locals imms : Sto
     (ex : Expr) (retVar : Ident)
     (hx : evalExpr? config { contract := contract, locals := locals, immutables := imms } evm ex =
       .ok (.int (Int.ofNat x.toNat))) (hfit : x.toNat < 2 ^ 128) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm
       (.internalCall "UtilsLib_toUint128" [ex] retVar)
       (.ok { contract := contract, locals := locals.insert retVar (.int (Int.ofNat x.toNat)), immutables := imms } evm) := by
   exact internalCallFunctionReturn (callee := toUint128Function)
@@ -58,7 +60,7 @@ theorem morphoToUint128CallReverts (x : UInt256) (evm : EVM.State) (locals imms 
     (ex : Expr) (retVar : Ident)
     (hx : evalExpr? config { contract := contract, locals := locals, immutables := imms } evm ex =
       .ok (.int (Int.ofNat x.toNat))) (hover : 2 ^ 128 ≤ x.toNat) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm
       (.internalCall "UtilsLib_toUint128" [ex] retVar) .reverted := by
   exact internalCallFunctionRevert (callee := toUint128Function) (evalExprs?_singleton hx) rfl rfl
     (morphoToUint128BodyReverts x evm imms hover)

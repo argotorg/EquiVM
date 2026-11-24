@@ -1,5 +1,7 @@
 import Benchmarks.Auction.DispatchFacts
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 100000
@@ -9,7 +11,7 @@ namespace Auction
 
 theorem auctionPrologue {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = auctionBytecode) :
-    RD auctionBytecode I g (initState σ σ₀ g A I) ⟨5⟩ []
+    RD fork auctionBytecode I g (initState σ σ₀ g A I) ⟨5⟩ []
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ 3 18 := by
   exact evm_run (RD.initState hcode) with [
     push1 ⟨128⟩, push1 ⟨64⟩,
@@ -20,11 +22,11 @@ theorem auctionPrologue {σ σ₀ A I} {g : Sat256}
 theorem auctionReachSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = auctionBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD auctionBytecode I g (initState σ σ₀ g A I) ⟨18⟩
+    ∃ k C, RD fork auctionBytecode I g (initState σ σ₀ g A I) ⟨18⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd13⟩ := solcCalldataOk
     (bodyPc := ⟨5⟩) (selLoadTgt := ⟨283⟩) (opR := .PUSH2) (wR := 2)
-    (auctionPrologue (σ := σ) (σ₀ := σ₀)
+    (auctionPrologue (fork := fork) (σ := σ) (σ₀ := σ₀)
       (A := A) (g := g) hcode)
     hsz hsize (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by
       native_decide) (by native_decide)
@@ -32,8 +34,8 @@ theorem auctionReachSplit {σ σ₀ A I} {g : Sat256}
     native_decide) (by simp)
 
 theorem auctionReachGroup {ee g s0 word mem aw rdata acc k C}
-    (h : RD auctionBytecode ee g s0 ⟨18⟩ [word] mem aw rdata acc k C) :
-    ∃ k' C', RD auctionBytecode ee g s0 (groupFirstPc (selectedGroup word))
+    (h : RD fork auctionBytecode ee g s0 ⟨18⟩ [word] mem aw rdata acc k C) :
+    ∃ k' C', RD fork auctionBytecode ee g s0 (groupFirstPc (selectedGroup word))
       [word] mem aw rdata acc k' C' := by
   by_cases hroot : UInt256.gt (armSelNat auctionBytecode ⟨18⟩) word = ⟨0⟩
   · have rd29 := h.selectorSplitNotTakenResolved
@@ -77,7 +79,7 @@ theorem auctionReachGroup {ee g s0 word mem aw rdata acc k C}
 theorem auctionReachEntry {σ σ₀ A I} {g : UInt256} (i : Entry)
     (hcode : I.code = auctionBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (entryBytes i)) :
-    EntryReached i σ σ₀ A I g := by
+    EntryReached fork i σ σ₀ A I g := by
   have hword := entryWord_eq i hsz hsel
   obtain ⟨_, _, rd18⟩ := auctionReachSplit
     (σ := σ) (σ₀ := σ₀) (A := A)
@@ -95,8 +97,8 @@ theorem auctionReachEntry {σ σ₀ A I} {g : UInt256} (i : Entry)
 
 theorem auctionXShort {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = auctionBytecode) (hsz : I.calldata.size < 4) :
-    RDrev auctionBytecode g (initState σ σ₀ g A I) := by
-  have rd5 := auctionPrologue
+    RDrev fork auctionBytecode g (initState σ σ₀ g A I) := by
+  have rd5 := auctionPrologue (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode
   exact evm_run rd5 with [
     push1 ⟨4⟩, calldatasize, lt, push2 ⟨283⟩,
@@ -104,14 +106,14 @@ theorem auctionXShort {σ σ₀ A I} {g : Sat256}
     raw solcPush0Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 theorem auctionSkipGroup {ee g s0 word mem aw rdata acc k C} (group : Fin 4)
-    (h : RD auctionBytecode ee g s0 (groupFirstPc group) [word] mem aw rdata acc k C)
+    (h : RD fork auctionBytecode ee g s0 (groupFirstPc group) [word] mem aw rdata acc k C)
     (hm : ∀ j : Fin 5,
       UInt256.eq (armSelNat auctionBytecode
         (nthArmPc auctionBytecode (groupFirstPc group) j.val)) word = ⟨0⟩) :
-    ∃ k' C', RD auctionBytecode ee g s0 (nthArmPc auctionBytecode (groupFirstPc group) 5)
+    ∃ k' C', RD fork auctionBytecode ee g s0 (nthArmPc auctionBytecode (groupFirstPc group) 5)
       [word] mem aw rdata acc k' C' := by
   have skip : ∀ n, n ≤ 5 →
-      ∃ k' C', RD auctionBytecode ee g s0
+      ∃ k' C', RD fork auctionBytecode ee g s0
         (nthArmPc auctionBytecode (groupFirstPc group) n) [word] mem aw rdata acc k' C' := by
     intro n hn
     induction n with
@@ -125,9 +127,9 @@ theorem auctionSkipGroup {ee g s0 word mem aw rdata acc k C} (group : Fin 4)
   exact skip 5 (by omega)
 
 theorem auctionGroupMissRevert {ee g s0 word mem aw rdata acc k C} (group : Fin 4)
-    (h : RD auctionBytecode ee g s0
+    (h : RD fork auctionBytecode ee g s0
       (nthArmPc auctionBytecode (groupFirstPc group) 5) [word] mem aw rdata acc k C) :
-    RDrev auctionBytecode g s0 := by
+    RDrev fork auctionBytecode g s0 := by
   rw [groupEnd] at h
   rcases group with ⟨group, hg⟩
   interval_cases group <;> simp only [groupEndPc] at h
@@ -141,7 +143,7 @@ theorem auctionXNoMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = auctionBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i : Entry, ¬ selIs I (entryBytes i)) :
-    RDrev auctionBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork auctionBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd18⟩ := auctionReachSplit
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
     hcode hsz hsize

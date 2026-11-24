@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.TickSqrtPrefix
 import Benchmarks.UniswapV3.Pool.SourceWordBits
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -14,7 +16,7 @@ theorem tickSqrtInvertSource {frame : Frame} {evm : EVM.State} (tick : Int) (rat
     (ht : frame.locals.get? "tick" = some (.int tick))
     (hr : frame.locals.get? "ratio" = some (.int (Int.ofNat ratio.toNat)))
     (hn : 0 < ratio.toNat) :
-    ExecStmt config frame evm tickSqrtFunction.body[23]!
+    ExecStmt fork config frame evm tickSqrtFunction.body[23]!
       (.ok (tickSqrtInvertedFrame frame tick ratio) evm) := by
   have hgt : evalExpr? config frame evm (.binary .gt (.var "tick") (.intLit 0)) =
       .ok (.bool (decide (0 < tick))) := by
@@ -22,7 +24,7 @@ theorem tickSqrtInvertSource {frame : Frame} {evm : EVM.State} (tick : Int) (rat
   by_cases hp : 0 < tick
   · rw [tickSqrtInvertedFrame, if_pos hp]
     refine ExecStmt.iteTrue ?_ (ExecBlock.consNormal
-      (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat (tickSqrtInvert tick ratio).toNat)) ?_ ?_)
+      (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat (tickSqrtInvert tick ratio).toNat)) ?_ ?_)
       ExecBlock.nil)
     · simpa only [hp, decide_true] using hgt
     · rw [tickSqrtInvert, if_pos hp]
@@ -83,13 +85,13 @@ theorem evalTickSqrtRound {frame : Frame} {evm : EVM.State} (ratio : UInt256)
 theorem tickSqrtRoundSource {frame : Frame} {evm : EVM.State} (ratio : UInt256)
     (hr : frame.locals.get? "ratio" = some (.int (Int.ofNat ratio.toNat)))
     (hs : frame.locals.get? "sqrtPriceX96" = some (.int 0)) :
-    ∃ out, ExecBlock config frame evm (tickSqrtFunction.body.drop 24)
+    ∃ out, ExecBlock fork config frame evm (tickSqrtFunction.body.drop 24)
       (.returned out evm (some [.int (Int.ofNat
         (UInt256.land (tickSqrtRound ratio) (UInt256.ofNat (2 ^ 160 - 1))).toNat)])) := by
   let value := Value.int (Int.ofNat
     (UInt256.land (tickSqrtRound ratio) (UInt256.ofNat (2 ^ 160 - 1))).toNat)
   refine ⟨{frame with locals := frame.locals.insert "sqrtPriceX96" value}, ?_⟩
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalTickSqrtRound ratio hr)
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalTickSqrtRound ratio hr)
     (assignLocalVarBase_frame hs)) ?_
   apply ExecBlock.consReturn
   apply ExecStmt.return
@@ -99,7 +101,7 @@ theorem tickSqrtTailSource {frame : Frame} {evm : EVM.State} (tick : Int) (ratio
     (ht : frame.locals.get? "tick" = some (.int tick))
     (hr : frame.locals.get? "ratio" = some (.int (Int.ofNat ratio.toNat)))
     (hs : frame.locals.get? "sqrtPriceX96" = some (.int 0)) (hn : 0 < ratio.toNat) :
-    ∃ out, ExecBlock config frame evm (tickSqrtFunction.body.drop 23)
+    ∃ out, ExecBlock fork config frame evm (tickSqrtFunction.body.drop 23)
       (.returned out evm (some [.int (Int.ofNat
         (UInt256.land (tickSqrtRound (tickSqrtInvert tick ratio))
           (UInt256.ofNat (2 ^ 160 - 1))).toNat)])) := by

@@ -3,6 +3,8 @@ import Benchmarks.CurveVault.SupplyForward
 import Benchmarks.CurveVault.SaveRateCalls
 import Benchmarks.CurveVault.MutationReturn
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -20,16 +22,16 @@ theorem vaultCreditFinish (isDeposit : Bool) {I : ExecutionEnv} {g : Sat256} {s0
     (hinput : calldataWord I.calldata 4 = vaultCreditInput isDeposit assets shares)
     (hcanon : receiver.toNat < EVM.addressModulus) (hperm : I.perm = true)
     (hstack : R.length + 8 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat (vaultCreditFlow isDeposit).tokenNext) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat (vaultCreditFlow isDeposit).tokenNext) R mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (locals' : Store),
-      ExecBlock config {contract := contract, locals := locals} evm (vaultCreditFinishBody isDeposit)
+      ExecBlock fork config {contract := contract, locals := locals} evm (vaultCreditFinishBody isDeposit)
         (.returned {contract := contract, locals := locals'} evm'
           (some [.int (Int.ofNat (vaultCreditResult isDeposit assets shares).toNat)])) ∧
       SourceState s0 I σ' evm' ∧
-      RDret vaultBytecode g s0 (tstoreAccountMap I.codeOwner σ' ⟨0⟩ ⟨0⟩)
+      RDret fork vaultBytecode g s0 (tstoreAccountMap I.codeOwner σ' ⟨0⟩ ⟨0⟩)
         (vaultCreditResult isDeposit assets shares).toByteArray) ∨
-    (ExecBlock config {contract := contract, locals := locals} evm (vaultCreditFinishBody isDeposit)
-      .reverted ∧ RDrev vaultBytecode g s0) := by
+    (ExecBlock fork config {contract := contract, locals := locals} evm (vaultCreditFinishBody isDeposit)
+      .reverted ∧ RDrev fork vaultBytecode g s0) := by
   obtain ⟨aw0, k0, C0, rdMint⟩ := vaultCreditMintSetup isDeposit hsize hmr hmv hinput (by omega) h
   obtain ⟨hargsSize, howner, hshares⟩ := vaultSupplyArguments_reads mem receiver shares
   have hargs : evalExprs? config {contract := contract, locals := locals} evm

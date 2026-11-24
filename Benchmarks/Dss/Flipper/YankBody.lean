@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Flipper.YankCalls
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxHeartbeats 0
@@ -11,14 +13,14 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flipperSelBytes 18)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hsz36 : 36 ≤ I.calldata.size
   · have hsz4 : 4 ≤ I.calldata.size :=
       calldata_size_ge_of_selIs I (flipperSelBytes 18) rfl hsel
     have hdispatch : dispatchMsg contract I.calldata = some yankTransition :=
       flipperDispatchYank hsel
     have hdecode := flipperDecode_yank_ok (I := I) hsz36
-    have hreach := flipperReachYankBody
+    have hreach := flipperReachYankBody (fork := fork)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       hcode hwv hsz4 hsize hsel
     obtain ⟨_, _, hdecoded⟩ := flipperYankX_decoded (g := Sat256.ofUInt256 g)
@@ -49,7 +51,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
           rw [← hcallerWord]
           exact hauthEvm
         have hbody :
-            ExecTransitionBody config contract
+            ExecTransitionBody fork config contract
               (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               (yankLocals I) yankTransition.body .reverted := by
           simpa using
@@ -88,7 +90,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                   (bidTabWord (yankId I) σ I).toNat := by
               simpa [← hbidEq, ← htabEq] using hbidLtEvm
             have hbody :
-                ExecTransitionBody config contract
+                ExecTransitionBody fork config contract
                   (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                   (yankLocals I) yankTransition.body .reverted := by
               simpa using
@@ -124,7 +126,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                   Account.lookupStorage, bidTabWord, bidSlotOfWord, bidBaseOfWord] using
                   yankCatCallMem_encode σ I
               have hcallCat :=
-                Reasoning.Theory.callNotMade_depthLimit (cfg := config)
+                Reasoning.Theory.callNotMade_depthLimit (fork := fork) (cfg := config)
                   (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I)
                   (tgt := EVM.address (flipperCatAddress σ I)) (name := "claw")
                   (args :=
@@ -133,7 +135,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                   (calldata := (yankCatCallMem σ I).readWithPadding 128 36)
                   (callPerm := true) hcatEncode (by simpa [initState] using hdepthEq)
               have hbody :
-                  ExecTransitionBody config contract
+                  ExecTransitionBody fork config contract
                     (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                     (yankLocals I) yankTransition.body .reverted := by
                 simpa using
@@ -159,7 +161,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                   substate := A_cat
                   }
               have hcallCatEvm :
-                  typedCallViaEVM config evm0Evm
+                  typedCallViaEVM fork config evm0Evm
                     (EVM.address (flipperCatAddress σ I)) "claw" 0
                     [Value.int (Int.ofNat (bidTabWord (yankId I) σ I).toNat)]
                     (zCat, evmCatEvm, outCat) true := by
@@ -185,11 +187,11 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                   Stele.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
                   bidTabWord, solcSlotWordAt, solcSlotWord]
               have hcallCatStele :
-                  typedCallViaEVM config evm0Stele
+                  typedCallViaEVM fork config evm0Stele
                     (EVM.address (flipperCatAddress σ I)) "claw" 0
                     (yankClawArgVals evm0Stele) (zCat, evmCatStele, outCat) true := by
                 have hcallCatSteleRaw' :
-                    typedCallViaEVM config evm0Stele
+                    typedCallViaEVM fork config evm0Stele
                       (EVM.address (flipperCatAddress σ I)) "claw" 0
                       [Value.int (Int.ofNat (bidTabWord (yankId I) σ I).toNat)]
                       (zCat, evmCatStele, outCat) true := by
@@ -198,12 +200,12 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                 exact hcallCatSteleRaw'
               cases zCat
               · have hcallCatSteleFalse :
-                    typedCallViaEVM config evm0Stele
+                    typedCallViaEVM fork config evm0Stele
                       (EVM.address (flipperCatAddress σ I)) "claw" 0
                       (yankClawArgVals evm0Stele) (false, evmCatStele, outCat) true := by
                   simpa using hcallCatStele
                 have hbody :
-                    ExecTransitionBody config contract evm0Stele (yankLocals I)
+                    ExecTransitionBody fork config contract evm0Stele (yankLocals I)
                       yankTransition.body .reverted := by
                   simpa [evm0Stele] using
                     (flipperYankSourceBodyCatCallFailure
@@ -211,7 +213,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                       hwv hauthStele hguyStele hbidLtStele hcatCode hcallCatSteleFalse)
                 exact (flipperYankX_catCallFailure (by simpa using rd1346) houtCat)
                   |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
-              · have rd1346True : RD flipperBytecode I (Sat256.ofUInt256 g)
+              · have rd1346True : RD fork flipperBytecode I (Sat256.ofUInt256 g)
                     (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1346⟩
                     (⟨1⟩ :: ⟨164⟩ :: ⟨3865913243⟩ ::
                       flipperCatTargetWord σ I :: yankId I :: ⟨323⟩ ::
@@ -221,7 +223,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                   simpa using rd1346
                 obtain ⟨_, _, rd1365⟩ := flipperYankX_catCallSuccessToVatStart rd1346True
                 have hcallCatSteleTrue :
-                    typedCallViaEVM config evm0Stele
+                    typedCallViaEVM fork config evm0Stele
                       (EVM.address (flipperCatAddress σ I)) "claw" 0
                       (yankClawArgVals evm0Stele) (true, evmCatStele, outCat) true := by
                   simpa using hcallCatStele
@@ -248,7 +250,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                         (addr := flipperVatAddress σ_cat_stele I)
                         (flipperVatAddress_eq_target σ_cat_stele I) hvatZeroStele
                   have hbody :
-                      ExecTransitionBody config contract evm0Stele (yankLocals I)
+                      ExecTransitionBody fork config contract evm0Stele (yankLocals I)
                         yankTransition.body .reverted := by
                     simpa [evm0Stele] using
                       (flipperYankSourceBodyVatNoCode
@@ -283,7 +285,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                       substate := A_vat
                       }
                   have hcallVatEvm :
-                      typedCallViaEVM config evmCatEvm
+                      typedCallViaEVM fork config evmCatEvm
                         (EVM.address (flipperVatAddress σ_cat I)) "flux" 0
                         (yankFluxArgValsOf evmCatEvm (yankId I))
                         (zVat, evmVatEvm, outVat) true := by
@@ -314,14 +316,14 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                       Account.lookupStorage, hCatStateEquiv'.executionEnv,
                       hCatStateEquiv'.accountMap]
                   have hcallVatStele :
-                      typedCallViaEVM config evmCatStele
+                      typedCallViaEVM fork config evmCatStele
                         (EVM.address
                           (flipperVatAddress evmCatStele.accountMap
                             evmCatStele.executionEnv)) "flux" 0
                         (yankFluxArgValsOf evmCatStele (yankId I))
                         (zVat, evmVatStele, outVat) true := by
                     have hcallVatSteleRaw' :
-                        typedCallViaEVM config evmCatStele
+                        typedCallViaEVM fork config evmCatStele
                           (EVM.address (flipperVatAddress σ_cat I)) "flux" 0
                           (yankFluxArgValsOf evmCatEvm (yankId I))
                           (zVat, evmVatStele, outVat) true := by
@@ -329,7 +331,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                     rw [hvatTargetEq, hfluxArgsEq] at hcallVatSteleRaw'
                     exact hcallVatSteleRaw'
                   cases zVat
-                  · have rd1482False : RD flipperBytecode I (Sat256.ofUInt256 g)
+                  · have rd1482False : RD fork flipperBytecode I (Sat256.ofUInt256 g)
                         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1482⟩
                         (⟨0⟩ :: ⟨260⟩ :: ⟨1628552750⟩ ::
                           flipperVatTargetWord σ_cat I :: yankId I :: ⟨323⟩ ::
@@ -338,7 +340,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                         σ_vat k1482 C1482 := by
                       simpa using rd1482
                     have hcallVatSteleFalse :
-                        typedCallViaEVM config evmCatStele
+                        typedCallViaEVM fork config evmCatStele
                           (EVM.address
                             (flipperVatAddress evmCatStele.accountMap
                               evmCatStele.executionEnv)) "flux" 0
@@ -346,7 +348,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                           (false, evmVatStele, outVat) true := by
                       simpa using hcallVatStele
                     have hbody :
-                        ExecTransitionBody config contract evm0Stele (yankLocals I)
+                        ExecTransitionBody fork config contract evm0Stele (yankLocals I)
                           yankTransition.body .reverted := by
                       simpa [evm0Stele] using
                         (flipperYankSourceBodyVatCallFailure
@@ -357,7 +359,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                           hcallCatSteleTrue hvatCodeStele hcallVatSteleFalse)
                     exact (flipperYankX_vatCallFailure rd1482False houtVat)
                       |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
-                  · have rd1482True : RD flipperBytecode I (Sat256.ofUInt256 g)
+                  · have rd1482True : RD fork flipperBytecode I (Sat256.ofUInt256 g)
                         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1482⟩
                         (⟨1⟩ :: ⟨260⟩ :: ⟨1628552750⟩ ::
                           flipperVatTargetWord σ_cat I :: yankId I :: ⟨323⟩ ::
@@ -368,7 +370,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                     obtain ⟨_, _, rd1501⟩ :=
                       flipperYankX_vatCallSuccessToMoveStart rd1482True
                     have hcallVatSteleTrue :
-                        typedCallViaEVM config evmCatStele
+                        typedCallViaEVM fork config evmCatStele
                           (EVM.address
                             (flipperVatAddress evmCatStele.accountMap
                               evmCatStele.executionEnv)) "flux" 0
@@ -400,7 +402,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                             (addr := flipperVatAddress σ_vat_stele I)
                             (flipperVatAddress_eq_target σ_vat_stele I) hmoveZeroStele
                       have hbody :
-                          ExecTransitionBody config contract evm0Stele (yankLocals I)
+                          ExecTransitionBody fork config contract evm0Stele (yankLocals I)
                             yankTransition.body .reverted := by
                         simpa [evm0Stele] using
                           (flipperYankSourceBodyMoveNoCode
@@ -439,7 +441,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                           substate := A_move
                           }
                       have hcallMoveEvm :
-                          typedCallViaEVM config evmVatEvm
+                          typedCallViaEVM fork config evmVatEvm
                             (EVM.address (flipperVatAddress σ_vat I)) "move" 0
                             (yankMoveArgValsOf evmVatEvm (yankId I))
                             (zMove, evmMoveEvm, outMove) true := by
@@ -474,14 +476,14 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                           Account.lookupStorage, hVatStateEquiv'.executionEnv,
                           hVatStateEquiv'.accountMap]
                       have hcallMoveStele :
-                          typedCallViaEVM config evmVatStele
+                          typedCallViaEVM fork config evmVatStele
                             (EVM.address
                               (flipperVatAddress evmVatStele.accountMap
                                 evmVatStele.executionEnv)) "move" 0
                             (yankMoveArgValsOf evmVatStele (yankId I))
                             (zMove, evmMoveStele, outMove) true := by
                         have hcallMoveSteleRaw' :
-                            typedCallViaEVM config evmVatStele
+                            typedCallViaEVM fork config evmVatStele
                               (EVM.address (flipperVatAddress σ_vat I)) "move" 0
                               (yankMoveArgValsOf evmVatEvm (yankId I))
                               (zMove, evmMoveStele, outMove) true := by
@@ -489,7 +491,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                         rw [hmoveTargetEq, hmoveArgsEq] at hcallMoveSteleRaw'
                         exact hcallMoveSteleRaw'
                       cases zMove
-                      · have rd1615False : RD flipperBytecode I (Sat256.ofUInt256 g)
+                      · have rd1615False : RD fork flipperBytecode I (Sat256.ofUInt256 g)
                             (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                             ⟨1615⟩
                             (⟨0⟩ :: ⟨228⟩ :: ⟨3140843579⟩ ::
@@ -499,7 +501,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                             outMove σ_move k1615 C1615 := by
                           simpa using rd1615
                         have hcallMoveSteleFalse :
-                            typedCallViaEVM config evmVatStele
+                            typedCallViaEVM fork config evmVatStele
                               (EVM.address
                                 (flipperVatAddress evmVatStele.accountMap
                                   evmVatStele.executionEnv)) "move" 0
@@ -507,7 +509,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                               (false, evmMoveStele, outMove) true := by
                           simpa using hcallMoveStele
                         have hbody :
-                            ExecTransitionBody config contract evm0Stele (yankLocals I)
+                            ExecTransitionBody fork config contract evm0Stele (yankLocals I)
                               yankTransition.body .reverted := by
                           simpa [evm0Stele] using
                             (flipperYankSourceBodyMoveCallFailure
@@ -520,7 +522,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                               hmoveCodeStele hcallMoveSteleFalse)
                         exact (flipperYankX_moveCallFailure rd1615False houtMove)
                           |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
-                      · have rd1615True : RD flipperBytecode I (Sat256.ofUInt256 g)
+                      · have rd1615True : RD fork flipperBytecode I (Sat256.ofUInt256 g)
                             (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                             ⟨1615⟩
                             (⟨1⟩ :: ⟨228⟩ :: ⟨3140843579⟩ ::
@@ -539,7 +541,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                             (k := k1635) (C := C1635)
                             (out := outMove) rd1635
                         have hcallMoveSteleTrue :
-                            typedCallViaEVM config evmVatStele
+                            typedCallViaEVM fork config evmVatStele
                               (EVM.address
                                 (flipperVatAddress evmVatStele.accountMap
                                   evmVatStele.executionEnv)) "move" 0
@@ -551,11 +553,11 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                             "_fluxRet" (collapseReturns [])).insert "_moveRet"
                             (collapseReturns [])
                         have hbodySplit :
-                            (I.perm = true → ExecTransitionBody config contract evm0Stele (yankLocals I)
+                            (I.perm = true → ExecTransitionBody fork config contract evm0Stele (yankLocals I)
                               yankTransition.body
                               (.returned { contract := contract, locals := locals3 }
                                 (bidDeletedEVM evmMoveStele (yankId I)) none)) ∧
-                            (I.perm = false → ExecTransitionBody config contract evm0Stele
+                            (I.perm = false → ExecTransitionBody fork config contract evm0Stele
                               (yankLocals I) yankTransition.body .staticViolation) := by
                           simpa [evm0Stele, locals3] using
                             (flipperYankSourceBodySuccessSplit
@@ -613,7 +615,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
             rw [← hcallerWord]
             exact hauthEvm
           have hbody :
-              ExecTransitionBody config contract
+              ExecTransitionBody fork config contract
                 (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 (yankLocals I) yankTransition.body .reverted := by
             simpa using
@@ -627,11 +629,11 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
         exact hauthEvm (by rw [hcallerWord, hstele])
       let locals : Store := yankLocals I
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-      have hbody : ExecTransitionBody config contract evm0 locals yankTransition.body .reverted := by
+      have hbody : ExecTransitionBody fork config contract evm0 locals yankTransition.body .reverted := by
         have hguard := flipperAuthGuardEval_false
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
           (locals := locals) (by simp [locals, yankLocals]) hauthStele
-        have hblock := nonpayableSecondRequireReverts
+        have hblock := nonpayableSecondRequireReverts (fork := fork)
           (cfg := config) (stele := { contract := contract, locals := locals })
           (evm := evm0)
           (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
@@ -672,7 +674,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
     have hshort : I.calldata.size < 36 := by omega
     have hdispatch : dispatchMsg contract I.calldata = some yankTransition :=
       flipperDispatchYank hsel
-    have hreach := flipperReachYankBody
+    have hreach := flipperReachYankBody (fork := fork)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       hcode hwv hsz4 hsize hsel
     exact (flipperYankX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)

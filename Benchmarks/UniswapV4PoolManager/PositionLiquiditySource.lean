@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.PositionFeesSource
 import Benchmarks.UniswapV4PoolManager.LiquidityAddWords
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -34,7 +36,7 @@ theorem positionLiquidityBranch {f : Frame} {evm : EVM.State} {id key liquidity 
     (hf : f.contract = contract) (hs : f.locals.get? "self" = some (positionRefValue id key))
     (hl : f.locals.get? "liquidity" = some (.int (Int.ofNat liquidity.toNat)))
     (hd : f.locals.get? "liquidityDelta" = some (.int delta)) :
-    ExecStmt config f evm positionUpdateFunction.body[3]! (positionChangeResult f evm id key liquidity delta) := by
+    ExecStmt fork config f evm positionUpdateFunction.body[3]! (positionChangeResult f evm id key liquidity delta) := by
   have hdelta := evalIntEq (evalLocalValue (cfg := config) (f := f) (evm := evm) hd)
     (show evalExpr? config f evm (.intLit 0) = .ok (.int 0) by simp only [evalExpr?, pure])
   unfold positionChangeResult
@@ -52,7 +54,7 @@ theorem positionLiquidityBranch {f : Frame} {evm : EVM.State} {id key liquidity 
       exact execBlock_singleton (ExecStmt.iteFalse (by simpa only [decide_eq_false hlz] using hliq) ExecBlock.nil)
   · rw [if_neg hz]
     apply ExecStmt.iteFalse (by simpa only [decide_eq_false hz] using hdelta)
-    have hcall := liquidityAddCall (f := f) (evm := evm) hf (evalLocalValue hl) (evalLocalValue hd) "__c0"
+    have hcall := liquidityAddCall (fork := fork) (f := f) (evm := evm) hf (evalLocalValue hl) (evalLocalValue hd) "__c0"
     by_cases hfit : liquidityAddFits liquidity delta
     · rw [if_pos hfit] at hcall ⊢
       let f1 := wordLocal f "__c0" (liquidityAddResultWord liquidity delta)
@@ -64,7 +66,7 @@ theorem positionLiquidityBranch {f : Frame} {evm : EVM.State} {id key liquidity 
       · rw [if_pos hp]
         exact ExecBlock.consNormal hcall (ExecBlock.consStatic (ExecStmt.assignStatic wordLocal_eval hwrite hp))
       · simp only [if_neg hp, positionChangeFrame, positionChangeState, if_neg hz]
-        exact ExecBlock.consNormal hcall (execBlock_singleton (ExecStmt.assign (hperm := Or.inr (Bool.eq_true_of_not_eq_false hp)) wordLocal_eval hwrite))
+        exact ExecBlock.consNormal hcall (execBlock_singleton (ExecStmt.assign (fork := fork) (hperm := Or.inr (Bool.eq_true_of_not_eq_false hp)) wordLocal_eval hwrite))
     · rw [if_neg hfit] at hcall ⊢
       exact ExecBlock.consRevert hcall
 

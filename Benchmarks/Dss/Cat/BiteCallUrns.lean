@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Cat.Common
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -227,13 +229,13 @@ target-address word `target`, the shared calldata/return pointer `outPtr`, the p
 theorem RD.catBiteUrnsNoCode
     {σ σ₀ A I} {g : UInt256}
     {target outPtr aw : UInt256} {mem o : ByteArray} {R : List UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1383⟩
       (target :: target :: outPtr :: ⟨68⟩ :: outPtr :: ⟨64⟩ :: R)
       mem aw o σ k C)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩)
     (hov : R.length + 8 ≤ 1024) :
-    RDrev catBytecode (Sat256.ofUInt256 g)
+    RDrev fork catBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
   RD.solcExtcodesizeGuardMissing (pc := ⟨1383⟩) (okPc := ⟨1395⟩) rd hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -247,7 +249,7 @@ theorem RD.catBiteUrnsNoCode
 theorem RD.catBiteUrnsStaticcall
     {σ σ₀ A I} {g : UInt256} {args : List Value}
     {target outPtr aw : UInt256} {mem o : ByteArray} {R : List UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1383⟩
       (target :: target :: outPtr :: ⟨68⟩ :: outPtr :: ⟨64⟩ :: R)
       mem aw o σ k C)
@@ -258,12 +260,12 @@ theorem RD.catBiteUrnsStaticcall
     (hov : R.length + 8 ≤ 1024) :
     ∃ (σ' : AccountMap) (z : Bool)
       (o' : ByteArray) (A' : Substate) (awout : UInt256) (k' C' : ℕ),
-      RD catBytecode I (Sat256.ofUInt256 g)
+      RD fork catBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1399⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: R)
         (o'.write 0 mem outPtr.toNat (min (⟨64⟩ : UInt256) (UInt256.ofNat o'.size)).toNat)
         awout o' σ' k' C'
-    ∧ typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+    ∧ typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (AccountAddress.ofUInt256 target) "urns" 0 args
         (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
               accountMap := σ', substate := A' }, o') false
@@ -288,14 +290,14 @@ theorem RD.catBiteUrnsStaticcall
 theorem RD.catBiteUrnsDepthLimit
     {σ σ₀ A I} {g : UInt256}
     {target outPtr aw : UInt256} {mem o : ByteArray} {R : List UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1383⟩
       (target :: target :: outPtr :: ⟨68⟩ :: outPtr :: ⟨64⟩ :: R)
       mem aw o σ k C)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
     (hov : R.length + 8 ≤ 1024) :
-    ∃ (awout : UInt256) (k' C' : ℕ), RD catBytecode I (Sat256.ofUInt256 g)
+    ∃ (awout : UInt256) (k' C' : ℕ), RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1399⟩
       (⟨0⟩ :: R)
       (ByteArray.empty.write 0 mem outPtr.toNat
@@ -315,12 +317,12 @@ theorem RD.catBiteUrnsCallFailed
     {σ σ₀ A I} {g : UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {R : List UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1399⟩
       (⟨0⟩ :: R) mem aw o acc k C)
     (hosz : o.size < UInt256.size)
     (hov : R.length + 5 ≤ 1024) :
-    RDrev catBytecode (Sat256.ofUInt256 g)
+    RDrev fork catBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
   RD.solcCallSuccessGuardMissing (pc := ⟨1399⟩) (okPc := ⟨1415⟩) rd rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -333,12 +335,12 @@ theorem RD.catBiteUrnsCallSucceeded
     {σ σ₀ A I} {g : UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {aw status : UInt256} {d0 d1 d2 : UInt256} {R : List UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1399⟩
       (status :: d0 :: d1 :: d2 :: R) mem aw o acc k C)
     (hstatus : status ≠ ⟨0⟩)
     (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1420⟩
       R mem aw o acc k' C' := by
   obtain ⟨_, _, rd1417⟩ :=
@@ -356,7 +358,7 @@ theorem RD.catBiteUrnsReturnDecodeShortReverts
     {σ σ₀ A I} {g : UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {R : List UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1420⟩
       R mem aw o acc k C)
     (hshort : o.size < 64) (hhi : o.size < UInt256.size)
@@ -367,7 +369,7 @@ theorem RD.catBiteUrnsReturnDecodeShortReverts
     (hMload64Cost : Cₘ (M aw ⟨64⟩ ⟨32⟩) - Cₘ aw = 0)
     (hMload64Aw : UInt256.ofNat (MachineState.M aw.toNat 64 32) = aw)
     (hov : R.length + 4 ≤ 1024) :
-    RDrev catBytecode (Sat256.ofUInt256 g)
+    RDrev fork catBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   have rdPush64 := RD.push1 rd ⟨64⟩ (by native_decide) (by omega)
   have rdMload64 := RD.mload 0 ⟨128⟩ aw rdPush64 (by native_decide) hMload64Cost
@@ -401,7 +403,7 @@ theorem RD.catBiteUrnsReturnDecodeOk
     {σ σ₀ A I} {g : UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {aw aw1 aw2 inkW artW : UInt256} {R : List UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1420⟩
       R mem aw o acc k C)
     (hlo : 64 ≤ o.size) (hhi : o.size < UInt256.size)
@@ -424,7 +426,7 @@ theorem RD.catBiteUrnsReturnDecodeOk
     (hMload160Cost : Cₘ (M aw1 ⟨160⟩ ⟨32⟩) - Cₘ aw1 = 0)
     (hMload160Aw : UInt256.ofNat (MachineState.M aw1.toNat 160 32) = aw2)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1447⟩
       (artW :: inkW :: R) mem aw2 o acc k' C' := by
   have rdPush64 := RD.push1 rd ⟨64⟩ (by native_decide) (by omega)

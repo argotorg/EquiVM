@@ -6,6 +6,8 @@ import Reasoning.Vyper
 import Reasoning.Dispatch
 import Stele.VyperLayout
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Vyper's computed dispatcher
 
@@ -40,12 +42,12 @@ theorem selIs_exclusive {cd a b : ByteArray} (hne : (a == b) = false)
 theorem RDrev.reEquivOfDispatch {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}
     {immutables : Store} {σ σ₀ A I} {g : Sat256} {code : ByteArray}
     (hcode : I.code = code) (hd : dispatchMsg contract I.calldata = some t)
-    (hbody : ∀ callargs, ExecTransitionBody cfg contract (initState σ σ₀ g A I) callargs t.body
+    (hbody : ∀ callargs, ExecTransitionBody fork cfg contract (initState σ σ₀ g A I) callargs t.body
       .reverted immutables)
-    (hrev : RDrev code g (initState σ σ₀ g A I))
+    (hrev : RDrev fork code g (initState σ σ₀ g A I))
     (hfallback : contract.fallback = none := by rfl)
     (hreceive : contract.receive = none := by rfl) :
-    runtimeRefinementFor cfg contract σ σ₀ g.toUInt256 A I immutables := by
+    runtimeRefinementFor fork cfg contract σ σ₀ g.toUInt256 A I immutables := by
   by_cases hdec : cfg.externalABI.decodeCalldata? (t.params.map Param.name)
       (transitionSignature t).paramTypes I.calldata = none
   · exact hrev.reEquivDecodingFailed hcode hd hdec hfallback hreceive

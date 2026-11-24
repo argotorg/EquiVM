@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.ObservePrefixTrace
 import Benchmarks.UniswapV3.Pool.ObserveReturnTrace
 import Benchmarks.UniswapV3.Pool.ObserveReturnEncoding
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # UniswapV3Pool `observe(uint32[])`
 
@@ -25,7 +27,7 @@ theorem uniswapV3PoolObserveBody {σ σ₀ A I} {g : UInt256} (v : UniswapV3Pool
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (uniswapV3PoolSelBytes 16)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (uniswapV3PoolSelBytes 16) rfl hsel
   have hd : dispatchMsg contract I.calldata = some observeTransition := by
     apply uniswapV3PoolDispatch_observe <;>
@@ -47,12 +49,12 @@ theorem uniswapV3PoolObserveBody {σ σ₀ A I} {g : UInt256} (v : UniswapV3Pool
     · rcases observeOracleX (v := v) r2 hvalid hsize (by simp) with hoog | (hfail | hout)
       · exact reEquiv_outOfGas (Xi_error_of_X (by rw [← hcode] at hoog; exact hoog))
       · obtain ⟨hf, hr⟩ := hfail
-        have hbody := observeSourceReverts v evm _ hwv hself hn hf
+        have hbody := observeSourceReverts (fork := fork) v evm _ hwv hself hn hf
         rcases hr with hr | hr
         · exact hr.reEquivExecutionRevert hcode hd hdec hbody
         · exact RDinvalid.reEquivExecutionInvalid hcode hr hd hdec hbody
       · obtain ⟨hcard, ⟨out⟩⟩ := hout
-        have hbody := observeSourceReturns v evm _ (out.ticks.map Value.int)
+        have hbody := observeSourceReturns (fork := fork) v evm _ (out.ticks.map Value.int)
           (out.seconds.map Value.int) hwv hself hn hcard (by
             simpa only [List.map_replicate, oracleObserveCleanAgos, List.length_map] using out.run)
         obtain ⟨_, _, _, hbudget⟩ := observeInputMemory I.calldata

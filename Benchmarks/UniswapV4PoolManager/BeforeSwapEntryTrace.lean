@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.BeforeSwapSource
 import Benchmarks.UniswapV4PoolManager.SwapParamsEncodeTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_044
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -9,14 +11,14 @@ namespace Benchmarks.UniswapV4PoolManager
 open poolManagerBlocks
 set_option maxRecDepth 5000
 
-def beforeSwapEntryResult (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
+def beforeSwapEntryResult (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
     (mem rdata : ByteArray) (σ : AccountMap) (hook : AccountAddress)
     (keyPtr paramsPtr src len ret amount : UInt256) (R : List UInt256) : Prop :=
   let bypass := ∃ aw k C, Cₘ aw ≤ C ∧
-    RD (deployedRuntime v) I g s0 ret (⟨0⟩ :: ⟨0⟩ :: amount :: R) mem aw rdata σ k C
+    RD fork (deployedRuntime v) I g s0 ret (⟨0⟩ :: ⟨0⟩ :: amount :: R) mem aw rdata σ k C
   if I.source = hook then bypass
   else if beforeSwapActive hook then ∃ aw k C, Cₘ aw ≤ C ∧
-    RD (deployedRuntime v) I g s0 ⟨15230⟩
+    RD fork (deployedRuntime v) I g s0 ⟨15230⟩
       (src :: len :: paramsPtr :: accountWord hook :: keyPtr :: ret :: ⟨0⟩ :: ⟨0⟩ :: amount :: R) mem aw rdata σ k C
   else bypass
 
@@ -27,9 +29,9 @@ theorem beforeSwapEntryTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hp : MemorySlice mem paramsPtr.toNat (wordBytes (swapParamsWordList p)))
     (hfit : paramsPtr.toNat+96 < UInt256.size) (hpaid : Cₘ aw ≤ C+63)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨15172⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨15172⟩
       (accountWord hook :: keyPtr :: paramsPtr :: src :: len :: ret :: R) mem aw rdata σ k C) :
-    beforeSwapEntryResult v I g s0 mem rdata σ hook keyPtr paramsPtr src len ret p.amountSpecified R := by
+    beforeSwapEntryResult fork v I g s0 mem rdata σ hook keyPtr paramsPtr src len ret p.amountSpecified R := by
   have hload : memLoad (paramsPtr+UInt256.ofNat 32) mem = p.amountSpecified :=
     hp.word_load (i := 1) (word := p.amountSpecified) rfl (by rw [uadd_word_ofNat_toNat paramsPtr 32 (by omega)])
   have hclean : UInt256.land (accountWord hook) (UInt256.ofNat 1461501637330902918203684832716283019655932542975) =

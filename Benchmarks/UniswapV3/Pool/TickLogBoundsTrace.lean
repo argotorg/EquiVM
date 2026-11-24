@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.TickLogAccTrace
 import Benchmarks.UniswapV3.Pool.TickLogBoundsModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -13,16 +15,16 @@ def tickLogBoundsStack (log : UInt256) (R : List UInt256) : List UInt256 :=
 theorem tickLogBoundsCompareX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw x0 x1 x2 x3 log : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14638⟩ (x0 :: x1 :: x2 :: x3 :: R)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14638⟩ (x0 :: x1 :: x2 :: x3 :: R)
       mem aw rdata σ k C)
     (hlog : UInt256.lor (UInt256.land (UInt256.ofNat 1125899906842624)
       (UInt256.shiftRight x3 (UInt256.ofNat 205)))
       (UInt256.lor (UInt256.land (UInt256.ofNat 2251799813685248)
         (UInt256.shiftRight x1 x2)) x0) = log)
     (hov : R.length + 7 ≤ 1024) :
-    (tickLogLow log = tickLogHigh log ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨14788⟩
+    (tickLogLow log = tickLogHigh log ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨14788⟩
       (tickLogLowRaw log :: tickLogBoundsStack log R) mem aw rdata σ k' C') ∨
-    (tickLogLow log ≠ tickLogHigh log ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨14740⟩
+    (tickLogLow log ≠ tickLogHigh log ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨14740⟩
       (tickLogBoundsStack log R) mem aw rdata σ k' C') := by
   have hscaled : UInt256.mul log (UInt256.ofNat 255738958999603826347141) =
       tickLogScaledLog log := rfl
@@ -43,7 +45,7 @@ theorem tickLogBoundsCompareX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
         rw [tickLogLowRaw_compiled, hw, uInt256_eq_self]
         decide)
       (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; jump_dest) rd
-    have rb : RD (deployedRuntime v) ee g s0 ⟨14786⟩ (tickLogBoundsStack log R)
+    have rb : RD fork (deployedRuntime v) ee g s0 ⟨14786⟩ (tickLogBoundsStack log R)
         mem aw rdata σ (k + 41) (C + 136) := by
       simpa only [uniswapV3Pool_block_14638_taken_stack, hlog, hscaled,
         tickLogLowRaw_compiled, tickLogBoundsStack, hhigh] using rdBounds
@@ -71,13 +73,13 @@ theorem tickLogBoundsCompareX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem tickLogBoundsX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C msb : Nat} {aw r : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14638⟩ (tickLogAccStack r msb R)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14638⟩ (tickLogAccStack r msb R)
       mem aw rdata σ k C) (hov : R.length + 9 ≤ 1024) :
     let log := tickLogAccRun r (tickLogInitial msb) 14
     let tail := UInt256.ofNat msb :: tickLogScaled (tickLogRun r 13) :: R
-    (tickLogLow log = tickLogHigh log ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨14788⟩
+    (tickLogLow log = tickLogHigh log ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨14788⟩
       (tickLogLowRaw log :: tickLogBoundsStack log tail) mem aw rdata σ k' C') ∨
-    (tickLogLow log ≠ tickLogHigh log ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨14740⟩
+    (tickLogLow log ≠ tickLogHigh log ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨14740⟩
       (tickLogBoundsStack log tail) mem aw rdata σ k' C') := by
   have h12 : UInt256.lor (UInt256.land (UInt256.ofNat 2251799813685248)
       (UInt256.shiftRight (tickLogSquareAt r 12) ⟨204⟩))

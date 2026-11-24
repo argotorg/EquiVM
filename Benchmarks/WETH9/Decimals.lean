@@ -1,6 +1,8 @@
 import Reasoning.WordArithmetic
 import Benchmarks.WETH9.Routines
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # WETH9 `decimals()` refinement
 
@@ -45,7 +47,7 @@ theorem weth9Decode_decimals_ok {I : ExecutionEnv} (hsz4 : 4 ≤ I.calldata.size
 /-- The Stele `decimals()` body returns the low byte of slot 2. -/
 theorem weth9DecimalsBodyReturns (evm : EVM.State)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract evm ∅ decimalsTransition.body
+    ExecTransitionBody fork config contract evm ∅ decimalsTransition.body
       (.returned { contract := contract, locals := ∅ } evm
         (some [(.int (Int.ofNat
           (UInt256.land (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩) ⟨255⟩).toNat))])) := by
@@ -77,10 +79,10 @@ theorem weth9DecimalsReturnWf : solcReturnUint8FromMemWf weth9Bytecode ⟨550⟩
 /-- The uint8 return-encoder tail at pc 550, parameterised over the raw slot word `w` (kept a
     variable so the `land` reconciliation stays symbolic and cheap). -/
 theorem weth9DecimalsReturn {σ σ₀ A I} {g : Sat256} {w : UInt256} {k C : ℕ}
-    (h : RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨550⟩
+    (h : RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨550⟩
       [UInt256.land ⟨255⟩ w, ⟨550⟩, weth9SelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ k C) :
-    RDret weth9Bytecode g (initState σ σ₀ g A I) σ
+    RDret fork weth9Bytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (UInt256.land w ⟨255⟩)) := by
   have hthis := RD.solcReturnUint8FromMem h weth9DecimalsReturnWf solcFreePtrMem_mload64 rfl
     (solcReturnMem_mload64 (UInt256.land (UInt256.land ⟨255⟩ w) ⟨255⟩))
@@ -93,9 +95,9 @@ theorem weth9DecimalsX_ok {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 5)) :
-    RDret weth9Bytecode g (initState σ σ₀ g A I) σ
+    RDret fork weth9Bytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (decimalsWord σ I)) := by
-  obtain ⟨_, _, h529⟩ := weth9ReachDecimals (σ := σ)
+  obtain ⟨_, _, h529⟩ := weth9ReachDecimals (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
   obtain ⟨_, _, h543⟩ := solcFunctionGuardPeelOk (gt := ⟨541⟩) h529 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -119,16 +121,16 @@ theorem weth9DecimalsBodyCoreOk {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (weth9SelBytes 5)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (weth9SelBytes 5) (by native_decide) hsel
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ decimalsTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (decimalsWord σ I).toNat))])) := by
-    have hb := weth9DecimalsBodyReturns (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+    have hb := weth9DecimalsBodyReturns (fork := fork) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (by simp only [initState]; exact hwv)
     simpa [decimalsWord, Stele.EVM.storageLoad, State.lookupAccount, initState] using hb
   exact weth9ReEquivExecGen hcode
@@ -141,12 +143,12 @@ theorem weth9DecimalsBodyCoreOk {σ σ₀ A I} {g : UInt256}
 theorem weth9DecimalsBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 5)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact weth9DecimalsBodyCoreOk hcode hsize hwv hsel
   · have hsz4 : 4 ≤ I.calldata.size :=
       calldata_size_ge_of_selIs I (weth9SelBytes 5) (by native_decide) hsel
-    obtain ⟨_, _, h529⟩ := weth9ReachDecimals (σ := σ)
+    obtain ⟨_, _, h529⟩ := weth9ReachDecimals (fork := fork) (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsz4 hsize hsel
     have hrev := solcFunctionGuardPeelRev (gt := ⟨541⟩) h529 hwv
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)

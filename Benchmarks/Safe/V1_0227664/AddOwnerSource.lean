@@ -2,6 +2,8 @@ import Benchmarks.Safe.V1_0227664.OwnerGuardTraces
 import Benchmarks.Safe.V1_0227664.OwnerCount
 import Benchmarks.Safe.V1_0227664.ThresholdChange
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V1_0227664
@@ -54,7 +56,7 @@ theorem safeAddOwnerLocal (key threshold : UInt256) (name : Ident)
 theorem safeAddOwnerCanAdd (evm : EVM.State) (key threshold : UInt256)
     (hc : key.toNat < EVM.addressModulus) (hv : validOwner evm.accountMap evm.executionEnv key)
     (he : ownerLink evm key = ⟨0⟩) :
-    ExecStmt config (addOwnerFrame key threshold) evm
+    ExecStmt fork config (addOwnerFrame key threshold) evm
       (.internalCall "requireCanAddOwner" [.var "owner"] "_ok")
       (.ok (addOwnerFrame₁ key threshold) evm) := by
   apply internalCallFunctionReturn (callee := requireCanAddOwnerFunction)
@@ -71,10 +73,10 @@ theorem safeAddOwnerPrefix (evm : EVM.State) (key threshold : UInt256) {result :
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩)
     (hauth : evm.executionEnv.source = evm.executionEnv.codeOwner)
     (hv : validOwner evm.accountMap evm.executionEnv key) (he : ownerLink evm key = ⟨0⟩)
-    (htail : ExecBlock config (addOwnerFrame₁ key threshold) (addOwnerLinks evm key)
+    (htail : ExecBlock fork config (addOwnerFrame₁ key threshold) (addOwnerLinks evm key)
       addOwnerTail result)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config (addOwnerFrame key threshold) evm addownerwiththresholdTransition.body
+    ExecBlock fork config (addOwnerFrame key threshold) evm addownerwiththresholdTransition.body
       result := by
   have hb := safeAddOwnerLocal key threshold "owners" (by decide)
   have hload := safeEvalOwnerLink evm _ sentinelAddr ⟨1⟩ hb (by decide)
@@ -92,7 +94,7 @@ theorem safeAddOwnerPrefix (evm : EVM.State) (key threshold : UInt256) {result :
 theorem safeAddOwnerIncrement (evm : EVM.State) (key threshold : UInt256)
     (hno : (ownerCount evm).toNat + 1 < UInt256.size)
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config (addOwnerFrame₁ key threshold) evm
+    ExecStmt fork config (addOwnerFrame₁ key threshold) evm
       (.assign .storage ownerCountRef (inc256 (.storage ownerCountRef)))
       (.ok (addOwnerFrame₁ key threshold) (addOwnerCountState evm)) := by
   have hb := safeAddOwnerLocal key threshold "ownerCount" (by decide)
@@ -101,7 +103,7 @@ theorem safeAddOwnerIncrement (evm : EVM.State) (key threshold : UInt256)
 
 theorem safeAddOwnerIncrementOverflow (evm : EVM.State) (key threshold : UInt256)
     (hno : ¬(ownerCount evm).toNat + 1 < UInt256.size) :
-    ExecBlock config (addOwnerFrame₁ key threshold) evm addOwnerTail .reverted :=
+    ExecBlock fork config (addOwnerFrame₁ key threshold) evm addOwnerTail .reverted :=
   .consRevert (.assignExprRevert (checkedAddSourceOverflow
     (safeEvalOwnerCount evm _ (safeAddOwnerLocal key threshold "ownerCount" (by decide)))
     (b := ⟨1⟩) (by simp [evalExpr?]; rfl) (by change UInt256.size ≤ _ + 1; omega)))
@@ -116,7 +118,7 @@ theorem safeAddOwnerThresholdGuard (evm : EVM.State) (key threshold : UInt256) :
 
 theorem safeAddOwnerThresholdUnchanged (evm : EVM.State) (key threshold : UInt256)
     (ht : storedThreshold evm = threshold) :
-    ExecStmt config (addOwnerFrame₁ key threshold) evm addOwnerThresholdStmt
+    ExecStmt fork config (addOwnerFrame₁ key threshold) evm addOwnerThresholdStmt
       (.ok (addOwnerFrame₁ key threshold) evm) :=
   safeThresholdChangeUnchanged evm _ threshold
     (safeAddOwnerLocal key threshold "threshold" (by decide))
@@ -126,7 +128,7 @@ theorem safeAddOwnerThresholdChanged (evm : EVM.State) (key threshold : UInt256)
     (ht : storedThreshold evm ≠ threshold)
     (hle : threshold.toNat ≤ (ownerCount evm).toNat) (hnz : threshold ≠ ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config (addOwnerFrame₁ key threshold) evm addOwnerThresholdStmt
+    ExecStmt fork config (addOwnerFrame₁ key threshold) evm addOwnerThresholdStmt
       (.ok (resumeAfterInternalCall (addOwnerFrame₁ key threshold) "_thresholdChanged" none)
         (Stele.EVM.storageStore evm evm.executionEnv.codeOwner ⟨4⟩ threshold)) :=
   safeThresholdChangeChanged (hperm := by assumption) evm _ threshold
@@ -135,30 +137,30 @@ theorem safeAddOwnerThresholdChanged (evm : EVM.State) (key threshold : UInt256)
 
 theorem safeAddOwnerThresholdRevert (evm : EVM.State) (key threshold : UInt256)
     (ht : storedThreshold evm ≠ threshold)
-    (hb : ExecFuncBody config (thresholdFrame threshold) evm changeThresholdBodyFunction.body
+    (hb : ExecFuncBody fork config (thresholdFrame threshold) evm changeThresholdBodyFunction.body
       .reverted) :
-    ExecStmt config (addOwnerFrame₁ key threshold) evm addOwnerThresholdStmt .reverted :=
+    ExecStmt fork config (addOwnerFrame₁ key threshold) evm addOwnerThresholdStmt .reverted :=
   safeThresholdChangeRevert evm _ threshold
     (safeAddOwnerLocal key threshold "threshold" (by decide))
     (safeAddOwnerEvalThreshold evm key threshold) ht hb
 
 theorem safeAddOwnerTailOK (evm : EVM.State) (key threshold : UInt256) {frame' evm'}
     (hno : (ownerCount evm).toNat + 1 < UInt256.size)
-    (ht : ExecStmt config (addOwnerFrame₁ key threshold) (addOwnerCountState evm)
+    (ht : ExecStmt fork config (addOwnerFrame₁ key threshold) (addOwnerCountState evm)
       addOwnerThresholdStmt (.ok frame' evm'))
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config (addOwnerFrame₁ key threshold) evm addOwnerTail (.ok frame' evm') :=
-  .consNormal (safeAddOwnerIncrement (hperm := by assumption) evm key threshold hno)
+    ExecBlock fork config (addOwnerFrame₁ key threshold) evm addOwnerTail (.ok frame' evm') :=
+  .consNormal (safeAddOwnerIncrement (fork := fork) (hperm := by assumption) evm key threshold hno)
     (.consNormal (.emit (hperm := by simpa only [addOwnerCountState, storageStore_executionEnv] using hperm) (evalExprs?_singleton (safeAddOwnerEval _ key threshold)))
       (.consNormal ht .nil))
 
 theorem safeAddOwnerTailRevert (evm : EVM.State) (key threshold : UInt256)
     (hno : (ownerCount evm).toNat + 1 < UInt256.size)
-    (ht : ExecStmt config (addOwnerFrame₁ key threshold) (addOwnerCountState evm)
+    (ht : ExecStmt fork config (addOwnerFrame₁ key threshold) (addOwnerCountState evm)
       addOwnerThresholdStmt .reverted)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config (addOwnerFrame₁ key threshold) evm addOwnerTail .reverted :=
-  .consNormal (safeAddOwnerIncrement (hperm := by assumption) evm key threshold hno)
+    ExecBlock fork config (addOwnerFrame₁ key threshold) evm addOwnerTail .reverted :=
+  .consNormal (safeAddOwnerIncrement (fork := fork) (hperm := by assumption) evm key threshold hno)
     (.consNormal (.emit (hperm := by simpa only [addOwnerCountState, storageStore_executionEnv] using hperm) (evalExprs?_singleton (safeAddOwnerEval _ key threshold)))
       (.consRevert ht))
 
@@ -168,7 +170,7 @@ theorem safeAddOwnerSourceStatic (evm : EVM.State) (key threshold : UInt256)
     (hauth : evm.executionEnv.source = evm.executionEnv.codeOwner)
     (hv : validOwner evm.accountMap evm.executionEnv key) (he : ownerLink evm key = ⟨0⟩)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (addOwnerArgs key threshold)
+    ExecTransitionBody fork config contract evm (addOwnerArgs key threshold)
       addownerwiththresholdTransition.body .staticViolation := by
   have hb := safeAddOwnerLocal key threshold "owners" (by decide)
   have hload := safeEvalOwnerLink evm _ sentinelAddr ⟨1⟩ hb (by decide)
@@ -183,11 +185,11 @@ theorem safeAddOwnerSourceStatic (evm : EVM.State) (key threshold : UInt256)
 theorem safeAddOwnerSourceGuardRevert (evm : EVM.State) (key threshold : UInt256)
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩)
     (hauth : evm.executionEnv.source = evm.executionEnv.codeOwner)
-    (hbody : ExecFuncBody config (canAddOwnerFrame key) evm requireCanAddOwnerFunction.body
+    (hbody : ExecFuncBody fork config (canAddOwnerFrame key) evm requireCanAddOwnerFunction.body
       .reverted) :
-    ExecTransitionBody config contract evm (addOwnerArgs key threshold)
+    ExecTransitionBody fork config contract evm (addOwnerArgs key threshold)
       addownerwiththresholdTransition.body .reverted := by
-  have hcall : ExecStmt config (addOwnerFrame key threshold) evm
+  have hcall : ExecStmt fork config (addOwnerFrame key threshold) evm
       (.internalCall "requireCanAddOwner" [.var "owner"] "_ok") .reverted := by
     apply internalCallFunctionRevert (callee := requireCanAddOwnerFunction)
       (argVals := [.address (AccountAddress.ofNat key.toNat)]) (locals := canAddOwnerArgs key)
@@ -203,7 +205,7 @@ theorem safeAddOwnerSourceGuardRevert (evm : EVM.State) (key threshold : UInt256
 theorem safeAddOwnerSourceUnauthorized (evm : EVM.State) (locals : Store)
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩)
     (hauth : evm.executionEnv.source ≠ evm.executionEnv.codeOwner) :
-    ExecTransitionBody config contract evm locals addownerwiththresholdTransition.body .reverted :=
+    ExecTransitionBody fork config contract evm locals addownerwiththresholdTransition.body .reverted :=
   .execBlockRevert (nonpayableSecondRequireReverts hvalue
     (by simpa [hauth] using safeEvalAuthorized evm _))
 

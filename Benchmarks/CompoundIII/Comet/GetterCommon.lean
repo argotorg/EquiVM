@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.SelectorRefinement
 import Benchmarks.CompoundIII.Comet.SourceSelectors
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_011
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables
@@ -16,11 +18,11 @@ theorem cometDecode_empty {cd : ByteArray} (hsz : 4 ≤ cd.size) :
   exact decodeCalldataWithMode_empty_ok hsz
 
 -- LIBRARY CANDIDATE: outcome of a nonpayable getter with a signed calldata-size guard.
-def GetterResult (code : ByteArray) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
+def GetterResult (fork : Ethereum.Fork) (code : ByteArray) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     (σ : AccountMap) (out : ByteArray) : Prop :=
   if ee.weiValue = ⟨0⟩ ∧ ee.calldata.size < 2 ^ 255 + 4 then
-    RDret code g s0 σ out
-  else RDrev code g s0
+    RDret fork code g s0 σ out
+  else RDrev fork code g s0
 
 theorem guardedGetter_refines {cfg : Config} {C : ContractDecl} {t : TransitionDecl}
     {imms : Store} {σ σ₀ A I} {g : UInt256} {code out : ByteArray}
@@ -31,12 +33,12 @@ theorem guardedGetter_refines {cfg : Config} {C : ContractDecl} {t : TransitionD
     (hb : t.body = calldataPrologue body) (ht : t.returnType = [ty])
     (henc : encodeReturnValue? ty value = some out)
     (hsource : I.weiValue = ⟨0⟩ → I.calldata.size < 2 ^ 255 + 4 → ∃ frame,
-      ExecTransitionBody cfg C (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+      ExecTransitionBody fork cfg C (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (calldataPrologue body)
         (.returned frame (initState σ σ₀ (Sat256.ofUInt256 g) A I) (some [value])) imms)
-    (hX : GetterResult code I (Sat256.ofUInt256 g)
+    (hX : GetterResult fork code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ out) :
-    runtimeRefinementFor cfg C σ σ₀ g A I imms := by
+    runtimeRefinementFor fork cfg C σ σ₀ g A I imms := by
   have hdec : cfg.externalABI.decodeCalldata? (t.params.map Param.name)
       (transitionSignature t).paramTypes I.calldata = some (∅ : Store) := by
     simpa only [transitionSignature, hp, List.map_nil] using hempty
@@ -67,9 +69,9 @@ theorem immutableGetter_refines {cfg : Config} {C : ContractDecl} {t : Transitio
     (hb : t.body = calldataPrologue [.return [.immutable name]])
     (ht : t.returnType = [ty]) (hget : imms.get? name = some value)
     (henc : encodeReturnValue? ty value = some out)
-    (hX : GetterResult code I (Sat256.ofUInt256 g)
+    (hX : GetterResult fork code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ out) :
-    runtimeRefinementFor cfg C σ σ₀ g A I imms := by
+    runtimeRefinementFor fork cfg C σ σ₀ g A I imms := by
   apply guardedGetter_refines hcode hsz hempty hd hp hb ht henc ?_ hX
   intro hvalue hhi
   exact ⟨_, immutableGetter_returns hvalue hhi hget⟩
@@ -120,8 +122,8 @@ theorem getterAddressEncoding (a : AccountAddress) :
 theorem cometRevert1410 {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray} {aw : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 2 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 ⟨1410⟩ R mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 :=
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨1410⟩ R mem aw rdata σ k C) :
+    RDrev fork (deployedRuntime v) g s0 :=
   cometWithExtendedAssetList_block_1410 (immWords := wordsOf (immStore v)) hstack h
 
 -- LIBRARY CANDIDATE: ABI bool encoding for an arbitrary word's nonzero test.

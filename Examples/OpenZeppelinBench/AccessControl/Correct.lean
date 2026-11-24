@@ -6,6 +6,8 @@ import Examples.OpenZeppelinBench.AccessControl.RenounceRole
 import Examples.OpenZeppelinBench.AccessControl.RevokeRole
 import Examples.OpenZeppelinBench.AccessControl.SupportsInterface
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -22,7 +24,7 @@ matched body PC to its per-function proof.
 /-- `callvalue ≠ 0` makes the global non-payable guard revert before dispatch. -/
 theorem accessControlNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = accessControlBenchBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeRefinementFor config contract
+    runtimeRefinementFor fork config contract
       σ σ₀ g A I := by
   exact (accessControlX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
@@ -46,7 +48,7 @@ theorem accessControlNonPayable {σ σ₀ A I} {g : UInt256}
 theorem accessControlShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = accessControlBenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    runtimeRefinementFor config contract
+    runtimeRefinementFor fork config contract
       σ σ₀ g A I := by
   exact (accessControlX_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch
     hcode (accessControlDispatch_none_short hsz)
@@ -56,7 +58,7 @@ theorem accessControlNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = accessControlBenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 7 → (accessControlSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeRefinementFor config contract
+    runtimeRefinementFor fork config contract
       σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (accessControlX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
@@ -68,7 +70,7 @@ theorem accessControlNoDispatch {σ σ₀ A I} {g : UInt256}
 /-- The deployed AccessControl benchmark runtime bytecode refines the Stele specification. -/
 theorem accessControlCorrect :
     runtimeRefinement config accessControlBenchBytecode contract := by
-  refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
+  refine ⟨fun fork _hfork σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size
     · by_cases h0 : selIs I ⟨#[0x01, 0xff, 0xc9, 0xa7]⟩
@@ -80,7 +82,7 @@ theorem accessControlCorrect :
               (by simpa [selIs, accessControlLowSelBytes] using h0)).1
             (accessControlLowMatches 0 (by omega) hsz
               (by simpa [selIs, accessControlLowSelBytes] using h0)).2
-            (by jump_dest) (by decide))
+            (by jump_dest) (by decide +kernel))
       · by_cases h1 : selIs I ⟨#[0x24, 0x8a, 0x9c, 0xa3]⟩
         · exact accessControlGetRoleAdminBody hcode hsize hwv h1
             (accessControlReachLowBody 1 (by omega) ⟨166⟩ hcode hwv hsz hsize
@@ -90,7 +92,7 @@ theorem accessControlCorrect :
                 (by simpa [selIs, accessControlLowSelBytes] using h1)).1
               (accessControlLowMatches 1 (by omega) hsz
                 (by simpa [selIs, accessControlLowSelBytes] using h1)).2
-              (by jump_dest) (by decide))
+              (by jump_dest) (by decide +kernel))
         · by_cases h2 : selIs I ⟨#[0x2f, 0x2f, 0xf1, 0x5d]⟩
           · exact accessControlGrantRoleBody hcode hsize hwv h2
               (accessControlReachLowBody 2 (by omega) ⟨214⟩ hcode hwv hsz hsize
@@ -100,7 +102,7 @@ theorem accessControlCorrect :
                   (by simpa [selIs, accessControlLowSelBytes] using h2)).1
                 (accessControlLowMatches 2 (by omega) hsz
                   (by simpa [selIs, accessControlLowSelBytes] using h2)).2
-                (by jump_dest) (by decide))
+                (by jump_dest) (by decide +kernel))
           · by_cases h3 : selIs I ⟨#[0x36, 0x56, 0x8a, 0xbe]⟩
             · exact accessControlRenounceRoleBody hcode hsize hwv h3
                 (accessControlReachHighBody 0 (by omega) ⟨235⟩ hcode hwv hsz hsize
@@ -110,7 +112,7 @@ theorem accessControlCorrect :
                     (by simpa [selIs, accessControlHighSelBytes] using h3)).1
                   (accessControlHighMatches 0 (by omega) hsz
                     (by simpa [selIs, accessControlHighSelBytes] using h3)).2
-                  (by jump_dest) (by decide))
+                  (by jump_dest) (by decide +kernel))
             · by_cases h4 : selIs I ⟨#[0x91, 0xd1, 0x48, 0x54]⟩
               · exact accessControlHasRoleBody hcode hsize hwv h4
                   (accessControlReachHighBody 1 (by omega) ⟨254⟩ hcode hwv hsz hsize
@@ -120,7 +122,7 @@ theorem accessControlCorrect :
                       (by simpa [selIs, accessControlHighSelBytes] using h4)).1
                     (accessControlHighMatches 1 (by omega) hsz
                       (by simpa [selIs, accessControlHighSelBytes] using h4)).2
-                    (by jump_dest) (by decide))
+                    (by jump_dest) (by decide +kernel))
               · by_cases h5 : selIs I ⟨#[0xa2, 0x17, 0xfd, 0xdf]⟩
                 · exact accessControlDefaultAdminRoleBody hcode hsize hwv h5
                     (accessControlReachHighBody 2 (by omega) ⟨273⟩ hcode hwv hsz hsize
@@ -130,7 +132,7 @@ theorem accessControlCorrect :
                         (by simpa [selIs, accessControlHighSelBytes] using h5)).1
                       (accessControlHighMatches 2 (by omega) hsz
                         (by simpa [selIs, accessControlHighSelBytes] using h5)).2
-                      (by jump_dest) (by decide))
+                      (by jump_dest) (by decide +kernel))
                 · by_cases h6 : selIs I ⟨#[0xd5, 0x47, 0x74, 0x1f]⟩
                   · exact accessControlRevokeRoleBody hcode hsize hwv h6
                       (accessControlReachHighBody 3 (by omega) ⟨280⟩ hcode hwv hsz hsize
@@ -140,7 +142,7 @@ theorem accessControlCorrect :
                           (by simpa [selIs, accessControlHighSelBytes] using h6)).1
                         (accessControlHighMatches 3 (by omega) hsz
                           (by simpa [selIs, accessControlHighSelBytes] using h6)).2
-                        (by jump_dest) (by decide))
+                        (by jump_dest) (by decide +kernel))
                   · refine accessControlNoDispatch hcode hsize hwv ?_
                     intro i hi
                     interval_cases i

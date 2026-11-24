@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.ReservesResponse
 import Benchmarks.CompoundIII.Comet.ReservesMathEvm
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_012
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -19,17 +21,17 @@ theorem cometReservesQuery {v : CometWithExtendedAssetListImmutables}
     (hptr : ptr.toNat + 36 < 2^64) (hv : CurrentIndicesValid v w0 w1 time)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨9871⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨9871⟩
       (currentIndex v w0 w1 time true :: currentIndex v w0 w1 time false ::
         w1 :: ⟨2425⟩ :: ret :: R) mem aw rdata σ k C) :
     ∃ (evm' : EVM.State) (σ' : AccountMap) (z : Bool) (out : ByteArray),
-      callViaEVM evm v.baseToken 0 (tokenBalancePayload evm.executionEnv.codeOwner)
+      callViaEVM fork evm v.baseToken 0 (tokenBalancePayload evm.executionEnv.codeOwner)
         (z, evm', out) false ∧ SourceState s0 ee σ' evm' ∧ out.size < 2^138 ∧
       if ReservesReplyValid v w0 w1 time z out then
-        ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret
+        ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret
           (reservesWord v w0 w1 time (calldataWord out 0) :: R)
           (tokenBalanceReturnMemory mem ptr ee.codeOwner out) aw' out σ' k' C'
-      else RDrev (deployedRuntime v) g s0 := by
+      else RDrev fork (deployedRuntime v) g s0 := by
   have r1 := cometWithExtendedAssetList_block_9871
     (immWords := wordsOf (immStore v)) (by change R.length + 2 + 11 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
@@ -63,7 +65,7 @@ theorem cometReservesQuery {v : CometWithExtendedAssetListImmutables}
     (tokenBalanceInputMemory_payload hb)
     (by rw [tokenBalancePayload_size]; decide)
     (by change R.length + 6 + 1 ≤ 1024; omega)
-  have hc' : callViaEVM evm v.baseToken 0 (tokenBalancePayload evm.executionEnv.codeOwner)
+  have hc' : callViaEVM fork evm v.baseToken 0 (tokenBalancePayload evm.executionEnv.codeOwner)
       (z, evm', out) false := by
     have ht' : AccountAddress.ofUInt256 (EVM.word v.baseToken.val) = v.baseToken :=
       accountAddress_roundtrip v.baseToken
@@ -101,20 +103,20 @@ theorem cometReservesInternal {v : CometWithExtendedAssetListImmutables}
     (hptr : ptr.toNat + 36 < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨9825⟩ (ret :: R) mem aw rdata σ k C) :
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨9825⟩ (ret :: R) mem aw rdata σ k C) :
     let w0 := solcSlotWordAt ⟨0⟩ σ ee
     let w1 := solcSlotWordAt ⟨1⟩ σ ee
     let time := timestampWord ee
     if CurrentIndicesValid v w0 w1 time then
       ∃ (evm' : EVM.State) (σ' : AccountMap) (z : Bool) (out : ByteArray),
-        callViaEVM evm v.baseToken 0 (tokenBalancePayload evm.executionEnv.codeOwner)
+        callViaEVM fork evm v.baseToken 0 (tokenBalancePayload evm.executionEnv.codeOwner)
           (z, evm', out) false ∧ SourceState s0 ee σ' evm' ∧ out.size < 2^138 ∧
         if ReservesReplyValid v w0 w1 time z out then
-          ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret
+          ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret
             (reservesWord v w0 w1 time (calldataWord out 0) :: R)
             (tokenBalanceReturnMemory mem ptr ee.codeOwner out) aw' out σ' k' C'
-        else RDrev (deployedRuntime v) g s0
-    else RDrev (deployedRuntime v) g s0 := by
+        else RDrev fork (deployedRuntime v) g s0
+    else RDrev fork (deployedRuntime v) g s0 := by
   dsimp only
   have hr := cometReservesStart hstack h
   dsimp only at hr

@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.TickLogCompiled
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_056
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_057
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -14,15 +16,15 @@ theorem poolSwapBoundaryTickTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (zeroForOne : Bool) (hstack : R.length+15 ≤ 1024)
     (htc : int24Canonical tick) (ht : memLoad (step+UInt256.ofNat 32) mem = tick)
-    (h : RD (deployedRuntime v) I g s0 ⟨19904⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨19904⟩
       ([tag, x1, params, remaining, calculated, fee, protocol, amount, UInt256.fromBool (!zeroForOne), step, pool, state] ++ R)
       mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨19964⟩
+    ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨19964⟩
       ([tag, x1, params, remaining, calculated, fee, protocol, amount, UInt256.fromBool (!zeroForOne), step, pool, state] ++ R)
       ((poolSwapBoundaryTick zeroForOne tick).toByteArray.write 0 mem (state+UInt256.ofNat 32).toNat 32)
       (M (M aw (step+UInt256.ofNat 32) ⟨32⟩) (state+UInt256.ofNat 32) ⟨32⟩) rdata σ k' C' := by
   have hclean : UInt256.signextend (UInt256.ofNat 2) tick = tick := (signextend24_eq_iff tick).mpr htc
-  have hpre : ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨19955⟩
+  have hpre : ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨19955⟩
       ([poolSwapBoundaryTick zeroForOne tick, tag, x1, params, remaining, calculated, fee, protocol,
         amount, UInt256.fromBool (!zeroForOne), step, pool, state] ++ R)
       mem (M aw (step+UInt256.ofNat 32) ⟨32⟩) rdata σ k' C' := by

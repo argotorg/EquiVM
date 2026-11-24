@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.OracleObserveArrays
 import Benchmarks.UniswapV3.Pool.SignedWords
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_055
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -12,7 +14,7 @@ theorem oracleObserveLoopStoreX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat25
     {s0 : EVM.State} {k C i n : Nat} {aw ticksPtr secondsPtr tickRaw secondsRaw : UInt256}
     {tickValue secondsValue : Int} {mem rdata : ByteArray} {R : List UInt256}
     {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨17215⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨17215⟩
       (secondsRaw :: tickRaw :: UInt256.ofNat i :: secondsPtr :: ticksPtr :: R) mem aw rdata σ k C)
     (ha : ActiveWords aw) (ht : memLoad ticksPtr mem = UInt256.ofNat n)
     (hs : memLoad secondsPtr mem = UInt256.ofNat n) (hi : i < n)
@@ -22,7 +24,7 @@ theorem oracleObserveLoopStoreX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat25
     (hsw : UInt256.land secondsRaw (UInt256.ofNat (2 ^ 160 - 1)) = EVM.wordOfInt secondsValue)
     (hov : R.length + 12 ≤ 1024) :
     ∃ k' C', C + (Cₘ (M aw (wordArrayElement secondsPtr i) ⟨32⟩) - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 ⟨17172⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨17172⟩
         (UInt256.ofNat (i + 1) :: secondsPtr :: ticksPtr :: R)
         (oracleObserveUpdateMem mem ticksPtr secondsPtr i tickValue secondsValue)
         (M aw (wordArrayElement secondsPtr i) ⟨32⟩) rdata σ k' C' := by

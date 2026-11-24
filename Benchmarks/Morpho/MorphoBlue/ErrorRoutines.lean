@@ -1,4 +1,6 @@
 import Benchmarks.Morpho.MorphoBlue.Routines
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -14,9 +16,9 @@ theorem morphoAlloc64 {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     (hfit : UInt256.lor (UInt256.gt (ptr + UInt256.ofNat 64)
       (UInt256.ofNat 18446744073709551615))
       (UInt256.lt (ptr + UInt256.ofNat 64) ptr) = UInt256.ofNat 0)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 11507)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 11507)
       (ptr :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret R
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret R
       ((ptr + UInt256.ofNat 64).toByteArray.write 0 mem 64 32) aw' rdata σ k' C' := by
   have rd := morphoBlocks.morpho_block_11507_fallthrough
     (immWords := wordsOf (immStore v)) (by simpa using hstack) hfit h
@@ -47,9 +49,9 @@ theorem morphoNotOwnerMessage {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sa
       (UInt256.ofNat 18446744073709551615))
       (UInt256.lt (memLoad (UInt256.ofNat 64) mem + UInt256.ofNat 64)
         (memLoad (UInt256.ofNat 64) mem)) = UInt256.ofNat 0)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12040)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12040)
       (ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret
       (memLoad (UInt256.ofNat 64) mem :: R) (morphoNotOwnerMem mem) aw' rdata σ k' C' := by
   have rd := morphoBlocks.morpho_block_12040
     (immWords := wordsOf (immStore v)) (by omega)
@@ -69,9 +71,9 @@ theorem morphoAlreadySetMessage {v : MorphoImmutables} {ee : ExecutionEnv} {g : 
       (UInt256.ofNat 18446744073709551615))
       (UInt256.lt (memLoad (UInt256.ofNat 64) mem + UInt256.ofNat 64)
         (memLoad (UInt256.ofNat 64) mem)) = UInt256.ofNat 0)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12253)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12253)
       (ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret
       (memLoad (UInt256.ofNat 64) mem :: R) (morphoAlreadySetMem mem) aw' rdata σ k' C' := by
   have rd := morphoBlocks.morpho_block_12253
     (immWords := wordsOf (immStore v)) (by omega)
@@ -88,9 +90,9 @@ theorem morphoRequireTrue {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
     (hcond : UInt256.isZero cond = UInt256.ofNat 0)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
       (cond :: msg :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret R mem aw rdata σ k' C' := by
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret R mem aw rdata σ k' C' := by
   have rd := morphoBlocks.morpho_block_12097_fallthrough
     (immWords := wordsOf (immStore v)) (by simpa using hstack) hcond h
   exact ⟨_, _, morphoBlocks.morpho_block_12103
@@ -109,9 +111,9 @@ theorem morphoRequireFalseShort {v : MorphoImmutables} {ee : ExecutionEnv} {g : 
     (hcond : cond = UInt256.ofNat 0)
     (hlenPos : UInt256.lt (UInt256.ofNat 0) (morphoErrorLength mem msg) ≠ UInt256.ofNat 0)
     (hlenMax : UInt256.lt (UInt256.ofNat 32) (morphoErrorLength mem msg) = UInt256.ofNat 0)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
       (cond :: msg :: ret :: R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    RDrev fork (deployedRuntime v) g s0 := by
   have rdBad := morphoBlocks.morpho_block_12097_taken
     (immWords := wordsOf (immStore v)) (by simp only [List.length_cons]; omega)
     (by rw [hcond]; decide) (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h

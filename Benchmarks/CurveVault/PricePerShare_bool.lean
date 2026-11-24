@@ -4,6 +4,8 @@ import Benchmarks.CurveVault.Lock
 import Benchmarks.CurveVault.PriceInternal
 import Benchmarks.CurveVault.Calldata
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 
 namespace Benchmarks.CurveVault
@@ -11,7 +13,7 @@ namespace Benchmarks.CurveVault
 theorem vaultPricePerShare_boolBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vaultBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vaultSelBytes 11)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (vaultSelBytes 11) rfl hsel
   have hd : dispatchMsg contract I.calldata = some pricePerShare_boolTransition := by
     apply vaultDispatch_pricePerShare_bool
@@ -43,7 +45,7 @@ theorem vaultPricePerShare_boolBodyCore {σ σ₀ A I} {g : UInt256}
         (by change UInt256.eq _ (codeOwnerTransientWord I σ ⟨0⟩) ≠ _
             rw [hlocked]; decide +kernel) (by native_decide) rd1533
       have hrev := vaultBlocks.vault_block_8284 (by simp [vaultBlocks.vault_block_1529_stack]) rdRevert
-      have hsource (l : Store) := vaultLockedBodyReverts (initState σ σ₀ (Sat256.ofUInt256 g) A I) l
+      have hsource (l : Store) := vaultLockedBodyReverts (fork := fork) (initState σ σ₀ (Sat256.ofUInt256 g) A I) l
         [.internalCall "pricePerShare_body" [.var "_is_floor"] "__r", .return [.var "__r"]] hvalue
         (by rw [hload]; exact hlocked)
       exact RDrev.reEquivOfDispatch hcode hd hsource hrev
@@ -78,7 +80,7 @@ theorem vaultPricePerShare_boolBody {σ σ₀ A I} {g : UInt256}
     (_hwf : storageWF σ I)
     (hcode : I.code = vaultBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vaultSelBytes 11)) :
-    runtimeRefinementFor config contract σ σ₀ g A I :=
+    runtimeRefinementFor fork config contract σ σ₀ g A I :=
   vaultPricePerShare_boolBodyCore hcode hsize hsel
 
 end Benchmarks.CurveVault

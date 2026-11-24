@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.EntryTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_034
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_035
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -37,11 +39,11 @@ theorem decodeWordArray {ee : ExecutionEnv} {g : Sat256}
     (hstack : R.length + 7 ≤ 1024)
     (hs : 4 ≤ ee.calldata.size) (hsize : ee.calldata.size < UInt256.size)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨12155⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨12155⟩
       (UInt256.ofNat ee.calldata.size :: ret :: R) mem aw rdata σ k C) :
-    (¬ WordArrayBounds ee.calldata ∧ RDrev (deployedRuntime v) g s0) ∨
+    (¬ WordArrayBounds ee.calldata ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (WordArrayBounds ee.calldata ∧ ∃ k' C',
-      RD (deployedRuntime v) ee g s0 ret
+      RD fork (deployedRuntime v) ee g s0 ret
         (calldataWord ee.calldata (4 + (calldataWord ee.calldata 4).toNat) ::
          UInt256.ofNat (36 + (calldataWord ee.calldata 4).toNat) :: R)
         mem aw rdata σ k' C') := by
@@ -65,7 +67,7 @@ theorem decodeWordArray {ee : ExecutionEnv} {g : Sat256}
       emptyRevert v (by change R.length + 2 + 2 ≤ 1024; omega) rd⟩
   have hc := viaIRStaticLenCheckOk (words := 1) (by omega) (by omega) hsize
   have rd0 := poolManagerBlocks.poolManager_block_12155_fallthrough (by omega) hc h
-  change RD _ _ _ _ _ (ret :: UInt256.ofNat ee.calldata.size :: R) _ _ _ _ _ _ at rd0
+  change RD fork _ _ _ _ _ (ret :: UInt256.ofNat ee.calldata.size :: R) _ _ _ _ _ _ at rd0
   let off := calldataWord ee.calldata 4
   let len := calldataWord ee.calldata (4 + off.toNat)
   by_cases ho : off.toNat ≤ solcMaxU64
@@ -78,7 +80,7 @@ theorem decodeWordArray {ee : ExecutionEnv} {g : Sat256}
       emptyRevert v (by change R.length + 3 + 2 ≤ 1024; omega) rd⟩
   have rd1 := poolManagerBlocks.poolManager_block_12199_fallthrough
     (by simp; omega) (ugt_zero ho) rd0
-  change RD _ _ _ _ _ (off :: ret :: UInt256.ofNat ee.calldata.size :: R) _ _ _ _ _ _ at rd1
+  change RD fork _ _ _ _ _ (off :: ret :: UInt256.ofNat ee.calldata.size :: R) _ _ _ _ _ _ at rd1
   have hof : (off + UInt256.ofNat 35).toNat = off.toNat + 35 :=
     uadd_word_ofNat_toNat off 35 (by norm_num [solcMaxU64, UInt256.size] at ho ⊢; omega)
   have hos : (off + UInt256.ofNat 35).toNat < 2 ^ 255 := by
@@ -113,7 +115,7 @@ theorem decodeWordArray {ee : ExecutionEnv} {g : Sat256}
       emptyRevert v (by change R.length + 4 + 2 ≤ 1024; omega) rd⟩
   have rd3 := poolManagerBlocks.poolManager_block_12228_fallthrough
     (by omega) (by rw [hload]; exact ugt_zero hn) rd2
-  change RD _ _ _ _ _ (UInt256.ofNat ee.calldata.size :: off :: ret ::
+  change RD fork _ _ _ _ _ (UInt256.ofNat ee.calldata.size :: off :: ret ::
     uInt256OfByteArray (ee.calldata.readBytes ((UInt256.ofNat 4) + off).toNat 32) :: R)
     _ _ _ _ _ _ at rd3
   rw [hload] at rd3

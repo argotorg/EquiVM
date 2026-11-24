@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.CollectBodyTrace
 import Benchmarks.UniswapV3.Pool.CollectCalldata
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # UniswapV3Pool `collect(address,int24,int24,uint128,uint128)`
 
@@ -22,7 +24,7 @@ theorem uniswapV3PoolCollectBody {σ σ₀ A I} {g : UInt256} (v : UniswapV3Pool
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (uniswapV3PoolSelBytes 10)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (uniswapV3PoolSelBytes 10) rfl hsel
   have hd : dispatchMsg contract I.calldata = some collectTransition := by
     apply uniswapV3PoolDispatch_collect <;>
@@ -59,7 +61,7 @@ theorem uniswapV3PoolCollectBody {σ σ₀ A I} {g : UInt256} (v : UniswapV3Pool
           let amount0 := minWord req0 (positionOwedWord key false locked.accountMap locked.executionEnv)
           let amount1 := minWord req1 (positionOwedWord key true locked.accountMap locked.executionEnv)
           let locals := (collectAmountsFrame v recipient lower upper req0 req1 key amount0 amount1).locals
-          have hprefix := collectAmountsPrefix (hperm := by assumption) v evm recipient lower upper req0 req1 hwv hunlocked
+          have hprefix := collectAmountsPrefix (fork := fork) (hperm := by assumption) v evm recipient lower upper req0 req1 hwv hunlocked
           have hvalues := collectAmounts_values v recipient lower upper req0 req1 key amount0 amount1
           have hfit0 : amount0.toNat < 2 ^ 128 := minWord_lt _ _
             (positionOwedWord_lt key false locked.accountMap locked.executionEnv)

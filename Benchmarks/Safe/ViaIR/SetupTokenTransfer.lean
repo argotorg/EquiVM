@@ -1,6 +1,8 @@
 import Benchmarks.Safe.ViaIR.TokenTransferTrace
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_048
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -17,13 +19,13 @@ theorem safeSetupTokenTransferMemory {mem : ByteArray} {ptr : Nat} {receiver amo
 set_option maxRecDepth 5000 in
 theorem safeSetupTokenTransferPrepare {I g s0 σ k C aw mem rdata ptr}
     {amount receiver token ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨10565⟩
+    (h : RD fork safeBytecode I g s0 ⟨10565⟩
       (amount :: token :: ⟨0⟩ :: ⟨32⟩ :: ret :: receiver :: R)
       mem aw rdata σ k C)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr) (hp : 96 ≤ ptr)
     (hb : ptr + 128 < 2 ^ 64) (hc : receiver.toNat < EVM.addressModulus)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ gasArg aw' k' C', RD safeBytecode I g s0 ⟨10627⟩
+    ∃ gasArg aw' k' C', RD fork safeBytecode I g s0 ⟨10627⟩
       (gasArg :: token :: ⟨0⟩ :: UInt256.ofNat (ptr + 32) :: ⟨68⟩ :: ⟨0⟩ :: ⟨32⟩ ::
         ret :: amount :: R) (tokenTransferMemory mem ptr receiver amount) aw' rdata σ k' C' := by
   have hbword : ptr + 128 < UInt256.size := by change ptr + 128 < 2 ^ 256; omega
@@ -38,7 +40,7 @@ theorem safeSetupTokenTransferPrepare {I g s0 σ k C aw mem rdata ptr}
   obtain ⟨aw₂, k₂, C₂, h₂⟩ := safeIRAllocateValidTrace h₁ (by decide)
     (by simpa only [show ABI.paddedSize 100 = 128 from rfl] using hb)
     (by simp; omega) (by jump_dest)
-  change RD safeBytecode I g s0 (UInt256.ofNat 10618)
+  change RD fork safeBytecode I g s0 (UInt256.ofNat 10618)
     (UInt256.ofNat ptr :: ⟨0⟩ :: UInt256.ofNat (ptr + 32) :: token :: ⟨0⟩ :: ⟨32⟩ ::
       ret :: amount :: R) (tokenTransferMemory mem ptr receiver amount) aw₂ rdata σ k₂ C₂
     at h₂
@@ -54,12 +56,12 @@ theorem safeSetupTokenTransferPrepare {I g s0 σ k C aw mem rdata ptr}
 set_option maxRecDepth 2000 in
 theorem safeSetupTokenTransferAllocationRevert {I g s0 σ k C aw mem rdata ptr}
     {amount receiver token ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨10565⟩
+    (h : RD fork safeBytecode I g s0 ⟨10565⟩
       (amount :: token :: ⟨0⟩ :: ⟨32⟩ :: ret :: receiver :: R)
       mem aw rdata σ k C)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr) (hb : ptr < 2 ^ 64)
     (hn : ¬ptr + 128 < 2 ^ 64) (hov : R.length + 16 ≤ 1024) :
-    RDrev safeBytecode g s0 := by
+    RDrev fork safeBytecode g s0 := by
   have hbword : ptr + 128 < UInt256.size := by change ptr + 128 < 2 ^ 256; omega
   obtain ⟨aw₁, k₁, C₁, h₁⟩ :=
     safeRuntime_block_10565_packed (by simp; omega) (by jump_dest) h
@@ -77,10 +79,10 @@ theorem safeSetupTokenTransferAllocationRevert {I g s0 σ k C aw mem rdata ptr}
 set_option maxRecDepth 5000 in
 theorem safeSetupTokenTransferReturn {I g s0 σ k C aw mem out}
     {amount ret : UInt256} {R : List UInt256} (z : Bool)
-    (h : RD safeBytecode I g s0 ⟨10628⟩ (z.toUInt256 :: ret :: amount :: R)
+    (h : RD fork safeBytecode I g s0 ⟨10628⟩ (z.toUInt256 :: ret :: amount :: R)
       (callOutputMem mem out ⟨0⟩ ⟨32⟩) aw out σ k C)
     (hb : out.size < UInt256.size) (hov : R.length + 12 ≤ 1024) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨10644⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨10644⟩
       ((tokenTransferResult z out).toUInt256 :: ret :: amount :: R)
       (callOutputMem mem out ⟨0⟩ ⟨32⟩) aw' out σ k' C' := by
   by_cases hz : out.size = 0
@@ -120,17 +122,17 @@ theorem safeSetupTokenTransferReturn {I g s0 σ k C aw mem out}
 set_option maxRecDepth 2000 in
 theorem safeSetupTokenTransferTrace (p : TokenTransferInput) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata ptr} {ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨10565⟩
+    (h : RD fork safeBytecode I g s0 ⟨10565⟩
       (p.amount :: UInt256.ofNat p.token.val :: ⟨0⟩ :: ⟨32⟩ :: ret ::
         UInt256.ofNat p.receiver.val :: R) mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ) (hworld : evm.σ₀ = s0.σ₀)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr) (hp : 128 ≤ ptr)
     (hb : ptr + 128 < 2 ^ 64) (hov : R.length + 24 ≤ 1024) :
     ∃ evm' σ' z out aw' k' C',
-      ExecFuncBody config p.frame evm transferTokenFunction.body
+      ExecFuncBody fork config p.frame evm transferTokenFunction.body
         (.returned (p.finalFrame z out) evm' (some [.bool (tokenTransferResult z out)])) ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧ evm'.σ₀ = s0.σ₀ ∧
-      RD safeBytecode I g s0 ⟨10644⟩
+      RD fork safeBytecode I g s0 ⟨10644⟩
         ((tokenTransferResult z out).toUInt256 :: ret :: p.amount :: R)
         (tokenTransferOutputMemory mem ptr p out) aw' out σ' k' C' := by
   have hbword : ptr + 128 < UInt256.size := by change ptr + 128 < 2 ^ 256; omega
@@ -141,7 +143,7 @@ theorem safeSetupTokenTransferTrace (p : TokenTransferInput) (evm : EVM.State)
       (by simp; omega) (.inr rfl)
   have hread := tokenTransferMemory_read mem ptr (UInt256.ofNat p.receiver.val) p.amount
     (by omega)
-  have hc' : callViaEVM evm (EVM.address p.token) 0 p.callBytes (z, evm', out) := by
+  have hc' : callViaEVM fork evm (EVM.address p.token) 0 p.callBytes (z, evm', out) := by
     simpa only [accountAddress_roundtrip, addressOfAddress, ulit_toNat' (ptr + 32) (by omega),
       show (⟨68⟩ : UInt256).toNat = 68 from rfl, hread, TokenTransferInput.callBytes] using hc
   have hbz : (if z then (⟨1⟩ : UInt256) else ⟨0⟩) = z.toUInt256 := by cases z <;> rfl

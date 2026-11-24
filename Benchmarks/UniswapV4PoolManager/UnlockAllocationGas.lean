@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.UnlockReturnTrace
 import Benchmarks.UniswapV4PoolManager.AllocationPanicGas
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -16,8 +18,8 @@ theorem unlockRawAllocationGas {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hpaid : Cₘ aw ≤ C)
     (hwords : (M aw ⟨160⟩ (UInt256.ofNat out.size)).toNat ≤ aw'.toNat)
     (hcost : C+98+3*((out.size+31)/32)+Cₘ aw' ≤ C'+Cₘ aw)
-    (h : RD (deployedRuntime v) I g s0 ⟨7857⟩ R mem aw' out σ k C') :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass := by
+    (h : RD fork (deployedRuntime v) I g s0 ⟨7857⟩ R mem aw' out σ k C') :
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass := by
   have ho : (UInt256.ofNat out.size).toNat = out.size :=
     UInt256.toNat_ofNat_of_lt (lt_trans hout (by decide))
   have he : (allocationEnd ⟨160⟩ (UInt256.ofNat out.size)).toNat = 160+paddedSize out.size := by
@@ -50,8 +52,8 @@ theorem unlockLargeReplyAllocationGas {I : ExecutionEnv} {g : Sat256} {s0 : Stat
     (hpaid : Cₘ aw+Cₘ (UInt256.ofNat ((out.size+31)/32)) ≤ C)
     (hwords : (M aw ⟨160⟩ (UInt256.ofNat out.size)).toNat ≤ aw'.toNat)
     (hcost : C+352+3*((out.size+31)/32)+Cₘ aw' ≤ C'+Cₘ aw)
-    (h : RD (deployedRuntime v) I g s0 ⟨7857⟩ R mem aw' out σ k C') :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass := by
+    (h : RD fork (deployedRuntime v) I g s0 ⟨7857⟩ R mem aw' out σ k C') :
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass := by
   have ho : (UInt256.ofNat out.size).toNat = out.size :=
     UInt256.toNat_ofNat_of_lt (lt_trans hout (by decide))
   have hw := memoryWords_ge_span aw ⟨160⟩ (UInt256.ofNat out.size) (by rw [ho]; omega)
@@ -77,8 +79,8 @@ theorem unlockCriticalReplyAllocationGas {I : ExecutionEnv} {g : Sat256} {s0 : S
     (hpaid : 1094+Cₘ aw+Cₘ (UInt256.ofNat ((out.size+31)/32))+18 ≤ C)
     (hwords : (M aw ⟨160⟩ (UInt256.ofNat out.size)).toNat ≤ aw'.toNat)
     (hcost : C+352+3*((out.size+31)/32)+Cₘ aw' ≤ C'+Cₘ aw)
-    (h : RD (deployedRuntime v) I g s0 ⟨7857⟩ R mem aw' out σ k C') :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass := by
+    (h : RD fork (deployedRuntime v) I g s0 ⟨7857⟩ R mem aw' out σ k C') :
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass := by
   have ho : (UInt256.ofNat out.size).toNat = out.size :=
     UInt256.toNat_ofNat_of_lt (lt_trans hout (by decide))
   have hw := memoryWords_ge_span aw ⟨160⟩ (UInt256.ofNat out.size) (by rw [ho]; omega)

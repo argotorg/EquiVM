@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.SwapBalancePrepare
 import Examples.UniswapV2Pair.PairBalanceAnyDepthCases
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -17,7 +19,7 @@ theorem uniswapSwapBalancesCases
     {mem rdata : ByteArray} {aw ptr token1 token0 scratch1 scratch0 reserve1 reserve0
       dataLen dataPtr toWord amount1Out amount0Out : UInt256} {R : List UInt256} {k C : Nat}
     {caller : Frame} (evm : EVM.State) (token0Addr token1Addr : AccountAddress)
-    (rd2091 : RD uniswapV2PairBytecode I g s0 ⟨2091⟩
+    (rd2091 : RD fork uniswapV2PairBytecode I g s0 ⟨2091⟩
       (token1 :: token0 :: scratch1 :: scratch0 :: reserve1 :: reserve0 :: dataLen :: dataPtr ::
         toWord :: amount1Out :: amount0Out :: R) mem aw rdata σ k C)
     (ha : σ = evm.accountMap) (he : evm.executionEnv = I)
@@ -32,14 +34,14 @@ theorem uniswapSwapBalancesCases
     (hfit : ptr.toNat + 67 < UInt256.size) (hread : mem.readWithPadding 64 32 = ptr.toByteArray)
     (hov : R.length + 25 ≤ 1024)
     (himm : caller.immutables = ∅ := by first | rfl | assumption) :
-    (ExecBlock config caller evm swapBalanceStmts .reverted ∧ RDrev uniswapV2PairBytecode g s0) ∨
+    (ExecBlock fork config caller evm swapBalanceStmts .reverted ∧ RDrev fork uniswapV2PairBytecode g s0) ∨
     ∃ evm' σ' mem' aw' out balance0 balance1 k' C',
-      ExecBlock config caller evm swapBalanceStmts
+      ExecBlock fork config caller evm swapBalanceStmts
         (.ok (swapAfterBalancesFrame caller balance0 balance1) evm') ∧
       σ' = evm'.accountMap ∧ evm'.σ₀ = s0.σ₀ ∧ evm'.executionEnv = I ∧
       96 ≤ mem'.size ∧ ptr.toNat - mem'.size < USize.size ∧ aw'.toNat * 32 < UInt256.size ∧
       96 ≤ aw'.toNat * 32 ∧ mem'.readWithPadding 64 32 = ptr.toByteArray ∧
-      RD uniswapV2PairBytecode I g s0 ⟨2331⟩
+      RD fork uniswapV2PairBytecode I g s0 ⟨2331⟩
         (⟨0⟩ :: balance1 :: balance0 :: reserve1 :: reserve0 :: dataLen :: dataPtr ::
           toWord :: amount1Out :: amount0Out :: R) mem' aw' out σ' k' C' := by
   rcases caller with ⟨decl, locals, imms⟩

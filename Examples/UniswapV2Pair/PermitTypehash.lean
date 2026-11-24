@@ -2,6 +2,8 @@ import Examples.UniswapV2Pair.Dispatch
 import Examples.UniswapV2Pair.Permit
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -17,7 +19,7 @@ theorem permitTypehashWord_toBytesBE :
 /-- The Stele `PERMIT_TYPEHASH()` body returns the bytes32 literal from Uniswap V2 ERC20. -/
 theorem uniswapPermitTypehashBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract evm locals permitTypehashTransition.body
+    ExecTransitionBody fork config contract evm locals permitTypehashTransition.body
       (.returned { contract := contract, locals := locals } evm
         (some [(.fixedBytes bytes32Width permitTypehashBytes)])) := by
   simpa [permitTypehashTransition, permitTypehashBytes] using
@@ -25,10 +27,10 @@ theorem uniswapPermitTypehashBodyReturns (evm : EVM.State) (locals : Store)
 
 /-- From `PERMIT_TYPEHASH()`'s external body entry (pc 933), bytecode returns the EIP-712 hash. -/
 theorem uniswapX_permitTypehash {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨933⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret uniswapV2PairBytecode g (initState σ σ₀ g A I) σ
+    RDret fork uniswapV2PairBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray permitTypehashWord) := by
   exact RD.uniswapWordConstGetterExternal (entry := ⟨933⟩) (routine := ⟨3092⟩)
     (val := permitTypehashWord) (width := 32) (op := .PUSH32) hreach
@@ -49,7 +51,7 @@ theorem uniswapPermitTypehashRuntimeBody
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x30, 0xad, 0xf8, 0x1f]⟩) :
-    RDret uniswapV2PairBytecode (Sat256.ofUInt256 g)
+    RDret fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
       (UInt256.toByteArray permitTypehashWord) := by
   have hsz : 4 ≤ I.calldata.size :=
@@ -65,12 +67,12 @@ theorem uniswapPermitTypehashBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (permitTypehashTransition.params.map Param.name)
         (transitionSignature permitTypehashTransition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨933⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         permitTypehashTransition.body
         (.returned { contract := contract, locals := ∅ }
@@ -103,7 +105,7 @@ theorem uniswapPermitTypehashBody
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x30, 0xad, 0xf8, 0x1f]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some permitTypehashTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x30, 0xad, 0xf8, 0x1f]⟩ rfl hsel
   exact uniswapPermitTypehashBodyCore hcode hwv hdispatch

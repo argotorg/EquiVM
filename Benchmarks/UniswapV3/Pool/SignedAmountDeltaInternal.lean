@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SignedAmountDeltaSource
 import Benchmarks.UniswapV3.Pool.SignedAmountDeltaTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -13,16 +15,16 @@ theorem signedAmountDeltaInternalX {σ : AccountMap} {ee : ExecutionEnv} {g : Sa
     (hf : caller = {contract := contract, locals := caller.locals, immutables := immStore v})
     (he : evalExprs? config caller evm args = .ok
       [.int (Int.ofNat a.sqrtA.toNat), .int (Int.ofNat a.sqrtB.toNat), .int a.liquidity])
-    (rd : RD (deployedRuntime v) ee g s0 (UInt256.ofNat (signedAmountDeltaEntry second))
+    (rd : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat (signedAmountDeltaEntry second))
       (signedAmountDeltaEntryWords a ++ ret :: R) mem aw rdata σ k C)
     (ha : a.Fits) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
     (hov : R.length + 36 ≤ 1024) :
-    (ExecStmt config caller evm (.internalCall (signedAmountDeltaName second) args retVar) .reverted ∧
-      RDrev (deployedRuntime v) g s0) ∨
-    (ExecStmt config caller evm (.internalCall (signedAmountDeltaName second) args retVar)
+    (ExecStmt fork config caller evm (.internalCall (signedAmountDeltaName second) args retVar) .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) ∨
+    (ExecStmt fork config caller evm (.internalCall (signedAmountDeltaName second) args retVar)
       (.ok (resumeAfterInternalCall caller retVar
         (some [.int (signedAmountDeltaResult second a)])) evm) ∧
-      signedAmountDeltaValid second a ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+      signedAmountDeltaValid second a ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
         (EVM.wordOfInt (signedAmountDeltaResult second a) :: R) mem aw rdata σ k' C') := by
   have hc : {caller with locals := signedAmountDeltaLocals a} =
       signedAmountDeltaFrame (immStore v) a := by rw [hf]; rfl

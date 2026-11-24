@@ -2,6 +2,8 @@ import Benchmarks.Auction.SettlePayment
 import Benchmarks.Auction.Log2
 import Benchmarks.Auction.PairEventMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -25,11 +27,11 @@ theorem settleEventGrowth {aw ptr} (ha : ActiveWords aw) (hb : ptr.toNat + 64 �
     aw.toNat ≤ (settleEventWords aw ptr).toNat := pairEventGrowth ha hb
 
 theorem settleEvent {I g s0 s snap ptr ret R mem aw rdata acc k C}
-    (h : RD auctionBytecode I g s0 ⟨4688⟩ (snap :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork auctionBytecode I g s0 ⟨4688⟩ (snap :: ret :: R) mem aw rdata acc k C)
     (hm : MemoryCursor mem aw ptr) (hb : ptr.toNat + 64 ≤ 2 ^ 200)
     (hsm : SnapshotMemory s mem aw snap) (hperm : I.perm = true)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 13 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret R (settleEventMem mem ptr s)
+    ∃ k' C', RD fork auctionBytecode I g s0 ret R (settleEventMem mem ptr s)
       (settleEventWords aw ptr) rdata acc k' C' := by
   have hl0 : loadedWord mem snap = s.nounId := by
     have hl : loadedWord mem (snap + ⟨0⟩) = s.nounId := hsm.load ⟨0, by decide⟩

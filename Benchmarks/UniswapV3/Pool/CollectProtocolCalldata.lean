@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.LegacyAddressInts
 import Benchmarks.UniswapV3.Pool.CollectProtocolSource
 import Benchmarks.UniswapV3.Pool.Dispatch
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -40,7 +42,7 @@ theorem uniswapV3PoolCollectProtocolDecodedX {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (uniswapV3PoolSelBytes 15))
     (hlen : 100 ≤ I.calldata.size) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨8719⟩
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨8719⟩
       [collectProtocolRequestedWord I.calldata true, collectProtocolRequestedWord I.calldata false,
        EVM.word (collectProtocolRecipient I.calldata).val, UInt256.ofNat 690, solcSelectorWord I]
       solcFreePtrMem ⟨3⟩ ByteArray.empty σ k C := by
@@ -55,7 +57,7 @@ theorem uniswapV3PoolCollectProtocolDecodedX {σ σ₀ A I} {g : Sat256}
   have hmask : UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160))
       (UInt256.ofNat 1) = solcAddrMask := by native_decide
   simp only [uniswapV3Pool_block_1548_stack, solcMask128, hmask] at rdRead
-  change RD (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨8719⟩
+  change RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨8719⟩
     [UInt256.land (calldataWord I.calldata 68) (UInt256.ofNat (2 ^ 128 - 1)),
      UInt256.land (UInt256.ofNat (2 ^ 128 - 1)) (calldataWord I.calldata 36),
      UInt256.land (calldataWord I.calldata 4) solcAddrMask,
@@ -67,7 +69,7 @@ theorem uniswapV3PoolCollectProtocolShortX {σ σ₀ A I} {g : Sat256}
     (v : UniswapV3PoolImmutables) (hcode : I.code = deployedRuntime v)
     (hwv : I.weiValue = ⟨0⟩) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (uniswapV3PoolSelBytes 15))
-    (hshort : I.calldata.size < 100) : RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
+    (hshort : I.calldata.size < 100) : RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rdEntry⟩ := uniswapV3PoolReachCollectProtocolBody
     (g := g) (σ := σ) (σ₀ := σ₀) (A := A) v hcode hwv hsz hsize hsel
   have rdShort := uniswapV3Pool_block_1526_fallthrough (immWords := wordsOf (immStore v))

@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_062
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -11,9 +13,9 @@ theorem poolSwapStoreStatic {immWords : String → UInt256} {ee : ExecutionEnv} 
     {mem rdata : ByteArray} {aw : UInt256} {σ : AccountMap} {k C : Nat}
     {x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 : UInt256} {R : List UInt256}
     (hstack : R.length+15 ≤ 1024) (hperm : ee.perm = false)
-    (h : RD (immutableLayout.runtime poolManagerBytecode immWords) ee g s0 ⟨21536⟩
+    (h : RD fork (immutableLayout.runtime poolManagerBytecode immWords) ee g s0 ⟨21536⟩
       (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: R)
-      mem aw rdata σ k C) : RDstatic (immutableLayout.runtime poolManagerBytecode immWords) g s0 := by
+      mem aw rdata σ k C) : RDstatic fork (immutableLayout.runtime poolManagerBytecode immWords) g s0 := by
   let r0 := h
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨21536⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.swap5 (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨21537⟩ : UInt256), UInt8.ofNat 148, .SWAP5, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)

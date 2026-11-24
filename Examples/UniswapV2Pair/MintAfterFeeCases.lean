@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.MintProportionalRuntimeCases
 import Examples.UniswapV2Pair.MintInitialAfterFeeCases
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace UniswapV2Pair
@@ -43,7 +45,7 @@ theorem uniswapMintAfterMintFeeCases
               "balance0" (uniswapUint256Value balance0) }
         evm0S (.binary .gt (.extCodeSize (.storage token1Ref)) (.intLit 0)) =
           .ok (.bool true))
-    (hcall0 : typedCallViaEVM config
+    (hcall0 : typedCallViaEVM fork config
       (uniswapLockEnteredState
         (initState σ σ₀ (Sat256.ofUInt256 g) A I))
       (EVM.address
@@ -57,7 +59,7 @@ theorem uniswapMintAfterMintFeeCases
       (true, evm0S, out0) false)
     (hdec0 :
       config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
-    (hcall1 : typedCallViaEVM config evm0S
+    (hcall1 : typedCallViaEVM fork config evm0S
       (EVM.address (uniswapAddressAtSlot evm0S ⟨7⟩)) "balanceOf" 0
       [.address evm0S.executionEnv.codeOwner] (true, evm1S, out1) false)
     (hdec1 :
@@ -73,7 +75,7 @@ theorem uniswapMintAfterMintFeeCases
           (initState σ σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
           balance1.toNat)
     (hfee :
-      ExecStmt config
+      ExecStmt fork config
         { contract := contract,
           locals :=
             mintAmountStore
@@ -81,7 +83,7 @@ theorem uniswapMintAfterMintFeeCases
                 (initState σ σ₀ (Sat256.ofUInt256 g) A I)) I balance0 balance1 }
         evm1S (.internalCall "_mintFee" [.var "_reserve0", .var "_reserve1"] "feeOn")
         (.ok { contract := contract, locals := nextLocals } evmFeeS))
-    (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd3701 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
       [feeOnFlag, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
         toWord, ⟨861⟩, sel]
@@ -110,7 +112,7 @@ theorem uniswapMintAfterMintFeeCases
     (hkLast : nextLocals.get? "kLast" = none)
     (hunlocked : nextLocals.get? "unlocked" = none)
     (hperm : I.perm = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases htotalZero : totalSupply = ⟨0⟩
   · exact uniswapMintInitialAfterMintFeeCases nextLocals recipient fee hcode hdispatch hsz36
       hwv hunlockedStele hguard0 hguard1 hcall0 hdec0 hcall1 hdec1 hle0Source hle1Source
@@ -119,7 +121,7 @@ theorem uniswapMintAfterMintFeeCases
       hfeeOnGet hbalance0 hbalance1 hreserve0Base hreserve1Base hkLast hunlocked hperm
   · let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let locals := nextLocals.insert "_totalSupply" (uniswapUint256Value totalSupply)
-    have hprefix := uniswapMintAfterMintFeeTotalSupplyPrefix_of_call (hperm := by assumption)
+    have hprefix := uniswapMintAfterMintFeeTotalSupplyPrefix_of_call (fork := fork) (hperm := by assumption)
       evmS evm0S evm1S evmFeeS I nextLocals hwv hunlockedStele hguard0 hguard1
       hcall0 hdec0 hcall1 hdec1 hle0Source hle1Source hfee htotalBase
     have hruntime := uniswapMintProportionalRuntimeCases (locals := locals) evmFeeS recipient fee
@@ -141,7 +143,7 @@ theorem uniswapMintAfterMintFeeCases
       hclean0 hclean1 hperm hmem hmem64
     rcases hruntime with ⟨htail, rdRev⟩ | ⟨liquidity, frameRet, evmRet, σRet, htail,
       hRetAccounts, rdRet⟩
-    · have hbody : ExecTransitionBody config contract evmS (mintStore I)
+    · have hbody : ExecTransitionBody fork config contract evmS (mintStore I)
           mintTransition.body .reverted := by
         apply ExecFuncBody.execBlockRevert
         have hthrough := execBlock_append hprefix (by
@@ -151,7 +153,7 @@ theorem uniswapMintAfterMintFeeCases
         (fun hrev ↦ hrev.reEquivExecutionRevert hcode hdispatch (uniswapDecode_mint_ok hsz36) hbody)
         (fun hinvalid ↦ hinvalid.reEquivExecutionInvalid hcode hdispatch
           (uniswapDecode_mint_ok hsz36) hbody)
-    · have hbody : ExecTransitionBody config contract evmS (mintStore I)
+    · have hbody : ExecTransitionBody fork config contract evmS (mintStore I)
           mintTransition.body (.returned frameRet evmRet (some [uniswapUint256Value liquidity])) := by
         apply ExecFuncBody.execBlockRet
         have hthrough := execBlock_append hprefix (by

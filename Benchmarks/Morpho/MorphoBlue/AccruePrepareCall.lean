@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.BorrowRateEncode
 import Benchmarks.Morpho.MorphoBlue.BorrowRateABI
 import Benchmarks.Morpho.MorphoBlue.Dispatch
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -21,10 +23,10 @@ theorem morphoAccruePrepareCall {v : MorphoImmutables} {ee : ExecutionEnv} {g : 
     (hplo : 96 ≤ ptr.toNat) (hpf : ptr.toNat + 160 < UInt256.size)
     (hin : ptr.toNat + 160 ≤ mem.size) (hsep : ptr.toNat + 160 ≤ fp.toNat)
     (hfit : fp.toNat + 356 < UInt256.size) (hgap : fp.toNat + 356 - mem.size < USize.size)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13321)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13321)
       ([p.irm, elapsed, solcAddrMask, p.id, UInt256.ofNat 32, UInt256.ofNat 3,
         UInt256.ofNat 0, UInt256.ofNat 64, uint128Mask, ret, ptr] ++ R) mem aw rdata σ k C) :
-    ∃ aw' gasArg k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13393)
+    ∃ aw' gasArg k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13393)
       ([gasArg, p.irm, UInt256.ofNat 0, fp, UInt256.ofNat 356, fp, UInt256.ofNat 32,
         elapsed, solcAddrMask, p.id, UInt256.ofNat 32, UInt256.ofNat 3, UInt256.ofNat 0,
         UInt256.ofNat 64, uint128Mask, ret, fp] ++ R)
@@ -44,7 +46,7 @@ theorem morphoAccruePrepareCall {v : MorphoImmutables} {ee : ExecutionEnv} {g : 
   obtain ⟨aw1, k1, C1, rd1⟩ := morphoBlocks.morpho_block_13321_packed
     (immWords := wordsOf (immStore v)) (by simp only [List.append]; omega)
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     ([memLoad (UInt256.ofNat 64) hm + UInt256.ofNat 4, ptr,
       keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) hm, UInt256.ofNat 13389,
       memLoad (UInt256.ofNat 64) hm, UInt256.ofNat 0, memLoad (UInt256.ofNat 64) hm, p.irm,

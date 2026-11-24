@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.AttestArraysSource
 import Benchmarks.EAS.EAS.AttestArraysControl
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -16,7 +18,7 @@ theorem attestArraysRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g : S
     (hh : heap.toNat ≤ 2^64-1) (hheap : memLoad (UInt256.ofNat 64) mem = heap)
     (hcd : ee.calldata.size < UInt256.size) (ha : recordArrayPtr site t3 t4 = heap)
     (hv : recordValuesPtr site t4 = UInt256.ofNat (allocateNext heap.toNat (32+352*rs.length)))
-    (rd : RD (deployedRuntime v) ee g s0 (attestArraysStartPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (attestArraysStartPC site)
       (attestArraysStartStack site schema R) mem aw rdata σ k C) :
     let middle := allocateNext heap.toNat (32+352*rs.length)
     let next := allocateNext middle (32+32*rs.length)
@@ -28,12 +30,12 @@ theorem attestArraysRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g : S
         (List.replicate rs.length defaultAttestationRecord) next ∧
       AttestLoopLocals locals' rs s schema attester available last (List.replicate rs.length defaultAttestationRecord)
         (List.replicate rs.length ⟨0⟩) (List.replicate rs.length ⟨0⟩) ⟨0⟩ 0 next ∧
-      ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm attestArraysBody
+      ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm attestArraysBody
         (.ok {contract := contract,locals := locals',immutables := immStore v} evm) ∧
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (recordNextPC site)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (recordNextPC site)
         (recordNextStack site schema ⟨0⟩ t3 t4 R) final aw' rdata σ k' C') ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm attestArraysBody .reverted ∧
-      RDrev (deployedRuntime v) g s0) := by
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm attestArraysBody .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) := by
   dsimp only
   have hspan := hm.uidArray.span
   have hul := hm.uidLow
@@ -44,7 +46,7 @@ theorem attestArraysRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g : S
   have hevm := easAttestArrays v site hstack (by omega) hh hheap hcd ha (by simpa only [hn] using hv) rd
   dsimp only at hevm
   rw [hn,if_pos hl] at hevm
-  have hsource := attestArraysSource (imms := immStore v) (evm := evm) hf.length hf.heap
+  have hsource := attestArraysSource (fork := fork) (imms := immStore v) (evm := evm) hf.length hf.heap
   dsimp only at hsource
   rw [if_pos hl] at hsource
   by_cases hg1 : allocateNext heap.toNat (32+352*rs.length) ≤ 2^64-1 ∧

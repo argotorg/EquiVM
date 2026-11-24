@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.TickUpdateInitializeSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -8,7 +10,7 @@ theorem tickUpdateStatic (imms : Store) (evm : EVM.State) (a : TickUpdateArgs)
     (hv : liquidityDeltaValid (tickUpdateGrossBefore a evm) a.delta)
     (hm : tickUpdateGrossAfter a evm ≤ Int.ofNat a.maxLiquidity.toNat)
     (hp : evm.executionEnv.perm = false) :
-    ExecFuncBody config (tickUpdateFrame imms a) evm tickUpdateFunction.body .staticViolation := by
+    ExecFuncBody fork config (tickUpdateFrame imms a) evm tickUpdateFunction.body .staticViolation := by
   apply ExecFuncBody.execBlockStatic
   rw [← List.take_append_drop 6 tickUpdateFunction.body]
   apply execBlock_append_ok (tickUpdateCheckedSource imms evm a hv hm)
@@ -37,7 +39,7 @@ theorem tickUpdateStatic (imms : Store) (evm : EVM.State) (a : TickUpdateArgs)
       exact execStmt_assign_storage (rhs := .boolLit true) (by simp only [evalExpr?, pure])
         (assignTickHistory (tickUpdateFlippedFrame imms a evm).locals imms evm "info" a.tick
           .initialized (.bool true) ⟨1⟩ (by tick_update_get) rfl)
-  · have hskip : ExecStmt config (tickUpdateFlippedFrame imms a evm) evm
+  · have hskip : ExecStmt fork config (tickUpdateFlippedFrame imms a evm) evm
         (tickUpdateFunction.body[6]!)
         (.ok (tickUpdateFlippedFrame imms a evm) (tickUpdateInitializedState a evm)) := by
       simp only [tickUpdateInitializedState, if_neg hz]

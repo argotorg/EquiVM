@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.Common
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_046
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -11,9 +13,9 @@ theorem hookFailureTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem out : ByteArray} {aw ptr hook ret input : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (v : PoolManagerImmutables)
     (hstack : R.length+10 ≤ 1024)
-    (h : RD (deployedRuntime v) I g s0 ⟨16323⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨16323⟩
       (ptr :: hook :: ret :: input :: R) mem aw out σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    RDrev fork (deployedRuntime v) g s0 := by
   have hguard : (⟨0⟩ : UInt256).toNat+(UInt256.ofNat out.size).toNat ≤ out.size := by
     change 0+out.size % UInt256.size ≤ out.size
     simpa only [Nat.zero_add] using Nat.mod_le out.size UInt256.size

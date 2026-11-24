@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.MintTailMintCases
 import Examples.UniswapV2Pair.MintInitialProductOverflow
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace UniswapV2Pair
@@ -13,7 +15,7 @@ theorem uniswapMintInitialBranchRuntimeCases
     {mem rdata : ByteArray} {k C : ℕ}
     {feeOn amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel : UInt256}
     {locals : Store} (evm : EVM.State)
-    (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd3701 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
       [feeOn, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
         toWord, ⟨861⟩, sel]
@@ -27,19 +29,19 @@ theorem uniswapMintInitialBranchRuntimeCases
     (hperm : I.perm = true)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (ExecStmt config { contract := contract, locals := locals } evm
+    (ExecStmt fork config { contract := contract, locals := locals } evm
         mintLiquidityBranchStmt .reverted ∧
-      RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+      RDrev fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)) ∨
     (∃ root liquidity k' C',
-      ExecStmt config { contract := contract, locals := locals } evm
+      ExecStmt fork config { contract := contract, locals := locals } evm
         mintLiquidityBranchStmt
         (.ok ⟨contract, ((locals.insert "rootLiquidity" (.int root)).insert
           "liquidity" (uniswapUint256Value liquidity)).insert "_minimumMint" Value.unit, ∅⟩
           (mintFunctionPostState evm (AccountAddress.ofNat 0) ⟨1000⟩)) ∧
       Eq (mintRuntimeMintMap σFee I ⟨0⟩ ⟨1000⟩ mem)
         (mintFunctionPostState evm (AccountAddress.ofNat 0) ⟨1000⟩).accountMap ∧
-      RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3841⟩
         [⟨0⟩, feeOn, amount1, amount0, balance1, balance0, reserve1, reserve0,
           liquidity, toWord, ⟨861⟩, sel]

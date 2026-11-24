@@ -3,6 +3,8 @@ import Benchmarks.CurveVault.DebitEntry
 import Benchmarks.CurveVault.DebitArguments
 import Benchmarks.CurveVault.UintTwoAddressABI
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 
 namespace Benchmarks.CurveVault
@@ -10,7 +12,7 @@ namespace Benchmarks.CurveVault
 theorem vaultRedeem_uint256_address_addressBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vaultBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vaultSelBytes 24)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (vaultSelBytes 24) rfl hsel
   have hd : dispatchMsg contract I.calldata = some redeem_uint256_address_addressTransition := by
     apply vaultDispatch_redeem_uint256_address_address
@@ -46,7 +48,7 @@ theorem vaultRedeem_uint256_address_addressBodyCore {σ σ₀ A I} {g : UInt256}
   have hdec : config.externalABI.decodeCalldata? (redeem_uint256_address_addressTransition.params.map Param.name)
       (transitionSignature redeem_uint256_address_addressTransition).paramTypes I.calldata = some locals :=
     decodeCalldata_vyper_uint256_address_address_ok hargs hcanon hocanon
-  have hprefix : ExecBlock config {contract := contract, locals := locals} evm
+  have hprefix : ExecBlock fork config {contract := contract, locals := locals} evm
       (redeem_uint256_address_addressTransition.body.take 1) (.ok {contract := contract, locals := locals} evm) :=
     ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hvalue)) ExecBlock.nil
   obtain ⟨aw1, k1, C1, rdStore⟩ := vaultBlocks.vault_block_5061_fallthrough_packed
@@ -65,7 +67,7 @@ theorem vaultRedeem_uint256_address_addressBody {σ σ₀ A I} {g : UInt256}
     (_hwf : storageWF σ I)
     (hcode : I.code = vaultBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vaultSelBytes 24)) :
-    runtimeRefinementFor config contract σ σ₀ g A I :=
+    runtimeRefinementFor fork config contract σ σ₀ g A I :=
   vaultRedeem_uint256_address_addressBodyCore hcode hsize hsel
 
 end Benchmarks.CurveVault

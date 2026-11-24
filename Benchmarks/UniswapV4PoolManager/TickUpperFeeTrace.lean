@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.TickLowerStoreTrace
 import Benchmarks.UniswapV4PoolManager.TickFeeGuardTrace
 import Benchmarks.UniswapV4PoolManager.TickGrossWords
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -19,12 +21,12 @@ theorem tickUpperFeeExactTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (v : PoolManagerImmutables) (hstack : R.length+15 ≤ 1024) (hI : evm.executionEnv = I)
     (hm : memLoad (UInt256.ofNat 128) mem = poolSlot id)
     (hf : liquidityAddFits (tickGrossWord packed) delta)
-    (h : RD (deployedRuntime v) I g s0 ⟨7100⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨7100⟩
       (EVM.wordOfInt (tickGrossAfterInt packed delta) :: tickUpperLiquidityTail id tick packed x5 x6 x7 ptr x9 x10 delta R)
       mem aw rdata evm.accountMap k C) :
     if tickFeesNeeded evm id (EVM.signed tick) (Int.ofNat (tickGrossWord packed).toNat) ∧ I.perm = false then
-      RDstatic (deployedRuntime v) g s0 else ∃ k' C',
-      RD (deployedRuntime v) I g s0 ⟨7132⟩ (tickUpperNetInput id tick packed x5 x6 x7 ptr x9 x10 delta R)
+      RDstatic fork (deployedRuntime v) g s0 else ∃ k' C',
+      RD fork (deployedRuntime v) I g s0 ⟨7132⟩ (tickUpperNetInput id tick packed x5 x6 x7 ptr x9 x10 delta R)
         mem (if Int.ofNat (tickGrossWord packed).toNat = 0 then M aw (UInt256.ofNat 128) ⟨32⟩ else aw) rdata (tickFeesPost evm id packed (EVM.signed tick)).accountMap k' C' := by
   have hclean : UInt256.land (EVM.wordOfInt (tickGrossAfterInt packed delta))
       (UInt256.ofNat 340282366920938463463374607431768211455) = EVM.wordOfInt (tickGrossAfterInt packed delta) :=
@@ -63,12 +65,12 @@ theorem tickUpperFeeTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (v : PoolManagerImmutables) (hstack : R.length+15 ≤ 1024) (hI : evm.executionEnv = I)
     (hm : memLoad (UInt256.ofNat 128) mem = poolSlot id)
     (hf : liquidityAddFits (tickGrossWord packed) delta)
-    (h : RD (deployedRuntime v) I g s0 ⟨7100⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨7100⟩
       (EVM.wordOfInt (tickGrossAfterInt packed delta) :: tickUpperLiquidityTail id tick packed x5 x6 x7 ptr x9 x10 delta R)
       mem aw rdata evm.accountMap k C) :
     if tickFeesNeeded evm id (EVM.signed tick) (Int.ofNat (tickGrossWord packed).toNat) ∧ I.perm = false then
-      RDstatic (deployedRuntime v) g s0 else ∃ aw' k' C',
-      RD (deployedRuntime v) I g s0 ⟨7132⟩ (tickUpperNetInput id tick packed x5 x6 x7 ptr x9 x10 delta R)
+      RDstatic fork (deployedRuntime v) g s0 else ∃ aw' k' C',
+      RD fork (deployedRuntime v) I g s0 ⟨7132⟩ (tickUpperNetInput id tick packed x5 x6 x7 ptr x9 x10 delta R)
         mem aw' rdata (tickFeesPost evm id packed (EVM.signed tick)).accountMap k' C' := by
   have hr := tickUpperFeeExactTrace v hstack hI hm hf h
   split_ifs at hr ⊢

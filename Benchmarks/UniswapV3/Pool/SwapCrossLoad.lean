@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.SwapCrossGlobal1
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,7 +13,7 @@ theorem swapCrossLoadX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {aw p q free exactWord cache snap dataStart dataLength ret : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : SwapArgs) (c : SwapCacheData) (s : SwapStateData) (d : SwapIterationData)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3775⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3775⟩
       (q :: swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
       mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hc : SwapCacheMemory mem cache c)
@@ -19,7 +21,7 @@ theorem swapCrossLoadX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hbc : cache.toNat + 192 ≤ 2 ^ 200) (hbp : p.toNat + 224 ≤ 2 ^ 200)
     (hbq : q.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 24 ≤ 1024) :
     ∃ aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 ⟨13596⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨13596⟩
         (tickCrossWords (swapCrossArgs a.zeroForOne c s d σ ee) ++ [⟨3851⟩, ⟨0⟩, q] ++
           swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
         mem aw' rdata σ k' C' ∧ HeapMemory mem aw' free ∧ aw.toNat ≤ aw'.toNat := by

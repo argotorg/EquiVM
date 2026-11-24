@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.InitializePoolSource
 import Benchmarks.UniswapV4PoolManager.InitializePoolTrace
 import Benchmarks.UniswapV4PoolManager.InitializeFinishCorrect
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -16,13 +18,13 @@ theorem initializePoolCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hp : f.locals.get? "sqrtPriceX96" = some (.int (Int.ofNat price.toNat)))
     (he : f.locals.get? "lpFee" = some (.int (Int.ofNat fee.toNat)))
     (ht : f.locals.get? "tick" = some old) (hb : f.locals.get? "_pools" = none)
-    (hr : initializePoolTraceResult v I g s0 evm key price fee) :
-    ∃ result, ExecFuncBody config f evm (initializeTransition.body.drop 13) result ∧
-      signedResultTrace ⟨24, by decide⟩ (deployedRuntime v) g s0 result := by
+    (hr : initializePoolTraceResult fork v I g s0 evm key price fee) :
+    ∃ result, ExecFuncBody fork config f evm (initializeTransition.body.drop 13) result ∧
+      signedResultTrace fork ⟨24, by decide⟩ (deployedRuntime v) g s0 result := by
   unfold initializePoolTraceResult at hr
   by_cases hz : poolSqrtPriceWord evm (poolKeyId key) ≠ ⟨0⟩
   · rw [if_pos hz] at hr
-    have hsrc := initializePoolSource (f := f) (evm := evm) (evm' := evm) (z := false) (out := .empty)
+    have hsrc := initializePoolSource (fork := fork) (f := f) (evm := evm) (evm' := evm) (z := false) (out := .empty)
       hf hc hprice hfee hk hp he ht hb (fun _ hzero => (hz hzero).elim)
     rw [initializePoolResult, if_pos hz] at hsrc
     exact ⟨.reverted, hsrc, hr⟩
@@ -30,7 +32,7 @@ theorem initializePoolCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     cases hresult : tickPriceResult price with
     | none =>
       simp only [hresult] at hr
-      have hsrc := initializePoolSource (f := f) (evm := evm) (evm' := evm) (z := false) (out := .empty)
+      have hsrc := initializePoolSource (fork := fork) (f := f) (evm := evm) (evm' := evm) (z := false) (out := .empty)
         hf hc hprice hfee hk hp he ht hb (by intro tick _ hsome; rw [hresult] at hsome; contradiction)
       rw [initializePoolResult, if_neg hz, hresult] at hsrc
       exact ⟨.reverted, hsrc, hr⟩
@@ -38,7 +40,7 @@ theorem initializePoolCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
       simp only [hresult] at hr
       by_cases hperm : I.perm = false
       · rw [if_pos hperm] at hr
-        have hsrc := initializePoolSource (f := f) (evm := evm) (evm' := evm) (z := false) (out := .empty)
+        have hsrc := initializePoolSource (fork := fork) (f := f) (evm := evm) (evm' := evm) (z := false) (out := .empty)
           hf hc hprice hfee hk hp he ht hb (by intro _ _ _ htrue; rw [hI, hperm] at htrue; contradiction)
         simp only [initializePoolResult, if_neg hz, hresult, hI, if_pos hperm] at hsrc
         exact ⟨.staticViolation, hsrc, hr⟩
@@ -47,7 +49,7 @@ theorem initializePoolCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
         have hcalls : ∀ tick', poolSqrtPriceWord evm (poolKeyId key) = ⟨0⟩ →
             tickPriceResult price = some tick' → evm.executionEnv.perm = true →
             hookEnabled evm.executionEnv.source (AccountAddress.ofNat key.hooks.toNat) ⟨4096⟩ →
-            callViaEVM (poolInitializePost evm (poolKeyId key) price tick' fee)
+            callViaEVM fork (poolInitializePost evm (poolKeyId key) price tick' fee)
               (AccountAddress.ofNat key.hooks.toNat) 0
               (afterInitializePayload evm.executionEnv.source key price tick') (z, evm', out) := by
           intro tick' _ hsome _ hen

@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.RecordTailEVM
 import Benchmarks.EAS.EAS.ResultPointer
 import Benchmarks.EAS.EAS.ArrayDisjoint
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -24,9 +26,9 @@ theorem easRecordTail_of_views {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hmlo : 96 ≤ (recordResultPtr site mem).toNat)
     (hmhi : (recordResultPtr site mem).toNat+64 ≤ uidPtr.toNat)
     (hmin : (recordResultPtr site mem).toNat+64 ≤ mem.size)
-    (rd : RD (deployedRuntime v) ee g s0 (refUIDReadyPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (refUIDReadyPC site)
       (refUIDReadyStack site dummy word src t1 (UInt256.ofNat i) t3 t4 R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (recordNextPC site)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (recordNextPC site)
       (recordNextStack site t1 (UInt256.ofNat (i+1)) t3 t4 R)
       (recordTailMemory mem site src t3 t4 value uidPtr word i) aw' rdata σ k' C' := by
   have has := ha.span

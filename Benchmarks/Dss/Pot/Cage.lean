@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Pot.Rely
 import Benchmarks.Dss.Pot.Arith
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -154,10 +156,10 @@ theorem potCageBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (hauth :
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (relyAuthStorageSlot I) = ⟨1⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm ∅ cageTransition.body
+    ExecTransitionBody fork config contract evm ∅ cageTransition.body
       (.returned { contract := contract, locals := (∅ : Store) } (cagePostState evm) none) := by
   refine ExecFuncBody.execBlockOK ?_
-  show ExecBlock config { contract := contract, locals := (∅ : Store) } evm
+  show ExecBlock fork config { contract := contract, locals := (∅ : Store) } evm
     [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
       .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)),
       .assign .storage liveRef (.intLit 0),
@@ -167,9 +169,9 @@ theorem potCageBodyReturns (evm : EVM.State) (I : ExecutionEnv)
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue (evalExpr_cage_auth_true evm I hsrc hauth)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.assign (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) (cageLiveAssign evm I)) ?_
+    (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) (cageLiveAssign evm I)) ?_
   exact ExecBlock.consNormal
-    (ExecStmt.assign (hperm := Or.inr (by simpa only [storageStore_executionEnv] using hperm)) (by simp [evalExpr?, pure]) (cageDsrAssign _ I)) ExecBlock.nil
+    (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [storageStore_executionEnv] using hperm)) (by simp [evalExpr?, pure]) (cageDsrAssign _ I)) ExecBlock.nil
 
 theorem potCageBodyStatic (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -177,9 +179,9 @@ theorem potCageBodyStatic (evm : EVM.State) (I : ExecutionEnv)
     (hauth :
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (relyAuthStorageSlot I) = ⟨1⟩)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm ∅ cageTransition.body .staticViolation := by
+    ExecTransitionBody fork config contract evm ∅ cageTransition.body .staticViolation := by
   refine ExecFuncBody.execBlockStatic ?_
-  show ExecBlock config { contract := contract, locals := (∅ : Store) } evm
+  show ExecBlock fork config { contract := contract, locals := (∅ : Store) } evm
     [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
       .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)),
       .assign .storage liveRef (.intLit 0),
@@ -194,7 +196,7 @@ theorem potCageBodyReverts (evm : EVM.State) (I : ExecutionEnv)
     (hsrc : evm.executionEnv.source = I.source)
     (hauth :
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (relyAuthStorageSlot I) ≠ ⟨1⟩) :
-    ExecTransitionBody config contract evm ∅ cageTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm ∅ cageTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   simpa [cageTransition, nonpayable, auth] using
     nonpayableSecondRequireReverts
@@ -212,7 +214,7 @@ theorem potReachCageBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = potBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (potSelBytes 1)) :
-    ∃ k C, RD potBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork potBytecode I g (initState σ σ₀ g A I)
         ⟨500⟩ [potSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : potSelWord I = ⟨0x69245009⟩ :=
@@ -234,9 +236,9 @@ theorem potReachCageBody {σ σ₀ A I} {g : Sat256}
 
 /-- Entry `@500`: no decode — push return addr `301`, push logic `1490`, jump. -/
 theorem potCageX_entered {σ I} {g : Sat256} {s0 : State} {sel : UInt256}
-    (hreach : ∃ k C, RD potBytecode I g s0 ⟨500⟩ [sel]
+    (hreach : ∃ k C, RD fork potBytecode I g s0 ⟨500⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD potBytecode I g s0 ⟨1490⟩ [⟨301⟩, sel]
+    ∃ k' C', RD fork potBytecode I g s0 ⟨1490⟩ [⟨301⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   obtain ⟨k, C, h⟩ := hreach
   have rd501 := h.jumpdest (by native_decide) (by evm_ov)
@@ -247,10 +249,10 @@ theorem potCageX_entered {σ I} {g : Sat256} {s0 : State} {sel : UInt256}
 set_option maxHeartbeats 1000000 in
 theorem potCageX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : relyAuthWord σ I = ⟨1⟩)
-    (h : RD potBytecode I g s0 ⟨1490⟩
+    (h : RD fork potBytecode I g s0 ⟨1490⟩
       [⟨301⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD potBytecode I g s0 ⟨1579⟩
+    ∃ k' C', RD fork potBytecode I g s0 ⟨1579⟩
       [⟨301⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hauthSlot :
@@ -281,7 +283,7 @@ theorem potCageX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
     (by evm_ov)
   obtain ⟨k1507, C1507, rd1507raw⟩ := rd1506.sload (by native_decide) (by evm_ov)
-  have rd1507 : RD potBytecode I g s0 ⟨1507⟩
+  have rd1507 : RD fork potBytecode I g s0 ⟨1507⟩
       (relyAuthWord σ I :: ⟨301⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1507 C1507 := by
     simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1507raw
@@ -297,10 +299,10 @@ theorem potCageX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 set_option maxHeartbeats 1000000 in
 theorem potCageX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : relyAuthWord σ I ≠ ⟨1⟩)
-    (h : RD potBytecode I g s0 ⟨1490⟩
+    (h : RD fork potBytecode I g s0 ⟨1490⟩
       [⟨301⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev potBytecode g s0 := by
+    RDrev fork potBytecode g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
@@ -329,7 +331,7 @@ theorem potCageX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
     (by evm_ov)
   obtain ⟨k1507, C1507, rd1507raw⟩ := rd1506.sload (by native_decide) (by evm_ov)
-  have rd1507 : RD potBytecode I g s0 ⟨1507⟩
+  have rd1507 : RD fork potBytecode I g s0 ⟨1507⟩
       (relyAuthWord σ I :: ⟨301⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1507 C1507 := by
     simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1507raw
@@ -363,15 +365,15 @@ theorem potCageX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 set_option maxHeartbeats 1000000 in
 theorem potCageX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
-    (h : RD potBytecode I g s0 ⟨1579⟩
+    (h : RD fork potBytecode I g s0 ⟨1579⟩
       [⟨301⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     (I.perm = true ∧
-    RDret potBytecode g s0
+    RDret fork potBytecode g s0
       (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σ ⟨8⟩ ⟨0⟩) ⟨3⟩ potRay)
       ByteArray.empty) ∨
-      (I.perm = false ∧ RDstatic potBytecode g s0) := by
+      (I.perm = false ∧ RDstatic fork potBytecode g s0) := by
   have rd1580 := h.jumpdest (by native_decide) (by evm_ov)
   have rd1582 := rd1580.push1 ⟨0⟩ (by native_decide) (by evm_ov)
   have rd1584 := rd1582.push1 ⟨8⟩ (by native_decide) (by evm_ov)
@@ -394,25 +396,25 @@ theorem potCageX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C : �
 
 theorem potX_cage_split {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hauth : relyAuthWord σ I = ⟨1⟩)
-    (hreach : ∃ k C, RD potBytecode I g
+    (hreach : ∃ k C, RD fork potBytecode I g
       (initState σ σ₀ g A I) ⟨500⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     (I.perm = true ∧
-    RDret potBytecode g (initState σ σ₀ g A I)
+    RDret fork potBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σ ⟨8⟩ ⟨0⟩) ⟨3⟩ potRay)
       ByteArray.empty) ∨
-      (I.perm = false ∧ RDstatic potBytecode g (initState σ σ₀ g A I)) := by
+      (I.perm = false ∧ RDstatic fork potBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd1490⟩ := potCageX_entered hreach
   obtain ⟨_, _, rd1579⟩ := potCageX_authorized (I := I) hauth rd1490
   exact potCageX_storeAuthorizedSplit rd1579
 
 theorem potX_cage_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hperm : I.perm = true) (hauth : relyAuthWord σ I = ⟨1⟩)
-    (hreach : ∃ k C, RD potBytecode I g
+    (hreach : ∃ k C, RD fork potBytecode I g
       (initState σ σ₀ g A I) ⟨500⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret potBytecode g (initState σ σ₀ g A I)
+    RDret fork potBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σ ⟨8⟩ ⟨0⟩) ⟨3⟩ potRay)
       ByteArray.empty :=
@@ -420,18 +422,18 @@ theorem potX_cage_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 
 theorem potX_cage_static {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hperm : I.perm = false) (hauth : relyAuthWord σ I = ⟨1⟩)
-    (hreach : ∃ k C, RD potBytecode I g
+    (hreach : ∃ k C, RD fork potBytecode I g
       (initState σ σ₀ g A I) ⟨500⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDstatic potBytecode g (initState σ σ₀ g A I) :=
+    RDstatic fork potBytecode g (initState σ σ₀ g A I) :=
   permSplit_false hperm (potX_cage_split hauth hreach)
 
 theorem potX_cage_unauthorized {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hauth : relyAuthWord σ I ≠ ⟨1⟩)
-    (hreach : ∃ k C, RD potBytecode I g
+    (hreach : ∃ k C, RD fork potBytecode I g
       (initState σ σ₀ g A I) ⟨500⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev potBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork potBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd1490⟩ := potCageX_entered hreach
   exact potCageX_unauthorized (I := I) hauth rd1490
 
@@ -444,14 +446,14 @@ theorem potCageBodyCoreOk
     (hdecode :
       config.externalABI.decodeCalldata? (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD potBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork potBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨500⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthWord : relyAuthWord σ I = ⟨1⟩ := hauth
   have hbody :
-      ExecTransitionBody config contract evmStele ∅ cageTransition.body
+      ExecTransitionBody fork config contract evmStele ∅ cageTransition.body
         (.returned { contract := contract, locals := (∅ : Store) } (cagePostState evmStele) none) := by
     simpa [evmStele, relyAuthWord, solcSlotWordAt, initState, Stele.EVM.storageLoad,
       State.lookupAccount] using
@@ -477,14 +479,14 @@ theorem potCageBodyCoreStatic
     (hdecode :
       config.externalABI.decodeCalldata? (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD potBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork potBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨500⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthWord : relyAuthWord σ I = ⟨1⟩ := hauth
   have hbody :
-      ExecTransitionBody config contract evmStele ∅ cageTransition.body .staticViolation := by
+      ExecTransitionBody fork config contract evmStele ∅ cageTransition.body .staticViolation := by
     simpa [evmStele, relyAuthWord, solcSlotWordAt, initState, Stele.EVM.storageLoad,
       State.lookupAccount] using
       potCageBodyStatic evmStele I
@@ -504,14 +506,14 @@ theorem potCageBodyCoreUnauthorized
     (hdecode :
       config.externalABI.decodeCalldata? (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD potBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork potBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨500⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthWord : relyAuthWord σ I ≠ ⟨1⟩ := hauth
   have hbody :
-      ExecTransitionBody config contract evmStele ∅ cageTransition.body .reverted := by
+      ExecTransitionBody fork config contract evmStele ∅ cageTransition.body .reverted := by
     simpa [evmStele, relyAuthWord, solcSlotWordAt, initState, Stele.EVM.storageLoad,
       State.lookupAccount] using
       potCageBodyReverts evmStele I
@@ -527,12 +529,12 @@ theorem potCageBody {σ σ₀ A I} {g : UInt256}
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (potSelBytes 1)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (potSelBytes 1) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some cageTransition :=
     potDispatchCage hsel
-  have hreach := potReachCageBody
+  have hreach := potReachCageBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hauth : relyAuthWord σ I = ⟨1⟩
@@ -547,7 +549,7 @@ theorem potCageBodyAnyPerm {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (potSelBytes 1)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hperm : I.perm = true
   · exact potCageBody hcode hsize hperm hwv hsel
   replace hperm : I.perm = false := by simpa using hperm
@@ -555,7 +557,7 @@ theorem potCageBodyAnyPerm {σ σ₀ A I} {g : UInt256}
     calldata_size_ge_of_selIs I (potSelBytes 1) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some cageTransition :=
     potDispatchCage hsel
-  have hreach := potReachCageBody
+  have hreach := potReachCageBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hauth : relyAuthWord σ I = ⟨1⟩

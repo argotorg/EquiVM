@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.AuthorizationSigRefine
 import Benchmarks.Morpho.MorphoBlue.RawFallbackRefine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Morpho `setAuthorizationWithSig((address,address,bool,uint256,uint256),(uint8,bytes32,bytes32))`
 
@@ -21,7 +23,7 @@ set_option maxRecDepth 1000
 theorem morphoSetAuthorizationWithSigBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 27)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 27) rfl hsel
   have hd : selectorDispatchMsg contract I.calldata = none := by
     apply morphoSelectorDispatch_none_of_misses
@@ -32,7 +34,7 @@ theorem morphoSetAuthorizationWithSigBody {σ σ₀ A I} {g : UInt256} (v : Morp
     simp [receiveDispatchMsg, show contract.receive = none from rfl]
   obtain ⟨k, C, rd⟩ := morphoReachSetAuthorizationWithSigBody (g := .ofUInt256 g)
     (σ := σ) (σ₀ := σ₀) (A := A) v hcode hsz hsize hsel
-  change RD _ _ _ _ _ _ solcFreePtrMem _ _ _ _ _ at rd
+  change RD fork _ _ _ _ _ _ solcFreePtrMem _ _ _ _ _ at rd
   by_cases hcv : I.weiValue = ⟨0⟩
   swap
   · have rd0 := morphoBlocks.morpho_block_5759_taken (immWords := wordsOf (immStore v))
@@ -47,11 +49,11 @@ theorem morphoSetAuthorizationWithSigBody {σ σ₀ A I} {g : UInt256} (v : Morp
       (morphoAuthorizationSigSourceDecodeRevert _ v hcv hsel hbad)
   · let evm := initState σ σ₀ (.ofUInt256 g) A I
     let a := authorizationFromCalldata I.calldata
-    have pref := morphoAuthorizationSigSourceDecode evm v hcv hsel hb
+    have pref := morphoAuthorizationSigSourceDecode (fork := fork) evm v hcv hsel hb
     have hl := authorizationDecodedFrame_locals I.calldata v
     have hn := morphoAuthorizationNonceRefine (v := v) a I.calldata _ (immStore v)
       hb.2.2 hl SourceState.init (by decide) rd1
-    have ht : RawReturnBlockRefines config (deployedRuntime v) I (.ofUInt256 g) evm
+    have ht : RawReturnBlockRefines fork config (deployedRuntime v) I (.ofUInt256 g) evm
         (authorizationDecodedFrame I.calldata v) evm
         (setAuthorizationWithSigTransition.body.drop 10) := by
       cases hn with

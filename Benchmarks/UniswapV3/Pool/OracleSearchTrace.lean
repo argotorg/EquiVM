@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.OracleSearchLoop
 import Benchmarks.UniswapV3.Pool.OracleSearchInitialize
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -10,11 +12,11 @@ set_option maxRecDepth 10000
 theorem oracleSearchZeroX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p cardRaw index targetRaw timeRaw ret : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨20379⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨20379⟩
       (cardRaw :: index :: targetRaw :: timeRaw :: ⟨8⟩ :: ret :: R) mem aw rdata σ k C)
     (hcard : UInt256.land cardRaw (UInt256.ofNat 65535) = ⟨0⟩)
     (hm : HeapMemory mem aw p) (hb : p.toNat + 256 ≤ 2 ^ 200) (hov : R.length + 26 ≤ 1024) :
-    RDinvalid (deployedRuntime v) g s0 := by
+    RDinvalid fork (deployedRuntime v) g s0 := by
   obtain ⟨_, _, _, _, r1, _, _, _⟩ := oracleSearchInitializeX (v := v) rd hm hb hov
   have r2 := uniswapV3Pool_block_20395_fallthrough (immWords := wordsOf (immStore v))
     (by evm_ov) (by rw [u256_land_comm]; exact hcard) r1
@@ -25,7 +27,7 @@ theorem oracleSearchNonzeroX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C allowance : Nat} {aw p cardRaw index targetRaw timeRaw ret : UInt256}
     {card time target : UInt256} {mem rdata : ByteArray} {R : List UInt256}
     {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨20379⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨20379⟩
       (cardRaw :: index :: targetRaw :: timeRaw :: ⟨8⟩ :: ret :: R) mem aw rdata σ k C)
     (hcard : UInt256.land cardRaw (UInt256.ofNat 65535) = card)
     (hn : card.toNat ≠ 0) (hc : card.toNat < 2 ^ 16)
@@ -34,8 +36,8 @@ theorem oracleSearchNonzeroX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hm : HeapMemory mem aw p) (hbudget : MemoryGasBound aw C allowance)
     (hallowance : allowance ≤ 2 ^ 200) (hcover : p.toNat ≤ aw.toNat * 32 + 32)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 26 ≤ 1024) :
-    X (g.toNat + 1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
-      Nonempty (OracleSearchExit v ee g s0 σ rdata ret R time target card
+    X fork (g.toNat + 1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+      Nonempty (OracleSearchExit fork v ee g s0 σ rdata ret R time target card
         (oracleSearchLeft index card) (oracleSearchRight index card) mem aw p C) := by
   rcases memoryGasCapacityOrOOG rd hbudget hallowance hcover with hoog | hb
   · exact Or.inl hoog
@@ -67,7 +69,7 @@ theorem oracleSearchNonzeroX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     omega
   simp only [uniswapV3Pool_block_20417_stack,
     hcard', u256_add_comm (UInt256.ofNat 1), u256_land_comm (UInt256.ofNat 65535)] at r3
-  change RD _ _ _ _ ⟨20441⟩
+  change RD fork _ _ _ _ ⟨20441⟩
     (⟨0⟩ :: UInt256.sub
       (UInt256.land (oracleSearchLeft index card) (UInt256.ofNat 65535) + card) ⟨1⟩ ::
       UInt256.land (oracleSearchLeft index card) (UInt256.ofNat 65535) ::

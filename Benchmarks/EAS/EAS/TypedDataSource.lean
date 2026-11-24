@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.TryRecoverExpr
 import Benchmarks.EAS.EAS.AllocateBlock
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 
@@ -32,10 +34,10 @@ theorem typedDataSource {L imms : Store} {evm : EVM.State} {domain structHash : 
     (hs : L.get? "structHash" = some (wordBytes32Value structHash))
     (hh : L.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap))) :
     if allocateNext heap 128 ≤ 2^64-1 ∧ heap ≤ allocateNext heap 128 then
-      ExecFuncBody config {contract := contract,locals := L,immutables := imms} evm typedDataFunction.body
+      ExecFuncBody fork config {contract := contract,locals := L,immutables := imms} evm typedDataFunction.body
         (.returned {contract := contract,locals := allocateBlockLocals L (allocateNext heap 128),immutables := imms} evm
           (some [wordBytes32Value (typedDataWord domain structHash),.int (Int.ofNat (allocateNext heap 128))]))
-    else ExecFuncBody config {contract := contract,locals := L,immutables := imms} evm typedDataFunction.body .reverted := by
+    else ExecFuncBody fork config {contract := contract,locals := L,immutables := imms} evm typedDataFunction.body .reverted := by
   rw [typedData_body]
   split_ifs with hg
   · apply ExecFuncBody.execBlockRet

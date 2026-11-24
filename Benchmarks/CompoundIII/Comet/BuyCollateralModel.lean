@@ -6,6 +6,8 @@ import Benchmarks.CompoundIII.Comet.TransferOutSource
 import Benchmarks.CompoundIII.Comet.AuthorizationSource
 import Benchmarks.CompoundIII.Comet.ReentrancyModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -19,79 +21,79 @@ instance (v : CometWithExtendedAssetListImmutables) (reserves : UInt256) :
   unfold BuyCollateralForSale
   infer_instance
 
-inductive BuyCollateralTransfer (asset recipient : AccountAddress) (amount : UInt256)
+inductive BuyCollateralTransfer (fork : Ethereum.Fork) (asset recipient : AccountAddress) (amount : UInt256)
     (evm : EVM.State) : InternalOutcome → Prop where
   | tooLarge (hw : ¬ amount.toNat < 2^128) :
-      BuyCollateralTransfer asset recipient amount evm .reverted
-  | failed (hw : amount.toNat < 2^128) (ht : TransferOutTrace asset recipient amount evm none) :
-      BuyCollateralTransfer asset recipient amount evm .reverted
+      BuyCollateralTransfer fork asset recipient amount evm .reverted
+  | failed (hw : amount.toNat < 2^128) (ht : TransferOutTrace fork asset recipient amount evm none) :
+      BuyCollateralTransfer fork asset recipient amount evm .reverted
   | done {evm'} (hw : amount.toNat < 2^128)
-      (ht : TransferOutTrace asset recipient amount evm (some evm'))
+      (ht : TransferOutTrace fork asset recipient amount evm (some evm'))
       (hp : evm'.executionEnv.perm = true) :
-      BuyCollateralTransfer asset recipient amount evm (.ok (reentrancyState evm' false))
+      BuyCollateralTransfer fork asset recipient amount evm (.ok (reentrancyState evm' false))
 
-inductive BuyCollateralAfterQuote (asset recipient : AccountAddress) (minimum amount : UInt256)
+inductive BuyCollateralAfterQuote (fork : Ethereum.Fork) (asset recipient : AccountAddress) (minimum amount : UInt256)
     (evm : EVM.State) : InternalOutcome → Prop where
   | minimumFailed (hm : ¬ minimum.toNat ≤ amount.toNat) :
-      BuyCollateralAfterQuote asset recipient minimum amount evm .reverted
+      BuyCollateralAfterQuote fork asset recipient minimum amount evm .reverted
   | reservesFailed (hm : minimum.toNat ≤ amount.toNat)
-      (ht : CollateralReservesTrace asset evm none) :
-      BuyCollateralAfterQuote asset recipient minimum amount evm .reverted
+      (ht : CollateralReservesTrace fork asset evm none) :
+      BuyCollateralAfterQuote fork asset recipient minimum amount evm .reverted
   | insufficient {evm' reserves} (hm : minimum.toNat ≤ amount.toNat)
-      (ht : CollateralReservesTrace asset evm (some (evm', reserves)))
+      (ht : CollateralReservesTrace fork asset evm (some (evm', reserves)))
       (hs : ¬ amount.toNat ≤ reserves.toNat) :
-      BuyCollateralAfterQuote asset recipient minimum amount evm .reverted
+      BuyCollateralAfterQuote fork asset recipient minimum amount evm .reverted
   | transfer {evm' reserves result} (hm : minimum.toNat ≤ amount.toNat)
-      (ht : CollateralReservesTrace asset evm (some (evm', reserves)))
+      (ht : CollateralReservesTrace fork asset evm (some (evm', reserves)))
       (hs : amount.toNat ≤ reserves.toNat)
-      (hn : BuyCollateralTransfer asset recipient amount evm' result) :
-      BuyCollateralAfterQuote asset recipient minimum amount evm result
+      (hn : BuyCollateralTransfer fork asset recipient amount evm' result) :
+      BuyCollateralAfterQuote fork asset recipient minimum amount evm result
 
-inductive BuyCollateralAfterIn (v : CometWithExtendedAssetListImmutables)
+inductive BuyCollateralAfterIn (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables)
     (asset recipient : AccountAddress) (minimum received : UInt256) (evm : EVM.State) :
     InternalOutcome → Prop where
-  | failed (ht : QuoteTrace v asset received evm none) :
-      BuyCollateralAfterIn v asset recipient minimum received evm .reverted
-  | quote {evm' amount result} (ht : QuoteTrace v asset received evm (some (evm', amount)))
-      (hn : BuyCollateralAfterQuote asset recipient minimum amount evm' result) :
-      BuyCollateralAfterIn v asset recipient minimum received evm result
+  | failed (ht : QuoteTrace fork v asset received evm none) :
+      BuyCollateralAfterIn fork v asset recipient minimum received evm .reverted
+  | quote {evm' amount result} (ht : QuoteTrace fork v asset received evm (some (evm', amount)))
+      (hn : BuyCollateralAfterQuote fork asset recipient minimum amount evm' result) :
+      BuyCollateralAfterIn fork v asset recipient minimum received evm result
 
-inductive BuyCollateralAfterReserves (v : CometWithExtendedAssetListImmutables)
+inductive BuyCollateralAfterReserves (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables)
     (asset recipient : AccountAddress) (minimum base reserves : UInt256) (evm : EVM.State) :
     InternalOutcome → Prop where
   | notForSale (hv : ¬ BuyCollateralForSale v reserves) :
-      BuyCollateralAfterReserves v asset recipient minimum base reserves evm .reverted
+      BuyCollateralAfterReserves fork v asset recipient minimum base reserves evm .reverted
   | failed (hv : BuyCollateralForSale v reserves)
-      (ht : TransferInTrace v.baseToken evm.executionEnv.source base evm none) :
-      BuyCollateralAfterReserves v asset recipient minimum base reserves evm .reverted
+      (ht : TransferInTrace fork v.baseToken evm.executionEnv.source base evm none) :
+      BuyCollateralAfterReserves fork v asset recipient minimum base reserves evm .reverted
   | received {evm' amount result} (hv : BuyCollateralForSale v reserves)
-      (ht : TransferInTrace v.baseToken evm.executionEnv.source base evm (some (evm', amount)))
-      (hn : BuyCollateralAfterIn v asset recipient minimum amount evm' result) :
-      BuyCollateralAfterReserves v asset recipient minimum base reserves evm result
+      (ht : TransferInTrace fork v.baseToken evm.executionEnv.source base evm (some (evm', amount)))
+      (hn : BuyCollateralAfterIn fork v asset recipient minimum amount evm' result) :
+      BuyCollateralAfterReserves fork v asset recipient minimum base reserves evm result
 
-inductive BuyCollateralAfterLock (v : CometWithExtendedAssetListImmutables)
+inductive BuyCollateralAfterLock (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables)
     (asset recipient : AccountAddress) (minimum base : UInt256) (evm : EVM.State) :
     InternalOutcome → Prop where
   | paused (hp : (pauseBitWord evm ⟨4, by decide⟩).toNat ≠ 0) :
-      BuyCollateralAfterLock v asset recipient minimum base evm .reverted
+      BuyCollateralAfterLock fork v asset recipient minimum base evm .reverted
   | failed (hp : (pauseBitWord evm ⟨4, by decide⟩).toNat = 0)
-      (ht : ReservesTrace v evm none) :
-      BuyCollateralAfterLock v asset recipient minimum base evm .reverted
+      (ht : ReservesTrace fork v evm none) :
+      BuyCollateralAfterLock fork v asset recipient minimum base evm .reverted
   | reserves {evm' reserves result} (hp : (pauseBitWord evm ⟨4, by decide⟩).toNat = 0)
-      (ht : ReservesTrace v evm (some (evm', reserves)))
-      (hn : BuyCollateralAfterReserves v asset recipient minimum base reserves evm' result) :
-      BuyCollateralAfterLock v asset recipient minimum base evm result
+      (ht : ReservesTrace fork v evm (some (evm', reserves)))
+      (hn : BuyCollateralAfterReserves fork v asset recipient minimum base reserves evm' result) :
+      BuyCollateralAfterLock fork v asset recipient minimum base evm result
 
-inductive BuyCollateralTrace (v : CometWithExtendedAssetListImmutables)
+inductive BuyCollateralTrace (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables)
     (asset recipient : AccountAddress) (minimum base : UInt256) (evm : EVM.State) :
     InternalOutcome → Prop where
   | reverted (he : reentrancyOutcome evm true = .reverted) :
-      BuyCollateralTrace v asset recipient minimum base evm .reverted
+      BuyCollateralTrace fork v asset recipient minimum base evm .reverted
   | staticViolation (he : reentrancyOutcome evm true = .staticViolation) :
-      BuyCollateralTrace v asset recipient minimum base evm .staticViolation
+      BuyCollateralTrace fork v asset recipient minimum base evm .staticViolation
   | done {evm' result} (he : reentrancyOutcome evm true = .ok evm')
-      (ht : BuyCollateralAfterLock v asset recipient minimum base evm' result) :
-      BuyCollateralTrace v asset recipient minimum base evm result
+      (ht : BuyCollateralAfterLock fork v asset recipient minimum base evm' result) :
+      BuyCollateralTrace fork v asset recipient minimum base evm result
 
 def buyCollateralForSaleExpr : Expr :=
   .unary .not (.binary .and (.binary .ge (.var "reserves") (.intLit 0))

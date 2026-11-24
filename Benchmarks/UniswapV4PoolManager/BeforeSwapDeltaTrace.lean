@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.BytesObjectWord
 import Benchmarks.UniswapV4PoolManager.TickNetArithmetic
 import Benchmarks.UniswapV4PoolManager.BlockResultTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -17,10 +19,10 @@ theorem beforeSwapDeltaTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hview : BytesObjectView mem ptr out) (hsize : 64 ≤ out.size)
     (hfit : ptr.toNat+64 < UInt256.size)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨15508⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨15508⟩
       (ptr :: ret :: fee :: oldHook :: amount :: R) mem aw out evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0 (fun _ post => post = evm ∧ ∃ aw' k' C',
-      C+Cₘ aw' ≤ C'+Cₘ aw ∧ RD (deployedRuntime v) I g s0 ret
+    blockResultTrace fork (deployedRuntime v) g s0 (fun _ post => post = evm ∧ ∃ aw' k' C',
+      C+Cₘ aw' ≤ C'+Cₘ aw ∧ RD fork (deployedRuntime v) I g s0 ret
         (fee :: calldataWord out 32 :: (amount+beforeSwapSpecified out) :: R) mem aw' out post.accountMap k' C')
       (fun _ _ => False) (beforeSwapDeltaResult f evm amount out) := by
   have hload : memLoad (UInt256.ofNat 64+ptr) mem = calldataWord out 32 := by

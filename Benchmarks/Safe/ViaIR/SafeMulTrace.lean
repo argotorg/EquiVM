@@ -5,6 +5,8 @@ import Benchmarks.Safe.ViaIR.Blocks.Runtime_043
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_044
 import Reasoning.WordArithmetic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -14,11 +16,11 @@ set_option maxRecDepth 2000
 
 private theorem safeMulFinish {I g s0 σ k C aw mem rdata} {a b n ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨8870⟩
+    (h : RD fork safeBytecode I g s0 ⟨8870⟩
       (n :: a :: ⟨9453⟩ :: b :: n :: ret :: R) mem aw rdata σ k C)
     (ha : a ≠ ⟨0⟩) (hdiv : UInt256.div n a = b) (hov : R.length + 10 ≤ 1024)
     (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ k' C', RD safeBytecode I g s0 ret (n :: R) mem aw rdata σ k' C' := by
+    ∃ k' C', RD fork safeBytecode I g s0 ret (n :: R) mem aw rdata σ k' C' := by
   have h₁ := safeRuntime_block_8870_fallthrough (by simp; omega)
     (isZero_eq_zero_of_ne ha) h
   have h₂ := safeRuntime_block_8877 (by simp; omega) (by jump_dest) h₁
@@ -28,10 +30,10 @@ private theorem safeMulFinish {I g s0 σ k C aw mem rdata} {a b n ret : UInt256}
 
 theorem safeMulTrace {I g s0 σ k C aw mem rdata} {a b ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨9466⟩ (a :: b :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨9466⟩ (a :: b :: ret :: R) mem aw rdata σ k C)
     (hfit : a.toNat * b.toNat < UInt256.size) (hov : R.length + 12 ≤ 1024)
     (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ k' C', RD safeBytecode I g s0 ret (UInt256.mul a b :: R) mem aw rdata σ k' C' := by
+    ∃ k' C', RD fork safeBytecode I g s0 ret (UInt256.mul a b :: R) mem aw rdata σ k' C' := by
   by_cases ha : a = ⟨0⟩
   · subst a
     have h₁ := safeRuntime_block_9466_taken (by simp; omega) (by decide) (by jump_dest) h
@@ -49,9 +51,9 @@ theorem safeMulTrace {I g s0 σ k C aw mem rdata} {a b ret : UInt256}
 
 theorem safeMulOverflow {I g s0 σ k C aw mem rdata} {a b : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨9466⟩ (a :: b :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨9466⟩ (a :: b :: R) mem aw rdata σ k C)
     (hover : UInt256.size ≤ a.toNat * b.toNat) (hov : R.length + 12 ≤ 1024) :
-    RDrev safeBytecode g s0 := by
+    RDrev fork safeBytecode g s0 := by
   have ha : a ≠ ⟨0⟩ := by
     intro hz
     rw [hz] at hover
@@ -70,10 +72,10 @@ theorem safeMulOverflow {I g s0 σ k C aw mem rdata} {a b : UInt256}
 -- The IR pipeline specializes signature-length multiplication to the constant 65.
 theorem safeMul65Trace {I g s0 σ k C aw mem rdata} {a ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨9420⟩ (a :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨9420⟩ (a :: ret :: R) mem aw rdata σ k C)
     (hfit : a.toNat * 65 < UInt256.size) (hov : R.length + 12 ≤ 1024)
     (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ k' C', RD safeBytecode I g s0 ret (UInt256.mul a (UInt256.ofNat 65) :: R)
+    ∃ k' C', RD fork safeBytecode I g s0 ret (UInt256.mul a (UInt256.ofNat 65) :: R)
       mem aw rdata σ k' C' := by
   by_cases ha : a = ⟨0⟩
   · subst a
@@ -92,9 +94,9 @@ theorem safeMul65Trace {I g s0 σ k C aw mem rdata} {a ret : UInt256}
 
 theorem safeMul65Overflow {I g s0 σ k C aw mem rdata} {a : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨9420⟩ (a :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨9420⟩ (a :: R) mem aw rdata σ k C)
     (hover : UInt256.size ≤ a.toNat * 65) (hov : R.length + 12 ≤ 1024) :
-    RDrev safeBytecode g s0 := by
+    RDrev fork safeBytecode g s0 := by
   have ha : a ≠ ⟨0⟩ := by
     intro hz
     rw [hz] at hover

@@ -5,6 +5,8 @@ import Benchmarks.CompoundIII.Comet.RuntimeBlocks_059
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_016
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_043
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -17,11 +19,11 @@ theorem cometPrincipalSupply {v : CometWithExtendedAssetListImmutables}
     {aw index present ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024) (hindex : index.toNat < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨12917⟩ (index :: present :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨12917⟩ (index :: present :: ret :: R)
       mem aw rdata σ k C) :
-    (PrincipalMagnitudeFits false index present ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    (PrincipalMagnitudeFits false index present ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (principalMagnitudeWord false index present :: R) mem aw rdata σ k' C') ∨
-    (¬ PrincipalMagnitudeFits false index present ∧ RDrev (deployedRuntime v) g s0) := by
+    (¬ PrincipalMagnitudeFits false index present ∧ RDrev fork (deployedRuntime v) g s0) := by
   have hclean : UInt256.land
       (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 64)) (UInt256.ofNat 1))
       index = index := by

@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.TickUpdateCheckedTrace
 import Benchmarks.UniswapV3.Pool.TickUpdateInitializeTrace
 import Benchmarks.UniswapV3.Pool.TickUpdateFinishTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -11,21 +13,21 @@ theorem tickUpdateRawX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : TickUpdateArgs) (evm : EVM.State)
     (hs : SourceState s0 ee σ evm)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨20795⟩ (tickUpdateWords a ++ ret :: R)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨20795⟩ (tickUpdateWords a ++ ret :: R)
       mem aw rdata σ k C) (hfit : a.TraceFits)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 25 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧ ¬ liquidityDeltaValid (tickUpdateGrossBefore a evm) a.delta) ∨
+    (RDrev fork (deployedRuntime v) g s0 ∧ ¬ liquidityDeltaValid (tickUpdateGrossBefore a evm) a.delta) ∨
     (liquidityDeltaValid (tickUpdateGrossBefore a evm) a.delta ∧
-      ((RDrev (deployedRuntime v) g s0 ∧
+      ((RDrev fork (deployedRuntime v) g s0 ∧
         ¬ tickUpdateGrossAfter a evm ≤ Int.ofNat (uint128Word a.maxLiquidity).toNat) ∨
        (tickUpdateGrossAfter a evm ≤ Int.ofNat (uint128Word a.maxLiquidity).toNat ∧
-        ((RDstatic (deployedRuntime v) g s0 ∧ ee.perm = false) ∨
+        ((RDstatic fork (deployedRuntime v) g s0 ∧ ee.perm = false) ∨
          (ee.perm = true ∧
-          ((RDrev (deployedRuntime v) g s0 ∧
+          ((RDrev fork (deployedRuntime v) g s0 ∧
             ¬ safeCast128Valid (tickUpdateNetResult a evm a.upper)) ∨
            (safeCast128Valid (tickUpdateNetResult a evm a.upper) ∧ ∃ σ' k' C',
             SourceState s0 ee σ' (tickUpdateFinalState a evm) ∧
-            RD (deployedRuntime v) ee g s0 ret ((tickUpdateFlipped a evm).toUInt256 :: R)
+            RD fork (deployedRuntime v) ee g s0 ret ((tickUpdateFlipped a evm).toUInt256 :: R)
               (twoWordHashMem (EVM.wordOfInt a.tick) ⟨5⟩ mem) (tickUpdateMemoryWords aw) rdata σ' k' C'))))))) := by
   rcases tickUpdateCheckedRawX (v := v) a evm hs rd hfit hov with hb | ⟨hv, hm⟩
   · exact Or.inl hb
@@ -48,21 +50,21 @@ theorem tickUpdateX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : TickUpdateArgs) (evm : EVM.State)
     (hs : SourceState s0 ee σ evm)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨20795⟩ (tickUpdateWords a ++ ret :: R)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨20795⟩ (tickUpdateWords a ++ ret :: R)
       mem aw rdata σ k C) (hfit : a.Fits)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 25 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧ ¬ liquidityDeltaValid (tickUpdateGrossBefore a evm) a.delta) ∨
+    (RDrev fork (deployedRuntime v) g s0 ∧ ¬ liquidityDeltaValid (tickUpdateGrossBefore a evm) a.delta) ∨
     (liquidityDeltaValid (tickUpdateGrossBefore a evm) a.delta ∧
-      ((RDrev (deployedRuntime v) g s0 ∧
+      ((RDrev fork (deployedRuntime v) g s0 ∧
         ¬ tickUpdateGrossAfter a evm ≤ Int.ofNat a.maxLiquidity.toNat) ∨
        (tickUpdateGrossAfter a evm ≤ Int.ofNat a.maxLiquidity.toNat ∧
-        ((RDstatic (deployedRuntime v) g s0 ∧ ee.perm = false) ∨
+        ((RDstatic fork (deployedRuntime v) g s0 ∧ ee.perm = false) ∨
          (ee.perm = true ∧
-          ((RDrev (deployedRuntime v) g s0 ∧
+          ((RDrev fork (deployedRuntime v) g s0 ∧
             ¬ safeCast128Valid (tickUpdateNetResult a evm a.upper)) ∨
            (safeCast128Valid (tickUpdateNetResult a evm a.upper) ∧ ∃ σ' k' C' aw',
             SourceState s0 ee σ' (tickUpdateFinalState a evm) ∧
-            RD (deployedRuntime v) ee g s0 ret ((tickUpdateFlipped a evm).toUInt256 :: R)
+            RD fork (deployedRuntime v) ee g s0 ret ((tickUpdateFlipped a evm).toUInt256 :: R)
               (twoWordHashMem (EVM.wordOfInt a.tick) ⟨5⟩ mem) aw' rdata σ' k' C'))))))) := by
   have h := tickUpdateRawX (v := v) a evm hs rd hfit.traceFits hret hov
   rw [uint128Word_clean hfit.2.2.2.2.2.2] at h

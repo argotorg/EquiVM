@@ -1,18 +1,20 @@
 import Benchmarks.CompoundIII.Comet.TransferBaseAfterSource
 import Benchmarks.CompoundIII.Comet.AccrueInternalSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
 namespace Benchmarks.CompoundIII.Comet
 
 theorem transferBase_source {v src dst amount evm result}
-    (ht : TransferBaseTrace v src dst amount evm result) :
-    internalSourceResult config (transferBaseEntry (immStore v) src dst amount)
+    (ht : TransferBaseTrace fork v src dst amount evm result) :
+    internalSourceResult fork config (transferBaseEntry (immStore v) src dst amount)
       evm transferBaseCallable.body result := by
-  have ha := accrue_call v (transferBaseEntry (immStore v) src dst amount) evm "__c0" rfl rfl
+  have ha := accrue_call (fork := fork) v (transferBaseEntry (immStore v) src dst amount) evm "__c0" rfl rfl
   apply internalBlockResult.toSource
-  change internalBlockResult config (transferBaseEntry (immStore v) src dst amount)
+  change internalBlockResult fork config (transferBaseEntry (immStore v) src dst amount)
     evm (.internalCall "accrueInternal" [] "__c0" :: transferBaseAfterAccrueBlock) result
   cases ht with
   | reverted he =>
@@ -26,13 +28,13 @@ theorem transferBase_source {v src dst amount evm result}
     exact (transferBaseAfterAccrue_source tail).prepend ha
 
 theorem transferBase_call {v src dst amount evm result}
-    (ht : TransferBaseTrace v src dst amount evm result) (frame : Frame)
+    (ht : TransferBaseTrace fork v src dst amount evm result) (frame : Frame)
     (srcExpr dstExpr amountExpr : Expr) (ret : Ident)
     (hc : frame.contract = contract) (hi : frame.immutables = immStore v)
     (hs : evalExpr? config frame evm srcExpr = .ok (.address src))
     (hd : evalExpr? config frame evm dstExpr = .ok (.address dst))
     (ha : evalExpr? config frame evm amountExpr = .ok (.int amount.toNat)) :
-    ExecStmt config frame evm (.internalCall "transferBase" [srcExpr, dstExpr, amountExpr] ret)
+    ExecStmt fork config frame evm (.internalCall "transferBase" [srcExpr, dstExpr, amountExpr] ret)
       (internalStmtResult frame ret result) := by
   apply internalVoidCall (callee := transferBaseCallable)
     (locals := (transferBaseEntry (immStore v) src dst amount).locals)

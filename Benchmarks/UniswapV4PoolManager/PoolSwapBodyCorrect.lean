@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PoolSwapBodyReturn
 import Benchmarks.UniswapV4PoolManager.PoolSwapPreludeSource
 import Benchmarks.UniswapV4PoolManager.PoolSwapPreludeActiveWords
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -20,13 +22,13 @@ theorem poolSwapBodyCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f 
     (hspacing : int24Canonical p.tickSpacing) (hlimit : p.priceLimit.toNat < 2^160)
     (hoverride : p.lpFeeOverride.toNat < 2^24) (hpaid : Cₘ aw ≤ C)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨18777⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨18777⟩
       ([poolSlot id, params, ret]++R) mem aw rdata evm.accountMap k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
-    ∃ result, ExecFuncBody config f evm poolSwapFunction.body result ∧
-      functionResultTrace (deployedRuntime v) g s0
-        (poolSwapBodyReturn v I g s0 evm mem rdata id state params ret p R C) result := by
-  have hsource := poolSwapPreludeSource (evm := evm) hf hs hp hoverride
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    ∃ result, ExecFuncBody fork config f evm poolSwapFunction.body result ∧
+      functionResultTrace fork (deployedRuntime v) g s0
+        (poolSwapBodyReturn fork v I g s0 evm mem rdata id state params ret p R C) result := by
+  have hsource := poolSwapPreludeSource (fork := fork) (evm := evm) hf hs hp hoverride
   have htrace := poolSwapPreludeTrace v (by omega) hI hm hparams hb hfit hfree hlimit hret h
   have hbody : poolSwapFunction.body = poolSwapFunction.body.take 28 ++ poolSwapFunction.body.drop 28 :=
     (List.take_append_drop 28 poolSwapFunction.body).symm
@@ -70,11 +72,11 @@ theorem poolSwapBodyCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f 
               (poolSwapInitialFee_bound evm id p) (poolSwapProtocolWord_bound _ _) ha1 (by omega)
               hret rd1 with hog | ⟨result, ht, hrt⟩
           · exact .inl hog
-          · have hfull : ExecBlock config f evm poolSwapFunction.body result := by
+          · have hfull : ExecBlock fork config f evm poolSwapFunction.body result := by
               rw [hbody]
               exact execBlock_append hsource ht
-            have hr : functionResultTrace (deployedRuntime v) g s0
-                (poolSwapBodyReturn v I g s0 evm mem rdata id state params ret p R C) result :=
+            have hr : functionResultTrace fork (deployedRuntime v) g s0
+                (poolSwapBodyReturn fork v I g s0 evm mem rdata id state params ret p R C) result :=
               functionResultTrace_mono hrt (fun _ _ hh => poolSwapBodyReturn_of_loop hc1 hh)
             exact .inr ⟨result, execFuncBody_of_trace hfull hr, hr⟩
         · rw [if_neg hl] at hsource htrace

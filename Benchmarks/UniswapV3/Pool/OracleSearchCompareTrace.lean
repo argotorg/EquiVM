@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.OracleSearchAfter
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -10,7 +12,7 @@ theorem oracleSearchPairCompareX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat2
     {s0 : EVM.State} {k C : Nat} {aw p left right beforePtr afterPtr : UInt256}
     {cardRaw indexRaw targetRaw timeRaw ret time target : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (before after : OracleObservation)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨20184⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨20184⟩
       (targetRaw :: before.timestamp :: timeRaw :: ⟨20717⟩ :: ⟨0⟩ ::
         oracleSearchStack (oracleSearchMiddle left right) left right beforePtr afterPtr
           cardRaw indexRaw targetRaw timeRaw ret R) mem aw rdata σ k C)
@@ -22,7 +24,7 @@ theorem oracleSearchPairCompareX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat2
     (hcover : p.toNat ≤ aw.toNat * 32 + 32) (hov : R.length + 26 ≤ 1024) :
     let first := oracleLte time before.timestamp target
     let second := oracleLte time target after.timestamp
-    ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) ee g s0 ⟨20742⟩
+    ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) ee g s0 ⟨20742⟩
       ((if first && second then ⟨1⟩ else ⟨0⟩) :: (if first then ⟨1⟩ else ⟨0⟩) ::
         oracleSearchStack (oracleSearchMiddle left right) left right beforePtr afterPtr
           cardRaw indexRaw targetRaw timeRaw ret R) mem aw rdata σ k' C' := by

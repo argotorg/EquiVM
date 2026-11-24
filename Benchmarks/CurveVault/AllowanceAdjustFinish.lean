@@ -1,6 +1,8 @@
 import Benchmarks.CurveVault.AllowanceAdjustPrepare
 import Benchmarks.CurveVault.ApproveArguments
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -11,9 +13,9 @@ abbrev vaultAdjustFinishBody : List Stmt := (vaultAdjustFunction true).body.drop
 theorem vaultAdjustReturn (increase : Bool) {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (hstack : R.length + 4 ≤ 1024) (hperm : I.perm = true)
-    (h : RD vaultBytecode I g s0 (vaultAdjustReturnPc increase) R mem aw rdata σ k C) :
-    RDret vaultBytecode g s0 (tstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨0⟩) (⟨1⟩ : UInt256).toByteArray := by
-  have hret : RDret vaultBytecode g s0 (tstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨0⟩)
+    (h : RD fork vaultBytecode I g s0 (vaultAdjustReturnPc increase) R mem aw rdata σ k C) :
+    RDret fork vaultBytecode g s0 (tstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨0⟩) (⟨1⟩ : UInt256).toByteArray := by
+  have hret : RDret fork vaultBytecode g s0 (tstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨0⟩)
       (((⟨1⟩ : UInt256).toByteArray.write 0 mem 288 32).readWithPadding 288 32) := by
     cases increase
     · exact vaultBlocks.vault_block_6310 hstack hperm h
@@ -26,8 +28,8 @@ theorem vaultAdjustCall (increase : Bool) {I : ExecutionEnv} {g : Sat256} {s0 : 
     {k C : Nat} {spender value : UInt256} {R : List UInt256}
     (hsize : 288 ≤ mem.size) (hms : memLoad (UInt256.ofNat 192) mem = spender)
     (hmv : memLoad (UInt256.ofNat 256) mem = value) (hstack : R.length + 6 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (vaultAdjustCallPc increase) R mem aw rdata σ k C) :
-    ∃ aw' k' C', RD vaultBytecode I g s0 (UInt256.ofNat 7939) (vaultAdjustReturnPc increase :: R)
+    (h : RD fork vaultBytecode I g s0 (vaultAdjustCallPc increase) R mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork vaultBytecode I g s0 (UInt256.ofNat 7939) (vaultAdjustReturnPc increase :: R)
       (vaultApproveArguments mem (UInt256.ofNat I.source.val) spender value) aw' rdata σ k' C' := by
   let owner := UInt256.ofNat I.source.val
   let mem0 := owner.toByteArray.write 0 mem 64 32
@@ -40,7 +42,7 @@ theorem vaultAdjustCall (increase : Bool) {I : ExecutionEnv} {g : Sat256} {s0 : 
       rw [writeWord_size _ _ _ (lt_of_le_of_lt (Nat.sub_le _ _) (lt_usize 64 (by omega))), Nat.max_eq_left (by omega)]
     rw [memLoad_above_write _ _ 96 256 (by rw [toByteArray_size]) (by omega) (by omega) (by rw [hs0]; omega) (by decide +kernel),
       memLoad_above_write _ _ 64 256 (by rw [toByteArray_size]) (by omega) (by omega) hsize (by decide +kernel), hmv]
-  have rd : ∃ aw' k' C', RD vaultBytecode I g s0 (UInt256.ofNat 7939) (vaultAdjustReturnPc increase :: R)
+  have rd : ∃ aw' k' C', RD fork vaultBytecode I g s0 (UInt256.ofNat 7939) (vaultAdjustReturnPc increase :: R)
       ((memLoad (UInt256.ofNat 256) ((memLoad (UInt256.ofNat 192) mem0).toByteArray.write 0 mem0 96 32)).toByteArray.write 0
         ((memLoad (UInt256.ofNat 192) mem0).toByteArray.write 0 mem0 96 32) 128 32) aw' rdata σ k' C' := by
     cases increase
@@ -59,18 +61,18 @@ theorem vaultAdjustFinish (increase : Bool) {I : ExecutionEnv} {g : Sat256} {s0 
     (hms : memLoad (UInt256.ofNat 192) mem = spender)
     (hmc : memLoad (UInt256.ofNat 224) mem = old) (hmv : memLoad (UInt256.ofNat 256) mem = value)
     (hcanon : spender.toNat < EVM.addressModulus) (hperm : I.perm = true) (hstack : R.length + 6 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (vaultAdjustFinishPc increase) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (vaultAdjustFinishPc increase) R mem aw rdata σ k C) :
     ∃ (evm' : State) (σ' : AccountMap) (locals' : Store),
-      ExecBlock config {contract := contract, locals := locals} evm vaultAdjustFinishBody
+      ExecBlock fork config {contract := contract, locals := locals} evm vaultAdjustFinishBody
         (.returned {contract := contract, locals := locals'} evm' (some [.bool true])) ∧
       SourceState s0 I σ' evm' ∧
-      RDret vaultBytecode g s0 (tstoreAccountMap I.codeOwner σ' ⟨0⟩ ⟨0⟩) (⟨1⟩ : UInt256).toByteArray := by
+      RDret fork vaultBytecode g s0 (tstoreAccountMap I.codeOwner σ' ⟨0⟩ ⟨0⟩) (⟨1⟩ : UInt256).toByteArray := by
   have hevalC := evalExpr_varUInt256 (cfg := config) (contract := contract) (evm := evm) hc
   have hevalV := evalExpr_varUInt256 (cfg := config) (contract := contract) (evm := evm) hv
   by_cases heq : value = old
   · have hcond : UInt256.eq (memLoad (UInt256.ofNat 256) mem) (memLoad (UInt256.ofNat 224) mem) ≠ ⟨0⟩ := by
       rw [hmv, hmc, heq, u256_eq_refl]; decide +kernel
-    have rdReturn : ∃ aw' k' C', RD vaultBytecode I g s0 (vaultAdjustReturnPc increase) R mem aw' rdata σ k' C' := by
+    have rdReturn : ∃ aw' k' C', RD fork vaultBytecode I g s0 (vaultAdjustReturnPc increase) R mem aw' rdata σ k' C' := by
       cases increase
       · exact vaultBlocks.vault_block_6273_taken_packed (by omega) hcond (by native_decide) h
       · exact vaultBlocks.vault_block_6132_taken_packed (by omega) hcond (by native_decide) h
@@ -81,7 +83,7 @@ theorem vaultAdjustFinish (increase : Bool) {I : ExecutionEnv} {g : Sat256} {s0 
       ExecBlock.consReturn (ExecStmt.return (by simp [evalExprs?, evalExpr?, EvalResult.bind, pure, bind]))
   · have hcond : UInt256.eq (memLoad (UInt256.ofNat 256) mem) (memLoad (UInt256.ofNat 224) mem) = ⟨0⟩ := by
       rw [hmv, hmc]; exact u256_eq_of_ne heq
-    have rdCall : ∃ aw' k' C', RD vaultBytecode I g s0 (vaultAdjustCallPc increase) R mem aw' rdata σ k' C' := by
+    have rdCall : ∃ aw' k' C', RD fork vaultBytecode I g s0 (vaultAdjustCallPc increase) R mem aw' rdata σ k' C' := by
       cases increase
       · exact vaultBlocks.vault_block_6273_fallthrough_packed (by omega) hcond h
       · exact vaultBlocks.vault_block_6132_fallthrough_packed (by omega) hcond h

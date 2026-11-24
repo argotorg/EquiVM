@@ -2,6 +2,8 @@ import Examples.Ballot.Common
 import Reasoning.SteleBody
 import Reasoning.Storage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -19,7 +21,7 @@ abbrev chairpersonReturnWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
 theorem ballotChairpersonBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocals : locals.get? "chairperson" = none) :
-    ExecTransitionBody ballotConfig ballotContract evm locals chairpersonGetter.body
+    ExecTransitionBody fork ballotConfig ballotContract evm locals chairpersonGetter.body
       (.returned { contract := ballotContract, locals := locals } evm
         (some [(.address (AccountAddress.ofNat
           (UInt256.land (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)
@@ -38,9 +40,9 @@ theorem ballotChairpersonBodyReturns (evm : EVM.State) (locals : Store)
       rw [storageLocLoad_address_offset0])
 
 theorem ballotX_chairperson {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨203⟩ [sel]
+    (hreach : ∃ k C, RD fork ballotBytecode I g (initState σ σ₀ g A I) ⟨203⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret ballotBytecode g (initState σ σ₀ g A I) σ
+    RDret fork ballotBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (chairpersonReturnWord σ I)) := by
   obtain ⟨_, _, rd203⟩ := hreach
   have rd205 := evm_run rd203 with [jumpdest, push0]
@@ -95,16 +97,16 @@ theorem ballotChairpersonBodyCore
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = ballotBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0x2e, 0x41, 0x76, 0xcf]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
-    (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨203⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor ballotConfig ballotContract
+    runtimeRefinementFor fork ballotConfig ballotContract
       σ σ₀ g A I := by
   have hsz := ballotChairpersonSelector_size hsel
   have hd := ballotDispatch_chairperson (cd := I.calldata) hsel
   have hdec := ballotDecode_chairperson (I := I) hsz
   have hbody :
-      ExecTransitionBody ballotConfig ballotContract
+      ExecTransitionBody fork ballotConfig ballotContract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ chairpersonGetter.body
         (.returned { contract := ballotContract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)

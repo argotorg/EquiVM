@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.NextSqrt0Model
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -30,7 +32,7 @@ theorem evalNextSqrt0Zero (imms : Store) (evm : EVM.State) (a : NextSqrtArgs) :
 
 theorem nextSqrt0ZeroReturns (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
     (hz : a.amount.toNat = 0) :
-    ExecFuncBody config (nextSqrtFrame imms a) evm (nextSqrtFunction false).body
+    ExecFuncBody fork config (nextSqrtFrame imms a) evm (nextSqrtFunction false).body
       (.returned (nextSqrtFrame imms a) evm (some [.int (Int.ofNat a.price.toNat)])) := by
   apply ExecFuncBody.execBlockRet
   apply ExecBlock.consReturn (ExecStmt.iteTrue ?_ ?_)
@@ -41,7 +43,7 @@ theorem nextSqrt0ZeroReturns (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
 
 theorem nextSqrt0NumeratorSource (imms : Store) (evm : EVM.State) (a : NextSqrtArgs)
     (hn : a.amount.toNat ≠ 0) :
-    ExecBlock config (nextSqrtFrame imms a) evm ((nextSqrtFunction false).body.take 2)
+    ExecBlock fork config (nextSqrtFrame imms a) evm ((nextSqrtFunction false).body.take 2)
       (.ok (nextSqrt0NumeratorFrame imms a) evm) := by
   refine ExecBlock.consNormal (ExecStmt.iteFalse ?_ ExecBlock.nil)
     (ExecBlock.consNormal (ExecStmt.letDecl ?_) ExecBlock.nil)
@@ -57,7 +59,7 @@ macro "next_sqrt_0_product_get" : tactic =>
     Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert])
 
 theorem nextSqrt0ProductSource (imms : Store) (evm : EVM.State) (a : NextSqrtArgs) :
-    ExecBlock config (nextSqrt0NumeratorFrame imms a) evm ((nextSqrt0Branch a.add).take 2)
+    ExecBlock fork config (nextSqrt0NumeratorFrame imms a) evm ((nextSqrt0Branch a.add).take 2)
       (.ok (nextSqrt0ProductFrame imms a) evm) := by
   have hp : evalExpr? config (nextSqrt0ProductZeroFrame imms a) evm (.var "sqrtPX96") =
       .ok (.int (Int.ofNat a.price.toNat)) :=
@@ -69,7 +71,7 @@ theorem nextSqrt0ProductSource (imms : Store) (evm : EVM.State) (a : NextSqrtArg
   all_goals
     exact ExecBlock.consNormal (stele' := nextSqrt0ProductZeroFrame imms a)
       (ExecStmt.letDecl (by simp only [evalExpr?, pure]))
-      (ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalExpr_word_mul hm hp)
+      (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalExpr_word_mul hm hp)
         (assignLocalVarBase_frame Std.HashMap.getElem?_insert_self)) ExecBlock.nil)
 
 theorem nextSqrt0ProductGet (imms : Store) (a : NextSqrtArgs) :

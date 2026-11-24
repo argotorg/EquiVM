@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.UpdatePositionTicksTrace
 import Benchmarks.UniswapV3.Pool.UpdatePositionBitmapsTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -19,19 +21,19 @@ theorem updatePositionNonzeroX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256
     {s0 : EVM.State} {k C : Nat} {aw p : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : UpdatePositionArgs) (evm : EVM.State)
     (hs : SourceState s0 ee σ evm)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨19190⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨19190⟩
       (updatePositionPrefixWords a evm.accountMap evm.executionEnv ++ R) mem aw rdata σ k C)
     (hfit : a.Fits) (hm : HeapMemory mem aw p) (hb : p.toNat + 384 ≤ 2 ^ 200)
     (hov : R.length + 43 ≤ 1024) :
-    (ExecBlock config (updatePositionReadyFrame (immStore v) a evm) evm
+    (ExecBlock fork config (updatePositionReadyFrame (immStore v) a evm) evm
       updatePositionNonzeroBody .reverted ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    (ExecBlock config (updatePositionReadyFrame (immStore v) a evm) evm
-      updatePositionNonzeroBody .staticViolation ∧ RDstatic (deployedRuntime v) g s0) ∨
-    (ExecBlock config (updatePositionReadyFrame (immStore v) a evm) evm updatePositionNonzeroBody
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    (ExecBlock fork config (updatePositionReadyFrame (immStore v) a evm) evm
+      updatePositionNonzeroBody .staticViolation ∧ RDstatic fork (deployedRuntime v) g s0) ∨
+    (ExecBlock fork config (updatePositionReadyFrame (immStore v) a evm) evm updatePositionNonzeroBody
       (.ok (updatePositionBitmapDoneFrame v a evm true) (updatePositionBitmapAfter v a evm true)) ∧
       ∃ σ' aw' k' C', SourceState s0 ee σ' (updatePositionBitmapAfter v a evm true) ∧
-      RD (deployedRuntime v) ee g s0 ⟨19492⟩ (updatePositionUpdatedWords v a evm ++ R)
+      RD fork (deployedRuntime v) ee g s0 ⟨19492⟩ (updatePositionUpdatedWords v a evm ++ R)
         (updatePositionNonzeroMemory mem p v a evm) aw' rdata σ' k' C' ∧
       HeapMemory (updatePositionNonzeroMemory mem p v a evm) aw'
         (updatePositionOracleFree p evm.accountMap evm.executionEnv)) := by
@@ -43,7 +45,7 @@ theorem updatePositionNonzeroX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256
     (by change R.length + 10 + 33 ≤ 1024; omega) with ⟨hin, hr⟩ | ⟨hin, aw1, k1, C1, r1, hm1⟩
   · exact Or.inl ⟨execBlock_append_term (updatePositionObserveReverts (immStore v) evm a hin)
       (by intro _ _ h; cases h), Or.inr hr⟩
-  · have hb0 := updatePositionObserveSource (immStore v) evm a hin
+  · have hb0 := updatePositionObserveSource (fork := fork) (immStore v) evm a hin
     rcases updatePositionTicksX (v := v) a evm hs r1 hfit hm1 (by omega) with
       ⟨hbt, hr⟩ | ⟨hbt, hr⟩ | ⟨hbt, σ2, k2, C2, hs2, r2, hm2⟩
     · exact Or.inl ⟨execBlock_append_ok hb0

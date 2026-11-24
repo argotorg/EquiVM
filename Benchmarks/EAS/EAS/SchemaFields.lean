@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.BoolMemory
 import Benchmarks.EAS.EAS.SchemaHead
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -14,14 +16,14 @@ theorem easSchemaFields {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {src dst ending ret : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length+11 ≤ 1024) (hsrc : 96 ≤ src.toNat) (hin : src.toNat+128 ≤ mem.size)
     (hdisj : src.toNat+128 ≤ dst.toNat) (hb : dst.toNat+128 < UInt256.size)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨7385⟩ (src::ending::dst::ret::R) mem aw out σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨7385⟩ (src::ending::dst::ret::R) mem aw out σ k C) :
     if (memLoad (src+UInt256.ofNat 32) mem).toNat < EVM.addressModulus ∧
         (memLoad (src+UInt256.ofNat 64) mem = ⟨0⟩ ∨ memLoad (src+UInt256.ofNat 64) mem = ⟨1⟩) ∧
         (memLoad (src+UInt256.ofNat 96) mem).toNat ≤ solcMaxU64 then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨7467⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨7467⟩
         (src::memLoad (src+UInt256.ofNat 96) mem::ending::dst::ret::R)
         (schemaFieldsMemory mem src dst) aw' out σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   let uid := memLoad src mem
   let resolver := memLoad (src+UInt256.ofNat 32) mem
   let rev := memLoad (src+UInt256.ofNat 64) mem
@@ -47,7 +49,7 @@ theorem easSchemaFields {ee : ExecutionEnv} {g : Sat256} {s0 : State}
       rw [hr1,solcAddrMask_clean ha,u256_sub_self]
     obtain ⟨aw1,k1,C1,rd1⟩ := easBlocks.eas_block_7385_fallthrough_packed (immWords := wordsOf (immStore v))
       (by simp only [List.length_cons]; omega) hc rd
-    change RD (deployedRuntime v) ee g s0 ⟨7424⟩
+    change RD fork (deployedRuntime v) ee g s0 ⟨7424⟩
       (memLoad (src+UInt256.ofNat 32) m1::src::ending::dst::ret::R) m1 aw1 out σ k1 C1 at rd1
     rw [hr1] at rd1
     obtain ⟨aw2,k2,C2,rd2⟩ := easBlocks.eas_block_7424_packed (immWords := wordsOf (immStore v))
@@ -56,9 +58,9 @@ theorem easSchemaFields {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     have hr := easDecodeBoolMemory v (by simp only [List.length_cons]; omega)
       (by rw [easPatchedValidJumps v]; jump_dest) rd2
     change (if memLoad (src+UInt256.ofNat 64) m2 = ⟨0⟩ ∨ memLoad (src+UInt256.ofNat 64) m2 = ⟨1⟩ then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨7440⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨7440⟩
         (memLoad (src+UInt256.ofNat 64) m2::src::ending::dst::ret::R) m2 aw' out σ k' C'
-      else RDrev (deployedRuntime v) g s0) at hr
+      else RDrev fork (deployedRuntime v) g s0) at hr
     rw [hr2] at hr
     by_cases hrev : rev=⟨0⟩ ∨ rev=⟨1⟩
     · rw [if_pos hrev] at hr
@@ -73,7 +75,7 @@ theorem easSchemaFields {ee : ExecutionEnv} {g : Sat256} {s0 : State}
         rw [if_pos ⟨ha,hrev,hoff⟩]
         refine ⟨aw4,k4,C4,?_⟩
         simp only [easBlocks.eas_block_7440_fallthrough_stack, hmem3, hd64] at rd4
-        change RD (deployedRuntime v) ee g s0 ⟨7467⟩
+        change RD fork (deployedRuntime v) ee g s0 ⟨7467⟩
           (src::memLoad (src+UInt256.ofNat 96) m3::ending::dst::ret::R) m3 aw4 out σ k4 C4 at rd4
         rw [hr3] at rd4
         have hm : schemaFieldsMemory mem src dst = m3 := by

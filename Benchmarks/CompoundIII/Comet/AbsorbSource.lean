@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.AbsorbBeforePointsSource
 import Benchmarks.CompoundIII.Comet.AbsorbAfterAccountsSource
 import Benchmarks.CompoundIII.Comet.InternalBlockComposition
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -14,7 +16,7 @@ def absorbBody : List Stmt := absorbBeforePointsBlock ++ absorbAfterAccountsBloc
 
 theorem absorbTransition_body : absorbTransition.body = calldataPrologue absorbBody := rfl
 
-theorem absorb_source {v cd addr evm result} (ht : AbsorbTrace v cd addr evm result)
+theorem absorb_source {v cd addr evm result} (ht : AbsorbTrace fork v cd addr evm result)
     {accounts : List Value} {endOffset : Nat}
     (hread : Solc0815.decodeAddressArrayElems? (absorbArrayLength cd) (cd.toList.drop 4)
       (absorbArrayOffset cd + 32) = some (accounts, endOffset))
@@ -23,7 +25,7 @@ theorem absorb_source {v cd addr evm result} (ht : AbsorbTrace v cd addr evm res
     (ha : frame.locals.get? "absorber" = some (.address addr))
     (hac : frame.locals.get? "accounts" = some (.array accounts))
     (hp : frame.locals.get? "liquidatorPoints" = none) :
-    internalBlockResult config frame evm absorbBody result := by
+    internalBlockResult fork config frame evm absorbBody result := by
   have hnword : (UInt256.ofNat (absorbArrayLength cd)).toNat = absorbArrayLength cd :=
     UInt256.toNat_ofNat_of_lt (lt_trans hn (by decide))
   cases ht with
@@ -41,13 +43,13 @@ theorem absorb_source {v cd addr evm result} (ht : AbsorbTrace v cd addr evm res
       (by rw [hnword]; exact hlen) (by rw [hnword]; exact hn)).prependBlock hb
 
 theorem absorbPublic_source {v cd evm result}
-    (ht : AbsorbTrace v cd (AccountAddress.ofNat (calldataWord cd 4).toNat) evm result)
+    (ht : AbsorbTrace fork v cd (AccountAddress.ofNat (calldataWord cd 4).toNat) evm result)
     {accounts : List Value} {endOffset : Nat}
     (hread : Solc0815.decodeAddressArrayElems? (absorbArrayLength cd) (cd.toList.drop 4)
       (absorbArrayOffset cd + 32) = some (accounts, endOffset))
     (hlen : accounts.length = absorbArrayLength cd) (hn : absorbArrayLength cd < 2^64)
     (hv : evm.executionEnv.weiValue = ⟨0⟩) (hhi : evm.executionEnv.calldata.size < 2^255 + 4) :
-    internalSourceResult config
+    internalSourceResult fork config
       { contract := contract, locals := absorbCalldataArgs cd accounts, immutables := immStore v }
       evm absorbTransition.body result := by
   rw [absorbTransition_body]

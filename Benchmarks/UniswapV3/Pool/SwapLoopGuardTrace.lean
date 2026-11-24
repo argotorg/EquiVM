@@ -4,6 +4,8 @@ import Benchmarks.UniswapV3.Pool.SwapEntryTrace
 import Benchmarks.UniswapV3.Pool.AmountDeltaSortTrace
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_013
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -31,12 +33,12 @@ theorem swapLoopConditionX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p exactWord cache snap dataStart dataLength ret : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : SwapArgs) (s : SwapStateData)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2991⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2991⟩
       (swapLoopWords a p exactWord cache snap dataStart dataLength ret R) mem aw rdata σ k C)
     (ha : a.Fits) (hs : s.Fits) (hm : SwapStateMemory mem p s) (haw : ActiveWords aw)
     (hb : p.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 18 ≤ 1024) :
     ∃ aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 ⟨3029⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨3029⟩
         ((swapContinues a s).toUInt256 ::
           swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
         mem aw' rdata σ k' C' ∧ ActiveWords aw' := by
@@ -87,12 +89,12 @@ theorem swapLoopGuardX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p exactWord cache snap dataStart dataLength ret : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : SwapArgs) (s : SwapStateData)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2991⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2991⟩
       (swapLoopWords a p exactWord cache snap dataStart dataLength ret R) mem aw rdata σ k C)
     (ha : a.Fits) (hs : s.Fits) (hm : SwapStateMemory mem p s) (haw : ActiveWords aw)
     (hb : p.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 18 ≤ 1024) :
     ∃ aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 (if swapContinues a s then ⟨3035⟩ else ⟨3999⟩)
+      RD fork (deployedRuntime v) ee g s0 (if swapContinues a s then ⟨3035⟩ else ⟨3999⟩)
         (swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
         mem aw' rdata σ k' C' ∧ ActiveWords aw' := by
   obtain ⟨aw', k', C', hc, rr, hap⟩ := swapLoopConditionX a s rd ha hs hm haw hb hov

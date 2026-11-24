@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.DelegatedRevokeTailRun
 import Benchmarks.EAS.EAS.DelegatedRevokePrepareMemory
 import Benchmarks.EAS.EAS.VerifyRevokeRun
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -13,10 +15,10 @@ theorem delegatedRevokeRun {L : Store} {ee : ExecutionEnv} {g : Sat256} {s0 evm 
     (hf : L.get? "$EAS.freeMemory" = some (.int (Int.ofNat 512)))
     (hc : delegatedRevokeClean ee.calldata 4)
     (hsize : ee.calldata.size < UInt256.size) (h228 : 228 ≤ ee.calldata.size) (hbig : ee.calldata.size < 2^255+4)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13806⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13806⟩
       (UInt256.ofNat 224::UInt256.ofNat 1136::calldataWord ee.calldata 196::calldataWord ee.calldata 4::UInt256.ofNat 1180::R)
       (delegatedRevokeInputMemory ee.calldata) aw rdata σ k C) :
-    PublicVoidRun config (deployedRuntime v) ee g s0 {contract := contract,locals := L,immutables := immStore v}
+    PublicVoidRun fork config (deployedRuntime v) ee g s0 {contract := contract,locals := L,immutables := immStore v}
       evm (delegatedRevokeVerify ++ delegatedRevokeTail) := by
   let r := delegatedRevokeRecord ee.calldata 4
   have hv := delegatedRevokeInputMemory_view ee.calldata hc.1 hc.2
@@ -47,9 +49,9 @@ theorem delegatedRevokeRun {L : Store} {ee : ExecutionEnv} {g : Sat256} {s0 evm 
       (by simpa only [hn] using hf1) (by rw [hn]; change 512 ≤ heap1 at hlo; omega)
       (by rw [hn]; exact hhi) hfree (by have := hprefix.size; omega) hz hsize (by omega) hbig r1
     exact ht.prepend hsrc
-  · exact PublicVoidRun.revertPrefix (ExecBlock.consRevert hcall : ExecBlock config
+  · exact PublicVoidRun.revertPrefix (ExecBlock.consRevert hcall : ExecBlock fork config
       {contract := contract,locals := L,immutables := immStore v} evm delegatedRevokeVerify .reverted) hrev
-  · exact PublicVoidRun.staticPrefix (ExecBlock.consStatic hcall : ExecBlock config
+  · exact PublicVoidRun.staticPrefix (ExecBlock.consStatic hcall : ExecBlock fork config
       {contract := contract,locals := L,immutables := immStore v} evm delegatedRevokeVerify .staticViolation) hstatic
 
 end Benchmarks.EAS.EAS

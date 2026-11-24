@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.BitMsbSource
 import Benchmarks.UniswapV3.Pool.BitMsbFoldTrace
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_034
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,10 +13,10 @@ set_option maxRecDepth 10000
 theorem bitMsbLastX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (state : Nat × UInt256)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨17752⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨17752⟩
       (UInt256.ofNat state.1 :: state.2 :: ret :: R) mem aw rdata σ k C)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 5 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (UInt256.ofNat (tickLogMsbStep state 1).1 :: R) mem aw rdata σ k' C' := by
   by_cases h : 2 ^ 1 ≤ state.2.toNat
   · have hc : UInt256.lt state.2 (UInt256.ofNat 2) = ⟨0⟩ := ult_zero h
@@ -36,10 +38,10 @@ theorem bitMsbLastX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem bitMsbX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (x : UInt256)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨17608⟩ (x :: ret :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨17608⟩ (x :: ret :: R) mem aw rdata σ k C)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 5 ≤ 1024) :
-    (¬0 < x.toNat ∧ RDrev (deployedRuntime v) g s0) ∨
-      (0 < x.toNat ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    (¬0 < x.toNat ∧ RDrev fork (deployedRuntime v) g s0) ∨
+      (0 < x.toNat ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
         (UInt256.ofNat (tickLogMsbCount x) :: R) mem aw rdata σ k' C') := by
   by_cases hx : 0 < x.toNat
   · have r0 := uniswapV3Pool_block_17608_taken (immWords := wordsOf (immStore v))
@@ -47,7 +49,7 @@ theorem bitMsbX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
       (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; jump_dest) rd
     obtain ⟨k1, C1, r1⟩ := bitMsbFoldX (v := v) (R := ret :: R) (0, x) 0 7 (by decide) r0
       (by simpa only [List.length_cons] using hov)
-    have rp : RD (deployedRuntime v) ee g s0 ⟨17752⟩
+    have rp : RD fork (deployedRuntime v) ee g s0 ⟨17752⟩
         (UInt256.ofNat (bitMsbPrefix x).1 :: (bitMsbPrefix x).2 :: ret :: R)
           mem aw rdata σ k1 C1 := by
       simpa only [bitMsbRun_prefix] using r1

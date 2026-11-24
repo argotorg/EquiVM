@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.SourceWordArithmetic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 
@@ -67,7 +69,7 @@ theorem evalUnsafeDivRoundExpr (imms : Store) (evm : EVM.State) (x y : UInt256)
       evalBinaryOp?, Int.ofNat_eq_natCast, Nat.cast_add, Nat.cast_zero, Nat.cast_one]
 
 theorem unsafeDivRoundReturns (imms : Store) (evm : EVM.State) (x y : UInt256) :
-    ExecFuncBody config (unsafeDivRoundFrame imms x y) evm unsafeDivRoundFunction.body
+    ExecFuncBody fork config (unsafeDivRoundFrame imms x y) evm unsafeDivRoundFunction.body
       (.returned (unsafeDivRoundFrame imms x y) evm
         (some [.int (Int.ofNat (unsafeDivRoundResult x y).toNat)])) := by
   rw [unsafeDivRoundResult_toNat]

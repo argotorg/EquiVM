@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.MultiDelegatedRevokeSource
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -13,21 +15,21 @@ theorem multiDelegatedRevokeAllocateSource {L imms : Store} {evm : EVM.State} {r
     (hf : L.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)))
     (hh : heap ≤ 2^64-1) (hld : r.data.length ≤ 2^64-1) (hls : r.signatures.length ≤ 2^64-1) :
     if heap+192+96*r.data.length+128*r.signatures.length ≤ 2^64-1 then
-      ExecBlock config {contract := contract,locals := L,immutables := imms} evm multiDelegatedRevokeAllocate
+      ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm multiDelegatedRevokeAllocate
         (.ok {contract := contract,locals := multiDelegatedRevokeAllocatedLocals L r heap,immutables := imms} evm)
-    else ExecBlock config {contract := contract,locals := L,immutables := imms} evm multiDelegatedRevokeAllocate .reverted := by
+    else ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm multiDelegatedRevokeAllocate .reverted := by
   have hn0 := allocateNext_128 hh
   have he0 : evalExpr? config {contract := contract,locals := L,immutables := imms} evm (.intLit 128) =
       .ok (.int (Int.ofNat 128)) := by simp only [evalExpr?,pure]; rfl
   by_cases h0 : heap+128 ≤ 2^64-1
-  · have ha0 := allocateBlock_ok he0 hf (by rw [hn0]; exact ⟨h0,by omega⟩)
+  · have ha0 := allocateBlock_ok (fork := fork) he0 hf (by rw [hn0]; exact ⟨h0,by omega⟩)
     rw [hn0] at ha0
     let L1 := allocateBlockLocals L (heap+128)
     have hd1 : L1.get? "data" = some (.array (r.data.map RevocationRequestRecord.tuple)) :=
       (allocateBlockLocals_get (by decide) (by decide) (by decide)).trans hd
     have hf1 : L1.get? "$EAS.freeMemory" = some (.int (Int.ofNat (heap+128))) := by
       simp only [L1,allocateBlockLocals,unpackHeapLocals,store_get_self]
-    have ha1 := arrayAllocateExprSource (cfg := config) (L := L1) (imms := imms) (evm := evm)
+    have ha1 := arrayAllocateExprSource (fork := fork) (cfg := config) (L := L1) (imms := imms) (evm := evm)
       (evalLocalArrayLength hd1) hf1 96
     have hn1 : allocateNext (heap+128) (32+96*r.data.length) = heap+160+96*r.data.length := by
       rw [allocateNext_small h0 (by omega)]
@@ -40,7 +42,7 @@ theorem multiDelegatedRevokeAllocateSource {L imms : Store} {evm : EVM.State} {r
         simpa (disch := decide) only [L2,L1,allocateBlockLocals_get] using hs
       have hf2 : L2.get? "$EAS.freeMemory" = some (.int (Int.ofNat (heap+160+96*r.data.length))) := by
         simp only [L2,allocateBlockLocals,unpackHeapLocals,store_get_self]
-      have ha2 := arrayAllocateExprSource (cfg := config) (L := L2) (imms := imms) (evm := evm)
+      have ha2 := arrayAllocateExprSource (fork := fork) (cfg := config) (L := L2) (imms := imms) (evm := evm)
         (evalLocalArrayLength hs2) hf2 128
       have hn2 : allocateNext (heap+160+96*r.data.length) (32+128*r.signatures.length) =
           heap+192+96*r.data.length+128*r.signatures.length := by

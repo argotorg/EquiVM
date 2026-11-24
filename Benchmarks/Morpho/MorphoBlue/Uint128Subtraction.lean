@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.Uint128Arithmetic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -36,9 +38,9 @@ variable {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 theorem morphoCheckedSub128Ok (hstack : R.length + 6 ≤ 1024)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
     (ha : a.toNat < 2 ^ 128) (hb : b.toNat < 2 ^ 128) (hfit : b.toNat ≤ a.toNat)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12846) (a :: b :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12846) (a :: b :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret (UInt256.sub a b :: R) mem aw rdata σ k' C' := by
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret (UInt256.sub a b :: R) mem aw rdata σ k' C' := by
   have hma : UInt256.land uint128Mask a = a := by rw [u256_land_comm]; exact halfWord_low_clean a ha
   have hmb : UInt256.land uint128Mask b = b := by rw [u256_land_comm]; exact halfWord_low_clean b hb
   have rd1 := morphoBlocks.morpho_block_12846_fallthrough (immWords := wordsOf (immStore v))
@@ -58,8 +60,8 @@ theorem morphoCheckedSub128Ok (hstack : R.length + 6 ≤ 1024)
 
 theorem morphoCheckedSub128Reverts (hstack : R.length + 6 ≤ 1024)
     (ha : a.toNat < 2 ^ 128) (hb : b.toNat < 2 ^ 128) (hunder : a.toNat < b.toNat)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12846) (a :: b :: ret :: R)
-      mem aw rdata σ k C) : RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12846) (a :: b :: ret :: R)
+      mem aw rdata σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   have hma : UInt256.land uint128Mask a = a := by rw [u256_land_comm]; exact halfWord_low_clean a ha
   have hmb : UInt256.land uint128Mask b = b := by rw [u256_land_comm]; exact halfWord_low_clean b hb
   have hc : UInt256.gt (UInt256.sub a b) uint128Mask = ⟨1⟩ := by

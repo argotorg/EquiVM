@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.MemoryArrayIndex
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -13,12 +15,12 @@ theorem resolveManyZeroStep {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {values : UInt256} {words : List UInt256} {i limit : Nat} {R : List UInt256} (v : EASImmutables) (rev : Bool)
     (hstack : R.length+10 ≤ 1024) (hv : WordArrayMemoryView mem values words limit)
     (hi : i < words.length) (hlimit : limit < UInt256.size)
-    (rd : RD (deployedRuntime v) ee g s0 (resolveManyZeroPC rev)
+    (rd : RD fork (deployedRuntime v) ee g s0 (resolveManyZeroPC rev)
       (resolveManyZeroStack rev i values words.length R) mem aw rdata σ k C) :
     if words[i] = ⟨0⟩ then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (resolveManyZeroPC rev)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (resolveManyZeroPC rev)
         (resolveManyZeroStack rev (i+1) values words.length R) mem aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hlen : words.length < UInt256.size := by have := hv.span; omega
   have hprod : 32*i < UInt256.size := by have := hv.span; omega
   have hguard : UInt256.lt (UInt256.ofNat i) (UInt256.ofNat words.length) ≠ ⟨0⟩ := by
@@ -76,9 +78,9 @@ theorem resolveManyZeroDone {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C len : Nat}
     {values ret : UInt256} {R : List UInt256} (v : EASImmutables) (rev : Bool)
     (hstack : R.length+7 ≤ 1024) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 (resolveManyZeroPC rev)
+    (rd : RD fork (deployedRuntime v) ee g s0 (resolveManyZeroPC rev)
       (resolveManyZeroStack rev len values len (ret::R)) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (⟨0⟩::R) mem aw' rdata σ k' C' := by
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (⟨0⟩::R) mem aw' rdata σ k' C' := by
   have hg : UInt256.lt (UInt256.ofNat len) (UInt256.ofNat len) = ⟨0⟩ := ult_zero (le_refl _)
   cases rev with
   | false =>

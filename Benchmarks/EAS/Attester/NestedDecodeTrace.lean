@@ -1,5 +1,7 @@
 import Benchmarks.EAS.Attester.ArrayDecodeTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.EAS.Attester.Immutables attesterRuntimeBlocks
 
@@ -33,14 +35,14 @@ structure NestedHeadChecks (cd : ByteArray) (base entry : UInt256) : Prop where
 theorem attesterNestedView {words : String → UInt256} {ee : ExecutionEnv}
     {g : Sat256} {s0 : State} {mem rdata : ByteArray} {aw ret base entry : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
-    (h : RD (immutableLayout.runtime attesterBytecode words) ee g s0 ⟨2790⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) ee g s0 ⟨2790⟩
       (base :: entry :: ret :: R) mem aw rdata σ k C)
     (hstack : R.length + 9 ≤ 1024)
     (hvalid : (D_J (immutableLayout.runtime attesterBytecode words) 0).contains ret = true) :
     (¬ NestedHeadChecks ee.calldata base entry ∧
-      RDrev (immutableLayout.runtime attesterBytecode words) g s0) ∨
+      RDrev fork (immutableLayout.runtime attesterBytecode words) g s0) ∨
       (NestedHeadChecks ee.calldata base entry ∧ ∃ k' C',
-        RD (immutableLayout.runtime attesterBytecode words) ee g s0 ret
+        RD fork (immutableLayout.runtime attesterBytecode words) ee g s0 ret
           (calldataWord ee.calldata (nestedHead ee.calldata base entry).toNat ::
             (UInt256.ofNat 32 + nestedHead ee.calldata base entry) :: R)
           mem aw rdata σ k' C') := by

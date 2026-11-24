@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.QuoteModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -9,7 +11,7 @@ set_option maxRecDepth 10000
 
 theorem quoteDiscount_result (v : CometWithExtendedAssetListImmutables)
     (asset : AccountAddress) (amount price : UInt256) (out : ByteArray) (evm : EVM.State) :
-    ExecBlock config (quotePriceFrame v asset amount out price) evm quoteDiscountBlock
+    ExecBlock fork config (quotePriceFrame v asset amount out price) evm quoteDiscountBlock
       (if QuoteDiscountValid v out price then
         .ok (quoteDiscountFrame v asset amount out price) evm else .reverted) := by
   let f0 := quotePriceFrame v asset amount out price

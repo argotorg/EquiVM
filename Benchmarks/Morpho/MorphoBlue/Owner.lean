@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.Dispatch
 import Benchmarks.Morpho.MorphoBlue.BodyCommon
 import Benchmarks.Morpho.MorphoBlue.Storage
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Morpho `owner()`
 
@@ -21,7 +23,7 @@ set_option maxRecDepth 2000000
 theorem morphoOwnerBodyReturns (v : MorphoImmutables) (evm : EVM.State)
     (hcv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsize : evm.executionEnv.calldata.size < 2 ^ 255 + 4) :
-    ExecTransitionBody config contract evm ∅ ownerTransition.body
+    ExecTransitionBody fork config contract evm ∅ ownerTransition.body
       (.returned
         { contract := contract,
           locals := (∅ : Store).insert "__calldata" (.bytes evm.executionEnv.calldata),
@@ -38,7 +40,7 @@ theorem morphoOwnerXReturns {σ σ₀ A I} {g : Sat256} (v : MorphoImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 17))
     (hcv : I.weiValue = ⟨0⟩) (hbound : I.calldata.size < 2 ^ 255 + 4) :
-    RDret (deployedRuntime v) g (initState σ σ₀ g A I) σ
+    RDret fork (deployedRuntime v) g (initState σ σ₀ g A I) σ
       (solcAddressSlotWord ⟨0⟩ σ I).toByteArray := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 17) rfl hsel
   obtain ⟨k, C, rd⟩ := morphoReachOwnerBody (g := g) (σ := σ) (σ₀ := σ₀)
@@ -55,7 +57,7 @@ theorem morphoOwnerXReverts {σ σ₀ A I} {g : Sat256} (v : MorphoImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 17))
     (hbad : I.weiValue ≠ ⟨0⟩ ∨ 2 ^ 255 + 4 ≤ I.calldata.size) :
-    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 17) rfl hsel
   obtain ⟨k, C, rd⟩ := morphoReachOwnerBody (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hsz hsize hsel
@@ -79,7 +81,7 @@ theorem morphoOwnerXReverts {σ σ₀ A I} {g : Sat256} (v : MorphoImmutables)
 theorem morphoOwnerBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 17)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 17) rfl hsel
   have hd : selectorDispatchMsg contract I.calldata = some ownerTransition :=
     morphoSelectorDispatch_of_selIs (by decide) hsel

@@ -3,6 +3,8 @@ import Benchmarks.Safe.ViaIR.Decoders
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_025
 import Benchmarks.Safe.ViaIR.IRMemoryAllocation
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -52,13 +54,13 @@ theorem safeTokenTransferMemory {mem : ByteArray} {ptr : Nat} {receiver amount :
 set_option maxRecDepth 5000 in
 theorem safeTokenTransferPrepare {I g s0 σ k C aw mem rdata ptr}
     {amount receiver token : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨5152⟩ (amount :: token :: ⟨0⟩ :: ⟨32⟩ :: receiver :: R)
+    (h : RD fork safeBytecode I g s0 ⟨5152⟩ (amount :: token :: ⟨0⟩ :: ⟨32⟩ :: receiver :: R)
       mem aw rdata σ k C)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr) (hp : 96 ≤ ptr)
     (hb : ptr + 128 < UInt256.size) (hc : receiver.toNat < EVM.addressModulus)
     (hov : R.length + 16 ≤ 1024) :
-    RDrev safeBytecode g s0 ∨
-    ∃ gasArg aw' k' C', ptr + 128 < 2 ^ 64 ∧ RD safeBytecode I g s0 ⟨5214⟩
+    RDrev fork safeBytecode g s0 ∨
+    ∃ gasArg aw' k' C', ptr + 128 < 2 ^ 64 ∧ RD fork safeBytecode I g s0 ⟨5214⟩
       (gasArg :: token :: ⟨0⟩ :: UInt256.ofNat (ptr + 32) :: ⟨68⟩ :: ⟨0⟩ :: ⟨32⟩ ::
         amount :: R) (tokenTransferMemory mem ptr receiver amount) aw' rdata σ k' C' := by
   have hmemory := safeTokenTransferMemory (amount := amount) hf (by omega) hc
@@ -72,7 +74,7 @@ theorem safeTokenTransferPrepare {I g s0 σ k C aw mem rdata ptr}
     (by simpa only [show ABI.paddedSize 100 = 128 from rfl] using hb)
     (by simp; omega) (by jump_dest)
   · exact .inl hrev
-  change RD safeBytecode I g s0 (UInt256.ofNat 5205)
+  change RD fork safeBytecode I g s0 (UInt256.ofNat 5205)
     (UInt256.ofNat ptr :: ⟨0⟩ :: UInt256.ofNat (ptr + 32) :: token :: ⟨0⟩ :: ⟨32⟩ ::
       amount :: R) (tokenTransferMemory mem ptr receiver amount) aw₂ rdata σ k₂ C₂ at h₂
   have hlen : memLoad (UInt256.ofNat ptr) (tokenTransferMemory mem ptr receiver amount) =

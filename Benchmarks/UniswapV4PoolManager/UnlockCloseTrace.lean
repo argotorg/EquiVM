@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.TransientTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_025
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_026
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -18,8 +20,8 @@ theorem unlockCloseReturnTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hv : BytesObjectView mem ptr data) (hfree : memLoad ⟨64⟩ mem = dest)
     (hbefore : ptr.toNat+32+data.size ≤ dest.toNat)
     (hfit : dest.toNat+data.size+96 < UInt256.size)
-    (h : RD (deployedRuntime v) I g s0 ⟨9089⟩ (ptr :: R) mem aw rdata evm.accountMap k C) :
-    RDret (deployedRuntime v) g s0 (lockSetPost evm false).accountMap (bytesReturnEncoding data) := by
+    (h : RD fork (deployedRuntime v) I g s0 ⟨9089⟩ (ptr :: R) mem aw rdata evm.accountMap k C) :
+    RDret fork (deployedRuntime v) g s0 (lockSetPost evm false).accountMap (bytesReturnEncoding data) := by
   have hlen : memLoad ptr ((UInt256.ofNat 32).toByteArray.write 0 mem dest.toNat 32) =
       UInt256.ofNat data.size := (hv.writeWord_after dest.toNat ⟨32⟩ hbefore).lengthWord
   have hd : (UInt256.ofNat data.size).toNat = data.size := UInt256.toNat_ofNat_of_lt (by omega)
@@ -44,7 +46,7 @@ theorem unlockCloseReturnTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
   have hr := poolManager_block_9089 hstack hp h
   have hf : memLoad (UInt256.ofNat 64) mem = dest := hfree
   rw [hf, hlen, hsrc, h32, h64, hend, hd] at hr
-  change RDret _ _ _ _ ((bytesReturnMemory mem ptr dest data).readWithPadding dest.toNat
+  change RDret fork _ _ _ _ ((bytesReturnMemory mem ptr dest data).readWithPadding dest.toNat
     (UInt256.sub (dest+paddedWord (UInt256.ofNat data.size)) dest+UInt256.ofNat 64).toNat) at hr
   rw [hrlen, bytesReturnMemory_read hv hbefore] at hr
   have hs : (lockSetPost evm false).accountMap = tstoreAccountMap I.codeOwner evm.accountMap
@@ -61,10 +63,10 @@ theorem unlockCloseTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hv : BytesObjectView mem ptr data) (hfree : memLoad ⟨64⟩ mem = dest)
     (hbefore : ptr.toNat+32+data.size ≤ dest.toNat)
     (hfit : dest.toNat+data.size+96 < UInt256.size)
-    (h : RD (deployedRuntime v) I g s0 ⟨9049⟩ (saved :: ptr :: R) mem aw rdata evm.accountMap k C) :
+    (h : RD fork (deployedRuntime v) I g s0 ⟨9049⟩ (saved :: ptr :: R) mem aw rdata evm.accountMap k C) :
     if transientWord evm deltaCountSlot = ⟨0⟩ then
-      RDret (deployedRuntime v) g s0 (lockSetPost evm false).accountMap (bytesReturnEncoding data)
-    else RDrev (deployedRuntime v) g s0 := by
+      RDret fork (deployedRuntime v) g s0 (lockSetPost evm false).accountMap (bytesReturnEncoding data)
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hw := transientWord_accountMap hI deltaCountSlot
   by_cases hc : transientWord evm deltaCountSlot = ⟨0⟩
   · rw [if_pos hc]

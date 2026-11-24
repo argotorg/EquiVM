@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.BytesWindowWords
 import Benchmarks.UniswapV3.Pool.AmountDeltaSortTrace
 import Benchmarks.UniswapV3.Pool.Dispatch
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -12,12 +14,12 @@ set_option maxRecDepth 10000
 theorem swapDecodeX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256} {s0 : EVM.State}
     {mem rdata : ByteArray} {aw : UInt256} {k C : Nat} {R : List UInt256}
     {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨471⟩ R mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨471⟩ R mem aw rdata σ k C)
     (hsz : 4 ≤ ee.calldata.size) (hsize : ee.calldata.size < UInt256.size)
     (hov : R.length + 13 ≤ 1024) :
-    (¬ SwapCalldataValid ee.calldata ∧ RDrev (deployedRuntime v) g s0) ∨
+    (¬ SwapCalldataValid ee.calldata ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (SwapCalldataValid ee.calldata ∧ ∃ k' C',
-      RD (deployedRuntime v) ee g s0 ⟨2292⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨2292⟩
         (UInt256.ofNat (swapDataLength ee.calldata) :: UInt256.ofNat (swapDataStart ee.calldata) ::
           (swapDecodedArgs ee.calldata).priceLimit ::
           EVM.wordOfInt (swapDecodedArgs ee.calldata).amountSpecified ::
@@ -61,7 +63,7 @@ theorem swapDecodeX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256} {s0 : EVM
       (swapDecodedArgs ee.calldata).priceLimit := rfl
   have hzero := swapDecodedZeroWord ee.calldata
   rw [hlimit] at r2
-  change RD (deployedRuntime v) ee g s0 ⟨558⟩
+  change RD fork (deployedRuntime v) ee g s0 ⟨558⟩
     (calldataWord ee.calldata 132 :: UInt256.ofNat 164 :: UInt256.ofNat 4 ::
       UInt256.ofNat ee.calldata.size :: (swapDecodedArgs ee.calldata).priceLimit ::
       calldataWord ee.calldata 68 ::

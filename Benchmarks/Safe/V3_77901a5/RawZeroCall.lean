@@ -1,6 +1,8 @@
 import Benchmarks.Safe.V3_77901a5.Common
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V3_77901a5
@@ -9,23 +11,22 @@ namespace Benchmarks.Safe.V3_77901a5
 theorem rawZeroCallTrace {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     {code mem rdata : ByteArray} {pc aw gasArg target inOffset inSize outOffset outSize : UInt256}
     {k C : Nat} {R : List UInt256}
-    (h : RD code I g (initState σ σ₀ g A I) pc
+    (h : RD fork code I g (initState σ σ₀ g A I) pc
       (gasArg :: target :: ⟨0⟩ :: inOffset :: inSize :: outOffset :: outSize :: R)
       mem aw rdata σ k C)
     (hdec : decode code pc = some (.CALL, .none)) (hov : R.length + 1 ≤ 1024) :
     ∃ (evm' : EVM.State) (σ' : AccountMap) (z : Bool) (out : ByteArray) (aw' : UInt256)
       (k' C' : Nat),
-      callViaEVM (initState σ σ₀ g A I) (AccountAddress.ofUInt256 target) 0
+      callViaEVM fork (initState σ σ₀ g A I) (AccountAddress.ofUInt256 target) 0
         (mem.readWithPadding inOffset.toNat inSize.toNat) (z, evm', out) ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧
-      RD code I g (initState σ σ₀ g A I) (pc + ⟨1⟩)
+      RD fork code I g (initState σ σ₀ g A I) (pc + ⟨1⟩)
         ((if z then ⟨1⟩ else ⟨0⟩) :: R) (callOutputMem mem out outOffset outSize)
         aw' out σ' k' C' ∧ out.size < UInt256.size := by
   by_cases hd : I.depth = 1024
   · obtain ⟨k', C', hr⟩ := RD.callDepthLimit h hdec hd hov
     refine ⟨{ initState σ σ₀ g A I with substate :=
-        ((initState σ σ₀ g A I).addAccessedAccount
-          (AccountAddress.ofUInt256 target)).substate },
+        (callSubstate fork σ (AccountAddress.ofUInt256 target) A) },
       σ, false, ByteArray.empty, _, k', C', ?_, rfl, rfl, hr, by decide⟩
     exact callViaEVM.callNotMade rfl rfl (fun hgood ↦ hgood.2 hd)
   · have hdl : I.depth.val < 1024 := by

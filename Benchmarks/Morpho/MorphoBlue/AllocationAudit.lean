@@ -3,6 +3,8 @@ import Benchmarks.Morpho.MorphoBlue.Dispatch
 import Reasoning.ABIComposite
 import Benchmarks.Morpho.MorphoBlue.PackedStorage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -47,8 +49,8 @@ theorem allocationAudit_oversizeReverts {v : MorphoImmutables} {ee : ExecutionEn
     {g : Sat256} {s0 : State} {mem out : ByteArray} {aw ret : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hout : out.size = 2 ^ 64) (hstack : R.length + 4 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14548)
-      (ret :: R) mem aw out σ k C) : RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14548)
+      (ret :: R) mem aw out σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   have rd1 := morphoBlocks.morpho_block_14548_fallthrough
     (immWords := wordsOf (immStore v)) (by change R.length + 1 + 2 ≤ 1024; omega)
     (by rw [hout]; decide) h
@@ -68,8 +70,8 @@ theorem allocationAudit_uint64SizeStillReverts {v : MorphoImmutables} {ee : Exec
     (hout : out.size = 2 ^ 64 - 128)
     (hfree : memLoad (UInt256.ofNat 64) mem = UInt256.ofNat 128)
     (hstack : R.length + 8 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14548)
-      (ret :: R) mem aw out σ k C) : RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14548)
+      (ret :: R) mem aw out σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   have rd1 := morphoBlocks.morpho_block_14548_fallthrough
     (immWords := wordsOf (immStore v)) (by change R.length + 1 + 2 ≤ 1024; omega)
     (by rw [hout]; decide) h

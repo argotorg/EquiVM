@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.SupplyAuthEvm
 import Benchmarks.CompoundIII.Comet.ReentrancyEvm
 import Benchmarks.CompoundIII.Comet.AccrueAccountInternal
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -19,11 +21,11 @@ theorem cometSupplyInternalAfter {v : CometWithExtendedAssetListImmutables}
     (hfree : memLoad ⟨64⟩ mem = free) (hlo : 96 ≤ free.toNat) (hmem : 96 ≤ mem.size)
     (hbound : free.toNat + 576 + 768 * v.numAssets.toNat < 2^64)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨12067⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨12067⟩
       (EVM.word operator.val :: EVM.word sender.val :: EVM.word dst.val :: EVM.word asset.val ::
         amount :: UInt256.ofNat 2308 :: R) mem aw rdata σ k C) :
-    ∃ result, SupplyInternalAfter v operator sender dst asset amount evm result ∧
-      voidOutcomeRun (deployedRuntime v) g s0 result := by
+    ∃ result, SupplyInternalAfter fork v operator sender dst asset amount evm result ∧
+      voidOutcomeRun fork (deployedRuntime v) g s0 result := by
   have ha := cometSupplyAuth (v := v) operator sender dst asset
     (by change R.length + 1 + 13 ≤ 1024; omega) hs h
   by_cases hv : AuthorizationValid evm ⟨0, by decide⟩ operator sender
@@ -51,12 +53,12 @@ theorem cometSupplyInternalStart {v : CometWithExtendedAssetListImmutables}
     (hs : SourceState s0 ee σ evm)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
     (hbody : ∀ {evm' σ' aw' k' C'}, SourceState s0 ee σ' evm' → ee.perm = true →
-      RD (deployedRuntime v) ee g s0 ret R (reentrancyMemory v mem) aw' rdata σ' k' C' →
-      ∃ result, SupplyInternalAfter v operator sender dst asset amount evm' result ∧
-        voidOutcomeRun (deployedRuntime v) g s0 result)
-    (h : RD (deployedRuntime v) ee g s0 ⟨12245⟩ (ret :: R) mem aw rdata σ k C) :
-    ∃ result, SupplyInternalTrace v operator sender dst asset amount evm result ∧
-      voidOutcomeRun (deployedRuntime v) g s0 result := by
+      RD fork (deployedRuntime v) ee g s0 ret R (reentrancyMemory v mem) aw' rdata σ' k' C' →
+      ∃ result, SupplyInternalAfter fork v operator sender dst asset amount evm' result ∧
+        voidOutcomeRun fork (deployedRuntime v) g s0 result)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨12245⟩ (ret :: R) mem aw rdata σ k C) :
+    ∃ result, SupplyInternalTrace fork v operator sender dst asset amount evm result ∧
+      voidOutcomeRun fork (deployedRuntime v) g s0 result := by
   have hr := cometReentrancyBefore (v := v) hstack hs hret h
   cases he : reentrancyOutcome evm true with
   | reverted => rw [he] at hr; exact ⟨.reverted, .reverted he, hr⟩

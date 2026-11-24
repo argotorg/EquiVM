@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.DonateHookABI
 import Benchmarks.UniswapV4PoolManager.InitializeHookSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -18,8 +20,8 @@ theorem donateHookBody {f : Frame} {evm post : State} {hook : AccountAddress}
     (h1 : f.locals.get? "amount1" = some (.int (Int.ofNat amount1.toNat)))
     (hd : f.locals.get? "hookData" = some (.bytes data)) (hc : PoolKeyCanonical key)
     (hcall : hookEnabled evm.executionEnv.source hook (donateHookFlag after) →
-      callViaEVM evm hook 0 (donateHookPayload after evm.executionEnv.source key amount0 amount1 data) (z, post, out)) :
-    ∃ f', ExecFuncBody config f evm (donateHookFunction after).body
+      callViaEVM fork evm hook 0 (donateHookPayload after evm.executionEnv.source key amount0 amount1 data) (z, post, out)) :
+    ∃ f', ExecFuncBody fork config f evm (donateHookFunction after).body
       (hookInvocationResult f' evm post (hookEnabled evm.executionEnv.source hook (donateHookFlag after)) z
         (donateHookPayload after evm.executionEnv.source key amount0 amount1 data) out) := by
   have hcaller : evalExpr? config f evm (.env .caller) = .ok (.address evm.executionEnv.source) := by
@@ -51,9 +53,9 @@ theorem donateHookCall {f : Frame} {evm post : State} {hook : AccountAddress}
     (h1 : evalExpr? config f evm e1 = .ok (.int (Int.ofNat amount1.toNat)))
     (hd : evalExpr? config f evm ed = .ok (.bytes data)) (hc : PoolKeyCanonical key)
     (hcall : hookEnabled evm.executionEnv.source hook (donateHookFlag after) →
-      callViaEVM evm hook 0 (donateHookPayload after evm.executionEnv.source key amount0 amount1 data) (z, post, out))
+      callViaEVM fork evm hook 0 (donateHookPayload after evm.executionEnv.source key amount0 amount1 data) (z, post, out))
     (ret : Ident) :
-    ExecStmt config f evm (.internalCall (donateHookFunctionName after) [es, ek, e0, e1, ed] ret)
+    ExecStmt fork config f evm (.internalCall (donateHookFunctionName after) [es, ek, e0, e1, ed] ret)
       (resumeCallResult f ret (hookInvocationResult f evm post
         (hookEnabled evm.executionEnv.source hook (donateHookFlag after)) z
         (donateHookPayload after evm.executionEnv.source key amount0 amount1 data) out)) := by

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.PoolDonateDeltaSource
 import Benchmarks.UniswapV4PoolManager.PoolDonateTailSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -16,12 +18,12 @@ theorem poolDonateBody {f : Frame} {evm : State} {id amount0 amount1 : UInt256}
     (hf : f.contract = contract) (hs : f.locals.get? "state" = some (poolRefValue id))
     (h0 : f.locals.get? "amount0" = some (.int (Int.ofNat amount0.toNat)))
     (h1 : f.locals.get? "amount1" = some (.int (Int.ofNat amount1.toNat))) :
-    ∃ f', ExecFuncBody config f evm poolDonateFunction.body (poolDonateResult f' evm id amount0 amount1) := by
+    ∃ f', ExecFuncBody fork config f evm poolDonateFunction.body (poolDonateResult f' evm id amount0 amount1) := by
   let f0 := wordLocal f "delta" ⟨0⟩
   let f1 := wordLocal f0 "liquidity" (poolLiquidityWord evm id)
-  have hdelta : ExecStmt config f evm poolDonateFunction.body[0]! (.ok f0 evm) :=
+  have hdelta : ExecStmt fork config f evm poolDonateFunction.body[0]! (.ok f0 evm) :=
     ExecStmt.letDecl (by simp only [evalExpr?, pure]; rfl)
-  have hliq : ExecStmt config f0 evm poolDonateFunction.body[1]! (.ok f1 evm) :=
+  have hliq : ExecStmt fork config f0 evm poolDonateFunction.body[1]! (.ok f1 evm) :=
     ExecStmt.letDecl (poolLiquidity_read
       ((store_get_ne _ _ (by decide : ("delta" == "state") = false)).trans hs))
   have hguard : evalExpr? config f1 evm (.binary .eq (.var "liquidity") (.intLit 0)) =
@@ -33,7 +35,7 @@ theorem poolDonateBody {f : Frame} {evm : State} {id amount0 amount1 : UInt256}
     exact ⟨f, .execBlockRevert (ExecBlock.consNormal hdelta (ExecBlock.consNormal hliq
       (ExecBlock.consRevert (ExecStmt.iteTrue (by simpa only [decide_eq_true hz] using hguard)
         (ExecBlock.consRevert (ExecStmt.requireFalse (by simp only [evalExpr?, pure])))))))⟩
-  have hpre : ExecBlock config f evm (poolDonateFunction.body.take 3) (.ok f1 evm) :=
+  have hpre : ExecBlock fork config f evm (poolDonateFunction.body.take 3) (.ok f1 evm) :=
     ExecBlock.consNormal hdelta (ExecBlock.consNormal hliq (execBlock_singleton
       (ExecStmt.iteFalse (by simpa only [decide_eq_false hz] using hguard) ExecBlock.nil)))
   have hf1 : f1.contract = contract := by dsimp only [f1, f0, wordLocal]; exact hf
@@ -48,7 +50,7 @@ theorem poolDonateBody {f : Frame} {evm : State} {id amount0 amount1 : UInt256}
       (by decide : ("liquidity" == "amount1") = false)).trans h1
   have hd1 : f1.locals.get? "delta" = some (.int 0) :=
     (store_get_ne _ _ (by decide : ("liquidity" == "delta") = false)).trans (store_get_self _ _ _)
-  have hcast := poolDonateDeltaSource (evm := evm) hf1 ha1 hb1 hd1
+  have hcast := poolDonateDeltaSource (fork := fork) (evm := evm) hf1 ha1 hb1 hd1
   by_cases hfit : amount0.toNat < 2^127 ∧ amount1.toNat < 2^127
   swap
   · rw [if_neg hfit] at hcast
@@ -81,7 +83,7 @@ theorem poolDonateCall {f : Frame} {evm : State} {id amount0 amount1 : UInt256} 
     (hf : f.contract = contract) (hs : evalExpr? config f evm es = .ok (poolRefValue id))
     (h0 : evalExpr? config f evm e0 = .ok (.int (Int.ofNat amount0.toNat)))
     (h1 : evalExpr? config f evm e1 = .ok (.int (Int.ofNat amount1.toNat))) (dest : Ident) :
-    ∃ f', ExecStmt config f evm (.internalCall "Pool_donate" [es, e0, e1] dest)
+    ∃ f', ExecStmt fork config f evm (.internalCall "Pool_donate" [es, e0, e1] dest)
       (resumeCallResult f dest (poolDonateResult f' evm id amount0 amount1)) := by
   let cf : Frame := {f with locals := (((∅ : Store).insert "amount1" (.int (Int.ofNat amount1.toNat))).insert
     "amount0" (.int (Int.ofNat amount0.toNat))).insert "state" (poolRefValue id)}

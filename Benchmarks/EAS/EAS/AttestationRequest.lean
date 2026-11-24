@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.GetUIDSource
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -36,7 +38,7 @@ theorem decodeAttestationDataExpr_eval {cfg : Config} {frame : Frame} {evm : EVM
 theorem decodeAttestationDataSource {cfg : Config} {frame : Frame} {evm : EVM.State} {r : AttestationRequestRecord} {heap : Nat}
     (hd : frame.locals.get? "data" = some r.tuple)
     (hh : frame.locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap))) :
-    ExecFuncBody cfg frame evm decodeAttestationDataFunction.body
+    ExecFuncBody fork cfg frame evm decodeAttestationDataFunction.body
       (.returned frame evm (some [r.struct,.int (Int.ofNat heap)])) := by
   rw [decodeAttestationData_body]
   apply ExecFuncBody.execBlockRet
@@ -55,7 +57,7 @@ theorem decodeAttestationDataCall {cfg : Config} {locals imms : Store} {evm : EV
     {args : List Expr} {retVar : Ident} {r : AttestationRequestRecord} {heap : Nat}
     (he : evalExprs? cfg {contract := contract,locals := locals,immutables := imms} evm args =
       .ok [r.tuple,.int (Int.ofNat heap)]) :
-    ExecStmt cfg {contract := contract,locals := locals,immutables := imms} evm
+    ExecStmt fork cfg {contract := contract,locals := locals,immutables := imms} evm
       (.internalCall "_decodeAttestationData" args retVar)
       (.ok (resumeAfterInternalCall {contract := contract,locals := locals,immutables := imms} retVar
         (some [r.struct,.int (Int.ofNat heap)])) evm) := by

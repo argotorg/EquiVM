@@ -1,5 +1,7 @@
 import Benchmarks.CurveVault.Calls
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch Reasoning.VyperCalls
 namespace Benchmarks.CurveVault
 
@@ -15,25 +17,25 @@ theorem staticWordCallBridgeExact {cfg : Config} {code : ByteArray}
     (hcd : cfg.externalABI.encode? callName [] = some (mem.readWithPadding inOffset.toNat 4))
     (hbuffer : outOffset.toNat + 32 ≤ mem.size)
     (hpass : ∀ {mem' aw' out σ' k' C'}, 32 ≤ out.size → out.size < UInt256.size →
-      RD code I g s0 (pc + ⟨1⟩) (⟨1⟩ :: R) mem' aw' out σ' k' C' →
-      ∃ k'' C'', RD code I g s0 next (nextStack out) mem' aw' out σ' k'' C'')
+      RD fork code I g s0 (pc + ⟨1⟩) (⟨1⟩ :: R) mem' aw' out σ' k' C' →
+      ∃ k'' C'', RD fork code I g s0 next (nextStack out) mem' aw' out σ' k'' C'')
     (hfail : ∀ {mem' aw' out σ' k' C'},
-      RD code I g s0 (pc + ⟨1⟩) (⟨0⟩ :: R) mem' aw' out σ' k' C' → RDrev code g s0)
+      RD fork code I g s0 (pc + ⟨1⟩) (⟨0⟩ :: R) mem' aw' out σ' k' C' → RDrev fork code g s0)
     (hshort : ∀ {mem' aw' out σ' k' C'}, out.size < 32 →
-      RD code I g s0 (pc + ⟨1⟩) (⟨1⟩ :: R) mem' aw' out σ' k' C' → RDrev code g s0)
-    (h : RD code I g s0 pc
+      RD fork code I g s0 (pc + ⟨1⟩) (⟨1⟩ :: R) mem' aw' out σ' k' C' → RDrev fork code g s0)
+    (h : RD fork code I g s0 pc
       (gasArg :: target :: inOffset :: ⟨4⟩ :: outOffset :: ⟨32⟩ :: R) mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (out : ByteArray) (aw' : UInt256) (k' C' : Nat),
       aw' = UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat 4) outOffset.toNat 32) ∧
       32 ≤ out.size ∧ out.size < UInt256.size ∧
-      typedCallViaEVM cfg evm (AccountAddress.ofUInt256 target) callName 0 [] (true, evm', out) false ∧
+      typedCallViaEVM fork cfg evm (AccountAddress.ofUInt256 target) callName 0 [] (true, evm', out) false ∧
       SourceState s0 I σ' evm' ∧
-      RD code I g s0 next (nextStack out) ((retWord out).toByteArray.write 0 mem outOffset.toNat 32) aw' out σ' k' C') ∨
+      RD fork code I g s0 next (nextStack out) ((retWord out).toByteArray.write 0 mem outOffset.toNat 32) aw' out σ' k' C') ∨
     (∃ (evm' : State) (out : ByteArray),
-      typedCallViaEVM cfg evm (AccountAddress.ofUInt256 target) callName 0 [] (false, evm', out) false ∧ RDrev code g s0) ∨
+      typedCallViaEVM fork cfg evm (AccountAddress.ofUInt256 target) callName 0 [] (false, evm', out) false ∧ RDrev fork code g s0) ∨
     (∃ (evm' : State) (out : ByteArray),
-      typedCallViaEVM cfg evm (AccountAddress.ofUInt256 target) callName 0 [] (true, evm', out) false ∧
-      out.size < 32 ∧ RDrev code g s0) := by
+      typedCallViaEVM fork cfg evm (AccountAddress.ofUInt256 target) callName 0 [] (true, evm', out) false ∧
+      out.size < 32 ∧ RDrev fork code g s0) := by
   obtain ⟨evm', σ', z, out, k', C', hcall, hs', rd, hout⟩ :=
     typedStaticCallBridge h hs hpc hcd (by decide +kernel) hstack
   have hout256 : out.size < UInt256.size := lt_trans hout (by decide +kernel)
@@ -57,24 +59,24 @@ theorem staticWordCallBridge {cfg : Config} {code : ByteArray}
     (hcd : cfg.externalABI.encode? callName [] = some (mem.readWithPadding inOffset.toNat 4))
     (hbuffer : outOffset.toNat + 32 ≤ mem.size)
     (hpass : ∀ {mem' aw' out σ' k' C'}, 32 ≤ out.size → out.size < UInt256.size →
-      RD code I g s0 (pc + ⟨1⟩) (⟨1⟩ :: R) mem' aw' out σ' k' C' →
-      ∃ k'' C'', RD code I g s0 next (nextStack out) mem' aw' out σ' k'' C'')
+      RD fork code I g s0 (pc + ⟨1⟩) (⟨1⟩ :: R) mem' aw' out σ' k' C' →
+      ∃ k'' C'', RD fork code I g s0 next (nextStack out) mem' aw' out σ' k'' C'')
     (hfail : ∀ {mem' aw' out σ' k' C'},
-      RD code I g s0 (pc + ⟨1⟩) (⟨0⟩ :: R) mem' aw' out σ' k' C' → RDrev code g s0)
+      RD fork code I g s0 (pc + ⟨1⟩) (⟨0⟩ :: R) mem' aw' out σ' k' C' → RDrev fork code g s0)
     (hshort : ∀ {mem' aw' out σ' k' C'}, out.size < 32 →
-      RD code I g s0 (pc + ⟨1⟩) (⟨1⟩ :: R) mem' aw' out σ' k' C' → RDrev code g s0)
-    (h : RD code I g s0 pc
+      RD fork code I g s0 (pc + ⟨1⟩) (⟨1⟩ :: R) mem' aw' out σ' k' C' → RDrev fork code g s0)
+    (h : RD fork code I g s0 pc
       (gasArg :: target :: inOffset :: ⟨4⟩ :: outOffset :: ⟨32⟩ :: R) mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (out : ByteArray) (aw' : UInt256) (k' C' : Nat),
       32 ≤ out.size ∧ out.size < UInt256.size ∧
-      typedCallViaEVM cfg evm (AccountAddress.ofUInt256 target) callName 0 [] (true, evm', out) false ∧
+      typedCallViaEVM fork cfg evm (AccountAddress.ofUInt256 target) callName 0 [] (true, evm', out) false ∧
       SourceState s0 I σ' evm' ∧
-      RD code I g s0 next (nextStack out) ((retWord out).toByteArray.write 0 mem outOffset.toNat 32) aw' out σ' k' C') ∨
+      RD fork code I g s0 next (nextStack out) ((retWord out).toByteArray.write 0 mem outOffset.toNat 32) aw' out σ' k' C') ∨
     (∃ (evm' : State) (out : ByteArray),
-      typedCallViaEVM cfg evm (AccountAddress.ofUInt256 target) callName 0 [] (false, evm', out) false ∧ RDrev code g s0) ∨
+      typedCallViaEVM fork cfg evm (AccountAddress.ofUInt256 target) callName 0 [] (false, evm', out) false ∧ RDrev fork code g s0) ∨
     (∃ (evm' : State) (out : ByteArray),
-      typedCallViaEVM cfg evm (AccountAddress.ofUInt256 target) callName 0 [] (true, evm', out) false ∧
-      out.size < 32 ∧ RDrev code g s0) := by
+      typedCallViaEVM fork cfg evm (AccountAddress.ofUInt256 target) callName 0 [] (true, evm', out) false ∧
+      out.size < 32 ∧ RDrev fork code g s0) := by
   rcases staticWordCallBridgeExact hs hstack hpc hcd hbuffer hpass hfail hshort h with
     ⟨evm', σ', out, aw', k', C', _, h32, hwide, hcall, hs', rd⟩ | hfail
   · exact Or.inl ⟨evm', σ', out, aw', k', C', h32, hwide, hcall, hs', rd⟩

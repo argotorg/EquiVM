@@ -5,6 +5,8 @@ import Benchmarks.CompoundIII.Comet.NarrowArithmetic
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_018
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_055
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -18,15 +20,15 @@ theorem cometAbsorbPointsCounts {v : CometWithExtendedAssetListImmutables}
     {p : LiquidatorPointsData} {R : List UInt256}
     (hstack : R.length + 18 ≤ 1024) (hm : LiquidatorPointsMemory mem ptr p)
     (ha : p.absorbs.toNat < 2^32) (hb : p.absorbed.toNat < 2^64) (hn : n.toNat < 2^64)
-    (h : RD (deployedRuntime v) ee g s0 ⟨16758⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨16758⟩
       (ptr :: ⟨16794⟩ :: ⟨16812⟩ :: gasUsed :: ⟨13846⟩ :: ⟨16819⟩ :: ⟨16850⟩ ::
         absorber :: ⟨16857⟩ :: n :: ⟨3121⟩ :: ret :: R) mem aw rdata σ k C) :
     if p.absorbs.toNat + 1 < 2^32 ∧ p.absorbed.toNat + n.toNat < 2^64 then
       ∃ mem' aw' k' C', LiquidatorPointsMemory mem' ptr (absorbPointsCounts p n) ∧
-        RD (deployedRuntime v) ee g s0 ⟨16812⟩
+        RD fork (deployedRuntime v) ee g s0 ⟨16812⟩
           (gasUsed :: ⟨13846⟩ :: ⟨16819⟩ :: ⟨16850⟩ :: absorber :: ⟨16857⟩ :: ptr ::
             ⟨3121⟩ :: ret :: R) mem' aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hmask : UInt256.land (UInt256.ofNat 4294967295) p.absorbs = p.absorbs := by
     rw [u256_land_comm]
     exact u256LandMaskCleanOfToNat _ _ (bits := 32) rfl ha

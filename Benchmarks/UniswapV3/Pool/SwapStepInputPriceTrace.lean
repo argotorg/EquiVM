@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapStepPriceTraceModel
 import Benchmarks.UniswapV3.Pool.NextPriceTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -10,15 +12,15 @@ set_option maxRecDepth 10000
 theorem swapStepInputPriceX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw currentRaw targetRaw liquidityRaw feeRaw : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables} (a : SwapStepArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨12542⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨12542⟩
       (swapStepInitialDelta a :: swapStepBudget a ::
         swapStepReadyWords a currentRaw targetRaw liquidityRaw feeRaw ++ R) mem aw rdata σ k C)
     (hc : UInt256.land currentRaw (UInt256.ofNat (2 ^ 160 - 1)) = a.current)
     (hl : UInt256.land liquidityRaw (UInt256.ofNat (2 ^ 128 - 1)) = a.liquidity)
     (hi : swapStepExactIn a = true) (hov : R.length + 49 ≤ 1024) :
     (¬swapStepChoiceValid a ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    (swapStepChoiceValid a ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨12654⟩
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    (swapStepChoiceValid a ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨12654⟩
       (swapStepPriceWords a currentRaw targetRaw liquidityRaw feeRaw ++ R)
       mem aw rdata σ k' C') := by
   simp only [swapStepReadyWords, swapStepRawWords, List.cons_append, List.nil_append] at rd
@@ -30,7 +32,7 @@ theorem swapStepInputPriceX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
       (by evm_ov) hcond (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; jump_dest) rd
     have r2 := uniswapV3Pool_block_12559 (immWords := wordsOf (immStore v))
       (by evm_ov) (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; jump_dest) r1
-    have rcall : RD (deployedRuntime v) ee g s0 (nextPriceEntry true)
+    have rcall : RD fork (deployedRuntime v) ee g s0 (nextPriceEntry true)
         ((if (swapStepNextArgs a).zeroForOne then ⟨1⟩ else ⟨0⟩) ::
           (swapStepNextArgs a).amount :: liquidityRaw :: currentRaw :: ⟨12571⟩ ::
           swapStepBudget a :: swapStepUnpricedWords a currentRaw targetRaw liquidityRaw feeRaw ++ R)

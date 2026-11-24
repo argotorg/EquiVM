@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.OracleSurroundingSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 
@@ -18,7 +20,7 @@ theorem oracleSurroundingReverts (imms : Store) (evm : EVM.State) (time target :
     (tick : Int) (index liquidity card : UInt256) (ht : target.toNat < 2 ^ 32)
     (hc : card.toNat < 2 ^ 16)
     (hfail : OracleSurroundingFailure time target index card evm.accountMap evm.executionEnv) :
-    ExecFuncBody config (oracleSurroundingFrame imms time target tick index liquidity card)
+    ExecFuncBody fork config (oracleSurroundingFrame imms time target tick index liquidity card)
       evm oracleSurroundingFunction.body .reverted := by
   cases hfail with
   | index hi => exact oracleSurroundingIndexReverts imms evm time target tick index liquidity card hi

@@ -1,6 +1,8 @@
 import Benchmarks.EAS.Attester.ConstructorTrace
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # EAS Attester constructor correctness stub
 
@@ -17,24 +19,24 @@ namespace Benchmarks.EAS.Attester
 theorem attesterConstructorCorrect :
     typedConstructorRefinement config attesterCreationBytecode contract
       (deployedRuntime attesterBytecode) := by
-  intro σ σ₀ g A I args code hdeploy hcode _hcalldata _hperm
+  intro fork _hfork σ σ₀ g A I args code hdeploy hcode _hcalldata _hperm
   obtain ⟨eas, rfl, hdeployed⟩ := constructorDeployment_shape hdeploy
   rw [hdeployed] at hcode
   have hcode' : I.code = constructorCode eas := hcode
   by_cases hv : I.weiValue = ⟨0⟩
   · by_cases hz : eas = ⟨0, by decide⟩
-    · have hr := constructorZeroTrace (σ := σ) (σ₀ := σ₀) (g := Sat256.ofUInt256 g)
+    · have hr := constructorZeroTrace (fork := fork) (σ := σ) (σ₀ := σ₀) (g := Sat256.ofUInt256 g)
         (A := A) eas hcode' hv hz
       rcases hr.xiResult hcode' with hoog | ⟨gasLeft, out, hrev⟩
       · exact .outOfGas (by simpa only [Sat256.ofUInt256] using hoog)
       · exact .execution hrev (constructorSourceZero eas hv hz) (.revert rfl rfl) trivial
-    · have hr := constructorSuccessTrace (σ := σ) (σ₀ := σ₀) (g := Sat256.ofUInt256 g)
+    · have hr := constructorSuccessTrace (fork := fork) (σ := σ) (σ₀ := σ₀) (g := Sat256.ofUInt256 g)
         (A := A) eas hcode' hv hz
       rcases hr.xiResult hcode' with hoog | ⟨gasLeft, A', hsuccess⟩
       · exact .outOfGas (by simpa only [Sat256.ofUInt256] using hoog)
       · exact .execution hsuccess (constructorSourceSuccess eas hv hz)
           (.success rfl rfl rfl rfl) (constructorFinalImms_fit eas)
-  · have hr := constructorNonpayableTrace (σ := σ) (σ₀ := σ₀) (g := Sat256.ofUInt256 g)
+  · have hr := constructorNonpayableTrace (fork := fork) (σ := σ) (σ₀ := σ₀) (g := Sat256.ofUInt256 g)
       (A := A) hcode hv
     rcases hr.xiResult hcode with hoog | ⟨gasLeft, out, hrev⟩
     · exact .outOfGas (by simpa only [Sat256.ofUInt256] using hoog)

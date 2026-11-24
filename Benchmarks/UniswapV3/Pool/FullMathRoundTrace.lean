@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.FullMathRoundSource
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_053
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_054
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -12,11 +14,11 @@ set_option maxRecDepth 10000
 theorem fullMathRoundX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret a b d : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨16809⟩ (d :: b :: a :: ret :: R)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨16809⟩ (d :: b :: a :: ret :: R)
       mem aw rdata σ k C)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 21 ≤ 1024) :
-    (¬ fullMathRoundValid a b d ∧ RDrev (deployedRuntime v) g s0) ∨
-    (fullMathRoundValid a b d ∧ ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) ee g s0 ret
+    (¬ fullMathRoundValid a b d ∧ RDrev fork (deployedRuntime v) g s0) ∨
+    (fullMathRoundValid a b d ∧ ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) ee g s0 ret
       (fullMathRoundResult a b d :: R) mem aw rdata σ k' C') := by
   have r0 := uniswapV3Pool_block_16809 (immWords := wordsOf (immStore v)) (by evm_ov)
     (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; jump_dest) rd
@@ -32,7 +34,7 @@ theorem fullMathRoundX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
       omega
     have r2 := uniswapV3Pool_block_16822_taken (immWords := wordsOf (immStore v)) (by evm_ov)
       hdword (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; jump_dest) r1
-    have r2' : RD (deployedRuntime v) ee g s0 ⟨16834⟩
+    have r2' : RD fork (deployedRuntime v) ee g s0 ⟨16834⟩
         (d :: ⟨0⟩ :: fullMathResult a b d :: d :: b :: a :: ret :: R)
         mem aw rdata σ (k1 + 8) (C1 + 28) := r2
     have hrem : (UInt256.mulMod a b d).toNat = fullMathProduct a b % d.toNat :=

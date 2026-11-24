@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.Routines
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_034
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -19,7 +21,7 @@ theorem blockTimestampWord_lt (I : ExecutionEnv) : (blockTimestampWord I).toNat 
   u256LandMaskToNatLtOfToNat _ _ (by decide)
 
 theorem blockTimestampReturns (imms : Store) (evm : EVM.State) :
-    ExecFuncBody config {contract := contract, locals := ∅, immutables := imms} evm
+    ExecFuncBody fork config {contract := contract, locals := ∅, immutables := imms} evm
       blockTimestampFunction.body
       (.returned {contract := contract, locals := ∅, immutables := imms} evm
         (some [.int (Int.ofNat (blockTimestampWord evm.executionEnv).toNat)])) := by
@@ -32,9 +34,9 @@ theorem blockTimestampReturns (imms : Store) (evm : EVM.State) :
 theorem blockTimestampX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨11303⟩ (ret :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨11303⟩ (ret :: R) mem aw rdata σ k C)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 2 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (UInt256.ofNat ee.header.timestamp :: R) mem aw rdata σ k' C' :=
   ⟨_, _, uniswapV3Pool_block_11303 (immWords := wordsOf (immStore v)) hov hret rd⟩
 

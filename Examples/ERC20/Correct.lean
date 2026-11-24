@@ -17,6 +17,8 @@ import Reasoning.Initcode
 import Reasoning.Memory
 import Mathlib.Tactic.IntervalCases
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # ERC20 — top-level correctness scaffold (driven by the generic dispatcher)
 
@@ -32,6 +34,12 @@ open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 set_option maxRecDepth 2000000
 
 namespace ERC20
+
+section
+
+-- Concrete decoder facts must reduce the empty padding of a complete PUSH operand.
+set_option allowUnsafeReducibility true in
+attribute [local semireducible] ByteArray.zeroes
 
 /-- The 4-byte function selector word the dispatcher computes from `calldata[0:32]`. -/
 abbrev erc20SelWord (I : ExecutionEnv) : UInt256 :=
@@ -95,7 +103,7 @@ theorem erc20ReachBody {σ σ₀ A I} {g : Sat256} (i : ℕ) (hi5 : i ≤ 5) (bo
         (erc20SelWord I) ≠ ⟨0⟩)
     (hjd : (D_J erc20Bytecode 0).contains bodyPC = true)
     (hbody : armTgt erc20Bytecode (nthArmPc erc20Bytecode erc20FirstArmPc i) = bodyPC) :
-    ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) bodyPC
+    ∃ k C, RD fork erc20Bytecode I g (initState σ σ₀ g A I) bodyPC
         [erc20SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   exact solcDispatchReachBody
     (firstArmPc := erc20FirstArmPc) (bodyPC := bodyPC) (i := i)
@@ -138,14 +146,14 @@ theorem erc20Dispatch_none_nomatch {cd : ByteArray}
 
 theorem erc20BodyReverts_nonPayable (t : TransitionDecl) (ht : t ∈ erc20Contract.transitions)
     (evm : EVM.State) (locals : Store) (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecTransitionBody erc20Config erc20Contract evm locals t.body .reverted := by
+    ExecTransitionBody fork erc20Config erc20Contract evm locals t.body .reverted := by
   simp [erc20Contract] at ht
   rcases ht with rfl | rfl | rfl | rfl | rfl | rfl <;>
     exact bodyReverts_nonPayable h
 
 theorem erc20X_callvalue_ne {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = erc20Bytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev erc20Bytecode g (initState σ σ₀ g A I) := by
+    RDrev fork erc20Bytecode g (initState σ σ₀ g A I) := by
   exact solcGuardCallvalueNonzeroRevert
     (ctgt := solcGuardTgt erc20Bytecode) (opC := solcGuardTgtOp erc20Bytecode)
     (wC := solcGuardTgtWidth erc20Bytecode)
@@ -155,8 +163,8 @@ theorem erc20X_callvalue_ne {σ σ₀ A I} {g : Sat256}
 
 theorem erc20X_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = erc20Bytecode) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    RDrev erc20Bytecode g (initState σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
+    RDrev fork erc20Bytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (fork := fork) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
     (ctgt := solcGuardTgt erc20Bytecode) (opC := solcGuardTgtOp erc20Bytecode)
@@ -174,7 +182,7 @@ theorem erc20X_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = erc20Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 6 → (erc20SelBytes i == I.calldata.extract 0 4) = false) :
-    RDrev erc20Bytecode g (initState σ σ₀ g A I) := by
+    RDrev fork erc20Bytecode g (initState σ σ₀ g A I) := by
   have heq0 : ∀ j, j < 6 →
       UInt256.eq (armSelNat erc20Bytecode (nthArmPc erc20Bytecode erc20FirstArmPc j))
         (erc20SelWord I) = ⟨0⟩ := by
@@ -182,7 +190,7 @@ theorem erc20X_noMatch {σ σ₀ A I} {g : Sat256}
     rw [erc20ArmEq I hsz j hj]
     rw [hnm j hj]
     rfl
-  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
+  have h0 := solcGuardPrologueRD (fork := fork) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
   obtain ⟨k1, C1, h1⟩ := solcGuardCallvalueZero
     (ctgt := solcGuardTgt erc20Bytecode) (opC := solcGuardTgtOp erc20Bytecode)
@@ -195,7 +203,7 @@ theorem erc20X_noMatch {σ σ₀ A I} {g : Sat256}
     (wR := solcCalldataRevertTgtWidth erc20Bytecode)
     h1 hsz hsize (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
   obtain ⟨k3, C3, h3⟩ := solcSelectorLoad h2 (by decide) (by decide) (by decide) (by decide) (by simp)
-  have h4 : RD erc20Bytecode I g (initState σ σ₀ g A I) erc20FirstArmPc
+  have h4 : RD fork erc20Bytecode I g (initState σ σ₀ g A I) erc20FirstArmPc
       [erc20SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k3 C3 := by
     simpa [erc20FirstArmPc, erc20SelWord, solcFirstArmPcFromPrefix, solcSelectorLoadPc,
       solcCalldataJumpiPc, solcCalldataRevertPushPc, solcDispatchBodyPc] using h3
@@ -206,7 +214,7 @@ theorem erc20X_noMatch {σ σ₀ A I} {g : Sat256}
     |>.selectorArmNotTakenAuto (erc20ArmsWellFormed 3 (by omega)) (heq0 3 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (erc20ArmsWellFormed 4 (by omega)) (heq0 4 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (erc20ArmsWellFormed 5 (by omega)) (heq0 5 (by omega)) (by simp)
-  have h96 : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨96⟩
+  have h96 : ∃ k C, RD fork erc20Bytecode I g (initState σ σ₀ g A I) ⟨96⟩
       [erc20SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     refine ⟨k3 + 5 + 5 + 5 + 5 + 5 + 5, C3 + 22 + 22 + 22 + 22 + 22 + 22, ?_⟩
     simpa [erc20FirstArmPc, nthArmPc, selArmNextPc, armTgtWidth, selArmJumpiPc,
@@ -221,10 +229,10 @@ theorem erc20X_noMatch {σ σ₀ A I} {g : Sat256}
 theorem erc20ApproveBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩)
-    (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork erc20Bytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨100⟩ [erc20SelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor erc20Config erc20Contract
+    runtimeRefinementFor fork erc20Config erc20Contract
       σ σ₀ g A I := by
   exact erc20ApproveBodyCore hcode hsize hwv hsel hreach
 
@@ -232,10 +240,10 @@ theorem erc20ApproveBody {σ σ₀ A I} {g : UInt256}
 theorem erc20TotalSupplyBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc20Bytecode) (_hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x18, 0x16, 0x0d, 0xdd]⟩)
-    (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork erc20Bytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨148⟩ [erc20SelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor erc20Config erc20Contract
+    runtimeRefinementFor fork erc20Config erc20Contract
       σ σ₀ g A I := by
   exact erc20TotalSupplyBodyCore hcode hwv hsel hreach
 
@@ -243,10 +251,10 @@ theorem erc20TotalSupplyBody {σ σ₀ A I} {g : UInt256}
 theorem erc20TransferFromBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩)
-    (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork erc20Bytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨178⟩ [erc20SelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor erc20Config erc20Contract
+    runtimeRefinementFor fork erc20Config erc20Contract
       σ σ₀ g A I := by
   exact erc20TransferFromBodyCore hcode hsize hwv hsel hreach
 
@@ -254,10 +262,10 @@ theorem erc20TransferFromBody {σ σ₀ A I} {g : UInt256}
 theorem erc20BalanceOfBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x70, 0xa0, 0x82, 0x31]⟩)
-    (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork erc20Bytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨226⟩ [erc20SelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor erc20Config erc20Contract
+    runtimeRefinementFor fork erc20Config erc20Contract
       σ σ₀ g A I := by
   exact erc20BalanceOfBodyCore hcode hsize hwv hsel hreach
 
@@ -265,10 +273,10 @@ theorem erc20BalanceOfBody {σ σ₀ A I} {g : UInt256}
 theorem erc20TransferBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩)
-    (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork erc20Bytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨274⟩ [erc20SelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor erc20Config erc20Contract
+    runtimeRefinementFor fork erc20Config erc20Contract
       σ σ₀ g A I := by
   exact erc20TransferBodyCore hcode hsize hwv hsel hreach
 
@@ -276,10 +284,10 @@ theorem erc20TransferBody {σ σ₀ A I} {g : UInt256}
 theorem erc20AllowanceBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xdd, 0x62, 0xed, 0x3e]⟩)
-    (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork erc20Bytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨322⟩ [erc20SelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor erc20Config erc20Contract
+    runtimeRefinementFor fork erc20Config erc20Contract
       σ σ₀ g A I := by
   exact erc20AllowanceBodyCore hcode hsize hwv hsel hreach
 
@@ -292,7 +300,7 @@ theorem erc20NoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 6 → (erc20SelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeRefinementFor erc20Config erc20Contract
+    runtimeRefinementFor fork erc20Config erc20Contract
       σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (erc20X_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm).reEquivNoDispatch
@@ -307,7 +315,7 @@ theorem erc20NoDispatch {σ σ₀ A I} {g : UInt256}
 theorem erc20ShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc20Bytecode) (_hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    runtimeRefinementFor erc20Config erc20Contract
+    runtimeRefinementFor fork erc20Config erc20Contract
       σ σ₀ g A I := by
   exact (erc20X_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch hcode
     (erc20Dispatch_none_short hsz)
@@ -315,7 +323,7 @@ theorem erc20ShortRevert {σ σ₀ A I} {g : UInt256}
 /-- `callvalue ≠ 0` ⇒ both sides revert (non-payable). -/
 theorem erc20NonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc20Bytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeRefinementFor erc20Config erc20Contract
+    runtimeRefinementFor fork erc20Config erc20Contract
       σ σ₀ g A I := by
   exact (erc20X_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
@@ -342,7 +350,7 @@ theorem erc20NonPayable {σ σ₀ A I} {g : UInt256}
     (`erc20ReachBody`) drives the EVM to the matched function's body entry, handed to that function's
     body obligation. -/
 theorem erc20Correct : runtimeRefinement erc20Config erc20Bytecode erc20Contract := by
-  refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
+  refine ⟨fun fork _hfork σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size
     · -- callvalue = 0, size ≥ 4: dispatch on the selector, driving the machinery to each body
@@ -384,6 +392,8 @@ theorem erc20Correct : runtimeRefinement erc20Config erc20Bytecode erc20Contract
       exact erc20ShortRevert hcode hsize hwv (by omega)
   · -- callvalue ≠ 0: non-payable revert
     exact erc20NonPayable hcode hwv
+
+end
 
 /-! ## Constructor side -/
 
@@ -629,10 +639,10 @@ theorem erc20InitcodeNonpayableRevert
     (tail : ByteArray)
     (hcode : I.code = erc20Initcode ++ tail)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev (erc20Initcode ++ tail) g
+    RDrev fork (erc20Initcode ++ tail) g
       (initState σ σ₀ g A I) := by
   have rd0 :
-      RD (erc20Initcode ++ tail) I g
+      RD fork (erc20Initcode ++ tail) I g
         (initState σ σ₀ g A I) ⟨0⟩ []
         ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
@@ -651,14 +661,14 @@ theorem erc20InitcodeSuccess
     (hcode : I.code = erc20CtorCode initialSupply)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) :
-    RDret (erc20CtorCode initialSupply) g
+    RDret fork (erc20CtorCode initialSupply) g
       (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ (erc20BalanceOfSlot (.address I.source)) initialSupply)
           ⟨2⟩ initialSupply)
       erc20Bytecode := by
   have rd0 :
-      RD (erc20CtorCode initialSupply) I g
+      RD fork (erc20CtorCode initialSupply) I g
         (initState σ σ₀ g A I) ⟨0⟩ []
         ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
@@ -827,7 +837,7 @@ theorem erc20SteleCtorExecReverts_nonpayable
     {I : ExecutionEnv}
     (initialSupply : Int)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    steleCtorExec erc20Config erc20Contract [.int initialSupply]
+    steleCtorExec fork erc20Config erc20Contract [.int initialSupply]
       σ σ₀ g A I .reverted := by
   refine steleCtorExec.intro
     (evmState := initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -849,7 +859,7 @@ theorem erc20SteleCtorExecSuccess
     (hlt : initialSupply < Int.ofNat (EVM.twoPow 256))
     (hwv : I.weiValue = ⟨0⟩)
     (hperm : I.perm = true) :
-    steleCtorExec erc20Config erc20Contract [.int initialSupply]
+    steleCtorExec fork erc20Config erc20Contract [.int initialSupply]
       σ σ₀ g A I
       (.returned
         { contract := erc20Contract, locals := erc20CtorLocals initialSupply }
@@ -907,7 +917,7 @@ theorem erc20SteleCtorExecSuccess
 
 theorem erc20ConstructorCorrect :
     typedConstructorRefinement erc20Config erc20Initcode erc20Contract (fun _ => erc20Bytecode) := by
-  intro σ σ₀ g A I
+  intro fork _hfork σ σ₀ g A I
       args deployedInitcode hdeploy hcode hcalldata hperm
   rcases erc20Deployment_shape hdeploy with ⟨initialSupply, hargs, h0, hlt, hdeployed⟩
   subst args
@@ -916,7 +926,7 @@ theorem erc20ConstructorCorrect :
       rw [hcode, hdeployed]
       unfold erc20CtorCode
       rfl
-    have hrd := erc20InitcodeSuccess
+    have hrd := erc20InitcodeSuccess (fork := fork)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) (EVM.word initialSupply.toNat) hcodeCtor hperm hwv
     rcases hrd with hOOG | ⟨s, hX, hacc⟩
@@ -938,7 +948,7 @@ theorem erc20ConstructorCorrect :
   · let tail := (EVM.Word.toBytesBE (EVM.word initialSupply.toNat)).toByteArray
     have hcodeTail : I.code = erc20Initcode ++ tail := by
       rw [hcode, hdeployed]
-    have hrd := erc20InitcodeNonpayableRevert
+    have hrd := erc20InitcodeNonpayableRevert (fork := fork)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) tail hcodeTail hwv
     rcases hrd.xiResult hcodeTail with hOOG | ⟨g', o, hrev⟩

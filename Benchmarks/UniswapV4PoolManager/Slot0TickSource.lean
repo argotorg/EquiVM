@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.WordSignextend24
 import Benchmarks.UniswapV4PoolManager.NarrowWords
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -16,7 +18,7 @@ theorem slot0Tick_lookup : lookupCallable? contract "Slot0Library_tick" = some s
 
 theorem slot0TickBody {f : Frame} {evm : EVM.State} {packed : UInt256}
     (hp : f.locals.get? "_packed" = some (wordBytes32Value packed)) :
-    ExecFuncBody config f evm slot0TickFunction.body
+    ExecFuncBody fork config f evm slot0TickFunction.body
       (.returned f evm (some [.int (EVM.signed (slot0TickWord packed))])) := by
   have hshift := evalWordShr (n := 160) (by decide)
     (evalCastValue (evalLocalValue (cfg := config) (evm := evm) hp) (castBytes32ToUint256 packed))
@@ -36,7 +38,7 @@ theorem slot0TickBody {f : Frame} {evm : EVM.State} {packed : UInt256}
 
 theorem slot0TickCall {f : Frame} {evm : EVM.State} {e : Expr} {packed : UInt256}
     (hf : f.contract = contract) (he : evalExpr? config f evm e = .ok (wordBytes32Value packed)) (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "Slot0Library_tick" [e] retVar)
+    ExecStmt fork config f evm (.internalCall "Slot0Library_tick" [e] retVar)
       (.ok {f with locals := f.locals.insert retVar (.int (EVM.signed (slot0TickWord packed)))} evm) := by
   apply internalCallFunctionReturn (argVals := [wordBytes32Value packed])
     (value := some [.int (EVM.signed (slot0TickWord packed))]) (evalExprs?_singleton he)

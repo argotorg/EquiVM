@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.SignedArithmetic
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_048
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_049
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -17,13 +19,13 @@ theorem tickSqrtFinishTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw ret absTick tick price : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length + 6 ≤ 1024)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨16976⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨16976⟩
       (absTick :: tick :: price :: UInt256.ofNat 4294967295 :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) I g s0 ret
+    ∃ k' C', RD fork (deployedRuntime v) I g s0 ret
       (tickSqrtRound (if 0 < EVM.signed tick then
         UInt256.div (UInt256.ofNat (2^256-1)) (tickSqrtFinalStage absTick price)
         else tickSqrtFinalStage absTick price) :: R) mem aw rdata σ k' C' := by
-  have hlast : ∃ k' C', RD (deployedRuntime v) I g s0 ⟨16986⟩
+  have hlast : ∃ k' C', RD fork (deployedRuntime v) I g s0 ⟨16986⟩
       (tick :: tickSqrtFinalStage absTick price :: UInt256.ofNat 4294967295 :: ret :: R)
       mem aw rdata σ k' C' := by
     apply tickSqrtConditionalTrace (fun p => tick :: p :: UInt256.ofNat 4294967295 :: ret :: R)

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.FullMath128Reduce
 import Benchmarks.UniswapV4PoolManager.FullMathInverse
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 
@@ -9,7 +11,7 @@ theorem fullMath128Inverse {f : Frame} {evm : EVM.State} {w : UInt256} {old : Va
     (hd : f.locals.get? "denominator" = some (.int 1))
     (hp : f.locals.get? "prod0" = some (.int (Int.ofNat w.toNat)))
     (hr : f.locals.get? "result" = some old) :
-    ∃ f', ExecFuncBody config f evm (fullMathFunction.body.drop 16)
+    ∃ f', ExecFuncBody fork config f evm (fullMathFunction.body.drop 16)
       (.returned f' evm (some [.int (Int.ofNat w.toNat)])) := by
   obtain ⟨f', h⟩ := fullMathInverseBody (evm := evm) (d := ⟨1⟩) hd hp hr
   exact ⟨f', by simpa only [fullMathInverse_one, wordMulOne] using h⟩

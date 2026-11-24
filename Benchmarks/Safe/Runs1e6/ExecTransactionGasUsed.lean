@@ -3,6 +3,8 @@ import Benchmarks.Safe.Runs1e6.SafeSubSource
 import Benchmarks.Safe.Runs1e6.SafeSubTrace
 import Benchmarks.Safe.Runs1e6.Blocks.Runtime_021
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Runs1e6.RuntimeBlocks
 
@@ -24,24 +26,24 @@ set_option maxRecDepth 100000 in
 theorem safeExecGasUsed (p : ExecTransactionInput) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata src locals} {sigPtr guard hash before : UInt256}
     {z : Bool} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4623⟩
+    (h : RD fork safeBytecode I g s0 ⟨4623⟩
       (z.toUInt256 :: before :: execGuardSaved p src sigPtr guard hash R)
       mem aw rdata σ k C)
     (hb : locals["gasBefore"]? = some (uint256Value before))
     (hov : R.length + 28 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧ ExecBlock config { contract := contract, locals := locals }
+    (RDrev fork safeBytecode g s0 ∧ ExecBlock fork config { contract := contract, locals := locals }
       evm (exectransactionTransition.body.drop 13) .reverted) ∨
     ∃ after k' C',
-      (∀ result, ExecBlock config (execGasUsedFrame locals before after) evm
+      (∀ result, ExecBlock fork config (execGasUsedFrame locals before after) evm
         (exectransactionTransition.body.drop 15) result →
-        ExecBlock config { contract := contract, locals := locals } evm
+        ExecBlock fork config { contract := contract, locals := locals } evm
           (exectransactionTransition.body.drop 13) result) ∧
-      RD safeBytecode I g s0 ⟨4636⟩
+      RD fork safeBytecode I g s0 ⟨4636⟩
         (UInt256.sub before after :: before :: execResultSaved p src sigPtr guard hash z R)
         mem aw rdata σ k' C' := by
   let after := (g.subNat (C + 9 + 2)).toUInt256
   have h₁ := safeRuntime_block_4623 (by simp [execGuardSaved]; omega) (by jump_dest) h
-  change RD safeBytecode I g s0 _
+  change RD fork safeBytecode I g s0 _
     (after :: before :: ⟨4636⟩ :: before :: execResultSaved p src sigPtr guard hash z R)
     _ _ _ _ _ _ at h₁
   let f : Frame :=
@@ -55,11 +57,11 @@ theorem safeExecGasUsed (p : ExecTransactionInput) (evm : EVM.State)
   by_cases hfit : after.toNat ≤ before.toNat
   · obtain ⟨k₂, C₂, h₂⟩ := safeSubTrace h₁ hfit (by simp [execResultSaved]; omega)
       (by jump_dest)
-    have hs := safeInternalSub rfl ha hy hfit (retVar := "gasUsed")
+    have hs := safeInternalSub (fork := fork) rfl ha hy hfit (retVar := "gasUsed")
     exact .inr ⟨after, k₂, C₂,
       fun _ ht ↦ .consNormal (.letGas after) (.consNormal hs ht), h₂⟩
   · have hr := safeSubUnderflow h₁ (by omega) (by simp [execResultSaved]; omega)
-    have hs := safeInternalSubUnderflow rfl ha hy (by omega) (retVar := "gasUsed")
+    have hs := safeInternalSubUnderflow (fork := fork) rfl ha hy (by omega) (retVar := "gasUsed")
     exact .inl ⟨hr, .consNormal (.letGas after) (.consRevert hs)⟩
 
 end Benchmarks.Safe.Runs1e6

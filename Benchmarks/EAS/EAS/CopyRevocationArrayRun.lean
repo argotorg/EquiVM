@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.CopyRevocationArrayLoop
 import Benchmarks.EAS.EAS.PaddingLowWrite
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -13,14 +15,14 @@ theorem copyRevocationArrayRunStrong {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
     (hlen : rs.length ≤ 2^64-1) (hlo : 96 ≤ heap.toNat) (hh : heap.toNat ≤ 2^64-1)
     (hfree : memLoad (UInt256.ofNat 64) mem = heap) (hmem : 96 ≤ mem.size)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5924⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5924⟩
       (offset::UInt256.ofNat rs.length::UInt256.ofNat ee.calldata.size::ret::R) mem aw rdata σ k C) :
     if heap.toNat+32+96*rs.length ≤ 2^64-1 then
       ∃ mem' aw' k' C', MemoryPrefix (recordPadding mem heap.toNat) mem' heap.toNat ∧
         CopyRevocationArrayMemory mem' heap rs rs.length (heap.toNat+32+96*rs.length) ∧
         memLoad (UInt256.ofNat 64) mem' = UInt256.ofNat (heap.toNat+32+96*rs.length) ∧
-        RD (deployedRuntime v) ee g s0 ret (heap::R) mem' aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+        RD fork (deployedRuntime v) ee g s0 ret (heap::R) mem' aw' rdata σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hb := hc.extent
   have hlenw : (UInt256.ofNat rs.length).toNat = rs.length := ulit_toNat' _ (by change _ < 2^256; omega)
   have he : offset+UInt256.shiftLeft (UInt256.ofNat rs.length) (UInt256.ofNat 6) =
@@ -50,7 +52,7 @@ theorem copyRevocationArrayRunStrong {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
       (recordPadding_low_write mem heap.toNat 64 (UInt256.ofNat (allocateNext heap.toNat (32+32*rs.length))) hmem (by decide)).trans
         (recordPadding_write_prefix _ heap.toNat (UInt256.ofNat rs.length) (by rw [writeWord_sparse_size]; omega))
     rw [allocateNext_wordArray hh hlen] at hm0 hf0
-    have rstart : RD (deployedRuntime v) ee g s0 ⟨5973⟩
+    have rstart : RD fork (deployedRuntime v) ee g s0 ⟨5973⟩
         (UInt256.ofNat (heap.toNat+32+32*0)::UInt256.ofNat ee.calldata.size::
           UInt256.ofNat (offset.toNat+64*rs.length)::UInt256.ofNat (offset.toNat+64*0)::ret::heap::R)
         (arrayAllocationHeaderMemory mem heap rs.length) a1 rdata σ k1 C1 := by
@@ -75,14 +77,14 @@ theorem copyRevocationArrayRun {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hlen : rs.length ≤ 2^64-1) (hlo : 96 ≤ heap.toNat) (hh : heap.toNat ≤ 2^64-1)
     (hfree : memLoad (UInt256.ofNat 64) mem = heap) (hmem : 96 ≤ mem.size)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5924⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5924⟩
       (offset::UInt256.ofNat rs.length::UInt256.ofNat ee.calldata.size::ret::R) mem aw rdata σ k C) :
     if heap.toNat+32+96*rs.length ≤ 2^64-1 then
       ∃ mem' aw' k' C', MemoryPrefix (recordPadding mem heap.toNat) mem' heap.toNat ∧
         RevocationRequestArrayMemoryView mem' heap rs (heap.toNat+32+96*rs.length) ∧
         memLoad (UInt256.ofNat 64) mem' = UInt256.ofNat (heap.toNat+32+96*rs.length) ∧
-        RD (deployedRuntime v) ee g s0 ret (heap::R) mem' aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+        RD fork (deployedRuntime v) ee g s0 ret (heap::R) mem' aw' rdata σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   have h := copyRevocationArrayRunStrong v hstack hc hsize hlen hlo hh hfree hmem hret rd
   by_cases hg : heap.toNat+32+96*rs.length ≤ 2^64-1
   · rw [if_pos hg] at h ⊢

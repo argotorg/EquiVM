@@ -2,6 +2,8 @@ import Benchmarks.EAS.Attester.Common
 import Benchmarks.EAS.Attester.PairHeap
 import Benchmarks.EAS.Attester.WordSequenceMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.EAS.Attester.Immutables attesterRuntimeBlocks
 
@@ -9,13 +11,13 @@ namespace Benchmarks.EAS.Attester
 
 theorem pairEncodeStep3021 {words : String → UInt256} {I g s0 σ mem aw out k C R}
     {limit base n i dst : Nat} {values : Nat → UInt256 × UInt256}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3021⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3021⟩
       ([UInt256.ofNat n, UInt256.ofNat dst, UInt256.ofNat i,
         UInt256.ofNat (base + 32 + 32 * i)] ++ R) mem aw out σ k C)
     (hstack : R.length + 9 ≤ 1024) (heap : PairArrayAt mem 96 limit base n values)
     (hsize : limit ≤ mem.size) (hsep : limit ≤ dst) (hi : i < n)
     (hfit : dst + 64 < UInt256.size) :
-    ∃ aw' k' C', RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3021⟩
+    ∃ aw' k' C', RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3021⟩
       ([UInt256.ofNat n, UInt256.ofNat (dst + 64), UInt256.ofNat (i + 1),
         UInt256.ofNat (base + 32 + 32 * (i + 1))] ++ R)
       (wordSequenceMemory mem dst [(values i).1, (values i).2]) aw' out σ k' C' := by
@@ -49,13 +51,13 @@ theorem pairEncodeStep3021 {words : String → UInt256} {I g s0 σ mem aw out k 
 
 theorem pairEncodeRun3021 {words : String → UInt256} {I g s0 σ mem aw out k C R}
     {limit base n i remaining dst : Nat} {values : Nat → UInt256 × UInt256}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3021⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3021⟩
       ([UInt256.ofNat n, UInt256.ofNat dst, UInt256.ofNat i,
         UInt256.ofNat (base + 32 + 32 * i)] ++ R) mem aw out σ k C)
     (hstack : R.length + 9 ≤ 1024) (heap : PairArrayAt mem 96 limit base n values)
     (hsize : limit ≤ mem.size) (hsep : limit ≤ dst) (hi : i + remaining = n)
     (hfit : dst + 64 * remaining < UInt256.size) :
-    ∃ aw' k' C', RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3073⟩
+    ∃ aw' k' C', RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3073⟩
       ([UInt256.ofNat n, UInt256.ofNat (dst + 64 * remaining), UInt256.ofNat n,
         UInt256.ofNat (base + 32 + 32 * n)] ++ R)
       (wordSequenceMemory mem dst (pairSequenceWords values i remaining)) aw' out σ k' C' := by

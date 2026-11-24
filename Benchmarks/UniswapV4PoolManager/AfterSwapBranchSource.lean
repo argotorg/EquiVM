@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.AfterSwapUpdateSource
 import Benchmarks.UniswapV4PoolManager.SwapHookSource
 import Benchmarks.UniswapV4PoolManager.HookDeltaSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -37,8 +39,8 @@ theorem afterSwapBranchSource {f : Frame} {evm post : State} {hook : AccountAddr
     (hb : f.locals.get? "hookData" = some (.bytes data))
     (hu : f.locals.get? "unspecified" = some (.int unspecified))
     (hc : PoolKeyCanonical key) (hl : p.priceLimit.toNat < 2^160)
-    (hcall : callViaEVM evm hook 0 (afterSwapPayload evm.executionEnv.source key p delta data) (z, post, out)) :
-    ExecBlock config f evm afterSwapBranchStmts
+    (hcall : callViaEVM fork evm hook 0 (afterSwapPayload evm.executionEnv.source key p delta data) (z, post, out)) :
+    ExecBlock fork config f evm afterSwapBranchStmts
       (afterSwapBranchResult f post unspecified z (afterSwapPayload evm.executionEnv.source key p delta data)
         out (afterSwapParse hook)) := by
   let payload := afterSwapPayload evm.executionEnv.source key p delta data

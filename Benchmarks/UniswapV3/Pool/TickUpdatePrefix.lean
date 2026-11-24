@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.TickUpdateModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -11,7 +13,7 @@ macro "tick_update_get" : tactic => `(tactic| (
   rfl))
 
 theorem tickUpdateBeforeSource (imms : Store) (evm : EVM.State) (a : TickUpdateArgs) :
-    ExecBlock config (tickUpdateFrame imms a) evm (tickUpdateFunction.body.take 3)
+    ExecBlock fork config (tickUpdateFrame imms a) evm (tickUpdateFunction.body.take 3)
       (.ok (tickUpdateBeforeFrame imms a evm) evm) := by
   refine ExecBlock.consNormal (stele' := tickUpdateFalseFrame imms a)
     (ExecStmt.letDecl (by simp only [evalExpr?, pure])) ?_
@@ -39,7 +41,7 @@ theorem tickUpdateLiquidityArgs (imms : Store) (evm : EVM.State) (a : TickUpdate
 
 theorem tickUpdateLiquidityCall (imms : Store) (evm : EVM.State) (a : TickUpdateArgs)
     (hv : liquidityDeltaValid (tickUpdateGrossBefore a evm) a.delta) :
-    ExecStmt config (tickUpdateBeforeFrame imms a evm) evm (tickUpdateFunction.body[3]!)
+    ExecStmt fork config (tickUpdateBeforeFrame imms a evm) evm (tickUpdateFunction.body[3]!)
       (.ok (tickUpdateAfterFrame imms a evm) evm) := by
   exact internalCallFunctionReturn (callee := liquidityDeltaFunction)
     (locals := liquidityDeltaLocals (tickUpdateGrossBefore a evm) a.delta)
@@ -51,16 +53,16 @@ theorem tickUpdateLiquidityCall (imms : Store) (evm : EVM.State) (a : TickUpdate
 
 theorem tickUpdateAfterSource (imms : Store) (evm : EVM.State) (a : TickUpdateArgs)
     (hv : liquidityDeltaValid (tickUpdateGrossBefore a evm) a.delta) :
-    ExecBlock config (tickUpdateFrame imms a) evm (tickUpdateFunction.body.take 4)
+    ExecBlock fork config (tickUpdateFrame imms a) evm (tickUpdateFunction.body.take 4)
       (.ok (tickUpdateAfterFrame imms a evm) evm) := by
-  change ExecBlock config (tickUpdateFrame imms a) evm
+  change ExecBlock fork config (tickUpdateFrame imms a) evm
     (tickUpdateFunction.body.take 3 ++ [tickUpdateFunction.body[3]!]) _
   exact execBlock_append_ok (tickUpdateBeforeSource imms evm a)
     (ExecBlock.consNormal (tickUpdateLiquidityCall imms evm a hv) ExecBlock.nil)
 
 theorem tickUpdateLiquidityReverts (imms : Store) (evm : EVM.State) (a : TickUpdateArgs)
     (hv : ¬ liquidityDeltaValid (tickUpdateGrossBefore a evm) a.delta) :
-    ExecFuncBody config (tickUpdateFrame imms a) evm tickUpdateFunction.body .reverted := by
+    ExecFuncBody fork config (tickUpdateFrame imms a) evm tickUpdateFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 3 tickUpdateFunction.body]
   apply execBlock_append_ok (tickUpdateBeforeSource imms evm a)

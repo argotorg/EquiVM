@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.DonateAfterCorrect
 import Benchmarks.UniswapV4PoolManager.DonateEventTrace
 import Benchmarks.UniswapV4PoolManager.DonateEventStatic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -12,7 +14,7 @@ theorem donateEmitSource {f : Frame} {evm : State} {id amount0 amount1 : UInt256
     (h0 : f.locals.get? "amount0" = some (.int (Int.ofNat amount0.toNat)))
     (h1 : f.locals.get? "amount1" = some (.int (Int.ofNat amount1.toNat)))
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config f evm donateTransition.body[18]! (.ok f evm) := by
+    ExecStmt fork config f evm donateTransition.body[18]! (.ok f evm) := by
   apply ExecStmt.emit (hperm := hperm) (vals := [wordBytes32Value id, .address evm.executionEnv.source,
     .int (Int.ofNat amount0.toNat), .int (Int.ofNat amount1.toNat)])
   change evalExprs? config f evm [.var "poolId", .env .caller, .var "amount0", .var "amount1"] = _
@@ -24,7 +26,7 @@ theorem donateEmitStaticSource {f : Frame} {evm : State} {id amount0 amount1 : U
     (h0 : f.locals.get? "amount0" = some (.int (Int.ofNat amount0.toNat)))
     (h1 : f.locals.get? "amount1" = some (.int (Int.ofNat amount1.toNat)))
     (hperm : evm.executionEnv.perm = false) :
-    ExecStmt config f evm donateTransition.body[18]! .staticViolation := by
+    ExecStmt fork config f evm donateTransition.body[18]! .staticViolation := by
   apply ExecStmt.emitStatic (vals := [wordBytes32Value id, .address evm.executionEnv.source,
     .int (Int.ofNat amount0.toNat), .int (Int.ofNat amount1.toNat)]) ?_ hperm
   change evalExprs? config f evm [.var "poolId", .env .caller, .var "amount0", .var "amount1"] = _
@@ -47,12 +49,12 @@ theorem donateEventCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hfit : free.toNat+len.toNat+448 < UInt256.size) (hsrc : src.toNat+len.toNat ≤ I.calldata.size)
     (hgas : g.toNat < 324518553658429321982441292826060) (hpaid : Cₘ aw ≤ C)
     (hfree : memLoad (UInt256.ofNat 64) mem = free)
-    (h : RD (deployedRuntime v) I g s0 ⟨10297⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨10297⟩
       (id :: (keyPtr+UInt256.ofNat 128) :: keyPtr :: src :: amount1 :: amount0 :: len :: delta :: ⟨32⟩ :: junk :: R)
       mem aw rdata evm.accountMap k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
-    ∃ result, ExecBlock config f evm (donateTransition.body.drop 18) result ∧
-      abiResultTrace donateTransition.returnType (deployedRuntime v) g s0 result := by
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    ∃ result, ExecBlock fork config f evm (donateTransition.body.drop 18) result ∧
+      abiResultTrace fork donateTransition.returnType (deployedRuntime v) g s0 result := by
   cases hperm : I.perm with
   | false =>
     exact .inr ⟨.staticViolation, ExecBlock.consStatic
@@ -70,6 +72,6 @@ theorem donateEventCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
         (hkey.donateEvent free amount0 amount1 hkb) hc hkb (by omega) hfit hsrc hgas
         (by omega) hfree1 rd1 with hog | ⟨result, hs, ht⟩
     · exact .inl hog
-    · exact .inr ⟨result, ExecBlock.consNormal (donateEmitSource (hperm := by simpa only [hI] using hperm) hi h0 h1) hs, ht⟩
+    · exact .inr ⟨result, ExecBlock.consNormal (donateEmitSource (fork := fork) (hperm := by simpa only [hI] using hperm) hi h0 h1) hs, ht⟩
 
 end Benchmarks.UniswapV4PoolManager

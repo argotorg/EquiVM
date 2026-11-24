@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.Amount0DeltaPrefix
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -50,7 +52,7 @@ theorem evalAmount0DeltaArgs (imms : Store) (evm : EVM.State) (a : AmountDeltaAr
 
 theorem amount0DeltaCallSource (imms : Store) (evm : EVM.State) (a : AmountDeltaArgs)
     (hfit : a.Fits) (hv : amountDeltaValid false a) :
-    ExecStmt config (amount0DeltaZeroFrame imms a) evm
+    ExecStmt fork config (amount0DeltaZeroFrame imms a) evm
       (.internalCall (if a.roundUp then "FullMath_mulDivRoundingUp" else "FullMath_mulDiv")
         amount0DeltaArgs (amount0DeltaCallName a.roundUp))
       (.ok (amount0DeltaCallFrame imms a) evm) := by
@@ -58,7 +60,7 @@ theorem amount0DeltaCallSource (imms : Store) (evm : EVM.State) (a : AmountDelta
       (amountDeltaUpper a) := amountDeltaMulValid false a hfit hv
   have hbind := fullMathBind (amountDeltaNumerator a) (amountDeltaDifference a) (amountDeltaUpper a)
   cases hr : a.roundUp
-  · have hc := internalCallFunctionReturn (callee := fullMathFunction) (retVar := "__c4")
+  · have hc := internalCallFunctionReturn (fork := fork) (callee := fullMathFunction) (retVar := "__c4")
       (calleeStele := fullMathProductFrame imms (amountDeltaNumerator a)
         (amountDeltaDifference a) (amountDeltaUpper a))
       (locals := fullMathLocals (amountDeltaNumerator a) (amountDeltaDifference a) (amountDeltaUpper a))
@@ -66,10 +68,10 @@ theorem amount0DeltaCallSource (imms : Store) (evm : EVM.State) (a : AmountDelta
         (amountDeltaDifference a) (amountDeltaUpper a)).toNat)])
       (evalAmount0DeltaArgs imms evm a)
       (by rw [amount0DeltaZeroFrame_eq]; exact fullMathLookup) hbind
-      (by rw [amount0DeltaZeroFrame_eq]; exact fullMathReturns imms evm _ _ _ hm.1)
+      (by rw [amount0DeltaZeroFrame_eq]; exact fullMathReturns (fork := fork) imms evm _ _ _ hm.1)
     simpa only [amount0DeltaCallFrame, amount0DeltaCallName, amountDeltaMulResult,
       amountDeltaFactor, amountDeltaDenominator, hr, Bool.false_eq_true, if_false] using hc
-  · have hc := internalCallFunctionReturn (callee := fullMathRoundFunction) (retVar := "__c2")
+  · have hc := internalCallFunctionReturn (fork := fork) (callee := fullMathRoundFunction) (retVar := "__c2")
       (calleeStele := fullMathRoundFinalFrame imms (amountDeltaNumerator a)
         (amountDeltaDifference a) (amountDeltaUpper a))
       (locals := fullMathLocals (amountDeltaNumerator a) (amountDeltaDifference a) (amountDeltaUpper a))
@@ -77,7 +79,7 @@ theorem amount0DeltaCallSource (imms : Store) (evm : EVM.State) (a : AmountDelta
         (amountDeltaDifference a) (amountDeltaUpper a)).toNat)])
       (evalAmount0DeltaArgs imms evm a)
       (by rw [amount0DeltaZeroFrame_eq]; exact fullMathRoundLookup) hbind
-      (by rw [amount0DeltaZeroFrame_eq]; exact fullMathRoundReturns imms evm _ _ _ hm)
+      (by rw [amount0DeltaZeroFrame_eq]; exact fullMathRoundReturns (fork := fork) imms evm _ _ _ hm)
     simpa only [amount0DeltaCallFrame, amount0DeltaCallName, amountDeltaMulResult,
       amountDeltaFactor, amountDeltaDenominator, hr, Bool.false_eq_true, if_false, if_true] using hc
 
@@ -91,7 +93,7 @@ theorem amount0DeltaCallLower (imms : Store) (a : AmountDeltaArgs) :
 
 theorem amount0DeltaRoundSource (imms : Store) (evm : EVM.State) (a : AmountDeltaArgs)
     (hr : a.roundUp = true) :
-    ExecStmt config (amount0DeltaCallFrame imms a) evm
+    ExecStmt fork config (amount0DeltaCallFrame imms a) evm
       (.internalCall "UnsafeMath_divRoundingUp" [.var "__c2", .var "sqrtRatioAX96"] "__c3")
       (.ok (amount0DeltaRoundFrame imms a) evm) := by
   have hx : evalExpr? config (amount0DeltaCallFrame imms a) evm (.var "__c2") =

@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.WordArrayAllocationView
 import Benchmarks.EAS.EAS.WordArrayPrefix
 import Benchmarks.EAS.EAS.RuntimeBlocks_037
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -11,12 +13,12 @@ theorem easMergeUIDAllocate {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {lists len heap ret : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length+12 ≤ 1024) (hh : heap.toNat ≤ 2^64-1)
     (hfree : memLoad (UInt256.ofNat 64) mem = heap) (hcd : ee.calldata.size < UInt256.size)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨11975⟩ (lists::len::ret::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨11975⟩ (lists::len::ret::R) mem aw rdata σ k C) :
     (len.toNat ≤ 2^64-1 ∧ (allocateNext heap.toNat (32+32*len.toNat) ≤ 2^64-1 ∧ heap.toNat ≤ allocateNext heap.toNat (32+32*len.toNat)) →
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨11990⟩ (heap::⟨0⟩::⟨0⟩::lists::ret::R)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨11990⟩ (heap::⟨0⟩::⟨0⟩::lists::ret::R)
         (wordArrayAllocationMemory mem ee.calldata heap len.toNat) aw' rdata σ k' C') ∧
     (¬ (len.toNat ≤ 2^64-1 ∧ (allocateNext heap.toNat (32+32*len.toNat) ≤ 2^64-1 ∧ heap.toNat ≤ allocateNext heap.toNat (32+32*len.toNat))) →
-      RDrev (deployedRuntime v) g s0) := by
+      RDrev fork (deployedRuntime v) g s0) := by
   obtain ⟨a1,k1,C1,r1⟩ := easBlocks.eas_block_11975_packed (immWords := wordsOf (immStore v))
     (by simp only [List.length_cons]; omega) (by rw [easPatchedValidJumpsRuntime v]; jump_dest) rd
   have hr := easWordArrayAllocate v (by simp only [List.length_cons]; omega) hh hfree hcd

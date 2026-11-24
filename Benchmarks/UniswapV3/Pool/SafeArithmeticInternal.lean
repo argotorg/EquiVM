@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.SafeArithmeticCost
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -11,13 +13,13 @@ theorem safeCast256InternalMonoX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat2
     (y : UInt256) (caller : Frame) (evm : EVM.State) (args : List Expr) (retVar : Ident)
     (hf : caller.contract = contract)
     (he : evalExprs? config caller evm args = .ok [.int (Int.ofNat y.toNat)])
-    (rd : RD (deployedRuntime v) ee g s0 ⟨12945⟩ (y :: ret :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨12945⟩ (y :: ret :: R) mem aw rdata σ k C)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 5 ≤ 1024) :
-    (ExecStmt config caller evm (.internalCall "SafeCast_toInt256" args retVar) .reverted ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    (ExecStmt config caller evm (.internalCall "SafeCast_toInt256" args retVar)
+    (ExecStmt fork config caller evm (.internalCall "SafeCast_toInt256" args retVar) .reverted ∧
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    (ExecStmt fork config caller evm (.internalCall "SafeCast_toInt256" args retVar)
         (.ok (resumeAfterInternalCall caller retVar (some [.int (Int.ofNat y.toNat)])) evm) ∧
-      safeCast256Valid y ∧ ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) ee g s0 ret
+      safeCast256Valid y ∧ ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) ee g s0 ret
         (y :: R) mem aw rdata σ k' C') := by
   have hl : lookupCallable? caller.contract "SafeCast_toInt256" =
       some safeCast256Function.toCallable := by rw [hf]; exact safeCast256Lookup
@@ -40,19 +42,19 @@ theorem safeSignedMathInternalMonoX {σ : AccountMap} {ee : ExecutionEnv} {g : S
     (subtract : Bool) (x y : Int) (caller : Frame) (evm : EVM.State)
     (args : List Expr) (retVar : Ident) (hf : caller.contract = contract)
     (he : evalExprs? config caller evm args = .ok [.int x, .int y])
-    (rd : RD (deployedRuntime v) ee g s0 (UInt256.ofNat (if subtract then 12967 else 12995))
+    (rd : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat (if subtract then 12967 else 12995))
       (EVM.wordOfInt y :: EVM.wordOfInt x :: ret :: R) mem aw rdata σ k C)
     (hxlo : -(2 ^ 255 : Int) ≤ x) (hxhi : x < 2 ^ 255)
     (hylo : -(2 ^ 255 : Int) ≤ y) (hyhi : y < 2 ^ 255)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 7 ≤ 1024) :
     let name := if subtract then "LowGasSafeMath_sub" else "LowGasSafeMath_add_int256_int256"
-    (ExecStmt config caller evm (.internalCall name args retVar) .reverted ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    (ExecStmt config caller evm (.internalCall name args retVar)
+    (ExecStmt fork config caller evm (.internalCall name args retVar) .reverted ∧
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    (ExecStmt fork config caller evm (.internalCall name args retVar)
         (.ok (resumeAfterInternalCall caller retVar
           (some [.int (safeSignedMathResult subtract x y)])) evm) ∧
       safeSignedMathValid subtract x y ∧ ∃ k' C', C ≤ C' ∧
-        RD (deployedRuntime v) ee g s0 ret
+        RD fork (deployedRuntime v) ee g s0 ret
           (EVM.wordOfInt (safeSignedMathResult subtract x y) :: R) mem aw rdata σ k' C') := by
   dsimp only
   have hl := safeSignedMathLookup subtract

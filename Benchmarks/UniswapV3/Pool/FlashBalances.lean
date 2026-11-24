@@ -4,6 +4,8 @@ import Benchmarks.UniswapV3.Pool.FlashPrefix
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_023
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_024
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -33,9 +35,9 @@ def flashBalancesFrame (v : UniswapV3PoolImmutables) (locals : Store)
 theorem flashBalanceNextX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw bal0 junk : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (after : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (flashBalance0Return after) (bal0 :: junk :: R)
+    (rd : RD fork (deployedRuntime v) ee g s0 (flashBalance0Return after) (bal0 :: junk :: R)
       mem aw rdata σ k C) (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨15901⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨15901⟩
       (flashBalance1Return after :: ⟨0⟩ :: bal0 :: R) mem aw rdata σ k' C' := by
   cases after
   · exact ⟨_, _, uniswapV3Pool_block_6715 (immWords := wordsOf (immStore v)) hov
@@ -47,18 +49,18 @@ set_option maxHeartbeats 1000000 in
 theorem flashBalancesX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : EVM.State} {k C : Nat} {aw p : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (locals : Store) (after : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨15572⟩ (flashBalance0Return after :: ⟨0⟩ :: R)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨15572⟩ (flashBalance0Return after :: ⟨0⟩ :: R)
       mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hm : HeapMemory mem aw p)
     (hzero : memLoad (UInt256.ofNat 96) (balanceInputMem mem p ee.codeOwner) = ⟨0⟩)
     (hb : p.toNat + 2 ^ 140 ≤ 2 ^ 200) (hov : R.length + 20 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧
-      ExecBlock config {contract := contract, locals := locals, immutables := immStore v}
+    (RDrev fork (deployedRuntime v) g s0 ∧
+      ExecBlock fork config {contract := contract, locals := locals, immutables := immStore v}
         evm (flashBalanceStmts after) .reverted) ∨
     ∃ evm' σ' out mem' aw' next bal0 bal1 k' C', SourceState s0 ee σ' evm' ∧
-      ExecBlock config {contract := contract, locals := locals, immutables := immStore v}
+      ExecBlock fork config {contract := contract, locals := locals, immutables := immStore v}
         evm (flashBalanceStmts after) (.ok (flashBalancesFrame v locals after bal0 bal1) evm') ∧
-      RD (deployedRuntime v) ee g s0 (flashBalance1Return after)
+      RD fork (deployedRuntime v) ee g s0 (flashBalance1Return after)
         (bal1 :: ⟨0⟩ :: bal0 :: R) mem' aw' out σ' k' C' ∧
       HeapMemory mem' aw' next ∧ 128 ≤ mem'.size ∧ memLoad (UInt256.ofNat 96) mem' = ⟨0⟩ ∧
       next.toNat ≤ p.toNat + 2 ^ 139 + 262 := by

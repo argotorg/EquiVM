@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.OracleObserveSingleSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -15,7 +17,7 @@ theorem oracleObserveSingleInternalSource (caller : Frame) (evm : EVM.State)
     (hc : card.toNat < 2 ^ 16) (ht : -(2 ^ 23 : Int) ≤ tick ∧ tick < 2 ^ 23)
     (hrun : OracleObserveSingleRun time secondsAgo tick index liquidity card
       evm.accountMap evm.executionEnv values) :
-    ExecStmt config caller evm (.internalCall "Oracle_observeSingle" args retVar)
+    ExecStmt fork config caller evm (.internalCall "Oracle_observeSingle" args retVar)
       (.ok (resumeAfterInternalCall caller retVar (some values)) evm) := by
   have hframe : {caller with
       locals := oracleObserveSingleLocals time secondsAgo tick index liquidity card} =
@@ -38,7 +40,7 @@ theorem oracleObserveSingleInternalReverts (caller : Frame) (evm : EVM.State)
     (hc : card.toNat < 2 ^ 16) (ht : -(2 ^ 23 : Int) ≤ tick ∧ tick < 2 ^ 23)
     (hfail : OracleObserveSingleFailure time secondsAgo tick index liquidity card
       evm.accountMap evm.executionEnv) :
-    ExecStmt config caller evm (.internalCall "Oracle_observeSingle" args retVar) .reverted := by
+    ExecStmt fork config caller evm (.internalCall "Oracle_observeSingle" args retVar) .reverted := by
   have hframe : {caller with
       locals := oracleObserveSingleLocals time secondsAgo tick index liquidity card} =
       oracleObserveSingleFrame caller.immutables time secondsAgo tick index liquidity card := by

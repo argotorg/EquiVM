@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.AbsorbDebtEvm
 import Benchmarks.CompoundIII.Comet.AbsorbEventsEvm
 import Benchmarks.CompoundIII.Comet.InternalPreservingOutcome
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -20,11 +22,11 @@ theorem cometAbsorbSettlement {v : CometWithExtendedAssetListImmutables}
     (hf : memLoad ⟨64⟩ mem = free) (hl : 96 ≤ free.toNat) (hm : free.toNat ≤ mem.size)
     (hb : free.toNat + 64 < UInt256.size) (hs : SourceState s0 ee σ evm)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨17261⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨17261⟩
       (oldPrincipal :: old :: next :: price :: EVM.word account.val :: collateralBaseScale v ::
         principal :: absorber :: ret :: R) mem aw rdata σ k C) :
     ∃ result, AbsorbSettlementTrace v evm account oldPrincipal principal old next price result ∧
-      internalPreservingRun (deployedRuntime v) ee g s0 mem free rdata ret R result := by
+      internalPreservingRun fork (deployedRuntime v) ee g s0 mem free rdata ret R result := by
   obtain ⟨σ1, aw1, k1, C1, hs1, r1⟩ := cometAbsorbClear (v := v) account
     (by change R.length + 2 + 15 ≤ 1024; omega) hperm hs h
   have hsize : (absorbClearMemory mem account).size = mem.size := by

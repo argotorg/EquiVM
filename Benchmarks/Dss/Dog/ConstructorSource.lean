@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Dog.Common
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Dog constructor Stele source semantics
 -/
@@ -96,7 +98,7 @@ theorem dogCtorBodySuccess
       (Sat256.ofUInt256 g) A I
     let evm1 := dogCtorAfterLiveState evm0
     let evm2 := dogCtorAfterWardsState evm1
-    ExecBlock config
+    ExecBlock fork config
       { contract := contract, locals := locals, immutables := initialImmutables contract }
       evm0 constructorDecl.body
       (.ok { contract := contract, locals := locals, immutables := dogCtorFinalImms vat }
@@ -132,8 +134,8 @@ theorem dogCtorBodySuccess
   refine ExecBlock.consNormal
     (ExecStmt.setImmutable (value := .address vat) (ty := .address) ?_ rfl rfl) ?_
   · simpa [locals] using evalExpr_dogCtorLocalVat (evm := evm0) vat
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hassignLive) ?_
-  exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa [evm1, dogCtorAfterLiveState, evm0, initState] using hperm)) (by simp [evalExpr?, pure]) hassignWards)
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hassignLive) ?_
+  exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [evm1, dogCtorAfterLiveState, evm0, initState] using hperm)) (by simp [evalExpr?, pure]) hassignWards)
     ExecBlock.nil
 
 set_option maxHeartbeats 1000000 in
@@ -142,7 +144,7 @@ theorem dogSteleCtorExecSuccess
     {g : UInt256} (vat : AccountAddress)
     (hwv : I.weiValue = ⟨0⟩)
     (hperm : I.perm = true) :
-    steleCtorExec config contract [.address vat] σ σ₀ g A I
+    steleCtorExec fork config contract [.address vat] σ σ₀ g A I
       (.returned
         { contract := contract, locals := dogCtorLocals vat, immutables := dogCtorFinalImms vat }
         (dogCtorAfterWardsState
@@ -156,13 +158,13 @@ theorem dogSteleCtorExecSuccess
   · rfl
   · rfl
   · exact ExecFuncBody.execBlockOK
-      (dogCtorBodySuccess (hperm := hperm) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) vat hwv)
+      (dogCtorBodySuccess (fork := fork) (hperm := hperm) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) vat hwv)
 
 theorem dogSteleCtorExecReverts_nonpayable
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (vat : AccountAddress)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    steleCtorExec config contract [.address vat] σ σ₀ g A I .reverted := by
+    steleCtorExec fork config contract [.address vat] σ σ₀ g A I .reverted := by
   refine steleCtorExec.intro
     (evmState := initState σ σ₀
       (Sat256.ofUInt256 g) A I)

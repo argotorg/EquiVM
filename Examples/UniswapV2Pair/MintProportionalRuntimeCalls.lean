@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.MintInternalMintRuntime
 import Examples.UniswapV2Pair.Invalid
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace UniswapV2Pair
@@ -14,12 +16,12 @@ theorem RD.uniswapMintProportionalMul0Entry
     {acc : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
     {feeOn totalSupply amount0 amount1 balance0 balance1 reserve0 reserve1 : UInt256}
-    (rd3762 : RD uniswapV2PairBytecode ee g s0 ⟨3762⟩
+    (rd3762 : RD fork uniswapV2PairBytecode ee g s0 ⟨3762⟩
       (totalSupply :: feeOn :: amount1 :: amount0 :: balance1 :: balance0 ::
         reserve1 :: reserve0 :: R) mem aw rdata acc k C)
     (hclean : UInt256.land reserve0 reserve112Mask = reserve0)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode ee g s0 ⟨6780⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode ee g s0 ⟨6780⟩
       (totalSupply :: amount0 :: ⟨3791⟩ :: reserve0 :: ⟨3838⟩ :: totalSupply ::
         feeOn :: amount1 :: amount0 :: balance1 :: balance0 :: reserve1 :: reserve0 :: R)
       mem aw rdata acc k' C' := by
@@ -38,12 +40,12 @@ theorem RD.uniswapMintProportionalMul1Entry
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
     {feeOn totalSupply amount0 amount1 balance0 balance1 reserve0 reserve1 : UInt256}
     {liquidity0 : UInt256}
-    (rd3800 : RD uniswapV2PairBytecode ee g s0 ⟨3800⟩
+    (rd3800 : RD fork uniswapV2PairBytecode ee g s0 ⟨3800⟩
       (liquidity0 :: ⟨3838⟩ :: totalSupply :: feeOn :: amount1 :: amount0 ::
         balance1 :: balance0 :: reserve1 :: reserve0 :: R) mem aw rdata acc k C)
     (hclean : UInt256.land reserve1 reserve112Mask = reserve1)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode ee g s0 ⟨6780⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode ee g s0 ⟨6780⟩
       (totalSupply :: amount1 :: ⟨3825⟩ :: reserve1 :: liquidity0 :: ⟨3838⟩ ::
         totalSupply :: feeOn :: amount1 :: amount0 :: balance1 :: balance0 ::
         reserve1 :: reserve0 :: R) mem aw rdata acc k' C' := by
@@ -62,10 +64,10 @@ theorem RD.uniswapMintProportionalDiv0Guard
     {acc : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
     {product reserve : UInt256}
-    (rd : RD uniswapV2PairBytecode ee g s0 ⟨3791⟩
+    (rd : RD fork uniswapV2PairBytecode ee g s0 ⟨3791⟩
       (product :: reserve :: R) mem aw rdata acc k C)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode ee g s0 ⟨3796⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode ee g s0 ⟨3796⟩
       (⟨3798⟩ :: reserve :: product :: reserve :: R) mem aw rdata acc k' C' := by
   exact ⟨_, _, evm_run rd with [jumpdest, dup2, push2 ⟨3798⟩]⟩
 
@@ -75,10 +77,10 @@ theorem RD.uniswapMintProportionalDiv1Guard
     {acc : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
     {product reserve : UInt256}
-    (rd : RD uniswapV2PairBytecode ee g s0 ⟨3825⟩
+    (rd : RD fork uniswapV2PairBytecode ee g s0 ⟨3825⟩
       (product :: reserve :: R) mem aw rdata acc k C)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode ee g s0 ⟨3830⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode ee g s0 ⟨3830⟩
       (⟨3832⟩ :: reserve :: product :: reserve :: R) mem aw rdata acc k' C' := by
   exact ⟨_, _, evm_run rd with [jumpdest, dup2, push2 ⟨3832⟩]⟩
 

@@ -1,4 +1,6 @@
 import Examples.UniswapV2Pair.SwapReserveGuardRuntime
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -9,11 +11,11 @@ theorem uniswapSwapRuntimeTokensLoaded
     {σ : AccountMap}
     {mem rdata : ByteArray} {aw reserve1 reserve0 dataLen dataPtr toWord amount1Out amount0Out : UInt256}
     {R : List UInt256} {k C : Nat}
-    (rd1735 : RD uniswapV2PairBytecode I g s0 ⟨1735⟩
+    (rd1735 : RD fork uniswapV2PairBytecode I g s0 ⟨1735⟩
       (reserve1 :: reserve0 :: dataLen :: dataPtr :: toWord :: amount1Out :: amount0Out :: R)
       mem aw rdata σ k C)
     (hov : R.length + 15 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨1765⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨1765⟩
       (UInt256.land toWord solcAddrMask :: UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ I) ::
         UInt256.land solcAddrMask (solcSlotWordAt ⟨6⟩ σ I) :: ⟨0⟩ :: ⟨0⟩ ::
         reserve1 :: reserve0 :: dataLen :: dataPtr :: toWord :: amount1Out :: amount0Out :: R)
@@ -34,7 +36,7 @@ theorem uniswapSwapRecipientGuardRuntimeCases
     {σ : AccountMap}
     {mem rdata : ByteArray} {token1 token0 reserve1 reserve0 dataLen dataPtr toWord amount1Out amount0Out : UInt256}
     {R : List UInt256} {k C : Nat}
-    (rd1765 : RD uniswapV2PairBytecode I g s0 ⟨1765⟩
+    (rd1765 : RD fork uniswapV2PairBytecode I g s0 ⟨1765⟩
       (UInt256.land toWord solcAddrMask :: token1 :: token0 :: ⟨0⟩ :: ⟨0⟩ ::
         reserve1 :: reserve0 :: dataLen :: dataPtr :: toWord :: amount1Out :: amount0Out :: R)
       mem (UInt256.ofNat 3) rdata σ k C)
@@ -42,13 +44,13 @@ theorem uniswapSwapRecipientGuardRuntimeCases
     (hmem : mem.size = 96) (hread : mem.readWithPadding 64 32 = (⟨128⟩ : UInt256).toByteArray)
     (hov : R.length + 17 ≤ 1024) :
     (¬ (UInt256.land toWord solcAddrMask ≠ token0 ∧ UInt256.land toWord solcAddrMask ≠ token1)) ∧
-      RDrev uniswapV2PairBytecode g s0 ∨
+      RDrev fork uniswapV2PairBytecode g s0 ∨
     (UInt256.land toWord solcAddrMask ≠ token0 ∧ UInt256.land toWord solcAddrMask ≠ token1) ∧ ∃ k' C',
-      RD uniswapV2PairBytecode I g s0 ⟨1870⟩
+      RD fork uniswapV2PairBytecode I g s0 ⟨1870⟩
         (token1 :: token0 :: ⟨0⟩ :: ⟨0⟩ :: reserve1 :: reserve0 :: dataLen :: dataPtr ::
           toWord :: amount1Out :: amount0Out :: R) mem (UInt256.ofNat 3) rdata σ k' C' := by
   have hmask : UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by native_decide
-  have hto1797 : ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨1797⟩
+  have hto1797 : ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨1797⟩
       ((if UInt256.land toWord solcAddrMask ≠ token0 ∧ UInt256.land toWord solcAddrMask ≠ token1
           then ⟨1⟩ else ⟨0⟩) :: token1 :: token0 :: ⟨0⟩ :: ⟨0⟩ ::
         reserve1 :: reserve0 :: dataLen :: dataPtr :: toWord :: amount1Out :: amount0Out :: R)

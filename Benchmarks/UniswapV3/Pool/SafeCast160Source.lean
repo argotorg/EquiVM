@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.CheckedCastSource
 import Benchmarks.UniswapV3.Pool.Routines
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -38,14 +40,14 @@ theorem safeCast160Valid_iff (y : UInt256) : safeCast160Valid y ↔ y.toNat < 2 
 
 theorem safeCast160Returns (imms : Store) (evm : EVM.State) (y : UInt256)
     (hy : safeCast160Valid y) :
-    ExecFuncBody config (safeCast160Frame imms y) evm safeCast160Function.body
+    ExecFuncBody fork config (safeCast160Frame imms y) evm safeCast160Function.body
       (.returned (safeCast160ReadyFrame imms y) evm (some [.int (Int.ofNat y.toNat)])) :=
   checkedCastReturns (safeCast160Frame imms y) evm "y" "z" (.uint ⟨160, by decide⟩)
     (Int.ofNat y.toNat) (by decide) Std.HashMap.getElem?_insert_self hy
 
 theorem safeCast160Reverts (imms : Store) (evm : EVM.State) (y : UInt256)
     (hy : ¬safeCast160Valid y) :
-    ExecFuncBody config (safeCast160Frame imms y) evm safeCast160Function.body .reverted :=
+    ExecFuncBody fork config (safeCast160Frame imms y) evm safeCast160Function.body .reverted :=
   checkedCastReverts (safeCast160Frame imms y) evm "y" "z" (.uint ⟨160, by decide⟩)
     (Int.ofNat y.toNat) (by decide) Std.HashMap.getElem?_insert_self hy
 

@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.SafeTransferCallMemory
 import Benchmarks.Morpho.MorphoBlue.SafeTransferCodeGuard
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -30,9 +32,9 @@ theorem morphoTransferEncode {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat
     {k C : Nat} {R : List UInt256} (isFrom : Bool) (token sender recipient : AccountAddress)
     (hstack : R.length + 18 ≤ 1024) (hfree : memLoad (UInt256.ofNat 64) mem = ptr)
     (hb : ptr.toNat + 160 < UInt256.size)
-    (h : RD (deployedRuntime v) ee g s0 (safeTransferEncodePC isFrom)
+    (h : RD fork (deployedRuntime v) ee g s0 (safeTransferEncodePC isFrom)
       (safeTransferEncodeStack isFrom token sender recipient value ret R) mem aw out σ k C) :
-    ∃ a k C, RD (deployedRuntime v) ee g s0 (safeTransferCallAllocatorPC isFrom)
+    ∃ a k C, RD fork (deployedRuntime v) ee g s0 (safeTransferCallAllocatorPC isFrom)
       (safeTransferAllocationArgs isFrom ptr ++
         [safeTransferBeforeCallPC isFrom, ptr, UInt256.ofNat 0, ptr + UInt256.ofNat 32,
           UInt256.ofNat token.val, UInt256.ofNat 0, UInt256.ofNat 0, UInt256.ofNat 15005, ret] ++ R)
@@ -64,7 +66,7 @@ theorem morphoTransferEncode {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat
       show UInt256.ofNat 100 + UInt256.ofNat
         115792089237316195423570985008687907853269984665640564039457584007913129639904 = UInt256.ofNat 68 by decide,
       show UInt256.ofNat 36 + UInt256.ofNat 32 = UInt256.ofNat 68 by decide] at rd1
-    change RD _ _ _ _ _
+    change RD fork _ _ _ _ _
       (ptr :: UInt256.ofNat 100 :: UInt256.ofNat 14854 :: ptr :: UInt256.ofNat 0 ::
         (ptr + UInt256.ofNat 32) :: UInt256.ofNat token.val :: UInt256.ofNat 0 :: UInt256.ofNat 0 ::
         UInt256.ofNat 15005 :: ret :: R)
@@ -87,9 +89,9 @@ theorem morphoTransferAllocate {v : MorphoImmutables} {ee : ExecutionEnv} {g : S
     {k C : Nat} {R : List UInt256} (isFrom : Bool) (hstack : R.length + 5 ≤ 1024)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
     (hfit : ptr.toNat + safeTransferCallAllocation isFrom < 2 ^ 64)
-    (h : RD (deployedRuntime v) ee g s0 (safeTransferCallAllocatorPC isFrom)
+    (h : RD fork (deployedRuntime v) ee g s0 (safeTransferCallAllocatorPC isFrom)
       (safeTransferAllocationArgs isFrom ptr ++ ret :: R) mem aw out σ k C) :
-    ∃ a k C, RD (deployedRuntime v) ee g s0 ret R
+    ∃ a k C, RD fork (deployedRuntime v) ee g s0 ret R
       (writeWord mem 64 (ptr + UInt256.ofNat (safeTransferCallAllocation isFrom))) a out σ k C := by
   cases isFrom
   · obtain ⟨a, k, C, rd⟩ := morphoAllocDynamicExact 100 hstack hvalid
@@ -109,8 +111,8 @@ theorem morphoTransferAllocateOverflow {v : MorphoImmutables} {ee : ExecutionEnv
     {s0 : State} {mem out : ByteArray} {aw ptr ret : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (isFrom : Bool) (hstack : R.length + 5 ≤ 1024)
     (hp : ptr.toNat < 2 ^ 64) (hbad : 2 ^ 64 ≤ ptr.toNat + safeTransferCallAllocation isFrom)
-    (h : RD (deployedRuntime v) ee g s0 (safeTransferCallAllocatorPC isFrom)
-      (safeTransferAllocationArgs isFrom ptr ++ ret :: R) mem aw out σ k C) : RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 (safeTransferCallAllocatorPC isFrom)
+      (safeTransferAllocationArgs isFrom ptr ++ ret :: R) mem aw out σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   cases isFrom
   · exact morphoAllocDynamicOverflow 100 hstack (by omega) hbad h
   · change 2 ^ 64 ≤ ptr.toNat + 160 at hbad

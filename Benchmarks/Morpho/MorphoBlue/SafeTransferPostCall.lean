@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.SafeTransferPost
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -25,17 +27,17 @@ theorem morphoTransferPostCall {v : MorphoImmutables} {ee : ExecutionEnv} {g : S
     (hsize : 128 ≤ mem.size) (hlower : 128 ≤ ptr.toNat)
     (hzero : memLoad (UInt256.ofNat 96) mem = UInt256.ofNat 0)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 (safeTransferAfterCallPC isFrom)
+    (h : RD fork (deployedRuntime v) ee g s0 (safeTransferAfterCallPC isFrom)
       ((if success then ⟨1⟩ else ⟨0⟩) :: UInt256.ofNat 15005 :: ret :: R)
       mem aw out σ k C) :
-    (ExecBlock config frame evm safeTransferTail .reverted ∧ RDrev (deployedRuntime v) g s0) ∨
+    (ExecBlock fork config frame evm safeTransferTail .reverted ∧ RDrev fork (deployedRuntime v) g s0) ∨
     ∃ frame' mem' ptr' aw' k' C',
-      ExecBlock config frame evm safeTransferTail (.returned frame' evm
+      ExecBlock fork config frame evm safeTransferTail (.returned frame' evm
         (some [.int (Int.ofNat (ptr.toNat + safeTransferReturnAlloc out.size + 128))])) ∧
-      RD (deployedRuntime v) ee g s0 ret R mem' aw' out σ k' C' ∧
+      RD fork (deployedRuntime v) ee g s0 ret R mem' aw' out σ k' C' ∧
       MorphoHeap mem' ptr' 0 ∧ MemoryPrefix mem mem' ptr.toNat ∧
       ptr'.toNat = ptr.toNat + safeTransferReturnAlloc out.size + 128 := by
-  have hstart : ∃ a k C, RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14548)
+  have hstart : ∃ a k C, RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14548)
       (safeTransferStatusPC isFrom :: safeTransferBoolPC isFrom ::
         (if success then ⟨1⟩ else ⟨0⟩) :: UInt256.ofNat 15005 :: ret :: R)
       mem a out σ k C := by

@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.AmountDeltaSortTrace
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_065
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_066
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -35,11 +37,11 @@ theorem nextSqrt1PrefixX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret priceRaw liquidityRaw : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : NextSqrtArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨19714⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨19714⟩
       ((if a.add then ⟨1⟩ else ⟨0⟩) :: a.amount :: liquidityRaw :: priceRaw :: ret :: R)
       mem aw rdata σ k C)
     (hov : R.length + 10 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (nextSqrt1QuotientPC a)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (nextSqrt1QuotientPC a)
       (⟨0⟩ :: ⟨0⟩ :: (if a.add then ⟨1⟩ else ⟨0⟩) :: a.amount ::
         liquidityRaw :: priceRaw :: ret :: R) mem aw rdata σ k' C' := by
   cases ha : a.add

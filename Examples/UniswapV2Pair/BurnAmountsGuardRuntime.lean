@@ -2,6 +2,8 @@ import Examples.UniswapV2Pair.StackRoutines
 import Examples.UniswapV2Pair.BurnAmountsRuntime
 import Examples.UniswapV2Pair.ErrorStringCopyRoutines
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -12,21 +14,21 @@ theorem uniswapBurnRuntimeAmountsGuardCases
     {σ : AccountMap}
     {mem rdata : ByteArray} {totalSupply feeOn liquidity balance0 balance1
       token0 token1 reserve0 reserve1 amount0 amount1 : UInt256} {R : List UInt256} {k C : ℕ}
-    (rd4533 : RD uniswapV2PairBytecode I g s0 ⟨4533⟩
+    (rd4533 : RD fork uniswapV2PairBytecode I g s0 ⟨4533⟩
       (totalSupply :: feeOn :: liquidity :: balance1 :: balance0 :: token1 :: token0 ::
         reserve1 :: reserve0 :: amount1 :: amount0 :: R)
       mem feeToStaticcallActiveWords rdata σ k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 24 ≤ 1024) :
-    (¬ (0 < amount0.toNat ∧ 0 < amount1.toNat)) ∧ RDrev uniswapV2PairBytecode g s0 ∨
+    (¬ (0 < amount0.toNat ∧ 0 < amount1.toNat)) ∧ RDrev fork uniswapV2PairBytecode g s0 ∨
     (0 < amount0.toNat ∧ 0 < amount1.toNat) ∧ ∃ k' C',
-      RD uniswapV2PairBytecode I g s0 ⟨8302⟩
+      RD fork uniswapV2PairBytecode I g s0 ⟨8302⟩
         (liquidity :: UInt256.ofNat I.codeOwner.val :: ⟨4617⟩ ::
           totalSupply :: feeOn :: liquidity :: balance1 :: balance0 :: token1 :: token0 ::
           reserve1 :: reserve0 :: amount1 :: amount0 :: R)
         mem feeToStaticcallActiveWords rdata σ k' C' := by
-  have hto4548 : ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨4548⟩
+  have hto4548 : ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨4548⟩
       ((if 0 < amount0.toNat ∧ 0 < amount1.toNat then ⟨1⟩ else ⟨0⟩) ::
         totalSupply :: feeOn :: liquidity :: balance1 :: balance0 :: token1 :: token0 ::
         reserve1 :: reserve0 :: amount1 :: amount0 :: R)

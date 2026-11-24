@@ -10,6 +10,8 @@ import Reasoning.Dispatch
 import Reasoning.SteleBody
 import Mathlib.Tactic.IntervalCases
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS ExponentialDecrease shared proof foundation
 
@@ -47,7 +49,7 @@ theorem stairstepUint256GetterBodyReturns (evm : EVM.State) (locals : Store)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem (.int uint256Int)))
     (hloc : config.storageBackend.locate? er = some (.leaf (wordLoc slot))) :
-    ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
+    ExecTransitionBody fork config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract, locals := locals } evm
         (some [(.int (Int.ofNat
           (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat))])) := by
@@ -64,7 +66,7 @@ theorem stairstepUint256GetterBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD exponentialDecreaseBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork exponentialDecreaseBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf exponentialDecreaseBytecode entry returnPc routine)
@@ -74,12 +76,12 @@ theorem stairstepUint256GetterBodyCore
     (hretmem : solcReturnWordFromMemWf exponentialDecreaseBytecode returnPc)
     (hreturn : transition.returnType = [uint256])
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))]))) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have henc :
       returnEquiv (UInt256.toByteArray (solcSlotWordAt slot σ I))
         (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))])
@@ -92,7 +94,7 @@ theorem stairstepUint256GetterBodyCore
     (returnPc := returnPc) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine hreturnJd hretmem
   have hret' :
-      RDret exponentialDecreaseBytecode (Sat256.ofUInt256 g)
+      RDret fork exponentialDecreaseBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (UInt256.toByteArray (solcSlotWordAt slot σ I)) := by
     simpa [solcSlotWordAt] using hret
@@ -245,13 +247,13 @@ theorem RD.stairstepAuthCodecopyRevertTail {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc : UInt256}
     {stk : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD exponentialDecreaseBytecode ee g s0 pc stk mem
+    (h : RD fork exponentialDecreaseBytecode ee g s0 pc stk mem
         (UInt256.ofNat 3) rdata acc k C)
     (hwf : stairstepAuthCodecopyRevertTailWf pc)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : stk.length + 6 ≤ 1024) :
-    RDrev exponentialDecreaseBytecode g s0 := by
+    RDrev fork exponentialDecreaseBytecode g s0 := by
   rcases hwf with
     ⟨hd0, hd2, hd3, hd7, hd9, hd10, hd11, hd12, hd14, hd15, hd16, hd17, hd19,
       hd20, hd21, hd22, hd23, hd24, hd25, hd27, hd28, hd29, hd31, hd32, hd33,
@@ -466,7 +468,7 @@ theorem RD.stairstepCodecopyRevertTail {g : Sat256} {s0 : State}
     {stk : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
     (offset len : UInt256)
-    (h : RD exponentialDecreaseBytecode ee g s0 pc stk mem
+    (h : RD fork exponentialDecreaseBytecode ee g s0 pc stk mem
         (UInt256.ofNat 3) rdata acc k C)
     (hwf : stairstepCodecopyRevertTailWf pc offset len)
     (hmem : mem.size = 96)
@@ -481,7 +483,7 @@ theorem RD.stairstepCodecopyRevertTail {g : Sat256} {s0 : State}
       UInt256.ofNat (MachineState.M (UInt256.ofNat 7).toNat 196 len.toNat) =
         UInt256.ofNat 8)
     (hov : stk.length + 6 ≤ 1024) :
-    RDrev exponentialDecreaseBytecode g s0 := by
+    RDrev fork exponentialDecreaseBytecode g s0 := by
   rcases hwf with
     ⟨hd0, hd2, hd3, hd7, hd9, hd10, hd11, hd12, hd14, hd15, hd16, hd17, hd19,
       hd20, hd21, hd22, hd23, hd24, hd25, hd27, hd28, hd29, hd31, hd32, hd33,

@@ -4,30 +4,32 @@ import Benchmarks.Morpho.MorphoBlue.OraclePriceSource
 import Benchmarks.Morpho.MorphoBlue.HealthyPriceRefine
 import Benchmarks.Morpho.MorphoBlue.HeapWordWrites
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
 
-inductive LiquidateOracleRefines (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
+inductive LiquidateOracleRefines (fork : Ethereum.Fork) (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     (p : MarketParamsWords) (account seized shares srcOff len : UInt256) (data : ByteArray)
     (locals imms : Store) (evm : EVM.State) (mem : ByteArray) (fp : UInt256) (R : List UInt256) : Prop where
-  | reverted : ExecBlock config { contract := contract, locals := locals, immutables := imms }
-      evm (liquidateTransition.body.drop 10) .reverted → RDrev (deployedRuntime v) g s0 →
-      LiquidateOracleRefines v ee g s0 p account seized shares srcOff len data locals imms evm mem fp R
+  | reverted : ExecBlock fork config { contract := contract, locals := locals, immutables := imms }
+      evm (liquidateTransition.body.drop 10) .reverted → RDrev fork (deployedRuntime v) g s0 →
+      LiquidateOracleRefines fork v ee g s0 p account seized shares srcOff len data locals imms evm mem fp R
   | ok {locals' evm' σ' mem' fp' aw' out' k' C'} (price : UInt256) (z : Bool) :
-      StateBlock config { contract := contract, locals := locals, immutables := imms }
+      StateBlock fork config { contract := contract, locals := locals, immutables := imms }
         evm (liquidateTransition.body.drop 10) { contract := contract, locals := locals', immutables := imms }
         evm' (liquidateTransition.body.drop 13) → LiquidateLocals p account seized shares data locals' →
       locals'.get? "__memory" = some (.int (Int.ofNat (fp'.toNat + 320))) →
       locals'.get? "collateralPrice" = some (.int (Int.ofNat price.toNat)) →
       locals'.get? "__c4" = some (.bool z) → SourceState s0 ee σ' evm' → MorphoHeap mem' fp' 896 →
       HeapAdvance mem fp mem' fp' 32 →
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat 1577)
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 1577)
         ([if z then UInt256.ofNat 1 else UInt256.ofNat 0, UInt256.ofNat 1638, price] ++
           liquidateGuardTail p.id seized shares srcOff len R) mem' aw' out' σ' k' C' →
-      LiquidateOracleRefines v ee g s0 p account seized shares srcOff len data locals imms evm mem fp R
+      LiquidateOracleRefines fork v ee g s0 p account seized shares srcOff len data locals imms evm mem fp R
 
 theorem morphoLiquidateOracleRefine {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : State} {mem out data : ByteArray} {aw fp account seized shares srcOff len : UInt256} {σ : AccountMap}
@@ -38,19 +40,19 @@ theorem morphoLiquidateOracleRefine {v : MorphoImmutables} {ee : ExecutionEnv} {
     (hm : MorphoHeap mem fp 928)
     (hget : locals.get? "__memory" = some (.int (Int.ofNat (fp.toNat + 352))))
     (hparams : p.InMemory (UInt256.ofNat 128) mem) (hsize : 288 ≤ mem.size) (hbefore : 288 ≤ fp.toNat)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 1470)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 1470)
       (liquidateGuardTail p.id seized shares srcOff len R) mem aw out σ k C) :
-    LiquidateOracleRefines v ee g s0 p account seized shares srcOff len data locals imms evm mem fp R := by
+    LiquidateOracleRefines fork v ee g s0 p account seized shares srcOff len data locals imms evm mem fp R := by
   let l1 := locals.insert "oracle" (.address (AccountAddress.ofNat p.oracle.toNat))
   have hl1 : LiquidateLocals p account seized shares data l1 := hl.insert _ _ (by decide) (by decide)
-  have helet : ExecStmt config { contract := contract, locals := locals, immutables := imms }
+  have helet : ExecStmt fork config { contract := contract, locals := locals, immutables := imms }
       evm liquidateTransition.body[10]!
       (.ok { contract := contract, locals := l1, immutables := imms } evm) := by
     apply ExecStmt.letDecl
     simp only [evalExpr?, hl.evalParams, MarketParamsWords.value, tupleGetValue?,
       EvalResult.bind, EvalResult.ofOption, bind]
     rfl
-  have ab1 : StateBlock config { contract := contract, locals := locals, immutables := imms }
+  have ab1 : StateBlock fork config { contract := contract, locals := locals, immutables := imms }
       evm (liquidateTransition.body.drop 10) { contract := contract, locals := l1, immutables := imms }
       evm (liquidateTransition.body.drop 11) := StateBlock.start.step helet
   have hetarget : evalExpr? config { contract := contract, locals := l1, immutables := imms }

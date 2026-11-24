@@ -11,6 +11,8 @@ import Reasoning.SteleBody
 import Reasoning.Constructor
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 
 /-!
 # WETH9 constructor correctness
@@ -105,10 +107,10 @@ theorem weth9CtorMemName_read160 :
 set_option maxHeartbeats 2000000 in
 theorem weth9CtorReachName {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9CreationBytecode) :
-    ∃ k C, RD weth9CreationBytecode I g (initState σ σ₀ g A I) ⟨122⟩
+    ∃ k C, RD fork weth9CreationBytecode I g (initState σ σ₀ g A I) ⟨122⟩
       [⟨13⟩, ⟨160⟩, ⟨0⟩, ⟨46⟩]
       weth9CtorMemName (UInt256.ofNat 6) ByteArray.empty σ k C := by
-  have rd0 : RD weth9CreationBytecode I g (initState σ σ₀ g A I) ⟨0⟩ []
+  have rd0 : RD fork weth9CreationBytecode I g (initState σ σ₀ g A I) ⟨0⟩ []
       ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 := RD.initState hcode
   have rd4 := evm_run rd0 with [
     push1 ⟨192⟩, push1 ⟨64⟩,
@@ -216,11 +218,11 @@ def weth9CtorMemSymSub : ByteArray :=
 set_option maxHeartbeats 4000000 in
 theorem weth9CtorReachGuard {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9CreationBytecode) (hperm : I.perm = true) :
-    ∃ k C, RD weth9CreationBytecode I g (initState σ σ₀ g A I) ⟨105⟩
+    ∃ k C, RD fork weth9CreationBytecode I g (initState σ σ₀ g A I) ⟨105⟩
       [] weth9CtorMemSymSub (UInt256.ofNat 8) ByteArray.empty
       (weth9EvmFinalMap σ I.codeOwner) k C := by
   -- Reach the name subroutine at pc 122, run it, reach pc 46.
-  obtain ⟨_, _, rdName⟩ := weth9CtorReachName (σ := σ)
+  obtain ⟨_, _, rdName⟩ := weth9CtorReachName (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode
   obtain ⟨_, _, rd46⟩ := weth9StringStoreSubroutine ⟨13⟩ ⟨160⟩ ⟨0⟩ ⟨46⟩ weth9NameWord
     (Or.inl rfl) (by decide) hperm (by native_decide) (by decide)
@@ -283,9 +285,9 @@ theorem weth9CtorReturnMem_read : weth9CtorReturnMem.readWithPadding 0 1763 = we
 set_option maxHeartbeats 4000000 in
 theorem weth9CtorInitcodeSuccess {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9CreationBytecode) (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩) :
-    RDret weth9CreationBytecode g (initState σ σ₀ g A I)
+    RDret fork weth9CreationBytecode g (initState σ σ₀ g A I)
       (weth9EvmFinalMap σ I.codeOwner) weth9Bytecode := by
-  obtain ⟨_, _, rd105⟩ := weth9CtorReachGuard (σ := σ)
+  obtain ⟨_, _, rd105⟩ := weth9CtorReachGuard (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hperm
   have rd287 := evm_run rd105 with [
     callvalue, dup1, iszero, push2 ⟨116⟩,
@@ -300,8 +302,8 @@ theorem weth9CtorInitcodeSuccess {σ σ₀ A I} {g : Sat256}
 set_option maxHeartbeats 4000000 in
 theorem weth9CtorInitcodeRevert {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9CreationBytecode) (hperm : I.perm = true) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev weth9CreationBytecode g (initState σ σ₀ g A I) := by
-  obtain ⟨_, _, rd105⟩ := weth9CtorReachGuard (σ := σ)
+    RDrev fork weth9CreationBytecode g (initState σ σ₀ g A I) := by
+  obtain ⟨_, _, rd105⟩ := weth9CtorReachGuard (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hperm
   have rd114 := evm_run rd105 with [
     callvalue, dup1, iszero, push2 ⟨116⟩,
@@ -408,7 +410,7 @@ theorem weth9FinalReconcile (cO : AccountAddress) (evm0 : EVM.State) (σ : Accou
 set_option maxHeartbeats 1000000 in
 theorem weth9ConstructorCorrect :
     typedConstructorRefinement config weth9CreationBytecode contract (fun _ => weth9Bytecode) := by
-  intro σ σ₀ g A I args deployedInitcode hdeploy hcode _hcalldata hperm
+  intro fork _hfork σ σ₀ g A I args deployedInitcode hdeploy hcode _hcalldata hperm
   have hdeployed := emptyCtorDeployment_eq_initcode weth9_selfDeployment_eq weth9_ctor_params_nil
     hdeploy
   rw [hdeployed] at hcode
@@ -418,7 +420,7 @@ theorem weth9ConstructorCorrect :
     exact List.eq_nil_of_length_eq_zero this
   by_cases hwv : I.weiValue = ⟨0⟩
   · -- Success: EVM returns runtime; reconcile the final storage.
-    have hrd := weth9CtorInitcodeSuccess (σ := σ)
+    have hrd := weth9CtorInitcodeSuccess (fork := fork) (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hperm hwv
     rcases hrd with hoog | ⟨s, hX, hacc⟩
     · exact typedConstructorRefinementFor.outOfGas (Xi_error_of_X (g := g) (by
@@ -428,18 +430,18 @@ theorem weth9ConstructorCorrect :
       have hσ' : s.accountMap = weth9EvmFinalMap σ I.codeOwner := hacc
       rw [hσ'] at hsuccess
       refine typedConstructorRefinementFor.execution hsuccess
-        (weth9SteleCtorExecSuccess (hperm := by assumption) (σ := σ) (σ₀ := σ₀)
+        (weth9SteleCtorExecSuccess (fork := fork) (hperm := by assumption) (σ := σ) (σ₀ := σ₀)
           (g := g) (A := A) (I := I) hwv) ?_
       refine ctorResultEquiv.success rfl rfl ?_ rfl
       exact weth9FinalReconcile I.codeOwner
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ rfl (by simp [initState])
   · -- Revert.
-    have hrd := weth9CtorInitcodeRevert (σ := σ)
+    have hrd := weth9CtorInitcodeRevert (fork := fork) (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hperm hwv
     rcases hrd.xiResult hcode with hoog | ⟨g', o, hrev⟩
     · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hoog)
     · refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hrev)
-        (weth9SteleCtorExecReverts (σ := σ) (σ₀ := σ₀)
+        (weth9SteleCtorExecReverts (fork := fork) (σ := σ) (σ₀ := σ₀)
           (g := g) (A := A) (I := I) hwv) ?_
       exact ctorResultEquiv.revert rfl rfl
 

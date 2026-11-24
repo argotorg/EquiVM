@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.PositionUpdateGrowthTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -10,13 +12,13 @@ theorem positionUpdateOwedX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : PositionUpdateArgs) (evm : EVM.State)
     (hs : SourceState s0 ee σ (positionUpdateGrowthState a evm))
-    (rd : RD (deployedRuntime v) ee g s0 ⟨21898⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨21898⟩
       (positionUpdateWorkingWords a evm p ++ ret :: R) mem aw rdata σ k C)
     (hp : ee.perm = true) (hov : R.length + 15 ≤ 1024) :
     ∃ k' C', SourceState s0 ee (positionUpdateOwedMap a evm σ ee)
         (positionUpdateOwedState a evm
           (positionUpdateOwedState a evm (positionUpdateGrowthState a evm) false) true) ∧
-      RD (deployedRuntime v) ee g s0 ⟨21954⟩ (positionUpdateWorkingWords a evm p ++ ret :: R)
+      RD fork (deployedRuntime v) ee g s0 ⟨21954⟩ (positionUpdateWorkingWords a evm p ++ ret :: R)
         mem aw rdata (positionUpdateOwedMap a evm σ ee) k' C' := by
   simp only [positionUpdateWorkingWords, List.cons_append, List.nil_append] at rd
   obtain ⟨kr, Cr, rr⟩ := uniswapV3Pool_block_21898 (immWords := wordsOf (immStore v))
@@ -30,13 +32,13 @@ theorem positionUpdateFinishX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : PositionUpdateArgs) (evm : EVM.State)
     (hs : SourceState s0 ee σ (positionUpdateGrowthState a evm))
-    (rd : RD (deployedRuntime v) ee g s0 ⟨21892⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨21892⟩
       ((positionUpdateHasFees a evm).toUInt256 :: positionUpdateWorkingWords a evm p ++ ret :: R)
       mem aw rdata σ k C)
     (hp : ee.perm = true) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
     (hov : R.length + 15 ≤ 1024) :
     ∃ σ' k' C', SourceState s0 ee σ' (positionUpdateFinalState a evm) ∧
-      RD (deployedRuntime v) ee g s0 ret R mem aw rdata σ' k' C' := by
+      RD fork (deployedRuntime v) ee g s0 ret R mem aw rdata σ' k' C' := by
   cases hf : positionUpdateHasFees a evm
   · rw [hf] at rd
     have r1 := uniswapV3Pool_block_21892_taken (immWords := wordsOf (immStore v))

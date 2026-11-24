@@ -2,6 +2,8 @@ import Benchmarks.EAS.EAS.RefundResult
 import Benchmarks.EAS.EAS.BytesAllocationEVM
 import Benchmarks.EAS.EAS.ReturnDataMemory
 import Benchmarks.EAS.EAS.RuntimeBlocks_053
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -30,10 +32,10 @@ theorem refundAllocationEVM {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {k C : Nat} {ptr flag ret : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length+12 ≤ 1024) (hout : out.size < UInt256.size) (hheap : ptr.toNat ≤ 2^64-1)
     (hh : memLoad (UInt256.ofNat 64) mem = ptr)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨16367⟩ (flag::ret::R) mem aw out σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨16367⟩ (flag::ret::R) mem aw out σ k C) :
     if refundAllocationValid ptr.toNat out.size then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨16407⟩ (flag::ret::R) (refundMemory mem ptr out) aw' out σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨16407⟩ (flag::ret::R) (refundMemory mem ptr out) aw' out σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hlen : (UInt256.ofNat out.size).toNat = out.size := ulit_toNat' _ hout
   by_cases hz : out.size = 0
   · have hv : refundAllocationValid ptr.toNat out.size := Or.inl hz
@@ -85,9 +87,9 @@ theorem refundFinish {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {out : ByteArray} {σ : AccountMap}
     {k C : Nat} {ret : UInt256} {R : List UInt256} (v : EASImmutables) (success : Bool)
     (hstack : R.length+6 ≤ 1024) (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨16407⟩ ((if success then ⟨1⟩ else ⟨0⟩)::ret::R) mem aw out σ k C) :
-    if success then ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret R mem aw' out σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨16407⟩ ((if success then ⟨1⟩ else ⟨0⟩)::ret::R) mem aw out σ k C) :
+    if success then ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret R mem aw' out σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   cases success with
   | true =>
     obtain ⟨aw1,k1,C1,rd1⟩ := easBlocks.eas_block_16407_fallthrough_packed (immWords := wordsOf (immStore v))
@@ -103,10 +105,10 @@ theorem refundReturnEVM {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {k C : Nat} {ptr ret : UInt256} {R : List UInt256} (v : EASImmutables) (success : Bool)
     (hstack : R.length+12 ≤ 1024) (hout : out.size < UInt256.size) (hheap : ptr.toNat ≤ 2^64-1)
     (hh : memLoad (UInt256.ofNat 64) mem = ptr) (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨16367⟩ ((if success then ⟨1⟩ else ⟨0⟩)::ret::R) mem aw out σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨16367⟩ ((if success then ⟨1⟩ else ⟨0⟩)::ret::R) mem aw out σ k C) :
     if refundResultValid ptr.toNat success out then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret R (refundMemory mem ptr out) aw' out σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret R (refundMemory mem ptr out) aw' out σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   have ha := refundAllocationEVM v hstack hout hheap hh rd
   by_cases hg : refundAllocationValid ptr.toNat out.size
   · rw [if_pos hg] at ha

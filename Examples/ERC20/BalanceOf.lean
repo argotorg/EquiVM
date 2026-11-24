@@ -1,6 +1,8 @@
 import Examples.ERC20.Common
 import Reasoning.Storage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -63,7 +65,7 @@ theorem balanceOfStore_owner (I : ExecutionEnv) :
 
 theorem erc20BalanceOfBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody erc20Config erc20Contract evm (balanceOfStore I) balanceOfTransition.body
+    ExecTransitionBody fork erc20Config erc20Contract evm (balanceOfStore I) balanceOfTransition.body
       (.returned { contract := erc20Contract, locals := balanceOfStore I } evm
         (some [(.int (Int.ofNat
           (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (balanceOfSlot I)).toNat))])) := by
@@ -278,9 +280,9 @@ theorem balanceOfReturnMem_read128 (owner val : UInt256) :
     one-address tuple decoder at pc 2178. -/
 theorem erc20BalanceOfX_toDecoder {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨226⟩ [sel]
+    (hreach : ∃ k C, RD fork erc20Bytecode I g (initState σ σ₀ g A I) ⟨226⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨2178⟩
+    ∃ k C, RD fork erc20Bytecode I g (initState σ σ₀ g A I) ⟨2178⟩
         [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨247⟩, ⟨252⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨k, C, rd⟩ := hreach
@@ -296,9 +298,9 @@ theorem erc20BalanceOfX_toDecoder {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem erc20BalanceOfX_dec1874 {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨226⟩ [sel]
+    (hreach : ∃ k C, RD fork erc20Bytecode I g (initState σ σ₀ g A I) ⟨226⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨1874⟩
+    ∃ k C, RD fork erc20Bytecode I g (initState σ σ₀ g A I) ⟨1874⟩
         [⟨4⟩ + ⟨0⟩, UInt256.ofNat I.calldata.size, ⟨2212⟩, ⟨0⟩, ⟨0⟩, ⟨4⟩,
           UInt256.ofNat I.calldata.size, ⟨247⟩, ⟨252⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -318,9 +320,9 @@ theorem erc20BalanceOfX_dec2212 {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanon : (balanceOfOwnerWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨226⟩ [sel]
+    (hreach : ∃ k C, RD fork erc20Bytecode I g (initState σ σ₀ g A I) ⟨226⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨2212⟩
+    ∃ k C, RD fork erc20Bytecode I g (initState σ σ₀ g A I) ⟨2212⟩
         [balanceOfOwnerWord I, ⟨0⟩, ⟨0⟩, ⟨4⟩, UInt256.ofNat I.calldata.size,
           ⟨247⟩, ⟨252⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -334,9 +336,9 @@ theorem erc20BalanceOfX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanon : (balanceOfOwnerWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨226⟩ [sel]
+    (hreach : ∃ k C, RD fork erc20Bytecode I g (initState σ σ₀ g A I) ⟨226⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨1345⟩
+    ∃ k C, RD fork erc20Bytecode I g (initState σ σ₀ g A I) ⟨1345⟩
         [balanceOfOwnerWord I, ⟨252⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨k, C, rd⟩ := erc20BalanceOfX_dec2212
@@ -351,9 +353,9 @@ theorem erc20X_balanceOf {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanon : (balanceOfOwnerWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨226⟩ [sel]
+    (hreach : ∃ k C, RD fork erc20Bytecode I g (initState σ σ₀ g A I) ⟨226⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret erc20Bytecode g (initState σ σ₀ g A I) σ
+    RDret fork erc20Bytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (balanceOfWord σ I)) := by
   obtain ⟨k, C, rd1345⟩ := erc20BalanceOfX_decoded
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hsz36 hsize hszhi hcanon hreach
@@ -404,9 +406,9 @@ theorem erc20X_balanceOf {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem erc20BalanceOfX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨226⟩ [sel]
+    (hreach : ∃ k C, RD fork erc20Bytecode I g (initState σ σ₀ g A I) ⟨226⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev erc20Bytecode g (initState σ σ₀ g A I) := by
+    RDrev fork erc20Bytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ :=
     solcDecodeLenCheckShort_4_32 hsz4 hshort hsize
   obtain ⟨k, C, rd⟩ := erc20BalanceOfX_toDecoder
@@ -420,9 +422,9 @@ theorem erc20BalanceOfX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem erc20BalanceOfX_hugearg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hbig : 2 ^ 255 + 4 ≤ I.calldata.size)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨226⟩ [sel]
+    (hreach : ∃ k C, RD fork erc20Bytecode I g (initState σ σ₀ g A I) ⟨226⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev erc20Bytecode g (initState σ σ₀ g A I) := by
+    RDrev fork erc20Bytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ :=
     solcDecodeLenCheckHuge_4_32 hbig hsize
   obtain ⟨k, C, rd⟩ := erc20BalanceOfX_toDecoder
@@ -438,9 +440,9 @@ theorem erc20BalanceOfX_noncanon {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hnc : UInt256.eq (balanceOfOwnerWord I)
       (UInt256.land (balanceOfOwnerWord I) erc20AddrMask) = ⟨0⟩)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨226⟩ [sel]
+    (hreach : ∃ k C, RD fork erc20Bytecode I g (initState σ σ₀ g A I) ⟨226⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev erc20Bytecode g (initState σ σ₀ g A I) := by
+    RDrev fork erc20Bytecode g (initState σ σ₀ g A I) := by
   obtain ⟨k, C, rd⟩ := erc20BalanceOfX_dec1874
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hsz36 hsize hszhi hreach
   exact RD.erc20DecodeAddrRevert rd hnc (by evm_ov)
@@ -473,10 +475,10 @@ theorem erc20BalanceOfBodyCore
     (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0x70, 0xa0, 0x82, 0x31]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
-    (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork erc20Bytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨226⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor erc20Config erc20Contract
+    runtimeRefinementFor fork erc20Config erc20Contract
       σ σ₀ g A I := by
   have hsz4 := erc20BalanceOfSelector_size hsel
   have hd := erc20Dispatch_balanceOf (cd := I.calldata) hsel
@@ -485,7 +487,7 @@ theorem erc20BalanceOfBodyCore
     · by_cases hcanon : (balanceOfOwnerWord I).toNat < EVM.addressModulus
       · have hdec := erc20Decode_balanceOf_ok (I := I) hsz36 hbig hcanon
         have hbody :
-            ExecTransitionBody erc20Config erc20Contract
+            ExecTransitionBody fork erc20Config erc20Contract
               (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               (balanceOfStore I)
               balanceOfTransition.body

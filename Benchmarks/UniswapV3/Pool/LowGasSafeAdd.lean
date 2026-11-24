@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SourceWordArithmetic
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_044
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_051
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -31,11 +33,11 @@ def safeAddResultFrame (imms : Store) (x y : UInt256) : Frame :=
     locals := (safeAddZeroFrame imms x y).locals.insert "z" (.int (Int.ofNat (x + y).toNat))}
 
 theorem safeAddPrefix (imms : Store) (evm : EVM.State) (x y : UInt256) :
-    ExecBlock config (safeAddFrame imms x y) evm (safeAddFunction.body.take 2)
+    ExecBlock fork config (safeAddFrame imms x y) evm (safeAddFunction.body.take 2)
       (.ok (safeAddResultFrame imms x y) evm) := by
   refine ExecBlock.consNormal (stele' := safeAddZeroFrame imms x y) (evm' := evm)
     (ExecStmt.letDecl (by simp only [evalExpr?, pure])) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat (x + y).toNat)) ?_ ?_)
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat (x + y).toNat)) ?_ ?_)
     ExecBlock.nil
   · apply evalExpr_word_add
     · exact evalExpr_var_get (by simp [safeAddZeroFrame, safeAddLocals, Std.HashMap.getElem_insert])
@@ -54,7 +56,7 @@ theorem evalSafeAddGuard (imms : Store) (evm : EVM.State) (x y : UInt256) :
 
 theorem safeAddReturns (imms : Store) (evm : EVM.State) (x y : UInt256)
     (h : x.toNat ≤ (x + y).toNat) :
-    ExecFuncBody config (safeAddFrame imms x y) evm safeAddFunction.body
+    ExecFuncBody fork config (safeAddFrame imms x y) evm safeAddFunction.body
       (.returned (safeAddResultFrame imms x y) evm (some [.int (Int.ofNat (x + y).toNat)])) := by
   apply ExecFuncBody.execBlockRet
   rw [← List.take_append_drop 2 safeAddFunction.body]
@@ -66,7 +68,7 @@ theorem safeAddReturns (imms : Store) (evm : EVM.State) (x y : UInt256)
 
 theorem safeAddReverts (imms : Store) (evm : EVM.State) (x y : UInt256)
     (h : ¬ x.toNat ≤ (x + y).toNat) :
-    ExecFuncBody config (safeAddFrame imms x y) evm safeAddFunction.body .reverted := by
+    ExecFuncBody fork config (safeAddFrame imms x y) evm safeAddFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 2 safeAddFunction.body]
   apply execBlock_append_ok (safeAddPrefix imms evm x y)
@@ -76,10 +78,10 @@ theorem safeAddReverts (imms : Store) (evm : EVM.State) (x y : UInt256)
 theorem safeAddX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret x y : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨15885⟩ (y :: x :: ret :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨15885⟩ (y :: x :: ret :: R) mem aw rdata σ k C)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 6 ≤ 1024) :
-    (¬ x.toNat ≤ (x + y).toNat ∧ RDrev (deployedRuntime v) g s0) ∨
-    (x.toNat ≤ (x + y).toNat ∧ ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) ee g s0 ret
+    (¬ x.toNat ≤ (x + y).toNat ∧ RDrev fork (deployedRuntime v) g s0) ∨
+    (x.toNat ≤ (x + y).toNat ∧ ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) ee g s0 ret
       ((x + y) :: R) mem aw rdata σ k' C') := by
   by_cases h : x.toNat ≤ (x + y).toNat
   · have r1 := uniswapV3Pool_block_15885_taken (immWords := wordsOf (immStore v))

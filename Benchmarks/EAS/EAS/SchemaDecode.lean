@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.SchemaBody
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -11,13 +13,13 @@ theorem easSchemaDecode {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hout : out.size < 2^138) (hv : ReturnMemoryView mem ptr.toNat out)
     (hdisj : ptr.toNat+out.size ≤ record.toNat) (hh : memLoad (UInt256.ofNat 64) mem = record)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨7332⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨7332⟩
       (ptr::(ptr+UInt256.ofNat out.size)::ret::R) mem aw out σ k C) :
     if 32 ≤ out.size ∧ schemaReturnOffset out ≤ solcMaxU64 ∧ schemaBodyRunValid record.toNat out (schemaReturnOffset out) then
-      ∃ mem' aw' k' C', RD (deployedRuntime v) ee g s0 ret (record::R) mem' aw' out σ k' C' ∧
+      ∃ mem' aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (record::R) mem' aw' out σ k' C' ∧
         MemoryPrefix mem mem' record.toNat ∧ SchemaMemoryView mem' record (decodedSchemaRecord out (schemaReturnOffset out)) ∧
         memLoad (UInt256.ofNat 64) mem' = UInt256.ofNat (schemaBodyNext record.toNat out (schemaReturnOffset out))
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hhead := easSchemaHead v (by omega) hptr hout
     (fun hw => hv.load (by omega : ptr.toNat=ptr.toNat+0) hw) rd
   by_cases hg : 32 ≤ out.size ∧ schemaReturnOffset out ≤ solcMaxU64 ∧ schemaReturnOffset out+128 ≤ out.size

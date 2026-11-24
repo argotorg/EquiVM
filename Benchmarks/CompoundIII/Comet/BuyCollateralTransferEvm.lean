@@ -8,6 +8,8 @@ import Benchmarks.CompoundIII.Comet.RuntimeBlocks_001
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_034
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_035
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -19,9 +21,9 @@ theorem cometBuyCollateralFinish {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 evm : State} {mem rdata : ByteArray} {aw : UInt256}
     {σ : AccountMap} {k C : Nat} {x0 x1 x2 x3 x4 x5 : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024) (hperm : ee.perm = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨6622⟩ (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨6622⟩ (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: R)
       mem aw rdata σ k C) :
-    returnOutcomeRun (deployedRuntime v) g s0 ByteArray.empty (.ok (reentrancyState evm false)) := by
+    returnOutcomeRun fork (deployedRuntime v) g s0 ByteArray.empty (.ok (reentrancyState evm false)) := by
   obtain ⟨k', C', hr⟩ := cometWithExtendedAssetList_block_6622 (immWords := wordsOf (immStore v))
     hstack hperm (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
   have hcopy : memLoad (UInt256.ofNat 0)
@@ -32,7 +34,7 @@ theorem cometBuyCollateralFinish {v : CometWithExtendedAssetListImmutables}
   have hr := cometWithExtendedAssetList_block_22 (immWords := wordsOf (immStore v))
     (by change R.length + 0 ≤ 1024; omega) hr
   have hs' := sourceState_reentrancy hs false
-  change RDret (deployedRuntime v) g s0
+  change RDret fork (deployedRuntime v) g s0
     (sstoreAccountMap ee.codeOwner σ reentrancySlot (reentrancyValue false)) ByteArray.empty at hr
   simpa only [returnOutcomeRun, hs'.accounts] using hr
 
@@ -43,10 +45,10 @@ theorem cometBuyCollateralTransfer {v : CometWithExtendedAssetListImmutables}
     (hstack : R.length + 24 ≤ 1024) (hperm : ee.perm = true)
     (hfree : memLoad ⟨64⟩ mem = free) (hlo : 96 ≤ free.toNat) (hb : free.toNat + 68 < 2^64)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨6523⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨6523⟩
       (EVM.word recipient.val :: EVM.word asset.val :: base :: amount :: R) mem aw rdata σ k C) :
-    ∃ result, BuyCollateralTransfer asset recipient amount evm result ∧
-      returnOutcomeRun (deployedRuntime v) g s0 ByteArray.empty result := by
+    ∃ result, BuyCollateralTransfer fork asset recipient amount evm result ∧
+      returnOutcomeRun fork (deployedRuntime v) g s0 ByteArray.empty result := by
   have r1 := cometWithExtendedAssetList_block_6523 (immWords := wordsOf (immStore v))
     (by omega) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
   simp only [cometWithExtendedAssetList_block_6523_stack] at r1

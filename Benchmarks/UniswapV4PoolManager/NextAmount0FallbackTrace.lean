@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.ReachCost
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_052
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_067
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -15,11 +17,11 @@ theorem nextAmount0FallbackTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+10 ≤ 1024) (hp : price ≠ ⟨0⟩)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨23901⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨23901⟩
       ([junk, price, amount, amount0Numerator1 liquidity, solcAddrMask, ret] ++ R) mem aw rdata σ k C) :
     if nextAmount0FallbackFits price liquidity amount then ∃ k' C', C ≤ C' ∧
-      RD (deployedRuntime v) I g s0 ret (nextAmount0FallbackWord price liquidity amount :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+      RD fork (deployedRuntime v) I g s0 ret (nextAmount0FallbackWord price liquidity amount :: R) mem aw rdata σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   have rd1 := poolManagerBlocks.poolManager_block_23901 (by change R.length+9 ≤ 1024; omega)
     (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) h
   have rd2 := poolManagerBlocks.poolManager_block_18722_fallthrough

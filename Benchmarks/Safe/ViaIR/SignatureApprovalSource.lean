@@ -1,6 +1,8 @@
 import Benchmarks.Safe.ViaIR.SignatureBranchSource
 import Benchmarks.Safe.ViaIR.OwnerStorage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.ViaIR
@@ -95,7 +97,7 @@ theorem signatureApprovalSource {p : SignatureInput} {f : Frame} {evm : EVM.Stat
     (he : p.executor = AccountAddress.ofUInt256 executor)
     (hr : f.locals["r"]? = some (wordBytes32Value r))
     (ho : f.locals["currentOwner"]? = some old) :
-    ExecBlock config f evm signatureApprovalBody
+    ExecBlock fork config f evm signatureApprovalBody
       (if signatureApproved evm.accountMap evm.executionEnv executor r p.hash
         then .ok (signatureCurrentFrame f r) evm else .reverted) := by
   have hcond := evalSignatureApprovalCondition (evm := evm) (owner := r) (hc.current r) he

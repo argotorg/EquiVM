@@ -4,6 +4,8 @@ import Benchmarks.CurveVault.RuntimeBlocks_030
 import Benchmarks.CurveVault.RuntimeBlocks_031
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -33,11 +35,11 @@ theorem vaultTransferGuard {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hto : locals.get? "_to" = some (.address (AccountAddress.ofNat recipient.toNat)))
     (hmto : memLoad (UInt256.ofNat 96) mem = recipient) (hcanon : recipient.toNat < EVM.addressModulus)
     (hstack : R.length + 4 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 8133) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 8133) R mem aw rdata σ k C) :
     (evalExpr? config {contract := contract, locals := locals} evm vaultTransferGuardExpr = .ok (.bool true) ∧
-      ∃ aw' k' C', RD vaultBytecode I g s0 (UInt256.ofNat 8161) R mem aw' rdata σ k' C') ∨
+      ∃ aw' k' C', RD fork vaultBytecode I g s0 (UInt256.ofNat 8161) R mem aw' rdata σ k' C') ∨
     (evalExpr? config {contract := contract, locals := locals} evm vaultTransferGuardExpr = .ok (.bool false) ∧
-      RDrev vaultBytecode g s0) := by
+      RDrev fork vaultBytecode g s0) := by
   have heval := vaultTransferGuardSource evm locals (AccountAddress.ofNat recipient.toNat) hto
   rw [hs.env] at heval
   by_cases hself : recipient = UInt256.ofNat I.codeOwner.val
@@ -53,7 +55,7 @@ theorem vaultTransferGuard {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
   have rd8144 := vaultBlocks.vault_block_8133_fallthrough (by omega)
     (by rw [hmto]; exact u256_eq_of_ne hself) h
   have rd8153 := vaultBlocks.vault_block_8144 (by omega) (by native_decide) rd8144
-  change RD vaultBytecode I g s0 (UInt256.ofNat 8153)
+  change RD fork vaultBytecode I g s0 (UInt256.ofNat 8153)
     (UInt256.isZero (UInt256.isZero (memLoad (UInt256.ofNat 96) mem)) :: memLoad (UInt256.ofNat 96) mem :: R)
     mem _ rdata σ _ _ at rd8153
   rw [hmto] at rd8153

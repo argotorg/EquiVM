@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.AfterLiquidityPrepareTrace
 import Benchmarks.UniswapV4PoolManager.AfterLiquidityFinishTrace
 import Benchmarks.UniswapV4PoolManager.HookDeltaTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -14,11 +16,11 @@ def afterLiquidityReplyMemory (add : Bool) (src mem : ByteArray) (srcOff : Nat) 
   solcReturnDataMem (afterLiquidityMemory add src mem srcOff free len sender key p delta fees)
     (afterLiquidityFree free len) out
 
-def afterLiquidityReturnTrace (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
+def afterLiquidityReturnTrace (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
     (mem rdata : ByteArray) (σ : AccountMap) (ret delta hookDelta : UInt256) (R : List UInt256) : Prop :=
-  ∃ aw k C, RD (deployedRuntime v) I g s0 ret (hookDelta :: delta :: R) mem aw rdata σ k C
+  ∃ aw k C, RD fork (deployedRuntime v) I g s0 ret (hookDelta :: delta :: R) mem aw rdata σ k C
 
-def afterLiquidityActiveResult (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 post : State)
+def afterLiquidityActiveResult (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 post : State)
     (add : Bool) (mem : ByteArray) (src free len ret : UInt256) (hook : AccountAddress)
     (key : PoolKeyWords) (p : ModifyLiquidityWords) (delta fees : UInt256) (z : Bool) (out : ByteArray)
     (R : List UInt256) : Prop :=
@@ -26,13 +28,13 @@ def afterLiquidityActiveResult (v : PoolManagerImmutables) (I : ExecutionEnv) (g
   let parse := afterLiquidityParse hook add
   let hookDelta := hookDeltaWord out parse
   if z = true ∧ hookReplyValid payload out then
-    if parse = true ∧ out.size ≠ 64 then RDrev (deployedRuntime v) g s0
+    if parse = true ∧ out.size ≠ 64 then RDrev fork (deployedRuntime v) g s0
     else if balanceDeltaCombineFits true delta hookDelta then
-      afterLiquidityReturnTrace v I g s0
+      afterLiquidityReturnTrace fork v I g s0
         (afterLiquidityReplyMemory add I.calldata mem src.toNat free len I.source key p delta fees out)
         out post.accountMap ret (balanceDeltaCombineWord true delta hookDelta) hookDelta R
-    else RDrev (deployedRuntime v) g s0
-  else RDrev (deployedRuntime v) g s0
+    else RDrev fork (deployedRuntime v) g s0
+  else RDrev fork (deployedRuntime v) g s0
 
 theorem afterLiquidityActiveTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {mem rdata : ByteArray} {aw free keyPtr paramsPtr delta fees src len ret : UInt256} {hook : AccountAddress}
@@ -48,15 +50,15 @@ theorem afterLiquidityActiveTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
     (hgas : g.toNat < 324518553658429321982441292826060) (hpaid : Cₘ aw ≤ C)
     (hfree : memLoad (UInt256.ofNat 64) mem = free)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 (afterLiquidityEncodePc add)
+    (h : RD fork (deployedRuntime v) I g s0 (afterLiquidityEncodePc add)
       (afterLiquidityEncodeStack add (accountWord hook) keyPtr paramsPtr delta fees src len ret R)
       mem aw rdata evm.accountMap k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
     ∃ post z out, AllocationBounds free (afterLiquidityAllocationSize len) ∧
-      callViaEVM evm hook 0 (afterLiquidityPayload add I.source key p delta fees
+      callViaEVM fork evm hook 0 (afterLiquidityPayload add I.source key p delta fees
         (I.calldata.extract src.toNat (src.toNat+len.toNat))) (z, post, out) ∧
       post.executionEnv = I ∧ post.σ₀ = s0.σ₀ ∧ out.size < 2^138 ∧
-      afterLiquidityActiveResult v I g s0 post add mem src free len ret hook key p delta fees z out R := by
+      afterLiquidityActiveResult fork v I g s0 post add mem src free len ret hook key p delta fees z out R := by
   rcases afterLiquidityPrepareTrace v add hstack hk hp hc hl hu hkb hpb hf hgas hpaid hfree h with
     hog | ⟨hb, aw1, k1, C1, _, rd1⟩
   · exact .inl hog

@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.BeforeSwapAmountSource
 import Benchmarks.UniswapV4PoolManager.BalanceDeltaComponentSource
 import Benchmarks.UniswapV4PoolManager.SignedBytesDecode
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -24,7 +26,7 @@ theorem beforeSwapDeltaSource {f : Frame} {evm : State} {amount : UInt256} {out 
     (ha : f.locals.get? "amountToSwap" = some (.int (EVM.signed amount)))
     (hh : f.locals.get? "hookReturn" = some old)
     (hr : f.locals.get? "result" = some (.bytes out)) (hsize : 64 ≤ out.size) :
-    ExecBlock config f evm beforeSwapDeltaStmts (beforeSwapDeltaResult f evm amount out) := by
+    ExecBlock fork config f evm beforeSwapDeltaStmts (beforeSwapDeltaResult f evm amount out) := by
   let f1 := valueLocal f "hookReturn" (.int (EVM.signed (calldataWord out 32)))
   have hdecode := evalDecodeSigned256Slice (start := 32) (cfg := config)
     (by intro data; rfl) (evalLocalValue (cfg := config) (evm := evm) hr) hsize
@@ -44,9 +46,9 @@ theorem beforeSwapDeltaSource {f : Frame} {evm : State} {amount : UInt256} {out 
       .ok (.bool (decide (beforeSwapSpecified out ≠ ⟨0⟩))) := by
     simp only [evalExpr?, hspecified, EvalResult.ofOption, bind, EvalResult.bind, pure,
       evalBinaryOp?, BEq.beq, Value.int.injEq, decide_not, ne_eq, signed_eq_zero_iff]
-  have hset : ExecStmt config f evm beforeSwapDeltaStmts[0]! (.ok f1 evm) :=
+  have hset : ExecStmt fork config f evm beforeSwapDeltaStmts[0]! (.ok f1 evm) :=
     ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hdecode (assignLocalValue hh)
-  have hlet : ExecStmt config f1 evm beforeSwapDeltaStmts[1]! (.ok (beforeSwapDeltaFrame f out) evm) :=
+  have hlet : ExecStmt fork config f1 evm beforeSwapDeltaStmts[1]! (.ok (beforeSwapDeltaFrame f out) evm) :=
     ExecStmt.letDecl hcomponent'
   by_cases hz : beforeSwapSpecified out = ⟨0⟩
   · rw [beforeSwapDeltaResult, if_pos hz]

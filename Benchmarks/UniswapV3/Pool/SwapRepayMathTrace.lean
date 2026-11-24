@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapBalanceAfter
 import Benchmarks.UniswapV3.Pool.FlashRepaymentTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -17,10 +19,10 @@ theorem swapRepayAddEntryX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw before after p exactWord cache snap amount0 amount1 : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (zeroForOne : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (swapBalanceAfterReturn zeroForOne)
+    (rd : RD fork (deployedRuntime v) ee g s0 (swapBalanceAfterReturn zeroForOne)
       ([after, before, p, exactWord, cache, snap, amount1, amount0] ++ R) mem aw rdata σ k C)
     (hov : R.length + 12 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨15885⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨15885⟩
       ([(if zeroForOne then amount0 else amount1), before, swapRepayComparePC zeroForOne,
         after, before, p, exactWord, cache, snap, amount1, amount0] ++ R) mem aw rdata σ k' C' := by
   cases zeroForOne
@@ -33,10 +35,10 @@ theorem swapRepayAddEntryX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem swapRepayCompareX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw required after : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables} (zeroForOne : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (swapRepayComparePC zeroForOne)
+    (rd : RD fork (deployedRuntime v) ee g s0 (swapRepayComparePC zeroForOne)
       (required :: after :: R) mem aw rdata σ k C) (hov : R.length + 5 ≤ 1024) :
-    (¬ required.toNat ≤ after.toNat ∧ RDrev (deployedRuntime v) g s0) ∨
-    (required.toNat ≤ after.toNat ∧ ∃ k' C', RD (deployedRuntime v) ee g s0
+    (¬ required.toNat ≤ after.toNat ∧ RDrev fork (deployedRuntime v) g s0) ∨
+    (required.toNat ≤ after.toNat ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0
       (swapRepayNextPC zeroForOne) R mem aw rdata σ k' C') := by
   by_cases hp : required.toNat ≤ after.toNat
   · refine Or.inr ⟨hp, ?_⟩
@@ -59,9 +61,9 @@ theorem swapRepayCompareX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem swapRepayMergeX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw before : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (zeroForOne : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (swapRepayNextPC zeroForOne)
+    (rd : RD fork (deployedRuntime v) ee g s0 (swapRepayNextPC zeroForOne)
       (before :: R) mem aw rdata σ k C) (hov : R.length + 1 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨5137⟩ R mem aw rdata σ k' C' := by
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨5137⟩ R mem aw rdata σ k' C' := by
   cases zeroForOne
   · exact ⟨_, _, uniswapV3Pool_block_5135 (immWords := wordsOf (immStore v)) hov rd⟩
   · exact ⟨_, _, uniswapV3Pool_block_4833 (immWords := wordsOf (immStore v)) hov
@@ -71,13 +73,13 @@ theorem swapRepayMathX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw before after p exactWord cache snap amount0 amount1 : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (zeroForOne : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (swapBalanceAfterReturn zeroForOne)
+    (rd : RD fork (deployedRuntime v) ee g s0 (swapBalanceAfterReturn zeroForOne)
       ([after, before, p, exactWord, cache, snap, amount1, amount0] ++ R) mem aw rdata σ k C)
     (hov : R.length + 14 ≤ 1024) :
     (¬ flashRepayValid before (if zeroForOne then amount0 else amount1) after ∧
-      RDrev (deployedRuntime v) g s0) ∨
+      RDrev fork (deployedRuntime v) g s0) ∨
     (flashRepayValid before (if zeroForOne then amount0 else amount1) after ∧
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨5137⟩
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨5137⟩
         ([p, exactWord, cache, snap, amount1, amount0] ++ R) mem aw rdata σ k' C') := by
   obtain ⟨k1, C1, r1⟩ := swapRepayAddEntryX (v := v) zeroForOne rd (by omega)
   rcases safeAddX (v := v) r1

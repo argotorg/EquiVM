@@ -1,12 +1,14 @@
 import Benchmarks.CompoundIII.Comet.DelegateCallReach
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
 
 theorem delegateCallBridge {code I g s0 pc R mem aw rdata σ k C evm}
     {gasArg target inOffset inSize outOffset outSize : UInt256} {calldata : ByteArray}
-    (h : RD code I g s0 pc
+    (h : RD fork code I g s0 pc
       (gasArg :: target :: inOffset :: inSize :: outOffset :: outSize :: R)
       mem aw rdata σ k C)
     (hs : SourceState s0 I σ evm)
@@ -14,17 +16,17 @@ theorem delegateCallBridge {code I g s0 pc R mem aw rdata σ k C evm}
     (hcd : mem.readWithPadding inOffset.toNat inSize.toNat = calldata)
     (hov : R.length + 1 ≤ 1024) :
     ∃ (evm' : State) (σ' : AccountMap) (z : Bool) (out : ByteArray) (k' C' : Nat),
-      delegateCallViaEVM evm (AccountAddress.ofUInt256 target) calldata (z, evm', out) ∧
+      delegateCallViaEVM fork evm (AccountAddress.ofUInt256 target) calldata (z, evm', out) ∧
       SourceState s0 I σ' evm' ∧
-      RD code I g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: R)
+      RD fork code I g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: R)
         (out.write 0 mem outOffset.toNat (min outSize (UInt256.ofNat out.size)).toNat)
         (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat inSize.toNat)
           outOffset.toNat outSize.toNat)) out σ' k' C' ∧ out.size < UInt256.size := by
   by_cases hd : I.depth = 1024
   · obtain ⟨k', C', rd⟩ := h.cometDelegatecallDepthLimit hdec hd hov
-    let evm' := { evm with substate := (evm.addAccessedAccount
-      (AccountAddress.ofUInt256 target)).substate }
-    have hc : delegateCallViaEVM evm (AccountAddress.ofUInt256 target) calldata
+    let evm' := { evm with substate := (Ethereum.EVM.callSubstate fork
+      evm.accountMap (AccountAddress.ofUInt256 target) evm.substate) }
+    have hc : delegateCallViaEVM fork evm (AccountAddress.ofUInt256 target) calldata
         (false, evm', ByteArray.empty) :=
       delegateCallViaEVM.callNotMade rfl rfl (hs.env ▸ hd)
     exact ⟨evm', σ, false, ByteArray.empty, k', C', hc,
@@ -37,7 +39,7 @@ theorem delegateCallBridge {code I g s0 pc R mem aw rdata σ k C evm}
       h.cometDelegatecall hdec hdepth hov
     rw [hcd] at hθ
     let evm' := { evm with accountMap := σ', substate := As }
-    have hc : delegateCallViaEVM evm (AccountAddress.ofUInt256 target) calldata
+    have hc : delegateCallViaEVM fork evm (AccountAddress.ofUInt256 target) calldata
         (z, evm', out) := by
       apply delegateCallViaEVM.callMade (g' := gasLeft) (A' := As) ?_ rfl ?_
       · refine ⟨gas, Ain, ?_⟩
@@ -51,8 +53,8 @@ theorem delegateCallSource {cfg : Config} {frame : Frame} {evm evm' : State}
     {success data : Ident} {z : Bool}
     (hr : evalExpr? cfg frame evm receiver = .ok (.address target))
     (hd : evalExpr? cfg frame evm cdata = .ok (.bytes calldata))
-    (hc : delegateCallViaEVM evm target calldata (z, evm', out)) :
-    ExecStmt cfg frame evm (.delegateCall receiver cdata success data)
+    (hc : delegateCallViaEVM fork evm target calldata (z, evm', out)) :
+    ExecStmt fork cfg frame evm (.delegateCall receiver cdata success data)
       (.ok { frame with locals := (frame.locals.insert success (.bool z)).insert data (.bytes out) }
         evm') := by
   have ht : EVM.address target.val = target := by

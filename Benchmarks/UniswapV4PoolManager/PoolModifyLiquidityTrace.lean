@@ -5,6 +5,8 @@ import Benchmarks.UniswapV4PoolManager.BalanceDeltaSource
 import Benchmarks.UniswapV4PoolManager.BlockResultTrace
 import Benchmarks.UniswapV4PoolManager.Signed128Range
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -15,11 +17,11 @@ theorem poolModifyLiquidityExactTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : 
     {k C : Nat} {R : List UInt256} (f : Frame)
     (v : PoolManagerImmutables) (hstack : R.length+8 ≤ 1024) (hI : evm.executionEnv = I)
     (hm : memLoad (UInt256.ofNat 128) mem = poolSlot id) (hd : signedFits ⟨128, by decide⟩ delta)
-    (h : RD (deployedRuntime v) I g s0 ⟨6461⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨6461⟩
       (amount1 :: amount0 :: EVM.wordOfInt delta :: R) mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0 (fun _ post =>
+    blockResultTrace fork (deployedRuntime v) g s0 (fun _ post =>
       post.executionEnv = I ∧ post.σ₀ = evm.σ₀ ∧ ∃ k' C',
-        RD (deployedRuntime v) I g s0 ⟨6390⟩ (balanceDeltaWord amount0 amount1 :: R)
+        RD fork (deployedRuntime v) I g s0 ⟨6390⟩ (balanceDeltaWord amount0 amount1 :: R)
           mem (M aw (UInt256.ofNat 128) ⟨32⟩) rdata post.accountMap k' C') (fun _ _ => False)
       (poolModifyLiquidityResult f evm id delta) := by
   have hslot : memLoad (UInt256.ofNat 128) mem + UInt256.ofNat 3 = poolLiquiditySlot id := by
@@ -70,11 +72,11 @@ theorem poolModifyLiquidityTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State
     {k C : Nat} {R : List UInt256} (f : Frame)
     (v : PoolManagerImmutables) (hstack : R.length+8 ≤ 1024) (hI : evm.executionEnv = I)
     (hm : memLoad (UInt256.ofNat 128) mem = poolSlot id) (hd : signedFits ⟨128, by decide⟩ delta)
-    (h : RD (deployedRuntime v) I g s0 ⟨6461⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨6461⟩
       (amount1 :: amount0 :: EVM.wordOfInt delta :: R) mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0 (fun _ post =>
+    blockResultTrace fork (deployedRuntime v) g s0 (fun _ post =>
       post.executionEnv = I ∧ post.σ₀ = evm.σ₀ ∧ ∃ aw' k' C',
-        RD (deployedRuntime v) I g s0 ⟨6390⟩ (balanceDeltaWord amount0 amount1 :: R)
+        RD fork (deployedRuntime v) I g s0 ⟨6390⟩ (balanceDeltaWord amount0 amount1 :: R)
           mem aw' rdata post.accountMap k' C') (fun _ _ => False)
       (poolModifyLiquidityResult f evm id delta) := by
   have hr := poolModifyLiquidityExactTrace f v hstack hI hm hd h

@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PoolSwapAccountingSource
 import Benchmarks.UniswapV4PoolManager.PoolSwapAccountingMemory
 import Benchmarks.UniswapV4PoolManager.PoolSwapAmountTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -28,11 +30,11 @@ theorem poolSwapAccountingTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hfc : fee.toNat < 2^24) (hpc : protocol.toNat < 2^16) (hlc : r.liquidity.toNat < 2^128)
     (htc : int24Canonical s.tickNext) (hprice : r.price.toNat < 2^160)
     (hnc : s.priceNext.toNat < 2^160) (hsc : s.priceStart.toNat < 2^160)
-    (h : RD (deployedRuntime v) I g s0 (if 0 < EVM.signed p.amountSpecified then ⟨19740⟩ else ⟨20320⟩)
+    (h : RD fork (deployedRuntime v) I g s0 (if 0 < EVM.signed p.amountSpecified then ⟨19740⟩ else ⟨20320⟩)
       ([remaining, x1, params, calculated, tag, fee, protocol, amount, UInt256.fromBool (!p.zeroForOne),
         step, poolSlot id, state] ++ R) mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0
-      (fun _ post => ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨19964⟩
+    blockResultTrace fork (deployedRuntime v) g s0
+      (fun _ post => ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨19964⟩
         ([tag, x1, params, poolSwapRemainingAfter s p.amountSpecified remaining,
           poolSwapCalculatedAfter s p.amountSpecified calculated, fee, protocol,
           poolSwapProtocolAmount s fee protocol amount, UInt256.fromBool (!p.zeroForOne), step, poolSlot id, state] ++ R)

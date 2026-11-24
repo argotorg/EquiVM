@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.ApproveThisModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -19,9 +21,9 @@ theorem approveThisAuth_eval (v : CometWithExtendedAssetListImmutables)
 
 theorem approveThis_source {v : CometWithExtendedAssetListImmutables}
     {evm : EVM.State} {manager asset : AccountAddress} {amount : UInt256}
-    {result : Option EVM.State} (ht : ApproveThisTrace v manager asset amount evm result)
+    {result : Option EVM.State} (ht : ApproveThisTrace fork v manager asset amount evm result)
     (hv : evm.executionEnv.weiValue = ⟨0⟩) (hhi : evm.executionEnv.calldata.size < 2^255 + 4) :
-    ApproveThisSourceResult v manager asset amount evm result := by
+    ApproveThisSourceResult fork v manager asset amount evm result := by
   let frame := approveThisEntry v evm manager asset amount
   have hauth := approveThisAuth_eval v evm frame.locals
   have ha : evalExpr? config frame evm (.var "asset") = .ok (.address asset) := by

@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.Allocation
 import Benchmarks.Morpho.MorphoBlue.Dispatch
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -14,13 +16,13 @@ variable {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 
 theorem morphoHealthyDecodeResume (n : Nat) (hn : n ≤ 32)
     (hstack : R.length + 20 ≤ 1024) (hfit : ptr.toNat + 63 ≤ 2 ^ 64 - 1)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14126)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14126)
       ([UInt256.ofNat n, ptr, UInt256.ofNat 32, ptr, id, account, UInt256.ofNat 128, ret, UInt256.ofNat 0] ++ R) mem aw rdata σ k C) :
     if n = 32 then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14189)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14189)
         ([UInt256.ofNat 128, id, account, memLoad ptr (returnReserveMem mem ptr 32), UInt256.ofNat 14109, ret] ++ R)
         (returnReserveMem mem ptr 32) aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have rd1 := morphoBlocks.morpho_block_14126 (immWords := wordsOf (immStore v))
     (by simp only [List.append, List.length_cons]; omega)
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
@@ -50,9 +52,9 @@ theorem morphoHealthyDecodeResume (n : Nat) (hn : n ≤ 32)
 
 theorem morphoHealthyCallFalse (hstack : R.length + 20 ≤ 1024)
     (hsize : rdata.size < UInt256.size)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14083)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14083)
       ([UInt256.ofNat 0, ptr, UInt256.ofNat 128, id, account, UInt256.ofNat 32, ret, UInt256.ofNat 0] ++ R)
-      mem aw rdata σ k C) : RDrev (deployedRuntime v) g s0 := by
+      mem aw rdata σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   have rd1 := morphoBlocks.morpho_block_14083_taken (immWords := wordsOf (immStore v))
     (by simp only [List.append, List.length_cons]; omega) (by decide) (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
   exact morphoBlocks.morpho_block_14167 (immWords := wordsOf (immStore v))
@@ -61,14 +63,14 @@ theorem morphoHealthyCallFalse (hstack : R.length + 20 ≤ 1024)
 
 theorem morphoHealthyCallTrue (hstack : R.length + 20 ≤ 1024)
     (hsize : rdata.size < UInt256.size) (hfit : ptr.toNat + 63 ≤ 2 ^ 64 - 1)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14083)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14083)
       ([UInt256.ofNat 1, ptr, UInt256.ofNat 128, id, account, UInt256.ofNat 32, ret, UInt256.ofNat 0] ++ R)
       mem aw rdata σ k C) :
     if 32 ≤ rdata.size then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14189)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14189)
         ([UInt256.ofNat 128, id, account, memLoad ptr (returnReserveMem mem ptr 32), UInt256.ofNat 14109, ret] ++ R)
         (returnReserveMem mem ptr 32) aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have rd1 := morphoBlocks.morpho_block_14083_fallthrough (immWords := wordsOf (immStore v))
     (by simp only [List.append, List.length_cons]; omega) (by decide) h
   have rd2 := morphoBlocks.morpho_block_14090_taken (immWords := wordsOf (immStore v))

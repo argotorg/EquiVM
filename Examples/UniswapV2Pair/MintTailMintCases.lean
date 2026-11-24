@@ -2,6 +2,8 @@ import Examples.UniswapV2Pair.MintInitialSecondMintReverts
 import Examples.UniswapV2Pair.MintRuntimeFitBridge
 import Examples.UniswapV2Pair.MintLiquidityZeroRuntime
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace UniswapV2Pair
@@ -29,7 +31,7 @@ theorem uniswapMintTailMintCases
     {totalSupply feeOn amount0 amount1 balance0 balance1 reserve0 reserve1 liquidity toWord sel :
       UInt256}
     {locals : Store} (evm : EVM.State) (recipient : AccountAddress)
-    (rd3841 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd3841 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       s0 ⟨3841⟩
       [totalSupply, feeOn, amount1, amount0, balance1, balance0, reserve1, reserve0,
         liquidity, toWord, ⟨861⟩, sel]
@@ -42,19 +44,19 @@ theorem uniswapMintTailMintCases
     (hperm : I.perm = true)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (ExecBlock config { contract := contract, locals := locals } evm
+    (ExecBlock fork config { contract := contract, locals := locals } evm
         mintAfterLiquidityTailStmts .reverted ∧
-      RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+      RDrev fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
         s0) ∨
     (∃ k' C',
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .require (.binary .gt (.var "liquidity") (.intLit 0)),
           .internalCall "_mint" [.var "to", .var "liquidity"] "_mintResult" ]
         (.ok (resumeAfterInternalCall { contract := contract, locals := locals }
           "_mintResult" none) (mintFunctionPostState evm recipient liquidity)) ∧
       mintRuntimeMintMap σFee I toWord liquidity mem =
         (mintFunctionPostState evm recipient liquidity).accountMap ∧
-      RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
         s0 ⟨3914⟩
         [totalSupply, feeOn, amount1, amount0, balance1, balance0, reserve1, reserve0,
           liquidity, toWord, ⟨861⟩, sel]

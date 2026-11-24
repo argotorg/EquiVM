@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.DelegatedRevocationPrepared
 import Benchmarks.EAS.EAS.CopySignatureArrayDecodedRun
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -12,10 +14,10 @@ theorem easDelegatedRevocationPrepareValid {ee : ExecutionEnv} {g : Sat256} {s0 
     (hlo : 96 ≤ heap.toNat) (hh : heap.toNat ≤ 2^64-1) (hmem : 96 ≤ mem.size)
     (hfree : memLoad (UInt256.ofNat 64) mem = heap)
     (hdecode : decodeDelegatedRevocationAt ee.calldata root = some r)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨1318⟩ (root::a::b::c::d::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨1318⟩ (root::a::b::c::d::R) mem aw rdata σ k C) :
     if delegatedRevocationNext heap r ≤ 2^64-1 then
-      DelegatedRevocationPrepared v ee g s0 mem rdata σ heap a b c d R r
-    else RDrev (deployedRuntime v) g s0 := by
+      DelegatedRevocationPrepared fork v ee g s0 mem rdata σ heap a b c d R r
+    else RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨hhead,hfields⟩ := decodeDelegatedRevocationAt_facts hdecode
   obtain ⟨haData,hdData,haSig,hdSig,haAddr,hSchema,hRevoker⟩ := decodeDelegatedRevocationFields_facts hfields
   obtain ⟨hvData,hlData,hcData⟩ := decodeRevocationArray_facts (by omega) hdData

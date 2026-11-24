@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Flipper.DentTail
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxHeartbeats 0
@@ -57,11 +59,11 @@ theorem flipperDentBodyFrom4733SameCaller
     (hcallerStele : solcSourceWord I = bidGuyWord (dentId I) σ I)
     (hmemSize : mem.size = 96)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (h : RD flipperBytecode I (Sat256.ofUInt256 g)
+    (h : RD fork flipperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4733⟩
       [dentBid I, dentLot I, dentId I, ⟨323⟩, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨_, _, rd4927⟩ :=
     flipperDentX_skipRefund hmemSize hcallerEvm h
   let memFlux := twoWordHashMem (dentId I) ⟨1⟩ mem
@@ -78,7 +80,7 @@ theorem flipperDentBodyFrom4733SameCaller
       flipperVatCode_zero_of_codeSize_zero
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hfluxZeroStele
     have hbody :
-        ExecTransitionBody config contract
+        ExecTransitionBody fork config contract
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (dentLocals I) dentTransition.body .reverted := by
       simpa using
@@ -100,9 +102,9 @@ theorem flipperDentBodyFrom4733SameCaller
       let evmFluxStele :=
         { evm0Stele with
           substate :=
-            (evm0Stele.addAccessedAccount
-              (EVM.address
-                (flipperVatAddress evm0Stele.accountMap evm0Stele.executionEnv))).substate }
+            (Ethereum.EVM.callSubstate fork evm0Stele.accountMap (EVM.address
+                (flipperVatAddress evm0Stele.accountMap evm0Stele.executionEnv)) evm0Stele.substate)
+                  }
       have hfluxEncode :
           config.externalABI.encode? "flux" (dentFluxArgValsOf evm0Stele I) =
             some ((dentVatFluxCallMem memFlux σ I).readWithPadding 128 132) := by
@@ -112,7 +114,7 @@ theorem flipperDentBodyFrom4733SameCaller
           using dentVatFluxCallMem_encode (mem := memFlux) (σ := σ) (I := I)
             hmemFluxSize
       have hcallFluxStele :
-          typedCallViaEVM config evm0Stele
+          typedCallViaEVM fork config evm0Stele
             (EVM.address (flipperVatAddress evm0Stele.accountMap evm0Stele.executionEnv))
             "flux" 0 (dentFluxArgValsOf evm0Stele I)
             (false, evmFluxStele, ByteArray.empty) true := by
@@ -123,7 +125,7 @@ theorem flipperDentBodyFrom4733SameCaller
           (calldata := (dentVatFluxCallMem memFlux σ I).readWithPadding 128 132)
           (callPerm := true) hfluxEncode (by simpa [evm0Stele, initState] using hdepthEq)
       have hbody :
-          ExecTransitionBody config contract evm0Stele (dentLocals I) dentTransition.body
+          ExecTransitionBody fork config contract evm0Stele (dentLocals I) dentTransition.body
             .reverted := by
         simpa [evm0Stele] using
           (flipperDentSourceBodyFluxCallFailureSameCaller
@@ -153,7 +155,7 @@ theorem flipperDentBodyFrom4733SameCaller
           substate := A_flux
           }
       have hcallFluxEvm :
-          typedCallViaEVM config evm0Evm
+          typedCallViaEVM fork config evm0Evm
             (EVM.address (flipperVatAddress σ I)) "flux" 0
             (dentFluxArgValsOf evm0Evm I) (zFlux, evmFluxEvm, outFlux) true := by
         simpa [evm0Evm, evmFluxEvm] using hcallFluxEvmRaw
@@ -175,12 +177,12 @@ theorem flipperDentBodyFrom4733SameCaller
       have hfluxArgsEq : dentFluxArgValsOf evm0Evm I = dentFluxArgValsOf evm0Stele I := by
         rfl
       have hcallFluxStele :
-          typedCallViaEVM config evm0Stele
+          typedCallViaEVM fork config evm0Stele
             (EVM.address (flipperVatAddress evm0Stele.accountMap evm0Stele.executionEnv))
             "flux" 0 (dentFluxArgValsOf evm0Stele I)
             (zFlux, evmFluxStele, outFlux) true := by
         have hcallFluxSteleRaw' :
-            typedCallViaEVM config evm0Stele
+            typedCallViaEVM fork config evm0Stele
               (EVM.address (flipperVatAddress σ I)) "flux" 0
               (dentFluxArgValsOf evm0Evm I) (zFlux, evmFluxStele, outFlux) true := by
           simpa [evmFluxStele, evmFluxEvm] using hcallFluxSteleRaw
@@ -188,13 +190,13 @@ theorem flipperDentBodyFrom4733SameCaller
         exact hcallFluxSteleRaw'
       cases zFlux
       · have hcallFluxSteleFalse :
-            typedCallViaEVM config evm0Stele
+            typedCallViaEVM fork config evm0Stele
               (EVM.address (flipperVatAddress evm0Stele.accountMap evm0Stele.executionEnv))
               "flux" 0 (dentFluxArgValsOf evm0Stele I)
               (false, evmFluxStele, outFlux) true := by
           simpa using hcallFluxStele
         have hbody :
-            ExecTransitionBody config contract evm0Stele (dentLocals I) dentTransition.body
+            ExecTransitionBody fork config contract evm0Stele (dentLocals I) dentTransition.body
               .reverted := by
           simpa [evm0Stele] using
             (flipperDentSourceBodyFluxCallFailureSameCaller
@@ -204,7 +206,7 @@ theorem flipperDentBodyFrom4733SameCaller
               hfitBeg hdec hcallerStele hvatCodeStele hcallFluxSteleFalse)
         exact (flipperDentX_fluxCallFailure (by simpa using rd5053) houtFlux)
           |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
-      · have rd5053True : RD flipperBytecode I (Sat256.ofUInt256 g)
+      · have rd5053True : RD fork flipperBytecode I (Sat256.ofUInt256 g)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5053⟩
             (⟨1⟩ :: ⟨260⟩ :: ⟨1628552750⟩ ::
               flipperVatTargetWord σ I :: dentBid I :: dentLot I :: dentId I ::
@@ -218,7 +220,7 @@ theorem flipperDentBodyFrom4733SameCaller
           norm_num
         have hstoreSplit := flipperDentX_storeLotToAdd48Split hfluxMemGe rd5073
         have hcallFluxSteleTrue :
-            typedCallViaEVM config evm0Stele
+            typedCallViaEVM fork config evm0Stele
               (EVM.address (flipperVatAddress evm0Stele.accountMap evm0Stele.executionEnv))
               "flux" 0 (dentFluxArgValsOf evm0Stele I)
               (true, evmFluxStele, outFlux) true := by
@@ -287,13 +289,13 @@ theorem flipperDentBodyFrom4733SameCaller
                 (bidPackedSlotOfWord (dentId I)))
               (tendTicNewWord evmLotStele.accountMap I))
           have hbody :
-              ExecTransitionBody config contract evm0Stele (dentLocals I) dentTransition.body
+              ExecTransitionBody fork config contract evm0Stele (dentLocals I) dentTransition.body
                 (.returned
                   { contract := contract,
                     locals := dentLocalsAfterFluxWithTicFrom σ evmLotStele.accountMap I }
                   evmTicStele none) := by
             simpa [evm0Stele, evmLotStele, evmTicStele] using
-              (flipperDentSourceBodySuccessSameCaller (hperm := by assumption)
+              (flipperDentSourceBodySuccessSameCaller (fork := fork) (hperm := by assumption)
                 (σ := σ) (σ₀ := σ₀)
                 (A := A) (I := I) (g := g) (evmFlux := evmFluxStele)
                 (outFlux := outFlux)
@@ -352,10 +354,10 @@ theorem flipperDentBodyFrom4733SameCaller
               rw [← httlEq, httlEvmMap]
             simpa [httlSteleMap] using hoverTicEvm
           have hbody :
-              ExecTransitionBody config contract evm0Stele (dentLocals I) dentTransition.body
+              ExecTransitionBody fork config contract evm0Stele (dentLocals I) dentTransition.body
                 .reverted := by
             simpa [evm0Stele, evmLotStele] using
-              (flipperDentSourceBodyAdd48OverflowSameCaller (hperm := by assumption)
+              (flipperDentSourceBodyAdd48OverflowSameCaller (fork := fork) (hperm := by assumption)
                 (σ := σ) (σ₀ := σ₀)
                 (A := A) (I := I) (g := g) (evmFlux := evmFluxStele)
                 (outFlux := outFlux)

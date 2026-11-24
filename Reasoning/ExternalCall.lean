@@ -3,6 +3,8 @@ import Reasoning.Storage
 
 import Ethereum.Theory.StaticStorage
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # ExternalCall — the `CALL` ↔ `externalCall` coupling
 
@@ -41,14 +43,14 @@ theorem callCoincides {cfg : Config} {evm : EVM.State} {name : Ident} {args : Li
     (hcd : cfg.externalABI.encode? name args
             = some (mem.readWithPadding inOff.toNat inSize.toNat))
     (hΘ : (σ', g'', A', z, o) =
-        Ethereum.EVM.Θ evm.accountMap evm.σ₀ A_in
+        Ethereum.EVM.Θ fork evm.accountMap evm.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat evm.executionEnv.codeOwner)) evm.executionEnv.sender
-          (AccountAddress.ofUInt256 targetWord) (toExecute evm.accountMap (AccountAddress.ofUInt256 targetWord))
+          (AccountAddress.ofUInt256 targetWord) (toExecute fork evm.accountMap (AccountAddress.ofUInt256 targetWord))
           callGas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding inOff.toNat inSize.toNat) (evm.executionEnv.depth + 1)
           evm.executionEnv.header evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks
           (callPerm && evm.executionEnv.perm)) :
-    typedCallViaEVM cfg evm tgt name 0 args
+    typedCallViaEVM fork cfg evm tgt name 0 args
       (z, { evm with accountMap := σ', substate := A' }, o)
       callPerm := by
   -- rewrite the EVM `Θ`-link into the Stele form (round-trip sender, `tgt`)
@@ -61,7 +63,7 @@ theorem callCoincides {cfg : Config} {evm : EVM.State} {name : Ident} {args : Li
 /-- A message call preserves the caller's environment, including its write permission. -/
 theorem callViaEVM_executionEnv_eq {evm evm' : EVM.State} {target : EVM.Address}
     {value : ℤ} {calldata : ByteArray} {z : Bool} {out : ByteArray} {perm : Bool}
-    (hcall : callViaEVM evm target value calldata (z, evm', out) perm) :
+    (hcall : callViaEVM fork evm target value calldata (z, evm', out) perm) :
     evm'.executionEnv = evm.executionEnv := by
   cases hcall with
   | callMade _ _ hevm' _ _ => subst evm'; rfl
@@ -70,7 +72,7 @@ theorem callViaEVM_executionEnv_eq {evm evm' : EVM.State} {target : EVM.Address}
 theorem typedCallViaEVM_executionEnv_eq {cfg : Config} {evm evm' : EVM.State}
     {target : EVM.Address} {name : Ident} {value : ℤ} {args : List Value}
     {z : Bool} {out : ByteArray} {perm : Bool}
-    (hcall : typedCallViaEVM cfg evm target name value args (z, evm', out) perm) :
+    (hcall : typedCallViaEVM fork cfg evm target name value args (z, evm', out) perm) :
     evm'.executionEnv = evm.executionEnv := by
   obtain ⟨_calldata, _hencode, hraw⟩ := hcall
   exact callViaEVM_executionEnv_eq hraw
@@ -78,7 +80,7 @@ theorem typedCallViaEVM_executionEnv_eq {cfg : Config} {evm evm' : EVM.State}
 theorem callViaEVM_static_accountStorageStateEq {evm evm' : EVM.State}
     {target : EVM.Address} {value : ℤ} {calldata : ByteArray}
     {z : Bool} {out : ByteArray}
-    (hcall : callViaEVM evm target value calldata (z, evm', out) false) :
+    (hcall : callViaEVM fork evm target value calldata (z, evm', out) false) :
     accountStorageStateEq evm.accountMap evm'.accountMap := by
   cases hcall with
   | callMade _hvalue hTheta hevm' _hvalue' _hdepth =>
@@ -92,7 +94,7 @@ theorem callViaEVM_static_accountStorageStateEq {evm evm' : EVM.State}
 theorem typedCallViaEVM_static_accountStorageStateEq {cfg : Config} {evm evm' : EVM.State}
     {target : EVM.Address} {name : Ident} {args : List Value}
     {z : Bool} {out : ByteArray}
-    (hcall : typedCallViaEVM cfg evm target name 0 args (z, evm', out) false) :
+    (hcall : typedCallViaEVM fork cfg evm target name 0 args (z, evm', out) false) :
     accountStorageStateEq evm.accountMap evm'.accountMap := by
   obtain ⟨_calldata, _hencode, hraw⟩ := hcall
   exact callViaEVM_static_accountStorageStateEq hraw
@@ -100,7 +102,7 @@ theorem typedCallViaEVM_static_accountStorageStateEq {cfg : Config} {evm evm' : 
 theorem callViaEVM_static_accountCodeStateEq {evm evm' : EVM.State}
     {target : EVM.Address} {value : ℤ} {calldata : ByteArray}
     {z : Bool} {out : ByteArray}
-    (hcall : callViaEVM evm target value calldata (z, evm', out) false) :
+    (hcall : callViaEVM fork evm target value calldata (z, evm', out) false) :
     accountCodeStateEq evm.accountMap evm'.accountMap := by
   cases hcall with
   | callMade _hvalue hTheta hevm' _hvalue' _hdepth =>
@@ -114,7 +116,7 @@ theorem callViaEVM_static_accountCodeStateEq {evm evm' : EVM.State}
 theorem typedCallViaEVM_static_accountCodeStateEq {cfg : Config} {evm evm' : EVM.State}
     {target : EVM.Address} {name : Ident} {args : List Value}
     {z : Bool} {out : ByteArray}
-    (hcall : typedCallViaEVM cfg evm target name 0 args (z, evm', out) false) :
+    (hcall : typedCallViaEVM fork cfg evm target name 0 args (z, evm', out) false) :
     accountCodeStateEq evm.accountMap evm'.accountMap := by
   obtain ⟨_calldata, _hencode, hraw⟩ := hcall
   exact callViaEVM_static_accountCodeStateEq hraw
@@ -126,7 +128,7 @@ theorem typedCallViaEVM_static_storage_getD_of_accounts_eq {cfg : Config}
     {target : EVM.Address} {name : Ident} {args : List Value}
     {z : Bool} {out : ByteArray} (slot default : UInt256)
     (hAccounts : σ = evm.accountMap)
-    (hcall : typedCallViaEVM cfg evm target name 0 args (z, evm', out) false) :
+    (hcall : typedCallViaEVM fork cfg evm target name 0 args (z, evm', out) false) :
     ((evm'.accountMap.get? evm'.executionEnv.codeOwner).option default
         (fun acc => acc.storage.getD slot default)) =
       ((σ.get? evm.executionEnv.codeOwner).option default
@@ -149,12 +151,12 @@ theorem callViaEVM_sameInputs
     {evm_evm evm_stele evm'_evm : EVM.State}
     {tgt : EVM.Address} {value : ℤ} {calldata : ByteArray}
     {z : Bool} {out : ByteArray} {callPerm : Bool}
-    (hcall : callViaEVM evm_evm tgt value calldata (z, evm'_evm, out) callPerm)
+    (hcall : callViaEVM fork evm_evm tgt value calldata (z, evm'_evm, out) callPerm)
     (hAccounts : evm_evm.accountMap = evm_stele.accountMap)
     (hOriginalAccounts : evm_evm.σ₀ = evm_stele.σ₀)
     (hEnv : evm_evm.executionEnv = evm_stele.executionEnv) :
     ∃ (σ'_stele : AccountMap) (A'_stele : Substate),
-      callViaEVM evm_stele tgt value calldata
+      callViaEVM fork evm_stele tgt value calldata
         (z, { evm_stele with accountMap := σ'_stele, substate := A'_stele }, out)
         callPerm ∧
       evm'_evm.accountMap = σ'_stele := by
@@ -170,7 +172,7 @@ theorem callViaEVM_sameInputs
         · simpa [← hEnv] using hdepth
       · simp [hevm']
   | callNotMade hsubstate hevm' hblocked =>
-      let A'_stele := (evm_stele.addAccessedAccount tgt).substate
+      let A'_stele := (Ethereum.EVM.callSubstate fork evm_stele.accountMap tgt evm_stele.substate)
       refine ⟨evm_stele.accountMap, A'_stele, ?_, ?_⟩
       · apply callViaEVM.callNotMade (perm := callPerm) rfl rfl
         simpa [← hAccounts, ← hEnv] using hblocked
@@ -181,12 +183,12 @@ theorem typedCallViaEVM_sameInputs
     {cfg : Config} {evm_evm evm_stele evm'_evm : EVM.State}
     {tgt : EVM.Address} {name : Ident} {value : ℤ} {args : List Value}
     {z : Bool} {out : ByteArray} {callPerm : Bool}
-    (hcall : typedCallViaEVM cfg evm_evm tgt name value args (z, evm'_evm, out) callPerm)
+    (hcall : typedCallViaEVM fork cfg evm_evm tgt name value args (z, evm'_evm, out) callPerm)
     (hAccounts : evm_evm.accountMap = evm_stele.accountMap)
     (hOriginalAccounts : evm_evm.σ₀ = evm_stele.σ₀)
     (hEnv : evm_evm.executionEnv = evm_stele.executionEnv) :
     ∃ (σ'_stele : AccountMap) (A'_stele : Substate),
-      typedCallViaEVM cfg evm_stele tgt name value args
+      typedCallViaEVM fork cfg evm_stele tgt name value args
         (z, { evm_stele with accountMap := σ'_stele, substate := A'_stele }, out)
         callPerm ∧
       evm'_evm.accountMap = σ'_stele := by
@@ -200,12 +202,12 @@ theorem typedCallViaEVM_sameInputs_stateEquiv
     {cfg : Config} {evm_evm evm_stele evm'_evm : EVM.State}
     {tgt : EVM.Address} {name : Ident} {value : ℤ} {args : List Value}
     {z : Bool} {out : ByteArray} {callPerm : Bool}
-    (hcall : typedCallViaEVM cfg evm_evm tgt name value args (z, evm'_evm, out) callPerm)
+    (hcall : typedCallViaEVM fork cfg evm_evm tgt name value args (z, evm'_evm, out) callPerm)
     (hAccounts : evm_evm.accountMap = evm_stele.accountMap)
     (hOriginalAccounts : evm_evm.σ₀ = evm_stele.σ₀)
     (hEnv : evm_evm.executionEnv = evm_stele.executionEnv) :
     ∃ (σ'_stele : AccountMap) (A'_stele : Substate),
-      typedCallViaEVM cfg evm_stele tgt name value args
+      typedCallViaEVM fork cfg evm_stele tgt name value args
         (z, { evm_stele with accountMap := σ'_stele, substate := A'_stele }, out)
         callPerm ∧
       EVMStateEquiv evm'_evm
@@ -226,10 +228,10 @@ theorem typedCallViaEVM_callMade_sameInputs {cfg : Config}
     (hcd : cfg.externalABI.encode? name args =
       some (mem.readWithPadding inOff.toNat inSize.toNat))
     (hΘ : (σ', g'', A', z, out) =
-        Ethereum.EVM.Θ evm_evm.accountMap evm_evm.σ₀ A_in
+        Ethereum.EVM.Θ fork evm_evm.accountMap evm_evm.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat evm_evm.executionEnv.codeOwner))
           evm_evm.executionEnv.sender (AccountAddress.ofUInt256 targetWord)
-          (toExecute evm_evm.accountMap (AccountAddress.ofUInt256 targetWord))
+          (toExecute fork evm_evm.accountMap (AccountAddress.ofUInt256 targetWord))
           callGas (UInt256.ofNat evm_evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding inOff.toNat inSize.toNat)
           (evm_evm.executionEnv.depth + 1) evm_evm.executionEnv.header
@@ -239,11 +241,11 @@ theorem typedCallViaEVM_callMade_sameInputs {cfg : Config}
     (hOriginalAccounts : evm_evm.σ₀ = evm_stele.σ₀)
     (hEnv : evm_evm.executionEnv = evm_stele.executionEnv) :
     ∃ (σ'_stele : AccountMap) (A'_stele : Substate),
-      typedCallViaEVM cfg evm_stele tgt name 0 args
+      typedCallViaEVM fork cfg evm_stele tgt name 0 args
         (z, { evm_stele with accountMap := σ'_stele, substate := A'_stele }, out)
         callPerm ∧
       σ' = σ'_stele := by
-  have hcall : typedCallViaEVM cfg evm_evm tgt name 0 args
+  have hcall : typedCallViaEVM fork cfg evm_evm tgt name 0 args
       (z, { evm_evm with accountMap := σ', substate := A' }, out) callPerm :=
     callCoincides hdepth htgt hcd hΘ
   simpa using
@@ -257,8 +259,8 @@ theorem callNotMade_depthLimit {cfg : Config} {evm : EVM.State} {tgt : EVM.Addre
     {name : Ident} {args : List Value} {calldata : ByteArray} {callPerm : Bool}
     (hcd : cfg.externalABI.encode? name args = some calldata)
     (hdepth : evm.executionEnv.depth = 1024) :
-    typedCallViaEVM cfg evm tgt name 0 args
-      (false, { evm with substate := (evm.addAccessedAccount tgt).substate }, ByteArray.empty)
+    typedCallViaEVM fork cfg evm tgt name 0 args
+      (false, { evm with substate := (Ethereum.EVM.callSubstate fork evm.accountMap tgt evm.substate) }, ByteArray.empty)
       callPerm := by
   refine ⟨calldata, hcd, ?_⟩
   apply callViaEVM.callNotMade (perm := callPerm) rfl rfl
@@ -274,12 +276,12 @@ theorem rawZeroCall_source_of_theta
     (hdepth : I.depth.val < 1024) (hperm : I.perm = true)
     (hΘ : ∃ (g'' : UInt256) (A' : Substate),
       (σ', g'', A', z, out) =
-        Ethereum.EVM.Θ σ s0.σ₀ A_in
+        Ethereum.EVM.Θ fork σ s0.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
-          (AccountAddress.ofUInt256 targetWord) (toExecute σ (AccountAddress.ofUInt256 targetWord))
+          (AccountAddress.ofUInt256 targetWord) (toExecute fork σ (AccountAddress.ofUInt256 targetWord))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩ data (I.depth + 1)
           I.header I.blobVersionedHashes I.blocks I.perm) :
-    ∃ evm', callViaEVM evm (AccountAddress.ofUInt256 targetWord) 0 data (z, evm', out) ∧
+    ∃ evm', callViaEVM fork evm (AccountAddress.ofUInt256 targetWord) 0 data (z, evm', out) ∧
       σ' = evm'.accountMap ∧ evm'.σ₀ = s0.σ₀ ∧ evm'.executionEnv = I := by
   let evmE : EVM.State :=
     { evm with
@@ -287,7 +289,7 @@ theorem rawZeroCall_source_of_theta
       σ₀ := s0.σ₀
       executionEnv := I }
   obtain ⟨g', A', hΘ⟩ := hΘ
-  have hcallE : callViaEVM evmE (AccountAddress.ofUInt256 targetWord) 0 data
+  have hcallE : callViaEVM fork evmE (AccountAddress.ofUInt256 targetWord) 0 data
       (z, { evmE with accountMap := σ', substate := A' }, out) := by
     refine callViaEVM.callMade (perm := true) (g' := g') wordOfInt_zero.symm ?_ rfl ?_ ?_
     · refine ⟨callGas, A_in, ?_⟩
@@ -328,8 +330,8 @@ def callState (evm : EVM.State) (σ : AccountMap) : EVM.State :=
 theorem SourceState.callTransport {s0 I σ evm} (hs : SourceState s0 I σ evm)
     {target : EVM.Address} {value : Int} {calldata : ByteArray}
     {z : Bool} {evm' : EVM.State} {out : ByteArray}
-    (hcall : callViaEVM (callState evm σ) target value calldata (z, evm', out)) :
-    ∃ evmS', callViaEVM evm target value calldata (z, evmS', out) ∧
+    (hcall : callViaEVM fork (callState evm σ) target value calldata (z, evm', out)) :
+    ∃ evmS', callViaEVM fork evm target value calldata (z, evmS', out) ∧
       SourceState s0 I evm'.accountMap evmS' := by
   have hstate : callState evm σ = evm := by
     cases evm
@@ -347,12 +349,12 @@ theorem callStateMade {s0 I σ evm} (hs : SourceState s0 I σ evm)
     (hperm : I.perm = true)
     (hbalance : value ≤ (σ.get? I.codeOwner |>.elim ⟨0⟩ (·.balance)))
     (hdepth : I.depth.val < 1024)
-    (hΘ : (σ', gasLeft, AS', z, out) = Θ σ s0.σ₀ AIn
+    (hΘ : (σ', gasLeft, AS', z, out) = Θ fork σ s0.σ₀ AIn
       (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
-      (AccountAddress.ofUInt256 target) (toExecute σ (AccountAddress.ofUInt256 target))
+      (AccountAddress.ofUInt256 target) (toExecute fork σ (AccountAddress.ofUInt256 target))
       callGas (UInt256.ofNat I.gasPrice) value value calldata (I.depth + 1) I.header
       I.blobVersionedHashes I.blocks I.perm) :
-    callViaEVM (callState evm σ) (AccountAddress.ofUInt256 target) (Int.ofNat value.toNat)
+    callViaEVM fork (callState evm σ) (AccountAddress.ofUInt256 target) (Int.ofNat value.toNat)
       calldata (z,
         { callState evm σ with
           accountMap := σ'
@@ -373,17 +375,17 @@ theorem callStateMade {s0 I σ evm} (hs : SourceState s0 I σ evm)
 theorem callStateNotMade {s0 I σ evm} (hs : SourceState s0 I σ evm)
     {target value : UInt256} {calldata : ByteArray}
     (hn : ¬ (value ≤ (σ.get? I.codeOwner |>.elim ⟨0⟩ (·.balance)) ∧ I.depth ≠ 1024)) :
-    callViaEVM (callState evm σ) (AccountAddress.ofUInt256 target) (Int.ofNat value.toNat)
+    callViaEVM fork (callState evm σ) (AccountAddress.ofUInt256 target) (Int.ofNat value.toNat)
       calldata (false,
         { callState evm σ with substate :=
-          ((callState evm σ).addAccessedAccount (AccountAddress.ofUInt256 target)).substate },
+          (callSubstate fork σ (AccountAddress.ofUInt256 target) evm.substate) },
         ByteArray.empty) := by
   apply callViaEVM.callNotMade rfl rfl
   simpa only [callState, hs.env, wordOfInt_ofNat_toNat] using hn
 
 theorem callBridge {code I g s0 pc R mem aw rdata σ k C evm}
     {gasArg target value inOffset inSize outOffset outSize : UInt256} {calldata : ByteArray}
-    (h : RD code I g s0 pc
+    (h : RD fork code I g s0 pc
       (gasArg :: target :: value :: inOffset :: inSize :: outOffset :: outSize :: R)
       mem aw rdata σ k C)
     (hs : SourceState s0 I σ evm) (hperm : I.perm = true)
@@ -393,16 +395,16 @@ theorem callBridge {code I g s0 pc R mem aw rdata σ k C evm}
     (hov : R.length + 1 ≤ 1024) :
     ∃ (evm' : EVM.State) (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (k' C' : Nat),
-      callViaEVM evm (AccountAddress.ofUInt256 target) (Int.ofNat value.toNat)
+      callViaEVM fork evm (AccountAddress.ofUInt256 target) (Int.ofNat value.toNat)
         calldata (z, evm', out) ∧
       SourceState s0 I σ' evm' ∧
-      RD code I g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: R)
+      RD fork code I g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: R)
         (callOutputMem mem out outOffset outSize)
         (callActiveWords aw inOffset inSize outOffset outSize) out σ' k' C' ∧
       out.size < 2 ^ 138 := by
   by_cases hd : I.depth = 1024
   · obtain ⟨_, _, rd⟩ := h.callValueDepthLimit hperm hdec hd hov
-    have hraw := callStateNotMade (target := target) (value := value) (calldata := calldata)
+    have hraw := callStateNotMade (fork := fork) (target := target) (value := value) (calldata := calldata)
       hs (fun hn => hn.2 hd)
     obtain ⟨evm', hcall, hs'⟩ := hs.callTransport hraw
     exact ⟨evm', σ, false, ByteArray.empty, _, _, hcall, hs', rd, by decide⟩
@@ -422,7 +424,7 @@ theorem callBridge {code I g s0 pc R mem aw rdata σ k C evm}
       obtain ⟨evm', hcall, hs'⟩ := hs.callTransport hraw
       exact ⟨evm', σ', z, out, k', C', hcall, hs', rd, ho⟩
     · obtain ⟨_, _, rd⟩ := h.callValueInsufficientBalance hperm hdec hb hdlt hov
-      have hraw := callStateNotMade (target := target) (value := value) (calldata := calldata)
+      have hraw := callStateNotMade (fork := fork) (target := target) (value := value) (calldata := calldata)
         hs (fun hn => hb hn.1)
       obtain ⟨evm', hcall, hs'⟩ := hs.callTransport hraw
       exact ⟨evm', σ, false, ByteArray.empty, _, _, hcall, hs', rd, by decide⟩
@@ -493,9 +495,9 @@ theorem lowLevelCallSource {cfg : Config} {frame : Frame} {evm evm' : EVM.State}
     (hr : evalExpr? cfg frame evm receiver = .ok (.address target))
     (hv : evalExpr? cfg frame evm eth = .ok (.int value))
     (hd : evalExpr? cfg frame evm cdata = .ok (.bytes calldata))
-    (hc : callViaEVM evm target value calldata (z, evm', out))
+    (hc : callViaEVM fork evm target value calldata (z, evm', out))
     (hperm : EVM.wordOfInt value = ⟨0⟩ ∨ evm.executionEnv.perm = true) :
-    ExecStmt cfg frame evm (.lowLevelCall receiver eth cdata success data)
+    ExecStmt fork cfg frame evm (.lowLevelCall receiver eth cdata success data)
       (.ok { frame with locals := (frame.locals.insert success (.bool z)).insert data (.bytes out) }
         evm') := by
   have ht : EVM.address target.val = target := by
@@ -563,10 +565,10 @@ theorem evalExpr_codeGuard_of_accounts_eq {cfg : Config}
 theorem typedCallViaEVM_zero_setSubstate {cfg : Config} {evm evm' : EVM.State}
     {tgt : EVM.Address} {name : Ident} {args : List Value}
     {z : Bool} {out : ByteArray} {perm : Bool}
-    (hcall : typedCallViaEVM cfg evm tgt name 0 args (z, evm', out) perm)
+    (hcall : typedCallViaEVM fork cfg evm tgt name 0 args (z, evm', out) perm)
     (hdepth : evm.executionEnv.depth ≠ 1024) (A0 : Substate) :
     ∃ A',
-      typedCallViaEVM cfg { evm with substate := A0 } tgt name 0 args
+      typedCallViaEVM fork cfg { evm with substate := A0 } tgt name 0 args
         (z,
           { { evm with substate := A0 } with
             accountMap := evm'.accountMap
@@ -592,10 +594,10 @@ theorem typedCallViaEVM_zero_setSubstate {cfg : Config} {evm evm' : EVM.State}
 theorem typedCallViaEVM_zero_substate_irrel {cfg : Config} {evm evm' : EVM.State}
     {A0 : Substate} {tgt : EVM.Address} {name : Ident} {args : List Value}
     {z : Bool} {out : ByteArray} {callPerm : Bool}
-    (hcall : typedCallViaEVM cfg { evm with substate := A0 } tgt name 0 args
+    (hcall : typedCallViaEVM fork cfg { evm with substate := A0 } tgt name 0 args
       (z, evm', out) callPerm)
     (hdepth : evm.executionEnv.depth ≠ 1024) :
-    typedCallViaEVM cfg evm tgt name 0 args (z, evm', out) callPerm := by
+    typedCallViaEVM fork cfg evm tgt name 0 args (z, evm', out) callPerm := by
   rcases hcall with ⟨calldata, henc, hraw⟩
   refine ⟨calldata, henc, ?_⟩
   cases hraw with
@@ -619,7 +621,7 @@ theorem typedCallViaEVM_preservesBase {cfg : Config}
     {evm evm' : EVM.State} {tgt : EVM.Address} {name : Ident}
     {value : ℤ} {args : List Value} {z : Bool} {out : ByteArray}
     {callPerm : Bool}
-    (hcall : typedCallViaEVM cfg evm tgt name value args
+    (hcall : typedCallViaEVM fork cfg evm tgt name value args
       (z, evm', out) callPerm) :
     evm'.σ₀ = evm.σ₀ ∧ evm'.executionEnv = evm.executionEnv := by
   obtain ⟨_calldata, _hencode, hraw⟩ := hcall
@@ -638,10 +640,10 @@ theorem typedCallViaEVM_syncFromState {cfg : Config}
     (hAccounts : evmEvm.accountMap = evmStele.accountMap)
     (hSigma0 : evmStele.σ₀ = evmEvm.σ₀)
     (hEnv : evmStele.executionEnv = evmEvm.executionEnv)
-    (hcall : typedCallViaEVM cfg evmEvm tgt name value args
+    (hcall : typedCallViaEVM fork cfg evmEvm tgt name value args
       (z, evmEvm', out) callPerm) :
     ∃ evmStele',
-      typedCallViaEVM cfg evmStele tgt name value args
+      typedCallViaEVM fork cfg evmStele tgt name value args
         (z, evmStele', out) callPerm ∧
       evmEvm'.accountMap = evmStele'.accountMap ∧
       evmStele'.σ₀ = evmEvm'.σ₀ ∧
@@ -669,10 +671,10 @@ theorem callMade_accountMapEq_with_substate {cfg : Config}
     (hcd : cfg.externalABI.encode? name args =
       some (mem.readWithPadding inOff.toNat inSize.toNat))
     (hΘ : (σ', g'', A', z, out) =
-        Ethereum.EVM.Θ evm_evm.accountMap evm_evm.σ₀ A_in
+        Ethereum.EVM.Θ fork evm_evm.accountMap evm_evm.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat evm_evm.executionEnv.codeOwner))
           evm_evm.executionEnv.sender (AccountAddress.ofUInt256 targetWord)
-          (toExecute evm_evm.accountMap (AccountAddress.ofUInt256 targetWord))
+          (toExecute fork evm_evm.accountMap (AccountAddress.ofUInt256 targetWord))
           callGas (UInt256.ofNat evm_evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding inOff.toNat inSize.toNat)
           (evm_evm.executionEnv.depth + 1) evm_evm.executionEnv.header
@@ -682,16 +684,16 @@ theorem callMade_accountMapEq_with_substate {cfg : Config}
     (hOriginalAccounts : evm_evm.σ₀ = evm_stele.σ₀)
     (hEnv : evm_stele.executionEnv = evm_evm.executionEnv) :
     ∃ (σ'_stele : AccountMap) (A'_stele : Substate),
-      typedCallViaEVM cfg evm_stele tgt name 0 args
+      typedCallViaEVM fork cfg evm_stele tgt name 0 args
         (z, { evm_stele with accountMap := σ'_stele, substate := A'_stele }, out)
         callPerm ∧
       σ' = σ'_stele ∧ A' = A'_stele := by
   have hΘ_s :
       (σ', g'', A', z, out) =
-        Ethereum.EVM.Θ evm_stele.accountMap evm_stele.σ₀ A_in
+        Ethereum.EVM.Θ fork evm_stele.accountMap evm_stele.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat evm_stele.executionEnv.codeOwner))
           evm_stele.executionEnv.sender (AccountAddress.ofUInt256 targetWord)
-          (toExecute evm_stele.accountMap (AccountAddress.ofUInt256 targetWord))
+          (toExecute fork evm_stele.accountMap (AccountAddress.ofUInt256 targetWord))
           callGas (UInt256.ofNat evm_stele.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding inOff.toNat inSize.toNat)
           (evm_stele.executionEnv.depth + 1) evm_stele.executionEnv.header
@@ -756,13 +758,12 @@ theorem extCodeSizeWord_eq (σ : AccountMap) (target : UInt256) :
   unfold extCodeSizeWord
   cases σ.get? (AccountAddress.ofUInt256 target) <;> rfl
 
-theorem toExecute_ecrecover_precompile (σ : AccountMap) :
-    toExecute σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) =
+theorem toExecute_ecrecover_precompile {fork : Fork} (σ : AccountMap) :
+    toExecute fork σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) =
       ToExecute.Precompiled (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) := by
   unfold toExecute
-  have hmem : AccountAddress.ofUInt256 (⟨1⟩ : UInt256) ∈ π := by
-    unfold π
-    decide
+  have hmem : AccountAddress.ofUInt256 (⟨1⟩ : UInt256) ∈ π fork := by
+    cases fork <;> decide
   rw [if_pos hmem]
 
 theorem ecrecover_output_size (σ : AccountMap) (g : UInt256) (A : Substate)
@@ -787,15 +788,15 @@ theorem ecrecover_output_size (σ : AccountMap) (g : UInt256) (A : Substate)
       · left
         rfl
 
-theorem staticcallTheta_ecrecover_output_size
+theorem staticcallTheta_ecrecover_output_size {fork : Ethereum.Fork}
     {blobVersionedHashes blocks σ σ₀ A_in r s g p v v' d e H w σ' g' A' z o}
     (hΘ : (σ', g', A', z, o) =
-      Θ σ σ₀ A_in r s
+      Θ fork σ σ₀ A_in r s
         (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
-          (toExecute σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
+          (toExecute fork σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
           g p v v' d e H blobVersionedHashes blocks w) :
     o.size = 0 ∨ o.size = 32 := by
-  have hpre : toExecute σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) =
+  have hpre : toExecute fork σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) =
       ToExecute.Precompiled (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) := by
     exact toExecute_ecrecover_precompile σ
   have hone : (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) = 1 := by
@@ -803,9 +804,9 @@ theorem staticcallTheta_ecrecover_output_size
   have hout := congrArg (fun x => x.2.2.2.2.size) hΘ
   have hout' :
       o.size =
-        (Θ σ σ₀ A_in r s
+        (Θ fork σ σ₀ A_in r s
           (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
-          (toExecute σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
+          (toExecute fork σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
           g p v v' d e H blobVersionedHashes blocks w).2.2.2.2.size := by
     simpa using hout
   rw [hout']

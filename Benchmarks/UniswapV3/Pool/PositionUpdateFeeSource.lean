@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.PositionUpdatePrefix
 import Benchmarks.UniswapV3.Pool.PositionScalarStorage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -75,12 +77,12 @@ theorem positionUpdateFeeSource (locals imms : Store) (evm : EVM.State)
     (hself : locals.get? "_self" = some (positionStructValue a.key evm.accountMap evm.executionEnv))
     (hgrowth : locals.get? (positionUpdateGrowthName second) =
       some (.int (Int.ofNat (a.growth second).toNat))) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm
       (positionUpdateFeeBody second)
       (.ok (positionUpdateFeeReadyFrame {contract := contract, locals := locals, immutables := imms}
         a evm second) evm) := by
   let frame : Frame := {contract := contract, locals := locals, immutables := imms}
-  have hcall : ExecStmt config frame evm
+  have hcall : ExecStmt fork config frame evm
       (.internalCall "FullMath_mulDiv" (positionUpdateFeeArgs second) (positionUpdateRawName second))
       (.ok (positionUpdateFeeCallFrame frame a evm second) evm) :=
     internalCallFunctionReturn (callee := fullMathFunction)

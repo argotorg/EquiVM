@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.SettleResetTrace
 import Benchmarks.UniswapV4PoolManager.CurrencyBalanceTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_038
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -18,10 +20,10 @@ theorem settleFunctionTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f 
     (hf : f.contract = contract) (hr : f.locals.get? "recipient" = some (.address recipient))
     (hm : WordReturnMemory mem) (hptr : 96 ≤ ptr.toNat) (hfit : ptr.toNat+63 ≤ solcMaxU64)
     (hgap : ptr.toNat-mem.size < USize.size) (hfree : memLoad ⟨64⟩ mem = ptr)
-    (h : RD (deployedRuntime v) I g s0 ⟨13357⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨13357⟩
       (accountWord recipient :: ⟨1954⟩ :: ⟨32⟩ :: R) mem aw rdata evm.accountMap k C) :
-    ∃ result, ExecFuncBody config f evm settleFunction.body result ∧
-      uint256ResultTrace (deployedRuntime v) g s0 result := by
+    ∃ result, ExecFuncBody fork config f evm settleFunction.body result ∧
+      uint256ResultTrace fork (deployedRuntime v) g s0 result := by
   have hc := (syncedCurrency_word evm).symm
   by_cases hz : syncedCurrency evm = AccountAddress.ofNat 0
   · have hzero : UInt256.land (transientWord evm currencySlot) solcAddrMask = ⟨0⟩ :=
@@ -29,7 +31,7 @@ theorem settleFunctionTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f 
     have rdNative := poolManagerBlocks.poolManager_block_13357_fallthrough (by change R.length+1+5 ≤ 1024; omega)
       (by change UInt256.land (codeOwnerTransientWord I evm.accountMap currencySlot) solcAddrMask = ⟨0⟩
           rw [← transientWord_accountMap hI]; exact hzero) h
-    change RD _ _ _ _ ⟨13421⟩
+    change RD fork _ _ _ _ ⟨13421⟩
       (accountWord recipient :: ⟨1954⟩ :: codeOwnerTransientWord I evm.accountMap currencySlot :: ⟨32⟩ :: R)
       _ _ _ _ _ _ at rdNative
     rw [← transientWord_accountMap hI] at rdNative
@@ -44,7 +46,7 @@ theorem settleFunctionTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f 
       (by change UInt256.land (codeOwnerTransientWord I evm.accountMap currencySlot) solcAddrMask ≠ ⟨0⟩
           rw [← transientWord_accountMap hI]; exact hnword)
       (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) h
-    change RD _ _ _ _ ⟨13442⟩
+    change RD fork _ _ _ _ ⟨13442⟩
       (accountWord recipient :: ⟨1954⟩ :: codeOwnerTransientWord I evm.accountMap currencySlot :: ⟨32⟩ :: R)
       _ _ _ _ _ _ at rdValue
     rw [← transientWord_accountMap hI] at rdValue
@@ -52,7 +54,7 @@ theorem settleFunctionTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f 
     · have rdReserves := poolManagerBlocks.poolManager_block_13442_fallthrough (by simp; omega) hv rdValue
       have rdBalance := poolManagerBlocks.poolManager_block_13448 (by change R.length+1+9 ≤ 1024; omega)
         (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rdReserves
-      change RD _ _ _ _ ⟨14994⟩
+      change RD fork _ _ _ _ ⟨14994⟩
         (transientWord evm currencySlot :: ⟨13497⟩ :: codeOwnerTransientWord I evm.accountMap reservesSlot ::
          ⟨13502⟩ :: accountWord recipient :: ⟨12705⟩ :: ⟨1954⟩ :: transientWord evm currencySlot :: ⟨32⟩ :: R)
         _ _ _ _ _ _ at rdBalance
@@ -83,7 +85,7 @@ theorem settleFunctionTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f 
               (transientStore_executionEnv _ _ _ _).trans hI'
             have hpostMap : (resetCurrencyPost evm').accountMap = tstoreAccountMap I.codeOwner evm'.accountMap currencySlot ⟨0⟩ := by
               simp only [resetCurrencyPost, transientStore_accountMap, hI']
-            change RD _ _ _ _ ⟨13427⟩
+            change RD fork _ _ _ _ ⟨13427⟩
               (transientWord evm currencySlot :: accountWord recipient :: ⟨12705⟩ :: ⟨1954⟩ ::
                UInt256.sub (returnedBalanceWord out) (transientWord evm reservesSlot) :: ⟨32⟩ :: R)
               _ _ _ (tstoreAccountMap I.codeOwner evm'.accountMap currencySlot ⟨0⟩) _ _ at rdPaid

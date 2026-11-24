@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.TickUpdateWords
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -18,11 +20,11 @@ def tickUpdateFirstWritePC (a : TickUpdateArgs) (evm : EVM.State) : UInt256 :=
 theorem tickUpdateFirstWriteX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw unused ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : TickUpdateArgs) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨20916⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨20916⟩
       (EVM.wordOfInt (tickUpdateGrossAfter a evm) :: EVM.wordOfInt (tickUpdateGrossBefore a evm) ::
         tickClearBase a.tick :: unused :: tickUpdateWords a ++ ret :: R) mem aw rdata σ k C)
     (hfit : a.TraceFits) (hov : R.length + 19 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (tickUpdateFirstWritePC a evm)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (tickUpdateFirstWritePC a evm)
       (tickUpdateWorkingWords a evm ++ ret :: R) mem aw rdata σ k' C' := by
   have hc : UInt256.land (UInt256.ofNat (2 ^ 128 - 1))
       (EVM.wordOfInt (tickUpdateGrossBefore a evm)) = EVM.wordOfInt (tickUpdateGrossBefore a evm) :=

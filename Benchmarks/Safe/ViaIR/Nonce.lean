@@ -1,5 +1,7 @@
 import Benchmarks.Safe.ViaIR.IRLengthCheck
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -12,10 +14,10 @@ theorem safeNonceBodyCore
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some nonceTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨hlong, hword⟩ := selectorDispatchFacts 0xaf 0xfe 0xd0 0xe0 ⟨0xaffed0e0⟩
     hdispatch nonceSelectorBytes (by decide)
-  obtain ⟨k, C, h4018⟩ := safeReachEntry (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, h4018⟩ := safeReachEntry (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) ⟨0xaffed0e0⟩ 15 ⟨4018⟩ hcode hsize hlong hword
     (by native_decide)
   by_cases hvalue : I.weiValue = ⟨0⟩
@@ -27,7 +29,7 @@ theorem safeNonceBodyCore
       simp only [show memLoad (UInt256.ofNat 64) solcFreePtrMem = ⟨128⟩ from
           solcFreePtrMem_mload64, show (⟨128⟩ : UInt256).toNat = 128 from rfl,
         show (UInt256.ofNat 32).toNat = 32 from rfl] at hret
-      change RDret safeBytecode _ _ σ
+      change RDret fork safeBytecode _ _ σ
         ((solcReturnMem (solcSlotWordAt ⟨5⟩ σ I)).readWithPadding 128 32) at hret
       rw [solcReturnMem_read128] at hret
       refine RDret.reEquivElim hcode hret fun _ _ hsuccess ↦ ?_
@@ -51,7 +53,7 @@ theorem safeNonceRefines
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some nonceTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact safeNonceBodyCore hcode hsize hdispatch
 
 end Benchmarks.Safe.ViaIR

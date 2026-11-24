@@ -1,5 +1,7 @@
 import Benchmarks.EAS.Attester.AttestRequestHeaderTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.EAS.Attester.Immutables attesterRuntimeBlocks
 
@@ -8,7 +10,7 @@ namespace Benchmarks.EAS.Attester
 theorem attestRequestsEncodeStep3344 {words : String → UInt256} {I g s0 σ mem aw out k C R}
     {limit base n i origin table dst : Nat} {schemas : Nat → UInt256} {counts : Nat → Nat}
     {values : Nat → Nat → UInt256}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3344⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3344⟩
       ([UInt256.ofNat i, UInt256.ofNat (base + 32 + 32 * i), UInt256.ofNat n,
         UInt256.ofNat table, UInt256.ofNat dst, ⟨0⟩, UInt256.ofNat origin] ++ R) mem aw out σ k C)
     (hstack : R.length + 24 ≤ 1024) (heap : AttestRequestsAt mem 96 limit base n schemas counts
@@ -16,7 +18,7 @@ theorem attestRequestsEncodeStep3344 {words : String → UInt256} {I g s0 σ mem
     (hsize : limit ≤ mem.size) (ht : limit ≤ table) (htable : table + 32 ≤ dst)
     (horigin : origin + 64 ≤ dst) (hi : i < n)
     (hfit : dst + 96 + 288 * counts i + 32 < UInt256.size) :
-    ∃ aw' k' C', RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3344⟩
+    ∃ aw' k' C', RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3344⟩
       ([UInt256.ofNat (i + 1), UInt256.ofNat (base + 32 + 32 * (i + 1)), UInt256.ofNat n,
         UInt256.ofNat (table + 32), UInt256.ofNat (dst + 96 + 288 * counts i), ⟨0⟩,
         UInt256.ofNat origin] ++ R)
@@ -58,7 +60,7 @@ theorem attestRequestsEncodeStep3344 {words : String → UInt256} {I g s0 σ mem
 theorem attestRequestsEncodeRun3344 {words : String → UInt256} {I g s0 σ mem aw out k C R}
     {limit base n i remaining origin table dst : Nat} {schemas : Nat → UInt256}
     {counts : Nat → Nat} {values : Nat → Nat → UInt256}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3344⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3344⟩
       ([UInt256.ofNat i, UInt256.ofNat (base + 32 + 32 * i), UInt256.ofNat n,
         UInt256.ofNat table, UInt256.ofNat dst, ⟨0⟩, UInt256.ofNat origin] ++ R) mem aw out σ k C)
     (hstack : R.length + 24 ≤ 1024) (heap : AttestRequestsAt mem 96 limit base n schemas counts
@@ -66,7 +68,7 @@ theorem attestRequestsEncodeRun3344 {words : String → UInt256} {I g s0 σ mem 
     (hsize : limit ≤ mem.size) (ht : limit ≤ table) (htable : table + 32 * remaining ≤ dst)
     (horigin : origin + 64 ≤ dst) (hi : i + remaining = n)
     (hfit : attestRequestsEncodedEnd dst counts i remaining + 32 < UInt256.size) :
-    ∃ aw' k' C', RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3097⟩
+    ∃ aw' k' C', RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3097⟩
       ([UInt256.ofNat n, UInt256.ofNat (base + 32 + 32 * n), UInt256.ofNat n,
         UInt256.ofNat (table + 32 * remaining),
         UInt256.ofNat (attestRequestsEncodedEnd dst counts i remaining), ⟨0⟩,
@@ -103,14 +105,14 @@ theorem attestRequestsEncodeRun3344 {words : String → UInt256} {I g s0 σ mem 
 theorem attestRequestsEncode3304 {words : String → UInt256} {I g s0 σ mem aw out k C R ret}
     {limit base n origin : Nat} {schemas : Nat → UInt256} {counts : Nat → Nat}
     {values : Nat → Nat → UInt256}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3304⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3304⟩
       (UInt256.ofNat origin :: UInt256.ofNat base :: ret :: R) mem aw out σ k C)
     (hstack : R.length + 26 ≤ 1024)
     (heap : AttestRequestsAt mem 96 limit base n schemas counts values)
     (hsize : limit ≤ mem.size) (hsep : limit ≤ origin)
     (hfit : attestRequestsABIEnd origin n counts + 32 < UInt256.size)
     (hret : (D_J (immutableLayout.runtime attesterBytecode words) 0).contains ret = true) :
-    ∃ aw' k' C', RD (immutableLayout.runtime attesterBytecode words) I g s0 ret
+    ∃ aw' k' C', RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ret
       (UInt256.ofNat (attestRequestsABIEnd origin n counts) :: R)
       (attestRequestsABIMemory mem origin n schemas counts values) aw' out σ k' C' := by
   have hend := attestRequestsEncodedEnd_lower (origin + 64 + 32 * n) counts 0 n
@@ -129,7 +131,7 @@ theorem attestRequestsEncode3304 {words : String → UInt256} {I g s0 σ mem aw 
   simp only [attesterRuntime_block_3304_stack, attesterRuntime_block_3304_memory,
     ulit_toNat' _ ho, hl, hshift,
     ofNat_add_words, ulit_toNat' _ ho32] at h'
-  have hstart : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3344⟩
+  have hstart : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3344⟩
       ([⟨0⟩, UInt256.ofNat (base + 32), UInt256.ofNat n, UInt256.ofNat (origin + 64),
         UInt256.ofNat (origin + 64 + 32 * n), ⟨0⟩, UInt256.ofNat origin,
         UInt256.ofNat base, ret] ++ R)

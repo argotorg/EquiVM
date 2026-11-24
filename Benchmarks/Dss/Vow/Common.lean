@@ -10,6 +10,12 @@ import Reasoning.Storage
 import Reasoning.SteleBody
 import Mathlib.Tactic.IntervalCases
 
+variable {fork : Ethereum.Fork}
+
+-- Concrete decoder facts must reduce the empty padding of a complete PUSH operand.
+set_option allowUnsafeReducibility true in
+attribute [local semireducible] ByteArray.zeroes
+
 /-!
 # MakerDAO/Sky DSS Vow shared proof foundation
 
@@ -201,7 +207,7 @@ theorem vowHighHighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
 theorem vowReachRootSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD vowBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vowBytecode I g (initState σ σ₀ g A I)
         vowRootSplitPc [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   simpa [vowRootSplitPc, vowSelWord] using
@@ -224,17 +230,17 @@ theorem vowReachLowSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat vowBytecode vowRootSplitPc) (vowSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD vowBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vowBytecode I g (initState σ σ₀ g A I)
         vowLowSplitPc [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
     vowReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h195 : RD vowBytecode I g (initState σ σ₀ g A I)
+  have h195 : RD fork vowBytecode I g (initState σ σ₀ g A I)
       (armTgt vowBytecode vowRootSplitPc) [vowSelWord I] solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty σ (k32 + 5) (C32 + 22) :=
     RD.selectorSplitTakenAuto h32 vowRootSplitWellFormed hroot (by jump_dest) (by simp)
-  have h196 : RD vowBytecode I g (initState σ σ₀ g A I)
+  have h196 : RD fork vowBytecode I g (initState σ σ₀ g A I)
       vowLowSplitPc [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5 + 1) (C32 + 22 + 1) := by
     simpa [vowLowSplitPc, vowLowJumpdestPc, vowRootSplitPc, armTgt, pushAt]
@@ -245,13 +251,13 @@ theorem vowReachHighSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat vowBytecode vowRootSplitPc) (vowSelWord I) = ⟨0⟩) :
-    ∃ k C, RD vowBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vowBytecode I g (initState σ σ₀ g A I)
         vowHighSplitPc [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
     vowReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h43 : RD vowBytecode I g (initState σ σ₀ g A I)
+  have h43 : RD fork vowBytecode I g (initState σ σ₀ g A I)
       vowHighSplitPc [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5) (C32 + 22) := by
     simpa [vowHighSplitPc, vowRootSplitPc, selArmNextPc, armTgtWidth,
@@ -264,17 +270,17 @@ theorem vowReachLowLowFirstArm {σ σ₀ A I} {g : Sat256}
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat vowBytecode vowRootSplitPc) (vowSelWord I) ≠ ⟨0⟩)
     (hlow : UInt256.gt (armSelNat vowBytecode vowLowSplitPc) (vowSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD vowBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vowBytecode I g (initState σ σ₀ g A I)
         vowLowLowFirstArmPc [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k196, C196, h196⟩ :=
     vowReachLowSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
-  have h277 : RD vowBytecode I g (initState σ σ₀ g A I)
+  have h277 : RD fork vowBytecode I g (initState σ σ₀ g A I)
       (armTgt vowBytecode vowLowSplitPc) [vowSelWord I] solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty σ (k196 + 5) (C196 + 22) :=
     RD.selectorSplitTakenAuto h196 vowLowSplitWellFormed hlow (by jump_dest) (by simp)
-  have h278 : RD vowBytecode I g (initState σ σ₀ g A I)
+  have h278 : RD fork vowBytecode I g (initState σ σ₀ g A I)
       vowLowLowFirstArmPc [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k196 + 5 + 1) (C196 + 22 + 1) := by
     simpa [vowLowLowFirstArmPc, vowLowLowJumpdestPc, vowLowSplitPc, armTgt, pushAt]
@@ -286,13 +292,13 @@ theorem vowReachLowHighFirstArm {σ σ₀ A I} {g : Sat256}
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat vowBytecode vowRootSplitPc) (vowSelWord I) ≠ ⟨0⟩)
     (hlow : UInt256.gt (armSelNat vowBytecode vowLowSplitPc) (vowSelWord I) = ⟨0⟩) :
-    ∃ k C, RD vowBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vowBytecode I g (initState σ σ₀ g A I)
         vowLowHighFirstArmPc [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k196, C196, h196⟩ :=
     vowReachLowSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
-  have h207 : RD vowBytecode I g (initState σ σ₀ g A I)
+  have h207 : RD fork vowBytecode I g (initState σ σ₀ g A I)
       vowLowHighFirstArmPc [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k196 + 5) (C196 + 22) := by
     simpa [vowLowHighFirstArmPc, vowLowSplitPc, selArmNextPc, armTgtWidth,
@@ -305,17 +311,17 @@ theorem vowReachHighLowFirstArm {σ σ₀ A I} {g : Sat256}
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat vowBytecode vowRootSplitPc) (vowSelWord I) = ⟨0⟩)
     (hhigh : UInt256.gt (armSelNat vowBytecode vowHighSplitPc) (vowSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD vowBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vowBytecode I g (initState σ σ₀ g A I)
         vowHighLowFirstArmPc [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k43, C43, h43⟩ :=
     vowReachHighSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
-  have h124 : RD vowBytecode I g (initState σ σ₀ g A I)
+  have h124 : RD fork vowBytecode I g (initState σ σ₀ g A I)
       (armTgt vowBytecode vowHighSplitPc) [vowSelWord I] solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty σ (k43 + 5) (C43 + 22) :=
     RD.selectorSplitTakenAuto h43 vowHighSplitWellFormed hhigh (by jump_dest) (by simp)
-  have h125 : RD vowBytecode I g (initState σ σ₀ g A I)
+  have h125 : RD fork vowBytecode I g (initState σ σ₀ g A I)
       vowHighLowFirstArmPc [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k43 + 5 + 1) (C43 + 22 + 1) := by
     simpa [vowHighLowFirstArmPc, vowHighLowJumpdestPc, vowHighSplitPc, armTgt, pushAt]
@@ -327,13 +333,13 @@ theorem vowReachHighHighFirstArm {σ σ₀ A I} {g : Sat256}
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat vowBytecode vowRootSplitPc) (vowSelWord I) = ⟨0⟩)
     (hhigh : UInt256.gt (armSelNat vowBytecode vowHighSplitPc) (vowSelWord I) = ⟨0⟩) :
-    ∃ k C, RD vowBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vowBytecode I g (initState σ σ₀ g A I)
         vowHighHighFirstArmPc [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k43, C43, h43⟩ :=
     vowReachHighSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
-  have h54 : RD vowBytecode I g (initState σ σ₀ g A I)
+  have h54 : RD fork vowBytecode I g (initState σ σ₀ g A I)
       vowHighHighFirstArmPc [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k43 + 5) (C43 + 22) := by
     simpa [vowHighHighFirstArmPc, vowHighSplitPc, selArmNextPc, armTgtWidth,
@@ -355,7 +361,7 @@ theorem vowReachLowLowBody {σ σ₀ A I} {g : Sat256}
         (vowSelWord I) ≠ ⟨0⟩)
     (hjd : (D_J vowBytecode 0).contains bodyPC = true)
     (hbody : armTgt vowBytecode (nthArmPc vowBytecode vowLowLowFirstArmPc i) = bodyPC) :
-    ∃ k C, RD vowBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vowBytecode I g (initState σ σ₀ g A I)
         bodyPC [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
@@ -379,7 +385,7 @@ theorem vowReachLowHighBody {σ σ₀ A I} {g : Sat256}
         (vowSelWord I) ≠ ⟨0⟩)
     (hjd : (D_J vowBytecode 0).contains bodyPC = true)
     (hbody : armTgt vowBytecode (nthArmPc vowBytecode vowLowHighFirstArmPc i) = bodyPC) :
-    ∃ k C, RD vowBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vowBytecode I g (initState σ σ₀ g A I)
         bodyPC [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
@@ -403,7 +409,7 @@ theorem vowReachHighLowBody {σ σ₀ A I} {g : Sat256}
         (vowSelWord I) ≠ ⟨0⟩)
     (hjd : (D_J vowBytecode 0).contains bodyPC = true)
     (hbody : armTgt vowBytecode (nthArmPc vowBytecode vowHighLowFirstArmPc i) = bodyPC) :
-    ∃ k C, RD vowBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vowBytecode I g (initState σ σ₀ g A I)
         bodyPC [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
@@ -427,7 +433,7 @@ theorem vowReachHighHighBody {σ σ₀ A I} {g : Sat256}
         (vowSelWord I) ≠ ⟨0⟩)
     (hjd : (D_J vowBytecode 0).contains bodyPC = true)
     (hbody : armTgt vowBytecode (nthArmPc vowBytecode vowHighHighFirstArmPc i) = bodyPC) :
-    ∃ k C, RD vowBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vowBytecode I g (initState σ σ₀ g A I)
         bodyPC [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
@@ -439,11 +445,11 @@ theorem vowReachHighHighBody {σ σ₀ A I} {g : Sat256}
 
 theorem vowJumpToNoMatchRevert {σ σ₀ A I} {g : Sat256} {pc : UInt256}
     {k C : ℕ}
-    (h : RD vowBytecode I g (initState σ σ₀ g A I) pc
+    (h : RD fork vowBytecode I g (initState σ σ₀ g A I) pc
       [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hpush : decode vowBytecode pc = some (.Push .PUSH2, some (vowDispatchRevertPc, 2)))
     (hjump : decode vowBytecode (pc + UInt256.ofNat 3) = some (.JUMP, .none)) :
-    RDrev vowBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vowBytecode g (initState σ σ₀ g A I) := by
   have h344 := h.push2 vowDispatchRevertPc hpush (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by simp only [List.length_singleton]; omega)
     |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
@@ -451,12 +457,12 @@ theorem vowJumpToNoMatchRevert {σ σ₀ A I} {g : Sat256} {pc : UInt256}
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
 theorem vowLowLowNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD vowBytecode I g (initState σ σ₀ g A I) vowLowLowFirstArmPc
+    (h : RD fork vowBytecode I g (initState σ σ₀ g A I) vowLowLowFirstArmPc
       [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 6 →
       UInt256.eq (armSelNat vowBytecode (nthArmPc vowBytecode vowLowLowFirstArmPc j))
         (vowSelWord I) = ⟨0⟩) :
-    RDrev vowBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vowBytecode g (initState σ σ₀ g A I) := by
   have h344 := h
     |>.selectorArmNotTakenAuto (vowLowLowArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -475,12 +481,12 @@ theorem vowLowLowNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
 theorem vowLowHighNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD vowBytecode I g (initState σ σ₀ g A I) vowLowHighFirstArmPc
+    (h : RD fork vowBytecode I g (initState σ σ₀ g A I) vowLowHighFirstArmPc
       [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 6 →
       UInt256.eq (armSelNat vowBytecode (nthArmPc vowBytecode vowLowHighFirstArmPc j))
         (vowSelWord I) = ⟨0⟩) :
-    RDrev vowBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vowBytecode g (initState σ σ₀ g A I) := by
   have h273 := h
     |>.selectorArmNotTakenAuto (vowLowHighArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -497,12 +503,12 @@ theorem vowLowHighNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
   exact vowJumpToNoMatchRevert h273 (by native_decide) (by native_decide)
 
 theorem vowHighLowNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD vowBytecode I g (initState σ σ₀ g A I) vowHighLowFirstArmPc
+    (h : RD fork vowBytecode I g (initState σ σ₀ g A I) vowHighLowFirstArmPc
       [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 6 →
       UInt256.eq (armSelNat vowBytecode (nthArmPc vowBytecode vowHighLowFirstArmPc j))
         (vowSelWord I) = ⟨0⟩) :
-    RDrev vowBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vowBytecode g (initState σ σ₀ g A I) := by
   have h191 := h
     |>.selectorArmNotTakenAuto (vowHighLowArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -519,12 +525,12 @@ theorem vowHighLowNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
   exact vowJumpToNoMatchRevert h191 (by native_decide) (by native_decide)
 
 theorem vowHighHighNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD vowBytecode I g (initState σ σ₀ g A I) vowHighHighFirstArmPc
+    (h : RD fork vowBytecode I g (initState σ σ₀ g A I) vowHighHighFirstArmPc
       [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 6 →
       UInt256.eq (armSelNat vowBytecode (nthArmPc vowBytecode vowHighHighFirstArmPc j))
         (vowSelWord I) = ⟨0⟩) :
-    RDrev vowBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vowBytecode g (initState σ σ₀ g A I) := by
   have h120 := h
     |>.selectorArmNotTakenAuto (vowHighHighArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -544,7 +550,7 @@ theorem vowX_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 24 → (vowSelBytes i == I.calldata.extract 0 4) = false) :
-    RDrev vowBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vowBytecode g (initState σ σ₀ g A I) := by
   have heqLowLow : ∀ j, j < 6 →
       UInt256.eq
         (armSelNat vowBytecode (nthArmPc vowBytecode vowLowLowFirstArmPc j))
@@ -704,7 +710,7 @@ theorem vowAddressGetterBodyReturns (evm : EVM.State) (locals : Store)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem .address))
     (hloc : config.storageBackend.locate? er = some (.leaf (addrLoc slot))) :
-    ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
+    ExecTransitionBody fork config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract, locals := locals } evm
         (some [(.address (AccountAddress.ofNat
           (UInt256.land (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
@@ -721,7 +727,7 @@ theorem vowUint256GetterBodyReturns (evm : EVM.State) (locals : Store)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem (.int uint256Int)))
     (hloc : config.storageBackend.locate? er = some (.leaf (wordLoc slot))) :
-    ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
+    ExecTransitionBody fork config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract, locals := locals } evm
         (some [(.int (Int.ofNat
           (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat))])) := by
@@ -738,7 +744,7 @@ theorem vowAddressGetterBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf vowBytecode entry ⟨465⟩ routine)
@@ -746,13 +752,13 @@ theorem vowAddressGetterBodyCore
     (hroutine : (D_J vowBytecode 0).contains routine = true)
     (hreturn : transition.returnType = [addr])
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
             (solcAddressSlotWord slot σ I).toNat))]))) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have henc :
       returnEquiv (UInt256.toByteArray (solcAddressSlotWord slot σ I))
         (some [(.address (AccountAddress.ofNat (solcAddressSlotWord slot σ I).toNat))])
@@ -768,7 +774,7 @@ theorem vowAddressGetterBodyCore
       unfold solcReturnAddressFromMemWf
       repeat' first | apply And.intro | native_decide)
   have hret' :
-      RDret vowBytecode (Sat256.ofUInt256 g)
+      RDret fork vowBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (UInt256.toByteArray (solcAddressSlotWord slot σ I)) := by
     simpa [solcAddressSlotWord, solcSlotWordAt] using hret
@@ -782,7 +788,7 @@ theorem vowUint256GetterBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf vowBytecode entry ⟨357⟩ routine)
@@ -790,12 +796,12 @@ theorem vowUint256GetterBodyCore
     (hroutine : (D_J vowBytecode 0).contains routine = true)
     (hreturn : transition.returnType = [uint256])
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))]))) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have henc :
       returnEquiv (UInt256.toByteArray (solcSlotWordAt slot σ I))
         (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))])
@@ -810,7 +816,7 @@ theorem vowUint256GetterBodyCore
       unfold solcReturnWordFromMemWf
       repeat' first | apply And.intro | native_decide)
   have hret' :
-      RDret vowBytecode (Sat256.ofUInt256 g)
+      RDret fork vowBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (UInt256.toByteArray (solcSlotWordAt slot σ I)) := by
     simpa [solcSlotWordAt] using hret
@@ -900,7 +906,7 @@ theorem vowDispatch_none_nomatch {cd : ByteArray}
 
 theorem vowBodyReverts_nonPayable (t : TransitionDecl) (ht : t ∈ contract.transitions)
     (evm : EVM.State) (locals : Store) (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecTransitionBody config contract evm locals t.body .reverted := by
+    ExecTransitionBody fork config contract evm locals t.body .reverted := by
   simp [contract, transitions] at ht
   rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
     rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
@@ -908,8 +914,8 @@ theorem vowBodyReverts_nonPayable (t : TransitionDecl) (ht : t ∈ contract.tran
 
 theorem vowX_callvalue_ne {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev vowBytecode g (initState σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
+    RDrev fork vowBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (fork := fork) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide)
@@ -922,8 +928,8 @@ theorem vowX_callvalue_ne {σ σ₀ A I} {g : Sat256}
 theorem vowX_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
-    RDrev vowBytecode g (initState σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
+    RDrev fork vowBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (fork := fork) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero

@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.PoolModifyClear
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -13,7 +15,7 @@ def poolModifyClearsResult (f : Frame) (evm : State) (id : UInt256) (p : PoolMod
 theorem poolModifyClears {f : Frame} {evm : State} {id : UInt256} {p : PoolModifyParams}
     {fl fu : Bool} {gl gu : UInt256} (hc : PoolModifyContext f id p)
     (hs : f.locals.get? "state" = some (poolModifyStateValue fl gl fu gu)) :
-    ExecStmt config f evm poolModifyFunction.body[23]! (poolModifyClearsResult f evm id p fl fu) := by
+    ExecStmt fork config f evm poolModifyFunction.body[23]! (poolModifyClearsResult f evm id p fl fu) := by
   have he : evalExpr? config f evm (.binary .lt (.var "liquidityDelta") (.intLit 0)) =
       .ok (.bool (decide (p.delta < 0))) := by
     rw [evalExpr_binary_nonshort (by decide) (by decide), evalLocalValue hc.liquidityDelta]
@@ -21,7 +23,7 @@ theorem poolModifyClears {f : Frame} {evm : State} {id : UInt256} {p : PoolModif
   by_cases hd : p.delta < 0
   · rw [poolModifyClearsResult, if_pos hd]
     apply ExecStmt.iteTrue (by simpa only [decide_eq_true hd] using he)
-    have hlo := poolModifyClear (upper := false) (evm := evm) hc hc.lower hs
+    have hlo := poolModifyClear (fork := fork) (upper := false) (evm := evm) hc hc.lower hs
     apply execBlock_continue (execBlock_singleton hlo)
     intro f1 post hpost
     have hc1 := poolModifyClearResult_context hc hpost

@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.RuntimeBlocks_009
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_012
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_023
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # CometWithExtendedAssetList `getUtilization()`
 
@@ -23,7 +25,7 @@ set_option maxRecDepth 10000
 
 theorem getUtilization_returns {σ σ₀ A I} {g : Sat256} (imms : Store)
     (hvalue : I.weiValue = ⟨0⟩) (hhi : I.calldata.size < 2 ^ 255 + 4) :
-    ∃ frame, ExecTransitionBody config contract (initState σ σ₀ g A I)
+    ∃ frame, ExecTransitionBody fork config contract (initState σ σ₀ g A I)
       ∅ getUtilizationTransition.body
       (.returned frame (initState σ σ₀ g A I)
         (some [.int (utilizationAt (initState σ σ₀ g A I)).toNat])) imms := by
@@ -49,7 +51,7 @@ theorem getUtilizationX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetL
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 33)) :
-    GetterResult (deployedRuntime v) I g (initState σ σ₀ g A I) σ
+    GetterResult fork (deployedRuntime v) I g (initState σ σ₀ g A I) σ
       (utilizationWord (solcSlotWordAt ⟨0⟩ σ I) (solcSlotWordAt ⟨1⟩ σ I)).toByteArray := by
   obtain ⟨k, C, rd⟩ := cometWithExtendedAssetListReachGetUtilizationBody
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) v hcode hsz hsize hsel
@@ -86,7 +88,7 @@ theorem getUtilizationX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetL
 theorem cometWithExtendedAssetListGetUtilizationBody {σ σ₀ A I} {g : UInt256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 33)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (cometWithExtendedAssetListSelBytes 33) rfl hsel
   let w := utilizationWord (solcSlotWordAt ⟨0⟩ σ I) (solcSlotWordAt ⟨1⟩ σ I)
   apply guardedGetter_refines (t := getUtilizationTransition) (value := .int w.toNat)

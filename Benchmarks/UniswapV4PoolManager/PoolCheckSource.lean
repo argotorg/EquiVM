@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.PoolStorage
 import Benchmarks.UniswapV4PoolManager.Slot0Source
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -21,10 +23,10 @@ def poolSqrtPriceWord (evm : EVM.State) (id : UInt256) : UInt256 := slot0SqrtPri
 
 theorem poolCheckBody {f : Frame} {evm : EVM.State} {id : UInt256}
     (hf : f.contract = contract) (hs : f.locals.get? "self" = some (poolRefValue id)) :
-    ExecFuncBody config f evm poolCheckFunction.body
+    ExecFuncBody fork config f evm poolCheckFunction.body
       (if poolSqrtPriceWord evm id = ⟨0⟩ then .reverted else
         .returned {f with locals := f.locals.insert "__c0" (.int (Int.ofNat (poolSqrtPriceWord evm id).toNat))} evm none) := by
-  have hcall := slot0SqrtCall (evm := evm) hf (poolSlot0_read hs) "__c0"
+  have hcall := slot0SqrtCall (fork := fork) (evm := evm) hf (poolSlot0_read hs) "__c0"
   let f1 : Frame := {f with locals := f.locals.insert "__c0" (.int (Int.ofNat (poolSqrtPriceWord evm id).toNat))}
   have hcond := evalEqWords (evalLocalValue (cfg := config) (f := f1) (evm := evm) (store_get_self _ _ _))
     (show evalExpr? config f1 evm (.intLit 0) = .ok (.int (Int.ofNat (⟨0⟩ : UInt256).toNat)) by
@@ -41,9 +43,9 @@ theorem poolCheckBody {f : Frame} {evm : EVM.State} {id : UInt256}
 
 theorem poolCheckCall {f : Frame} {evm : EVM.State} {e : Expr} {id : UInt256}
     (hf : f.contract = contract) (he : evalExpr? config f evm e = .ok (poolRefValue id)) (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "Pool_checkPoolInitialized" [e] retVar)
+    ExecStmt fork config f evm (.internalCall "Pool_checkPoolInitialized" [e] retVar)
       (if poolSqrtPriceWord evm id = ⟨0⟩ then .reverted else .ok {f with locals := f.locals.insert retVar .unit} evm) := by
-  have hb := poolCheckBody (f := {f with locals := (∅ : Store).insert "self" (poolRefValue id)})
+  have hb := poolCheckBody (fork := fork) (f := {f with locals := (∅ : Store).insert "self" (poolRefValue id)})
     (evm := evm) hf (store_get_self _ _ _)
   have hl : lookupCallable? f.contract "Pool_checkPoolInitialized" = some poolCheckFunction.toCallable := by
     rw [hf]; exact poolCheck_lookup

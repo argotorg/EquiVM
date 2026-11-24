@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.UIDControl
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -10,8 +12,8 @@ theorem easRecordSingle_static {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length+21 ≤ 1024) (hperm : ee.perm = false)
-    (rd : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 8511) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: x12 :: x13 :: x14 :: R) mem aw rdata σ k C) :
-    RDstatic (deployedRuntime v) g s0 := by
+    (rd : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 8511) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: x12 :: x13 :: x14 :: R) mem aw rdata σ k C) :
+    RDstatic fork (deployedRuntime v) g s0 := by
   let r0 := rd
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.EAS.EAS.immutableLayout, Benchmarks.EAS.EAS.easBytecode, wordsOf (immStore v), (⟨8511⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, easBlocks.immutableLayout_inBounds, easBlocks.immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.swap2 (by immutable_decode(Benchmarks.EAS.EAS.immutableLayout, Benchmarks.EAS.EAS.easBytecode, wordsOf (immStore v), (⟨8512⟩ : UInt256), UInt8.ofNat 145, .SWAP2, none, easBlocks.immutableLayout_inBounds, easBlocks.immutableTemplate_size64)) (by evm_ov)
@@ -51,8 +53,8 @@ theorem easRecordMany_static {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length+19 ≤ 1024) (hperm : ee.perm = false)
-    (rd : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 10727) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: x12 :: R) mem aw rdata σ k C) :
-    RDstatic (deployedRuntime v) g s0 := by
+    (rd : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 10727) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: x12 :: R) mem aw rdata σ k C) :
+    RDstatic fork (deployedRuntime v) g s0 := by
   let r0 := rd
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.EAS.EAS.immutableLayout, Benchmarks.EAS.EAS.easBytecode, wordsOf (immStore v), (⟨10727⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, easBlocks.immutableLayout_inBounds, easBlocks.immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.swap1 (by immutable_decode(Benchmarks.EAS.EAS.immutableLayout, Benchmarks.EAS.EAS.easBytecode, wordsOf (immStore v), (⟨10728⟩ : UInt256), UInt8.ofNat 144, .SWAP1, none, easBlocks.immutableLayout_inBounds, easBlocks.immutableTemplate_size64)) (by evm_ov)
@@ -91,9 +93,9 @@ theorem easRecordWriteStatic {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {src word bump t1 t2 t3 t4 : UInt256} {R : List UInt256} (v : EASImmutables) (site : UIDSite)
     (hstack : R.length+21 ≤ 1024) (hperm : ee.perm = false)
-    (rd : RD (deployedRuntime v) ee g s0 (uidAvailablePC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (uidAvailablePC site)
       (word::bump::uidSaved site src (t1::t2::t3::t4::R)) mem aw rdata σ k C) :
-    RDstatic (deployedRuntime v) g s0 := by
+    RDstatic fork (deployedRuntime v) g s0 := by
   cases site with
   | single s1 s2 s3 s4 s5 s6 s7 s8 => exact easRecordSingle_static v hstack hperm rd
   | many s1 s2 s3 s4 s5 s6 => exact easRecordMany_static v (by omega) hperm rd

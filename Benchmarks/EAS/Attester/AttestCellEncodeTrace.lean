@@ -1,5 +1,7 @@
 import Benchmarks.EAS.Attester.AttestCellEncodeMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.EAS.Attester.Immutables attesterRuntimeBlocks
 
@@ -7,12 +9,12 @@ namespace Benchmarks.EAS.Attester
 
 theorem attestCellEncode3109 {words : String → UInt256} {I g s0 σ mem aw out k C R ret}
     {limit ptr dst : Nat} {input : UInt256}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3109⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3109⟩
       (UInt256.ofNat ptr :: UInt256.ofNat dst :: ret :: R) mem aw out σ k C)
     (hstack : R.length + 12 ≤ 1024) (heap : AttestCellAt mem 96 limit ptr input)
     (hsize : limit ≤ mem.size) (hsep : limit ≤ dst) (hfit : dst + 288 < UInt256.size)
     (hret : (D_J (immutableLayout.runtime attesterBytecode words) 0).contains ret = true) :
-    ∃ aw' k' C', RD (immutableLayout.runtime attesterBytecode words) I g s0 ret
+    ∃ aw' k' C', RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ret
       (UInt256.ofNat (dst + 256) :: R) (attestCellEncodedMemory mem dst input)
       aw' out σ k' C' := by
   obtain ⟨data, hdlo, hdhi, hinput, hstk⟩ :=

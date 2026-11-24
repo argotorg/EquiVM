@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.PoolModifyCheckedAmountTrace
 import Benchmarks.UniswapV4PoolManager.PoolModifyAmountFrames
 import Benchmarks.UniswapV4PoolManager.BalanceDeltaWords
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -11,8 +13,8 @@ set_option maxRecDepth 5000
 theorem poolModifyOutsidePackTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw word : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (one : Bool) (v : PoolManagerImmutables) (hstack : R.length+2 ≤ 1024)
-    (h : RD (deployedRuntime v) I g s0 (poolModifyOutsideCastPC one) (word :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) I g s0 ⟨6390⟩
+    (h : RD fork (deployedRuntime v) I g s0 (poolModifyOutsideCastPC one) (word :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork (deployedRuntime v) I g s0 ⟨6390⟩
       (balanceDeltaWord (if one then ⟨0⟩ else word) (if one then word else ⟨0⟩) :: R)
       mem aw rdata σ k' C' := by
   cases one with
@@ -30,10 +32,10 @@ theorem poolModifyOutsideTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (one : Bool) (v : PoolManagerImmutables) (hstack : R.length+18 ≤ 1024)
     (hl : int24Canonical p.lower) (hu : int24Canonical p.upper) (ht : poolTicksValid p.lower p.upper)
     (hd : signedFits ⟨128, by decide⟩ p.delta)
-    (h : RD (deployedRuntime v) I g s0 (poolModifyOutsideStartPC one)
+    (h : RD fork (deployedRuntime v) I g s0 (poolModifyOutsideStartPC one)
       (poolModifyOutsideInputStack one tick sqrtPrice p R) mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0 (fun _ post => post = evm ∧ ∃ k' C',
-      RD (deployedRuntime v) I g s0 ⟨6390⟩ (poolModifyOutsideDeltaWord one p :: R)
+    blockResultTrace fork (deployedRuntime v) g s0 (fun _ post => post = evm ∧ ∃ k' C',
+      RD fork (deployedRuntime v) I g s0 ⟨6390⟩ (poolModifyOutsideDeltaWord one p :: R)
         mem aw rdata post.accountMap k' C') (fun _ _ => False)
       (poolModifyOutsideResult f evm one p) := by
   obtain ⟨k1, C1, rd1⟩ := poolModifyOutsidePricesTrace one v (by omega) hl hu ht hd h

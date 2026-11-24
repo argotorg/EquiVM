@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.Slot0Source
 import Benchmarks.UniswapV4PoolManager.NatComparisonSource
 import Benchmarks.UniswapV4PoolManager.ConditionalPairSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -39,10 +41,10 @@ theorem poolSwapLimitBranchSource {f : Frame} {evm : State} {packed : UInt256} {
     (zeroForOne : Bool) (hf : f.contract = contract)
     (hp : f.locals.get? "params" = some (poolSwapParamsValue p))
     (hs : f.locals.get? "slot0Start" = some (wordBytes32Value packed)) :
-    ExecBlock config f evm (poolSwapLimitBranch zeroForOne)
+    ExecBlock fork config f evm (poolSwapLimitBranch zeroForOne)
       (if poolSwapLimitValid packed p.priceLimit zeroForOne then .ok (poolSwapLimitFrame f packed zeroForOne) evm else .reverted) := by
   let f1 := poolSwapLimitFrame f packed zeroForOne
-  have hcall := slot0SqrtCall hf (evalLocalValue (evm := evm) hs) (poolSwapLimitName zeroForOne)
+  have hcall := slot0SqrtCall (fork := fork) hf (evalLocalValue (evm := evm) hs) (poolSwapLimitName zeroForOne)
   have hp1 : f1.locals.get? "params" = some (poolSwapParamsValue p) :=
     (poolSwapLimitFrame_get f packed zeroForOne "params" (by decide) (by decide)).trans hp
   have he := evalStructField (cfg := config) (evm := evm) (field := "sqrtPriceLimitX96") (evalLocalValue hp1) rfl
@@ -53,7 +55,7 @@ theorem poolSwapLimitBranchSource {f : Frame} {evm : State} {packed : UInt256} {
     have h1 := evalNatGe he
       (show evalExpr? config f1 evm (.intLit 1461446703485210103287273052203988822378723970342) =
         .ok (.int (Int.ofNat 1461446703485210103287273052203988822378723970342)) by simp only [evalExpr?, pure]; rfl)
-    have ht := execBlock_rejectUnlessPair
+    have ht := execBlock_rejectUnlessPair (fork := fork)
       (p := (slot0SqrtPriceWord packed).toNat < p.priceLimit.toNat)
       (q := p.priceLimit.toNat < 1461446703485210103287273052203988822378723970342)
       (by simpa only [Nat.not_lt] using h0) (by simpa only [Nat.not_lt] using h1)
@@ -61,7 +63,7 @@ theorem poolSwapLimitBranchSource {f : Frame} {evm : State} {packed : UInt256} {
   · have h0 := evalNatGe he hv
     have h1 := evalNatLe he
       (show evalExpr? config f1 evm (.intLit 4295128739) = .ok (.int (Int.ofNat 4295128739)) by simp only [evalExpr?, pure]; rfl)
-    have ht := execBlock_rejectUnlessPair
+    have ht := execBlock_rejectUnlessPair (fork := fork)
       (p := p.priceLimit.toNat < (slot0SqrtPriceWord packed).toNat) (q := 4295128739 < p.priceLimit.toNat)
       (by simpa only [Nat.not_lt] using h0) (by simpa only [Nat.not_lt] using h1)
     exact ExecBlock.consNormal hcall ht
@@ -70,10 +72,10 @@ theorem poolSwapLimitSource {f : Frame} {evm : State} {packed : UInt256} {p : Po
     (hf : f.contract = contract) (hp : f.locals.get? "params" = some (poolSwapParamsValue p))
     (hs : f.locals.get? "slot0Start" = some (wordBytes32Value packed))
     (hz : f.locals.get? "zeroForOne" = some (.bool p.zeroForOne)) :
-    ExecStmt config f evm poolSwapFunction.body[25]!
+    ExecStmt fork config f evm poolSwapFunction.body[25]!
       (if poolSwapLimitValid packed p.priceLimit p.zeroForOne then .ok (poolSwapLimitFrame f packed p.zeroForOne) evm else .reverted) := by
   rw [poolSwapFunction_limit]
-  have hb := poolSwapLimitBranchSource (evm := evm) p.zeroForOne hf hp hs
+  have hb := poolSwapLimitBranchSource (fork := fork) (evm := evm) p.zeroForOne hf hp hs
   have hg := evalLocalValue (cfg := config) (evm := evm) hz
   cases he : p.zeroForOne
   · rw [he] at hg hb

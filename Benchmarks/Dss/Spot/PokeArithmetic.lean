@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Spot.PokeDecode
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Spot
@@ -18,7 +20,7 @@ theorem execPokeTrueArithmeticReturns (evm : EVM.State) (I : ExecutionEnv) (out 
     (hfitMat : spot1.toNat * pokeRay.toNat < UInt256.size)
     (hmatNe : pokeMatWord evm.accountMap I ≠ ⟨0⟩)
     (hspot2 : spot2 = UInt256.div (spot1 * pokeRay) (pokeMatWord evm.accountMap I)) :
-    ExecBlock config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evm
+    ExecBlock fork config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evm
       (checkedMulUintInto "valScaled" (.cast (.var "val") uint256St) (.intLit billion) ++
         [ .internalCall "rdiv" [.var "valScaled", .storage parRef] "spot1",
           .internalCall "rdiv" [.var "spot1", .storage (ilksF (.var "ilk") "mat")]
@@ -45,7 +47,7 @@ theorem execPokeTrueArithmeticReturns (evm : EVM.State) (I : ExecutionEnv) (out 
           .ok (.int (Int.ofNat valScaled.toNat)) :=
     evalExpr_spot_mul256_ok hvalCast hBillionLit hvalScaled hfitVal
   have hValScaledStmt :
-      ExecStmt config { contract := contract, locals := locals0 } evm
+      ExecStmt fork config { contract := contract, locals := locals0 } evm
         (.letDecl "valScaled" (some uint256)
           (mul256 (.cast (.var "val") uint256St) (.intLit billion)))
         (.ok { contract := contract, locals := localsV } evm) := by
@@ -128,18 +130,18 @@ theorem execPokeTrueArithmeticReturns (evm : EVM.State) (I : ExecutionEnv) (out 
         some (spotUintBinaryLocals valScaled par) := by
     simp [rdivFunction, uint256, bindParams?, spotUintBinaryLocals]
   have hRdiv1Stmt :
-      ExecStmt config { contract := contract, locals := localsV } evm
+      ExecStmt fork config { contract := contract, locals := localsV } evm
         (.internalCall "rdiv" [.var "valScaled", .storage parRef] "spot1")
         (.ok { contract := contract, locals := pokeSpot1Locals I out valScaled spot1 }
           evm) := by
-    have h := internalCallFunctionReturn
+    have h := internalCallFunctionReturn (fork := fork)
       (cfg := config) (caller := { contract := contract, locals := localsV })
       (evm := evm) (name := "rdiv") (retVar := "spot1")
       (args := [.var "valScaled", .storage parRef])
       (argVals := [.int (Int.ofNat valScaled.toNat), .int (Int.ofNat par.toNat)])
       (callee := rdivFunction) (locals := spotUintBinaryLocals valScaled par)
       hRdiv1Args hlookupRdiv hbindRdiv1
-      (execSpotRdivFunctionReturn evm (x := valScaled) (y := par)
+      (execSpotRdivFunctionReturn (fork := fork) evm (x := valScaled) (y := par)
         (prod := valScaled * pokeRay) (q := spot1) rfl hfitPar hparNe
         (by simpa [par] using hspot1))
     simpa [resumeAfterInternalCall, localsV, pokeSpot1Locals, par] using h
@@ -170,19 +172,19 @@ theorem execPokeTrueArithmeticReturns (evm : EVM.State) (I : ExecutionEnv) (out 
         some (spotUintBinaryLocals spot1 mat) := by
     simp [rdivFunction, uint256, bindParams?, spotUintBinaryLocals]
   have hRdiv2Stmt :
-      ExecStmt config { contract := contract, locals := locals1 } evm
+      ExecStmt fork config { contract := contract, locals := locals1 } evm
         (.internalCall "rdiv" [.var "spot1", .storage (ilksF (.var "ilk") "mat")]
           "spot2")
         (.ok { contract := contract, locals := pokeSpot2Locals I out valScaled spot1 spot2 }
           evm) := by
-    have h := internalCallFunctionReturn
+    have h := internalCallFunctionReturn (fork := fork)
       (cfg := config) (caller := { contract := contract, locals := locals1 })
       (evm := evm) (name := "rdiv") (retVar := "spot2")
       (args := [.var "spot1", .storage (ilksF (.var "ilk") "mat")])
       (argVals := [.int (Int.ofNat spot1.toNat), .int (Int.ofNat mat.toNat)])
       (callee := rdivFunction) (locals := spotUintBinaryLocals spot1 mat)
       hRdiv2Args hlookupRdiv hbindRdiv2
-      (execSpotRdivFunctionReturn evm (x := spot1) (y := mat)
+      (execSpotRdivFunctionReturn (fork := fork) evm (x := spot1) (y := mat)
         (prod := spot1 * pokeRay) (q := spot2) rfl hfitMat hmatNe
         (by simpa [mat] using hspot2))
     simpa [resumeAfterInternalCall, locals1, pokeSpot2Locals, mat] using h
@@ -204,13 +206,13 @@ theorem execPokeTrueArithmeticReturns (evm : EVM.State) (I : ExecutionEnv) (out 
   refine ExecBlock.consNormal (ExecStmt.requireTrue hReq) ?_
   refine ExecBlock.consNormal hRdiv1Stmt ?_
   refine ExecBlock.consNormal (by simpa [locals1] using hRdiv2Stmt) ?_
-  exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inl rfl) hSpot2Var hAssign) ExecBlock.nil
+  exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inl rfl) hSpot2Var hAssign) ExecBlock.nil
 
 theorem execPokeTrueValScaledOverflowReverts
     (evm : EVM.State) (I : ExecutionEnv) (out : ByteArray)
     (hlo32 : 32 ≤ out.size)
     (hover : UInt256.size ≤ (pokePeekValWord out).toNat * pokeBillion.toNat) :
-    ExecBlock config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evm
+    ExecBlock fork config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evm
       (checkedMulUintInto "valScaled" (.cast (.var "val") uint256St) (.intLit billion) ++
         [ .internalCall "rdiv" [.var "valScaled", .storage parRef] "spot1",
           .internalCall "rdiv" [.var "spot1", .storage (ilksF (.var "ilk") "mat")]
@@ -241,7 +243,7 @@ theorem execPokeTrueRdivParMulOverflowReverts
     (hvalScaled : valScaled = pokePeekValWord out * pokeBillion)
     (hfitVal : (pokePeekValWord out).toNat * pokeBillion.toNat < UInt256.size)
     (hoverPar : UInt256.size ≤ valScaled.toNat * pokeRay.toNat) :
-    ExecBlock config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evm
+    ExecBlock fork config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evm
       (checkedMulUintInto "valScaled" (.cast (.var "val") uint256St) (.intLit billion) ++
         [ .internalCall "rdiv" [.var "valScaled", .storage parRef] "spot1",
           .internalCall "rdiv" [.var "spot1", .storage (ilksF (.var "ilk") "mat")]
@@ -266,7 +268,7 @@ theorem execPokeTrueRdivParMulOverflowReverts
           .ok (.int (Int.ofNat valScaled.toNat)) := by
     exact evalExpr_spot_mul256_ok hvalCast hBillionLit hvalScaled hfitVal
   have hValScaledStmt :
-      ExecStmt config { contract := contract, locals := locals0 } evm
+      ExecStmt fork config { contract := contract, locals := locals0 } evm
         (.letDecl "valScaled" (some uint256)
           (mul256 (.cast (.var "val") uint256St) (.intLit billion)))
         (.ok { contract := contract, locals := localsV } evm) := by
@@ -354,7 +356,7 @@ theorem execPokeTrueRdivParMulOverflowReverts
         some (spotUintBinaryLocals valScaled par) := by
     simp [rdivFunction, uint256, bindParams?, spotUintBinaryLocals]
   have hRdiv1Stmt :
-      ExecStmt config { contract := contract, locals := localsV } evm
+      ExecStmt fork config { contract := contract, locals := localsV } evm
         (.internalCall "rdiv" [.var "valScaled", .storage parRef] "spot1") .reverted :=
     internalCallFunctionRevert
       (cfg := config) (caller := { contract := contract, locals := localsV })
@@ -377,7 +379,7 @@ theorem execPokeTrueRdivParDivZeroReverts
     (hfitVal : (pokePeekValWord out).toNat * pokeBillion.toNat < UInt256.size)
     (hfitPar : valScaled.toNat * pokeRay.toNat < UInt256.size)
     (hparZero : pokeParWord evm.accountMap evm.executionEnv = ⟨0⟩) :
-    ExecBlock config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evm
+    ExecBlock fork config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evm
       (checkedMulUintInto "valScaled" (.cast (.var "val") uint256St) (.intLit billion) ++
         [ .internalCall "rdiv" [.var "valScaled", .storage parRef] "spot1",
           .internalCall "rdiv" [.var "spot1", .storage (ilksF (.var "ilk") "mat")]
@@ -402,7 +404,7 @@ theorem execPokeTrueRdivParDivZeroReverts
           .ok (.int (Int.ofNat valScaled.toNat)) := by
     exact evalExpr_spot_mul256_ok hvalCast hBillionLit hvalScaled hfitVal
   have hValScaledStmt :
-      ExecStmt config { contract := contract, locals := locals0 } evm
+      ExecStmt fork config { contract := contract, locals := locals0 } evm
         (.letDecl "valScaled" (some uint256)
           (mul256 (.cast (.var "val") uint256St) (.intLit billion)))
         (.ok { contract := contract, locals := localsV } evm) := by
@@ -490,7 +492,7 @@ theorem execPokeTrueRdivParDivZeroReverts
         some (spotUintBinaryLocals valScaled par) := by
     simp [rdivFunction, uint256, bindParams?, spotUintBinaryLocals]
   have hRdiv1Stmt :
-      ExecStmt config { contract := contract, locals := localsV } evm
+      ExecStmt fork config { contract := contract, locals := localsV } evm
         (.internalCall "rdiv" [.var "valScaled", .storage parRef] "spot1") .reverted :=
     internalCallFunctionRevert
       (cfg := config) (caller := { contract := contract, locals := localsV })
@@ -518,11 +520,11 @@ theorem execPokeTrueAfterRdivParThenRdivMatReverts
       spot1 = UInt256.div (valScaled * pokeRay)
         (pokeParWord evm.accountMap evm.executionEnv))
     (hRdiv2Stmt :
-      ExecStmt config { contract := contract, locals := pokeSpot1Locals I out valScaled spot1 } evm
+      ExecStmt fork config { contract := contract, locals := pokeSpot1Locals I out valScaled spot1 } evm
         (.internalCall "rdiv" [.var "spot1", .storage (ilksF (.var "ilk") "mat")]
           "spot2")
         .reverted) :
-    ExecBlock config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evm
+    ExecBlock fork config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evm
       (checkedMulUintInto "valScaled" (.cast (.var "val") uint256St) (.intLit billion) ++
         [ .internalCall "rdiv" [.var "valScaled", .storage parRef] "spot1",
           .internalCall "rdiv" [.var "spot1", .storage (ilksF (.var "ilk") "mat")]
@@ -548,7 +550,7 @@ theorem execPokeTrueAfterRdivParThenRdivMatReverts
           .ok (.int (Int.ofNat valScaled.toNat)) := by
     exact evalExpr_spot_mul256_ok hvalCast hBillionLit hvalScaled hfitVal
   have hValScaledStmt :
-      ExecStmt config { contract := contract, locals := locals0 } evm
+      ExecStmt fork config { contract := contract, locals := locals0 } evm
         (.letDecl "valScaled" (some uint256)
           (mul256 (.cast (.var "val") uint256St) (.intLit billion)))
         (.ok { contract := contract, locals := localsV } evm) := by
@@ -636,17 +638,17 @@ theorem execPokeTrueAfterRdivParThenRdivMatReverts
         some (spotUintBinaryLocals valScaled par) := by
     simp [rdivFunction, uint256, bindParams?, spotUintBinaryLocals]
   have hRdiv1Stmt :
-      ExecStmt config { contract := contract, locals := localsV } evm
+      ExecStmt fork config { contract := contract, locals := localsV } evm
         (.internalCall "rdiv" [.var "valScaled", .storage parRef] "spot1")
         (.ok { contract := contract, locals := locals1 } evm) := by
-    have h := internalCallFunctionReturn
+    have h := internalCallFunctionReturn (fork := fork)
       (cfg := config) (caller := { contract := contract, locals := localsV })
       (evm := evm) (name := "rdiv") (retVar := "spot1")
       (args := [.var "valScaled", .storage parRef])
       (argVals := [.int (Int.ofNat valScaled.toNat), .int (Int.ofNat par.toNat)])
       (callee := rdivFunction) (locals := spotUintBinaryLocals valScaled par)
       hRdiv1Args hlookupRdiv hbindRdiv1
-      (execSpotRdivFunctionReturn evm (x := valScaled) (y := par)
+      (execSpotRdivFunctionReturn (fork := fork) evm (x := valScaled) (y := par)
         (prod := valScaled * pokeRay) (q := spot1) rfl hfitPar hparNe
         (by simpa [par] using hspot1))
     simpa [resumeAfterInternalCall, localsV, locals1, pokeSpot1Locals, par] using h
@@ -668,7 +670,7 @@ theorem execPokeTrueRdivMatMulOverflowReverts
       spot1 = UInt256.div (valScaled * pokeRay)
         (pokeParWord evm.accountMap evm.executionEnv))
     (hoverMat : UInt256.size ≤ spot1.toNat * pokeRay.toNat) :
-    ExecBlock config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evm
+    ExecBlock fork config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evm
       (checkedMulUintInto "valScaled" (.cast (.var "val") uint256St) (.intLit billion) ++
         [ .internalCall "rdiv" [.var "valScaled", .storage parRef] "spot1",
           .internalCall "rdiv" [.var "spot1", .storage (ilksF (.var "ilk") "mat")]
@@ -705,7 +707,7 @@ theorem execPokeTrueRdivMatMulOverflowReverts
         some (spotUintBinaryLocals spot1 mat) := by
     simp [rdivFunction, uint256, bindParams?, spotUintBinaryLocals]
   have hRdiv2Stmt :
-      ExecStmt config { contract := contract, locals := locals1 } evm
+      ExecStmt fork config { contract := contract, locals := locals1 } evm
         (.internalCall "rdiv" [.var "spot1", .storage (ilksF (.var "ilk") "mat")]
           "spot2")
         .reverted :=
@@ -733,7 +735,7 @@ theorem execPokeTrueRdivMatDivZeroReverts
         (pokeParWord evm.accountMap evm.executionEnv))
     (hfitMat : spot1.toNat * pokeRay.toNat < UInt256.size)
     (hmatZero : pokeMatWord evm.accountMap I = ⟨0⟩) :
-    ExecBlock config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evm
+    ExecBlock fork config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evm
       (checkedMulUintInto "valScaled" (.cast (.var "val") uint256St) (.intLit billion) ++
         [ .internalCall "rdiv" [.var "valScaled", .storage parRef] "spot1",
           .internalCall "rdiv" [.var "spot1", .storage (ilksF (.var "ilk") "mat")]
@@ -770,7 +772,7 @@ theorem execPokeTrueRdivMatDivZeroReverts
         some (spotUintBinaryLocals spot1 mat) := by
     simp [rdivFunction, uint256, bindParams?, spotUintBinaryLocals]
   have hRdiv2Stmt :
-      ExecStmt config { contract := contract, locals := locals1 } evm
+      ExecStmt fork config { contract := contract, locals := locals1 } evm
         (.internalCall "rdiv" [.var "spot1", .storage (ilksF (.var "ilk") "mat")]
           "spot2")
         .reverted :=

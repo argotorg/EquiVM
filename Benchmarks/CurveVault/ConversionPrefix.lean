@@ -2,6 +2,8 @@ import Benchmarks.CurveVault.CeilDiv
 import Benchmarks.CurveVault.TotalAssetsInternal
 import Benchmarks.CurveVault.Memory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch Reasoning.VyperCalls
 namespace Benchmarks.CurveVault
 
@@ -13,7 +15,7 @@ abbrev vaultConversionPrefix : List Stmt := contract.functions[28]!.body.take 2
 theorem vaultConversionPrefixProvided {evm : State} {locals : Store} {total : UInt256}
     (harg : locals.get? "_total_assets" = some (.int (Int.ofNat total.toNat)))
     (hne : total ≠ vaultMaxWord) :
-    ExecBlock config {contract := contract, locals := locals} evm vaultConversionPrefix
+    ExecBlock fork config {contract := contract, locals := locals} evm vaultConversionPrefix
       (.ok {contract := contract, locals := locals.insert "total_assets" (.int (Int.ofNat total.toNat))} evm) := by
   apply ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_varUInt256 harg))
   refine ExecBlock.consNormal (ExecStmt.iteFalse ?_ ExecBlock.nil) ExecBlock.nil
@@ -28,9 +30,9 @@ theorem vaultConversionPrefixProvided {evm : State} {locals : Store} {total : UI
 
 theorem vaultConversionPrefixComputed {evm evm' : State} {locals : Store} {callee : Frame} {total : UInt256}
     (harg : locals.get? "_total_assets" = some (.int (Int.ofNat vaultMaxWord.toNat)))
-    (hbody : ExecFuncBody config {contract := contract, locals := ∅} evm vaultTotalAssetsFunction.body
+    (hbody : ExecFuncBody fork config {contract := contract, locals := ∅} evm vaultTotalAssetsFunction.body
       (.returned callee evm' (some [.int (Int.ofNat total.toNat)]))) :
-    ExecBlock config {contract := contract, locals := locals} evm vaultConversionPrefix
+    ExecBlock fork config {contract := contract, locals := locals} evm vaultConversionPrefix
       (.ok {contract := contract, locals :=
         ((locals.insert "total_assets" (.int (Int.ofNat vaultMaxWord.toNat))).insert
           "__c0" (.int (Int.ofNat total.toNat))).insert "total_assets" (.int (Int.ofNat total.toNat))} evm') := by
@@ -42,7 +44,7 @@ theorem vaultConversionPrefixComputed {evm evm' : State} {locals : Store} {calle
       (callee := vaultTotalAssetsFunction) (name := "_total_assets") (args := []) (argVals := []) (retVar := "__c0")
       (by simp [evalExprs?, pure]) rfl rfl hbody
     apply ExecBlock.consNormal hcall
-    refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inl rfl) (evalExpr_varUInt256 (value := total) (by
+    refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inl rfl) (evalExpr_varUInt256 (value := total) (by
       simp [collapseReturns])) ?_)
       ExecBlock.nil
     · apply assignLocalVarBase_ok
@@ -52,8 +54,8 @@ theorem vaultConversionPrefixComputed {evm evm' : State} {locals : Store} {calle
 
 theorem vaultConversionPrefixReverted {evm : State} {locals : Store}
     (harg : locals.get? "_total_assets" = some (.int (Int.ofNat vaultMaxWord.toNat)))
-    (hbody : ExecFuncBody config {contract := contract, locals := ∅} evm vaultTotalAssetsFunction.body .reverted) :
-    ExecBlock config {contract := contract, locals := locals} evm vaultConversionPrefix .reverted := by
+    (hbody : ExecFuncBody fork config {contract := contract, locals := ∅} evm vaultTotalAssetsFunction.body .reverted) :
+    ExecBlock fork config {contract := contract, locals := locals} evm vaultConversionPrefix .reverted := by
   apply ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_varUInt256 harg))
   apply ExecBlock.consRevert (ExecStmt.iteTrue ?_ ?_)
   · exact evalExpr_eq_int_true (b := 2 ^ 256 - 1) (evalExpr_varUInt256 (value := vaultMaxWord) (by simp)) (by simp [evalExpr?, pure]) (by decide +kernel)

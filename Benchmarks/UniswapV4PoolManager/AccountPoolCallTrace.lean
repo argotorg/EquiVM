@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.AccountPoolMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -15,12 +17,12 @@ theorem accountPoolCallCostTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State
     (hstack : R.length+16 ≤ 1024) (hI : evm.executionEnv = I)
     (hk : PoolKeyView mem ptr key) (hptr : 64 ≤ ptr.toNat)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨13906⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨13906⟩
       (ptr :: delta :: accountWord target :: ret :: R) mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0 (fun f' post =>
+    blockResultTrace fork (deployedRuntime v) g s0 (fun f' post =>
       f' = {f with locals := f.locals.insert retVar .unit} ∧
       post = accountPoolPost evm key delta target ∧ ∃ aw' k' C', C+Cₘ aw' ≤ C'+Cₘ aw ∧
-        RD (deployedRuntime v) I g s0 ret R (accountPoolMemory mem key delta target)
+        RD fork (deployedRuntime v) I g s0 ret R (accountPoolMemory mem key delta target)
           aw' rdata post.accountMap k' C') (fun _ _ => False)
       (resumeCallResult f retVar (accountPoolResult (accountPoolCalleeFrame f key delta target) evm key delta target)) := by
   have h32 := uadd_word_ofNat_toNat ptr 32 (by have := hk.fits; omega)
@@ -39,12 +41,12 @@ theorem accountPoolCallTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hstack : R.length+16 ≤ 1024) (hI : evm.executionEnv = I)
     (hk : PoolKeyView mem ptr key) (hptr : 64 ≤ ptr.toNat)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨13906⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨13906⟩
       (ptr :: delta :: accountWord target :: ret :: R) mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0 (fun f' post =>
+    blockResultTrace fork (deployedRuntime v) g s0 (fun f' post =>
       f' = {f with locals := f.locals.insert retVar .unit} ∧
       post = accountPoolPost evm key delta target ∧ ∃ aw' k' C',
-        RD (deployedRuntime v) I g s0 ret R (accountPoolMemory mem key delta target)
+        RD fork (deployedRuntime v) I g s0 ret R (accountPoolMemory mem key delta target)
           aw' rdata post.accountMap k' C') (fun _ _ => False)
       (resumeCallResult f retVar (accountPoolResult (accountPoolCalleeFrame f key delta target) evm key delta target)) := by
   have hr := accountPoolCallCostTrace f retVar v hstack hI hk hptr hret h

@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.BaseBalanceSource
 import Benchmarks.CompoundIII.Comet.PrincipalValueSource
 import Benchmarks.CompoundIII.Comet.WithdrawAmountsSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -14,10 +16,10 @@ theorem withdrawBaseMath_source (frame : Frame) (evm : EVM.State) (principal amo
     (hc : frame.contract = contract)
     (hprincipal : frame.locals.get? "srcPrincipal" = some (.int (signed104 principal)))
     (hamount : frame.locals.get? "amount" = some (.int amount.toNat)) :
-    ExecBlock config frame evm withdrawBaseMathBlock
+    ExecBlock fork config frame evm withdrawBaseMathBlock
       (if WithdrawBaseMathFits evm principal amount then
         .ok (withdrawBaseMathFrame frame evm principal amount) evm else .reverted) := by
-  have hprefix := baseBalance_source frame evm principal amount true
+  have hprefix := baseBalance_source (fork := fork) frame evm principal amount true
     "srcPrincipal" "__c1" "__c2" "srcBalance" (by decide) (by decide) hc hprincipal hamount
   simp only [baseBalanceFits_sub, baseBalanceFrame, baseBalanceInt, baseBalanceBlock,
     if_true] at hprefix
@@ -32,7 +34,7 @@ theorem withdrawBaseMath_source (frame : Frame) (evm : EVM.State) (principal amo
       rw [withdrawBaseBalance_int hbalance]
       simp only [evalExpr?, f3, Std.HashMap.get?_eq_getElem?,
         Std.HashMap.getElem?_insert, EvalResult.ofOption]; rfl
-    have hnext := principalValue_call f3 evm (withdrawBaseBalance evm principal amount)
+    have hnext := principalValue_call (fork := fork) f3 evm (withdrawBaseBalance evm principal amount)
       _ "srcPrincipalNew" hc he3
     by_cases hp : PrincipalValueFits evm (withdrawBaseBalance evm principal amount)
     · rw [if_pos hp] at hnext
@@ -53,7 +55,7 @@ theorem withdrawBaseMath_source (frame : Frame) (evm : EVM.State) (principal amo
         rw [principalValueWord_signed104 hp]
         simp only [evalExpr?, f4, Std.HashMap.get?_eq_getElem?,
           Std.HashMap.getElem?_insert, EvalResult.ofOption]; rfl
-      have hsplit := withdrawAmounts_call f4 evm principal next _ _ "__c4" hc ho4 hn4
+      have hsplit := withdrawAmounts_call (fork := fork) f4 evm principal next _ _ "__c4" hc ho4 hn4
       by_cases hw : WithdrawAmountsFits principal next
       · rw [if_pos hw] at hsplit
         rw [if_pos ⟨hbalance, hp, hw⟩]

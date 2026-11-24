@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.WordBytesEncode
 import Benchmarks.Morpho.MorphoBlue.FlashLoanCallbackABI
 import Benchmarks.Morpho.MorphoBlue.ZeroValueCallBridge
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -27,8 +29,8 @@ theorem morphoFinalizeVoid {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat25
     {k C : Nat} {R : List UInt256} (hstack : R.length + 4 ≤ 1024)
     (hptr : ptr.toNat < 2 ^ 64)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 11459) (ptr :: ret :: R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret R (writeWord mem 64 ptr) aw' out σ k' C' := by
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 11459) (ptr :: ret :: R) mem aw out σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret R (writeWord mem 64 ptr) aw' out σ k' C' := by
   obtain ⟨a1, k1, C1, rd1⟩ := morphoBlocks.morpho_block_11459_fallthrough_packed
     (immWords := wordsOf (immStore v)) (by change R.length + 1 + 3 ≤ 1024; omega)
     (ugt_zero (by change ptr.toNat ≤ 18446744073709551615; omega)) h

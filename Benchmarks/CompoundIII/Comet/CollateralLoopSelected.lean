@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.SignedArithmeticEvm
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_050
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_052
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -23,10 +25,10 @@ theorem cometCollateralSolvent {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C i : Nat} {R : List UInt256}
     (borrow : Bool) (hstack : R.length + 11 ≤ 1024) (hl : 0 ≤ signedWord liquidity)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 (collateralSelectedPc borrow)
+    (h : RD fork (deployedRuntime v) ee g s0 (collateralSelectedPc borrow)
       (collateralLoopStack i assets reserved account total liquidity ret R)
       mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret (boolWord borrow :: R)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret (boolWord borrow :: R)
       mem aw rdata σ k' C' := by
   have hcond : UInt256.isZero (UInt256.slt liquidity ⟨0⟩) ≠ UInt256.ofNat 0 := by
     rw [signedNonnegWord, decide_eq_true hl]
@@ -50,10 +52,10 @@ theorem cometCollateralValueStart {v : CometWithExtendedAssetListImmutables}
     {aw assets reserved account total liquidity ret : UInt256}
     {σ : AccountMap} {k C i : Nat} {R : List UInt256}
     (borrow : Bool) (hstack : R.length + 25 ≤ 1024) (hl : signedWord liquidity < 0)
-    (h : RD (deployedRuntime v) ee g s0 (collateralSelectedPc borrow)
+    (h : RD fork (deployedRuntime v) ee g s0 (collateralSelectedPc borrow)
       (collateralLoopStack i assets reserved account total liquidity ret R)
       mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨7179⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨7179⟩
       (UInt256.ofNat i :: ⟨10490⟩ :: ⟨10498⟩ :: ⟨10518⟩ :: collateralPricePc borrow ::
         ⟨10579⟩ :: UInt256.ofNat (collateralFactorOffset borrow) :: ⟨10587⟩ :: ⟨10592⟩ ::
         account :: ⟨10598⟩ :: ⟨10054⟩ :: liquidity :: collateralSumPc borrow :: ⟨1⟩ ::
@@ -82,10 +84,10 @@ theorem cometCollateralSum {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C i : Nat} {R : List UInt256}
     (borrow : Bool) (hstack : R.length + 18 ≤ 1024) (hi : i + 1 < 256)
     (hl : signedWord liquidity < 0) (hv : value.toNat < 2^255)
-    (h : RD (deployedRuntime v) ee g s0 ⟨10054⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨10054⟩
       (value :: liquidity :: collateralSumPc borrow :: ⟨1⟩ ::
         collateralValueRest i assets reserved account total ret R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (collateralLoopPc borrow)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (collateralLoopPc borrow)
       (collateralLoopStack (i + 1) assets reserved account total (liquidity + value) ret R)
       mem aw rdata σ k' C' := by
   have r1 := cometWithExtendedAssetList_block_10054 (immWords := wordsOf (immStore v))
@@ -96,7 +98,7 @@ theorem cometCollateralSum {v : CometWithExtendedAssetListImmutables}
     (by cases borrow <;> rw [cometWithExtendedAssetListPatchedValidJumps v] <;> jump_dest) r1
   rw [if_pos (collateralSum_bounds hl hv).2] at hr
   obtain ⟨k2, C2, r2⟩ := hr
-  have hstep : ∃ k' C', RD (deployedRuntime v) ee g s0 (collateralIncrementPc borrow)
+  have hstep : ∃ k' C', RD fork (deployedRuntime v) ee g s0 (collateralIncrementPc borrow)
       (collateralLoopStack i assets reserved account total (liquidity + value) ret R)
       mem aw rdata σ k' C' := by
     cases borrow with

@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.OracleObservationRead
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_069
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_070
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -38,10 +40,10 @@ theorem oracleReadHeadAtMonoX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw index base : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (start : Nat)
     (hstart : start = 20474 ∨ start = 20610 ∨ start = 18869)
-    (rd : RD (deployedRuntime v) ee g s0 (UInt256.ofNat start)
+    (rd : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat start)
       (index :: base :: R) mem aw rdata σ k C) (hov : R.length + 6 ≤ 1024) :
     ∃ k' C', C + 1 + (Cₘ (oracleReadHeadAw mem aw) - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat (start + 86))
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat (start + 86))
         (uniswapV3Pool_block_20474_stack (ee := ee) (mem := mem) (σ := σ)
           (x0 := index) (x1 := base) (R := R))
         (uniswapV3Pool_block_20474_memory (ee := ee) (mem := mem) (σ := σ)
@@ -186,10 +188,10 @@ theorem oracleReadHeadAtMonoX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem oracleReadHeadMonoX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw index base : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (second : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (UInt256.ofNat (oracleReadStart second))
+    (rd : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat (oracleReadStart second))
       (index :: base :: R) mem aw rdata σ k C) (hov : R.length + 6 ≤ 1024) :
     ∃ k' C', C + 1 + (Cₘ (oracleReadHeadAw mem aw) - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat (oracleReadStart second + 86))
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat (oracleReadStart second + 86))
         (uniswapV3Pool_block_20474_stack (ee := ee) (mem := mem) (σ := σ)
           (x0 := index) (x1 := base) (R := R))
         (uniswapV3Pool_block_20474_memory (ee := ee) (mem := mem) (σ := σ)

@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.SupplyBaseModel
 import Benchmarks.CompoundIII.Comet.UserBasicRead
 import Benchmarks.CompoundIII.Comet.UserBasicLocal
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -13,7 +15,7 @@ attribute [local irreducible] signed104
 theorem supplyBaseRead_source (frame : Frame) (evm : EVM.State) (dst : AccountAddress)
     (hc : frame.contract = contract) (hs : frame.locals.get? "dst" = some (.address dst))
     (hu : frame.locals.get? "userBasic" = none) :
-    ExecBlock config frame evm supplyBaseReadBlock
+    ExecBlock fork config frame evm supplyBaseReadBlock
       (.ok (supplyBaseReadFrame frame evm dst) evm) := by
   have hr := evalUserBasic frame evm dst (.var "dst") hc hu
     (by simp only [evalExpr?, hs, EvalResult.ofOption])

@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.ConstructorCallTrace
 import Benchmarks.UniswapV3.Pool.ConstructorFieldsTrace
 import Benchmarks.UniswapV3.Pool.ConstructorFinishTrace
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # UniswapV3Pool constructor correctness
 
@@ -19,12 +21,12 @@ namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000 in
 theorem uniswapV3PoolConstructorCorrect :
     typedConstructorRefinement config uniswapV3PoolCreationBytecode contract (immutableLayout.deployed uniswapV3PoolBytecode) := by
-  intro σ σ₀ g A I args deployed hdeploy hcode _ _
+  intro fork _hfork σ σ₀ g A I args deployed hdeploy hcode _ _
   obtain ⟨rfl, rfl⟩ := constructorDeploymentShape args deployed hdeploy
   have hcode' : I.code = uniswapV3PoolCreationBytecode ++ ByteArray.empty := by
     simpa only [ByteArray.append_empty] using hcode
   let evm := initState σ σ₀ (.ofUInt256 g) A I
-  have rd0 := RD.initState (σ := σ) (σ₀ := σ₀) (A := A) (g := .ofUInt256 g) hcode'
+  have rd0 := RD.initState (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := .ofUInt256 g) hcode'
   by_cases hwv : I.weiValue = ⟨0⟩
   swap
   · exact constructorRefinesRevert hcode' (constructorNonpayableX rd0 hwv)

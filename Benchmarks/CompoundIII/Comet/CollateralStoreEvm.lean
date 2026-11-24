@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.CollateralStorage
 import Benchmarks.CompoundIII.Comet.InternalMemoryOutcome
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_064
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -14,9 +16,9 @@ theorem cometStoreLow128Static {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray} {aw : UInt256}
     {σ : AccountMap} {k C : Nat} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024) (hperm : ee.perm = false)
-    (h : RD (deployedRuntime v) ee g s0 ⟨13718⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨13718⟩
       (x0 :: x1 :: x2 :: R) mem aw rdata σ k C) :
-    RDstatic (deployedRuntime v) g s0 := by
+    RDstatic fork (deployedRuntime v) g s0 := by
   let r0 := h
   have r1 := r0.jumpdest
     (by immutable_decode(immutableLayout, cometWithExtendedAssetListBytecode,
@@ -120,9 +122,9 @@ theorem cometStoreLow128 {v : CometWithExtendedAssetListImmutables}
     {aw slot word ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨13718⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨13718⟩
       (slot :: word :: ret :: R) mem aw rdata σ k C) :
-    internalMemoryRun (deployedRuntime v) ee g s0 mem rdata ret R
+    internalMemoryRun fork (deployedRuntime v) ee g s0 mem rdata ret R
       (if evm.executionEnv.perm then .ok (storePackedWord evm slot word 0 16)
         else .staticViolation) := by
   rw [hs.env]

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.InitializePoolCorrect
 import Benchmarks.UniswapV4PoolManager.BeforeInitializeHookTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -21,12 +23,12 @@ theorem initializeHooksCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hb : keyPtr.toNat+160 ≤ free.toNat) (hs : free.toNat ≤ 1024) (haw : aw.toNat ≤ 2048)
     (hgas : g.toNat < 324518553658429321982441292826060)
     (hfree : memLoad (UInt256.ofNat 64) mem = free)
-    (h : RD (deployedRuntime v) I g s0 ⟨4257⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨4257⟩
       (fee :: (keyPtr+⟨32⟩) :: (keyPtr+⟨64⟩) :: (keyPtr+⟨128⟩) :: keyPtr :: price ::
         (keyPtr+⟨96⟩) :: price :: junk :: R) mem aw rdata evm.accountMap k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
-    ∃ result, ExecFuncBody config f evm (initializeTransition.body.drop 12) result ∧
-      signedResultTrace ⟨24, by decide⟩ (deployedRuntime v) g s0 result := by
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    ∃ result, ExecFuncBody fork config f evm (initializeTransition.body.drop 12) result ∧
+      signedResultTrace fork ⟨24, by decide⟩ (deployedRuntime v) g s0 result := by
   have hw : accountWord (AccountAddress.ofNat key.hooks.toNat) = key.hooks :=
     (accountWord_fromId key.hooks).trans (solcAddrMask_clean hc.2.2.2.2)
   have halloc : free.toNat+323 ≤ solcMaxU64 := by change _ ≤ 2^64-1; omega
@@ -42,9 +44,9 @@ theorem initializeHooksCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
   simp only [hookInvocationResult, resumeCallResult_ite, resumeCallResult_returned,
     resumeCallResult_reverted, hI] at hstmt
   have hfinish (next : State) (hnext : next.executionEnv = I)
-      (htrace : initializePoolTraceResult v I g s0 next key price fee) :
-      ∃ result, ExecFuncBody config f1 next (initializeTransition.body.drop 13) result ∧
-        signedResultTrace ⟨24, by decide⟩ (deployedRuntime v) g s0 result :=
+      (htrace : initializePoolTraceResult fork v I g s0 next key price fee) :
+      ∃ result, ExecFuncBody fork config f1 next (initializeTransition.body.drop 13) result ∧
+        signedResultTrace fork ⟨24, by decide⟩ (deployedRuntime v) g s0 result :=
     initializePoolCorrect v hnext hf hc hprice hfee
       ((store_get_ne _ _ (by decide : ("__c3" == "key") = false)).trans hk)
       ((store_get_ne _ _ (by decide : ("__c3" == "sqrtPriceX96") = false)).trans hp)

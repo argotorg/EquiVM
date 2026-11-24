@@ -1,5 +1,9 @@
 import Stele.Semantics
 
+/- The fork is fixed for an execution. Every function that runs calls takes it as its
+   first argument. -/
+variable (fork : Ethereum.Fork)
+
 /-!
 # Executable Stele semantics
 
@@ -86,14 +90,14 @@ def thetaCall (gas : UInt256) (substate : Substate) (req : CallRequest) (evm : E
   let env := evm.executionEnv
   match req.kind with
   | .delegatecall =>
-      let (σ', _, A', z, o) := Θ evm.accountMap evm.σ₀ substate env.source env.sender env.codeOwner
-        (toExecute evm.accountMap req.target) gas (.ofNat env.gasPrice) ⟨0⟩ env.weiValue
+      let (σ', _, A', z, o) := Θ fork evm.accountMap evm.σ₀ substate env.source env.sender env.codeOwner
+        (toExecute fork evm.accountMap req.target) gas (.ofNat env.gasPrice) ⟨0⟩ env.weiValue
         req.calldata (env.depth + 1) env.header env.blobVersionedHashes env.blocks env.perm
       ⟨z, σ', A', o⟩
   | _ =>
       let valueWord := EVM.wordOfInt req.value
-      let (σ', _, A', z, o) := Θ evm.accountMap evm.σ₀ substate env.codeOwner env.sender req.target
-        (toExecute evm.accountMap req.target) gas (.ofNat env.gasPrice) valueWord valueWord
+      let (σ', _, A', z, o) := Θ fork evm.accountMap evm.σ₀ substate env.codeOwner env.sender req.target
+        (toExecute fork evm.accountMap req.target) gas (.ofNat env.gasPrice) valueWord valueWord
         req.calldata (env.depth + 1) env.header env.blobVersionedHashes env.blocks req.calleePerm
       ⟨z, σ', A', o⟩
 
@@ -104,7 +108,7 @@ def lambdaCreate (gas : UInt256) (substate : Substate) (req : CreateRequest) (ev
   let env := evm.executionEnv
   let creator := evm.accountMap.get? env.codeOwner |>.getD default
   let σStar := evm.accountMap.insert env.codeOwner { creator with nonce := creator.nonce + ⟨1⟩ }
-  let (addr, σ', _, A', z, _) := Lambda σStar evm.σ₀ substate env.codeOwner env.sender gas
+  let (addr, σ', _, A', z, _) := Lambda fork σStar evm.σ₀ substate env.codeOwner env.sender gas
     (.ofNat env.gasPrice) (EVM.wordOfInt req.value) req.initCode (env.depth + 1) req.salt
     env.header env.blobVersionedHashes env.blocks env.perm
   ⟨addr, σ', A', z⟩
@@ -113,8 +117,8 @@ def lambdaCreate (gas : UInt256) (substate : Substate) (req : CreateRequest) (ev
     substate; `gasleft()` is the caller's gas counter.  Adequate for callees that do not inspect
     their gas. -/
 def thetaOracle (gas : UInt256 := .ofNat 10000000) : Oracle Unit where
-  call := fun _ req evm => .ok (thetaCall gas evm.substate req evm, ())
-  create := fun _ req evm => .ok (lambdaCreate gas evm.substate req evm, ())
+  call := fun _ req evm => .ok (thetaCall fork gas evm.substate req evm, ())
+  create := fun _ req evm => .ok (lambdaCreate fork gas evm.substate req evm, ())
   gasLeft := fun _ evm => (evm.machineState.gasAvailable.toUInt256, ())
 
 /-! ## Outcomes -/
@@ -170,7 +174,8 @@ def callViaEVMRun (o : Oracle Ω) (ω : Ω) (evm : EVM.State) (target : EVM.Addr
     | .error e => .error e
   else
     -- callViaEVM.callNotMade
-    .ok ((false, { evm with substate := (evm.addAccessedAccount target).substate }, ByteArray.empty),
+    let substate := callSubstate fork evm.accountMap target evm.substate
+    .ok ((false, { evm with substate }, ByteArray.empty),
       o.callNotMade ω req)
 
 /-- `delegateCallViaEVM evm target calldata (z, evm', o)`. -/
@@ -185,7 +190,8 @@ def delegateCallViaEVMRun (o : Oracle Ω) (ω : Ω) (evm : EVM.State) (target : 
     | .error e => .error e
   else
     -- delegateCallViaEVM.callNotMade
-    .ok ((false, { evm with substate := (evm.addAccessedAccount target).substate }, ByteArray.empty),
+    let substate := callSubstate fork evm.accountMap target evm.substate
+    .ok ((false, { evm with substate }, ByteArray.empty),
       o.callNotMade ω req)
 
 /-- `typedCallViaEVM`: ABI-encode, then `callViaEVM`.  `none` when the ABI table has no encoding
@@ -195,7 +201,7 @@ def typedCallViaEVMRun (o : Oracle Ω) (ω : Ω) (cfg : Config) (evm : EVM.State
     Except String ((Bool × EVM.State × ByteArray) × Ω) :=
   match cfg.externalABI.encode? name args with
   | none => .error s!"the external-call ABI has no encoding for {name}"
-  | some calldata => callViaEVMRun o ω evm target value calldata perm
+  | some calldata => callViaEVMRun fork o ω evm target value calldata perm
 
 /-- The guard `newCanCreate`. -/
 def newCanCreateB (evm : EVM.State) (value : Int) (initCode : ByteArray) : Bool :=
@@ -417,7 +423,7 @@ def execStmt (fuel : Nat) (o : Oracle Ω) (ω : Ω) (cfg : Config) (stele : Fram
               | .ok argVals =>
                   if EVM.wordOfInt sendVal ≠ ⟨0⟩ ∧ perm = false then (.result .staticViolation, ω)  -- externalCallStatic
                   else
-                    match typedCallViaEVMRun o ω cfg evm (EVM.address target) name sendVal argVals perm' with
+                    match typedCallViaEVMRun fork o ω cfg evm (EVM.address target) name sendVal argVals perm' with
                     | .error e => (.stuck s!"external call {name}: {e}", ω)
                     | .ok ((false, _, _), ω') => (.result .reverted, ω')                             -- externalCallFailure
                     | .ok ((true, evm', out), ω') =>
@@ -442,7 +448,7 @@ def execStmt (fuel : Nat) (o : Oracle Ω) (ω : Ω) (cfg : Config) (stele : Fram
               | .ok (.bytes calldata) =>
                   if EVM.wordOfInt sendVal ≠ ⟨0⟩ ∧ perm = false then (.result .staticViolation, ω)  -- lowLevelCallStatic
                   else
-                    match callViaEVMRun o ω evm (EVM.address target) sendVal calldata perm' with
+                    match callViaEVMRun fork o ω evm (EVM.address target) sendVal calldata perm' with
                     | .error e => (.stuck s!"call: {e}", ω)
                     | .ok ((z, evm', out), ω') =>                                                   -- lowLevelCallSuccess / lowLevelCallFailure
                         (.result (.ok { stele with locals := (stele.locals.insert okVar (.bool z)).insert dataVar (.bytes out) } evm'), ω')
@@ -458,7 +464,7 @@ def execStmt (fuel : Nat) (o : Oracle Ω) (ω : Ω) (cfg : Config) (stele : Fram
           | .revert => (.result .reverted, ω)                                                       -- delegateCallDataRevert
           | .error e => (stuckEval "delegatecall data" e, ω)
           | .ok (.bytes calldata) =>
-              match delegateCallViaEVMRun o ω evm (EVM.address target) calldata with
+              match delegateCallViaEVMRun fork o ω evm (EVM.address target) calldata with
               | .error e => (.stuck s!"delegatecall: {e}", ω)
               | .ok ((z, evm', out), ω') =>                                                       -- delegateCallSuccess / delegateCallFailure
                   (.result (.ok { stele with locals := (stele.locals.insert okVar (.bool z)).insert dataVar (.bytes out) } evm'), ω')
@@ -479,7 +485,7 @@ def execStmt (fuel : Nat) (o : Oracle Ω) (ω : Ω) (cfg : Config) (stele : Fram
               | .ok argVals =>
                   if EVM.wordOfInt sendVal ≠ ⟨0⟩ ∧ perm = false then (.result .staticViolation, ω)  -- checkedCallStatic
                   else
-                    match typedCallViaEVMRun o ω cfg evm (EVM.address target) name sendVal argVals perm' with
+                    match typedCallViaEVMRun fork o ω cfg evm (EVM.address target) name sendVal argVals perm' with
                     | .error e => (.stuck s!"try {name}: {e}", ω)
                     | .ok ((false, evm', out), ω') =>                                                -- checkedCallFail
                         execBlock fuel o ω' cfg { stele with locals := stele.locals.insert errVar (.bytes out) } evm' onFail
@@ -609,7 +615,7 @@ inductive DispatchOutcome where
 /-- `ExecTransitionBody`, executable. -/
 def execTransitionBody (fuel : Nat) (o : Oracle Ω) (ω : Ω) (cfg : Config) (contract : ContractDecl)
     (evm : EVM.State) (locals : Store) (body : Body) (immutables : Store) : Outcome × Ω :=
-  execFuncBody fuel o ω cfg { contract := contract, locals := locals, immutables := immutables } evm body
+  execFuncBody fork fuel o ω cfg { contract := contract, locals := locals, immutables := immutables } evm body
 
 /-- `steleExec`, executable: dispatch, decode, run. -/
 def steleExecRun (fuel : Nat) (o : Oracle Ω) (ω : Ω) (cfg : Config) (contract : ContractDecl)
@@ -621,7 +627,7 @@ def steleExecRun (fuel : Nat) (o : Oracle Ω) (ω : Ω) (cfg : Config) (contract
       match cfg.externalABI.decodeCalldata? (transition.params.map Param.name)
           (transitionSignature transition).paramTypes I.calldata with
       | some callargs =>
-          let (r, ω') := execTransitionBody fuel o ω cfg contract evm callargs transition.body immutables
+          let (r, ω') := execTransitionBody fork fuel o ω cfg contract evm callargs transition.body immutables
           (.ran r (.abi transition.returnType), ω')
       | none =>                                                                                      -- steleExec.decodingFailed
           (.ran (.result .decodingFailed) (.abi transition.returnType), ω)
@@ -629,7 +635,7 @@ def steleExecRun (fuel : Nat) (o : Oracle Ω) (ω : Ω) (cfg : Config) (contract
       match receiveDispatchMsg contract I.calldata with
       | some transition =>                                                                           -- steleExec.receive
           if transition.params.isEmpty && transition.returnType.isEmpty then
-            let (r, ω') := execTransitionBody fuel o ω cfg contract evm ∅ transition.body immutables
+            let (r, ω') := execTransitionBody fork fuel o ω cfg contract evm ∅ transition.body immutables
             (.ran r (.abi []), ω')
           else (.malformed "receive with parameters or return values", ω)
       | none =>
@@ -637,7 +643,7 @@ def steleExecRun (fuel : Nat) (o : Oracle Ω) (ω : Ω) (cfg : Config) (contract
           | some transition =>                                                                       -- steleExec.fallback
               match fallbackCallargs I.calldata transition.params, fallbackReturnConvention transition with
               | some callargs, some rc =>
-                  let (r, ω') := execTransitionBody fuel o ω cfg contract evm callargs transition.body immutables
+                  let (r, ω') := execTransitionBody fork fuel o ω cfg contract evm callargs transition.body immutables
                   (.ran r rc, ω')
               | _, _ => (.malformed "fallback with an unsupported signature", ω)
           | none => (.ran (.result .noMatch) (.abi []), ω)                                            -- steleExec.noMatch
@@ -649,7 +655,7 @@ def steleCtorExecRun (fuel : Nat) (o : Oracle Ω) (ω : Ω) (cfg : Config) (cont
   if args.length = contract.ctor.params.length then
     let evm := initialState σ σ₀ g A I
     let argsStore : Store := Std.HashMap.ofList (List.zip (contract.ctor.params.map Param.name) args)
-    some (execTransitionBody fuel o ω cfg contract evm argsStore contract.ctor.body (initialImmutables contract))
+    some (execTransitionBody fork fuel o ω cfg contract evm argsStore contract.ctor.body (initialImmutables contract))
   else none
 
 end Stele.Interp

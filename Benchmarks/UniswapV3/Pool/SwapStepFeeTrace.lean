@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapStepCapTrace
 import Benchmarks.UniswapV3.Pool.SwapStepBudgetTrace
 import Benchmarks.UniswapV3.Pool.FullMathRoundTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -18,13 +20,13 @@ noncomputable def swapStepFinalWords (a : SwapStepArgs)
 theorem swapStepFeeGuardX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw currentRaw targetRaw liquidityRaw feeRaw : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables} (a : SwapStepArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨12855⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨12855⟩
       (swapStepCalcWords a currentRaw targetRaw liquidityRaw feeRaw
         (swapStepAmount a true) (swapStepOutput a) ++ R) mem aw rdata σ k C)
     (hc : UInt256.land currentRaw (UInt256.ofNat (2 ^ 160 - 1)) = a.current)
     (ht : UInt256.land targetRaw (UInt256.ofNat (2 ^ 160 - 1)) = a.target)
     (ha : a.Fits) (hv : swapStepPriceValid a) (hov : R.length + 17 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨12886⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨12886⟩
       ((swapStepUnusedFee a).toUInt256 :: swapStepCalcWords a currentRaw targetRaw liquidityRaw
         feeRaw (swapStepAmount a true) (swapStepOutput a) ++ R) mem aw rdata σ k' C' := by
   have hp : UInt256.land (UInt256.ofNat (2 ^ 160 - 1))
@@ -52,15 +54,15 @@ theorem swapStepFeeGuardX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem swapStepFeeX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw currentRaw targetRaw liquidityRaw feeRaw : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables} (a : SwapStepArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨12855⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨12855⟩
       (swapStepCalcWords a currentRaw targetRaw liquidityRaw feeRaw
         (swapStepAmount a true) (swapStepOutput a) ++ R) mem aw rdata σ k C)
     (hc : UInt256.land currentRaw (UInt256.ofNat (2 ^ 160 - 1)) = a.current)
     (ht : UInt256.land targetRaw (UInt256.ofNat (2 ^ 160 - 1)) = a.target)
     (hf : UInt256.land feeRaw (UInt256.ofNat (2 ^ 24 - 1)) = a.fee)
     (ha : a.Fits) (hv : swapStepPriceValid a) (hov : R.length + 33 ≤ 1024) :
-    (¬swapStepFeeValid a ∧ RDrev (deployedRuntime v) g s0) ∨
-    (swapStepFeeValid a ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨12930⟩
+    (¬swapStepFeeValid a ∧ RDrev fork (deployedRuntime v) g s0) ∨
+    (swapStepFeeValid a ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨12930⟩
       (swapStepFinalWords a currentRaw targetRaw liquidityRaw feeRaw ++ R)
       mem aw rdata σ k' C') := by
   obtain ⟨kg, Cg, rg⟩ := swapStepFeeGuardX (v := v) a rd hc ht ha hv (by omega)

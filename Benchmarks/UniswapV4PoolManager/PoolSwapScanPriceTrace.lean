@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.PoolSwapScanStartTrace
 import Benchmarks.UniswapV4PoolManager.TickScanPriceTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -20,13 +22,13 @@ theorem poolSwapScanPriceTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
       (memLoad (state+UInt256.ofNat 32) (poolSwapScanStartMemory mem step price)) = tick)
     (hs : UInt256.signextend (UInt256.ofNat 2)
       (memLoad (params+UInt256.ofNat 32) (poolSwapScanStartMemory mem step price)) = spacing)
-    (h : RD (deployedRuntime v) I g s0 ⟨19169⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨19169⟩
       ([x0, x1, params, x3, x4, fee, x6, x7, if lte then ⟨0⟩ else ⟨1⟩, step, poolSlot id, state] ++ R)
       mem aw rdata evm.accountMap k C) :
     let compressed := tickScanCompressed tick spacing lte
     let masked := tickScanMasked evm id compressed lte
     let next := tickScanResultWord compressed spacing masked lte
-    ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨19479⟩
+    ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨19479⟩
       ([tickSqrtPrice (EVM.signed (tickClampWord next)), UInt256.ofNat (2^160-1),
         step, UInt256.ofNat 96, UInt256.ofNat 1, UInt256.ofNat 64,
         UInt256.ofNat (2^128-1), state, fee, if lte then ⟨0⟩ else ⟨1⟩, x0, x1, params, x3, x4,

@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.ResolveManyEntry
 import Benchmarks.EAS.EAS.ResolveManyZeroControl
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -20,9 +22,9 @@ theorem resolveManyLoad {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {schema array target values available last len : UInt256} {R : List UInt256} (v : EASImmutables) (rev : Bool)
     (hstack : R.length+9 ≤ 1024)
     (ht : UInt256.land (memLoad (schema+UInt256.ofNat 32) mem) solcAddrMask = target)
-    (rd : RD (deployedRuntime v) ee g s0 (resolveManyLoadPC rev)
+    (rd : RD fork (deployedRuntime v) ee g s0 (resolveManyLoadPC rev)
       (resolveManyHeadStack rev schema array values available last len R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0
       (if target=⟨0⟩ then resolveManyZeroInitPC rev else resolveManyInitPC rev)
       (resolveManyLoadedStack rev array target values available last len R) mem aw' rdata σ k' C' := by
   have ht' : UInt256.land (UInt256.ofNat 1461501637330902918203684832716283019655932542975)
@@ -63,9 +65,9 @@ theorem resolveManyInitZero {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C len : Nat}
     {array target values available last : UInt256} {R : List UInt256} (v : EASImmutables) (rev : Bool)
     (hstack : R.length+7 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 (resolveManyZeroInitPC rev)
+    (rd : RD fork (deployedRuntime v) ee g s0 (resolveManyZeroInitPC rev)
       (resolveManyLoadedStack rev array target values available last (UInt256.ofNat len) R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (resolveManyZeroPC rev)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (resolveManyZeroPC rev)
       (resolveManyZeroStack rev 0 values len R) mem aw' rdata σ k' C' := by
   cases rev with
   | false => exact easBlocks.eas_block_14976_packed (immWords := wordsOf (immStore v)) hstack rd
@@ -75,9 +77,9 @@ theorem resolveManyInitLoop {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C len : Nat}
     {array target values available last : UInt256} {R : List UInt256} (v : EASImmutables) (rev : Bool)
     (hstack : R.length+9 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 (resolveManyInitPC rev)
+    (rd : RD fork (deployedRuntime v) ee g s0 (resolveManyInitPC rev)
       (resolveManyLoadedStack rev array target values available last (UInt256.ofNat len) R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (resolveManyLoopPC rev)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (resolveManyLoopPC rev)
       (resolveManyLoopStack rev 0 array target values available last ⟨0⟩ len R) mem aw' rdata σ k' C' := by
   cases rev with
   | false => exact easBlocks.eas_block_14485_packed (immWords := wordsOf (immStore v)) hstack rd

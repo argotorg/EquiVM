@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.LPFeeOverrideSource
 import Benchmarks.UniswapV4PoolManager.LPFeeTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_053
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -11,10 +13,10 @@ set_option maxRecDepth 5000
 theorem lpFeeOverrideValidateTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw fee : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+5 ≤ 1024)
-    (h : RD (deployedRuntime v) I g s0 ⟨18928⟩ (fee :: R) mem aw rdata σ k C) :
+    (h : RD fork (deployedRuntime v) I g s0 ⟨18928⟩ (fee :: R) mem aw rdata σ k C) :
     if (lpFeeRemoveOverride fee).toNat ≤ 1000000 then
-      ∃ k' C', RD (deployedRuntime v) I g s0 ⟨18941⟩ (lpFeeRemoveOverride fee :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+      ∃ k' C', RD fork (deployedRuntime v) I g s0 ⟨18941⟩ (lpFeeRemoveOverride fee :: R) mem aw rdata σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   have rd := poolManagerBlocks.poolManager_block_18928 (by omega)
     (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) h
   simp only [poolManagerBlocks.poolManager_block_18928_stack,

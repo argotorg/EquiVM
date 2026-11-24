@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.Values
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -15,7 +17,7 @@ instance (lower upper : UInt256) : Decidable (poolTicksValid lower upper) :=
 theorem poolTicksBody {f : Frame} {evm : EVM.State} {lower upper : UInt256}
     (hl : f.locals.get? "tickLower" = some (.int (EVM.signed lower)))
     (hu : f.locals.get? "tickUpper" = some (.int (EVM.signed upper))) :
-    ExecFuncBody config f evm poolTicksFunction.body
+    ExecFuncBody fork config f evm poolTicksFunction.body
       (if poolTicksValid lower upper then .returned f evm none else .reverted) := by
   have he0 : evalExpr? config f evm (.binary .ge (.var "tickLower") (.var "tickUpper")) =
       .ok (.bool (decide (EVM.signed upper ≤ EVM.signed lower))) := by
@@ -31,10 +33,10 @@ theorem poolTicksBody {f : Frame} {evm : EVM.State} {lower upper : UInt256}
     simp only [evalExpr?, bind, EvalResult.bind, pure, evalBinaryOp?]
   by_cases h0 : EVM.signed lower < EVM.signed upper
   · rw [decide_eq_false (by omega : ¬EVM.signed upper ≤ EVM.signed lower)] at he0
-    have hs0 := ExecStmt.iteFalse (thenB := [.require (.boolLit false)]) he0 ExecBlock.nil
+    have hs0 := ExecStmt.iteFalse (fork := fork) (thenB := [.require (.boolLit false)]) he0 ExecBlock.nil
     by_cases h1 : -887272 ≤ EVM.signed lower
     · rw [decide_eq_false (by omega : ¬EVM.signed lower < -887272)] at he1
-      have hs1 := ExecStmt.iteFalse (thenB := [.require (.boolLit false)]) he1 ExecBlock.nil
+      have hs1 := ExecStmt.iteFalse (fork := fork) (thenB := [.require (.boolLit false)]) he1 ExecBlock.nil
       by_cases h2 : EVM.signed upper ≤ 887272
       · rw [if_pos ⟨h0, h1, h2⟩]
         rw [decide_eq_false (by omega : ¬887272 < EVM.signed upper)] at he2
@@ -58,9 +60,9 @@ theorem poolTicksBody {f : Frame} {evm : EVM.State} {lower upper : UInt256}
 theorem poolTicksCall {f : Frame} {evm : EVM.State} {el eu : Expr} {lower upper : UInt256}
     (hf : f.contract = contract) (hl : evalExpr? config f evm el = .ok (.int (EVM.signed lower)))
     (hu : evalExpr? config f evm eu = .ok (.int (EVM.signed upper))) (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "Pool_checkTicks" [el, eu] retVar)
+    ExecStmt fork config f evm (.internalCall "Pool_checkTicks" [el, eu] retVar)
       (if poolTicksValid lower upper then .ok {f with locals := f.locals.insert retVar .unit} evm else .reverted) := by
-  have hb := poolTicksBody (f := {f with locals := (((∅ : Store).insert "tickUpper"
+  have hb := poolTicksBody (fork := fork) (f := {f with locals := (((∅ : Store).insert "tickUpper"
     (.int (EVM.signed upper))).insert "tickLower" (.int (EVM.signed lower)))}) (evm := evm)
     (store_get_self _ _ _)
     ((store_get_ne _ _ (by decide : ("tickLower" == "tickUpper") = false)).trans (store_get_self _ _ _))

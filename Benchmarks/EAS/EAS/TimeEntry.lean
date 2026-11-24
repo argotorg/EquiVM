@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.Time
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -19,7 +21,7 @@ theorem timeEntrySource {evm : EVM.State} {locals imms : Store}
     (hsz : 4 ≤ evm.executionEnv.calldata.size)
     (hsize : evm.executionEnv.calldata.size < UInt256.size)
     (hs : evm.executionEnv.calldata.size - 4 < 2^255) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm
       (easEntryPrefix ++ timeEntryCall)
       (.ok {contract := contract, locals := timeEntryLocals locals evm.executionEnv, immutables := imms} evm) := by
   apply execBlock_append (easEntryPrefix_ok hv hsz hsize hs)

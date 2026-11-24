@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.MintBodyTrace
 import Benchmarks.UniswapV3.Pool.MintDecodeTrace
 import Benchmarks.UniswapV3.Pool.MintLockTrace
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # UniswapV3Pool `mint(address,int24,int24,uint128,bytes)`
 
@@ -23,14 +25,14 @@ theorem uniswapV3PoolMintBody {σ σ₀ A I} {g : UInt256} (v : UniswapV3PoolImm
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (uniswapV3PoolSelBytes 7)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (uniswapV3PoolSelBytes 7) rfl hsel
   have hd : dispatchMsg contract I.calldata = some mintTransition := by
     apply uniswapV3PoolDispatch_mint <;>
       first | exact hsel | exact selectorMismatch_of_match hsel (by decide +kernel)
-  obtain ⟨k0, C0, r0⟩ := uniswapV3PoolReachMintBody (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k0, C0, r0⟩ := uniswapV3PoolReachMintBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hwv hsz hsize hsel
-  change RD (deployedRuntime v) I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+  change RD fork (deployedRuntime v) I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
     ⟨948⟩ [solcSelectorWord I] solcFreePtrMem ⟨3⟩ ByteArray.empty σ k0 C0 at r0
   rcases mintDecodeX (v := v) r0 hsz hsize (by simp) with
     ⟨hbad, rr⟩ | ⟨hvalid, k1, C1, r1⟩

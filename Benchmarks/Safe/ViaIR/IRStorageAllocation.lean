@@ -1,6 +1,8 @@
 import Benchmarks.Safe.ViaIR.StorageAtSource
 import Benchmarks.Safe.ViaIR.WordPairDecoder
 
+variable {fork : Ethereum.Fork}
+
 /-! Regression witness for the IR storage reader's final allocation-pointer guard. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -59,7 +61,7 @@ theorem safeIRStorageAllocationSourceGuard :
   decide
 
 theorem safeIRStorageAllocationExecution :
-    (match Ξ safeIRStorageAllocationAccounts safeIRStorageAllocationAccounts ⟨100000⟩
+    (match Ξ .cancun safeIRStorageAllocationAccounts safeIRStorageAllocationAccounts ⟨100000⟩
         default safeIRStorageAllocationEnv with
       | .ok (.revert gas out) => gas == ⟨99481⟩ &&
           out == (⟨#[0x4e, 0x48, 0x7b, 0x71]⟩ ++ (⟨0x41⟩ : UInt256).toByteArray)
@@ -67,18 +69,18 @@ theorem safeIRStorageAllocationExecution :
   native_decide
 
 theorem safeIRStorageAllocationSourceReverts :
-    ExecTransitionBody config contract safeIRStorageAllocationState
+    ExecTransitionBody fork config contract safeIRStorageAllocationState
       (storageAtArgs ⟨0⟩ safeIRStorageAllocationLength) getstorageatTransition.body .reverted :=
   safeStorageAtLengthRevert safeIRStorageAllocationState ⟨0⟩ safeIRStorageAllocationLength
     rfl (by decide)
 
 theorem safeIRStorageAllocationRefines :
-    runtimeRefinementFor config contract safeIRStorageAllocationAccounts
+    runtimeRefinementFor .cancun config contract safeIRStorageAllocationAccounts
       safeIRStorageAllocationAccounts ⟨100000⟩ default safeIRStorageAllocationEnv := by
   have hex := safeIRStorageAllocationExecution
-  have hbody := safeIRStorageAllocationSourceReverts
+  have hbody := safeIRStorageAllocationSourceReverts (fork := .cancun)
   have hsel := safeIRStorageAllocationPremises.2.2.2
-  cases he : Ξ safeIRStorageAllocationAccounts safeIRStorageAllocationAccounts ⟨100000⟩
+  cases he : Ξ .cancun safeIRStorageAllocationAccounts safeIRStorageAllocationAccounts ⟨100000⟩
       default safeIRStorageAllocationEnv with
   | error => rw [he] at hex; cases hex
   | ok result =>

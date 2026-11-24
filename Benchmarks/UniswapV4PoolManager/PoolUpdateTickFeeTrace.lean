@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PoolUpdateTickFees
 import Benchmarks.UniswapV4PoolManager.TickFeeAccounts
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_022
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -12,8 +14,8 @@ open poolManagerBlocks in
 theorem tickFeeStatic7634 {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024)
     (hperm : ee.perm = false)
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 7634) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : RDstatic (immutableLayout.runtime poolManagerBytecode immWords) g s0 := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 7634) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : RDstatic fork (immutableLayout.runtime poolManagerBytecode immWords) g s0 := by
   let r0 := h
   have r1 := r0.push1 (UInt256.ofNat 1) (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨7634⟩ : UInt256), UInt8.ofNat 96, .Push .PUSH1, some ((UInt256.ofNat 1), 1), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.push1 (UInt256.ofNat 128) (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨7636⟩ : UInt256), UInt8.ofNat 96, .Push .PUSH1, some ((UInt256.ofNat 128), 1), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
@@ -29,8 +31,8 @@ open poolManagerBlocks in
 theorem tickFeeStatic7685 {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024)
     (hperm : ee.perm = false)
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 7685) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : RDstatic (immutableLayout.runtime poolManagerBytecode immWords) g s0 := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 7685) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : RDstatic fork (immutableLayout.runtime poolManagerBytecode immWords) g s0 := by
   let r0 := h
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨7685⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.push1 (UInt256.ofNat 1) (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨7686⟩ : UInt256), UInt8.ofNat 96, .Push .PUSH1, some ((UInt256.ofNat 1), 1), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
@@ -47,10 +49,10 @@ theorem tickFeeWritesTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {mem rdata : ByteArray} {aw id x0 x1 : UInt256} {tick : Int} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (upper : Bool) (hstack : R.length+6 ≤ 1024)
     (hI : evm.executionEnv = I) (hm : memLoad (UInt256.ofNat 128) mem = poolSlot id)
-    (h : RD (deployedRuntime v) I g s0 (if upper then ⟨7634⟩ else ⟨7685⟩)
+    (h : RD fork (deployedRuntime v) I g s0 (if upper then ⟨7634⟩ else ⟨7685⟩)
       (x0 :: x1 :: tickSlot id tick :: R) mem aw rdata evm.accountMap k C) :
-    if I.perm = false then RDstatic (deployedRuntime v) g s0 else ∃ k' C',
-      RD (deployedRuntime v) I g s0 (if upper then ⟨7132⟩ else ⟨7679⟩)
+    if I.perm = false then RDstatic fork (deployedRuntime v) g s0 else ∃ k' C',
+      RD fork (deployedRuntime v) I g s0 (if upper then ⟨7132⟩ else ⟨7679⟩)
         (x0 :: x1 :: tickSlot id tick :: R) mem
         (M (M aw (UInt256.ofNat 128) ⟨32⟩) (UInt256.ofNat 128) ⟨32⟩)
         rdata (tickFeeWrites evm id tick).accountMap k' C' := by

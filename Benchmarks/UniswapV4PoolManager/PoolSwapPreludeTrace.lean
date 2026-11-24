@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.PoolSwapGuardsTrace
 import Benchmarks.UniswapV4PoolManager.PoolSwapStepInitTrace
 import Benchmarks.UniswapV4PoolManager.PoolSwapAllocatedMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -24,28 +26,28 @@ theorem poolSwapPreludeTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hp : 128 ≤ params.toNat) (hb : params.toNat+160 ≤ state.toNat)
     (hfit : state.toNat+352 ≤ solcMaxU64) (hfree : memLoad (UInt256.ofNat 64) mem = state)
     (hl : p.priceLimit.toNat < 2^160) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨18777⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨18777⟩
       ([poolSlot id, params, ret]++R) mem aw rdata evm.accountMap k C) :
     if poolSwapLPFeeValid p.lpFeeOverride then
       if poolSwapModeValid (poolSwapInitialFee evm id p) p.amountSpecified then
         if p.amountSpecified = ⟨0⟩ then
           ∃ k' C', C ≤ C' ∧
             C+Cₘ (poolSwapPreludeZeroAW aw state params (poolSwapInitialFee evm id p)) ≤ C'+Cₘ aw ∧
-            RD (deployedRuntime v) I g s0 ret
+            RD fork (deployedRuntime v) I g s0 ret
             ([state, poolSwapInitialFee evm id p, ⟨0⟩, ⟨0⟩]++R) (poolSwapAllocatedMem mem evm id state)
             (poolSwapPreludeZeroAW aw state params (poolSwapInitialFee evm id p)) rdata evm.accountMap k' C'
         else if poolSwapLimitValid (poolSlot0Word evm id) p.priceLimit p.zeroForOne then
           ∃ k' C', C ≤ C' ∧
             C+Cₘ (poolSwapPreludeAW aw state params (poolSwapInitialFee evm id p)) ≤ C'+Cₘ aw ∧
-            RD (deployedRuntime v) I g s0 ⟨19155⟩
+            RD fork (deployedRuntime v) I g s0 ⟨19155⟩
             ([p.amountSpecified, ret, params, ⟨0⟩, poolSlot0Word evm id, poolSwapInitialFee evm id p,
               poolSwapProtocolWord (poolSlot0Word evm id) p.zeroForOne, ⟨0⟩, UInt256.fromBool (!p.zeroForOne),
               state+UInt256.ofNat 96, poolSlot id, state]++R)
             (poolSwapPreludeMem mem evm id state p.zeroForOne)
             (poolSwapPreludeAW aw state params (poolSwapInitialFee evm id p)) rdata evm.accountMap k' C'
-        else RDrev (deployedRuntime v) g s0
-      else RDrev (deployedRuntime v) g s0
-    else RDrev (deployedRuntime v) g s0 := by
+        else RDrev fork (deployedRuntime v) g s0
+      else RDrev fork (deployedRuntime v) g s0
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hf : state.toNat+352 < UInt256.size := by
     change state.toNat+352 < 2^256
     change state.toNat+352 ≤ 2^64-1 at hfit

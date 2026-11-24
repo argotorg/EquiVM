@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.MintLockTrace
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,11 +13,11 @@ theorem mintLockAmountX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw len start amount : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (evm : EVM.State)
     (hs : SourceState s0 ee σ evm)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5805⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5805⟩
       (⟨0⟩ :: ⟨0⟩ :: len :: start :: amount :: R) mem aw rdata σ k C)
     (ha : amount.toNat < 2 ^ 128) (hperm : ee.perm = true) (hov : R.length + 9 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧ amount = ⟨0⟩) ∨
-      (0 < amount.toNat ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨5837⟩
+    (RDrev fork (deployedRuntime v) g s0 ∧ amount = ⟨0⟩) ∨
+      (0 < amount.toNat ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨5837⟩
         (⟨0⟩ :: ⟨0⟩ :: len :: start :: amount :: R) mem aw rdata
         (storeSlot0Unlocked evm false).accountMap k' C') := by
   have hclean : UInt256.land amount

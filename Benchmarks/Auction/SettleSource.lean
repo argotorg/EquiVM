@@ -2,6 +2,8 @@ import Benchmarks.Auction.SnapshotSource
 import Benchmarks.Auction.PaymentArithmetic
 import Benchmarks.Auction.InitializerSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -42,7 +44,7 @@ theorem settleSnapshotSource {evm locals ptr}
     (ha : locals.get? "auction" = none) (hn : locals.get? "nouns" = none)
     (ho : locals.get? "_owner" = none) (hb : ptr.toNat + 192 < UInt256.size) :
     ∃ locals',
-      ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
+      ExecBlock fork auctionConfig { contract := auctionContract, locals := locals } evm
         settleSnapshotStmts (.ok { contract := auctionContract, locals := locals' } evm) ∧
       SettleValues locals' (snapshotOfState evm) (ptr + ⟨192⟩) := by
   have hv : SettleValues (locals.insert "_auction" (snapshotOfState evm).value)

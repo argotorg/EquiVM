@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.AbsorbAfterAccountsEvm
 import Benchmarks.CompoundIII.Comet.ReturnOutcome
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_001
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -17,12 +19,12 @@ theorem cometAbsorbBodyRun {v : CometWithExtendedAssetListImmutables}
     (addr : AccountAddress) (hstack : R.length + 47 ≤ 1024)
     (hvalid : AbsorbCalldataValid ee.calldata) (hgas : cometGasBound g.toUInt256)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨16664⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨16664⟩
       (EVM.word addr.val :: absorbArrayBase ee.calldata ::
         UInt256.ofNat (absorbArrayLength ee.calldata) :: ⟨22⟩ :: R) solcFreePtrMem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
-      ∃ result, AbsorbTrace v ee.calldata addr evm result ∧
-        returnOutcomeRun (deployedRuntime v) g s0 ByteArray.empty result := by
+    X fork (g.toNat + 1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+      ∃ result, AbsorbTrace fork v ee.calldata addr evm result ∧
+        returnOutcomeRun fork (deployedRuntime v) g s0 ByteArray.empty result := by
   have hn : absorbArrayLength ee.calldata < 2^64 := by
     have hh := hvalid.2.2.2.2.2.1
     change absorbArrayLength ee.calldata ≤ 2^64 - 1 at hh
@@ -44,7 +46,7 @@ theorem cometAbsorbBodyRun {v : CometWithExtendedAssetListImmutables}
     let result := absorbAfterAccountsOutcome evm' addr (UInt256.ofNat (absorbArrayLength ee.calldata))
       startGas endGas
     refine Or.inr ⟨result, .finished startGas endGas ht, ?_⟩
-    change internalDynamicRun _ _ _ _ _ _ result at hr
+    change internalDynamicRun fork _ _ _ _ _ _ result at hr
     cases he : result with
     | reverted => rw [he] at hr; exact hr
     | staticViolation => rw [he] at hr; exact hr

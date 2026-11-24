@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.TokenBalanceCall
 import Benchmarks.CompoundIII.Comet.TotalsCollateralStorage
 import Benchmarks.CompoundIII.Comet.NarrowArithmetic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -56,10 +58,10 @@ theorem collateralReserves_reads (imms : Store) (asset : AccountAddress) (evm : 
 
 theorem collateralReserves_body_ok (imms : Store) (asset : AccountAddress)
     (evm evm' : EVM.State) (out : ByteArray)
-    (hc : callViaEVM evm asset 0 (tokenBalancePayload evm.executionEnv.codeOwner)
+    (hc : callViaEVM fork evm asset 0 (tokenBalancePayload evm.executionEnv.codeOwner)
       (true, evm', out) false) (hhi : out.size < 2^255)
     (hv : CollateralReservesValid evm' asset true out) :
-    ExecFuncBody config (collateralReservesEntry imms asset) evm collateralReservesCallable.body
+    ExecFuncBody fork config (collateralReservesEntry imms asset) evm collateralReservesCallable.body
       (.returned (collateralReservesFrame imms asset out) evm'
         (some [.int (Int.ofNat (collateralReservesValue evm' asset out).toNat)])) := by
   apply ExecFuncBody.execBlockRet
@@ -75,10 +77,10 @@ theorem collateralReserves_body_ok (imms : Store) (asset : AccountAddress)
 
 theorem collateralReserves_body_revert (imms : Store) (asset : AccountAddress)
     (evm evm' : EVM.State) (out : ByteArray) (z : Bool)
-    (hc : callViaEVM evm asset 0 (tokenBalancePayload evm.executionEnv.codeOwner)
+    (hc : callViaEVM fork evm asset 0 (tokenBalancePayload evm.executionEnv.codeOwner)
       (z, evm', out) false) (hhi : out.size < 2^255)
     (hv : ¬ CollateralReservesValid evm' asset z out) :
-    ExecFuncBody config (collateralReservesEntry imms asset) evm collateralReservesCallable.body
+    ExecFuncBody fork config (collateralReservesEntry imms asset) evm collateralReservesCallable.body
       .reverted := by
   apply ExecFuncBody.execBlockRevert
   by_cases hcall : z = true ∧ 32 ≤ out.size
@@ -107,10 +109,10 @@ theorem collateralReserves_call_ok (frame : Frame) (evm evm' : EVM.State)
     (asset : AccountAddress) (expr : Expr) (ret : Ident) (out : ByteArray)
     (hf : frame.contract = contract)
     (he : evalExpr? config frame evm expr = .ok (.address asset))
-    (hc : callViaEVM evm asset 0 (tokenBalancePayload evm.executionEnv.codeOwner)
+    (hc : callViaEVM fork evm asset 0 (tokenBalancePayload evm.executionEnv.codeOwner)
       (true, evm', out) false) (hhi : out.size < 2^255)
     (hv : CollateralReservesValid evm' asset true out) :
-    ExecStmt config frame evm (.internalCall "getCollateralReserves_body" [expr] ret)
+    ExecStmt fork config frame evm (.internalCall "getCollateralReserves_body" [expr] ret)
       (.ok { frame with locals :=
         frame.locals.insert ret (.int (Int.ofNat (collateralReservesValue evm' asset out).toNat)) }
           evm') := by
@@ -126,10 +128,10 @@ theorem collateralReserves_call_revert (frame : Frame) (evm evm' : EVM.State)
     (asset : AccountAddress) (expr : Expr) (ret : Ident) (out : ByteArray) (z : Bool)
     (hf : frame.contract = contract)
     (he : evalExpr? config frame evm expr = .ok (.address asset))
-    (hc : callViaEVM evm asset 0 (tokenBalancePayload evm.executionEnv.codeOwner)
+    (hc : callViaEVM fork evm asset 0 (tokenBalancePayload evm.executionEnv.codeOwner)
       (z, evm', out) false) (hhi : out.size < 2^255)
     (hv : ¬ CollateralReservesValid evm' asset z out) :
-    ExecStmt config frame evm (.internalCall "getCollateralReserves_body" [expr] ret)
+    ExecStmt fork config frame evm (.internalCall "getCollateralReserves_body" [expr] ret)
       .reverted := by
   have hb := collateralReserves_body_revert frame.immutables asset evm evm' out z hc hhi hv
   exact ExecStmt.internalCallRevert (callee := collateralReservesCallable)

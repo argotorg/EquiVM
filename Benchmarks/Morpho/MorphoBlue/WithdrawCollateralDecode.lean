@@ -3,6 +3,8 @@ import Benchmarks.Morpho.MorphoBlue.Address196Decode
 import Benchmarks.Morpho.MorphoBlue.CalldataBytesDecode
 import Benchmarks.Morpho.MorphoBlue.CreateMarketMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -17,15 +19,15 @@ theorem morphoWithdrawCollateralDecode {v : MorphoImmutables} {ee : ExecutionEnv
     {s0 : State} {out : ByteArray} {aw : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256}
     (hstack : R.length + 20 ≤ 1024) (hs : 4 ≤ ee.calldata.size) (hsize : ee.calldata.size < UInt256.size)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5398) (UInt256.ofNat 0 :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5398) (UInt256.ofNat 0 :: R)
       solcFreePtrMem aw out σ k C) :
-    (¬ MarketWordTwoAddressesBounds ee.calldata ∧ RDrev (deployedRuntime v) g s0) ∨
+    (¬ MarketWordTwoAddressesBounds ee.calldata ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (MarketWordTwoAddressesBounds ee.calldata ∧ ∃ aw' k' C',
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5498)
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5498)
         (withdrawCollateralDecodeStack ee.calldata R)
         (createMarketDecodedMem (marketParamsFromCalldata ee.calldata)) aw' out σ k' C') := by
   have hbad (hc : UInt256.slt (UInt256.sub (UInt256.ofNat ee.calldata.size) ⟨4⟩)
-      (UInt256.ofNat 256) = ⟨1⟩) : RDrev (deployedRuntime v) g s0 := by
+      (UInt256.ofNat 256) = ⟨1⟩) : RDrev fork (deployedRuntime v) g s0 := by
     have rd := morphoBlocks.morpho_block_5398_taken (immWords := wordsOf (immStore v))
       (by change R.length + 1 + 3 ≤ 1024; omega)
       (by rw [wordAddNegFour, hc]; decide)
@@ -74,7 +76,7 @@ theorem morphoWithdrawCollateralDecode {v : MorphoImmutables} {ee : ExecutionEnv
         (UInt256.land (calldataWord ee.calldata 228) solcAddrMask) = ⟨0⟩
       rw [solcAddrMask_clean hr, u256_sub_self]) rd6
   dsimp only [morphoBlocks.morpho_block_5460_fallthrough_stack] at rd7
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     ([UInt256.ofNat 128, calldataWord ee.calldata 196, solcAddrMask,
       calldataWord ee.calldata 228, calldataWord ee.calldata 164,
       UInt256.land (calldataWord ee.calldata 228) solcAddrMask, UInt256.ofNat 0] ++ R)

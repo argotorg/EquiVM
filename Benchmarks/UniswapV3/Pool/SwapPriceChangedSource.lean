@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapFeeGrowthSource
 import Benchmarks.UniswapV3.Pool.TickLogSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -61,13 +63,13 @@ theorem evalSwapPriceTickArgs {frame : Frame} {evm : EVM.State} (s : SwapStateDa
 theorem swapPriceTickAssignValueSource {frame : Frame} {evm : EVM.State}
     (s : SwapStateData) (tick : Int) (hs : frame.locals.get? "state" = some s.value)
     (hr : frame.locals.get? "__c15" = some (.int tick)) :
-    ExecStmt config frame evm swapPriceChangedBody[1]!
+    ExecStmt fork config frame evm swapPriceChangedBody[1]!
       (.ok (swapStateFrame frame {s with tick := tick}) evm) :=
   ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalExpr_var_get hr) (assignLocalField_frame hs rfl rfl)
 
 theorem swapPriceTickAssignSource {frame : Frame} {evm : EVM.State} (s : SwapStateData)
     (hs : frame.locals.get? "state" = some s.value) :
-    ExecStmt config (swapPriceTickFrame frame s) evm swapPriceChangedBody[1]!
+    ExecStmt fork config (swapPriceTickFrame frame s) evm swapPriceChangedBody[1]!
       (.ok (swapStateFrame (swapPriceTickFrame frame s) {s with tick := swapPriceTick s}) evm) := by
   have hs' := (resumeAfterInternalCall_get frame "__c15" "state"
     (some [.int (swapPriceTick s)]) (by decide)).trans hs

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.SwapParams
 import Benchmarks.UniswapV4PoolManager.SourceComposition
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -26,7 +28,7 @@ theorem swapPreludeSource {locals imms : Store} {evm : State} {key : PoolKeyWord
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hhi : evm.executionEnv.calldata.size < calldataLimit)
     (hk : locals.get? "key" = some (.tuple (poolKeyValues key)))
     (hp : locals.get? "params" = some (.tuple (swapParamsValues p))) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm
       (swapTransition.body.take 6) (.ok (swapPreludeFrame locals imms evm key p) evm) := by
   apply nonpayableCalldataBlock hwv hhi
   have hkey := poolKeyFromTuple_eval (evalLocalValue (cfg := config)

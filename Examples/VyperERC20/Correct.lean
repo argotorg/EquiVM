@@ -19,6 +19,8 @@ import Reasoning.Memory
 import Reasoning.SteleBody
 import Mathlib.Tactic.IntervalCases
 
+variable {fork : Ethereum.Fork}
+
 
 /-!
 # Vyper ERC20 — correctness entrypoints
@@ -267,7 +269,7 @@ theorem erc20SteleCtorExecReverts_nonpayable
     {I : ExecutionEnv}
     (initialSupply : Int)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    steleCtorExec config erc20Contract [.int initialSupply]
+    steleCtorExec fork config erc20Contract [.int initialSupply]
       σ σ₀ g A I .reverted := by
   refine steleCtorExec.intro
     (evmState := initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -289,7 +291,7 @@ theorem erc20SteleCtorExecSuccess
     (hlt : initialSupply < Int.ofNat (EVM.twoPow 256))
     (hwv : I.weiValue = ⟨0⟩)
     (hperm : I.perm = true) :
-    steleCtorExec config erc20Contract [.int initialSupply]
+    steleCtorExec fork config erc20Contract [.int initialSupply]
       σ σ₀ g A I
       (.returned
         { contract := erc20Contract, locals := erc20CtorLocals initialSupply }
@@ -606,10 +608,10 @@ theorem erc20InitcodeNonpayableRevert
     (tail : ByteArray)
     (hcode : I.code = vyperERC20Initcode ++ tail)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev (vyperERC20Initcode ++ tail) g
+    RDrev fork (vyperERC20Initcode ++ tail) g
       (initState σ σ₀ g A I) := by
   have rd0 :
-      RD (vyperERC20Initcode ++ tail) I g
+      RD fork (vyperERC20Initcode ++ tail) I g
         (initState σ σ₀ g A I) ⟨0⟩ []
         ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
@@ -630,14 +632,14 @@ theorem erc20InitcodeSuccess
     (hcode : I.code = erc20CtorCode initialSupply)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) :
-    RDret (erc20CtorCode initialSupply) g
+    RDret fork (erc20CtorCode initialSupply) g
       (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ (erc20BalanceOfSlot (.address I.source)) initialSupply)
           ⟨2⟩ initialSupply)
       vyperERC20Bytecode := by
   have rd0 :
-      RD (erc20CtorCode initialSupply) I g
+      RD fork (erc20CtorCode initialSupply) I g
         (initState σ σ₀ g A I) ⟨0⟩ []
         ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
@@ -837,10 +839,10 @@ abbrev vyperRuntimeSelectorWord (I : ExecutionEnv) : UInt256 :=
 theorem erc20X_balanceOfReach_of_mod0 {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vyperERC20Bytecode)
     (hmod : (vyperRuntimeSelectorWord I).toNat % 7 = 0) :
-    ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨623⟩
+    ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨623⟩
       [vyperRuntimeSelectorWord I] balanceOfDispatchMem (UInt256.ofNat 1) ByteArray.empty
       σ k C := by
-  have rd0 := RD.initState (σ := σ) (σ₀ := σ₀)
+  have rd0 := RD.initState (fork := fork) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode
   have rdBeforeCopy0 := evm_run rd0 with [
     push0, calldataload, push1 ⟨224⟩, shr, push1 ⟨2⟩, push1 ⟨7⟩, dup3, mod,
@@ -867,10 +869,10 @@ theorem erc20X_balanceOfReach_of_mod0 {σ σ₀ A I} {g : Sat256}
 theorem erc20X_approveReach_of_mod1 {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vyperERC20Bytecode)
     (hmod : (vyperRuntimeSelectorWord I).toNat % 7 = 1) :
-    ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨206⟩
+    ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨206⟩
       [vyperRuntimeSelectorWord I] approveDispatchMem (UInt256.ofNat 1) ByteArray.empty
       σ k C := by
-  have rd0 := RD.initState (σ := σ) (σ₀ := σ₀)
+  have rd0 := RD.initState (fork := fork) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode
   have rdBeforeCopy0 := evm_run rd0 with [
     push0, calldataload, push1 ⟨224⟩, shr, push1 ⟨2⟩, push1 ⟨7⟩, dup3, mod,
@@ -897,10 +899,10 @@ theorem erc20X_approveReach_of_mod1 {σ σ₀ A I} {g : Sat256}
 theorem erc20X_transferFromReach_of_mod2 {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vyperERC20Bytecode)
     (hmod : (vyperRuntimeSelectorWord I).toNat % 7 = 2) :
-    ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨331⟩
+    ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨331⟩
       [vyperRuntimeSelectorWord I] transferFromDispatchMem (UInt256.ofNat 1) ByteArray.empty
       σ k C := by
-  have rd0 := RD.initState (σ := σ) (σ₀ := σ₀)
+  have rd0 := RD.initState (fork := fork) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode
   have rdBeforeCopy0 := evm_run rd0 with [
     push0, calldataload, push1 ⟨224⟩, shr, push1 ⟨2⟩, push1 ⟨7⟩, dup3, mod,
@@ -927,10 +929,10 @@ theorem erc20X_transferFromReach_of_mod2 {σ σ₀ A I} {g : Sat256}
 theorem erc20X_transferReach_of_mod3 {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vyperERC20Bytecode)
     (hmod : (vyperRuntimeSelectorWord I).toNat % 7 = 3) :
-    ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨24⟩
+    ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨24⟩
       [vyperRuntimeSelectorWord I] transferDispatchMem (UInt256.ofNat 1) ByteArray.empty
       σ k C := by
-  have rd0 := RD.initState (σ := σ) (σ₀ := σ₀)
+  have rd0 := RD.initState (fork := fork) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode
   have rdBeforeCopy0 := evm_run rd0 with [
     push0, calldataload, push1 ⟨224⟩, shr, push1 ⟨2⟩, push1 ⟨7⟩, dup3, mod,
@@ -957,10 +959,10 @@ theorem erc20X_transferReach_of_mod3 {σ σ₀ A I} {g : Sat256}
 theorem erc20X_selectorMissReach_of_mod4 {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vyperERC20Bytecode)
     (hmod : (vyperRuntimeSelectorWord I).toNat % 7 = 4) :
-    ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨797⟩
+    ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨797⟩
       [vyperRuntimeSelectorWord I] selectorMissDispatchMem (UInt256.ofNat 1) ByteArray.empty
       σ k C := by
-  have rd0 := RD.initState (σ := σ) (σ₀ := σ₀)
+  have rd0 := RD.initState (fork := fork) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode
   have rdBeforeCopy0 := evm_run rd0 with [
     push0, calldataload, push1 ⟨224⟩, shr, push1 ⟨2⟩, push1 ⟨7⟩, dup3, mod,
@@ -987,10 +989,10 @@ theorem erc20X_selectorMissReach_of_mod4 {σ σ₀ A I} {g : Sat256}
 theorem erc20X_totalSupplyReach_of_mod5 {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vyperERC20Bytecode)
     (hmod : (vyperRuntimeSelectorWord I).toNat % 7 = 5) :
-    ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨769⟩
+    ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨769⟩
       [vyperRuntimeSelectorWord I] runtimeDispatchMem (UInt256.ofNat 1) ByteArray.empty
       σ k C := by
-  have rd0 := RD.initState (σ := σ) (σ₀ := σ₀)
+  have rd0 := RD.initState (fork := fork) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode
   have rdBeforeCopy0 := evm_run rd0 with [
     push0, calldataload, push1 ⟨224⟩, shr, push1 ⟨2⟩, push1 ⟨7⟩, dup3, mod,
@@ -1017,10 +1019,10 @@ theorem erc20X_totalSupplyReach_of_mod5 {σ σ₀ A I} {g : Sat256}
 theorem erc20X_allowanceReach_of_mod6 {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vyperERC20Bytecode)
     (hmod : (vyperRuntimeSelectorWord I).toNat % 7 = 6) :
-    ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨681⟩
+    ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨681⟩
       [vyperRuntimeSelectorWord I] allowanceDispatchMem (UInt256.ofNat 1) ByteArray.empty
       σ k C := by
-  have rd0 := RD.initState (σ := σ) (σ₀ := σ₀)
+  have rd0 := RD.initState (fork := fork) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode
   have rdBeforeCopy0 := evm_run rd0 with [
     push0, calldataload, push1 ⟨224⟩, shr, push1 ⟨2⟩, push1 ⟨7⟩, dup3, mod,
@@ -1046,10 +1048,10 @@ theorem erc20X_allowanceReach_of_mod6 {σ σ₀ A I} {g : Sat256}
 
 theorem erc20BalanceOfSelectorMiss {σ σ₀ A I} {g : Sat256}
     (hneq : vyperRuntimeSelectorWord I ≠ balanceOfSelectorWord)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨623⟩
+    (hreach : ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨623⟩
       [vyperRuntimeSelectorWord I] balanceOfDispatchMem (UInt256.ofNat 1) ByteArray.empty
       σ k C) :
-    RDrev vyperERC20Bytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vyperERC20Bytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd623⟩ := hreach
   have rd797 := evm_run rd623 with [
     jumpdest,
@@ -1061,10 +1063,10 @@ theorem erc20BalanceOfSelectorMiss {σ σ₀ A I} {g : Sat256}
 
 theorem erc20ApproveSelectorMiss {σ σ₀ A I} {g : Sat256}
     (hneq : vyperRuntimeSelectorWord I ≠ approveSelectorWord)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨206⟩
+    (hreach : ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨206⟩
       [vyperRuntimeSelectorWord I] approveDispatchMem (UInt256.ofNat 1) ByteArray.empty
       σ k C) :
-    RDrev vyperERC20Bytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vyperERC20Bytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd206⟩ := hreach
   have rd797 := evm_run rd206 with [
     jumpdest,
@@ -1076,10 +1078,10 @@ theorem erc20ApproveSelectorMiss {σ σ₀ A I} {g : Sat256}
 
 theorem erc20TransferFromSelectorMiss {σ σ₀ A I} {g : Sat256}
     (hneq : vyperRuntimeSelectorWord I ≠ transferFromSelectorWord)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨331⟩
+    (hreach : ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨331⟩
       [vyperRuntimeSelectorWord I] transferFromDispatchMem (UInt256.ofNat 1) ByteArray.empty
       σ k C) :
-    RDrev vyperERC20Bytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vyperERC20Bytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd331⟩ := hreach
   have rd797 := evm_run rd331 with [
     jumpdest,
@@ -1091,10 +1093,10 @@ theorem erc20TransferFromSelectorMiss {σ σ₀ A I} {g : Sat256}
 
 theorem erc20TransferSelectorMiss {σ σ₀ A I} {g : Sat256}
     (hneq : vyperRuntimeSelectorWord I ≠ transferSelectorWord)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨24⟩
+    (hreach : ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨24⟩
       [vyperRuntimeSelectorWord I] transferDispatchMem (UInt256.ofNat 1) ByteArray.empty
       σ k C) :
-    RDrev vyperERC20Bytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vyperERC20Bytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd24⟩ := hreach
   have rd797 := evm_run rd24 with [
     jumpdest,
@@ -1106,10 +1108,10 @@ theorem erc20TransferSelectorMiss {σ σ₀ A I} {g : Sat256}
 
 theorem erc20TotalSupplySelectorMiss {σ σ₀ A I} {g : Sat256}
     (hneq : vyperRuntimeSelectorWord I ≠ totalSupplySelectorWord)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨769⟩
+    (hreach : ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨769⟩
       [vyperRuntimeSelectorWord I] runtimeDispatchMem (UInt256.ofNat 1) ByteArray.empty
       σ k C) :
-    RDrev vyperERC20Bytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vyperERC20Bytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd769⟩ := hreach
   have rd797 := evm_run rd769 with [
     jumpdest,
@@ -1121,10 +1123,10 @@ theorem erc20TotalSupplySelectorMiss {σ σ₀ A I} {g : Sat256}
 
 theorem erc20AllowanceSelectorMiss {σ σ₀ A I} {g : Sat256}
     (hneq : vyperRuntimeSelectorWord I ≠ allowanceSelectorWord)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨681⟩
+    (hreach : ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨681⟩
       [vyperRuntimeSelectorWord I] allowanceDispatchMem (UInt256.ofNat 1) ByteArray.empty
       σ k C) :
-    RDrev vyperERC20Bytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vyperERC20Bytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd681⟩ := hreach
   have rd797 := evm_run rd681 with [
     jumpdest,
@@ -1139,11 +1141,11 @@ theorem erc20SelectorMissRuntime_mod4
     (hcode : I.code = vyperERC20Bytecode)
     (hmod : (vyperRuntimeSelectorWord I).toNat % 7 = 4)
     (hdisp : dispatchMsg erc20Contract I.calldata = none) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨_, _, rd797⟩ := erc20X_selectorMissReach_of_mod4
     (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hmod
-  exact (vyperRuntimeRevert797 (σ := σ) (σ₀ := σ₀)
+  exact (vyperRuntimeRevert797 (fork := fork) (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g) rd797 rfl (by norm_num))
     |>.reEquivNoDispatch hcode hdisp
 
@@ -1152,7 +1154,7 @@ theorem erc20TransferFromRuntime
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : ((⟨#[0x23, 0xb8, 0x72, 0xdd]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact erc20TransferFromBodyCore hcode hwv hsize
     (by
       have hcd : I.calldata.extract 0 4 = (⟨#[0x23, 0xb8, 0x72, 0xdd]⟩ : ByteArray) :=
@@ -1167,14 +1169,14 @@ theorem erc20TransferFromRuntime
       · rw [selectorOf, vyperERC20ApproveSelectorBytes, hcd]; decide
       · rw [selectorOf, vyperERC20TotalSupplySelectorBytes, hcd]; decide)
     hsel
-    (erc20X_transferFromReach (σ := σ)
+    (erc20X_transferFromReach (fork := fork) (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsel)
 
 theorem erc20NoDispatchRuntimeCore
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vyperERC20Bytecode)
     (hnm : ∀ i, i < 6 → (erc20SelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hsz4 : 4 ≤ I.calldata.size
   · have hdisp : dispatchMsg erc20Contract I.calldata = none := erc20Dispatch_none_nomatch hnm
     set m : Nat := (vyperRuntimeSelectorWord I).toNat % 7 with hm
@@ -1293,7 +1295,7 @@ theorem erc20NoDispatchRuntime
     (hcode : I.code = vyperERC20Bytecode) (_hwv : I.weiValue = ⟨0⟩)
     (_hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 6 → (erc20SelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeRefinementFor config contract σ σ₀ g A I :=
+    runtimeRefinementFor fork config contract σ σ₀ g A I :=
   erc20NoDispatchRuntimeCore hcode hnm
 
 theorem erc20RuntimeNonPayableOfDispatch
@@ -1301,11 +1303,11 @@ theorem erc20RuntimeNonPayableOfDispatch
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vyperERC20Bytecode)
     (hd : dispatchMsg erc20Contract I.calldata = some t)
-    (hbody : ∀ callargs, ExecTransitionBody config erc20Contract
+    (hbody : ∀ callargs, ExecTransitionBody fork config erc20Contract
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) callargs t.body .reverted)
-    (hrev : RDrev vyperERC20Bytecode (Sat256.ofUInt256 g)
+    (hrev : RDrev fork vyperERC20Bytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hdec : config.externalABI.decodeCalldata? (t.params.map Param.name)
       (transitionSignature t).paramTypes I.calldata = none
   · exact hrev.reEquivDecodingFailed hcode hd hdec
@@ -1317,8 +1319,8 @@ theorem erc20ApproveNonPayableRuntime
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue ≠ ⟨0⟩)
     (hsel : ((⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
-  obtain ⟨_, _, rd206⟩ := erc20X_approveReach
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
+  obtain ⟨_, _, rd206⟩ := erc20X_approveReach (fork := fork)
     (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsel
   have rd801 := evm_run rd206 with [
@@ -1335,15 +1337,15 @@ theorem erc20ApproveNonPayableRuntime
   exact erc20RuntimeNonPayableOfDispatch hcode (erc20Dispatch_approve hsel)
     (fun _ => bodyReverts_nonPayable (cfg := config) (contract := erc20Contract)
       (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I) hwv)
-    (vyperRuntimeRevert801 (σ := σ) (σ₀ := σ₀)
+    (vyperRuntimeRevert801 (fork := fork) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := Sat256.ofUInt256 g) rd801 rfl (by norm_num))
 
 theorem erc20TotalSupplyNonPayableRuntime
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue ≠ ⟨0⟩)
     (hsel : ((⟨#[0x18, 0x16, 0x0d, 0xdd]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
-  obtain ⟨_, _, rd769⟩ := erc20X_totalSupplyReach
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
+  obtain ⟨_, _, rd769⟩ := erc20X_totalSupplyReach (fork := fork)
     (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsel
   have rd801 := evm_run rd769 with [
@@ -1355,7 +1357,7 @@ theorem erc20TotalSupplyNonPayableRuntime
   exact erc20RuntimeNonPayableOfDispatch hcode (erc20Dispatch_totalSupply hsel)
     (fun _ => bodyReverts_nonPayable (cfg := config) (contract := erc20Contract)
       (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I) hwv)
-    (vyperRuntimeRevert801 (σ := σ) (σ₀ := σ₀)
+    (vyperRuntimeRevert801 (fork := fork) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := Sat256.ofUInt256 g) rd801 rfl (by norm_num))
 
 theorem erc20Dispatch_transferFrom {cd : ByteArray}
@@ -1377,8 +1379,8 @@ theorem erc20TransferFromNonPayableRuntime
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue ≠ ⟨0⟩)
     (hsel : ((⟨#[0x23, 0xb8, 0x72, 0xdd]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
-  obtain ⟨_, _, rd331⟩ := erc20X_transferFromReach
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
+  obtain ⟨_, _, rd331⟩ := erc20X_transferFromReach (fork := fork)
     (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsel
   have rd801 := evm_run rd331 with [
@@ -1395,15 +1397,15 @@ theorem erc20TransferFromNonPayableRuntime
   exact erc20RuntimeNonPayableOfDispatch hcode (erc20Dispatch_transferFrom hsel)
     (fun _ => bodyReverts_nonPayable (cfg := config) (contract := erc20Contract)
       (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I) hwv)
-    (vyperRuntimeRevert801 (σ := σ) (σ₀ := σ₀)
+    (vyperRuntimeRevert801 (fork := fork) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := Sat256.ofUInt256 g) rd801 rfl (by norm_num))
 
 theorem erc20BalanceOfNonPayableRuntime
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue ≠ ⟨0⟩)
     (hsel : ((⟨#[0x70, 0xa0, 0x82, 0x31]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
-  obtain ⟨_, _, rd623⟩ := erc20X_balanceOfReach
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
+  obtain ⟨_, _, rd623⟩ := erc20X_balanceOfReach (fork := fork)
     (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsel
   have rd801 := evm_run rd623 with [
@@ -1420,15 +1422,15 @@ theorem erc20BalanceOfNonPayableRuntime
   exact erc20RuntimeNonPayableOfDispatch hcode (erc20Dispatch_balanceOf hsel)
     (fun _ => bodyReverts_nonPayable (cfg := config) (contract := erc20Contract)
       (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I) hwv)
-    (vyperRuntimeRevert801 (σ := σ) (σ₀ := σ₀)
+    (vyperRuntimeRevert801 (fork := fork) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := Sat256.ofUInt256 g) rd801 rfl (by norm_num))
 
 theorem erc20TransferNonPayableRuntime
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue ≠ ⟨0⟩)
     (hsel : ((⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
-  obtain ⟨_, _, rd24⟩ := erc20X_transferReach
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
+  obtain ⟨_, _, rd24⟩ := erc20X_transferReach (fork := fork)
     (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsel
   have rd801 := evm_run rd24 with [
@@ -1445,15 +1447,15 @@ theorem erc20TransferNonPayableRuntime
   exact erc20RuntimeNonPayableOfDispatch hcode (erc20Dispatch_transfer hsel)
     (fun _ => bodyReverts_nonPayable (cfg := config) (contract := erc20Contract)
       (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I) hwv)
-    (transferRevertStub (σ := σ) (σ₀ := σ₀)
+    (transferRevertStub (fork := fork) (σ := σ) (σ₀ := σ₀)
       (A := A) (g := Sat256.ofUInt256 g) rd801 rfl (by norm_num))
 
 theorem erc20AllowanceNonPayableRuntime
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue ≠ ⟨0⟩)
     (hsel : ((⟨#[0xdd, 0x62, 0xed, 0x3e]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
-  obtain ⟨_, _, rd681⟩ := erc20X_allowanceReach
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
+  obtain ⟨_, _, rd681⟩ := erc20X_allowanceReach (fork := fork)
     (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsel
   have rd801 := evm_run rd681 with [
@@ -1470,14 +1472,14 @@ theorem erc20AllowanceNonPayableRuntime
   exact erc20RuntimeNonPayableOfDispatch hcode (erc20Dispatch_allowance hsel)
     (fun _ => bodyReverts_nonPayable (cfg := config) (contract := erc20Contract)
       (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I) hwv)
-    (vyperRuntimeRevert801 (σ := σ) (σ₀ := σ₀)
+    (vyperRuntimeRevert801 (fork := fork) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := Sat256.ofUInt256 g) rd801 rfl (by norm_num))
 
 theorem erc20NonPayableRuntime
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue ≠ ⟨0⟩)
     (_hsize : I.calldata.size < UInt256.size) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases h0 : ((⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩ : ByteArray) == I.calldata.extract 0 4) = true
   · exact erc20ApproveNonPayableRuntime hcode hwv h0
   · by_cases h1 : ((⟨#[0x18, 0x16, 0x0d, 0xdd]⟩ : ByteArray) == I.calldata.extract 0 4) = true
@@ -1506,7 +1508,7 @@ The dispatcher routing is explicit here.  The proven Vyper function-body obligat
 success remains isolated above as a bytecode obligation. -/
 theorem runtimeCorrect :
     runtimeRefinement config vyperERC20Bytecode contract := by
-  refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
+  refine ⟨fun fork _hfork σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases h0 : ((⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩ : ByteArray) == I.calldata.extract 0 4) = true
     · exact erc20ApproveRuntimeSuccess hcode hwv hsize h0
@@ -1534,7 +1536,7 @@ theorem runtimeCorrect :
 /-- Constructor equivalence for the Vyper 0.4.3 ERC20 deployment bytecode. -/
 theorem constructorCorrect :
     typedConstructorRefinement config vyperERC20Initcode contract (fun _ => vyperERC20Bytecode) := by
-  intro σ σ₀ g A I
+  intro fork _hfork σ σ₀ g A I
       args deployedInitcode hdeploy hcode hcalldata hperm
   rcases erc20Deployment_shape hdeploy with ⟨initialSupply, hargs, h0, hlt, hdeployed⟩
   subst args
@@ -1543,7 +1545,7 @@ theorem constructorCorrect :
       rw [hcode, hdeployed]
       unfold erc20CtorCode
       rfl
-    have hrd := erc20InitcodeSuccess
+    have hrd := erc20InitcodeSuccess (fork := fork)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) (EVM.word initialSupply.toNat) hcodeCtor hperm hwv
     rcases hrd with hOOG | ⟨s, hX, hacc⟩
@@ -1562,7 +1564,7 @@ theorem constructorCorrect :
         hacc
       rw [hσ'] at hsuccess
       refine typedConstructorRefinementFor.execution hsuccess
-        (erc20SteleCtorExecSuccess (hperm := by assumption)
+        (erc20SteleCtorExecSuccess (fork := fork) (hperm := by assumption)
           (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
           initialSupply h0 hlt hwv) ?_
       refine ctorResultEquiv.success rfl rfl ?_ rfl
@@ -1571,7 +1573,7 @@ theorem constructorCorrect :
   · let tail := (EVM.Word.toBytesBE (EVM.word initialSupply.toNat)).toByteArray
     have hcodeTail : I.code = vyperERC20Initcode ++ tail := by
       rw [hcode, hdeployed]
-    have hrd := erc20InitcodeNonpayableRevert
+    have hrd := erc20InitcodeNonpayableRevert (fork := fork)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) tail hcodeTail hwv
     rcases hrd.xiResult hcodeTail with hOOG | ⟨g', o, hrev⟩

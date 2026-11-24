@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.StructEncodeViews
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -50,8 +52,8 @@ theorem easEncodeAttestation {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hh : memLoad dataPtr mem = UInt256.ofNat len)
     (hbound : dst.toNat+384+32*((len+31)/32) < UInt256.size)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨4502⟩ (src::dst::ret::R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨4502⟩ (src::dst::ret::R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret
       (UInt256.ofNat (dst.toNat+352+32*((len+31)/32)) :: R)
       (attestationEncodedMemory mem src dst dataPtr) aw' rdata σ k' C' := by
   obtain ⟨aw1,k1,C1,rd1⟩ := easEncodeAttestationHead v (by simp only [List.length_cons]; omega) hlo hdisj hin (by omega) rd

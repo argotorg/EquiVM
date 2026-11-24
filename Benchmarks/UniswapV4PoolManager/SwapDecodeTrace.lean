@@ -7,6 +7,8 @@ import Benchmarks.UniswapV4PoolManager.TickLogCompiled
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_006
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_007
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -18,10 +20,10 @@ theorem swapDecodeTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : PoolManagerImmutables) (hstack : R.length+12 ≤ 1024)
     (hlen : 292 ≤ I.calldata.size) (hhi : I.calldata.size < calldataLimit)
     (hsize : I.calldata.size < UInt256.size) (haw : aw.toNat ≤ 10)
-    (h : RD (deployedRuntime v) I g s0 ⟨1328⟩ R entryMemory aw rdata σ k C) :
-    (¬SwapCalldataBounds I.calldata ∧ RDrev (deployedRuntime v) g s0) ∨
+    (h : RD fork (deployedRuntime v) I g s0 ⟨1328⟩ R entryMemory aw rdata σ k C) :
+    (¬SwapCalldataBounds I.calldata ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (SwapCalldataBounds I.calldata ∧ ∃ aw' k' C', aw'.toNat ≤ 13 ∧ Cₘ aw' ≤ C' ∧
-      RD (deployedRuntime v) I g s0 ⟨1488⟩
+      RD fork (deployedRuntime v) I g s0 ⟨1488⟩
         ([calldataWord I.calldata (swapDataStart I.calldata),
           UInt256.ofNat (swapDataStart I.calldata+32), ⟨160⟩, ⟨384⟩, ⟨352⟩, ⟨320⟩] ++ R)
         (swapDecodeMemory (poolKeyOfCalldata I.calldata) (swapParamsOfCalldata I.calldata))
@@ -84,7 +86,7 @@ theorem swapDecodeTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
   obtain ⟨k8, C8, rd8⟩ := RD.pack (poolManagerBlocks.poolManager_block_1449_fallthrough
     (by omega) (ugt_zero ho) rd7)
   have hbool := canonicalBoolWord hz
-  change RD _ _ _ _ ⟨1475⟩ (calldataWord I.calldata 260 :: ⟨160⟩ :: ⟨384⟩ :: ⟨352⟩ :: ⟨320⟩ :: R)
+  change RD fork _ _ _ _ ⟨1475⟩ (calldataWord I.calldata 260 :: ⟨160⟩ :: ⟨384⟩ :: ⟨352⟩ :: ⟨320⟩ :: R)
     (wordSequenceMemory (writeWord (poolKeyMemory (poolKeyOfCalldata I.calldata)) 64 ⟨416⟩) 320
       [calldataWord I.calldata 164, calldataWord I.calldata 196, calldataWord I.calldata 228])
     (M (M (M (M (M aw1 (UInt256.ofNat 64) ⟨32⟩) (UInt256.ofNat 64) ⟨32⟩)

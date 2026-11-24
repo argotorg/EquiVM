@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.AbsorbInternalModel
 import Benchmarks.CompoundIII.Comet.AbsorbReadEvm
 import Benchmarks.CompoundIII.Comet.AbsorbBasePriceEvm
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -14,10 +16,10 @@ theorem cometAbsorbReadTail {v : CometWithExtendedAssetListImmutables}
     (hfree : memLoad ⟨64⟩ mem = free) (hlo : 96 ≤ free.toNat) (hmem : 96 ≤ mem.size)
     (hbound : free.toNat + 320 + 928 * v.numAssets.toNat + 256 < 2^64)
     (hs : SourceState s0 ee σ evm) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨16996⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨16996⟩
       (EVM.word account.val :: absorber :: ret :: R) mem aw rdata σ k C) :
-    ∃ result, AbsorbReadTrace v account evm result ∧
-      internalBoundedRun (deployedRuntime v) ee g s0 free.toNat
+    ∃ result, AbsorbReadTrace fork v account evm result ∧
+      internalBoundedRun fork (deployedRuntime v) ee g s0 free.toNat
         (free.toNat + 320 + 928 * v.numAssets.toNat) ret R result := by
   obtain ⟨aw1, k1, C1, hm, r1⟩ := cometAbsorbRead account
     (by change R.length + 2 + 11 ≤ 1024; omega) hfree hmem (by omega) hs h

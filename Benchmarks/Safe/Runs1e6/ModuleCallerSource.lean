@@ -5,6 +5,8 @@ import Benchmarks.Safe.Runs1e6.InternalCall
 import Benchmarks.Safe.Runs1e6.ModuleArguments
 import Benchmarks.Safe.Runs1e6.Operation
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.Runs1e6
@@ -32,9 +34,9 @@ def modulePostCall : Stmt :=
 
 theorem safeModulePreCall {evm : EVM.State} {target : EVM.Address} {payload : ByteArray}
     {value operation : UInt256} {result : ExecResult}
-    (hbody : ExecFuncBody config (preModuleFrame target value payload operation) evm
+    (hbody : ExecFuncBody fork config (preModuleFrame target value payload operation) evm
       preModuleExecutionFunction.body result) :
-    ExecStmt config (moduleFrame target value payload operation) evm modulePreCall
+    ExecStmt fork config (moduleFrame target value payload operation) evm modulePreCall
       (internalCallResult (moduleFrame target value payload operation) "pre" result) := by
   apply internalCallFunctionResult (callee := preModuleExecutionFunction)
     (argVals := [.address target, .int (Int.ofNat value.toNat), .bytes payload,
@@ -48,9 +50,9 @@ theorem safeModulePreCall {evm : EVM.State} {target : EVM.Address} {payload : By
 
 theorem safeModuleExecuteCall {evm : EVM.State} {target guard : EVM.Address}
     {payload : ByteArray} {value operation hash : UInt256} {result : ExecResult}
-    (hbody : ExecFuncBody config (executeFrame target value payload operation (UInt256.lnot ⟨0⟩))
+    (hbody : ExecFuncBody fork config (executeFrame target value payload operation (UInt256.lnot ⟨0⟩))
       evm executeFunction.body result) :
-    ExecStmt config (moduleAfterPre target value payload operation guard hash) evm
+    ExecStmt fork config (moduleAfterPre target value payload operation guard hash) evm
       moduleExecuteCall
       (internalCallResult (moduleAfterPre target value payload operation guard hash)
         "success" result) := by
@@ -68,9 +70,9 @@ theorem safeModuleExecuteCall {evm : EVM.State} {target guard : EVM.Address}
 
 theorem safeModulePostCall {evm : EVM.State} {target guard : EVM.Address}
     {payload : ByteArray} {value operation hash : UInt256} {z : Bool} {result : ExecResult}
-    (hbody : ExecFuncBody config (postModuleFrame guard hash z) evm
+    (hbody : ExecFuncBody fork config (postModuleFrame guard hash z) evm
       postModuleExecutionFunction.body result) :
-    ExecStmt config (moduleAfterExecute target value payload operation guard hash z) evm
+    ExecStmt fork config (moduleAfterExecute target value payload operation guard hash z) evm
       modulePostCall
       (internalCallResult (moduleAfterExecute target value payload operation guard hash z)
         "_post" result) := by
@@ -116,8 +118,8 @@ theorem safeModuleChecks {evm : EVM.State} {target : EVM.Address} {value operati
     {payload : ByteArray} {result : ExecResult} {tail : List Stmt}
     (hv : evm.executionEnv.weiValue = ⟨0⟩) (hn : payload.size ≤ 2 ^ 64 - 192)
     (ho : operation.toNat < 2)
-    (ht : ExecBlock config (moduleFrame target value payload operation) evm tail result) :
-    ExecBlock config (moduleFrame target value payload operation) evm
+    (ht : ExecBlock fork config (moduleFrame target value payload operation) evm tail result) :
+    ExecBlock fork config (moduleFrame target value payload operation) evm
       (nonpayable ++ decodeMemoryBytes "data" ++ .require validOperation :: tail) result := by
   exact .consNormal (.requireTrue (evalCallvalueEq_true hv))
     (.consNormal (.requireTrue (by
@@ -129,7 +131,7 @@ theorem safeModuleChecks {evm : EVM.State} {target : EVM.Address} {value operati
 theorem safeModuleInvalidChecks {evm : EVM.State} {target : EVM.Address} {value operation : UInt256}
     {payload : ByteArray} {tail : List Stmt}
     (hbad : ¬payload.size ≤ 2 ^ 64 - 192 ∨ ¬operation.toNat < 2) :
-    ExecTransitionBody config contract evm (moduleArgs target value payload operation)
+    ExecTransitionBody fork config contract evm (moduleArgs target value payload operation)
       (nonpayable ++ decodeMemoryBytes "data" ++ .require validOperation :: tail) .reverted := by
   by_cases hv : evm.executionEnv.weiValue = ⟨0⟩
   swap
@@ -150,20 +152,20 @@ theorem safeModulePrefix {evm : EVM.State} {target : EVM.Address} {value operati
     {payload : ByteArray} {result : ExecResult}
     (hv : evm.executionEnv.weiValue = ⟨0⟩) (hn : payload.size ≤ 2 ^ 64 - 192)
     (ho : operation.toNat < 2)
-    (ht : ExecBlock config (moduleFrame target value payload operation) evm moduleCallTail result) :
-    ExecBlock config (moduleFrame target value payload operation) evm
+    (ht : ExecBlock fork config (moduleFrame target value payload operation) evm moduleCallTail result) :
+    ExecBlock fork config (moduleFrame target value payload operation) evm
       exectransactionfrommoduleTransition.body result := by
   exact safeModuleChecks hv hn ho ht
 
 theorem safeModuleInvalid {evm : EVM.State} {target : EVM.Address} {value operation : UInt256}
     {payload : ByteArray} (hbad : ¬payload.size ≤ 2 ^ 64 - 192 ∨ ¬operation.toNat < 2) :
-    ExecTransitionBody config contract evm (moduleArgs target value payload operation)
+    ExecTransitionBody fork config contract evm (moduleArgs target value payload operation)
       exectransactionfrommoduleTransition.body .reverted := by
   exact safeModuleInvalidChecks hbad
 
 theorem safeModuleReturn (evm : EVM.State) (target guard : EVM.Address)
     (value operation hash : UInt256) (payload : ByteArray) (z : Bool) :
-    ExecBlock config
+    ExecBlock fork config
       (resumeAfterInternalCall (moduleAfterExecute target value payload operation guard hash z)
         "_post" none) evm [.return [.var "success"]]
       (.returned

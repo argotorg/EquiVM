@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.TokenBalanceTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -44,16 +46,16 @@ theorem decimals_decode {out : ByteArray} (hhi : out.size < 2^255) :
 
 theorem decimals_typed {evm evm' : EVM.State} {asset : AccountAddress}
     {z : Bool} {out : ByteArray}
-    (hc : callViaEVM evm asset 0 decimalsPayload (z, evm', out) false) :
-    typedCallViaEVM config evm asset "decimals" 0 [] (z, evm', out) false :=
+    (hc : callViaEVM fork evm asset 0 decimalsPayload (z, evm', out) false) :
+    typedCallViaEVM fork config evm asset "decimals" 0 [] (z, evm', out) false :=
   ⟨_, decimalsPayload_encode, hc⟩
 
 theorem decimals_source_ok {frame : Frame} {evm evm' : EVM.State}
     {asset : AccountAddress} {expr : Expr} {ret : Ident} {out : ByteArray}
     (he : evalExpr? config frame evm expr = .ok (.address asset))
-    (hc : callViaEVM evm asset 0 decimalsPayload (true, evm', out) false)
+    (hc : callViaEVM fork evm asset 0 decimalsPayload (true, evm', out) false)
     (hhi : out.size < 2^255) (hv : DecimalsReturnValid out) :
-    ExecStmt config frame evm (.externalCall expr "decimals" (.intLit 0) [] ret (perm := false))
+    ExecStmt fork config frame evm (.externalCall expr "decimals" (.intLit 0) [] ret (perm := false))
       (.ok { frame with locals :=
         frame.locals.insert ret (.int (Int.ofNat (calldataWord out 0).toNat)) } evm') := by
   rw [← addressOfAddress asset] at hc
@@ -64,9 +66,9 @@ theorem decimals_source_ok {frame : Frame} {evm evm' : EVM.State}
 theorem decimals_source_revert {frame : Frame} {evm evm' : EVM.State}
     {asset : AccountAddress} {expr : Expr} {ret : Ident} {z : Bool} {out : ByteArray}
     (he : evalExpr? config frame evm expr = .ok (.address asset))
-    (hc : callViaEVM evm asset 0 decimalsPayload (z, evm', out) false)
+    (hc : callViaEVM fork evm asset 0 decimalsPayload (z, evm', out) false)
     (hhi : out.size < 2^255) (hv : ¬ (z = true ∧ DecimalsReturnValid out)) :
-    ExecStmt config frame evm (.externalCall expr "decimals" (.intLit 0) [] ret (perm := false))
+    ExecStmt fork config frame evm (.externalCall expr "decimals" (.intLit 0) [] ret (perm := false))
       .reverted := by
   rw [← addressOfAddress asset] at hc
   cases z with
@@ -78,19 +80,19 @@ theorem decimals_source_revert {frame : Frame} {evm evm' : EVM.State}
       (by simp only [evalExpr?, pure]) (by rfl) (decimals_typed hc)
       (by rw [decimals_decode hhi, if_neg (fun h ↦ hv ⟨rfl, h⟩)])
 
-inductive DecimalsTrace (asset : AccountAddress) (evm : EVM.State) :
+inductive DecimalsTrace (fork : Ethereum.Fork) (asset : AccountAddress) (evm : EVM.State) :
     Option (EVM.State × UInt256) → Prop where
   | response {evm' : EVM.State} {z : Bool} {out : ByteArray}
-      (hc : callViaEVM evm asset 0 decimalsPayload (z, evm', out) false)
+      (hc : callViaEVM fork evm asset 0 decimalsPayload (z, evm', out) false)
       (hh : out.size < 2^255) :
-      DecimalsTrace asset evm
+      DecimalsTrace fork asset evm
         (if z = true ∧ DecimalsReturnValid out then some (evm', calldataWord out 0) else none)
 
 theorem decimalsTrace_source {asset : AccountAddress} {evm : EVM.State}
-    {result : Option (EVM.State × UInt256)} (ht : DecimalsTrace asset evm result)
+    {result : Option (EVM.State × UInt256)} (ht : DecimalsTrace fork asset evm result)
     (frame : Frame) (expr : Expr) (ret : Ident)
     (he : evalExpr? config frame evm expr = .ok (.address asset)) :
-    ExecStmt config frame evm (.externalCall expr "decimals" (.intLit 0) [] ret (perm := false))
+    ExecStmt fork config frame evm (.externalCall expr "decimals" (.intLit 0) [] ret (perm := false))
       (wordCallResult frame ret result) := by
   cases ht with
   | @response evm' z out hc hh =>

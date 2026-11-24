@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.TrackingUpdateEvm
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -11,12 +13,12 @@ theorem cometTrackingSupplyBranch {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 evm : State} {mem rdata : ByteArray}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} {elapsed : UInt256} {R : List UInt256}
     (hstack : R.length + 14 ≤ 1024) (hperm : ee.perm = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨8033⟩ (⟨0⟩ :: elapsed :: R) mem aw rdata σ k C) :
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨8033⟩ (⟨0⟩ :: elapsed :: R) mem aw rdata σ k C) :
     if TrackingBranchValid v false evm elapsed then
       ∃ σ' dummy k' C', SourceState s0 ee σ' (trackingBranchState evm v false elapsed) ∧
-        RD (deployedRuntime v) ee g s0 ⟨8097⟩
+        RD fork (deployedRuntime v) ee g s0 ⟨8097⟩
           (dummy :: elapsed :: ⟨0⟩ :: v.baseMinForRewards :: R) mem aw rdata σ' k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   let w1 := solcSlotWordAt ⟨1⟩ σ ee
   let total := totalsPrincipalWord w1 false
   let mask := UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 104))
@@ -34,7 +36,7 @@ theorem cometTrackingSupplyBranch {v : CometWithExtendedAssetListImmutables}
   have r2 := cometWithExtendedAssetList_block_7787 (immWords := wordsOf (immStore v))
     (by simp only [List.length_cons]; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r1
-  change RD _ _ _ _ _ (UInt256.land mask w1 :: ⟨0⟩ :: elapsed :: R) _ _ _ _ _ _ at r2
+  change RD fork _ _ _ _ _ (UInt256.land mask w1 :: ⟨0⟩ :: elapsed :: R) _ _ _ _ _ _ at r2
   rw [hfield] at r2
   by_cases hen : TrackingEnabled v false evm
   · have hle : v.baseMinForRewards.toNat ≤ total.toNat := by
@@ -65,12 +67,12 @@ theorem cometTrackingBorrowBranch {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 evm : State} {mem rdata : ByteArray}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} {elapsed dummy : UInt256} {R : List UInt256}
     (hstack : R.length + 12 ≤ 1024) (hperm : ee.perm = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨8097⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨8097⟩
       (dummy :: elapsed :: ⟨0⟩ :: v.baseMinForRewards :: R) mem aw rdata σ k C) :
     if TrackingBranchValid v true evm elapsed then
       ∃ σ' a b c k' C', SourceState s0 ee σ' (trackingBranchState evm v true elapsed) ∧
-        RD (deployedRuntime v) ee g s0 ⟨8126⟩ (a :: b :: c :: R) mem aw rdata σ' k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+        RD fork (deployedRuntime v) ee g s0 ⟨8126⟩ (a :: b :: c :: R) mem aw rdata σ' k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   let w1 := solcSlotWordAt ⟨1⟩ σ ee
   let total := totalsPrincipalWord w1 true
   let mask := UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 104))
@@ -87,7 +89,7 @@ theorem cometTrackingBorrowBranch {v : CometWithExtendedAssetListImmutables}
   have r2 := cometWithExtendedAssetList_block_7871 (immWords := wordsOf (immStore v))
     (by simp only [List.length_cons]; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r1
-  change RD _ _ _ _ _ (UInt256.land mask (UInt256.shiftRight w1 ⟨104⟩) :: ⟨8117⟩ ::
+  change RD fork _ _ _ _ _ (UInt256.land mask (UInt256.shiftRight w1 ⟨104⟩) :: ⟨8117⟩ ::
     elapsed :: ⟨0⟩ :: v.baseMinForRewards :: R) _ _ _ _ _ _ at r2
   rw [hfield] at r2
   have r3 := cometWithExtendedAssetList_block_8112 (immWords := wordsOf (immStore v))
@@ -96,7 +98,7 @@ theorem cometTrackingBorrowBranch {v : CometWithExtendedAssetListImmutables}
   have r4 := cometWithExtendedAssetList_block_7787 (immWords := wordsOf (immStore v))
     (by simp only [List.length_cons]; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r3
-  change RD _ _ _ _ _ (UInt256.land mask total :: elapsed :: ⟨0⟩ :: v.baseMinForRewards :: R)
+  change RD fork _ _ _ _ _ (UInt256.land mask total :: elapsed :: ⟨0⟩ :: v.baseMinForRewards :: R)
     _ _ _ _ _ _ at r4
   rw [hclean] at r4
   by_cases hen : TrackingEnabled v true evm

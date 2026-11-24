@@ -2,28 +2,30 @@ import Benchmarks.Morpho.MorphoBlue.LiquidateSeizedRefine
 import Benchmarks.Morpho.MorphoBlue.LiquidateSharesRefine
 import Benchmarks.Morpho.MorphoBlue.LiquidateIncentiveRefine
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
 
-inductive LiquidateMathRefines (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
+inductive LiquidateMathRefines (fork : Ethereum.Fork) (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     (p : MarketParamsWords) (account srcOff len : UInt256) (data : ByteArray)
     (locals imms : Store) (evm : EVM.State) (σ : AccountMap) (mem : ByteArray) (fp : UInt256) (R : List UInt256) : Prop where
-  | reverted : ExecBlock config { contract := contract, locals := locals, immutables := imms }
-      evm (liquidateTransition.body.drop 17) .reverted → RDrev (deployedRuntime v) g s0 →
-      LiquidateMathRefines v ee g s0 p account srcOff len data locals imms evm σ mem fp R
+  | reverted : ExecBlock fork config { contract := contract, locals := locals, immutables := imms }
+      evm (liquidateTransition.body.drop 17) .reverted → RDrev fork (deployedRuntime v) g s0 →
+      LiquidateMathRefines fork v ee g s0 p account srcOff len data locals imms evm σ mem fp R
   | ok {seized' shares' locals' aw' out' mem' k' C'} (assets : UInt256) :
-      ABlock config evm { contract := contract, locals := locals, immutables := imms }
+      ABlock fork config evm { contract := contract, locals := locals, immutables := imms }
         (liquidateTransition.body.drop 17) { contract := contract, locals := locals', immutables := imms }
         (liquidateTransition.body.drop 19) → LiquidateLocals p account seized' shares' data locals' →
       locals'.get? "__memory" = locals.get? "__memory" →
       locals'.get? "repaidAssets" = some (.int (Int.ofNat assets.toNat)) →
       MorphoHeap mem' fp 832 → HeapAdvance mem fp mem' fp 0 →
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat 2105)
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 2105)
         (assets :: liquidateFinishMathTail p.id seized' shares' srcOff len R) mem' aw' out' σ k' C' →
-      LiquidateMathRefines v ee g s0 p account srcOff len data locals imms evm σ mem fp R
+      LiquidateMathRefines fork v ee g s0 p account srcOff len data locals imms evm σ mem fp R
 
 theorem morphoLiquidateMathRefine {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : State} {aw fp account seized shares price srcOff len : UInt256} {out mem data : ByteArray}
@@ -32,10 +34,10 @@ theorem morphoLiquidateMathRefine {v : MorphoImmutables} {ee : ExecutionEnv} {g 
     (hs : SourceState s0 ee σ evm) (hlltv : p.lltv.toNat ≤ wad.toNat) (hm : MorphoHeap mem fp 832)
     (hprice : locals.get? "collateralPrice" = some (.int (Int.ofNat price.toNat)))
     (hfactor : locals.get? "liquidationIncentiveFactor" = some (.int (Int.ofNat (liquidationFactor p.lltv).toNat)))
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 1743)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 1743)
       (liquidateMathStack p.id seized shares price (liquidationDenom p.lltv) srcOff len R) mem aw out σ k C) :
-    LiquidateMathRefines v ee g s0 p account srcOff len data locals imms evm σ mem fp R := by
-  have ha : LiquidateAmountRefines v ee g s0 p account srcOff len data locals imms evm σ mem R := by
+    LiquidateMathRefines fork v ee g s0 p account srcOff len data locals imms evm σ mem fp R := by
+  have ha : LiquidateAmountRefines fork v ee g s0 p account srcOff len data locals imms evm σ mem R := by
     by_cases hz : seized = ⟨0⟩
     · exact morphoLiquidateSharesRefine p locals imms hstack hl hs hz hprice hfactor h
     · exact morphoLiquidateSeizedRefine p locals imms hstack hl hs hlltv hz hprice hfactor h

@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.BatchArrayDecode
 import Benchmarks.EAS.EAS.ArrayTableAllocate
 import Benchmarks.EAS.EAS.RuntimeBlocks_015
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -10,11 +12,11 @@ set_option maxHeartbeats 1000000 in
 theorem easMultiAttestDecode {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : EASImmutables) (hstack : R.length+8 ≤ 1024) (hsize : ee.calldata.size < UInt256.size)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3682⟩ R mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3682⟩ R mem aw rdata σ k C) :
     if wordArrayValid ee.calldata then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨3713⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨3713⟩
         (UInt256.ofNat (wordArrayLength ee.calldata)::UInt256.ofNat (wordArrayOffset ee.calldata+36)::R) mem aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   exact easBatchArrayDecode v .attest hstack hsize rd
 
 def multiAttestLoopStack (n i : Nat) (base table available count : UInt256) (R : List UInt256) : List UInt256 :=
@@ -24,12 +26,12 @@ theorem easMultiAttestAllocate {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C n : Nat}
     {base heap : UInt256} {R : List UInt256} (v : EASImmutables) (hstack : R.length+12 ≤ 1024)
     (hn : n ≤ 2^64-1) (hh : heap.toNat ≤ 2^64-1) (hf : memLoad (UInt256.ofNat 64) mem = heap)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3713⟩ (UInt256.ofNat n::base::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3713⟩ (UInt256.ofNat n::base::R) mem aw rdata σ k C) :
     if allocateNext heap.toNat (32+32*n) ≤ 2^64-1 ∧ heap.toNat ≤ allocateNext heap.toNat (32+32*n) then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨3767⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨3767⟩
         (multiAttestLoopStack n 0 base heap ee.weiValue ⟨0⟩ R)
         (arrayTableAllocationMemory mem heap n) aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hn' : (UInt256.ofNat n).toNat = n := ulit_toNat' _ (by change n < 2^256; omega)
   obtain ⟨a1,k1,C1,r1⟩ := easBlocks.eas_block_3713_packed (immWords := wordsOf (immStore v))
     (by simp only [List.length_cons]; omega) (by rw [easPatchedValidJumpsRuntime v]; jump_dest) rd

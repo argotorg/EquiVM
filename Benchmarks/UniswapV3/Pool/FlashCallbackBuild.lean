@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.CallbackMemory
 import Benchmarks.UniswapV3.Pool.Dispatch
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_023
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -27,11 +29,11 @@ set_option maxHeartbeats 1000000 in
 theorem flashCallbackBuildX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p bal0 bal1 fee0 fee1 liquidity len start : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨6827⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨6827⟩
       (bal1 :: bal0 :: fee1 :: fee0 :: liquidity :: len :: start :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw p) (hc : start.toNat + len.toNat ≤ ee.calldata.size)
     (hb : p.toNat + len.toNat + 164 ≤ 2 ^ 200) (hov : R.length + 21 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨6911⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨6911⟩
       (UInt256.lnot ⟨31⟩ :: len :: start :: (p + ⟨132⟩) :: (p + ⟨68⟩) :: (p + ⟨4⟩) ::
         len :: start :: fee1 :: fee0 :: ⟨3922440112⟩ :: EVM.word ee.source.val ::
         bal1 :: bal0 :: fee1 :: fee0 :: liquidity :: len :: start :: R)

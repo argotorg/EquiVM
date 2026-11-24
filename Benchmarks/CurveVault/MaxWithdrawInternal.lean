@@ -5,6 +5,8 @@ import Benchmarks.CurveVault.BalanceStorage
 import Benchmarks.CurveVault.RuntimeBlocks_014
 import Benchmarks.CurveVault.RuntimeBlocks_015
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -19,13 +21,13 @@ theorem vaultMaxWithdrawRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hbase : locals.get? "balanceOf" = none)
     (harg : locals.get? "_owner" = some (.address (AccountAddress.ofNat owner.toNat)))
     (hstack : R.length + 14 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 3915) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 3915) R mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (locals' : Store) (value : UInt256),
-      ExecFuncBody config {contract := contract, locals := locals} evm vaultMaxWithdrawFunction.body
+      ExecFuncBody fork config {contract := contract, locals := locals} evm vaultMaxWithdrawFunction.body
         (.returned {contract := contract, locals := locals'} evm' (some [.int (Int.ofNat value.toNat)])) ∧
-      SourceState s0 I σ' evm' ∧ RDret vaultBytecode g s0 σ' value.toByteArray) ∨
-    (ExecFuncBody config {contract := contract, locals := locals} evm vaultMaxWithdrawFunction.body .reverted ∧
-      RDrev vaultBytecode g s0) := by
+      SourceState s0 I σ' evm' ∧ RDret fork vaultBytecode g s0 σ' value.toByteArray) ∨
+    (ExecFuncBody fork config {contract := contract, locals := locals} evm vaultMaxWithdrawFunction.body .reverted ∧
+      RDrev fork vaultBytecode g s0) := by
   let balance := codeOwnerStorageWord I σ (vyperMappingSlot ⟨13⟩ (.address (AccountAddress.ofNat owner.toNat)))
   let hashMem := wordAt0Mem ⟨13⟩ (wordAt32Mem owner mem)
   have hhash := vyperHashMem_address ⟨13⟩ owner mem hsize hcanon
@@ -40,7 +42,7 @@ theorem vaultMaxWithdrawRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     simp only [args, evalExprs?, hbalance, evalExpr?, bind, pure, EvalResult.bind]
     rfl
   obtain ⟨_, _, rd7332⟩ := vaultBlocks.vault_block_3915 (by omega) (by native_decide) h
-  change RD vaultBytecode I g s0 (UInt256.ofNat 7332) (UInt256.ofNat 608 :: UInt256.ofNat 3988 :: R)
+  change RD fork vaultBytecode I g s0 (UInt256.ofNat 7332) (UInt256.ofNat 608 :: UInt256.ofNat 3988 :: R)
     (vaultConversionArgsMemory (wordAt0Mem ⟨13⟩ (wordAt32Mem (memLoad (UInt256.ofNat 576) mem) mem))
       (codeOwnerStorageWord I σ (keccakWord ⟨0⟩ (UInt256.ofNat 64)
         (wordAt0Mem ⟨13⟩ (wordAt32Mem (memLoad (UInt256.ofNat 576) mem) mem)))) ⟨1⟩ vaultMaxWord)
@@ -62,7 +64,7 @@ theorem vaultMaxWithdrawRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
   have hword0 : memLoad (UInt256.ofNat 608) mem0 = assets := memLoad_write_back _ _ 608 (by decide +kernel)
     (lt_of_le_of_lt (Nat.sub_le _ _) (lt_usize 608 (by norm_num)))
   have rd7819 := vaultBlocks.vault_block_3988 (by omega) (by native_decide) rd3988
-  change RD vaultBytecode I g s0 (UInt256.ofNat 7819)
+  change RD fork vaultBytecode I g s0 (UInt256.ofNat 7819)
     (UInt256.ofNat 640 :: UInt256.ofNat 4003 :: memLoad (UInt256.ofNat 608) mem0 :: R) mem0 _ out0 σ0 _ _ at rd7819
   rw [hword0] at rd7819
   rcases vaultAvailableBalanceRoutine hs0 (by simp only [List.length_cons]; omega) (by native_decide) rd7819 with
@@ -77,7 +79,7 @@ theorem vaultMaxWithdrawRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
   have hword1 : memLoad (UInt256.ofNat 640) mem1 = available := memLoad_write_back _ _ 640 (by decide +kernel)
     (lt_of_le_of_lt (Nat.sub_le _ _) (lt_usize 640 (by norm_num)))
   have hret := vaultBlocks.vault_block_4003 (by omega) rd4003
-  change RDret vaultBytecode g s0 σ1
+  change RDret fork vaultBytecode g s0 σ1
     (((UInt256.xor (UInt256.mul (UInt256.lt assets (memLoad (UInt256.ofNat 640) mem1))
       (UInt256.xor (memLoad (UInt256.ofNat 640) mem1) assets)) (memLoad (UInt256.ofNat 640) mem1)).toByteArray.write
       0 mem1 672 32).readWithPadding 672 32) at hret

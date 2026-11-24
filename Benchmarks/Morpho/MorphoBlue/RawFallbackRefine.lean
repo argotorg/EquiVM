@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.RawReturnBlockRefines
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 
@@ -9,14 +11,14 @@ variable {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}
 
 -- LIBRARY CANDIDATE: reverting raw fallback execution without ABI selector dispatch.
 theorem reEquivRawFallbackRevert (hcode : I.code = code)
-    (h : RDrev code (.ofUInt256 g) (initState σ σ₀ (.ofUInt256 g) A I))
+    (h : RDrev fork code (.ofUInt256 g) (initState σ σ₀ (.ofUInt256 g) A I))
     (hd : selectorDispatchMsg contract I.calldata = none)
     (hr : receiveDispatchMsg contract I.calldata = none) (hf : contract.fallback = some t)
     (ha : fallbackCallargs I.calldata t.params = some callargs)
     (hc : fallbackReturnConvention t = some .rawBytes)
-    (hb : ExecTransitionBody cfg contract (initState σ σ₀ (.ofUInt256 g) A I)
+    (hb : ExecTransitionBody fork cfg contract (initState σ σ₀ (.ofUInt256 g) A I)
       callargs t.body .reverted immutables) :
-    runtimeRefinementFor cfg contract σ σ₀ g A I immutables := by
+    runtimeRefinementFor fork cfg contract σ σ₀ g A I immutables := by
   apply RDrev.reEquivElim hcode h
   intro g' out hxi
   refine .execution rfl (.fallback hd hr hf ha hc rfl hb) ?_
@@ -29,10 +31,10 @@ theorem RawReturnBlockRefines.fallback (hcode : I.code = code)
     (hr : receiveDispatchMsg contract I.calldata = none) (hf : contract.fallback = some t)
     (ha : fallbackCallargs I.calldata t.params = some callargs)
     (hc : fallbackReturnConvention t = some .rawBytes)
-    (h : RawReturnBlockRefines cfg code I (.ofUInt256 g) (initState σ σ₀ (.ofUInt256 g) A I)
+    (h : RawReturnBlockRefines fork cfg code I (.ofUInt256 g) (initState σ σ₀ (.ofUInt256 g) A I)
       { contract := contract, locals := callargs, immutables := immutables }
       (initState σ σ₀ (.ofUInt256 g) A I) t.body) :
-    runtimeRefinementFor cfg contract σ σ₀ g A I immutables := by
+    runtimeRefinementFor fork cfg contract σ σ₀ g A I immutables := by
   cases h with
   | reverted he hx =>
     exact reEquivRawFallbackRevert hcode hx hd hr hf ha hc (ExecFuncBody.execBlockRevert he)

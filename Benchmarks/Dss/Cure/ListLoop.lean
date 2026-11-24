@@ -1,17 +1,19 @@
 import Reasoning.Memory
 import Benchmarks.Dss.Cure.ListBase
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Cure
 
 set_option maxHeartbeats 1000000 in
 theorem cureListNonemptyToLoop {σ σ₀ A I} {g : Sat256}
-    (h929 : ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) ⟨929⟩
+    (h929 : ∃ k C, RD fork cureBytecode I g (initState σ σ₀ g A I) ⟨929⟩
       [⟨369⟩, cureSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ k C)
     (hlen_ne : solcSlotWordAt ⟨2⟩ σ I ≠ ⟨0⟩) :
-    ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) ⟨987⟩
+    ∃ k C, RD fork cureBytecode I g (initState σ σ₀ g A I) ⟨987⟩
       (listArrayDataPtr :: srcsDataSlot :: listArrayEndPtr (solcSlotWordAt ⟨2⟩ σ I) ::
         solcSlotWordAt ⟨2⟩ σ I :: (⟨2⟩ : UInt256) :: listArrayBasePtr ::
         (⟨96⟩ : UInt256) :: ⟨369⟩ :: cureSelWord I :: [])
@@ -21,7 +23,7 @@ theorem cureListNonemptyToLoop {σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, h936raw⟩ :=
     (evm_run h929 with [jumpdest, push1 ⟨96⟩, push1 ⟨2⟩, dup1]).sload
       (by native_decide) (by evm_ov)
-  obtain ⟨_, _, h936⟩ : ∃ k C, RD cureBytecode I g
+  obtain ⟨_, _, h936⟩ : ∃ k C, RD fork cureBytecode I g
       (initState σ σ₀ g A I) ⟨936⟩
       [solcSlotWordAt ⟨2⟩ σ I, ⟨2⟩, ⟨96⟩, ⟨369⟩, cureSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C :=
@@ -69,10 +71,10 @@ theorem cureListArrayLoopStepToBranch {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {dest slot endp : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
     {σ : AccountMap}
-    (h : RD cureBytecode ee g s0 (⟨987⟩ : UInt256) (dest :: slot :: endp :: R)
+    (h : RD fork cureBytecode ee g s0 (⟨987⟩ : UInt256) (dest :: slot :: endp :: R)
       mem aw rdata σ k C)
     (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD cureBytecode ee g s0 (⟨1016⟩ : UInt256)
+    ∃ k' C', RD fork cureBytecode ee g s0 (⟨1016⟩ : UInt256)
       ((⟨987⟩ : UInt256) :: UInt256.gt endp ((⟨32⟩ : UInt256) + dest) ::
         ((⟨32⟩ : UInt256) + dest) :: ((⟨1⟩ : UInt256) + slot) :: endp :: R)
       (listArrayCopyStepMem σ ee slot dest mem) (listArrayCopyStepAw aw dest)
@@ -98,7 +100,7 @@ theorem cureListArrayLoopStepToBranch {g : Sat256} {s0 : State}
     (by simp only [List.length_cons]; omega)
   have rd999raw := rd998.and (by native_decide)
     (by simp only [List.length_cons]; omega)
-  obtain ⟨_, _, rd999⟩ : ∃ k' C', RD cureBytecode ee g s0 ⟨999⟩
+  obtain ⟨_, _, rd999⟩ : ∃ k' C', RD fork cureBytecode ee g s0 ⟨999⟩
       (UInt256.land (solcSlotWord σ ee slot) solcAddrMask :: dest :: slot :: endp :: R)
       mem aw rdata σ k' C' :=
     ⟨_, _, by simpa [solcSlotWord, hmaskLiteral, u256_land_comm] using rd999raw⟩
@@ -126,12 +128,12 @@ theorem cureListArrayCleanup {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {a b c d e base ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
     {acc : AccountMap}
-    (h : RD cureBytecode ee g s0 (⟨1017⟩ : UInt256)
+    (h : RD fork cureBytecode ee g s0 (⟨1017⟩ : UInt256)
       (a :: b :: c :: d :: e :: base :: (⟨96⟩ : UInt256) :: ret :: R)
       mem aw rdata acc k C)
     (hret : (D_J cureBytecode 0).contains ret = true)
     (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD cureBytecode ee g s0 ret (base :: R) mem aw rdata acc k' C' := by
+    ∃ k' C', RD fork cureBytecode ee g s0 ret (base :: R) mem aw rdata acc k' C' := by
   have rd1018 := h.jumpdest (by native_decide) (by evm_ov)
   have rd1019 := rd1018.pop (by native_decide) (by evm_ov)
   have rd1020 := rd1019.pop (by native_decide) (by evm_ov)
@@ -147,12 +149,12 @@ theorem cureListArrayLoopStepBack {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {dest slot endp : UInt256}
     {a b base ret : UInt256} {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
     {σ : AccountMap}
-    (h : RD cureBytecode ee g s0 (⟨987⟩ : UInt256)
+    (h : RD fork cureBytecode ee g s0 (⟨987⟩ : UInt256)
       (dest :: slot :: endp :: a :: b :: base :: (⟨96⟩ : UInt256) :: ret :: R)
       mem aw rdata σ k C)
     (hcond : UInt256.gt endp ((⟨32⟩ : UInt256) + dest) ≠ ⟨0⟩)
     (hov : R.length + 13 ≤ 1024) :
-    ∃ k' C', RD cureBytecode ee g s0 (⟨987⟩ : UInt256)
+    ∃ k' C', RD fork cureBytecode ee g s0 (⟨987⟩ : UInt256)
       (((⟨32⟩ : UInt256) + dest) :: ((⟨1⟩ : UInt256) + slot) :: endp ::
         a :: b :: base :: (⟨96⟩ : UInt256) :: ret :: R)
       (listArrayCopyStepMem σ ee slot dest mem) (listArrayCopyStepAw aw dest)
@@ -167,13 +169,13 @@ theorem cureListArrayLoopStepExit {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {dest slot endp : UInt256}
     {a b base ret : UInt256} {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
     {σ : AccountMap}
-    (h : RD cureBytecode ee g s0 (⟨987⟩ : UInt256)
+    (h : RD fork cureBytecode ee g s0 (⟨987⟩ : UInt256)
       (dest :: slot :: endp :: a :: b :: base :: (⟨96⟩ : UInt256) :: ret :: R)
       mem aw rdata σ k C)
     (hret : (D_J cureBytecode 0).contains ret = true)
     (hcond : UInt256.gt endp ((⟨32⟩ : UInt256) + dest) = ⟨0⟩)
     (hov : R.length + 13 ≤ 1024) :
-    ∃ k' C', RD cureBytecode ee g s0 ret (base :: R)
+    ∃ k' C', RD fork cureBytecode ee g s0 ret (base :: R)
       (listArrayCopyStepMem σ ee slot dest mem) (listArrayCopyStepAw aw dest)
       rdata σ k' C' := by
   obtain ⟨_, _, rd1016⟩ :=
@@ -191,14 +193,14 @@ theorem cureListArrayLoopRunAux {g : Sat256} {s0 : State}
     (hwf : cureStorageWF σ ee) :
     ∀ rem idx,
       idx + (rem + 1) = (solcSlotWordAt ⟨2⟩ σ ee).toNat →
-      RD cureBytecode ee g s0 (⟨987⟩ : UInt256)
+      RD fork cureBytecode ee g s0 (⟨987⟩ : UInt256)
         (listArrayDest idx :: listArraySlot idx ::
           listArrayEndPtr (solcSlotWordAt ⟨2⟩ σ ee) ::
           solcSlotWordAt ⟨2⟩ σ ee :: (⟨2⟩ : UInt256) :: listArrayBasePtr ::
           (⟨96⟩ : UInt256) :: (⟨369⟩ : UInt256) :: cureSelWord ee :: [])
         (listArrayCopiedMem σ ee (solcSlotWordAt ⟨2⟩ σ ee) idx)
         (listArrayCopiedAw idx) rdata σ k C →
-      ∃ k' C', RD cureBytecode ee g s0 (⟨369⟩ : UInt256)
+      ∃ k' C', RD fork cureBytecode ee g s0 (⟨369⟩ : UInt256)
         [listArrayBasePtr, cureSelWord ee]
         (listArrayCopiedMem σ ee (solcSlotWordAt ⟨2⟩ σ ee)
           (solcSlotWordAt ⟨2⟩ σ ee).toNat)
@@ -225,7 +227,7 @@ theorem cureListArrayLoopRunAux {g : Sat256} {s0 : State}
         decide
       obtain ⟨k1, C1, hnext⟩ :=
         cureListArrayLoopStepBack (σ := σ) h hguard (by simp)
-      have hnext' : RD cureBytecode ee g s0 (⟨987⟩ : UInt256)
+      have hnext' : RD fork cureBytecode ee g s0 (⟨987⟩ : UInt256)
           (listArrayDest (idx + 1) :: listArraySlot (idx + 1) ::
             listArrayEndPtr (solcSlotWordAt ⟨2⟩ σ ee) ::
             solcSlotWordAt ⟨2⟩ σ ee :: (⟨2⟩ : UInt256) :: listArrayBasePtr ::

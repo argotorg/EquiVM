@@ -1,5 +1,7 @@
 import Benchmarks.Safe.ViaIR.SetupOwnersContext
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.ViaIR
@@ -18,7 +20,7 @@ theorem safeSetupOwnersDifferent (evm : EVM.State) {p locals i current}
 theorem safeSetupOwnersRepeated (evm : EVM.State) {p locals i current}
     (h : SetupOwnersLocals p locals i current) (hi : i < p.owners.length)
     (hc : current.toNat < EVM.addressModulus) (he : p.owners[i] = current) :
-    ExecBlock config { contract := contract, locals := locals } evm setupOwnersLoopBody
+    ExecBlock fork config { contract := contract, locals := locals } evm setupOwnersLoopBody
       .reverted := by
   refine .consNormal (.letDecl (safeSetupOwnersIndex evm h hi))
     (.consRevert (.requireFalse ?_))
@@ -29,9 +31,9 @@ theorem safeSetupOwnersGuardRevert (evm : EVM.State) {p locals i current}
     (h : SetupOwnersLocals p locals i current) (hi : i < p.owners.length)
     (hc : current.toNat < EVM.addressModulus) (ho : p.owners[i].toNat < EVM.addressModulus)
     (he : p.owners[i] ≠ current)
-    (hbody : ExecFuncBody config (canAddOwnerFrame p.owners[i]) evm
+    (hbody : ExecFuncBody fork config (canAddOwnerFrame p.owners[i]) evm
       requireCanAddOwnerFunction.body .reverted) :
-    ExecBlock config { contract := contract, locals := locals } evm setupOwnersLoopBody
+    ExecBlock fork config { contract := contract, locals := locals } evm setupOwnersLoopBody
       .reverted := by
   refine .consNormal (.letDecl (safeSetupOwnersIndex evm h hi))
     (.consNormal (.requireTrue (by
@@ -46,7 +48,7 @@ theorem safeSetupOwnersWrite (evm : EVM.State) {p locals i current}
     (hc : current.toNat < EVM.addressModulus) (ho : owner.toNat < EVM.addressModulus)
     (hfit : i + 1 < UInt256.size)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := setupOwnersCheckedLocals locals owner } evm
+    ExecBlock fork config { contract := contract, locals := setupOwnersCheckedLocals locals owner } evm
       (setupOwnersLoopBody.drop 3)
       (.ok { contract := contract, locals := setupOwnersNextLocals locals owner i }
         (writeOwnerLink evm current owner)) := by
@@ -71,19 +73,19 @@ theorem safeSetupOwnersStep (evm : EVM.State) {p locals i current}
     (hv : validOwner evm.accountMap evm.executionEnv p.owners[i])
     (hempty : ownerLink evm p.owners[i] = ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := locals } evm setupOwnersLoopBody
+    ExecBlock fork config { contract := contract, locals := locals } evm setupOwnersLoopBody
       (.ok { contract := contract, locals := setupOwnersNextLocals locals p.owners[i] i }
         (writeOwnerLink evm current p.owners[i])) := by
-  have hcall := safeInternalCanAddOwner (caller := {
+  have hcall := safeInternalCanAddOwner (fork := fork) (caller := {
       contract := contract
       locals := locals.insert "owner" (addressArrayValue p.owners[i]) })
     (expr := .var "owner") (retVar := "_ok") rfl rfl (evalLocalValue (by simp))
-    (safeCanAddOwnerSource evm p.owners[i] ho hv hempty)
+    (safeCanAddOwnerSource (fork := fork) evm p.owners[i] ho hv hempty)
   exact .consNormal (.letDecl (safeSetupOwnersIndex evm h hi))
     (.consNormal (.requireTrue (by
       have hg := safeSetupOwnersDifferent evm h p.owners[i] hc ho
       rw [decide_eq_true he] at hg
       exact hg))
-      (.consNormal hcall (safeSetupOwnersWrite (hperm := by assumption) evm h p.owners[i] hc ho hfit)))
+      (.consNormal hcall (safeSetupOwnersWrite (fork := fork) (hperm := by assumption) evm h p.owners[i] hc ho hfit)))
 
 end Benchmarks.Safe.ViaIR

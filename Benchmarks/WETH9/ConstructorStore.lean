@@ -1,6 +1,8 @@
 import Benchmarks.WETH9.ConstructorClear
 import Reasoning.Memory
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # WETH9 constructor — the reusable compact-string store subroutine (creation.hex pc 122–276)
 
@@ -57,10 +59,10 @@ theorem weth9StringStoreSubroutine
     (hawMem : memPtr.toNat + 32 ≤ aw.toNat * 32)
     (haw1 : 1 ≤ aw.toNat)
     (hmemData : mem.readWithPadding memPtr.toNat 32 = UInt256.toByteArray dataword)
-    (h : RD weth9CreationBytecode ee g s0 ⟨122⟩ [len, memPtr, slot, retAddr]
+    (h : RD fork weth9CreationBytecode ee g s0 ⟨122⟩ [len, memPtr, slot, retAddr]
           mem aw rdata σ k C) :
     ∃ k' C',
-      RD weth9CreationBytecode ee g s0 retAddr [slot]
+      RD fork weth9CreationBytecode ee g s0 retAddr [slot]
         (UInt256.toByteArray slot |>.write 0 mem 0 32) aw rdata
         (clearDataWordsForwardFrom ee.codeOwner
           (sstoreAccountMap ee.codeOwner σ slot

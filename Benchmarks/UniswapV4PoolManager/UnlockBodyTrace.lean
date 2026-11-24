@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.UnlockFinishTrace
 import Benchmarks.UniswapV4PoolManager.UnlockOpenTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -16,13 +18,13 @@ theorem unlockBodyTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f : Fr
     (hb : BytesCalldataBounds I.calldata)
     (hgas : g.toNat < 324518553658429321982441292826060)
     (hpaid : 552+Cₘ aw ≤ C) (hmem : mem.size = 96) (hfree : memLoad ⟨64⟩ mem = ⟨160⟩)
-    (h : RD (deployedRuntime v) I g s0 ⟨8889⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨8889⟩
       (calldataWord I.calldata (4+(calldataWord I.calldata 4).toNat) ::
         (⟨4⟩+calldataWord I.calldata 4+⟨32⟩) :: saved :: R) mem aw rdata evm.accountMap k C) :
-    (X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass) ∨
-      ∃ result, ExecFuncBody config f evm (unlockTransition.body.drop 3) result ∧
-        bytesResultTrace (deployedRuntime v) g s0 result := by
-  have hpref := unlockPrefix (evm := evm) hf
+    (X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass) ∨
+      ∃ result, ExecFuncBody fork config f evm (unlockTransition.body.drop 3) result ∧
+        bytesResultTrace fork (deployedRuntime v) g s0 result := by
+  have hpref := unlockPrefix (fork := fork) (evm := evm) hf
   rw [hI] at hpref
   have ht := transientWord_accountMap hI lockSlot
   by_cases hl : transientWord evm lockSlot = ⟨0⟩

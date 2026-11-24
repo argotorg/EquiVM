@@ -1,5 +1,11 @@
 import Examples.UniswapV2Pair.Dispatch
 
+variable {fork : Ethereum.Fork}
+
+-- Concrete decoder facts must reduce the empty padding of a complete PUSH operand.
+set_option allowUnsafeReducibility true in
+attribute [local semireducible] ByteArray.zeroes
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -13,7 +19,7 @@ theorem uniswapReachSwapBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x02, 0x2c, 0x0d, 0x9f]⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨430⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨430⟩
         [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x022c0d9f⟩ :=
     uniswapSelWord_eq_of_beq I hsz 0x02 0x2c 0x0d 0x9f ⟨0x022c0d9f⟩ (by decide) hsel
@@ -32,7 +38,7 @@ theorem uniswapReachMintBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x6a, 0x62, 0x78, 0x42]⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨1041⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨1041⟩
         [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x6a627842⟩ :=
     uniswapSelWord_eq_of_beq I hsz 0x6a 0x62 0x78 0x42 ⟨0x6a627842⟩ (by decide) hsel
@@ -52,7 +58,7 @@ theorem uniswapReachBurnBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x89, 0xaf, 0xcb, 0x44]⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨1163⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨1163⟩
         [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x89afcb44⟩ :=
     uniswapSelWord_eq_of_beq I hsz 0x89 0xaf 0xcb 0x44 ⟨0x89afcb44⟩ (by decide) hsel
@@ -76,7 +82,7 @@ theorem uniswapReachPermitBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0xd5, 0x05, 0xac, 0xcf]⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨1340⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨1340⟩
         [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0xd505accf⟩ :=
     uniswapSelWord_eq_of_beq I hsz 0xd5 0x05 0xac 0xcf ⟨0xd505accf⟩ (by decide) hsel

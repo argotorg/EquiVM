@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.PoolSwapFeesSource
 import Benchmarks.UniswapV4PoolManager.PoolSwapGuardsSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -18,8 +20,8 @@ def poolSwapPreludeResult (f : Frame) (evm : State) (id : UInt256) (p : PoolSwap
 theorem poolSwapPreludeSource {f : Frame} {evm : State} {id : UInt256} {p : PoolSwapParamsWords}
     (hf : f.contract = contract) (hs : f.locals.get? "self" = some (poolRefValue id))
     (hp : f.locals.get? "params" = some (poolSwapParamsValue p)) (hc : p.lpFeeOverride.toNat < 2^24) :
-    ExecBlock config f evm (poolSwapFunction.body.take 28) (poolSwapPreludeResult f evm id p) := by
-  have h0 := poolSwapFeesSource (evm := evm) hf hs hp hc
+    ExecBlock fork config f evm (poolSwapFunction.body.take 28) (poolSwapPreludeResult f evm id p) := by
+  have h0 := poolSwapFeesSource (fork := fork) (evm := evm) hf hs hp hc
   unfold poolSwapPreludeResult
   by_cases hv : poolSwapLPFeeValid p.lpFeeOverride
   · rw [if_pos hv] at h0 ⊢

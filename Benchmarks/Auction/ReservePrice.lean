@@ -1,5 +1,7 @@
 import Benchmarks.Auction.Storage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 100000
@@ -8,7 +10,7 @@ namespace Auction
 
 theorem reservePriceBodyReturns (evm : EVM.State) (locals : Store)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hbase : locals.get? "reservePrice" = none) :
-    ExecTransitionBody auctionConfig auctionContract evm locals reservePriceGetter.body
+    ExecTransitionBody fork auctionConfig auctionContract evm locals reservePriceGetter.body
       (.returned { contract := auctionContract, locals := locals } evm
         (some [.int (Int.ofNat
           (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨204⟩).toNat)])) := by
@@ -19,8 +21,8 @@ theorem reservePriceBodyReturns (evm : EVM.State) (locals : Store)
         hbase (by native_decide) rfl, loadUint256])
 
 theorem reservePriceX {σ σ₀ A I} {g : UInt256}
-    (hreach : EntryReached 16 σ σ₀ A I g) (hwv : I.weiValue = ⟨0⟩) :
-    RDret auctionBytecode (Sat256.ofUInt256 g)
+    (hreach : EntryReached fork 16 σ σ₀ A I g) (hwv : I.weiValue = ⟨0⟩) :
+    RDret fork auctionBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
       (UInt256.toByteArray (solcSlotWord σ I ⟨204⟩)) := by
   obtain ⟨_, _, rd859⟩ := hreach
@@ -33,8 +35,8 @@ theorem reservePriceX {σ σ₀ A I} {g : UInt256}
 theorem reservePriceBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (_hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (entryBytes 16))
-    (hreach : EntryReached 16 σ σ₀ A I g) :
-    runtimeRefinementFor auctionConfig auctionContract
+    (hreach : EntryReached fork 16 σ σ₀ A I g) :
+    runtimeRefinementFor fork auctionConfig auctionContract
       σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
   · have hsz := calldata_size_ge_of_selIs I (entryBytes 16) (entryBytes_size 16) hsel
@@ -43,7 +45,7 @@ theorem reservePriceBodyCore {σ σ₀ A I} {g : UInt256}
         (reservePriceGetter.params.map Param.name)
         (transitionSignature reservePriceGetter).paramTypes I.calldata = some ∅ :=
       decodeCalldata_empty_ok hsz
-    have hbody : ExecTransitionBody auctionConfig auctionContract
+    have hbody : ExecTransitionBody fork auctionConfig auctionContract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ reservePriceGetter.body
         (.returned { contract := auctionContract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)

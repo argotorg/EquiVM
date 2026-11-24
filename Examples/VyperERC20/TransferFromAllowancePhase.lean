@@ -1,5 +1,7 @@
 import Examples.VyperERC20.TransferFromBase
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -14,10 +16,10 @@ theorem erc20X_transferFromAfterAllowanceSLoad {σ σ₀ A I} {g : Sat256}
     (hsize : I.calldata.size < UInt256.size)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨331⟩
+    (hreach : ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨331⟩
       [transferFromSelectorWord] transferFromDispatchMem (UInt256.ofNat 1) ByteArray.empty
       σ k C) :
-    ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨409⟩
+    ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨409⟩
       [transferFromCurrentAllowanceRaw σ I, transferFromSelectorWord]
       (transferFromAllowanceOuterHashMem
         (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I))
@@ -101,10 +103,10 @@ theorem erc20X_transferFromAfterAllowanceLoad {σ σ₀ A I} {g : Sat256}
     (hsize : I.calldata.size < UInt256.size)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨331⟩
+    (hreach : ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨331⟩
       [transferFromSelectorWord] transferFromDispatchMem (UInt256.ofNat 1) ByteArray.empty
       σ k C) :
-    ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨412⟩
+    ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨412⟩
       [transferFromSelectorWord]
       (transferFromAllowanceMem
         (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I)
@@ -127,14 +129,14 @@ theorem erc20X_transferFromAfterAllowanceLoad {σ σ₀ A I} {g : Sat256}
 theorem erc20X_transferFromAfterAllowanceGuard {σ σ₀ A I} {g : Sat256}
     (hallowance : (transferFromValueWord I).toNat ≤
       (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨412⟩
+    (hreach : ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨412⟩
       [transferFromSelectorWord]
       (transferFromAllowanceMem
         (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I)
         (transferFromCurrentAllowanceRaw σ I))
       (UInt256.ofNat 5) ByteArray.empty
       σ k C) :
-    ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨423⟩
+    ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨423⟩
       [transferFromSelectorWord]
       (transferFromAllowanceMem
         (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I)
@@ -173,14 +175,14 @@ theorem erc20X_transferFromAfterAllowanceGuard {σ σ₀ A I} {g : Sat256}
 theorem erc20TransferFromX_insufficientAllowance {σ σ₀ A I} {g : Sat256}
     (hlt : (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat <
       (transferFromValueWord I).toNat)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨412⟩
+    (hreach : ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨412⟩
       [transferFromSelectorWord]
       (transferFromAllowanceMem
         (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I)
         (transferFromCurrentAllowanceRaw σ I))
       (UInt256.ofNat 5) ByteArray.empty
       σ k C) :
-    RDrev vyperERC20Bytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vyperERC20Bytecode g (initState σ σ₀ g A I) := by
   obtain ⟨k, C, rd412⟩ := hreach
   let evm0 := initState σ σ₀ g A I
   have hallowanceGuard :

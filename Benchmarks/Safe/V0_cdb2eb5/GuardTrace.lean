@@ -2,6 +2,8 @@ import Benchmarks.Safe.V0_cdb2eb5.GuardReturn
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_006
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_027
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V0_cdb2eb5.RuntimeBlocks
 
@@ -10,17 +12,17 @@ namespace Benchmarks.Safe.V0_cdb2eb5
 set_option maxRecDepth 100000
 
 theorem safeGuardZeroTrace {I g s0 σ k C aw mem rdata} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨5912⟩ (⟨0⟩ :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨5912⟩ (⟨0⟩ :: R) mem aw rdata σ k C)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨6064⟩ (⟨0⟩ :: R) mem aw rdata σ k' C' := by
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨6064⟩ (⟨0⟩ :: R) mem aw rdata σ k' C' := by
   have hr := safeRuntime_block_5912_taken hov (by native_decide) (by jump_dest) h
   exact safeGuardSupported hr (by simp; omega)
 
 theorem safeGuardCallSetup {I g s0 σ k C aw} {guard : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨5912⟩ (guard :: R) solcFreePtrMem aw ByteArray.empty σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨5912⟩ (guard :: R) solcFreePtrMem aw ByteArray.empty σ k C)
     (hov : R.length + 10 ≤ 1024) (hc : guard.toNat < EVM.addressModulus)
     (hz : guard ≠ ⟨0⟩) :
-    ∃ gasArg aw' k' C', RD safeBytecode I g s0 ⟨5989⟩
+    ∃ gasArg aw' k' C', RD fork safeBytecode I g s0 ⟨5989⟩
       (gasArg :: guard :: ⟨128⟩ :: ⟨36⟩ :: ⟨128⟩ :: ⟨32⟩ ::
         ⟨164⟩ :: ⟨33540519⟩ :: guard :: guard :: R)
       (guardCallMemory .transaction) aw' ByteArray.empty σ k' C' := by
@@ -44,17 +46,17 @@ theorem safeGuardCallSetup {I g s0 σ k C aw} {guard : UInt256} {R : List UInt25
 
 theorem safeGuardStoreTrace {I g s0 σ k C aw mem rdata} {guard : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6064⟩ (guard :: ⟨664⟩ :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨6064⟩ (guard :: ⟨664⟩ :: R) mem aw rdata σ k C)
     (hov : R.length + 6 ≤ 1024) (hperm : I.perm = true) :
-    RDret safeBytecode g s0 (sstoreAccountMap I.codeOwner σ guardSlot guard) ByteArray.empty := by
+    RDret fork safeBytecode g s0 (sstoreAccountMap I.codeOwner σ guardSlot guard) ByteArray.empty := by
   obtain ⟨_, _, hr⟩ := safeRuntime_block_6064 hov hperm (by jump_dest) h
   exact safeRuntime_block_664 (by simpa only [safeRuntime_block_6064_stack] using
     (show R.length + 0 ≤ 1024 by omega)) hr
 
 theorem safeGuardStoreStatic {I g s0 σ k C aw mem rdata} {guard : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6064⟩ (guard :: R) mem aw rdata σ k C)
-    (hov : R.length + 3 ≤ 1024) (hperm : I.perm = false) : RDstatic safeBytecode g s0 := by
+    (h : RD fork safeBytecode I g s0 ⟨6064⟩ (guard :: R) mem aw rdata σ k C)
+    (hov : R.length + 3 ≤ 1024) (hperm : I.perm = false) : RDstatic fork safeBytecode g s0 := by
   have h1 := h.jumpdest (by native_decide) (by simp; omega)
   have h2 := RD.pushConst (width := 32) (op := .PUSH32) h1 guardSlot
     (by decide) (by native_decide) (by simp; omega)

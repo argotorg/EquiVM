@@ -1,4 +1,6 @@
 import Examples.UniswapV2Pair.SwapCallbackABI
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -41,13 +43,13 @@ theorem swapAfterTransfersFrame_data (evm : EVM.State) (I : ExecutionEnv) :
 
 theorem uniswapSwapCallbackSkip {caller : Frame} {evm : EVM.State}
     (hcond : evalExpr? config caller evm swapCallbackCondition = .ok (.bool false)) :
-    ExecStmt config caller evm swapCallbackStmt (.ok caller evm) :=
+    ExecStmt fork config caller evm swapCallbackStmt (.ok caller evm) :=
   ExecStmt.iteFalse hcond ExecBlock.nil
 
 theorem uniswapSwapCallbackNoCode {caller : Frame} {evm : EVM.State}
     (hcond : evalExpr? config caller evm swapCallbackCondition = .ok (.bool true))
     (hguard : evalExpr? config caller evm (.binary .gt (.extCodeSize (.var "to")) (.intLit 0)) = .ok (.bool false)) :
-    ExecStmt config caller evm swapCallbackStmt .reverted :=
+    ExecStmt fork config caller evm swapCallbackStmt .reverted :=
   ExecStmt.iteTrue hcond (checkedExternalCallNoCode hguard)
 
 theorem uniswapSwapCallbackFailure {caller : Frame} {evm evm' : EVM.State} {recipient : AccountAddress}
@@ -56,9 +58,9 @@ theorem uniswapSwapCallbackFailure {caller : Frame} {evm evm' : EVM.State} {reci
     (hguard : evalExpr? config caller evm (.binary .gt (.extCodeSize (.var "to")) (.intLit 0)) = .ok (.bool true))
     (hto : caller.locals.get? "to" = some (.address recipient))
     (hargs : evalExprs? config caller evm [sender, .var "amount0Out", .var "amount1Out", .var "data"] = .ok argVals)
-    (hcall : typedCallViaEVM config evm (EVM.address recipient) "uniswapV2Call" 0 argVals (false, evm', out) true) :
-    ExecStmt config caller evm swapCallbackStmt .reverted :=
-  ExecStmt.iteTrue hcond (checkedExternalCallVarFailure (hperm := Or.inl rfl) hguard hto hargs hcall)
+    (hcall : typedCallViaEVM fork config evm (EVM.address recipient) "uniswapV2Call" 0 argVals (false, evm', out) true) :
+    ExecStmt fork config caller evm swapCallbackStmt .reverted :=
+  ExecStmt.iteTrue hcond (checkedExternalCallVarFailure (fork := fork) (hperm := Or.inl rfl) hguard hto hargs hcall)
 
 theorem uniswapSwapCallbackSuccess {caller : Frame} {evm evm' : EVM.State} {recipient : AccountAddress}
     {argVals : List Value} {out : ByteArray}
@@ -66,15 +68,15 @@ theorem uniswapSwapCallbackSuccess {caller : Frame} {evm evm' : EVM.State} {reci
     (hguard : evalExpr? config caller evm (.binary .gt (.extCodeSize (.var "to")) (.intLit 0)) = .ok (.bool true))
     (hto : caller.locals.get? "to" = some (.address recipient))
     (hargs : evalExprs? config caller evm [sender, .var "amount0Out", .var "amount1Out", .var "data"] = .ok argVals)
-    (hcall : typedCallViaEVM config evm (EVM.address recipient) "uniswapV2Call" 0 argVals (true, evm', out) true) :
-    ExecStmt config caller evm swapCallbackStmt
+    (hcall : typedCallViaEVM fork config evm (EVM.address recipient) "uniswapV2Call" 0 argVals (true, evm', out) true) :
+    ExecStmt fork config caller evm swapCallbackStmt
       (.ok { caller with locals := caller.locals.insert "_callback" (collapseReturns []) } evm') :=
-  ExecStmt.iteTrue hcond (checkedExternalCallVarSuccess (hperm := Or.inl rfl) hguard hto hargs hcall rfl)
+  ExecStmt.iteTrue hcond (checkedExternalCallVarSuccess (fork := fork) (hperm := Or.inl rfl) hguard hto hargs hcall rfl)
 
 theorem uniswapSwapBodyReverts_callback (evm evmT : EVM.State) (I : ExecutionEnv) (caller : Frame)
-    (hprefix : ExecBlock config { contract := contract, locals := swapStore I } evm swapTransferPrefix (.ok caller evmT))
-    (hcallback : ExecStmt config caller evmT swapCallbackStmt .reverted) :
-    ExecTransitionBody config contract evm (swapStore I) swapTransition.body .reverted := by
+    (hprefix : ExecBlock fork config { contract := contract, locals := swapStore I } evm swapTransferPrefix (.ok caller evmT))
+    (hcallback : ExecStmt fork config caller evmT swapCallbackStmt .reverted) :
+    ExecTransitionBody fork config contract evm (swapStore I) swapTransition.body .reverted := by
   exact ExecFuncBody.execBlockRevert (by
     simpa only [swapTransition, swapTransferPrefix, swapRecipientGuardPrefix, swapTokenPrefix, swapReserveGuardPrefix,
       swapReservePrefix, swapOutputPrefix, swapOutputRequireStmt, swapOutputRequireExpr,

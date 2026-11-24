@@ -4,6 +4,8 @@ import Benchmarks.CurveVault.RuntimeBlocks_005
 import Benchmarks.CurveVault.RuntimeBlocks_006
 import Benchmarks.CurveVault.RuntimeBlocks_031
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch Reasoning.VyperCalls
 namespace Benchmarks.CurveVault
 
@@ -15,15 +17,15 @@ theorem vaultLendRateCall {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {k C : Nat} {R : List UInt256} {locals : Store}
     (hs : SourceState s0 I σ evm) (hbase : locals.get? "_amm" = none)
     (hstack : R.length + 7 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 1194) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 1194) R mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (out : ByteArray) (aw' : UInt256) (k' C' : Nat),
-      ExecStmt config {contract := contract, locals := locals} evm vaultLendRateStmt
+      ExecStmt fork config {contract := contract, locals := locals} evm vaultLendRateStmt
         (.ok {contract := contract, locals := locals.insert "__c1" (.int (Int.ofNat (retWord out).toNat))} evm') ∧
       SourceState s0 I σ' evm' ∧
-      RD vaultBytecode I g s0 (UInt256.ofNat 1240) (codeOwnerStorageWord I σ ⟨2⟩ :: R)
+      RD fork vaultBytecode I g s0 (UInt256.ofNat 1240) (codeOwnerStorageWord I σ ⟨2⟩ :: R)
         ((retWord out).toByteArray.write 0 (vaultBlocks.vault_block_1194_memory (mem := mem)) 320 32)
         aw' out σ' k' C') ∨
-    (ExecStmt config {contract := contract, locals := locals} evm vaultLendRateStmt .reverted ∧ RDrev vaultBytecode g s0) := by
+    (ExecStmt fork config {contract := contract, locals := locals} evm vaultLendRateStmt .reverted ∧ RDrev fork vaultBytecode g s0) := by
   obtain ⟨gasArg, k', C', rd⟩ := vaultBlocks.vault_block_1194 hstack h
   have hcd : config.externalABI.encode? "rate" [] = some
       ((vaultBlocks.vault_block_1194_memory (mem := mem)).readWithPadding 348 4) := by

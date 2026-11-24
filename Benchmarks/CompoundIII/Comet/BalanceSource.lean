@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.AccountBalanceSource
 import Benchmarks.CompoundIII.Comet.Unsigned104
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -35,7 +37,7 @@ theorem balanceCallable_returns (v : CometWithExtendedAssetListImmutables)
     (hv : CurrentIndicesValid v
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩) (timestampWord evm.executionEnv)) :
-    ∃ final, ExecFuncBody config (balanceEntry v addr) evm balanceCallable.body
+    ∃ final, ExecFuncBody fork config (balanceEntry v addr) evm balanceCallable.body
       (.returned final evm (some [.int (balanceWord v
         (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)
         (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩) (timestampWord evm.executionEnv)
@@ -49,7 +51,7 @@ theorem balanceCallable_returns (v : CometWithExtendedAssetListImmutables)
   let f1 := currentIndicesFrame f0 v w0 w1 time
   let f2 : Frame := { f1 with locals := f1.locals.insert "baseSupplyIndex_" (.int idx.toNat) }
   let f3 : Frame := { f2 with locals := f2.locals.insert "principal" (.int (signed104 basic)) }
-  have hprefix : ExecBlock config f0 evm (currentIndicesBlock ++ balanceRead) (.ok f3 evm) :=
+  have hprefix : ExecBlock fork config f0 evm (currentIndicesBlock ++ balanceRead) (.ok f3 evm) :=
     accountBalancePrefix v evm addr false hv
   have hprincipal : evalExpr? config f3 evm (.var "principal") =
       .ok (.int (signed104 basic)) :=
@@ -63,7 +65,7 @@ theorem balanceCallable_returns (v : CometWithExtendedAssetListImmutables)
     let f4 : Frame := { f3 with locals := f3.locals.insert "__c2" (.int principal.toNat) }
     let f5 : Frame := { f4 with locals := f4.locals.insert "__c3" (.int val.toNat) }
     refine ⟨f5, ExecFuncBody.execBlockRet ?_⟩
-    change ExecBlock config f0 evm _ (.returned f5 evm (some [.int (balanceWord v w0 w1 time basic).toNat]))
+    change ExecBlock fork config f0 evm _ (.returned f5 evm (some [.int (balanceWord v w0 w1 time basic).toNat]))
     rw [balanceWord, if_pos hp]
     apply execBlockAppendOk hprefix
     apply ExecBlock.consReturn (ExecStmt.iteTrue (hcond.trans (by rw [decide_eq_true hp])) ?_)
@@ -87,7 +89,7 @@ theorem balanceCallable_returns (v : CometWithExtendedAssetListImmutables)
         EvalResult.ofOption]
       rfl)
   · refine ⟨f3, ExecFuncBody.execBlockRet ?_⟩
-    change ExecBlock config f0 evm _ (.returned f3 evm (some [.int (balanceWord v w0 w1 time basic).toNat]))
+    change ExecBlock fork config f0 evm _ (.returned f3 evm (some [.int (balanceWord v w0 w1 time basic).toNat]))
     rw [balanceWord, if_neg hp]
     apply execBlockAppendOk hprefix
     apply ExecBlock.consNormal (ExecStmt.iteFalse (hcond.trans (by rw [decide_eq_false hp])) ExecBlock.nil)
@@ -98,9 +100,9 @@ theorem balanceCallable_reverts (v : CometWithExtendedAssetListImmutables)
     (hv : ¬ CurrentIndicesValid v
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩) (timestampWord evm.executionEnv)) :
-    ExecFuncBody config (balanceEntry v addr) evm balanceCallable.body .reverted := by
+    ExecFuncBody fork config (balanceEntry v addr) evm balanceCallable.body .reverted := by
   apply ExecFuncBody.execBlockRevert
-  have hpref := currentIndicesBlock_result v (balanceEntry v addr) evm rfl rfl
+  have hpref := currentIndicesBlock_result (fork := fork) v (balanceEntry v addr) evm rfl rfl
     (by simp [balanceEntry, accountBalanceEntry])
   dsimp only at hpref
   rw [if_neg hv] at hpref
@@ -117,7 +119,7 @@ theorem balance_call_ok (v : CometWithExtendedAssetListImmutables)
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩) (timestampWord evm.executionEnv)
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (userBasicSlot addr))
-    ExecStmt config frame evm (.internalCall "balanceOf_body" [expr] ret)
+    ExecStmt fork config frame evm (.internalCall "balanceOf_body" [expr] ret)
       (.ok { frame with locals := frame.locals.insert ret (.int val.toNat) } evm) := by
   obtain ⟨final, hf⟩ := balanceCallable_returns v evm addr hv
   exact ExecStmt.internalCallReturn (callee := balanceCallable)
@@ -134,7 +136,7 @@ theorem balance_call_revert (v : CometWithExtendedAssetListImmutables)
     (hv : ¬ CurrentIndicesValid v
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩) (timestampWord evm.executionEnv)) :
-    ExecStmt config frame evm (.internalCall "balanceOf_body" [expr] ret) .reverted := by
+    ExecStmt fork config frame evm (.internalCall "balanceOf_body" [expr] ret) .reverted := by
   apply ExecStmt.internalCallRevert (callee := balanceCallable)
     (locals := (∅ : Store).insert "account" (.address addr))
     (cfg := config) (stele := frame) (evm := evm) (args := [expr]) (argVals := [.address addr])

@@ -3,6 +3,8 @@ import Benchmarks.Safe.ViaIR.CalldataBufferMemory
 import Benchmarks.Safe.ViaIR.IRMemoryAllocation
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_034
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -21,7 +23,7 @@ def execAllocatedStack (p : ExecTransactionInput) (ptr : Nat)
 set_option maxRecDepth 2000 in
 theorem safeCalldataBufferAllocateEvidence (len : Nat)
     {I g s0 σ k C aw mem rdata src ptr} {ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7208⟩
+    (h : RD fork safeBytecode I g s0 ⟨7208⟩
       (UInt256.ofNat src :: UInt256.ofNat len ::
         UInt256.ofNat I.calldata.size :: ret :: R) mem aw rdata σ k C)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr)
@@ -29,9 +31,9 @@ theorem safeCalldataBufferAllocateEvidence (len : Nat)
     (hn : len < 2 ^ 64) (hd : src + len ≤ I.calldata.size)
     (hcd : I.calldata.size < UInt256.size)
     (hov : R.length + 12 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    (¬ptr + 32 + ABI.paddedSize len < 2 ^ 64 ∧ RDrev safeBytecode g s0) ∨ ∃ aw' k' C',
+    (¬ptr + 32 + ABI.paddedSize len < 2 ^ 64 ∧ RDrev fork safeBytecode g s0) ∨ ∃ aw' k' C',
       ptr + 32 + ABI.paddedSize len < 2 ^ 64 ∧
-      RD safeBytecode I g s0 ret (UInt256.ofNat ptr :: R)
+      RD fork safeBytecode I g s0 ret (UInt256.ofNat ptr :: R)
         (calldataBufferMemory I.calldata mem src ptr len len
           (ptr + 32 + ABI.paddedSize len)) aw' rdata σ k' C' := by
   have hpad : ABI.paddedSize len ≤ len + 31 := by
@@ -83,7 +85,7 @@ theorem safeCalldataBufferAllocateEvidence (len : Nat)
 
 theorem safeCalldataBufferAllocate (len : Nat)
     {I g s0 σ k C aw mem rdata src ptr} {ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7208⟩
+    (h : RD fork safeBytecode I g s0 ⟨7208⟩
       (UInt256.ofNat src :: UInt256.ofNat len ::
         UInt256.ofNat I.calldata.size :: ret :: R) mem aw rdata σ k C)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr)
@@ -91,9 +93,9 @@ theorem safeCalldataBufferAllocate (len : Nat)
     (hn : len < 2 ^ 64) (hd : src + len ≤ I.calldata.size)
     (hcd : I.calldata.size < UInt256.size)
     (hov : R.length + 12 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    RDrev safeBytecode g s0 ∨ ∃ aw' k' C',
+    RDrev fork safeBytecode g s0 ∨ ∃ aw' k' C',
       ptr + 32 + ABI.paddedSize len < 2 ^ 64 ∧
-      RD safeBytecode I g s0 ret (UInt256.ofNat ptr :: R)
+      RD fork safeBytecode I g s0 ret (UInt256.ofNat ptr :: R)
         (calldataBufferMemory I.calldata mem src ptr len len
           (ptr + 32 + ABI.paddedSize len)) aw' rdata σ k' C' := by
   exact (safeCalldataBufferAllocateEvidence len h hf hp hn hd hcd hov hret).imp And.right id
@@ -102,7 +104,7 @@ theorem safeCalldataBufferAllocate (len : Nat)
 set_option maxRecDepth 2000 in
 theorem safeExecAllocate (p : ExecTransactionInput)
     {I g s0 σ k C aw mem rdata src ptr} {ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7208⟩
+    (h : RD fork safeBytecode I g s0 ⟨7208⟩
       (UInt256.ofNat src :: UInt256.ofNat p.tx.payload.size ::
         UInt256.ofNat I.calldata.size :: ret :: R) mem aw rdata σ k C)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr)
@@ -110,9 +112,9 @@ theorem safeExecAllocate (p : ExecTransactionInput)
     (hn : p.tx.payload.size < 2 ^ 64) (hd : src + p.tx.payload.size ≤ I.calldata.size)
     (hcd : I.calldata.size < UInt256.size)
     (hov : R.length + 12 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    RDrev safeBytecode g s0 ∨ ∃ aw' k' C',
+    RDrev fork safeBytecode g s0 ∨ ∃ aw' k' C',
       ptr + 32 + ABI.paddedSize p.tx.payload.size < 2 ^ 64 ∧
-      RD safeBytecode I g s0 ret (UInt256.ofNat ptr :: R)
+      RD fork safeBytecode I g s0 ret (UInt256.ofNat ptr :: R)
         (calldataBufferMemory I.calldata mem src ptr p.tx.payload.size p.tx.payload.size
           (ptr + 32 + ABI.paddedSize p.tx.payload.size)) aw' rdata σ k' C' :=
   safeCalldataBufferAllocate p.tx.payload.size h hf hp hn hd hcd hov hret

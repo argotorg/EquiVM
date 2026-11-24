@@ -1,6 +1,8 @@
 import Benchmarks.Auction.ReentrancySource
 import Benchmarks.Auction.SettleGuards
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -78,9 +80,9 @@ theorem reentrancyFailureWfs : ∀ i : ReentrancySite, reentrancyFailureWf i := 
   native_decide
 
 theorem reentrancyPrefix {I g s0 R mem aw rdata σ k C} (i : ReentrancySite)
-    (h : RD auctionBytecode I g s0 (reentrancyPc i) R mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 (reentrancyPc i) R mem aw rdata σ k C)
     (hov : R.length + 3 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 (reentrancyBranchPc i)
+    ∃ k' C', RD fork auctionBytecode I g s0 (reentrancyBranchPc i)
       (reentrancyAllowedPc i :: UInt256.sub (solcSlotWord σ I ⟨101⟩) ⟨2⟩ :: R)
       mem aw rdata σ k' C' := by
   obtain ⟨h0, h1, h2, h3, h4, h5, _, _⟩ := reentrancyGuardWfs i
@@ -91,17 +93,17 @@ theorem reentrancyPrefix {I g s0 R mem aw rdata σ k C} (i : ReentrancySite)
     raw push2 (reentrancyAllowedPc i) h5 (by evm_ov)]⟩
 
 theorem reentrancyAllowed {I g s0 R mem aw rdata σ k C} (i : ReentrancySite)
-    (h : RD auctionBytecode I g s0 (reentrancyPc i) R mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 (reentrancyPc i) R mem aw rdata σ k C)
     (hs : solcSlotWord σ I ⟨101⟩ ≠ ⟨2⟩) (hov : R.length + 3 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 (reentrancyAllowedPc i) R
+    ∃ k' C', RD fork auctionBytecode I g s0 (reentrancyAllowedPc i) R
       mem aw rdata σ k' C' := by
   obtain ⟨_, _, rd⟩ := reentrancyPrefix i h hov
   obtain ⟨_, _, _, _, _, _, hj, hd⟩ := reentrancyGuardWfs i
   exact ⟨_, _, evm_run rd with [raw jumpiT hj (u256_sub_ne_zero_of_ne hs) hd (by evm_ov)]⟩
 
 theorem reentrancyErrorRevert {I g s0 ptr R mem aw rdata acc k C}
-    (h : RD auctionBytecode I g s0 ⟨5575⟩ (ptr :: ⟨994⟩ :: R) mem aw rdata acc k C)
-    (hov : R.length + 7 ≤ 1024) : RDrev auctionBytecode g s0 := by
+    (h : RD fork auctionBytecode I g s0 ⟨5575⟩ (ptr :: ⟨994⟩ :: R) mem aw rdata acc k C)
+    (hov : R.length + 7 ≤ 1024) : RDrev fork auctionBytecode g s0 := by
   have rd5587 := evm_run h with [jumpdest, push1 ⟨32⟩, dup1, dup3,
     raw mstoreSymbolic (by native_decide) (by evm_ov), push1 ⟨31⟩, swap1, dup3, add,
     raw mstoreSymbolic (by native_decide) (by evm_ov)]
@@ -114,9 +116,9 @@ theorem reentrancyErrorRevert {I g s0 ptr R mem aw rdata acc k C}
   exact auctionErrorRevert rd994 (by evm_ov)
 
 theorem reentrancyDenied {I g s0 R mem aw rdata σ k C} (i : ReentrancySite)
-    (h : RD auctionBytecode I g s0 (reentrancyPc i) R mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 (reentrancyPc i) R mem aw rdata σ k C)
     (hs : solcSlotWord σ I ⟨101⟩ = ⟨2⟩) (hov : R.length + 7 ≤ 1024) :
-    RDrev auctionBytecode g s0 := by
+    RDrev fork auctionBytecode g s0 := by
   obtain ⟨_, _, rd⟩ := reentrancyPrefix i h (by omega)
   obtain ⟨_, _, _, _, _, _, hj, _⟩ := reentrancyGuardWfs i
   have rdFail := evm_run rd with [raw jumpiNT hj (by rw [hs]; decide) (by evm_ov)]

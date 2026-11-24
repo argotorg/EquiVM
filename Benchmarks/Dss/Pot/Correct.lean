@@ -18,6 +18,8 @@ import Benchmarks.Dss.Pot.Vow
 import Benchmarks.Dss.Pot.Wards
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Pot benchmark correctness
 
@@ -35,7 +37,7 @@ namespace Benchmarks.Dss.Pot
 /-- `callvalue ≠ 0` makes the global non-payable guard revert before dispatch. -/
 theorem potNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = potBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact (potX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
       by_cases hdisp : dispatchMsg contract I.calldata = none
@@ -59,7 +61,7 @@ theorem potNoDispatch {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 17 → (potSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (potX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
       |>.reEquivNoDispatch hcode (potDispatch_none_nomatch hnm)
@@ -100,8 +102,8 @@ theorem potNoSelectorMatches {I : ExecutionEnv}
 
 theorem potCorrect :
     runtimeRefinement config potBytecode contract := by
-  refine runtimeRefinement.intro ?_
-  intro σ σ₀ g A I hcode hsize
+  refine runtimeRefinementOn.intro ?_
+  intro fork _hfork σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases h0 : selIs I (potSelBytes 0)
     · exact potPieTotalBody hcode hsize hwv h0

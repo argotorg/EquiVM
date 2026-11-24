@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.AssetMemory
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_080
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_081
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -16,18 +18,18 @@ theorem cometQuoteDiscountMultiplications {v : CometWithExtendedAssetListImmutab
     {σ : AccountMap} {k C : Nat} {price ptr x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 17 ≤ 1024)
     (hsub : (calldataWord out 192).toNat ≤ quoteFactorScale.toNat)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7799⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7799⟩
       (v.storeFrontPriceFactor :: UInt256.sub quoteFactorScale (calldataWord out 192) ::
         ⟨18095⟩ :: quoteFactorScale :: price :: ⟨18112⟩ :: quoteFactorScale :: x1 :: x2 ::
         UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 64)) (UInt256.ofNat 1) ::
         ptr :: R) mem aw rdata σ k C) :
     (QuoteDiscountValid v out price ∧
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨18112⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨18112⟩
         (UInt256.mul price (UInt256.sub quoteFactorScale (quoteDiscountFactor v out)) ::
           quoteFactorScale :: x1 :: x2 ::
           UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 64)) (UInt256.ofNat 1) ::
           ptr :: R) mem aw' rdata σ k' C') ∨
-    (¬ QuoteDiscountValid v out price ∧ RDrev (deployedRuntime v) g s0) := by
+    (¬ QuoteDiscountValid v out price ∧ RDrev fork (deployedRuntime v) g s0) := by
   apply Classical.byCases (p := v.storeFrontPriceFactor.toNat *
     (UInt256.sub quoteFactorScale (calldataWord out 192)).toNat < UInt256.size)
   all_goals intro hmul
@@ -49,7 +51,7 @@ theorem cometQuoteDiscountMultiplications {v : CometWithExtendedAssetListImmutab
         (immWords := wordsOf (immStore v))
         (by simp only [List.length_cons]; omega)
         (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r4
-      change RD _ _ _ _ _ (price :: UInt256.sub quoteFactorScale (quoteDiscountFactor v out) ::
+      change RD fork _ _ _ _ _ (price :: UInt256.sub quoteFactorScale (quoteDiscountFactor v out) ::
         ⟨18112⟩ :: quoteFactorScale :: x1 :: x2 :: _ :: ptr :: R) _ _ _ _ _ _ at r5
       apply Classical.byCases (p := price.toNat *
         (UInt256.sub quoteFactorScale (quoteDiscountFactor v out)).toNat < UInt256.size)
@@ -89,15 +91,15 @@ theorem cometQuoteDiscount {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata out : ByteArray} {aw : UInt256}
     {σ : AccountMap} {k C : Nat} {price ptr free x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 17 ≤ 1024) (hm : AssetMemory mem ptr free out) (hv : AssetValid out)
-    (h : RD (deployedRuntime v) ee g s0 ⟨18010⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨18010⟩
       (price :: x1 :: x2 :: ⟨18112⟩ :: ptr :: R) mem aw rdata σ k C) :
     (QuoteDiscountValid v out price ∧
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨18112⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨18112⟩
         (UInt256.mul price (UInt256.sub quoteFactorScale (quoteDiscountFactor v out)) ::
           quoteFactorScale :: x1 :: x2 ::
           UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 64)) (UInt256.ofNat 1) ::
           ptr :: R) mem aw' rdata σ k' C') ∨
-    (¬ QuoteDiscountValid v out price ∧ RDrev (deployedRuntime v) g s0) := by
+    (¬ QuoteDiscountValid v out price ∧ RDrev fork (deployedRuntime v) g s0) := by
   classical
   have hl : memLoad (ptr + UInt256.ofNat 192) mem = calldataWord out 192 :=
     hm.words 6 (by decide)

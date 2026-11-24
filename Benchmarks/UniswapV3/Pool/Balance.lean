@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.BalanceCopy
 import Benchmarks.UniswapV3.Pool.BalanceCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -13,9 +15,9 @@ def balanceInputMem (mem : ByteArray) (p : UInt256) (who : AccountAddress) : Byt
 theorem balancePrepareX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (second : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (balanceEntry second) (ret :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 (balanceEntry second) (ret :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw p) (hb : p.toNat + 132 ≤ 2 ^ 200) (hov : R.length + 18 ≤ 1024) :
-    ∃ gasArg aw' k' C', RD (deployedRuntime v) ee g s0 ⟨15774⟩
+    ∃ gasArg aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨15774⟩
       (gasArg :: EVM.word (balanceToken v second).val :: (p + ⟨68⟩) :: ⟨36⟩ ::
         (p + ⟨68⟩) :: ⟨0⟩ :: (UInt256.ofNat 36 + (p + ⟨68⟩)) ::
         EVM.word (balanceToken v second).val :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ret :: R)
@@ -71,20 +73,20 @@ theorem balanceInputMem_read {mem : ByteArray} {aw p : UInt256}
 theorem balanceEntryCallGrowingX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : EVM.State} {k C : Nat} {aw p ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (second : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (balanceEntry second) (ret :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 (balanceEntry second) (ret :: R) mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hm : HeapMemory mem aw p)
     (hzero : memLoad (UInt256.ofNat 96) (balanceInputMem mem p ee.codeOwner) = ⟨0⟩)
     (hb : p.toNat + 2 ^ 138 + 163 ≤ 2 ^ 200)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 18 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧
-      ExecFuncBody config {contract := contract, locals := ∅, immutables := immStore v} evm
+    (RDrev fork (deployedRuntime v) g s0 ∧
+      ExecFuncBody fork config {contract := contract, locals := ∅, immutables := immStore v} evm
         (balanceFunction second).body .reverted) ∨
     ∃ evm' σ' out mem' aw' next k' C', SourceState s0 ee σ' evm' ∧
-      ExecFuncBody config {contract := contract, locals := ∅, immutables := immStore v} evm
+      ExecFuncBody fork config {contract := contract, locals := ∅, immutables := immStore v} evm
         (balanceFunction second).body
         (.returned (balanceCallFrame v second true out) evm'
           (some [.int (Int.ofNat (balanceValue out).toNat)])) ∧
-      RD (deployedRuntime v) ee g s0 ret (balanceValue out :: R) mem' aw' out σ' k' C' ∧
+      RD fork (deployedRuntime v) ee g s0 ret (balanceValue out :: R) mem' aw' out σ' k' C' ∧
       HeapMemory mem' aw' next ∧ MemoryPrefix (balanceInputMem mem p ee.codeOwner) mem' (p +
         ⟨68⟩).toNat ∧
       (p + ⟨68⟩).toNat ≤ next.toNat ∧ next.toNat ≤ (p + ⟨68⟩).toNat + 2 ^ 138 + 63 := by
@@ -102,20 +104,20 @@ theorem balanceEntryCallGrowingX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat2
 theorem balanceEntryCallX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : EVM.State} {k C : Nat} {aw p ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (second : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (balanceEntry second) (ret :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 (balanceEntry second) (ret :: R) mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hm : HeapMemory mem aw p)
     (hzero : memLoad (UInt256.ofNat 96) (balanceInputMem mem p ee.codeOwner) = ⟨0⟩)
     (hb : p.toNat + 2 ^ 138 + 163 ≤ 2 ^ 200)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 18 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧
-      ExecFuncBody config {contract := contract, locals := ∅, immutables := immStore v} evm
+    (RDrev fork (deployedRuntime v) g s0 ∧
+      ExecFuncBody fork config {contract := contract, locals := ∅, immutables := immStore v} evm
         (balanceFunction second).body .reverted) ∨
     ∃ evm' σ' out mem' aw' next k' C', SourceState s0 ee σ' evm' ∧
-      ExecFuncBody config {contract := contract, locals := ∅, immutables := immStore v} evm
+      ExecFuncBody fork config {contract := contract, locals := ∅, immutables := immStore v} evm
         (balanceFunction second).body
         (.returned (balanceCallFrame v second true out) evm'
           (some [.int (Int.ofNat (balanceValue out).toNat)])) ∧
-      RD (deployedRuntime v) ee g s0 ret (balanceValue out :: R) mem' aw' out σ' k' C' ∧
+      RD fork (deployedRuntime v) ee g s0 ret (balanceValue out :: R) mem' aw' out σ' k' C' ∧
       HeapMemory mem' aw' next ∧ MemoryPrefix (balanceInputMem mem p ee.codeOwner) mem' (p +
         ⟨68⟩).toNat ∧
       next.toNat ≤ (p + ⟨68⟩).toNat + 2 ^ 138 + 63 := by
@@ -137,20 +139,20 @@ theorem balanceInputMem_result {mem mem' : ByteArray} {p next : UInt256}
 theorem balanceGrowingX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : EVM.State} {k C : Nat} {aw p ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (second : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (balanceEntry second) (ret :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 (balanceEntry second) (ret :: R) mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hm : HeapMemory mem aw p) (hmem : 128 ≤ mem.size)
     (hzero : memLoad (UInt256.ofNat 96) mem = ⟨0⟩)
     (hb : p.toNat + 2 ^ 138 + 163 ≤ 2 ^ 200)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 18 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧
-      ExecFuncBody config {contract := contract, locals := ∅, immutables := immStore v} evm
+    (RDrev fork (deployedRuntime v) g s0 ∧
+      ExecFuncBody fork config {contract := contract, locals := ∅, immutables := immStore v} evm
         (balanceFunction second).body .reverted) ∨
     ∃ evm' σ' out mem' aw' next k' C', SourceState s0 ee σ' evm' ∧
-      ExecFuncBody config {contract := contract, locals := ∅, immutables := immStore v} evm
+      ExecFuncBody fork config {contract := contract, locals := ∅, immutables := immStore v} evm
         (balanceFunction second).body
         (.returned (balanceCallFrame v second true out) evm'
           (some [.int (Int.ofNat (balanceValue out).toNat)])) ∧
-      RD (deployedRuntime v) ee g s0 ret (balanceValue out :: R) mem' aw' out σ' k' C' ∧
+      RD fork (deployedRuntime v) ee g s0 ret (balanceValue out :: R) mem' aw' out σ' k' C' ∧
       HeapMemory mem' aw' next ∧ MemoryPrefix mem mem' p.toNat ∧
       p.toNat ≤ next.toNat ∧ next.toNat ≤ p.toNat + 2 ^ 138 + 131 := by
   rcases balanceEntryCallGrowingX (v := v) second rd hs hm
@@ -167,20 +169,20 @@ theorem balanceGrowingX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem balanceX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : EVM.State} {k C : Nat} {aw p ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (second : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (balanceEntry second) (ret :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 (balanceEntry second) (ret :: R) mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hm : HeapMemory mem aw p) (hmem : 128 ≤ mem.size)
     (hzero : memLoad (UInt256.ofNat 96) mem = ⟨0⟩)
     (hb : p.toNat + 2 ^ 138 + 163 ≤ 2 ^ 200)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 18 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧
-      ExecFuncBody config {contract := contract, locals := ∅, immutables := immStore v} evm
+    (RDrev fork (deployedRuntime v) g s0 ∧
+      ExecFuncBody fork config {contract := contract, locals := ∅, immutables := immStore v} evm
         (balanceFunction second).body .reverted) ∨
     ∃ evm' σ' out mem' aw' next k' C', SourceState s0 ee σ' evm' ∧
-      ExecFuncBody config {contract := contract, locals := ∅, immutables := immStore v} evm
+      ExecFuncBody fork config {contract := contract, locals := ∅, immutables := immStore v} evm
         (balanceFunction second).body
         (.returned (balanceCallFrame v second true out) evm'
           (some [.int (Int.ofNat (balanceValue out).toNat)])) ∧
-      RD (deployedRuntime v) ee g s0 ret (balanceValue out :: R) mem' aw' out σ' k' C' ∧
+      RD fork (deployedRuntime v) ee g s0 ret (balanceValue out :: R) mem' aw' out σ' k' C' ∧
       HeapMemory mem' aw' next ∧ MemoryPrefix mem mem' p.toNat ∧
       next.toNat ≤ p.toNat + 2 ^ 138 + 131 := by
   rcases balanceGrowingX (v := v) second rd hs hm hmem hzero hb hret hov with

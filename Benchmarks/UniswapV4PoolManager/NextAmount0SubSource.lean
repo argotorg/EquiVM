@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.NextAmount0RoundSource
 import Benchmarks.UniswapV4PoolManager.WordWrappingSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -21,14 +23,14 @@ theorem nextAmount0SubSource {f : Frame} {evm : EVM.State} {price liquidity amou
     (hn : f.locals.get? "numerator1" = some (.int (Int.ofNat (amount0Numerator1 liquidity).toNat)))
     (hs : f.locals.get? "sqrtPX96" = some (.int (Int.ofNat price.toNat)))
     (ha : f.locals.get? "amount" = some (.int (Int.ofNat amount.toNat))) :
-    ∃ f', ExecBlock config f evm nextAmount0SubStmts
+    ∃ f', ExecBlock fork config f evm nextAmount0SubStmts
       (if nextAmount0CoreFits price liquidity amount false then
         .returned f' evm (some [.int (Int.ofNat (nextAmount0CoreWord price liquidity amount false).toNat)])
        else .reverted) := by
   let p := nextAmount0Product price amount
   let n := amount0Numerator1 liquidity
   let f1 := wordLocal f "product" p
-  have hprod : ExecStmt config f evm (.letDecl "product" (some abiUInt256) nextAmount0ProductExpr) (.ok f1 evm) :=
+  have hprod : ExecStmt fork config f evm (.letDecl "product" (some abiUInt256) nextAmount0ProductExpr) (.ok f1 evm) :=
     ExecStmt.letDecl (evalWordMul (evalLocalValue ha) (evalLocalValue hs))
   have hn1 : f1.locals.get? "numerator1" = some (.int (Int.ofNat n.toNat)) :=
     (store_get_ne _ _ (by decide : ("product" == "numerator1") = false)).trans hn
@@ -50,7 +52,7 @@ theorem nextAmount0SubSource {f : Frame} {evm : EVM.State} {price liquidity amou
     have hguard' : UInt256.div p amount = price ∧ p.toNat < n.toNat := hguard
     rw [decide_eq_true hguard'] at hg'
     let f2 := wordLocal f1 "denominator" (UInt256.sub n p)
-    have hd : ExecStmt config f1 evm
+    have hd : ExecStmt fork config f1 evm
         (.letDecl "denominator" (some abiUInt256)
           (.cast (.binary .sub (.var "numerator1") (.var "product")) (.elem (.int (.uint ⟨256, by decide⟩)))))
         (.ok f2 evm) := ExecStmt.letDecl (evalWordSub (evalLocalValue hn1) (evalLocalValue hp1))

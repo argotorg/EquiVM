@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Vow.FlopKick
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -67,13 +69,13 @@ theorem flopFlopperCode_zero_of_codeSize_zero (evm : EVM.State) (I : ExecutionEn
 
 theorem RD.vowFlopSin0CallDepthLimit
     {σ σ₀ A I} {g sel : UInt256}
-    (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨646⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (kissDaiTargetWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024) :
-    ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1277⟩
       (⟨0⟩ :: healSinEndPtr :: healSinSelector ::
         kissDaiTargetWord σ I :: ⟨1325⟩ :: ⟨3675⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
@@ -92,7 +94,7 @@ theorem RD.vowFlopSin0CallDepthLimit
     native_decide
   have hmin : (min (⟨32⟩ : UInt256) (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
     rfl
-  have rd1277 : RD vowBytecode I (Sat256.ofUInt256 g)
+  have rd1277 : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1277⟩
       (⟨0⟩ :: healSinEndPtr :: healSinSelector ::
         kissDaiTargetWord σ I :: ⟨1325⟩ :: ⟨3675⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
@@ -108,7 +110,7 @@ theorem vowFlopBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xbb, 0xbb, 0x0d, 0x7b]⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0xbb, 0xbb, 0x0d, 0x7b]⟩ rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some flopTransition :=
@@ -117,7 +119,7 @@ theorem vowFlopBody {σ σ₀ A I} {g : UInt256}
       config.externalABI.decodeCalldata? (flopTransition.params.map Param.name)
         (transitionSignature flopTransition).paramTypes I.calldata = some ∅ :=
     vowDecode_flop hsz4
-  have hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
+  have hreach : ∃ k C, RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨646⟩ [vowSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C :=
     vowReachFlopBody (σ := σ)
@@ -151,14 +153,14 @@ theorem vowFlopBody {σ σ₀ A I} {g : UInt256}
             substate := A_sin
         }
       have hcallSinStele :
-          typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
             (false, evmSinStele, outSin) false := by
         simpa [evmSinStele] using hcallSinEvmRaw
       exact vowFlopSin0CallFailureBodyCore (acc := σ_sin)
         hcode hwv hdispatch hdecode (by simpa using rd1277) hoszSin hvatCodeStele
         hcallSinStele
-    · have rd1277True : RD vowBytecode I (Sat256.ofUInt256 g)
+    · have rd1277True : RD fork vowBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1277⟩
           (⟨1⟩ :: healSinEndPtr :: healSinSelector ::
             kissDaiTargetWord σ I :: ⟨1325⟩ :: ⟨3675⟩ :: ⟨0⟩ :: ⟨357⟩ ::
@@ -174,7 +176,7 @@ theorem vowFlopBody {σ σ₀ A I} {g : UInt256}
         }
       let evmSinStele := evmSinEvm
       have hcallSinStele :
-          typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
             (true, evmSinStele, outSin) false := by
         simpa [evmSinStele, evmSinEvm] using hcallSinEvmRaw
@@ -365,7 +367,7 @@ theorem vowFlopBody {σ σ₀ A I} {g : UInt256}
               substate := A_dai
           }
         have hcallDaiEvm :
-            typedCallViaEVM config evmDaiEvmIn
+            typedCallViaEVM fork config evmDaiEvmIn
               (EVM.address (kissVatAddress σ_sin I)) "dai" 0 [.address I.codeOwner]
               (zDai, evmDaiEvmOut, outDai) false := by
           simpa [evmDaiEvmIn, evmDaiEvmOut] using hcallDaiEvmRaw
@@ -379,7 +381,7 @@ theorem vowFlopBody {σ σ₀ A I} {g : UInt256}
               substate := A_dai_stele
           }
         have hcallDaiStele :
-            typedCallViaEVM config evmSinStele
+            typedCallViaEVM fork config evmSinStele
               (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
               (zDai, evmDaiStele, outDai) false := by
           simpa [evmDaiStele, evmDaiEvmIn, evmDaiEvmOut, evmSinStele, evmSinEvm,
@@ -392,7 +394,7 @@ theorem vowFlopBody {σ σ₀ A I} {g : UInt256}
             (by simp [freeSin, SinVal]) hfreeOk hAshLoad
             (by simp [flopDebt, freeSin, AshVal]) hdebtOk hSumpLoad henough
             hvatLoadSin hvatCodeDai (by simpa using hcallDaiStele)
-        · have rd3832True : RD vowBytecode I (Sat256.ofUInt256 g)
+        · have rd3832True : RD fork vowBytecode I (Sat256.ofUInt256 g)
               (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3832⟩
               (⟨1⟩ :: ⟨164⟩ :: ⟨1814410054⟩ ::
                 kissDaiTargetWord σ_sin I :: ⟨0⟩ :: ⟨357⟩ ::
@@ -404,7 +406,7 @@ theorem vowFlopBody {σ σ₀ A I} {g : UInt256}
               (UInt256.ofNat 6) outDai σ_dai k3832 C3832 := by
             simpa using rd3832
           have hcallDaiSteleTrue :
-              typedCallViaEVM config evmSinStele
+              typedCallViaEVM fork config evmSinStele
                 (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
                 (true, evmDaiStele, outDai) false := by
             simpa using hcallDaiStele
@@ -509,7 +511,7 @@ theorem vowFlopBody {σ σ₀ A I} {g : UInt256}
             obtain ⟨k3959, C3959, rd3959Raw⟩ :=
               RD.vowFlopToKickStart rd3832True hmemSin hread64Sin ho32Dai
                 hoszDai (by simp [vatDai]) hvatDaiZero hfitEvm
-            have rd3959 : RD vowBytecode I (Sat256.ofUInt256 g)
+            have rd3959 : RD fork vowBytecode I (Sat256.ofUInt256 g)
                 (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3959⟩
                 (AshNew :: ⟨0⟩ :: ⟨357⟩ :: vowSelWord I :: [])
                 memDai (UInt256.ofNat 6) outDai σ_dai k3959 C3959 := by
@@ -604,7 +606,7 @@ theorem vowFlopBody {σ σ₀ A I} {g : UInt256}
                       exact Nat.mod_eq_of_lt
                         (by simp [EVM.twoPow, AccountAddress.size])
             have hcallKickEvm :
-                typedCallViaEVM config evmKickEvmIn
+                typedCallViaEVM fork config evmKickEvmIn
                   (EVM.address (flopFlopperAddressOf evmAshStele)) "kick" 0
                   [.address I.codeOwner, .int (Int.ofNat DumpVal.toNat),
                     .int (Int.ofNat SumpValKick.toNat)]
@@ -619,7 +621,7 @@ theorem vowFlopBody {σ σ₀ A I} {g : UInt256}
                   State.setAccount, State.lookupAccount, σAshEvm, sstoreAccountMap,
                   Account.updateStorage, Option.option, hFind]
             have hcallKickSteleBase :
-                typedCallViaEVM config evmKickSteleBase
+                typedCallViaEVM fork config evmKickSteleBase
                   (EVM.address (flopFlopperAddressOf evmAshStele)) "kick" 0
                   [.address I.codeOwner, .int (Int.ofNat DumpVal.toNat),
                     .int (Int.ofNat SumpValKick.toNat)]
@@ -639,7 +641,7 @@ theorem vowFlopBody {σ σ₀ A I} {g : UInt256}
                   substate := A_kick_stele
               }
             have hcallKickStele :
-                typedCallViaEVM config evmAshStele
+                typedCallViaEVM fork config evmAshStele
                   (EVM.address (flopFlopperAddressOf evmAshStele)) "kick" 0
                   [.address evmAshStele.executionEnv.codeOwner,
                     .int (Int.ofNat DumpVal.toNat), .int (Int.ofNat SumpValKick.toNat)]
@@ -658,7 +660,7 @@ theorem vowFlopBody {σ σ₀ A I} {g : UInt256}
                 (by simpa [evmAshStele] using hSumpLoadAsh)
                 (by simpa [evmAshStele] using hflopperCode)
                 (by simpa [evmAshStele] using hcallKickStele)
-            · have rd1498True : RD vowBytecode I (Sat256.ofUInt256 g)
+            · have rd1498True : RD fork vowBytecode I (Sat256.ofUInt256 g)
                   (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1498⟩
                   (⟨1⟩ :: flopKickEndPtr :: flopKickSelectorWord ::
                     solcAddressSlotWord ⟨3⟩ σAshEvm I :: ⟨0⟩ :: ⟨357⟩ ::
@@ -670,7 +672,7 @@ theorem vowFlopBody {σ σ₀ A I} {g : UInt256}
                   (UInt256.ofNat 8) outKick σ_kick k1498 C1498 := by
                 simpa [σAshEvm, AshNew, DumpVal, SumpValKick] using rd1498
               have hcallKickSteleTrue :
-                  typedCallViaEVM config evmAshStele
+                  typedCallViaEVM fork config evmAshStele
                     (EVM.address (flopFlopperAddressOf evmAshStele)) "kick" 0
                     [.address evmAshStele.executionEnv.codeOwner,
                       .int (Int.ofNat DumpVal.toNat), .int (Int.ofNat SumpValKick.toNat)]
@@ -793,9 +795,10 @@ theorem vowFlopBody {σ σ₀ A I} {g : UInt256}
     obtain ⟨_, _, rd1277⟩ :=
       RD.vowFlopSin0CallDepthLimit hreach hcodeSizeSinNE hdepthEq
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    let A_sin := (evm0.addAccessedAccount (EVM.address (kissVatAddress σ I))).substate
+    let A_sin := (Ethereum.EVM.callSubstate fork evm0.accountMap (EVM.address
+      (kissVatAddress σ I)) evm0.substate)
     have hcallSinDepth :
-        typedCallViaEVM config evm0
+        typedCallViaEVM fork config evm0
           (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
           (false, { evm0 with accountMap := σ, substate := A_sin },
             ByteArray.empty) false := by

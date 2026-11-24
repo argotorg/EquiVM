@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.ModifyLiquidityAfterCorrect
 import Benchmarks.UniswapV4PoolManager.ModifyLiquidityAccountingCorrect
 import Benchmarks.UniswapV4PoolManager.BlockCorrectComposition
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -23,10 +25,10 @@ theorem modifyLiquidityPoolFinishCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm
     (hkl : 160 ≤ keyPtr.toNat) (hlen : len.toNat ≤ solcMaxU64)
     (hsrc : src.toNat+len.toNat ≤ I.calldata.size)
     (hgas : g.toNat < 324518553658429321982441292826060)
-    (h : modifyLiquidityAfterPoolTrace v I g s0 before key p keyPtr paramsPtr src len id junk R f evm) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
-    ∃ result, ExecBlock config f evm (modifyLiquidityTransition.body.drop 20) result ∧
-      abiResultTrace modifyLiquidityTransition.returnType (deployedRuntime v) g s0 result := by
+    (h : modifyLiquidityAfterPoolTrace fork v I g s0 before key p keyPtr paramsPtr src len id junk R f evm) :
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    ∃ result, ExecBlock fork config f evm (modifyLiquidityTransition.body.drop 20) result ∧
+      abiResultTrace fork modifyLiquidityTransition.returnType (deployedRuntime v) g s0 result := by
   obtain ⟨hI, hσ0, principal, fees, mem, rdata, free, rfl, hkey, hparams, hkb, hpb, hfb,
     hfree, j0, j1, j2, aw, k, C, hpaid, rd⟩ := h
   let pf := modifyLiquidityPoolReturnFrame before id p principal fees

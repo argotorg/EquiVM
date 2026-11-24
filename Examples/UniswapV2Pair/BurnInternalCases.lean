@@ -2,6 +2,8 @@ import Examples.UniswapV2Pair.ZeroSlotMemory
 import Examples.UniswapV2Pair.BurnInternalRuntime
 import Examples.UniswapV2Pair.BurnInternalReverts
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 
@@ -100,7 +102,7 @@ theorem uniswapInternalBurnCallRuntimeCasesWithMemory
     {mem rdata : ByteArray} {k C : ℕ} {value holderWord ret : UInt256}
     {R : List UInt256} {caller : Frame} {args : List Expr} {retVar : Ident}
     (evm : EVM.State) (holder : AccountAddress)
-    (rd8302 : RD uniswapV2PairBytecode I g s0 ⟨8302⟩
+    (rd8302 : RD fork uniswapV2PairBytecode I g s0 ⟨8302⟩
       (value :: holderWord :: ret :: R) mem feeToStaticcallActiveWords rdata σ k C)
     (hAccounts : σ = evm.accountMap) (henv : evm.executionEnv = I)
     (hholder : holder = AccountAddress.ofNat holderWord.toNat)
@@ -112,14 +114,14 @@ theorem uniswapInternalBurnCallRuntimeCasesWithMemory
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 16 ≤ 1024)
     (himm : caller.immutables = ∅ := by first | rfl | assumption) :
-    (ExecStmt config caller evm (.internalCall "_burn" args retVar) .reverted ∧
-      RDrev uniswapV2PairBytecode g s0) ∨
+    (ExecStmt fork config caller evm (.internalCall "_burn" args retVar) .reverted ∧
+      RDrev fork uniswapV2PairBytecode g s0) ∨
     (∃ mem' k' C',
-      ExecStmt config caller evm (.internalCall "_burn" args retVar)
+      ExecStmt fork config caller evm (.internalCall "_burn" args retVar)
         (.ok (resumeAfterInternalCall caller retVar none) (burnFunctionPostState evm holder value)) ∧
       (burnRuntimePostMap σ I holderWord value) =
         (burnFunctionPostState evm holder value).accountMap ∧
-      RD uniswapV2PairBytecode I g s0 ret R mem' feeToStaticcallActiveWords rdata
+      RD fork uniswapV2PairBytecode I g s0 ret R mem' feeToStaticcallActiveWords rdata
         (burnRuntimePostMap σ I holderWord value) k' C' ∧
       mem'.size = 164 ∧ mem'.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ ∧
       mem'.readWithPadding 96 32 = mem.readWithPadding 96 32) := by
@@ -140,7 +142,7 @@ theorem uniswapInternalBurnCallRuntimeCasesWithMemory
     obtain ⟨kSub1, CSub1, rdSub1'⟩ :=
       uniswapInternalBurnRuntimeStoreBalanceSupplySubEntry rd8343 hperm hov
     have hsupplyEq := burnFunctionTotalSupplyWord_eq_runtime hAccounts henv hholder hbalance
-    have rdSub1 : RD uniswapV2PairBytecode I g s0 ⟨6879⟩
+    have rdSub1 : RD fork uniswapV2PairBytecode I g s0 ⟨6879⟩
         (value :: burnFunctionTotalSupplyWord evm holder value ::
           ⟨8388⟩ :: value :: holderWord :: ret :: R)
         (uniswapInternalMintBalanceHashMem holderWord
@@ -184,7 +186,7 @@ theorem uniswapInternalBurnCallRuntimeCases
     {mem rdata : ByteArray} {k C : ℕ} {value holderWord ret : UInt256}
     {R : List UInt256} {caller : Frame} {args : List Expr} {retVar : Ident}
     (evm : EVM.State) (holder : AccountAddress)
-    (rd8302 : RD uniswapV2PairBytecode I g s0 ⟨8302⟩
+    (rd8302 : RD fork uniswapV2PairBytecode I g s0 ⟨8302⟩
       (value :: holderWord :: ret :: R) mem feeToStaticcallActiveWords rdata σ k C)
     (hAccounts : σ = evm.accountMap) (henv : evm.executionEnv = I)
     (hholder : holder = AccountAddress.ofNat holderWord.toNat)
@@ -196,14 +198,14 @@ theorem uniswapInternalBurnCallRuntimeCases
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 16 ≤ 1024)
     (himm : caller.immutables = ∅ := by first | rfl | assumption) :
-    (ExecStmt config caller evm (.internalCall "_burn" args retVar) .reverted ∧
-      RDrev uniswapV2PairBytecode g s0) ∨
+    (ExecStmt fork config caller evm (.internalCall "_burn" args retVar) .reverted ∧
+      RDrev fork uniswapV2PairBytecode g s0) ∨
     (∃ mem' k' C',
-      ExecStmt config caller evm (.internalCall "_burn" args retVar)
+      ExecStmt fork config caller evm (.internalCall "_burn" args retVar)
         (.ok (resumeAfterInternalCall caller retVar none) (burnFunctionPostState evm holder value)) ∧
       (burnRuntimePostMap σ I holderWord value) =
         (burnFunctionPostState evm holder value).accountMap ∧
-      RD uniswapV2PairBytecode I g s0 ret R mem' feeToStaticcallActiveWords rdata
+      RD fork uniswapV2PairBytecode I g s0 ret R mem' feeToStaticcallActiveWords rdata
         (burnRuntimePostMap σ I holderWord value) k' C' ∧
       mem'.size = 164 ∧ mem'.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) := by
   rcases uniswapInternalBurnCallRuntimeCasesWithMemory evm holder rd8302 hAccounts henv hholder

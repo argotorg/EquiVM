@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.TickSqrtPrefix
 import Benchmarks.UniswapV3.Pool.SignedComparison
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_036
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -13,10 +15,10 @@ def tickSqrtTick (tick : UInt256) : Int := normalizeInt (.sint ⟨24, by decide�
 theorem tickSqrtStartX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw tick : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨11629⟩ (tick :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨11629⟩ (tick :: R) mem aw rdata σ k C)
     (hov : R.length + 8 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧ ¬ (tickSqrtTick tick).natAbs ≤ 887272) ∨
-      ((tickSqrtTick tick).natAbs ≤ 887272 ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨11722⟩
+    (RDrev fork (deployedRuntime v) g s0 ∧ ¬ (tickSqrtTick tick).natAbs ≤ 887272) ∨
+      ((tickSqrtTick tick).natAbs ≤ 887272 ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨11722⟩
         (UInt256.ofNat (tickSqrtTick tick).natAbs :: ⟨0⟩ :: tick :: R) mem aw rdata σ k' C') := by
   let t := tickSqrtTick tick
   have ht : -(2 ^ 23 : Int) ≤ t ∧ t < 2 ^ 23 := normalizeSint_bounds _ _
@@ -28,7 +30,7 @@ theorem tickSqrtStartX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
       if t < 0 then ⟨1⟩ else ⟨0⟩ := by
     rw [hsign, show UInt256.ofNat 0 = EVM.wordOfInt 0 from rfl]
     exact slt_wordOfInt t 0 (by omega) (by omega) (by decide) (by decide)
-  have habs : ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨11660⟩
+  have habs : ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨11660⟩
       (UInt256.ofNat t.natAbs :: ⟨0⟩ :: ⟨0⟩ :: tick :: R) mem aw rdata σ k' C' := by
     by_cases hn : t < 0
     · have r1 := uniswapV3Pool_block_11629_taken (immWords := wordsOf (immStore v))

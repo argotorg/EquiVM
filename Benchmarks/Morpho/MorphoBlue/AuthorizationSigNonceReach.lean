@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.AuthorizationSigTimestamp
 import Benchmarks.Morpho.MorphoBlue.AuthorizationSigSourceNonce
 import Benchmarks.Morpho.MorphoBlue.IncrementRoutine
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -24,9 +26,9 @@ theorem morphoAuthorizationNoncePrepare {v : MorphoImmutables} {ee : ExecutionEn
     {g : Sat256} {s0 : State} {out : ByteArray} {aw : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (a : AuthorizationWords) (hc : a.Canonical)
     (hstack : R.length + 24 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 6004)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 6004)
       (authorizationNonceStack R) (authorizationExpiredMem a) aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13051)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13051)
       ([authorizationUsedNonce a σ ee, UInt256.ofNat 6058, authorizationNonceSlot a,
         authorizationUsedNonce a σ ee, a.nonce, UInt256.ofNat 6120] ++ authorizationHashTail R)
       (authorizationNonceMem a) aw' out σ k' C' := by
@@ -43,7 +45,7 @@ theorem morphoAuthorizationNoncePrepare {v : MorphoImmutables} {ee : ExecutionEn
   rw [h0, h3, hm] at rd1
   have hh : keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) (authorizationNonceMem a) =
       authorizationNonceSlot a := twoWordHashMem_solcMappingSlot_any _ _ _
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     ([solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) (authorizationNonceMem a)) σ ee,
       UInt256.ofNat 6058, keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) (authorizationNonceMem a),
       solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) (authorizationNonceMem a)) σ ee,
@@ -57,9 +59,9 @@ theorem morphoAuthorizationNonceIncrement {v : MorphoImmutables} {ee : Execution
     {k C : Nat} {R : List UInt256} (a : AuthorizationWords) (hc : a.Canonical)
     (hstack : R.length + 24 ≤ 1024)
     (hfit : (authorizationUsedNonce a σ ee).toNat + 1 < UInt256.size)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 6004)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 6004)
       (authorizationNonceStack R) (authorizationExpiredMem a) aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 6058)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 6058)
       (authorizationNonceStoreStack a (authorizationUsedNonce a σ ee) R)
       (authorizationNonceMem a) aw' out σ k' C' := by
   obtain ⟨a1, k1, C1, rd1⟩ := morphoAuthorizationNoncePrepare (v := v) a hc hstack h
@@ -76,9 +78,9 @@ theorem morphoAuthorizationNonceOverflow {v : MorphoImmutables} {ee : ExecutionE
     {k C : Nat} {R : List UInt256} (a : AuthorizationWords) (hc : a.Canonical)
     (hstack : R.length + 24 ≤ 1024)
     (hfit : UInt256.size ≤ (authorizationUsedNonce a σ ee).toNat + 1)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 6004)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 6004)
       (authorizationNonceStack R) (authorizationExpiredMem a) aw out σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨a1, k1, C1, rd1⟩ := morphoAuthorizationNoncePrepare (v := v) a hc hstack h
   exact morphoCheckedIncrementOverflow (v := v)
     (ret := UInt256.ofNat 6058)

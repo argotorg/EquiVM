@@ -2,6 +2,8 @@ import Benchmarks.Safe.ViaIR.ExecTransactionDecodeSteps
 import Benchmarks.Safe.ViaIR.CalldataBytesDecoder
 import Benchmarks.Safe.ViaIR.MemoryBytesDecodeValid
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.ViaIR
@@ -9,11 +11,11 @@ namespace Benchmarks.Safe.ViaIR
 set_option maxRecDepth 2000 in
 theorem safeDecodeExecTransactionValid {I g s0 σ k C aw rdata dataLen sigLen}
     {scratch : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4354⟩ (scratch :: R) solcFreePtrMem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨4354⟩ (scratch :: R) solcFreePtrMem aw rdata σ k C)
     (hb : ExecTransactionCalldataBounds I.calldata dataLen sigLen)
     (ho : (calldataWord I.calldata 100).toNat < 2) (hn : sigLen ≤ 2 ^ 64 - 192)
     (hov : R.length + 28 ≤ 1024) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨4469⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨4469⟩
       (execTransactionDecodedStack I.calldata dataLen ⟨128⟩ R)
       (memoryBytesDecoded (execTransactionCalldataInput I.calldata dataLen sigLen).signatures)
       aw' rdata σ k' C' := by

@@ -2,6 +2,8 @@ import Benchmarks.EAS.EAS.MultiDelegatedAttestAccess
 import Benchmarks.EAS.EAS.CalldataAddress6240
 import Benchmarks.EAS.EAS.MultiAttestControl
 import Benchmarks.EAS.EAS.RuntimeBlocks_013
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -18,12 +20,12 @@ theorem easMultiDelegatedAttestVerifyDone {ee : ExecutionEnv} {g : Sat256} {s0 :
     {mem : ByteArray} {aw : UInt256} {out : ByteArray} {σ : AccountMap} {k C n i : Nat}
     {root base table available count : UInt256} {R : List UInt256}
     (v : EASImmutables) (hstack : R.length+23≤1024) (ha : delegatedBatchAddressClean ee.calldata root)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2874⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2874⟩
       (multiDelegatedAttestVerifyStack ee.calldata (delegatedAttestationDataLength ee.calldata root).toNat root
         (delegatedAttestationDataOffset ee.calldata root) base (UInt256.ofNat n)
         (delegatedAttestationDataLength ee.calldata root) available table count (UInt256.ofNat i) (UInt256.ofNat n-⟨1⟩) R)
       mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨5544⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨5544⟩
       (delegatedAttestationDataOffset ee.calldata root::delegatedAttestationDataLength ee.calldata root::UInt256.ofNat ee.calldata.size::⟨3125⟩::
         multiDelegatedAttestCopySaved ee.calldata root n i base table available count R) mem aw' out σ k' C' := by
   simp only [multiDelegatedAttestVerifyStack,multiDelegatedAttestVerifyTail,List.cons_append,List.nil_append,u256_ofNat_toNat] at rd

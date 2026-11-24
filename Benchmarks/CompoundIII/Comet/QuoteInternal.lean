@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.QuoteFinishEvm
 import Benchmarks.CompoundIII.Comet.AssetSearchEvm
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -15,9 +17,9 @@ theorem cometQuoteAfterAssetBounded {v : CometWithExtendedAssetListImmutables}
     (hm : AssetMemory mem ptr free assetOut) (hv : AssetValid assetOut)
     (hgap : free.toNat ≤ mem.size + 32) (hbound : free.toNat + 576 < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨17981⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨17981⟩
       (ptr :: ⟨18165⟩ :: amount :: ⟨2425⟩ :: ret :: R) mem aw rdata σ k C) :
-    ∃ result, QuoteAfterAsset v assetOut amount evm result ∧ QuoteRunBounded v ee g s0 ret R (free.toNat + 320) result := by
+    ∃ result, QuoteAfterAsset fork v assetOut amount evm result ∧ QuoteRunBounded fork v ee g s0 ret R (free.toNat + 320) result := by
   have r1 := cometWithExtendedAssetList_block_17981 (immWords := wordsOf (immStore v))
     (by change R.length + 4 + 8 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
@@ -60,9 +62,9 @@ theorem cometQuoteInternalBounded {v : CometWithExtendedAssetListImmutables}
     (hfree : memLoad ⟨64⟩ mem = free) (hlo : 96 ≤ free.toNat)
     (hbound : free.toNat + 832 + 768 * v.numAssets.toNat < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨17965⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨17965⟩
       (EVM.word asset.val :: amount :: ret :: R) mem aw rdata σ k C) :
-    ∃ result, QuoteTrace v asset amount evm result ∧ QuoteRunBounded v ee g s0 ret R
+    ∃ result, QuoteTrace fork v asset amount evm result ∧ QuoteRunBounded fork v ee g s0 ret R
       (free.toNat + 576 + 768 * v.numAssets.toNat) result := by
   have r1 := cometWithExtendedAssetList_block_17965 (immWords := wordsOf (immStore v))
     (by change R.length + 1 + 6 ≤ 1024; omega)
@@ -86,9 +88,9 @@ theorem cometQuoteAfterAsset {v : CometWithExtendedAssetListImmutables}
     (hm : AssetMemory mem ptr free assetOut) (hv : AssetValid assetOut)
     (hgap : free.toNat ≤ mem.size + 32) (hbound : free.toNat + 576 < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨17981⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨17981⟩
       (ptr :: ⟨18165⟩ :: amount :: ⟨2425⟩ :: ret :: R) mem aw rdata σ k C) :
-    ∃ result, QuoteAfterAsset v assetOut amount evm result ∧ QuoteRun v ee g s0 ret R result := by
+    ∃ result, QuoteAfterAsset fork v assetOut amount evm result ∧ QuoteRun fork v ee g s0 ret R result := by
   obtain ⟨result, ht, hr⟩ := cometQuoteAfterAssetBounded hstack hm hv hgap hbound hret hs h
   exact ⟨result, ht, hr.forget⟩
 
@@ -99,9 +101,9 @@ theorem cometQuoteInternal {v : CometWithExtendedAssetListImmutables}
     (hfree : memLoad ⟨64⟩ mem = free) (hlo : 96 ≤ free.toNat)
     (hbound : free.toNat + 832 + 768 * v.numAssets.toNat < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨17965⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨17965⟩
       (EVM.word asset.val :: amount :: ret :: R) mem aw rdata σ k C) :
-    ∃ result, QuoteTrace v asset amount evm result ∧ QuoteRun v ee g s0 ret R result := by
+    ∃ result, QuoteTrace fork v asset amount evm result ∧ QuoteRun fork v ee g s0 ret R result := by
   obtain ⟨result, ht, hr⟩ := cometQuoteInternalBounded hstack hfree hlo hbound hret hs h
   exact ⟨result, ht, hr.forget⟩
 

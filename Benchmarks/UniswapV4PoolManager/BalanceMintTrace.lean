@@ -5,6 +5,8 @@ import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_005
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_006
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_030
 
+variable {fork : Ethereum.Fork}
+
 /-! The balance-credit and event tail reached by `mint`. -/
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
@@ -19,8 +21,8 @@ theorem balanceMintLoadTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw : UInt256} {σ : AccountMap} {k C : Nat}
     {receiver id amount : UInt256} {R : List UInt256} (v : PoolManagerImmutables)
     (hstack : R.length + 11 ≤ 1024) (hmem : mem.size = 96) (hc : receiver.toNat < EVM.addressModulus)
-    (h : RD (deployedRuntime v) I g s0 ⟨10850⟩ (balanceMintStack receiver id amount R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) I g s0 ⟨12282⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨10850⟩ (balanceMintStack receiver id amount R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 ⟨12282⟩
       (solcSlotWordAt (balanceSlot receiver id) σ I :: amount :: ⟨607⟩ :: balanceSlot receiver id ::
         amount :: ⟨1005⟩ :: transferEventTopic :: ⟨0⟩ :: receiver :: id :: R)
       (nestedMappingMemory receiver id ⟨4⟩ mem) aw' rdata σ k' C' := by
@@ -29,7 +31,7 @@ theorem balanceMintLoadTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
   obtain ⟨k', C', hnext⟩ := poolManagerBlocks.poolManager_block_10850 (R := R) hstack hj h
   let masked := UInt256.land receiver solcAddrMask
   let nextMem := nestedMappingMemory masked id ⟨4⟩ mem
-  change RD (deployedRuntime v) I g s0 ⟨12282⟩
+  change RD fork (deployedRuntime v) I g s0 ⟨12282⟩
     (solcSlotWordAt (keccakWord ⟨0⟩ ⟨64⟩ nextMem) σ I :: amount :: ⟨607⟩ ::
       keccakWord ⟨0⟩ ⟨64⟩ nextMem :: amount :: ⟨1005⟩ :: transferEventTopic :: ⟨0⟩ :: masked :: id :: R)
     nextMem _ rdata σ k' C' at hnext
@@ -43,8 +45,8 @@ theorem balanceCreditStaticTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw : UInt256} {σ : AccountMap} {k C : Nat}
     {value slot : UInt256} {R : List UInt256} (v : PoolManagerImmutables)
     (hstack : R.length + 2 ≤ 1024) (hp : I.perm = false)
-    (h : RD (deployedRuntime v) I g s0 ⟨607⟩ (value :: slot :: R) mem aw rdata σ k C) :
-    RDstatic (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) I g s0 ⟨607⟩ (value :: slot :: R) mem aw rdata σ k C) :
+    RDstatic fork (deployedRuntime v) g s0 := by
   exact swappedStoreStatic hstack hp
     (by immutable_decode(immutableLayout, poolManagerBytecode, wordsOf (immStore v), (⟨607⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, immutableLayout_inBounds, immutableTemplate_size64))
     (by immutable_decode(immutableLayout, poolManagerBytecode, wordsOf (immStore v), (⟨608⟩ : UInt256), UInt8.ofNat 144, .SWAP1, none, immutableLayout_inBounds, immutableTemplate_size64))
@@ -54,9 +56,9 @@ theorem balanceMintReturnTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw : UInt256} {σ : AccountMap} {k C : Nat}
     {value slot receiver id amount : UInt256} {R : List UInt256} (v : PoolManagerImmutables)
     (hstack : R.length + 10 ≤ 1024) (hp : I.perm = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨607⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨607⟩
       (value :: slot :: amount :: ⟨1005⟩ :: transferEventTopic :: ⟨0⟩ :: receiver :: id :: R) mem aw rdata σ k C) :
-    RDret (deployedRuntime v) g s0 (sstoreAccountMap I.codeOwner σ slot value) .empty := by
+    RDret fork (deployedRuntime v) g s0 (sstoreAccountMap I.codeOwner σ slot value) .empty := by
   have hj : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 1005) = true := by
     rw [deployedRuntime_jumps]; jump_dest
   obtain ⟨k', C', hlog⟩ := poolManagerBlocks.poolManager_block_607
@@ -68,11 +70,11 @@ theorem balanceMintTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} {evm : EVM
     {mem rdata : ByteArray} {aw : UInt256} {k C : Nat} {receiver id amount : UInt256} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length + 11 ≤ 1024) (hmem : mem.size = 96)
     (hI : evm.executionEnv = I) (hc : receiver.toNat < EVM.addressModulus)
-    (h : RD (deployedRuntime v) I g s0 ⟨10850⟩ (balanceMintStack receiver id amount R) mem aw rdata evm.accountMap k C) :
+    (h : RD fork (deployedRuntime v) I g s0 ⟨10850⟩ (balanceMintStack receiver id amount R) mem aw rdata evm.accountMap k C) :
     if (balanceWord evm receiver id).toNat + amount.toNat < UInt256.size then
-      if I.perm = false then RDstatic (deployedRuntime v) g s0 else
-      RDret (deployedRuntime v) g s0 (balanceMintPost evm receiver id amount).accountMap .empty
-    else RDrev (deployedRuntime v) g s0 := by
+      if I.perm = false then RDstatic fork (deployedRuntime v) g s0 else
+      RDret fork (deployedRuntime v) g s0 (balanceMintPost evm receiver id amount).accountMap .empty
+    else RDrev fork (deployedRuntime v) g s0 := by
   generalize hbalance : balanceWord evm receiver id = balance at ⊢
   obtain ⟨aw', k', C', hadd⟩ := balanceMintLoadTrace v hstack hmem hc h
   have hread : balanceWord evm receiver id = solcSlotWordAt (balanceSlot receiver id) evm.accountMap I :=

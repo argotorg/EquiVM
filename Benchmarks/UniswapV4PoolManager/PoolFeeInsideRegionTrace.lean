@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_017
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_020
 import Benchmarks.UniswapV4PoolManager.MemoryGas
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -33,10 +35,10 @@ theorem poolFeeInsideRegionExactTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : 
     {k C : Nat} {R : List UInt256} (region : FeeGrowthRegion)
     (v : PoolManagerImmutables) (hstack : R.length+18 ≤ 1024) (hI : evm.executionEnv = I)
     (hm : memLoad (UInt256.ofNat 128) mem = poolSlot id)
-    (h : RD (deployedRuntime v) I g s0 (poolFeeInsideRegionPC region)
+    (h : RD fork (deployedRuntime v) I g s0 (poolFeeInsideRegionPC region)
       (poolFeeInsideRegionStack region id lower upper cur x0 x1 x2 x3 x4 x5 delta x9 x10 R)
       mem aw rdata evm.accountMap k C) :
-    ∃ k' C', RD (deployedRuntime v) I g s0 ⟨5802⟩
+    ∃ k' C', RD fork (deployedRuntime v) I g s0 ⟨5802⟩
       (poolFeeInsideOutputStack lower upper x0 x1 x2 x3 x4 x5 delta x9 x10
         (poolFeeInsideRegionWord evm id (EVM.signed lower) (EVM.signed upper) region false)
         (poolFeeInsideRegionWord evm id (EVM.signed lower) (EVM.signed upper) region true) R)
@@ -63,10 +65,10 @@ theorem poolFeeInsideRegionTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State
     {k C : Nat} {R : List UInt256} (region : FeeGrowthRegion)
     (v : PoolManagerImmutables) (hstack : R.length+18 ≤ 1024) (hI : evm.executionEnv = I)
     (hm : memLoad (UInt256.ofNat 128) mem = poolSlot id)
-    (h : RD (deployedRuntime v) I g s0 (poolFeeInsideRegionPC region)
+    (h : RD fork (deployedRuntime v) I g s0 (poolFeeInsideRegionPC region)
       (poolFeeInsideRegionStack region id lower upper cur x0 x1 x2 x3 x4 x5 delta x9 x10 R)
       mem aw rdata evm.accountMap k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) I g s0 ⟨5802⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 ⟨5802⟩
       (poolFeeInsideOutputStack lower upper x0 x1 x2 x3 x4 x5 delta x9 x10
         (poolFeeInsideRegionWord evm id (EVM.signed lower) (EVM.signed upper) region false)
         (poolFeeInsideRegionWord evm id (EVM.signed lower) (EVM.signed upper) region true) R)

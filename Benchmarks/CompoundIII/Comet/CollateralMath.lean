@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.AssetSource
 import Benchmarks.CompoundIII.Comet.MulPrice
 import Benchmarks.CompoundIII.Comet.Signed256
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -55,7 +57,7 @@ theorem collateralMath_source (frame : Frame) (evm : EVM.State) (borrow : Bool)
     (ha : frame.locals.get? "asset" = some (assetValue out))
     (hn : evalExpr? config frame evm (.var "collateralBalance") = .ok (.int amount.toNat))
     (hp : evalExpr? config frame evm (.var "__c5") = .ok (.int price.toNat)) :
-    ExecBlock config frame evm (collateralMathBlock borrow)
+    ExecBlock fork config frame evm (collateralMathBlock borrow)
       (if CollateralMathValid borrow amount price out then
         .ok (collateralMathFinal frame borrow amount price out) evm else .reverted) := by
   let n := mulPriceWord amount price (calldataWord out 96)
@@ -67,7 +69,7 @@ theorem collateralMath_source (frame : Frame) (evm : EVM.State) (borrow : Bool)
       .ok (.int (calldataWord out 96).toNat) := by
     simp only [evalExpr?, ha, EvalResult.ofOption, bind, EvalResult.bind]
     rfl
-  have hc1 := mulPrice_call frame evm amount price (calldataWord out 96) _ _ _ "newAmount"
+  have hc1 := mulPrice_call (fork := fork) frame evm amount price (calldataWord out 96) _ _ _ "newAmount"
     hc hn hp hs
   by_cases hv1 : MulPriceValid amount price (calldataWord out 96)
   · rw [if_pos hv1] at hc1

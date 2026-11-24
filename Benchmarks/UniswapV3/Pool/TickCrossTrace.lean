@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.TickUpdateMemory
 import Benchmarks.UniswapV3.Pool.TickUpdateNetEntryTrace
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_046
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -25,10 +27,10 @@ def tickCrossHistoryStack (a : TickCrossArgs) (σ : AccountMap) (ee : ExecutionE
 theorem tickCrossFeesX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : TickCrossArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13596⟩ (tickCrossWords a ++ R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13596⟩ (tickCrossWords a ++ R) mem aw rdata σ k C)
     (ht : -(2 ^ 23 : Int) ≤ a.tick ∧ a.tick < 2 ^ 23)
     (hp : ee.perm = true) (hov : R.length + 12 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨13683⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨13683⟩
       (tickCrossHistoryStack a (tickCrossFeesMap a σ ee) ee ++ R)
       (twoWordHashMem (EVM.wordOfInt a.tick) ⟨5⟩ mem) (tickUpdateMemoryWords aw)
       rdata (tickCrossFeesMap a σ ee) k' C' := by
@@ -52,19 +54,19 @@ theorem tickCrossFeesX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem tickCrossHistoryX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : TickCrossArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13683⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13683⟩
       (tickCrossHistoryStack a σ ee ++ ret :: R) mem aw rdata σ k C)
     (hp : ee.perm = true) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
     (hov : R.length + 12 ≤ 1024) :
     let σ' := sstoreAccountMap ee.codeOwner σ (tickFieldSlot a.tick 3)
       (tickCrossOutsideWord a (solcSlotWordAt (tickFieldSlot a.tick 3) σ ee))
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (EVM.wordOfInt (tickNetValue σ' ee a.tick) :: R) mem aw rdata σ' k' C' := by
   dsimp only
   obtain ⟨kw, Cw, rw⟩ := uniswapV3Pool_block_13683 (immWords := wordsOf (immStore v))
     (by change R.length + 1 + 11 ≤ 1024; omega) hp rd
   simp only [uniswapV3Pool_block_13683_stack] at rw
-  change RD (deployedRuntime v) ee g s0 ⟨13801⟩
+  change RD fork (deployedRuntime v) ee g s0 ⟨13801⟩
     (solcSlotWordAt (tickClearBase a.tick)
       (sstoreAccountMap ee.codeOwner σ (tickFieldSlot a.tick 3)
         (tickCrossSecondsRawWord a.time (tickCrossCumulativeRawWord (EVM.wordOfInt a.cumulative)
@@ -84,12 +86,12 @@ theorem tickCrossHistoryX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem tickCrossX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : TickCrossArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13596⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13596⟩
       (tickCrossWords a ++ ret :: R) mem aw rdata σ k C)
     (ht : -(2 ^ 23 : Int) ≤ a.tick ∧ a.tick < 2 ^ 23)
     (hp : ee.perm = true) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
     (hov : R.length + 13 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (EVM.wordOfInt (tickNetValue (tickCrossMap a σ ee) ee a.tick) :: R)
       (twoWordHashMem (EVM.wordOfInt a.tick) ⟨5⟩ mem) (tickUpdateMemoryWords aw)
       rdata (tickCrossMap a σ ee) k' C' := by

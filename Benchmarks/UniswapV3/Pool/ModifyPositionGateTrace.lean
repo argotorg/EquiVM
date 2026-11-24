@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.ModifyPositionMemory
 import Benchmarks.UniswapV3.Pool.ModifyPositionPrefix
 import Benchmarks.UniswapV3.Pool.CheckTicks
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -12,13 +14,13 @@ theorem modifyPositionGateX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p q ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : ModifyPositionArgs) (evm : EVM.State)
     (hs : SourceState s0 ee σ evm)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨16233⟩ (q :: ret :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨16233⟩ (q :: ret :: R) mem aw rdata σ k C)
     (ha : a.Fits) (hm : HeapMemory mem aw p) (hq : ModifyPositionParamsMemory mem q a)
     (hqp : q.toNat + 128 ≤ p.toNat) (hp : p.toNat ≤ 2 ^ 200) (hov : R.length + 13 ≤ 1024) :
-    (ExecFuncBody config (modifyPositionFrame (immStore v) a) evm modifyPositionFunction.body .reverted ∧
-      RDrev (deployedRuntime v) g s0) ∨
+    (ExecFuncBody fork config (modifyPositionFrame (immStore v) a) evm modifyPositionFunction.body .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) ∨
     (evm.executionEnv.codeOwner = v.original ∧ validTicks a.lower a.upper ∧ ∃ aw' k' C',
-      RD (deployedRuntime v) ee g s0 ⟨16264⟩ (⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: q :: ret :: R)
+      RD fork (deployedRuntime v) ee g s0 ⟨16264⟩ (⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: q :: ret :: R)
         mem aw' rdata σ k' C' ∧ HeapMemory mem aw' p) := by
   have r0 := uniswapV3Pool_block_16233 (immWords := wordsOf (immStore v)) (by evm_ov)
     (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; jump_dest) rd

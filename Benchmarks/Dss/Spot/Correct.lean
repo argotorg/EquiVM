@@ -13,6 +13,8 @@ import Benchmarks.Dss.Spot.Vat
 import Benchmarks.Dss.Spot.Wards
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Spotter benchmark correctness stub
 
@@ -29,8 +31,8 @@ namespace Benchmarks.Dss.Spot
 
 theorem spotCorrect :
     runtimeRefinement config spotBytecode contract := by
-  refine runtimeRefinement.intro ?_
-  intro σ σ₀ g A I hcode hsize
+  refine runtimeRefinementOn.intro ?_
+  intro fork _hfork σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hcage : selIs I (spotSelBytes 0)
     · exact spotCageBodyCoreAnyPerm hcode hsize hwv hcage

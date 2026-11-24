@@ -2,6 +2,8 @@ import Reasoning.ABIComposite
 import Benchmarks.Dss.Flapper.Tick
 import Benchmarks.Dss.Flopper.Kick.Part1
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -1338,7 +1340,7 @@ theorem flapperKickBodyReverts_unauthorized (evm : EVM.State) (I : ExecutionEnv)
     (hsrc : evm.executionEnv.source = I.source)
     (hauth :
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (relyAuthStorageSlot I) ≠ ⟨1⟩) :
-    ExecTransitionBody config contract evm (kickLocals I) kickTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (kickLocals I) kickTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   simpa [kickTransition, nonpayable, auth, checkedAddUintInto, checkedAdd48Into,
     checkedExternalCallStmts, List.cons_append, List.nil_append] using
@@ -1373,7 +1375,7 @@ theorem flapperKickBodyReverts_notLive (evm : EVM.State) (I : ExecutionEnv)
     (hauth :
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (relyAuthStorageSlot I) = ⟨1⟩)
     (hlive : kickLiveWord evm ≠ ⟨1⟩) :
-    ExecTransitionBody config contract evm (kickLocals I) kickTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (kickLocals I) kickTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   simpa [kickTransition, nonpayable, auth, checkedAddUintInto, checkedAdd48Into,
     checkedExternalCallStmts, List.cons_append, List.nil_append] using
@@ -1392,7 +1394,7 @@ theorem flapperKickBodyReverts_kicksOverflow (evm : EVM.State) (I : ExecutionEnv
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (relyAuthStorageSlot I) = ⟨1⟩)
     (hlive : kickLiveWord evm = ⟨1⟩)
     (hkicksGe : UInt256.size - 1 ≤ (kickKicksWord evm).toNat) :
-    ExecTransitionBody config contract evm (kickLocals I) kickTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (kickLocals I) kickTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   simpa [kickTransition, nonpayable, auth, checkedAddUintInto, checkedAdd48Into,
     checkedExternalCallStmts, List.cons_append, List.nil_append] using
@@ -1414,7 +1416,7 @@ theorem flapperKickBodyReverts_fillAddOverflow (evm : EVM.State) (I : ExecutionE
     (hlive : kickLiveWord evm = ⟨1⟩)
     (hkicksLt : (kickKicksWord evm).toNat < UInt256.size - 1)
     (hfillOverflow : UInt256.size ≤ (kickFillWord evm).toNat + (kickLotWord I).toNat) :
-    ExecTransitionBody config contract evm (kickLocals I) kickTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (kickLocals I) kickTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   simpa [kickTransition, nonpayable, auth, checkedAddUintInto, checkedAdd48Into,
     checkedExternalCallStmts, List.cons_append, List.nil_append] using
@@ -1440,12 +1442,12 @@ theorem flapperKickBodyReverts_overLidSplit (evm : EVM.State) (I : ExecutionEnv)
     (hfillFit : (kickFillWord evm).toNat + (kickLotWord I).toNat < UInt256.size) :
     (evm.executionEnv.perm = true → ((kickLidWord (kickAfterFillState evm I)).toNat <
         (kickFillWord (kickAfterFillState evm I)).toNat) →
-      ExecTransitionBody config contract evm (kickLocals I) kickTransition.body .reverted) ∧
+      ExecTransitionBody fork config contract evm (kickLocals I) kickTransition.body .reverted) ∧
       (evm.executionEnv.perm = false →
-        ExecTransitionBody config contract evm (kickLocals I)
+        ExecTransitionBody fork config contract evm (kickLocals I)
           kickTransition.body .staticViolation) := by
   have hprefix {result : ExecResult}
-      (hwrite : ExecBlock config { contract := contract, locals := kickFillLocals evm I } evm
+      (hwrite : ExecBlock fork config { contract := contract, locals := kickFillLocals evm I } evm
         ([.assign .storage fillRef (.var "fillNew"),
           .require (.binary .le (.storage fillRef) (.storage lidRef))] ++
           checkedAddUintInto "id" (.storage kicksRef) (.intLit 1) ++
@@ -1457,7 +1459,7 @@ theorem flapperKickBodyReverts_overLidSplit (evm : EVM.State) (I : ExecutionEnv)
           [.assign .storage (bidsF (.var "id") "end") (.var "end_")] ++
           checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
             [sender, thisAddr, .var "lot"] "_moveRet" ++ [.return [.var "id"]]) result) :
-      ExecBlock config { contract := contract, locals := kickLocals I } evm
+      ExecBlock fork config { contract := contract, locals := kickLocals I } evm
         kickTransition.body result := by
     simpa [kickTransition, nonpayable, auth, checkedAddUintInto, checkedAdd48Into,
       checkedExternalCallStmts, List.cons_append, List.nil_append] using
@@ -1480,7 +1482,7 @@ theorem flapperKickBodyReverts_overLidSplit (evm : EVM.State) (I : ExecutionEnv)
   constructor
   · intro hperm hgt
     exact ExecFuncBody.execBlockRevert
-      (hprefix (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) hvalue hassign)
+      (hprefix (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) hvalue hassign)
         (ExecBlock.consRevert
           (ExecStmt.requireFalse (evalExpr_kick_fill_le_lid_false evm I hgt)))))
   · intro hperm
@@ -1499,7 +1501,7 @@ theorem flapperKickBodyReverts_overLid (evm : EVM.State) (I : ExecutionEnv)
       (kickLidWord (kickAfterFillState evm I)).toNat <
         (kickFillWord (kickAfterFillState evm I)).toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (kickLocals I) kickTransition.body .reverted :=
+    ExecTransitionBody fork config contract evm (kickLocals I) kickTransition.body .reverted :=
   (flapperKickBodyReverts_overLidSplit evm I hwv hsrc hauth hlive hkicksLt hfillFit).1 hperm hgt
 
 theorem flapperKickBodyReverts_endAddOverflow (evm : EVM.State) (I : ExecutionEnv)
@@ -1517,7 +1519,7 @@ theorem flapperKickBodyReverts_endAddOverflow (evm : EVM.State) (I : ExecutionEn
       2 ^ 48 ≤
         (kickNow48Word evm).toNat + (kickTauWord (kickAfterGuyState evm I)).toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (kickLocals I) kickTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (kickLocals I) kickTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   simpa [kickTransition, nonpayable, auth, checkedAddUintInto, checkedAdd48Into,
     checkedExternalCallStmts, List.cons_append, List.nil_append] using
@@ -1535,7 +1537,7 @@ theorem flapperKickBodyReverts_endAddOverflow (evm : EVM.State) (I : ExecutionEn
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_kick_fill_guard_true evm I hfillFit)) <|
       ExecBlock.consNormal
-        (ExecStmt.assign (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_fillNew_var evm evm I)
+        (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_fillNew_var evm evm I)
           (assign_kickFillStorage evm I)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_kick_fill_le_lid_true evm I hfillLe)) <|
@@ -1544,16 +1546,16 @@ theorem flapperKickBodyReverts_endAddOverflow (evm : EVM.State) (I : ExecutionEn
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_kick_id_guard_true_orig evm I hkicksLt)) <|
       ExecBlock.consNormal
-        (ExecStmt.assign (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_id_var_idLocals_at evm (kickAfterFillState evm I) I)
+        (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_id_var_idLocals_at evm (kickAfterFillState evm I) I)
           (assign_kickKicksStorage_orig evm I)) <|
       ExecBlock.consNormal
-        (ExecStmt.assign (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_bid_var_at evm (kickAfterKicksState evm I) I)
+        (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_bid_var_at evm (kickAfterKicksState evm I) I)
           (assign_kickBidStorage evm I)) <|
       ExecBlock.consNormal
-        (ExecStmt.assign (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_lot_var_at evm (kickAfterBidState evm I) I)
+        (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_lot_var_at evm (kickAfterBidState evm I) I)
           (assign_kickLotStorage evm I)) <|
       ExecBlock.consNormal
-        (ExecStmt.assign (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_sender_afterLot evm I hsrc)
+        (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_sender_afterLot evm I hsrc)
           (assign_kickGuyStorage evm I)) <|
       ExecBlock.consNormal
         (ExecStmt.letDecl (evalExpr_kick_endAdd_wrapped evm I)) <|
@@ -1579,7 +1581,7 @@ theorem flapperKickBodyReverts_moveNoCode (evm : EVM.State) (I : ExecutionEnv)
         (kickVatWord (kickAfterEndState evm I).accountMap
           (kickAfterEndState evm I).executionEnv) = ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (kickLocals I) kickTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (kickLocals I) kickTransition.body .reverted := by
   let evmMove := kickAfterEndState evm I
   have hvat :
       evalExpr? config { contract := contract, locals := kickEndLocals evm I }
@@ -1607,13 +1609,13 @@ theorem flapperKickBodyReverts_moveNoCode (evm : EVM.State) (I : ExecutionEnv)
         (.binary .gt (.extCodeSize (.storage vatRef)) (.intLit 0)) = .ok (.bool false) :=
     evalExpr_cage_extCodeGuard_false hvat hnoCodeLookup
   have hchecked :
-      ExecBlock config { contract := contract, locals := kickEndLocals evm I } evmMove
+      ExecBlock fork config { contract := contract, locals := kickEndLocals evm I } evmMove
         (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
           [sender, thisAddr, .var "lot"] "_moveRet")
         .reverted := by
     exact checkedExternalCallNoCode hguard
   have htail :
-      ExecBlock config { contract := contract, locals := kickEndLocals evm I } evmMove
+      ExecBlock fork config { contract := contract, locals := kickEndLocals evm I } evmMove
         (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
           [sender, thisAddr, .var "lot"] "_moveRet" ++
           [.return [.var "id"]])
@@ -1636,7 +1638,7 @@ theorem flapperKickBodyReverts_moveNoCode (evm : EVM.State) (I : ExecutionEnv)
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_kick_fill_guard_true evm I hfillFit)) <|
       ExecBlock.consNormal
-        (ExecStmt.assign (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_fillNew_var evm evm I)
+        (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_fillNew_var evm evm I)
           (assign_kickFillStorage evm I)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_kick_fill_le_lid_true evm I hfillLe)) <|
@@ -1645,23 +1647,23 @@ theorem flapperKickBodyReverts_moveNoCode (evm : EVM.State) (I : ExecutionEnv)
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_kick_id_guard_true_orig evm I hkicksLt)) <|
       ExecBlock.consNormal
-        (ExecStmt.assign (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_id_var_idLocals_at evm (kickAfterFillState evm I) I)
+        (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_id_var_idLocals_at evm (kickAfterFillState evm I) I)
           (assign_kickKicksStorage_orig evm I)) <|
       ExecBlock.consNormal
-        (ExecStmt.assign (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_bid_var_at evm (kickAfterKicksState evm I) I)
+        (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_bid_var_at evm (kickAfterKicksState evm I) I)
           (assign_kickBidStorage evm I)) <|
       ExecBlock.consNormal
-        (ExecStmt.assign (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_lot_var_at evm (kickAfterBidState evm I) I)
+        (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_lot_var_at evm (kickAfterBidState evm I) I)
           (assign_kickLotStorage evm I)) <|
       ExecBlock.consNormal
-        (ExecStmt.assign (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_sender_afterLot evm I hsrc)
+        (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_sender_afterLot evm I hsrc)
           (assign_kickGuyStorage evm I)) <|
       ExecBlock.consNormal
         (ExecStmt.letDecl (evalExpr_kick_endAdd_ok evm I hendFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_kick_end_guard_true evm I hendFit)) <|
       ExecBlock.consNormal
-        (ExecStmt.assign (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_end_var evm I)
+        (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_end_var evm I)
           (assign_kickEndStorage_value evm I hendFit)) <|
       htail)
 
@@ -1684,7 +1686,7 @@ theorem flapperKickBodyReverts_moveCallFailure
         (kickVatWord (kickAfterEndState evm I).accountMap
           (kickAfterEndState evm I).executionEnv) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config (kickAfterEndState evm I)
+      typedCallViaEVM fork config (kickAfterEndState evm I)
         (EVM.address (AccountAddress.ofNat
           (kickVatWord (kickAfterEndState evm I).accountMap
             (kickAfterEndState evm I).executionEnv).toNat))
@@ -1693,7 +1695,7 @@ theorem flapperKickBodyReverts_moveCallFailure
           .address (kickAfterEndState evm I).executionEnv.codeOwner, kickLotValue I]
         (false, evm', out) true)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (kickLocals I) kickTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (kickLocals I) kickTransition.body .reverted := by
   let evmMove := kickAfterEndState evm I
   have hvat :
       evalExpr? config { contract := contract, locals := kickEndLocals evm I }
@@ -1722,13 +1724,13 @@ theorem flapperKickBodyReverts_moveCallFailure
     evalExpr_cage_extCodeGuard_true hvat hcodeLookup
   have hargs := evalExprs_kick_move_args evm evmMove I
   have hchecked :
-      ExecBlock config { contract := contract, locals := kickEndLocals evm I } evmMove
+      ExecBlock fork config { contract := contract, locals := kickEndLocals evm I } evmMove
         (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
           [sender, thisAddr, .var "lot"] "_moveRet")
         .reverted := by
     exact checkedExternalCallFailure (hperm := Or.inl rfl) hguard hvat hargs (by simpa [evmMove] using hcall)
   have htail :
-      ExecBlock config { contract := contract, locals := kickEndLocals evm I } evmMove
+      ExecBlock fork config { contract := contract, locals := kickEndLocals evm I } evmMove
         (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
           [sender, thisAddr, .var "lot"] "_moveRet" ++
           [.return [.var "id"]])
@@ -1751,7 +1753,7 @@ theorem flapperKickBodyReverts_moveCallFailure
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_kick_fill_guard_true evm I hfillFit)) <|
       ExecBlock.consNormal
-        (ExecStmt.assign (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_fillNew_var evm evm I)
+        (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_fillNew_var evm evm I)
           (assign_kickFillStorage evm I)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_kick_fill_le_lid_true evm I hfillLe)) <|
@@ -1760,23 +1762,23 @@ theorem flapperKickBodyReverts_moveCallFailure
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_kick_id_guard_true_orig evm I hkicksLt)) <|
       ExecBlock.consNormal
-        (ExecStmt.assign (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_id_var_idLocals_at evm (kickAfterFillState evm I) I)
+        (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_id_var_idLocals_at evm (kickAfterFillState evm I) I)
           (assign_kickKicksStorage_orig evm I)) <|
       ExecBlock.consNormal
-        (ExecStmt.assign (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_bid_var_at evm (kickAfterKicksState evm I) I)
+        (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_bid_var_at evm (kickAfterKicksState evm I) I)
           (assign_kickBidStorage evm I)) <|
       ExecBlock.consNormal
-        (ExecStmt.assign (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_lot_var_at evm (kickAfterBidState evm I) I)
+        (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_lot_var_at evm (kickAfterBidState evm I) I)
           (assign_kickLotStorage evm I)) <|
       ExecBlock.consNormal
-        (ExecStmt.assign (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_sender_afterLot evm I hsrc)
+        (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_sender_afterLot evm I hsrc)
           (assign_kickGuyStorage evm I)) <|
       ExecBlock.consNormal
         (ExecStmt.letDecl (evalExpr_kick_endAdd_ok evm I hendFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_kick_end_guard_true evm I hendFit)) <|
       ExecBlock.consNormal
-        (ExecStmt.assign (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_end_var evm I)
+        (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_end_var evm I)
           (assign_kickEndStorage_value evm I hendFit)) <|
       htail)
 
@@ -1799,7 +1801,7 @@ theorem flapperKickBodyReturns_moveCallSuccess
         (kickVatWord (kickAfterEndState evm I).accountMap
           (kickAfterEndState evm I).executionEnv) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config (kickAfterEndState evm I)
+      typedCallViaEVM fork config (kickAfterEndState evm I)
         (EVM.address (AccountAddress.ofNat
           (kickVatWord (kickAfterEndState evm I).accountMap
             (kickAfterEndState evm I).executionEnv).toNat))
@@ -1808,7 +1810,7 @@ theorem flapperKickBodyReturns_moveCallSuccess
           .address (kickAfterEndState evm I).executionEnv.codeOwner, kickLotValue I]
         (true, evm', out) true)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (kickLocals I) kickTransition.body
+    ExecTransitionBody fork config contract evm (kickLocals I) kickTransition.body
       (.returned { contract := contract, locals := kickMoveLocals evm I }
         evm' (some [.int (Int.ofNat (kickIdWord evm).toNat)])) := by
   let evmMove := kickAfterEndState evm I
@@ -1841,7 +1843,7 @@ theorem flapperKickBodyReturns_moveCallSuccess
   have hdec : config.externalABI.decode? "move" out = some [] := by
     simp [config, externalABI, decodeVoid?]
   have hchecked :
-      ExecBlock config { contract := contract, locals := kickEndLocals evm I } evmMove
+      ExecBlock fork config { contract := contract, locals := kickEndLocals evm I } evmMove
         (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
           [sender, thisAddr, .var "lot"] "_moveRet")
         (.ok { contract := contract, locals := kickMoveLocals evm I } evm') := by
@@ -1853,13 +1855,13 @@ theorem flapperKickBodyReturns_moveCallSuccess
         .ok [.int (Int.ofNat (kickIdWord evm).toNat)] := by
     simp [evalExprs?, evalExpr_kick_id_var_move, kickIdValue, EvalResult.bind, bind, pure]
   have hreturn :
-      ExecBlock config { contract := contract, locals := kickMoveLocals evm I } evm'
+      ExecBlock fork config { contract := contract, locals := kickMoveLocals evm I } evm'
         [.return [.var "id"]]
         (.returned { contract := contract, locals := kickMoveLocals evm I }
           evm' (some [.int (Int.ofNat (kickIdWord evm).toNat)])) := by
     exact ExecBlock.consReturn (ExecStmt.return hreturns)
   have htail :
-      ExecBlock config { contract := contract, locals := kickEndLocals evm I } evmMove
+      ExecBlock fork config { contract := contract, locals := kickEndLocals evm I } evmMove
         (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
           [sender, thisAddr, .var "lot"] "_moveRet" ++
           [.return [.var "id"]])
@@ -1883,7 +1885,7 @@ theorem flapperKickBodyReturns_moveCallSuccess
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_kick_fill_guard_true evm I hfillFit)) <|
       ExecBlock.consNormal
-        (ExecStmt.assign (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_fillNew_var evm evm I)
+        (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_fillNew_var evm evm I)
           (assign_kickFillStorage evm I)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_kick_fill_le_lid_true evm I hfillLe)) <|
@@ -1892,23 +1894,23 @@ theorem flapperKickBodyReturns_moveCallSuccess
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_kick_id_guard_true_orig evm I hkicksLt)) <|
       ExecBlock.consNormal
-        (ExecStmt.assign (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_id_var_idLocals_at evm (kickAfterFillState evm I) I)
+        (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_id_var_idLocals_at evm (kickAfterFillState evm I) I)
           (assign_kickKicksStorage_orig evm I)) <|
       ExecBlock.consNormal
-        (ExecStmt.assign (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_bid_var_at evm (kickAfterKicksState evm I) I)
+        (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_bid_var_at evm (kickAfterKicksState evm I) I)
           (assign_kickBidStorage evm I)) <|
       ExecBlock.consNormal
-        (ExecStmt.assign (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_lot_var_at evm (kickAfterBidState evm I) I)
+        (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_lot_var_at evm (kickAfterBidState evm I) I)
           (assign_kickLotStorage evm I)) <|
       ExecBlock.consNormal
-        (ExecStmt.assign (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_sender_afterLot evm I hsrc)
+        (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_sender_afterLot evm I hsrc)
           (assign_kickGuyStorage evm I)) <|
       ExecBlock.consNormal
         (ExecStmt.letDecl (evalExpr_kick_endAdd_ok evm I hendFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_kick_end_guard_true evm I hendFit)) <|
       ExecBlock.consNormal
-        (ExecStmt.assign (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_end_var evm I)
+        (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [kickAfterFillState_executionEnv, kickAfterKicksState_executionEnv, kickAfterBidState_executionEnv, kickAfterLotState_executionEnv, kickAfterGuyState_executionEnv] using hperm)) (evalExpr_kick_end_var evm I)
           (assign_kickEndStorage_value evm I hendFit)) <|
       htail)
 
@@ -1935,7 +1937,7 @@ theorem flapperReachKickBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flapperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (flapperSelBytes 8)) :
-    ∃ k C, RD flapperBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork flapperBytecode I g (initState σ σ₀ g A I)
         ⟨796⟩ [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : flapperSelWord I = ⟨0xca40c419⟩ := by
@@ -1971,10 +1973,10 @@ theorem flapperReachKickBody {σ σ₀ A I} {g : Sat256}
 
 theorem flapperKickX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD flapperBytecode I g
+    (hreach : ∃ k C, RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨796⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD flapperBytecode I g (initState σ σ₀ g A I) ⟨3901⟩
+    ∃ k C, RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨3901⟩
       [kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
@@ -2004,10 +2006,10 @@ theorem flapperKickX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem flapperKickX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
-    (hreach : ∃ k C, RD flapperBytecode I g
+    (hreach : ∃ k C, RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨796⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flapperBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
     apply ult_one
@@ -2025,10 +2027,10 @@ theorem flapperKickX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 set_option maxHeartbeats 1000000 in
 theorem flapperKickX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : relyAuthWord σ I = ⟨1⟩)
-    (h : RD flapperBytecode I g s0 ⟨3901⟩
+    (h : RD fork flapperBytecode I g s0 ⟨3901⟩
       [kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flapperBytecode I g s0 ⟨3994⟩
+    ∃ k' C', RD fork flapperBytecode I g s0 ⟨3994⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hauthSlot :
@@ -2059,7 +2061,7 @@ theorem flapperKickX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
     (by evm_ov)
   obtain ⟨k3918, C3918, rd3918raw⟩ := rd3917.sload (by native_decide) (by evm_ov)
-  have rd3918 : RD flapperBytecode I g s0 ⟨3918⟩
+  have rd3918 : RD fork flapperBytecode I g s0 ⟨3918⟩
       (relyAuthWord σ I :: ⟨0⟩ :: kickBidWord I :: kickLotWord I :: ⟨313⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k3918 C3918 := by
     simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using
@@ -2076,10 +2078,10 @@ theorem flapperKickX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 set_option maxHeartbeats 1000000 in
 theorem flapperKickX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : relyAuthWord σ I ≠ ⟨1⟩)
-    (h : RD flapperBytecode I g s0 ⟨3901⟩
+    (h : RD fork flapperBytecode I g s0 ⟨3901⟩
       [kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flapperBytecode g s0 := by
+    RDrev fork flapperBytecode g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
@@ -2108,7 +2110,7 @@ theorem flapperKickX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
     (by evm_ov)
   obtain ⟨k3918, C3918, rd3918raw⟩ := rd3917.sload (by native_decide) (by evm_ov)
-  have rd3918 : RD flapperBytecode I g s0 ⟨3918⟩
+  have rd3918 : RD fork flapperBytecode I g s0 ⟨3918⟩
       (relyAuthWord σ I :: ⟨0⟩ :: kickBidWord I :: kickLotWord I :: ⟨313⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k3918 C3918 := by
     simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using
@@ -2142,17 +2144,17 @@ theorem flapperKickX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 
 theorem flapperKickX_liveOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hlive : solcSlotWordAt ⟨7⟩ σ I = ⟨1⟩)
-    (h : RD flapperBytecode I g s0 ⟨3994⟩
+    (h : RD fork flapperBytecode I g s0 ⟨3994⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flapperBytecode I g s0 ⟨4068⟩
+    ∃ k' C', RD fork flapperBytecode I g s0 ⟨4068⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd3997 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨7⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k3998, C3998, rd3998raw⟩ := rd3997.sload (by native_decide) (by evm_ov)
-  have rd3998 : RD flapperBytecode I g s0 ⟨3998⟩
+  have rd3998 : RD fork flapperBytecode I g s0 ⟨3998⟩
       (solcSlotWordAt ⟨7⟩ σ I :: ⟨0⟩ :: kickBidWord I :: kickLotWord I :: ⟨313⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k3998 C3998 := by
     simpa [solcSlotWordAt] using rd3998raw
@@ -2167,15 +2169,15 @@ theorem flapperKickX_liveOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 
 theorem flapperKickX_notLive {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hlive : solcSlotWordAt ⟨7⟩ σ I ≠ ⟨1⟩)
-    (h : RD flapperBytecode I g s0 ⟨3994⟩
+    (h : RD fork flapperBytecode I g s0 ⟨3994⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flapperBytecode g s0 := by
+    RDrev fork flapperBytecode g s0 := by
   have rd3997 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨7⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k3998, C3998, rd3998raw⟩ := rd3997.sload (by native_decide) (by evm_ov)
-  have rd3998 : RD flapperBytecode I g s0 ⟨3998⟩
+  have rd3998 : RD fork flapperBytecode I g s0 ⟨3998⟩
       (solcSlotWordAt ⟨7⟩ σ I :: ⟨0⟩ :: kickBidWord I :: kickLotWord I :: ⟨313⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k3998 C3998 := by
     simpa [solcSlotWordAt] using rd3998raw
@@ -2208,10 +2210,10 @@ theorem flapperKickX_notLive {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 
 theorem flapperKickX_kicksOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hkicksLt : (solcSlotWordAt ⟨6⟩ σ I).toNat < UInt256.size - 1)
-    (h : RD flapperBytecode I g s0 ⟨4068⟩
+    (h : RD fork flapperBytecode I g s0 ⟨4068⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flapperBytecode I g s0 ⟨4143⟩
+    ∃ k' C', RD fork flapperBytecode I g s0 ⟨4143⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd4074pre := evm_run h with [
@@ -2220,7 +2222,7 @@ theorem flapperKickX_kicksOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     raw not (by native_decide) (by evm_ov),
     raw push1 ⟨6⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k4075, C4075, rd4075raw⟩ := rd4074pre.sload (by native_decide) (by evm_ov)
-  have rd4075 : RD flapperBytecode I g s0 ⟨4075⟩
+  have rd4075 : RD fork flapperBytecode I g s0 ⟨4075⟩
       (solcSlotWordAt ⟨6⟩ σ I :: UInt256.lnot ⟨0⟩ :: ⟨0⟩ :: kickBidWord I ::
         kickLotWord I :: ⟨313⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k4075 C4075 := by
@@ -2239,17 +2241,17 @@ theorem flapperKickX_kicksOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 
 theorem flapperKickX_kicksOverflow {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hkicksGe : UInt256.size - 1 ≤ (solcSlotWordAt ⟨6⟩ σ I).toNat)
-    (h : RD flapperBytecode I g s0 ⟨4068⟩
+    (h : RD fork flapperBytecode I g s0 ⟨4068⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flapperBytecode g s0 := by
+    RDrev fork flapperBytecode g s0 := by
   have rd4074pre := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
     raw not (by native_decide) (by evm_ov),
     raw push1 ⟨6⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k4075, C4075, rd4075raw⟩ := rd4074pre.sload (by native_decide) (by evm_ov)
-  have rd4075 : RD flapperBytecode I g s0 ⟨4075⟩
+  have rd4075 : RD fork flapperBytecode I g s0 ⟨4075⟩
       (solcSlotWordAt ⟨6⟩ σ I :: UInt256.lnot ⟨0⟩ :: ⟨0⟩ :: kickBidWord I ::
         kickLotWord I :: ⟨313⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k4075 C4075 := by
@@ -2286,10 +2288,10 @@ set_option maxHeartbeats 1000000 in
 theorem flapperKickX_fillAddOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (hfillFit : (solcSlotWordAt ⟨9⟩ σ I).toNat + (kickLotWord I).toNat < UInt256.size)
-    (h : RD flapperBytecode I g s0 ⟨4143⟩
+    (h : RD fork flapperBytecode I g s0 ⟨4143⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flapperBytecode I g s0 ⟨4155⟩
+    ∃ k' C', RD fork flapperBytecode I g s0 ⟨4155⟩
       [solcSlotWordAt ⟨9⟩ σ I + kickLotWord I, ⟨0⟩, kickBidWord I,
         kickLotWord I, ⟨313⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -2298,7 +2300,7 @@ theorem flapperKickX_fillAddOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     raw push2 ⟨4155⟩ (by native_decide) (by evm_ov),
     raw push1 ⟨9⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k4150, C4150, rd4150raw⟩ := rd4149pre.sload (by native_decide) (by evm_ov)
-  have rd4150 : RD flapperBytecode I g s0 ⟨4150⟩
+  have rd4150 : RD fork flapperBytecode I g s0 ⟨4150⟩
       [solcSlotWordAt ⟨9⟩ σ I, ⟨4155⟩, ⟨0⟩, kickBidWord I, kickLotWord I,
         ⟨313⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k4150 C4150 := by
@@ -2324,16 +2326,16 @@ theorem flapperKickX_fillAddOverflow {σ I} {g : Sat256} {s0 : State} {k C : ℕ
     {sel : UInt256}
     (hfillOverflow :
       UInt256.size ≤ (solcSlotWordAt ⟨9⟩ σ I).toNat + (kickLotWord I).toNat)
-    (h : RD flapperBytecode I g s0 ⟨4143⟩
+    (h : RD fork flapperBytecode I g s0 ⟨4143⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flapperBytecode g s0 := by
+    RDrev fork flapperBytecode g s0 := by
   have rd4149pre := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push2 ⟨4155⟩ (by native_decide) (by evm_ov),
     raw push1 ⟨9⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k4150, C4150, rd4150raw⟩ := rd4149pre.sload (by native_decide) (by evm_ov)
-  have rd4150 : RD flapperBytecode I g s0 ⟨4150⟩
+  have rd4150 : RD fork flapperBytecode I g s0 ⟨4150⟩
       [solcSlotWordAt ⟨9⟩ σ I, ⟨4155⟩, ⟨0⟩, kickBidWord I, kickLotWord I,
         ⟨313⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k4150 C4150 := by
@@ -2386,17 +2388,17 @@ theorem flapperKickX_fillAddOverflow {σ I} {g : Sat256} {s0 : State} {k C : ℕ
 set_option maxHeartbeats 1000000 in
 theorem flapperKickX_fillStoreSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
-    (h : RD flapperBytecode I g s0 ⟨4155⟩
+    (h : RD fork flapperBytecode I g s0 ⟨4155⟩
       [solcSlotWordAt ⟨9⟩ σ I + kickLotWord I, ⟨0⟩, kickBidWord I,
         kickLotWord I, ⟨313⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     (I.perm = true ∧
-      ∃ k' C', RD flapperBytecode I g s0 ⟨4161⟩
+      ∃ k' C', RD fork flapperBytecode I g s0 ⟨4161⟩
         [solcSlotWordAt ⟨9⟩ σ I + kickLotWord I, ⟨0⟩, kickBidWord I,
           kickLotWord I, ⟨313⟩, sel]
         (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
         (kickRuntimeAfterFillMap I.codeOwner σ I) k' C') ∨
-      (I.perm = false ∧ RDstatic flapperBytecode g s0) := by
+      (I.perm = false ∧ RDstatic fork flapperBytecode g s0) := by
   have rd4159pre := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨9⟩ (by native_decide) (by evm_ov),
@@ -2410,7 +2412,7 @@ theorem flapperKickX_fillStoreSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨k4161, C4161, rd4161raw⟩ := rd4159pre.sstore hperm
     hstoreDec (by evm_ov)
-  have rd4161 : RD flapperBytecode I g s0 ⟨4161⟩
+  have rd4161 : RD fork flapperBytecode I g s0 ⟨4161⟩
       [solcSlotWordAt ⟨9⟩ σ I + kickLotWord I, ⟨0⟩, kickBidWord I,
         kickLotWord I, ⟨313⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
@@ -2423,21 +2425,21 @@ theorem flapperKickX_lidOkSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (hfillLe :
       (solcSlotWordAt ⟨9⟩ σ I + kickLotWord I).toNat ≤
         (solcSlotWordAt ⟨8⟩ (kickRuntimeAfterFillMap I.codeOwner σ I) I).toNat)
-    (h : RD flapperBytecode I g s0 ⟨4155⟩
+    (h : RD fork flapperBytecode I g s0 ⟨4155⟩
       [solcSlotWordAt ⟨9⟩ σ I + kickLotWord I, ⟨0⟩, kickBidWord I,
         kickLotWord I, ⟨313⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     (I.perm = true ∧
-      ∃ k' C', RD flapperBytecode I g s0 ⟨4233⟩
+      ∃ k' C', RD fork flapperBytecode I g s0 ⟨4233⟩
         [⟨0⟩, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
         (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
         (kickRuntimeAfterFillMap I.codeOwner σ I) k' C') ∨
-      (I.perm = false ∧ RDstatic flapperBytecode g s0) := by
+      (I.perm = false ∧ RDstatic fork flapperBytecode g s0) := by
   refine permSplit_bind (flapperKickX_fillStoreSplit h) fun _hperm hstore ↦ ?_
   obtain ⟨k4161, C4161, rd4161⟩ := hstore
   have rd4163pre := rd4161.push1 ⟨8⟩ (by native_decide) (by evm_ov)
   obtain ⟨k4164, C4164, rd4164raw⟩ := rd4163pre.sload (by native_decide) (by evm_ov)
-  have rd4164 : RD flapperBytecode I g s0 ⟨4164⟩
+  have rd4164 : RD fork flapperBytecode I g s0 ⟨4164⟩
       [solcSlotWordAt ⟨8⟩ (kickRuntimeAfterFillMap I.codeOwner σ I) I,
         solcSlotWordAt ⟨9⟩ σ I + kickLotWord I, ⟨0⟩, kickBidWord I,
         kickLotWord I, ⟨313⟩, sel]
@@ -2461,11 +2463,11 @@ theorem flapperKickX_lidOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (hfillLe :
       (solcSlotWordAt ⟨9⟩ σ I + kickLotWord I).toNat ≤
         (solcSlotWordAt ⟨8⟩ (kickRuntimeAfterFillMap I.codeOwner σ I) I).toNat)
-    (h : RD flapperBytecode I g s0 ⟨4155⟩
+    (h : RD fork flapperBytecode I g s0 ⟨4155⟩
       [solcSlotWordAt ⟨9⟩ σ I + kickLotWord I, ⟨0⟩, kickBidWord I,
         kickLotWord I, ⟨313⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flapperBytecode I g s0 ⟨4233⟩
+    ∃ k' C', RD fork flapperBytecode I g s0 ⟨4233⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
       (kickRuntimeAfterFillMap I.codeOwner σ I) k' C' :=
@@ -2477,18 +2479,18 @@ theorem flapperKickX_overLidSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (hoverLid :
       (solcSlotWordAt ⟨8⟩ (kickRuntimeAfterFillMap I.codeOwner σ I) I).toNat <
         (solcSlotWordAt ⟨9⟩ σ I + kickLotWord I).toNat)
-    (h : RD flapperBytecode I g s0 ⟨4155⟩
+    (h : RD fork flapperBytecode I g s0 ⟨4155⟩
       [solcSlotWordAt ⟨9⟩ σ I + kickLotWord I, ⟨0⟩, kickBidWord I,
         kickLotWord I, ⟨313⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     (I.perm = true ∧
-      RDrev flapperBytecode g s0) ∨
-      (I.perm = false ∧ RDstatic flapperBytecode g s0) := by
+      RDrev fork flapperBytecode g s0) ∨
+      (I.perm = false ∧ RDstatic fork flapperBytecode g s0) := by
   refine permSplit_bind (flapperKickX_fillStoreSplit h) fun _hperm hstore ↦ ?_
   obtain ⟨k4161, C4161, rd4161⟩ := hstore
   have rd4163pre := rd4161.push1 ⟨8⟩ (by native_decide) (by evm_ov)
   obtain ⟨k4164, C4164, rd4164raw⟩ := rd4163pre.sload (by native_decide) (by evm_ov)
-  have rd4164 : RD flapperBytecode I g s0 ⟨4164⟩
+  have rd4164 : RD fork flapperBytecode I g s0 ⟨4164⟩
       [solcSlotWordAt ⟨8⟩ (kickRuntimeAfterFillMap I.codeOwner σ I) I,
         solcSlotWordAt ⟨9⟩ σ I + kickLotWord I, ⟨0⟩, kickBidWord I,
         kickLotWord I, ⟨313⟩, sel]
@@ -2528,24 +2530,24 @@ theorem flapperKickX_overLid {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (hoverLid :
       (solcSlotWordAt ⟨8⟩ (kickRuntimeAfterFillMap I.codeOwner σ I) I).toNat <
         (solcSlotWordAt ⟨9⟩ σ I + kickLotWord I).toNat)
-    (h : RD flapperBytecode I g s0 ⟨4155⟩
+    (h : RD fork flapperBytecode I g s0 ⟨4155⟩
       [solcSlotWordAt ⟨9⟩ σ I + kickLotWord I, ⟨0⟩, kickBidWord I,
         kickLotWord I, ⟨313⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flapperBytecode g s0 :=
+    RDrev fork flapperBytecode g s0 :=
   permSplit_true hperm (flapperKickX_overLidSplit hoverLid h)
 
 set_option maxHeartbeats 1000000 in
 theorem flapperKickX_toCheckedAddStart {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256} (hperm : I.perm = true)
-    (h : RD flapperBytecode I g s0 ⟨4233⟩
+    (h : RD fork flapperBytecode I g s0 ⟨4233⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
       (kickRuntimeAfterFillMap I.codeOwner σ I) k C) :
     let id := kickRuntimeIdWord σ I
     let memStore := twoWordHashMem id ⟨1⟩ (relyAuthHashMem I)
     let σGuy := kickRuntimeAfterGuyMap I.codeOwner σ I
-    ∃ k' C', RD flapperBytecode I g s0 ⟨4936⟩
+    ∃ k' C', RD fork flapperBytecode I g s0 ⟨4936⟩
       [kickRuntimeTauWord I.codeOwner σ I, UInt256.ofNat I.header.timestamp, ⟨4319⟩,
         id, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       memStore (UInt256.ofNat 3) ByteArray.empty σGuy k' C' := by
@@ -2570,11 +2572,11 @@ theorem flapperKickX_toCheckedAddStart {σ I} {g : Sat256} {s0 : State}
     raw dup1 (by native_decide) (by evm_ov)]
   obtain ⟨k4239, C4239, rd4239raw⟩ := rd4238pre.sload
     (by native_decide) (by evm_ov)
-  have rd4239 : RD flapperBytecode I g s0 ⟨4239⟩
+  have rd4239 : RD fork flapperBytecode I g s0 ⟨4239⟩
       [solcSlotWordAt ⟨6⟩ σ I, ⟨6⟩, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σFill
       k4239 C4239 := by
-    have rd4239' : RD flapperBytecode I g s0 ⟨4239⟩
+    have rd4239' : RD fork flapperBytecode I g s0 ⟨4239⟩
         [solcSlotWordAt ⟨6⟩ σFill I, ⟨6⟩, kickBidWord I, kickLotWord I,
           ⟨313⟩, sel]
         (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σFill
@@ -2595,7 +2597,7 @@ theorem flapperKickX_toCheckedAddStart {σ I} {g : Sat256} {s0 : State}
     rw [u256_add_comm]
   have hidRawSolc : ⟨1⟩ + solcSlotWord σ I ⟨6⟩ = id := by
     simpa [solcSlotWordAt] using hidRaw
-  have rd4248 : RD flapperBytecode I g s0 ⟨4248⟩
+  have rd4248 : RD fork flapperBytecode I g s0 ⟨4248⟩
       [⟨1⟩, id, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
       σKicks k4248 C4248 := by
@@ -2650,7 +2652,7 @@ theorem flapperKickX_toCheckedAddStart {σ I} {g : Sat256} {s0 : State}
     raw dup2 (by native_decide) (by evm_ov)]
   obtain ⟨k4265, C4265, rd4265raw⟩ := rd4264pre.sstore hperm
     (by native_decide) (by evm_ov)
-  have rd4265 : RD flapperBytecode I g s0 ⟨4265⟩
+  have rd4265 : RD fork flapperBytecode I g s0 ⟨4265⟩
       [auctionBidSlot id, ⟨1⟩, id, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       memStore (UInt256.ofNat 3) ByteArray.empty σBid k4265 C4265 := by
     simpa [σBid, kickRuntimeAfterBidMap, σKicks, kickRuntimeAfterKicksMap, id]
@@ -2666,7 +2668,7 @@ theorem flapperKickX_toCheckedAddStart {σ I} {g : Sat256} {s0 : State}
   rw [hlotSlot] at rd4270pre
   obtain ⟨k4271, C4271, rd4271raw⟩ := rd4270pre.sstore hperm
     (by native_decide) (by evm_ov)
-  have rd4271 : RD flapperBytecode I g s0 ⟨4271⟩
+  have rd4271 : RD fork flapperBytecode I g s0 ⟨4271⟩
       [auctionBidSlot id, id, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       memStore (UInt256.ofNat 3) ByteArray.empty σLot k4271 C4271 := by
     simpa [σLot, kickRuntimeAfterLotMap, σBid, kickRuntimeAfterBidMap, id]
@@ -2680,7 +2682,7 @@ theorem flapperKickX_toCheckedAddStart {σ I} {g : Sat256} {s0 : State}
   have rd4274 := rd4273pre.dup1 (by native_decide) (by evm_ov)
   obtain ⟨k4276, C4276, rd4276raw⟩ := rd4274.sload
     (by native_decide) (by evm_ov)
-  have rd4276 : RD flapperBytecode I g s0 ⟨4276⟩
+  have rd4276 : RD fork flapperBytecode I g s0 ⟨4276⟩
       [oldPacked, packedSlot, id, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       memStore (UInt256.ofNat 3) ByteArray.empty σLot k4276 C4276 := by
     simpa [oldPacked, solcSlotWord, packedSlot] using rd4276raw
@@ -2718,7 +2720,7 @@ theorem flapperKickX_toCheckedAddStart {σ I} {g : Sat256} {s0 : State}
             rw [hsrcClean]
       _ = guyStored := by
             rfl
-  have rd4290 : RD flapperBytecode I g s0 ⟨4290⟩
+  have rd4290 : RD fork flapperBytecode I g s0 ⟨4290⟩
       [id, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       memStore (UInt256.ofNat 3) ByteArray.empty σGuy k4290 C4290 := by
     simpa [σGuy, kickRuntimeAfterGuyMap, guyStored, kickRuntimeGuyStoredWord,
@@ -2727,7 +2729,7 @@ theorem flapperKickX_toCheckedAddStart {σ I} {g : Sat256} {s0 : State}
       rd4290raw
   have rd4292 := rd4290.push1 ⟨5⟩ (by native_decide) (by evm_ov)
   obtain ⟨k4293, C4293, rd4293raw⟩ := rd4292.sload (by native_decide) (by evm_ov)
-  have rd4293 : RD flapperBytecode I g s0 ⟨4293⟩
+  have rd4293 : RD fork flapperBytecode I g s0 ⟨4293⟩
       [solcSlotWordAt ⟨5⟩ σGuy I, id, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       memStore (UInt256.ofNat 3) ByteArray.empty σGuy k4293 C4293 := by
     simpa [solcSlotWordAt] using rd4293raw
@@ -2774,13 +2776,13 @@ theorem flapperKickX_toEndStoreStart {σ I} {g : Sat256} {s0 : State}
     (haddFit :
       (UInt256.land (UInt256.ofNat I.header.timestamp) uint48Mask).toNat +
         (kickRuntimeTauWord I.codeOwner σ I).toNat < 2 ^ 48)
-    (h : RD flapperBytecode I g s0 ⟨4936⟩
+    (h : RD fork flapperBytecode I g s0 ⟨4936⟩
       [kickRuntimeTauWord I.codeOwner σ I, UInt256.ofNat I.header.timestamp, ⟨4319⟩,
         kickRuntimeIdWord σ I, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       (twoWordHashMem (kickRuntimeIdWord σ I) ⟨1⟩ (relyAuthHashMem I))
       (UInt256.ofNat 3) ByteArray.empty
       (kickRuntimeAfterGuyMap I.codeOwner σ I) k C) :
-    ∃ k' C', RD flapperBytecode I g s0 ⟨4319⟩
+    ∃ k' C', RD fork flapperBytecode I g s0 ⟨4319⟩
       [kickRuntimeAddWord I.codeOwner σ I, kickRuntimeIdWord σ I, kickBidWord I,
         kickLotWord I, ⟨313⟩, sel]
       (twoWordHashMem (kickRuntimeIdWord σ I) ⟨1⟩ (relyAuthHashMem I))
@@ -2839,13 +2841,13 @@ theorem flapperKickX_endAddOverflow {σ I} {g : Sat256} {s0 : State}
     (haddOverflow :
       2 ^ 48 ≤ (UInt256.land (UInt256.ofNat I.header.timestamp) uint48Mask).toNat +
         (kickRuntimeTauWord I.codeOwner σ I).toNat)
-    (h : RD flapperBytecode I g s0 ⟨4936⟩
+    (h : RD fork flapperBytecode I g s0 ⟨4936⟩
       [kickRuntimeTauWord I.codeOwner σ I, UInt256.ofNat I.header.timestamp, ⟨4319⟩,
         kickRuntimeIdWord σ I, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       (twoWordHashMem (kickRuntimeIdWord σ I) ⟨1⟩ (relyAuthHashMem I))
       (UInt256.ofNat 3) ByteArray.empty
       (kickRuntimeAfterGuyMap I.codeOwner σ I) k C) :
-    RDrev flapperBytecode g s0 := by
+    RDrev fork flapperBytecode g s0 := by
   let tau := kickRuntimeTauWord I.codeOwner σ I
   let timestamp := UInt256.ofNat I.header.timestamp
   have rd4940 := evm_run h with [
@@ -2888,13 +2890,13 @@ theorem flapperKickX_endAddOverflow {σ I} {g : Sat256} {s0 : State}
 set_option maxHeartbeats 1000000 in
 theorem flapperKickX_toMoveSetupStart {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256} (hperm : I.perm = true)
-    (h : RD flapperBytecode I g s0 ⟨4319⟩
+    (h : RD fork flapperBytecode I g s0 ⟨4319⟩
       [kickRuntimeAddWord I.codeOwner σ I, kickRuntimeIdWord σ I, kickBidWord I,
         kickLotWord I, ⟨313⟩, sel]
       (twoWordHashMem (kickRuntimeIdWord σ I) ⟨1⟩ (relyAuthHashMem I))
       (UInt256.ofNat 3) ByteArray.empty
       (kickRuntimeAfterGuyMap I.codeOwner σ I) k C) :
-    ∃ k' C', RD flapperBytecode I g s0 ⟨4379⟩
+    ∃ k' C', RD fork flapperBytecode I g s0 ⟨4379⟩
       [solcSlotWordAt ⟨2⟩ (kickRuntimeBeforeMoveMap I.codeOwner σ I) I,
         ⟨0⟩, ⟨64⟩, kickRuntimeIdWord σ I, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       (twoWordHashMem (kickRuntimeIdWord σ I) ⟨1⟩
@@ -2962,7 +2964,7 @@ theorem flapperKickX_toMoveSetupStart {σ I} {g : Sat256} {s0 : State}
   have rd4340 := rd4339pre.dup1 (by native_decide) (by evm_ov)
   obtain ⟨k4342, C4342, rd4342raw⟩ := rd4340.sload
     (by native_decide) (by evm_ov)
-  have rd4342 : RD flapperBytecode I g s0 ⟨4342⟩
+  have rd4342 : RD fork flapperBytecode I g s0 ⟨4342⟩
       [oldPacked, packedSlot, ⟨2⟩, ⟨64⟩, ⟨0⟩, addWord, id, kickBidWord I,
         kickLotWord I, ⟨313⟩, sel]
       memEndStore (UInt256.ofNat 3) ByteArray.empty σGuy k4342 C4342 := by
@@ -3015,7 +3017,7 @@ theorem flapperKickX_toMoveSetupStart {σ I} {g : Sat256} {s0 : State}
       tickRuntimeEndClearMask, Sub.sub, HSub.hSub, Mul.mul, HMul.hMul]
       using tickRuntimeEndStoredRawWord_eq_setUint48Offset26Word oldPacked addWord
   rw [hstoredRaw] at rd4377raw
-  have rd4377 : RD flapperBytecode I g s0 ⟨4377⟩
+  have rd4377 : RD fork flapperBytecode I g s0 ⟨4377⟩
       [⟨64⟩, ⟨0⟩, ⟨2⟩, id, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       memEndStore (UInt256.ofNat 3) ByteArray.empty σBeforeMove k4377 C4377 := by
     simpa [σBeforeMove, kickRuntimeBeforeMoveMap, kickRuntimeEndStoredWord,
@@ -3023,7 +3025,7 @@ theorem flapperKickX_toMoveSetupStart {σ I} {g : Sat256} {s0 : State}
       tickRuntimeEndShiftedWord, tickRuntimeEndClearMask, id] using rd4377raw
   have rd4378 := rd4377.swap2 (by native_decide) (by evm_ov)
   obtain ⟨k4379, C4379, rd4379raw⟩ := rd4378.sload (by native_decide) (by evm_ov)
-  have rd4379 : RD flapperBytecode I g s0 ⟨4379⟩
+  have rd4379 : RD fork flapperBytecode I g s0 ⟨4379⟩
       [solcSlotWordAt ⟨2⟩ σBeforeMove I, ⟨0⟩, ⟨64⟩, id, kickBidWord I,
         kickLotWord I, ⟨313⟩, sel]
       memEndStore (UInt256.ofNat 3) ByteArray.empty σBeforeMove k4379 C4379 := by
@@ -3034,7 +3036,7 @@ theorem flapperKickX_toMoveSetupStart {σ I} {g : Sat256} {s0 : State}
 set_option maxHeartbeats 1000000 in
 theorem flapperKickX_toMoveExtcodesizeGuard {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
-    (h : RD flapperBytecode I g s0 ⟨4379⟩
+    (h : RD fork flapperBytecode I g s0 ⟨4379⟩
       [solcSlotWordAt ⟨2⟩ (kickRuntimeBeforeMoveMap I.codeOwner σ I) I,
         ⟨0⟩, ⟨64⟩, kickRuntimeIdWord σ I, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       (twoWordHashMem (kickRuntimeIdWord σ I) ⟨1⟩
@@ -3046,7 +3048,7 @@ theorem flapperKickX_toMoveExtcodesizeGuard {σ I} {g : Sat256} {s0 : State}
     let memEndStore := twoWordHashMem id ⟨1⟩ memStore
     let σBeforeMove := kickRuntimeBeforeMoveMap I.codeOwner σ I
     let vat := kickVatWord σBeforeMove I
-    ∃ k' C', RD flapperBytecode I g s0 ⟨4446⟩
+    ∃ k' C', RD fork flapperBytecode I g s0 ⟨4446⟩
       (vat :: vat :: cageMoveOutSize :: cageMoveOutPtr :: cageMoveInSize ::
         cageMoveOutPtr :: cageMoveOutSize :: cageMoveEndPtr :: cageMoveSelectorWord ::
         vat :: id :: kickBidWord I :: kickLotWord I :: ⟨313⟩ :: sel :: [])
@@ -3205,7 +3207,7 @@ theorem flapperKickX_toMoveExtcodesizeGuard {σ I} {g : Sat256} {s0 : State}
 
 theorem RD.flapperKickReturnWordFromMem8 {σ I} {g : Sat256} {s0 : State}
     {sel id : UInt256} {mem memout rdata : ByteArray} {k C : ℕ}
-    (h : RD flapperBytecode I g s0 ⟨313⟩ [id, sel] mem (UInt256.ofNat 8) rdata
+    (h : RD fork flapperBytecode I g s0 ⟨313⟩ [id, sel] mem (UInt256.ofNat 8) rdata
       σ k C)
     (hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
@@ -3219,7 +3221,7 @@ theorem RD.flapperKickReturnWordFromMem8 {σ I} {g : Sat256} {s0 : State}
          (fromByteArrayBigEndian (memout.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)
     (hread128 : memout.readWithPadding 128 32 = UInt256.toByteArray id) :
-    RDret flapperBytecode g s0 σ (UInt256.toByteArray id) := by
+    RDret fork flapperBytecode g s0 σ (UInt256.toByteArray id) := by
   exact evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
@@ -3253,14 +3255,14 @@ theorem flapperKickX_moveNoCode
     (hnoCode :
       Reasoning.Theory.extCodeSizeWord (kickRuntimeBeforeMoveMap I.codeOwner σ I)
         (kickVatWord (kickRuntimeBeforeMoveMap I.codeOwner σ I) I) = ⟨0⟩)
-    (rd4379 : RD flapperBytecode I g (initState σStart σ₀ g A I) ⟨4379⟩
+    (rd4379 : RD fork flapperBytecode I g (initState σStart σ₀ g A I) ⟨4379⟩
       [solcSlotWordAt ⟨2⟩ (kickRuntimeBeforeMoveMap I.codeOwner σ I) I,
         ⟨0⟩, ⟨64⟩, kickRuntimeIdWord σ I, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       (twoWordHashMem (kickRuntimeIdWord σ I) ⟨1⟩
         (twoWordHashMem (kickRuntimeIdWord σ I) ⟨1⟩ (relyAuthHashMem I)))
       (UInt256.ofNat 3) ByteArray.empty
       (kickRuntimeBeforeMoveMap I.codeOwner σ I) k C) :
-    RDrev flapperBytecode g (initState σStart σ₀ g A I) := by
+    RDrev fork flapperBytecode g (initState σStart σ₀ g A I) := by
   obtain ⟨_, _, rd4446⟩ := flapperKickX_toMoveExtcodesizeGuard rd4379
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨4446⟩) (okPc := ⟨4458⟩)
     rd4446 hnoCode
@@ -3275,7 +3277,7 @@ theorem flapperKickX_moveCall
       Reasoning.Theory.extCodeSizeWord (kickRuntimeBeforeMoveMap I.codeOwner σ I)
         (kickVatWord (kickRuntimeBeforeMoveMap I.codeOwner σ I) I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
-    (rd4379 : RD flapperBytecode I g (initState σStart σ₀ g A I) ⟨4379⟩
+    (rd4379 : RD fork flapperBytecode I g (initState σStart σ₀ g A I) ⟨4379⟩
       [solcSlotWordAt ⟨2⟩ (kickRuntimeBeforeMoveMap I.codeOwner σ I) I,
         ⟨0⟩, ⟨64⟩, kickRuntimeIdWord σ I, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       (twoWordHashMem (kickRuntimeIdWord σ I) ⟨1⟩
@@ -3292,12 +3294,12 @@ theorem flapperKickX_moveCall
     let vat := kickVatWord σBeforeMove I
     ∃ (σ' : AccountMap) (z : Bool)
       (out : ByteArray) (A' : Substate) (k' C' : ℕ),
-      RD flapperBytecode I g (initState σStart σ₀ g A I) ⟨4462⟩
+      RD fork flapperBytecode I g (initState σStart σ₀ g A I) ⟨4462⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: cageMoveEndPtr :: cageMoveSelectorWord ::
           vat :: id :: kickBidWord I :: kickLotWord I :: ⟨313⟩ :: sel :: [])
         (cageMoveCalldataMem src guy rad memEndStore) (UInt256.ofNat 8)
         out σ' k' C'
-    ∧ typedCallViaEVM config
+    ∧ typedCallViaEVM fork config
         ({ initState σStart σ₀ g A I with accountMap := σBeforeMove })
         (EVM.address (AccountAddress.ofNat vat.toNat)) "move" 0
         [.address I.source, .address I.codeOwner, .int (Int.ofNat rad.toNat)]
@@ -3352,7 +3354,7 @@ theorem flapperKickX_moveCall
     have hmin : (min cageMoveOutSize (UInt256.ofNat out.size)).toNat = 0 := by
       unfold cageMoveOutSize
       rfl
-    have rd4462 : RD flapperBytecode I g (initState σStart σ₀ g A I) ⟨4462⟩
+    have rd4462 : RD fork flapperBytecode I g (initState σStart σ₀ g A I) ⟨4462⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: cageMoveEndPtr :: cageMoveSelectorWord ::
           vat :: id :: kickBidWord I :: kickLotWord I :: ⟨313⟩ :: sel :: [])
         (out.write 0 (cageMoveCalldataMem src guy rad memEndStore)
@@ -3378,7 +3380,7 @@ theorem flapperKickX_moveCallDepthLimit
       Reasoning.Theory.extCodeSizeWord (kickRuntimeBeforeMoveMap I.codeOwner σ I)
         (kickVatWord (kickRuntimeBeforeMoveMap I.codeOwner σ I) I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
-    (rd4379 : RD flapperBytecode I g (initState σStart σ₀ g A I) ⟨4379⟩
+    (rd4379 : RD fork flapperBytecode I g (initState σStart σ₀ g A I) ⟨4379⟩
       [solcSlotWordAt ⟨2⟩ (kickRuntimeBeforeMoveMap I.codeOwner σ I) I,
         ⟨0⟩, ⟨64⟩, kickRuntimeIdWord σ I, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       (twoWordHashMem (kickRuntimeIdWord σ I) ⟨1⟩
@@ -3393,7 +3395,7 @@ theorem flapperKickX_moveCallDepthLimit
     let guy := kickThisWord I
     let rad := kickLotWord I
     let vat := kickVatWord σBeforeMove I
-    ∃ k' C', RD flapperBytecode I g (initState σStart σ₀ g A I) ⟨4462⟩
+    ∃ k' C', RD fork flapperBytecode I g (initState σStart σ₀ g A I) ⟨4462⟩
       (⟨0⟩ :: cageMoveEndPtr :: cageMoveSelectorWord ::
         vat :: id :: kickBidWord I :: kickLotWord I :: ⟨313⟩ :: sel :: [])
       (cageMoveCalldataMem src guy rad memEndStore) (UInt256.ofNat 8)
@@ -3426,13 +3428,13 @@ theorem flapperKickX_moveCallFailure
     {σStart σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {σ' : AccountMap}
     {mem out : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd4462 : RD flapperBytecode I g (initState σStart σ₀ g A I) ⟨4462⟩
+    (rd4462 : RD fork flapperBytecode I g (initState σStart σ₀ g A I) ⟨4462⟩
       (⟨0⟩ :: cageMoveEndPtr :: cageMoveSelectorWord ::
         kickVatWord (kickRuntimeBeforeMoveMap I.codeOwner σ I) I ::
         kickRuntimeIdWord σ I :: kickBidWord I :: kickLotWord I :: ⟨313⟩ :: sel :: [])
       mem aw out σ' k C)
     (houtSize : out.size < UInt256.size) :
-    RDrev flapperBytecode g (initState σStart σ₀ g A I) := by
+    RDrev fork flapperBytecode g (initState σStart σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨4462⟩) (okPc := ⟨4478⟩) rd4462
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -3446,7 +3448,7 @@ theorem flapperKickX_moveCallSuccess
     {σ' : AccountMap}
     {out : ByteArray} {k C : ℕ}
     (hperm : I.perm = true)
-    (rd4462 : RD flapperBytecode I g (initState σStart σ₀ g A I) ⟨4462⟩
+    (rd4462 : RD fork flapperBytecode I g (initState σStart σ₀ g A I) ⟨4462⟩
       (⟨1⟩ :: cageMoveEndPtr :: cageMoveSelectorWord ::
         kickVatWord (kickRuntimeBeforeMoveMap I.codeOwner σ I) I ::
         kickRuntimeIdWord σ I :: kickBidWord I :: kickLotWord I :: ⟨313⟩ :: sel :: [])
@@ -3454,7 +3456,7 @@ theorem flapperKickX_moveCallSuccess
         (twoWordHashMem (kickRuntimeIdWord σ I) ⟨1⟩
           (twoWordHashMem (kickRuntimeIdWord σ I) ⟨1⟩ (relyAuthHashMem I))))
       (UInt256.ofNat 8) out σ' k C) :
-    RDret flapperBytecode g (initState σStart σ₀ g A I)
+    RDret fork flapperBytecode g (initState σStart σ₀ g A I)
       σ' (UInt256.toByteArray (kickRuntimeIdWord σ I)) := by
   let id := kickRuntimeIdWord σ I
   let memStore := twoWordHashMem id ⟨1⟩ (relyAuthHashMem I)
@@ -3550,7 +3552,7 @@ theorem flapperKickX_moveCallSuccess
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
       (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd4480 : RD flapperBytecode I g (initState σStart σ₀ g A I) ⟨4480⟩
+  have rd4480 : RD fork flapperBytecode I g (initState σStart σ₀ g A I) ⟨4480⟩
       (cageMoveEndPtr :: cageMoveSelectorWord ::
         kickVatWord (kickRuntimeBeforeMoveMap I.codeOwner σ I) I ::
         id :: kickBidWord I :: kickLotWord I :: ⟨313⟩ :: sel :: [])
@@ -3836,12 +3838,12 @@ theorem flapperKickBodyCore {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flapperSelBytes 8)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flapperSelBytes 8) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some kickTransition :=
     flapperDispatchKick hsel
-  have hreach := flapperReachKickBody
+  have hreach := flapperReachKickBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -3880,7 +3882,7 @@ theorem flapperKickBodyCore {σ σ₀ A I} {g : UInt256}
             swap
             · have hp : I.perm = false := by simpa using hperm
               have hstatic := permSplit_false hp (flapperKickX_fillStoreSplit rd4155)
-              have hsource := (flapperKickBodyReverts_overLidSplit evmStele I hwv rfl
+              have hsource := (flapperKickBodyReverts_overLidSplit (fork := fork) evmStele I hwv rfl
                 hauthStele hliveStele hkicksLtStele hfillFitStele).2 hp
               exact hstatic.reEquivStaticHalt hcode hdispatch hdecode hsource
             have hfillWordAfter :
@@ -3980,7 +3982,7 @@ theorem flapperKickBodyCore {σ σ₀ A I} {g : UInt256}
                     rw [← hBeforeAccounts]
                     simpa [kickVatWord, kickAfterEndState_executionEnv] using hnoCode
                   have hbody :
-                      ExecTransitionBody config contract evmStele (kickLocals I)
+                      ExecTransitionBody fork config contract evmStele (kickLocals I)
                         kickTransition.body .reverted := by
                     exact flapperKickBodyReverts_moveNoCode (hperm := by assumption) evmStele I
                       (by simpa [evmStele, initState] using hwv)
@@ -4011,8 +4013,9 @@ theorem flapperKickBodyCore {σ σ₀ A I} {g : UInt256}
                       (relyAuthHashMem I)
                     let memEndStore := twoWordHashMem (kickRuntimeIdWord σ I) ⟨1⟩
                       memStore
-                    let A_move := (evmMoveStele.addAccessedAccount
-                      (EVM.address (AccountAddress.ofNat vat.toNat))).substate
+                    let A_move := (Ethereum.EVM.callSubstate fork
+                      evmMoveStele.accountMap (EVM.address (AccountAddress.ofNat vat.toNat))
+                      evmMoveStele.substate)
                     have hmemStore : memStore.size = 96 := by
                       simpa [memStore] using
                         twoWordHashMem_size_96 (kickRuntimeIdWord σ I) ⟨1⟩
@@ -4043,7 +4046,7 @@ theorem flapperKickBodyCore {σ σ₀ A I} {g : UInt256}
                       simpa [evmMoveStele, evmStele, kickAfterEndState_executionEnv, initState]
                         using hdepthEq
                     have hcallStele :
-                        typedCallViaEVM config evmMoveStele
+                        typedCallViaEVM fork config evmMoveStele
                           (EVM.address (AccountAddress.ofNat vat.toNat)) "move" 0
                           [.address evmMoveStele.executionEnv.source,
                             .address evmMoveStele.executionEnv.codeOwner, kickLotValue I]
@@ -4064,7 +4067,7 @@ theorem flapperKickBodyCore {σ σ₀ A I} {g : UInt256}
                           (cageMoveEncode_eq src guy rad hmemEnd hsrcCanon hguyCanon)
                           hdepthMove)
                     have hbody :
-                        ExecTransitionBody config contract evmStele (kickLocals I)
+                        ExecTransitionBody fork config contract evmStele (kickLocals I)
                           kickTransition.body .reverted := by
                       simpa [evmMoveStele] using
                         flapperKickBodyReverts_moveCallFailure (hperm := by assumption) evmStele
@@ -4118,7 +4121,7 @@ theorem flapperKickBodyCore {σ σ₀ A I} {g : UInt256}
                       simpa [evmEvm, evmMoveStele, kickVatWord, kickAfterEndState_executionEnv]
                         using hword
                     have hcallStele :
-                        typedCallViaEVM config evmMoveStele
+                        typedCallViaEVM fork config evmMoveStele
                           (EVM.address (AccountAddress.ofNat
                             (kickVatWord evmMoveStele.accountMap
                               evmMoveStele.executionEnv).toNat))
@@ -4130,7 +4133,7 @@ theorem flapperKickBodyCore {σ σ₀ A I} {g : UInt256}
                         kickAfterEndState_executionEnv, initState, kickLotValue, hvatEq]
                         using hcall
                     by_cases hz : z = true
-                    · have rd4462True : RD flapperBytecode I (Sat256.ofUInt256 g)
+                    · have rd4462True : RD fork flapperBytecode I (Sat256.ofUInt256 g)
                           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4462⟩
                           (⟨1⟩ :: cageMoveEndPtr :: cageMoveSelectorWord ::
                             kickVatWord (kickRuntimeBeforeMoveMap I.codeOwner σ I) I ::
@@ -4144,7 +4147,7 @@ theorem flapperKickBodyCore {σ σ₀ A I} {g : UInt256}
                           (UInt256.ofNat 8) out σ' k4462 C4462 := by
                         simpa [hz] using rd4462
                       have hcallTrue :
-                          typedCallViaEVM config evmMoveStele
+                          typedCallViaEVM fork config evmMoveStele
                             (EVM.address (AccountAddress.ofNat
                               (kickVatWord evmMoveStele.accountMap
                                 evmMoveStele.executionEnv).toNat))
@@ -4154,7 +4157,7 @@ theorem flapperKickBodyCore {σ σ₀ A I} {g : UInt256}
                             (true, evmCallStele, out) true := by
                         simpa [hz] using hcallStele
                       have hbody :
-                          ExecTransitionBody config contract evmStele (kickLocals I)
+                          ExecTransitionBody fork config contract evmStele (kickLocals I)
                             kickTransition.body
                             (.returned { contract := contract, locals := kickMoveLocals evmStele I }
                               evmCallStele
@@ -4182,7 +4185,7 @@ theorem flapperKickBodyCore {σ σ₀ A I} {g : UInt256}
                                 uint256ReturnEncoding (kickIdWord evmStele))))
                     · have hzFalse : z = false := by
                         cases z <;> simp at hz ⊢
-                      have rd4462False : RD flapperBytecode I (Sat256.ofUInt256 g)
+                      have rd4462False : RD fork flapperBytecode I (Sat256.ofUInt256 g)
                           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4462⟩
                           (⟨0⟩ :: cageMoveEndPtr :: cageMoveSelectorWord ::
                             kickVatWord (kickRuntimeBeforeMoveMap I.codeOwner σ I) I ::
@@ -4196,7 +4199,7 @@ theorem flapperKickBodyCore {σ σ₀ A I} {g : UInt256}
                           (UInt256.ofNat 8) out σ' k4462 C4462 := by
                         simpa [hzFalse] using rd4462
                       have hcallFalse :
-                          typedCallViaEVM config evmMoveStele
+                          typedCallViaEVM fork config evmMoveStele
                             (EVM.address (AccountAddress.ofNat
                               (kickVatWord evmMoveStele.accountMap
                                 evmMoveStele.executionEnv).toNat))
@@ -4206,7 +4209,7 @@ theorem flapperKickBodyCore {σ σ₀ A I} {g : UInt256}
                             (false, evmCallStele, out) true := by
                         simpa [hzFalse] using hcallStele
                       have hbody :
-                          ExecTransitionBody config contract evmStele (kickLocals I)
+                          ExecTransitionBody fork config contract evmStele (kickLocals I)
                             kickTransition.body .reverted := by
                         simpa [evmMoveStele, evmCallStele] using
                           flapperKickBodyReverts_moveCallFailure (hperm := by assumption) evmStele evmCallStele I out
@@ -4227,7 +4230,7 @@ theorem flapperKickBodyCore {σ σ₀ A I} {g : UInt256}
                   simpa [evmStele, kickNow48Word, kickTimestampWord, initState, htau]
                     using (Nat.le_of_not_gt hendFit)
                 have hbody :
-                    ExecTransitionBody config contract evmStele (kickLocals I)
+                    ExecTransitionBody fork config contract evmStele (kickLocals I)
                       kickTransition.body .reverted := by
                   exact flapperKickBodyReverts_endAddOverflow (hperm := by assumption) evmStele I
                     (by simpa [evmStele, initState] using hwv)
@@ -4243,7 +4246,7 @@ theorem flapperKickBodyCore {σ σ₀ A I} {g : UInt256}
                 have hgt := Nat.lt_of_not_ge hfillLe
                 simpa [hfillWordAfter, hlidWordAfter] using hgt
               have hbody :
-                  ExecTransitionBody config contract evmStele (kickLocals I)
+                  ExecTransitionBody fork config contract evmStele (kickLocals I)
                     kickTransition.body .reverted := by
                 exact flapperKickBodyReverts_overLid (hperm := hperm) evmStele I
                   (by simpa [evmStele, initState] using hwv)
@@ -4257,7 +4260,7 @@ theorem flapperKickBodyCore {σ σ₀ A I} {g : UInt256}
               simpa [kickFillWord, evmStele, initState] using
                 (Nat.le_of_not_gt hfillFit)
             have hbody :
-                ExecTransitionBody config contract evmStele (kickLocals I)
+                ExecTransitionBody fork config contract evmStele (kickLocals I)
                   kickTransition.body .reverted := by
               exact flapperKickBodyReverts_fillAddOverflow evmStele I
                 (by simpa [evmStele, initState] using hwv)
@@ -4270,7 +4273,7 @@ theorem flapperKickBodyCore {σ σ₀ A I} {g : UInt256}
             simpa [kickKicksWord, evmStele, initState] using
               (Nat.le_of_not_gt hkicksLt)
           have hbody :
-              ExecTransitionBody config contract evmStele (kickLocals I)
+              ExecTransitionBody fork config contract evmStele (kickLocals I)
                 kickTransition.body .reverted := by
             exact flapperKickBodyReverts_kicksOverflow evmStele I
               (by simpa [evmStele, initState] using hwv)
@@ -4284,7 +4287,7 @@ theorem flapperKickBodyCore {σ σ₀ A I} {g : UInt256}
           apply hlive
           simpa [kickLiveWord, evmStele, initState] using hbad
         have hbody :
-            ExecTransitionBody config contract evmStele (kickLocals I)
+            ExecTransitionBody fork config contract evmStele (kickLocals I)
               kickTransition.body .reverted := by
           exact flapperKickBodyReverts_notLive evmStele I
             (by simpa [evmStele, initState] using hwv)
@@ -4301,7 +4304,7 @@ theorem flapperKickBodyCore {σ σ₀ A I} {g : UInt256}
             Stele.EVM.storageLoad, State.lookupAccount] using hbad
         exact hauth hbad'
       have hbody :
-          ExecTransitionBody config contract evmStele (kickLocals I)
+          ExecTransitionBody fork config contract evmStele (kickLocals I)
             kickTransition.body .reverted := by
         exact flapperKickBodyReverts_unauthorized evmStele I
           (by simpa [evmStele, initState] using hwv)

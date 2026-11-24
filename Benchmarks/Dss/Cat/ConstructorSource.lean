@@ -1,6 +1,8 @@
 import Reasoning.WordArithmetic
 import Benchmarks.Dss.Cat.ConstructorBase
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Cat constructor Stele source semantics
 
@@ -140,7 +142,7 @@ theorem catCtorBodySuccess
     let locals := catCtorLocals vat
     let evm0 := initState σ σ₀
       (Sat256.ofUInt256 g) A I
-    ExecBlock config { contract := contract, locals := locals } evm0 constructorDecl.body
+    ExecBlock fork config { contract := contract, locals := locals } evm0 constructorDecl.body
       (.ok { contract := contract, locals := locals } (catCtorPostState evm0 vat)) := by
   intro locals evm0
   have hassignWards :
@@ -161,12 +163,12 @@ theorem catCtorBodySuccess
   simp only [constructorDecl, nonpayable, List.cons_append, List.nil_append]
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hassignWards) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hassignWards) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.assign (hperm := Or.inr (by simpa [catCtorAfterWardsState, evm0, initState] using hperm)) ?_ hassignVat) ?_
+    (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [catCtorAfterWardsState, evm0, initState] using hperm)) ?_ hassignVat) ?_
   · simpa [locals] using evalExpr_catCtorLocalVat (evm := catCtorAfterWardsState evm0) vat
   exact ExecBlock.consNormal
-    (ExecStmt.assign (hperm := Or.inr (by simpa [catCtorAfterWardsState, catCtorAfterVatState, evm0, initState] using hperm)) (by simp [evalExpr?, pure])
+    (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [catCtorAfterWardsState, catCtorAfterVatState, evm0, initState] using hperm)) (by simp [evalExpr?, pure])
       (assign_catCtorLiveStorage _ locals (by simp [locals, catCtorLocals])))
     ExecBlock.nil
 
@@ -175,7 +177,7 @@ theorem catSteleCtorExecSuccess
     {g : UInt256} (vat : AccountAddress)
     (hwv : I.weiValue = ⟨0⟩)
     (hperm : I.perm = true) :
-    steleCtorExec config contract [.address vat] σ σ₀ g A I
+    steleCtorExec fork config contract [.address vat] σ σ₀ g A I
       (.returned { contract := contract, locals := catCtorLocals vat }
         (catCtorPostState
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -190,14 +192,14 @@ theorem catSteleCtorExecSuccess
   · rfl
   · simpa [ExecTransitionBody, contract, constructorDecl] using
       ExecFuncBody.execBlockOK
-        (catCtorBodySuccess (hperm := hperm)
+        (catCtorBodySuccess (fork := fork) (hperm := hperm)
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) vat hwv)
 
 theorem catSteleCtorExecReverts_nonpayable
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (vat : AccountAddress)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    steleCtorExec config contract [.address vat] σ σ₀ g A I .reverted := by
+    steleCtorExec fork config contract [.address vat] σ σ₀ g A I .reverted := by
   refine steleCtorExec.intro
     (evmState := initState σ σ₀
       (Sat256.ofUInt256 g) A I)

@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.AttestAllocationMemory
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -16,7 +18,7 @@ theorem easAttestInitial {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hh : heap.toNat ≤ 2^64-1) (hheap : memLoad (UInt256.ofNat 64) mem = heap)
     (hzero : memLoad (UInt256.ofNat 96) mem = ⟨0⟩) (hlen : memLoad data mem = UInt256.ofNat len)
     (hlb : len < UInt256.size) (hcd : ee.calldata.size < UInt256.size)
-    (rd : RD (deployedRuntime v) ee g s0 kind.entryPC
+    (rd : RD fork (deployedRuntime v) ee g s0 kind.entryPC
       (attestEntryStack kind schema data attester available last ret R) mem aw rdata σ k C) :
     let first := allocateNext heap.toNat 128
     let next := allocateNext first (32+32*len)
@@ -25,15 +27,15 @@ theorem easAttestInitial {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     if first ≤ 2^64-1 ∧ heap.toNat ≤ first then
       if len ≤ 2^64-1 then
         if next ≤ 2^64-1 ∧ first ≤ next then
-          ∃ gasArg aw' k' C', RD (deployedRuntime v) ee g s0
+          ∃ gasArg aw' k' C', RD fork (deployedRuntime v) ee g s0
             (schemaCallPC (attestCallSchemaSite kind schema available last ret (UInt256.ofNat len)))
             (gasArg::UInt256.land (EVM.word v._schemaRegistry.val) solcAddrMask::ptr::⟨36⟩::ptr::⟨0⟩::
               schemaCallSaved (attestCallSchemaSite kind schema available last ret (UInt256.ofNat len)) ptr
                 (attestCallSchemaSaved kind data attester available ret result R))
             (attestInitialMemory kind mem ee.calldata heap data attester schema len) aw' rdata σ k' C'
-        else RDrev (deployedRuntime v) g s0
-      else RDrev (deployedRuntime v) g s0
-    else RDrev (deployedRuntime v) g s0 := by
+        else RDrev fork (deployedRuntime v) g s0
+      else RDrev fork (deployedRuntime v) g s0
+    else RDrev fork (deployedRuntime v) g s0 := by
   dsimp only
   obtain ⟨hsize0,hfree0,hzero0,hdata0,hregs0⟩ := attestEntryMemory_facts kind mem data attester heap (by omega) hlo hcovered hheap hzero
   obtain ⟨a1,k1,C1,r1⟩ := easAttestEntry v kind (by omega) rd

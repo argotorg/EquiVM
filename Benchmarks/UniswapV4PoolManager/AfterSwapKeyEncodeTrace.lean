@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.AfterSwapKeyEncodeMemory
 import Benchmarks.UniswapV4PoolManager.NatSubBounds
 import Benchmarks.UniswapV4PoolManager.EntryTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -16,9 +18,9 @@ theorem afterSwapKeyEncodeTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hk : PoolKeyView mem keyPtr key) (hc : PoolKeyCanonical key)
     (hb : keyPtr.toNat+160 ≤ free.toNat) (hf : free.toNat+228 < UInt256.size)
     (hfree : memLoad (UInt256.ofNat 64) mem = free)
-    (h : RD (deployedRuntime v) I g s0 ⟨15936⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨15936⟩
       (paramsPtr :: len :: src :: keyPtr :: hook :: unspecified :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', C+244+Cₘ aw' ≤ C'+Cₘ aw ∧ RD (deployedRuntime v) I g s0 ⟨15382⟩
+    ∃ aw' k' C', C+244+Cₘ aw' ≤ C'+Cₘ aw ∧ RD fork (deployedRuntime v) I g s0 ⟨15382⟩
       (paramsPtr :: UInt256.ofNat 16097 :: len :: src :: UInt256.ofNat 14575 :: free ::
         UInt256.ofNat 16124 :: free :: hook :: UInt256.ofNat 6381 :: UInt256.ofNat 16136 :: unspecified ::
         UInt256.ofNat 16142 :: R)

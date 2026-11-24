@@ -2,6 +2,8 @@ import Benchmarks.Safe.V1_0227664.SetupDecodeOwners
 import Benchmarks.Safe.V1_0227664.AddressCalldataRead
 import Benchmarks.Safe.V1_0227664.Blocks.Runtime_045
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V1_0227664.RuntimeBlocks
 
@@ -44,11 +46,11 @@ def setupDecodedStack (cd : ByteArray) (n len : Nat) (R : List UInt256) : List U
 set_option maxRecDepth 100000 in
 theorem safeSetupDecodeTargetStart {I g s0 σ k C aw mem rdata n} {ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨10116⟩ (setupDecodeOwnersStack I.calldata n ret R)
+    (h : RD fork safeBytecode I g s0 ⟨10116⟩ (setupDecodeOwnersStack I.calldata n ret R)
       mem aw rdata σ k C)
     (ho : (calldataWord I.calldata 4).toNat ≤ 2 ^ 64 - 1)
     (hov : R.length + 22 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨8719⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨8719⟩
       (⟨68⟩ :: ⟨10142⟩ :: setupDecodeTargetSaved I.calldata n ret R) mem aw rdata σ k' C' := by
   have hptr : UInt256.ofNat 32 + UInt256.ofNat (4 + (calldataWord I.calldata 4).toNat) =
       UInt256.ofNat (setupOwnersStart I.calldata) := by
@@ -65,12 +67,12 @@ theorem safeSetupDecodeTargetStart {I g s0 σ k C aw mem rdata n} {ret : UInt256
 set_option maxRecDepth 100000 in
 theorem safeSetupDecodeDataStart {I g s0 σ k C aw mem rdata n} {ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨10142⟩
+    (h : RD fork safeBytecode I g s0 ⟨10142⟩
       (calldataWord I.calldata 68 :: setupDecodeTargetSaved I.calldata n ret R)
       mem aw rdata σ k C)
     (ho : (calldataWord I.calldata 100).toNat ≤ 2 ^ 64 - 1)
     (hov : R.length + 22 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨8777⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨8777⟩
       (UInt256.ofNat (4 + (calldataWord I.calldata 100).toNat) ::
         UInt256.ofNat I.calldata.size :: ⟨10180⟩ :: setupDecodeDataSaved I.calldata n ret R)
       mem aw rdata σ k' C' := by
@@ -79,7 +81,7 @@ theorem safeSetupDecodeDataStart {I g s0 σ k C aw mem rdata n} {ret : UInt256}
   have h₁ := safeRuntime_block_10142_taken (by simp; omega) (by
     change UInt256.isZero (UInt256.gt (calldataWord I.calldata 100) _) ≠ _
     rw [hmax, ugt_zero ho]; decide) (by jump_dest) h
-  change RD safeBytecode I g s0 ⟨10168⟩ (setupDecodeDataSaved I.calldata n ret R)
+  change RD fork safeBytecode I g s0 ⟨10168⟩ (setupDecodeDataSaved I.calldata n ret R)
     mem aw rdata σ _ _ at h₁
   have h₂ := safeRuntime_block_10168 (by simp; omega) (by jump_dest) h₁
   have hoff : (⟨4⟩ : UInt256) + calldataWord I.calldata 100 =
@@ -93,11 +95,11 @@ theorem safeSetupDecodeDataStart {I g s0 σ k C aw mem rdata n} {ret : UInt256}
 set_option maxRecDepth 100000 in
 theorem safeSetupDecodeDataOffsetRevert {I g s0 σ k C aw mem rdata n} {ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨10142⟩
+    (h : RD fork safeBytecode I g s0 ⟨10142⟩
       (calldataWord I.calldata 68 :: setupDecodeTargetSaved I.calldata n ret R)
       mem aw rdata σ k C)
     (ho : ¬(calldataWord I.calldata 100).toNat ≤ 2 ^ 64 - 1)
-    (hov : R.length + 22 ≤ 1024) : RDrev safeBytecode g s0 := by
+    (hov : R.length + 22 ≤ 1024) : RDrev fork safeBytecode g s0 := by
   have hmax : UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 64))
       (UInt256.ofNat 1) = UInt256.ofNat (2 ^ 64 - 1) := by decide +kernel
   have h₁ := safeRuntime_block_10142_fallthrough (by simp; omega) (by
@@ -108,11 +110,11 @@ theorem safeSetupDecodeDataOffsetRevert {I g s0 σ k C aw mem rdata n} {ret : UI
 set_option maxRecDepth 100000 in
 theorem safeSetupDecodeFallbackStart {I g s0 σ k C aw mem rdata n len} {ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨10180⟩
+    (h : RD fork safeBytecode I g s0 ⟨10180⟩
       (UInt256.ofNat len :: UInt256.ofNat (setupDataStart I.calldata) ::
         setupDecodeDataSaved I.calldata n ret R) mem aw rdata σ k C)
     (hov : R.length + 22 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨8719⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨8719⟩
       (⟨132⟩ :: ⟨10199⟩ :: setupDecodeFallbackSaved I.calldata n len ret R)
       mem aw rdata σ k' C' := by
   have h₁ := safeRuntime_block_10180 (by simp; omega) (by jump_dest) h
@@ -121,11 +123,11 @@ theorem safeSetupDecodeFallbackStart {I g s0 σ k C aw mem rdata n len} {ret : U
 set_option maxRecDepth 100000 in
 theorem safeSetupDecodeTokenStart {I g s0 σ k C aw mem rdata n len} {ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨10199⟩
+    (h : RD fork safeBytecode I g s0 ⟨10199⟩
       (calldataWord I.calldata 132 :: setupDecodeFallbackSaved I.calldata n len ret R)
       mem aw rdata σ k C)
     (hov : R.length + 22 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨8719⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨8719⟩
       (⟨164⟩ :: ⟨10213⟩ :: setupDecodeTokenSaved I.calldata n len ret R)
       mem aw rdata σ k' C' := by
   have h₁ := safeRuntime_block_10199 (by simp; omega) (by jump_dest) h
@@ -134,11 +136,11 @@ theorem safeSetupDecodeTokenStart {I g s0 σ k C aw mem rdata n len} {ret : UInt
 set_option maxRecDepth 100000 in
 theorem safeSetupDecodeReceiverStart {I g s0 σ k C aw mem rdata n len} {ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨10213⟩
+    (h : RD fork safeBytecode I g s0 ⟨10213⟩
       (calldataWord I.calldata 164 :: setupDecodeTokenSaved I.calldata n len ret R)
       mem aw rdata σ k C)
     (hov : R.length + 22 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨8719⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨8719⟩
       (⟨228⟩ :: ⟨10234⟩ :: setupDecodeReceiverSaved I.calldata n len ret R)
       mem aw rdata σ k' C' := by
   have h₁ := safeRuntime_block_10213 (by simp; omega) (by jump_dest) h
@@ -147,11 +149,11 @@ theorem safeSetupDecodeReceiverStart {I g s0 σ k C aw mem rdata n len} {ret : U
 set_option maxRecDepth 100000 in
 theorem safeSetupDecodeFinish {I g s0 σ k C aw mem rdata n len} {ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨10234⟩
+    (h : RD fork safeBytecode I g s0 ⟨10234⟩
       (calldataWord I.calldata 228 :: setupDecodeReceiverSaved I.calldata n len ret R)
       mem aw rdata σ k C)
     (hov : R.length + 22 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ k' C', RD safeBytecode I g s0 ret (setupDecodedStack I.calldata n len R)
+    ∃ k' C', RD fork safeBytecode I g s0 ret (setupDecodedStack I.calldata n len R)
       mem aw rdata σ k' C' := by
   have h₁ := safeRuntime_block_10234 (by simp; omega) hret h
   exact ⟨_, _, h₁⟩

@@ -3,6 +3,8 @@ import Benchmarks.EAS.EAS.SchemaBuffer
 import Benchmarks.EAS.EAS.SchemaTextHead
 import Benchmarks.EAS.EAS.Allocate128
 import Benchmarks.EAS.EAS.AllocateBounds
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -26,13 +28,13 @@ theorem easSchemaBody {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hv : ReturnMemoryView mem ptr.toNat out) (hdisj : ptr.toNat+out.size ≤ record.toNat)
     (hh : memLoad (UInt256.ofNat 64) mem = record)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨7373⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨7373⟩
       ((ptr+UInt256.ofNat out.size)::(ptr+UInt256.ofNat base)::ret::R) mem aw out σ k C) :
     if schemaBodyRunValid record.toNat out base then
-      ∃ mem' aw' k' C', RD (deployedRuntime v) ee g s0 ret (record::R) mem' aw' out σ k' C' ∧
+      ∃ mem' aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (record::R) mem' aw' out σ k' C' ∧
         MemoryPrefix mem mem' record.toNat ∧ SchemaMemoryView mem' record (decodedSchemaRecord out base) ∧
         memLoad (UInt256.ofNat 64) mem' = UInt256.ofNat (schemaBodyNext record.toNat out base)
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   let src := ptr+UInt256.ofNat base
   let ending := ptr+UInt256.ofNat out.size
   let next := allocateNext record.toNat 128
@@ -57,7 +59,7 @@ theorem easSchemaBody {ee : ExecutionEnv} {g : Sat256} {s0 : State}
       apply hv1.load
       · rw [uadd_word_ofNat_toNat src n (by rw [hs]; omega),hs]; omega
       · omega
-    change RD (deployedRuntime v) ee g s0 ⟨7385⟩ (src::ending::record::ret::R) m1 aw2 out σ k2 C2 at rd2
+    change RD fork (deployedRuntime v) ee g s0 ⟨7385⟩ (src::ending::record::ret::R) m1 aw2 out σ k2 C2 at rd2
     have hfields := easSchemaFields v (by omega) (by rw [hs]; have := hv.low; omega)
       (by rw [hs]; have := hv1.covered; omega) (by rw [hs]; omega) hb rd2
     simp only [words 32 (by decide),words 64 (by decide),words 96 (by decide),boolWord_nat_iff] at hfields
@@ -86,7 +88,7 @@ theorem easSchemaBody {ee : ExecutionEnv} {g : Sat256} {s0 : State}
       by_cases htext : schemaTextStart out base+32 ≤ out.size
       · rw [if_pos htext] at hth
         obtain ⟨aw4,k4,C4,rd4⟩ := hth
-        change RD (deployedRuntime v) ee g s0 ⟨7479⟩ (text::ending::record::ret::R) m2 aw4 out σ k4 C4 at rd4
+        change RD fork (deployedRuntime v) ee g s0 ⟨7479⟩ (text::ending::record::ret::R) m2 aw4 out σ k4 C4 at rd4
         have hlen : memLoad text m2 = calldataWord out (schemaTextStart out base) := hv2.load ht htext
         have hfree : memLoad (UInt256.ofNat 64) m2 = UInt256.ofNat next := schemaFieldsMemory_heap mem src record _ hlo
         have htextSmall : text.toNat < 2^140 := by rw [ht]; omega

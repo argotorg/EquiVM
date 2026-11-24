@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Clipper.KickSourceIncentive
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -40,14 +42,14 @@ theorem clipperKickIncentiveWmulReverts (v : ClipperImmutables)
       clipperRedoChipSteleWord evmTop ≠ ⟨0⟩)
     (hover : UInt256.size ≤ (clipperKickTabWord I).toNat *
       (clipperRedoChipSteleWord evmTop).toNat) :
-    ExecBlock config
+    ExecBlock fork config
       { contract := contract,
         locals := clipperKickLocalsCoinZero evmLock evmTop I feedPrice top, immutables := immStore v }
       evmTop
       [ .ite clipperKickIncentiveCond (clipperKickIncentiveBody) [],
         .assign .storage lockedRef (.intLit 0), .return [.var "id"] ]
       .reverted := by
-  have hbody : ExecBlock config
+  have hbody : ExecBlock fork config
       { contract := contract,
         locals := clipperKickLocalsCoinZero evmLock evmTop I feedPrice top, immutables := immStore v }
       evmTop (clipperKickIncentiveBody) .reverted := by
@@ -66,7 +68,7 @@ theorem clipperKickIncentiveAddReverts (v : ClipperImmutables)
       (clipperRedoChipSteleWord evmTop).toNat < UInt256.size)
     (hover : UInt256.size ≤ (clipperRedoTipSteleWord evmTop).toNat +
       (clipperKickSourceChipCoinWord evmTop I).toNat) :
-    ExecBlock config
+    ExecBlock fork config
       { contract := contract,
         locals := clipperKickLocalsCoinZero evmLock evmTop I feedPrice top, immutables := immStore v }
       evmTop
@@ -74,10 +76,10 @@ theorem clipperKickIncentiveAddReverts (v : ClipperImmutables)
         .assign .storage lockedRef (.intLit 0), .return [.var "id"] ]
       .reverted := by
   have hmulStmt :=
-    clipperKickWmulCallReturns v evmLock evmTop I feedPrice top hmul
+    clipperKickWmulCallReturns (fork := fork) v evmLock evmTop I feedPrice top hmul
   have hadd :=
-    clipperKickCheckedAddCoinReverts v evmLock evmTop I feedPrice top hover
-  have hbody : ExecBlock config
+    clipperKickCheckedAddCoinReverts (fork := fork) v evmLock evmTop I feedPrice top hover
+  have hbody : ExecBlock fork config
       { contract := contract,
         locals := clipperKickLocalsCoinZero evmLock evmTop I feedPrice top, immutables := immStore v }
       evmTop (clipperKickIncentiveBody) .reverted := by
@@ -96,12 +98,12 @@ theorem clipperKickIncentiveSuckReverts (v : ClipperImmutables)
       (clipperRedoChipSteleWord evmTop).toNat < UInt256.size)
     (hadd : (clipperRedoTipSteleWord evmTop).toNat +
       (clipperKickSourceChipCoinWord evmTop I).toNat < UInt256.size)
-    (hsuck : ExecBlock config
+    (hsuck : ExecBlock fork config
       { contract := contract,
         locals := clipperKickLocalsCoin evmLock evmTop I feedPrice top, immutables := immStore v }
       evmTop (checkedExternalCallStmts vatExpr "suck" (.intLit 0)
         [.storage vowRef, .var "kpr", .var "coin"] "_suckRet") .reverted) :
-    ExecBlock config
+    ExecBlock fork config
       { contract := contract,
         locals := clipperKickLocalsCoinZero evmLock evmTop I feedPrice top, immutables := immStore v }
       evmTop
@@ -109,10 +111,10 @@ theorem clipperKickIncentiveSuckReverts (v : ClipperImmutables)
         .assign .storage lockedRef (.intLit 0), .return [.var "id"] ]
       .reverted := by
   have hmulStmt :=
-    clipperKickWmulCallReturns v evmLock evmTop I feedPrice top hmul
-  have haddBlock := clipperKickCheckedAddCoin v evmLock evmTop I feedPrice top hadd
-  have hcoinStmt := clipperKickAssignCoin v evmLock evmTop I feedPrice top
-  have hbody : ExecBlock config
+    clipperKickWmulCallReturns (fork := fork) v evmLock evmTop I feedPrice top hmul
+  have haddBlock := clipperKickCheckedAddCoin (fork := fork) v evmLock evmTop I feedPrice top hadd
+  have hcoinStmt := clipperKickAssignCoin (fork := fork) v evmLock evmTop I feedPrice top
+  have hbody : ExecBlock fork config
       { contract := contract,
         locals := clipperKickLocalsCoinZero evmLock evmTop I feedPrice top, immutables := immStore v }
       evmTop (clipperKickIncentiveBody) .reverted := by
@@ -133,14 +135,14 @@ theorem clipperKickIncentiveSucceeds (v : ClipperImmutables)
       (clipperRedoChipSteleWord evmTop).toNat < UInt256.size)
     (hadd : (clipperRedoTipSteleWord evmTop).toNat +
       (clipperKickSourceChipCoinWord evmTop I).toNat < UInt256.size)
-    (hsuck : ExecBlock config
+    (hsuck : ExecBlock fork config
       { contract := contract,
         locals := clipperKickLocalsCoin evmLock evmTop I feedPrice top, immutables := immStore v }
       evmTop (checkedExternalCallStmts vatExpr "suck" (.intLit 0)
         [.storage vowRef, .var "kpr", .var "coin"] "_suckRet")
       (.ok (Frame.mk contract (clipperKickLocalsSuckRet evmLock evmTop I feedPrice top) (immStore v)) evmAfter))
     (hperm : evmAfter.executionEnv.perm = true) :
-    ExecBlock config
+    ExecBlock fork config
       { contract := contract,
         locals := clipperKickLocalsCoinZero evmLock evmTop I feedPrice top, immutables := immStore v }
       evmTop
@@ -152,10 +154,10 @@ theorem clipperKickIncentiveSucceeds (v : ClipperImmutables)
         (Stele.EVM.storageStore evmAfter evmAfter.executionEnv.codeOwner ⟨13⟩ ⟨0⟩)
         (some [.int (Int.ofNat (clipperKickSourceIdWord evmLock).toNat)])) := by
   have hmulStmt :=
-    clipperKickWmulCallReturns v evmLock evmTop I feedPrice top hmul
-  have haddBlock := clipperKickCheckedAddCoin v evmLock evmTop I feedPrice top hadd
-  have hcoinStmt := clipperKickAssignCoin v evmLock evmTop I feedPrice top
-  have hbody : ExecBlock config
+    clipperKickWmulCallReturns (fork := fork) v evmLock evmTop I feedPrice top hmul
+  have haddBlock := clipperKickCheckedAddCoin (fork := fork) v evmLock evmTop I feedPrice top hadd
+  have hcoinStmt := clipperKickAssignCoin (fork := fork) v evmLock evmTop I feedPrice top
+  have hbody : ExecBlock fork config
       { contract := contract,
         locals := clipperKickLocalsCoinZero evmLock evmTop I feedPrice top, immutables := immStore v }
       evmTop (clipperKickIncentiveBody)
@@ -166,7 +168,7 @@ theorem clipperKickIncentiveSucceeds (v : ClipperImmutables)
   have hite := ExecStmt.iteTrue (elseB := [])
     (clipperEvalKickIncentiveActive v evmLock evmTop evmTop I feedPrice top hactive)
     hbody
-  have htail := clipperKickUnlockReturn (hperm := by assumption) v evmLock evmTop evmAfter I feedPrice top
+  have htail := clipperKickUnlockReturn (fork := fork) (hperm := by assumption) v evmLock evmTop evmAfter I feedPrice top
     (clipperKickLocalsSuckRet evmLock evmTop I feedPrice top)
     (clipperKickLocalsSuckRet_get_locked evmLock evmTop I feedPrice top)
     (clipperKickLocalsSuckRet_get_id evmLock evmTop I feedPrice top)

@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.AttestSchemaRun
 import Benchmarks.EAS.EAS.AttestInitialViews
 import Benchmarks.EAS.EAS.AttestAllocationRequests
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -15,9 +17,9 @@ theorem attestRun {evm : EVM.State} {ee : ExecutionEnv} {g : Sat256} {s0 : State
     (hh : heap.toNat ≤ 2^64-1) (hheap : memLoad (UInt256.ofNat 64) mem = heap)
     (hzero : memLoad (UInt256.ofNat 96) mem = ⟨0⟩) (hlast : kind = .single → last = true)
     (hcd : ee.calldata.size < UInt256.size) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 kind.entryPC
+    (rd : RD fork (deployedRuntime v) ee g s0 kind.entryPC
       (attestEntryStack kind schema data (UInt256.ofNat attester.val) available last.toUInt256 ret R) mem aw rdata σ k C) :
-    AttestReturnRun v ee g s0 (attestArgs schema rs attester available last heap.toNat) evm attestFunction.body
+    AttestReturnRun fork v ee g s0 (attestArgs schema rs attester available last heap.toNat) evm attestFunction.body
       (UInt256.ofNat (allocateNext heap.toNat 64)) (UInt256.ofNat (allocateNext heap.toNat 128)) available rs.length ret R
       (attestAllocationMemory kind mem heap data (UInt256.ofNat attester.val)) heap.toNat heap.toNat := by
   rw [attest_body,List.append_assoc]
@@ -26,7 +28,7 @@ theorem attestRun {evm : EVM.State} {ee : ExecutionEnv} {g : Sat256} {s0 : State
   have hcovered := hdata.view.covered
   have hl : rs.length ≤ 2^64-1 := by omega
   have hlb : rs.length < UInt256.size := by change _ < 2^256; omega
-  have hsrc := attestInitialSource (imms := immStore v) (evm := evm)
+  have hsrc := attestInitialSource (fork := fork) (imms := immStore v) (evm := evm)
     (show (attestArgs schema rs attester available last heap.toNat).get? "data" =
       some (.array (rs.map AttestationRequestRecord.tuple)) from by
         simp (disch := decide) only [attestArgs,store_get_ne,store_get_self])

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.ObservationCoverage
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_045
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,13 +13,13 @@ theorem oracleObserveExactX (afterSide : Bool)
     {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256} {s0 : EVM.State} {k C : Nat}
     {aw free beforePtr afterPtr targetRaw z0 z1 : UInt256} {obs : OracleObservation}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 (if afterSide then ⟨13450⟩ else ⟨13410⟩)
+    (rd : RD fork (deployedRuntime v) ee g s0 (if afterSide then ⟨13450⟩ else ⟨13410⟩)
       (afterPtr :: beforePtr :: targetRaw :: z0 :: z1 :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hb : free.toNat ≤ 2 ^ 200)
     (hobs : ObservationMemory mem (if afterSide then afterPtr else beforePtr) obs)
     (hend : (if afterSide then afterPtr else beforePtr).toNat + 128 ≤ free.toNat)
     (hcover : free.toNat ≤ aw.toNat * 32 + 32) (hov : R.length + 8 ≤ 1024) :
-    RD (deployedRuntime v) ee g s0 ⟨13584⟩
+    RD fork (deployedRuntime v) ee g s0 ⟨13584⟩
       (obs.secondsPerLiquidity :: EVM.wordOfInt obs.tickCumulative :: R)
       mem aw rdata σ (k + 17) (C + 51) := by
   have hbound : (if afterSide then afterPtr else beforePtr).toNat + 128 < UInt256.size := by

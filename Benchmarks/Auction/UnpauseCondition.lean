@@ -1,5 +1,7 @@
 import Benchmarks.Auction.UnpauseSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -59,13 +61,13 @@ theorem unpauseCreateWord_nonzero (σ : AccountMap) (I : ExecutionEnv) :
   · simp only [hz, if_false, false_or]
 
 theorem unpauseCondition {I g s0 R mem aw rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨1126⟩ R mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨1126⟩ R mem aw rdata σ k C)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨1150⟩ (unpauseCreateWord σ I :: R)
+    ∃ k' C', RD fork auctionBytecode I g s0 ⟨1150⟩ (unpauseCreateWord σ I :: R)
       mem aw rdata σ k' C' := by
   have rd1129 := evm_run h with [jumpdest, push1 ⟨209⟩]
   obtain ⟨_, _, rd1130⟩ := rd1129.sload (by native_decide) (by evm_ov)
-  change RD _ _ _ _ _ (solcSlotWord σ I ⟨209⟩ :: R) _ _ _ _ _ _ at rd1130
+  change RD fork _ _ _ _ _ (solcSlotWord σ I ⟨209⟩ :: R) _ _ _ _ _ _ at rd1130
   have rd1135 := evm_run rd1130 with [iszero, dup1, push2 ⟨1150⟩]
   by_cases hz : (snapshotOf σ I).startTime = ⟨0⟩
   · change solcSlotWord σ I ⟨209⟩ = ⟨0⟩ at hz
@@ -75,7 +77,7 @@ theorem unpauseCondition {I g s0 R mem aw rdata σ k C}
   · have hsz : solcSlotWord σ I ⟨209⟩ ≠ ⟨0⟩ := hz
     have rd1139 := evm_run rd1135 with [jumpiNT (isZero_eq_zero_of_ne hsz), pop, push1 ⟨211⟩]
     obtain ⟨_, _, rd1140⟩ := rd1139.sload (by native_decide) (by evm_ov)
-    change RD _ _ _ _ _ (solcSlotWord σ I ⟨211⟩ :: R) _ _ _ _ _ _ at rd1140
+    change RD fork _ _ _ _ _ (solcSlotWord σ I ⟨211⟩ :: R) _ _ _ _ _ _ at rd1140
     have rd1150 := evm_run rd1140 with [push1 ⟨1⟩, push1 ⟨160⟩, shl, swap1, div,
       push1 ⟨255⟩, and]
     rw [u256_land_comm ⟨255⟩] at rd1150

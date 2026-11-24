@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Clipper.TakePostDogFlux
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -12,12 +14,12 @@ theorem RD.clipperTakeRemoveEmptyInvalid
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     {owe tabNew lotNew price tic packed stopped dataLen dataStart who maxArg amt sel : UInt256}
     {σ}
-    (rd : RD code ee g s0 ⟨8274⟩
+    (rd : RD fork code ee g s0 ⟨8274⟩
       (clipperYankArgWord ee :: ⟨5020⟩ :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen ::
           dataStart :: who :: maxArg :: amt :: clipperYankArgWord ee :: ⟨502⟩ :: [sel])
       mem aw o σ k C)
     (hlen : solcSlotWord σ ee ⟨11⟩ = ⟨0⟩) :
-    RDinvalid code g s0 := by
+    RDinvalid fork code g s0 := by
   have rd8277 := evm_run rd with [
     raw jumpdest (by clipper_yank_remove_decode) (by evm_ov),
     raw push1 ⟨11⟩ (by clipper_yank_remove_decode) (by evm_ov),
@@ -54,7 +56,7 @@ theorem RD.clipperTakeRemoveIdNeMoveToJoin
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     {owe tabNew lotNew price tic packed stopped dataLen dataStart who maxArg amt sel : UInt256}
     {σ}
-    (rd : RD code ee g s0 ⟨8274⟩
+    (rd : RD fork code ee g s0 ⟨8274⟩
       (clipperYankArgWord ee :: ⟨5020⟩ :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen ::
           dataStart :: who :: maxArg :: amt :: clipperYankArgWord ee :: ⟨502⟩ :: [sel])
       mem aw o σ k C)
@@ -74,7 +76,7 @@ theorem RD.clipperTakeRemoveIdNeMoveToJoin
     let move := solcSlotWord σ ee (clipperYankActiveSlot lastIndex)
     let idx := solcSlotWord σ ee (clipperYankSalesPosSlot ee)
     ∃ mem' aw' k' C',
-      RD code ee g s0 ⟨8379⟩
+      RD fork code ee g s0 ⟨8379⟩
         (move :: clipperYankArgWord ee :: ⟨5020⟩ :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen ::
           dataStart :: who :: maxArg :: amt :: clipperYankArgWord ee :: ⟨502⟩ ::
           [sel])
@@ -172,7 +174,7 @@ theorem RD.clipperTakeRemoveIdNeMoveToJoin
     rw [u256_add_assoc]
     exact hslotActive
   obtain ⟨k8307, C8307, rd8307slot⟩ :
-      ∃ k C, RD code ee g s0 ⟨8307⟩
+      ∃ k C, RD fork code ee g s0 ⟨8307⟩
         (clipperYankActiveSlot lastIndex :: ⟨0⟩ :: clipperYankArgWord ee :: ⟨5020⟩ :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen ::
           dataStart :: who :: maxArg :: amt ::
           clipperYankArgWord ee :: ⟨502⟩ :: [sel])
@@ -180,7 +182,7 @@ theorem RD.clipperTakeRemoveIdNeMoveToJoin
     exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord, hslotActive] using rd8307pre⟩
   obtain ⟨_, _, rd8308raw⟩ := rd8307slot.sload (by clipper_yank_remove_decode) (by evm_ov)
   obtain ⟨k8308, C8308, rd8308⟩ :
-      ∃ k C, RD code ee g s0 ⟨8308⟩
+      ∃ k C, RD fork code ee g s0 ⟨8308⟩
         (move :: ⟨0⟩ :: clipperYankArgWord ee :: ⟨5020⟩ :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen ::
           dataStart :: who :: maxArg :: amt ::
           clipperYankArgWord ee :: ⟨502⟩ :: [sel])
@@ -242,7 +244,7 @@ theorem RD.clipperTakeRemoveIdNeMoveToJoin
     hsalesBase (by rfl) (by evm_ov)
   obtain ⟨_, _, rd8332raw⟩ := rd8331pre.sload (by clipper_yank_remove_decode) (by evm_ov)
   obtain ⟨k8332, C8332, rd8332⟩ :
-      ∃ k C, RD code ee g s0 ⟨8332⟩
+      ∃ k C, RD fork code ee g s0 ⟨8332⟩
         (idx :: move :: clipperYankArgWord ee :: ⟨5020⟩ :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen ::
           dataStart :: who :: maxArg :: amt :: clipperYankArgWord ee :: ⟨502⟩ ::
           [sel])
@@ -301,7 +303,7 @@ theorem RD.clipperTakeRemoveIdNeMoveToJoin
     raw swap1 (by clipper_yank_remove_decode) (by evm_ov),
     raw swap3 (by clipper_yank_remove_decode) (by evm_ov)]
   obtain ⟨k8366, C8366, rd8366⟩ :
-      ∃ k C, RD code ee g s0 ⟨8366⟩
+      ∃ k C, RD fork code ee g s0 ⟨8366⟩
         (⟨0⟩ :: ⟨32⟩ :: idx :: move :: clipperYankArgWord ee :: ⟨5020⟩ :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen ::
           dataStart :: who :: maxArg :: amt ::
           clipperYankArgWord ee :: ⟨502⟩ :: [sel])
@@ -383,7 +385,7 @@ theorem RD.clipperTakeRemoveIdNeMoveToJoin
     (by rfl)
     hmoveBase (by rfl) (by evm_ov)
   obtain ⟨k8379, C8379, rd8379raw⟩ :
-      ∃ k C, RD code ee g s0 ⟨8379⟩
+      ∃ k C, RD fork code ee g s0 ⟨8379⟩
         (move :: clipperYankArgWord ee :: ⟨5020⟩ :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen ::
           dataStart :: who :: maxArg :: amt :: clipperYankArgWord ee :: ⟨502⟩ ::
           [sel])
@@ -452,7 +454,7 @@ theorem RD.clipperTakeRemoveIdNeMoveIndexOobInvalid
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     {owe tabNew lotNew price tic packed stopped dataLen dataStart who maxArg amt sel : UInt256}
     {σ}
-    (rd : RD code ee g s0 ⟨8274⟩
+    (rd : RD fork code ee g s0 ⟨8274⟩
       (clipperYankArgWord ee :: ⟨5020⟩ :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen ::
           dataStart :: who :: maxArg :: amt :: clipperYankArgWord ee :: ⟨502⟩ :: [sel])
       mem aw o σ k C)
@@ -464,7 +466,7 @@ theorem RD.clipperTakeRemoveIdNeMoveIndexOobInvalid
     (hidxBound :
       (solcSlotWord σ ee ⟨11⟩).toNat ≤
         (solcSlotWord σ ee (clipperYankSalesPosSlot ee)).toNat) :
-    RDinvalid code g s0 := by
+    RDinvalid fork code g s0 := by
   let lastIndex := solcSlotWord σ ee ⟨11⟩ + UInt256.lnot ⟨0⟩
   let move := solcSlotWord σ ee (clipperYankActiveSlot lastIndex)
   let idx := solcSlotWord σ ee (clipperYankSalesPosSlot ee)
@@ -536,7 +538,7 @@ theorem RD.clipperTakeRemoveIdNeMoveIndexOobInvalid
         clipperYankActiveSlot lastIndex := by
     simpa [lastIndex, clipperYankActiveSlot_eq]
   obtain ⟨k8307, C8307, rd8307slot⟩ :
-      ∃ k C, RD code ee g s0 ⟨8307⟩
+      ∃ k C, RD fork code ee g s0 ⟨8307⟩
         (clipperYankActiveSlot lastIndex :: ⟨0⟩ :: clipperYankArgWord ee :: ⟨5020⟩ :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen ::
           dataStart :: who :: maxArg :: amt ::
           clipperYankArgWord ee :: ⟨502⟩ :: [sel])
@@ -544,7 +546,7 @@ theorem RD.clipperTakeRemoveIdNeMoveIndexOobInvalid
     exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord, hslotActive] using rd8307pre⟩
   obtain ⟨_, _, rd8308raw⟩ := rd8307slot.sload (by clipper_yank_remove_decode) (by evm_ov)
   obtain ⟨k8308, C8308, rd8308⟩ :
-      ∃ k C, RD code ee g s0 ⟨8308⟩
+      ∃ k C, RD fork code ee g s0 ⟨8308⟩
         (move :: ⟨0⟩ :: clipperYankArgWord ee :: ⟨5020⟩ :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen ::
           dataStart :: who :: maxArg :: amt ::
           clipperYankArgWord ee :: ⟨502⟩ :: [sel])
@@ -606,7 +608,7 @@ theorem RD.clipperTakeRemoveIdNeMoveIndexOobInvalid
     hsalesBase (by rfl) (by evm_ov)
   obtain ⟨_, _, rd8332raw⟩ := rd8331pre.sload (by clipper_yank_remove_decode) (by evm_ov)
   obtain ⟨k8332, C8332, rd8332⟩ :
-      ∃ k C, RD code ee g s0 ⟨8332⟩
+      ∃ k C, RD fork code ee g s0 ⟨8332⟩
         (idx :: move :: clipperYankArgWord ee :: ⟨5020⟩ :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen ::
           dataStart :: who :: maxArg :: amt :: clipperYankArgWord ee :: ⟨502⟩ ::
           [sel])
@@ -639,12 +641,12 @@ theorem RD.clipperTakeRemoveJoinEmptyInvalid
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {move : UInt256}
     {owe tabNew lotNew price tic packed stopped dataLen dataStart who maxArg amt sel : UInt256}
     {σ}
-    (rd : RD code ee g s0 ⟨8379⟩
+    (rd : RD fork code ee g s0 ⟨8379⟩
       (move :: clipperYankArgWord ee :: ⟨5020⟩ :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen ::
           dataStart :: who :: maxArg :: amt :: clipperYankArgWord ee :: ⟨502⟩ :: [sel])
       mem aw o σ k C)
     (hlen : solcSlotWord σ ee ⟨11⟩ = ⟨0⟩) :
-    RDinvalid code g s0 := by
+    RDinvalid fork code g s0 := by
   let len := solcSlotWord σ ee ⟨11⟩
   have rd8384 := evm_run rd with [
     raw jumpdest (by clipper_yank_remove_decode) (by evm_ov),

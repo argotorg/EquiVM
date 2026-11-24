@@ -4,6 +4,8 @@ import Benchmarks.Safe.ViaIR.AddressArrayMemory
 import Benchmarks.Safe.ViaIR.GetOwnersAllocation
 import Benchmarks.Safe.ViaIR.IRMemoryAllocation
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -21,23 +23,23 @@ set_option maxRecDepth 2000
 set_option maxHeartbeats 800000
 
 theorem safeSetupEventStart {I g s0 σ k C aw rdata n len} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3163⟩ (setupDecodedStack I.calldata n len R)
+    (h : RD fork safeBytecode I g s0 ⟨3163⟩ (setupDecodedStack I.calldata n len R)
       solcFreePtrMem aw rdata σ k C)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨3187⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨3187⟩
       (⟨0⟩ :: UInt256.ofNat n :: UInt256.ofNat (setupOwnersStart I.calldata) ::
         ⟨288⟩ :: setupEventSaved I n len 128 R)
       (setupEventHeader solcFreePtrMem 128 n) aw' rdata σ k' C' :=
   safeSetupEventEncodeStart h solcFreePtrMem_mload64 (by decide) hov
 
 theorem safeSetupEventTrace {I g s0 σ k C aw rdata n len} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3163⟩ (setupDecodedStack I.calldata n len R)
+    (h : RD fork safeBytecode I g s0 ⟨3163⟩ (setupDecodedStack I.calldata n len R)
       solcFreePtrMem aw rdata σ k C)
     (hb : SetupCalldataBounds I.calldata n len)
     (hc : ∀ w ∈ calldataWords I.calldata (setupOwnersStart I.calldata) n,
       w.toNat < EVM.addressModulus)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨3195⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨3195⟩
       (UInt256.ofNat n :: UInt256.ofNat n ::
         UInt256.ofNat (setupOwnersStart I.calldata + 32 * n) ::
         UInt256.ofNat (288 + 32 * n) :: setupEventSaved I n len 128 R)
@@ -49,24 +51,24 @@ theorem safeSetupEventTrace {I g s0 σ k C aw rdata n len} {R : List UInt256}
     (lt_of_le_of_lt hb.ownersEnd (lt_size_of_lt_sign hb.small)) hc hov
 
 theorem safeSetupEventTraceRevert {I g s0 σ k C aw rdata n len} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3163⟩ (setupDecodedStack I.calldata n len R)
+    (h : RD fork safeBytecode I g s0 ⟨3163⟩ (setupDecodedStack I.calldata n len R)
       solcFreePtrMem aw rdata σ k C)
     (hb : SetupCalldataBounds I.calldata n len)
     (hc : ¬∀ w ∈ calldataWords I.calldata (setupOwnersStart I.calldata) n,
       w.toNat < EVM.addressModulus)
-    (hov : R.length + 32 ≤ 1024) : RDrev safeBytecode g s0 := by
+    (hov : R.length + 32 ≤ 1024) : RDrev fork safeBytecode g s0 := by
   have hu : UInt256.size = 2 ^ 256 := rfl
   have hn := hb.ownersLength
   exact safeSetupEventEncodeRevert (ptr := 128) h solcFreePtrMem_mload64 (by omega) (by omega)
     (lt_of_le_of_lt hb.ownersEnd (lt_size_of_lt_sign hb.small)) hc hov
 
 theorem safeSetupEventStatic {I g s0 σ k C aw mem rdata n len} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3195⟩
+    (h : RD fork safeBytecode I g s0 ⟨3195⟩
       (UInt256.ofNat n :: UInt256.ofNat n ::
         UInt256.ofNat (setupOwnersStart I.calldata + 32 * n) ::
         UInt256.ofNat (288 + 32 * n) :: setupEventSaved I n len 128 R)
       mem aw rdata σ k C)
-    (hp : I.perm = false) (hov : R.length + 32 ≤ 1024) : RDstatic safeBytecode g s0 := by
+    (hp : I.perm = false) (hov : R.length + 32 ≤ 1024) : RDstatic fork safeBytecode g s0 := by
   simp only [setupEventSaved, List.cons_append, List.nil_append] at h
   have h₁ := evm_run h with [pop, pop, pop, dup4, push1 ⟨32⟩, dup12, add, genMstore]
   have h₂ := h₁.pushConst
@@ -78,14 +80,14 @@ theorem safeSetupEventStatic {I g s0 σ k C aw mem rdata n len} {R : List UInt25
   exact RD.log2Static h₃ hp (by native_decide) (by simp; omega)
 
 theorem safeSetupOwnersAllocateStart {I g s0 σ k C aw rdata n len} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3195⟩
+    (h : RD fork safeBytecode I g s0 ⟨3195⟩
       (UInt256.ofNat n :: UInt256.ofNat n ::
         UInt256.ofNat (setupOwnersStart I.calldata + 32 * n) ::
         UInt256.ofNat (288 + 32 * n) :: setupEventSaved I n len 128 R)
       (setupEventArrayMemory I.calldata n) aw rdata σ k C)
     (hb : SetupCalldataBounds I.calldata n len)
     (hp : I.perm = true) (hov : R.length + 32 ≤ 1024) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨7128⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨7128⟩
       (⟨128⟩ :: UInt256.ofNat (32 + 32 * n) :: ⟨3287⟩ :: UInt256.ofNat n ::
         UInt256.ofNat (setupOwnersStart I.calldata) ::
         UInt256.ofNat (setupOwnersStart I.calldata + 32 * n) ::
@@ -96,7 +98,7 @@ theorem safeSetupOwnersAllocateStart {I g s0 σ k C aw rdata n len} {R : List UI
   have hnword : (UInt256.ofNat n).toNat = n := ulit_toNat' _ (by omega)
   obtain ⟨_, _, _, h₁⟩ := safeRuntime_block_3195_packed (by simp; omega) hp (by jump_dest) h
   simp only [safeRuntime_block_3195_stack, safeRuntime_block_3195_memory, safeAddressMask] at h₁
-  change RD safeBytecode I g s0 ⟨8927⟩
+  change RD fork safeBytecode I g s0 ⟨8927⟩
     (UInt256.ofNat n :: ⟨3273⟩ :: UInt256.ofNat (setupOwnersStart I.calldata) ::
       UInt256.ofNat (setupOwnersStart I.calldata + 32 * n) :: calldataWord I.calldata 36 ::
       calldataWord I.calldata 132 :: calldataWord I.calldata 132 :: UInt256.ofNat len ::
@@ -128,7 +130,7 @@ theorem safeSetupOwnersAllocateStart {I g s0 σ k C aw rdata n len} {R : List UI
   exact ⟨aw', k', C', h₃⟩
 
 theorem safeSetupOwnersAllocate {I g s0 σ k C aw rdata n len} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3195⟩
+    (h : RD fork safeBytecode I g s0 ⟨3195⟩
       (UInt256.ofNat n :: UInt256.ofNat n ::
         UInt256.ofNat (setupOwnersStart I.calldata + 32 * n) ::
         UInt256.ofNat (288 + 32 * n) :: setupEventSaved I n len 128 R)
@@ -138,7 +140,7 @@ theorem safeSetupOwnersAllocate {I g s0 σ k C aw rdata n len} {R : List UInt256
       w.toNat < EVM.addressModulus)
     (ha : 160 + 32 * n < 2 ^ 64)
     (hp : I.perm = true) (hov : R.length + 32 ≤ 1024) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨3302⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨3302⟩
       (UInt256.ofNat (160 + 32 * n) ::
         UInt256.ofNat (setupOwnersStart I.calldata + 32 * n) ::
         UInt256.ofNat (setupOwnersStart I.calldata + 32 * n) ::
@@ -152,7 +154,7 @@ theorem safeSetupOwnersAllocate {I g s0 σ k C aw rdata n len} {R : List UInt256
     (by simp [setupOwnersSaved]; omega) (by jump_dest)
   rw [he] at h₂
   obtain ⟨_, _, _, h₃⟩ := safeRuntime_block_3287_packed (by simp; omega) h₂
-  change RD safeBytecode I g s0 ⟨3294⟩
+  change RD fork safeBytecode I g s0 ⟨3294⟩
     (UInt256.ofNat 160 :: UInt256.ofNat (setupOwnersStart I.calldata) ::
       UInt256.ofNat (setupOwnersStart I.calldata + 32 * n) :: setupOwnersSaved I.calldata len R)
     (calldataBufferHeader (setupEventInitialMemory I.calldata n) 128 n (160 + 32 * n))
@@ -162,14 +164,14 @@ theorem safeSetupOwnersAllocate {I g s0 σ k C aw rdata n len} {R : List UInt256
     (by simp [setupOwnersSaved]; omega)
 
 theorem safeSetupOwnersAllocateRevert {I g s0 σ k C aw rdata n len} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3195⟩
+    (h : RD fork safeBytecode I g s0 ⟨3195⟩
       (UInt256.ofNat n :: UInt256.ofNat n ::
         UInt256.ofNat (setupOwnersStart I.calldata + 32 * n) ::
         UInt256.ofNat (288 + 32 * n) :: setupEventSaved I n len 128 R)
       (setupEventArrayMemory I.calldata n) aw rdata σ k C)
     (hb : SetupCalldataBounds I.calldata n len)
     (ha : ¬160 + 32 * n < 2 ^ 64)
-    (hp : I.perm = true) (hov : R.length + 32 ≤ 1024) : RDrev safeBytecode g s0 := by
+    (hp : I.perm = true) (hov : R.length + 32 ≤ 1024) : RDrev fork safeBytecode g s0 := by
   have hu : UInt256.size = 2 ^ 256 := rfl
   have hn := hb.ownersLength
   have he : 128 + ABI.paddedSize (32 + 32 * n) = 160 + 32 * n := by

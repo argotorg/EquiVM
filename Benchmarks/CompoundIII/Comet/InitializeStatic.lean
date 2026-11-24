@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.Common
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_014
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables
@@ -16,9 +18,9 @@ theorem cometInitializeStatic {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} {x0 x1 x2 x3 : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024) (hperm : ee.perm = false)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 1861)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 1861)
       (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C) :
-    RDstatic (deployedRuntime v) g s0 := by
+    RDstatic fork (deployedRuntime v) g s0 := by
   let r0 := h
   have r1 := r0.jumpdest 
     (by immutable_decode(immutableLayout, cometWithExtendedAssetListBytecode,

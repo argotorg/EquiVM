@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.SwapObservationStore
 import Benchmarks.UniswapV3.Pool.OracleObserveSingleTrace
 import Benchmarks.UniswapV3.Pool.OracleObserveSingleInternal
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -13,7 +15,7 @@ theorem swapObservationX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (c : SwapCacheData) (s : SwapStateData) (d : SwapIterationData)
     (initial : EVM.State) (frame : Frame) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3691⟩ ([q, p, exactWord, cache, snap] ++ R)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3691⟩ ([q, p, exactWord, cache, snap] ++ R)
       mem aw rdata σ k C)
     (hf : frame.contract = contract) (hst : SourceState s0 ee σ evm)
     (hcache : frame.locals.get? "cache" = some c.value)
@@ -27,14 +29,14 @@ theorem swapObservationX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hqfree : q.toNat + 224 ≤ free.toNat) (hb : free.toNat ≤ 2 ^ 200)
     (hbudget : MemoryGasBound aw C allowance) (hallowance : allowance ≤ 2 ^ 200)
     (hcover : free.toNat ≤ aw.toNat * 32 + 32) (hov : R.length + 58 ≤ 1024) :
-    (X (g.toNat + 1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass) ∨
-    (ExecBlock config frame evm swapObservationBody .reverted ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    (∃ tick seconds, ExecBlock config frame evm swapObservationBody
+    (X fork (g.toNat + 1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass) ∨
+    (ExecBlock fork config frame evm swapObservationBody .reverted ∧
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    (∃ tick seconds, ExecBlock fork config frame evm swapObservationBody
         (.ok (swapObservationFrame frame c tick seconds) evm) ∧
       (swapObservationCache c tick seconds).Fits ∧
       ∃ mem' aw' free' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-        RD (deployedRuntime v) ee g s0 ⟨3775⟩ ([q, p, exactWord, cache, snap] ++ R)
+        RD fork (deployedRuntime v) ee g s0 ⟨3775⟩ ([q, p, exactWord, cache, snap] ++ R)
           mem' aw' rdata σ k' C' ∧ HeapMemory mem' aw' free' ∧
         SwapCacheMemory mem' cache (swapObservationCache c tick seconds) ∧
         SwapStateMemory mem' p s ∧ SwapIterationMemory mem' q d ∧
@@ -79,7 +81,7 @@ theorem swapObservationX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
       exact_mod_cast h
     have hrun := out.run
     rw [← hsval] at hrun
-    have hex := oracleObserveSingleInternalSource frame evm c.blockTimestamp ⟨0⟩
+    have hex := oracleObserveSingleInternalSource (fork := fork) frame evm c.blockTimestamp ⟨0⟩
       (slot0TickValue initial.accountMap initial.executionEnv)
       (slot0FieldWord 23 2 initial.accountMap initial.executionEnv) c.liquidityStart
       (slot0FieldWord 25 2 initial.accountMap initial.executionEnv)

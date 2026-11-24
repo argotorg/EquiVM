@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.BitmapNextReadWords
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_035
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -10,14 +12,14 @@ set_option maxRecDepth 10000
 theorem bitmapNextReadRightX {evm : EVM.State} {g : Sat256} {s0 : EVM.State} {k C : Nat}
     {aw spacingRaw tickRaw : UInt256} {mem rdata : ByteArray} {R : List UInt256}
     {v : UniswapV3PoolImmutables} (compressed : Int)
-    (rd : RD (deployedRuntime v) evm.executionEnv g s0 ⟨11508⟩
+    (rd : RD fork (deployedRuntime v) evm.executionEnv g s0 ⟨11508⟩
       (bitmapPositionBitRaw (bitmapNextPosition compressed false) ::
         EVM.wordOfInt (bitmapWordPos (bitmapNextPosition compressed false)) ::
         ⟨0⟩ :: ⟨0⟩ :: EVM.wordOfInt compressed :: ⟨0⟩ :: ⟨0⟩ ::
         ⟨0⟩ :: spacingRaw :: tickRaw :: ⟨6⟩ :: R) mem aw rdata evm.accountMap k C)
     (hov : R.length + 16 ≤ 1024) :
     let masked := bitmapNextMasked evm compressed false
-    ∃ k' C', RD (deployedRuntime v) evm.executionEnv g s0
+    ∃ k' C', RD fork (deployedRuntime v) evm.executionEnv g s0
       (if masked = ⟨0⟩ then ⟨11572⟩ else ⟨11590⟩)
       (masked :: bitmapNextMask compressed false ::
         bitmapPositionBitRaw (bitmapNextPosition compressed false) ::

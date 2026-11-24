@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.RateModel
 import Benchmarks.CompoundIII.Comet.RateFinish
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_043
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables
@@ -16,11 +18,11 @@ theorem cometSupplyRate {v : CometWithExtendedAssetListImmutables}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} {u ret : UInt256} {R : List UInt256}
     (hstack : R.length + 16 ≤ 1024)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨8614⟩ (u :: ret :: R) mem aw rdata σ k C) :
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨8614⟩ (u :: ret :: R) mem aw rdata σ k C) :
     if RateValid (rateParams v false) u then
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
         (rateWord (rateParams v false) u :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   let p := rateParams v false
   have hk : wordsOf (immStore v) "supplyKink" = p.kink := by
     rw [wordsOf_immStore_supplyKink, wordOfInt_ofNat_toNat]
@@ -34,8 +36,8 @@ theorem cometSupplyRate {v : CometWithExtendedAssetListImmutables}
   have hb : wordsOf (immStore v) "supplyPerSecondInterestRateBase" = p.base := by
     rw [wordsOf_immStore_supplyPerSecondInterestRateBase, wordOfInt_ofNat_toNat]
     rfl
-  change if RateValid p u then ∃ k' C', RD _ _ _ _ ret (rateWord p u :: R)
-    mem aw rdata σ k' C' else RDrev _ _ _
+  change if RateValid p u then ∃ k' C', RD fork _ _ _ _ ret (rateWord p u :: R)
+    mem aw rdata σ k' C' else RDrev fork _ _ _
   by_cases hle : u.toNat ≤ p.kink.toNat
   · have r1 := cometWithExtendedAssetList_block_8614_fallthrough
       (immWords := wordsOf (immStore v)) (by simp only [List.length_cons]; omega)

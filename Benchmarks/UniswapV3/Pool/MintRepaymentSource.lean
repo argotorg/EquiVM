@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.FlashRepaymentTrace
 import Benchmarks.UniswapV3.Pool.MintCallValues
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -34,7 +36,7 @@ theorem mintRepayAddReturns (v : UniswapV3PoolImmutables) (locals : Store) (evm 
     (hb : locals.get? (mintBeforeBalanceName second) = some (.int (Int.ofNat before.toNat)))
     (hf : locals.get? (poolAmountName second) = some (.int (Int.ofNat fee.toNat)))
     (hv : before.toNat ≤ (before + fee).toNat) :
-    ExecStmt config {contract := contract, locals := locals, immutables := immStore v} evm
+    ExecStmt fork config {contract := contract, locals := locals, immutables := immStore v} evm
       (mintRepayTailStmts second)[0]! (.ok (mintRepayFrame v locals second before fee) evm) := by
   exact internalCallFunctionReturn (callee := safeAddFunction) (locals := safeAddLocals before fee)
     (calleeStele := safeAddResultFrame (immStore v) before fee)
@@ -60,7 +62,7 @@ theorem mintRepayReturns (v : UniswapV3PoolImmutables) (locals : Store) (evm : E
     (hf : locals.get? (poolAmountName second) = some (.int (Int.ofNat fee.toNat)))
     (ha : locals.get? (mintAfterBalanceTemp second) = some (.int (Int.ofNat after.toNat)))
     (hv : flashRepayValid before fee after) :
-    ExecBlock config {contract := contract, locals := locals, immutables := immStore v} evm
+    ExecBlock fork config {contract := contract, locals := locals, immutables := immStore v} evm
       (mintRepayTailStmts second) (.ok (mintRepayFrame v locals second before fee) evm) := by
   refine ExecBlock.consNormal (mintRepayAddReturns v locals evm second before fee hb hf hv.1)
     (ExecBlock.consNormal (ExecStmt.requireTrue ?_) ExecBlock.nil)
@@ -72,7 +74,7 @@ theorem mintRepayReverts (v : UniswapV3PoolImmutables) (locals : Store) (evm : E
     (hf : locals.get? (poolAmountName second) = some (.int (Int.ofNat fee.toNat)))
     (ha : locals.get? (mintAfterBalanceTemp second) = some (.int (Int.ofNat after.toNat)))
     (hv : ¬ flashRepayValid before fee after) :
-    ExecBlock config {contract := contract, locals := locals, immutables := immStore v} evm
+    ExecBlock fork config {contract := contract, locals := locals, immutables := immStore v} evm
       (mintRepayTailStmts second) .reverted := by
   by_cases hadd : before.toNat ≤ (before + fee).toNat
   · refine ExecBlock.consNormal (mintRepayAddReturns v locals evm second before fee hb hf hadd)
@@ -96,7 +98,7 @@ theorem mintRepayStmt_eq (second : Bool) :
 
 theorem mintRepaySkip (v : UniswapV3PoolImmutables) (locals : Store) (evm : EVM.State)
     (second : Bool) (ha : locals.get? (poolAmountName second) = some (.int 0)) :
-    ExecStmt config {contract := contract, locals := locals, immutables := immStore v} evm
+    ExecStmt fork config {contract := contract, locals := locals, immutables := immStore v} evm
       (mintRepayStmt second)
       (.ok {contract := contract, locals := locals, immutables := immStore v} evm) := by
   refine ExecStmt.iteFalse ?_ ExecBlock.nil

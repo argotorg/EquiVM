@@ -1,6 +1,8 @@
 import Reasoning.Memory
 import Benchmarks.Dss.Vat.Nope
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 50000000
@@ -351,13 +353,13 @@ abbrev vatNotAuthorizedWord : UInt256 :=
 theorem RD.vatAuthCheckOk {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc okPc key ret : UInt256} {R : List UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 pc (key :: ret :: R)
+    (h : RD fork code ee g s0 pc (key :: ret :: R)
         solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : vatAuthCheckWf code pc okPc)
     (hauth : solcSlotWord σ ee (solcMappingSlot ⟨0⟩ (hopeSourceWord ee)) = ⟨1⟩)
     (hok : (D_J code 0).contains okPc = true)
     (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 okPc (key :: ret :: R)
+    ∃ k' C', RD fork code ee g s0 okPc (key :: ret :: R)
       (twoWordHashMem (hopeSourceWord ee) ⟨0⟩ solcFreePtrMem)
       (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
@@ -398,13 +400,13 @@ theorem RD.vatAuthCheckOk {code : ByteArray} {g : Sat256} {s0 : State}
 theorem RD.vatAuthCheckRevert {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc okPc key ret : UInt256} {R : List UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD vatBytecode ee g s0 pc (key :: ret :: R)
+    (h : RD fork vatBytecode ee g s0 pc (key :: ret :: R)
         solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : vatAuthCheckWf vatBytecode pc okPc)
     (htail : vatAuthRevertTailWf vatBytecode (vatAuthTailPc pc))
     (hauth : solcSlotWord σ ee (solcMappingSlot ⟨0⟩ (hopeSourceWord ee)) ≠ ⟨1⟩)
     (hov : R.length + 9 ≤ 1024) :
-    RDrev vatBytecode g s0 := by
+    RDrev fork vatBytecode g s0 := by
   rcases hwf with
     ⟨hd0, hd1, hd2, hd4, hd5, hd6, hd7, hd9, hd10, hd11, hd12, hd14, hd15,
       hd16, hd17, hd19, hd20, hd23⟩
@@ -689,12 +691,12 @@ theorem RD.vatAuthCheckRevert {g : Sat256} {s0 : State}
 theorem RD.vatLiveGuardOk {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc okPc key ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
+    (h : RD fork code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : vatLiveGuardWf code pc okPc)
     (hlive : solcSlotWord σ ee ⟨10⟩ = ⟨1⟩)
     (hok : (D_J code 0).contains okPc = true)
     (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 okPc (key :: ret :: R) mem (UInt256.ofNat 3) rdata
+    ∃ k' C', RD fork code ee g s0 okPc (key :: ret :: R) mem (UInt256.ofNat 3) rdata
       σ k' C' := by
   rcases hwf with ⟨hd0, hd1, hd3, hd4, hd6, hd7, hd10⟩
   have rd3 := h.jumpdest hd0 (by evm_ov) |>.push1 ⟨10⟩ hd1 (by evm_ov)
@@ -714,7 +716,7 @@ theorem RD.vatLiveGuardOk {code : ByteArray} {g : Sat256} {s0 : State}
 theorem RD.vatLiveGuardRevert {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc okPc key ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
+    (h : RD fork code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : vatLiveGuardWf code pc okPc)
     (htail : solcErrorStringRevertTailWf code (vatLiveGuardTailPc pc) ⟨12⟩
       vatNotLiveRawWord ⟨160⟩ .PUSH12 12)
@@ -722,7 +724,7 @@ theorem RD.vatLiveGuardRevert {code : ByteArray} {g : Sat256} {s0 : State}
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 7 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   rcases hwf with ⟨hd0, hd1, hd3, hd4, hd6, hd7, hd10⟩
   have rd3 := h.jumpdest hd0 (by evm_ov) |>.push1 ⟨10⟩ hd1 (by evm_ov)
   obtain ⟨_, _, rd4⟩ := rd3.sload hd3 (by evm_ov)
@@ -792,16 +794,16 @@ theorem RD.vatLiveGuardRevert {code : ByteArray} {g : Sat256} {s0 : State}
 theorem RD.vatRelyStoreOneSplit {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
+    (h : RD fork code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : vatRelyStoreOneWf code pc)
     (hret : (D_J code 0).contains ret = true)
     (hmem : mem.size = 96)
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hov : R.length + 6 ≤ 1024) :
     (ee.perm = true ∧
-    ∃ k' C', RD code ee g s0 ret R (twoWordHashMem key ⟨0⟩ mem) (UInt256.ofNat 3) rdata
+    ∃ k' C', RD fork code ee g s0 ret R (twoWordHashMem key ⟨0⟩ mem) (UInt256.ofNat 3) rdata
       (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨0⟩ key) ⟨1⟩) k' C') ∨
-      (ee.perm = false ∧ RDstatic code g s0) := by
+      (ee.perm = false ∧ RDstatic fork code g s0) := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd5, hd7, hd8, hd9, hd10, hd12, hd13, hd14, hd15,
       hd17, hd18, hd19, hd20, hd22, hd23, hd24, hd26, hd27, hd28⟩
@@ -884,7 +886,7 @@ theorem vatReachRelyBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vatSelBytes 21)) :
-    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vatBytecode I g (initState σ σ₀ g A I)
         ⟨817⟩ [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : vatSelWord I = ⟨0x65fae35e⟩ :=
@@ -923,10 +925,10 @@ theorem vatRelyBodyCoreOk
       config.externalABI.decodeCalldata? (relyTransition.params.map Param.name)
         (transitionSignature relyTransition).paramTypes I.calldata =
           some ((∅ : Store).insert "usr" (.address (relyUsr I))))
-    (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨817⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let key := relyKey I
   let slot := solcMappingSlot ⟨0⟩ key
   let callerSlot := vatCallerWardsSlot I
@@ -993,9 +995,9 @@ theorem vatRelyBodyCoreOk
             simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
               relyEvaledRef, relySlotFor])
           (hstore := hstore)
-      have hpre : ∀ r, ExecBlock config { contract := contract, locals := locals } evm0
+      have hpre : ∀ r, ExecBlock fork config { contract := contract, locals := locals } evm0
           [.assign .storage (wardsRef (.var "usr")) (.intLit 1)] r →
-          ExecBlock config { contract := contract, locals := locals } evm0
+          ExecBlock fork config { contract := contract, locals := locals } evm0
             [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
               .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)),
               .require (.binary .eq (.storage liveRef) (.intLit 1)),
@@ -1007,11 +1009,11 @@ theorem vatRelyBodyCoreOk
         refine ExecBlock.consNormal (ExecStmt.requireTrue hguardLive) ?_
         exact hrest
       have hbody (hperm : I.perm = true) :
-          ExecTransitionBody config contract evm0 locals relyTransition.body
+          ExecTransitionBody fork config contract evm0 locals relyTransition.body
             (.returned { contract := contract, locals := locals } evm1 none) := by
         simpa [ExecTransitionBody, relyTransition, nonpayable, auth, requireLive, evm0, evm1] using
           ExecFuncBody.execBlockOK (hpre _ (ExecBlock.consNormal
-            (ExecStmt.assign (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hassign) ExecBlock.nil))
+            (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hassign) ExecBlock.nil))
       have hliveSolc : solcSlotWord σ I ⟨10⟩ = ⟨1⟩ := by
         simpa [solcSlotWordAt] using hliveEvm
       obtain ⟨_, _, hstorePc⟩ := RD.vatLiveGuardOk
@@ -1047,7 +1049,7 @@ theorem vatRelyBodyCoreOk
       obtain ⟨_, _, hretPc⟩ := permSplit_true hperm hstore
       have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
       have hret :
-          RDret vatBytecode (Sat256.ofUInt256 g)
+          RDret fork vatBytecode (Sat256.ofUInt256 g)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (sstoreAccountMap I.codeOwner σ slot ⟨1⟩) ByteArray.empty := by
         simpa [slot] using RD.stop hretPc' (by native_decide) (by simp)
@@ -1061,7 +1063,7 @@ theorem vatRelyBodyCoreOk
         haccounts henc
     ·
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-      have hbody : ExecTransitionBody config contract evm0 locals relyTransition.body .reverted := by
+      have hbody : ExecTransitionBody fork config contract evm0 locals relyTransition.body .reverted := by
         have hguardAuth := vatAuthGuardEval_true
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := Sat256.ofUInt256 g) (locals := locals)
@@ -1071,7 +1073,7 @@ theorem vatRelyBodyCoreOk
           (g := Sat256.ofUInt256 g) (locals := locals)
           (by simp [locals]) hliveEvm
         have hblock :
-            ExecBlock config { contract := contract, locals := locals } evm0
+            ExecBlock fork config { contract := contract, locals := locals } evm0
               [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
                 .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)),
                 .require (.binary .eq (.storage liveRef) (.intLit 1)),
@@ -1106,12 +1108,12 @@ theorem vatRelyBodyCoreOk
       exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
   ·
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    have hbody : ExecTransitionBody config contract evm0 locals relyTransition.body .reverted := by
+    have hbody : ExecTransitionBody fork config contract evm0 locals relyTransition.body .reverted := by
       have hguard := vatAuthGuardEval_false
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) (locals := locals)
         (by simp [locals]) hauthEvm
-      have hblock := nonpayableSecondRequireReverts
+      have hblock := nonpayableSecondRequireReverts (fork := fork)
         (cfg := config) (stele := { contract := contract, locals := locals })
         (evm := evm0)
         (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
@@ -1142,10 +1144,10 @@ theorem vatRelyBodyCoreDecodeFailed_short
     (hcode : I.code = vatBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some relyTransition)
-    (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨817⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -1162,13 +1164,13 @@ theorem vatRelyBodyCoreDecodeFailed_short
   exact hrev.reEquivDecodingFailed hcode hdispatch
     (vatDecode_rely_none_short hsz4 hshort)
 
-theorem vatRelyBodyCore : VatBodyTheoremAnyPerm 21 := by
+theorem vatRelyBodyCore : VatBodyTheoremAnyPerm fork 21 := by
   intro σ σ₀ A I g hcode hsize hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 21) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some relyTransition :=
     vatDispatchRely hsel
-  have hreach := vatReachRelyBody (σ := σ)
+  have hreach := vatReachRelyBody (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size

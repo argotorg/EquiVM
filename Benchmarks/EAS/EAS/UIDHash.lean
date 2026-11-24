@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.HashLength
 import Benchmarks.EAS.EAS.UIDMemoryViews
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -9,8 +11,8 @@ theorem easUIDHash {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {lenPtr dataPtr : UInt256} {R : List UInt256} (v : EASImmutables) (site : UIDSite)
     (hstack : R.length+2 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 (uidHashPC site) (lenPtr::dataPtr::R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (uidDonePC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (uidHashPC site) (lenPtr::dataPtr::R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (uidDonePC site)
       (keccakWord dataPtr (memLoad lenPtr mem) mem::R) mem aw' rdata σ k' C' := by
   cases site with
   | single s1 s2 s3 s4 s5 s6 s7 s8 =>

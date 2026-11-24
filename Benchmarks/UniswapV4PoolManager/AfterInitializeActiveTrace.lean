@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.AllocationTrace
 import Benchmarks.UniswapV4PoolManager.HookCallTrace
 import Benchmarks.UniswapV4PoolManager.InitializeReturnTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -17,13 +19,13 @@ theorem afterInitializeActiveTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : Sta
     (hv : PoolKeyView mem keyPtr key) (hc : PoolKeyCanonical key)
     (hb : keyPtr.toNat+160 ≤ free.toNat) (hf : free.toNat+323 ≤ solcMaxU64)
     (hfree : memLoad (UInt256.ofNat 64) mem = free)
-    (h : RD (deployedRuntime v) I g s0 ⟨4611⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨4611⟩
       (accountWord hook :: keyPtr :: price :: tick :: ⟨32⟩ :: junk :: R) mem aw rdata evm.accountMap k C) :
-    ∃ evm' z out, callViaEVM evm hook 0 (afterInitializePayload I.source key price tick) (z, evm', out) ∧
+    ∃ evm' z out, callViaEVM fork evm hook 0 (afterInitializePayload I.source key price tick) (z, evm', out) ∧
       evm'.executionEnv = I ∧ evm'.σ₀ = s0.σ₀ ∧ out.size < 2^138 ∧
       (if z = true ∧ hookReplyValid (afterInitializePayload I.source key price tick) out then
-        RDret (deployedRuntime v) g s0 evm'.accountMap tick.toByteArray
-      else RDrev (deployedRuntime v) g s0) := by
+        RDret fork (deployedRuntime v) g s0 evm'.accountMap tick.toByteArray
+      else RDrev fork (deployedRuntime v) g s0) := by
   have hf256 : free.toNat+1024 < UInt256.size := by
     have hmax : solcMaxU64+1024 < UInt256.size := by decide
     omega

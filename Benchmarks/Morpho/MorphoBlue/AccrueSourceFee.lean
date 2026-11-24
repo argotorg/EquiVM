@@ -3,6 +3,8 @@ import Benchmarks.Morpho.MorphoBlue.AccrueFeePosition
 import Benchmarks.Morpho.MorphoBlue.SharesDownSource
 import Benchmarks.Morpho.MorphoBlue.StateBlock
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
@@ -17,7 +19,7 @@ theorem morphoAccrueFeeAmountStep (p : MarketParamsWords) (locals imms : Store) 
     (hi : evalExpr? config { contract := contract, locals := locals, immutables := imms } evm
       (.var "interest") = .ok (.int (Int.ofNat interest.toNat)))
     (hf : interest.toNat * (marketFieldWord evm.accountMap evm.executionEnv p.id 5).toNat < UInt256.size) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm accrueFeeBody[0]!
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm accrueFeeBody[0]!
       (.ok { contract := contract, locals := locals.insert "feeAmount" (.int (Int.ofNat
         (wMulDownResult interest (marketFieldWord evm.accountMap evm.executionEnv p.id 5)).toNat)), immutables := imms } evm) :=
   morphoWMulDownCallOk _ _ evm locals imms _ _ _ hi (hl.evalField imms evm ⟨5, by decide⟩) hf
@@ -27,7 +29,7 @@ theorem morphoAccrueFeeAmountReverts (p : MarketParamsWords) (locals imms : Stor
     (hi : evalExpr? config { contract := contract, locals := locals, immutables := imms } evm
       (.var "interest") = .ok (.int (Int.ofNat interest.toNat)))
     (hf : UInt256.size ≤ interest.toNat * (marketFieldWord evm.accountMap evm.executionEnv p.id 5).toNat) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm accrueFeeBody[0]! .reverted :=
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm accrueFeeBody[0]! .reverted :=
   morphoWMulDownCallReverts _ _ evm locals imms _ _ _ hi (hl.evalField imms evm ⟨5, by decide⟩) hf
 
 theorem morphoAccrueFeeSharesStep (p : MarketParamsWords) (locals imms : Store) (evm : EVM.State)
@@ -37,7 +39,7 @@ theorem morphoAccrueFeeSharesStep (p : MarketParamsWords) (locals imms : Store) 
     (hsub : fee.toNat ≤ (marketFieldWord evm.accountMap evm.executionEnv p.id 0).toNat)
     (hfit : SharesDownFits fee (UInt256.sub (marketFieldWord evm.accountMap evm.executionEnv p.id 0) fee)
       (marketFieldWord evm.accountMap evm.executionEnv p.id 1)) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm accrueFeeBody[1]!
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm accrueFeeBody[1]!
       (.ok { contract := contract, locals := locals.insert "__c6" (.int (Int.ofNat
         (sharesDownWord fee (UInt256.sub (marketFieldWord evm.accountMap evm.executionEnv p.id 0) fee)
           (marketFieldWord evm.accountMap evm.executionEnv p.id 1)).toNat)), immutables := imms } evm) :=
@@ -50,7 +52,7 @@ theorem morphoAccrueFeeSharesUnderflow (p : MarketParamsWords) (locals imms : St
     (he : evalExpr? config { contract := contract, locals := locals, immutables := imms } evm
       (.var "feeAmount") = .ok (.int (Int.ofNat fee.toNat)))
     (hsub : (marketFieldWord evm.accountMap evm.executionEnv p.id 0).toNat < fee.toNat) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm accrueFeeBody[1]! .reverted := by
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm accrueFeeBody[1]! .reverted := by
   apply ExecStmt.internalCallArgsRevert
   have hbad := evalCheckedSubUnderflow (hl.evalField imms evm ⟨0, by decide⟩) he hsub
   simp only [marketFieldName] at hbad
@@ -63,7 +65,7 @@ theorem morphoAccrueFeeSharesReverts (p : MarketParamsWords) (locals imms : Stor
     (hsub : fee.toNat ≤ (marketFieldWord evm.accountMap evm.executionEnv p.id 0).toNat)
     (hbad : ¬ SharesDownFits fee (UInt256.sub (marketFieldWord evm.accountMap evm.executionEnv p.id 0) fee)
       (marketFieldWord evm.accountMap evm.executionEnv p.id 1)) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm accrueFeeBody[1]! .reverted :=
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm accrueFeeBody[1]! .reverted :=
   morphoSharesDownCallReverts _ _ _ evm locals imms _ _ _ _ he
     (evalExpr_uint256_sub (hl.evalField imms evm ⟨0, by decide⟩) he hsub)
     (hl.evalField imms evm ⟨1, by decide⟩) hbad
@@ -72,7 +74,7 @@ theorem morphoAccrueFeeAssignLocal (locals imms : Store) (evm : EVM.State) (shar
     (hg : locals.get? "feeShares" = some old)
     (he : evalExpr? config { contract := contract, locals := locals, immutables := imms } evm
       (.var "__c6") = .ok (.int (Int.ofNat shares.toNat))) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm accrueFeeBody[2]!
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm accrueFeeBody[2]!
       (.ok { contract := contract, locals := locals.insert "feeShares" (.int (Int.ofNat shares.toNat)), immutables := imms } evm) :=
   ExecStmt.assign (hperm := Or.inl rfl) he (assignLocalWord hg)
 
@@ -98,7 +100,7 @@ theorem morphoAccrueFeePositionAssign (p : MarketParamsWords) (locals imms : Sto
       (.var "feeShares") = .ok (.int (Int.ofNat shares.toNat)))
     (hfit : (solcSlotWordAt (accrueFeePositionSlot evm.accountMap evm.executionEnv p.id)
       evm.accountMap evm.executionEnv).toNat + shares.toNat < UInt256.size) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm accrueFeeBody[3]!
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm accrueFeeBody[3]!
       (if evm.executionEnv.perm then .ok { contract := contract, locals := locals, immutables := imms }
         (storePositionSupplyShares evm p.id (accrueFeeRecipient evm.accountMap evm.executionEnv)
           (solcSlotWordAt (accrueFeePositionSlot evm.accountMap evm.executionEnv p.id) evm.accountMap evm.executionEnv + shares)) else .staticViolation) := by
@@ -112,7 +114,7 @@ theorem morphoAccrueFeePositionReverts (p : MarketParamsWords) (locals imms : St
       (.var "feeShares") = .ok (.int (Int.ofNat shares.toNat)))
     (hover : UInt256.size ≤ (solcSlotWordAt (accrueFeePositionSlot evm.accountMap evm.executionEnv p.id)
       evm.accountMap evm.executionEnv).toNat + shares.toNat) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm accrueFeeBody[3]! .reverted :=
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm accrueFeeBody[3]! .reverted :=
   ExecStmt.assignExprRevert (checkedAddSourceOverflow (hl.evalFeePosition imms evm) he hover)
 
 end Benchmarks.Morpho.MorphoBlue

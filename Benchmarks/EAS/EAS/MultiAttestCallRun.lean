@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.MultiAttestUpdateSource
 import Benchmarks.EAS.EAS.MultiAttestMemory
 import Benchmarks.EAS.EAS.MultiAttestUpdate
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -18,7 +20,7 @@ theorem multiAttestCallUpdateRun {L : Store} {evm : EVM.State} {ee : ExecutionEn
     (hlast : L.get? "last" = some (.bool (decide (i=n-1))))
     (hd : AttestationRequestArrayRegion mem data rs 224 heap.toNat)
     (hsize : ee.calldata.size < UInt256.size)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨9856⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨9856⟩
       (schema::data::UInt256.ofNat ee.source.val::available::multiAttestLastWord n i::⟨3131⟩::
         multiAttestSaved n i base table available (UInt256.ofNat groups.flatten.length) R) mem aw rdata σ k C) :
     (∃ (L' : Store) (evm' : EVM.State) (σ' : AccountMap) (mem' out : ByteArray) (aw' : UInt256)
@@ -26,15 +28,15 @@ theorem multiAttestCallUpdateRun {L : Store} {evm : EVM.State} {ee : ExecutionEn
       SourceState s0 ee σ' evm' ∧ heap.toNat ≤ next ∧ next ≤ 2^64-1 ∧
       MultiAttestLocals L' requests (groups.set i words) (UInt256.sub available used) next (i+1) ∧
       MultiAttestMemory mem' table (groups.set i words) (i+1) next ∧
-      ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm (multiAttestCall++multiAttestUpdate)
+      ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm (multiAttestCall++multiAttestUpdate)
         (.ok {contract := contract,locals := L',immutables := immStore v} evm') ∧
-      RD (deployedRuntime v) ee g s0 ⟨3767⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨3767⟩
         (multiAttestLoopStack n (i+1) base table (UInt256.sub available used)
           (UInt256.ofNat (groups.set i words).flatten.length) R) mem' aw' out σ' k' C') ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm (multiAttestCall++multiAttestUpdate) .reverted ∧
-      RDrev (deployedRuntime v) g s0) ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm (multiAttestCall++multiAttestUpdate) .staticViolation ∧
-      RDstatic (deployedRuntime v) g s0) := by
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm (multiAttestCall++multiAttestUpdate) .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) ∨
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm (multiAttestCall++multiAttestUpdate) .staticViolation ∧
+      RDstatic fork (deployedRuntime v) g s0) := by
   have he : evalExprs? config {contract := contract,locals := L,immutables := immStore v} evm multiAttestCallArgs =
       .ok [wordBytes32Value schema,.array (rs.map AttestationRequestRecord.tuple),.address ee.source,
         .int (Int.ofNat available.toNat),.bool (decide (i=n-1)),.int (Int.ofNat heap.toNat)] := by
@@ -64,10 +66,10 @@ theorem multiAttestCallUpdateRun {L : Store} {evm : EVM.State} {ee : ExecutionEn
       exact hm2.flatten_fit hb
     have hf1 : MultiAttestLocals L1 requests groups available next i := hf.called words used next
     have hres : L1.get? "res" = some (attestationsResultValue words used) := heapResultLocals_result _ _ _ _ _ _ (by decide)
-    have hsol1 : ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm multiAttestCall
+    have hsol1 : ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm multiAttestCall
         (.ok {contract := contract,locals := L1,immutables := immStore v} e1) :=
       heapResultBlock_ok hcall hf.heap (by decide) (by decide) (by decide)
-    have hsol2 := multiAttestUpdateSource (evm := e1) (imms := immStore v) hf1 hres hi' (by omega) hc hu
+    have hsol2 := multiAttestUpdateSource (fork := fork) (evm := e1) (imms := immStore v) hf1 hres hi' (by omega) hc hu
     obtain ⟨a2,j2,D2,r2⟩ := easMultiAttestUpdate (R := R) v (by omega) hi (by simpa only [hg] using hend) hb' hv
       (by simpa only [hg] using hm1.view.length) hu r1
     have hcountWord : UInt256.ofNat words.length+UInt256.ofNat groups.flatten.length =

@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.MintInternalMintRuntime
 import Examples.UniswapV2Pair.MintFeeArithmeticBridge
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -14,7 +16,7 @@ theorem uniswapMintFeeRuntimeAfterRootsNoMintReturnOfInt
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {kLast feeTo amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel : UInt256}
     (rootK rootKLast : Int)
-    (rd7899 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd7899 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7899⟩
       [UInt256.ofNat rootKLast.toNat, ⟨0⟩, UInt256.ofNat rootK.toNat, kLast, feeTo, ⟨1⟩,
         reserve1, reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1, balance0,
@@ -23,7 +25,7 @@ theorem uniswapMintFeeRuntimeAfterRootsNoMintReturnOfInt
     (hroot : ¬ rootK > rootKLast)
     (hrootKSize : rootK.toNat < UInt256.size)
     (hrootKLastSize : rootKLast.toNat < UInt256.size) :
-    ∃ k' C', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
       [⟨1⟩, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩, toWord,
         ⟨861⟩, sel]
@@ -38,7 +40,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveNoLiquidityReturn
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {kLast feeTo amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel : UInt256}
     (rootK rootKLast : Int)
-    (rd7899 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd7899 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7899⟩
       [UInt256.ofNat rootKLast.toNat, ⟨0⟩, UInt256.ofNat rootK.toNat, kLast, feeTo, ⟨1⟩,
         reserve1, reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1, balance0,
@@ -55,7 +57,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveNoLiquidityReturn
     (hdenFit : mintFeeDenominatorNat rootK rootKLast < UInt256.size)
     (hdenom : (mintFeeDenominatorWord rootK rootKLast).toNat ≠ 0)
     (hfeeLiq : ¬ mintFeeLiquidityInt evmFeeS rootK rootKLast > 0) :
-    ∃ k' C', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
       [⟨1⟩, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩, toWord,
         ⟨861⟩, sel]
@@ -115,7 +117,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveWithLiquidityReturn
     {mem rdata : ByteArray} {k C : ℕ}
     {kLast feeTo amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel : UInt256}
     (rootK rootKLast : Int)
-    (rd7899 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd7899 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7899⟩
       [UInt256.ofNat rootKLast.toNat, ⟨0⟩, UInt256.ofNat rootK.toNat, kLast, feeTo, ⟨1⟩,
         reserve1, reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1, balance0,
@@ -167,7 +169,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveWithLiquidityReturn
               (uniswapInternalMintBalanceHashMem feeTo mem))).readWithPadding
                 (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩) :
-    ∃ k' C', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
       [⟨1⟩, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩, toWord,
         ⟨861⟩, sel]

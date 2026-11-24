@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.SignatureCalldata
 import Benchmarks.EAS.EAS.FixedAllocate
 import Benchmarks.EAS.EAS.RuntimeBlocks_025
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -39,11 +41,11 @@ theorem easSignatureCalldataCopy {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {ptr heap ret : UInt256} {R : List UInt256} (v : EASImmutables) (hstack : R.length+9 ≤ 1024)
     (hh : heap.toNat ≤ 2^64-1) (hheap : memLoad (UInt256.ofNat 64) mem = heap)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨6273⟩ (ptr::UInt256.ofNat ee.calldata.size::ret::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨6273⟩ (ptr::UInt256.ofNat ee.calldata.size::ret::R) mem aw rdata σ k C) :
     ((signatureAtValid ee.calldata ptr ∧ heap.toNat+96 ≤ 2^64-1) →
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (heap::R)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (heap::R)
         (signatureCopyMemory mem heap (signatureAt ee.calldata ptr)) aw' rdata σ k' C') ∧
-    (¬ (signatureAtValid ee.calldata ptr ∧ heap.toNat+96 ≤ 2^64-1) → RDrev (deployedRuntime v) g s0) := by
+    (¬ (signatureAtValid ee.calldata ptr ∧ heap.toNat+96 ≤ 2^64-1) → RDrev fork (deployedRuntime v) g s0) := by
   by_cases hhead : UInt256.slt (UInt256.sub (UInt256.ofNat ee.calldata.size) ptr) ⟨96⟩ = ⟨0⟩
   · obtain ⟨a1,k1,C1,r1⟩ := easBlocks.eas_block_6273_fallthrough_packed (immWords := wordsOf (immStore v))
       (by omega) hhead rd

@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.Allocate
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -16,7 +18,7 @@ theorem allocateBlock_ok {cfg : Config} {evm : EVM.State} {locals imms : Store} 
     (hs : evalExpr? cfg {contract := contract, locals := locals, immutables := imms} evm size = .ok (.int (Int.ofNat n)))
     (hh : locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)))
     (hg : allocateNext heap n ≤ 2^64-1 ∧ heap ≤ allocateNext heap n) :
-    ExecBlock cfg {contract := contract, locals := locals, immutables := imms} evm (allocateBlock size)
+    ExecBlock fork cfg {contract := contract, locals := locals, immutables := imms} evm (allocateBlock size)
       (.ok {contract := contract, locals := allocateBlockLocals locals (allocateNext heap n), immutables := imms} evm) := by
   apply ExecBlock.consNormal (allocateCall_ok hs (by simp only [evalExpr?, hh, EvalResult.ofOption]) hg)
   exact unpackHeapResult (store_get_self _ _ _)
@@ -27,7 +29,7 @@ theorem allocateBlock_revert {cfg : Config} {evm : EVM.State} {locals imms : Sto
     (hs : evalExpr? cfg {contract := contract, locals := locals, immutables := imms} evm size = .ok (.int (Int.ofNat n)))
     (hh : locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)))
     (hg : ¬ (allocateNext heap n ≤ 2^64-1 ∧ heap ≤ allocateNext heap n)) :
-    ExecBlock cfg {contract := contract, locals := locals, immutables := imms} evm (allocateBlock size) .reverted := by
+    ExecBlock fork cfg {contract := contract, locals := locals, immutables := imms} evm (allocateBlock size) .reverted := by
   exact ExecBlock.consRevert (allocateCall_revert hs (by simp only [evalExpr?, hh, EvalResult.ofOption]) hg)
 
 theorem allocateBlockLocals_get {locals : Store} {heap : Nat} {name : Ident}

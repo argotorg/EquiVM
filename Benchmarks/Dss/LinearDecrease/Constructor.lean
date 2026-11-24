@@ -3,6 +3,8 @@ import Reasoning.Constructor
 import Reasoning.Initcode
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS LinearDecrease constructor correctness
 -/
@@ -116,7 +118,7 @@ theorem stairstepCtorBodySuccess
     (hperm : I.perm = true) :
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := stairstepCtorAfterWardsState evm0
-    ExecBlock config { contract := contract, locals := ∅ } evm0 constructorDecl.body
+    ExecBlock fork config { contract := contract, locals := ∅ } evm0 constructorDecl.body
       (.ok { contract := contract, locals := ∅ } evm1) := by
   intro evm0 evm1
   have hassign :
@@ -128,14 +130,14 @@ theorem stairstepCtorBodySuccess
   simp only [constructorDecl, nonpayable, List.cons_append, List.nil_append]
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
-  exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hassign) ExecBlock.nil
+  exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hassign) ExecBlock.nil
 
 theorem stairstepSteleCtorExecSuccess
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hperm : I.perm = true) :
-    steleCtorExec config contract [] σ σ₀ g A I
+    steleCtorExec fork config contract [] σ σ₀ g A I
       (.returned { contract := contract, locals := ∅ }
         (stairstepCtorAfterWardsState
           (initState σ σ₀ (Sat256.ofUInt256 g) A I))
@@ -148,14 +150,14 @@ theorem stairstepSteleCtorExecSuccess
   · rfl
   · simpa [ExecTransitionBody, contract, constructorDecl] using
       ExecFuncBody.execBlockOK
-        (stairstepCtorBodySuccess (hperm := hperm)
+        (stairstepCtorBodySuccess (fork := fork) (hperm := hperm)
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv)
 
 theorem stairstepSteleCtorExecReverts_nonpayable
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256}
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    steleCtorExec config contract [] σ σ₀ g A I .reverted := by
+    steleCtorExec fork config contract [] σ σ₀ g A I .reverted := by
   refine steleCtorExec.intro
     (evmState := initState σ σ₀ (Sat256.ofUInt256 g) A I)
     (argsStore := (∅ : Store))
@@ -173,10 +175,10 @@ set_option maxHeartbeats 2000000 in
 theorem stairstepCtorInitcodeRevert {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = linearDecreaseCreationBytecode)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev linearDecreaseCreationBytecode g
+    RDrev fork linearDecreaseCreationBytecode g
       (initState σ σ₀ g A I) := by
   have rd0 :
-      RD linearDecreaseCreationBytecode I g
+      RD fork linearDecreaseCreationBytecode I g
         (initState σ σ₀ g A I) ⟨0⟩ []
         ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
@@ -197,12 +199,12 @@ theorem stairstepCtorInitcodeSuccess {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = linearDecreaseCreationBytecode)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) :
-    RDret linearDecreaseCreationBytecode g
+    RDret fork linearDecreaseCreationBytecode g
       (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ (stairstepCtorCallerWardsSlot I) ⟨1⟩)
       linearDecreaseBytecode := by
   have rd0 :
-      RD linearDecreaseCreationBytecode I g
+      RD fork linearDecreaseCreationBytecode I g
         (initState σ σ₀ g A I) ⟨0⟩ []
         ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
@@ -286,7 +288,7 @@ set_option maxHeartbeats 1000000 in
 theorem linearDecreaseConstructorCorrect :
     typedConstructorRefinement config linearDecreaseCreationBytecode contract
       (fun _ => linearDecreaseBytecode) := by
-  intro σ σ₀ g A I args deployedInitcode hdeploy hcode _hcalldata hperm
+  intro fork _hfork σ σ₀ g A I args deployedInitcode hdeploy hcode _hcalldata hperm
   have hdeployed := emptyCtorDeployment_eq_initcode stairstep_selfDeployment_eq
     stairstep_ctor_params_nil hdeploy
   rw [hdeployed] at hcode
@@ -296,7 +298,7 @@ theorem linearDecreaseConstructorCorrect :
     rw [stairstep_ctor_params_nil] at hlen
     exact List.eq_nil_of_length_eq_zero hlen
   by_cases hwv : I.weiValue = ⟨0⟩
-  · have hrd := stairstepCtorInitcodeSuccess
+  · have hrd := stairstepCtorInitcodeSuccess (fork := fork)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) hcode hperm hwv
     rcases hrd with hOOG | ⟨s, hX, hacc⟩
@@ -325,7 +327,7 @@ theorem linearDecreaseConstructorCorrect :
         stairstepCtorCallerWardsSlot_eq I
       simp [evm0s, stairstepCtorAfterWardsState, storageStore_accountMap,
         storageStore_executionEnv, initState, hslot]
-  · have hrd := stairstepCtorInitcodeRevert
+  · have hrd := stairstepCtorInitcodeRevert (fork := fork)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) hcode hwv
     rcases hrd.xiResult hcode with hOOG | ⟨g', o, hrev⟩

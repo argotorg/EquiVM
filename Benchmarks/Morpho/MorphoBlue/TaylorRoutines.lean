@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.ArithmeticRoutines
 import Benchmarks.Morpho.MorphoBlue.MathValues
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -14,10 +16,10 @@ variable {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 
 theorem morphoTaylorReachSquare (hstack : R.length + 25 ≤ 1024)
     (hfit : x.toNat * n.toNat < UInt256.size)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14395)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14395)
       ([x, n, UInt256.ofNat 13488, ret, assets, b0, b1, b2, b3, b4, b5, b6,
         UInt256.ofNat 13552] ++ R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14395)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14395)
       ([taylorTerm1 x n, taylorTerm1 x n, UInt256.ofNat 13511,
         UInt256.ofNat 2000000000000000000, UInt256.ofNat 13557, assets, ret,
         taylorTerm1 x n, b0, b1, b2, b3, b4, b5, b6, UInt256.ofNat 13552] ++ R)
@@ -32,12 +34,12 @@ theorem morphoTaylorReachSquare (hstack : R.length + 25 ≤ 1024)
 
 theorem morphoTaylorReachCube (hstack : R.length + 25 ≤ 1024)
     (hfit : (taylorTerm1 x n).toNat * (taylorTerm1 x n).toNat < UInt256.size)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14395)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14395)
       ([taylorTerm1 x n, taylorTerm1 x n, UInt256.ofNat 13511,
         UInt256.ofNat 2000000000000000000, UInt256.ofNat 13557, assets, ret,
         taylorTerm1 x n, b0, b1, b2, b3, b4, b5, b6, UInt256.ofNat 13552] ++ R)
       mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14395)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14395)
       ([taylorTerm2 x n, taylorTerm1 x n, UInt256.ofNat 13545,
         UInt256.ofNat 3000000000000000000, taylorTerm2 x n, UInt256.ofNat 13552,
         taylorTerm1 x n, UInt256.ofNat 13557, assets, ret, wad,
@@ -53,13 +55,13 @@ theorem morphoTaylorReachCube (hstack : R.length + 25 ≤ 1024)
 
 theorem morphoTaylorReachAdd (hstack : R.length + 25 ≤ 1024)
     (hfit : (taylorTerm2 x n).toNat * (taylorTerm1 x n).toNat < UInt256.size)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14395)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14395)
       ([taylorTerm2 x n, taylorTerm1 x n, UInt256.ofNat 13545,
         UInt256.ofNat 3000000000000000000, taylorTerm2 x n, UInt256.ofNat 13552,
         taylorTerm1 x n, UInt256.ofNat 13557, assets, ret, wad,
         b0, b1, b2, b3, b4, b5, b6, wad] ++ R)
       mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12651)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12651)
       ([taylorTerm1 x n, taylorTerm2 x n, UInt256.ofNat 13552, taylorTerm3 x n,
         UInt256.ofNat 13557, assets, ret, wad, b0, b1, b2, b3, b4, b5, b6, wad] ++ R)
       mem aw rdata σ k' C' := by
@@ -73,11 +75,11 @@ theorem morphoTaylorReachAdd (hstack : R.length + 25 ≤ 1024)
 
 theorem morphoTaylorReachLastAdd (hstack : R.length + 25 ≤ 1024)
     (hfit : (taylorTerm1 x n).toNat + (taylorTerm2 x n).toNat < UInt256.size)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12651)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12651)
       ([taylorTerm1 x n, taylorTerm2 x n, UInt256.ofNat 13552, taylorTerm3 x n,
         UInt256.ofNat 13557, assets, ret, wad, b0, b1, b2, b3, b4, b5, b6, wad] ++ R)
       mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12651)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12651)
       ([taylorTerm1 x n + taylorTerm2 x n, taylorTerm3 x n, UInt256.ofNat 13557,
         assets, ret, wad, b0, b1, b2, b3, b4, b5, b6, wad] ++ R)
       mem aw rdata σ k' C' := by
@@ -90,10 +92,10 @@ theorem morphoTaylorReachLastAdd (hstack : R.length + 25 ≤ 1024)
   exact ⟨_, _, rd2⟩
 
 theorem morphoTaylorOk (hstack : R.length + 25 ≤ 1024) (hfit : TaylorFits x n)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14395)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14395)
       ([x, n, UInt256.ofNat 13488, ret, assets, b0, b1, b2, b3, b4, b5, b6,
         UInt256.ofNat 13552] ++ R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14395)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14395)
       ([assets, taylorWord x n, ret, wad, b0, b1, b2, b3, b4, b5, b6, wad] ++ R)
       mem aw rdata σ k' C' := by
   obtain ⟨h1, h2, h3, h4, h5⟩ := hfit
@@ -110,9 +112,9 @@ theorem morphoTaylorOk (hstack : R.length + 25 ≤ 1024) (hfit : TaylorFits x n)
   exact ⟨_, _, rd6⟩
 
 theorem morphoTaylorReverts (hstack : R.length + 25 ≤ 1024) (hbad : ¬ TaylorFits x n)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14395)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14395)
       ([x, n, UInt256.ofNat 13488, ret, assets, b0, b1, b2, b3, b4, b5, b6,
-        UInt256.ofNat 13552] ++ R) mem aw rdata σ k C) : RDrev (deployedRuntime v) g s0 := by
+        UInt256.ofNat 13552] ++ R) mem aw rdata σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   by_cases h1 : x.toNat * n.toNat < UInt256.size
   · obtain ⟨k1, C1, rd1⟩ := morphoTaylorReachSquare (v := v) hstack h1 h
     by_cases h2 : (taylorTerm1 x n).toNat * (taylorTerm1 x n).toNat < UInt256.size

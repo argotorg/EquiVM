@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.BytesWriteDispatch
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -41,9 +43,9 @@ theorem easRefUIDDispatch {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {uid word src t1 t2 t3 t4 : UInt256} {R : List UInt256}
     (v : EASImmutables) (site : UIDSite) (hstack : R.length+21 ≤ 1024)
     (hload : memLoad (refUIDPtr site t3+UInt256.ofNat 96) mem = uid)
-    (rd : RD (deployedRuntime v) ee g s0 (bytesWrittenPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (bytesWrittenPC site)
       (bytesWriteSaved site word src t1 t2 t3 t4 R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0
       (if uid = ⟨0⟩ then refUIDReadyPC site else refUIDReadPC site)
       (refUIDReadyStack site uid word src t1 t2 t3 t4 R) mem aw' rdata σ k' C' := by
   by_cases hz : uid = ⟨0⟩

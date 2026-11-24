@@ -5,6 +5,8 @@ import Benchmarks.CurveVault.Lock
 import Benchmarks.CurveVault.ConvertSharesForward
 import Benchmarks.CurveVault.RuntimeBlocks_010
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 
 namespace Benchmarks.CurveVault
@@ -14,7 +16,7 @@ abbrev vaultPreviewDepositFunction : FunctionDecl := contract.functions[9]!
 theorem vaultPreviewDepositBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vaultBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vaultSelBytes 42)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (vaultSelBytes 42) rfl hsel
   have hd : dispatchMsg contract I.calldata = some previewDepositTransition := by
     apply vaultDispatch_previewDeposit
@@ -41,7 +43,7 @@ theorem vaultPreviewDepositBodyCore {σ σ₀ A I} {g : UInt256}
       (by change UInt256.eq _ (codeOwnerTransientWord I σ ⟨0⟩) ≠ _
           rw [hlocked]; decide +kernel) (by native_decide) rdBody
     have hrev := vaultBlocks.vault_block_8284 (by simp) rdRevert
-    have hsource (l : Store) := vaultLockedBodyReverts (initState σ σ₀ (Sat256.ofUInt256 g) A I) l
+    have hsource (l : Store) := vaultLockedBodyReverts (fork := fork) (initState σ σ₀ (Sat256.ofUInt256 g) A I) l
       [.internalCall "previewDeposit_body" [.var "_assets"] "__r", .return [.var "__r"]] hvalue
       (by rw [hload]; exact hlocked)
     exact RDrev.reEquivOfDispatch hcode hd hsource hrev
@@ -53,7 +55,7 @@ theorem vaultPreviewDepositBodyCore {σ σ₀ A I} {g : UInt256}
       (by simp) (by native_decide) rd7108 with hsuccess | ⟨hcallee, hrev⟩
     · rcases hsuccess with ⟨evm', σ', locals', scratch, value, aw', out, k', C', hcallee, hs, _, rd2128⟩
       have hret := vaultBlocks.vault_block_2128 (by simp) rd2128
-      change RDret vaultBytecode (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ'
+      change RDret fork vaultBytecode (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ'
         ((value.toByteArray.write 0 scratch 576 32).readWithPadding 576 32) at hret
       rw [toByteArray_write_read_back_of_gap _ _ _
         (lt_of_le_of_lt (Nat.sub_le _ _) (lt_usize 576 (by norm_num)))] at hret
@@ -69,7 +71,7 @@ theorem vaultPreviewDepositBody {σ σ₀ A I} {g : UInt256}
     (_hwf : storageWF σ I)
     (hcode : I.code = vaultBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vaultSelBytes 42)) :
-    runtimeRefinementFor config contract σ σ₀ g A I :=
+    runtimeRefinementFor fork config contract σ σ₀ g A I :=
   vaultPreviewDepositBodyCore hcode hsize hsel
 
 end Benchmarks.CurveVault

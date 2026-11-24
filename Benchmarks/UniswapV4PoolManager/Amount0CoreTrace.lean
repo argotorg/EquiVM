@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.DivRoundTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_052
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_038
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -15,10 +17,10 @@ theorem amount0UpCoreTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : PoolManagerImmutables) (hstack : R.length+16 ≤ 1024)
     (ho : lo.toNat ≤ hi.toNat) (hh : hi.toNat < 2^160) (hl : liquidity.toNat < 2^128)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨23218⟩ (hi :: lo :: liquidity :: ret :: R) mem aw rdata σ k C) :
-    if amount0CoreFits lo hi liquidity true then ∃ k' C', RD (deployedRuntime v) I g s0 ret
+    (h : RD fork (deployedRuntime v) I g s0 ⟨23218⟩ (hi :: lo :: liquidity :: ret :: R) mem aw rdata σ k C) :
+    if amount0CoreFits lo hi liquidity true then ∃ k' C', RD fork (deployedRuntime v) I g s0 ret
       (amount0CoreWord lo hi liquidity true :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hlo := u256LandMaskCleanOfToNat lo (UInt256.ofNat 1461501637330902918203684832716283019655932542975) rfl (lt_of_le_of_lt ho hh)
   have hhi := u256LandMaskCleanOfToNat hi (UInt256.ofNat 1461501637330902918203684832716283019655932542975) rfl hh
   have hn2 := u256LandMaskCleanOfToNat (amount0Numerator2 lo hi) (UInt256.ofNat 1461501637330902918203684832716283019655932542975) rfl
@@ -58,10 +60,10 @@ theorem amount0DownCoreTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : PoolManagerImmutables) (hstack : R.length+13 ≤ 1024)
     (ho : lo.toNat ≤ hi.toNat) (hh : hi.toNat < 2^160) (hl : liquidity.toNat < 2^128)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨23400⟩ (lo :: hi :: liquidity :: ret :: R) mem aw rdata σ k C) :
-    if amount0CoreFits lo hi liquidity false then ∃ k' C', RD (deployedRuntime v) I g s0 ret
+    (h : RD fork (deployedRuntime v) I g s0 ⟨23400⟩ (lo :: hi :: liquidity :: ret :: R) mem aw rdata σ k C) :
+    if amount0CoreFits lo hi liquidity false then ∃ k' C', RD fork (deployedRuntime v) I g s0 ret
       (amount0CoreWord lo hi liquidity false :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hlo := u256LandMaskCleanOfToNat lo (UInt256.ofNat 1461501637330902918203684832716283019655932542975) rfl (lt_of_le_of_lt ho hh)
   have hhi := u256LandMaskCleanOfToNat hi (UInt256.ofNat 1461501637330902918203684832716283019655932542975) rfl hh
   have hn2 := u256LandMaskCleanOfToNat (amount0Numerator2 lo hi) (UInt256.ofNat 1461501637330902918203684832716283019655932542975) rfl

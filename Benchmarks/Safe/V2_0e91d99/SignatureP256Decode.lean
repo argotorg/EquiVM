@@ -1,5 +1,7 @@
 import Benchmarks.Safe.V2_0e91d99.SignatureP256Source
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V2_0e91d99
@@ -40,7 +42,7 @@ theorem signatureP256DecodeSource {p : SignatureInput} {f : Frame} {evm : EVM.St
     (hr : f.locals["r"]? = some oldR) (hs : f.locals["s"]? = some oldS)
     (hoff : f.locals["p256Offset"]? = some (uint256Value s))
     (hb : s.toNat + 128 ≤ p.signatures.size) :
-    ExecBlock config f evm ((signatureP256Body.drop 5).take 5)
+    ExecBlock fork config f evm ((signatureP256Body.drop 5).take 5)
       (.ok (signatureP256SignerFrame f (signatureP256Input p s)) evm) := by
   let input := signatureP256Input p s
   let f₁ := signatureSet f "r" (wordBytes32Value input.r)
@@ -55,22 +57,22 @@ theorem signatureP256DecodeSource {p : SignatureInput} {f : Frame} {evm : EVM.St
     simp [f₂, signatureSet, Std.HashMap.getElem?_insert, hoff₁]
   have hoff₃ : f₃.locals["p256Offset"]? = some (uint256Value s) := by
     simp [f₃, signatureSet, Std.HashMap.getElem?_insert, hoff₂]
-  have h₁ : ExecStmt config f evm signatureP256Body[5]! (.ok f₁ evm) :=
+  have h₁ : ExecStmt fork config f evm signatureP256Body[5]! (.ok f₁ evm) :=
     .assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalSignatureWordAt (evalLocalValue hc.signatures) (evalLocalValue hoff) (by omega))
       (assignLocalValue _ hr)
-  have h₂ : ExecStmt config f₁ evm signatureP256Body[6]! (.ok f₂ evm) :=
+  have h₂ : ExecStmt fork config f₁ evm signatureP256Body[6]! (.ok f₂ evm) :=
     .assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalSignatureWordAt (evalLocalValue hc₁.signatures)
       (naturalAddSource (evalLocalValue hoff₁) (by simp [evalExpr?]; rfl)) (by omega))
       (assignLocalValue _ (old := oldS)
         (by simp [f₁, signatureSet, Std.HashMap.getElem?_insert, hs]))
-  have h₃ : ExecStmt config f₂ evm signatureP256Body[7]! (.ok f₃ evm) :=
+  have h₃ : ExecStmt fork config f₂ evm signatureP256Body[7]! (.ok f₃ evm) :=
     .letDecl (evalSignatureUintAt (evalLocalValue hc₂.signatures)
       (naturalAddSource (evalLocalValue hoff₂) (by simp [evalExpr?]; rfl)) (by omega))
-  have h₄ : ExecStmt config f₃ evm signatureP256Body[8]!
+  have h₄ : ExecStmt fork config f₃ evm signatureP256Body[8]!
       (.ok (signatureP256ReadFrame f input) evm) :=
     .letDecl (evalSignatureUintAt (evalLocalValue hc₃.signatures)
       (naturalAddSource (evalLocalValue hoff₃) (by simp [evalExpr?]; rfl)) (by omega))
-  have h₅ : ExecStmt config (signatureP256ReadFrame f input) evm signatureP256Body[9]!
+  have h₅ : ExecStmt fork config (signatureP256ReadFrame f input) evm signatureP256Body[9]!
       (.ok (signatureP256SignerFrame f input) evm) :=
     .letDecl (evalP256Signer (p := input) (by
       simp [signatureP256ReadFrame, signatureSet, Std.HashMap.getElem?_insert,

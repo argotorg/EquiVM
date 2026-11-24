@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Dai.TransferFrom
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -291,10 +293,10 @@ theorem burnTailLogMem_mload64 {mem : ByteArray} (I : ExecutionEnv)
 
 theorem daiBurnX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD daiBytecode I g
+    (hreach : ∃ k C, RD fork daiBytecode I g
       (initState σ σ₀ g A I) ⟨946⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨3336⟩
+    ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨3336⟩
         [burnWadWord I, burnUsrMaskedWord I, ⟨686⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd968⟩ := RD.daiAddressUint256ExternalLenOk
@@ -310,10 +312,10 @@ theorem daiBurnX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem daiBurnX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
-    (hreach : ∃ k C, RD daiBytecode I g
+    (hreach : ∃ k C, RD fork daiBytecode I g
       (initState σ σ₀ g A I) ⟨946⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev daiBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork daiBytecode g (initState σ σ₀ g A I) := by
   exact RD.daiAddressUint256ExternalShort
     (entry := ⟨946⟩) (ret := ⟨686⟩) (routine := ⟨3336⟩)
     hreach dai_address_uint256_external_entry_wf hsz4 hsize hshort
@@ -324,10 +326,10 @@ theorem daiBurnX_initialBalanceOkCont {σ I} {g : Sat256} {s0 : State} {k C : �
     (henough :
       (burnWadWord I).toNat ≤ (solcSlotWord σ I (burnEvmUsrSlot I)).toNat)
     (hSlen : S.length + 16 ≤ 1024)
-    (h : RD daiBytecode I g s0 ⟨3336⟩
+    (h : RD fork daiBytecode I g s0 ⟨3336⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD daiBytecode I g s0 ⟨3440⟩
+    ∃ k' C', RD fork daiBytecode I g s0 ⟨3440⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
       (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hslot :
@@ -394,10 +396,10 @@ theorem daiBurnX_initialBalanceOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (henough :
       (burnWadWord I).toNat ≤ (solcSlotWord σ I (burnEvmUsrSlot I)).toNat)
-    (h : RD daiBytecode I g s0 ⟨3336⟩
+    (h : RD fork daiBytecode I g s0 ⟨3336⟩
       [burnWadWord I, burnUsrMaskedWord I, ⟨686⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD daiBytecode I g s0 ⟨3440⟩
+    ∃ k' C', RD fork daiBytecode I g s0 ⟨3440⟩
       [burnWadWord I, burnUsrMaskedWord I, ⟨686⟩, sel]
       (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   exact daiBurnX_initialBalanceOkCont (I := I) (ret := ⟨686⟩) (S := [sel])
@@ -408,10 +410,10 @@ theorem daiBurnX_initialBalanceRevertCont {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret : UInt256} {S : List UInt256}
     (hlt : (solcSlotWord σ I (burnEvmUsrSlot I)).toNat < (burnWadWord I).toNat)
     (hSlen : S.length + 16 ≤ 1024)
-    (h : RD daiBytecode I g s0 ⟨3336⟩
+    (h : RD fork daiBytecode I g s0 ⟨3336⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev daiBytecode g s0 := by
+    RDrev fork daiBytecode g s0 := by
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((burnUsrHashMem I).readWithPadding 0 64))) =
@@ -492,10 +494,10 @@ set_option maxHeartbeats 1000000 in
 theorem daiBurnX_initialBalanceRevert {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (hlt : (solcSlotWord σ I (burnEvmUsrSlot I)).toNat < (burnWadWord I).toNat)
-    (h : RD daiBytecode I g s0 ⟨3336⟩
+    (h : RD fork daiBytecode I g s0 ⟨3336⟩
       [burnWadWord I, burnUsrMaskedWord I, ⟨686⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev daiBytecode g s0 := by
+    RDrev fork daiBytecode g s0 := by
   exact daiBurnX_initialBalanceRevertCont (I := I) (ret := ⟨686⟩) (S := [sel])
     hlt (by simp only [List.length_cons, List.length_nil]; omega) (by simpa using h)
 
@@ -534,10 +536,10 @@ theorem daiBurnX_allowanceSkipSenderCont {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret : UInt256} {S : List UInt256}
     (heq : burnUsrMaskedWord I = solcSourceWord I)
     (hSlen : S.length + 16 ≤ 1024)
-    (h : RD daiBytecode I g s0 ⟨3440⟩
+    (h : RD fork daiBytecode I g s0 ⟨3440⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
       (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD daiBytecode I g s0 ⟨3710⟩
+    ∃ k' C', RD fork daiBytecode I g s0 ⟨3710⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
       (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have husrMaskLiteral :
@@ -583,10 +585,10 @@ set_option maxHeartbeats 1000000 in
 theorem daiBurnX_allowanceSkipSender {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (heq : burnUsrMaskedWord I = solcSourceWord I)
-    (h : RD daiBytecode I g s0 ⟨3440⟩
+    (h : RD fork daiBytecode I g s0 ⟨3440⟩
       [burnWadWord I, burnUsrMaskedWord I, ⟨686⟩, sel]
       (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD daiBytecode I g s0 ⟨3710⟩
+    ∃ k' C', RD fork daiBytecode I g s0 ⟨3710⟩
       [burnWadWord I, burnUsrMaskedWord I, ⟨686⟩, sel]
       (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   exact daiBurnX_allowanceSkipSenderCont (I := I) (ret := ⟨686⟩) (S := [sel])
@@ -597,10 +599,10 @@ theorem daiBurnX_allowanceLoadedCont {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret : UInt256} {S : List UInt256}
     (hne : burnUsrMaskedWord I ≠ solcSourceWord I)
     (hSlen : S.length + 16 ≤ 1024)
-    (h : RD daiBytecode I g s0 ⟨3440⟩
+    (h : RD fork daiBytecode I g s0 ⟨3440⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
       (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD daiBytecode I g s0 ⟨3502⟩
+    ∃ k' C', RD fork daiBytecode I g s0 ⟨3502⟩
       ((UInt256.isZero (UInt256.eq (UInt256.lnot (⟨0⟩ : UInt256))
           (burnEvmAllowanceWord σ I)))
         :: burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
@@ -717,10 +719,10 @@ set_option maxHeartbeats 1000000 in
 theorem daiBurnX_allowanceLoaded {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hne : burnUsrMaskedWord I ≠ solcSourceWord I)
-    (h : RD daiBytecode I g s0 ⟨3440⟩
+    (h : RD fork daiBytecode I g s0 ⟨3440⟩
       [burnWadWord I, burnUsrMaskedWord I, ⟨686⟩, sel]
       (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD daiBytecode I g s0 ⟨3502⟩
+    ∃ k' C', RD fork daiBytecode I g s0 ⟨3502⟩
       [UInt256.isZero (UInt256.eq (UInt256.lnot (⟨0⟩ : UInt256))
           (burnEvmAllowanceWord σ I)),
         burnWadWord I, burnUsrMaskedWord I, ⟨686⟩, sel]
@@ -734,10 +736,10 @@ theorem daiBurnX_allowanceSkipMaxCont {σ I} {g : Sat256} {s0 : State}
     (hne : burnUsrMaskedWord I ≠ solcSourceWord I)
     (hmax : (burnEvmAllowanceWord σ I).toNat = UInt256.size - 1)
     (hSlen : S.length + 16 ≤ 1024)
-    (h : RD daiBytecode I g s0 ⟨3440⟩
+    (h : RD fork daiBytecode I g s0 ⟨3440⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
       (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD daiBytecode I g s0 ⟨3710⟩
+    ∃ k' C', RD fork daiBytecode I g s0 ⟨3710⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
       (burnAllowanceHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   obtain ⟨_, _, rdLoaded⟩ :=
@@ -766,10 +768,10 @@ theorem daiBurnX_allowanceSkipMax {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hne : burnUsrMaskedWord I ≠ solcSourceWord I)
     (hmax : (burnEvmAllowanceWord σ I).toNat = UInt256.size - 1)
-    (h : RD daiBytecode I g s0 ⟨3440⟩
+    (h : RD fork daiBytecode I g s0 ⟨3440⟩
       [burnWadWord I, burnUsrMaskedWord I, ⟨686⟩, sel]
       (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD daiBytecode I g s0 ⟨3710⟩
+    ∃ k' C', RD fork daiBytecode I g s0 ⟨3710⟩
       [burnWadWord I, burnUsrMaskedWord I, ⟨686⟩, sel]
       (burnAllowanceHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   exact daiBurnX_allowanceSkipMaxCont (I := I) (ret := ⟨686⟩) (S := [sel])
@@ -782,10 +784,10 @@ theorem daiBurnX_allowanceSpendCheckOkCont {σ I} {g : Sat256} {s0 : State}
     (hnotMax : (burnEvmAllowanceWord σ I).toNat ≠ UInt256.size - 1)
     (hallowEnough : (burnWadWord I).toNat ≤ (burnEvmAllowanceWord σ I).toNat)
     (hSlen : S.length + 16 ≤ 1024)
-    (h : RD daiBytecode I g s0 ⟨3440⟩
+    (h : RD fork daiBytecode I g s0 ⟨3440⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
       (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD daiBytecode I g s0 ⟨3627⟩
+    ∃ k' C', RD fork daiBytecode I g s0 ⟨3627⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
       (burnAllowanceReloadHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   obtain ⟨_, _, rdLoaded⟩ :=
@@ -906,10 +908,10 @@ theorem daiBurnX_allowanceSpendCheckOk {σ I} {g : Sat256} {s0 : State}
     (hne : burnUsrMaskedWord I ≠ solcSourceWord I)
     (hnotMax : (burnEvmAllowanceWord σ I).toNat ≠ UInt256.size - 1)
     (hallowEnough : (burnWadWord I).toNat ≤ (burnEvmAllowanceWord σ I).toNat)
-    (h : RD daiBytecode I g s0 ⟨3440⟩
+    (h : RD fork daiBytecode I g s0 ⟨3440⟩
       [burnWadWord I, burnUsrMaskedWord I, ⟨686⟩, sel]
       (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD daiBytecode I g s0 ⟨3627⟩
+    ∃ k' C', RD fork daiBytecode I g s0 ⟨3627⟩
       [burnWadWord I, burnUsrMaskedWord I, ⟨686⟩, sel]
       (burnAllowanceReloadHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   exact daiBurnX_allowanceSpendCheckOkCont (I := I) (ret := ⟨686⟩) (S := [sel])
@@ -922,8 +924,8 @@ theorem daiBurnX_insufficientAllowanceTail {σ I} {g : Sat256} {s0 : State}
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : stk.length + 5 ≤ 1024)
-    (h : RD daiBytecode I g s0 ⟨3551⟩ stk mem (UInt256.ofNat 3) rdata σ k C) :
-    RDrev daiBytecode g s0 := by
+    (h : RD fork daiBytecode I g s0 ⟨3551⟩ stk mem (UInt256.ofNat 3) rdata σ k C) :
+    RDrev fork daiBytecode g s0 := by
   have rdMload := evm_run h with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov),
@@ -982,10 +984,10 @@ theorem daiBurnX_allowanceRevertCont {σ I} {g : Sat256} {s0 : State}
     (hnotMax : (burnEvmAllowanceWord σ I).toNat ≠ UInt256.size - 1)
     (hlt : (burnEvmAllowanceWord σ I).toNat < (burnWadWord I).toNat)
     (hSlen : S.length + 16 ≤ 1024)
-    (h : RD daiBytecode I g s0 ⟨3440⟩
+    (h : RD fork daiBytecode I g s0 ⟨3440⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
       (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev daiBytecode g s0 := by
+    RDrev fork daiBytecode g s0 := by
   obtain ⟨_, _, rdLoaded⟩ :=
     daiBurnX_allowanceLoadedCont (I := I) (ret := ret) (S := S) hne hSlen h
   have hlnot0 : (UInt256.lnot (⟨0⟩ : UInt256)).toNat = UInt256.size - 1 := by
@@ -1113,10 +1115,10 @@ theorem daiBurnX_allowanceRevert {σ I} {g : Sat256} {s0 : State}
     (hne : burnUsrMaskedWord I ≠ solcSourceWord I)
     (hnotMax : (burnEvmAllowanceWord σ I).toNat ≠ UInt256.size - 1)
     (hlt : (burnEvmAllowanceWord σ I).toNat < (burnWadWord I).toNat)
-    (h : RD daiBytecode I g s0 ⟨3440⟩
+    (h : RD fork daiBytecode I g s0 ⟨3440⟩
       [burnWadWord I, burnUsrMaskedWord I, ⟨686⟩, sel]
       (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev daiBytecode g s0 := by
+    RDrev fork daiBytecode g s0 := by
   exact daiBurnX_allowanceRevertCont (I := I) (ret := ⟨686⟩) (S := [sel])
     hne hnotMax hlt (by simp only [List.length_cons, List.length_nil]; omega)
     (by simpa using h)
@@ -1128,15 +1130,15 @@ theorem daiBurnX_spendToTailContSplit {σ I} {g : Sat256} {s0 : State} {k C : �
     (hnotMax : (burnEvmAllowanceWord σ I).toNat ≠ UInt256.size - 1)
     (hallowEnough : (burnWadWord I).toNat ≤ (burnEvmAllowanceWord σ I).toNat)
     (hSlen : S.length + 16 ≤ 1024)
-    (h : RD daiBytecode I g s0 ⟨3440⟩
+    (h : RD fork daiBytecode I g s0 ⟨3440⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
       (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     (I.perm = true ∧
-      ∃ k' C', RD daiBytecode I g s0 ⟨3710⟩
+      ∃ k' C', RD fork daiBytecode I g s0 ⟨3710⟩
         (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
         (burnAllowancePostStoreHashMem I) (UInt256.ofNat 3) ByteArray.empty
         (burnEvmAfterAllowanceAccountMap σ I) k' C') ∨
-      (I.perm = false ∧ RDstatic daiBytecode g s0) := by
+      (I.perm = false ∧ RDstatic fork daiBytecode g s0) := by
   obtain ⟨_, _, rd3627⟩ :=
     daiBurnX_allowanceSpendCheckOkCont (I := I) (ret := ret) (S := S)
       hne hnotMax hallowEnough hSlen h
@@ -1331,10 +1333,10 @@ theorem daiBurnX_spendToTailCont {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (hnotMax : (burnEvmAllowanceWord σ I).toNat ≠ UInt256.size - 1)
     (hallowEnough : (burnWadWord I).toNat ≤ (burnEvmAllowanceWord σ I).toNat)
     (hSlen : S.length + 16 ≤ 1024)
-    (h : RD daiBytecode I g s0 ⟨3440⟩
+    (h : RD fork daiBytecode I g s0 ⟨3440⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
       (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD daiBytecode I g s0 ⟨3710⟩
+    ∃ k' C', RD fork daiBytecode I g s0 ⟨3710⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
       (burnAllowancePostStoreHashMem I) (UInt256.ofNat 3) ByteArray.empty
       (burnEvmAfterAllowanceAccountMap σ I) k' C' :=
@@ -1347,10 +1349,10 @@ theorem daiBurnX_spendToTail {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (hne : burnUsrMaskedWord I ≠ solcSourceWord I)
     (hnotMax : (burnEvmAllowanceWord σ I).toNat ≠ UInt256.size - 1)
     (hallowEnough : (burnWadWord I).toNat ≤ (burnEvmAllowanceWord σ I).toNat)
-    (h : RD daiBytecode I g s0 ⟨3440⟩
+    (h : RD fork daiBytecode I g s0 ⟨3440⟩
       [burnWadWord I, burnUsrMaskedWord I, ⟨686⟩, sel]
       (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD daiBytecode I g s0 ⟨3710⟩
+    ∃ k' C', RD fork daiBytecode I g s0 ⟨3710⟩
       [burnWadWord I, burnUsrMaskedWord I, ⟨686⟩, sel]
       (burnAllowancePostStoreHashMem I) (UInt256.ofNat 3) ByteArray.empty
       (burnEvmAfterAllowanceAccountMap σ I) k' C' := by
@@ -1366,10 +1368,10 @@ theorem daiBurnX_logAndJump {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (hread64 : scratch.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hSlen : S.length + 10 ≤ 1024)
     (hretDest : (D_J daiBytecode 0).contains ret = true)
-    (h : RD daiBytecode I g s0 ⟨3787⟩
+    (h : RD fork daiBytecode I g s0 ⟨3787⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
       scratch (UInt256.ofNat 3) rdata σ k C) :
-    ∃ k' C', RD daiBytecode I g s0 ret S
+    ∃ k' C', RD fork daiBytecode I g s0 ret S
       (solcScratchReturnMem scratch (burnWadWord I)) (UInt256.ofNat 5) rdata
       σ k' C' := by
   have husrMask :
@@ -1442,10 +1444,10 @@ theorem daiBurnX_tailSuccessJump {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (burnWadWord I).toNat ≤ (burnEvmTailUsrBalanceWord σ I).toNat)
     (hsupplyEnough :
       (burnWadWord I).toNat ≤ (burnEvmTailSupplyWord σ I).toNat)
-    (h : RD daiBytecode I g s0 ⟨3710⟩
+    (h : RD fork daiBytecode I g s0 ⟨3710⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
       mem (UInt256.ofNat 3) rdata σ k C) :
-    ∃ k' C', RD daiBytecode I g s0 ret S
+    ∃ k' C', RD fork daiBytecode I g s0 ret S
       (burnTailLogMem mem I) (UInt256.ofNat 5) rdata
       (burnEvmTailPostAccountMap σ I) k' C' := by
   have husrMaskLiteral :
@@ -1597,10 +1599,10 @@ theorem daiBurnX_tailSuccess {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (burnWadWord I).toNat ≤ (burnEvmTailUsrBalanceWord σ I).toNat)
     (hsupplyEnough :
       (burnWadWord I).toNat ≤ (burnEvmTailSupplyWord σ I).toNat)
-    (h : RD daiBytecode I g s0 ⟨3710⟩
+    (h : RD fork daiBytecode I g s0 ⟨3710⟩
       [burnWadWord I, burnUsrMaskedWord I, ⟨686⟩, sel]
       mem (UInt256.ofNat 3) rdata σ k C) :
-    RDret daiBytecode g s0 (burnEvmTailPostAccountMap σ I) ByteArray.empty := by
+    RDret fork daiBytecode g s0 (burnEvmTailPostAccountMap σ I) ByteArray.empty := by
   obtain ⟨_, _, rd686⟩ := daiBurnX_tailSuccessJump
     (I := I) (ret := ⟨686⟩) (S := [sel])
     hperm hmem hread64
@@ -1616,10 +1618,10 @@ theorem daiBurnX_tailUsrDebitRevertCont {σ I} {g : Sat256} {s0 : State}
     (hSlen : S.length + 16 ≤ 1024)
     (hlt :
       (burnEvmTailUsrBalanceWord σ I).toNat < (burnWadWord I).toNat)
-    (h : RD daiBytecode I g s0 ⟨3710⟩
+    (h : RD fork daiBytecode I g s0 ⟨3710⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
       mem (UInt256.ofNat 3) rdata σ k C) :
-    RDrev daiBytecode g s0 := by
+    RDrev fork daiBytecode g s0 := by
   have husrMaskLiteral :
       UInt256.land (burnUsrMaskedWord I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -1723,10 +1725,10 @@ theorem daiBurnX_tailUsrDebitRevert {σ I} {g : Sat256} {s0 : State}
     (hmem : mem.size = 96)
     (hlt :
       (burnEvmTailUsrBalanceWord σ I).toNat < (burnWadWord I).toNat)
-    (h : RD daiBytecode I g s0 ⟨3710⟩
+    (h : RD fork daiBytecode I g s0 ⟨3710⟩
       [burnWadWord I, burnUsrMaskedWord I, ⟨686⟩, sel]
       mem (UInt256.ofNat 3) rdata σ k C) :
-    RDrev daiBytecode g s0 := by
+    RDrev fork daiBytecode g s0 := by
   exact daiBurnX_tailUsrDebitRevertCont (I := I) (ret := ⟨686⟩) (S := [sel])
     hmem (by simp only [List.length_cons, List.length_nil]; omega) hlt (by simpa using h)
 
@@ -1737,15 +1739,15 @@ theorem daiBurnX_tailAfterUsrStoreContSplit {σ I} {g : Sat256} {s0 : State}
     (hSlen : S.length + 16 ≤ 1024)
     (husrEnough :
       (burnWadWord I).toNat ≤ (burnEvmTailUsrBalanceWord σ I).toNat)
-    (h : RD daiBytecode I g s0 ⟨3710⟩
+    (h : RD fork daiBytecode I g s0 ⟨3710⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
       mem (UInt256.ofNat 3) rdata σ k C) :
     (I.perm = true ∧
-      ∃ k' C', RD daiBytecode I g s0 ⟨3771⟩
+      ∃ k' C', RD fork daiBytecode I g s0 ⟨3771⟩
         (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
         (burnTailUsrStoreMem mem I) (UInt256.ofNat 3) rdata
         (burnEvmTailAfterUsrAccountMap σ I) k' C') ∨
-      (I.perm = false ∧ RDstatic daiBytecode g s0) := by
+      (I.perm = false ∧ RDstatic fork daiBytecode g s0) := by
   have husrMaskLiteral :
       UInt256.land (burnUsrMaskedWord I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -1866,10 +1868,10 @@ theorem daiBurnX_tailAfterUsrStoreCont {σ I} {g : Sat256} {s0 : State}
     (hSlen : S.length + 16 ≤ 1024)
     (husrEnough :
       (burnWadWord I).toNat ≤ (burnEvmTailUsrBalanceWord σ I).toNat)
-    (h : RD daiBytecode I g s0 ⟨3710⟩
+    (h : RD fork daiBytecode I g s0 ⟨3710⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
       mem (UInt256.ofNat 3) rdata σ k C) :
-    ∃ k' C', RD daiBytecode I g s0 ⟨3771⟩
+    ∃ k' C', RD fork daiBytecode I g s0 ⟨3771⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
       (burnTailUsrStoreMem mem I) (UInt256.ofNat 3) rdata
       (burnEvmTailAfterUsrAccountMap σ I) k' C' :=
@@ -1885,10 +1887,10 @@ theorem daiBurnX_tailSupplyRevertCont {σ I} {g : Sat256} {s0 : State}
       (burnWadWord I).toNat ≤ (burnEvmTailUsrBalanceWord σ I).toNat)
     (hltSupply :
       (burnEvmTailSupplyWord σ I).toNat < (burnWadWord I).toNat)
-    (h : RD daiBytecode I g s0 ⟨3710⟩
+    (h : RD fork daiBytecode I g s0 ⟨3710⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
       mem (UInt256.ofNat 3) rdata σ k C) :
-    RDrev daiBytecode g s0 := by
+    RDrev fork daiBytecode g s0 := by
   obtain ⟨_, _, rdAfterUsrStore⟩ := daiBurnX_tailAfterUsrStoreCont
     (I := I) (ret := ret) (S := S) hperm hmem hSlen husrEnough h
   have rdSupplyLoadedPre := evm_run rdAfterUsrStore with [
@@ -1957,10 +1959,10 @@ theorem daiBurnX_tailSupplyRevert {σ I} {g : Sat256} {s0 : State}
       (burnWadWord I).toNat ≤ (burnEvmTailUsrBalanceWord σ I).toNat)
     (hltSupply :
       (burnEvmTailSupplyWord σ I).toNat < (burnWadWord I).toNat)
-    (h : RD daiBytecode I g s0 ⟨3710⟩
+    (h : RD fork daiBytecode I g s0 ⟨3710⟩
       [burnWadWord I, burnUsrMaskedWord I, ⟨686⟩, sel]
       mem (UInt256.ofNat 3) rdata σ k C) :
-    RDrev daiBytecode g s0 := by
+    RDrev fork daiBytecode g s0 := by
   exact daiBurnX_tailSupplyRevertCont (I := I) (ret := ⟨686⟩) (S := [sel])
     hperm hmem (by simp only [List.length_cons, List.length_nil]; omega)
     husrEnough hltSupply (by simpa using h)
@@ -2528,7 +2530,7 @@ theorem daiBurnBodyReturns_spend (evm : EVM.State) (I : ExecutionEnv)
       (burnWadWord I).toNat ≤
         (burnTotalSupplyWord (burnAfterUsrDebitState (burnAfterAllowanceState evm I) I)).toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (burnStore I) burnTransition.body
+    ExecTransitionBody fork config contract evm (burnStore I) burnTransition.body
       (.returned { contract := contract, locals := burnStore I }
         (burnPostState (burnAfterAllowanceState evm I) I) none) := by
   refine ExecFuncBody.execBlockOK ?_
@@ -2547,7 +2549,7 @@ theorem daiBurnBodyReturns_spend (evm : EVM.State) (I : ExecutionEnv)
     refine ExecBlock.consNormal
       (ExecStmt.requireTrue (evalExpr_burn_allowance_checkedSub_true evm I hallowEnough)) ?_
     refine ExecBlock.consNormal
-      (ExecStmt.assign (hperm := Or.inr (by simpa only [burnAfterAllowanceState,
+      (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [burnAfterAllowanceState,
         burnAfterUsrDebitState, storageStore_executionEnv] using hperm)) (evalExpr_burn_allowance_debit evm I hallowEnough)
         (burnAssignAllowance evm I)) ?_
     exact ExecBlock.nil
@@ -2560,7 +2562,7 @@ theorem daiBurnBodyReturns_spend (evm : EVM.State) (I : ExecutionEnv)
         (evalExpr_burn_usr_checkedSub_true (burnAfterAllowanceState evm I) I
           husrDebitEnough)) ?_
     refine ExecBlock.consNormal
-      (ExecStmt.assign (hperm := Or.inr (by simpa only [burnAfterAllowanceState,
+      (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [burnAfterAllowanceState,
         burnAfterUsrDebitState, storageStore_executionEnv] using hperm))
         (evalExpr_burn_usr_debit (burnAfterAllowanceState evm I) I husrDebitEnough)
         (burnAssignUsr (burnAfterAllowanceState evm I) I)) ?_
@@ -2569,7 +2571,7 @@ theorem daiBurnBodyReturns_spend (evm : EVM.State) (I : ExecutionEnv)
         (evalExpr_burn_supply_checkedSub_true
           (burnAfterUsrDebitState (burnAfterAllowanceState evm I) I) I hsupplyEnough)) ?_
     refine ExecBlock.consNormal
-      (ExecStmt.assign (hperm := Or.inr (by simpa only [burnAfterAllowanceState,
+      (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [burnAfterAllowanceState,
         burnAfterUsrDebitState, storageStore_executionEnv] using hperm))
         (evalExpr_burn_supply_debit
           (burnAfterUsrDebitState (burnAfterAllowanceState evm I) I) I hsupplyEnough)
@@ -2585,7 +2587,7 @@ theorem daiBurnBodyStatic_spend (evm : EVM.State) (I : ExecutionEnv)
     (hnotMax : (burnAllowanceWord evm I).toNat ≠ UInt256.size - 1)
     (hallowEnough : (burnWadWord I).toNat ≤ (burnAllowanceWord evm I).toNat)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (burnStore I) burnTransition.body .staticViolation := by
+    ExecTransitionBody fork config contract evm (burnStore I) burnTransition.body .staticViolation := by
   refine ExecFuncBody.execBlockStatic ?_
   simp only [burnTransition, nonpayable, spendAllowance, debitBalance, checkedSub,
     List.append_assoc, List.singleton_append]
@@ -2611,7 +2613,7 @@ theorem daiBurnBodyReturns_skipSender (evm : EVM.State) (I : ExecutionEnv)
       (burnWadWord I).toNat ≤
         (burnTotalSupplyWord (burnAfterUsrDebitState evm I)).toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (burnStore I) burnTransition.body
+    ExecTransitionBody fork config contract evm (burnStore I) burnTransition.body
       (.returned { contract := contract, locals := burnStore I } (burnPostState evm I) none) := by
   refine ExecFuncBody.execBlockOK ?_
   simp only [burnTransition, nonpayable, spendAllowance, debitBalance, checkedSub,
@@ -2628,14 +2630,14 @@ theorem daiBurnBodyReturns_skipSender (evm : EVM.State) (I : ExecutionEnv)
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue (evalExpr_burn_usr_checkedSub_true evm I husrEnough)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.assign (hperm := Or.inr (by simpa only [burnAfterAllowanceState,
+    (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [burnAfterAllowanceState,
         burnAfterUsrDebitState, storageStore_executionEnv] using hperm)) (evalExpr_burn_usr_debit evm I husrEnough) (burnAssignUsr evm I)) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue
       (evalExpr_burn_supply_checkedSub_true (burnAfterUsrDebitState evm I) I
         hsupplyEnough)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.assign (hperm := Or.inr (by simpa only [burnAfterAllowanceState,
+    (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [burnAfterAllowanceState,
         burnAfterUsrDebitState, storageStore_executionEnv] using hperm))
       (evalExpr_burn_supply_debit (burnAfterUsrDebitState evm I) I hsupplyEnough)
       (by simpa [burnPostState] using burnAssignSupply (burnAfterUsrDebitState evm I) I)) ?_
@@ -2646,7 +2648,7 @@ theorem daiBurnBodyStatic_skipSender (evm : EVM.State) (I : ExecutionEnv)
     (husrEnough : (burnWadWord I).toNat ≤ (burnUsrBalanceWord evm I).toNat)
     (heq : AccountAddress.ofNat (burnUsrWord I).toNat = evm.executionEnv.source)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (burnStore I) burnTransition.body .staticViolation := by
+    ExecTransitionBody fork config contract evm (burnStore I) burnTransition.body .staticViolation := by
   refine ExecFuncBody.execBlockStatic ?_
   simp only [burnTransition, nonpayable, spendAllowance, debitBalance, checkedSub,
     List.append_assoc, List.singleton_append]
@@ -2675,7 +2677,7 @@ theorem daiBurnBodyReturns_skipMax (evm : EVM.State) (I : ExecutionEnv)
       (burnWadWord I).toNat ≤
         (burnTotalSupplyWord (burnAfterUsrDebitState evm I)).toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (burnStore I) burnTransition.body
+    ExecTransitionBody fork config contract evm (burnStore I) burnTransition.body
       (.returned { contract := contract, locals := burnStore I } (burnPostState evm I) none) := by
   refine ExecFuncBody.execBlockOK ?_
   simp only [burnTransition, nonpayable, spendAllowance, debitBalance, checkedSub,
@@ -2692,14 +2694,14 @@ theorem daiBurnBodyReturns_skipMax (evm : EVM.State) (I : ExecutionEnv)
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue (evalExpr_burn_usr_checkedSub_true evm I husrEnough)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.assign (hperm := Or.inr (by simpa only [burnAfterAllowanceState,
+    (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [burnAfterAllowanceState,
         burnAfterUsrDebitState, storageStore_executionEnv] using hperm)) (evalExpr_burn_usr_debit evm I husrEnough) (burnAssignUsr evm I)) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue
       (evalExpr_burn_supply_checkedSub_true (burnAfterUsrDebitState evm I) I
         hsupplyEnough)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.assign (hperm := Or.inr (by simpa only [burnAfterAllowanceState,
+    (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [burnAfterAllowanceState,
         burnAfterUsrDebitState, storageStore_executionEnv] using hperm))
       (evalExpr_burn_supply_debit (burnAfterUsrDebitState evm I) I hsupplyEnough)
       (by simpa [burnPostState] using burnAssignSupply (burnAfterUsrDebitState evm I) I)) ?_
@@ -2711,7 +2713,7 @@ theorem daiBurnBodyStatic_skipMax (evm : EVM.State) (I : ExecutionEnv)
     (hne : AccountAddress.ofNat (burnUsrWord I).toNat ≠ evm.executionEnv.source)
     (hmax : (burnAllowanceWord evm I).toNat = UInt256.size - 1)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (burnStore I) burnTransition.body .staticViolation := by
+    ExecTransitionBody fork config contract evm (burnStore I) burnTransition.body .staticViolation := by
   refine ExecFuncBody.execBlockStatic ?_
   simp only [burnTransition, nonpayable, spendAllowance, debitBalance, checkedSub,
     List.append_assoc, List.singleton_append]
@@ -2734,7 +2736,7 @@ set_option maxHeartbeats 1000000 in
 theorem daiBurnBodyReverts_initialBalance (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hlt : (burnUsrBalanceWord evm I).toNat < (burnWadWord I).toNat) :
-    ExecTransitionBody config contract evm (burnStore I) burnTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (burnStore I) burnTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   simp only [burnTransition, nonpayable, spendAllowance, debitBalance, checkedSub,
     List.append_assoc, List.nil_append, List.singleton_append]
@@ -2749,7 +2751,7 @@ theorem daiBurnBodyReverts_allowance (evm : EVM.State) (I : ExecutionEnv)
     (hne : AccountAddress.ofNat (burnUsrWord I).toNat ≠ evm.executionEnv.source)
     (hnotMax : (burnAllowanceWord evm I).toNat ≠ UInt256.size - 1)
     (hlt : (burnAllowanceWord evm I).toNat < (burnWadWord I).toNat) :
-    ExecTransitionBody config contract evm (burnStore I) burnTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (burnStore I) burnTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   simp only [burnTransition, nonpayable, spendAllowance, debitBalance, checkedSub,
     List.append_assoc, List.nil_append, List.singleton_append]
@@ -2773,7 +2775,7 @@ theorem daiBurnBodyReverts_usrDebit (evm : EVM.State) (I : ExecutionEnv)
     (hltDebit :
       (burnUsrBalanceWord (burnAfterAllowanceState evm I) I).toNat < (burnWadWord I).toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (burnStore I) burnTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (burnStore I) burnTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   simp only [burnTransition, nonpayable, spendAllowance, debitBalance, checkedSub,
     List.append_assoc, List.nil_append, List.singleton_append]
@@ -2790,7 +2792,7 @@ theorem daiBurnBodyReverts_usrDebit (evm : EVM.State) (I : ExecutionEnv)
     refine ExecBlock.consNormal
       (ExecStmt.requireTrue (evalExpr_burn_allowance_checkedSub_true evm I hallowEnough)) ?_
     refine ExecBlock.consNormal
-      (ExecStmt.assign (hperm := Or.inr (by simpa only [burnAfterAllowanceState,
+      (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [burnAfterAllowanceState,
         burnAfterUsrDebitState, storageStore_executionEnv] using hperm)) (evalExpr_burn_allowance_debit evm I hallowEnough)
         (burnAssignAllowance evm I)) ?_
     exact ExecBlock.nil
@@ -2812,7 +2814,7 @@ theorem daiBurnBodyReverts_supply_spend (evm : EVM.State) (I : ExecutionEnv)
       (burnTotalSupplyWord (burnAfterUsrDebitState (burnAfterAllowanceState evm I) I)).toNat <
         (burnWadWord I).toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (burnStore I) burnTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (burnStore I) burnTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   simp only [burnTransition, nonpayable, spendAllowance, debitBalance, checkedSub,
     List.append_assoc, List.nil_append, List.singleton_append]
@@ -2829,7 +2831,7 @@ theorem daiBurnBodyReverts_supply_spend (evm : EVM.State) (I : ExecutionEnv)
     refine ExecBlock.consNormal
       (ExecStmt.requireTrue (evalExpr_burn_allowance_checkedSub_true evm I hallowEnough)) ?_
     refine ExecBlock.consNormal
-      (ExecStmt.assign (hperm := Or.inr (by simpa only [burnAfterAllowanceState,
+      (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [burnAfterAllowanceState,
         burnAfterUsrDebitState, storageStore_executionEnv] using hperm)) (evalExpr_burn_allowance_debit evm I hallowEnough)
         (burnAssignAllowance evm I)) ?_
     exact ExecBlock.nil
@@ -2842,7 +2844,7 @@ theorem daiBurnBodyReverts_supply_spend (evm : EVM.State) (I : ExecutionEnv)
       (evalExpr_burn_usr_checkedSub_true (burnAfterAllowanceState evm I) I
         husrDebitEnough)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.assign (hperm := Or.inr (by simpa only [burnAfterAllowanceState,
+    (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [burnAfterAllowanceState,
         burnAfterUsrDebitState, storageStore_executionEnv] using hperm))
       (evalExpr_burn_usr_debit (burnAfterAllowanceState evm I) I husrDebitEnough)
       (burnAssignUsr (burnAfterAllowanceState evm I) I)) ?_
@@ -2859,7 +2861,7 @@ theorem daiBurnBodyReverts_supply_skipSender (evm : EVM.State) (I : ExecutionEnv
     (hltSupply : (burnTotalSupplyWord (burnAfterUsrDebitState evm I)).toNat <
       (burnWadWord I).toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (burnStore I) burnTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (burnStore I) burnTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   simp only [burnTransition, nonpayable, spendAllowance, debitBalance, checkedSub,
     List.append_assoc, List.nil_append, List.singleton_append]
@@ -2875,7 +2877,7 @@ theorem daiBurnBodyReverts_supply_skipSender (evm : EVM.State) (I : ExecutionEnv
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue (evalExpr_burn_usr_checkedSub_true evm I husrEnough)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.assign (hperm := Or.inr (by simpa only [burnAfterAllowanceState,
+    (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [burnAfterAllowanceState,
         burnAfterUsrDebitState, storageStore_executionEnv] using hperm)) (evalExpr_burn_usr_debit evm I husrEnough) (burnAssignUsr evm I)) ?_
   exact ExecBlock.consRevert
     (ExecStmt.requireRevert
@@ -2890,7 +2892,7 @@ theorem daiBurnBodyReverts_supply_skipMax (evm : EVM.State) (I : ExecutionEnv)
     (hltSupply : (burnTotalSupplyWord (burnAfterUsrDebitState evm I)).toNat <
       (burnWadWord I).toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (burnStore I) burnTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (burnStore I) burnTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   simp only [burnTransition, nonpayable, spendAllowance, debitBalance, checkedSub,
     List.append_assoc, List.nil_append, List.singleton_append]
@@ -2906,7 +2908,7 @@ theorem daiBurnBodyReverts_supply_skipMax (evm : EVM.State) (I : ExecutionEnv)
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue (evalExpr_burn_usr_checkedSub_true evm I husrEnough)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.assign (hperm := Or.inr (by simpa only [burnAfterAllowanceState,
+    (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [burnAfterAllowanceState,
         burnAfterUsrDebitState, storageStore_executionEnv] using hperm)) (evalExpr_burn_usr_debit evm I husrEnough) (burnAssignUsr evm I)) ?_
   exact ExecBlock.consRevert
     (ExecStmt.requireRevert
@@ -3053,12 +3055,12 @@ theorem daiBurnBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (daiSelBytes 3)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (daiSelBytes 3) (by native_decide) hsel
   have hdispatch : dispatchMsg contract I.calldata = some burnTransition :=
     daiDispatchBurn hsel
-  have hreach := daiReachBurnBody
+  have hreach := daiReachBurnBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz68 : 68 ≤ I.calldata.size
@@ -3088,7 +3090,7 @@ theorem daiBurnBodyCore {σ σ₀ A I} {g : UInt256}
         by_cases hperm : I.perm = true
         swap
         · have hstatic : I.perm = false := by simpa using hperm
-          have hbody := daiBurnBodyStatic_skipSender evmStele I
+          have hbody := daiBurnBodyStatic_skipSender (fork := fork) evmStele I
             (by simpa [evmStele, initState] using hwv) husrEnoughStele
             (by simpa [evmStele, initState] using husrIsSender)
             (by simpa [evmStele, initState] using hstatic)
@@ -3102,7 +3104,7 @@ theorem daiBurnBodyCore {σ σ₀ A I} {g : UInt256}
             husrEnough hsupplyEnough with
             ⟨husrEnoughBody, hsupplyEnoughBody, hfinal⟩
           have hbody :
-              ExecTransitionBody config contract evmStele (burnStore I)
+              ExecTransitionBody fork config contract evmStele (burnStore I)
                 burnTransition.body
                 (.returned { contract := contract, locals := burnStore I }
                   (burnPostState evmStele I) none) := by
@@ -3132,7 +3134,7 @@ theorem daiBurnBodyCore {σ σ₀ A I} {g : UInt256}
             rw [hsupplyNat]
             exact hltSupply
           have hbody :
-              ExecTransitionBody config contract evmStele (burnStore I)
+              ExecTransitionBody fork config contract evmStele (burnStore I)
                 burnTransition.body .reverted := by
             simpa [evmStele] using
               daiBurnBodyReverts_supply_skipSender (hperm := hperm) evmStele I
@@ -3158,7 +3160,7 @@ theorem daiBurnBodyCore {σ σ₀ A I} {g : UInt256}
           by_cases hperm : I.perm = true
           swap
           · have hstatic : I.perm = false := by simpa using hperm
-            have hbody := daiBurnBodyStatic_skipMax evmStele I
+            have hbody := daiBurnBodyStatic_skipMax (fork := fork) evmStele I
               (by simpa [evmStele, initState] using hwv) husrEnoughStele
               (by simpa [evmStele, initState] using husrIsSender) hmaxBody
               (by simpa [evmStele, initState] using hstatic)
@@ -3173,7 +3175,7 @@ theorem daiBurnBodyCore {σ σ₀ A I} {g : UInt256}
               husrEnough hsupplyEnough with
               ⟨husrEnoughBody, hsupplyEnoughBody, hfinal⟩
             have hbody :
-                ExecTransitionBody config contract evmStele (burnStore I)
+                ExecTransitionBody fork config contract evmStele (burnStore I)
                   burnTransition.body
                   (.returned { contract := contract, locals := burnStore I }
                     (burnPostState evmStele I) none) := by
@@ -3204,7 +3206,7 @@ theorem daiBurnBodyCore {σ σ₀ A I} {g : UInt256}
               rw [hsupplyNat]
               exact hltSupply
             have hbody :
-                ExecTransitionBody config contract evmStele (burnStore I)
+                ExecTransitionBody fork config contract evmStele (burnStore I)
                   burnTransition.body .reverted := by
               simpa [evmStele] using
                 daiBurnBodyReverts_supply_skipMax (hperm := hperm) evmStele I
@@ -3238,7 +3240,7 @@ theorem daiBurnBodyCore {σ σ₀ A I} {g : UInt256}
             by_cases hperm : I.perm = true
             swap
             · have hstatic : I.perm = false := by simpa using hperm
-              have hbody := daiBurnBodyStatic_spend evmStele I
+              have hbody := daiBurnBodyStatic_spend (fork := fork) evmStele I
                 (by simpa [evmStele, initState] using hwv) husrEnoughStele
                 (by simpa [evmStele, initState] using husrIsSender)
                 hnotMaxBody hallowEnoughBody
@@ -3261,7 +3263,7 @@ theorem daiBurnBodyCore {σ σ₀ A I} {g : UInt256}
                     husrDebitEnough hsupplyEnough with
                   ⟨husrDebitEnoughBody, hsupplyEnoughBody, hfinal⟩
                 have hbody :
-                    ExecTransitionBody config contract evmStele (burnStore I)
+                    ExecTransitionBody fork config contract evmStele (burnStore I)
                       burnTransition.body
                       (.returned { contract := contract, locals := burnStore I }
                         (burnPostState evmAfterAllowance I) none) := by
@@ -3298,7 +3300,7 @@ theorem daiBurnBodyCore {σ σ₀ A I} {g : UInt256}
                   rw [hsupplyNat]
                   exact hltSupply
                 have hbody :
-                    ExecTransitionBody config contract evmStele (burnStore I)
+                    ExecTransitionBody fork config contract evmStele (burnStore I)
                       burnTransition.body .reverted := by
                   simpa [evmAfterAllowance, evmStele] using
                     daiBurnBodyReverts_supply_spend (hperm := hperm) evmStele I
@@ -3337,7 +3339,7 @@ theorem daiBurnBodyCore {σ σ₀ A I} {g : UInt256}
                 rw [← husrAfterWord]
                 exact hltDebit
               have hbody :
-                  ExecTransitionBody config contract evmStele (burnStore I)
+                  ExecTransitionBody fork config contract evmStele (burnStore I)
                     burnTransition.body .reverted := by
                 simpa [evmAfterAllowance, evmStele] using
                   daiBurnBodyReverts_usrDebit (hperm := hperm) evmStele I
@@ -3364,7 +3366,7 @@ theorem daiBurnBodyCore {σ σ₀ A I} {g : UInt256}
               rw [← hallowWord]
               exact hltAllow
             have hbody :
-                ExecTransitionBody config contract evmStele (burnStore I)
+                ExecTransitionBody fork config contract evmStele (burnStore I)
                   burnTransition.body .reverted := by
               simpa [evmStele] using
                 daiBurnBodyReverts_allowance evmStele I
@@ -3383,7 +3385,7 @@ theorem daiBurnBodyCore {σ σ₀ A I} {g : UInt256}
         rw [← husrWord]
         exact hlt
       have hbody :
-          ExecTransitionBody config contract evmStele (burnStore I)
+          ExecTransitionBody fork config contract evmStele (burnStore I)
             burnTransition.body .reverted := by
         simpa [evmStele] using
           daiBurnBodyReverts_initialBalance evmStele I

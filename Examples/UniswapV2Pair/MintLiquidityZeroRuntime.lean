@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.MintRuntimeAfterFee
 import Examples.UniswapV2Pair.ErrorStringCopyRoutines
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -14,7 +16,7 @@ theorem uniswapMintRuntimeLiquidityZeroReverts
     {mem rdata : ByteArray} {k C : ℕ}
     {totalSupply feeOn amount0 amount1 balance0 balance1 reserve0 reserve1 liquidity toWord sel :
       UInt256}
-    (rd3841 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd3841 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       s0 ⟨3841⟩
       [totalSupply, feeOn, amount1, amount0, balance1, balance0, reserve1, reserve0,
         liquidity, toWord, ⟨861⟩, sel]
@@ -22,7 +24,7 @@ theorem uniswapMintRuntimeLiquidityZeroReverts
     (hliqZero : liquidity = ⟨0⟩)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+    RDrev fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
       s0 := by
   have hgt : UInt256.gt liquidity (⟨0⟩ : UInt256) = ⟨0⟩ := by
     rw [hliqZero]

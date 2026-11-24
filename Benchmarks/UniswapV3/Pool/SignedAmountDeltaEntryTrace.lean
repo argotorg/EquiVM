@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.AmountDeltaRoutines
 import Benchmarks.UniswapV3.Pool.LiquidityDeltaWords
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_065
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -29,10 +31,10 @@ theorem signedAmountDeltaSign (a : SignedAmountDeltaArgs) (hfit : a.Fits) :
 theorem signedAmountDeltaEntryX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (second : Bool) (a : SignedAmountDeltaArgs)
-    (rd : RD (deployedRuntime v) ee g s0 (UInt256.ofNat (signedAmountDeltaEntry second))
+    (rd : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat (signedAmountDeltaEntry second))
       (signedAmountDeltaEntryWords a ++ ret :: R) mem aw rdata σ k C)
     (hfit : a.Fits) (hov : R.length + 12 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat (amountDeltaEntry second))
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat (amountDeltaEntry second))
       (amountDeltaEntryWords (signedAmountDeltaUnsigned a) ++
         UInt256.ofNat 19616 :: signedAmountDeltaSavedWords a ++ ret :: R)
       mem aw rdata σ k' C' := by
@@ -47,7 +49,7 @@ theorem signedAmountDeltaEntryX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat25
       change EVM.wordOfInt (signedAmountDeltaMagnitude a) = _
       rw [signedAmountDeltaMagnitude, if_pos hn, ← zero_sub a.liquidity, wordOfInt_sub]
       rfl
-    have r1 : RD (deployedRuntime v) ee g s0 (UInt256.ofNat (if second then 19684 else 19626))
+    have r1 : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat (if second then 19684 else 19626))
         (⟨0⟩ :: EVM.wordOfInt a.liquidity :: a.sqrtB :: a.sqrtA :: ret :: R)
         mem aw rdata σ (k + 9) (C + 34) := by
       cases second
@@ -55,7 +57,7 @@ theorem signedAmountDeltaEntryX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat25
           (by evm_ov) hc (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; jump_dest) rd
       · exact uniswapV3Pool_block_19656_taken (immWords := wordsOf (immStore v))
           (by evm_ov) hc (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; jump_dest) rd
-    have r2 : RD (deployedRuntime v) ee g s0 (UInt256.ofNat (amountDeltaEntry second))
+    have r2 : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat (amountDeltaEntry second))
         (⟨0⟩ :: UInt256.sub (UInt256.ofNat 0) (EVM.wordOfInt a.liquidity) :: a.sqrtB :: a.sqrtA ::
           UInt256.ofNat 19616 :: UInt256.ofNat 19645 :: ⟨0⟩ :: EVM.wordOfInt a.liquidity ::
             a.sqrtB :: a.sqrtA :: ret :: R) mem aw rdata σ (k + 9 + 11) (C + 34 + 36) := by
@@ -74,7 +76,7 @@ theorem signedAmountDeltaEntryX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat25
     have hp : 0 ≤ a.liquidity := by omega
     have hm : (signedAmountDeltaUnsigned a).liquidity = EVM.wordOfInt a.liquidity := by
       simp only [signedAmountDeltaUnsigned, signedAmountDeltaMagnitude, if_neg hn]
-    have r1 : RD (deployedRuntime v) ee g s0 (UInt256.ofNat (if second then 19669 else 19601))
+    have r1 : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat (if second then 19669 else 19601))
         (⟨0⟩ :: EVM.wordOfInt a.liquidity :: a.sqrtB :: a.sqrtA :: ret :: R)
         mem aw rdata σ (k + 9) (C + 34) := by
       cases second
@@ -82,7 +84,7 @@ theorem signedAmountDeltaEntryX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat25
           (by evm_ov) hc rd
       · exact uniswapV3Pool_block_19656_fallthrough (immWords := wordsOf (immStore v))
           (by evm_ov) hc rd
-    have r2 : RD (deployedRuntime v) ee g s0 (UInt256.ofNat (amountDeltaEntry second))
+    have r2 : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat (amountDeltaEntry second))
         (⟨1⟩ :: EVM.wordOfInt a.liquidity :: a.sqrtB :: a.sqrtA :: UInt256.ofNat 19616 ::
           UInt256.ofNat 19621 :: ⟨0⟩ :: EVM.wordOfInt a.liquidity :: a.sqrtB :: a.sqrtA :: ret :: R)
         mem aw rdata σ (k + 9 + 8) (C + 34 + 29) := by

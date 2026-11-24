@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.CallComposition
 import Benchmarks.UniswapV4PoolManager.Values
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 
@@ -19,8 +21,8 @@ theorem internalCallThenReturn {cfg : Config} {caller : Frame} {evm : EVM.State}
     (hargs : evalExprs? cfg caller evm args = .ok argVals)
     (hlookup : lookupCallable? caller.contract name = some callee.toCallable)
     (hbind : bindParams? callee.params argVals = some locals)
-    (hbody : ExecFuncBody cfg {caller with locals := locals} evm callee.body result) :
-    ExecFuncBody cfg caller evm [.internalCall name args retVar, .return [.var retVar]]
+    (hbody : ExecFuncBody fork cfg {caller with locals := locals} evm callee.body result) :
+    ExecFuncBody fork cfg caller evm [.internalCall name args retVar, .return [.var retVar]]
       (returnCallResult caller retVar result) := by
   have hc := internalCallFunctionExec (retVar := retVar) hargs hlookup hbind hbody
   cases result with

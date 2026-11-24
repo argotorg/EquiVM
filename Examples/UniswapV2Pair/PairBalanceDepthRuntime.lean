@@ -1,4 +1,6 @@
 import Examples.UniswapV2Pair.PairBalanceCallRuntime
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -8,11 +10,11 @@ theorem RD.uniswapPairBalanceDepthReverts
     {g : Sat256} {s0 : State} {I : ExecutionEnv} {site : PairBalanceCallSite}
     {σ : AccountMap}
     {mem rdata : ByteArray} {aw ptr target endPtr selector : UInt256} {R : List UInt256} {k C : Nat}
-    (rd : RD uniswapV2PairBytecode I g s0 site.pc
+    (rd : RD fork uniswapV2PairBytecode I g s0 site.pc
       (target :: target :: ptr :: ⟨36⟩ :: ptr :: ⟨32⟩ :: endPtr :: selector :: target :: R)
       mem aw rdata σ k C)
     (hcode : extCodeSizeWord σ target ≠ ⟨0⟩) (hdepth : I.depth = 1024)
-    (hov : R.length + 12 ≤ 1024) : RDrev uniswapV2PairBytecode g s0 := by
+    (hov : R.length + 12 ≤ 1024) : RDrev fork uniswapV2PairBytecode g s0 := by
   obtain ⟨_, _, _, rdCall⟩ := RD.solcExtcodesizeGuardOkGas (okPc := site.pc + ⟨12⟩) rd hcode
     (by cases site <;> native_decide) (by cases site <;> native_decide)
     (by cases site <;> native_decide) (by cases site <;> native_decide)

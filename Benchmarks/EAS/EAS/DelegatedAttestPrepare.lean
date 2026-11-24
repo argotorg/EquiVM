@@ -3,6 +3,8 @@ import Benchmarks.EAS.EAS.CalldataAddress
 import Benchmarks.EAS.EAS.RuntimeBlocks_008
 import Benchmarks.EAS.EAS.RuntimeBlocks_009
 import Benchmarks.EAS.EAS.RuntimeBlocks_010
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -19,12 +21,12 @@ def delegatedAttestSavedStack (cd : ByteArray) (root : UInt256) (R : List UInt25
 theorem easDelegatedAttestPrepare {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat} {off : UInt256} {R : List UInt256}
     (v : EASImmutables) (hstack : R.length+27 ≤ 1024) (hsize : ee.calldata.size < 2^255+4)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨1999⟩ ((UInt256.ofNat 4+off)::off::R) attestPublicInitialMemory aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨1999⟩ ((UInt256.ofNat 4+off)::off::R) attestPublicInitialMemory aw rdata σ k C) :
     (delegatedAttestReady ee.calldata (UInt256.ofNat 4+off) →
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨13494⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨13494⟩
         (UInt256.ofNat 224::delegatedAttestSavedStack ee.calldata (UInt256.ofNat 4+off) R)
         (delegatedAttestInputMemory ee.calldata (UInt256.ofNat 4+off)) aw' rdata σ k' C') ∧
-    (¬ delegatedAttestReady ee.calldata (UInt256.ofNat 4+off) → RDrev (deployedRuntime v) g s0) := by
+    (¬ delegatedAttestReady ee.calldata (UInt256.ofNat 4+off) → RDrev fork (deployedRuntime v) g s0) := by
   let root := UInt256.ofNat 4+off
   have h32 : off+UInt256.ofNat 36 = root+UInt256.ofNat 32 := by
     change _ = (UInt256.ofNat 4+off)+UInt256.ofNat 32
@@ -51,7 +53,7 @@ theorem easDelegatedAttestPrepare {ee : ExecutionEnv} {g : Sat256} {s0 : State}
       rfl
     simp only [easBlocks.eas_block_2041_stack,easBlocks.eas_block_2011_fallthrough_memory,
       easBlocks.eas_block_2011_fallthrough_stack,← writeWord_as_write,hdata,h32] at r4
-    change RD (deployedRuntime v) ee g s0 ⟨5344⟩
+    change RD fork (deployedRuntime v) ee g s0 ⟨5344⟩
       (delegatedAttestData ee.calldata root::UInt256.ofNat ee.calldata.size::UInt256.ofNat 2079::off::UInt256.ofNat 164::
         UInt256.ofNat 2122::root::UInt256.ofNat 2141::UInt256.ofNat 224::UInt256.ofNat 2166::(root+UInt256.ofNat 32)::
         calldataWord ee.calldata root.toNat::UInt256.ofNat 587::UInt256.ofNat 32::UInt256.ofNat 594::UInt256.ofNat 32::R)
@@ -71,7 +73,7 @@ theorem easDelegatedAttestPrepare {ee : ExecutionEnv} {g : Sat256} {s0 : State}
       obtain ⟨a6,k6,C6,r6⟩ := easBlocks.eas_block_2079_packed (immWords := wordsOf (immStore v))
         (by simp only [List.length_cons]; omega) (by rw [easPatchedValidJumpsRuntime v]; jump_dest) r5
       simp only [easBlocks.eas_block_2079_stack,h64,easBlocks.eas_block_2079_memory,← writeWord_as_write] at r6
-      change RD (deployedRuntime v) ee g s0 ⟨6273⟩
+      change RD fork (deployedRuntime v) ee g s0 ⟨6273⟩
         ((root+UInt256.ofNat 64)::UInt256.ofNat ee.calldata.size::UInt256.ofNat 2096::off::UInt256.ofNat 164::
           UInt256.ofNat 2122::root::UInt256.ofNat 2141::UInt256.ofNat 224::UInt256.ofNat 2166::(root+UInt256.ofNat 32)::
           calldataWord ee.calldata root.toNat::UInt256.ofNat 587::UInt256.ofNat 32::UInt256.ofNat 594::UInt256.ofNat 32::R)

@@ -2,6 +2,8 @@ import Benchmarks.EAS.EAS.DelegatedAttestTailMemory
 import Benchmarks.EAS.EAS.DelegatedAttestTailEVM
 import Benchmarks.EAS.EAS.DelegatedAttestSource
 import Benchmarks.EAS.EAS.PublicWordRun
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -9,7 +11,7 @@ set_option maxRecDepth 10000
 
 theorem delegatedAttestFinishSource {cfg : Config} {frame : Frame} {evm : EVM.State} {uid used : UInt256}
     (h : frame.locals.get? "__c1" = some (attestationsResultValue [uid] used)) :
-    ExecBlock cfg frame evm delegatedAttestFinish (.returned frame evm (some [wordBytes32Value uid])) := by
+    ExecBlock fork cfg frame evm delegatedAttestFinish (.returned frame evm (some [wordBytes32Value uid])) := by
   apply ExecBlock.consReturn
   apply ExecStmt.return
   simp only [evalExprs?,evalExpr?,h,attestationsResultValue,lookupField?,lookupIndex?,EvalResult.ofOption,bind,EvalResult.bind,pure]
@@ -26,8 +28,8 @@ theorem delegatedAttestTailRun {L : Store} {ee : ExecutionEnv} {g : Sat256} {s0 
     (hzero : memLoad (UInt256.ofNat 96) mem = ⟨0⟩)
     (hsize : ee.calldata.size < 2^255+4) (hd : delegatedAttestFieldsValid ee.calldata root)
     (href : requestReferenceValid ee.calldata root (root+UInt256.ofNat 32))
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2122⟩ (delegatedAttestSavedStack ee.calldata root R).tail mem aw rdata σ k C) :
-    PublicWordRun config (deployedRuntime v) ee g s0 {contract := contract,locals := L,immutables := immStore v}
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2122⟩ (delegatedAttestSavedStack ee.calldata root R).tail mem aw rdata σ k C) :
+    PublicWordRun fork config (deployedRuntime v) ee g s0 {contract := contract,locals := L,immutables := immStore v}
       evm delegatedAttestTail := by
   let r := delegatedAttestRecord ee.calldata root
   have hn : allocateNext heap.toNat 256 = heap.toNat+256 := by
@@ -42,7 +44,7 @@ theorem delegatedAttestTailRun {L : Store} {ee : ExecutionEnv} {g : Sat256} {s0 
   by_cases hg : heap.toNat+256 ≤ 2^64-1
   · rw [if_pos hg] at hr
     obtain ⟨a1,k1,C1,r1⟩ := hr
-    have hp := allocateBlock_ok healloc hf (by rw [hn]; exact ⟨hg,by omega⟩)
+    have hp := allocateBlock_ok (fork := fork) healloc hf (by rw [hn]; exact ⟨hg,by omega⟩)
     rw [hn] at hp
     apply PublicWordRun.prepend (hp := hp)
     let L1 := allocateBlockLocals L (heap.toNat+256)
@@ -56,7 +58,7 @@ theorem delegatedAttestTailRun {L : Store} {ee : ExecutionEnv} {g : Sat256} {s0 
       simp only [delegatedAttestTailCopyArgs,evalExprs?,evalExpr?,hr1,hf1,DelegatedAttestationRecord.struct,
         lookupField?,EvalResult.ofOption,bind,EvalResult.bind,pure]
       rfl
-    have hsCopy := copyRequestCall_branches (retVar := "allocation$allocation") hecopy
+    have hsCopy := copyRequestCall_branches (fork := fork) (retVar := "allocation$allocation") hecopy
     have harray := oneRequestArrayMemory_views mem heap (by omega)
     have hrCopy := easCopyRequest_branches (heap := start) v (by simp only [List.length_cons]; omega)
       (by rw [hstart]; omega) (by rw [hstart]; exact hg) harray.2.2.1
@@ -74,7 +76,7 @@ theorem delegatedAttestTailRun {L : Store} {ee : ExecutionEnv} {g : Sat256} {s0 
       have hr2 : L2.get? "delegatedRequest" = some r.struct :=
         (heapResultLocals_get _ _ _ _ _ _ _ (by decide) (by decide) (by decide)).trans hr1
       have hf2 : L2.get? "$EAS.freeMemory" = some (.int (Int.ofNat next)) := store_get_self _ _ _
-      have hdata := delegatedAttestDataSource (L := L2) (imms := immStore v) (evm := evm) (r := r) hr2
+      have hdata := delegatedAttestDataSource (fork := fork) (L := L2) (imms := immStore v) (evm := evm) (r := r) hr2
       apply PublicWordRun.prepend (hp := hdata)
       have hnext : (UInt256.ofNat next).toNat = next := ulit_toNat' _ (by have := hv.2.2.1; change next < 2^256; omega)
       have hr3 : L3.get? "delegatedRequest" = some r.struct := by
@@ -107,11 +109,11 @@ theorem delegatedAttestTailRun {L : Store} {ee : ExecutionEnv} {g : Sat256} {s0 
           easAttestPublicReturn v (by omega) hview r4⟩
         have huids : L4.get? "__c1" = some (attestationsResultValue [uid] used) := heapResultLocals_result _ _ _ _ _ _ (by decide)
         exact delegatedAttestFinishSource huids
-      · exact PublicWordRun.revertPrefix (ExecBlock.consRevert hcall : ExecBlock config
+      · exact PublicWordRun.revertPrefix (ExecBlock.consRevert hcall : ExecBlock fork config
           {contract := contract,locals := L3,immutables := immStore v} evm delegatedAttestCall .reverted) hrev
-      · exact PublicWordRun.staticPrefix (ExecBlock.consStatic hcall : ExecBlock config
+      · exact PublicWordRun.staticPrefix (ExecBlock.consStatic hcall : ExecBlock fork config
           {contract := contract,locals := L3,immutables := immStore v} evm delegatedAttestCall .staticViolation) hstatic
-    · exact PublicWordRun.revertPrefix (ExecBlock.consRevert (hsCopy.2 hv) : ExecBlock config
+    · exact PublicWordRun.revertPrefix (ExecBlock.consRevert (hsCopy.2 hv) : ExecBlock fork config
         {contract := contract,locals := L1,immutables := immStore v} evm delegatedAttestTailCopy .reverted)
         (hrCopy.2 (fun h => hv (hguard.mp h)))
   · rw [if_neg hg] at hr

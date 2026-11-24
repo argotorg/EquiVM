@@ -6,6 +6,8 @@ import Benchmarks.EAS.EAS.RuntimeBlocks_038
 import Benchmarks.EAS.EAS.RuntimeBlocks_039
 import Benchmarks.EAS.EAS.RuntimeBlocks_040
 import Benchmarks.EAS.EAS.RuntimeBlocks_041
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -40,13 +42,13 @@ theorem schemaCallResultPrepare {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem out : ByteArray} {aw ptr : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : EASImmutables) (site : SchemaCallSite) (success : Bool)
     (hstack : R.length+15 ≤ 1024) (hout : out.size < 2^138)
-    (rd : RD (deployedRuntime v) ee g s0 (schemaAfterCallPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (schemaAfterCallPC site)
       ((if success then ⟨1⟩ else ⟨0⟩)::schemaCallSaved site ptr R) mem aw out σ k C) :
     if success then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨4883⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨4883⟩
         (ptr::UInt256.ofNat out.size::⟨9829⟩::UInt256.ofNat out.size::ptr::schemaDecodeReturnPC site::schemaDecodeSaved site R)
         (out.write 0 mem ptr.toNat out.size) aw' out σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have ho : (UInt256.ofNat out.size).toNat = out.size := ulit_toNat' _ (by change out.size < 2^256; omega)
   have hcopy : (UInt256.ofNat 0).toNat+(UInt256.ofNat out.size).toNat ≤ out.size := by rw [ho]; change 0+out.size ≤ out.size; omega
   cases site with
@@ -122,9 +124,9 @@ theorem schemaCallResultPrepare {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 theorem schemaCallResultFinish {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem out : ByteArray} {aw record : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : EASImmutables) (site : SchemaCallSite) (hstack : R.length+10 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 (schemaDecodeReturnPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (schemaDecodeReturnPC site)
       (record::schemaDecodeSaved site R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (schemaDonePC site)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (schemaDonePC site)
       (schemaDoneStack v site record R) mem aw' out σ k' C' := by
   cases site with
   | at7795 a b =>

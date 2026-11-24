@@ -1,6 +1,8 @@
 import Benchmarks.CurveVault.DebitAllowance
 import Benchmarks.CurveVault.MutatingLock
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -13,16 +15,16 @@ theorem vaultRedeemAllowance {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hbase : locals.get? "allowance" = none)
     (hmo : memLoad (UInt256.ofNat 608) mem = owner) (hcanon : owner.toNat < EVM.addressModulus)
     (hperm : I.perm = true) (hstack : R.length + 7 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 5090) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 5090) R mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (locals' : Store) (mem' : ByteArray) (aw' : UInt256) (k' C' : Nat),
-      ExecStmt config {contract := contract, locals := locals} (vaultSetLock evm ⟨1⟩)
+      ExecStmt fork config {contract := contract, locals := locals} (vaultSetLock evm ⟨1⟩)
         ((vaultDebitFunction false).body[0]!) (.ok {contract := contract, locals := locals'} evm') ∧
       SourceState s0 I σ' evm' ∧ WordMemoryRange mem mem' 192 640 ∧
       (∀ name, ("allowance_" == name) = false → ("__c0" == name) = false →
         locals'.get? name = locals.get? name) ∧
-      RD vaultBytecode I g s0 (UInt256.ofNat 5221) R mem' aw' rdata σ' k' C') ∨
-    (ExecStmt config {contract := contract, locals := locals} (vaultSetLock evm ⟨1⟩)
-      ((vaultDebitFunction false).body[0]!) .reverted ∧ RDrev vaultBytecode g s0) := by
+      RD fork vaultBytecode I g s0 (UInt256.ofNat 5221) R mem' aw' rdata σ' k' C') ∨
+    (ExecStmt fork config {contract := contract, locals := locals} (vaultSetLock evm ⟨1⟩)
+      ((vaultDebitFunction false).body[0]!) .reverted ∧ RDrev fork vaultBytecode g s0) := by
   let evm0 := vaultSetLock evm ⟨1⟩
   let σ0 := tstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨1⟩
   have hs0 : SourceState s0 I σ0 evm0 := by

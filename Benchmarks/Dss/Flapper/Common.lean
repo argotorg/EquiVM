@@ -10,6 +10,8 @@ import Reasoning.Dispatch
 import Reasoning.SteleBody
 import Mathlib.Tactic.IntervalCases
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Flapper shared proof foundation
 
@@ -61,7 +63,7 @@ theorem flapperAddressGetterBodyReturns (evm : EVM.State) (locals : Store)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem .address))
     (hloc : config.storageBackend.locate? er = some (.leaf (addrLoc slot))) :
-    ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
+    ExecTransitionBody fork config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract, locals := locals } evm
         (some [(.address (AccountAddress.ofNat
           (UInt256.land (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
@@ -80,7 +82,7 @@ theorem flapperUint48GetterBodyReturns_offset0 (evm : EVM.State) (locals : Store
     (hloc :
       config.storageBackend.locate? er =
         some (.leaf (uint48Loc slot ⟨0, by decide⟩ (by decide)))) :
-    ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
+    ExecTransitionBody fork config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract, locals := locals } evm
         (some [(.int (Int.ofNat
           (uint48Offset0Word slot evm.accountMap evm.executionEnv).toNat))])) := by
@@ -98,7 +100,7 @@ theorem flapperUint48GetterBodyReturns_offset6 (evm : EVM.State) (locals : Store
     (hloc :
       config.storageBackend.locate? er =
         some (.leaf (uint48Loc slot ⟨6, by decide⟩ (by decide)))) :
-    ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
+    ExecTransitionBody fork config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract, locals := locals } evm
         (some [(.int (Int.ofNat
           (uint48Offset6Word slot evm.accountMap evm.executionEnv).toNat))])) := by
@@ -124,7 +126,7 @@ theorem flapperUint256GetterBodyReturns (evm : EVM.State) (locals : Store)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem (.int uint256Int)))
     (hloc : config.storageBackend.locate? er = some (.leaf (wordLoc slot))) :
-    ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
+    ExecTransitionBody fork config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract, locals := locals } evm
         (some [(.int (Int.ofNat
           (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat))])) := by
@@ -141,7 +143,7 @@ theorem flapperUint256GetterBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf flapperBytecode entry returnPc routine)
@@ -151,12 +153,12 @@ theorem flapperUint256GetterBodyCore
     (hretmem : solcReturnWordFromMemWf flapperBytecode returnPc)
     (hreturn : transition.returnType = [uint256])
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))]))) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hword : solcSlotWordAt slot σ I = solcSlotWordAt slot σ I :=
     rfl
   have hval :
@@ -174,7 +176,7 @@ theorem flapperUint256GetterBodyCore
     (returnPc := returnPc) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine hreturnJd hretmem
   have hret' :
-      RDret flapperBytecode (Sat256.ofUInt256 g)
+      RDret fork flapperBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (UInt256.toByteArray (solcSlotWordAt slot σ I)) := by
     simpa [solcSlotWordAt] using hret
@@ -189,7 +191,7 @@ theorem flapperUint48Offset0GetterBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf flapperBytecode entry returnPc routine)
@@ -199,13 +201,13 @@ theorem flapperUint48Offset0GetterBodyCore
     (hretmem : solcReturnUint48FromMemWf flapperBytecode returnPc)
     (hreturn : transition.returnType = [uint48])
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int
             (Int.ofNat (uint48Offset0Word slot σ I).toNat))]))) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hslot : solcSlotWordAt slot σ I = solcSlotWordAt slot σ I :=
     rfl
   have hslot' : solcSlotWord σ I slot = solcSlotWord σ I slot := by
@@ -240,7 +242,7 @@ theorem flapperUint48Offset6GetterBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf flapperBytecode entry returnPc routine)
@@ -250,13 +252,13 @@ theorem flapperUint48Offset6GetterBodyCore
     (hretmem : solcReturnUint48FromMemWf flapperBytecode returnPc)
     (hreturn : transition.returnType = [uint48])
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int
             (Int.ofNat (uint48Offset6Word slot σ I).toNat))]))) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hslot : solcSlotWordAt slot σ I = solcSlotWordAt slot σ I :=
     rfl
   have hslot' : solcSlotWord σ I slot = solcSlotWord σ I slot := by
@@ -297,7 +299,7 @@ theorem flapperAddressGetterBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf flapperBytecode entry returnPc routine)
@@ -307,13 +309,13 @@ theorem flapperAddressGetterBodyCore
     (hretmem : solcReturnAddressFromMemWf flapperBytecode returnPc)
     (hreturn : transition.returnType = [addr])
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
             (solcAddressSlotWord slot σ I).toNat))]))) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hword : solcSlotWordAt slot σ I = solcSlotWordAt slot σ I :=
     rfl
   have hval :
@@ -333,7 +335,7 @@ theorem flapperAddressGetterBodyCore
     (returnPc := returnPc) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine hreturnJd hretmem
   have hret' :
-      RDret flapperBytecode (Sat256.ofUInt256 g)
+      RDret fork flapperBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (UInt256.toByteArray (solcAddressSlotWord slot σ I)) := by
     simpa [solcAddressSlotWord, solcSlotWordAt] using hret

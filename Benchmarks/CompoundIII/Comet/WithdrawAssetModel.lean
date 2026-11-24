@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.WithdrawBaseModel
 import Benchmarks.CompoundIII.Comet.WithdrawCollateralTrace
 import Benchmarks.CompoundIII.Comet.BalanceSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -21,24 +23,24 @@ def withdrawBalanceWord (v : CometWithExtendedAssetListImmutables) (evm : EVM.St
     (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩) (timestampWord evm.executionEnv)
     (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (userBasicSlot src))
 
-inductive WithdrawAssetTrace (v : CometWithExtendedAssetListImmutables)
+inductive WithdrawAssetTrace (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables)
     (src recipient asset : AccountAddress) (amount : UInt256) (evm : EVM.State) :
     InternalOutcome → Prop where
   | base {result} (hb : asset = v.baseToken) (hm : amount ≠ UInt256.lnot ⟨0⟩)
-      (ht : WithdrawBaseTrace v src recipient amount evm result) :
-      WithdrawAssetTrace v src recipient asset amount evm result
+      (ht : WithdrawBaseTrace fork v src recipient amount evm result) :
+      WithdrawAssetTrace fork v src recipient asset amount evm result
   | balanceFailed (hb : asset = v.baseToken) (hm : amount = UInt256.lnot ⟨0⟩)
       (hv : ¬ withdrawBalanceValid v evm) :
-      WithdrawAssetTrace v src recipient asset amount evm .reverted
+      WithdrawAssetTrace fork v src recipient asset amount evm .reverted
   | allBase {result} (hb : asset = v.baseToken) (hm : amount = UInt256.lnot ⟨0⟩)
       (hv : withdrawBalanceValid v evm)
-      (ht : WithdrawBaseTrace v src recipient (withdrawBalanceWord v evm src) evm result) :
-      WithdrawAssetTrace v src recipient asset amount evm result
+      (ht : WithdrawBaseTrace fork v src recipient (withdrawBalanceWord v evm src) evm result) :
+      WithdrawAssetTrace fork v src recipient asset amount evm result
   | tooLarge (hb : asset ≠ v.baseToken) (hw : ¬ amount.toNat < 2^128) :
-      WithdrawAssetTrace v src recipient asset amount evm .reverted
+      WithdrawAssetTrace fork v src recipient asset amount evm .reverted
   | collateral {result} (hb : asset ≠ v.baseToken) (hw : amount.toNat < 2^128)
-      (ht : WithdrawCollateralTrace v src recipient asset amount evm result) :
-      WithdrawAssetTrace v src recipient asset amount evm result
+      (ht : WithdrawCollateralTrace fork v src recipient asset amount evm result) :
+      WithdrawAssetTrace fork v src recipient asset amount evm result
 
 def withdrawBaseAmountStmt : Stmt :=
   .ite (.binary .eq (.var "amount") (.intLit (2^256-1)))

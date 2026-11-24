@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.HeapTupleReturn
 import Benchmarks.UniswapV3.Pool.CollectPaymentsSource
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_027
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -31,13 +33,13 @@ theorem tripleEventHeap {mem aw p a b c} (hm : MemoryCursor mem aw p) (hb : p.to
 theorem collectFinishX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : EVM.State} {k C : Nat} {aw p position amount0 amount1 x3 x4 x5 x6 : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables} (recipient : AccountAddress)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨7965⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨7965⟩
       (position :: amount1 :: amount0 :: x3 :: x4 :: x5 :: x6 :: EVM.word recipient.val :: ⟨690⟩ :: R)
       mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hperm : ee.perm = true)
     (hfit0 : amount0.toNat < 2 ^ 128) (hfit1 : amount1.toNat < 2 ^ 128)
     (hm : HeapMemory mem aw p) (hb : p.toNat + 96 ≤ 2 ^ 200) (hov : R.length + 16 ≤ 1024) :
-    RDret (deployedRuntime v) g s0 (storeSlot0Unlocked evm true).accountMap
+    RDret fork (deployedRuntime v) g s0 (storeSlot0Unlocked evm true).accountMap
       (amount0.toByteArray ++ amount1.toByteArray) := by
   obtain ⟨_, _, rdEvent⟩ := uniswapV3Pool_block_7965 (immWords := wordsOf (immStore v)) (by evm_ov) hperm rd
   have hca : UInt256.land amount0 (UInt256.ofNat (2 ^ 128 - 1)) = amount0 := by

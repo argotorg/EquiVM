@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.Dispatch
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -14,7 +16,7 @@ def minimumLiquidityWord : UInt256 := ⟨1000⟩
 /-- The Stele `MINIMUM_LIQUIDITY()` body returns the uint256 literal `1000`. -/
 theorem uniswapMinimumLiquidityBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract evm locals minimumLiquidityTransition.body
+    ExecTransitionBody fork config contract evm locals minimumLiquidityTransition.body
       (.returned { contract := contract, locals := locals } evm
         (some [(.int (Int.ofNat minimumLiquidityWord.toNat))])) := by
   simpa [minimumLiquidityTransition, minimumLiquidity, minimumLiquidityWord] using
@@ -22,10 +24,10 @@ theorem uniswapMinimumLiquidityBodyReturns (evm : EVM.State) (locals : Store)
 
 /-- From `MINIMUM_LIQUIDITY()`'s external body entry (pc 1278), bytecode returns `1000`. -/
 theorem uniswapX_minimumLiquidity {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨1278⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret uniswapV2PairBytecode g (initState σ σ₀ g A I) σ
+    RDret fork uniswapV2PairBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray minimumLiquidityWord) := by
   exact RD.uniswapWordConstGetterExternal (entry := ⟨1278⟩) (routine := ⟨5074⟩)
     (val := minimumLiquidityWord) (width := 2) (op := .PUSH2) hreach
@@ -49,12 +51,12 @@ theorem uniswapMinimumLiquidityBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (minimumLiquidityTransition.params.map Param.name)
         (transitionSignature minimumLiquidityTransition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1278⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         minimumLiquidityTransition.body
         (.returned { contract := contract, locals := ∅ }
@@ -86,7 +88,7 @@ theorem uniswapMinimumLiquidityBody
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xba, 0x9a, 0x7a, 0x56]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some minimumLiquidityTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0xba, 0x9a, 0x7a, 0x56]⟩ rfl hsel
   exact uniswapMinimumLiquidityBodyCore hcode hwv hdispatch

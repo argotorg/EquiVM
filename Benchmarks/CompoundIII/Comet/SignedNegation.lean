@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.SignedDebtWords
 import Benchmarks.CompoundIII.Comet.NegativePrincipal
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_050
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -42,10 +44,10 @@ theorem cometNegate256 {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {value ret : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨10671⟩ (value :: ret :: R) mem aw rdata σ k C) :
-    (-(2^255 : Int) < signedWord value ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨10671⟩ (value :: ret :: R) mem aw rdata σ k C) :
+    (-(2^255 : Int) < signedWord value ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (UInt256.sub (UInt256.ofNat 0) value :: R) mem aw rdata σ k' C') ∨
-    (¬ -(2^255 : Int) < signedWord value ∧ RDrev (deployedRuntime v) g s0) := by
+    (¬ -(2^255 : Int) < signedWord value ∧ RDrev fork (deployedRuntime v) g s0) := by
   by_cases hn : -(2^255 : Int) < signedWord value
   · have hne := (signedWord_gt_min_iff value).mp hn
     have r1 := cometWithExtendedAssetList_block_10671_fallthrough
@@ -70,8 +72,8 @@ theorem cometNegate104Nonneg {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {value ret : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024) (hv : value.toNat < 2^103)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨10633⟩ (value :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨10633⟩ (value :: ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (UInt256.sub (UInt256.ofNat 0) value :: R) mem aw rdata σ k' C' := by
   have hne : value ≠ int104MinWord := by
     intro he; have hb := congrArg UInt256.toNat he; rw [int104MinWord_toNat] at hb; omega

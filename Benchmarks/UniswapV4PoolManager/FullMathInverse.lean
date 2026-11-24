@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.FullMathReduce
 import Benchmarks.UniswapV4PoolManager.WordXorSource
 import Benchmarks.UniswapV4PoolManager.CallComposition
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -9,7 +11,7 @@ set_option maxRecDepth 5000
 theorem fullMathInverseStepSource {f : Frame} {evm : EVM.State} {d inv : UInt256}
     (hd : f.locals.get? "denominator" = some (.int (Int.ofNat d.toNat)))
     (hi : f.locals.get? "inv" = some (.int (Int.ofNat inv.toNat))) :
-    ExecStmt config f evm fullMathFunction.body[17]!
+    ExecStmt fork config f evm fullMathFunction.body[17]!
       (.ok (wordLocal f "inv" (fullMathInverseStep d inv)) evm) := by
   have hd' := evalLocalValue (cfg := config) (f := f) (evm := evm) hd
   have hi' := evalLocalValue (cfg := config) (f := f) (evm := evm) hi
@@ -46,7 +48,7 @@ theorem fullMathInverseFrame_inv {f : Frame} (d inv : UInt256) (n : Nat)
 theorem fullMathInverseSteps {f : Frame} {evm : EVM.State} {d inv : UInt256}
     (hd : f.locals.get? "denominator" = some (.int (Int.ofNat d.toNat)))
     (hi : f.locals.get? "inv" = some (.int (Int.ofNat inv.toNat))) (n : Nat) :
-    ExecBlock config f evm (List.replicate n fullMathFunction.body[17]!)
+    ExecBlock fork config f evm (List.replicate n fullMathFunction.body[17]!)
       (.ok (fullMathInverseFrame f d inv n) evm) := by
   induction n generalizing f inv with
   | zero => exact ExecBlock.nil
@@ -59,7 +61,7 @@ theorem fullMathInverseBody {f : Frame} {evm : EVM.State} {d w : UInt256} {old :
     (hd : f.locals.get? "denominator" = some (.int (Int.ofNat d.toNat)))
     (hp : f.locals.get? "prod0" = some (.int (Int.ofNat w.toNat)))
     (hr : f.locals.get? "result" = some old) :
-    ∃ f', ExecFuncBody config f evm (fullMathFunction.body.drop 16)
+    ∃ f', ExecFuncBody fork config f evm (fullMathFunction.body.drop 16)
       (.returned f' evm (some [.int (Int.ofNat (UInt256.mul w (fullMathInverse d)).toNat)])) := by
   let inv := UInt256.xor (UInt256.mul ⟨3⟩ d) ⟨2⟩
   let f1 := wordLocal f "inv" inv
@@ -71,8 +73,8 @@ theorem fullMathInverseBody {f : Frame} {evm : EVM.State} {d w : UInt256} {old :
     (evalLocalValue hd))
     (show evalExpr? config f evm (.intLit 2) = .ok (.int (Int.ofNat (⟨2⟩ : UInt256).toNat)) by
       simp only [evalExpr?, pure]; rfl)
-  have h16 : ExecStmt config f evm fullMathFunction.body[16]! (.ok f1 evm) := ExecStmt.letDecl he
-  have hsteps := fullMathInverseSteps (f := f1) (evm := evm)
+  have h16 : ExecStmt fork config f evm fullMathFunction.body[16]! (.ok f1 evm) := ExecStmt.letDecl he
+  have hsteps := fullMathInverseSteps (fork := fork) (f := f1) (evm := evm)
     ((store_get_ne _ _ (by decide : ("inv" == "denominator") = false)).trans hd)
     (store_get_self _ _ _) 6
   have hp7 : f7.locals.get? "prod0" = some (.int (Int.ofNat w.toNat)) :=
@@ -83,7 +85,7 @@ theorem fullMathInverseBody {f : Frame} {evm : EVM.State} {d w : UInt256} {old :
       ((store_get_ne _ _ (by decide : ("inv" == "result") = false)).trans hr)
   have hi7 : f7.locals.get? "inv" = some (.int (Int.ofNat (fullMathInverse d).toNat)) :=
     fullMathInverseFrame_inv d inv 6 (store_get_self _ _ _)
-  have h23 : ExecStmt config f7 evm fullMathFunction.body[23]! (.ok (wordLocal f7 "result" result) evm) :=
+  have h23 : ExecStmt fork config f7 evm fullMathFunction.body[23]! (.ok (wordLocal f7 "result" result) evm) :=
     ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalWordMul (evalLocalValue hp7) (evalLocalValue hi7)) (assignLocalValue hr7)
   refine ⟨wordLocal f7 "result" result, ExecFuncBody.execBlockRet (ExecBlock.consNormal h16 ?_)⟩
   exact execBlock_append hsteps (ExecBlock.consNormal h23 (ABlock.start.returns wordLocal_eval))

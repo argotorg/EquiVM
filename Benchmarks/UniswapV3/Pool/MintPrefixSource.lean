@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.MintModel
 import Benchmarks.UniswapV3.Pool.SignedCastWords
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -10,14 +12,14 @@ theorem mintLockPrefix (v : UniswapV3PoolImmutables) (a : MintArgs) (evm : EVM.S
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : slot0FieldWord 30 1 evm.accountMap evm.executionEnv ≠ ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config (mintFrame v a) evm (mintTransition.body.take 5)
+    ExecBlock fork config (mintFrame v a) evm (mintTransition.body.take 5)
       (.ok (mintInitFrame v a) (storeSlot0Unlocked evm false)) :=
   poolLockPrefixSource (hperm := by assumption) (mintLocals a) (immStore v) evm (by mint_prefix_get) hwv hunlocked
 
 theorem mintRevertsLocked (v : UniswapV3PoolImmutables) (a : MintArgs) (evm : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocked : slot0FieldWord 30 1 evm.accountMap evm.executionEnv = ⟨0⟩) :
-    ExecTransitionBody config contract evm (mintLocals a) mintTransition.body .reverted (immStore v) := by
+    ExecTransitionBody fork config contract evm (mintLocals a) mintTransition.body .reverted (immStore v) := by
   apply ExecFuncBody.execBlockRevert
   exact poolEntryRevertsLocked (mintLocals a) (immStore v) evm (mintTransition.body.drop 5)
     (by mint_prefix_get) hwv hlocked
@@ -26,7 +28,7 @@ theorem mintStatic (v : UniswapV3PoolImmutables) (a : MintArgs) (evm : EVM.State
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : slot0FieldWord 30 1 evm.accountMap evm.executionEnv ≠ ⟨0⟩)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (mintLocals a) mintTransition.body .staticViolation (immStore v) := by
+    ExecTransitionBody fork config contract evm (mintLocals a) mintTransition.body .staticViolation (immStore v) := by
   apply ExecFuncBody.execBlockStatic
   exact poolEntryStatic (mintLocals a) (immStore v) evm (mintTransition.body.drop 5)
     (by mint_prefix_get) hwv hunlocked hperm
@@ -43,11 +45,11 @@ theorem mintAmountPrefix (v : UniswapV3PoolImmutables) (a : MintArgs) (evm : EVM
     (hunlocked : slot0FieldWord 30 1 evm.accountMap evm.executionEnv ≠ ⟨0⟩)
     (hpos : 0 < a.amount.toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config (mintFrame v a) evm (mintTransition.body.take 6)
+    ExecBlock fork config (mintFrame v a) evm (mintTransition.body.take 6)
       (.ok (mintInitFrame v a) (storeSlot0Unlocked evm false)) := by
-  change ExecBlock config _ _ (mintTransition.body.take 5 ++
+  change ExecBlock fork config _ _ (mintTransition.body.take 5 ++
     [.require (.binary .gt (.var "amount") (.intLit 0))]) _
-  apply execBlock_append_ok (mintLockPrefix (hperm := by assumption) v a evm hwv hunlocked)
+  apply execBlock_append_ok (mintLockPrefix (fork := fork) (hperm := by assumption) v a evm hwv hunlocked)
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ExecBlock.nil
   simpa only [hpos, decide_true] using evalMintAmountPositive v a (storeSlot0Unlocked evm false)
 
@@ -56,10 +58,10 @@ theorem mintRevertsZero (v : UniswapV3PoolImmutables) (a : MintArgs) (evm : EVM.
     (hunlocked : slot0FieldWord 30 1 evm.accountMap evm.executionEnv ≠ ⟨0⟩)
     (hz : a.amount = ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (mintLocals a) mintTransition.body .reverted (immStore v) := by
+    ExecTransitionBody fork config contract evm (mintLocals a) mintTransition.body .reverted (immStore v) := by
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 5 mintTransition.body]
-  apply execBlock_append_ok (mintLockPrefix (hperm := by assumption) v a evm hwv hunlocked)
+  apply execBlock_append_ok (mintLockPrefix (fork := fork) (hperm := by assumption) v a evm hwv hunlocked)
   apply ExecBlock.consRevert (ExecStmt.requireFalse ?_)
   simpa only [hz, show (⟨0⟩ : UInt256).toNat = 0 from rfl, Nat.lt_irrefl, decide_false] using
     evalMintAmountPositive v a (storeSlot0Unlocked evm false)
@@ -76,7 +78,7 @@ theorem evalMintCastExprs (v : UniswapV3PoolImmutables) (a : MintArgs) (evm : EV
 
 theorem mintCastSource (v : UniswapV3PoolImmutables) (a : MintArgs) (evm : EVM.State)
     (ha : a.Fits) (hv : safeCast128Valid (Int.ofNat a.amount.toNat)) :
-    ExecStmt config (mintInitFrame v a) evm (.internalCall "SafeCast_toInt128" mintCastExprs "__c0")
+    ExecStmt fork config (mintInitFrame v a) evm (.internalCall "SafeCast_toInt128" mintCastExprs "__c0")
       (.ok (mintCastFrame v a) evm) :=
   internalCallFunctionReturn (callee := safeCast128Function)
     (calleeStele := safeCast128ReadyFrame (immStore v) (Int.ofNat a.amount.toNat))
@@ -85,7 +87,7 @@ theorem mintCastSource (v : UniswapV3PoolImmutables) (a : MintArgs) (evm : EVM.S
 
 theorem mintCastRevertsCall (v : UniswapV3PoolImmutables) (a : MintArgs) (evm : EVM.State)
     (ha : a.Fits) (hv : ¬safeCast128Valid (Int.ofNat a.amount.toNat)) :
-    ExecStmt config (mintInitFrame v a) evm (.internalCall "SafeCast_toInt128" mintCastExprs "__c0") .reverted :=
+    ExecStmt fork config (mintInitFrame v a) evm (.internalCall "SafeCast_toInt128" mintCastExprs "__c0") .reverted :=
   internalCallFunctionRevert (evalMintCastExprs v a evm ha) safeCast128Lookup (safeCast128Bind _)
     (safeCast128Reverts (immStore v) evm _ hv)
 

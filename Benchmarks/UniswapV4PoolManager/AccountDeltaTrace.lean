@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.Signed128
 import Benchmarks.UniswapV4PoolManager.SignedAddTrace
 import Benchmarks.UniswapV4PoolManager.ReachCost
 
+variable {fork : Ethereum.Fork}
+
 /-! Bytecode refinement of the shared currency accounting routine. -/
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
@@ -31,8 +33,8 @@ theorem accountDeltaStaticTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw : UInt256} {σ : AccountMap} {k C : Nat}
     {value slot : UInt256} {R : List UInt256} (v : PoolManagerImmutables)
     (hstack : R.length + 3 ≤ 1024) (hperm : I.perm = false)
-    (h : RD (deployedRuntime v) I g s0 ⟨12594⟩ (value :: slot :: R) mem aw rdata σ k C) :
-    RDstatic (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) I g s0 ⟨12594⟩ (value :: slot :: R) mem aw rdata σ k C) :
+    RDstatic fork (deployedRuntime v) g s0 := by
   have r1 := h.jumpdest
     (by immutable_decode(immutableLayout, poolManagerBytecode, wordsOf (immStore v), (⟨12594⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.dup1
@@ -48,9 +50,9 @@ theorem accountDeltaPrepareCostTrace {I : ExecutionEnv} {g : Sat256} {s0 : State
     (hstack : R.length + 9 ≤ 1024) (hI : evm.executionEnv = I)
     (hcurrency : UInt256.land currencyWord solcAddrMask = accountWord currency)
     (hcanonical : UInt256.signextend ⟨15⟩ deltaWord = deltaWord) (hnz : deltaWord ≠ ⟨0⟩)
-    (h : RD (deployedRuntime v) I g s0 ⟨12528⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨12528⟩
       (currencyWord :: deltaWord :: accountWord target :: ret :: R) mem aw rdata evm.accountMap k C) :
-    ∃ aw' k' C', C+Cₘ aw' ≤ C'+Cₘ aw ∧ RD (deployedRuntime v) I g s0 ⟨15145⟩
+    ∃ aw' k' C', C+Cₘ aw' ≤ C'+Cₘ aw ∧ RD fork (deployedRuntime v) I g s0 ⟨15145⟩
       (transientWord evm (currencyDeltaSlot target currency) :: deltaWord :: ⟨12594⟩ ::
        currencyDeltaSlot target currency :: transientWord evm (currencyDeltaSlot target currency) :: ret :: R)
       (currencyDeltaMemory target currency mem) aw' rdata evm.accountMap k' C' := by
@@ -58,7 +60,7 @@ theorem accountDeltaPrepareCostTrace {I : ExecutionEnv} {g : Sat256} {s0 : State
     (by simp only [List.length_cons]; omega)
     (by change UInt256.isZero (UInt256.signextend ⟨15⟩ deltaWord) = ⟨0⟩
         rw [hcanonical]; exact isZero_eq_zero_of_ne hnz) h
-  change RD (deployedRuntime v) I g s0 ⟨12541⟩
+  change RD fork (deployedRuntime v) I g s0 ⟨12541⟩
     (currencyWord :: accountWord target :: UInt256.signextend ⟨15⟩ deltaWord :: ret :: R)
     mem aw rdata evm.accountMap _ _ at hguard
   rw [hcanonical] at hguard
@@ -74,7 +76,7 @@ theorem accountDeltaPrepareCostTrace {I : ExecutionEnv} {g : Sat256} {s0 : State
       (UInt256.land currencyWord solcAddrMask) mem = _
     rw [solcAddrMask_clean (accountWord_canonical target), hcurrency]
     rfl
-  change RD (deployedRuntime v) I g s0 ⟨12582⟩
+  change RD fork (deployedRuntime v) I g s0 ⟨12582⟩
     (keccakWord ⟨0⟩ ⟨64⟩ (poolManagerBlocks.poolManager_block_12541_memory
       (mem := mem) (x0 := currencyWord) (x1 := accountWord target)) :: deltaWord :: ret :: R)
     (poolManagerBlocks.poolManager_block_12541_memory
@@ -87,7 +89,7 @@ theorem accountDeltaPrepareCostTrace {I : ExecutionEnv} {g : Sat256} {s0 : State
     rw [deployedRuntime_jumps]; jump_dest
   have hadd := poolManagerBlocks.poolManager_block_12582
     (by simp only [List.length_cons]; omega) hjAdd hslot
-  change RD (deployedRuntime v) I g s0 ⟨15145⟩
+  change RD fork (deployedRuntime v) I g s0 ⟨15145⟩
     (codeOwnerTransientWord I evm.accountMap (currencyDeltaSlot target currency) :: deltaWord :: ⟨12594⟩ ::
       currencyDeltaSlot target currency :: codeOwnerTransientWord I evm.accountMap (currencyDeltaSlot target currency) :: ret :: R)
     (currencyDeltaMemory target currency mem) aw' rdata evm.accountMap _ _ at hadd
@@ -102,36 +104,36 @@ theorem accountDeltaPrepareTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} {e
     (hstack : R.length + 9 ≤ 1024) (hI : evm.executionEnv = I)
     (hcurrency : UInt256.land currencyWord solcAddrMask = accountWord currency)
     (hcanonical : UInt256.signextend ⟨15⟩ deltaWord = deltaWord) (hnz : deltaWord ≠ ⟨0⟩)
-    (h : RD (deployedRuntime v) I g s0 ⟨12528⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨12528⟩
       (currencyWord :: deltaWord :: accountWord target :: ret :: R) mem aw rdata evm.accountMap k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) I g s0 ⟨15145⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 ⟨15145⟩
       (transientWord evm (currencyDeltaSlot target currency) :: deltaWord :: ⟨12594⟩ ::
        currencyDeltaSlot target currency :: transientWord evm (currencyDeltaSlot target currency) :: ret :: R)
       (currencyDeltaMemory target currency mem) aw' rdata evm.accountMap k' C' := by
   obtain ⟨aw1, k1, C1, _, hr⟩ := accountDeltaPrepareCostTrace v hstack hI hcurrency hcanonical hnz h
   exact ⟨aw1, k1, C1, hr⟩
 
-def accountDeltaTraceResult (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
+def accountDeltaTraceResult (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
     (evm : EVM.State) (target currency : AccountAddress) (delta : Int) (ret : UInt256)
     (R : List UInt256) (mem rdata : ByteArray) : Prop :=
   if delta = 0 then
-    ∃ aw k C, RD (deployedRuntime v) I g s0 ret R mem aw rdata evm.accountMap k C
+    ∃ aw k C, RD fork (deployedRuntime v) I g s0 ret R mem aw rdata evm.accountMap k C
   else if int256Fits (currencyDeltaValue evm target currency + delta) then
-    if I.perm = false then RDstatic (deployedRuntime v) g s0 else
-    ∃ aw k C, RD (deployedRuntime v) I g s0 ret R (currencyDeltaMemory target currency mem) aw rdata
+    if I.perm = false then RDstatic fork (deployedRuntime v) g s0 else
+    ∃ aw k C, RD fork (deployedRuntime v) I g s0 ret R (currencyDeltaMemory target currency mem) aw rdata
       (accountDeltaPost evm target currency delta).accountMap k C
-  else RDrev (deployedRuntime v) g s0
+  else RDrev fork (deployedRuntime v) g s0
 
-def accountDeltaCostTraceResult (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
+def accountDeltaCostTraceResult (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
     (evm : EVM.State) (target currency : AccountAddress) (delta : Int) (ret : UInt256)
     (R : List UInt256) (mem rdata : ByteArray) (aw₀ : UInt256) (C₀ : Nat) : Prop :=
   if delta = 0 then
-    ∃ aw k C, C₀+Cₘ aw ≤ C+Cₘ aw₀ ∧ RD (deployedRuntime v) I g s0 ret R mem aw rdata evm.accountMap k C
+    ∃ aw k C, C₀+Cₘ aw ≤ C+Cₘ aw₀ ∧ RD fork (deployedRuntime v) I g s0 ret R mem aw rdata evm.accountMap k C
   else if int256Fits (currencyDeltaValue evm target currency + delta) then
-    if I.perm = false then RDstatic (deployedRuntime v) g s0 else
-    ∃ aw k C, C₀+Cₘ aw ≤ C+Cₘ aw₀ ∧ RD (deployedRuntime v) I g s0 ret R (currencyDeltaMemory target currency mem) aw rdata
+    if I.perm = false then RDstatic fork (deployedRuntime v) g s0 else
+    ∃ aw k C, C₀+Cₘ aw ≤ C+Cₘ aw₀ ∧ RD fork (deployedRuntime v) I g s0 ret R (currencyDeltaMemory target currency mem) aw rdata
       (accountDeltaPost evm target currency delta).accountMap k C
-  else RDrev (deployedRuntime v) g s0
+  else RDrev fork (deployedRuntime v) g s0
 
 theorem accountDeltaWordCostTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} {evm : EVM.State}
     {mem rdata : ByteArray} {aw ret currencyWord : UInt256} {target currency : AccountAddress} {delta : Int}
@@ -140,10 +142,10 @@ theorem accountDeltaWordCostTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} {
     (hcurrency : UInt256.land currencyWord solcAddrMask = accountWord currency)
     (hlo : -(2^127 : Int) ≤ delta) (hhi : delta < 2^127)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨12528⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨12528⟩
       (currencyWord :: EVM.wordOfInt delta :: accountWord target :: ret :: R)
       mem aw rdata evm.accountMap k C) :
-    accountDeltaCostTraceResult v I g s0 evm target currency delta ret R mem rdata aw C := by
+    accountDeltaCostTraceResult fork v I g s0 evm target currency delta ret R mem rdata aw C := by
   classical
   have hd : int256Fits delta := by constructor <;> omega
   have hcanonical := signextend128_wordOfInt hlo hhi
@@ -198,7 +200,7 @@ theorem accountDeltaWordCostTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} {
         · have hzero : previous + deltaWord = (⟨0⟩ : UInt256) := by rw [hword, hn]; rfl
           have hstored := poolManagerBlocks.poolManager_block_12594_fallthrough
             (by simp only [List.length_cons]; omega) hp' hzero hstore
-          change RD (deployedRuntime v) I g s0 ⟨12602⟩ (previous :: ret :: R)
+          change RD fork (deployedRuntime v) I g s0 ⟨12602⟩ (previous :: ret :: R)
             (currencyDeltaMemory target currency mem) aw' rdata
             (tstoreAccountMap I.codeOwner evm.accountMap (currencyDeltaSlot target currency)
               (previous + deltaWord)) _ _ at hstored
@@ -213,7 +215,7 @@ theorem accountDeltaWordCostTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} {
             rw [deployedRuntime_jumps]; jump_dest
           have hstored := poolManagerBlocks.poolManager_block_12594_taken
             (by simp only [List.length_cons]; omega) hp' hnword hjPrev hstore
-          change RD (deployedRuntime v) I g s0 ⟨12707⟩ (previous :: ret :: R)
+          change RD fork (deployedRuntime v) I g s0 ⟨12707⟩ (previous :: ret :: R)
             (currencyDeltaMemory target currency mem) aw' rdata
             (tstoreAccountMap I.codeOwner evm.accountMap (currencyDeltaSlot target currency)
               (previous + deltaWord)) _ _ at hstored
@@ -252,10 +254,10 @@ theorem accountDeltaWordTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} {evm 
     (hcurrency : UInt256.land currencyWord solcAddrMask = accountWord currency)
     (hlo : -(2^127 : Int) ≤ delta) (hhi : delta < 2^127)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨12528⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨12528⟩
       (currencyWord :: EVM.wordOfInt delta :: accountWord target :: ret :: R)
       mem aw rdata evm.accountMap k C) :
-    accountDeltaTraceResult v I g s0 evm target currency delta ret R mem rdata := by
+    accountDeltaTraceResult fork v I g s0 evm target currency delta ret R mem rdata := by
   have hr := accountDeltaWordCostTrace v hstack hI hcurrency hlo hhi hret h
   unfold accountDeltaTraceResult
   unfold accountDeltaCostTraceResult at hr
@@ -284,10 +286,10 @@ theorem accountDeltaTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} {evm : EV
     (hstack : R.length + 9 ≤ 1024) (hI : evm.executionEnv = I)
     (hlo : -(2^127 : Int) ≤ delta) (hhi : delta < 2^127)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨12528⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨12528⟩
       (accountWord currency :: EVM.wordOfInt delta :: accountWord target :: ret :: R)
       mem aw rdata evm.accountMap k C) :
-    accountDeltaTraceResult v I g s0 evm target currency delta ret R mem rdata :=
+    accountDeltaTraceResult fork v I g s0 evm target currency delta ret R mem rdata :=
   accountDeltaWordTrace v hstack hI (solcAddrMask_clean (accountWord_canonical currency)) hlo hhi hret h
 
 end Benchmarks.UniswapV4PoolManager

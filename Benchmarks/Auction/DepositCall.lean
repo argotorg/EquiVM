@@ -3,6 +3,8 @@ import Benchmarks.Auction.RevertData
 import Benchmarks.Auction.RawEthPrefix
 import Benchmarks.Auction.BytesMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -18,17 +20,17 @@ theorem depositCall_heap {mem aw ptr} (hm : HeapMemory mem aw ptr)
     activeWords_expand hh.active (by change ptr.toNat + 4 ≤ 2 ^ 200; omega)⟩
 
 theorem depositCall {I g s0 amount recipient ret R mem aw ptr rdata σ k C evm}
-    (h : RD auctionBytecode I g s0 ⟨3352⟩ (amount :: recipient :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨3352⟩ (amount :: recipient :: ret :: R)
       mem aw rdata σ k C)
     (hs : SourceState s0 I σ evm) (hperm : I.perm = true)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 32 ≤ 2 ^ 200)
     (hyes : extCodeSizeWord σ (wethWord σ I) ≠ ⟨0⟩) (hov : R.length + 18 ≤ 1024) :
     ∃ (evm' : EVM.State) (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (k' C' : Nat),
-      callViaEVM evm (AccountAddress.ofUInt256 (wethWord σ I)) (Int.ofNat amount.toNat)
+      callViaEVM fork evm (AccountAddress.ofUInt256 (wethWord σ I)) (Int.ofNat amount.toNat)
         depositSelector (z, evm', out) ∧
       SourceState s0 I σ' evm' ∧
-      RD auctionBytecode I g s0 ⟨3432⟩
+      RD fork auctionBytecode I g s0 ⟨3432⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: (ptr + ⟨4⟩) :: amount :: ⟨0xd0e30db0⟩ ::
           wethWord σ I :: amount :: recipient :: ret :: R)
         (selectorMem mem ptr depositWord) (depositCallWords aw ptr) out σ' k' C' ∧
@@ -42,11 +44,11 @@ theorem depositCall {I g s0 amount recipient ret R mem aw ptr rdata σ k C evm}
   exact ⟨evm', σ', z, out, _, _, hc, hs', rd3432, ho⟩
 
 theorem depositAfterSuccess {I g s0 amount recipient ret R mem aw ptr out acc k C target}
-    (h : RD auctionBytecode I g s0 ⟨3432⟩
+    (h : RD fork auctionBytecode I g s0 ⟨3432⟩
       (⟨1⟩ :: (ptr + ⟨4⟩) :: amount :: ⟨0xd0e30db0⟩ :: target ::
         amount :: recipient :: ret :: R) mem aw out acc k C)
     (hov : R.length + 11 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨3449⟩
+    ∃ k' C', RD fork auctionBytecode I g s0 ⟨3449⟩
       (amount :: ⟨0xd0e30db0⟩ :: target :: amount :: recipient :: ret :: R)
       mem aw out acc k' C' := by
   exact ⟨_, _, evm_run h with [iszero, dup1, iszero, push2 ⟨3446⟩,
@@ -54,10 +56,10 @@ theorem depositAfterSuccess {I g s0 amount recipient ret R mem aw ptr out acc k 
 
 set_option synthInstance.maxSize 1024 in
 theorem depositAfterFailure {I g s0 amount recipient ret R mem aw ptr out acc k C target}
-    (h : RD auctionBytecode I g s0 ⟨3432⟩
+    (h : RD fork auctionBytecode I g s0 ⟨3432⟩
       (⟨0⟩ :: (ptr + ⟨4⟩) :: amount :: ⟨0xd0e30db0⟩ :: target ::
         amount :: recipient :: ret :: R) mem aw out acc k C)
-    (hov : R.length + 12 ≤ 1024) : RDrev auctionBytecode g s0 := by
+    (hov : R.length + 12 ≤ 1024) : RDrev fork auctionBytecode g s0 := by
   have rd3439 := evm_run h with [iszero, dup1, iszero, push2 ⟨3446⟩,
     jumpiNT (by decide)]
   exact rd3439.revertData (by unfold revertDataWf; native_decide) (by evm_ov)

@@ -1,5 +1,7 @@
 import Benchmarks.Safe.Runs1e6.ExecuteCallSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.Runs1e6
@@ -35,7 +37,7 @@ theorem safeExecuteCondition (evm : EVM.State) (target : EVM.Address) (value : U
 
 theorem safeExecuteReturn (evm : EVM.State) (target : EVM.Address) (value : UInt256)
     (payload : ByteArray) (operation txGas : UInt256) (z : Bool) (out : ByteArray) :
-    ExecBlock config (executeFinalFrame target value payload operation txGas z out) evm
+    ExecBlock fork config (executeFinalFrame target value payload operation txGas z out) evm
       [.return [.var "success"]]
       (.returned (executeFinalFrame target value payload operation txGas z out) evm
         (some [.bool z])) := by
@@ -46,32 +48,32 @@ theorem safeExecuteReturn (evm : EVM.State) (target : EVM.Address) (value : UInt
 theorem safeExecuteDelegateSource {evm evm' : EVM.State} {target : EVM.Address}
     {value operation txGas : UInt256} {payload out : ByteArray} {z : Bool}
     (hop : operation = ⟨1⟩)
-    (hcall : delegateCallViaEVM evm (EVM.address target) payload (z, evm', out)) :
-    ExecFuncBody config (executeFrame target value payload operation txGas) evm
+    (hcall : delegateCallViaEVM fork evm (EVM.address target) payload (z, evm', out)) :
+    ExecFuncBody fork config (executeFrame target value payload operation txGas) evm
       executeFunction.body
       (.returned (executeFinalFrame target value payload operation txGas z out) evm'
         (some [.bool z])) := by
   exact .execBlockRet (.consNormal
-    (safeExecuteCallStatement (hperm := Or.inl hop) (safeExecuteLocals target value payload operation txGas)
+    (safeExecuteCallStatement (fork := fork) (hperm := Or.inl hop) (safeExecuteLocals target value payload operation txGas)
       (Or.inl ⟨hop, hcall⟩)) (safeExecuteReturn evm' target value payload operation txGas z out))
 
 theorem safeExecuteCallSource {evm evm' : EVM.State} {target : EVM.Address}
     {value operation txGas : UInt256} {payload out : ByteArray} {z : Bool}
     (hop : operation ≠ ⟨1⟩)
-    (hcall : callViaEVM evm (EVM.address target) (Int.ofNat value.toNat) payload (z, evm', out))
+    (hcall : callViaEVM fork evm (EVM.address target) (Int.ofNat value.toNat) payload (z, evm', out))
     (hperm : value = ⟨0⟩ ∨ evm.executionEnv.perm = true) :
-    ExecFuncBody config (executeFrame target value payload operation txGas) evm
+    ExecFuncBody fork config (executeFrame target value payload operation txGas) evm
       executeFunction.body
       (.returned (executeFinalFrame target value payload operation txGas z out) evm'
         (some [.bool z])) := by
   exact .execBlockRet (.consNormal
-    (safeExecuteCallStatement (hperm := Or.inr hperm) (safeExecuteLocals target value payload operation txGas)
+    (safeExecuteCallStatement (fork := fork) (hperm := Or.inr hperm) (safeExecuteLocals target value payload operation txGas)
       (Or.inr ⟨hop, hcall⟩)) (safeExecuteReturn evm' target value payload operation txGas z out))
 
 theorem safeExecuteCallStaticSource {evm : EVM.State} {target : EVM.Address}
     {value operation txGas : UInt256} {payload : ByteArray}
     (hop : operation ≠ ⟨1⟩) (hp : evm.executionEnv.perm = false) (hv : value ≠ ⟨0⟩) :
-    ExecFuncBody config (executeFrame target value payload operation txGas) evm
+    ExecFuncBody fork config (executeFrame target value payload operation txGas) evm
       executeFunction.body .staticViolation := by
   exact .execBlockStatic (.consStatic
     (safeExecuteCallStatementStatic (safeExecuteLocals target value payload operation txGas)

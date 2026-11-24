@@ -3,13 +3,15 @@ import Benchmarks.CurveVault.CreditEntry
 import Benchmarks.CurveVault.AddressWord
 import Benchmarks.CurveVault.Calldata
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
 theorem vaultDeposit_uint256BodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vaultBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vaultSelBytes 20)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (vaultSelBytes 20) rfl hsel
   have hd : dispatchMsg contract I.calldata = some deposit_uint256Transition := by
     apply vaultDispatch_deposit_uint256
@@ -28,7 +30,7 @@ theorem vaultDeposit_uint256BodyCore {σ σ₀ A I} {g : UInt256}
   have hdec : config.externalABI.decodeCalldata? (deposit_uint256Transition.params.map Param.name)
       (transitionSignature deposit_uint256Transition).paramTypes I.calldata = some decoded :=
     decodeCalldataWithMode_vyper_uint256_ok hargs
-  have hprefix : ExecBlock config {contract := contract, locals := decoded} evm
+  have hprefix : ExecBlock fork config {contract := contract, locals := decoded} evm
       (deposit_uint256Transition.body.take 2) (.ok {contract := contract, locals := locals} evm) :=
     ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hvalue))
       (ExecBlock.consNormal (ExecStmt.letDecl (by simp [evalExpr?, envValue, evm, initState, pure])) ExecBlock.nil)
@@ -46,7 +48,7 @@ theorem vaultDeposit_uint256Body {σ σ₀ A I} {g : UInt256}
     (_hwf : storageWF σ I)
     (hcode : I.code = vaultBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vaultSelBytes 20)) :
-    runtimeRefinementFor config contract σ σ₀ g A I :=
+    runtimeRefinementFor fork config contract σ σ₀ g A I :=
   vaultDeposit_uint256BodyCore hcode hsize hsel
 
 end Benchmarks.CurveVault

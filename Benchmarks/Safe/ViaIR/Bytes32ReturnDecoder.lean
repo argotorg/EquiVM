@@ -4,6 +4,8 @@ import Benchmarks.Safe.ViaIR.Blocks.Runtime_045
 import Reasoning.ABIComposite
 import Reasoning.WordArithmetic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -13,9 +15,9 @@ set_option maxRecDepth 2000
 
 theorem safeBytes32DecoderShort {I g s0 σ k C aw mem rdata} {start : UInt256}
     {len : Nat} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨10041⟩
+    (h : RD fork safeBytecode I g s0 ⟨10041⟩
       (UInt256.ofNat len :: start :: ⟨32⟩ :: start :: R) mem aw rdata σ k C)
-    (hov : R.length + 7 ≤ 1024) (hl : len < 32) : RDrev safeBytecode g s0 := by
+    (hov : R.length + 7 ≤ 1024) (hl : len < 32) : RDrev fork safeBytecode g s0 := by
   have hlt : UInt256.slt (UInt256.ofNat len) (UInt256.ofNat 32) = ⟨1⟩ := by
     apply slt_lit_one_low (by decide)
     rw [ulit_toNat' len (by change len < 2 ^ 256; omega)]
@@ -30,10 +32,10 @@ theorem safeBytes32DecoderShort {I g s0 σ k C aw mem rdata} {start : UInt256}
 
 theorem safeBytes32DecoderValid {I g s0 σ k C aw mem rdata} {start : UInt256}
     {len : Nat} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨10041⟩
+    (h : RD fork safeBytecode I g s0 ⟨10041⟩
       (UInt256.ofNat len :: start :: ⟨32⟩ :: start :: R) mem aw rdata σ k C)
     (hov : R.length + 7 ≤ 1024) (hl : 32 ≤ len) (hb : len < 2 ^ 255) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨10003⟩ (⟨0⟩ :: memLoad start mem :: R)
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨10003⟩ (⟨0⟩ :: memLoad start mem :: R)
       mem aw' rdata σ k' C' := by
   have hlt : UInt256.slt (UInt256.ofNat len) (UInt256.ofNat 32) = ⟨0⟩ := by
     apply slt_lit_zero (by decide)

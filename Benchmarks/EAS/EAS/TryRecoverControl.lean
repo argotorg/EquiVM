@@ -2,6 +2,8 @@ import Benchmarks.EAS.EAS.TryRecoverMemory
 import Benchmarks.EAS.EAS.TryRecoverSource
 import Benchmarks.EAS.EAS.RuntimeBlocks_033
 import Benchmarks.EAS.EAS.RuntimeBlocks_054
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -12,8 +14,8 @@ theorem tryRecoverHighEVM {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {hash sigV r s ret : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length+11 ≤ 1024) (hi : ecdsaHalfOrder < s.toNat)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨16645⟩ (hash::sigV::r::s::ret::R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret (⟨3⟩::⟨0⟩::R) mem aw rdata σ k' C' := by
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨16645⟩ (hash::sigV::r::s::ret::R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret (⟨3⟩::⟨0⟩::R) mem aw rdata σ k' C' := by
   have hc : UInt256.gt s (UInt256.ofNat ecdsaHalfOrder) = ⟨1⟩ := ugt_one hi
   dsimp only [ecdsaHalfOrder] at hc
   have r1 := easBlocks.eas_block_16645_taken (immWords := wordsOf (immStore v))
@@ -26,8 +28,8 @@ theorem tryRecoverStart {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {heap hash sigV r s ret : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length+11 ≤ 1024) (hi : ¬ ecdsaHalfOrder < s.toNat)
     (hh : memLoad (UInt256.ofNat 64) mem = heap) (hv : sigV.toNat < 2^8) (hb : heap.toNat+128 < UInt256.size)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨16645⟩ (hash::sigV::r::s::ret::R) mem aw rdata σ k C) :
-    ∃ gasArg aw' k' C', RD (deployedRuntime v) ee g s0 ⟨16723⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨16645⟩ (hash::sigV::r::s::ret::R) mem aw rdata σ k C) :
+    ∃ gasArg aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨16723⟩
       (gasArg::⟨1⟩::heap::⟨128⟩::⟨0⟩::⟨32⟩::ret::R)
       (tryRecoverInputMemory mem heap hash sigV r s) aw' rdata σ k' C' := by
   have hc : UInt256.gt s (UInt256.ofNat ecdsaHalfOrder) = ⟨0⟩ := ugt_zero (Nat.le_of_not_gt hi)
@@ -50,10 +52,10 @@ theorem tryRecoverFinish {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {a : AccountAddress} {ret : UInt256} {R : List UInt256} (v : EASImmutables) (success : Bool)
     (hstack : R.length+5 ≤ 1024) (ha : memLoad (UInt256.ofNat 0) mem = UInt256.ofNat a.val)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨16724⟩ ((if success then ⟨1⟩ else ⟨0⟩)::ret::R) mem aw out σ k C) :
-    if success then ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨16724⟩ ((if success then ⟨1⟩ else ⟨0⟩)::ret::R) mem aw out σ k C) :
+    if success then ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret
       (UInt256.ofNat (recoveryError a)::UInt256.ofNat a.val::R) mem aw' out σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have haddr : (UInt256.ofNat a.val).toNat = a.val := addressWord_toNat_val a
   cases success with
   | false =>

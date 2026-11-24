@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.Storage
 import Benchmarks.CompoundIII.Comet.GetterCommon
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -14,7 +16,7 @@ theorem toBoolCallable_lookup : lookupCallable? contract "toBool" = some toBoolC
   rfl
 
 theorem toBool_returns (frame : Frame) (evm : EVM.State) (w : UInt256) :
-    ExecFuncBody config { frame with locals := (∅ : Store).insert "x" (.int w.toNat) }
+    ExecFuncBody fork config { frame with locals := (∅ : Store).insert "x" (.int w.toNat) }
       evm toBoolCallable.body
       (.returned { frame with locals := (∅ : Store).insert "x" (.int w.toNat) }
         evm (some [.bool (decide (w.toNat ≠ 0))])) := by
@@ -26,7 +28,7 @@ theorem toBool_returns (frame : Frame) (evm : EVM.State) (w : UInt256) :
 theorem toBool_call (frame : Frame) (evm : EVM.State) (arg : Expr) (ret : Ident)
     (w : UInt256) (hc : frame.contract = contract)
     (harg : evalExpr? config frame evm arg = .ok (.int w.toNat)) :
-    ExecStmt config frame evm (.internalCall "toBool" [arg] ret)
+    ExecStmt fork config frame evm (.internalCall "toBool" [arg] ret)
       (.ok { frame with locals := frame.locals.insert ret (.bool (decide (w.toNat ≠ 0))) }
         evm) := by
   exact ExecStmt.internalCallReturn (callee := toBoolCallable)
@@ -96,7 +98,7 @@ theorem pauseCallable_lookup (bit : Fin 5) :
   interval_cases bit <;> rfl
 
 theorem pauseCallable_returns (evm : EVM.State) (imms : Store) (bit : Fin 5) :
-    ExecFuncBody config { contract := contract, locals := ∅, immutables := imms }
+    ExecFuncBody fork config { contract := contract, locals := ∅, immutables := imms }
       evm (pauseCallable bit).body
       (.returned
         { contract := contract
@@ -114,7 +116,7 @@ def pauseGetterBody (bit : Fin 5) : List Stmt :=
 theorem pauseGetter_returns (evm : EVM.State) (imms : Store) (bit : Fin 5)
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩)
     (hsize : evm.executionEnv.calldata.size < 2 ^ 255 + 4) :
-    ∃ frame, ExecTransitionBody config contract evm ∅ (pauseGetterBody bit)
+    ∃ frame, ExecTransitionBody fork config contract evm ∅ (pauseGetterBody bit)
       (.returned frame evm (some [.bool (decide ((pauseBitWord evm bit).toNat ≠ 0))])) imms := by
   let caller : Frame := { contract := contract, locals := ∅, immutables := imms }
   refine ⟨resumeAfterInternalCall (calldataLocalFrame caller evm) "result"
@@ -144,9 +146,9 @@ theorem pauseGetter_refines {t : TransitionDecl} {imms : Store} {σ σ₀ A I} {
     (hcode : I.code = code) (hsz : 4 ≤ I.calldata.size)
     (hd : selectorDispatchMsg contract I.calldata = some t) (hp : t.params = [])
     (hb : t.body = pauseGetterBody bit) (ht : t.returnType = [.elem .bool])
-    (hX : GetterResult code I (Sat256.ofUInt256 g)
+    (hX : GetterResult fork code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ (pauseReturnWord σ I bit).toByteArray) :
-    runtimeRefinementFor config contract σ σ₀ g A I imms := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I imms := by
   apply guardedGetter_refines hcode hsz (cometDecode_empty hsz) hd hp hb ht
     (nonzeroReturnEncoding (pauseBitRuntime σ I bit)) ?_ hX
   intro hvalue hsize

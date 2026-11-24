@@ -1,5 +1,7 @@
 import Tests.Pipeline.VyperWrapper.Helpers
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Wrapper `totalShares()`
 
@@ -21,7 +23,7 @@ theorem wrapperTotalSharesBody {σ σ₀ A I} {g : UInt256} (imms : Store) (hfit
     (hwf : storageWF σ I)
     (hcode : I.code = immutableLayout.deployed wrapperBytecode imms) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (wrapperSelBytes 0)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (restrictImmutables contract imms) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (restrictImmutables contract imms) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (wrapperSelBytes 0) rfl hsel
   have hcode' : I.code = wrapperBytecode ++ immutableLayout.suffixWords (wordsOf imms) := by
     rw [hcode, deployed_of_fit hfit]
@@ -37,7 +39,7 @@ theorem wrapperTotalSharesBody {σ σ₀ A I} {g : UInt256} (imms : Store) (hfit
     rw [ulit_toNat' 64 (by decide), ulit_toNat' 32 (by decide),
       toByteArray_write_read_back_of_gap _ (wrapperDispatchMem 1) 64
         (by rw [dispatchMem_size 1 (by decide)]; exact lt_usize _ (by decide)), slotWord_eq] at rd2
-    have hbody : ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ totalSharesTransition.body
+    have hbody : ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ totalSharesTransition.body
         (.returned (frame imms ∅) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [uint256Value (solcSlotWordAt (UInt256.ofNat 2) σ I)])) (restrictImmutables contract imms) := by
       rw [totalSharesBody_eq]

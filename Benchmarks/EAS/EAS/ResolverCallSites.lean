@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.Entry
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -14,9 +16,9 @@ theorem resolverPrepare {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap}
     {k C : Nat} {finish ptr target value : UInt256} {R : List UInt256} (v : EASImmutables) (many rev : Bool)
     (hstack : R.length+8 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 (resolverPreparePC many rev)
+    (rd : RD fork (deployedRuntime v) ee g s0 (resolverPreparePC many rev)
       (finish::ptr::value::ptr::target::ptr::⟨32⟩::ptr::R) mem aw rdata σ k C) :
-    ∃ gasArg aw' k' C', RD (deployedRuntime v) ee g s0 (resolverCallPC many rev)
+    ∃ gasArg aw' k' C', RD fork (deployedRuntime v) ee g s0 (resolverCallPC many rev)
       (gasArg::target::value::ptr::UInt256.sub finish ptr::ptr::⟨32⟩::ptr::R) mem aw' rdata σ k' C' := by
   cases many with
   | false =>

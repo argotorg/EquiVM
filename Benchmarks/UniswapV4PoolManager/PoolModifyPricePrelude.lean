@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.Slot0Source
 import Benchmarks.UniswapV4PoolManager.PoolCheckSource
 import Benchmarks.UniswapV4PoolManager.WordLocals
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -24,21 +26,21 @@ def poolModifyPricePreludeFrame (f : Frame) (evm : State) (id : UInt256) : Frame
 
 theorem poolModifyPricePrelude {f : Frame} {evm : State} {id : UInt256} {p : PoolModifyParams}
     (hc : PoolModifyContext f id p) :
-    ExecBlock config f evm poolModifyPricePreludeBlock (.ok (poolModifyPricePreludeFrame f evm id) evm) := by
+    ExecBlock fork config f evm poolModifyPricePreludeBlock (.ok (poolModifyPricePreludeFrame f evm id) evm) := by
   let f0 := {f with locals := f.locals.insert "_slot0" (wordBytes32Value (poolSlot0Word evm id))}
   let f1 := {f0 with locals := f0.locals.insert "__c14" (.int (poolCurrentTick evm id))}
   let f2 := {f1 with locals := f1.locals.insert "tick" (.int (poolCurrentTick evm id))}
   let f3 := wordLocal f2 "__c15" (poolSqrtPriceWord evm id)
-  have h0 : ExecStmt config f evm poolModifyPricePreludeBlock[0]! (.ok f0 evm) :=
+  have h0 : ExecStmt fork config f evm poolModifyPricePreludeBlock[0]! (.ok f0 evm) :=
     ExecStmt.letDecl (poolSlot0_read hc.self)
-  have h1 := slot0TickCall (f := f0) (evm := evm) hc.contract (evalLocalValue (store_get_self _ _ _)) "__c14"
-  have h2 : ExecStmt config f1 evm poolModifyPricePreludeBlock[2]! (.ok f2 evm) :=
+  have h1 := slot0TickCall (fork := fork) (f := f0) (evm := evm) hc.contract (evalLocalValue (store_get_self _ _ _)) "__c14"
+  have h2 : ExecStmt fork config f1 evm poolModifyPricePreludeBlock[2]! (.ok f2 evm) :=
     ExecStmt.letDecl (evalLocalValue (store_get_self _ _ _))
   have hslot : f2.locals.get? "_slot0" = some (wordBytes32Value (poolSlot0Word evm id)) :=
     (store_get_ne2 _ _ _ (by decide : ("__c14" == "_slot0") = false)
       (by decide : ("tick" == "_slot0") = false)).trans (store_get_self _ _ _)
-  have h3 := slot0SqrtCall (f := f2) (evm := evm) hc.contract (evalLocalValue hslot) "__c15"
-  have h4 : ExecStmt config f3 evm poolModifyPricePreludeBlock[4]! (.ok (poolModifyPricePreludeFrame f evm id) evm) :=
+  have h3 := slot0SqrtCall (fork := fork) (f := f2) (evm := evm) hc.contract (evalLocalValue hslot) "__c15"
+  have h4 : ExecStmt fork config f3 evm poolModifyPricePreludeBlock[4]! (.ok (poolModifyPricePreludeFrame f evm id) evm) :=
     ExecStmt.letDecl (evalLocalValue (store_get_self _ _ _))
   exact ExecBlock.consNormal h0 (ExecBlock.consNormal h1 (ExecBlock.consNormal h2
     (ExecBlock.consNormal h3 (execBlock_singleton h4))))

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.PoolUpdateTickFees
 import Benchmarks.UniswapV4PoolManager.TickLiquidityWords
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -24,14 +26,14 @@ theorem poolUpdateTickTail {f : Frame} {evm : EVM.State} {id packed gross : UInt
     (hu : f.locals.get? "upper" = some (.bool upper))
     (hg : f.locals.get? "liquidityGrossAfter" = some (.int (Int.ofNat gross.toNat)))
     (hflip : f.locals.get? "flipped" = some (.bool flipped)) :
-    ∃ f', ExecFuncBody config f evm (poolUpdateTickFunction.body.drop 10)
+    ∃ f', ExecFuncBody fork config f evm (poolUpdateTickFunction.body.drop 10)
       (poolUpdateTickTailResult f' evm id packed gross tick delta upper flipped) := by
   have hcheck := tickNetAfter_eval (evalLocalValue (cfg := config) (evm := evm) hb)
     (evalLocalValue hd) (evalLocalValue hu)
   by_cases hfit : signedFits ⟨128, by decide⟩ (tickNetAfter packed delta upper)
   · simp only [if_pos hfit] at hcheck
     let f1 : Frame := {f with locals := f.locals.insert "liquidityNet" (.int (tickNetAfter packed delta upper))}
-    have hlet : ExecStmt config f evm poolUpdateTickFunction.body[10]! (.ok f1 evm) := ExecStmt.letDecl hcheck
+    have hlet : ExecStmt fork config f evm poolUpdateTickFunction.body[10]! (.ok f1 evm) := ExecStmt.letDecl hcheck
     have hnet : EVM.signed (EVM.wordOfInt (tickNetAfter packed delta upper)) = tickNetAfter packed delta upper := by
       apply signed_wordOfInt
       have hl := hfit.1
@@ -61,7 +63,7 @@ theorem poolUpdateTickTail {f : Frame} {evm : EVM.State} {id packed gross : UInt
       exact .execBlockStatic (ExecBlock.consNormal hlet (ExecBlock.consStatic (ExecStmt.assignStatic hval hwrite hp)))
     · rw [if_neg hp]
       refine .execBlockRet (ExecBlock.consNormal hlet (ExecBlock.consNormal
-        (ExecStmt.assign (hperm := Or.inr (Bool.eq_true_of_not_eq_false hp)) hval hwrite) (ExecBlock.consReturn (ExecStmt.return ?_))))
+        (ExecStmt.assign (fork := fork) (hperm := Or.inr (Bool.eq_true_of_not_eq_false hp)) hval hwrite) (ExecBlock.consReturn (ExecStmt.return ?_))))
       have hf1 : f1.locals.get? "flipped" = some (.bool flipped) :=
         (store_get_ne _ _ (by decide : ("liquidityNet" == "flipped") = false)).trans hflip
       have hg1 : f1.locals.get? "liquidityGrossAfter" = some (.int (Int.ofNat gross.toNat)) :=
@@ -70,6 +72,6 @@ theorem poolUpdateTickTail {f : Frame} {evm : EVM.State} {id packed gross : UInt
   · simp only [if_neg hfit] at hcheck
     exact ⟨f, by simpa only [poolUpdateTickTailResult, if_neg hfit] using
       (ExecFuncBody.execBlockRevert (ExecBlock.consRevert (ExecStmt.letDeclRevert hcheck)) :
-        ExecFuncBody config f evm (poolUpdateTickFunction.body.drop 10) .reverted)⟩
+        ExecFuncBody fork config f evm (poolUpdateTickFunction.body.drop 10) .reverted)⟩
 
 end Benchmarks.UniswapV4PoolManager

@@ -1,6 +1,8 @@
 import Benchmarks.Safe.ViaIR.Common
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_036
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -10,10 +12,10 @@ set_option maxRecDepth 100000
 
 theorem safeIncrementTrace {I g s0 σ k C aw mem rdata} {value ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7497⟩ (value :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨7497⟩ (value :: ret :: R) mem aw rdata σ k C)
     (hov : R.length + 5 ≤ 1024) (hno : value.toNat + 1 < UInt256.size)
     (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ k' C', RD safeBytecode I g s0 ret ((value + ⟨1⟩) :: R) mem aw rdata σ k' C' := by
+    ∃ k' C', RD fork safeBytecode I g s0 ret ((value + ⟨1⟩) :: R) mem aw rdata σ k' C' := by
   have hn : UInt256.eq value (UInt256.lnot ⟨0⟩) = ⟨0⟩ := by
     apply uInt256_eq_zero_of_ne
     intro he
@@ -32,9 +34,9 @@ theorem safeIncrementTrace {I g s0 σ k C aw mem rdata} {value ret : UInt256}
 
 theorem safeIncrementOverflow {I g s0 σ k C aw mem rdata} {value : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7497⟩ (value :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨7497⟩ (value :: R) mem aw rdata σ k C)
     (hov : R.length + 5 ≤ 1024) (hno : ¬value.toNat + 1 < UInt256.size) :
-    RDrev safeBytecode g s0 := by
+    RDrev fork safeBytecode g s0 := by
   have hn : value = UInt256.lnot ⟨0⟩ := by
     apply u256_inj
     have hv : value.toNat < UInt256.size := value.val.isLt

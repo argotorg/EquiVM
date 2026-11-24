@@ -5,6 +5,8 @@ import Benchmarks.Safe.Runs1e6.InternalCall
 import Benchmarks.Safe.Runs1e6.LocalArrays
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.Runs1e6
@@ -55,9 +57,9 @@ theorem safeSetupModulesCode (p : SetupModulesInput) (evm : EVM.State) :
 
 theorem safeSetupModulesPrefix (p : SetupModulesInput) (evm : EVM.State) {result : ExecResult}
     (he : moduleLink evm ⟨1⟩ = ⟨0⟩)
-    (htail : ExecBlock config p.frame (p.state evm) (setupModulesFunction.body.drop 2) result)
+    (htail : ExecBlock fork config p.frame (p.state evm) (setupModulesFunction.body.drop 2) result)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config p.frame evm setupModulesFunction.body result := by
+    ExecBlock fork config p.frame evm setupModulesFunction.body result := by
   exact .consNormal (.requireTrue (by
       simpa only [he, decide_true] using safeSetupModulesEmpty p evm))
     (.consNormal (.assign (hperm := Or.inr hperm) (safeEvalModuleSentinel evm p.args)
@@ -67,14 +69,14 @@ theorem safeSetupModulesPrefix (p : SetupModulesInput) (evm : EVM.State) {result
 
 theorem safeSetupModulesAlreadyInitialized (p : SetupModulesInput) (evm : EVM.State)
     (he : moduleLink evm ⟨1⟩ ≠ ⟨0⟩) :
-    ExecFuncBody config p.frame evm setupModulesFunction.body .reverted :=
+    ExecFuncBody fork config p.frame evm setupModulesFunction.body .reverted :=
   .execBlockRevert (.consRevert (.requireFalse (by
     simpa only [he, decide_false] using safeSetupModulesEmpty p evm)))
 
 theorem safeSetupModulesZero (p : SetupModulesInput) (evm : EVM.State)
     (he : moduleLink evm ⟨1⟩ = ⟨0⟩) (hz : p.target = ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecFuncBody config p.frame evm setupModulesFunction.body
+    ExecFuncBody fork config p.frame evm setupModulesFunction.body
       (.returned p.frame (p.state evm) none) := by
   apply ExecFuncBody.execBlockOK
   apply safeSetupModulesPrefix (hperm := by assumption) p evm he
@@ -86,7 +88,7 @@ theorem safeSetupModulesNoCode (p : SetupModulesInput) (evm : EVM.State)
     (hc : p.target.toNat < EVM.addressModulus) (he : moduleLink evm ⟨1⟩ = ⟨0⟩)
     (ht : p.target ≠ ⟨0⟩) (hz : extCodeSizeWord (p.state evm).accountMap p.target = ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecFuncBody config p.frame evm setupModulesFunction.body .reverted := by
+    ExecFuncBody fork config p.frame evm setupModulesFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply safeSetupModulesPrefix (hperm := by assumption) p evm he
   exact .consRevert (.iteTrue
@@ -96,9 +98,9 @@ theorem safeSetupModulesNoCode (p : SetupModulesInput) (evm : EVM.State)
         safeSetupModulesCode p (p.state evm)))))
 
 theorem safeSetupModulesExecute (p : SetupModulesInput) (evm : EVM.State) {result : ExecResult}
-    (hb : ExecFuncBody config (executeFrame (AccountAddress.ofNat p.target.toNat) ⟨0⟩
+    (hb : ExecFuncBody fork config (executeFrame (AccountAddress.ofNat p.target.toNat) ⟨0⟩
       p.payload ⟨1⟩ (UInt256.lnot ⟨0⟩)) evm executeFunction.body result) :
-    ExecStmt config p.frame evm (.internalCall "execute"
+    ExecStmt fork config p.frame evm (.internalCall "execute"
       [.var "to", .intLit 0, .var "data", .intLit 1, maxUint256Expr] "setupSuccess")
       (internalCallResult p.frame "setupSuccess" result) := by
   apply internalCallFunctionResult (callee := executeFunction)
@@ -118,11 +120,11 @@ theorem safeSetupModulesCalled (p : SetupModulesInput) (evm : EVM.State)
     {f' : Frame} {evm' : EVM.State} {z : Bool}
     (hc : p.target.toNat < EVM.addressModulus) (he : moduleLink evm ⟨1⟩ = ⟨0⟩)
     (ht : p.target ≠ ⟨0⟩) (hz : extCodeSizeWord (p.state evm).accountMap p.target ≠ ⟨0⟩)
-    (hb : ExecFuncBody config (executeFrame (AccountAddress.ofNat p.target.toNat) ⟨0⟩
+    (hb : ExecFuncBody fork config (executeFrame (AccountAddress.ofNat p.target.toNat) ⟨0⟩
       p.payload ⟨1⟩ (UInt256.lnot ⟨0⟩)) (p.state evm) executeFunction.body
       (.returned f' evm' (some [.bool z])))
     (hperm : evm.executionEnv.perm = true) :
-    ExecFuncBody config p.frame evm setupModulesFunction.body
+    ExecFuncBody fork config p.frame evm setupModulesFunction.body
       (if z then .returned (p.finalFrame z) evm' none else .reverted) := by
   have hcond : evalExpr? config p.frame (p.state evm) (neE (.var "to") zeroAddr) =
       .ok (.bool true) := (safeSetupModulesCondition p (p.state evm) hc).trans
@@ -137,11 +139,11 @@ theorem safeSetupModulesCalled (p : SetupModulesInput) (evm : EVM.State)
       .ok (.bool z) := evalLocalValue (by simp [SetupModulesInput.finalFrame])
   cases z with
   | false =>
-      exact .execBlockRevert (safeSetupModulesPrefix (hperm := by assumption) p evm he
+      exact .execBlockRevert (safeSetupModulesPrefix (fork := fork) (hperm := by assumption) p evm he
         (.consRevert (.iteTrue hcond (.consNormal (.requireTrue hcode)
           (.consNormal hcall (.consRevert (.requireFalse hresult)))))))
   | true =>
-      exact .execBlockOK (safeSetupModulesPrefix (hperm := by assumption) p evm he
+      exact .execBlockOK (safeSetupModulesPrefix (fork := fork) (hperm := by assumption) p evm he
         (.consNormal (.iteTrue hcond (.consNormal (.requireTrue hcode)
           (.consNormal hcall (.consNormal (.requireTrue hresult) .nil)))) .nil))
 

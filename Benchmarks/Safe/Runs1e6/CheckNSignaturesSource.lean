@@ -1,6 +1,8 @@
 import Benchmarks.Safe.Runs1e6.SignatureInput
 import Benchmarks.Safe.Runs1e6.InternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.Runs1e6
@@ -12,8 +14,8 @@ theorem safeInternalCheckNSignatures {p : SignatureInput} {caller : Frame} {evm 
     (hh : evalExpr? config caller evm hash = .ok (wordBytes32Value p.hash))
     (hs : evalExpr? config caller evm signatures = .ok (.bytes p.signatures))
     (hr : evalExpr? config caller evm required = .ok (uint256Value p.required))
-    (hbody : ExecFuncBody config p.frame evm checkNSignaturesImplFunction.body result) :
-    ExecStmt config caller evm
+    (hbody : ExecFuncBody fork config p.frame evm checkNSignaturesImplFunction.body result) :
+    ExecStmt fork config caller evm
       (.internalCall "checkNSignaturesImpl" [executor, hash, signatures, required] retVar)
       (internalCallResult caller retVar result) := by
   apply internalCallFunctionResult (callee := checkNSignaturesImplFunction)

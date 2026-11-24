@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.GetterCommon
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_044
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_045
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -17,8 +19,8 @@ theorem cometRead80_ok {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {ptr ret : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024) (hc : (memLoad ptr mem).toNat < 2^80)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨9355⟩ (ptr :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (memLoad ptr mem :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨9355⟩ (ptr :: ret :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (memLoad ptr mem :: R)
       mem aw' rdata σ k' C' := by
   have hm : UInt256.land (memLoad ptr mem) priceRoundMask = memLoad ptr mem :=
     u256LandMaskCleanOfToNat _ _ (by decide : priceRoundMask.toNat = 2^80 - 1) hc
@@ -34,8 +36,8 @@ theorem cometRead80_bad {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray} {aw : UInt256}
     {σ : AccountMap} {k C : Nat} {ptr ret : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024) (hc : ¬ (memLoad ptr mem).toNat < 2^80)
-    (h : RD (deployedRuntime v) ee g s0 ⟨9355⟩ (ptr :: ret :: R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨9355⟩ (ptr :: ret :: R) mem aw rdata σ k C) :
+    RDrev fork (deployedRuntime v) g s0 := by
   have hm : memLoad ptr mem ≠ UInt256.land (memLoad ptr mem) priceRoundMask := by
     intro he
     have hb := u256LandMaskToNatLtOfToNat (memLoad ptr mem) priceRoundMask
@@ -52,11 +54,11 @@ theorem cometPositivePrice {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {junk price ret : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨9426⟩ (junk :: price :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨9426⟩ (junk :: price :: ret :: R)
       mem aw rdata σ k C) :
     if 0 < signedPrice price then
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ret (price :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret (price :: R) mem aw rdata σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   by_cases hp : 0 < signedPrice price
   · rw [if_pos hp]
     have hg : UInt256.sgt price ⟨0⟩ ≠ ⟨0⟩ := by
@@ -89,12 +91,12 @@ theorem cometPriceChecks {v : CometWithExtendedAssetListImmutables}
     (h0 : memLoad ptr mem = calldataWord out 0)
     (h32 : memLoad (ptr + UInt256.ofNat 32) mem = calldataWord out 32)
     (h128 : memLoad (ptr + UInt256.ofNat 128) mem = calldataWord out 128)
-    (h : RD (deployedRuntime v) ee g s0 ⟨9491⟩ (⟨0⟩ :: ptr :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨9491⟩ (⟨0⟩ :: ptr :: ret :: R)
       mem aw out σ k C) :
     if PriceRoundCanonical out ∧ 0 < signedPrice (calldataWord out 32) then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (calldataWord out 32 :: R)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (calldataWord out 32 :: R)
         mem aw' out σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have r1 := cometWithExtendedAssetList_block_9491
     (immWords := wordsOf (immStore v)) (by change R.length + 1 + 4 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
@@ -112,7 +114,7 @@ theorem cometPriceChecks {v : CometWithExtendedAssetListImmutables}
       have r5 := cometWithExtendedAssetList_block_9518
         (immWords := wordsOf (immStore v)) (by change R.length + 2 + 2 ≤ 1024; omega)
         (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r4
-      change RD _ _ _ _ _ (_ :: memLoad (ptr + UInt256.ofNat 32) mem :: ret :: R)
+      change RD fork _ _ _ _ _ (_ :: memLoad (ptr + UInt256.ofNat 32) mem :: ret :: R)
         mem _ out σ _ _ at r5
       rw [h32] at r5
       rw [Layout.runtime_size_of_bounds immutableLayout_inBounds] at r5

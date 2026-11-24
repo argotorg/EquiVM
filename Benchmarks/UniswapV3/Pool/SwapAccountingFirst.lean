@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapAccountingFirstLoad
 import Benchmarks.UniswapV3.Pool.SwapAccountingSource
 import Benchmarks.UniswapV3.Pool.SafeArithmeticInternal
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -11,18 +13,18 @@ theorem swapAccountingFirstX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw q free : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (exactInput : Bool) (d : SwapIterationData) (frame : Frame) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 (if exactInput then ⟨3383⟩ else ⟨3445⟩)
+    (rd : RD fork (deployedRuntime v) ee g s0 (if exactInput then ⟨3383⟩ else ⟨3445⟩)
       (q :: R) mem aw rdata σ k C)
     (hf : frame.contract = contract) (hstep : frame.locals.get? "step" = some d.value)
     (hm : HeapMemory mem aw free) (hd : SwapIterationMemory mem q d)
     (hb : q.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 6 ≤ 1024) :
-    (ExecStmt config frame evm (swapAccountingBody exactInput)[0]! .reverted ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    (ExecStmt config frame evm (swapAccountingBody exactInput)[0]!
+    (ExecStmt fork config frame evm (swapAccountingBody exactInput)[0]! .reverted ∧
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    (ExecStmt fork config frame evm (swapAccountingBody exactInput)[0]!
         (.ok (swapAccountingFirstFrame frame exactInput d) evm) ∧
       safeCast256Valid (swapAccountingFirst exactInput d) ∧
       ∃ aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-        RD (deployedRuntime v) ee g s0 (if exactInput then ⟨3401⟩ else ⟨3458⟩)
+        RD fork (deployedRuntime v) ee g s0 (if exactInput then ⟨3401⟩ else ⟨3458⟩)
           (swapAccountingFirst exactInput d :: q :: R) mem aw' rdata σ k' C' ∧
         HeapMemory mem aw' free ∧ aw.toNat ≤ aw'.toNat) := by
   obtain ⟨a1, k1, C1, hC1, r1, hm1, hmono⟩ :=

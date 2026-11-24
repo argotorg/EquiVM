@@ -1,6 +1,8 @@
 import Benchmarks.Safe.V0_cdb2eb5.AddressCalldataCopyStep
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_050
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V0_cdb2eb5.RuntimeBlocks
 
@@ -10,7 +12,7 @@ set_option maxRecDepth 100000 in
 theorem safeAddressCalldataCopyLoop (count : Nat)
     {I g s0 σ k C aw mem rdata i n src dst}
     {scratch base fallbackHandler target threshold : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨11412⟩
+    (h : RD fork safeBytecode I g s0 ⟨11412⟩
       (UInt256.ofNat i :: UInt256.ofNat dst :: UInt256.ofNat src :: scratch :: base ::
         fallbackHandler :: target :: threshold :: UInt256.ofNat n :: R) mem aw rdata σ k C)
     (hi : i + count = n) (hn : n < UInt256.size)
@@ -18,7 +20,7 @@ theorem safeAddressCalldataCopyLoop (count : Nat)
     (hm : mem.size = dst)
     (hc : ∀ w ∈ calldataWords I.calldata src count, w.toNat < EVM.addressModulus)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨11460⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨11460⟩
       (UInt256.ofNat n :: UInt256.ofNat (dst + 32 * count) ::
         UInt256.ofNat (src + 32 * count) :: scratch :: base :: fallbackHandler :: target ::
         threshold :: UInt256.ofNat n :: R)
@@ -30,7 +32,7 @@ theorem safeAddressCalldataCopyLoop (count : Nat)
       have h₁ := safeRuntime_block_11412_taken (by omega)
         (by rw [ult_zero (Nat.le_refl _)]; decide) (by jump_dest) h
       simpa only [Nat.mul_zero, Nat.add_zero, calldataWords, wordBytes, ByteArray.append_empty]
-        using (show ∃ aw' k' C', RD safeBytecode I g s0 ⟨11460⟩
+        using (show ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨11460⟩
           (UInt256.ofNat n :: UInt256.ofNat dst :: UInt256.ofNat src :: scratch :: base ::
             fallbackHandler :: target :: threshold :: UInt256.ofNat n :: R)
           mem aw' rdata σ k' C' from ⟨_, _, _, h₁⟩)
@@ -55,13 +57,13 @@ set_option maxRecDepth 100000 in
 theorem safeAddressCalldataCopyLoopRevert (count : Nat)
     {I g s0 σ k C aw mem rdata i n src dst}
     {scratch base fallbackHandler target threshold : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨11412⟩
+    (h : RD fork safeBytecode I g s0 ⟨11412⟩
       (UInt256.ofNat i :: UInt256.ofNat dst :: UInt256.ofNat src :: scratch :: base ::
         fallbackHandler :: target :: threshold :: UInt256.ofNat n :: R) mem aw rdata σ k C)
     (hi : i + count = n) (hn : n < UInt256.size)
     (hsrc : src + 32 * count < UInt256.size) (hdst : dst + 32 * count < UInt256.size)
     (hc : ¬∀ w ∈ calldataWords I.calldata src count, w.toNat < EVM.addressModulus)
-    (hov : R.length + 16 ≤ 1024) : RDrev safeBytecode g s0 := by
+    (hov : R.length + 16 ≤ 1024) : RDrev fork safeBytecode g s0 := by
   induction count generalizing i src dst mem aw k C with
   | zero => exact (hc (by simp [calldataWords])).elim
   | succ count ih =>

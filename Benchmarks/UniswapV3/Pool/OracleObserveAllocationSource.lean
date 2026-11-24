@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.OracleObserveModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -16,7 +18,7 @@ theorem evalOracleObserveLengthBound {cfg : Config} {frame : Frame} {evm : EVM.S
 theorem oracleObserveAllocatePrefix (imms : Store) (evm : EVM.State) (time : UInt256)
     (secondsAgos : List UInt256) (tick : Int) (index liquidity card : UInt256)
     (hn : card.toNat ≠ 0) (hb : secondsAgos.length ≤ 2 ^ 64 - 1) :
-    ExecBlock config (oracleObserveFrame imms time secondsAgos tick index liquidity card) evm
+    ExecBlock fork config (oracleObserveFrame imms time secondsAgos tick index liquidity card) evm
       (oracleObserveFunction.body.take 7)
       (.ok (oracleObserveAllocatedFrame imms time secondsAgos tick index liquidity card) evm) := by
   let f0 := oracleObserveZeroFrame imms time secondsAgos tick index liquidity card
@@ -39,12 +41,12 @@ theorem oracleObserveAllocatePrefix (imms : Store) (evm : EVM.State) (time : UIn
     simpa only [decide_eq_true (Nat.pos_of_ne_zero hn)] using
       evalExpr_uint256_var_positive (cfg := config) (frame := f0) evm "cardinality" card
         (by simp [f0, oracleObserveZeroFrame, oracleObserveLocals, Std.HashMap.getElem_insert])
-  have st : ExecStmt config f0 evm oracleObserveFunction.body[4]!
+  have st : ExecStmt fork config f0 evm oracleObserveFunction.body[4]!
       (.ok f1 evm) := by
     exact ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalExpr_newIntArray (.sint ⟨56, by decide⟩) _ e0)
       (assignLocalVarBase_frame (old := .array []) (by
         simp [f0, oracleObserveZeroFrame, Std.HashMap.getElem_insert]))
-  have ss : ExecStmt config f1 evm oracleObserveFunction.body[6]!
+  have ss : ExecStmt fork config f1 evm oracleObserveFunction.body[6]!
       (.ok (oracleObserveAllocatedFrame imms time secondsAgos tick index liquidity card) evm) := by
     exact ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalExpr_newIntArray (.uint ⟨160, by decide⟩) _ e1)
       (assignLocalVarBase_frame (old := .array []) (by
@@ -58,7 +60,7 @@ theorem oracleObserveAllocatePrefix (imms : Store) (evm : EVM.State) (time : UIn
 
 theorem oracleObserveRevertsZero (imms : Store) (evm : EVM.State) (time : UInt256)
     (secondsAgos : List UInt256) (tick : Int) (index liquidity : UInt256) :
-    ExecFuncBody config (oracleObserveFrame imms time secondsAgos tick index liquidity ⟨0⟩) evm
+    ExecFuncBody fork config (oracleObserveFrame imms time secondsAgos tick index liquidity ⟨0⟩) evm
       oracleObserveFunction.body .reverted := by
   have ep : evalExpr? config
       (oracleObserveZeroFrame imms time secondsAgos tick index liquidity ⟨0⟩) evm

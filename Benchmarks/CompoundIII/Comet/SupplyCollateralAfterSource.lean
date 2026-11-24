@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.SupplyCollateralPrefixSource
 import Benchmarks.CompoundIII.Comet.InternalBlockComposition
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -13,9 +15,9 @@ theorem supplyCollateralTail_source {sender dst asset amount out}
     (hb : frame.locals.get? "dstCollateral" = some (.int balance.toNat))
     (hn : frame.locals.get? "dstCollateralNew" = some (.int next.toNat))
     (hperm : evm.executionEnv.perm = true) :
-    internalBlockResult config frame evm supplyCollateralTail
+    internalBlockResult fork config frame evm supplyCollateralTail
       (assetMembershipResult evm dst (calldataWord out 0) balance next) := by
-  have hc := assetMembership_call frame evm dst out balance next
+  have hc := assetMembership_call (fork := fork) frame evm dst out balance next
     (.var "dst") (.var "assetInfo") (.var "dstCollateral") (.var "dstCollateralNew") "__c3"
     hf.contract hv.2.1
     (by simp only [evalExpr?, hf.dst, EvalResult.ofOption])
@@ -42,10 +44,10 @@ theorem supplyCollateralTail_source {sender dst asset amount out}
       EvalResult.ofOption, pure, bind, EvalResult.bind]
 
 theorem supplyCollateralPrefix_result {frame evm dst asset amount out result}
-    (hb : ExecBlock config frame evm supplyCollateralPrefix
+    (hb : ExecBlock fork config frame evm supplyCollateralPrefix
       (supplyCollateralPrefixResult frame evm dst asset amount out))
     (he : supplyCollateralPrefixOutcome evm dst asset amount out = result) :
-    ExecBlock config frame evm supplyCollateralPrefix
+    ExecBlock fork config frame evm supplyCollateralPrefix
       (match result with
        | .ok evm' => .ok (supplyCollateralReadyFrame frame evm dst asset amount) evm'
        | .reverted => .reverted
@@ -55,9 +57,9 @@ theorem supplyCollateralPrefix_result {frame evm dst asset amount out result}
 theorem supplyCollateralAfterAsset_source {sender dst asset amount out}
     (frame : Frame) (evm : EVM.State)
     (hf : SupplyCollateralArgs frame sender dst asset amount out) (hv : AssetValid out) :
-    internalBlockResult config frame evm (supplyCollateralPrefix ++ supplyCollateralTail)
+    internalBlockResult fork config frame evm (supplyCollateralPrefix ++ supplyCollateralTail)
       (supplyCollateralOutcome evm dst asset amount out) := by
-  have hp := supplyCollateralPrefix_source frame evm hf
+  have hp := supplyCollateralPrefix_source (fork := fork) frame evm hf
   cases he : supplyCollateralPrefixOutcome evm dst asset amount out with
   | reverted =>
     have hp := supplyCollateralPrefix_result hp he

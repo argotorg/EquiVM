@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.PoolModifyContext
 import Benchmarks.UniswapV4PoolManager.PositionGetSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -14,18 +16,18 @@ def poolModifyPositionGetFrame (f : Frame) (id : UInt256) (p : PoolModifyParams)
 
 theorem poolModifyPositionGet {f : Frame} {evm : State} {id : UInt256} {p : PoolModifyParams}
     (hc : PoolModifyContext f id p) (hl : int24Canonical p.lower) (hu : int24Canonical p.upper) :
-    ExecBlock config f evm ((poolModifyFunction.body.drop 12).take 3)
+    ExecBlock fork config f evm ((poolModifyFunction.body.drop 12).take 3)
       (.ok (poolModifyPositionGetFrame f id p) evm) := by
   let fa := {f with locals := f.locals.insert poolModifyPositionAlias (positionsRefValue id)}
   let fc := {fa with locals := fa.locals.insert "__c7" (positionRefValue id (poolModifyPositionKey p))}
-  have ha : ExecStmt config f evm poolModifyFunction.body[12]! (.ok fa evm) :=
+  have ha : ExecStmt fork config f evm poolModifyFunction.body[12]! (.ok fa evm) :=
     ExecStmt.letStorage (resolveStorageAliasField hc.self rfl)
   have hca : PoolModifyContext fa id p := hc.insert poolModifyPositionAlias _ (by decide)
   have hep := evalLocalValue (cfg := config) (f := fa) (evm := evm) hca.params
-  have hcall := positionGetCall (f := fa) (evm := evm) hca.contract (evalLocalValue (store_get_self _ _ _))
+  have hcall := positionGetCall (fork := fork) (f := fa) (evm := evm) hca.contract (evalLocalValue (store_get_self _ _ _))
     (evalStructField hep (field := "owner") rfl) (evalLocalValue hca.lower) (evalLocalValue hca.upper)
     (evalStructField hep (field := "salt") rfl) hl hu "__c7"
-  have hp : ExecStmt config fc evm poolModifyFunction.body[14]!
+  have hp : ExecStmt fork config fc evm poolModifyFunction.body[14]!
       (.ok (poolModifyPositionGetFrame f id p) evm) :=
     ExecStmt.letStorage (resolveStorageAlias (store_get_self _ _ _))
   exact ExecBlock.consNormal ha (ExecBlock.consNormal hcall (execBlock_singleton hp))

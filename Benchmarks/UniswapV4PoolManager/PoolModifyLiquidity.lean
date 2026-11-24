@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.LiquidityAddWords
 import Benchmarks.UniswapV4PoolManager.LiquidityAddSource
 import Benchmarks.UniswapV4PoolManager.WordLocals
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 
@@ -20,8 +22,8 @@ def poolModifyLiquidityResult (f : Frame) (evm : State) (id : UInt256) (delta : 
 
 theorem poolModifyLiquidity {f : Frame} {evm : State} {id : UInt256} {p : PoolModifyParams}
     (hc : PoolModifyContext f id p) :
-    ExecBlock config f evm poolModifyLiquidityBlock (poolModifyLiquidityResult f evm id p.delta) := by
-  have hcall := liquidityAddCall (f := f) (evm := evm) hc.contract (poolLiquidity_read hc.self)
+    ExecBlock fork config f evm poolModifyLiquidityBlock (poolModifyLiquidityResult f evm id p.delta) := by
+  have hcall := liquidityAddCall (fork := fork) (f := f) (evm := evm) hc.contract (poolLiquidity_read hc.self)
     (evalLocalValue hc.liquidityDelta) "__c28"
   by_cases hfit : liquidityAddFits (poolLiquidityWord evm id) p.delta
   · rw [if_pos hfit, ← liquidityAddResultWord_value hfit] at hcall
@@ -34,7 +36,7 @@ theorem poolModifyLiquidity {f : Frame} {evm : State} {id : UInt256} {p : PoolMo
     · rw [if_pos hp]
       exact ExecBlock.consNormal hcall (ExecBlock.consStatic (ExecStmt.assignStatic wordLocal_eval hw hp))
     · rw [if_neg hp]
-      exact ExecBlock.consNormal hcall (execBlock_singleton (ExecStmt.assign (hperm := Or.inr (Bool.eq_true_of_not_eq_false hp)) wordLocal_eval hw))
+      exact ExecBlock.consNormal hcall (execBlock_singleton (ExecStmt.assign (fork := fork) (hperm := Or.inr (Bool.eq_true_of_not_eq_false hp)) wordLocal_eval hw))
   · rw [poolModifyLiquidityResult, if_neg hfit]
     exact ExecBlock.consRevert (by simpa only [if_neg hfit] using hcall)
 

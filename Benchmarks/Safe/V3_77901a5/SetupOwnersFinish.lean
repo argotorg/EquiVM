@@ -1,6 +1,8 @@
 import Benchmarks.Safe.V3_77901a5.SetupOwnersStore
 import Benchmarks.Safe.V3_77901a5.Blocks.Runtime_036
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V3_77901a5.RuntimeBlocks
 
@@ -33,7 +35,7 @@ theorem safeSetupOwnersFinishSource (evm : EVM.State) {p locals i current}
     (hl : SetupOwnersLocals p locals i current) (hc : current.toNat < EVM.addressModulus)
     (hn : p.owners.length < UInt256.size)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       (setupOwnersFunction.body.drop 7)
       (.ok { contract := contract, locals := locals } (setupOwnersFinishState p evm current)) := by
   have hfirst := safeAssignOwnerLink evm locals (.var "currentOwner") current ⟨1⟩
@@ -64,13 +66,13 @@ theorem setupOwnersFinishState_accounts (p : SetupOwnersInput) (evm : EVM.State)
 set_option maxRecDepth 100000 in
 theorem safeSetupOwnersFinishTrace (p : SetupOwnersInput) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata i} {current src ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨8199⟩
+    (h : RD fork safeBytecode I g s0 ⟨8199⟩
       (i :: UInt256.ofNat p.owners.length :: current :: p.threshold :: src :: ret :: R)
       mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ)
     (hc : current.toNat < EVM.addressModulus) (hperm : I.perm = true)
     (hov : R.length + 9 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ret R (twoWordHashMem current ⟨2⟩ mem)
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ret R (twoWordHashMem current ⟨2⟩ mem)
       aw' rdata (setupOwnersFinishState p evm current).accountMap k' C' := by
   obtain ⟨aw', k', C', h'⟩ := safeRuntime_block_8199_packed hov hperm hret h
   simp only [safeRuntime_block_8199_stack, safeRuntime_block_8199_memory, safeAddressMask,

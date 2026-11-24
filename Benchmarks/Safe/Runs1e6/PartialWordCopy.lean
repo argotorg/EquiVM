@@ -1,6 +1,8 @@
 import Benchmarks.Safe.Runs1e6.WordBufferCopy
 import Benchmarks.Safe.Runs1e6.MemoryBytesDecoded
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Runs1e6.RuntimeBlocks
 
@@ -74,13 +76,13 @@ theorem forwardCopyMemory_payload (mem : ByteArray) (src dst len : Nat)
 set_option maxRecDepth 100000 in
 theorem safeForwardBytesCopy {I g s0 σ k C aw mem rdata src dst len}
     {ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨12311⟩
+    (h : RD fork safeBytecode I g s0 ⟨12311⟩
       (UInt256.ofNat src :: UInt256.ofNat dst :: UInt256.ofNat len :: ret :: R)
       mem aw rdata σ k C)
     (hl : 32 ≤ len) (hm : dst ≤ mem.size) (ha : src + len ≤ dst)
     (hb : dst + len + 64 < UInt256.size)
     (hov : R.length + 12 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ret R (forwardCopyMemory mem src dst len)
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ret R (forwardCopyMemory mem src dst len)
       aw' rdata σ k' C' := by
   let first := memLoad (UInt256.ofNat src) mem
   let m := writeWord mem dst first
@@ -93,7 +95,7 @@ theorem safeForwardBytesCopy {I g s0 σ k C aw mem rdata src dst len}
   obtain ⟨_, _, _, h₂⟩ := safeRuntime_block_12322_packed (by simp; omega) (by jump_dest) h₁
   simp only [safeRuntime_block_12322_stack, safeRuntime_block_12322_memory,
     u256_zero_add, ulit_toNat' dst (by omega)] at h₂
-  change RD safeBytecode I g s0 ⟨12313⟩
+  change RD fork safeBytecode I g s0 ⟨12313⟩
     (UInt256.ofNat 32 :: UInt256.ofNat src :: UInt256.ofNat dst :: UInt256.ofNat len :: ret :: R)
     m _ rdata σ _ _ at h₂
   obtain ⟨_, _, _, h₃⟩ := safeByteBufferCopyLoopAfter words h₂ (by simp; omega)

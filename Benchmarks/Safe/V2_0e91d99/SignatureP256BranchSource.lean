@@ -1,6 +1,8 @@
 import Benchmarks.Safe.V2_0e91d99.SignatureP256Decode
 import Benchmarks.Safe.V2_0e91d99.InternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V2_0e91d99
@@ -26,10 +28,10 @@ theorem signatureP256DecodedSource {p : SignatureInput} {f : Frame} {evm : EVM.S
     (ho : f.locals["currentOwner"]? = some old)
     (hl : p.requiredBytes ≤ s.toNat) (hh : s.toNat + 128 ≤ p.signatures.size)
     (hb : p.signatures.size < UInt256.size) :
-    ExecBlock config f evm (signatureP256Body.take 10)
+    ExecBlock fork config f evm (signatureP256Body.take 10)
       (.ok (signatureP256Frame p f r s) evm) := by
-  have h₁ := signatureP256Prefix (evm := evm) hc hr hs ho hl hh hb
-  have h₂ := signatureP256DecodeSource (evm := evm) (s := s) (hc.p256End r s)
+  have h₁ := signatureP256Prefix (fork := fork) (evm := evm) hc hr hs ho hl hh hb
+  have h₂ := signatureP256DecodeSource (fork := fork) (evm := evm) (s := s) (hc.p256End r s)
     (oldR := wordBytes32Value r) (oldS := wordBytes32Value s)
     (by simp [signatureP256EndFrame, signatureP256OffsetFrame, signatureDynamicFrame,
       signatureCurrentFrame, signatureSet, Std.HashMap.getElem?_insert, hr])
@@ -60,8 +62,8 @@ theorem safeInternalP256 {p : SignatureInput} {f : Frame} {evm : EVM.State}
     (hs : f.locals["s"]? = some (wordBytes32Value input.s))
     (hx : f.locals["qx"]? = some (uint256Value input.qx))
     (hy : f.locals["qy"]? = some (uint256Value input.qy))
-    (hbody : ExecFuncBody config input.frame evm p256VerifyFunction.body result) :
-    ExecStmt config f evm signatureP256Body[11]!
+    (hbody : ExecFuncBody fork config input.frame evm p256VerifyFunction.body result) :
+    ExecStmt fork config f evm signatureP256Body[11]!
       (internalCallResult f "p256Valid" result) := by
   apply internalCallFunctionResult (callee := p256VerifyFunction)
     (argVals := [wordBytes32Value input.hash, wordBytes32Value input.r,
@@ -83,8 +85,8 @@ theorem signatureP256SignerRejected {p : SignatureInput} {f : Frame} {evm : EVM.
     (hb : p.signatures.size < UInt256.size)
     (hm : UInt256.land solcAddrMask r ≠
       UInt256.land solcAddrMask (p256SignerWord (signatureP256Input p s))) :
-    ExecBlock config f evm signatureP256Body .reverted := by
-  have ht : ExecBlock config (signatureP256Frame p f r s) evm
+    ExecBlock fork config f evm signatureP256Body .reverted := by
+  have ht : ExecBlock fork config (signatureP256Frame p f r s) evm
       (signatureP256Body.drop 10) .reverted := .consRevert (.requireFalse (by
         simpa only [hm, decide_false] using
           signatureP256SignerGuard (p := p) (f := f) (r := r) (s := s) (evm := evm)))
@@ -100,9 +102,9 @@ theorem signatureP256Source {p : SignatureInput} {f : Frame} {evm evm' : EVM.Sta
     (hb : p.signatures.size < UInt256.size)
     (hm : UInt256.land solcAddrMask r =
       UInt256.land solcAddrMask (p256SignerWord (signatureP256Input p s)))
-    (hbody : ExecFuncBody config (signatureP256Input p s).frame evm p256VerifyFunction.body
+    (hbody : ExecFuncBody fork config (signatureP256Input p s).frame evm p256VerifyFunction.body
       (.returned f' evm' (some [.bool b]))) :
-    ExecBlock config f evm signatureP256Body
+    ExecBlock fork config f evm signatureP256Body
       (if b then .ok (signatureP256FinalFrame p f r s) evm' else .reverted) := by
   have hcall := safeInternalP256 (input := signatureP256Input p s) (hc.p256Decoded r s)
     (hc.p256Decoded r s).hash
@@ -114,7 +116,7 @@ theorem signatureP256Source {p : SignatureInput} {f : Frame} {evm evm' : EVM.Sta
       signatureSet, Std.HashMap.getElem?_insert, Std.HashMap.getElem_insert])
     (by simp [signatureP256Frame, signatureP256SignerFrame, signatureP256ReadFrame,
       signatureSet, Std.HashMap.getElem?_insert, Std.HashMap.getElem_insert]) hbody
-  have ht : ExecBlock config (signatureP256Frame p f r s) evm (signatureP256Body.drop 10)
+  have ht : ExecBlock fork config (signatureP256Frame p f r s) evm (signatureP256Body.drop 10)
       (if b then .ok (signatureP256FinalFrame p f r s) evm' else .reverted) := by
     apply ExecBlock.consNormal (.requireTrue (by
       simpa only [hm, decide_true] using

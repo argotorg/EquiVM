@@ -1,6 +1,8 @@
 import Tests.Pipeline.VyperVault.Deposit
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # VyperVault `withdraw(uint256)`
 
@@ -124,7 +126,7 @@ theorem vyperVaultWithdrawBody {σ σ₀ A I} {g : UInt256} (imms : Store) (hfit
     (hwf : storageWF σ I)
     (hcode : I.code = immutableLayout.deployed vyperVaultBytecode imms) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vyperVaultSelBytes 3)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (restrictImmutables contract imms) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (restrictImmutables contract imms) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (vyperVaultSelBytes 3) rfl hsel
   have hcode' : I.code = vyperVaultBytecode ++ immutableLayout.suffixWords (wordsOf imms) := by
     rw [hcode, deployed_of_fit hfit]
@@ -348,7 +350,7 @@ theorem vyperVaultWithdrawBody {σ σ₀ A I} {g : UInt256} (imms : Store) (hfit
     (show (hashMem2 I).readWithPadding 0 0 = ByteArray.empty from byteArray_readWithPadding_zero _ _)
     (by show ByteArray.empty.size ≤ _; exact Nat.zero_le _) (by simp)
   have rd8 := RD.normalizePC (pc' := UInt256.ofNat 917) rd7 (by native_decide)
-  have hcallStmt : ExecStmt config (frame imms (wStore I)) (evmT σ σ₀ (Sat256.ofUInt256 g) A I)
+  have hcallStmt : ExecStmt fork config (frame imms (wStore I)) (evmT σ σ₀ (Sat256.ofUInt256 g) A I)
       (.lowLevelCall (.env .caller) (.var "amount") (.newBytes (.intLit 0)) "__ok0" "__data0" true)
       (.ok { frame imms (wStore I) with
           locals := ((wStore I).insert "__ok0" (.bool z)).insert "__data0" (.bytes out) } evm') :=
@@ -399,7 +401,7 @@ theorem vyperVaultWithdrawBody {σ σ₀ A I} {g : UInt256} (imms : Store) (hfit
         (hbase := by simp) (her := by simp [evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
         (hty := by show storageTypeAt? contract.storage _ = _; decide) (hloc := rfl)
       erw [storageLocStore_uint256, hs'.env]
-    have hbody : ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) (wStore I)
+    have hbody : ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) (wStore I)
         withdrawTransition.body
         (.returned (frame imms ((wStore I).insert "__r" .unit))
           (Stele.EVM.storageStore evm' I.codeOwner ⟨0⟩ (UInt256.ofNat 3)) none)

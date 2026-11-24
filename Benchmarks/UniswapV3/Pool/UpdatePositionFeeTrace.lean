@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.UpdatePositionFeeModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -9,9 +11,9 @@ set_option maxRecDepth 10000
 theorem updatePositionFeeEntryX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : UpdatePositionArgs) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨19492⟩ (updatePositionChangedWords v a evm ++ R)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨19492⟩ (updatePositionChangedWords v a evm ++ R)
       mem aw rdata σ k C) (hov : R.length + 20 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨21387⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨21387⟩
       ((updatePositionFeeArgs a evm).global1 :: (updatePositionFeeArgs a evm).global0 ::
         EVM.wordOfInt a.current :: EVM.wordOfInt a.upper :: EVM.wordOfInt a.lower :: ⟨5⟩ ::
         ⟨19510⟩ :: ⟨0⟩ :: ⟨0⟩ :: updatePositionChangedWords v a evm ++ R)
@@ -28,9 +30,9 @@ theorem updatePositionFeeX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : UpdatePositionArgs) (evm : EVM.State)
     (hs : SourceState s0 ee σ (updatePositionChangedState v a evm))
-    (rd : RD (deployedRuntime v) ee g s0 ⟨19492⟩ (updatePositionChangedWords v a evm ++ R)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨19492⟩ (updatePositionChangedWords v a evm ++ R)
       mem aw rdata σ k C) (ha : a.Fits) (hm : HeapMemory mem aw p) (hov : R.length + 30 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨19510⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨19510⟩
       (updatePositionInside v a evm true :: updatePositionInside v a evm false ::
         ⟨0⟩ :: ⟨0⟩ :: updatePositionChangedWords v a evm ++ R)
       (tickFeeMemory mem (updatePositionFeeArgs a evm)) aw rdata σ k' C' ∧
@@ -46,11 +48,11 @@ theorem updatePositionFeeX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem updatePositionPositionEntryX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : UpdatePositionArgs) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨19510⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨19510⟩
       (updatePositionInside v a evm true :: updatePositionInside v a evm false ::
         ⟨0⟩ :: ⟨0⟩ :: updatePositionChangedWords v a evm ++ R) mem aw rdata σ k C)
     (hov : R.length + 18 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨21559⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨21559⟩
       ((updatePositionPositionArgs v a evm).growth1 :: (updatePositionPositionArgs v a evm).growth0 ::
         EVM.wordOfInt a.delta :: solcMappingSlot ⟨7⟩ (updatePositionKey a) :: ⟨19527⟩ ::
         updatePositionInside v a evm true :: updatePositionInside v a evm false ::

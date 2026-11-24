@@ -2,6 +2,8 @@ import Benchmarks.Dss.Vow.Arithmetic
 import Benchmarks.Dss.Vow.Cage
 import Benchmarks.Dss.Vow.FlopAsh
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -186,7 +188,7 @@ theorem cageFlopperCageNoCode
         ((evm.lookupAccount (flopFlopperAddressOf evm)).option 0
           (fun acc => acc.code.size))).toNat = 0) :
     let locals := cageLocalsAfterFlapCage flapperDai
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       cageFlopperCageStmts .reverted := by
   intro locals
   have hflopper :
@@ -210,10 +212,10 @@ theorem cageFlopperCageCallFailure
         ((evm.lookupAccount (flopFlopperAddressOf evm)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallFlop :
-      typedCallViaEVM config evm (EVM.address (flopFlopperAddressOf evm))
+      typedCallViaEVM fork config evm (EVM.address (flopFlopperAddressOf evm))
         "cage" 0 [] (false, evmFlop, outFlop) true) :
     let locals := cageLocalsAfterFlapCage flapperDai
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       cageFlopperCageStmts .reverted := by
   intro locals
   have hflopper :
@@ -231,7 +233,7 @@ theorem cageFlopperCageCallFailure
       evalExprs? config { contract := contract, locals := locals } evm [] = .ok [] := by
     rfl
   have hcallStmt :
-      ExecStmt config { contract := contract, locals := locals } evm
+      ExecStmt fork config { contract := contract, locals := locals } evm
         (.externalCall (.storage flopperRef) "cage" (.intLit 0) [] "_flopCageRet")
         .reverted := by
     exact ExecStmt.externalCallFailure (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hflopper (by simp [evalExpr?, pure]) hargs hcallFlop
@@ -246,10 +248,10 @@ theorem cageFlopperCageSuccess
         ((evm.lookupAccount (flopFlopperAddressOf evm)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallFlop :
-      typedCallViaEVM config evm (EVM.address (flopFlopperAddressOf evm))
+      typedCallViaEVM fork config evm (EVM.address (flopFlopperAddressOf evm))
         "cage" 0 [] (true, evmFlop, outFlop) true) :
     let locals := cageLocalsAfterFlapCage flapperDai
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       cageFlopperCageStmts
       (.ok { contract := contract, locals := cageLocalsAfterFlopCage flapperDai }
         evmFlop) := by
@@ -269,7 +271,7 @@ theorem cageFlopperCageSuccess
       evalExprs? config { contract := contract, locals := locals } evm [] = .ok [] := by
     rfl
   have hcallStmt :
-      ExecStmt config { contract := contract, locals := locals } evm
+      ExecStmt fork config { contract := contract, locals := locals } evm
         (.externalCall (.storage flopperRef) "cage" (.intLit 0) [] "_flopCageRet")
         (.ok { contract := contract, locals := cageLocalsAfterFlopCage flapperDai }
           evmFlop) := by
@@ -287,7 +289,7 @@ theorem cageVatDaiNoCode
         ((evm.lookupAccount (cageVatAddressOf evm)).option 0
           (fun acc => acc.code.size))).toNat = 0) :
     let locals := cageLocalsAfterFlopCage flapperDai
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       cageVatDaiStmts .reverted := by
   intro locals
   have hvat :
@@ -312,11 +314,11 @@ theorem cageVatDaiCallFailure
         ((evm.lookupAccount (cageVatAddressOf evm)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config evm (EVM.address (cageVatAddressOf evm))
+      typedCallViaEVM fork config evm (EVM.address (cageVatAddressOf evm))
         "dai" 0 [.address evm.executionEnv.codeOwner] (false, evmDai, outDai)
         false) :
     let locals := cageLocalsAfterFlopCage flapperDai
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       cageVatDaiStmts .reverted := by
   intro locals
   have hvat :
@@ -335,7 +337,7 @@ theorem cageVatDaiCallFailure
         .ok [.address evm.executionEnv.codeOwner] := by
     simpa [locals] using evalExprs_kissThis evm locals
   have hcallStmt :
-      ExecStmt config { contract := contract, locals := locals } evm
+      ExecStmt fork config { contract := contract, locals := locals } evm
         (.externalCall (.storage vatRef) "dai" (.intLit 0) [thisAddr] "vatDai"
           (perm := false))
         .reverted := by
@@ -351,12 +353,12 @@ theorem cageVatDaiReturnDecodeFailure
         ((evm.lookupAccount (cageVatAddressOf evm)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config evm (EVM.address (cageVatAddressOf evm))
+      typedCallViaEVM fork config evm (EVM.address (cageVatAddressOf evm))
         "dai" 0 [.address evm.executionEnv.codeOwner] (true, evmDai, outDai)
         false)
     (hdecDai : config.externalABI.decode? "dai" outDai = none) :
     let locals := cageLocalsAfterFlopCage flapperDai
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       cageVatDaiStmts .reverted := by
   intro locals
   have hvat :
@@ -375,7 +377,7 @@ theorem cageVatDaiReturnDecodeFailure
         .ok [.address evm.executionEnv.codeOwner] := by
     simpa [locals] using evalExprs_kissThis evm locals
   have hcallStmt :
-      ExecStmt config { contract := contract, locals := locals } evm
+      ExecStmt fork config { contract := contract, locals := locals } evm
         (.externalCall (.storage vatRef) "dai" (.intLit 0) [thisAddr] "vatDai"
           (perm := false))
         .reverted := by
@@ -392,14 +394,14 @@ theorem cageVatDaiSuccess
         ((evm.lookupAccount (cageVatAddressOf evm)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config evm (EVM.address (cageVatAddressOf evm))
+      typedCallViaEVM fork config evm (EVM.address (cageVatAddressOf evm))
         "dai" 0 [.address evm.executionEnv.codeOwner] (true, evmDai, outDai)
         false)
     (hdecDai :
       config.externalABI.decode? "dai" outDai =
         some [.int (Int.ofNat vatDai.toNat)]) :
     let locals := cageLocalsAfterFlopCage flapperDai
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       cageVatDaiStmts
       (.ok { contract := contract, locals := cageLocalsAfterVatDai flapperDai vatDai }
         evmDai) := by
@@ -420,7 +422,7 @@ theorem cageVatDaiSuccess
         .ok [.address evm.executionEnv.codeOwner] := by
     simpa [locals] using evalExprs_kissThis evm locals
   have hcallStmt :
-      ExecStmt config { contract := contract, locals := locals } evm
+      ExecStmt fork config { contract := contract, locals := locals } evm
         (.externalCall (.storage vatRef) "dai" (.intLit 0) [thisAddr] "vatDai"
           (perm := false))
         (.ok { contract := contract, locals := cageLocalsAfterVatDai flapperDai vatDai }
@@ -439,7 +441,7 @@ theorem cageVatSinNoCode
         ((evm.lookupAccount (cageVatAddressOf evm)).option 0
           (fun acc => acc.code.size))).toNat = 0) :
     let locals := cageLocalsAfterVatDai flapperDai vatDai
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       cageVatSinStmts .reverted := by
   intro locals
   have hvat :
@@ -464,11 +466,11 @@ theorem cageVatSinCallFailure
         ((evm.lookupAccount (cageVatAddressOf evm)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config evm (EVM.address (cageVatAddressOf evm))
+      typedCallViaEVM fork config evm (EVM.address (cageVatAddressOf evm))
         "sin" 0 [.address evm.executionEnv.codeOwner] (false, evmSin, outSin)
         false) :
     let locals := cageLocalsAfterVatDai flapperDai vatDai
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       cageVatSinStmts .reverted := by
   intro locals
   have hvat :
@@ -487,7 +489,7 @@ theorem cageVatSinCallFailure
         .ok [.address evm.executionEnv.codeOwner] := by
     simpa [locals] using evalExprs_kissThis evm locals
   have hcallStmt :
-      ExecStmt config { contract := contract, locals := locals } evm
+      ExecStmt fork config { contract := contract, locals := locals } evm
         (.externalCall (.storage vatRef) "sin" (.intLit 0) [thisAddr] "vatSin"
           (perm := false))
         .reverted := by
@@ -503,12 +505,12 @@ theorem cageVatSinReturnDecodeFailure
         ((evm.lookupAccount (cageVatAddressOf evm)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config evm (EVM.address (cageVatAddressOf evm))
+      typedCallViaEVM fork config evm (EVM.address (cageVatAddressOf evm))
         "sin" 0 [.address evm.executionEnv.codeOwner] (true, evmSin, outSin)
         false)
     (hdecSin : config.externalABI.decode? "sin" outSin = none) :
     let locals := cageLocalsAfterVatDai flapperDai vatDai
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       cageVatSinStmts .reverted := by
   intro locals
   have hvat :
@@ -527,7 +529,7 @@ theorem cageVatSinReturnDecodeFailure
         .ok [.address evm.executionEnv.codeOwner] := by
     simpa [locals] using evalExprs_kissThis evm locals
   have hcallStmt :
-      ExecStmt config { contract := contract, locals := locals } evm
+      ExecStmt fork config { contract := contract, locals := locals } evm
         (.externalCall (.storage vatRef) "sin" (.intLit 0) [thisAddr] "vatSin"
           (perm := false))
         .reverted := by
@@ -545,14 +547,14 @@ theorem cageVatSinSuccess
         ((evm.lookupAccount (cageVatAddressOf evm)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config evm (EVM.address (cageVatAddressOf evm))
+      typedCallViaEVM fork config evm (EVM.address (cageVatAddressOf evm))
         "sin" 0 [.address evm.executionEnv.codeOwner] (true, evmSin, outSin)
         false)
     (hdecSin :
       config.externalABI.decode? "sin" outSin =
         some [.int (Int.ofNat vatSin.toNat)]) :
     let locals := cageLocalsAfterVatDai flapperDai vatDai
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       cageVatSinStmts
       (.ok { contract := contract, locals := cageLocalsAfterVatSin flapperDai vatDai vatSin }
         evmSin) := by
@@ -573,7 +575,7 @@ theorem cageVatSinSuccess
         .ok [.address evm.executionEnv.codeOwner] := by
     simpa [locals] using evalExprs_kissThis evm locals
   have hcallStmt :
-      ExecStmt config { contract := contract, locals := locals } evm
+      ExecStmt fork config { contract := contract, locals := locals } evm
         (.externalCall (.storage vatRef) "sin" (.intLit 0) [thisAddr] "vatSin"
           (perm := false))
         (.ok { contract := contract, locals := cageLocalsAfterVatSin flapperDai vatDai vatSin }
@@ -589,7 +591,7 @@ theorem cageMinLeft
     {evm : EVM.State} {flapperDai vatDai vatSin : UInt256}
     (hle : vatDai.toNat ≤ vatSin.toNat) :
     let locals := cageLocalsAfterVatSin flapperDai vatDai vatSin
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       cageMinStmts
       (.ok { contract := contract, locals := cageLocalsAfterHealRad flapperDai vatDai vatSin vatDai }
         evm) := by
@@ -621,11 +623,11 @@ theorem cageMinLeft
         some (uintBinaryLocals vatDai vatSin) := by
     simp [minFunction, uint256, bindParams?, uintBinaryLocals]
   have hcall :
-      ExecStmt config { contract := contract, locals := locals } evm
+      ExecStmt fork config { contract := contract, locals := locals } evm
         (.internalCall "min" [.var "vatDai", .var "vatSin"] "healRad")
         (.ok { contract := contract, locals := cageLocalsAfterHealRad flapperDai vatDai vatSin vatDai }
           evm) := by
-    have hbody := execMinFunctionReturnLeft (evm := evm) (x := vatDai) (y := vatSin) hle
+    have hbody := execMinFunctionReturnLeft (fork := fork) (evm := evm) (x := vatDai) (y := vatSin) hle
     simpa [locals, cageLocalsAfterHealRad, resumeAfterInternalCall] using
       (internalCallFunctionReturn
         (cfg := config) (caller := { contract := contract, locals := locals })
@@ -643,7 +645,7 @@ theorem cageMinRight
     {evm : EVM.State} {flapperDai vatDai vatSin : UInt256}
     (hlt : vatSin.toNat < vatDai.toNat) :
     let locals := cageLocalsAfterVatSin flapperDai vatDai vatSin
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       cageMinStmts
       (.ok { contract := contract, locals := cageLocalsAfterHealRad flapperDai vatDai vatSin vatSin }
         evm) := by
@@ -675,11 +677,11 @@ theorem cageMinRight
         some (uintBinaryLocals vatDai vatSin) := by
     simp [minFunction, uint256, bindParams?, uintBinaryLocals]
   have hcall :
-      ExecStmt config { contract := contract, locals := locals } evm
+      ExecStmt fork config { contract := contract, locals := locals } evm
         (.internalCall "min" [.var "vatDai", .var "vatSin"] "healRad")
         (.ok { contract := contract, locals := cageLocalsAfterHealRad flapperDai vatDai vatSin vatSin }
           evm) := by
-    have hbody := execMinFunctionReturnRight (evm := evm) (x := vatDai) (y := vatSin) hlt
+    have hbody := execMinFunctionReturnRight (fork := fork) (evm := evm) (x := vatDai) (y := vatSin) hlt
     simpa [locals, cageLocalsAfterHealRad, resumeAfterInternalCall] using
       (internalCallFunctionReturn
         (cfg := config) (caller := { contract := contract, locals := locals })
@@ -700,7 +702,7 @@ theorem cageVatHealNoCode
         ((evm.lookupAccount (cageVatAddressOf evm)).option 0
           (fun acc => acc.code.size))).toNat = 0) :
     let locals := cageLocalsAfterHealRad flapperDai vatDai vatSin healRad
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       cageVatHealStmts .reverted := by
   intro locals
   have hvat :
@@ -727,11 +729,11 @@ theorem cageVatHealCallFailure
         ((evm.lookupAccount (cageVatAddressOf evm)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallHeal :
-      typedCallViaEVM config evm (EVM.address (cageVatAddressOf evm))
+      typedCallViaEVM fork config evm (EVM.address (cageVatAddressOf evm))
         "heal" 0 [.int (Int.ofNat healRad.toNat)] (false, evmHeal, outHeal)
         true) :
     let locals := cageLocalsAfterHealRad flapperDai vatDai vatSin healRad
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       cageVatHealStmts .reverted := by
   intro locals
   have hvat :
@@ -759,7 +761,7 @@ theorem cageVatHealCallFailure
         .ok [.int (Int.ofNat healRad.toNat)] := by
     simp [evalExprs?, hhealRad, EvalResult.bind, bind, pure]
   have hcallStmt :
-      ExecStmt config { contract := contract, locals := locals } evm
+      ExecStmt fork config { contract := contract, locals := locals } evm
         (.externalCall (.storage vatRef) "heal" (.intLit 0) [.var "healRad"] "_healRet")
         .reverted := by
     exact ExecStmt.externalCallFailure (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hvat (by simp [evalExpr?, pure]) hargs hcallHeal
@@ -775,11 +777,11 @@ theorem cageVatHealSuccess
         ((evm.lookupAccount (cageVatAddressOf evm)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallHeal :
-      typedCallViaEVM config evm (EVM.address (cageVatAddressOf evm))
+      typedCallViaEVM fork config evm (EVM.address (cageVatAddressOf evm))
         "heal" 0 [.int (Int.ofNat healRad.toNat)] (true, evmHeal, outHeal)
         true) :
     let locals := cageLocalsAfterHealRad flapperDai vatDai vatSin healRad
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       cageVatHealStmts
       (.ok { contract := contract, locals := cageLocalsAfterHealRet flapperDai vatDai vatSin healRad }
         evmHeal) := by
@@ -809,7 +811,7 @@ theorem cageVatHealSuccess
         .ok [.int (Int.ofNat healRad.toNat)] := by
     simp [evalExprs?, hhealRad, EvalResult.bind, bind, pure]
   have hcallStmt :
-      ExecStmt config { contract := contract, locals := locals } evm
+      ExecStmt fork config { contract := contract, locals := locals } evm
         (.externalCall (.storage vatRef) "heal" (.intLit 0) [.var "healRad"] "_healRet")
         (.ok { contract := contract, locals := cageLocalsAfterHealRet flapperDai vatDai vatSin healRad }
           evmHeal) := by
@@ -824,12 +826,12 @@ set_option maxHeartbeats 0 in
 theorem RD.vowCageSecondDaiExtcodesizeGuard {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {acc : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {d1 d2 : UInt256} {R : List UInt256}
-    (rd : RD vowBytecode ee g s0 ⟨2983⟩
+    (rd : RD fork vowBytecode ee g s0 ⟨2983⟩
       (d1 :: d2 :: R) mem (UInt256.ofNat 6) rdata acc k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (_hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD vowBytecode ee g s0 ⟨3058⟩
+    ∃ k' C', RD fork vowBytecode ee g s0 ⟨3058⟩
       (kissDaiTargetWord acc ee :: kissDaiTargetWord acc ee ::
         ⟨128⟩ :: ⟨36⟩ :: ⟨128⟩ :: ⟨32⟩ :: ⟨164⟩ :: ⟨1814410054⟩ ::
         kissDaiTargetWord acc ee :: ⟨3238⟩ :: ⟨4084909596⟩ ::
@@ -839,7 +841,7 @@ theorem RD.vowCageSecondDaiExtcodesizeGuard {g : Sat256} {s0 : State}
   let rawTarget := solcSlotWordAt ⟨1⟩ acc ee
   have rd2985 := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
   obtain ⟨k2986, C2986, rd2986Raw⟩ := rd2985.sload (by native_decide) (by evm_ov)
-  have rd2986 : RD vowBytecode ee g s0 ⟨2986⟩
+  have rd2986 : RD fork vowBytecode ee g s0 ⟨2986⟩
       (rawTarget :: d1 :: d2 :: R) mem (UInt256.ofNat 6) rdata acc k2986 C2986 := by
     simpa [rawTarget, solcSlotWordAt, solcSlotWord] using rd2986Raw
   have hmload64 :
@@ -942,14 +944,14 @@ theorem RD.vowCageSecondDaiExtcodesizeGuard {g : Sat256} {s0 : State}
 theorem RD.vowCageSecondDaiNoCode {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {acc : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {d1 d2 : UInt256} {R : List UInt256}
-    (rd : RD vowBytecode ee g s0 ⟨2983⟩
+    (rd : RD fork vowBytecode ee g s0 ⟨2983⟩
       (d1 :: d2 :: R) mem (UInt256.ofNat 6) rdata acc k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord acc (kissDaiTargetWord acc ee) = ⟨0⟩)
     (hov : R.length + 16 ≤ 1024) :
-    RDrev vowBytecode g s0 := by
+    RDrev fork vowBytecode g s0 := by
   obtain ⟨_, _, rd3058⟩ := RD.vowCageSecondDaiExtcodesizeGuard
     rd hmem hread64 hov
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨3058⟩) (okPc := ⟨3070⟩)
@@ -961,7 +963,7 @@ theorem RD.vowCageSecondDaiNoCode {g : Sat256} {s0 : State}
 theorem RD.vowCageSecondDaiStaticcallSetup {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {acc : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {d1 d2 : UInt256} {R : List UInt256}
-    (rd : RD vowBytecode ee g s0 ⟨2983⟩
+    (rd : RD fork vowBytecode ee g s0 ⟨2983⟩
       (d1 :: d2 :: R) mem (UInt256.ofNat 6) rdata acc k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -969,7 +971,7 @@ theorem RD.vowCageSecondDaiStaticcallSetup {g : Sat256} {s0 : State}
       Reasoning.Theory.extCodeSizeWord acc
         (kissDaiTargetWord acc ee) ≠ ⟨0⟩)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ gasWord k' C', RD vowBytecode ee g s0 ⟨3073⟩
+    ∃ gasWord k' C', RD fork vowBytecode ee g s0 ⟨3073⟩
       (gasWord :: kissDaiTargetWord acc ee :: ⟨128⟩ :: ⟨36⟩ :: ⟨128⟩ ::
         ⟨32⟩ :: ⟨164⟩ :: ⟨1814410054⟩ :: kissDaiTargetWord acc ee ::
         ⟨3238⟩ :: ⟨4084909596⟩ :: kissDaiTargetWord acc ee :: R)
@@ -987,7 +989,7 @@ theorem RD.vowCageSecondDaiStaticcallSetup {g : Sat256} {s0 : State}
 theorem RD.vowCageSecondDaiStaticcall
     {σ σCall σ₀ A I} {g : UInt256}
     {mem rdata : ByteArray} {k C : ℕ} {d1 d2 : UInt256} {R : List UInt256}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2983⟩
       (d1 :: d2 :: R) mem (UInt256.ofNat 6) rdata σCall k C)
     (hmem : mem.size = 164)
@@ -998,7 +1000,7 @@ theorem RD.vowCageSecondDaiStaticcall
     (hov : R.length + 16 ≤ 1024) :
     ∃ (σ' : AccountMap) (z : Bool)
       (outDai : ByteArray) (A' : Substate) (k' C' : ℕ),
-      RD vowBytecode I (Sat256.ofUInt256 g)
+      RD fork vowBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3074⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨164⟩ :: ⟨1814410054⟩ ::
           kissDaiTargetWord σCall I :: ⟨3238⟩ :: ⟨4084909596⟩ ::
@@ -1006,7 +1008,7 @@ theorem RD.vowCageSecondDaiStaticcall
         (outDai.write 0 (vatDaiCalldataMem I mem) 128
           (min (⟨32⟩ : UInt256) (UInt256.ofNat outDai.size)).toNat)
         (UInt256.ofNat 6) outDai σ' k' C'
-    ∧ typedCallViaEVM config
+    ∧ typedCallViaEVM fork config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
           accountMap := σCall }
         (EVM.address (kissVatAddress σCall I)) "dai" 0 [.address I.codeOwner]
@@ -1044,10 +1046,10 @@ theorem RD.vowCageSecondDaiStaticcall
 theorem RD.vowCageSecondDaiCallFailure {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {rest : List UInt256}
-    (rd : RD vowBytecode ee g s0 ⟨3074⟩ (⟨0⟩ :: rest) mem aw o acc k C)
+    (rd : RD fork vowBytecode ee g s0 ⟨3074⟩ (⟨0⟩ :: rest) mem aw o acc k C)
     (hosz : o.size < UInt256.size)
     (hov : rest.length + 5 ≤ 1024) :
-    RDrev vowBytecode g s0 := by
+    RDrev fork vowBytecode g s0 := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨3074⟩) (okPc := ⟨3090⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1058,10 +1060,10 @@ theorem RD.vowCageSecondDaiCallSuccessToDecode {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {d0 d1 d2 : UInt256}
     {R : List UInt256}
-    (rd : RD vowBytecode ee g s0 ⟨3074⟩
+    (rd : RD fork vowBytecode ee g s0 ⟨3074⟩
       (⟨1⟩ :: d0 :: d1 :: d2 :: R) mem aw o acc k C)
     (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD vowBytecode ee g s0 ⟨3092⟩
+    ∃ k' C', RD fork vowBytecode ee g s0 ⟨3092⟩
       (d0 :: d1 :: d2 :: R) mem aw o acc k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨3074⟩) (okPc := ⟨3090⟩) rd
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
@@ -1072,7 +1074,7 @@ theorem RD.vowCageSecondDaiCallSuccessToDecode {g : Sat256} {s0 : State}
 theorem RD.vowCageSecondDaiReturnDecodeShortReverts {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ} {d0 d1 d2 : UInt256} {R : List UInt256}
-    (rd : RD vowBytecode ee g s0 ⟨3092⟩
+    (rd : RD fork vowBytecode ee g s0 ⟨3092⟩
       (d0 :: d1 :: d2 :: R) mem (UInt256.ofNat 6) o acc k C)
     (hshort : o.size < 32)
     (hhi : o.size < UInt256.size)
@@ -1082,7 +1084,7 @@ theorem RD.vowCageSecondDaiReturnDecodeShortReverts {g : Sat256} {s0 : State}
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)
     (hov : R.length + 9 ≤ 1024) :
-    RDrev vowBytecode g s0 := by
+    RDrev fork vowBytecode g s0 := by
   exact RD.solcUint256ReturnWordDecodeShortReverts (pc := ⟨3092⟩) (okPc := ⟨3112⟩) rd
     hshort hhi
     (by native_decide) hMload64Value
@@ -1094,7 +1096,7 @@ theorem RD.vowCageSecondDaiReturnDecodeShortReverts {g : Sat256} {s0 : State}
 theorem RD.vowCageSecondDaiReturnDecodeOk {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ} {retWord d0 d1 d2 : UInt256} {R : List UInt256}
-    (rd : RD vowBytecode ee g s0 ⟨3092⟩
+    (rd : RD fork vowBytecode ee g s0 ⟨3092⟩
       (d0 :: d1 :: d2 :: R) mem (UInt256.ofNat 6) o acc k C)
     (hlo : 32 ≤ o.size)
     (hhi : o.size < UInt256.size)
@@ -1109,7 +1111,7 @@ theorem RD.vowCageSecondDaiReturnDecodeOk {g : Sat256} {s0 : State}
          (fromByteArrayBigEndian (mem.readWithPadding (⟨128⟩ : UInt256).toNat 32))) =
         retWord)
     (hov : R.length + 9 ≤ 1024) :
-    ∃ k' C', RD vowBytecode ee g s0 ⟨3115⟩
+    ∃ k' C', RD fork vowBytecode ee g s0 ⟨3115⟩
       (retWord :: R) mem (UInt256.ofNat 6) o acc k' C' := by
   exact RD.solcUint256ReturnWordDecodeOk (pc := ⟨3092⟩) (okPc := ⟨3112⟩) rd
     hlo hhi
@@ -1123,13 +1125,13 @@ set_option maxHeartbeats 0 in
 theorem RD.vowCageVatSinExtcodesizeGuard {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {acc : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {vatDai : UInt256} {R : List UInt256}
-    (rd : RD vowBytecode ee g s0 ⟨3115⟩
+    (rd : RD fork vowBytecode ee g s0 ⟨3115⟩
       (vatDai :: ⟨3238⟩ :: ⟨4084909596⟩ :: kissDaiTargetWord acc ee :: R)
       mem (UInt256.ofNat 6) rdata acc k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (_hov : R.length + 18 ≤ 1024) :
-    ∃ k' C', RD vowBytecode ee g s0 ⟨3177⟩
+    ∃ k' C', RD fork vowBytecode ee g s0 ⟨3177⟩
       (kissDaiTargetWord acc ee :: kissDaiTargetWord acc ee :: healSinOutPtr ::
         healSinInSize :: healSinOutPtr :: ⟨32⟩ :: healSinEndPtr :: healSinSelector ::
         kissDaiTargetWord acc ee :: vatDai :: ⟨3238⟩ :: ⟨4084909596⟩ ::
@@ -1139,7 +1141,7 @@ theorem RD.vowCageVatSinExtcodesizeGuard {g : Sat256} {s0 : State}
   let rawTarget := solcSlotWordAt ⟨1⟩ acc ee
   have rd3117 := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
   obtain ⟨k3118, C3118, rd3118Raw⟩ := rd3117.sload (by native_decide) (by evm_ov)
-  have rd3118 : RD vowBytecode ee g s0 ⟨3118⟩
+  have rd3118 : RD fork vowBytecode ee g s0 ⟨3118⟩
       (rawTarget :: vatDai :: ⟨3238⟩ :: ⟨4084909596⟩ :: target :: R)
       mem (UInt256.ofNat 6) rdata acc k3118 C3118 := by
     simpa [target, rawTarget, solcSlotWordAt, solcSlotWord] using rd3118Raw
@@ -1232,7 +1234,7 @@ theorem RD.vowCageVatSinExtcodesizeGuard {g : Sat256} {s0 : State}
 theorem RD.vowCageVatSinNoCode {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {acc : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {vatDai : UInt256} {R : List UInt256}
-    (rd : RD vowBytecode ee g s0 ⟨3115⟩
+    (rd : RD fork vowBytecode ee g s0 ⟨3115⟩
       (vatDai :: ⟨3238⟩ :: ⟨4084909596⟩ :: kissDaiTargetWord acc ee :: R)
       mem (UInt256.ofNat 6) rdata acc k C)
     (hmem : mem.size = 164)
@@ -1240,7 +1242,7 @@ theorem RD.vowCageVatSinNoCode {g : Sat256} {s0 : State}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord acc (kissDaiTargetWord acc ee) = ⟨0⟩)
     (hov : R.length + 18 ≤ 1024) :
-    RDrev vowBytecode g s0 := by
+    RDrev fork vowBytecode g s0 := by
   obtain ⟨_, _, rd3177⟩ := RD.vowCageVatSinExtcodesizeGuard rd hmem hread64 hov
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨3177⟩) (okPc := ⟨3189⟩)
     rd3177 hcodeSize
@@ -1251,7 +1253,7 @@ theorem RD.vowCageVatSinNoCode {g : Sat256} {s0 : State}
 theorem RD.vowCageVatSinStaticcallSetup {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {acc : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {vatDai : UInt256} {R : List UInt256}
-    (rd : RD vowBytecode ee g s0 ⟨3115⟩
+    (rd : RD fork vowBytecode ee g s0 ⟨3115⟩
       (vatDai :: ⟨3238⟩ :: ⟨4084909596⟩ :: kissDaiTargetWord acc ee :: R)
       mem (UInt256.ofNat 6) rdata acc k C)
     (hmem : mem.size = 164)
@@ -1259,7 +1261,7 @@ theorem RD.vowCageVatSinStaticcallSetup {g : Sat256} {s0 : State}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord acc (kissDaiTargetWord acc ee) ≠ ⟨0⟩)
     (hov : R.length + 18 ≤ 1024) :
-    ∃ gasWord k' C', RD vowBytecode ee g s0 ⟨3192⟩
+    ∃ gasWord k' C', RD fork vowBytecode ee g s0 ⟨3192⟩
       (gasWord :: kissDaiTargetWord acc ee :: healSinOutPtr :: healSinInSize ::
         healSinOutPtr :: ⟨32⟩ :: healSinEndPtr :: healSinSelector ::
         kissDaiTargetWord acc ee :: vatDai :: ⟨3238⟩ :: ⟨4084909596⟩ ::
@@ -1278,7 +1280,7 @@ set_option maxHeartbeats 0 in
 theorem RD.vowCageVatSinStaticcall
     {σ σCall σ₀ A I} {g : UInt256}
     {mem rdata : ByteArray} {k C : ℕ} {vatDai : UInt256} {R : List UInt256}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3115⟩
       (vatDai :: ⟨3238⟩ :: ⟨4084909596⟩ :: kissDaiTargetWord σCall I :: R)
       mem (UInt256.ofNat 6) rdata σCall k C)
@@ -1290,7 +1292,7 @@ theorem RD.vowCageVatSinStaticcall
     (hov : R.length + 18 ≤ 1024) :
     ∃ (σ' : AccountMap) (z : Bool)
       (outSin : ByteArray) (A' : Substate) (k' C' : ℕ),
-      RD vowBytecode I (Sat256.ofUInt256 g)
+      RD fork vowBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3193⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: healSinEndPtr :: healSinSelector ::
           kissDaiTargetWord σCall I :: vatDai :: ⟨3238⟩ :: ⟨4084909596⟩ ::
@@ -1298,7 +1300,7 @@ theorem RD.vowCageVatSinStaticcall
         (outSin.write 0 (healSinCalldataMem I mem) healSinOutPtr.toNat
           (min (⟨32⟩ : UInt256) (UInt256.ofNat outSin.size)).toNat)
         (UInt256.ofNat 6) outSin σ' k' C'
-    ∧ typedCallViaEVM config
+    ∧ typedCallViaEVM fork config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
           accountMap := σCall }
         (EVM.address (kissVatAddress σCall I)) "sin" 0 [.address I.codeOwner]
@@ -1339,10 +1341,10 @@ theorem RD.vowCageVatSinStaticcall
 theorem RD.vowCageVatSinCallFailure {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {rest : List UInt256}
-    (rd : RD vowBytecode ee g s0 ⟨3193⟩ (⟨0⟩ :: rest) mem aw o acc k C)
+    (rd : RD fork vowBytecode ee g s0 ⟨3193⟩ (⟨0⟩ :: rest) mem aw o acc k C)
     (hosz : o.size < UInt256.size)
     (hov : rest.length + 5 ≤ 1024) :
-    RDrev vowBytecode g s0 := by
+    RDrev fork vowBytecode g s0 := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨3193⟩) (okPc := ⟨3209⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1353,10 +1355,10 @@ theorem RD.vowCageVatSinCallSuccessToDecode {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {d0 d1 d2 : UInt256}
     {R : List UInt256}
-    (rd : RD vowBytecode ee g s0 ⟨3193⟩
+    (rd : RD fork vowBytecode ee g s0 ⟨3193⟩
       (⟨1⟩ :: d0 :: d1 :: d2 :: R) mem aw o acc k C)
     (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD vowBytecode ee g s0 ⟨3211⟩
+    ∃ k' C', RD fork vowBytecode ee g s0 ⟨3211⟩
       (d0 :: d1 :: d2 :: R) mem aw o acc k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨3193⟩) (okPc := ⟨3209⟩) rd
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
@@ -1367,7 +1369,7 @@ theorem RD.vowCageVatSinCallSuccessToDecode {g : Sat256} {s0 : State}
 theorem RD.vowCageVatSinReturnDecodeShortReverts {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ} {d0 d1 d2 : UInt256} {R : List UInt256}
-    (rd : RD vowBytecode ee g s0 ⟨3211⟩
+    (rd : RD fork vowBytecode ee g s0 ⟨3211⟩
       (d0 :: d1 :: d2 :: R) mem (UInt256.ofNat 6) o acc k C)
     (hshort : o.size < 32)
     (hhi : o.size < UInt256.size)
@@ -1377,7 +1379,7 @@ theorem RD.vowCageVatSinReturnDecodeShortReverts {g : Sat256} {s0 : State}
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)
     (hov : R.length + 9 ≤ 1024) :
-    RDrev vowBytecode g s0 := by
+    RDrev fork vowBytecode g s0 := by
   exact RD.solcUint256ReturnWordDecodeShortReverts (pc := ⟨3211⟩) (okPc := ⟨3231⟩) rd
     hshort hhi
     (by native_decide) hMload64Value
@@ -1389,7 +1391,7 @@ theorem RD.vowCageVatSinReturnDecodeShortReverts {g : Sat256} {s0 : State}
 theorem RD.vowCageVatSinReturnDecodeOk {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ} {retWord d0 d1 d2 : UInt256} {R : List UInt256}
-    (rd : RD vowBytecode ee g s0 ⟨3211⟩
+    (rd : RD fork vowBytecode ee g s0 ⟨3211⟩
       (d0 :: d1 :: d2 :: R) mem (UInt256.ofNat 6) o acc k C)
     (hlo : 32 ≤ o.size)
     (hhi : o.size < UInt256.size)
@@ -1404,7 +1406,7 @@ theorem RD.vowCageVatSinReturnDecodeOk {g : Sat256} {s0 : State}
          (fromByteArrayBigEndian (mem.readWithPadding (⟨128⟩ : UInt256).toNat 32))) =
         retWord)
     (hov : R.length + 9 ≤ 1024) :
-    ∃ k' C', RD vowBytecode ee g s0 ⟨3234⟩
+    ∃ k' C', RD fork vowBytecode ee g s0 ⟨3234⟩
       (retWord :: R) mem (UInt256.ofNat 6) o acc k' C' := by
   exact RD.solcUint256ReturnWordDecodeOk (pc := ⟨3211⟩) (okPc := ⟨3231⟩) rd
     hlo hhi
@@ -1418,11 +1420,11 @@ theorem RD.vowCageMinReturnLeft {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {vatDai vatSin : UInt256}
     {R : List UInt256}
-    (rd : RD vowBytecode ee g s0 ⟨3234⟩ (vatSin :: vatDai :: ⟨3238⟩ :: R)
+    (rd : RD fork vowBytecode ee g s0 ⟨3234⟩ (vatSin :: vatDai :: ⟨3238⟩ :: R)
       mem aw o acc k C)
     (hle : vatDai.toNat ≤ vatSin.toNat)
     (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD vowBytecode ee g s0 ⟨3238⟩ (vatDai :: R) mem aw o acc k' C' := by
+    ∃ k' C', RD fork vowBytecode ee g s0 ⟨3238⟩ (vatDai :: R) mem aw o acc k' C' := by
   have rd3237 := rd.push2 ⟨5112⟩ (by native_decide) (by evm_ov)
   have rd5112 := rd3237.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd5113 := rd5112.jumpdest (by native_decide) (by evm_ov)
@@ -1453,11 +1455,11 @@ theorem RD.vowCageMinReturnRight {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {vatDai vatSin : UInt256}
     {R : List UInt256}
-    (rd : RD vowBytecode ee g s0 ⟨3234⟩ (vatSin :: vatDai :: ⟨3238⟩ :: R)
+    (rd : RD fork vowBytecode ee g s0 ⟨3234⟩ (vatSin :: vatDai :: ⟨3238⟩ :: R)
       mem aw o acc k C)
     (hlt : vatSin.toNat < vatDai.toNat)
     (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD vowBytecode ee g s0 ⟨3238⟩ (vatSin :: R) mem aw o acc k' C' := by
+    ∃ k' C', RD fork vowBytecode ee g s0 ⟨3238⟩ (vatSin :: R) mem aw o acc k' C' := by
   have rd3237 := rd.push2 ⟨5112⟩ (by native_decide) (by evm_ov)
   have rd5112 := rd3237.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd5113 := rd5112.jumpdest (by native_decide) (by evm_ov)
@@ -1489,13 +1491,13 @@ set_option maxHeartbeats 0 in
 theorem RD.vowCageHealExtcodesizeGuard {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {acc : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {healRad : UInt256} {R : List UInt256}
-    (rd : RD vowBytecode ee g s0 ⟨3238⟩
+    (rd : RD fork vowBytecode ee g s0 ⟨3238⟩
       (healRad :: kissHealSelector :: kissDaiTargetWord acc ee :: R)
       mem (UInt256.ofNat 6) rdata acc k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (_hov : R.length + 15 ≤ 1024) :
-    ∃ k' C', RD vowBytecode ee g s0 ⟨3280⟩
+    ∃ k' C', RD fork vowBytecode ee g s0 ⟨3280⟩
       (kissDaiTargetWord acc ee :: kissDaiTargetWord acc ee :: kissHealOutSize ::
         kissHealOutPtr :: kissHealInSize :: kissHealOutPtr :: kissHealOutSize ::
         kissHealEndPtr :: kissHealSelector :: kissDaiTargetWord acc ee :: R)
@@ -1582,7 +1584,7 @@ theorem RD.vowCageHealExtcodesizeGuard {g : Sat256} {s0 : State}
 theorem RD.vowCageHealNoCode {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {acc : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {healRad : UInt256} {R : List UInt256}
-    (rd : RD vowBytecode ee g s0 ⟨3238⟩
+    (rd : RD fork vowBytecode ee g s0 ⟨3238⟩
       (healRad :: kissHealSelector :: kissDaiTargetWord acc ee :: R)
       mem (UInt256.ofNat 6) rdata acc k C)
     (hmem : mem.size = 164)
@@ -1590,7 +1592,7 @@ theorem RD.vowCageHealNoCode {g : Sat256} {s0 : State}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord acc (kissDaiTargetWord acc ee) = ⟨0⟩)
     (hov : R.length + 15 ≤ 1024) :
-    RDrev vowBytecode g s0 := by
+    RDrev fork vowBytecode g s0 := by
   obtain ⟨_, _, rd3280⟩ := RD.vowCageHealExtcodesizeGuard rd hmem hread64 hov
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨3280⟩) (okPc := ⟨3292⟩)
     rd3280 hcodeSize
@@ -1602,7 +1604,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.vowCageHealCallSetup {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {acc : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {healRad : UInt256} {R : List UInt256}
-    (rd : RD vowBytecode ee g s0 ⟨3238⟩
+    (rd : RD fork vowBytecode ee g s0 ⟨3238⟩
       (healRad :: kissHealSelector :: kissDaiTargetWord acc ee :: R)
       mem (UInt256.ofNat 6) rdata acc k C)
     (hmem : mem.size = 164)
@@ -1610,7 +1612,7 @@ theorem RD.vowCageHealCallSetup {g : Sat256} {s0 : State}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord acc (kissDaiTargetWord acc ee) ≠ ⟨0⟩)
     (hov : R.length + 15 ≤ 1024) :
-    ∃ gasWord k' C', RD vowBytecode ee g s0 ⟨3295⟩
+    ∃ gasWord k' C', RD fork vowBytecode ee g s0 ⟨3295⟩
       (gasWord :: kissDaiTargetWord acc ee :: kissHealOutSize ::
         kissHealOutPtr :: kissHealInSize :: kissHealOutPtr :: kissHealOutSize ::
         kissHealEndPtr :: kissHealSelector :: kissDaiTargetWord acc ee :: R)
@@ -1628,7 +1630,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.vowCageHealPostCall
     {σ σCall σ₀ A I} {g : UInt256}
     {mem rdata : ByteArray} {k C : ℕ} {healRad : UInt256} {R : List UInt256}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3238⟩
       (healRad :: kissHealSelector :: kissDaiTargetWord σCall I :: R)
       mem (UInt256.ofNat 6) rdata σCall k C)
@@ -1640,12 +1642,12 @@ theorem RD.vowCageHealPostCall
     (hov : R.length + 15 ≤ 1024) :
     ∃ (σ' : AccountMap) (z : Bool)
       (out : ByteArray) (A' : Substate) (k' C' : ℕ),
-      RD vowBytecode I (Sat256.ofUInt256 g)
+      RD fork vowBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3296⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: kissHealEndPtr :: kissHealSelector ::
           kissDaiTargetWord σCall I :: R)
         (cageHealCalldataMem healRad mem) (UInt256.ofNat 6) out σ' k' C'
-    ∧ typedCallViaEVM config
+    ∧ typedCallViaEVM fork config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
           accountMap := σCall }
         (EVM.address (kissVatAddress σCall I)) "heal" 0
@@ -1681,7 +1683,7 @@ theorem RD.vowCageHealPostCall
     have hmin : (min kissHealOutSize (UInt256.ofNat out.size)).toNat = 0 := by
       unfold kissHealOutSize
       rfl
-    have rd3296 : RD vowBytecode I (Sat256.ofUInt256 g)
+    have rd3296 : RD fork vowBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3296⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: kissHealEndPtr :: kissHealSelector ::
           kissDaiTargetWord σCall I :: R)
@@ -1706,10 +1708,10 @@ theorem RD.vowCageHealPostCall
 theorem RD.vowCageHealCallFailure {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {rest : List UInt256}
-    (rd : RD vowBytecode ee g s0 ⟨3296⟩ (⟨0⟩ :: rest) mem aw o acc k C)
+    (rd : RD fork vowBytecode ee g s0 ⟨3296⟩ (⟨0⟩ :: rest) mem aw o acc k C)
     (hosz : o.size < UInt256.size)
     (hov : rest.length + 5 ≤ 1024) :
-    RDrev vowBytecode g s0 := by
+    RDrev fork vowBytecode g s0 := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨3296⟩) (okPc := ⟨3312⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1720,11 +1722,11 @@ theorem RD.vowCageHealCallSuccessCleanup {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {d0 d1 d2 ret : UInt256}
     {R : List UInt256}
-    (rd : RD vowBytecode ee g s0 ⟨3296⟩
+    (rd : RD fork vowBytecode ee g s0 ⟨3296⟩
       (⟨1⟩ :: d0 :: d1 :: d2 :: ret :: R) mem aw o acc k C)
     (hret : (D_J vowBytecode 0).contains ret = true)
     (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD vowBytecode ee g s0 ret R mem aw o acc k' C' := by
+    ∃ k' C', RD fork vowBytecode ee g s0 ret R mem aw o acc k' C' := by
   obtain ⟨_, _, rd3314⟩ := RD.solcCallSuccessGuardOk
     (pc := ⟨3296⟩) (okPc := ⟨3312⟩) rd
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
@@ -1739,10 +1741,10 @@ theorem RD.vowCageHealCallSuccessCleanup {g : Sat256} {s0 : State}
 theorem RD.vowCageHealCallSuccess {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {target sel : UInt256}
-    (rd : RD vowBytecode ee g s0 ⟨3296⟩
+    (rd : RD fork vowBytecode ee g s0 ⟨3296⟩
       (⟨1⟩ :: kissHealEndPtr :: kissHealSelector :: target :: ⟨412⟩ :: sel :: [])
       mem aw o acc k C) :
-    RDret vowBytecode g s0 acc ByteArray.empty := by
+    RDret fork vowBytecode g s0 acc ByteArray.empty := by
   obtain ⟨_, _, rd412⟩ := RD.vowCageHealCallSuccessCleanup rd
     (by jump_dest) (by simp)
   have rd413 := rd412.jumpdest (by native_decide) (by evm_ov)

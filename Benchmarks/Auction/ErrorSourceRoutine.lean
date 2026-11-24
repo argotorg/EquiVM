@@ -1,5 +1,7 @@
 import Benchmarks.Auction.ErrorSourceGuards
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -22,14 +24,14 @@ theorem errorDecodeSource {evm : EVM.State} {locals : Store} {out : ByteArray} {
     (hpause : locals.get? "_paused" = none)
     (hb : ptr.toNat + out.size + 64 ≤ 2 ^ 200) :
     (ErrorDataValid out ∧ ErrorAllocAllowed ptr (errorAllocSize out) ∧
-      ∃ locals', ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
+      ∃ locals', ExecBlock fork auctionConfig { contract := auctionContract, locals := locals } evm
         errorDecodeStmts (.ok { contract := auctionContract, locals := locals' } evm) ∧
         locals'.get? "_paused" = none) ∨
     ((¬ ErrorDataValid out ∨ ¬ ErrorAllocAllowed ptr (errorAllocSize out)) ∧
-      ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
+      ExecBlock fork auctionConfig { contract := auctionContract, locals := locals } evm
         errorDecodeStmts .reverted) := by
   have hb255 : out.size < 2 ^ 255 := by omega
-  have b0 : ABlock auctionConfig evm { contract := auctionContract, locals := locals }
+  have b0 : ABlock fork auctionConfig evm { contract := auctionContract, locals := locals }
       errorDecodeStmts { contract := auctionContract, locals := locals } errorDecodeStmts :=
     ABlock.start
   by_cases hl : 68 ≤ out.size

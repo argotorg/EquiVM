@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapCallbackBuild
 import Benchmarks.UniswapV3.Pool.FlashCallbackCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -20,11 +22,11 @@ theorem swapCallbackNoCodeX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw len x1 x2 x3 x4 x5 x6 x7 x8 selector target : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (zeroForOne : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (swapCallbackEntry zeroForOne)
+    (rd : RD fork (deployedRuntime v) ee g s0 (swapCallbackEntry zeroForOne)
       (len :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: selector :: target :: R)
       mem aw rdata σ k C)
     (hc : extCodeSizeWord σ target = ⟨0⟩) (hov : R.length + 14 ≤ 1024) :
-    RDrev (deployedRuntime v) g s0 := by
+    RDrev fork (deployedRuntime v) g s0 := by
   cases zeroForOne
   · obtain ⟨k', C', rd'⟩ := uniswapV3Pool_block_4987_fallthrough
       (immWords := wordsOf (immStore v)) hov (by rw [hc]; decide +kernel) rd
@@ -40,7 +42,7 @@ theorem swapCallbackGuardX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {aw p len x1 x3 x4 x5 x6 x7 x8 selector target endPtr size : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (zeroForOne : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (swapCallbackEntry zeroForOne)
+    (rd : RD fork (deployedRuntime v) ee g s0 (swapCallbackEntry zeroForOne)
       (len :: x1 :: (p + ⟨132⟩) :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: selector :: target :: R)
       mem aw rdata σ k C)
     (hload : memLoad (UInt256.ofNat 64) mem = p)
@@ -48,7 +50,7 @@ theorem swapCallbackGuardX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
       (UInt256.lnot (UInt256.ofNat 31)) = endPtr)
     (hsize : UInt256.sub endPtr p = size)
     (hc : extCodeSizeWord σ target ≠ ⟨0⟩) (hov : R.length + 14 ≤ 1024) :
-    ∃ gasArg k' C', RD (deployedRuntime v) ee g s0 (swapCallbackCallPC zeroForOne)
+    ∃ gasArg k' C', RD fork (deployedRuntime v) ee g s0 (swapCallbackCallPC zeroForOne)
       ([gasArg, target, ⟨0⟩, p, size, p, ⟨0⟩, endPtr, selector, target] ++ R)
       mem (M aw (UInt256.ofNat 64) ⟨32⟩) rdata σ k' C' := by
   cases zeroForOne
@@ -70,9 +72,9 @@ theorem swapCallbackGuardX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem swapCallbackFailureX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (zeroForOne : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (swapCallbackAfterPC zeroForOne)
+    (rd : RD fork (deployedRuntime v) ee g s0 (swapCallbackAfterPC zeroForOne)
       (⟨0⟩ :: R) mem aw rdata σ k C) (hov : R.length + 4 ≤ 1024) :
-    RDrev (deployedRuntime v) g s0 := by
+    RDrev fork (deployedRuntime v) g s0 := by
   cases zeroForOne
   · have rd' := uniswapV3Pool_block_5040_fallthrough (immWords := wordsOf (immStore v))
       (by omega) (by decide +kernel) rd
@@ -86,9 +88,9 @@ theorem swapCallbackFailureX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem swapCallbackSuccessX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (zeroForOne : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (swapCallbackAfterPC zeroForOne)
+    (rd : RD fork (deployedRuntime v) ee g s0 (swapCallbackAfterPC zeroForOne)
       (⟨1⟩ :: R) mem aw rdata σ k C) (hov : R.length + 3 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (swapCallbackExit zeroForOne)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (swapCallbackExit zeroForOne)
       (⟨0⟩ :: R) mem aw rdata σ k' C' := by
   cases zeroForOne
   · exact ⟨_, _, uniswapV3Pool_block_5040_taken (immWords := wordsOf (immStore v))

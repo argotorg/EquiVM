@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.WithdrawCollateralModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -50,7 +52,7 @@ theorem WithdrawCollateralFrame.ready {frame src asset amount}
 theorem withdrawCollateralPrefix_source (frame : Frame) (evm : EVM.State)
     (src asset : AccountAddress) (amount : UInt256)
     (hf : WithdrawCollateralFrame frame src asset amount) :
-    ExecBlock config frame evm withdrawCollateralPrefix
+    ExecBlock fork config frame evm withdrawCollateralPrefix
       (withdrawCollateralPrefixResult frame evm src asset amount) := by
   let balance := withdrawCollateralBalance evm src asset
   let total := withdrawCollateralTotal evm asset
@@ -89,7 +91,7 @@ theorem withdrawCollateralPrefix_source (frame : Frame) (evm : EVM.State)
         exact ExecBlock.consStatic (ExecStmt.assignStatic htsub htwrite hp)
       · simp only [withdrawCollateralPrefixResult, withdrawCollateralPrefixOutcome,
           if_pos hbnd, if_pos htnd, hp, if_true]
-        apply ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hp) htsub htwrite)
+        apply ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hp) htsub htwrite)
         have he : evalExpr? config f2
             (storePackedWord evm (totalsCollateralSlot asset) (UInt256.sub total amount) 0 16)
             (.var "srcCollateralNew") = .ok (.int (UInt256.sub balance amount).toNat) := by
@@ -101,7 +103,7 @@ theorem withdrawCollateralPrefix_source (frame : Frame) (evm : EVM.State)
           (UInt256.sub balance amount) hf2.contract hf2.user
           (by simp only [evalExpr?, f2, hf2.src, EvalResult.ofOption])
           (by simp only [evalExpr?, f2, hf2.asset, EvalResult.ofOption])
-        exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [storePackedWord, storageStore_executionEnv] using hp)) he hw) .nil
+        exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [storePackedWord, storageStore_executionEnv] using hp)) he hw) .nil
     · simp only [withdrawCollateralPrefixResult, withdrawCollateralPrefixOutcome,
         if_pos hbnd, if_neg htnd]
       exact ExecBlock.consRevert (ExecStmt.assignExprRevert

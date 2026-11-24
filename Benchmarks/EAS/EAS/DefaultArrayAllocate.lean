@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.DefaultArrayFill
 import Benchmarks.EAS.EAS.WordArrayAllocationView
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -19,13 +21,13 @@ theorem easDefaultArrayAllocate {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {heap len ret : UInt256} {R : List UInt256} (v : EASImmutables) (hstack : R.length+14 ≤ 1024)
     (hlo : 96 ≤ heap.toNat) (hh : heap.toNat ≤ 2^64-1) (hheap : memLoad (UInt256.ofNat 64) mem = heap)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨7541⟩ (len::ret::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨7541⟩ (len::ret::R) mem aw rdata σ k C) :
     if len.toNat ≤ 2^64-1 then
       if allocateNext heap.toNat (32+352*len.toNat) ≤ 2^64-1 ∧ heap.toNat ≤ allocateNext heap.toNat (32+352*len.toNat) then
-        ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (heap::R)
+        ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (heap::R)
           (defaultArrayMemory mem heap len.toNat) aw' rdata σ k' C'
-      else RDrev (deployedRuntime v) g s0
-    else RDrev (deployedRuntime v) g s0 := by
+      else RDrev fork (deployedRuntime v) g s0
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hhead := easArrayAllocationHead v .records (by omega) hheap rd
   by_cases hl : len.toNat ≤ 2^64-1
   · rw [if_pos hl] at hhead ⊢
@@ -36,7 +38,7 @@ theorem easDefaultArrayAllocate {ee : ExecutionEnv} {g : Sat256} {s0 : State}
       obtain ⟨a1,k1,C1,r1⟩ := hhead
       obtain ⟨a2,k2,C2,r2⟩ := easBlocks.eas_block_7610_packed (immWords := wordsOf (immStore v))
         (by simp only [List.length_cons]; omega) r1
-      have hr : RD (deployedRuntime v) ee g s0 ⟨7615⟩
+      have hr : RD fork (deployedRuntime v) ee g s0 ⟨7615⟩
           (UInt256.ofNat (32*0)::heap::UInt256.ofNat (32*(0+len.toNat))::ret::heap::R)
           (arrayAllocationHeaderMemory mem heap len.toNat) a2 rdata σ k2 C2 := by
         simpa only [easBlocks.eas_block_7610_stack,wordArraySize_sub32,Nat.mul_zero,Nat.zero_add] using r2

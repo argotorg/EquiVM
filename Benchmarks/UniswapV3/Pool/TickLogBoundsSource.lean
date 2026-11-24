@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.TickLogBoundsModel
 import Benchmarks.UniswapV3.Pool.SignedRightShift
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -79,7 +81,7 @@ def tickLogBoundsFrame (frame : Frame) (log : UInt256) : Frame :=
 
 theorem tickLogBoundsSource {frame : Frame} {evm : EVM.State} (log : UInt256)
     (hl : frame.locals.get? "log_2" = some (.int (signedWordInt log))) :
-    ExecBlock config frame evm ((tickLogFunction.body.drop 70).take 4)
+    ExecBlock fork config frame evm ((tickLogFunction.body.drop 70).take 4)
       (.ok (tickLogBoundsFrame frame log) evm) := by
   have hs : (tickLogScaledFrame frame log).locals.get? "log_sqrt10001" =
       some (.int (signedWordInt (tickLogScaledLog log))) := by

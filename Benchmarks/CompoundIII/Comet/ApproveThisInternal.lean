@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.ApproveThisModel
 import Benchmarks.CompoundIII.Comet.ApproveCallEvm
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_021
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -13,10 +15,10 @@ theorem cometApproveThisBody {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 evm : State} {rdata : ByteArray} {aw : UInt256}
     {σ : AccountMap} {k C : Nat} (manager asset : AccountAddress) (amount : UInt256)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨5124⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨5124⟩
       [amount, EVM.word asset.val, EVM.word manager.val] solcFreePtrMem aw rdata σ k C) :
-    ∃ result, ApproveThisTrace v manager asset amount evm result ∧
-      ApproveThisRun v g s0 result := by
+    ∃ result, ApproveThisTrace fork v manager asset amount evm result ∧
+      ApproveThisRun fork v g s0 result := by
   have hgov : UInt256.land
       (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160))
         (UInt256.ofNat 1)) (wordsOf (immStore v) "governor") = EVM.word v.governor.val := by

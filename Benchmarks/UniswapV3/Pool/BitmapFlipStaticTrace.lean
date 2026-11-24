@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.Common
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_072
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -16,10 +18,10 @@ macro "pool_bitmap_decode" "(" v:term "," pc:term "," byte:term ","
 theorem bitmapFlipStoreStaticX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw x0 x1 x2 x3 x4 x5 x6 x7 : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨21341⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨21341⟩
       (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: R) mem aw rdata σ k C)
     (hperm : ee.perm = false) (hov : R.length + 11 ≤ 1024) :
-    RDstatic (deployedRuntime v) g s0 := by
+    RDstatic fork (deployedRuntime v) g s0 := by
   have r0 := evm_run rd with [
     raw jumpdest
       (by pool_bitmap_decode(v, 21341, 91, .JUMPDEST, none)) (by evm_ov),

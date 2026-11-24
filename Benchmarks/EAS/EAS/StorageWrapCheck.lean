@@ -1,5 +1,8 @@
 import Benchmarks.EAS.EAS.DiffTarget
 
+/-- The fork these executable checks run the bytecode and the specification under. -/
+private def fork : Ethereum.Fork := .cancun
+
 /-!
 Regression for the synthetic dynamic-bytes state that exposed SOL-2025-1.
 Solidity 0.8.32 attempts the required clear and exhausts the finite gas budget;
@@ -34,7 +37,7 @@ def main : IO UInt32 := do
     IO.eprintln "clear bounds did not wrap"; return 1
   let state := EVM.storageStore state t.selfAddress header oldHeader
   let state := EVM.storageStore state t.selfAddress sentinel (.ofNat 42)
-  let trace := runTrace state (t.gas + 1)
+  let trace := runTrace fork state (t.gas + 1)
   match trace.result with
   | .error .OutOfGass =>
     IO.println "Solidity 0.8.32 storage-wrap regression: EVM runs out of gas instead of skipping the clear"

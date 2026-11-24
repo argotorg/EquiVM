@@ -1,6 +1,8 @@
 import Benchmarks.Auction.ErrorSourceRoutine
 import Benchmarks.Auction.PausableSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -34,7 +36,7 @@ theorem errorSelectorSourceShort {evm : EVM.State} {locals : Store} {out : ByteA
 theorem createCatchSelectorWrong {evm : EVM.State} {locals : Store} {out : ByteArray}
     (hd : locals.get? "err" = some (.bytes out))
     (he : out.extract 0 4 ≠ errorStringSelector) :
-    ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
+    ExecBlock fork auctionConfig { contract := auctionContract, locals := locals } evm
       createCatchStmts .reverted := by
   apply ExecBlock.consRevert
   by_cases hl : 4 ≤ out.size

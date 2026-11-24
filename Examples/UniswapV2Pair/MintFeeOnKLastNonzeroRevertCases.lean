@@ -2,6 +2,8 @@ import Examples.UniswapV2Pair.MintFeeRootArithmeticReverts
 import Examples.UniswapV2Pair.MintFeeOnKLastNonzeroInitialOverflowCases
 import Examples.UniswapV2Pair.MintInternalMintReverts
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -116,11 +118,11 @@ theorem uniswapMintFeePositiveRootBranch_numeratorOverflow
     (hroot : rootK > rootKLast) (hrootKNonneg : 0 ≤ rootK)
     (hrootKSize : rootK.toNat < UInt256.size) (hrootKLastNonneg : 0 ≤ rootKLast)
     (hover : UInt256.size ≤ mintFeeNumeratorNat evm rootK rootKLast) :
-    ExecBlock config
+    ExecBlock fork config
       (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast) evm
       mintFeePositiveRootBranchStmts .reverted := by
   have hnumStmt :
-      ExecStmt config
+      ExecStmt fork config
         (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast) evm
         (.letDecl "numerator" (some uint256)
           (u256 (.binary .mul (.storage totalSupplyRef)
@@ -138,11 +140,11 @@ theorem uniswapMintFeePositiveRootBranch_rootTimesFiveOverflow
     (hrootKSize : rootK.toNat < UInt256.size) (hrootKLastNonneg : 0 ≤ rootKLast)
     (hnumFit : mintFeeNumeratorNat evm rootK rootKLast < UInt256.size)
     (hover : UInt256.size ≤ mintFeeRootTimesFiveNat rootK) :
-    ExecBlock config
+    ExecBlock fork config
       (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast) evm
       mintFeePositiveRootBranchStmts .reverted := by
   have hnumStmt :
-      ExecStmt config
+      ExecStmt fork config
         (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast) evm
         (.letDecl "numerator" (some uint256)
           (u256 (.binary .mul (.storage totalSupplyRef)
@@ -154,7 +156,7 @@ theorem uniswapMintFeePositiveRootBranch_rootTimesFiveOverflow
         (evalExpr_mintFee_numerator evm reserve0 reserve1 feeTo true kLast rootK rootKLast
           hroot hrootKNonneg hrootKSize hrootKLastNonneg hnumFit)
   have hdenStmt :
-      ExecStmt config
+      ExecStmt fork config
         (mintFeeAfterNumeratorFrame evm reserve0 reserve1 feeTo true kLast rootK rootKLast)
         evm
         (.letDecl "denominator" (some uint256)
@@ -175,11 +177,11 @@ theorem uniswapMintFeePositiveRootBranch_denominatorOverflow
     (hnumFit : mintFeeNumeratorNat evm rootK rootKLast < UInt256.size)
     (hrootFiveFit : mintFeeRootTimesFiveNat rootK < UInt256.size)
     (hover : UInt256.size ≤ mintFeeDenominatorNat rootK rootKLast) :
-    ExecBlock config
+    ExecBlock fork config
       (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast) evm
       mintFeePositiveRootBranchStmts .reverted := by
   have hnumStmt :
-      ExecStmt config
+      ExecStmt fork config
         (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast) evm
         (.letDecl "numerator" (some uint256)
           (u256 (.binary .mul (.storage totalSupplyRef)
@@ -191,7 +193,7 @@ theorem uniswapMintFeePositiveRootBranch_denominatorOverflow
         (evalExpr_mintFee_numerator evm reserve0 reserve1 feeTo true kLast rootK rootKLast
           hroot hrootKNonneg hrootKSize hrootKLastNonneg hnumFit)
   have hdenStmt :
-      ExecStmt config
+      ExecStmt fork config
         (mintFeeAfterNumeratorFrame evm reserve0 reserve1 feeTo true kLast rootK rootKLast)
         evm
         (.letDecl "denominator" (some uint256)
@@ -210,7 +212,7 @@ theorem uniswapMintFeeAfterRoots_positiveNumeratorOverflow
     (hroot : rootK > rootKLast) (hrootKNonneg : 0 ≤ rootK)
     (hrootKSize : rootK.toNat < UInt256.size) (hrootKLastNonneg : 0 ≤ rootKLast)
     (hover : UInt256.size ≤ mintFeeNumeratorNat evm rootK rootKLast) :
-    ExecBlock config
+    ExecBlock fork config
       (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast) evm
       [mintFeeRootComparisonStmt] .reverted := by
   exact ExecBlock.consRevert
@@ -227,7 +229,7 @@ theorem uniswapMintFeeAfterRoots_positiveRootTimesFiveOverflow
     (hrootKSize : rootK.toNat < UInt256.size) (hrootKLastNonneg : 0 ≤ rootKLast)
     (hnumFit : mintFeeNumeratorNat evm rootK rootKLast < UInt256.size)
     (hover : UInt256.size ≤ mintFeeRootTimesFiveNat rootK) :
-    ExecBlock config
+    ExecBlock fork config
       (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast) evm
       [mintFeeRootComparisonStmt] .reverted := by
   exact ExecBlock.consRevert
@@ -245,7 +247,7 @@ theorem uniswapMintFeeAfterRoots_positiveDenominatorOverflow
     (hnumFit : mintFeeNumeratorNat evm rootK rootKLast < UInt256.size)
     (hrootFiveFit : mintFeeRootTimesFiveNat rootK < UInt256.size)
     (hover : UInt256.size ≤ mintFeeDenominatorNat rootK rootKLast) :
-    ExecBlock config
+    ExecBlock fork config
       (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast) evm
       [mintFeeRootComparisonStmt] .reverted := by
   exact ExecBlock.consRevert
@@ -262,13 +264,13 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_fromRootBlockRevert
     (hguard :
       evalExpr? config (mintFeeCallFrame reserve0 reserve1) evm
         (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) = .ok (.bool true))
-    (hcall : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm ⟨5⟩))
+    (hcall : typedCallViaEVM fork config evm (EVM.address (uniswapAddressAtSlot evm ⟨5⟩))
       "feeTo" 0 [] (true, evmFee, out) false)
     (hdec : config.externalABI.decode? "feeTo" out = some [.address feeTo])
     (hfeeTo : feeTo ≠ AccountAddress.ofNat 0)
     (hkLast : (mintFeeKLastWord evmFee).toNat ≠ 0)
     (hrootBlock :
-      ExecBlock config
+      ExecBlock fork config
         (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true (mintFeeKLastWord evmFee))
         evmFee
         [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
@@ -276,12 +278,12 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_fromRootBlockRevert
           .internalCall "sqrt" [.var "_kLast"] "rootKLast",
           mintFeeRootComparisonStmt ]
         .reverted) :
-    ExecFuncBody config (mintFeeCallFrame reserve0 reserve1) evm mintFeeFunction.body
+    ExecFuncBody fork config (mintFeeCallFrame reserve0 reserve1) evm mintFeeFunction.body
       .reverted := by
   have hchecked :=
     uniswapMintFeeCheckedCallSuccess evm evmFee reserve0 reserve1 feeTo hguard hcall hdec
   have htail :
-      ExecBlock config (mintFeeAfterFeeToFrame reserve0 reserve1 feeTo) evmFee
+      ExecBlock fork config (mintFeeAfterFeeToFrame reserve0 reserve1 feeTo) evmFee
         [ .letDecl "feeOn" (some boolTy) (.binary .ne (.var "feeTo") zeroAddr),
           .letDecl "_kLast" (some uint256) (.storage kLastRef),
           .ite (.var "feeOn")
@@ -303,7 +305,7 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_fromRootBlockRevert
       (ExecStmt.letDecl (evalExpr_mintFee_afterFeeOn_kLast evmFee reserve0 reserve1 feeTo true))
       ?_
     have htrueBranch :
-        ExecBlock config
+        ExecBlock fork config
           (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true (mintFeeKLastWord evmFee))
           evmFee
           [ .ite (.binary .ne (.var "_kLast") (.intLit 0))
@@ -319,7 +321,7 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_fromRootBlockRevert
             true (mintFeeKLastWord evmFee) hkLast)
           hrootBlock)
     have houter :
-        ExecStmt config
+        ExecStmt fork config
           (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true (mintFeeKLastWord evmFee))
           evmFee
           (.ite (.var "feeOn")
@@ -351,13 +353,13 @@ theorem uniswapMintFeeCallFromMint_feeOn_kLastNonzero_fromRootBlockRevert
         (mintFeeCallFrame (uniswapReserve0Word reserveEvm) (uniswapReserve1Word reserveEvm))
         callEvm (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) =
           .ok (.bool true))
-    (hcall : typedCallViaEVM config callEvm (EVM.address (uniswapAddressAtSlot callEvm ⟨5⟩))
+    (hcall : typedCallViaEVM fork config callEvm (EVM.address (uniswapAddressAtSlot callEvm ⟨5⟩))
       "feeTo" 0 [] (true, evmFee, out) false)
     (hdec : config.externalABI.decode? "feeTo" out = some [.address feeTo])
     (hfeeTo : feeTo ≠ AccountAddress.ofNat 0)
     (hkLast : (mintFeeKLastWord evmFee).toNat ≠ 0)
     (hrootBlock :
-      ExecBlock config
+      ExecBlock fork config
         (mintFeeAfterKLastFrame (uniswapReserve0Word reserveEvm)
           (uniswapReserve1Word reserveEvm) feeTo true (mintFeeKLastWord evmFee))
         evmFee
@@ -366,7 +368,7 @@ theorem uniswapMintFeeCallFromMint_feeOn_kLastNonzero_fromRootBlockRevert
           .internalCall "sqrt" [.var "_kLast"] "rootKLast",
           mintFeeRootComparisonStmt ]
         .reverted) :
-    ExecStmt config
+    ExecStmt fork config
       { contract := contract, locals := mintAmountStore reserveEvm I balance0 balance1 }
       callEvm
       (.internalCall "_mintFee" [.var "_reserve0", .var "_reserve1"] "feeOn")
@@ -407,13 +409,13 @@ theorem uniswapMintAfterMintFeeReverts_of_call
           locals := (mintReserveStore (uniswapLockEnteredState evm) I).insert "balance0"
             (uniswapUint256Value balance0) } evm0
         (.binary .gt (.extCodeSize (.storage token1Ref)) (.intLit 0)) = .ok (.bool true))
-    (hcall0 : typedCallViaEVM config (uniswapLockEnteredState evm)
+    (hcall0 : typedCallViaEVM fork config (uniswapLockEnteredState evm)
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
       config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
-    (hcall1 : typedCallViaEVM config evm0
+    (hcall1 : typedCallViaEVM fork config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 :
@@ -421,26 +423,26 @@ theorem uniswapMintAfterMintFeeReverts_of_call
     (henough0 : (uniswapReserve0Word (uniswapLockEnteredState evm)).toNat ≤ balance0.toNat)
     (henough1 : (uniswapReserve1Word (uniswapLockEnteredState evm)).toNat ≤ balance1.toNat)
     (hfee :
-      ExecStmt config
+      ExecStmt fork config
         { contract := contract,
           locals := mintAmountStore (uniswapLockEnteredState evm) I balance0 balance1 }
         evm1 (.internalCall "_mintFee" [.var "_reserve0", .var "_reserve1"] "feeOn")
         .reverted)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := mintStore I } evm mintTransition.body
+    ExecBlock fork config { contract := contract, locals := mintStore I } evm mintTransition.body
       .reverted := by
   let evmL := uniswapLockEnteredState evm
   have hprefix :=
     uniswapMintAmountsPrefix (hperm := by assumption) evm evm0 evm1 I hwv hunlocked hguard0 hguard1 hcall0 hdec0
       hcall1 hdec1 henough0 henough1
   have hfeeBlock :
-      ExecBlock config
+      ExecBlock fork config
         { contract := contract, locals := mintAmountStore evmL I balance0 balance1 } evm1
         [ .internalCall "_mintFee" [.var "_reserve0", .var "_reserve1"] "feeOn" ]
         .reverted := by
     exact ExecBlock.consRevert (by simpa [evmL] using hfee)
   have hprefixRevert :
-      ExecBlock config { contract := contract, locals := mintStore I } evm
+      ExecBlock fork config { contract := contract, locals := mintStore I } evm
         (lockEnter ++
           [ .letDecl "_reserve0" (some uint112) (.storage reserve0Ref),
             .letDecl "_reserve1" (some uint112) (.storage reserve1Ref) ] ++
@@ -469,7 +471,7 @@ theorem uniswapMintFeeRuntimePositiveNumeratorOverflowReverts
     {mem rdata : ByteArray} {k C : ℕ}
     {rootK rootKLast : Int}
     {kLast feeTo amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel : UInt256}
-    (rd7899 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd7899 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7899⟩
       [UInt256.ofNat rootKLast.toNat, ⟨0⟩, UInt256.ofNat rootK.toNat, kLast, feeTo,
         ⟨1⟩, reserve1, reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1,
@@ -481,7 +483,7 @@ theorem uniswapMintFeeRuntimePositiveNumeratorOverflowReverts
     (hover : UInt256.size ≤ mintFeeNumeratorNat evmFeeS rootK rootKLast)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+    RDrev fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact uniswapMintFeeRuntimePositiveNumeratorOverflowRevertsOfTail
     rd7899 htotalEq hroot hrootKNonneg hrootKSize hrootKLastNonneg hover hmem hread64 (by simp only [List.length_cons, List.length_nil]; omega)
@@ -494,7 +496,7 @@ theorem uniswapMintFeeRuntimePositiveRootTimesFiveOverflowReverts
     {mem rdata : ByteArray} {k C : ℕ}
     {rootK rootKLast : Int}
     {kLast feeTo amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel : UInt256}
-    (rd7899 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd7899 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7899⟩
       [UInt256.ofNat rootKLast.toNat, ⟨0⟩, UInt256.ofNat rootK.toNat, kLast, feeTo,
         ⟨1⟩, reserve1, reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1,
@@ -507,7 +509,7 @@ theorem uniswapMintFeeRuntimePositiveRootTimesFiveOverflowReverts
     (hover : UInt256.size ≤ mintFeeRootTimesFiveNat rootK)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+    RDrev fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact uniswapMintFeeRuntimePositiveRootTimesFiveOverflowRevertsOfTail
     rd7899 htotalEq hroot hrootKNonneg hrootKSize hrootKLastNonneg hnumFit hover hmem hread64 (by simp only [List.length_cons, List.length_nil]; omega)
@@ -520,7 +522,7 @@ theorem uniswapMintFeeRuntimePositiveDenominatorOverflowReverts
     {mem rdata : ByteArray} {k C : ℕ}
     {rootK rootKLast : Int}
     {kLast feeTo amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel : UInt256}
-    (rd7899 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd7899 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7899⟩
       [UInt256.ofNat rootKLast.toNat, ⟨0⟩, UInt256.ofNat rootK.toNat, kLast, feeTo,
         ⟨1⟩, reserve1, reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1,
@@ -535,7 +537,7 @@ theorem uniswapMintFeeRuntimePositiveDenominatorOverflowReverts
     (hover : UInt256.size ≤ mintFeeDenominatorNat rootK rootKLast)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+    RDrev fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact uniswapMintFeeRuntimePositiveDenominatorOverflowRevertsOfTail
     rd7899 htotalEq hroot hrootKNonneg hrootKSize hrootKLastNonneg hrootKLastSize hnumFit hrootFiveFit hover hmem hread64 (by simp only [List.length_cons, List.length_nil]; omega)
@@ -597,7 +599,7 @@ theorem uniswapMintFeeOnKLastNonzeroRootArithmeticOverflowFromFactoryCase
         evm0S (.binary .gt (.extCodeSize (.storage token1Ref)) (.intLit 0)) =
           .ok (.bool true))
     (hcall0 :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (uniswapLockEnteredState
           (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         (EVM.address
@@ -611,7 +613,7 @@ theorem uniswapMintFeeOnKLastNonzeroRootArithmeticOverflowFromFactoryCase
         (true, evm0S, o) false)
     (hdec0 : config.externalABI.decode? "balanceOf" o = some [uniswapUint256Value balance0])
     (hcall1 :
-      typedCallViaEVM config evm0S (EVM.address (uniswapAddressAtSlot evm0S ⟨7⟩))
+      typedCallViaEVM fork config evm0S (EVM.address (uniswapAddressAtSlot evm0S ⟨7⟩))
         "balanceOf" 0 [.address evm0S.executionEnv.codeOwner] (true, evm1S, o1) false)
     (hdec1 : config.externalABI.decode? "balanceOf" o1 = some [uniswapUint256Value balance1])
     (hle0Source :
@@ -636,7 +638,7 @@ theorem uniswapMintFeeOnKLastNonzeroRootArithmeticOverflowFromFactoryCase
         evm1S (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) =
           .ok (.bool true))
     (hfeeCall :
-      typedCallViaEVM config evm1S (EVM.address (uniswapAddressAtSlot evm1S ⟨5⟩))
+      typedCallViaEVM fork config evm1S (EVM.address (uniswapAddressAtSlot evm1S ⟨5⟩))
         "feeTo" 0 [] (true, evmFeeS, outFee) false)
     (hfeeDec : config.externalABI.decode? "feeTo" outFee = some [.address feeTo])
     (hreserve0Eq :
@@ -655,7 +657,7 @@ theorem uniswapMintFeeOnKLastNonzeroRootArithmeticOverflowFromFactoryCase
       reserve1Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I = reserve1)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
     (htotalEq : mintFunctionTotalSupplyWord evmFeeS = solcSlotWordAt ⟨0⟩ σFee I)
-    (rd7781 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd7781 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7781⟩
       [(if zFee then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨132⟩,
         feeToSelectorWord, mintFeeFactoryWord σ'' I, ⟨0⟩, ⟨0⟩,
@@ -682,7 +684,7 @@ theorem uniswapMintFeeOnKLastNonzeroRootArithmeticOverflowFromFactoryCase
       mintFeeOnKLastNonzeroRootArithmeticOverflowFromFactoryCaseData feeToWord σFee
         evmFeeS I)
     (hperm : I.perm = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   rcases hcase with ⟨hfeeToNonzero, hkLastNonzero, hrootCase⟩
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
@@ -721,16 +723,16 @@ theorem uniswapMintFeeOnKLastNonzeroRootArithmeticOverflowFromFactoryCase
       ho32 hoSize ho132 ho1Size houtFee32 houtFeeSize
   have finish
       (htail :
-        ExecBlock config
+        ExecBlock fork config
           (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true
             (mintFeeKLastSlotWord σFee I) rootK rootKLast)
           evmFeeS [mintFeeRootComparisonStmt] .reverted)
       (rdRev :
-        RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+        RDrev fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)) :
-      runtimeRefinementFor config contract σ σ₀ g A I := by
+      runtimeRefinementFor fork config contract σ σ₀ g A I := by
     have hrootBlock :
-        ExecBlock config
+        ExecBlock fork config
           (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true (mintFeeKLastSlotWord σFee I))
           evmFeeS
           [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
@@ -740,7 +742,7 @@ theorem uniswapMintFeeOnKLastNonzeroRootArithmeticOverflowFromFactoryCase
           .reverted := by
       simpa [List.append_assoc] using execBlock_append hprefix htail
     have hfeeRevert :
-        ExecStmt config { contract := contract, locals := mintAmountStore evmL I balance0 balance1 }
+        ExecStmt fork config { contract := contract, locals := mintAmountStore evmL I balance0 balance1 }
           evm1S (.internalCall "_mintFee" [.var "_reserve0", .var "_reserve1"] "feeOn")
           .reverted := by
       exact
@@ -749,15 +751,15 @@ theorem uniswapMintFeeOnKLastNonzeroRootArithmeticOverflowFromFactoryCase
           hkLastSource
           (by simpa [evmL, evmS, hreserve0Eq, hreserve1Eq, hkLastEq] using hrootBlock)
     have hbody :
-        ExecTransitionBody config contract evmS (mintStore I) mintTransition.body .reverted :=
+        ExecTransitionBody fork config contract evmS (mintStore I) mintTransition.body .reverted :=
       ExecFuncBody.execBlockRevert
-        (uniswapMintAfterMintFeeReverts_of_call (hperm := by assumption) evmS evm0S evm1S I
+        (uniswapMintAfterMintFeeReverts_of_call (fork := fork) (hperm := by assumption) evmS evm0S evm1S I
           (by simp [evmS, initState]; exact hwv) hunlockedStele hguard0 hguard1 hcall0
           hdec0 hcall1 hdec1 hle0Source hle1Source hfeeRevert)
     exact rdRev.reEquivExecutionRevert hcode hdispatch (uniswapDecode_mint_ok hsz36) hbody
   rcases hoverflow with hnumOverflow | hrest
   · have htail :=
-      uniswapMintFeeAfterRoots_positiveNumeratorOverflow evmFeeS reserve0 reserve1 feeTo
+      uniswapMintFeeAfterRoots_positiveNumeratorOverflow (fork := fork) evmFeeS reserve0 reserve1 feeTo
         (mintFeeKLastSlotWord σFee I) rootK rootKLast hroot hrootKNonneg hrootKSize
         hrootKLastNonneg hnumOverflow
     have rdRev :=
@@ -767,7 +769,7 @@ theorem uniswapMintFeeOnKLastNonzeroRootArithmeticOverflowFromFactoryCase
   rcases hrest with hrootFiveOverflow | hdenOverflow
   · rcases hrootFiveOverflow with ⟨hnumFit, hrootFiveOverflow⟩
     have htail :=
-      uniswapMintFeeAfterRoots_positiveRootTimesFiveOverflow evmFeeS reserve0 reserve1 feeTo
+      uniswapMintFeeAfterRoots_positiveRootTimesFiveOverflow (fork := fork) evmFeeS reserve0 reserve1 feeTo
         (mintFeeKLastSlotWord σFee I) rootK rootKLast hroot hrootKNonneg hrootKSize
         hrootKLastNonneg hnumFit hrootFiveOverflow
     have rdRev :=
@@ -776,7 +778,7 @@ theorem uniswapMintFeeOnKLastNonzeroRootArithmeticOverflowFromFactoryCase
     exact finish htail rdRev
   · rcases hdenOverflow with ⟨hnumFit, hrootFiveFit, hdenOverflow⟩
     have htail :=
-      uniswapMintFeeAfterRoots_positiveDenominatorOverflow evmFeeS reserve0 reserve1 feeTo
+      uniswapMintFeeAfterRoots_positiveDenominatorOverflow (fork := fork) evmFeeS reserve0 reserve1 feeTo
         (mintFeeKLastSlotWord σFee I) rootK rootKLast hroot hrootKNonneg hrootKSize
         hrootKLastNonneg hnumFit hrootFiveFit hdenOverflow
     have rdRev :=

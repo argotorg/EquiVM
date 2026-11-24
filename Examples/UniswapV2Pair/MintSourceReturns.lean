@@ -1,4 +1,6 @@
 import Examples.UniswapV2Pair.MintReturnSource
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -8,14 +10,14 @@ namespace UniswapV2Pair
 theorem uniswapMintAfterLiquidityZeroReverts
     {locals : Store} (evm : EVM.State)
     (hliq : locals.get? "liquidity" = some (uniswapUint256Value (⟨0⟩ : UInt256))) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       mintAfterLiquidityTailStmts .reverted := by
   have hreq :=
     evalExpr_mint_liquidity_gt_zero_false
       (stele := { contract := contract, locals := locals }) evm hliq
   simpa [mintAfterLiquidityTailStmts] using
     (ExecBlock.consRevert (ExecStmt.requireFalse hreq) :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         (.require (.binary .gt (.var "liquidity") (.intLit 0)) ::
           ([ .internalCall "_mint" [.var "to", .var "liquidity"] "_mintResult" ] ++
             updateReservesStmtsWith (.var "balance0") (.var "balance1")
@@ -44,7 +46,7 @@ theorem uniswapMintProportionalLiquidityZeroReverts
     (hliquidity :
       minFunctionResultWord (mintProportionalLiquidityWord amount0 totalSupply reserve0)
         (mintProportionalLiquidityWord amount1 totalSupply reserve1) = ⟨0⟩) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       ([mintLiquidityBranchStmt] ++ mintAfterLiquidityTailStmts) .reverted := by
   let liquidity0 := mintProportionalLiquidityWord amount0 totalSupply reserve0
   let liquidity1 := mintProportionalLiquidityWord amount1 totalSupply reserve1
@@ -58,11 +60,11 @@ theorem uniswapMintProportionalLiquidityZeroReverts
               (mintProportionalLiquidityValue amount1 totalSupply reserve1) }
       "liquidity" (some [minFunctionResultValue liquidity0 liquidity1])
   have hbranchStmt :=
-    uniswapMintProportionalLiquidityBranchMin (locals := locals) evm amount0 amount1
+    uniswapMintProportionalLiquidityBranchMin (fork := fork) (locals := locals) evm amount0 amount1
       totalSupply reserve0 reserve1 htotal htotalNonzero hamount0 hamount1 hreserve0
       hreserve1 hfit0 hfit1 hreserve0Nonzero hreserve1Nonzero
   have hbranch :
-      ExecBlock config { contract := contract, locals := locals } evm [mintLiquidityBranchStmt]
+      ExecBlock fork config { contract := contract, locals := locals } evm [mintLiquidityBranchStmt]
         (.ok afterBranch evm) := by
     exact ExecBlock.consNormal
       (by simpa [liquidity0, liquidity1, afterBranch] using hbranchStmt)
@@ -78,7 +80,7 @@ theorem uniswapMintProportionalLiquidityZeroReverts
     rw [store_get_self]
     simp [minFunctionResultValue, liquidity0, liquidity1, hliquidity]
   have htail :
-      ExecBlock config afterBranch evm mintAfterLiquidityTailStmts .reverted := by
+      ExecBlock fork config afterBranch evm mintAfterLiquidityTailStmts .reverted := by
     simpa [afterBranch] using
       uniswapMintAfterLiquidityZeroReverts (locals := afterBranch.locals) evm hliqAfter
   simpa [List.append_assoc] using execBlock_append hbranch htail
@@ -112,7 +114,7 @@ theorem uniswapMintInitialLiquiditySmallRootIteReverts
     (hamount1 : locals.get? "amount1" = some (uniswapUint256Value amount1))
     (hfit : mintAmountProductNat amount0 amount1 < UInt256.size)
     (hsmall : (mintAmountProductWord amount0 amount1).toNat ≤ 3) :
-    ExecStmt config { contract := contract, locals := locals } evm
+    ExecStmt fork config { contract := contract, locals := locals } evm
       mintLiquidityBranchStmt
       .reverted := by
   let y := mintAmountProductWord amount0 amount1
@@ -125,7 +127,7 @@ theorem uniswapMintInitialLiquiditySmallRootIteReverts
     simpa [caller, y] using
       evalExprs_mint_initialSqrtArg_of_get evm amount0 amount1 hamount0 hamount1 hfit
   have hsqrt :
-      ExecStmt config caller evm
+      ExecStmt fork config caller evm
         (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
           "rootLiquidity")
         (.ok (resumeAfterInternalCall caller "rootLiquidity"
@@ -134,7 +136,7 @@ theorem uniswapMintInitialLiquiditySmallRootIteReverts
       (args := [u256 (.binary .mul (.var "amount0") (.var "amount1"))])
       (retVar := "rootLiquidity") rfl (by simpa [y] using hsmall) hargs
   refine ExecStmt.iteTrue hcond ?_
-  change ExecBlock config caller evm mintInitialLiquidityBranchStmts .reverted
+  change ExecBlock fork config caller evm mintInitialLiquidityBranchStmts .reverted
   refine ExecBlock.consNormal hsqrt ?_
   by_cases hy : y.toNat = 0
   · have hroot :
@@ -164,7 +166,7 @@ theorem uniswapMintFeeCallFromMint_noCode
         (mintFeeCallFrame (uniswapReserve0Word reserveEvm) (uniswapReserve1Word reserveEvm))
         callEvm (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) =
           .ok (.bool false)) :
-    ExecStmt config
+    ExecStmt fork config
       { contract := contract, locals := mintAmountStore reserveEvm I balance0 balance1 }
       callEvm
       (.internalCall "_mintFee" [.var "_reserve0", .var "_reserve1"] "feeOn")
@@ -196,9 +198,9 @@ theorem uniswapMintFeeCallFromMint_callFailure
         (mintFeeCallFrame (uniswapReserve0Word reserveEvm) (uniswapReserve1Word reserveEvm))
         callEvm (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) =
           .ok (.bool true))
-    (hcall : typedCallViaEVM config callEvm (EVM.address (uniswapAddressAtSlot callEvm ⟨5⟩))
+    (hcall : typedCallViaEVM fork config callEvm (EVM.address (uniswapAddressAtSlot callEvm ⟨5⟩))
       "feeTo" 0 [] (false, evmFee, out) false) :
-    ExecStmt config
+    ExecStmt fork config
       { contract := contract, locals := mintAmountStore reserveEvm I balance0 balance1 }
       callEvm
       (.internalCall "_mintFee" [.var "_reserve0", .var "_reserve1"] "feeOn")
@@ -231,10 +233,10 @@ theorem uniswapMintFeeCallFromMint_decodeRevert
         (mintFeeCallFrame (uniswapReserve0Word reserveEvm) (uniswapReserve1Word reserveEvm))
         callEvm (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) =
           .ok (.bool true))
-    (hcall : typedCallViaEVM config callEvm (EVM.address (uniswapAddressAtSlot callEvm ⟨5⟩))
+    (hcall : typedCallViaEVM fork config callEvm (EVM.address (uniswapAddressAtSlot callEvm ⟨5⟩))
       "feeTo" 0 [] (true, evmFee, out) false)
     (hdec : config.externalABI.decode? "feeTo" out = none) :
-    ExecStmt config
+    ExecStmt fork config
       { contract := contract, locals := mintAmountStore reserveEvm I balance0 balance1 }
       callEvm
       (.internalCall "_mintFee" [.var "_reserve0", .var "_reserve1"] "feeOn")
@@ -267,12 +269,12 @@ theorem uniswapMintFeeCallFromMint_feeOff_kLastZero
         (mintFeeCallFrame (uniswapReserve0Word reserveEvm) (uniswapReserve1Word reserveEvm))
         callEvm (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) =
           .ok (.bool true))
-    (hcall : typedCallViaEVM config callEvm (EVM.address (uniswapAddressAtSlot callEvm ⟨5⟩))
+    (hcall : typedCallViaEVM fork config callEvm (EVM.address (uniswapAddressAtSlot callEvm ⟨5⟩))
       "feeTo" 0 [] (true, evmFee, out) false)
     (hdec : config.externalABI.decode? "feeTo" out = some [.address feeTo])
     (hfeeTo : feeTo = AccountAddress.ofNat 0)
     (hkLast : (mintFeeKLastWord evmFee).toNat = 0) :
-    ExecStmt config
+    ExecStmt fork config
       { contract := contract, locals := mintAmountStore reserveEvm I balance0 balance1 }
       callEvm
       (.internalCall "_mintFee" [.var "_reserve0", .var "_reserve1"] "feeOn")
@@ -312,12 +314,12 @@ theorem uniswapMintFeeCallFromMint_feeOn_kLastZero
         (mintFeeCallFrame (uniswapReserve0Word reserveEvm) (uniswapReserve1Word reserveEvm))
         callEvm (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) =
           .ok (.bool true))
-    (hcall : typedCallViaEVM config callEvm (EVM.address (uniswapAddressAtSlot callEvm ⟨5⟩))
+    (hcall : typedCallViaEVM fork config callEvm (EVM.address (uniswapAddressAtSlot callEvm ⟨5⟩))
       "feeTo" 0 [] (true, evmFee, out) false)
     (hdec : config.externalABI.decode? "feeTo" out = some [.address feeTo])
     (hfeeTo : feeTo ≠ AccountAddress.ofNat 0)
     (hkLast : (mintFeeKLastWord evmFee).toNat = 0) :
-    ExecStmt config
+    ExecStmt fork config
       { contract := contract, locals := mintAmountStore reserveEvm I balance0 balance1 }
       callEvm
       (.internalCall "_mintFee" [.var "_reserve0", .var "_reserve1"] "feeOn")
@@ -357,13 +359,13 @@ theorem uniswapMintFeeCallFromMint_feeOff_kLastNonzero
         (mintFeeCallFrame (uniswapReserve0Word reserveEvm) (uniswapReserve1Word reserveEvm))
         callEvm (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) =
           .ok (.bool true))
-    (hcall : typedCallViaEVM config callEvm (EVM.address (uniswapAddressAtSlot callEvm ⟨5⟩))
+    (hcall : typedCallViaEVM fork config callEvm (EVM.address (uniswapAddressAtSlot callEvm ⟨5⟩))
       "feeTo" 0 [] (true, evmFee, out) false)
     (hdec : config.externalABI.decode? "feeTo" out = some [.address feeTo])
     (hfeeTo : feeTo = AccountAddress.ofNat 0)
     (hkLast : (mintFeeKLastWord evmFee).toNat ≠ 0)
     (hperm : callEvm.executionEnv.perm = true) :
-    ExecStmt config
+    ExecStmt fork config
       { contract := contract, locals := mintAmountStore reserveEvm I balance0 balance1 }
       callEvm
       (.internalCall "_mintFee" [.var "_reserve0", .var "_reserve1"] "feeOn")
@@ -404,13 +406,13 @@ theorem uniswapMintFeeCallFromMint_feeOn_kLastNonzero_noMint
         (mintFeeCallFrame (uniswapReserve0Word reserveEvm) (uniswapReserve1Word reserveEvm))
         callEvm (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) =
           .ok (.bool true))
-    (hcall : typedCallViaEVM config callEvm (EVM.address (uniswapAddressAtSlot callEvm ⟨5⟩))
+    (hcall : typedCallViaEVM fork config callEvm (EVM.address (uniswapAddressAtSlot callEvm ⟨5⟩))
       "feeTo" 0 [] (true, evmFee, out) false)
     (hdec : config.externalABI.decode? "feeTo" out = some [.address feeTo])
     (hfeeTo : feeTo ≠ AccountAddress.ofNat 0)
     (hkLast : (mintFeeKLastWord evmFee).toNat ≠ 0)
     (hprefix :
-      ExecBlock config
+      ExecBlock fork config
         (mintFeeAfterKLastFrame (uniswapReserve0Word reserveEvm) (uniswapReserve1Word reserveEvm)
           feeTo true (mintFeeKLastWord evmFee))
         evmFee
@@ -423,7 +425,7 @@ theorem uniswapMintFeeCallFromMint_feeOn_kLastNonzero_noMint
             rootK rootKLast)
           evmFee))
     (hroot : ¬ rootK > rootKLast) :
-    ExecStmt config
+    ExecStmt fork config
       { contract := contract, locals := mintAmountStore reserveEvm I balance0 balance1 }
       callEvm
       (.internalCall "_mintFee" [.var "_reserve0", .var "_reserve1"] "feeOn")
@@ -466,13 +468,13 @@ theorem uniswapMintFeeCallFromMint_feeOn_kLastNonzero_positiveNoLiquidity
         (mintFeeCallFrame (uniswapReserve0Word reserveEvm) (uniswapReserve1Word reserveEvm))
         callEvm (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) =
           .ok (.bool true))
-    (hcall : typedCallViaEVM config callEvm (EVM.address (uniswapAddressAtSlot callEvm ⟨5⟩))
+    (hcall : typedCallViaEVM fork config callEvm (EVM.address (uniswapAddressAtSlot callEvm ⟨5⟩))
       "feeTo" 0 [] (true, evmFee, out) false)
     (hdec : config.externalABI.decode? "feeTo" out = some [.address feeTo])
     (hfeeTo : feeTo ≠ AccountAddress.ofNat 0)
     (hkLast : (mintFeeKLastWord evmFee).toNat ≠ 0)
     (hprefix :
-      ExecBlock config
+      ExecBlock fork config
         (mintFeeAfterKLastFrame (uniswapReserve0Word reserveEvm) (uniswapReserve1Word reserveEvm)
           feeTo true (mintFeeKLastWord evmFee))
         evmFee
@@ -491,7 +493,7 @@ theorem uniswapMintFeeCallFromMint_feeOn_kLastNonzero_positiveNoLiquidity
     (hdenFit : mintFeeDenominatorNat rootK rootKLast < UInt256.size)
     (hdenom : (mintFeeDenominatorWord rootK rootKLast).toNat ≠ 0)
     (hliq : ¬ mintFeeLiquidityInt evmFee rootK rootKLast > 0) :
-    ExecStmt config
+    ExecStmt fork config
       { contract := contract, locals := mintAmountStore reserveEvm I balance0 balance1 }
       callEvm
       (.internalCall "_mintFee" [.var "_reserve0", .var "_reserve1"] "feeOn")
@@ -536,13 +538,13 @@ theorem uniswapMintFeeCallFromMint_feeOn_kLastNonzero_positiveWithLiquidity
         (mintFeeCallFrame (uniswapReserve0Word reserveEvm) (uniswapReserve1Word reserveEvm))
         callEvm (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) =
           .ok (.bool true))
-    (hcall : typedCallViaEVM config callEvm (EVM.address (uniswapAddressAtSlot callEvm ⟨5⟩))
+    (hcall : typedCallViaEVM fork config callEvm (EVM.address (uniswapAddressAtSlot callEvm ⟨5⟩))
       "feeTo" 0 [] (true, evmFee, out) false)
     (hdec : config.externalABI.decode? "feeTo" out = some [.address feeTo])
     (hfeeTo : feeTo ≠ AccountAddress.ofNat 0)
     (hkLast : (mintFeeKLastWord evmFee).toNat ≠ 0)
     (hprefix :
-      ExecBlock config
+      ExecBlock fork config
         (mintFeeAfterKLastFrame (uniswapReserve0Word reserveEvm) (uniswapReserve1Word reserveEvm)
           feeTo true (mintFeeKLastWord evmFee))
         evmFee
@@ -569,7 +571,7 @@ theorem uniswapMintFeeCallFromMint_feeOn_kLastNonzero_positiveWithLiquidity
       mintFunctionToBalanceNewNat evmFee feeTo (mintFeeLiquidityWord evmFee rootK rootKLast) <
         UInt256.size)
     (hperm : callEvm.executionEnv.perm = true) :
-    ExecStmt config
+    ExecStmt fork config
       { contract := contract, locals := mintAmountStore reserveEvm I balance0 balance1 }
       callEvm
       (.internalCall "_mintFee" [.var "_reserve0", .var "_reserve1"] "feeOn")

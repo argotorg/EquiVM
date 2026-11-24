@@ -1,14 +1,16 @@
 import Benchmarks.Auction.TransferReturn
 import Benchmarks.Auction.UIntReturnDecoder
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
 theorem mintReturnPrefix {I g s0 ret R mem aw ptr out acc k C}
-    (h : RD auctionBytecode I g s0 ⟨3071⟩ (⟨1⟩ :: ret :: R) mem aw out acc k C)
+    (h : RD fork auctionBytecode I g s0 ⟨3071⟩ (⟨1⟩ :: ret :: R) mem aw out acc k C)
     (hm : MemoryCursor mem aw ptr) (hov : R.length + 11 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨5820⟩
+    ∃ k' C', RD fork auctionBytecode I g s0 ⟨5820⟩
       (ptr :: (ptr + UInt256.ofNat out.size) :: ⟨3108⟩ :: ret :: R)
       (returnReserveMem mem ptr out.size) aw out acc k' C' := by
   have rd3077 := evm_run h with [dup1, iszero, push2 ⟨3111⟩, jumpiNT (by decide)]
@@ -20,18 +22,18 @@ theorem mintReturnPrefix {I g s0 ret R mem aw ptr out acc k C}
     push1 ⟨31⟩, not, and, dup3, add, swap1, swap3,
     raw mstoreSymbolic (by native_decide) (by evm_ov)]
   rw [expandedWords64_eq hm.active] at rd3097
-  change RD _ _ _ _ ⟨3097⟩ (ptr :: UInt256.ofNat out.size :: ret :: R)
+  change RD fork _ _ _ _ ⟨3097⟩ (ptr :: UInt256.ofNat out.size :: ret :: R)
     (returnReserveMem mem ptr out.size) aw out acc _ _ at rd3097
   exact ⟨_, _, evm_run rd3097 with [push2 ⟨3108⟩, swap2, dup2, add, swap1,
     push2 ⟨5820⟩, jump (by jump_dest)]⟩
 
 theorem mintReturnOk {I g s0 ret R mem aw ptr out acc k C word}
-    (h : RD auctionBytecode I g s0 ⟨3071⟩ (⟨1⟩ :: ret :: R) mem aw out acc k C)
+    (h : RD fork auctionBytecode I g s0 ⟨3071⟩ (⟨1⟩ :: ret :: R) mem aw out acc k C)
     (hm : MemoryCursor mem aw ptr) (hlen : 32 ≤ out.size) (hhi : out.size < 2 ^ 255)
     (hin : ptr.toNat + 32 ≤ mem.size)
     (hread : mem.readWithPadding ptr.toNat 32 = word.toByteArray)
     (hov : R.length + 11 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨3172⟩ (word :: ret :: R)
+    ∃ k' C', RD fork auctionBytecode I g s0 ⟨3172⟩ (word :: ret :: R)
       (returnReserveMem mem ptr out.size) (expandedWords aw ptr ⟨32⟩) out acc k' C' := by
   obtain ⟨_, _, rd5820⟩ := mintReturnPrefix h hm hov
   have hcheck : UInt256.slt (UInt256.sub (ptr + UInt256.ofNat out.size) ptr) ⟨32⟩ = ⟨0⟩ := by
@@ -43,9 +45,9 @@ theorem mintReturnOk {I g s0 ret R mem aw ptr out acc k C word}
     jumpiT (by decide) (by jump_dest)]⟩
 
 theorem mintReturnShort {I g s0 ret R mem aw ptr out acc k C}
-    (h : RD auctionBytecode I g s0 ⟨3071⟩ (⟨1⟩ :: ret :: R) mem aw out acc k C)
+    (h : RD fork auctionBytecode I g s0 ⟨3071⟩ (⟨1⟩ :: ret :: R) mem aw out acc k C)
     (hm : MemoryCursor mem aw ptr) (hlen : out.size < 32) (hov : R.length + 11 ≤ 1024) :
-    RDrev auctionBytecode g s0 := by
+    RDrev fork auctionBytecode g s0 := by
   obtain ⟨_, _, rd5820⟩ := mintReturnPrefix h hm hov
   apply uintReturnDecodeShort rd5820 _ (by evm_ov)
   rw [word_add_sub_left]

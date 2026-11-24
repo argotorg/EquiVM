@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.CollateralCheckEvm
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_056
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_070
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -19,11 +21,11 @@ theorem cometWithdrawBaseTail {v : CometWithExtendedAssetListImmutables}
     (hmem : 96 ≤ mem.size) (hgap : free.toNat ≤ mem.size + 32)
     (hbound : free.toNat + 160 + 928 * v.numAssets.toNat + 256 < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨15852⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨15852⟩
       (balance :: EVM.word recipient.val :: amount :: EVM.word src.val :: supplied :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ result, WithdrawBaseTailTrace v src recipient amount balance evm result ∧
-      internalDynamicRun (deployedRuntime v) ee g s0 ret R result := by
+    ∃ result, WithdrawBaseTailTrace fork v src recipient amount balance evm result ∧
+      internalDynamicRun fork (deployedRuntime v) ee g s0 ret R result := by
   by_cases hn : signedWord balance < 0
   · have hcond : UInt256.slt balance (UInt256.ofNat 0) ≠ UInt256.ofNat 0 := by
       rw [signedWord_slt]

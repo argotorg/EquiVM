@@ -2,6 +2,8 @@ import Benchmarks.Dss.Pot.ConstructorSource
 import Benchmarks.Dss.Pot.ConstructorTraceReturn
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Pot constructor correctness
 
@@ -20,14 +22,14 @@ set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000 in
 theorem potConstructorCorrect :
     typedConstructorRefinement config potCreationBytecode contract (fun _ => potBytecode) := by
-  intro σ σ₀ g A I args deployedInitcode
+  intro fork _hfork σ σ₀ g A I args deployedInitcode
     hdeploy hcode _hcalldata hperm
   rcases potCtorDeployment_shape hdeploy with ⟨vat, hargs, hdeployed⟩
   subst args
   have hcodeCtor : I.code = potCtorCode vat := by
     rw [hcode, hdeployed]
   by_cases hwv : I.weiValue = ⟨0⟩
-  · have hrd := potInitcodeSuccess
+  · have hrd := potInitcodeSuccess (fork := fork)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat hcodeCtor hperm hwv
     rcases hrd with hOOG | ⟨s, hX, hacc⟩
@@ -99,7 +101,7 @@ theorem potConstructorCorrect :
               (g := g) vat hwv)
         ?_
       exact ctorResultEquiv.success rfl rfl hMapLive.symm rfl
-  · have hrd := potInitcodeNonpayableRevert
+  · have hrd := potInitcodeNonpayableRevert (fork := fork)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat hcodeCtor hwv
     rcases hrd.xiResult hcodeCtor with hOOG | ⟨g', out, hRev⟩

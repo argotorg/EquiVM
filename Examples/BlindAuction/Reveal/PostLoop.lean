@@ -1,6 +1,8 @@
 import Examples.BlindAuction.Reveal.PostLoopBranches
 import Lean.Elab.Tactic.AsAuxLemma
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -47,7 +49,7 @@ theorem scratch_blindAuctionReveal_postLoop_fromDone
     (hfakesListLen : fakes.length = fakesLenWord.toNat)
     (hsecretsListLen : secrets.length = secretsLenWord.toNat)
     (hloop :
-      ExecForLoop blindAuctionConfig
+      ExecForLoop fork blindAuctionConfig
         { contract := blindAuctionContract,
           locals := scratch_revealLoopStore callargs loopLen ⟨0⟩ ⟨0⟩ } evmStele
         (.binary .lt (.var "i") (.var "length")) scratch_revealLoopPostStmts
@@ -55,7 +57,7 @@ theorem scratch_blindAuctionReveal_postLoop_fromDone
         (.ok { contract := blindAuctionContract, locals := LDone } evmDone))
     (hInvDone : RevealLoopInv loopLen values fakes secrets I σ₀ A 0 aDone LDone evmDone)
     (rd1331 :
-      RD blindAuctionBytecode I (Sat256.ofUInt256 g)
+      RD fork blindAuctionBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1331⟩
         (scratch_revealEvmLoopStack aDone.idx aDone.refund loopLen
           (revealScratchRevealEndWord σ I)
@@ -65,7 +67,7 @@ theorem scratch_blindAuctionReveal_postLoop_fromDone
           valuesLenWord (⟨4⟩ + revealValuesOffsetWord I + ⟨32⟩)
           (blindAuctionSelWord I))
         aDone.mem aDone.aw ByteArray.empty aDone.acc kDone CDone) :
-    runtimeRefinementFor blindAuctionConfig blindAuctionContract
+    runtimeRefinementFor fork blindAuctionConfig blindAuctionContract
       σ σ₀ g A I := by
   rcases hInvDone with
     ⟨_hiDone, _hlenDone, hrefundDone, _hbidsDone, _hvaluesDone,
@@ -110,7 +112,7 @@ theorem scratch_blindAuctionReveal_postLoop_fromDone
   swap
   · have hpf : I.perm = false := by simpa using (not_or.mp hpv).1
     have hval : aDone.refund ≠ ⟨0⟩ := (not_or.mp hpv).2
-    have hst : RDstatic blindAuctionBytecode (Sat256.ofUInt256 g)
+    have hst : RDstatic fork blindAuctionBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
       RD.callValueStatic rd1349 hpf hval (by decide) (by simp)
     exact hst.reEquivStaticHalt hcode hd hdec (by

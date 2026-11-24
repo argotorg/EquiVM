@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.CollectSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -18,7 +20,7 @@ theorem collectSubtract (locals imms : Store) (evm : EVM.State)
     (hget : locals.get? (poolAmountName second) = some (.int (Int.ofNat amount.toNat)))
     (hposition : locals.get? "position" = some (positionAlias key))
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config {contract := contract, locals := locals, immutables := imms} evm (collectSubtractStmt second)
+    ExecStmt fork config {contract := contract, locals := locals, immutables := imms} evm (collectSubtractStmt second)
       (.ok {contract := contract, locals := locals, immutables := imms} (collectPaymentState evm key second amount)) := by
   have ha := evalExpr_var_get (cfg := config) (evm := evm)
     (frame := {contract := contract, locals := locals, immutables := imms}) hget
@@ -36,7 +38,7 @@ def collectTokenStmt (second : Bool) : Stmt :=
 
 theorem collectTokenZero (locals imms : Store) (evm : EVM.State) (second : Bool)
     (hget : locals.get? (poolAmountName second) = some (.int 0)) :
-    ExecStmt config {contract := contract, locals := locals, immutables := imms} evm (collectTokenStmt second)
+    ExecStmt fork config {contract := contract, locals := locals, immutables := imms} evm (collectTokenStmt second)
       (.ok {contract := contract, locals := locals, immutables := imms} evm) := by
   apply ExecStmt.iteFalse ?_ ExecBlock.nil
   simpa using evalExpr_uint256_var_positive (cfg := config)
@@ -49,10 +51,10 @@ theorem collectTokenReturns (v : UniswapV3PoolImmutables) (locals : Store)
     (hrecipient : locals.get? "recipient" = some (.address recipient))
     (hget : locals.get? (poolAmountName second) = some (.int (Int.ofNat amount.toNat)))
     (hposition : locals.get? "position" = some (positionAlias key)) (hpos : 0 < amount.toNat)
-    (hcall : ExecFuncBody config (safeTransferFrame (immStore v) (poolToken v second) recipient amount)
+    (hcall : ExecFuncBody fork config (safeTransferFrame (immStore v) (poolToken v second) recipient amount)
       (collectPaymentState evm key second amount) safeTransferFunction.body (.returned calleeFrame evm' none))
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config {contract := contract, locals := locals, immutables := immStore v} evm (collectTokenStmt second)
+    ExecStmt fork config {contract := contract, locals := locals, immutables := immStore v} evm (collectTokenStmt second)
       (.ok { contract := contract
              locals := locals.insert (poolTransferCallName second) .unit
              immutables := immStore v } evm') := by
@@ -60,7 +62,7 @@ theorem collectTokenReturns (v : UniswapV3PoolImmutables) (locals : Store)
   · simpa only [hpos, decide_true] using evalExpr_uint256_var_positive (cfg := config)
       (frame := {contract := contract, locals := locals, immutables := immStore v})
       evm (poolAmountName second) amount hget
-  refine ExecBlock.consNormal (collectSubtract (hperm := hperm) locals (immStore v) evm key second amount hget hposition) ?_
+  refine ExecBlock.consNormal (collectSubtract (fork := fork) (hperm := hperm) locals (immStore v) evm key second amount hget hposition) ?_
   exact ExecBlock.consNormal (poolTransferReturns v locals _ evm' second recipient amount calleeFrame
     hrecipient hget hcall) ExecBlock.nil
 
@@ -69,16 +71,16 @@ theorem collectTokenReverts (v : UniswapV3PoolImmutables) (locals : Store)
     (hrecipient : locals.get? "recipient" = some (.address recipient))
     (hget : locals.get? (poolAmountName second) = some (.int (Int.ofNat amount.toNat)))
     (hposition : locals.get? "position" = some (positionAlias key)) (hpos : 0 < amount.toNat)
-    (hcall : ExecFuncBody config (safeTransferFrame (immStore v) (poolToken v second) recipient amount)
+    (hcall : ExecFuncBody fork config (safeTransferFrame (immStore v) (poolToken v second) recipient amount)
       (collectPaymentState evm key second amount) safeTransferFunction.body .reverted)
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config {contract := contract, locals := locals, immutables := immStore v} evm
+    ExecStmt fork config {contract := contract, locals := locals, immutables := immStore v} evm
       (collectTokenStmt second) .reverted := by
   refine ExecStmt.iteTrue ?_ ?_
   · simpa only [hpos, decide_true] using evalExpr_uint256_var_positive (cfg := config)
       (frame := {contract := contract, locals := locals, immutables := immStore v})
       evm (poolAmountName second) amount hget
-  refine ExecBlock.consNormal (collectSubtract (hperm := hperm) locals (immStore v) evm key second amount hget hposition) ?_
+  refine ExecBlock.consNormal (collectSubtract (fork := fork) (hperm := hperm) locals (immStore v) evm key second amount hget hposition) ?_
   exact ExecBlock.consRevert (poolTransferReverts v locals _ second recipient amount hrecipient hget hcall)
 
 structure CollectValues (locals : Store) (recipient : AccountAddress)
@@ -116,7 +118,7 @@ theorem collectPaid_values {locals : Store} {recipient : AccountAddress}
 theorem collectFinish (locals imms : Store) (evm : EVM.State) (recipient : AccountAddress)
     (lower upper key amount0 amount1 : UInt256) (h : CollectValues locals recipient lower upper key amount0 amount1)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm (collectTransition.body.drop 11)
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm (collectTransition.body.drop 11)
       (.returned {contract := contract, locals := locals, immutables := imms} (storeSlot0Unlocked evm true)
         (some [.int (Int.ofNat amount0.toNat), .int (Int.ofNat amount1.toNat)])) := by
   have hr := evalExpr_var_get (cfg := config) (evm := evm)
@@ -129,11 +131,11 @@ theorem collectFinish (locals imms : Store) (evm : EVM.State) (recipient : Accou
     (frame := {contract := contract, locals := locals, immutables := imms}) h.amount0
   have h1 := evalExpr_var_get (cfg := config) (evm := evm)
     (frame := {contract := contract, locals := locals, immutables := imms}) h.amount1
-  refine ExecBlock.consNormal (ExecStmt.emit (hperm := hperm) (vals := [.address evm.executionEnv.source,
+  refine ExecBlock.consNormal (ExecStmt.emit (fork := fork) (hperm := hperm) (vals := [.address evm.executionEnv.source,
     .address recipient, .int (positionTick lower), .int (positionTick upper),
     .int (Int.ofNat amount0.toNat), .int (Int.ofNat amount1.toNat)]) ?_) ?_
   · simp only [evalExprs?, hr, hl, hu, h0, h1, evalExpr?, envValue, bind, EvalResult.bind, pure]
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) (by simp only [evalExpr?, pure])
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (by simp only [evalExpr?, pure])
     (assignSlot0Unlocked evm locals imms true h.slot0)) ?_
   apply ExecBlock.consReturn (ExecStmt.return ?_)
   have h0' := evalExpr_var_get (cfg := config) (evm := storeSlot0Unlocked evm true)
@@ -149,39 +151,39 @@ theorem collectAmountsPrefix (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (hperm : evm.executionEnv.perm = true) :
     let locked := storeSlot0Unlocked evm false
     let key := positionKey evm.executionEnv.source lower upper
-    ExecBlock config (collectFrame v recipient lower upper req0 req1) evm (collectTransition.body.take 9)
+    ExecBlock fork config (collectFrame v recipient lower upper req0 req1) evm (collectTransition.body.take 9)
       (.ok (collectAmountsFrame v recipient lower upper req0 req1 key
         (minWord req0 (positionOwedWord key false locked.accountMap locked.executionEnv))
         (minWord req1 (positionOwedWord key true locked.accountMap locked.executionEnv))) locked) := by
-  change ExecBlock _ _ _ (collectTransition.body.take 7 ++ (collectTransition.body.drop 7).take 2) _
-  exact execBlock_append_ok (collectPositionPrefix (hperm := hperm) v evm recipient lower upper req0 req1 hwv hunlocked)
+  change ExecBlock fork _ _ _ (collectTransition.body.take 7 ++ (collectTransition.body.drop 7).take 2) _
+  exact execBlock_append_ok (collectPositionPrefix (fork := fork) (hperm := hperm) v evm recipient lower upper req0 req1 hwv hunlocked)
     (collectAmounts v _ recipient lower upper req0 req1 _)
 
 theorem collectSourceReturn (v : UniswapV3PoolImmutables) (evm evm0 evm1 evm2 : EVM.State)
     (recipient : AccountAddress) (lower upper req0 req1 key amount0 amount1 : UInt256)
     (locals0 locals1 locals2 : Store)
-    (hprefix : ExecBlock config (collectFrame v recipient lower upper req0 req1) evm (collectTransition.body.take 9)
+    (hprefix : ExecBlock fork config (collectFrame v recipient lower upper req0 req1) evm (collectTransition.body.take 9)
       (.ok {contract := contract, locals := locals0, immutables := immStore v} evm0))
-    (hpay0 : ExecStmt config {contract := contract, locals := locals0, immutables := immStore v} evm0
+    (hpay0 : ExecStmt fork config {contract := contract, locals := locals0, immutables := immStore v} evm0
       (collectTokenStmt false) (.ok {contract := contract, locals := locals1, immutables := immStore v} evm1))
-    (hpay1 : ExecStmt config {contract := contract, locals := locals1, immutables := immStore v} evm1
+    (hpay1 : ExecStmt fork config {contract := contract, locals := locals1, immutables := immStore v} evm1
       (collectTokenStmt true) (.ok {contract := contract, locals := locals2, immutables := immStore v} evm2))
     (hvalues : CollectValues locals2 recipient lower upper key amount0 amount1)
     (hperm : evm2.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (collectLocals recipient lower upper req0 req1) collectTransition.body
+    ExecTransitionBody fork config contract evm (collectLocals recipient lower upper req0 req1) collectTransition.body
       (.returned {contract := contract, locals := locals2, immutables := immStore v} (storeSlot0Unlocked evm2 true)
         (some [.int (Int.ofNat amount0.toNat), .int (Int.ofNat amount1.toNat)])) (immStore v) := by
   apply ExecFuncBody.execBlockRet
   rw [← List.take_append_drop 9 collectTransition.body]
   exact execBlock_append_ok hprefix (ExecBlock.consNormal hpay0 (ExecBlock.consNormal hpay1
-    (collectFinish (hperm := hperm) locals2 (immStore v) evm2 recipient lower upper key amount0 amount1 hvalues)))
+    (collectFinish (fork := fork) (hperm := hperm) locals2 (immStore v) evm2 recipient lower upper key amount0 amount1 hvalues)))
 
 theorem collectSourceRevert0 (v : UniswapV3PoolImmutables) (evm evm0 : EVM.State)
     (recipient : AccountAddress) (lower upper req0 req1 : UInt256) (frame : Frame)
-    (hprefix : ExecBlock config (collectFrame v recipient lower upper req0 req1) evm
+    (hprefix : ExecBlock fork config (collectFrame v recipient lower upper req0 req1) evm
       (collectTransition.body.take 9) (.ok frame evm0))
-    (hpay0 : ExecStmt config frame evm0 (collectTokenStmt false) .reverted) :
-    ExecTransitionBody config contract evm (collectLocals recipient lower upper req0 req1)
+    (hpay0 : ExecStmt fork config frame evm0 (collectTokenStmt false) .reverted) :
+    ExecTransitionBody fork config contract evm (collectLocals recipient lower upper req0 req1)
       collectTransition.body .reverted (immStore v) := by
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 9 collectTransition.body]
@@ -189,11 +191,11 @@ theorem collectSourceRevert0 (v : UniswapV3PoolImmutables) (evm evm0 : EVM.State
 
 theorem collectSourceRevert1 (v : UniswapV3PoolImmutables) (evm evm0 evm1 : EVM.State)
     (recipient : AccountAddress) (lower upper req0 req1 : UInt256) (frame0 frame1 : Frame)
-    (hprefix : ExecBlock config (collectFrame v recipient lower upper req0 req1) evm
+    (hprefix : ExecBlock fork config (collectFrame v recipient lower upper req0 req1) evm
       (collectTransition.body.take 9) (.ok frame0 evm0))
-    (hpay0 : ExecStmt config frame0 evm0 (collectTokenStmt false) (.ok frame1 evm1))
-    (hpay1 : ExecStmt config frame1 evm1 (collectTokenStmt true) .reverted) :
-    ExecTransitionBody config contract evm (collectLocals recipient lower upper req0 req1)
+    (hpay0 : ExecStmt fork config frame0 evm0 (collectTokenStmt false) (.ok frame1 evm1))
+    (hpay1 : ExecStmt fork config frame1 evm1 (collectTokenStmt true) .reverted) :
+    ExecTransitionBody fork config contract evm (collectLocals recipient lower upper req0 req1)
       collectTransition.body .reverted (immStore v) := by
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 9 collectTransition.body]

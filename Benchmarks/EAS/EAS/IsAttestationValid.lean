@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.ScalarDecode
 import Benchmarks.EAS.EAS.Storage
 
+variable {fork : Ethereum.Fork}
+
 /-! # EAS `isAttestationValid(bytes32)` refinement -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,15 +18,15 @@ theorem isAttestationValidEVM {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length + 4 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨1854⟩ R mem aw rdata σ k C) :
-    RDret (deployedRuntime v) g s0 σ
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨1854⟩ R mem aw rdata σ k C) :
+    RDret fork (deployedRuntime v) g s0 σ
       (UInt256.isZero (UInt256.isZero (solcSlotWord σ ee (dbSlot (calldataWord ee.calldata 4))))).toByteArray := by
   obtain ⟨k1, C1, rd1⟩ := easBlocks.eas_block_1854 (immWords := wordsOf (immStore v)) hstack
     (by rw [easPatchedValidJumpsRuntime v]; jump_dest) rd
   have hr := easBlocks.eas_block_1880 (immWords := wordsOf (immStore v)) hstack rd1
   rw [show (UInt256.ofNat 32).toNat = 32 from rfl,
     ← Reasoning.Theory.writeWord, writeWord_sparse_read_back] at hr
-  change RDret _ _ _ _
+  change RDret fork _ _ _ _
     (UInt256.isZero (UInt256.isZero (UInt256.isZero (UInt256.isZero
       (solcSlotWord σ ee (UInt256.ofNat (fromByteArrayBigEndian
         (KEC ((twoWordHashMem (calldataWord ee.calldata 4) ⟨1⟩ mem).readWithPadding 0 64))))))))).toByteArray at hr
@@ -40,7 +42,7 @@ theorem isAttestationValidEVM {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 theorem easIsAttestationValidBody {σ σ₀ A I} {g : UInt256} (v : EASImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (easSelBytes 14)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (easSelBytes 14) rfl hsel
   have hd : dispatchMsg contract I.calldata = some isAttestationValidTransition := by
     apply easDispatch_isAttestationValid (hsel := hsel)
@@ -48,7 +50,7 @@ theorem easIsAttestationValidBody {σ σ₀ A I} {g : UInt256} (v : EASImmutable
       change ¬ (_ == I.calldata.extract 0 4) = true
       rw [← byteArray_eq_of_beq hsel]
       decide +kernel
-  obtain ⟨k, C, rd⟩ := easReachIsAttestationValidBody (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, rd⟩ := easReachIsAttestationValidBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
   by_cases hv : I.weiValue = ⟨0⟩
   · have rd1 := easBlocks.eas_block_1806_fallthrough (immWords := wordsOf (immStore v)) (by simp) hv rd

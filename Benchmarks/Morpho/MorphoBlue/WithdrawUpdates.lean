@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.WithdrawTail
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -16,9 +18,9 @@ theorem morphoWithdrawUpdates {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sa
     (hget : locals.get? "__memory" = some (.int (Int.ofNat (fp.toNat + 192))))
     (hzero : memLoad (UInt256.ofNat 96) mem = UInt256.ofNat 0)
     (htoken : memLoad (UInt256.ofNat 128) mem = p.loanToken)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 7737)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 7737)
       (withdrawUpdateTail p.id assets shares account receiver []) mem aw out σ k C) :
-    ReturnBlockRefines config (deployedRuntime v) ee g s0
+    ReturnBlockRefines fork config (deployedRuntime v) ee g s0
       { contract := contract, locals := locals, immutables := imms } evm
       (withdrawTransition.body.drop 14) withdrawTransition.returnType := by
   have hp := morphoWithdrawPositionRefine p locals imms (by decide) ha hl hs h

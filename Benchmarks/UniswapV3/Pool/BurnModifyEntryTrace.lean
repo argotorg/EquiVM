@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.BurnMemory
 import Benchmarks.UniswapV3.Pool.BurnPrefixSource
 import Benchmarks.UniswapV3.Pool.SafeCast128Trace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -12,19 +14,19 @@ theorem burnModifyEntryX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : BurnArgs) (evm : EVM.State)
     (hs : SourceState s0 ee σ evm)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨9648⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨9648⟩
       (⟨0⟩ :: ⟨0⟩ :: a.amount :: EVM.wordOfInt a.upper :: EVM.wordOfInt a.lower :: R)
       mem aw rdata σ k C)
     (ha : a.Fits) (hm : HeapMemory mem aw p) (hb : p.toNat + 128 ≤ 2 ^ 200)
     (hperm : ee.perm = true) (hov : R.length + 16 ≤ 1024) :
-    (ExecStmt config (burnInitFrame v a) (storeSlot0Unlocked evm false)
+    (ExecStmt fork config (burnInitFrame v a) (storeSlot0Unlocked evm false)
         (.internalCall "SafeCast_toInt128" burnCastExprs "__c0") .reverted ∧
-      RDrev (deployedRuntime v) g s0) ∨
-    (ExecStmt config (burnInitFrame v a) (storeSlot0Unlocked evm false)
+      RDrev fork (deployedRuntime v) g s0) ∨
+    (ExecStmt fork config (burnInitFrame v a) (storeSlot0Unlocked evm false)
         (.internalCall "SafeCast_toInt128" burnCastExprs "__c0")
         (.ok (burnCastFrame v a) (storeSlot0Unlocked evm false)) ∧
       ∃ σ' aw' k' C', SourceState s0 ee σ' (storeSlot0Unlocked evm false) ∧
-        RD (deployedRuntime v) ee g s0 ⟨16233⟩
+        RD fork (deployedRuntime v) ee g s0 ⟨16233⟩
           (p :: ⟨9737⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: a.amount ::
             EVM.wordOfInt a.upper :: EVM.wordOfInt a.lower :: R)
           (wordArrayAllocMem mem p (burnModifyArgs a evm).words) aw' rdata σ' k' C' ∧
@@ -56,7 +58,7 @@ theorem burnModifyEntryX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (by omega) hperm (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; jump_dest) rd
   rw [burnCastMemory_eq a evm ha hm hs.env hb, uniswapV3Pool_block_9648_stack,
     hload, hclean, ← hstore] at r1
-  have r1' : RD (deployedRuntime v) ee g s0 ⟨16216⟩
+  have r1' : RD fork (deployedRuntime v) ee g s0 ⟨16216⟩
       (EVM.wordOfInt (Int.ofNat a.amount.toNat) :: ⟨9724⟩ ::
         (p + UInt256.ofNat 96) :: p :: ⟨9737⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ ::
         a.amount :: EVM.wordOfInt a.upper :: EVM.wordOfInt a.lower :: R)

@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.WithdrawCollateralModel
 import Benchmarks.CompoundIII.Comet.CollateralMappingMemory
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_075
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -23,10 +25,10 @@ theorem cometWithdrawCollateralRead {v : CometWithExtendedAssetListImmutables}
     {aw amount ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (src recipient asset : AccountAddress) (hstack : R.length + 16 ≤ 1024)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨16281⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨16281⟩
       (EVM.word src.val :: EVM.word recipient.val :: EVM.word asset.val :: amount :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨15305⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨15305⟩
       (withdrawCollateralBalanceStack src recipient asset amount
         (withdrawCollateralBalance evm src asset) ret R)
       (userCollateralMemory mem src asset) aw' rdata σ k' C' := by
@@ -39,7 +41,7 @@ theorem cometWithdrawCollateralRead {v : CometWithExtendedAssetListImmutables}
       (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160))
         (UInt256.ofNat 1)) = EVM.word src.val := addressWord_val_clean src
   rw [hsrc] at r1
-  change RD _ _ _ _ ⟨2428⟩
+  change RD fork _ _ _ _ ⟨2428⟩
     (keccakWord ⟨0⟩ ⟨64⟩ (twoWordHashMem (EVM.word src.val) ⟨6⟩ mem) ::
       EVM.word asset.val :: ⟨16335⟩ :: ⟨2^128-1⟩ :: EVM.word src.val :: ⟨2^128-1⟩ ::
       EVM.word recipient.val :: solcAddrMask :: EVM.word asset.val :: EVM.word src.val ::
@@ -55,7 +57,7 @@ theorem cometWithdrawCollateralRead {v : CometWithExtendedAssetListImmutables}
   obtain ⟨k3, C3, r3⟩ := cometWithExtendedAssetList_block_16335
     (immWords := wordsOf (immStore v)) (by change R.length + 2 + 12 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r2
-  change RD _ _ _ _ _ (withdrawCollateralBalanceStack src recipient asset amount
+  change RD fork _ _ _ _ _ (withdrawCollateralBalanceStack src recipient asset amount
     (low128 (solcSlotWord σ ee (userCollateralSlot src asset))) ret R) _ _ _ _ _ _ at r3
   rw [← hs.storageRead] at r3
   exact ⟨_, _, _, r3⟩
@@ -76,10 +78,10 @@ theorem cometWithdrawCollateralTotalRead {v : CometWithExtendedAssetListImmutabl
     {aw amount balance next ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (src recipient asset : AccountAddress) (hstack : R.length + 19 ≤ 1024)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨16347⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨16347⟩
       (withdrawCollateralSubStack src recipient asset amount balance next ret R)
       mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨15305⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨15305⟩
       (withdrawCollateralTotalStack src recipient asset amount balance next
         (withdrawCollateralTotal evm asset) ret R)
       (withdrawCollateralTotalMemory mem asset) aw' rdata σ k' C' := by
@@ -97,7 +99,7 @@ theorem cometWithdrawCollateralTotalRead {v : CometWithExtendedAssetListImmutabl
         (UInt256.ofNat 32).toNat 32) = totalsCollateralSlot asset :=
     twoWordHashMem_solcMappingSlot_any ⟨2⟩ (EVM.word asset.val) mem
   rw [hh] at r1
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     (withdrawCollateralTotalStack src recipient asset amount balance next
       (low128 (solcSlotWord σ ee (totalsCollateralSlot asset))) ret R)
     (twoWordHashMem (EVM.word asset.val) ⟨2⟩ mem) _ _ _ _ _ at r1

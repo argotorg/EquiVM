@@ -4,6 +4,8 @@ import Benchmarks.UniswapV3.Pool.BitmapNextReadRightTrace
 import Benchmarks.UniswapV3.Pool.BitmapNextResultLeftTrace
 import Benchmarks.UniswapV3.Pool.BitmapNextResultRightTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -12,7 +14,7 @@ set_option maxRecDepth 10000
 theorem bitmapNextX {evm : EVM.State} {g : Sat256} {s0 : EVM.State} {k C : Nat}
     {aw ret spacingRaw tickRaw : UInt256} {mem rdata : ByteArray} {R : List UInt256}
     {v : UniswapV3PoolImmutables} (tick spacing : Int) (lte : Bool)
-    (rd : RD (deployedRuntime v) evm.executionEnv g s0 ⟨11307⟩
+    (rd : RD fork (deployedRuntime v) evm.executionEnv g s0 ⟨11307⟩
       ((if lte then ⟨1⟩ else ⟨0⟩) :: spacingRaw :: tickRaw :: ⟨6⟩ :: ret :: R)
       mem aw rdata evm.accountMap k C)
     (htlo : -(2 ^ 23 : Int) ≤ tick) (hthi : tick < 2 ^ 23)
@@ -22,8 +24,8 @@ theorem bitmapNextX {evm : EVM.State} {g : Sat256} {s0 : EVM.State} {k C : Nat}
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 20 ≤ 1024) :
     let compressed := bitmapNextCompressed tick spacing
     let masked := bitmapNextMasked evm compressed lte
-    (spacing = 0 ∧ RDinvalid (deployedRuntime v) g s0) ∨
-      (spacing ≠ 0 ∧ ∃ k' C', RD (deployedRuntime v) evm.executionEnv g s0 ret
+    (spacing = 0 ∧ RDinvalid fork (deployedRuntime v) g s0) ∨
+      (spacing ≠ 0 ∧ ∃ k' C', RD fork (deployedRuntime v) evm.executionEnv g s0 ret
         (bitmapNextFlag masked :: bitmapNextResultRaw compressed spacingRaw lte masked :: R)
         (bitmapNextMemory mem compressed lte)
         (M (M (M aw ⟨0⟩ ⟨32⟩) ⟨32⟩ ⟨32⟩) ⟨0⟩ ⟨64⟩) rdata evm.accountMap k' C') := by

@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.AccrueFunctionRefine
 import Benchmarks.Morpho.MorphoBlue.SafeTransferSourceAllocation
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
@@ -20,7 +22,7 @@ theorem morphoAfterAccrueMemoryBody (base : Nat) (accrued : Bool) (fee : UInt256
     (hm : frame.locals.get? "__memory" = some (.int (Int.ofNat base)))
     (ha : frame.locals.get? "__accrued" = some (.bool accrued))
     (hf : frame.locals.get? "__fee" = some (.int (Int.ofNat fee.toNat))) :
-    ∃ frame', ExecFuncBody config frame evm afterAccrueMemoryFunction.body
+    ∃ frame', ExecFuncBody fork config frame evm afterAccrueMemoryFunction.body
       (.returned frame' evm (some [.int (Int.ofNat (base + afterAccrueMemoryCost accrued fee))])) := by
   have hea : evalExpr? config frame evm (.var "__accrued") = .ok (.bool accrued) := by
     simp only [evalExpr?, ha, EvalResult.ofOption]
@@ -30,7 +32,7 @@ theorem morphoAfterAccrueMemoryBody (base : Nat) (accrued : Bool) (fee : UInt256
     simp only [evalExpr?, hm, EvalResult.ofOption, afterAccrueMemoryCost, Bool.false_eq_true, ↓reduceIte, Nat.add_zero]
   · let frame1 := { frame with locals := frame.locals.insert "__memory" (.int (Int.ofNat (base + 160))) }
     have hmem1 : frame1.locals.get? "__memory" = some (.int (Int.ofNat (base + 160))) := store_get_self _ _ _
-    have hs1 : ExecStmt config frame evm
+    have hs1 : ExecStmt fork config frame evm
         (.assign .localVar ⟨"__memory", []⟩ (.binary .add (.var "__memory") (.intLit 160))) (.ok frame1 evm) :=
       ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (safeTransferMemoryAdd_eval hm 160) (assignLocalWord hm)
     have hfee1 : evalExpr? config frame1 evm (.var "__fee") = .ok (.int (Int.ofNat fee.toNat)) := by
@@ -45,7 +47,7 @@ theorem morphoAfterAccrueMemoryBody (base : Nat) (accrued : Bool) (fee : UInt256
       simp only [evalExpr?, hmem1, EvalResult.ofOption, afterAccrueMemoryCost, ↓reduceIte, hz, Nat.add_zero]
     · let frame2 := { frame1 with locals := frame1.locals.insert "__memory" (.int (Int.ofNat (base + 160 + 64))) }
       have hmem2 : frame2.locals.get? "__memory" = some (.int (Int.ofNat (base + 160 + 64))) := store_get_self _ _ _
-      have hs2 : ExecStmt config frame1 evm
+      have hs2 : ExecStmt fork config frame1 evm
           (.assign .localVar ⟨"__memory", []⟩ (.binary .add (.var "__memory") (.intLit 64))) (.ok frame2 evm) :=
         ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (safeTransferMemoryAdd_eval hmem1 64) (assignLocalWord hmem1)
       have htrue : evalExpr? config frame1 evm (.binary .ne (.var "__fee") (.intLit 0)) = .ok (.bool true) := by
@@ -60,7 +62,7 @@ theorem morphoAfterAccrueMemoryCall (base : Nat) (accrued : Bool) (fee : UInt256
     (evm : EVM.State) (locals imms : Store) (args : List Expr) (retVar : Ident)
     (he : evalExprs? config { contract := contract, locals := locals, immutables := imms } evm args =
       .ok [.int (Int.ofNat base), .bool accrued, .int (Int.ofNat fee.toNat)]) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm
       (.internalCall "Solc_afterAccrueMemory" args retVar)
       (.ok { contract := contract, locals := locals.insert retVar (.int (Int.ofNat (base + afterAccrueMemoryCost accrued fee))), immutables := imms } evm) := by
   obtain ⟨frame', hb⟩ := morphoAfterAccrueMemoryBody base accrued fee (afterAccrueMemoryFrame base accrued fee imms) evm

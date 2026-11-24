@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.LocalBytes
 import Benchmarks.UniswapV4PoolManager.CallComposition
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -18,7 +20,7 @@ theorem hookReplySource {f : Frame} {evm : EVM.State} {z : Bool} {data out : Byt
     (hs : f.locals.get? "success" = some (.bool z))
     (hr : f.locals.get? "result" = some (.bytes out))
     (hd : f.locals.get? "data" = some (.bytes data)) (hlen : 4 ≤ data.size) :
-    ExecFuncBody config f evm (hookCallFunction.body.drop 1) (hookCallResult f evm z data out) := by
+    ExecFuncBody fork config f evm (hookCallFunction.body.drop 1) (hookCallResult f evm z data out) := by
   have hsuccess := evalLocalValue (cfg := config) (evm := evm) hs
   have hsize := evalNatGeLiteral (cfg := config) (evm := evm) (k := 32) (evalLocalBytesLength hr)
   cases z with
@@ -49,13 +51,13 @@ theorem hookReplySource {f : Frame} {evm : EVM.State} {z : Bool} {data out : Byt
 theorem hookCallBody {f : Frame} {evm evm' : EVM.State} {hook : AccountAddress} {z : Bool} {data out : ByteArray}
     (hs : f.locals.get? "self" = some (.address hook))
     (hd : f.locals.get? "data" = some (.bytes data)) (hlen : 4 ≤ data.size)
-    (hcall : callViaEVM evm hook 0 data (z, evm', out)) :
-    ExecFuncBody config f evm hookCallFunction.body
+    (hcall : callViaEVM fork evm hook 0 data (z, evm', out)) :
+    ExecFuncBody fork config f evm hookCallFunction.body
       (hookCallResult {f with locals := (f.locals.insert "success" (.bool z)).insert "result" (.bytes out)} evm' z data out) := by
   let f1 : Frame := {f with locals := (f.locals.insert "success" (.bool z)).insert "result" (.bytes out)}
-  have hlow : ExecStmt config f evm hookCallFunction.body[0]! (.ok f1 evm') :=
+  have hlow : ExecStmt fork config f evm hookCallFunction.body[0]! (.ok f1 evm') :=
     lowLevelCallSource (cfg := config) (frame := f) (hperm := Or.inl rfl) (evalLocalValue hs) (by simp only [evalExpr?, pure]) (evalLocalValue hd) hcall
-  have hrest := hookReplySource (f := f1) (evm := evm')
+  have hrest := hookReplySource (fork := fork) (f := f1) (evm := evm')
     ((store_get_ne _ _ (by decide : ("result" == "success") = false)).trans (store_get_self _ _ _))
     (store_get_self _ _ _)
     ((store_get_ne2 _ _ _ (by decide : ("success" == "data") = false)
@@ -65,8 +67,8 @@ theorem hookCallBody {f : Frame} {evm evm' : EVM.State} {hook : AccountAddress} 
 theorem hookCall {f : Frame} {evm evm' : EVM.State} {es ed : Expr} {hook : AccountAddress} {z : Bool} {data out : ByteArray}
     (hf : f.contract = contract) (hs : evalExpr? config f evm es = .ok (.address hook))
     (hd : evalExpr? config f evm ed = .ok (.bytes data)) (hlen : 4 ≤ data.size)
-    (hcall : callViaEVM evm hook 0 data (z, evm', out)) (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "Hooks_callHook" [es, ed] retVar)
+    (hcall : callViaEVM fork evm hook 0 data (z, evm', out)) (retVar : Ident) :
+    ExecStmt fork config f evm (.internalCall "Hooks_callHook" [es, ed] retVar)
       (if z = true ∧ hookReplyValid data out then
         .ok {f with locals := f.locals.insert retVar (.bytes out)} evm' else .reverted) := by
   have hb := hookCallBody (f := {f with locals := ((∅ : Store).insert "data" (.bytes data)).insert "self" (.address hook)})

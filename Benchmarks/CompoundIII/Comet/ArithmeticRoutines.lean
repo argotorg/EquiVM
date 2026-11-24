@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.RuntimeBlocks_040
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_041
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_042
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables
@@ -37,8 +39,8 @@ theorem cometCheckedMul {v : CometWithExtendedAssetListImmutables}
     (hstack : R.length + 5 ≤ 1024)
     (hfit : x.toNat * y.toNat < UInt256.size)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7799⟩ (x :: y :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret (UInt256.mul x y :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7799⟩ (x :: y :: ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret (UInt256.mul x y :: R)
       mem aw rdata σ k' C' := by
   have r1 := cometWithExtendedAssetList_block_7799_fallthrough
     (immWords := wordsOf (immStore v)) (by simpa using hstack) (checkedMulGuard_zero hfit) h
@@ -73,8 +75,8 @@ theorem cometCheckedMul_revert {v : CometWithExtendedAssetListImmutables}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} {x y : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hover : UInt256.size ≤ x.toNat * y.toNat)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7799⟩ (x :: y :: R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7799⟩ (x :: y :: R) mem aw rdata σ k C) :
+    RDrev fork (deployedRuntime v) g s0 := by
   have r1 := cometWithExtendedAssetList_block_7799_taken
     (immWords := wordsOf (immStore v)) hstack (checkedMulGuard_nonzero hover)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
@@ -109,8 +111,8 @@ theorem cometCheckedAdd {v : CometWithExtendedAssetListImmutables}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} {x y ret : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024) (hfit : x.toNat + y.toNat < UInt256.size)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨8591⟩ (x :: y :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret ((x + y) :: R) mem aw rdata σ k' C' := by
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨8591⟩ (x :: y :: ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret ((x + y) :: R) mem aw rdata σ k' C' := by
   have r1 := cometWithExtendedAssetList_block_8591_fallthrough
     (immWords := wordsOf (immStore v)) (by simpa using hstack) (checkedAddGuard_zero hfit) h
   have r2 := cometWithExtendedAssetList_block_8600
@@ -121,8 +123,8 @@ theorem cometCheckedAdd_revert {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} {x y : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024) (hover : UInt256.size ≤ x.toNat + y.toNat)
-    (h : RD (deployedRuntime v) ee g s0 ⟨8591⟩ (x :: y :: R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨8591⟩ (x :: y :: R) mem aw rdata σ k C) :
+    RDrev fork (deployedRuntime v) g s0 := by
   have r1 := cometWithExtendedAssetList_block_8591_taken
     (immWords := wordsOf (immStore v)) hstack (checkedAddGuard_nonzero hover)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
@@ -137,8 +139,8 @@ theorem cometSafe64 {v : CometWithExtendedAssetListImmutables}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} {x ret : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024) (hfit : x.toNat < 2^64)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨8407⟩ (x :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret (x :: R) mem aw rdata σ k' C' := by
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨8407⟩ (x :: ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret (x :: R) mem aw rdata σ k' C' := by
   have hmask : (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 64))
       (UInt256.ofNat 1)).toNat = 2^64 - 1 := by decide
   have hg := ugt_zero (a := x) (b := UInt256.sub
@@ -156,8 +158,8 @@ theorem cometSafe64_revert {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} {x : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024) (hfit : ¬ x.toNat < 2^64)
-    (h : RD (deployedRuntime v) ee g s0 ⟨8407⟩ (x :: R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨8407⟩ (x :: R) mem aw rdata σ k C) :
+    RDrev fork (deployedRuntime v) g s0 := by
   have hmask : (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 64))
       (UInt256.ofNat 1)).toNat = 2^64 - 1 := by decide
   have hg : UInt256.gt x (UInt256.sub

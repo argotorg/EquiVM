@@ -2,6 +2,8 @@ import Benchmarks.Auction.DepositSource
 import Benchmarks.Auction.TransferCall
 import Benchmarks.Auction.ReturnABI
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -25,9 +27,9 @@ theorem transferSourceLocals_data (locals : Store) (z : Bool) (out : ByteArray) 
 
 theorem transferCallSource {s0 I σ evm evm' locals recipient amount ptr out z}
     (hs : SourceState s0 I σ evm) (hv : PaymentValues locals recipient amount ptr)
-    (hc : callViaEVM evm (AccountAddress.ofUInt256 (wethWord σ I)) 0
+    (hc : callViaEVM fork evm (AccountAddress.ofUInt256 (wethWord σ I)) 0
       (transferData recipient amount) (z, evm', out)) :
-    ExecStmt auctionConfig { contract := auctionContract, locals := locals } evm
+    ExecStmt fork auctionConfig { contract := auctionContract, locals := locals } evm
       (.lowLevelCall (.storage wethRef) (.intLit 0)
         (.abiEncodeCall "transfer" [.var "to", .var "amount"]) "_transferSuccess" "_transferData")
       (.ok { contract := auctionContract, locals := transferSourceLocals locals z out } evm') := by
@@ -45,7 +47,7 @@ theorem reserveTransferSource {evm locals ptr out}
     (hp : locals.get? "_freePtr" = some (.int (Int.ofNat ptr.toNat)))
     (hd : locals.get? "_transferData" = some (.bytes out))
     (hb : ptr.toNat + out.size + 31 ≤ 2 ^ 200) :
-    ExecStmt auctionConfig { contract := auctionContract, locals := locals } evm
+    ExecStmt fork auctionConfig { contract := auctionContract, locals := locals } evm
       (advanceFreePtr (wordRoundedSize (localBytesLength "_transferData")))
       (.ok
         { contract := auctionContract
@@ -86,11 +88,11 @@ theorem boolDecodeSourceInvalid {evm locals out}
 
 theorem transferSourceSuccess {s0 I σ evm evm' locals recipient amount ptr out}
     (hs : SourceState s0 I σ evm) (hv : PaymentValues locals recipient amount ptr)
-    (hc : callViaEVM evm (AccountAddress.ofUInt256 (wethWord σ I)) 0
+    (hc : callViaEVM fork evm (AccountAddress.ofUInt256 (wethWord σ I)) 0
       (transferData recipient amount) (true, evm', out))
     (hb : ptr.toNat + out.size + 31 ≤ 2 ^ 200) (ho : out.size < 2 ^ 255)
     (hvalid : BoolReturnValid out) :
-    ∃ locals', ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
+    ∃ locals', ExecBlock fork auctionConfig { contract := auctionContract, locals := locals } evm
       paymentTransferStmts (.ok { contract := auctionContract, locals := locals' } evm') ∧
       PaymentValues locals' recipient amount (returnReservePtr ptr out.size) := by
   have h1 := transferSourceLocals_values hv true out
@@ -110,11 +112,11 @@ theorem transferSourceSuccess {s0 I σ evm evm' locals recipient amount ptr out}
 
 theorem transferSourceFailure {s0 I σ evm evm' locals recipient amount ptr out z}
     (hs : SourceState s0 I σ evm) (hv : PaymentValues locals recipient amount ptr)
-    (hc : callViaEVM evm (AccountAddress.ofUInt256 (wethWord σ I)) 0
+    (hc : callViaEVM fork evm (AccountAddress.ofUInt256 (wethWord σ I)) 0
       (transferData recipient amount) (z, evm', out))
     (hb : ptr.toNat + out.size + 31 ≤ 2 ^ 200) (ho : out.size < 2 ^ 255)
     (hfail : z = false ∨ ¬ BoolReturnValid out) :
-    ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
+    ExecBlock fork auctionConfig { contract := auctionContract, locals := locals } evm
       paymentTransferStmts .reverted := by
   refine ExecBlock.consNormal (transferCallSource hs hv hc) ?_
   cases z with

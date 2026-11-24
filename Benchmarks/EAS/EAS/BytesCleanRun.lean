@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.BytesClearPrepare
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -8,11 +10,11 @@ theorem easBytesClean {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {src dataPtr slot word len old t1 t2 t3 t4 : UInt256} {R : List UInt256}
     (v : EASImmutables) (site : UIDSite) (hstack : R.length+24 ≤ 1024) (hp : ee.perm = true)
     (hold : old.toNat < 2^255) (hlen : len.toNat+31 < UInt256.size)
-    (rd : RD (deployedRuntime v) ee g s0 (recordBytesDecodedPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (recordBytesDecodedPC site)
       (old::dataPtr::len::slot::recordBytesSaved site word src t1 t2 t3 t4 R) mem aw rdata σ k C) :
     ∃ mem' aw' k' C',
       (mem' = mem ∨ mem' = Reasoning.Theory.writeWord mem 0 (slot+⟨6⟩)) ∧
-      RD (deployedRuntime v) ee g s0 (recordBytesCleanPC site)
+      RD fork (deployedRuntime v) ee g s0 (recordBytesCleanPC site)
         (old::dataPtr::len::slot::recordBytesSaved site word src t1 t2 t3 t4 R) mem' aw' rdata
         (bytesCleanAccounts σ ee (slot+⟨6⟩) old.toNat len.toNat) k' C' := by
   have hd := easBytesCleanDispatch v site hstack rd

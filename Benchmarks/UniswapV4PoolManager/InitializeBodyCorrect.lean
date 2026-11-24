@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.InitializeValidationTrace
 import Benchmarks.UniswapV4PoolManager.InitializeHooksCorrect
 import Benchmarks.UniswapV4PoolManager.NoDelegateCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -22,16 +24,16 @@ theorem initializeBodyCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hb : keyPtr.toNat+160 ≤ free.toNat) (hs : free.toNat ≤ 1024) (haw : aw.toNat ≤ 2048)
     (hgas : g.toNat < 324518553658429321982441292826060)
     (hfree : memLoad (UInt256.ofNat 64) mem = free)
-    (h : RD (deployedRuntime v) I g s0 ⟨4081⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨4081⟩
       (price :: keyPtr :: price :: junk :: R) mem aw rdata evm.accountMap k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
-    ∃ result, ExecFuncBody config f evm (initializeTransition.body.drop 5) result ∧
-      signedResultTrace ⟨24, by decide⟩ (deployedRuntime v) g s0 result := by
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    ∃ result, ExecFuncBody fork config f evm (initializeTransition.body.drop 5) result ∧
+      signedResultTrace fork ⟨24, by decide⟩ (deployedRuntime v) g s0 result := by
   have rd1 := poolManagerBlocks.poolManager_block_4081 (by simp only [List.length_cons]; omega)
     (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) h
   have hdelegate := noDelegateCallTrace v (by simp only [List.length_cons]; omega)
     (by rw [deployedRuntime_jumps]; jump_dest) rd1
-  have hcall := noDelegateCallCall (evm := evm) v hf him "__c0"
+  have hcall := noDelegateCallCall (fork := fork) (evm := evm) v hf him "__c0"
   rw [hI] at hcall
   by_cases heq : I.codeOwner = v.original
   · rw [if_pos heq] at hdelegate hcall
@@ -39,7 +41,7 @@ theorem initializeBodyCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     let f1 : Frame := {f with locals := f.locals.insert "__c0" .unit}
     have hkey : f1.locals.get? "key" = some (poolKeyValue key) :=
       (store_get_ne _ _ (by decide : ("__c0" == "key") = false)).trans hk
-    have hsource := initializeValidationSource (f := f1) (evm := evm) hf hc hkey
+    have hsource := initializeValidationSource (fork := fork) (f := f1) (evm := evm) hf hc hkey
     have htrace := initializeValidationTrace v (by simp only [List.length_cons]; omega)
       hv hc haw (by omega) rd2
     by_cases hvalid : initializeKeyValid key

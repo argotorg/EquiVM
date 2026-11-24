@@ -1,5 +1,7 @@
 import Proofs.ERC20.API
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # ERC20 — the supply invariant on the bytecode
 
@@ -59,10 +61,10 @@ theorem erc20_bytecode_preserves_inv
     (hclean : CallClean I)
     (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hInv : InvAt σ I.codeOwner)
-    (hΞ : Ξ σ σ₀ g A I = .ok (.success (σ', g', A') o)) :
+    (hΞ : Ξ fork σ σ₀ g A I = .ok (.success (σ', g', A') o)) :
     InvAt σ' I.codeOwner := by
   obtain ⟨hrun⟩ := erc20Correct
-  cases hrun σ σ₀ g A I hcode hsize with
+  cases hrun fork (supportedForks_mem fork) σ σ₀ g A I hcode hsize with
   | execution hΞ' hstele hequiv =>
     obtain rfl := hΞ'.symm.trans hΞ
     cases hequiv with
@@ -95,9 +97,9 @@ theorem erc20_initcode_establishes_inv (hsup : SupplyClean)
     (hdeploy : erc20Config.selfDeployment erc20Initcode args = some deployedInitcode)
     (hcode : I.code = deployedInitcode) (hcalldata : I.calldata = .empty) (hperm : I.perm = true)
     (hzero : ∀ a, balOfAt σ I.codeOwner a = 0)
-    (hΞ : Ξ σ σ₀ g A I = .ok (.success (σ', g', A') o)) :
+    (hΞ : Ξ fork σ σ₀ g A I = .ok (.success (σ', g', A') o)) :
     InvAt σ' I.codeOwner ∧ o = erc20Bytecode := by
-  cases erc20ConstructorCorrect σ σ₀ g A I args deployedInitcode hdeploy hcode hcalldata hperm with
+  cases erc20ConstructorCorrect fork (supportedForks_mem fork) σ σ₀ g A I args deployedInitcode hdeploy hcode hcalldata hperm with
   | execution hΞ' hstele hequiv _ =>
     obtain rfl := hΞ'.symm.trans hΞ
     cases hequiv with

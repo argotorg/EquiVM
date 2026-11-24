@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.PoolUpdateTickTail
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -23,16 +25,16 @@ theorem poolUpdateTickFinishSource {f : Frame} {evm : EVM.State} {id packed gros
     (hg : f.locals.get? "liquidityGrossAfter" = some (.int (Int.ofNat gross.toNat)))
     (hgb : f.locals.get? "liquidityGrossBefore" = some (.int (Int.ofNat (tickGrossWord packed).toNat)))
     (hflip : f.locals.get? "flipped" = some (.bool flipped)) :
-    ∃ f', ExecFuncBody config f evm (poolUpdateTickFunction.body.drop 9)
+    ∃ f', ExecFuncBody fork config f evm (poolUpdateTickFunction.body.drop 9)
       (poolUpdateTickFinishResult f' evm id packed gross tick delta upper flipped) := by
-  have hfees := poolUpdateTickFees (evm := evm) hf hs hi ht hgb
+  have hfees := poolUpdateTickFees (fork := fork) (evm := evm) hf hs hi ht hgb
   by_cases hstop : tickFeesNeeded evm id tick (Int.ofNat (tickGrossWord packed).toNat) ∧ evm.executionEnv.perm = false
   · simp only [tickFeeResult, if_pos hstop.1, if_pos hstop.2] at hfees
     exact ⟨f, by simpa only [poolUpdateTickFinishResult, if_pos hstop] using
       (ExecFuncBody.execBlockStatic (ExecBlock.consStatic hfees) :
-        ExecFuncBody config f evm (poolUpdateTickFunction.body.drop 9) .staticViolation)⟩
+        ExecFuncBody fork config f evm (poolUpdateTickFunction.body.drop 9) .staticViolation)⟩
   · let f1 := tickFeeFrame f evm id (Int.ofNat (tickGrossWord packed).toNat)
-    have hfeesOk : ExecStmt config f evm poolUpdateTickFunction.body[9]!
+    have hfeesOk : ExecStmt fork config f evm poolUpdateTickFunction.body[9]!
         (.ok f1 (tickFeesPost evm id packed tick)) := by
       by_cases hn : tickFeesNeeded evm id tick (Int.ofNat (tickGrossWord packed).toNat)
       · have hp : ¬evm.executionEnv.perm = false := fun hp => hstop ⟨hn, hp⟩

@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.AbsorbDecodeWords
 import Benchmarks.CompoundIII.Comet.AddressDecodeCost
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_030
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -14,13 +16,13 @@ theorem cometDecodeAbsorb {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024) (hsz : 4 ≤ ee.calldata.size)
     (hsize : ee.calldata.size < UInt256.size)
-    (h : RD (deployedRuntime v) ee g s0 ⟨5508⟩ R mem aw rdata σ k C) :
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨5508⟩ R mem aw rdata σ k C) :
     if AbsorbCalldataValid ee.calldata then
-      RD (deployedRuntime v) ee g s0 ⟨16664⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨16664⟩
         (calldataWord ee.calldata 4 :: (calldataWord ee.calldata 36 + UInt256.ofNat 36) ::
           calldataWord ee.calldata (4 + absorbArrayOffset ee.calldata) :: ⟨22⟩ :: R)
         mem aw rdata σ (k + 76) (C + 278)
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   let off := calldataWord ee.calldata 36
   let len := calldataWord ee.calldata (4 + absorbArrayOffset ee.calldata)
   have hmask : (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 64))
@@ -68,7 +70,7 @@ theorem cometDecodeAbsorb {v : CometWithExtendedAssetListImmutables}
                   (by change UInt256.gt (uInt256OfByteArray (ee.calldata.readBytes
                         ((UInt256.ofNat 4) + off).toNat 32)) _ = _
                       rw [hload]; exact hgt) r5
-                change RD _ _ _ _ _ (calldataWord ee.calldata 4 ::
+                change RD fork _ _ _ _ _ (calldataWord ee.calldata 4 ::
                   uInt256OfByteArray (ee.calldata.readBytes ((UInt256.ofNat 4) + off).toNat 32) ::
                   off :: R)
                   _ _ _ _ _ _ at r6

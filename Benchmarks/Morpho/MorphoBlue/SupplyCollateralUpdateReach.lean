@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.SupplyCollateralGuardPrepare
 import Benchmarks.Morpho.MorphoBlue.PositionPackedWrites
 import Benchmarks.Morpho.MorphoBlue.StoreHighStatic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -21,9 +23,9 @@ variable {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
   {aw assets account srcOff len : UInt256} {out : ByteArray} {σ : AccountMap} {k C : Nat} {R : List UInt256}
 
 theorem morphoSupplyCollateralReachCast (p : MarketParamsWords) (hstack : R.length + 28 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 10184)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 10184)
       (supplyCollateralUpdateTail p.id assets account srcOff len R) (supplyCollateralGuardMem p) aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 15480)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 15480)
       ([assets, UInt256.ofNat 10196, UInt256.ofNat 10235] ++ supplyCollateralUpdateTail p.id assets account srcOff len R)
       (supplyCollateralGuardMem p) aw' out σ k' C' := by
   obtain ⟨a1, k1, C1, rd1⟩ := morphoBlocks.morpho_block_10184_packed
@@ -32,10 +34,10 @@ theorem morphoSupplyCollateralReachCast (p : MarketParamsWords) (hstack : R.leng
   exact ⟨a1, k1, C1, rd1⟩
 
 theorem morphoSupplyCollateralReachAdd (p : MarketParamsWords) (hstack : R.length + 28 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 10196)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 10196)
       ([assets, UInt256.ofNat 10235] ++ supplyCollateralUpdateTail p.id assets account srcOff len R)
       (supplyCollateralCastMem p) aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12664)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12664)
       ([positionFieldWord σ ee p.id account 2, assets, UInt256.ofNat 2278,
         positionSlot p.id account + ⟨1⟩, UInt256.ofNat 10235] ++ supplyCollateralUpdateTail p.id assets account srcOff len R)
       (supplyCollateralPositionMem p account) aw' out σ k' C' := by
@@ -47,7 +49,7 @@ theorem morphoSupplyCollateralReachAdd (p : MarketParamsWords) (hstack : R.lengt
       solcMappingSlot ⟨2⟩ p.id := twoWordHashMem_solcMappingSlot_any _ _ _
   have hh2 : keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) (supplyCollateralPositionMem p account) =
       positionSlot p.id account := twoWordHashMem_solcMappingSlot_any _ _ _
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     ([UInt256.shiftRight (solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64)
         (twoWordHashMem account (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) (twoWordHashMem p.id (UInt256.ofNat 2) mem))
           (twoWordHashMem p.id (UInt256.ofNat 2) mem)) + UInt256.ofNat 1) σ ee) (UInt256.ofNat 128), assets,

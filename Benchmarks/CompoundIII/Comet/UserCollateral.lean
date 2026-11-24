@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.UserCollateralRead
 import Benchmarks.CompoundIII.Comet.TwoAddressDecode
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_010
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # CometWithExtendedAssetList `userCollateral(address,address)`
 
@@ -23,7 +25,7 @@ set_option maxRecDepth 10000
 
 theorem userCollateral_returns {σ σ₀ A I} {g : Sat256} (imms : Store)
     (hvalue : I.weiValue = ⟨0⟩) (hhi : I.calldata.size < 2 ^ 255 + 4) :
-    ∃ frame, ExecTransitionBody config contract (initState σ σ₀ g A I)
+    ∃ frame, ExecTransitionBody fork config contract (initState σ σ₀ g A I)
       (twoAddressGetterArgs "arg0" "arg1" I) userCollateralTransition.body
       (.returned frame (initState σ σ₀ g A I)
         (some [.int (low128 (userCollateralWord σ I
@@ -58,7 +60,7 @@ theorem userCollateralX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetL
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 12)) :
-    TwoAddressGetterResult (deployedRuntime v) I g (initState σ σ₀ g A I) σ
+    TwoAddressGetterResult fork (deployedRuntime v) I g (initState σ σ₀ g A I) σ
       ((low128 (userCollateralWord σ I
         (AccountAddress.ofNat (calldataWord I.calldata 4).toNat)
         (AccountAddress.ofNat (calldataWord I.calldata 36).toNat))).toByteArray ++
@@ -100,7 +102,7 @@ theorem userCollateralX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetL
       let slot₀ := solcMappingSlot ⟨6⟩ w₀
       have hhash₀ : keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) mem₀ = slot₀ :=
         mappingGetterHash w₀ ⟨6⟩
-      change RD _ _ _ _ _ [keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) mem₀,
+      change RD fork _ _ _ _ _ [keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) mem₀,
         w₁, ⟨2542⟩, ⟨2570⟩] mem₀ _ _ _ _ _ at rd5
       rw [hhash₀] at rd5
       have rd6 := cometWithExtendedAssetList_block_2428 (immWords := wordsOf (immStore v))
@@ -117,7 +119,7 @@ theorem userCollateralX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetL
       have hmem₁ : mem₁.size = 96 := twoWordHashMem_size_96 w₁ slot₀ hmem₀
       have hhash₁ : keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) mem₁ = slot₁ :=
         twoWordHashMem_solcMappingSlot slot₀ w₁ hmem₀
-      change RD _ _ _ _ _ [keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) mem₁, ⟨2570⟩]
+      change RD fork _ _ _ _ _ [keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) mem₁, ⟨2570⟩]
         mem₁ _ _ _ _ _ at rd6
       rw [hhash₁] at rd6
       obtain ⟨k₇, C₇, rd7⟩ := cometWithExtendedAssetList_block_2542
@@ -128,7 +130,7 @@ theorem userCollateralX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetL
           (twoWordHashMem_read64 w₁ slot₀ hmem₀
             (twoWordHashMem_read64 w₀ ⟨6⟩ solcFreePtrMem_size solcFreePtrMem_read64))
       let val := solcSlotWordAt slot₁ σ I
-      change RD _ _ _ _ _ [memLoad (UInt256.ofNat 64) mem₁,
+      change RD fork _ _ _ _ _ [memLoad (UInt256.ofNat 64) mem₁,
         UInt256.land (UInt256.ofNat (2 ^ 128 - 1)) val, high128 val,
         ⟨2570⟩, memLoad (UInt256.ofNat 64) mem₁, memLoad (UInt256.ofNat 64) mem₁]
         mem₁ _ _ _ _ _ at rd7
@@ -152,7 +154,7 @@ theorem userCollateralX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetL
 theorem cometWithExtendedAssetListUserCollateralBody {σ σ₀ A I} {g : UInt256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 12)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (cometWithExtendedAssetListSelBytes 12) rfl hsel
   let w := userCollateralWord σ I
     (AccountAddress.ofNat (calldataWord I.calldata 4).toNat)

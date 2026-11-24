@@ -5,6 +5,8 @@ import Benchmarks.Safe.V1_0227664.Blocks.Runtime_032
 import Benchmarks.Safe.V1_0227664.Blocks.Runtime_033
 import Benchmarks.Safe.V1_0227664.Blocks.Runtime_034
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V1_0227664.RuntimeBlocks
 
@@ -23,9 +25,9 @@ theorem safePaymentReceiverWord (p : PaymentInput) (I : ExecutionEnv) :
 set_option maxRecDepth 100000 in
 theorem safePaymentReceiverTrace (p : PaymentInput) {I g s0 σ k C aw mem rdata}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7565⟩ (UInt256.ofNat p.refundReceiver.val :: R)
+    (h : RD fork safeBytecode I g s0 ⟨7565⟩ (UInt256.ofNat p.refundReceiver.val :: R)
       mem aw rdata σ k C) (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨7590⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨7590⟩
       (UInt256.ofNat (p.receiver I).val :: ⟨0⟩ :: ⟨0⟩ ::
         UInt256.ofNat p.refundReceiver.val :: R) mem aw rdata σ k' C' := by
   have hc : (UInt256.ofNat p.refundReceiver.val).toNat < EVM.addressModulus :=
@@ -54,11 +56,11 @@ theorem safePaymentReceiverTrace (p : PaymentInput) {I g s0 σ k C aw mem rdata}
 set_option maxRecDepth 100000 in
 theorem safePaymentNativePriceTrace (p : PaymentInput) {I g s0 σ k C aw mem rdata}
     {receiver ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7607⟩
+    (h : RD fork safeBytecode I g s0 ⟨7607⟩
       (receiver :: ⟨0⟩ :: UInt256.ofNat p.refundReceiver.val :: UInt256.ofNat p.gasToken.val ::
         p.gasPrice :: p.baseGas :: p.gasUsed :: ret :: R) mem aw rdata σ k C)
     (hov : R.length + 14 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨7624⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨7624⟩
       (p.nativePrice I :: ⟨7640⟩ :: receiver :: ⟨0⟩ :: UInt256.ofNat p.refundReceiver.val ::
         UInt256.ofNat p.gasToken.val :: p.gasPrice :: p.baseGas :: p.gasUsed :: ret :: R)
       mem aw rdata σ k' C' := by
@@ -84,11 +86,11 @@ theorem safePaymentNativePriceTrace (p : PaymentInput) {I g s0 σ k C aw mem rda
 set_option maxRecDepth 100000 in
 theorem safePaymentPrepare (p : PaymentInput) {I g s0 σ k C aw mem rdata}
     {ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7565⟩
+    (h : RD fork safeBytecode I g s0 ⟨7565⟩
       (UInt256.ofNat p.refundReceiver.val :: UInt256.ofNat p.gasToken.val :: p.gasPrice ::
         p.baseGas :: p.gasUsed :: ret :: R) mem aw rdata σ k C)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨8512⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨8512⟩
       (p.baseGas :: p.gasUsed :: ⟨7634⟩ :: paymentPrice p I :: paymentAfterArithmeticPC p ::
         UInt256.ofNat (p.receiver I).val :: ⟨0⟩ :: UInt256.ofNat p.refundReceiver.val ::
         UInt256.ofNat p.gasToken.val :: p.gasPrice :: p.baseGas :: p.gasUsed :: ret :: R)

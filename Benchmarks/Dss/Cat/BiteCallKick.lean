@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Cat.Common
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -323,13 +325,13 @@ producing the `Θ` witness (with `mem.readWithPadding 128 164` as calldata) and 
 theorem RD.catBiteKickGuardMissing {σ σ₀ A I} {g target : UInt256} {mem : ByteArray}
     {aw : UInt256} {rdata : ByteArray}
     {σx : AccountMap} {R : List UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2516⟩
       (target :: target :: ⟨0⟩ :: ⟨128⟩ :: ⟨164⟩ :: ⟨128⟩ :: ⟨32⟩ :: R)
       mem aw rdata σx k C)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σx target = ⟨0⟩)
     (hov : R.length + 9 ≤ 1024) :
-    RDrev catBytecode (Sat256.ofUInt256 g)
+    RDrev fork catBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨2516⟩) (okPc := ⟨2528⟩) rd hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -340,13 +342,13 @@ theorem RD.catBiteKickGuardMissing {σ σ₀ A I} {g target : UInt256} {mem : By
 theorem RD.catBiteKickGuardOk {σ σ₀ A I} {g target : UInt256} {mem : ByteArray}
     {aw : UInt256} {rdata : ByteArray}
     {σx : AccountMap} {R : List UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2516⟩
       (target :: target :: ⟨0⟩ :: ⟨128⟩ :: ⟨164⟩ :: ⟨128⟩ :: ⟨32⟩ :: R)
       mem aw rdata σx k C)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σx target ≠ ⟨0⟩)
     (hov : R.length + 9 ≤ 1024) :
-    ∃ gasWord k' C', RD catBytecode I (Sat256.ofUInt256 g)
+    ∃ gasWord k' C', RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2531⟩
       (gasWord :: target :: ⟨0⟩ :: ⟨128⟩ :: ⟨164⟩ :: ⟨128⟩ :: ⟨32⟩ :: R)
       mem aw rdata σx k' C' := by
@@ -362,7 +364,7 @@ theorem RD.catBiteKickGuardOk {σ σ₀ A I} {g target : UInt256} {mem : ByteArr
 theorem RD.catBiteKickPostCall {σ σ₀ A I} {g target gasWord : UInt256} {mem : ByteArray}
     {aw : UInt256} {rdata : ByteArray}
     {σx : AccountMap} {R : List UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2531⟩
       (gasWord :: target :: ⟨0⟩ :: ⟨128⟩ :: ⟨164⟩ :: ⟨128⟩ :: ⟨32⟩ :: R)
       mem aw rdata σx k C)
@@ -370,12 +372,12 @@ theorem RD.catBiteKickPostCall {σ σ₀ A I} {g target gasWord : UInt256} {mem 
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ σx σ₀ Ain
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ fork σx σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
-          (AccountAddress.ofUInt256 target) (toExecute σx (AccountAddress.ofUInt256 target))
+          (AccountAddress.ofUInt256 target) (toExecute fork σx (AccountAddress.ofUInt256 target))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding 128 164) (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
-      ∧ RD catBytecode I (Sat256.ofUInt256 g)
+      ∧ RD fork catBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2532⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: R)
           (o.write 0 mem 128 (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat)
@@ -392,12 +394,12 @@ theorem RD.catBiteKickPostCall {σ σ₀ A I} {g target gasWord : UInt256} {mem 
 theorem RD.catBiteKickCallDepthLimit {σ σ₀ A I} {g target gasWord : UInt256}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σx : AccountMap} {R : List UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2531⟩
       (gasWord :: target :: ⟨0⟩ :: ⟨128⟩ :: ⟨164⟩ :: ⟨128⟩ :: ⟨32⟩ :: R)
       mem aw rdata σx k C)
     (hdepth : I.depth = 1024) (hov : R.length + 1 ≤ 1024) :
-    ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2532⟩ (⟨0⟩ :: R)
       (ByteArray.empty.write 0 mem 128 (min (⟨32⟩ : UInt256) (UInt256.ofNat ByteArray.empty.size)).toNat)
       (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat 128 164) 128 32))
@@ -409,12 +411,12 @@ theorem RD.catBiteKickCallDepthLimit {σ σ₀ A I} {g target gasWord : UInt256}
 theorem RD.catBiteKickCallFailed {σ σ₀ A I} {g : UInt256} {mem : ByteArray}
     {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {R : List UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2532⟩ (⟨0⟩ :: R)
       mem aw rdata acc k C)
     (hrdataSize : rdata.size < UInt256.size)
     (hov : R.length + 5 ≤ 1024) :
-    RDrev catBytecode (Sat256.ofUInt256 g)
+    RDrev fork catBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨2532⟩) (okPc := ⟨2548⟩) rd rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -427,12 +429,12 @@ theorem RD.catBiteKickCallFailed {σ σ₀ A I} {g : UInt256} {mem : ByteArray}
 theorem RD.catBiteKickCallSucceeded {σ σ₀ A I} {g status : UInt256} {mem : ByteArray}
     {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {R : List UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2532⟩ (status :: R)
       mem aw rdata acc k C)
     (hstatus : status ≠ ⟨0⟩)
     (hov : R.length + 3 ≤ 1024) :
-    ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2550⟩ R
       mem aw rdata acc k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨2532⟩) (okPc := ⟨2548⟩) rd hstatus

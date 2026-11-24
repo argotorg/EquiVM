@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.FlashUpdates
 import Benchmarks.UniswapV3.Pool.FlashFinish
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -11,30 +13,30 @@ theorem flashSettlementX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {aw junk after1 after0 before1 before0 fee1 fee0 liquidity len start amount1 amount0 : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (recipient : AccountAddress) (locals : Store)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨7003⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨7003⟩
       (after1 :: junk :: after0 :: before1 :: before0 :: fee1 :: fee0 :: liquidity :: len :: start ::
         amount1 :: amount0 :: EVM.word recipient.val :: ⟨857⟩ :: R) mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hperm : ee.perm = true)
     (hrepay : FlashRepayValues locals before0 before1 fee0 fee1 after0 after1)
     (hcore : FlashCoreValues locals recipient amount0 amount1 liquidity)
     (hliquidity : liquidity.toNat < 2 ^ 128) (hov : R.length + 33 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧
-      ExecBlock config {contract := contract, locals := locals, immutables := immStore v} evm
+    (RDrev fork (deployedRuntime v) g s0 ∧
+      ExecBlock fork config {contract := contract, locals := locals, immutables := immStore v} evm
         (flashTransition.body.drop 17) .reverted) ∨
     ∃ evm' locals',
-      ExecBlock config {contract := contract, locals := locals, immutables := immStore v} evm
+      ExecBlock fork config {contract := contract, locals := locals, immutables := immStore v} evm
         (flashTransition.body.drop 17)
         (.ok {contract := contract, locals := locals', immutables := immStore v} evm') ∧
-      RDret (deployedRuntime v) g s0 evm'.accountMap ByteArray.empty := by
+      RDret fork (deployedRuntime v) g s0 evm'.accountMap ByteArray.empty := by
   rcases flashRepaymentX (v := v) rd (by evm_ov) with
     ⟨rdBad, hvBad⟩ | ⟨hv0, hv1, kRepaid, CRepaid, rdRepaid⟩
   · refine Or.inl ⟨rdBad, ?_⟩
     rw [← List.take_append_drop 4 (flashTransition.body.drop 17)]
     exact execBlockAppendReverted
       (flashRepaymentReverts v locals evm _ _ _ _ _ _ hrepay hvBad)
-  · have hsourceRepay := flashRepaymentReturns v locals evm _ _ _ _ _ _ hrepay ⟨hv0, hv1⟩
+  · have hsourceRepay := flashRepaymentReturns (fork := fork) v locals evm _ _ _ _ _ _ hrepay ⟨hv0, hv1⟩
     let repaid := flashRepaidFrame v locals before0 before1 fee0 fee1
-    have hsourcePaid := flashPaidSource v repaid.locals evm before0 before1 after0 after1
+    have hsourcePaid := flashPaidSource (fork := fork) v repaid.locals evm before0 before1 after0 after1
       (by simpa [repaid, flashRepaidFrame, flashRepayFrame, flashRepayName,
         Std.HashMap.getElem?_insert] using hrepay.before0)
       (by simpa [repaid, flashRepaidFrame, flashRepayFrame, flashRepayName,
@@ -54,20 +56,20 @@ theorem flashSettlementX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     · refine Or.inl ⟨rdBad, ?_⟩
       rw [← List.take_append_drop 4 (flashTransition.body.drop 17)]
       apply execBlock_append_ok hsourceRepay
-      change ExecBlock _ _ _ (flashTransition.body.drop 21) _
+      change ExecBlock fork _ _ _ (flashTransition.body.drop 21) _
       rw [← List.take_append_drop 2 (flashTransition.body.drop 21)]
       apply execBlock_append_ok hsourcePaid
-      change ExecBlock _ _ _ (flashTransition.body.drop 23) _
+      change ExecBlock fork _ _ _ (flashTransition.body.drop 23) _
       rw [← List.take_append_drop 2 (flashTransition.body.drop 23)]
       exact execBlockAppendReverted hbad
     · refine Or.inr ⟨storeSlot0Unlocked evm2 true, locals2, ?_,
         flashFinishX (v := v) rdDone hs2 hperm (by evm_ov)⟩
       rw [← List.take_append_drop 4 (flashTransition.body.drop 17)]
       apply execBlock_append_ok hsourceRepay
-      change ExecBlock _ _ _ (flashTransition.body.drop 21) _
+      change ExecBlock fork _ _ _ (flashTransition.body.drop 21) _
       rw [← List.take_append_drop 2 (flashTransition.body.drop 21)]
       apply execBlock_append_ok hsourcePaid
-      change ExecBlock _ _ _ (flashTransition.body.drop 23) _
+      change ExecBlock fork _ _ _ (flashTransition.body.drop 23) _
       rw [← List.take_append_drop 2 (flashTransition.body.drop 23)]
       apply execBlock_append_ok hsourceUpdates
       exact flashFinishSource (hperm := (congrArg ExecutionEnv.perm hs2.env).trans hperm) locals2 (immStore v) evm2 recipient amount0 amount1 _ _

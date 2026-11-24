@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.NextAmount1AddTailTrace
 import Benchmarks.UniswapV4PoolManager.NextAmount1SubQuotientTrace
 import Benchmarks.UniswapV4PoolManager.NextAmount1SubGuardTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -15,13 +17,13 @@ theorem nextAmount1AddTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+20 ≤ 1024)
     (hp : price.toNat < 2^160) (hl : liquidity.toNat < 2^128) (hn : liquidity ≠ ⟨0⟩)
-    (h : RD (deployedRuntime v) I g s0 ⟨20476⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨20476⟩
       ([liquidity, price, j0, j1, j2, j3, amount, solcAddrMask] ++ R) mem aw rdata σ k C) :
     if nextAmount1Fits price liquidity amount true then ∃ k' C', C ≤ C' ∧
-      RD (deployedRuntime v) I g s0 ⟨20464⟩
+      RD fork (deployedRuntime v) I g s0 ⟨20464⟩
         ([nextAmount1Word price liquidity amount true, liquidity, price, j0, j1, j2, j3, amount, solcAddrMask] ++ R)
         mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hq := nextAmount1AddQuotientTrace v hstack hl hn h
   by_cases hf : nextAmount1QuotientFits liquidity amount true
   · rw [if_pos hf] at hq
@@ -42,14 +44,14 @@ theorem nextAmount1SubTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+25 ≤ 1024)
     (hp : price.toNat < 2^160) (hl : liquidity.toNat < 2^128)
-    (h : RD (deployedRuntime v) I g s0 ⟨20749⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨20749⟩
       ([junk, j0, price, j1, liquidity, amount, x0, x1, x2, x3, x4, x5, x6, x7, x8] ++ R)
       mem aw rdata σ k C) :
     if nextAmount1Fits price liquidity amount false then ∃ k' C', C ≤ C' ∧
-      RD (deployedRuntime v) I g s0 ⟨20872⟩
+      RD fork (deployedRuntime v) I g s0 ⟨20872⟩
         ([nextAmount1Word price liquidity amount false, liquidity, price, ⟨160⟩, j0, x8, j1, solcAddrMask,
           amount, x0, x1, x2, x3, x4, x5, x6, x7, x8] ++ R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hq := nextAmount1SubQuotientTrace v (by change R.length+25 ≤ 1024; exact hstack) hl h
   by_cases hf : nextAmount1QuotientFits liquidity amount false
   · rw [if_pos hf] at hq

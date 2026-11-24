@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.OracleObserveSingleResult
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_046
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -12,7 +14,7 @@ theorem oracleObserveReturnX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {tickArg secondsAgoRaw timeRaw ret time secondsAgo tickRaw secondsRaw : UInt256}
     {tick tickValue secondsValue : Int} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13584⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13584⟩
       (secondsRaw :: tickRaw :: card :: liquidity :: index :: tickArg :: secondsAgoRaw ::
         timeRaw :: ⟨8⟩ :: ret :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hcover : free.toNat ≤ aw.toNat * 32 + 32)
@@ -23,7 +25,7 @@ theorem oracleObserveReturnX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (htr : -(2 ^ 55 : Int) ≤ tickValue ∧ tickValue < 2 ^ 55)
     (hsr : 0 ≤ secondsValue ∧ secondsValue < 2 ^ 160)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 10 ≤ 1024) :
-    Nonempty (OracleObserveSingleExit v ee g s0 σ rdata ret R time secondsAgo tick index liquidity card
+    Nonempty (OracleObserveSingleExit fork v ee g s0 σ rdata ret R time secondsAgo tick index liquidity card
       mem aw free C) := by
   have r := uniswapV3Pool_block_13584 (immWords := wordsOf (immStore v)) hov hret rd
   exact ⟨{ mem := mem

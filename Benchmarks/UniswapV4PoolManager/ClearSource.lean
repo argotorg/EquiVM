@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.SafeCast
 import Benchmarks.UniswapV4PoolManager.AccountDeltaSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Source execution of `clear`, including all guards and static calls. -/
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
@@ -26,10 +28,10 @@ theorem clearBodyExec {evm : EVM.State} {locals imms : Store} {currency : Accoun
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hhi : evm.executionEnv.calldata.size < calldataLimit)
     (hc : locals.get? "currency" = some (.address currency))
     (ha : locals.get? "amount" = some (.int (Int.ofNat amount.toNat))) :
-    ExecTransitionBody config contract evm locals clearTransition.body
+    ExecTransitionBody fork config contract evm locals clearTransition.body
       (clearBodyResult (calldataFrame contract locals imms evm) evm currency amount) imms := by
   let f := calldataFrame contract locals imms evm
-  have hlock := lockCall (f := f) (evm := evm) rfl "__c0"
+  have hlock := lockCall (fork := fork) (f := f) (evm := evm) rfl "__c0"
   rw [clearBodyResult]
   by_cases hl : transientWord evm lockSlot = ⟨0⟩
   · rw [if_pos hl]
@@ -43,14 +45,14 @@ theorem clearBodyExec {evm : EVM.State} {locals imms : Store} {currency : Accoun
   · rw [if_neg hl]
     rw [decide_eq_true hl] at hlock
     let f1 := {f with locals := f.locals.insert "__c0" (.bool true)}
-    have hlockGuard : ExecStmt config f1 evm clearTransition.body[4]! (.ok f1 evm) :=
+    have hlockGuard : ExecStmt fork config f1 evm clearTransition.body[4]! (.ok f1 evm) :=
       ExecStmt.iteFalse (evalNotBool (va := true) (evalLocalValue (f := f1) (store_get_self _ _ _))) ExecBlock.nil
     have hc1 : f1.locals.get? "currency" = some (.address currency) :=
       (store_get_ne _ _ (by decide : ("__c0" == "currency") = false)).trans
         ((store_get_ne _ _ (by decide : ("__calldata" == "currency") = false)).trans hc)
     have hcaller : evalExpr? config f1 evm (.env .caller) = .ok (.address evm.executionEnv.source) := by
       simp only [evalExpr?, envValue, pure]
-    have hget := getDeltaCall rfl (evalLocalValue hc1) hcaller "current"
+    have hget := getDeltaCall (fork := fork) rfl (evalLocalValue hc1) hcaller "current"
     let current := currencyDeltaValue evm evm.executionEnv.source currency
     let f2 := {f1 with locals := f1.locals.insert "current" (.int current)}
     have ha2 : f2.locals.get? "amount" = some (.int (Int.ofNat amount.toNat)) :=
@@ -59,7 +61,7 @@ theorem clearBodyExec {evm : EVM.State} {locals imms : Store} {currency : Accoun
           ((store_get_ne _ _ (by decide : ("__calldata" == "amount") = false)).trans ha))
     by_cases hfit : amount.toNat < 2^127
     · rw [if_pos hfit]
-      have hcast := uintToInt128Call rfl (evalLocalValue (cfg := config) (evm := evm) ha2) hfit "amountDelta"
+      have hcast := uintToInt128Call (fork := fork) rfl (evalLocalValue (cfg := config) (evm := evm) ha2) hfit "amountDelta"
       let f3 := {f2 with locals := f2.locals.insert "amountDelta" (.int (Int.ofNat amount.toNat))}
       have hamount3 : f3.locals.get? "amountDelta" = some (.int (Int.ofNat amount.toNat)) := store_get_self _ _ _
       have hcurrent3 : f3.locals.get? "current" = some (.int current) :=
@@ -70,7 +72,7 @@ theorem clearBodyExec {evm : EVM.State} {locals imms : Store} {currency : Accoun
         simp only [bind, EvalResult.bind, evalBinaryOp?, BEq.beq, Value.int.injEq, ← decide_not]
       by_cases heq : Int.ofNat amount.toNat = current
       · rw [if_pos heq]
-        have heqGuard : ExecStmt config f3 evm clearTransition.body[7]! (.ok f3 evm) :=
+        have heqGuard : ExecStmt fork config f3 evm clearTransition.body[7]! (.ok f3 evm) :=
           ExecStmt.iteFalse (hneq.trans (by rw [decide_eq_false (not_not.mpr heq)])) ExecBlock.nil
         have hc3 : f3.locals.get? "currency" = some (.address currency) :=
           (store_get_ne _ _ (by decide : ("amountDelta" == "currency") = false)).trans
@@ -86,7 +88,7 @@ theorem clearBodyExec {evm : EVM.State} {locals imms : Store} {currency : Accoun
             (by change -(2^127 : Int) ≤ -(Int.ofNat amount.toNat); simp only [Int.ofNat_eq_natCast]; omega)
             (by change -(Int.ofNat amount.toNat) < (2^127 : Int); simp only [Int.ofNat_eq_natCast]; omega)] at h
           exact h
-        have hcall := accountDeltaCall (f := f3) (evm := evm) (et := .env .caller) rfl (evalLocalValue hc3) hdelta
+        have hcall := accountDeltaCall (fork := fork) (f := f3) (evm := evm) (et := .env .caller) rfl (evalLocalValue hc3) hdelta
           (by simp only [evalExpr?, envValue, pure]; rfl) "__c3"
         have hsum : current + -(Int.ofNat amount.toNat) = 0 := by rw [← heq]; omega
         have hsumFit : int256Fits (current + -(Int.ofNat amount.toNat)) := by rw [hsum]; constructor <;> decide
@@ -123,7 +125,7 @@ theorem clearBodyExec {evm : EVM.State} {locals imms : Store} {currency : Accoun
             (hneq.trans (by rw [decide_eq_true heq]))
             (ExecBlock.consRevert (ExecStmt.requireFalse (by simp only [evalExpr?]; rfl))))))))
     · rw [if_neg hfit]
-      have hcast := uintToInt128CallReverts rfl (evalLocalValue (cfg := config) (evm := evm) ha2) hfit "amountDelta"
+      have hcast := uintToInt128CallReverts (fork := fork) rfl (evalLocalValue (cfg := config) (evm := evm) ha2) hfit "amountDelta"
       apply ExecFuncBody.execBlockRevert
       apply nonpayableCalldataBlock hwv hhi
       exact ExecBlock.consNormal hlock (ExecBlock.consNormal hlockGuard

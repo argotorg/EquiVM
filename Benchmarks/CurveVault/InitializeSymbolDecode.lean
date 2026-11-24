@@ -4,6 +4,8 @@ import Benchmarks.CurveVault.RuntimeBlocks_002
 import Benchmarks.CurveVault.RuntimeBlocks_003
 import Benchmarks.CurveVault.RuntimeBlocks_031
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.CurveVault
 
@@ -12,7 +14,7 @@ theorem vaultInitializeSymbolDecode {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {target : UInt256} {R : List UInt256}
     (hmem : mem.size = 320) (h32 : 32 ≤ out.size) (haw : aw.toNat ≤ 12)
     (hstack : R.length + 7 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 425)
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 425)
       (UInt256.ofNat (min out.size 96) :: target :: R) (vaultSymbolCallMemory mem out) aw out σ k C) :
     (∃ (size ptr : UInt256) (aw' : UInt256) (k' C' : Nat),
       size.toNat ≤ 32 ∧ ptr.toNat ≤ 352 ∧
@@ -20,10 +22,10 @@ theorem vaultInitializeSymbolDecode {I : ExecutionEnv} {g : Sat256} {s0 : State}
       decodeTokenSymbol out = some [vaultBorrowedSymbol size.toNat
         ((vaultSymbolCallMemory mem out).readWithPadding (ptr.toNat + 32) 32)] ∧
       memLoad ptr (vaultSymbolCallMemory mem out) = size ∧
-      RD vaultBytecode I g s0 (UInt256.ofNat 476)
+      RD fork vaultBytecode I g s0 (UInt256.ofNat 476)
         (size :: ptr :: UInt256.ofNat (min out.size 96) :: target :: R)
         (vaultSymbolCallMemory mem out) aw' out σ k' C') ∨
-    (decodeTokenSymbol out = none ∧ RDrev vaultBytecode g s0) := by
+    (decodeTokenSymbol out = none ∧ RDrev fork vaultBytecode g s0) := by
   let m := vaultSymbolCallMemory mem out
   let offset := memLoad (UInt256.ofNat 288) m
   let ptr := UInt256.ofNat 288 + offset

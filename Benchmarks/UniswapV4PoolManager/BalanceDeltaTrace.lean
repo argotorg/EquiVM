@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.BalanceDeltaSource
 import Benchmarks.UniswapV4PoolManager.Signed128
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_018
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -18,10 +20,10 @@ theorem balanceDeltaFeeTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw a b x2 x4 x5 x6 x7 x8 x9 x10 x11 x12 : UInt256} {delta : Int}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (v : PoolManagerImmutables) (hstack : R.length+16 ≤ 1024)
     (hlo : -(2^127 : Int) ≤ delta) (hhi : delta < 2^127)
-    (h : RD (deployedRuntime v) I g s0 ⟨5999⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨5999⟩
       (b :: a :: x2 :: EVM.wordOfInt delta :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: x12 :: R)
       mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) I g s0 (if delta < 0 then ⟨6620⟩ else ⟨6036⟩)
+    ∃ k' C', RD fork (deployedRuntime v) I g s0 (if delta < 0 then ⟨6620⟩ else ⟨6036⟩)
       (balanceDeltaOutputStack a b x2 (EVM.wordOfInt delta) x4 x5 x6 x7 x8 x9 x10 x11 x12 R)
       mem aw rdata σ k' C' := by
   have hs : EVM.signed (EVM.wordOfInt delta) = delta := signed_wordOfInt

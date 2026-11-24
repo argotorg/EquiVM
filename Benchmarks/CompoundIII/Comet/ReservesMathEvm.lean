@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.SignedArithmeticEvm
 import Benchmarks.CompoundIII.Comet.ArithmeticRoutines
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_016
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -14,10 +16,10 @@ theorem cometReservesPresentValues {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray} {aw : UInt256}
     {σ : AccountMap} {k C : Nat} {w0 w1 time balance dummy : UInt256} {R : List UInt256}
     (hstack : R.length + 17 ≤ 1024) (hv : CurrentIndicesValid v w0 w1 time)
-    (h : RD (deployedRuntime v) ee g s0 ⟨9965⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨9965⟩
       (dummy :: w1 :: currentIndex v w0 w1 time false ::
         currentIndex v w0 w1 time true :: balance :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨10129⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨10129⟩
       (balance :: ⟨10042⟩ :: ⟨10048⟩ :: totalReadWord v w0 w1 time false ::
         ⟨10042⟩ :: ⟨10054⟩ :: totalReadWord v w0 w1 time true :: R) mem aw rdata σ k' C' := by
   have r1 := cometWithExtendedAssetList_block_9965
@@ -59,14 +61,14 @@ theorem cometReservesSigned {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {w0 w1 time balance : UInt256} {R : List UInt256}
     (hstack : R.length + 12 ≤ 1024) (hv : CurrentIndicesValid v w0 w1 time)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨10129⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨10129⟩
       (balance :: ⟨10042⟩ :: ⟨10048⟩ :: totalReadWord v w0 w1 time false ::
         ⟨10042⟩ :: ⟨10054⟩ :: totalReadWord v w0 w1 time true :: ⟨2425⟩ :: ret :: R)
       mem aw rdata σ k C) :
     if ReservesMathValid v w0 w1 time balance then
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ret (reservesWord v w0 w1 time balance :: R)
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret (reservesWord v w0 w1 time balance :: R)
         mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   by_cases hbal : balance.toNat < 2^255
   · obtain ⟨k1, C1, r1⟩ := cometSigned256 (v := v)
       (by change R.length + 7 + 5 ≤ 1024; omega) hbal
@@ -101,7 +103,7 @@ theorem cometReservesSigned {v : CometWithExtendedAssetListImmutables}
       (by rw [cometWithExtendedAssetListPatchedValidJumps v]; jump_dest) r8
     rw [signedWord_sub_low hbal hs] at hr
     change if reservesValue v w0 w1 time balance < (2^255 : Int) then
-      ∃ k' C', RD _ _ _ _ ⟨2425⟩ (reservesWord v w0 w1 time balance :: ret :: R)
+      ∃ k' C', RD fork _ _ _ _ ⟨2425⟩ (reservesWord v w0 w1 time balance :: ret :: R)
         mem aw rdata σ k' C' else _ at hr
     by_cases hi : reservesValue v w0 w1 time balance < (2^255 : Int)
     · rw [if_pos hi] at hr

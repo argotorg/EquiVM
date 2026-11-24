@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.AccrueSourceFee
 import Benchmarks.Morpho.MorphoBlue.AccrueFeeMath
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
@@ -16,21 +18,21 @@ theorem morphoAccrueFeeCalcSource (p : MarketParamsWords) (locals imms : Store) 
       (.var "interest") = .ok (.int (Int.ofNat interest.toNat)))
     (hg : locals.get? "feeShares" = some oldShares)
     (hfit : AccrueFeeFits evm.accountMap evm.executionEnv p.id interest) :
-    ABlock config evm { contract := contract, locals := locals, immutables := imms } accrueFeeBody
+    ABlock fork config evm { contract := contract, locals := locals, immutables := imms } accrueFeeBody
       { contract := contract, locals := accrueFeeCalcLocals locals evm.accountMap evm.executionEnv p.id interest,
         immutables := imms } (accrueFeeBody.drop 3) := by
   let fee := accrueFeeAmount evm.accountMap evm.executionEnv p.id interest
   let shares := accrueFeeShares evm.accountMap evm.executionEnv p.id interest
   let l1 := locals.insert "feeAmount" (.int (Int.ofNat fee.toNat))
   let l2 := l1.insert "__c6" (.int (Int.ofNat shares.toNat))
-  have h1 : ExecStmt config { contract := contract, locals := locals, immutables := imms } evm accrueFeeBody[0]!
+  have h1 : ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm accrueFeeBody[0]!
       (.ok { contract := contract, locals := l1, immutables := imms } evm) :=
     morphoAccrueFeeAmountStep p locals imms evm interest hl he hfit.1
   have hl1 : MarketLocals p l1 := hl.insert "feeAmount" _ (by decide)
   have he1 : evalExpr? config { contract := contract, locals := l1, immutables := imms } evm
       (.var "feeAmount") = .ok (.int (Int.ofNat fee.toNat)) := by
     simp only [evalExpr?, l1, store_get_self, EvalResult.ofOption]
-  have h2 : ExecStmt config { contract := contract, locals := l1, immutables := imms } evm accrueFeeBody[1]!
+  have h2 : ExecStmt fork config { contract := contract, locals := l1, immutables := imms } evm accrueFeeBody[1]!
       (.ok { contract := contract, locals := l2, immutables := imms } evm) :=
     morphoAccrueFeeSharesStep p l1 imms evm fee hl1 he1 hfit.2.1 hfit.2.2
   have he2 : evalExpr? config { contract := contract, locals := l2, immutables := imms } evm
@@ -39,7 +41,7 @@ theorem morphoAccrueFeeCalcSource (p : MarketParamsWords) (locals imms : Store) 
   have hg2 : l2.get? "feeShares" = some oldShares := by
     simp only [l2, l1, store_get_ne (k := "__c6") (a := "feeShares") _ _ (by decide),
       store_get_ne (k := "feeAmount") (a := "feeShares") _ _ (by decide), hg]
-  have h3 := morphoAccrueFeeAssignLocal l2 imms evm shares oldShares hg2 he2
+  have h3 := morphoAccrueFeeAssignLocal (fork := fork) l2 imms evm shares oldShares hg2 he2
   exact ⟨fun hr => ExecBlock.consNormal h1 (ExecBlock.consNormal h2 (ExecBlock.consNormal h3 hr))⟩
 
 theorem morphoAccrueFeeCalcSourceReverts (p : MarketParamsWords) (locals imms : Store) (evm : EVM.State)
@@ -47,7 +49,7 @@ theorem morphoAccrueFeeCalcSourceReverts (p : MarketParamsWords) (locals imms : 
     (he : evalExpr? config { contract := contract, locals := locals, immutables := imms } evm
       (.var "interest") = .ok (.int (Int.ofNat interest.toNat)))
     (hbad : ¬ AccrueFeeFits evm.accountMap evm.executionEnv p.id interest) :
-    ExecBlock config { contract := contract, locals := locals, immutables := imms } evm accrueFeeBody .reverted := by
+    ExecBlock fork config { contract := contract, locals := locals, immutables := imms } evm accrueFeeBody .reverted := by
   by_cases hm : interest.toNat * (marketFieldWord evm.accountMap evm.executionEnv p.id 5).toNat < UInt256.size
   · let fee := accrueFeeAmount evm.accountMap evm.executionEnv p.id interest
     let l1 := locals.insert "feeAmount" (.int (Int.ofNat fee.toNat))

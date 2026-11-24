@@ -4,6 +4,8 @@ import Benchmarks.Morpho.MorphoBlue.Uint128Subtraction
 import Benchmarks.Morpho.MorphoBlue.PositionPackedWrites
 import Benchmarks.Morpho.MorphoBlue.StoreHighStatic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -23,9 +25,9 @@ variable {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
   {k C : Nat} {R : List UInt256}
 
 theorem morphoWithdrawCollateralReachCast (hstack : R.length + 36 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5630)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5630)
       (withdrawCollateralGuardTail id assets account receiver R) mem aw out σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 15480)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 15480)
       ([assets, UInt256.ofNat 5644, UInt256.ofNat 64, UInt256.ofNat 5686] ++
         withdrawCollateralGuardTail id assets account receiver R) mem aw out σ k' C' := by
   have rd := morphoBlocks.morpho_block_5630 (immWords := wordsOf (immStore v))
@@ -35,10 +37,10 @@ theorem morphoWithdrawCollateralReachCast (hstack : R.length + 36 ≤ 1024)
 
 theorem morphoWithdrawCollateralReachSub (hstack : R.length + 36 ≤ 1024)
     (hc : account.toNat < EVM.addressModulus)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5644)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5644)
       ([assets, UInt256.ofNat 64, UInt256.ofNat 5686] ++
         withdrawCollateralGuardTail id assets account receiver R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12846)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12846)
       ([positionFieldWord σ ee id account 2, assets, UInt256.ofNat 2278,
         positionSlot id account + UInt256.ofNat 1, UInt256.ofNat 5686] ++
         withdrawCollateralUpdateTail id assets account receiver R)
@@ -53,7 +55,7 @@ theorem morphoWithdrawCollateralReachSub (hstack : R.length + 36 ≤ 1024)
     twoWordHashMem_solcMappingSlot_any _ _ _
   let m2 := twoWordHashMem account (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) m1) m1
   have hm2 : m2 = supplyPositionMem id account mem := by dsimp only [m2]; rw [hh1]; rfl
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     ([UInt256.shiftRight (solcSlotWordAt
       (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) m2 + UInt256.ofNat 1) σ ee)
       (UInt256.ofNat 128), assets, UInt256.ofNat 2278,

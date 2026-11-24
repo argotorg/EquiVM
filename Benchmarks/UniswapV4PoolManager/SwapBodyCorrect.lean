@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.SwapBeforeCorrect
 import Benchmarks.UniswapV4PoolManager.SwapValidationTrace
 import Benchmarks.UniswapV4PoolManager.SwapDecodeMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -20,15 +22,15 @@ theorem swapBodyCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f : Fr
     (hc : PoolKeyCanonical key) (hl : p.priceLimit.toNat < 2^160)
     (haw : aw.toNat ≤ 13) (hsrc : src.toNat+len.toNat ≤ I.calldata.size) (hcd : I.calldata.size < 2^255)
     (hgas : g.toNat < 324518553658429321982441292826060)
-    (h : RD (deployedRuntime v) I g s0 ⟨1488⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨1488⟩
       ([len, src, ⟨160⟩, ⟨384⟩, ⟨352⟩, ⟨320⟩, junk]++R)
       (swapDecodeMemory key p) aw rdata evm.accountMap k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
-    ∃ result, ExecBlock config f evm (swapTransition.body.drop 6) result ∧
-      abiResultTrace swapTransition.returnType (deployedRuntime v) g s0 result := by
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    ∃ result, ExecBlock fork config f evm (swapTransition.body.drop 6) result ∧
+      abiResultTrace fork swapTransition.returnType (deployedRuntime v) g s0 result := by
   have hkey := swapDecodeMemory_key key p
   have hparams := swapDecodeMemory_params key p
-  have hs := swapValidationSource (evm := evm) v hf him hc hk hp
+  have hs := swapValidationSource (fork := fork) (evm := evm) v hf him hc hk hp
   have ht := swapValidationTrace (paramsPtr := UInt256.ofNat 320) v (by omega) hI hkey hparams
     (by decide) (by decide) haw h
   rw [swapValidationResult, hI] at hs

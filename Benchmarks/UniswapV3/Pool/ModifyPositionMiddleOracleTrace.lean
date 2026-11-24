@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.ModifyPositionMiddlePrefix
 import Benchmarks.UniswapV3.Pool.ModifyPositionMemory
 import Benchmarks.UniswapV3.Pool.OracleWriteInternal
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -20,25 +22,25 @@ theorem modifyPositionMiddleOracleX {σ : AccountMap} {ee : ExecutionEnv} {g : S
     {s0 : EVM.State} {k C : Nat} {aw p q free key : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : ModifyPositionArgs) (evm : EVM.State)
     (hs : SourceState s0 ee σ (modifyPositionUpdatedState v a evm))
-    (rd : RD (deployedRuntime v) ee g s0 ⟨16536⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨16536⟩
       (p :: ⟨0⟩ :: ⟨0⟩ :: key :: q :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hq : ModifyPositionParamsMemory mem q a)
     (hp : Slot0Memory mem p evm.accountMap evm.executionEnv)
     (hplo : 96 ≤ p.toNat) (hqlo : 96 ≤ q.toNat)
     (hphi : p.toNat + 224 ≤ free.toNat) (hqhi : q.toNat + 128 ≤ free.toNat)
     (hb : free.toNat + 384 ≤ 2 ^ 200) (hov : R.length + 33 ≤ 1024) :
-    (ExecBlock config (modifyPositionUpdatedFrame (immStore v) a evm)
+    (ExecBlock fork config (modifyPositionUpdatedFrame (immStore v) a evm)
       (modifyPositionUpdatedState v a evm) (modifyPositionMiddleBody.take 3) .reverted ∧
-      RDinvalid (deployedRuntime v) g s0) ∨
-    (ExecBlock config (modifyPositionUpdatedFrame (immStore v) a evm)
+      RDinvalid fork (deployedRuntime v) g s0) ∨
+    (ExecBlock fork config (modifyPositionUpdatedFrame (immStore v) a evm)
       (modifyPositionUpdatedState v a evm) (modifyPositionMiddleBody.take 3) .staticViolation ∧
-      RDstatic (deployedRuntime v) g s0) ∨
-    (ExecBlock config (modifyPositionUpdatedFrame (immStore v) a evm)
+      RDstatic fork (deployedRuntime v) g s0) ∨
+    (ExecBlock fork config (modifyPositionUpdatedFrame (immStore v) a evm)
       (modifyPositionUpdatedState v a evm) (modifyPositionMiddleBody.take 3)
       (.ok (modifyPositionMiddleOracleFrame v a evm) (modifyPositionMiddleOracleState v a evm)) ∧
       oracleWriteValid (modifyPositionMiddleOracleArgs v a evm) (modifyPositionUpdatedState v a evm) ∧
       ∃ σ' aw' k' C', SourceState s0 ee σ' (modifyPositionMiddleOracleState v a evm) ∧
-      RD (deployedRuntime v) ee g s0 ⟨16595⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨16595⟩
         (oracleWriteResultCardinality (modifyPositionMiddleOracleArgs v a evm)
             (modifyPositionUpdatedState v a evm) ::
           oracleWriteResultIndex (modifyPositionMiddleOracleArgs v a evm)
@@ -55,7 +57,7 @@ theorem modifyPositionMiddleOracleX {σ : AccountMap} {ee : ExecutionEnv} {g : S
       (modifyPositionMiddleOracleArgs v a evm).time := by
     dsimp only [modifyPositionMiddleOracleArgs, blockTimestampWord]
     rw [hs.env]
-  have hprefix := modifyPositionMiddlePrefixSource v a evm
+  have hprefix := modifyPositionMiddlePrefixSource (fork := fork) v a evm
   have hbody : modifyPositionMiddleBody.take 3 = modifyPositionMiddleBody.take 2 ++
       [.internalCall "Oracle_write" modifyPositionMiddleOracleExprs "__c7"] := rfl
   rcases oracleWriteInternalRawX (v := v) (modifyPositionMiddleOracleArgs v a evm)

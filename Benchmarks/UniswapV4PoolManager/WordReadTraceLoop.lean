@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.WordArrayReturn
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 3000
@@ -22,14 +24,14 @@ theorem wordReadTraceLoop {code : ByteArray} {I : ExecutionEnv} {g : Sat256} {s0
     {rdata : ByteArray} {σ : AccountMap} {R : List UInt256} {n : Nat}
     {values cursor : Nat → UInt256} {loopPC stride : UInt256}
     (step : ∀ i mem aw k C, i < max 1 n →
-      RD code I g s0 loopPC (wordReadTraceStack cursor stride n i R) mem aw rdata σ k C →
-      ∃ aw' k' C', RD code I g s0 (if i+1 < n then loopPC else ⟨2508⟩)
+      RD fork code I g s0 loopPC (wordReadTraceStack cursor stride n i R) mem aw rdata σ k C →
+      ∃ aw' k' C', RD fork code I g s0 (if i+1 < n then loopPC else ⟨2508⟩)
         (if i+1 < n then wordReadTraceStack cursor stride n (i+1) R else wordReadTraceExitStack cursor n (i+1) R)
         (writeWord mem (224+32*i) (values i)) aw' rdata σ k' C')
     (remaining : Nat) :
     ∀ i mem aw k C, i + remaining + 1 = n →
-      RD code I g s0 loopPC (wordReadTraceStack cursor stride n i R) mem aw rdata σ k C →
-      ∃ aw' k' C', RD code I g s0 ⟨2508⟩ (wordReadTraceExitStack cursor n n R)
+      RD fork code I g s0 loopPC (wordReadTraceStack cursor stride n i R) mem aw rdata σ k C →
+      ∃ aw' k' C', RD fork code I g s0 ⟨2508⟩ (wordReadTraceExitStack cursor n n R)
         (wordSequenceMemory mem (224+32*i) (wordArrayWords values i (remaining+1)))
         aw' rdata σ k' C' := by
   induction remaining with

@@ -2,6 +2,8 @@ import Benchmarks.Auction.InitializeArgs
 import Benchmarks.Auction.InitializerStorage
 import Benchmarks.Auction.PackedByte
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 100000
@@ -26,12 +28,12 @@ def initializerExited (σ : AccountMap) (I : ExecutionEnv) (top : UInt256) : Acc
     sstoreAccountMap I.codeOwner σ ⟨0⟩ (clearBoolOffset1Word (solcSlotWord σ I ⟨0⟩))
 
 theorem initializeStoreArgs {I g s0 top ret R mem aw rdata σ k C} (args : InitializeArgs)
-    (h : RD auctionBytecode I g s0 ⟨2245⟩ (top :: args.words.reverse ++ ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨2245⟩ (top :: args.words.reverse ++ ret :: R)
       mem aw rdata σ k C)
     (hc : args.canonical) (hperm : I.perm = true) (hov : R.length + 15 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨2326⟩ (top :: args.words.reverse ++ ret :: R)
+    ∃ k' C', RD fork auctionBytecode I g s0 ⟨2326⟩ (top :: args.words.reverse ++ ret :: R)
       mem aw rdata (args.storeMap σ I) k' C' := by
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     (top :: args.duration :: args.minBidIncrement :: args.reservePrice :: args.timeBuffer ::
       args.weth :: args.nouns :: ret :: R) _ _ _ _ _ _ at h
   have rd2249 := evm_run h with [jumpdest, push1 ⟨201⟩, dup1]
@@ -63,13 +65,13 @@ theorem initializeStoreArgs {I g s0 top ret R mem aw rdata σ k C} (args : Initi
   exact ⟨_, _, rd2326⟩
 
 theorem initializeExit {I g s0 top ret R mem aw rdata σ k C} (args : InitializeArgs)
-    (h : RD auctionBytecode I g s0 ⟨2326⟩ (top :: args.words.reverse ++ ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨2326⟩ (top :: args.words.reverse ++ ret :: R)
       mem aw rdata σ k C)
     (hperm : I.perm = true) (hret : (D_J auctionBytecode 0).contains ret = true)
     (hov : R.length + 12 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret R mem aw rdata
+    ∃ k' C', RD fork auctionBytecode I g s0 ret R mem aw rdata
       (initializerExited σ I top) k' C' := by
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     (top :: args.duration :: args.minBidIncrement :: args.reservePrice :: args.timeBuffer ::
       args.weth :: args.nouns :: ret :: R) _ _ _ _ _ _ at h
   by_cases ht : top = ⟨0⟩
@@ -83,7 +85,7 @@ theorem initializeExit {I g s0 top ret R mem aw rdata σ k C} (args : Initialize
     obtain ⟨_, _, rd2335⟩ := rd2334.sload (by native_decide) (by evm_ov)
     have rd2341 := evm_run rd2335 with [push2 ⟨65280⟩, not, and, swap1]
     obtain ⟨_, _, rd2342⟩ := rd2341.sstore hperm (by native_decide) (by evm_ov)
-    change RD _ _ _ _ _ _ _ _ _ (sstoreAccountMap I.codeOwner σ ⟨0⟩
+    change RD fork _ _ _ _ _ _ _ _ _ (sstoreAccountMap I.codeOwner σ ⟨0⟩
       (UInt256.land (UInt256.lnot ⟨65280⟩) (solcSlotWord σ I ⟨0⟩))) _ _ at rd2342
     rw [u256_land_comm (UInt256.lnot ⟨65280⟩)] at rd2342
     exact ⟨_, _, evm_run rd2342 with [jumpdest, pop, pop, pop, pop, pop, pop, pop, jump hret]⟩

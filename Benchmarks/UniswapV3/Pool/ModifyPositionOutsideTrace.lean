@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.ModifyPositionOutsideEntryTrace
 import Benchmarks.UniswapV3.Pool.ModifyPositionOutsideSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -10,18 +12,18 @@ theorem modifyPositionOutsideX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256
     {s0 : EVM.State} {k C : Nat} {aw p q free key : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : ModifyPositionArgs)
     (evm evm' : EVM.State) (second : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (modifyPositionOutsideEntry second)
+    (rd : RD fork (deployedRuntime v) ee g s0 (modifyPositionOutsideEntry second)
       (p :: ⟨0⟩ :: ⟨0⟩ :: key :: q :: R) mem aw rdata σ k C)
     (ha : a.Fits) (ht : validTicks a.lower a.upper)
     (hm : HeapMemory mem aw free) (hq : ModifyPositionParamsMemory mem q a)
     (hb : q.toNat + 128 ≤ 2 ^ 200) (hov : R.length + 41 ≤ 1024) :
-    (ExecBlock config (modifyPositionUpdatedFrame (immStore v) a evm) evm'
-      (modifyPositionOutsideBody second) .reverted ∧ RDrev (deployedRuntime v) g s0) ∨
-    (ExecBlock config (modifyPositionUpdatedFrame (immStore v) a evm) evm'
+    (ExecBlock fork config (modifyPositionUpdatedFrame (immStore v) a evm) evm'
+      (modifyPositionOutsideBody second) .reverted ∧ RDrev fork (deployedRuntime v) g s0) ∨
+    (ExecBlock fork config (modifyPositionUpdatedFrame (immStore v) a evm) evm'
       (modifyPositionOutsideBody second)
       (.ok (modifyPositionOutsideFinalFrame (immStore v) a evm second) evm') ∧
       signedAmountDeltaValid second (modifyPositionOutsideArgs a) ∧
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨16801⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨16801⟩
         (p :: (if second then EVM.wordOfInt (signedAmountDeltaResult second (modifyPositionOutsideArgs a))
           else ⟨0⟩) :: (if second then ⟨0⟩
           else EVM.wordOfInt (signedAmountDeltaResult second (modifyPositionOutsideArgs a))) ::
@@ -38,7 +40,7 @@ theorem modifyPositionOutsideX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256
     (by cases second <;> rw [uniswapV3PoolPatchedValidJumps v] <;> jump_dest) (by evm_ov)
   obtain ⟨aw5, k5, C5, r5, hm5⟩ := modifyPositionOutsideAmountEntryX (v := v) a second r4
     hm3 hq hb (by omega)
-  have r5' : RD (deployedRuntime v) ee g s0 (UInt256.ofNat (signedAmountDeltaEntry second))
+  have r5' : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat (signedAmountDeltaEntry second))
       (signedAmountDeltaEntryWords (modifyPositionOutsideArgs a) ++
         modifyPositionOutsideAmountReturn second :: p :: ⟨0⟩ :: ⟨0⟩ :: key :: q :: R)
       mem aw5 rdata σ k5 C5 := r5

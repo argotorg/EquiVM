@@ -1,5 +1,11 @@
 import Benchmarks.Dss.Dai.Selectors
 
+variable {fork : Ethereum.Fork}
+
+-- Concrete decoder facts must reduce the empty padding of a complete PUSH operand.
+set_option allowUnsafeReducibility true in
+attribute [local semireducible] ByteArray.zeroes
+
 /-!
 # MakerDAO DSS Dai dispatcher reach slices
 
@@ -375,7 +381,7 @@ theorem daiSelWord_eq_of_beq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
 theorem daiReachRootSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I)
         daiRootSplitPc [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   simpa [daiRootSplitPc, daiSelWord] using
@@ -401,19 +407,19 @@ theorem daiReachVeryHighFirstArm {σ σ₀ A I} {g : Sat256}
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat daiBytecode daiRootSplitPc) (daiSelWord I) = ⟨0⟩)
     (hhigh : UInt256.gt (armSelNat daiBytecode daiHighSplitPc) (daiSelWord I) = ⟨0⟩) :
-    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I)
         daiVeryHighFirstArmPc [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
     daiReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h43 : RD daiBytecode I g (initState σ σ₀ g A I)
+  have h43 : RD fork daiBytecode I g (initState σ σ₀ g A I)
       daiHighSplitPc [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5) (C32 + 22) := by
     simpa [daiHighSplitPc, daiRootSplitPc, selArmNextPc, armTgtWidth,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h32 daiRootSplitWellFormed hroot (by simp)
-  have h54 : RD daiBytecode I g (initState σ σ₀ g A I)
+  have h54 : RD fork daiBytecode I g (initState σ σ₀ g A I)
       daiVeryHighFirstArmPc [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5 + 5) (C32 + 22 + 22) := by
     simpa [daiVeryHighFirstArmPc, daiHighSplitPc, selArmNextPc, armTgtWidth,
@@ -436,7 +442,7 @@ theorem daiReachVeryHighBody {σ σ₀ A I} {g : Sat256}
         (daiSelWord I) ≠ ⟨0⟩)
     (hjd : (D_J daiBytecode 0).contains bodyPC = true)
     (hbody : armTgt daiBytecode (nthArmPc daiBytecode daiVeryHighFirstArmPc i) = bodyPC) :
-    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) bodyPC
+    ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I) bodyPC
         [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
     daiReachVeryHighFirstArm (σ := σ) (σ₀ := σ₀)
@@ -452,24 +458,24 @@ theorem daiReachHighFirstArm {σ σ₀ A I} {g : Sat256}
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat daiBytecode daiRootSplitPc) (daiSelWord I) = ⟨0⟩)
     (hhigh : UInt256.gt (armSelNat daiBytecode daiHighSplitPc) (daiSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I)
         daiHighFirstArmPc [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
     daiReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h43 : RD daiBytecode I g (initState σ σ₀ g A I)
+  have h43 : RD fork daiBytecode I g (initState σ σ₀ g A I)
       daiHighSplitPc [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5) (C32 + 22) := by
     simpa [daiHighSplitPc, daiRootSplitPc, selArmNextPc, armTgtWidth,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h32 daiRootSplitWellFormed hroot (by simp)
-  have h124 : RD daiBytecode I g (initState σ σ₀ g A I)
+  have h124 : RD fork daiBytecode I g (initState σ σ₀ g A I)
       ⟨124⟩ [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5 + 5) (C32 + 22 + 22) := by
     simpa [daiHighSplitPc] using
       RD.selectorSplitTakenAuto h43 daiHighSplitWellFormed hhigh (by jump_dest) (by simp)
-  have h125 : RD daiBytecode I g (initState σ σ₀ g A I)
+  have h125 : RD fork daiBytecode I g (initState σ σ₀ g A I)
       daiHighFirstArmPc [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5 + 5 + 1) (C32 + 22 + 22 + 1) := by
     simpa [daiHighFirstArmPc] using h124.jumpdest (by native_decide) (by simp)
@@ -489,7 +495,7 @@ theorem daiReachHighBody {σ σ₀ A I} {g : Sat256}
         (daiSelWord I) ≠ ⟨0⟩)
     (hjd : (D_J daiBytecode 0).contains bodyPC = true)
     (hbody : armTgt daiBytecode (nthArmPc daiBytecode daiHighFirstArmPc i) = bodyPC) :
-    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) bodyPC
+    ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I) bodyPC
         [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
     daiReachHighFirstArm (σ := σ) (σ₀ := σ₀)
@@ -505,22 +511,22 @@ theorem daiReachLowFirstArm {σ σ₀ A I} {g : Sat256}
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat daiBytecode daiRootSplitPc) (daiSelWord I) ≠ ⟨0⟩)
     (hlow : UInt256.gt (armSelNat daiBytecode daiLowSplitPc) (daiSelWord I) = ⟨0⟩) :
-    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I)
         daiLowFirstArmPc [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
     daiReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h184 : RD daiBytecode I g (initState σ σ₀ g A I)
+  have h184 : RD fork daiBytecode I g (initState σ σ₀ g A I)
       ⟨184⟩ [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5) (C32 + 22) := by
     simpa [daiRootSplitPc] using
       RD.selectorSplitTakenAuto h32 daiRootSplitWellFormed hroot (by jump_dest) (by simp)
-  have h185 : RD daiBytecode I g (initState σ σ₀ g A I)
+  have h185 : RD fork daiBytecode I g (initState σ σ₀ g A I)
       daiLowSplitPc [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5 + 1) (C32 + 22 + 1) := by
     simpa [daiLowSplitPc] using h184.jumpdest (by native_decide) (by simp)
-  have h196 : RD daiBytecode I g (initState σ σ₀ g A I)
+  have h196 : RD fork daiBytecode I g (initState σ σ₀ g A I)
       daiLowFirstArmPc [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5 + 1 + 5) (C32 + 22 + 1 + 22) := by
     simpa [daiLowFirstArmPc, daiLowSplitPc, selArmNextPc, armTgtWidth,
@@ -542,7 +548,7 @@ theorem daiReachLowBody {σ σ₀ A I} {g : Sat256}
         (daiSelWord I) ≠ ⟨0⟩)
     (hjd : (D_J daiBytecode 0).contains bodyPC = true)
     (hbody : armTgt daiBytecode (nthArmPc daiBytecode daiLowFirstArmPc i) = bodyPC) :
-    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) bodyPC
+    ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I) bodyPC
         [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
     daiReachLowFirstArm (σ := σ) (σ₀ := σ₀)
@@ -558,27 +564,27 @@ theorem daiReachVeryLowFirstArm {σ σ₀ A I} {g : Sat256}
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat daiBytecode daiRootSplitPc) (daiSelWord I) ≠ ⟨0⟩)
     (hlow : UInt256.gt (armSelNat daiBytecode daiLowSplitPc) (daiSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I)
         daiVeryLowFirstArmPc [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
     daiReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h184 : RD daiBytecode I g (initState σ σ₀ g A I)
+  have h184 : RD fork daiBytecode I g (initState σ σ₀ g A I)
       ⟨184⟩ [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5) (C32 + 22) := by
     simpa [daiRootSplitPc] using
       RD.selectorSplitTakenAuto h32 daiRootSplitWellFormed hroot (by jump_dest) (by simp)
-  have h185 : RD daiBytecode I g (initState σ σ₀ g A I)
+  have h185 : RD fork daiBytecode I g (initState σ σ₀ g A I)
       daiLowSplitPc [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5 + 1) (C32 + 22 + 1) := by
     simpa [daiLowSplitPc] using h184.jumpdest (by native_decide) (by simp)
-  have h266 : RD daiBytecode I g (initState σ σ₀ g A I)
+  have h266 : RD fork daiBytecode I g (initState σ σ₀ g A I)
       ⟨266⟩ [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5 + 1 + 5) (C32 + 22 + 1 + 22) := by
     simpa [daiLowSplitPc] using
       RD.selectorSplitTakenAuto h185 daiLowSplitWellFormed hlow (by jump_dest) (by simp)
-  have h267 : RD daiBytecode I g (initState σ σ₀ g A I)
+  have h267 : RD fork daiBytecode I g (initState σ σ₀ g A I)
       daiVeryLowFirstArmPc [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5 + 1 + 5 + 1) (C32 + 22 + 1 + 22 + 1) := by
     simpa [daiVeryLowFirstArmPc] using h266.jumpdest (by native_decide) (by simp)
@@ -598,7 +604,7 @@ theorem daiReachVeryLowBody {σ σ₀ A I} {g : Sat256}
         (daiSelWord I) ≠ ⟨0⟩)
     (hjd : (D_J daiBytecode 0).contains bodyPC = true)
     (hbody : armTgt daiBytecode (nthArmPc daiBytecode daiVeryLowFirstArmPc i) = bodyPC) :
-    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) bodyPC
+    ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I) bodyPC
         [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
     daiReachVeryLowFirstArm (σ := σ) (σ₀ := σ₀)
@@ -611,7 +617,7 @@ theorem daiReachBalanceOfBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (daiSelBytes 2)) :
-    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨734⟩
+    ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨734⟩
         [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : daiSelWord I = ⟨0x70a08231⟩ :=
     daiSelWord_eq_of_beq I hsz 0x70 0xa0 0x82 0x31 ⟨0x70a08231⟩
@@ -631,7 +637,7 @@ theorem daiReachDecimalsBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (daiSelBytes 4)) :
-    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨604⟩
+    ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨604⟩
         [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : daiSelWord I = ⟨0x313ce567⟩ :=
     daiSelWord_eq_of_beq I hsz 0x31 0x3c 0xe5 0x67 ⟨0x313ce567⟩
@@ -649,7 +655,7 @@ theorem daiReachDomainSeparatorBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (daiSelBytes 6)) :
-    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨634⟩
+    ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨634⟩
         [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : daiSelWord I = ⟨0x3644e515⟩ :=
     daiSelWord_eq_of_beq I hsz 0x36 0x44 0xe5 0x15 ⟨0x3644e515⟩
@@ -670,7 +676,7 @@ theorem daiReachTotalSupplyBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (daiSelBytes 17)) :
-    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨516⟩
+    ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨516⟩
         [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : daiSelWord I = ⟨0x18160ddd⟩ :=
     daiSelWord_eq_of_beq I hsz 0x18 0x16 0x0d 0xdd ⟨0x18160ddd⟩
@@ -690,7 +696,7 @@ theorem daiReachTransferFromBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (daiSelBytes 19)) :
-    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨542⟩
+    ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨542⟩
         [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : daiSelWord I = ⟨0x23b872dd⟩ :=
     daiSelWord_eq_of_beq I hsz 0x23 0xb8 0x72 0xdd ⟨0x23b872dd⟩
@@ -710,7 +716,7 @@ theorem daiReachPermitTypehashBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (daiSelBytes 12)) :
-    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨596⟩
+    ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨596⟩
         [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : daiSelWord I = ⟨0x30adf81f⟩ :=
     daiSelWord_eq_of_beq I hsz 0x30 0xad 0xf8 0x1f ⟨0x30adf81f⟩
@@ -730,7 +736,7 @@ theorem daiReachNoncesBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (daiSelBytes 10)) :
-    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨772⟩
+    ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨772⟩
         [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : daiSelWord I = ⟨0x7ecebe00⟩ :=
     daiSelWord_eq_of_beq I hsz 0x7e 0xce 0xbe 0x00 ⟨0x7ecebe00⟩
@@ -748,7 +754,7 @@ theorem daiReachAllowanceBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (daiSelBytes 0)) :
-    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨1170⟩
+    ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨1170⟩
         [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : daiSelWord I = ⟨0xdd62ed3e⟩ :=
     daiSelWord_eq_of_beq I hsz 0xdd 0x62 0xed 0x3e ⟨0xdd62ed3e⟩
@@ -768,7 +774,7 @@ theorem daiReachWardsBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (daiSelBytes 21)) :
-    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨1132⟩
+    ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨1132⟩
         [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : daiSelWord I = ⟨0xbf353dbb⟩ :=
     daiSelWord_eq_of_beq I hsz 0xbf 0x35 0x3d 0xbb ⟨0xbf353dbb⟩
@@ -788,7 +794,7 @@ theorem daiReachNameBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (daiSelBytes 9)) :
-    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨327⟩
+    ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨327⟩
         [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : daiSelWord I = ⟨0x06fdde03⟩ :=
     daiSelWord_eq_of_beq I hsz 0x06 0xfd 0xde 0x03 ⟨0x06fdde03⟩
@@ -806,7 +812,7 @@ theorem daiReachSymbolBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (daiSelBytes 16)) :
-    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨900⟩
+    ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨900⟩
         [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : daiSelWord I = ⟨0x95d89b41⟩ :=
     daiSelWord_eq_of_beq I hsz 0x95 0xd8 0x9b 0x41 ⟨0x95d89b41⟩
@@ -826,7 +832,7 @@ theorem daiReachVersionBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (daiSelBytes 20)) :
-    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨688⟩
+    ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨688⟩
         [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : daiSelWord I = ⟨0x54fd4d50⟩ :=
     daiSelWord_eq_of_beq I hsz 0x54 0xfd 0x4d 0x50 ⟨0x54fd4d50⟩
@@ -846,7 +852,7 @@ theorem daiReachApproveBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (daiSelBytes 1)) :
-    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨452⟩
+    ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨452⟩
         [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : daiSelWord I = ⟨0x095ea7b3⟩ :=
     daiSelWord_eq_of_beq I hsz 0x09 0x5e 0xa7 0xb3 ⟨0x095ea7b3⟩
@@ -866,7 +872,7 @@ theorem daiReachDenyBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (daiSelBytes 5)) :
-    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨908⟩
+    ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨908⟩
         [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : daiSelWord I = ⟨0x9c52a7f1⟩ :=
     daiSelWord_eq_of_beq I hsz 0x9c 0x52 0xa7 0xf1 ⟨0x9c52a7f1⟩
@@ -886,7 +892,7 @@ theorem daiReachRelyBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (daiSelBytes 15)) :
-    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨696⟩
+    ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨696⟩
         [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : daiSelWord I = ⟨0x65fae35e⟩ :=
     daiSelWord_eq_of_beq I hsz 0x65 0xfa 0xe3 0x5e ⟨0x65fae35e⟩
@@ -906,7 +912,7 @@ theorem daiReachBurnBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (daiSelBytes 3)) :
-    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨946⟩
+    ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨946⟩
         [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : daiSelWord I = ⟨0x9dc29fac⟩ :=
     daiSelWord_eq_of_beq I hsz 0x9d 0xc2 0x9f 0xac ⟨0x9dc29fac⟩
@@ -926,7 +932,7 @@ theorem daiReachMintBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (daiSelBytes 7)) :
-    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨642⟩
+    ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨642⟩
         [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : daiSelWord I = ⟨0x40c10f19⟩ :=
     daiSelWord_eq_of_beq I hsz 0x40 0xc1 0x0f 0x19 ⟨0x40c10f19⟩
@@ -946,7 +952,7 @@ theorem daiReachMoveBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (daiSelBytes 8)) :
-    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨1078⟩
+    ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨1078⟩
         [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : daiSelWord I = ⟨0xbb35783b⟩ :=
     daiSelWord_eq_of_beq I hsz 0xbb 0x35 0x78 0x3b ⟨0xbb35783b⟩
@@ -966,7 +972,7 @@ theorem daiReachPermitBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (daiSelBytes 11)) :
-    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨810⟩
+    ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨810⟩
         [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : daiSelWord I = ⟨0x8fcbaf0c⟩ :=
     daiSelWord_eq_of_beq I hsz 0x8f 0xcb 0xaf 0x0c ⟨0x8fcbaf0c⟩
@@ -986,7 +992,7 @@ theorem daiReachPullBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (daiSelBytes 13)) :
-    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨1216⟩
+    ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨1216⟩
         [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : daiSelWord I = ⟨0xf2d5d56b⟩ :=
     daiSelWord_eq_of_beq I hsz 0xf2 0xd5 0xd5 0x6b ⟨0xf2d5d56b⟩
@@ -1006,7 +1012,7 @@ theorem daiReachPushBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (daiSelBytes 14)) :
-    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨1034⟩
+    ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨1034⟩
         [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : daiSelWord I = ⟨0xb753a98c⟩ :=
     daiSelWord_eq_of_beq I hsz 0xb7 0x53 0xa9 0x8c ⟨0xb753a98c⟩
@@ -1026,7 +1032,7 @@ theorem daiReachTransferBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (daiSelBytes 18)) :
-    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨990⟩
+    ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨990⟩
         [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : daiSelWord I = ⟨0xa9059cbb⟩ :=
     daiSelWord_eq_of_beq I hsz 0xa9 0x05 0x9c 0xbb ⟨0xa9059cbb⟩

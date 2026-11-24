@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.WordArraySource
 import Benchmarks.UniswapV4PoolManager.WordRangeABI
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 3000
@@ -47,7 +49,7 @@ theorem wordRangeSlot_eval {f : Frame} {evm : EVM.State} {start : UInt256} {i : 
 theorem wordRangeLoopStep (evm : EVM.State) (imms locals : Store) (start : UInt256) (n : Nat)
     (res : List Value) (i : Nat) (hl : WordRangeLocals start n res i locals)
     (hi : i < n) (hres : res.length = n) :
-    ∃ locals', ExecBlock config {contract := contract, locals := locals, immutables := imms}
+    ∃ locals', ExecBlock fork config {contract := contract, locals := locals, immutables := imms}
       evm wordRangeLoopBody (.ok {contract := contract, locals := locals', immutables := imms} evm) ∧
       WordRangeLocals start n (res.set i (wordBytes32Value (wordRangeValue evm start i))) (i+1) locals' := by
   let l1 := locals.insert "result" (.array (res.set i (wordBytes32Value (wordRangeValue evm start i))))
@@ -55,8 +57,8 @@ theorem wordRangeLoopStep (evm : EVM.State) (imms locals : Store) (start : UInt2
   have hi1 : l1.get? "i" = some (.int (Int.ofNat i)) :=
     (store_get_ne _ _ (by decide)).trans hl.index_eq
   refine ⟨l2, ?_, ?_⟩
-  · refine ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) ?_ (assignLocalArrayIndex hl.result_eq hl.index_eq (by omega)))
-      (ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+  · refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) ?_ (assignLocalArrayIndex hl.result_eq hl.index_eq (by omega)))
+      (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
         (naturalAddSource (evalLocalValue hi1) (by simp only [evalExpr?, pure]; rfl))
         (assignLocalValue hi1)) ExecBlock.nil)
     exact evalCastValue (rawSlots_read rfl hl.raw_eq (wordRangeSlot_eval hl.start_eq hl.index_eq))
@@ -71,7 +73,7 @@ theorem wordRangeLoopStep (evm : EVM.State) (imms locals : Store) (start : UInt2
 theorem wordRangeSourceLoop (evm : EVM.State) (imms : Store) (start : UInt256) (n remaining : Nat) :
     ∀ locals res i, WordRangeLocals start n res i locals → i+remaining = n → res.length = n →
       (∀ j, j < i → res[j]? = some (wordBytes32Value (wordRangeValue evm start j))) →
-      ∃ locals', ExecStmt config {contract := contract, locals := locals, immutables := imms}
+      ∃ locals', ExecStmt fork config {contract := contract, locals := locals, immutables := imms}
         evm (.while wordRangeCond wordRangeLoopBody)
         (.ok {contract := contract, locals := locals', immutables := imms} evm) ∧
         locals'.get? "result" = some (.array (wordArrayValues (wordRangeValue evm start) 0 n)) :=

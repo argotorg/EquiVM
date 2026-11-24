@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.OracleSearchSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -57,7 +59,7 @@ def oracleSurroundingFirstFrame (imms : Store) (evm : EVM.State) (time target : 
 
 theorem oracleSurroundingZeroPrefix (imms : Store) (evm : EVM.State) (time target : UInt256)
     (tick : Int) (index liquidity cardinality : UInt256) :
-    ExecBlock config (oracleSurroundingFrame imms time target tick index liquidity cardinality) evm
+    ExecBlock fork config (oracleSurroundingFrame imms time target tick index liquidity cardinality) evm
       (oracleSurroundingFunction.body.take 2)
       (.ok (oracleSurroundingZeroFrame imms time target tick index liquidity cardinality) evm) :=
   oracleObservationZeroPrefix (oracleSurroundingLocals time target tick index liquidity cardinality)
@@ -65,11 +67,11 @@ theorem oracleSurroundingZeroPrefix (imms : Store) (evm : EVM.State) (time targe
 
 theorem oracleSurroundingReadPrefix (imms : Store) (evm : EVM.State) (time target : UInt256)
     (tick : Int) (index liquidity cardinality : UInt256) (hin : index.toNat < 65535) :
-    ExecBlock config (oracleSurroundingFrame imms time target tick index liquidity cardinality) evm
+    ExecBlock fork config (oracleSurroundingFrame imms time target tick index liquidity cardinality) evm
       (oracleSurroundingFunction.body.take 3)
       (.ok (oracleSurroundingReadFrame imms evm time target tick index liquidity cardinality)
         evm) := by
-  have hz := oracleSurroundingZeroPrefix imms evm time target tick index liquidity cardinality
+  have hz := oracleSurroundingZeroPrefix (fork := fork) imms evm time target tick index liquidity cardinality
   have he : evalExpr? config
       (oracleSurroundingZeroFrame imms time target tick index liquidity cardinality) evm
       (.storage ⟨"observations", [.aindex (.var "index")]⟩) =
@@ -78,7 +80,7 @@ theorem oracleSurroundingReadPrefix (imms : Store) (evm : EVM.State) (time targe
     · simp [oracleSurroundingLocals]
     · simp [oracleSurroundingLocals, Std.HashMap.getElem_insert]
     · exact hin
-  have hs : ExecStmt config
+  have hs : ExecStmt fork config
       (oracleSurroundingZeroFrame imms time target tick index liquidity cardinality) evm
       oracleSurroundingFunction.body[2]!
       (.ok (oracleSurroundingReadFrame imms evm time target tick index liquidity cardinality)
@@ -91,12 +93,12 @@ theorem oracleSurroundingReadPrefix (imms : Store) (evm : EVM.State) (time targe
 theorem oracleSurroundingFirstPrefix (imms : Store) (evm : EVM.State) (time target : UInt256)
     (tick : Int) (index liquidity cardinality : UInt256) (hin : index.toNat < 65535)
     (ht : target.toNat < 2 ^ 32) :
-    ExecBlock config (oracleSurroundingFrame imms time target tick index liquidity cardinality) evm
+    ExecBlock fork config (oracleSurroundingFrame imms time target tick index liquidity cardinality) evm
       (oracleSurroundingFunction.body.take 4)
       (.ok (oracleSurroundingFirstFrame imms evm time target tick index liquidity cardinality)
         evm) := by
   let frame := oracleSurroundingReadFrame imms evm time target tick index liquidity cardinality
-  have hs : ExecStmt config frame evm oracleSurroundingFunction.body[3]!
+  have hs : ExecStmt fork config frame evm oracleSurroundingFunction.body[3]!
       (.ok (oracleSurroundingFirstFrame imms evm time target tick index liquidity cardinality)
         evm) := by
     apply oracleLteCall

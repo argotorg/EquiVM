@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Clipper.KickIncentiveEVM
 import Benchmarks.Dss.Clipper.RedoTailEVM
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -64,12 +66,12 @@ theorem RD.clipperKickReturnWordFromMem8 {code : ByteArray}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {acc : AccountMap}
     {val ret : UInt256} {R : List UInt256} {mem rdata : ByteArray} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨476⟩ (val :: ret :: R) mem (UInt256.ofNat 8)
+    (rd : RD fork code ee g s0 ⟨476⟩ (val :: ret :: R) mem (UInt256.ofNat 8)
       rdata acc k C)
     (hmem : mem.size = 256)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 5 ≤ 1024) :
-    RDret code g s0 acc (UInt256.toByteArray val) := by
+    RDret fork code g s0 acc (UInt256.toByteArray val) := by
   let memout : ByteArray := val.toByteArray.write 0 mem 128 32
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
@@ -134,14 +136,14 @@ theorem RD.clipperKickEventUnlockReturnFrom228 {code : ByteArray}
     {σ : AccountMap}
     {coin chip tip top id kpr usr lot tab sel : UInt256}
     {R : List UInt256} {mem out : ByteArray} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨6394⟩
+    (rd : RD fork code ee g s0 ⟨6394⟩
       (coin :: chip :: tip :: top :: ⟨1⟩ :: id :: kpr :: usr :: lot :: tab :: ⟨476⟩ ::
         sel :: R)
       mem (UInt256.ofNat 8) out σ k C)
     (hmem : mem.size = 228)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hperm : ee.perm = true) (hov : R.length + 50 ≤ 1024) :
-    RDret code g s0 (sstoreAccountMap ee.codeOwner σ ⟨13⟩ ⟨0⟩)
+    RDret fork code g s0 (sstoreAccountMap ee.codeOwner σ ⟨13⟩ ⟨0⟩)
       (UInt256.toByteArray id) := by
   let eventTopic : UInt256 :=
     ⟨0x7c5bfdc0a5e8192f6cd4972f382cec69116862fb62e6abff8003874c58e064b8⟩
@@ -283,14 +285,14 @@ theorem RD.clipperKickEventUnlockReturnFrom192 {code : ByteArray}
     {σ : AccountMap}
     {coin chip tip top id kpr usr lot tab sel : UInt256}
     {R : List UInt256} {mem out : ByteArray} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨6394⟩
+    (rd : RD fork code ee g s0 ⟨6394⟩
       (coin :: chip :: tip :: top :: ⟨1⟩ :: id :: kpr :: usr :: lot :: tab :: ⟨476⟩ ::
         sel :: R)
       mem (UInt256.ofNat 6) out σ k C)
     (hmem : mem.size = 192)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hperm : ee.perm = true) (hov : R.length + 50 ≤ 1024) :
-    RDret code g s0 (sstoreAccountMap ee.codeOwner σ ⟨13⟩ ⟨0⟩)
+    RDret fork code g s0 (sstoreAccountMap ee.codeOwner σ ⟨13⟩ ⟨0⟩)
       (UInt256.toByteArray id) := by
   let eventTopic : UInt256 :=
     ⟨0x7c5bfdc0a5e8192f6cd4972f382cec69116862fb62e6abff8003874c58e064b8⟩

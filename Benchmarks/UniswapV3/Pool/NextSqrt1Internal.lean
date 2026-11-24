@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.NextSqrt1Source
 import Benchmarks.UniswapV3.Pool.NextSqrt1Trace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -12,19 +14,19 @@ theorem nextSqrt1InternalX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (a : NextSqrtArgs) (caller : Frame) (evm : EVM.State) (args : List Expr) (retVar : Ident)
     (hf : caller = {contract := contract, locals := caller.locals, immutables := immStore v})
     (he : evalExprs? config caller evm args = .ok a.values)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨19714⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨19714⟩
       ((if a.add then ⟨1⟩ else ⟨0⟩) :: a.amount :: liquidityRaw :: priceRaw :: ret :: R)
       mem aw rdata σ k C)
     (ha : a.Fits)
     (hp : UInt256.land priceRaw (UInt256.ofNat (2 ^ 160 - 1)) = a.price)
     (hl : UInt256.land liquidityRaw (UInt256.ofNat (2 ^ 128 - 1)) = a.liquidity)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 28 ≤ 1024) :
-    (ExecStmt config caller evm (.internalCall (nextSqrtName true) args retVar) .reverted ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    (ExecStmt config caller evm (.internalCall (nextSqrtName true) args retVar)
+    (ExecStmt fork config caller evm (.internalCall (nextSqrtName true) args retVar) .reverted ∧
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    (ExecStmt fork config caller evm (.internalCall (nextSqrtName true) args retVar)
       (.ok (resumeAfterInternalCall caller retVar
         (some [.int (Int.ofNat (nextSqrt1Result a).toNat)])) evm) ∧
-      nextSqrt1Valid a ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+      nextSqrt1Valid a ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
         (nextSqrt1Result a :: R) mem aw rdata σ k' C') := by
   have hc : {caller with locals := nextSqrtLocals a} = nextSqrtFrame (immStore v) a := by
     rw [hf]; rfl

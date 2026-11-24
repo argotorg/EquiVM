@@ -106,7 +106,8 @@ Stele/
 ├── Refine.lean            the refinement relation: result equivalences, runtime
 │                          refinement (runtimeRefinement), and the top-level
 │                          contractRefinement linking constructor and runtime
-│                          through the deployed immutables
+│                          through the deployed immutables; each closure is
+│                          stated for a set of forks (…On, …From, …At)
 ├── Interp.lean            executable semantics: a fuel-indexed interpreter of the
 │                          statement relations, one arm per rule, with an Oracle for
 │                          the call/creation/gas existentials

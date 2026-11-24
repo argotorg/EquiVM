@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.ResolveManyZeroControl
 import Benchmarks.EAS.EAS.ResolveManySource
 import Benchmarks.EAS.EAS.WhileInvariant
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -16,17 +18,17 @@ theorem resolveManyZeroRun {locals imms : Store} {ee : ExecutionEnv} {g : Sat256
     (hv : WordArrayMemoryView mem values words heap) (hheap : heap ≤ 2^64-1)
     (hh : memLoad (UInt256.ofNat 64) mem = UInt256.ofNat heap)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 (resolveManyZeroPC rev)
+    (rd : RD fork (deployedRuntime v) ee g s0 (resolveManyZeroPC rev)
       (resolveManyZeroStack rev 0 values words.length (ret::R)) mem aw rdata σ k C) :
-    HeapReturnRun config (deployedRuntime v) ee g s0 {contract := contract, locals := locals, immutables := imms}
+    HeapReturnRun fork config (deployedRuntime v) ee g s0 {contract := contract, locals := locals, immutables := imms}
       evm resolveManyZeroBody (.int 0) ret (⟨0⟩::R) mem heap := by
   have hlimit : heap < UInt256.size := by change heap < 2^256; omega
   have hlen : words.length < UInt256.size := by have := hv.span; omega
   let Inv := fun i L e => e=evm ∧ ResolveManyZeroLocals L words heap i ∧
-    ∃ a j D, RD (deployedRuntime v) ee g s0 (resolveManyZeroPC rev)
+    ∃ a j D, RD fork (deployedRuntime v) ee g s0 (resolveManyZeroPC rev)
       (resolveManyZeroStack rev i values words.length (ret::R)) mem a rdata σ j D
   let Post := fun L e => e=evm ∧ ResolveManyZeroLocals L words heap words.length ∧
-    ∃ a j D, RD (deployedRuntime v) ee g s0 ret (⟨0⟩::R) mem a rdata σ j D
+    ∃ a j D, RD fork (deployedRuntime v) ee g s0 ret (⟨0⟩::R) mem a rdata σ j D
   have hguard : ∀ i L e, i ≤ words.length → Inv i L e →
       evalExpr? config {contract := contract, locals := L, immutables := imms} e timeArrayGuard =
         .ok (.bool (decide (i < words.length))) := by
@@ -36,14 +38,14 @@ theorem resolveManyZeroRun {locals imms : Store} {ee : ExecutionEnv} {g : Sat256
     rintro L e ⟨he,hf,a,j,D,hr⟩
     exact ⟨he,hf,resolveManyZeroDone v rev (by omega) hret hr⟩
   have hstep : ∀ i L e, i < words.length → Inv i L e →
-      (∃ L' e', ExecBlock config {contract := contract, locals := L, immutables := imms} e resolveManyZeroIteration
+      (∃ L' e', ExecBlock fork config {contract := contract, locals := L, immutables := imms} e resolveManyZeroIteration
         (.ok {contract := contract, locals := L', immutables := imms} e') ∧ Inv (i+1) L' e') ∨
-      (ExecBlock config {contract := contract, locals := L, immutables := imms} e resolveManyZeroIteration .reverted ∧
-        RDrev (deployedRuntime v) g s0) ∨
-      (ExecBlock config {contract := contract, locals := L, immutables := imms} e resolveManyZeroIteration .staticViolation ∧ False) := by
+      (ExecBlock fork config {contract := contract, locals := L, immutables := imms} e resolveManyZeroIteration .reverted ∧
+        RDrev fork (deployedRuntime v) g s0) ∨
+      (ExecBlock fork config {contract := contract, locals := L, immutables := imms} e resolveManyZeroIteration .staticViolation ∧ False) := by
     rintro i L e hi ⟨he,hf,a,j,D,hr⟩
     subst e
-    have hsrc := resolveManyZeroIterationSource (cfg := config) (imms := imms) (evm := evm) hf hi hlen
+    have hsrc := resolveManyZeroIterationSource (fork := fork) (cfg := config) (imms := imms) (evm := evm) hf hi hlen
     have hnext := resolveManyZeroStep v rev (by simp only [List.length_cons]; omega) hv hi hlimit hr
     by_cases hz : words[i] = ⟨0⟩
     · rw [if_pos hz] at hsrc hnext
@@ -55,9 +57,9 @@ theorem resolveManyZeroRun {locals imms : Store} {ee : ExecutionEnv} {g : Sat256
     constructor <;> simp (disch := decide) only [L0,store_get_self,store_get_ne] <;> first | assumption | rfl
   have hloop := execWhile_invariant (cfg := config) (contract := contract) (imms := imms)
     (cond := timeArrayGuard) (body := resolveManyZeroIteration) (bound := words.length)
-    Inv Post (RDrev (deployedRuntime v) g s0) False hguard hend hstep
+    Inv Post (RDrev fork (deployedRuntime v) g s0) False hguard hend hstep
     words.length 0 L0 evm (by omega) ⟨rfl,hf0,aw,k,C,rd⟩
-  have hinit : ExecStmt config {contract := contract, locals := locals, immutables := imms} evm resolveManyIndexInit
+  have hinit : ExecStmt fork config {contract := contract, locals := locals, immutables := imms} evm resolveManyIndexInit
       (.ok {contract := contract, locals := L0, immutables := imms} evm) :=
     ExecStmt.letDecl (by simp only [evalExpr?]; rfl)
   rcases hloop with ⟨L,e,hloop,he,hf,a,j,D,hr⟩ | ⟨hloop,hr⟩ | ⟨_,hfalse⟩

@@ -3,6 +3,8 @@ import Benchmarks.Safe.Runs1e6.CalldataDecodeArithmetic
 import Benchmarks.Safe.Runs1e6.Blocks.Runtime_045
 import Benchmarks.Safe.Runs1e6.Blocks.Runtime_046
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Runs1e6.RuntimeBlocks
 
@@ -21,14 +23,14 @@ set_option maxRecDepth 100000 in
 set_option maxHeartbeats 1000000 in
 theorem safeSetupDecodeOwnersValid {I g s0 σ k C aw mem rdata n} {ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨13025⟩
+    (h : RD fork safeBytecode I g s0 ⟨13025⟩
       (⟨4⟩ :: UInt256.ofNat I.calldata.size :: ret :: R) mem aw rdata σ k C)
     (hh : 260 ≤ I.calldata.size) (hs : I.calldata.size < 2 ^ 255)
     (ho : (calldataWord I.calldata 4).toNat ≤ 2 ^ 64 - 1)
     (hw : calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat) = UInt256.ofNat n)
     (hn : n ≤ 2 ^ 64 - 1) (hin : setupOwnersStart I.calldata + 32 * n ≤ I.calldata.size)
     (hov : R.length + 20 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨13131⟩ (setupDecodeOwnersStack I.calldata n ret R)
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨13131⟩ (setupDecodeOwnersStack I.calldata n ret R)
       mem aw rdata σ k' C' := by
   have hu : UInt256.size = 2 ^ 256 := rfl
   have hsize : I.calldata.size < UInt256.size := by omega
@@ -51,7 +53,7 @@ theorem safeSetupDecodeOwnersValid {I g s0 σ k C aw mem rdata n} {ret : UInt256
     rw [wordSgtReverse,
       slt_ofNat_lit_one_low hs (by dsimp only [setupOwnersStart] at hin; omega)]
     decide) (by jump_dest) h₂
-  change RD safeBytecode I g s0 ⟨13089⟩
+  change RD fork safeBytecode I g s0 ⟨13089⟩
     ((⟨4⟩ + calldataWord I.calldata 4) :: setupDecodeZeros I.calldata ret R)
     mem aw rdata σ _ _ at h₃
   rw [hoff] at h₃
@@ -62,7 +64,7 @@ theorem safeSetupDecodeOwnersValid {I g s0 σ k C aw mem rdata n} {ret : UInt256
     change UInt256.isZero (UInt256.gt (calldataWord I.calldata _) _) ≠ _
     rw [hoNat, hw, hmax, ugt_zero (by rw [hnNat]; exact hn)]
     decide) (by jump_dest) h₃
-  change RD safeBytecode I g s0 ⟨13111⟩
+  change RD fork safeBytecode I g s0 ⟨13111⟩
     (calldataWord I.calldata (UInt256.ofNat (4 + (calldataWord I.calldata 4).toNat)).toNat ::
       UInt256.ofNat (4 + (calldataWord I.calldata 4).toNat) ::
       setupDecodeZeros I.calldata ret R) mem aw rdata σ _ _ at h₄

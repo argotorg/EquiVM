@@ -4,23 +4,25 @@ import Benchmarks.Safe.V3_77901a5.SafeMulTrace
 import Benchmarks.Safe.V3_77901a5.MemoryPreserves
 import Benchmarks.Safe.V3_77901a5.Blocks.Runtime_034
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V3_77901a5.RuntimeBlocks
 
 namespace Benchmarks.Safe.V3_77901a5
 
-def PaymentOutcome (p : PaymentInput) (evm : EVM.State) (I : ExecutionEnv) (g : Sat256)
+def PaymentOutcome (fork : Ethereum.Fork) (p : PaymentInput) (evm : EVM.State) (I : ExecutionEnv) (g : Sat256)
     (s0 : State) (mem : ByteArray) (ptr : Nat) (ret : UInt256) (R : List UInt256) : Prop :=
-  (RDrev safeBytecode g s0 ∧
-    ExecFuncBody config p.frame evm handlePaymentFunction.body .reverted) ∨
-  (RDstatic safeBytecode g s0 ∧
-    ExecFuncBody config p.frame evm handlePaymentFunction.body .staticViolation) ∨
+  (RDrev fork safeBytecode g s0 ∧
+    ExecFuncBody fork config p.frame evm handlePaymentFunction.body .reverted) ∨
+  (RDstatic fork safeBytecode g s0 ∧
+    ExecFuncBody fork config p.frame evm handlePaymentFunction.body .staticViolation) ∨
   ∃ (f' : Frame) (evm' : EVM.State) (σ' : AccountMap) (mem' : ByteArray) (ptr' : Nat)
     (out : ByteArray) (aw' : UInt256) (k' C' : Nat),
-    ExecFuncBody config p.frame evm handlePaymentFunction.body
+    ExecFuncBody fork config p.frame evm handlePaymentFunction.body
       (.returned f' evm' (some [uint256Value (UInt256.mul p.gasTotal (paymentPrice p I))])) ∧
     evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧ evm'.σ₀ = s0.σ₀ ∧
-    RD safeBytecode I g s0 ret (UInt256.mul p.gasTotal (paymentPrice p I) :: R)
+    RD fork safeBytecode I g s0 ret (UInt256.mul p.gasTotal (paymentPrice p I) :: R)
       mem' aw' out σ' k' C' ∧
     memLoad ⟨64⟩ mem' = UInt256.ofNat ptr' ∧ memLoad ⟨96⟩ mem' = ⟨0⟩ ∧
     ptr ≤ ptr' ∧ ptr' ≤ ptr + 2 ^ 139 ∧ mem'.size ≤ max mem.size (ptr + 2 ^ 139) ∧
@@ -29,15 +31,15 @@ def PaymentOutcome (p : PaymentInput) (evm : EVM.State) (I : ExecutionEnv) (g : 
 set_option maxRecDepth 100000 in
 theorem safePaymentArithmetic (p : PaymentInput) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata} {ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7730⟩
+    (h : RD fork safeBytecode I g s0 ⟨7730⟩
       (UInt256.ofNat p.refundReceiver.val :: UInt256.ofNat p.gasToken.val :: p.gasPrice ::
         p.baseGas :: p.gasUsed :: ret :: R) mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hov : R.length + 24 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧
-      ExecFuncBody config p.frame evm handlePaymentFunction.body .reverted) ∨
+    (RDrev fork safeBytecode g s0 ∧
+      ExecFuncBody fork config p.frame evm handlePaymentFunction.body .reverted) ∨
     ∃ k' C', p.gasUsed.toNat + p.baseGas.toNat < UInt256.size ∧
       p.gasTotal.toNat * (paymentPrice p I).toNat < UInt256.size ∧
-      RD safeBytecode I g s0 (paymentAfterArithmeticPC p)
+      RD fork safeBytecode I g s0 (paymentAfterArithmeticPC p)
         (UInt256.mul p.gasTotal (paymentPrice p I) :: UInt256.ofNat (p.receiver I).val ::
           ⟨0⟩ :: UInt256.ofNat p.refundReceiver.val :: UInt256.ofNat p.gasToken.val ::
           p.gasPrice :: p.baseGas :: p.gasUsed :: ret :: R) mem aw rdata σ k' C' := by

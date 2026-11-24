@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.BurnTransfersRuntime
 import Examples.UniswapV2Pair.SafeTransferCallCases
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -42,12 +44,12 @@ theorem evalExprs_burn_firstSafeTransferArgs
   simp only [evalExprs?, evalExpr?, EvalResult.ofOption, ht0, hto, ha0, EvalResult.bind, bind, pure]
 
 theorem uniswapBurnBodyReverts_firstTransfer (evm evmT : EVM.State) (I : ExecutionEnv) (locals : Store)
-    (hprefix : ExecBlock config { contract := contract, locals := burnStore I } evm
+    (hprefix : ExecBlock fork config { contract := contract, locals := burnStore I } evm
       burnBeforeTransfersPrefix (.ok { contract := contract, locals := locals } evmT))
-    (htransfer : ExecStmt config { contract := contract, locals := locals } evmT
+    (htransfer : ExecStmt fork config { contract := contract, locals := locals } evmT
       (.internalCall "_safeTransfer" [.var "_token0", .var "to", .var "amount0"] "ok0") .reverted) :
-    ExecTransitionBody config contract evm (burnStore I) burnTransition.body .reverted := by
-  have htail : ExecBlock config { contract := contract, locals := locals } evmT
+    ExecTransitionBody fork config contract evm (burnStore I) burnTransition.body .reverted := by
+  have htail : ExecBlock fork config { contract := contract, locals := locals } evmT
       (safeTransferStmts (.var "_token0") (.var "to") (.var "amount0") "ok0" "_ret0") .reverted :=
     ExecBlock.consRevert htransfer
   exact ExecFuncBody.execBlockRevert (by
@@ -73,15 +75,15 @@ theorem evalExprs_burn_secondSafeTransferArgs
     EvalResult.ofOption, ht1, hto, ha1, EvalResult.bind, bind, pure]
 
 theorem uniswapBurnBodyReverts_secondTransfer (evm evmT evmT1 : EVM.State) (I : ExecutionEnv) (locals : Store)
-    (hprefix : ExecBlock config { contract := contract, locals := burnStore I } evm
+    (hprefix : ExecBlock fork config { contract := contract, locals := burnStore I } evm
       burnBeforeTransfersPrefix (.ok { contract := contract, locals := locals } evmT))
-    (hfirst : ExecStmt config { contract := contract, locals := locals } evmT
+    (hfirst : ExecStmt fork config { contract := contract, locals := locals } evmT
       (.internalCall "_safeTransfer" [.var "_token0", .var "to", .var "amount0"] "ok0")
       (.ok (resumeAfterInternalCall { contract := contract, locals := locals } "ok0" none) evmT1))
-    (hsecond : ExecStmt config (resumeAfterInternalCall { contract := contract, locals := locals } "ok0" none) evmT1
+    (hsecond : ExecStmt fork config (resumeAfterInternalCall { contract := contract, locals := locals } "ok0" none) evmT1
       (.internalCall "_safeTransfer" [.var "_token1", .var "to", .var "amount1"] "ok1") .reverted) :
-    ExecTransitionBody config contract evm (burnStore I) burnTransition.body .reverted := by
-  have htail : ExecBlock config { contract := contract, locals := locals } evmT
+    ExecTransitionBody fork config contract evm (burnStore I) burnTransition.body .reverted := by
+  have htail : ExecBlock fork config { contract := contract, locals := locals } evmT
       (safeTransferStmts (.var "_token0") (.var "to") (.var "amount0") "ok0" "_ret0" ++
         safeTransferStmts (.var "_token1") (.var "to") (.var "amount1") "ok1" "_ret1") .reverted :=
     ExecBlock.consNormal hfirst (ExecBlock.consRevert hsecond)

@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.OracleSearchCompareTrace
 import Benchmarks.UniswapV3.Pool.OracleSearchControl
 import Benchmarks.UniswapV3.Pool.OracleSearchResult
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -12,7 +14,7 @@ theorem oracleSearchLoopX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C allowance : Nat} {aw p i left right beforePtr afterPtr : UInt256}
     {cardRaw indexRaw targetRaw timeRaw ret card time target : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨20441⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨20441⟩
       (oracleSearchStack i left right beforePtr afterPtr cardRaw indexRaw targetRaw timeRaw ret R)
       mem aw rdata σ k C)
     (hcard : UInt256.land cardRaw (UInt256.ofNat 65535) = card)
@@ -22,8 +24,8 @@ theorem oracleSearchLoopX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hm : HeapMemory mem aw p) (hbudget : MemoryGasBound aw C allowance)
     (hallowance : allowance ≤ 2 ^ 200) (hcover : p.toNat ≤ aw.toNat * 32 + 32)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 26 ≤ 1024) :
-    X (g.toNat + 1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
-      Nonempty (OracleSearchExit v ee g s0 σ rdata ret R time target card
+    X fork (g.toNat + 1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+      Nonempty (OracleSearchExit fork v ee g s0 σ rdata ret R time target card
         left right mem aw p C) := by
   generalize hfuel : g.toNat + 1 - C = fuel
   induction fuel using Nat.strong_induction_on

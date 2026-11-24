@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.Routines
 import Examples.UniswapV2Pair.LegacyABI
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -92,14 +94,14 @@ macro "uniswap_one_address_external_entry_wf" : term =>
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapOneAddressExternalLenOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {entry ret routine : UInt256}
-    (hreach : ∃ k C, RD UniswapV2Pair.uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork UniswapV2Pair.uniswapV2PairBytecode I g
       (Reasoning.Theory.initState σ σ₀ g A I) entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hwf : uniswapOneAddressExternalEntryWf entry ret routine)
     (hdecoded : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains
       (uniswapOneAddressExternalDecodedPc entry) = true)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD UniswapV2Pair.uniswapV2PairBytecode I g
+    ∃ k C, RD fork UniswapV2Pair.uniswapV2PairBytecode I g
       (Reasoning.Theory.initState σ σ₀ g A I)
       (uniswapOneAddressExternalDecodedPc entry)
       (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩ :: ⟨4⟩ :: ret :: [sel])
@@ -115,14 +117,14 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapOneAddressExternalMaskAndJump {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {entry ret routine de : UInt256} {R : List UInt256} {rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0
       (uniswapOneAddressExternalDecodedPc entry) (de :: ⟨4⟩ :: ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : uniswapOneAddressExternalEntryWf entry ret routine)
     (hcanon : (calldataWord ee.calldata 4).toNat < EVM.addressModulus)
     (hroutine : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains routine = true)
     (hov : R.length + 5 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 routine
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 routine
       (calldataWord ee.calldata 4 :: ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
@@ -136,13 +138,13 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapOneAddressExternalMaskAndJumpMasked {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {entry ret routine de : UInt256} {R : List UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0
       (uniswapOneAddressExternalDecodedPc entry) (de :: ⟨4⟩ :: ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : uniswapOneAddressExternalEntryWf entry ret routine)
     (hroutine : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains routine = true)
     (hov : R.length + 5 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 routine
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 routine
       (UInt256.land solcAddrMask (calldataWord ee.calldata 4) :: ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
@@ -155,13 +157,13 @@ theorem RD.uniswapOneAddressExternalMaskAndJumpMasked {g : Sat256} {s0 : State}
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapOneAddressExternalShort {σ σ₀ A I} {g : Sat256}
     {sel entry ret routine : UInt256}
-    (hreach : ∃ k C, RD UniswapV2Pair.uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork UniswapV2Pair.uniswapV2PairBytecode I g
       (Reasoning.Theory.initState σ σ₀ g A I) entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hwf : uniswapOneAddressExternalEntryWf entry ret routine)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36) :
-    RDrev UniswapV2Pair.uniswapV2PairBytecode g
+    RDrev fork UniswapV2Pair.uniswapV2PairBytecode g
       (Reasoning.Theory.initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
@@ -180,13 +182,13 @@ theorem RD.uniswapOneAddressExternalShort {σ σ₀ A I} {g : Sat256}
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapOneAddressGetterShort {σ σ₀ A I} {g : Sat256}
     {sel entry routine : UInt256}
-    (hreach : ∃ k C, RD UniswapV2Pair.uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork UniswapV2Pair.uniswapV2PairBytecode I g
       (Reasoning.Theory.initState σ σ₀ g A I) entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hwf : uniswapOneAddressGetterEntryWf entry routine)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36) :
-    RDrev UniswapV2Pair.uniswapV2PairBytecode g
+    RDrev fork UniswapV2Pair.uniswapV2PairBytecode g
       (Reasoning.Theory.initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
@@ -205,13 +207,13 @@ theorem RD.uniswapOneAddressGetterShort {σ σ₀ A I} {g : Sat256}
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapTwoAddressGetterShort {σ σ₀ A I} {g : Sat256}
     {sel entry routine : UInt256}
-    (hreach : ∃ k C, RD UniswapV2Pair.uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork UniswapV2Pair.uniswapV2PairBytecode I g
       (Reasoning.Theory.initState σ σ₀ g A I) entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hwf : uniswapTwoAddressGetterEntryWf entry routine)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68) :
-    RDrev UniswapV2Pair.uniswapV2PairBytecode g
+    RDrev fork UniswapV2Pair.uniswapV2PairBytecode g
       (Reasoning.Theory.initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
@@ -230,13 +232,13 @@ theorem RD.uniswapTwoAddressGetterShort {σ σ₀ A I} {g : Sat256}
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapTwoAddressExternalShort {σ σ₀ A I} {g : Sat256}
     {sel entry ret routine : UInt256}
-    (hreach : ∃ k C, RD UniswapV2Pair.uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork UniswapV2Pair.uniswapV2PairBytecode I g
       (Reasoning.Theory.initState σ σ₀ g A I) entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hwf : uniswapTwoAddressExternalEntryWf entry ret routine)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68) :
-    RDrev UniswapV2Pair.uniswapV2PairBytecode g
+    RDrev fork UniswapV2Pair.uniswapV2PairBytecode g
       (Reasoning.Theory.initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
@@ -256,13 +258,13 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapTwoAddressExternalMaskAndJumpMasked {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {entry ret routine de : UInt256} {R : List UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0
       (uniswapTwoAddressExternalDecodedPc entry) (de :: ⟨4⟩ :: ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : uniswapTwoAddressExternalEntryWf entry ret routine)
     (hroutine : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains routine = true)
     (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 routine
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 routine
       (UInt256.land solcAddrMask (calldataWord ee.calldata 36) ::
         UInt256.land solcAddrMask (calldataWord ee.calldata 4) :: ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k' C' := by
@@ -276,13 +278,13 @@ theorem RD.uniswapTwoAddressExternalMaskAndJumpMasked {g : Sat256} {s0 : State}
 set_option maxHeartbeats 1000000 in
 theorem RD.addressUint256ExternalShort {σ σ₀ A I} {g : Sat256}
     {sel entry ret routine : UInt256}
-    (hreach : ∃ k C, RD UniswapV2Pair.uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork UniswapV2Pair.uniswapV2PairBytecode I g
       (Reasoning.Theory.initState σ σ₀ g A I) entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hwf : uniswapAddressUint256ExternalEntryWf entry ret routine)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68) :
-    RDrev UniswapV2Pair.uniswapV2PairBytecode g
+    RDrev fork UniswapV2Pair.uniswapV2PairBytecode g
       (Reasoning.Theory.initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
@@ -301,13 +303,13 @@ theorem RD.addressUint256ExternalShort {σ σ₀ A I} {g : Sat256}
 set_option maxHeartbeats 1000000 in
 theorem RD.addressAddressUint256ExternalShort {σ σ₀ A I} {g : Sat256}
     {sel entry ret routine : UInt256}
-    (hreach : ∃ k C, RD UniswapV2Pair.uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork UniswapV2Pair.uniswapV2PairBytecode I g
       (Reasoning.Theory.initState σ σ₀ g A I) entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hwf : uniswapAddressAddressUint256ExternalEntryWf entry ret routine)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 100) :
-    RDrev UniswapV2Pair.uniswapV2PairBytecode g
+    RDrev fork UniswapV2Pair.uniswapV2PairBytecode g
       (Reasoning.Theory.initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨1⟩ := by
@@ -328,13 +330,13 @@ set_option maxHeartbeats 1000000 in
 theorem RD.addressAddressUint256ExternalMaskAndJumpMasked {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {entry ret routine de : UInt256} {R : List UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0
       (uniswapAddressAddressUint256ExternalDecodedPc entry) (de :: ⟨4⟩ :: ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : uniswapAddressAddressUint256ExternalEntryWf entry ret routine)
     (hroutine : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains routine = true)
     (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 routine
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 routine
       (calldataWord ee.calldata 68 :: UInt256.land solcAddrMask (calldataWord ee.calldata 36) ::
         UInt256.land solcAddrMask (calldataWord ee.calldata 4) :: ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k' C' := by

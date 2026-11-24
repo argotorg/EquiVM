@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.AbsorbSeizeModel
 import Benchmarks.CompoundIII.Comet.AbsorbCollateralPriceModel
 import Benchmarks.CompoundIII.Comet.InternalValueOutcome
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -25,18 +27,18 @@ def absorbAfterAssetBlock : List Stmt :=
   .letDecl "asset" (some (.elem .address)) (.field (.var "assetInfo") "asset") ::
     (absorbSeizeBlock ++ absorbCollateralPriceBlock)
 
-inductive AbsorbAfterAssetTrace (account : AccountAddress) (out : ByteArray)
+inductive AbsorbAfterAssetTrace (fork : Ethereum.Fork) (account : AccountAddress) (out : ByteArray)
     (delta : UInt256) (evm : State) : InternalValueOutcome UInt256 → Prop where
   | seizeReverted
       (h : absorbSeizeOutcome evm account (absorbAssetAddress out) = .reverted) :
-      AbsorbAfterAssetTrace account out delta evm .reverted
+      AbsorbAfterAssetTrace fork account out delta evm .reverted
   | seizeStatic
       (h : absorbSeizeOutcome evm account (absorbAssetAddress out) = .staticViolation) :
-      AbsorbAfterAssetTrace account out delta evm .staticViolation
+      AbsorbAfterAssetTrace fork account out delta evm .staticViolation
   | priced {seizedState result}
       (h : absorbSeizeOutcome evm account (absorbAssetAddress out) = .ok seizedState)
-      (ht : AbsorbCollateralPriceTrace out delta
+      (ht : AbsorbCollateralPriceTrace fork out delta
         (withdrawCollateralBalance evm account (absorbAssetAddress out)) seizedState result) :
-      AbsorbAfterAssetTrace account out delta evm (InternalValueOutcome.ofOption result)
+      AbsorbAfterAssetTrace fork account out delta evm (InternalValueOutcome.ofOption result)
 
 end Benchmarks.CompoundIII.Comet

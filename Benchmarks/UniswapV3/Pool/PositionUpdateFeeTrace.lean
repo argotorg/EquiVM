@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.PositionUpdateWords
 import Benchmarks.UniswapV3.Pool.FullMathTrace
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_073
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,12 +13,12 @@ set_option maxRecDepth 10000
 theorem positionUpdateFeeX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : PositionUpdateArgs) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨21733⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨21733⟩
       (EVM.wordOfInt (positionUpdateLiquidityNext a evm) :: p :: a.growth1 :: a.growth0 ::
         EVM.wordOfInt a.delta :: solcMappingSlot ⟨7⟩ a.key :: ret :: R) mem aw rdata σ k C)
     (hm : WordArrayMemory mem p (positionSnapshotWords a.key evm.accountMap evm.executionEnv))
     (ha : ActiveWords aw) (hb : p.toNat + 160 ≤ 2 ^ 200) (hov : R.length + 25 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨21807⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨21807⟩
       (positionUpdateFeeRaw a evm true :: ⟨0⟩ :: positionUpdateFeeRaw a evm false ::
         EVM.wordOfInt (positionUpdateLiquidityNext a evm) :: p :: a.growth1 :: a.growth0 ::
         EVM.wordOfInt a.delta :: solcMappingSlot ⟨7⟩ a.key :: ret :: R)
@@ -46,7 +48,7 @@ theorem positionUpdateFeeX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
   simp only [
     show UInt256.ofNat 0 = (⟨0⟩ : UInt256) from rfl, u256_zero_add,
     u256_add_comm (UInt256.ofNat 32), hload, hlast0, hclean] at r1
-  change RD (deployedRuntime v) ee g s0 ⟨13017⟩
+  change RD fork (deployedRuntime v) ee g s0 ⟨13017⟩
     (UInt256.ofNat (2 ^ 128) :: positionUpdateLiquidityWord a evm ::
       positionUpdateFeeDelta a evm false :: ⟨21769⟩ :: ⟨0⟩ ::
       EVM.wordOfInt (positionUpdateLiquidityNext a evm) :: p :: a.growth1 :: a.growth0 ::
@@ -65,7 +67,7 @@ theorem positionUpdateFeeX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     simp only [
       show UInt256.ofNat 0 = (⟨0⟩ : UInt256) from rfl, u256_zero_add,
       u256_add_comm (UInt256.ofNat 64), hload, hlast1, hclean] at r3
-    change RD (deployedRuntime v) ee g s0 ⟨13017⟩
+    change RD fork (deployedRuntime v) ee g s0 ⟨13017⟩
       (UInt256.ofNat (2 ^ 128) :: positionUpdateLiquidityWord a evm ::
         positionUpdateFeeDelta a evm true :: ⟨21807⟩ :: ⟨0⟩ :: positionUpdateFeeRaw a evm false ::
         EVM.wordOfInt (positionUpdateLiquidityNext a evm) :: p :: a.growth1 :: a.growth0 ::

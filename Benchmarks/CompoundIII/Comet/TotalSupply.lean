@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.Dispatch
 import Benchmarks.CompoundIII.Comet.TotalReturn
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # CometWithExtendedAssetList `totalSupply()`
 
@@ -22,7 +24,7 @@ theorem totalSupplyX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetList
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 4)) :
-    CheckedGetterResult
+    CheckedGetterResult fork
       (CurrentIndicesValid v (solcSlotWordAt ⟨0⟩ σ I) (solcSlotWordAt ⟨1⟩ σ I) (timestampWord I))
       (deployedRuntime v) I g (initState σ σ₀ g A I) σ
       (totalReadWord v (solcSlotWordAt ⟨0⟩ σ I) (solcSlotWordAt ⟨1⟩ σ I)
@@ -67,7 +69,7 @@ theorem totalSupplyX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetList
 theorem cometWithExtendedAssetListTotalSupplyBody {σ σ₀ A I} {g : UInt256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 4)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (cometWithExtendedAssetListSelBytes 4) rfl hsel
   let w := totalReadWord v (solcSlotWordAt ⟨0⟩ σ I) (solcSlotWordAt ⟨1⟩ σ I)
     (timestampWord I) false

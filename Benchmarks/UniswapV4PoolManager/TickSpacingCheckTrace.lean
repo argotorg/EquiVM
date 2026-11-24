@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.TickSpacingTrace
 import Benchmarks.UniswapV4PoolManager.WordSignextend24
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -15,12 +17,12 @@ theorem tickSpacingCheckExactTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hl : memLoad (ptr+UInt256.ofNat 32) mem = lowerGross)
     (hu : memLoad (ptr+UInt256.ofNat 96) mem = upperGross)
     (hgl : lowerGross.toNat < 2^128) (hgu : upperGross.toNat < 2^128)
-    (h : RD (deployedRuntime v) I g s0 ⟨7329⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨7329⟩
       (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: params :: R)
       mem aw rdata σ k C) :
     if tickSpacingLimit (EVM.signed spacing) < Int.ofNat lowerGross.toNat ∨
-        tickSpacingLimit (EVM.signed spacing) < Int.ofNat upperGross.toNat then RDrev (deployedRuntime v) g s0
-    else ∃ k' C', RD (deployedRuntime v) I g s0 ⟨7256⟩
+        tickSpacingLimit (EVM.signed spacing) < Int.ofNat upperGross.toNat then RDrev fork (deployedRuntime v) g s0
+    else ∃ k' C', RD fork (deployedRuntime v) I g s0 ⟨7256⟩
       (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: params :: R)
       mem (M (M (M aw (params+UInt256.ofNat 128) ⟨32⟩) (ptr+UInt256.ofNat 32) ⟨32⟩) (ptr+UInt256.ofNat 96) ⟨32⟩) rdata σ k' C' := by
   have rd1 := poolManagerBlocks.poolManager_block_7329 hstack h
@@ -52,12 +54,12 @@ theorem tickSpacingCheckTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hl : memLoad (ptr+UInt256.ofNat 32) mem = lowerGross)
     (hu : memLoad (ptr+UInt256.ofNat 96) mem = upperGross)
     (hgl : lowerGross.toNat < 2^128) (hgu : upperGross.toNat < 2^128)
-    (h : RD (deployedRuntime v) I g s0 ⟨7329⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨7329⟩
       (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: params :: R)
       mem aw rdata σ k C) :
     if tickSpacingLimit (EVM.signed spacing) < Int.ofNat lowerGross.toNat ∨
-        tickSpacingLimit (EVM.signed spacing) < Int.ofNat upperGross.toNat then RDrev (deployedRuntime v) g s0
-    else ∃ aw' k' C', RD (deployedRuntime v) I g s0 ⟨7256⟩
+        tickSpacingLimit (EVM.signed spacing) < Int.ofNat upperGross.toNat then RDrev fork (deployedRuntime v) g s0
+    else ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 ⟨7256⟩
       (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: params :: R)
       mem aw' rdata σ k' C' := by
   have hr := tickSpacingCheckExactTrace v hstack hc hs hl hu hgl hgu h

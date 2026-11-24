@@ -1,6 +1,8 @@
 import Benchmarks.EAS.Attester.StructInitTrace
 import Benchmarks.EAS.Attester.AttestCellMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.EAS.Attester.Immutables attesterRuntimeBlocks
 
@@ -8,7 +10,7 @@ namespace Benchmarks.EAS.Attester
 
 theorem multiAttestInnerStep {words : String → UInt256} {I g s0 σ mem aw out k C R}
     {free base n i cdptr : Nat}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨1379⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨1379⟩
       ([UInt256.ofNat i, UInt256.ofNat base, UInt256.ofNat n, UInt256.ofNat n,
         UInt256.ofNat cdptr] ++ R) mem aw out σ k C)
     (hstack : R.length + 12 ≤ 1024) (hbase : 96 ≤ base)
@@ -16,7 +18,7 @@ theorem multiAttestInnerStep {words : String → UInt256} {I g s0 σ mem aw out 
     (hlen : memLoad (UInt256.ofNat base) mem = UInt256.ofNat n)
     (hptr : memLoad (UInt256.ofNat 64) mem = UInt256.ofNat free)
     (hni : i < n) (hfree : free + 256 < UInt256.size) (hcd : cdptr + 32 * n < UInt256.size) :
-    ∃ aw' k' C', RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨1379⟩
+    ∃ aw' k' C', RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨1379⟩
       ([UInt256.ofNat (i + 1), UInt256.ofNat base, UInt256.ofNat n, UInt256.ofNat n,
         UInt256.ofNat cdptr] ++ R)
       (attestCellSlotMemory mem free (base + 32 + 32 * i)
@@ -111,7 +113,7 @@ theorem multiAttestInnerStep {words : String → UInt256} {I g s0 σ mem aw out 
 set_option maxRecDepth 1000 in
 theorem multiAttestInnerRun {words : String → UInt256} {I g s0 σ mem aw out k C R}
     {free base n i remaining cdptr : Nat}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨1379⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨1379⟩
       ([UInt256.ofNat i, UInt256.ofNat base, UInt256.ofNat n, UInt256.ofNat n,
         UInt256.ofNat cdptr] ++ R) mem aw out σ k C)
     (hstack : R.length + 12 ≤ 1024) (hbase : 96 ≤ base)
@@ -120,7 +122,7 @@ theorem multiAttestInnerRun {words : String → UInt256} {I g s0 σ mem aw out k
     (hptr : memLoad (UInt256.ofNat 64) mem = UInt256.ofNat free)
     (hi : i + remaining = n) (hfree : free + 256 * remaining < UInt256.size)
     (hcd : cdptr + 32 * n < UInt256.size) :
-    ∃ aw' k' C', RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨1567⟩
+    ∃ aw' k' C', RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨1567⟩
       ([UInt256.ofNat n, UInt256.ofNat base, UInt256.ofNat n, UInt256.ofNat n,
         UInt256.ofNat cdptr] ++ R)
       (attestFillMemory mem free (base + 32)

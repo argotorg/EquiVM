@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.BytesAllocateSource
 import Benchmarks.EAS.EAS.AttestationRequest
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -23,7 +25,7 @@ theorem copyRequest_body : copyRequestFunction.body =
 
 theorem copyRequestRead_source {L imms : Store} {evm : EVM.State} {r : AttestationRequestRecord}
     (hd : L.get? "data" = some r.tuple) :
-    ExecBlock config {contract := contract,locals := L,immutables := imms} evm copyRequestRead
+    ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm copyRequestRead
       (.ok {contract := contract,locals := L.insert "payload" (.bytes r.data),immutables := imms} evm) := by
   apply ExecBlock.consNormal (ExecStmt.letDecl ?_) ExecBlock.nil
   simp only [evalExpr?,hd,AttestationRequestRecord.tuple,EvalResult.ofOption,EvalResult.bind,bind,pure]
@@ -32,15 +34,15 @@ theorem copyRequestRead_source {L imms : Store} {evm : EVM.State} {r : Attestati
 theorem copyRequestSource {L imms : Store} {evm : EVM.State} {r : AttestationRequestRecord} {heap : Nat}
     (hd : L.get? "data" = some r.tuple) (hh : L.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap))) :
     if copyRequestValid heap r.data.size then
-      ExecFuncBody config {contract := contract,locals := L,immutables := imms} evm copyRequestFunction.body
+      ExecFuncBody fork config {contract := contract,locals := L,immutables := imms} evm copyRequestFunction.body
         (.returned {contract := contract,locals := copyRequestLocals L r heap,immutables := imms} evm
           (some [.tuple [],.int (Int.ofNat (copyRequestNext heap r.data.size))]))
-    else ExecFuncBody config {contract := contract,locals := L,immutables := imms} evm copyRequestFunction.body .reverted := by
+    else ExecFuncBody fork config {contract := contract,locals := L,immutables := imms} evm copyRequestFunction.body .reverted := by
   rw [copyRequest_body]
   have hsize : evalExpr? config {contract := contract,locals := L,immutables := imms} evm (.intLit 192) = .ok (.int (Int.ofNat 192)) := by
     simp only [evalExpr?,pure]; rfl
   by_cases hg : allocateNext heap 192 ≤ 2^64-1 ∧ heap ≤ allocateNext heap 192
-  · have halloc := allocateBlock_ok hsize hh hg
+  · have halloc := allocateBlock_ok (fork := fork) hsize hh hg
     have hd1 := (allocateBlockLocals_get (heap := allocateNext heap 192)
       (by decide : ("allocation$allocation" == "data") = false) (by decide) (by decide)).trans hd
     have hp := execBlock_append halloc (copyRequestRead_source (imms := imms) (evm := evm) hd1)
@@ -50,7 +52,7 @@ theorem copyRequestSource {L imms : Store} {evm : EVM.State} {r : AttestationReq
     have hl : evalExpr? config {contract := contract, locals := (allocateBlockLocals L (allocateNext heap 192)).insert "payload" (.bytes r.data),immutables := imms} evm
         (.arrayLength .localVar {base := "payload"}) = .ok (.int (Int.ofNat r.data.size)) := by
       simp only [evalExpr?,store_get_self,readLocalPath?,EvalResult.bind,bind,pure]
-    have hb := bytesAllocateSource hl hf
+    have hb := bytesAllocateSource (fork := fork) hl hf
     rw [show allocateNext (allocateNext heap 192) (bytesAllocation r.data.size) = copyRequestNext heap r.data.size from rfl] at hb
     by_cases hg' : r.data.size ≤ 2^64-1
     · rw [if_pos hg'] at hb
@@ -91,11 +93,11 @@ theorem copyRequestCall {locals imms : Store} {args : List Expr} {retVar : Ident
     {evm : EVM.State} {r : AttestationRequestRecord} {heap : Nat}
     (he : evalExprs? config {contract := contract,locals := locals,immutables := imms} evm args = .ok [r.tuple,.int (Int.ofNat heap)]) :
     if copyRequestValid heap r.data.size then
-      ExecStmt config {contract := contract,locals := locals,immutables := imms} evm (.internalCall "_copyAttestationData" args retVar)
+      ExecStmt fork config {contract := contract,locals := locals,immutables := imms} evm (.internalCall "_copyAttestationData" args retVar)
         (.ok (resumeAfterInternalCall {contract := contract,locals := locals,immutables := imms} retVar
           (some [.tuple [],.int (Int.ofNat (copyRequestNext heap r.data.size))])) evm)
-    else ExecStmt config {contract := contract,locals := locals,immutables := imms} evm (.internalCall "_copyAttestationData" args retVar) .reverted := by
-  have h := copyRequestSource (imms := imms) (evm := evm)
+    else ExecStmt fork config {contract := contract,locals := locals,immutables := imms} evm (.internalCall "_copyAttestationData" args retVar) .reverted := by
+  have h := copyRequestSource (fork := fork) (imms := imms) (evm := evm)
     (show (copyRequestArgs r heap).get? "data" = some r.tuple from store_get_self _ _ _)
     (show (copyRequestArgs r heap).get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)) from by
       simp (disch := decide) only [copyRequestArgs,store_get_ne,store_get_self])

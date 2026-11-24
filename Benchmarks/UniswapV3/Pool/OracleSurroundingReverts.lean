@@ -1,13 +1,15 @@
 import Benchmarks.UniswapV3.Pool.OracleSurroundingModel
 import Benchmarks.UniswapV3.Pool.SourceReverts
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
 
 theorem oracleSurroundingIndexReverts (imms : Store) (evm : EVM.State) (time target : UInt256)
     (tick : Int) (index liquidity cardinality : UInt256) (hin : ¬ index.toNat < 65535) :
-    ExecFuncBody config (oracleSurroundingFrame imms time target tick index liquidity cardinality)
+    ExecFuncBody fork config (oracleSurroundingFrame imms time target tick index liquidity cardinality)
       evm oracleSurroundingFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 2 oracleSurroundingFunction.body]
@@ -22,7 +24,7 @@ theorem oracleSurroundingZeroReverts (imms : Store) (evm : EVM.State) (time targ
     (tick : Int) (index liquidity : UInt256) (hin : index.toNat < 65535)
     (ht : target.toNat < 2 ^ 32)
     (hf : oracleSurroundingFirst time target index evm.accountMap evm.executionEnv = false) :
-    ExecFuncBody config (oracleSurroundingFrame imms time target tick index liquidity ⟨0⟩)
+    ExecFuncBody fork config (oracleSurroundingFrame imms time target tick index liquidity ⟨0⟩)
       evm oracleSurroundingFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 4 oracleSurroundingFunction.body]

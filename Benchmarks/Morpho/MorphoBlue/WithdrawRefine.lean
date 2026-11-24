@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.WithdrawUpdates
 import Benchmarks.Morpho.MorphoBlue.WithdrawAccrueRefine
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -14,9 +16,9 @@ theorem morphoWithdrawRefine {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat
     (hr : receiver.toNat < EVM.addressModulus)
     (hl : MarketTransferLocals p assets shares account receiver locals) (hs : SourceState s0 ee σ evm)
     (hac : locals.get? "__accrued" = some (.bool (accrueActive p evm)))
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 7641)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 7641)
       (withdrawAccrueTail p.id assets shares account receiver []) (withdrawGuardMem p ee account) aw out σ k C) :
-    ReturnBlockRefines config (deployedRuntime v) ee g s0
+    ReturnBlockRefines fork config (deployedRuntime v) ee g s0
       { contract := contract, locals := locals, immutables := imms } evm
       (withdrawTransition.body.drop 11) withdrawTransition.returnType := by
   have hf := morphoWithdrawAccrueRefine p locals imms (by decide) hc hl hac hs h

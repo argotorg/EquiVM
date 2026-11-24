@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.CheckAttestationCopyExpr
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -24,13 +26,13 @@ theorem checkAttestationCopyGuard_eval {L imms : Store} {evm : EVM.State} {data 
 theorem checkAttestationCopyIterationSource {L imms : Store} {evm : EVM.State} {data : UInt256} {len heap i : Nat}
     (hf : CheckAttestationCopyLocals L data len heap i) (hb : i+1<UInt256.size) :
     ((calldataWord evm.executionEnv.calldata (UInt256.ofNat (data.toNat+32*i)).toNat).toNat≤2^64-1 →
-      ∃ L', ExecBlock config {contract := contract,locals := L,immutables := imms} evm checkAttestationCopyIteration
+      ∃ L', ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm checkAttestationCopyIteration
         (.ok {contract := contract,locals := L',immutables := imms} evm) ∧ CheckAttestationCopyLocals L' data len heap (i+1)) ∧
     (¬(calldataWord evm.executionEnv.calldata (UInt256.ofNat (data.toNat+32*i)).toNat).toNat≤2^64-1 →
-      ExecBlock config {contract := contract,locals := L,immutables := imms} evm checkAttestationCopyIteration .reverted) := by
+      ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm checkAttestationCopyIteration .reverted) := by
   let word := calldataWord evm.executionEnv.calldata (UInt256.ofNat (data.toNat+32*i)).toNat
   let L1 := heapResultLocals L "offset$allocation" "offset" "$EAS.freeMemory" (.int (Int.ofNat word.toNat)) heap
-  have hread := checkAttestationCopyWordSource (imms := imms) (evm := evm) "offset" (by decide) (by decide) (by decide)
+  have hread := checkAttestationCopyWordSource (fork := fork) (imms := imms) (evm := evm) "offset" (by decide) (by decide) (by decide)
     (checkAttestationCopySlot_eval hf.data hf.index) hf.heap
   have ho1 : L1.get? "offset"=some (.int (Int.ofNat word.toNat)) := heapResultLocals_result _ _ _ _ _ _ (by decide)
   have hg : evalExpr? config {contract := contract,locals := L1,immutables := imms} evm
@@ -57,10 +59,10 @@ theorem checkAttestationCopyLoopSource {L imms : Store} {evm : EVM.State} {data 
     (hbound : len<UInt256.size) (n : Nat) (hn : i+n=len)
     (hf : CheckAttestationCopyLocals L data len heap i) :
     (∀ t, i≤t → t<len → (calldataWord evm.executionEnv.calldata (UInt256.ofNat (data.toNat+32*t)).toNat).toNat≤2^64-1) ∧
-      (∃ L', ExecStmt config {contract := contract,locals := L,immutables := imms} evm checkAttestationCopyLoop
+      (∃ L', ExecStmt fork config {contract := contract,locals := L,immutables := imms} evm checkAttestationCopyLoop
         (.ok {contract := contract,locals := L',immutables := imms} evm) ∧ CheckAttestationCopyLocals L' data len heap len) ∨
     (¬(∀ t, i≤t → t<len → (calldataWord evm.executionEnv.calldata (UInt256.ofNat (data.toNat+32*t)).toNat).toNat≤2^64-1) ∧
-      ExecStmt config {contract := contract,locals := L,immutables := imms} evm checkAttestationCopyLoop .reverted) := by
+      ExecStmt fork config {contract := contract,locals := L,immutables := imms} evm checkAttestationCopyLoop .reverted) := by
   induction n generalizing L i with
   | zero =>
     have he : i=len := by omega
@@ -71,7 +73,7 @@ theorem checkAttestationCopyLoopSource {L imms : Store} {evm : EVM.State} {data 
     have hi : i<len := by omega
     have hg : evalExpr? config {contract := contract,locals := L,immutables := imms} evm checkAttestationCopyGuard=.ok (.bool true) :=
       by simpa only [decide_eq_true hi] using checkAttestationCopyGuard_eval (imms := imms) (evm := evm) hf
-    have hs := checkAttestationCopyIterationSource (imms := imms) (evm := evm) hf (by omega)
+    have hs := checkAttestationCopyIterationSource (fork := fork) (imms := imms) (evm := evm) hf (by omega)
     by_cases hv : (calldataWord evm.executionEnv.calldata (UInt256.ofNat (data.toNat+32*i)).toNat).toNat≤2^64-1
     · obtain ⟨L1,hs1,hf1⟩ := hs.1 hv
       rcases ih (by omega) hf1 with ⟨hgood,L2,hs2,hf2⟩ | ⟨hbad,hs2⟩

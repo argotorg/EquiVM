@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.RateSource
 import Benchmarks.CompoundIII.Comet.UintFunction
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -19,7 +21,7 @@ theorem getRate_returns {σ σ₀ A I} {g : Sat256}
     (v : CometWithExtendedAssetListImmutables) (borrow : Bool)
     (hv : I.weiValue = ⟨0⟩) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hvalid : RateValid (rateParams v borrow) (calldataWord I.calldata 4)) :
-    ∃ frame, ExecTransitionBody config contract (initState σ σ₀ g A I)
+    ∃ frame, ExecTransitionBody fork config contract (initState σ σ₀ g A I)
       (uintFunctionArgs "utilization" I) (rateTransition borrow).body
       (.returned frame (initState σ σ₀ g A I)
         (some [.int (rateWord (rateParams v borrow) (calldataWord I.calldata 4)).toNat]))
@@ -48,7 +50,7 @@ theorem getRate_reverts {σ σ₀ A I} {g : Sat256}
     (v : CometWithExtendedAssetListImmutables) (borrow : Bool)
     (hv : I.weiValue = ⟨0⟩) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hvalid : ¬ RateValid (rateParams v borrow) (calldataWord I.calldata 4)) :
-    ExecTransitionBody config contract (initState σ σ₀ g A I)
+    ExecTransitionBody fork config contract (initState σ σ₀ g A I)
       (uintFunctionArgs "utilization" I) (rateTransition borrow).body .reverted (immStore v) := by
   let u := calldataWord I.calldata 4
   let frame := calldataLocalFrame

@@ -11,6 +11,8 @@ import Examples.UniswapV2Pair.SkimSource
 import Reasoning.ExternalCall
 import Ethereum.Theory.StaticStorage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -49,15 +51,15 @@ theorem uniswapSkimBalanceTypedCallFromState_source
       some (calldataMem.readWithPadding inOff.toNat 36))
     (hΘ : ∃ (g'' : UInt256) (A'_evm : Substate),
       (σ2, g'', A'_evm, z2, out2) =
-        Ethereum.EVM.Θ σ1 σ₀ A_in2
+        Ethereum.EVM.Θ fork σ1 σ₀ A_in2
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256 targetWord)
-          (toExecute σ1 (AccountAddress.ofUInt256 targetWord))
+          (toExecute fork σ1 (AccountAddress.ofUInt256 targetWord))
           callGas2 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           (calldataMem.readWithPadding inOff.toNat 36)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false) :
     ∃ evm2S : EVM.State,
-      typedCallViaEVM config evm1S (AccountAddress.ofUInt256 targetWord)
+      typedCallViaEVM fork config evm1S (AccountAddress.ofUInt256 targetWord)
         "balanceOf" 0 [.address evm1S.executionEnv.codeOwner] (z2, evm2S, out2) false ∧
       σ2 = evm2S.accountMap ∧ evm2S.σ₀ = σ₀ ∧ evm2S.executionEnv = I := by
   obtain ⟨g'', A'_evm, hΘeq⟩ := hΘ
@@ -73,9 +75,9 @@ theorem uniswapSkimBalanceTypedCallFromState_source
       some (calldataMem.readWithPadding inOff.toNat 36) := by
     simpa [evmE] using hcd
   have hΘE : (σ2, g'', A'_evm, z2, out2) =
-      Ethereum.EVM.Θ evmE.accountMap evmE.σ₀ A_in2
+      Ethereum.EVM.Θ fork evmE.accountMap evmE.σ₀ A_in2
         (AccountAddress.ofUInt256 (UInt256.ofNat evmE.executionEnv.codeOwner.val))
-        evmE.executionEnv.sender target (toExecute evmE.accountMap target)
+        evmE.executionEnv.sender target (toExecute fork evmE.accountMap target)
         callGas2 (UInt256.ofNat evmE.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
         (calldataMem.readWithPadding inOff.toNat 36)
         (evmE.executionEnv.depth + 1) evmE.executionEnv.header
@@ -103,19 +105,19 @@ theorem uniswapSkimFirstBalanceTypedCall_source
     {z : Bool} {o : ByteArray} {A_in : Substate} {callGas : UInt256}
     (hdepth : I.depth.val < 1024)
     (hΘ : ∃ (g'' : UInt256) (A'_evm : Substate),
-      (σ', g'', A'_evm, z, o) = Ethereum.EVM.Θ
-        (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) σ₀ A_in
+      (σ', g'', A'_evm, z, o) = Ethereum.EVM.Θ fork (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) σ₀
+        A_in
         (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
         (AccountAddress.ofUInt256 (UInt256.land solcAddrMask
           (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
-        (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
+        (toExecute fork (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
           (AccountAddress.ofUInt256 (UInt256.land solcAddrMask
             (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
         callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
         ((balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)).readWithPadding 128 36)
         (I.depth + 1) I.header I.blobVersionedHashes I.blocks false) :
     ∃ evm0S : EVM.State,
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (uniswapLockEnteredState (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         (EVM.address (uniswapAddressAtSlot
           (uniswapLockEnteredState (initState σ σ₀ (Sat256.ofUInt256 g) A I)) ⟨6⟩))
@@ -173,12 +175,12 @@ theorem uniswapSkimFirstBalanceReturn_source
     {z : Bool} {o : ByteArray} {A_in : Substate} {callGas : UInt256}
     (hdepth : I.depth.val < 1024)
     (hΘ : ∃ (g'' : UInt256) (A'_evm : Substate),
-      (σ', g'', A'_evm, z, o) = Ethereum.EVM.Θ
-        (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) σ₀ A_in
+      (σ', g'', A'_evm, z, o) = Ethereum.EVM.Θ fork (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) σ₀
+        A_in
         (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
         (AccountAddress.ofUInt256 (UInt256.land solcAddrMask
           (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
-        (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
+        (toExecute fork (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
           (AccountAddress.ofUInt256 (UInt256.land solcAddrMask
             (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
         callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
@@ -186,7 +188,7 @@ theorem uniswapSkimFirstBalanceReturn_source
         (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
     (hz : z = true) (ho32 : 32 ≤ o.size) :
     ∃ (evm0S : EVM.State) (balance0 : UInt256),
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         (uniswapLockEnteredState (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         (EVM.address (uniswapAddressAtSlot
           (uniswapLockEnteredState (initState σ σ₀ (Sat256.ofUInt256 g) A I)) ⟨6⟩))
@@ -203,7 +205,7 @@ theorem uniswapSkimFirstBalanceReturn_source
     uniswapSkimFirstBalanceTypedCall_source hdepth hΘ
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let balance0 := UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32))
-  have hcall0 : typedCallViaEVM config (uniswapLockEnteredState evmS)
+  have hcall0 : typedCallViaEVM fork config (uniswapLockEnteredState evmS)
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evmS) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evmS).executionEnv.codeOwner]
       (true, evm0S, o) false := by
@@ -229,7 +231,7 @@ theorem uniswapSkimFirstBalanceStaticReserve0
     {σ σ₀ A I} {g : UInt256}
     {evm0S : EVM.State} {target : EVM.Address} {name : Ident}
     {args : List Value} {out0 : ByteArray} {z : Bool}
-    (hcall0 : typedCallViaEVM config
+    (hcall0 : typedCallViaEVM fork config
       (uniswapLockEnteredState
         (initState σ σ₀ (Sat256.ofUInt256 g) A I))
       target name 0 args (z, evm0S, out0) false) :
@@ -260,16 +262,16 @@ theorem uniswapSkimSecondBalanceTypedCall_source
     (henv : evm1S.executionEnv = I) (hdepth : I.depth.val < 1024)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hΘ : ∃ (g'' : UInt256) (A'_evm : Substate),
-      (σ2, g'', A'_evm, z2, out2) = Ethereum.EVM.Θ σ1 σ₀ A_in2
+      (σ2, g'', A'_evm, z2, out2) = Ethereum.EVM.Θ fork σ1 σ₀ A_in2
         (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
         (AccountAddress.ofUInt256 (UInt256.land token1 solcAddrMask))
-        (toExecute σ1 (AccountAddress.ofUInt256 (UInt256.land token1 solcAddrMask)))
+        (toExecute fork σ1 (AccountAddress.ofUInt256 (UInt256.land token1 solcAddrMask)))
         callGas2 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
         ((skimSecondBalanceCalldataMem (UInt256.ofNat I.codeOwner.val) o toWord value)
           |>.readWithPadding 292 36)
         (I.depth + 1) I.header I.blobVersionedHashes I.blocks false) :
     ∃ evm2S : EVM.State,
-      typedCallViaEVM config evm1S
+      typedCallViaEVM fork config evm1S
         (AccountAddress.ofUInt256 (UInt256.land token1 solcAddrMask))
         "balanceOf" 0 [.address evm1S.executionEnv.codeOwner] (z2, evm2S, out2) false ∧
       σ2 = evm2S.accountMap ∧ evm2S.σ₀ = σ₀ ∧ evm2S.executionEnv = I := by
@@ -291,17 +293,17 @@ theorem uniswapSkimSecondBalanceTypedCall_source_dynamic
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hout1Ne : out1.size ≠ 0) (hout1Size : out1.size < 2 ^ 255)
     (hΘ : ∃ (g'' : UInt256) (A'_evm : Substate),
-      (σ2, g'', A'_evm, z2, out2) = Ethereum.EVM.Θ σ1 σ₀ A_in2
+      (σ2, g'', A'_evm, z2, out2) = Ethereum.EVM.Θ fork σ1 σ₀ A_in2
         (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
         (AccountAddress.ofUInt256 (UInt256.land token1 solcAddrMask))
-        (toExecute σ1 (AccountAddress.ofUInt256 (UInt256.land token1 solcAddrMask)))
+        (toExecute fork σ1 (AccountAddress.ofUInt256 (UInt256.land token1 solcAddrMask)))
         callGas2 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
         ((skimSecondBalanceDynamicCalldataMem (UInt256.ofNat I.codeOwner.val) o
           toWord value out1)
           |>.readWithPadding (skimSafeTransferReturnDataPtr out1).toNat 36)
         (I.depth + 1) I.header I.blobVersionedHashes I.blocks false) :
     ∃ evm2S : EVM.State,
-      typedCallViaEVM config evm1S
+      typedCallViaEVM fork config evm1S
         (AccountAddress.ofUInt256 (UInt256.land token1 solcAddrMask))
         "balanceOf" 0 [.address evm1S.executionEnv.codeOwner] (z2, evm2S, out2) false ∧
       σ2 = evm2S.accountMap ∧ evm2S.σ₀ = σ₀ ∧ evm2S.executionEnv = I := by
@@ -322,7 +324,7 @@ theorem uniswapSkimSecondBalanceStaticReserve1 {σ1 : AccountMap}
     {target : EVM.Address} {args : List Value} {z2 : Bool} {out2 : ByteArray}
     (hPost : σ1 = evm1S.accountMap)
     (henv : evm1S.executionEnv = I)
-    (hcall1 : typedCallViaEVM config evm1S target "balanceOf" 0 args
+    (hcall1 : typedCallViaEVM fork config evm1S target "balanceOf" 0 args
       (z2, evm2S, out2) false) :
     uniswapReserve1Word evm2S =
       UInt256.land
@@ -635,9 +637,9 @@ theorem uniswapSkimBodyCoreRevert_locked
       config.externalABI.decodeCalldata? (skimTransition.params.map Param.name)
         (transitionSignature skimTransition).paramTypes I.calldata = some (skimStore I))
     (hRuntime :
-      RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+      RDrev fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let _toWord := maskFn (skimToWord I)
   have hlockedStele :
@@ -645,7 +647,7 @@ theorem uniswapSkimBodyCoreRevert_locked
     simpa [evmS, initState, Stele.EVM.storageLoad, State.lookupAccount,
       Account.lookupStorage] using hlocked
   have hbody :
-      ExecTransitionBody config contract evmS (skimStore I) skimTransition.body .reverted := by
+      ExecTransitionBody fork config contract evmS (skimStore I) skimTransition.body .reverted := by
     exact uniswapSkimBodyReverts_locked evmS I
       (by simp only [evmS, initState]; exact hwv)
       hlockedStele
@@ -662,10 +664,10 @@ theorem uniswapSkimBodyCoreDecodeFailed_short
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some skimTransition)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1286⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hdec := uniswapDecode_skim_none_short (I := I) hsz4 hshort
   exact (uniswapSkimX_shortarg (g := Sat256.ofUInt256 g)
       hsz4 hsize hshort hreach)
@@ -688,10 +690,10 @@ theorem uniswapSkimBodyCoreRevert_firstNoCode
       config.externalABI.decodeCalldata? (skimTransition.params.map Param.name)
         (transitionSignature skimTransition).paramTypes I.calldata = some (skimStore I))
     (hRuntime :
-      RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+      RDrev fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I))
     (hperm : I.perm = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let _toWord := maskFn (skimToWord I)
   have hunlockedStele :
@@ -701,7 +703,7 @@ theorem uniswapSkimBodyCoreRevert_firstNoCode
   have hguard0 : skimToken0GuardFalse evmS I :=
     skimToken0GuardFalse_initState_of_noCode htoken0NoCode
   have hbody :
-      ExecTransitionBody config contract evmS (skimStore I) skimTransition.body .reverted := by
+      ExecTransitionBody fork config contract evmS (skimStore I) skimTransition.body .reverted := by
     exact uniswapSkimBodyReverts_firstNoCode (hperm := by assumption) evmS I
       (by simp only [evmS, initState]; exact hwv)
       hunlockedStele hguard0
@@ -725,10 +727,10 @@ theorem uniswapSkimBodyCoreRevert_firstCallDepth
       config.externalABI.decodeCalldata? (skimTransition.params.map Param.name)
         (transitionSignature skimTransition).paramTypes I.calldata = some (skimStore I))
     (hRuntime :
-      RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+      RDrev fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I))
     (hperm : I.perm = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let target := EVM.address (uniswapAddressAtSlot evmL ⟨6⟩)
@@ -742,9 +744,10 @@ theorem uniswapSkimBodyCoreRevert_firstCallDepth
   have hdepthStele : evmL.executionEnv.depth = 1024 := by
     simpa [evmL, evmS, uniswapLockEnteredState, uniswapUnlockedState, initState,
       storageStore_executionEnv] using hdepth
-  have hcall0 : typedCallViaEVM config evmL target "balanceOf" 0
+  have hcall0 : typedCallViaEVM fork config evmL target "balanceOf" 0
       [.address evmL.executionEnv.codeOwner]
-      (false, { evmL with substate := (evmL.addAccessedAccount target).substate },
+      (false, { evmL with substate := (Ethereum.EVM.callSubstate fork
+        evmL.accountMap target evmL.substate) },
         ByteArray.empty) false := by
     exact callNotMade_depthLimit
       (cfg := config) (evm := evmL) (tgt := target)
@@ -753,9 +756,10 @@ theorem uniswapSkimBodyCoreRevert_firstCallDepth
       (balanceOfThisCalldataMem_encode evmL.executionEnv.codeOwner)
       hdepthStele
   have hbody :
-      ExecTransitionBody config contract evmS (skimStore I) skimTransition.body .reverted := by
+      ExecTransitionBody fork config contract evmS (skimStore I) skimTransition.body .reverted := by
     exact uniswapSkimBodyReverts_firstCallFailure (hperm := by assumption) evmS
-      { evmL with substate := (evmL.addAccessedAccount target).substate } I
+      { evmL with substate := (Ethereum.EVM.callSubstate fork evmL.accountMap
+        target evmL.substate) } I
       (by simp only [evmS, initState]; exact hwv)
       hunlockedStele hguard0 hcall0
   exact hRuntime.reEquivExecutionRevert hcode hdispatch hdecode hbody
@@ -774,9 +778,9 @@ theorem uniswapSkimBodyRevert_locked
       config.externalABI.decodeCalldata? (skimTransition.params.map Param.name)
         (transitionSignature skimTransition).paramTypes I.calldata = some (skimStore I))
     (hRuntime :
-      RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+      RDrev fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact uniswapSkimBodyCoreRevert_locked maskFn hcode hwv hlocked hdispatch hdecode
     hRuntime
 
@@ -788,7 +792,7 @@ theorem uniswapSkimBodyDecodeFailed_short
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩)
     (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some skimTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩ rfl hsel
   exact uniswapSkimBodyCoreDecodeFailed_short hcode hsize hsz4 hshort hdispatch
@@ -811,10 +815,10 @@ theorem uniswapSkimBodyRevert_firstNoCode
       config.externalABI.decodeCalldata? (skimTransition.params.map Param.name)
         (transitionSignature skimTransition).paramTypes I.calldata = some (skimStore I))
     (hRuntime :
-      RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+      RDrev fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I))
     (hperm : I.perm = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact uniswapSkimBodyCoreRevert_firstNoCode (hperm := by assumption) maskFn hcode hwv hunlocked htoken0NoCode
     hdispatch hdecode hRuntime
 

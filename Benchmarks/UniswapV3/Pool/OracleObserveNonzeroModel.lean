@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.OracleObserveSource
 import Benchmarks.UniswapV3.Pool.OracleSurroundingFailure
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -32,12 +34,12 @@ def oracleObserveTargetFrame (imms : Store) (time secondsAgo : UInt256) (tick : 
 theorem oracleObserveNonzeroPrefix (imms : Store) (evm : EVM.State)
     (time secondsAgo : UInt256) (tick : Int) (index liquidity cardinality : UInt256)
     (hn : secondsAgo ≠ ⟨0⟩) :
-    ExecBlock config (oracleObserveSingleFrame imms time secondsAgo tick index liquidity cardinality)
+    ExecBlock fork config (oracleObserveSingleFrame imms time secondsAgo tick index liquidity cardinality)
       evm (oracleObserveSingleFunction.body.take 4)
       (.ok (oracleObserveTargetFrame imms time secondsAgo tick index liquidity cardinality) evm) := by
   refine ExecBlock.consNormal (ExecStmt.letDecl (value := .int 0) (by simp only [evalExpr?, pure])) ?_
   refine ExecBlock.consNormal (ExecStmt.letDecl (value := .int 0) (by simp only [evalExpr?, pure])) ?_
-  change ExecBlock config
+  change ExecBlock fork config
     (oracleObserveReadyFrame imms time secondsAgo tick index liquidity cardinality) evm
     (oracleObserveSingleFunction.body.drop 2 |>.take 2) _
   refine ExecBlock.consNormal (ExecStmt.iteFalse ?_ ExecBlock.nil) ?_
@@ -75,7 +77,7 @@ theorem oracleObserveNonzeroSurroundingReverts (imms : Store) (evm : EVM.State)
     (hn : secondsAgo ≠ ⟨0⟩) (hc : cardinality.toNat < 2 ^ 16)
     (hfail : OracleSurroundingFailure time (oracleDelta time secondsAgo)
       index cardinality evm.accountMap evm.executionEnv) :
-    ExecFuncBody config
+    ExecFuncBody fork config
       (oracleObserveSingleFrame imms time secondsAgo tick index liquidity cardinality)
       evm oracleObserveSingleFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert

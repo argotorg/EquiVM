@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.PauseFlagsEvm
 import Benchmarks.CompoundIII.Comet.PauseStatic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -12,11 +14,11 @@ theorem cometPauseReturn {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray} {aw : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (a : PauseInputs)
     (hstack : R.length + 15 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 ⟨3489⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨3489⟩
       (boolWord a.buy :: boolWord a.withdraw :: boolWord a.supply :: boolWord a.transfer ::
         boolWord a.absorb :: R) mem aw rdata σ k C) :
-    if ee.perm = true then RDret (deployedRuntime v) g s0 (pauseAccounts σ ee a) ByteArray.empty
-    else RDstatic (deployedRuntime v) g s0 := by
+    if ee.perm = true then RDret fork (deployedRuntime v) g s0 (pauseAccounts σ ee a) ByteArray.empty
+    else RDstatic fork (deployedRuntime v) g s0 := by
   obtain ⟨k1, C1, rd1⟩ := cometPauseFlags (v := v) a hstack h
   by_cases hp : ee.perm = true
   · rw [if_pos hp]

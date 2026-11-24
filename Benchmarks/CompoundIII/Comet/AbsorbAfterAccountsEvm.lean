@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.AbsorbPointsEvm
 import Benchmarks.CompoundIII.Comet.CheckedSub256Evm
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -15,10 +17,10 @@ theorem cometAbsorbAfterAccounts {v : CometWithExtendedAssetListImmutables}
     (hfree : memLoad (UInt256.ofNat 64) mem = ptr) (hmem : 96 ≤ mem.size)
     (hlo : 96 ≤ ptr.toNat) (hb : ptr.toNat + 128 < 2^64)
     (hs : SourceState s0 ee σ evm) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨16703⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨16703⟩
       (n :: base :: ⟨1⟩ :: EVM.word addr.val :: n :: ret :: startGas :: R)
       mem aw rdata σ k C) :
-    ∃ endGas, internalDynamicRun (deployedRuntime v) ee g s0 ret R
+    ∃ endGas, internalDynamicRun fork (deployedRuntime v) ee g s0 ret R
       (absorbAfterAccountsOutcome evm addr n startGas endGas) := by
   let endGas := (g.subNat (C + 35)).toUInt256
   refine ⟨endGas, ?_⟩

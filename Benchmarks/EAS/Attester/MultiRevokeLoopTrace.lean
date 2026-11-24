@@ -2,6 +2,8 @@ import Benchmarks.EAS.Attester.MultiRevokeRowTrace
 import Benchmarks.EAS.Attester.MultiRevokeRowView
 import Benchmarks.EAS.Attester.NestedBounds
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.EAS.Attester.Immutables attesterRuntimeBlocks
 
@@ -9,7 +11,7 @@ namespace Benchmarks.EAS.Attester
 
 theorem multiRevokeOuterSteps {words : String → UInt256} {I g s0 σ mem aw out k C R}
     {free base n i remaining schemaPtr : Nat} {secondData : UInt256}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨367⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨367⟩
       ([UInt256.ofNat i, UInt256.ofNat base, UInt256.ofNat n, UInt256.ofNat n,
         secondData, UInt256.ofNat n, UInt256.ofNat schemaPtr] ++ R) mem aw out σ k C)
     (hstack : R.length + 19 ≤ 1024) (hbase : 96 ≤ base)
@@ -22,7 +24,7 @@ theorem multiRevokeOuterSteps {words : String → UInt256} {I g s0 σ mem aw out
     (hsecond : secondData.toNat + 32 * n ≤ I.calldata.size)
     (hcd : schemaPtr + 32 * n < UInt256.size)
     (hrows : ∀ j, i ≤ j → j < i + remaining → RowValid I.calldata secondData j) :
-    ∃ aw' k' C', RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨367⟩
+    ∃ aw' k' C', RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨367⟩
       ([UInt256.ofNat (i + remaining), UInt256.ofNat base, UInt256.ofNat n, UInt256.ofNat n,
         secondData, UInt256.ofNat n, UInt256.ofNat schemaPtr] ++ R)
       (multiRevokeRowsMemory mem I.calldata free base schemaPtr secondData i remaining)
@@ -42,7 +44,7 @@ theorem multiRevokeOuterSteps {words : String → UInt256} {I g s0 σ mem aw out
         have hrem : 96 + 160 * solcMaxU64 ≤ (96 + 160 * solcMaxU64) * (remaining + 1) := by
           exact Nat.le_mul_of_pos_right _ (by omega)
         omega
-      have hv' : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨479⟩
+      have hv' : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨479⟩
           ([UInt256.ofNat (rowLength I.calldata secondData i).toNat,
             UInt256.ofNat (rowLength I.calldata secondData i).toNat,
             UInt256.ofNat (rowData I.calldata secondData i).toNat, UInt256.ofNat i,
@@ -69,7 +71,7 @@ theorem multiRevokeOuterSteps {words : String → UInt256} {I g s0 σ mem aw out
 
 theorem multiRevokeOuterRun {words : String → UInt256} {I g s0 σ mem aw out k C R}
     {free base n schemaPtr : Nat} {secondData : UInt256}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨367⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨367⟩
       ([⟨0⟩, UInt256.ofNat base, UInt256.ofNat n, UInt256.ofNat n,
         secondData, UInt256.ofNat n, UInt256.ofNat schemaPtr] ++ R) mem aw out σ k C)
     (hstack : R.length + 19 ≤ 1024) (hbase : 96 ≤ base)
@@ -81,7 +83,7 @@ theorem multiRevokeOuterRun {words : String → UInt256} {I g s0 σ mem aw out k
     (hsecond : secondData.toNat + 32 * n ≤ I.calldata.size)
     (hcd : schemaPtr + 32 * n < UInt256.size)
     (hrows : ∀ j < n, RowValid I.calldata secondData j) :
-    ∃ aw' k' C', RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨762⟩
+    ∃ aw' k' C', RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨762⟩
       ([UInt256.ofNat n, UInt256.ofNat base, UInt256.ofNat n, UInt256.ofNat n,
         secondData, UInt256.ofNat n, UInt256.ofNat schemaPtr] ++ R)
       (multiRevokeRowsMemory mem I.calldata free base schemaPtr secondData 0 n)
@@ -97,7 +99,7 @@ theorem multiRevokeOuterRun {words : String → UInt256} {I g s0 σ mem aw out k
 
 theorem multiRevokeOuterRevert {words : String → UInt256} {I g s0 σ mem aw out k C R}
     {free base n schemaPtr : Nat} {secondData : UInt256}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨367⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨367⟩
       ([⟨0⟩, UInt256.ofNat base, UInt256.ofNat n, UInt256.ofNat n,
         secondData, UInt256.ofNat n, UInt256.ofNat schemaPtr] ++ R) mem aw out σ k C)
     (hstack : R.length + 19 ≤ 1024) (hbase : 96 ≤ base)
@@ -109,7 +111,7 @@ theorem multiRevokeOuterRevert {words : String → UInt256} {I g s0 σ mem aw ou
     (hsecond : secondData.toNat + 32 * n ≤ I.calldata.size)
     (hcd : schemaPtr + 32 * n < UInt256.size)
     (hbad : ¬ ∀ j < n, RowValid I.calldata secondData j) :
-    RDrev (immutableLayout.runtime attesterBytecode words) g s0 := by
+    RDrev fork (immutableLayout.runtime attesterBytecode words) g s0 := by
   classical
   have hex : ∃ j, j < n ∧ ¬ RowValid I.calldata secondData j := by
     push_neg at hbad

@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.SwapOutputSource
 import Examples.UniswapV2Pair.MintCommon
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -16,9 +18,9 @@ abbrev swapReserveRequireExpr : Expr :=
 abbrev swapReserveRequireStmt : Stmt := .require swapReserveRequireExpr
 
 theorem uniswapSwapReservePrefix (evm : EVM.State) (I : ExecutionEnv)
-    (houtput : ExecBlock config { contract := contract, locals := swapStore I } evm swapOutputPrefix
+    (houtput : ExecBlock fork config { contract := contract, locals := swapStore I } evm swapOutputPrefix
       (.ok { contract := contract, locals := swapStore I } (uniswapLockEnteredState evm))) :
-    ExecBlock config { contract := contract, locals := swapStore I } evm swapReservePrefix
+    ExecBlock fork config { contract := contract, locals := swapStore I } evm swapReservePrefix
       (.ok { contract := contract, locals := swapReserveStore (uniswapLockEnteredState evm) I }
         (uniswapLockEnteredState evm)) := by
   have hr0 := evalExpr_uniswap_reserve0 (uniswapLockEnteredState evm) (swapStore I)
@@ -56,15 +58,15 @@ theorem swapReserveStore_gets (evm : EVM.State) (I : ExecutionEnv) :
   · exact store_get_self _ _ _
 
 theorem uniswapSwapBodyReverts_reserveGuard (evm : EVM.State) (I : ExecutionEnv)
-    (hprefix : ExecBlock config { contract := contract, locals := swapStore I } evm swapReservePrefix
+    (hprefix : ExecBlock fork config { contract := contract, locals := swapStore I } evm swapReservePrefix
       (.ok { contract := contract, locals := swapReserveStore (uniswapLockEnteredState evm) I }
         (uniswapLockEnteredState evm)))
     (hnot : ¬ ((swapAmount0OutWord I).toNat < (uniswapReserve0Word (uniswapLockEnteredState evm)).toNat ∧
       (swapAmount1OutWord I).toNat < (uniswapReserve1Word (uniswapLockEnteredState evm)).toNat)) :
-    ExecTransitionBody config contract evm (swapStore I) swapTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (swapStore I) swapTransition.body .reverted := by
   obtain ⟨ha0, ha1, hr0, hr1⟩ := swapReserveStore_gets (uniswapLockEnteredState evm) I
   have hreq := evalExpr_swap_reserveRequire (uniswapLockEnteredState evm) ha0 ha1 hr0 hr1
-  have htail : ExecBlock config
+  have htail : ExecBlock fork config
       { contract := contract, locals := swapReserveStore (uniswapLockEnteredState evm) I }
       (uniswapLockEnteredState evm) [swapReserveRequireStmt] .reverted :=
     ExecBlock.consRevert (ExecStmt.requireFalse (by simpa only [hnot, decide_false] using hreq))
@@ -77,12 +79,12 @@ theorem uniswapSwapBodyReverts_reserveGuard (evm : EVM.State) (I : ExecutionEnv)
 abbrev swapReserveGuardPrefix : List Stmt := swapReservePrefix ++ [swapReserveRequireStmt]
 
 theorem uniswapSwapReserveGuardPrefix (evm : EVM.State) (I : ExecutionEnv)
-    (hprefix : ExecBlock config { contract := contract, locals := swapStore I } evm swapReservePrefix
+    (hprefix : ExecBlock fork config { contract := contract, locals := swapStore I } evm swapReservePrefix
       (.ok { contract := contract, locals := swapReserveStore (uniswapLockEnteredState evm) I }
         (uniswapLockEnteredState evm)))
     (hfit : (swapAmount0OutWord I).toNat < (uniswapReserve0Word (uniswapLockEnteredState evm)).toNat ∧
       (swapAmount1OutWord I).toNat < (uniswapReserve1Word (uniswapLockEnteredState evm)).toNat) :
-    ExecBlock config { contract := contract, locals := swapStore I } evm swapReserveGuardPrefix
+    ExecBlock fork config { contract := contract, locals := swapStore I } evm swapReserveGuardPrefix
       (.ok { contract := contract, locals := swapReserveStore (uniswapLockEnteredState evm) I }
         (uniswapLockEnteredState evm)) := by
   obtain ⟨ha0, ha1, hr0, hr1⟩ := swapReserveStore_gets (uniswapLockEnteredState evm) I

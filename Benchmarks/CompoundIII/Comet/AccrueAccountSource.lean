@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.AccrueInternalSource
 import Benchmarks.CompoundIII.Comet.UpdateBaseSource
 import Benchmarks.CompoundIII.Comet.UserBasicRead
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -15,7 +17,7 @@ theorem accrueAccountTail_source (v : CometWithExtendedAssetListImmutables)
     (hc : frame.contract = contract) (hi : frame.immutables = immStore v)
     (ha : frame.locals.get? "account" = some (.address addr))
     (hu : frame.locals.get? "userBasic" = none) :
-    internalBlockResult config frame evm accrueAccountTail (accrueAccountUpdate v evm addr) := by
+    internalBlockResult fork config frame evm accrueAccountTail (accrueAccountUpdate v evm addr) := by
   let basic := accrueAccountBasic evm addr
   let frame' : Frame := { frame with locals := frame.locals.insert "basic" (userBasicValue basic) }
   have hea : evalExpr? config frame evm (.var "account") = .ok (.address addr) := by
@@ -34,11 +36,11 @@ theorem accrueAccountTail_source (v : CometWithExtendedAssetListImmutables)
       .ok (.int (signed104 (UInt256.signextend (UInt256.ofNat 12) basic.principal))) := by
     rw [signed104_signextend]
     exact evalBasicPrincipal heb
-  have hcall := updateBase_call v frame' evm addr basic
+  have hcall := updateBase_call (fork := fork) v frame' evm addr basic
     (UInt256.signextend (UInt256.ofNat 12) basic.principal)
     (.var "account") (.var "basic") (.field (.var "basic") "principal") "__c1"
     hc hi hea' heb hep
-  change ExecStmt _ _ _ _ (internalStmtResult _ _ (accrueAccountUpdate v evm addr)) at hcall
+  change ExecStmt fork _ _ _ _ (internalStmtResult _ _ (accrueAccountUpdate v evm addr)) at hcall
   cases hr : accrueAccountUpdate v evm addr with
   | ok evm' =>
       exact ⟨_, ExecBlock.consNormal (by simpa only [hr, internalStmtResult] using hcall)
@@ -49,11 +51,11 @@ theorem accrueAccountTail_source (v : CometWithExtendedAssetListImmutables)
 
 theorem accrueAccount_block (v : CometWithExtendedAssetListImmutables) (evm : EVM.State)
     (addr : AccountAddress) :
-    internalBlockResult config (accrueAccountEntry v evm addr) evm
+    internalBlockResult fork config (accrueAccountEntry v evm addr) evm
       (.internalCall "accrueInternal" [] "__c0" :: accrueAccountTail)
       (accrueAccountOutcome v evm addr) := by
   let frame := accrueAccountEntry v evm addr
-  have hcall := accrue_call v frame evm "__c0" rfl rfl
+  have hcall := accrue_call (fork := fork) v frame evm "__c0" rfl rfl
   cases hr : accrueOutcome v evm with
   | ok evm' =>
       simp only [accrueAccountOutcome, hr]
@@ -76,10 +78,10 @@ theorem accrueAccount_block (v : CometWithExtendedAssetListImmutables) (evm : EV
 theorem accrueAccount_source (v : CometWithExtendedAssetListImmutables) (evm : EVM.State)
     (addr : AccountAddress) (hv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < 2^255 + 4) :
-    internalSourceResult config
+    internalSourceResult fork config
       { contract := contract, immutables := immStore v, locals := accrueAccountArgs addr }
       evm accrueAccountTransition.body (accrueAccountOutcome v evm addr) := by
-  have hb := accrueAccount_block v evm addr
+  have hb := accrueAccount_block (fork := fork) v evm addr
   rw [accrueAccountTransition_body]
   cases hr : accrueAccountOutcome v evm addr with
   | ok evm' =>

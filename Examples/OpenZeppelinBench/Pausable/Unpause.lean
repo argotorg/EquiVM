@@ -1,5 +1,7 @@
 import Examples.OpenZeppelinBench.Pausable.Common
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -73,7 +75,7 @@ theorem pausableUnpauseBodyReturns (evm : EVM.State)
       UInt256.land (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩) ⟨255⟩ ≠
         ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm ∅ unpauseTransition.body
+    ExecTransitionBody fork config contract evm ∅ unpauseTransition.body
       (.returned { contract := contract, locals := ∅ } (unpausePostState evm) none) := by
   refine ExecFuncBody.execBlockOK ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
@@ -93,7 +95,7 @@ theorem pausableUnpauseBodyStatic (evm : EVM.State)
       UInt256.land (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩) ⟨255⟩ ≠
         ⟨0⟩)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm ∅ unpauseTransition.body .staticViolation := by
+    ExecTransitionBody fork config contract evm ∅ unpauseTransition.body .staticViolation := by
   refine ExecFuncBody.execBlockStatic ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
   have hnzPaused : pausedWord evm.accountMap evm.executionEnv ≠ ⟨0⟩ := by
@@ -108,7 +110,7 @@ theorem pausableUnpauseBodyReverts_notPaused (evm : EVM.State)
     (hzero :
       UInt256.land (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩) ⟨255⟩ =
         ⟨0⟩) :
-    ExecTransitionBody config contract evm ∅ unpauseTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm ∅ unpauseTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
   have hzeroPaused : pausedWord evm.accountMap evm.executionEnv = ⟨0⟩ := by
@@ -119,13 +121,13 @@ theorem pausableUnpauseBodyReverts_notPaused (evm : EVM.State)
 /-- The `unpause` success path: with write permission the run returns; in static mode it halts
     at the `_paused` `SSTORE`. -/
 theorem pausableX_unpause_success {σ σ₀ A I} {g : Sat256}
-    (hreach : ∃ k C, RD pausableBenchBytecode I g
+    (hreach : ∃ k C, RD fork pausableBenchBytecode I g
       (initState σ σ₀ g A I) ⟨89⟩ [pausableSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hnz : pausedWord σ I ≠ ⟨0⟩) :
-    (I.perm = true ∧ RDret pausableBenchBytecode g (initState σ σ₀ g A I)
+    (I.perm = true ∧ RDret fork pausableBenchBytecode g (initState σ σ₀ g A I)
       (unpausePostMap σ I) ByteArray.empty)
-    ∨ (I.perm = false ∧ RDstatic pausableBenchBytecode g (initState σ σ₀ g A I)) := by
+    ∨ (I.perm = false ∧ RDstatic fork pausableBenchBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd89⟩ := hreach
   have rd149 := evm_run rd89 with [
     jumpdest, push2 ⟨97⟩, push2 ⟨149⟩, jump (by jump_dest), jumpdest]
@@ -137,7 +139,7 @@ theorem pausableX_unpause_success {σ σ₀ A I} {g : Sat256}
       (by jump_dest) (by simp)
   have rd202 := evm_run rd199 with [jumpdest, push0, dup1]
   obtain ⟨_, _, rd203₀⟩ := rd202.sload (by decide) (by evm_ov)
-  obtain ⟨_, _, rd203⟩ : ∃ k C, RD pausableBenchBytecode I g
+  obtain ⟨_, _, rd203⟩ : ∃ k C, RD fork pausableBenchBytecode I g
       (initState σ σ₀ g A I) ⟨203⟩
       [pausedRawWord σ I, ⟨0⟩, ⟨157⟩, ⟨97⟩, pausableSelWord I] solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -156,13 +158,13 @@ theorem pausableX_unpause_success {σ σ₀ A I} {g : Sat256}
     exact Or.inr ⟨hpf, rd208.sstoreStatic hpf (by decide) (by evm_ov)⟩
   refine Or.inl ⟨hp, ?_⟩
   obtain ⟨_, _, rd209₀⟩ := rd208.sstore hp (by decide) (by evm_ov)
-  obtain ⟨_, _, rd209⟩ : ∃ k C, RD pausableBenchBytecode I g
+  obtain ⟨_, _, rd209⟩ : ∃ k C, RD fork pausableBenchBytecode I g
       (initState σ σ₀ g A I) ⟨209⟩
       [⟨157⟩, ⟨97⟩, pausableSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (unpausePostMap σ I) k C := by
     exact ⟨_, _, by simpa [unpausePostMap] using rd209₀⟩
   have rd242 := rd209.pushConst unpausedTopic (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by decide +kernel) (by decide +kernel) (by evm_ov)
   have rd243 := evm_run rd242 with [caller, jumpdest]
   have rd247 := evm_run rd243 with [
     push1 ⟨64⟩,
@@ -198,11 +200,11 @@ theorem pausableX_unpause_success {σ σ₀ A I} {g : Sat256}
   exact rd97.stop (by decide) (by evm_ov)
 
 theorem pausableX_unpause_revert {σ σ₀ A I} {g : Sat256}
-    (hreach : ∃ k C, RD pausableBenchBytecode I g
+    (hreach : ∃ k C, RD fork pausableBenchBytecode I g
       (initState σ σ₀ g A I) ⟨89⟩ [pausableSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hzero : pausedWord σ I = ⟨0⟩) :
-    RDrev pausableBenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork pausableBenchBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd89⟩ := hreach
   have rd149 := evm_run rd89 with [
     jumpdest, push2 ⟨97⟩, push2 ⟨149⟩, jump (by jump_dest), jumpdest]
@@ -217,17 +219,17 @@ theorem pausableUnpauseBody {σ σ₀ A I}
     (hcode : I.code = pausableBenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x3f, 0x4b, 0xa8, 0x3a]⟩)
-    (hreach : ∃ k C, RD pausableBenchBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork pausableBenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨89⟩
       [pausableSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
   have hsz := pausableUnpauseSelector_size hsel
   have hd := pausableDispatch_unpause (cd := I.calldata) hsel
   have hdec := pausableDecode_unpause (I := I) hsz
   by_cases hzero : pausedWord σ I = ⟨0⟩
-  · have hbody := pausableUnpauseBodyReverts_notPaused
+  · have hbody := pausableUnpauseBodyReverts_notPaused (fork := fork)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (by simp only [initState]; exact hwv)
       (by
@@ -240,7 +242,7 @@ theorem pausableUnpauseBody {σ σ₀ A I}
       simpa [pausedWord, pausedRawWord, initState, Stele.EVM.storageLoad, State.lookupAccount]
         using hzero
     by_cases hperm : I.perm = true
-    · have hbody := pausableUnpauseBodyReturns (hperm := hperm)
+    · have hbody := pausableUnpauseBodyReturns (fork := fork) (hperm := hperm)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (by simp only [initState]; exact hwv) hnzS
       exact (permSplit_true hperm
@@ -252,7 +254,7 @@ theorem pausableUnpauseBody {σ σ₀ A I}
               State.lookupAccount, Account.lookupStorage])
           (returnEquiv.fallthrough rfl rfl (by native_decide))
     · have hpf : I.perm = false := by simpa using hperm
-      have hbody := pausableUnpauseBodyStatic
+      have hbody := pausableUnpauseBodyStatic (fork := fork)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (by simp only [initState]; exact hwv) hnzS (by simp only [initState]; exact hpf)
       exact (permSplit_false hpf

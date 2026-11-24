@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.Dispatch
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -16,7 +18,7 @@ def kLastWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
 theorem uniswapKLastBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocals : locals.get? "kLast" = none) :
-    ExecTransitionBody config contract evm locals kLastTransition.body
+    ExecTransitionBody fork config contract evm locals kLastTransition.body
       (.returned { contract := contract, locals := locals } evm
         (some [(.int (Int.ofNat
           (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat))])) := by
@@ -29,10 +31,10 @@ theorem uniswapKLastBodyReturns (evm : EVM.State) (locals : Store)
 
 /-- From `kLast()`'s external body entry (pc 1117), the bytecode returns slot 11. -/
 theorem uniswapX_kLast {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨1117⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret uniswapV2PairBytecode g (initState σ σ₀ g A I) σ
+    RDret fork uniswapV2PairBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (kLastWord σ I)) := by
   exact RD.uniswapWordGetterExternal (entry := ⟨1117⟩) (routine := ⟨4069⟩)
     (slot := ⟨11⟩) hreach uniswap_word_getter_entry_wf uniswap_word_slot_getter_wf
@@ -52,12 +54,12 @@ theorem uniswapKLastBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (kLastTransition.params.map Param.name)
         (transitionSignature kLastTransition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1117⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ kLastTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -78,7 +80,7 @@ theorem uniswapKLastBody
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x74, 0x64, 0xfc, 0x3d]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some kLastTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x74, 0x64, 0xfc, 0x3d]⟩ rfl hsel
   exact uniswapKLastBodyCore hcode hwv hdispatch (uniswapDecode_kLast hsz)

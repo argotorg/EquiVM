@@ -2,6 +2,8 @@ import Examples.UniswapV2Pair.PairBalanceCallCases
 import Examples.UniswapV2Pair.PairBalanceDepthRuntime
 import Examples.UniswapV2Pair.BurnInitialSource
 import Examples.UniswapV2Pair.BalanceCallSource
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -12,7 +14,7 @@ theorem uniswapPairBalanceCallRuntimeAnyDepthCases
     {σ : AccountMap}
     {base rdata : ByteArray} {aw ptr target : UInt256} {R : List UInt256} {k C : Nat}
     (evm : EVM.State) (token : AccountAddress) (locals : Store) (var retVar : Ident)
-    (rd : RD uniswapV2PairBytecode I g s0 (site.pc)
+    (rd : RD fork uniswapV2PairBytecode I g s0 (site.pc)
       (target :: target :: ptr :: ⟨36⟩ :: ptr :: ⟨32⟩ :: (ptr + ⟨36⟩) :: balanceOfSelectorWord :: target :: R)
       (balanceDynamicCalldataMem base ptr (UInt256.ofNat I.codeOwner.val))
       (balanceDynamicCalldataWords aw ptr) rdata σ k C)
@@ -23,15 +25,15 @@ theorem uniswapPairBalanceCallRuntimeAnyDepthCases
     (hin : 96 ≤ base.size) (hgap : ptr.toNat - base.size < USize.size) (hlo : 96 ≤ ptr.toNat)
     (haw : aw.toNat * 32 < UInt256.size) (hfit : ptr.toNat + 67 < UInt256.size)
     (hread : base.readWithPadding 64 32 = ptr.toByteArray) (hov : R.length + 12 ≤ 1024) :
-    (ExecBlock config { contract := contract, locals := locals } evm (balanceOfThisStmts (.var var) retVar) .reverted ∧
-      RDrev uniswapV2PairBytecode g s0) ∨
+    (ExecBlock fork config { contract := contract, locals := locals } evm (balanceOfThisStmts (.var var) retVar) .reverted ∧
+      RDrev fork uniswapV2PairBytecode g s0) ∨
     ∃ (evm' : EVM.State) (σ' : AccountMap) (out : ByteArray) (k' C' : Nat),
-      ExecBlock config { contract := contract, locals := locals } evm (balanceOfThisStmts (.var var) retVar)
+      ExecBlock fork config { contract := contract, locals := locals } evm (balanceOfThisStmts (.var var) retVar)
         (.ok { contract := contract, locals := locals.insert retVar (uniswapUint256Value
           (UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32)))) } evm') ∧
       σ' = evm'.accountMap ∧ evm'.σ₀ = s0.σ₀ ∧ evm'.executionEnv = I ∧
       32 ≤ out.size ∧ out.size < UInt256.size ∧
-      RD uniswapV2PairBytecode I g s0 (site.pc + ⟨57⟩)
+      RD fork uniswapV2PairBytecode I g s0 (site.pc + ⟨57⟩)
         (UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32)) :: R)
         (balanceDynamicReturnMem base ptr (UInt256.ofNat I.codeOwner.val) out)
         (balanceDynamicCalldataWords aw ptr) out σ' k' C' := by
@@ -50,9 +52,10 @@ theorem uniswapPairBalanceCallRuntimeAnyDepthCases
           (.binary .gt (.extCodeSize (.var var)) (.intLit 0)) = .ok (.bool true) := by
         simpa only [decide_eq_true hpos] using hguard
       have hargs := evalExprs_uniswap_this_single evm locals
-      have hcall : typedCallViaEVM config evm (EVM.address token) "balanceOf" 0
+      have hcall : typedCallViaEVM fork config evm (EVM.address token) "balanceOf" 0
           [.address evm.executionEnv.codeOwner]
-          (false, { evm with substate := (evm.addAccessedAccount (EVM.address token)).substate }, ByteArray.empty) false := by
+          (false, { evm with substate := (Ethereum.EVM.callSubstate fork
+            evm.accountMap (EVM.address token) evm.substate) }, ByteArray.empty) false := by
         refine ⟨_, balanceOfThisCalldataMem_encode evm.executionEnv.codeOwner, ?_⟩
         apply callViaEVM.callNotMade rfl rfl
         rintro ⟨_, hne⟩

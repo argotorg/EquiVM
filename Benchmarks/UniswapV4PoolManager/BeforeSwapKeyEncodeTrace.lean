@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.BeforeSwapKeyEncodeMemory
 import Benchmarks.UniswapV4PoolManager.NatSubBounds
 import Benchmarks.UniswapV4PoolManager.EntryTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -16,9 +18,9 @@ theorem beforeSwapKeyEncodeTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hk : PoolKeyView mem keyPtr key) (hc : PoolKeyCanonical key)
     (hb : keyPtr.toNat+160 ≤ free.toNat) (hf : free.toNat+228 < UInt256.size)
     (hfree : memLoad (UInt256.ofNat 64) mem = free)
-    (h : RD (deployedRuntime v) I g s0 ⟨15230⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨15230⟩
       (src :: len :: paramsPtr :: hook :: keyPtr :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', C+229+Cₘ aw' ≤ C'+Cₘ aw ∧ RD (deployedRuntime v) I g s0 ⟨15382⟩
+    ∃ aw' k' C', C+229+Cₘ aw' ≤ C'+Cₘ aw ∧ RD fork (deployedRuntime v) I g s0 ⟨15382⟩
       (paramsPtr :: UInt256.ofNat 15436 :: len :: src :: UInt256.ofNat 14575 :: free ::
         UInt256.ofNat 15456 :: free :: UInt256.ofNat 15462 :: hook :: keyPtr :: R)
       (wordCallMemory mem (free.toNat+32) beforeSwapSelectorWord (accountWord I.source :: poolKeyWordList key))

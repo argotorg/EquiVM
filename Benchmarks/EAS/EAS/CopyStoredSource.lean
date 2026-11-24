@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.StoredBytes
 import Benchmarks.EAS.EAS.BytesAllocation
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -30,7 +32,7 @@ def copyStoredReadLocals (locals : Store) (evm : EVM.State) (word : UInt256) : S
 theorem copyStoredRead_ok {evm : EVM.State} {locals imms : Store} {word : UInt256}
     (hnone : locals.get? "_db" = none) (hkey : locals.get? "uid" = some (wordBytes32Value word))
     (hv : storedBytesValid (attestationHeader evm word)) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm copyStoredRead
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm copyStoredRead
       (.ok {contract := contract, locals := copyStoredReadLocals locals evm word, immutables := imms} evm) := by
   refine ExecBlock.consNormal (ExecStmt.letDecl (value := attestationValue evm word (.bytes (attestationPayload evm word))) ?_) ?_
   · rw [attestation_read hnone hkey, if_pos hv]
@@ -43,7 +45,7 @@ theorem copyStoredRead_ok {evm : EVM.State} {locals imms : Store} {word : UInt25
 theorem copyStoredRead_revert {evm : EVM.State} {locals imms : Store} {word : UInt256}
     (hnone : locals.get? "_db" = none) (hkey : locals.get? "uid" = some (wordBytes32Value word))
     (hv : ¬ storedBytesValid (attestationHeader evm word)) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm copyStoredRead .reverted := by
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm copyStoredRead .reverted := by
   apply ExecBlock.consRevert
   apply ExecStmt.letDeclRevert
   rw [attestation_read hnone hkey, if_neg hv]
@@ -69,7 +71,7 @@ theorem copyStored_prefix {evm : EVM.State} {locals imms : Store} {word : UInt25
     (hh : locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)))
     (hg : allocateNext heap 320 ≤ 2^64-1 ∧ heap ≤ allocateNext heap 320)
     (hv : storedBytesValid (attestationHeader evm word)) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm
       (allocateBlock (.intLit 320) ++ copyStoredRead)
       (.ok {contract := contract, locals := copyStoredMiddleLocals locals evm word heap, immutables := imms} evm) := by
   apply execBlock_append (allocateBlock_ok (n := 320) (by simp only [evalExpr?, pure]; rfl) hh hg)
@@ -93,7 +95,7 @@ theorem copyStoredSource_ok {evm : EVM.State} {locals imms : Store} {word : UInt
     (hv : storedBytesValid (attestationHeader evm word))
     (hb : copyStoredNext heap (attestationPayload evm word) ≤ 2^64-1 ∧
       allocateNext heap 320 ≤ copyStoredNext heap (attestationPayload evm word)) :
-    ExecFuncBody config {contract := contract, locals := locals, immutables := imms} evm copyStoredFunction.body
+    ExecFuncBody fork config {contract := contract, locals := locals, immutables := imms} evm copyStoredFunction.body
       (.returned {contract := contract, locals := copyStoredFinalLocals locals evm word heap, immutables := imms} evm
         (some [attestationValue evm word (.bytes (attestationPayload evm word)),
           .int (Int.ofNat (copyStoredNext heap (attestationPayload evm word)))])) := by
@@ -119,7 +121,7 @@ theorem copyStoredSource_ok {evm : EVM.State} {locals imms : Store} {word : UInt
 theorem copyStoredSource_revert_allocate {evm : EVM.State} {locals imms : Store} {heap : Nat}
     (hh : locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)))
     (hg : ¬ (allocateNext heap 320 ≤ 2^64-1 ∧ heap ≤ allocateNext heap 320)) :
-    ExecFuncBody config {contract := contract, locals := locals, immutables := imms} evm copyStoredFunction.body .reverted := by
+    ExecFuncBody fork config {contract := contract, locals := locals, immutables := imms} evm copyStoredFunction.body .reverted := by
   rw [copyStored_body]
   apply ExecFuncBody.execBlockRevert
   exact execBlock_append_term (allocateBlock_revert (n := 320) (by simp only [evalExpr?, pure]; rfl) hh hg) (by intros; simp)
@@ -129,7 +131,7 @@ theorem copyStoredSource_revert_header {evm : EVM.State} {locals imms : Store} {
     (hh : locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)))
     (hg : allocateNext heap 320 ≤ 2^64-1 ∧ heap ≤ allocateNext heap 320)
     (hv : ¬ storedBytesValid (attestationHeader evm word)) :
-    ExecFuncBody config {contract := contract, locals := locals, immutables := imms} evm copyStoredFunction.body .reverted := by
+    ExecFuncBody fork config {contract := contract, locals := locals, immutables := imms} evm copyStoredFunction.body .reverted := by
   rw [copyStored_body]
   apply ExecFuncBody.execBlockRevert
   apply execBlock_append (allocateBlock_ok (n := 320) (by simp only [evalExpr?, pure]; rfl) hh hg)
@@ -145,7 +147,7 @@ theorem copyStoredSource_revert_payload {evm : EVM.State} {locals imms : Store} 
     (hv : storedBytesValid (attestationHeader evm word))
     (hb : ¬ (copyStoredNext heap (attestationPayload evm word) ≤ 2^64-1 ∧
       allocateNext heap 320 ≤ copyStoredNext heap (attestationPayload evm word))) :
-    ExecFuncBody config {contract := contract, locals := locals, immutables := imms} evm copyStoredFunction.body .reverted := by
+    ExecFuncBody fork config {contract := contract, locals := locals, immutables := imms} evm copyStoredFunction.body .reverted := by
   rw [copyStored_body, ← List.append_assoc]
   apply ExecFuncBody.execBlockRevert
   apply execBlock_append (copyStored_prefix hnone hkey hh hg hv)
@@ -166,7 +168,7 @@ theorem copyStoredSource_revert {evm : EVM.State} {locals imms : Store} {word : 
     (hnone : locals.get? "_db" = none) (hkey : locals.get? "uid" = some (wordBytes32Value word))
     (hh : locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)))
     (hv : ¬ copyStoredValid evm word heap) :
-    ExecFuncBody config {contract := contract, locals := locals, immutables := imms} evm copyStoredFunction.body .reverted := by
+    ExecFuncBody fork config {contract := contract, locals := locals, immutables := imms} evm copyStoredFunction.body .reverted := by
   by_cases hg : allocateNext heap 320 ≤ 2^64-1 ∧ heap ≤ allocateNext heap 320
   · by_cases hh' : storedBytesValid (attestationHeader evm word)
     · exact copyStoredSource_revert_payload hnone hkey hh hg hh' (fun hb => hv ⟨hg, hh', hb⟩)
@@ -196,7 +198,7 @@ theorem copyStoredCall_ok {evm : EVM.State} {locals imms : Store} {word : UInt25
     (hargs : evalExprs? config {contract := contract, locals := locals, immutables := imms} evm args =
       .ok [wordBytes32Value word, .int (Int.ofNat heap)])
     (hv : copyStoredValid evm word heap) :
-    ExecStmt config {contract := contract, locals := locals, immutables := imms} evm
+    ExecStmt fork config {contract := contract, locals := locals, immutables := imms} evm
       (.internalCall "_copyStoredAttestation" args retVar)
       (.ok {
         contract := contract
@@ -213,7 +215,7 @@ theorem copyStoredCall_revert {evm : EVM.State} {locals imms : Store} {word : UI
     (hargs : evalExprs? config {contract := contract, locals := locals, immutables := imms} evm args =
       .ok [wordBytes32Value word, .int (Int.ofNat heap)])
     (hv : ¬ copyStoredValid evm word heap) :
-    ExecStmt config {contract := contract, locals := locals, immutables := imms} evm
+    ExecStmt fork config {contract := contract, locals := locals, immutables := imms} evm
       (.internalCall "_copyStoredAttestation" args retVar) .reverted := by
   have hf := copyStoredArgs_facts word heap
   exact internalCallFunctionRevert hargs copyStored_lookup (copyStored_bind word heap)

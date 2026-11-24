@@ -68,7 +68,7 @@ theorem binaryStateOp_potential {f : State → UInt256 → UInt256 → State} {s
 
 theorem step_keccak_potential {gasCost : Nat} {op : Operation.KOp}
     {arg : Option (UInt256 × Nat)} {s s' : State}
-    (h : step gasCost (.Keccak op, arg) s = .ok s') :
+    (h : step fork gasCost (.Keccak op, arg) s = .ok s') :
     operationPotential s' ≤ operationPotential s := by
   cases op
   rw [step.eq_1] at h
@@ -85,7 +85,7 @@ theorem step_keccak_potential {gasCost : Nat} {op : Operation.KOp}
 
 theorem step_block_potential {gasCost : Nat} {op : Operation.BOp}
     {arg : Option (UInt256 × Nat)} {s s' : State}
-    (h : step gasCost (.Block op, arg) s = .ok s') :
+    (h : step fork gasCost (.Block op, arg) s = .ok s') :
     operationPotential s' ≤ operationPotential s+2 := by
   cases op <;> rw [step.eq_1] at h
   all_goals first
@@ -101,7 +101,7 @@ theorem step_block_potential {gasCost : Nat} {op : Operation.BOp}
 theorem step_env_noncopy_potential {gasCost : Nat} {op : Operation.EOp}
     {arg : Option (UInt256 × Nat)} {s s' : State}
     (hn : (.Env op : Operation) ∉ [.CALLDATACOPY, .CODECOPY, .EXTCODECOPY, .RETURNDATACOPY])
-    (h : step gasCost (.Env op, arg) s = .ok s') :
+    (h : step fork gasCost (.Env op, arg) s = .ok s') :
     operationPotential s' ≤ operationPotential s+2 := by
   cases op <;> simp only [List.mem_cons, List.mem_singleton, not_or] at hn
   all_goals try contradiction
@@ -121,7 +121,7 @@ theorem step_env_noncopy_potential {gasCost : Nat} {op : Operation.EOp}
 
 theorem step_push_potential {gasCost : Nat} {op : Operation.POp}
     {arg : Option (UInt256 × Nat)} {s s' : State}
-    (h : step gasCost (.Push op, arg) s = .ok s') :
+    (h : step fork gasCost (.Push op, arg) s = .ok s') :
     operationPotential s' = operationPotential s+2 := by
   cases op <;> rw [step.eq_1] at h <;>
     simp only [bind, Except.bind, pure, Except.pure] at h
@@ -147,7 +147,7 @@ theorem dup_potential {n : Nat} {s s' : State} (h : dup n s = .ok s') :
 
 theorem step_dup_potential {gasCost : Nat} {op : Operation.DOp}
     {arg : Option (UInt256 × Nat)} {s s' : State}
-    (h : step gasCost (.Dup op, arg) s = .ok s') :
+    (h : step fork gasCost (.Dup op, arg) s = .ok s') :
     operationPotential s' = operationPotential s+2 := by
   cases op <;> rw [step.eq_1] at h <;>
     simpa only [operationPotential] using dup_potential h
@@ -171,7 +171,7 @@ theorem swap_potential {n : Nat} {s s' : State} (hn : 0 < n) (h : swap n s = .ok
 
 theorem step_exchange_potential {gasCost : Nat} {op : Operation.ExOp}
     {arg : Option (UInt256 × Nat)} {s s' : State}
-    (h : step gasCost (.Exchange op, arg) s = .ok s') :
+    (h : step fork gasCost (.Exchange op, arg) s = .ok s') :
     operationPotential s' = operationPotential s := by
   cases op <;> rw [step.eq_1] at h <;>
     simpa only [operationPotential] using swap_potential (by decide) h

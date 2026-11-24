@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.TypedDataSource
 import Benchmarks.EAS.EAS.HeapResultBlock
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 
@@ -14,11 +16,11 @@ theorem hashTyped_body : hashTypedFunction.body = hashTypedPrefix ++ hashTypedTa
 
 theorem hashTypedTailSource {L imms : Store} {evm evm' : EVM.State} {result : Value} {heap : Nat} {oldHeap : Value}
     (hh : L.get? "$EAS.freeMemory" = some oldHeap)
-    (hc : ExecStmt config {contract := contract,locals := L,immutables := imms} evm
+    (hc : ExecStmt fork config {contract := contract,locals := L,immutables := imms} evm
       (.internalCall "ECDSA_toTypedDataHash" hashTypedCallArgs "__c1$allocation")
       (.ok (resumeAfterInternalCall {contract := contract,locals := L,immutables := imms} "__c1$allocation"
         (some [result,.int (Int.ofNat heap)])) evm')) :
-    ExecFuncBody config {contract := contract,locals := L,immutables := imms} evm hashTypedTail
+    ExecFuncBody fork config {contract := contract,locals := L,immutables := imms} evm hashTypedTail
       (.returned {contract := contract,locals := heapResultLocals L "__c1$allocation" "__c1" "$EAS.freeMemory" result heap,immutables := imms} evm' (some [result,.int (Int.ofNat heap)])) := by
   apply ExecFuncBody.execBlockRet
   apply execBlock_append (heapResultBlock_ok hc hh (by decide) (by decide) (by decide))

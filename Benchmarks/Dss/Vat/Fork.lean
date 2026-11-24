@@ -3,6 +3,8 @@ import Reasoning.WordArithmetic
 import Reasoning.ABIComposite
 import Benchmarks.Dss.Vat.Signed
 
+variable {fork : Ethereum.Fork}
+
 section
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 2000000
@@ -2162,7 +2164,7 @@ theorem execForkCheckedSubSignedRevertGuardNeg {evm : EVM.State} {locals : Store
         { contract := contract, locals := locals.insert name (.int (Int.ofNat new.toNat)) } evm x =
       .ok (.int (Int.ofNat old.toNat)))
     (hcond : 0 < subtrahendInt ∧ old.toNat < new.toNat) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       (checkedSubSignedInto name x y)
       .reverted := by
   let locals' := locals.insert name (.int (Int.ofNat new.toNat))
@@ -2181,7 +2183,7 @@ theorem execForkCheckedSubSignedRevertGuardNeg {evm : EVM.State} {locals : Store
         .ok (.bool false) :=
     evalSignedSubGuardNeg_false (by simpa [locals'] using hyAfter)
       hnewEval (by simpa [locals'] using hxAfter) hcond
-  change ExecBlock config { contract := contract, locals := locals } evm
+  change ExecBlock fork config { contract := contract, locals := locals } evm
     [ .letDecl name (some uint256) (wordWrap256 (.binary .sub x y)),
       .require (eitherExpr (.binary .le y (.intLit 0)) (.binary .le (.var name) x)),
       .require (eitherExpr (.binary .ge y (.intLit 0)) (.binary .ge (.var name) x)) ]
@@ -2212,7 +2214,7 @@ theorem execForkCheckedSubSignedRevertGuardPos {evm : EVM.State} {locals : Store
         (eitherExpr (.binary .le y (.intLit 0)) (.binary .le (.var name) x)) =
       .ok (.bool true))
     (hcond : subtrahendInt < 0 ∧ new.toNat < old.toNat) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       (checkedSubSignedInto name x y)
       .reverted := by
   let locals' := locals.insert name (.int (Int.ofNat new.toNat))
@@ -2231,7 +2233,7 @@ theorem execForkCheckedSubSignedRevertGuardPos {evm : EVM.State} {locals : Store
         .ok (.bool false) :=
     evalSignedSubGuardPos_false (by simpa [locals'] using hyAfter)
       hnewEval (by simpa [locals'] using hxAfter) hcond
-  change ExecBlock config { contract := contract, locals := locals } evm
+  change ExecBlock fork config { contract := contract, locals := locals } evm
     [ .letDecl name (some uint256) (wordWrap256 (.binary .sub x y)),
       .require (eitherExpr (.binary .le y (.intLit 0)) (.binary .le (.var name) x)),
       .require (eitherExpr (.binary .ge y (.intLit 0)) (.binary .ge (.var name) x)) ]
@@ -2257,7 +2259,7 @@ theorem execForkCheckedAddSignedRevertGuardNeg {evm : EVM.State} {locals : Store
         { contract := contract, locals := locals.insert name (.int (Int.ofNat new.toNat)) }
         evm x = .ok (.int (Int.ofNat old.toNat)))
     (hcond : addendInt < 0 ∧ old.toNat < new.toNat) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       (checkedAddSignedInto name x y)
       .reverted := by
   let locals' := locals.insert name (.int (Int.ofNat new.toNat))
@@ -2276,7 +2278,7 @@ theorem execForkCheckedAddSignedRevertGuardNeg {evm : EVM.State} {locals : Store
         .ok (.bool false) :=
     evalSignedAddGuardNeg_false (by simpa [locals'] using hyAfter) hnewEval
       (by simpa [locals'] using hxAfter) hcond
-  change ExecBlock config { contract := contract, locals := locals } evm
+  change ExecBlock fork config { contract := contract, locals := locals } evm
     [ .letDecl name (some uint256) (wordWrap256 (.binary .add x y)),
       .require (eitherExpr (.binary .ge y (.intLit 0)) (.binary .le (.var name) x)),
       .require (eitherExpr (.binary .le y (.intLit 0)) (.binary .ge (.var name) x)) ]
@@ -2306,7 +2308,7 @@ theorem execForkCheckedAddSignedRevertGuardPos {evm : EVM.State} {locals : Store
         evm (eitherExpr (.binary .ge y (.intLit 0)) (.binary .le (.var name) x)) =
       .ok (.bool true))
     (hcond : 0 < addendInt ∧ new.toNat < old.toNat) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       (checkedAddSignedInto name x y)
       .reverted := by
   let locals' := locals.insert name (.int (Int.ofNat new.toNat))
@@ -2325,7 +2327,7 @@ theorem execForkCheckedAddSignedRevertGuardPos {evm : EVM.State} {locals : Store
         .ok (.bool false) :=
     evalSignedAddGuardPos_false (by simpa [locals'] using hyAfter) hnewEval
       (by simpa [locals'] using hxAfter) hcond
-  change ExecBlock config { contract := contract, locals := locals } evm
+  change ExecBlock fork config { contract := contract, locals := locals } evm
     [ .letDecl name (some uint256) (wordWrap256 (.binary .add x y)),
       .require (eitherExpr (.binary .ge y (.intLit 0)) (.binary .le (.var name) x)),
       .require (eitherExpr (.binary .le y (.intLit 0)) (.binary .ge (.var name) x)) ]
@@ -2347,7 +2349,7 @@ theorem execForkSrcInkUpdateSplit {evm : EVM.State} {I : ExecutionEnv}
     (hguardNeg : forkDinkInt I ≤ 0 ∨ srcInkNew.toNat ≤ srcInkOld.toNat)
     (hguardPos : 0 ≤ forkDinkInt I ∨ srcInkOld.toNat ≤ srcInkNew.toNat) :
     (evm.executionEnv.perm = true →
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
       (checkedSubSignedInto "srcInkNew"
         (.storage (urnsF (.var "ilk") (.var "src") "ink")) (.var "dink") ++
         [ .assign .storage (urnsF (.var "ilk") (.var "src") "ink") (.var "srcInkNew") ])
@@ -2357,7 +2359,7 @@ theorem execForkSrcInkUpdateSplit {evm : EVM.State} {I : ExecutionEnv}
         (Stele.EVM.storageStore evm evm.executionEnv.codeOwner
           (forkSrcInkSlot I) srcInkNew))) ∧
     (evm.executionEnv.perm = false →
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         (checkedSubSignedInto "srcInkNew"
           (.storage (urnsF (.var "ilk") (.var "src") "ink")) (.var "dink") ++
           [ .assign .storage (urnsF (.var "ilk") (.var "src") "ink") (.var "srcInkNew") ])
@@ -2443,14 +2445,14 @@ theorem execForkSrcInkUpdateSplit {evm : EVM.State} {I : ExecutionEnv}
       rw [store_get_ne _ _ (by native_decide), hbase]
     simpa [evm'] using
       assignStorageRef_fork_src_ink evm I locals' srcInkNew hsz164 hilk' hsrc' hbase'
-  have hpre : ∀ r, ExecBlock config { contract := contract, locals := locals' } evm
+  have hpre : ∀ r, ExecBlock fork config { contract := contract, locals := locals' } evm
       [ .assign .storage (urnsF (.var "ilk") (.var "src") "ink") (.var "srcInkNew") ] r →
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         (checkedSubSignedInto "srcInkNew"
           (.storage (urnsF (.var "ilk") (.var "src") "ink")) (.var "dink") ++
           [ .assign .storage (urnsF (.var "ilk") (.var "src") "ink") (.var "srcInkNew") ]) r := by
     intro r hrest
-    change ExecBlock config { contract := contract, locals := locals } evm
+    change ExecBlock fork config { contract := contract, locals := locals } evm
       [ .letDecl "srcInkNew" (some uint256)
           (wordWrap256
             (.binary .sub (.storage (urnsF (.var "ilk") (.var "src") "ink")) (.var "dink"))),
@@ -2466,7 +2468,7 @@ theorem execForkSrcInkUpdateSplit {evm : EVM.State} {I : ExecutionEnv}
     refine ExecBlock.consNormal (ExecStmt.letDecl hlet) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hreqNeg) ?_
     exact ExecBlock.consNormal (ExecStmt.requireTrue hreqPos) hrest
-  exact ⟨fun hperm ↦ hpre _ (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) hsrcInkNewEval hassign) ExecBlock.nil),
+  exact ⟨fun hperm ↦ hpre _ (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) hsrcInkNewEval hassign) ExecBlock.nil),
     fun hpf => hpre _ (ExecBlock.consStatic (ExecStmt.assignStatic hsrcInkNewEval hassign hpf))⟩
 
 theorem execForkSrcInkUpdateOk {evm : EVM.State} {I : ExecutionEnv}
@@ -2482,7 +2484,7 @@ theorem execForkSrcInkUpdateOk {evm : EVM.State} {I : ExecutionEnv}
     (hguardNeg : forkDinkInt I ≤ 0 ∨ srcInkNew.toNat ≤ srcInkOld.toNat)
     (hguardPos : 0 ≤ forkDinkInt I ∨ srcInkOld.toNat ≤ srcInkNew.toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       (checkedSubSignedInto "srcInkNew"
         (.storage (urnsF (.var "ilk") (.var "src") "ink")) (.var "dink") ++
         [ .assign .storage (urnsF (.var "ilk") (.var "src") "ink") (.var "srcInkNew") ])
@@ -2507,7 +2509,7 @@ theorem execForkSrcInkUpdateRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
     (hfail :
       ¬ (UInt256.sgt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.gt srcInkNew srcInkOld = ⟨0⟩)) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       (checkedSubSignedInto "srcInkNew"
         (.storage (urnsF (.var "ilk") (.var "src") "ink")) (.var "dink") ++
         [ .assign .storage (urnsF (.var "ilk") (.var "src") "ink") (.var "srcInkNew") ])
@@ -2548,7 +2550,7 @@ theorem execForkSrcInkUpdateRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
       rw [store_get_ne _ _ (by native_decide), hbase]
     rw [evalExpr_fork_src_ink_locals locals' hsz164 hilk' hsrc' hbase', hload]
   have hsub :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         (checkedSubSignedInto "srcInkNew"
           (.storage (urnsF (.var "ilk") (.var "src") "ink")) (.var "dink"))
         .reverted :=
@@ -2578,7 +2580,7 @@ theorem execForkSrcInkUpdateRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
     (hfail :
       ¬ (UInt256.slt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.lt srcInkNew srcInkOld = ⟨0⟩)) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       (checkedSubSignedInto "srcInkNew"
         (.storage (urnsF (.var "ilk") (.var "src") "ink")) (.var "dink") ++
         [ .assign .storage (urnsF (.var "ilk") (.var "src") "ink") (.var "srcInkNew") ])
@@ -2631,7 +2633,7 @@ theorem execForkSrcInkUpdateRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
     evalSignedSubGuardNeg_true hdinkAfter hnewEval hstorageAfter
       (forkDinkSubGuardNegCond hguardNeg)
   have hsub :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         (checkedSubSignedInto "srcInkNew"
           (.storage (urnsF (.var "ilk") (.var "src") "ink")) (.var "dink"))
         .reverted :=
@@ -2659,7 +2661,7 @@ theorem execForkSrcArtUpdateOk {evm : EVM.State} {I : ExecutionEnv}
     (hguardNeg : forkDartInt I ≤ 0 ∨ srcArtNew.toNat ≤ srcArtOld.toNat)
     (hguardPos : 0 ≤ forkDartInt I ∨ srcArtOld.toNat ≤ srcArtNew.toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       (checkedSubSignedInto "srcArtNew"
         (.storage (urnsF (.var "ilk") (.var "src") "art")) (.var "dart") ++
         [ .assign .storage (urnsF (.var "ilk") (.var "src") "art") (.var "srcArtNew") ])
@@ -2749,7 +2751,7 @@ theorem execForkSrcArtUpdateOk {evm : EVM.State} {I : ExecutionEnv}
       rw [store_get_ne _ _ (by native_decide), hbase]
     simpa [evm'] using
       assignStorageRef_fork_src_art evm I locals' srcArtNew hsz164 hilk' hsrc' hbase'
-  change ExecBlock config { contract := contract, locals := locals } evm
+  change ExecBlock fork config { contract := contract, locals := locals } evm
     [ .letDecl "srcArtNew" (some uint256)
         (wordWrap256
           (.binary .sub (.storage (urnsF (.var "ilk") (.var "src") "art")) (.var "dart"))),
@@ -2766,7 +2768,7 @@ theorem execForkSrcArtUpdateOk {evm : EVM.State} {I : ExecutionEnv}
   refine ExecBlock.consNormal (ExecStmt.letDecl hlet) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hreqNeg) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hreqPos) ?_
-  exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) hsrcArtNewEval hassign) ExecBlock.nil
+  exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) hsrcArtNewEval hassign) ExecBlock.nil
 
 theorem execForkSrcArtUpdateRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
     (locals : Store) (srcArtOld srcArtNew : UInt256)
@@ -2781,7 +2783,7 @@ theorem execForkSrcArtUpdateRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
     (hfail :
       ¬ (UInt256.sgt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.gt srcArtNew srcArtOld = ⟨0⟩)) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       (checkedSubSignedInto "srcArtNew"
         (.storage (urnsF (.var "ilk") (.var "src") "art")) (.var "dart") ++
         [ .assign .storage (urnsF (.var "ilk") (.var "src") "art") (.var "srcArtNew") ])
@@ -2822,7 +2824,7 @@ theorem execForkSrcArtUpdateRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
       rw [store_get_ne _ _ (by native_decide), hbase]
     rw [evalExpr_fork_src_art_locals locals' hsz164 hilk' hsrc' hbase', hload]
   have hsub :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         (checkedSubSignedInto "srcArtNew"
           (.storage (urnsF (.var "ilk") (.var "src") "art")) (.var "dart"))
         .reverted :=
@@ -2852,7 +2854,7 @@ theorem execForkSrcArtUpdateRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
     (hfail :
       ¬ (UInt256.slt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.lt srcArtNew srcArtOld = ⟨0⟩)) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       (checkedSubSignedInto "srcArtNew"
         (.storage (urnsF (.var "ilk") (.var "src") "art")) (.var "dart") ++
         [ .assign .storage (urnsF (.var "ilk") (.var "src") "art") (.var "srcArtNew") ])
@@ -2905,7 +2907,7 @@ theorem execForkSrcArtUpdateRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
     evalSignedSubGuardNeg_true hdartAfter hnewEval hstorageAfter
       (forkDartSubGuardNegCond hguardNeg)
   have hsub :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         (checkedSubSignedInto "srcArtNew"
           (.storage (urnsF (.var "ilk") (.var "src") "art")) (.var "dart"))
         .reverted :=
@@ -2933,7 +2935,7 @@ theorem execForkDstInkUpdateOk {evm : EVM.State} {I : ExecutionEnv}
     (hguardNeg : 0 ≤ forkDinkInt I ∨ dstInkNew.toNat ≤ dstInkOld.toNat)
     (hguardPos : forkDinkInt I ≤ 0 ∨ dstInkOld.toNat ≤ dstInkNew.toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       (checkedAddSignedInto "dstInkNew"
         (.storage (urnsF (.var "ilk") (.var "dst") "ink")) (.var "dink") ++
         [ .assign .storage (urnsF (.var "ilk") (.var "dst") "ink") (.var "dstInkNew") ])
@@ -3022,7 +3024,7 @@ theorem execForkDstInkUpdateOk {evm : EVM.State} {I : ExecutionEnv}
       rw [store_get_ne _ _ (by native_decide), hbase]
     simpa [evm'] using
       assignStorageRef_fork_dst_ink evm I locals' dstInkNew hsz164 hilk' hdst' hbase'
-  change ExecBlock config { contract := contract, locals := locals } evm
+  change ExecBlock fork config { contract := contract, locals := locals } evm
     [ .letDecl "dstInkNew" (some uint256)
         (wordWrap256
           (.binary .add (.storage (urnsF (.var "ilk") (.var "dst") "ink")) (.var "dink"))),
@@ -3039,7 +3041,7 @@ theorem execForkDstInkUpdateOk {evm : EVM.State} {I : ExecutionEnv}
   refine ExecBlock.consNormal (ExecStmt.letDecl hlet) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hreqNeg) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hreqPos) ?_
-  exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) hdstInkNewEval hassign) ExecBlock.nil
+  exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) hdstInkNewEval hassign) ExecBlock.nil
 
 theorem execForkDstInkUpdateRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
     (locals : Store) (dstInkOld dstInkNew : UInt256)
@@ -3054,7 +3056,7 @@ theorem execForkDstInkUpdateRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
     (hfail :
       ¬ (UInt256.slt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.gt dstInkNew dstInkOld = ⟨0⟩)) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       (checkedAddSignedInto "dstInkNew"
         (.storage (urnsF (.var "ilk") (.var "dst") "ink")) (.var "dink") ++
         [ .assign .storage (urnsF (.var "ilk") (.var "dst") "ink") (.var "dstInkNew") ])
@@ -3095,7 +3097,7 @@ theorem execForkDstInkUpdateRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
       rw [store_get_ne _ _ (by native_decide), hbase]
     rw [evalExpr_fork_dst_ink_locals locals' hsz164 hilk' hdst' hbase', hload]
   have hadd :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         (checkedAddSignedInto "dstInkNew"
           (.storage (urnsF (.var "ilk") (.var "dst") "ink")) (.var "dink"))
         .reverted :=
@@ -3123,7 +3125,7 @@ theorem execForkDstInkUpdateRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
     (hfail :
       ¬ (UInt256.sgt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.lt dstInkNew dstInkOld = ⟨0⟩)) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       (checkedAddSignedInto "dstInkNew"
         (.storage (urnsF (.var "ilk") (.var "dst") "ink")) (.var "dink") ++
         [ .assign .storage (urnsF (.var "ilk") (.var "dst") "ink") (.var "dstInkNew") ])
@@ -3176,7 +3178,7 @@ theorem execForkDstInkUpdateRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
     evalSignedAddGuardNeg_true hdinkAfter hnewEval hstorageAfter
       (forkDinkAddGuardNegCond hguardNeg)
   have hadd :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         (checkedAddSignedInto "dstInkNew"
           (.storage (urnsF (.var "ilk") (.var "dst") "ink")) (.var "dink"))
         .reverted :=
@@ -3202,7 +3204,7 @@ theorem execForkDstArtUpdateOk {evm : EVM.State} {I : ExecutionEnv}
     (hguardNeg : 0 ≤ forkDartInt I ∨ dstArtNew.toNat ≤ dstArtOld.toNat)
     (hguardPos : forkDartInt I ≤ 0 ∨ dstArtOld.toNat ≤ dstArtNew.toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       (checkedAddSignedInto "dstArtNew"
         (.storage (urnsF (.var "ilk") (.var "dst") "art")) (.var "dart") ++
         [ .assign .storage (urnsF (.var "ilk") (.var "dst") "art") (.var "dstArtNew") ])
@@ -3291,7 +3293,7 @@ theorem execForkDstArtUpdateOk {evm : EVM.State} {I : ExecutionEnv}
       rw [store_get_ne _ _ (by native_decide), hbase]
     simpa [evm'] using
       assignStorageRef_fork_dst_art evm I locals' dstArtNew hsz164 hilk' hdst' hbase'
-  change ExecBlock config { contract := contract, locals := locals } evm
+  change ExecBlock fork config { contract := contract, locals := locals } evm
     [ .letDecl "dstArtNew" (some uint256)
         (wordWrap256
           (.binary .add (.storage (urnsF (.var "ilk") (.var "dst") "art")) (.var "dart"))),
@@ -3308,7 +3310,7 @@ theorem execForkDstArtUpdateOk {evm : EVM.State} {I : ExecutionEnv}
   refine ExecBlock.consNormal (ExecStmt.letDecl hlet) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hreqNeg) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hreqPos) ?_
-  exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) hdstArtNewEval hassign) ExecBlock.nil
+  exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) hdstArtNewEval hassign) ExecBlock.nil
 
 theorem execForkDstArtUpdateRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
     (locals : Store) (dstArtOld dstArtNew : UInt256)
@@ -3323,7 +3325,7 @@ theorem execForkDstArtUpdateRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
     (hfail :
       ¬ (UInt256.slt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.gt dstArtNew dstArtOld = ⟨0⟩)) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       (checkedAddSignedInto "dstArtNew"
         (.storage (urnsF (.var "ilk") (.var "dst") "art")) (.var "dart") ++
         [ .assign .storage (urnsF (.var "ilk") (.var "dst") "art") (.var "dstArtNew") ])
@@ -3364,7 +3366,7 @@ theorem execForkDstArtUpdateRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
       rw [store_get_ne _ _ (by native_decide), hbase]
     rw [evalExpr_fork_dst_art_locals locals' hsz164 hilk' hdst' hbase', hload]
   have hadd :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         (checkedAddSignedInto "dstArtNew"
           (.storage (urnsF (.var "ilk") (.var "dst") "art")) (.var "dart"))
         .reverted :=
@@ -3392,7 +3394,7 @@ theorem execForkDstArtUpdateRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
     (hfail :
       ¬ (UInt256.sgt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.lt dstArtNew dstArtOld = ⟨0⟩)) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       (checkedAddSignedInto "dstArtNew"
         (.storage (urnsF (.var "ilk") (.var "dst") "art")) (.var "dart") ++
         [ .assign .storage (urnsF (.var "ilk") (.var "dst") "art") (.var "dstArtNew") ])
@@ -3445,7 +3447,7 @@ theorem execForkDstArtUpdateRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
     evalSignedAddGuardNeg_true hdartAfter hnewEval hstorageAfter
       (forkDartAddGuardNegCond hguardNeg)
   have hadd :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         (checkedAddSignedInto "dstArtNew"
           (.storage (urnsF (.var "ilk") (.var "dst") "art")) (.var "dart"))
         .reverted :=
@@ -3474,7 +3476,7 @@ theorem execForkFinalLoadsOk {evm : EVM.State} {I : ExecutionEnv}
     (hloadDstInk :
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (forkDstInkSlot I) =
         dstInkFinal) :
-    ExecBlock config
+    ExecBlock fork config
       { contract := contract,
         locals := forkStoreDstArtNew I srcInkNew srcArtNew dstInkNew dstArtNew } evm
       [ .letDecl "srcArtFinal" (some uint256)
@@ -3596,7 +3598,7 @@ theorem execForkFinalLoadsOk {evm : EVM.State} {I : ExecutionEnv}
         simpa [locals0] using
           forkStoreDstArtNew_get_urns I srcInkNew srcArtNew dstInkNew dstArtNew)]
     rw [hloadDstInk]
-  change ExecBlock config { contract := contract, locals := locals0 } evm
+  change ExecBlock fork config { contract := contract, locals := locals0 } evm
     [ .letDecl "srcArtFinal" (some uint256)
         (.storage (urnsF (.var "ilk") (.var "src") "art")),
       .letDecl "dstArtFinal" (some uint256)
@@ -3701,12 +3703,12 @@ theorem execForkMulUintIntoRevertOfOverflow {evm : EVM.State} {locals : Store}
     (hy : evalExpr? config { contract := contract, locals := locals } evm y =
       .ok (.int (Int.ofNat b.toNat)))
     (hover : UInt256.size ≤ a.toNat * b.toNat) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       (checkedMulUintInto name x y) .reverted := by
   have hlet : evalExpr? config { contract := contract, locals := locals } evm
       (mul256 x y) = .revert :=
     evalExpr_fork_mul256_revert hx hy hover
-  change ExecBlock config { contract := contract, locals := locals } evm
+  change ExecBlock fork config { contract := contract, locals := locals } evm
     [ .letDecl name (some uint256) (mul256 x y),
       .require
         (eitherExpr (.binary .eq y (.intLit 0))
@@ -3727,7 +3729,7 @@ theorem execForkMulUintIntoOk {evm : EVM.State} {locals : Store}
         (eitherExpr (.binary .eq y (.intLit 0))
           (.binary .eq (.binary .div (.var name) y) x)) =
         .ok (.bool true)) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       (checkedMulUintInto name x y)
       (.ok { contract := contract, locals := locals.insert name (.int (Int.ofNat prod.toNat)) }
         evm) := by
@@ -3735,7 +3737,7 @@ theorem execForkMulUintIntoOk {evm : EVM.State} {locals : Store}
       evalExpr? config { contract := contract, locals := locals } evm (mul256 x y) =
         .ok (.int (Int.ofNat prod.toNat)) :=
     evalExpr_fork_mul256_ok hx hy hprod hfit
-  change ExecBlock config { contract := contract, locals := locals } evm
+  change ExecBlock fork config { contract := contract, locals := locals } evm
     [ .letDecl name (some uint256) (mul256 x y),
       .require
         (eitherExpr (.binary .eq y (.intLit 0))
@@ -3755,7 +3757,7 @@ theorem execForkUtabFinalMulOk {evm : EVM.State} {I : ExecutionEnv}
     (hprod : utab = UInt256.mul srcArtFinal rate)
     (hfit : srcArtFinal.toNat * rate.toNat < UInt256.size)
     (hguard : rate.toNat = 0 ∨ utab.toNat / rate.toNat = srcArtFinal.toNat) :
-    ExecBlock config
+    ExecBlock fork config
       { contract := contract,
         locals := forkStoreFinalLoads I srcInkNew srcArtNew dstInkNew dstArtNew
           srcArtFinal dstArtFinal srcInkFinal dstInkFinal } evm
@@ -3852,7 +3854,7 @@ theorem execForkVtabFinalMulOk {evm : EVM.State} {I : ExecutionEnv}
     (hprod : vtab = UInt256.mul dstArtFinal rate)
     (hfit : dstArtFinal.toNat * rate.toNat < UInt256.size)
     (hguard : rate.toNat = 0 ∨ vtab.toNat / rate.toNat = dstArtFinal.toNat) :
-    ExecBlock config
+    ExecBlock fork config
       { contract := contract,
         locals := forkStoreUtabFinal I srcInkNew srcArtNew dstInkNew dstArtNew
           srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab } evm
@@ -3949,7 +3951,7 @@ theorem execForkSrcInkSpotFinalMulOk {evm : EVM.State} {I : ExecutionEnv}
     (hprod : srcInkSpot = UInt256.mul srcInkFinal spot)
     (hfit : srcInkFinal.toNat * spot.toNat < UInt256.size)
     (hguard : spot.toNat = 0 ∨ srcInkSpot.toNat / spot.toNat = srcInkFinal.toNat) :
-    ExecBlock config
+    ExecBlock fork config
       { contract := contract,
         locals := forkStoreVtabFinal I srcInkNew srcArtNew dstInkNew dstArtNew
           srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab } evm
@@ -4050,7 +4052,7 @@ theorem execForkDstInkSpotFinalMulOk {evm : EVM.State} {I : ExecutionEnv}
     (hprod : dstInkSpot = UInt256.mul dstInkFinal spot)
     (hfit : dstInkFinal.toNat * spot.toNat < UInt256.size)
     (hguard : spot.toNat = 0 ∨ dstInkSpot.toNat / spot.toNat = dstInkFinal.toNat) :
-    ExecBlock config
+    ExecBlock fork config
       { contract := contract,
         locals := forkStoreSrcInkSpotFinal I srcInkNew srcArtNew dstInkNew dstArtNew
           srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab srcInkSpot } evm
@@ -4156,7 +4158,7 @@ theorem execForkUtabMulOk {evm : EVM.State} {I : ExecutionEnv}
     (hprod : utab = UInt256.mul srcArt rate)
     (hfit : srcArt.toNat * rate.toNat < UInt256.size)
     (hguard : rate.toNat = 0 ∨ utab.toNat / rate.toNat = srcArt.toNat) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       (checkedMulUintInto "utab"
         (.storage (urnsF (.var "ilk") (.var "src") "art"))
         (.storage (ilksF (.var "ilk") "rate")))
@@ -4233,7 +4235,7 @@ theorem execForkVtabMulOk {evm : EVM.State} {I : ExecutionEnv}
     (hprod : vtab = UInt256.mul dstArt rate)
     (hfit : dstArt.toNat * rate.toNat < UInt256.size)
     (hguard : rate.toNat = 0 ∨ vtab.toNat / rate.toNat = dstArt.toNat) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       (checkedMulUintInto "vtab"
         (.storage (urnsF (.var "ilk") (.var "dst") "art"))
         (.storage (ilksF (.var "ilk") "rate")))
@@ -4310,7 +4312,7 @@ theorem execForkSrcInkSpotMulOk {evm : EVM.State} {I : ExecutionEnv}
     (hprod : srcInkSpot = UInt256.mul srcInk spot)
     (hfit : srcInk.toNat * spot.toNat < UInt256.size)
     (hguard : spot.toNat = 0 ∨ srcInkSpot.toNat / spot.toNat = srcInk.toNat) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       (checkedMulUintInto "srcInkSpot"
         (.storage (urnsF (.var "ilk") (.var "src") "ink"))
         (.storage (ilksF (.var "ilk") "spot")))
@@ -4387,7 +4389,7 @@ theorem execForkDstInkSpotMulOk {evm : EVM.State} {I : ExecutionEnv}
     (hprod : dstInkSpot = UInt256.mul dstInk spot)
     (hfit : dstInk.toNat * spot.toNat < UInt256.size)
     (hguard : spot.toNat = 0 ∨ dstInkSpot.toNat / spot.toNat = dstInk.toNat) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       (checkedMulUintInto "dstInkSpot"
         (.storage (urnsF (.var "ilk") (.var "dst") "ink"))
         (.storage (ilksF (.var "ilk") "spot")))
@@ -4473,7 +4475,7 @@ theorem execForkFinalRequiresOk {evm : EVM.State} {locals : Store}
           (.binary .ge (.var "vtab") (.storage (ilksF (.var "ilk") "dust")))
           (.binary .eq (.var "dstArtFinal") (.intLit 0))) =
         .ok (.bool true)) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       [ .require (bothExpr (wishExpr (.var "src") sender) (wishExpr (.var "dst") sender)),
         .require (.binary .le (.var "utab") (.var "srcInkSpot")),
         .require (.binary .le (.var "vtab") (.var "dstInkSpot")),
@@ -4497,7 +4499,7 @@ theorem execForkFinalRequiresRevertWish {evm : EVM.State} {locals : Store}
       evalExpr? config { contract := contract, locals := locals } evm
         (bothExpr (wishExpr (.var "src") sender) (wishExpr (.var "dst") sender)) =
         .ok (.bool false)) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       [ .require (bothExpr (wishExpr (.var "src") sender) (wishExpr (.var "dst") sender)),
         .require (.binary .le (.var "utab") (.var "srcInkSpot")),
         .require (.binary .le (.var "vtab") (.var "dstInkSpot")),
@@ -4520,7 +4522,7 @@ theorem execForkFinalRequiresRevertUtab {evm : EVM.State} {locals : Store}
     (hutabLe :
       evalExpr? config { contract := contract, locals := locals } evm
         (.binary .le (.var "utab") (.var "srcInkSpot")) = .ok (.bool false)) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       [ .require (bothExpr (wishExpr (.var "src") sender) (wishExpr (.var "dst") sender)),
         .require (.binary .le (.var "utab") (.var "srcInkSpot")),
         .require (.binary .le (.var "vtab") (.var "dstInkSpot")),
@@ -4547,7 +4549,7 @@ theorem execForkFinalRequiresRevertVtab {evm : EVM.State} {locals : Store}
     (hvtabLe :
       evalExpr? config { contract := contract, locals := locals } evm
         (.binary .le (.var "vtab") (.var "dstInkSpot")) = .ok (.bool false)) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       [ .require (bothExpr (wishExpr (.var "src") sender) (wishExpr (.var "dst") sender)),
         .require (.binary .le (.var "utab") (.var "srcInkSpot")),
         .require (.binary .le (.var "vtab") (.var "dstInkSpot")),
@@ -4581,7 +4583,7 @@ theorem execForkFinalRequiresRevertSrcDust {evm : EVM.State} {locals : Store}
           (.binary .ge (.var "utab") (.storage (ilksF (.var "ilk") "dust")))
           (.binary .eq (.var "srcArtFinal") (.intLit 0))) =
         .ok (.bool false)) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       [ .require (bothExpr (wishExpr (.var "src") sender) (wishExpr (.var "dst") sender)),
         .require (.binary .le (.var "utab") (.var "srcInkSpot")),
         .require (.binary .le (.var "vtab") (.var "dstInkSpot")),
@@ -4622,7 +4624,7 @@ theorem execForkFinalRequiresRevertDstDust {evm : EVM.State} {locals : Store}
           (.binary .ge (.var "vtab") (.storage (ilksF (.var "ilk") "dust")))
           (.binary .eq (.var "dstArtFinal") (.intLit 0))) =
         .ok (.bool false)) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       [ .require (bothExpr (wishExpr (.var "src") sender) (wishExpr (.var "dst") sender)),
         .require (.binary .le (.var "utab") (.var "srcInkSpot")),
         .require (.binary .le (.var "vtab") (.var "dstInkSpot")),
@@ -7052,24 +7054,24 @@ theorem execForkSourceOk {evm0 : EVM.State} {I : ExecutionEnv}
           (.binary .ge (.var "vtab") (.storage (ilksF (.var "ilk") "dust")))
           (.binary .eq (.var "dstArtFinal") (.intLit 0))) =
         .ok (.bool true) →
-    ExecTransitionBody config contract evm0 (forkStore I) forkTransition.body
+    ExecTransitionBody fork config contract evm0 (forkStore I) forkTransition.body
       (.returned { contract := contract, locals := finalLocals } evm4 none) := by
   intro evm1 evm2 evm3 evm4 finalLocals hwish hutabLe hvtabLe hsrcDust hdstDust
   have hprefix :
-      ExecBlock config { contract := contract, locals := forkStore I } evm0 nonpayable
+      ExecBlock fork config { contract := contract, locals := forkStore I } evm0 nonpayable
         (.ok { contract := contract, locals := forkStore I } evm0) := by
-    change ExecBlock config { contract := contract, locals := forkStore I } evm0
+    change ExecBlock fork config { contract := contract, locals := forkStore I } evm0
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)) ]
       (.ok { contract := contract, locals := forkStore I } evm0)
     exact ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwei))
       ExecBlock.nil
   have hsrcInkBlock :=
-    execForkSrcInkUpdateOk (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm0) (I := I) (locals := forkStore I)
+    execForkSrcInkUpdateOk (fork := fork) (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm0) (I := I) (locals := forkStore I)
       srcInkOld srcInkNew hsz164 (forkStore_get_ilk I) (forkStore_get_src I)
       (forkStore_get_dink I) (forkStore_urns I) hloadSrcInk hsrcInkNew
       hsrcInkGuardNeg hsrcInkGuardPos
   have hsrcArtBlock :=
-    execForkSrcArtUpdateOk (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm1) (I := I)
+    execForkSrcArtUpdateOk (fork := fork) (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm1) (I := I)
       (locals := forkStoreSrcInkNew I srcInkNew) srcArtOld srcArtNew hsz164
       (forkStoreSrcInkNew_get_ilk I srcInkNew)
       (forkStoreSrcInkNew_get_src I srcInkNew)
@@ -7078,7 +7080,7 @@ theorem execForkSourceOk {evm0 : EVM.State} {I : ExecutionEnv}
       (by simpa [evm1, storageStore_executionEnv] using hloadSrcArt) hsrcArtNew
       hsrcArtGuardNeg hsrcArtGuardPos
   have hdstInkBlock :=
-    execForkDstInkUpdateOk (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm2) (I := I)
+    execForkDstInkUpdateOk (fork := fork) (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm2) (I := I)
       (locals := forkStoreSrcArtNew I srcInkNew srcArtNew) dstInkOld dstInkNew hsz164
       (forkStoreSrcArtNew_get_ilk I srcInkNew srcArtNew)
       (forkStoreSrcArtNew_get_dst I srcInkNew srcArtNew)
@@ -7087,7 +7089,7 @@ theorem execForkSourceOk {evm0 : EVM.State} {I : ExecutionEnv}
       (by simpa [evm1, evm2, storageStore_executionEnv] using hloadDstInk) hdstInkNew
       hdstInkGuardNeg hdstInkGuardPos
   have hdstArtBlock :=
-    execForkDstArtUpdateOk (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm3) (I := I)
+    execForkDstArtUpdateOk (fork := fork) (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm3) (I := I)
       (locals := forkStoreDstInkNew I srcInkNew srcArtNew dstInkNew) dstArtOld dstArtNew
       hsz164 (forkStoreDstInkNew_get_ilk I srcInkNew srcArtNew dstInkNew)
       (forkStoreDstInkNew_get_dst I srcInkNew srcArtNew dstInkNew)
@@ -7096,7 +7098,7 @@ theorem execForkSourceOk {evm0 : EVM.State} {I : ExecutionEnv}
       (by simpa [evm1, evm2, evm3, storageStore_executionEnv] using hloadDstArt)
       hdstArtNew hdstArtGuardNeg hdstArtGuardPos
   have hfinalLoadsBlock :=
-    execForkFinalLoadsOk (evm := evm4) (I := I)
+    execForkFinalLoadsOk (fork := fork) (evm := evm4) (I := I)
       srcInkNew srcArtNew dstInkNew dstArtNew srcArtFinal dstArtFinal
       srcInkFinal dstInkFinal hsz164
       (by
@@ -7121,27 +7123,27 @@ theorem execForkSourceOk {evm0 : EVM.State} {I : ExecutionEnv}
       Stele.EVM.storageLoad evm4 evm4.executionEnv.codeOwner (forkIlkSpotSlot I) = spot := by
     simpa [evm1, evm2, evm3, evm4, storageStore_executionEnv] using hloadSpot
   have hutabBlock :=
-    execForkUtabFinalMulOk (evm := evm4) (I := I)
+    execForkUtabFinalMulOk (fork := fork) (evm := evm4) (I := I)
       srcInkNew srcArtNew dstInkNew dstArtNew srcArtFinal dstArtFinal
       srcInkFinal dstInkFinal rate utab hsz164 hloadRateFinal
       hutabProd hutabFit hutabGuard
   have hvtabBlock :=
-    execForkVtabFinalMulOk (evm := evm4) (I := I)
+    execForkVtabFinalMulOk (fork := fork) (evm := evm4) (I := I)
       srcInkNew srcArtNew dstInkNew dstArtNew srcArtFinal dstArtFinal
       srcInkFinal dstInkFinal rate utab vtab hsz164 hloadRateFinal
       hvtabProd hvtabFit hvtabGuard
   have hsrcInkSpotBlock :=
-    execForkSrcInkSpotFinalMulOk (evm := evm4) (I := I)
+    execForkSrcInkSpotFinalMulOk (fork := fork) (evm := evm4) (I := I)
       srcInkNew srcArtNew dstInkNew dstArtNew srcArtFinal dstArtFinal
       srcInkFinal dstInkFinal spot utab vtab srcInkSpot hsz164 hloadSpotFinal
       hsrcInkSpotProd hsrcInkSpotFit hsrcInkSpotGuard
   have hdstInkSpotBlock :=
-    execForkDstInkSpotFinalMulOk (evm := evm4) (I := I)
+    execForkDstInkSpotFinalMulOk (fork := fork) (evm := evm4) (I := I)
       srcInkNew srcArtNew dstInkNew dstArtNew srcArtFinal dstArtFinal
       srcInkFinal dstInkFinal spot utab vtab srcInkSpot dstInkSpot hsz164 hloadSpotFinal
       hdstInkSpotProd hdstInkSpotFit hdstInkSpotGuard
   have hfinalBlock :
-      ExecBlock config { contract := contract, locals := finalLocals } evm4
+      ExecBlock fork config { contract := contract, locals := finalLocals } evm4
         [ .require (bothExpr (wishExpr (.var "src") sender) (wishExpr (.var "dst") sender)),
           .require (.binary .le (.var "utab") (.var "srcInkSpot")),
           .require (.binary .le (.var "vtab") (.var "dstInkSpot")),
@@ -7179,17 +7181,17 @@ theorem execForkSourceRevertSrcInkGuardNeg {evm0 : EVM.State} {I : ExecutionEnv}
     (hfail :
       ¬ (UInt256.sgt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.gt srcInkNew srcInkOld = ⟨0⟩)) :
-    ExecTransitionBody config contract evm0 (forkStore I) forkTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 (forkStore I) forkTransition.body .reverted := by
   have hprefix :
-      ExecBlock config { contract := contract, locals := forkStore I } evm0 nonpayable
+      ExecBlock fork config { contract := contract, locals := forkStore I } evm0 nonpayable
         (.ok { contract := contract, locals := forkStore I } evm0) := by
-    change ExecBlock config { contract := contract, locals := forkStore I } evm0
+    change ExecBlock fork config { contract := contract, locals := forkStore I } evm0
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)) ]
       (.ok { contract := contract, locals := forkStore I } evm0)
     exact ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwei))
       ExecBlock.nil
   have hsrcInkRevert :
-      ExecBlock config { contract := contract, locals := forkStore I } evm0
+      ExecBlock fork config { contract := contract, locals := forkStore I } evm0
         (checkedSubSignedInto "srcInkNew"
           (.storage (urnsF (.var "ilk") (.var "src") "ink")) (.var "dink") ++
           [ .assign .storage (urnsF (.var "ilk") (.var "src") "ink")
@@ -7258,17 +7260,17 @@ theorem execForkSourceRevertSrcInkGuardPos {evm0 : EVM.State} {I : ExecutionEnv}
     (hfail :
       ¬ (UInt256.slt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.lt srcInkNew srcInkOld = ⟨0⟩)) :
-    ExecTransitionBody config contract evm0 (forkStore I) forkTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 (forkStore I) forkTransition.body .reverted := by
   have hprefix :
-      ExecBlock config { contract := contract, locals := forkStore I } evm0 nonpayable
+      ExecBlock fork config { contract := contract, locals := forkStore I } evm0 nonpayable
         (.ok { contract := contract, locals := forkStore I } evm0) := by
-    change ExecBlock config { contract := contract, locals := forkStore I } evm0
+    change ExecBlock fork config { contract := contract, locals := forkStore I } evm0
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)) ]
       (.ok { contract := contract, locals := forkStore I } evm0)
     exact ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwei))
       ExecBlock.nil
   have hsrcInkRevert :
-      ExecBlock config { contract := contract, locals := forkStore I } evm0
+      ExecBlock fork config { contract := contract, locals := forkStore I } evm0
         (checkedSubSignedInto "srcInkNew"
           (.storage (urnsF (.var "ilk") (.var "src") "ink")) (.var "dink") ++
           [ .assign .storage (urnsF (.var "ilk") (.var "src") "ink")
@@ -7334,17 +7336,17 @@ theorem execForkSourceStatic {evm0 : EVM.State} {I : ExecutionEnv}
     (hsrcInkGuardNeg : forkDinkInt I ≤ 0 ∨ srcInkNew.toNat ≤ srcInkOld.toNat)
     (hsrcInkGuardPos : 0 ≤ forkDinkInt I ∨ srcInkOld.toNat ≤ srcInkNew.toNat)
     (hperm : evm0.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm0 (forkStore I) forkTransition.body
+    ExecTransitionBody fork config contract evm0 (forkStore I) forkTransition.body
       .staticViolation := by
   have hprefix :
-      ExecBlock config { contract := contract, locals := forkStore I } evm0 nonpayable
+      ExecBlock fork config { contract := contract, locals := forkStore I } evm0 nonpayable
         (.ok { contract := contract, locals := forkStore I } evm0) := by
-    change ExecBlock config { contract := contract, locals := forkStore I } evm0
+    change ExecBlock fork config { contract := contract, locals := forkStore I } evm0
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)) ]
       (.ok { contract := contract, locals := forkStore I } evm0)
     exact ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwei))
       ExecBlock.nil
-  have hsrcInk := (execForkSrcInkUpdateSplit (evm := evm0) (I := I) (forkStore I)
+  have hsrcInk := (execForkSrcInkUpdateSplit (fork := fork) (evm := evm0) (I := I) (forkStore I)
     srcInkOld srcInkNew hsz164 (forkStore_get_ilk I) (forkStore_get_src I)
     (forkStore_get_dink I) (forkStore_urns I) hloadSrcInk hsrcInkNew
     hsrcInkGuardNeg hsrcInkGuardPos).2 hperm
@@ -7375,19 +7377,19 @@ theorem execForkSourceRevertSrcArtGuardNeg {evm0 : EVM.State} {I : ExecutionEnv}
       ¬ (UInt256.sgt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.gt srcArtNew srcArtOld = ⟨0⟩))
     (hperm : evm0.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm0 (forkStore I) forkTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 (forkStore I) forkTransition.body .reverted := by
   let evm1 := Stele.EVM.storageStore evm0 evm0.executionEnv.codeOwner
     (forkSrcInkSlot I) srcInkNew
   have hprefix :
-      ExecBlock config { contract := contract, locals := forkStore I } evm0 nonpayable
+      ExecBlock fork config { contract := contract, locals := forkStore I } evm0 nonpayable
         (.ok { contract := contract, locals := forkStore I } evm0) := by
-    change ExecBlock config { contract := contract, locals := forkStore I } evm0
+    change ExecBlock fork config { contract := contract, locals := forkStore I } evm0
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)) ]
       (.ok { contract := contract, locals := forkStore I } evm0)
     exact ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwei))
       ExecBlock.nil
   have hsrcInkBlock :
-      ExecBlock config { contract := contract, locals := forkStore I } evm0
+      ExecBlock fork config { contract := contract, locals := forkStore I } evm0
         (checkedSubSignedInto "srcInkNew"
           (.storage (urnsF (.var "ilk") (.var "src") "ink")) (.var "dink") ++
           [ .assign .storage (urnsF (.var "ilk") (.var "src") "ink")
@@ -7399,7 +7401,7 @@ theorem execForkSourceRevertSrcArtGuardNeg {evm0 : EVM.State} {I : ExecutionEnv}
         (forkStore_get_dink I) (forkStore_urns I) hloadSrcInk hsrcInkNew
         hsrcInkGuardNeg hsrcInkGuardPos
   have hsrcArtRevert :
-      ExecBlock config { contract := contract, locals := forkStoreSrcInkNew I srcInkNew } evm1
+      ExecBlock fork config { contract := contract, locals := forkStoreSrcInkNew I srcInkNew } evm1
         (checkedSubSignedInto "srcArtNew"
           (.storage (urnsF (.var "ilk") (.var "src") "art")) (.var "dart") ++
           [ .assign .storage (urnsF (.var "ilk") (.var "src") "art")
@@ -7480,19 +7482,19 @@ theorem execForkSourceRevertSrcArtGuardPos {evm0 : EVM.State} {I : ExecutionEnv}
       ¬ (UInt256.slt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.lt srcArtNew srcArtOld = ⟨0⟩))
     (hperm : evm0.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm0 (forkStore I) forkTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 (forkStore I) forkTransition.body .reverted := by
   let evm1 := Stele.EVM.storageStore evm0 evm0.executionEnv.codeOwner
     (forkSrcInkSlot I) srcInkNew
   have hprefix :
-      ExecBlock config { contract := contract, locals := forkStore I } evm0 nonpayable
+      ExecBlock fork config { contract := contract, locals := forkStore I } evm0 nonpayable
         (.ok { contract := contract, locals := forkStore I } evm0) := by
-    change ExecBlock config { contract := contract, locals := forkStore I } evm0
+    change ExecBlock fork config { contract := contract, locals := forkStore I } evm0
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)) ]
       (.ok { contract := contract, locals := forkStore I } evm0)
     exact ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwei))
       ExecBlock.nil
   have hsrcInkBlock :
-      ExecBlock config { contract := contract, locals := forkStore I } evm0
+      ExecBlock fork config { contract := contract, locals := forkStore I } evm0
         (checkedSubSignedInto "srcInkNew"
           (.storage (urnsF (.var "ilk") (.var "src") "ink")) (.var "dink") ++
           [ .assign .storage (urnsF (.var "ilk") (.var "src") "ink")
@@ -7504,7 +7506,7 @@ theorem execForkSourceRevertSrcArtGuardPos {evm0 : EVM.State} {I : ExecutionEnv}
         (forkStore_get_dink I) (forkStore_urns I) hloadSrcInk hsrcInkNew
         hsrcInkGuardNeg hsrcInkGuardPos
   have hsrcArtRevert :
-      ExecBlock config { contract := contract, locals := forkStoreSrcInkNew I srcInkNew } evm1
+      ExecBlock fork config { contract := contract, locals := forkStoreSrcInkNew I srcInkNew } evm1
         (checkedSubSignedInto "srcArtNew"
           (.storage (urnsF (.var "ilk") (.var "src") "art")) (.var "dart") ++
           [ .assign .storage (urnsF (.var "ilk") (.var "src") "art")
@@ -7590,26 +7592,26 @@ theorem execForkSourceRevertDstInkGuardNeg {evm0 : EVM.State} {I : ExecutionEnv}
       ¬ (UInt256.slt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.gt dstInkNew dstInkOld = ⟨0⟩))
     (hperm : evm0.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm0 (forkStore I) forkTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 (forkStore I) forkTransition.body .reverted := by
   let evm1 := Stele.EVM.storageStore evm0 evm0.executionEnv.codeOwner
     (forkSrcInkSlot I) srcInkNew
   let evm2 := Stele.EVM.storageStore evm1 evm1.executionEnv.codeOwner
     (forkSrcArtSlot I) srcArtNew
   have hprefix :
-      ExecBlock config { contract := contract, locals := forkStore I } evm0 nonpayable
+      ExecBlock fork config { contract := contract, locals := forkStore I } evm0 nonpayable
         (.ok { contract := contract, locals := forkStore I } evm0) := by
-    change ExecBlock config { contract := contract, locals := forkStore I } evm0
+    change ExecBlock fork config { contract := contract, locals := forkStore I } evm0
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)) ]
       (.ok { contract := contract, locals := forkStore I } evm0)
     exact ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwei))
       ExecBlock.nil
   have hsrcInkBlock :=
-    execForkSrcInkUpdateOk (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm0) (I := I) (locals := forkStore I)
+    execForkSrcInkUpdateOk (fork := fork) (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm0) (I := I) (locals := forkStore I)
       srcInkOld srcInkNew hsz164 (forkStore_get_ilk I) (forkStore_get_src I)
       (forkStore_get_dink I) (forkStore_urns I) hloadSrcInk hsrcInkNew
       hsrcInkGuardNeg hsrcInkGuardPos
   have hsrcArtBlock :=
-    execForkSrcArtUpdateOk (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm1) (I := I)
+    execForkSrcArtUpdateOk (fork := fork) (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm1) (I := I)
       (locals := forkStoreSrcInkNew I srcInkNew) srcArtOld srcArtNew hsz164
       (forkStoreSrcInkNew_get_ilk I srcInkNew)
       (forkStoreSrcInkNew_get_src I srcInkNew)
@@ -7618,7 +7620,7 @@ theorem execForkSourceRevertDstInkGuardNeg {evm0 : EVM.State} {I : ExecutionEnv}
       (by simpa [evm1, storageStore_executionEnv] using hloadSrcArt) hsrcArtNew
       hsrcArtGuardNeg hsrcArtGuardPos
   have hdstInkRevert :
-      ExecBlock config { contract := contract, locals := forkStoreSrcArtNew I srcInkNew srcArtNew }
+      ExecBlock fork config { contract := contract, locals := forkStoreSrcArtNew I srcInkNew srcArtNew }
         evm2
         (checkedAddSignedInto "dstInkNew"
           (.storage (urnsF (.var "ilk") (.var "dst") "ink")) (.var "dink") ++
@@ -7706,26 +7708,26 @@ theorem execForkSourceRevertDstInkGuardPos {evm0 : EVM.State} {I : ExecutionEnv}
       ¬ (UInt256.sgt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.lt dstInkNew dstInkOld = ⟨0⟩))
     (hperm : evm0.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm0 (forkStore I) forkTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 (forkStore I) forkTransition.body .reverted := by
   let evm1 := Stele.EVM.storageStore evm0 evm0.executionEnv.codeOwner
     (forkSrcInkSlot I) srcInkNew
   let evm2 := Stele.EVM.storageStore evm1 evm1.executionEnv.codeOwner
     (forkSrcArtSlot I) srcArtNew
   have hprefix :
-      ExecBlock config { contract := contract, locals := forkStore I } evm0 nonpayable
+      ExecBlock fork config { contract := contract, locals := forkStore I } evm0 nonpayable
         (.ok { contract := contract, locals := forkStore I } evm0) := by
-    change ExecBlock config { contract := contract, locals := forkStore I } evm0
+    change ExecBlock fork config { contract := contract, locals := forkStore I } evm0
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)) ]
       (.ok { contract := contract, locals := forkStore I } evm0)
     exact ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwei))
       ExecBlock.nil
   have hsrcInkBlock :=
-    execForkSrcInkUpdateOk (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm0) (I := I) (locals := forkStore I)
+    execForkSrcInkUpdateOk (fork := fork) (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm0) (I := I) (locals := forkStore I)
       srcInkOld srcInkNew hsz164 (forkStore_get_ilk I) (forkStore_get_src I)
       (forkStore_get_dink I) (forkStore_urns I) hloadSrcInk hsrcInkNew
       hsrcInkGuardNeg hsrcInkGuardPos
   have hsrcArtBlock :=
-    execForkSrcArtUpdateOk (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm1) (I := I)
+    execForkSrcArtUpdateOk (fork := fork) (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm1) (I := I)
       (locals := forkStoreSrcInkNew I srcInkNew) srcArtOld srcArtNew hsz164
       (forkStoreSrcInkNew_get_ilk I srcInkNew)
       (forkStoreSrcInkNew_get_src I srcInkNew)
@@ -7734,7 +7736,7 @@ theorem execForkSourceRevertDstInkGuardPos {evm0 : EVM.State} {I : ExecutionEnv}
       (by simpa [evm1, storageStore_executionEnv] using hloadSrcArt) hsrcArtNew
       hsrcArtGuardNeg hsrcArtGuardPos
   have hdstInkRevert :
-      ExecBlock config { contract := contract, locals := forkStoreSrcArtNew I srcInkNew srcArtNew }
+      ExecBlock fork config { contract := contract, locals := forkStoreSrcArtNew I srcInkNew srcArtNew }
         evm2
         (checkedAddSignedInto "dstInkNew"
           (.storage (urnsF (.var "ilk") (.var "dst") "ink")) (.var "dink") ++
@@ -7832,7 +7834,7 @@ theorem execForkSourceRevertDstArtGuardNeg {evm0 : EVM.State} {I : ExecutionEnv}
       ¬ (UInt256.slt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.gt dstArtNew dstArtOld = ⟨0⟩))
     (hperm : evm0.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm0 (forkStore I) forkTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 (forkStore I) forkTransition.body .reverted := by
   let evm1 := Stele.EVM.storageStore evm0 evm0.executionEnv.codeOwner
     (forkSrcInkSlot I) srcInkNew
   let evm2 := Stele.EVM.storageStore evm1 evm1.executionEnv.codeOwner
@@ -7840,20 +7842,20 @@ theorem execForkSourceRevertDstArtGuardNeg {evm0 : EVM.State} {I : ExecutionEnv}
   let evm3 := Stele.EVM.storageStore evm2 evm2.executionEnv.codeOwner
     (forkDstInkSlot I) dstInkNew
   have hprefix :
-      ExecBlock config { contract := contract, locals := forkStore I } evm0 nonpayable
+      ExecBlock fork config { contract := contract, locals := forkStore I } evm0 nonpayable
         (.ok { contract := contract, locals := forkStore I } evm0) := by
-    change ExecBlock config { contract := contract, locals := forkStore I } evm0
+    change ExecBlock fork config { contract := contract, locals := forkStore I } evm0
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)) ]
       (.ok { contract := contract, locals := forkStore I } evm0)
     exact ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwei))
       ExecBlock.nil
   have hsrcInkBlock :=
-    execForkSrcInkUpdateOk (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm0) (I := I) (locals := forkStore I)
+    execForkSrcInkUpdateOk (fork := fork) (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm0) (I := I) (locals := forkStore I)
       srcInkOld srcInkNew hsz164 (forkStore_get_ilk I) (forkStore_get_src I)
       (forkStore_get_dink I) (forkStore_urns I) hloadSrcInk hsrcInkNew
       hsrcInkGuardNeg hsrcInkGuardPos
   have hsrcArtBlock :=
-    execForkSrcArtUpdateOk (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm1) (I := I)
+    execForkSrcArtUpdateOk (fork := fork) (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm1) (I := I)
       (locals := forkStoreSrcInkNew I srcInkNew) srcArtOld srcArtNew hsz164
       (forkStoreSrcInkNew_get_ilk I srcInkNew)
       (forkStoreSrcInkNew_get_src I srcInkNew)
@@ -7862,7 +7864,7 @@ theorem execForkSourceRevertDstArtGuardNeg {evm0 : EVM.State} {I : ExecutionEnv}
       (by simpa [evm1, storageStore_executionEnv] using hloadSrcArt) hsrcArtNew
       hsrcArtGuardNeg hsrcArtGuardPos
   have hdstInkBlock :=
-    execForkDstInkUpdateOk (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm2) (I := I)
+    execForkDstInkUpdateOk (fork := fork) (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm2) (I := I)
       (locals := forkStoreSrcArtNew I srcInkNew srcArtNew) dstInkOld dstInkNew hsz164
       (forkStoreSrcArtNew_get_ilk I srcInkNew srcArtNew)
       (forkStoreSrcArtNew_get_dst I srcInkNew srcArtNew)
@@ -7871,7 +7873,7 @@ theorem execForkSourceRevertDstArtGuardNeg {evm0 : EVM.State} {I : ExecutionEnv}
       (by simpa [evm1, evm2, storageStore_executionEnv] using hloadDstInk) hdstInkNew
       hdstInkGuardNeg hdstInkGuardPos
   have hdstArtRevert :
-      ExecBlock config
+      ExecBlock fork config
         { contract := contract, locals := forkStoreDstInkNew I srcInkNew srcArtNew dstInkNew }
         evm3
         (checkedAddSignedInto "dstArtNew"
@@ -7970,7 +7972,7 @@ theorem execForkSourceRevertDstArtGuardPos {evm0 : EVM.State} {I : ExecutionEnv}
       ¬ (UInt256.sgt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.lt dstArtNew dstArtOld = ⟨0⟩))
     (hperm : evm0.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm0 (forkStore I) forkTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 (forkStore I) forkTransition.body .reverted := by
   let evm1 := Stele.EVM.storageStore evm0 evm0.executionEnv.codeOwner
     (forkSrcInkSlot I) srcInkNew
   let evm2 := Stele.EVM.storageStore evm1 evm1.executionEnv.codeOwner
@@ -7978,20 +7980,20 @@ theorem execForkSourceRevertDstArtGuardPos {evm0 : EVM.State} {I : ExecutionEnv}
   let evm3 := Stele.EVM.storageStore evm2 evm2.executionEnv.codeOwner
     (forkDstInkSlot I) dstInkNew
   have hprefix :
-      ExecBlock config { contract := contract, locals := forkStore I } evm0 nonpayable
+      ExecBlock fork config { contract := contract, locals := forkStore I } evm0 nonpayable
         (.ok { contract := contract, locals := forkStore I } evm0) := by
-    change ExecBlock config { contract := contract, locals := forkStore I } evm0
+    change ExecBlock fork config { contract := contract, locals := forkStore I } evm0
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)) ]
       (.ok { contract := contract, locals := forkStore I } evm0)
     exact ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwei))
       ExecBlock.nil
   have hsrcInkBlock :=
-    execForkSrcInkUpdateOk (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm0) (I := I) (locals := forkStore I)
+    execForkSrcInkUpdateOk (fork := fork) (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm0) (I := I) (locals := forkStore I)
       srcInkOld srcInkNew hsz164 (forkStore_get_ilk I) (forkStore_get_src I)
       (forkStore_get_dink I) (forkStore_urns I) hloadSrcInk hsrcInkNew
       hsrcInkGuardNeg hsrcInkGuardPos
   have hsrcArtBlock :=
-    execForkSrcArtUpdateOk (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm1) (I := I)
+    execForkSrcArtUpdateOk (fork := fork) (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm1) (I := I)
       (locals := forkStoreSrcInkNew I srcInkNew) srcArtOld srcArtNew hsz164
       (forkStoreSrcInkNew_get_ilk I srcInkNew)
       (forkStoreSrcInkNew_get_src I srcInkNew)
@@ -8000,7 +8002,7 @@ theorem execForkSourceRevertDstArtGuardPos {evm0 : EVM.State} {I : ExecutionEnv}
       (by simpa [evm1, storageStore_executionEnv] using hloadSrcArt) hsrcArtNew
       hsrcArtGuardNeg hsrcArtGuardPos
   have hdstInkBlock :=
-    execForkDstInkUpdateOk (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm2) (I := I)
+    execForkDstInkUpdateOk (fork := fork) (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm2) (I := I)
       (locals := forkStoreSrcArtNew I srcInkNew srcArtNew) dstInkOld dstInkNew hsz164
       (forkStoreSrcArtNew_get_ilk I srcInkNew srcArtNew)
       (forkStoreSrcArtNew_get_dst I srcInkNew srcArtNew)
@@ -8009,7 +8011,7 @@ theorem execForkSourceRevertDstArtGuardPos {evm0 : EVM.State} {I : ExecutionEnv}
       (by simpa [evm1, evm2, storageStore_executionEnv] using hloadDstInk) hdstInkNew
       hdstInkGuardNeg hdstInkGuardPos
   have hdstArtRevert :
-      ExecBlock config
+      ExecBlock fork config
         { contract := contract, locals := forkStoreDstInkNew I srcInkNew srcArtNew dstInkNew }
         evm3
         (checkedAddSignedInto "dstArtNew"
@@ -8161,7 +8163,7 @@ theorem execForkSourceRevertUtabMul {evm0 : EVM.State} {I : ExecutionEnv}
         evm0.executionEnv.codeOwner (forkIlkRateSlot I) = rate)
     (hover : UInt256.size ≤ srcArtFinal.toNat * rate.toNat)
     (hperm : evm0.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm0 (forkStore I) forkTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 (forkStore I) forkTransition.body .reverted := by
   let evm1 := Stele.EVM.storageStore evm0 evm0.executionEnv.codeOwner
     (forkSrcInkSlot I) srcInkNew
   let evm2 := Stele.EVM.storageStore evm1 evm1.executionEnv.codeOwner
@@ -8171,20 +8173,20 @@ theorem execForkSourceRevertUtabMul {evm0 : EVM.State} {I : ExecutionEnv}
   let evm4 := Stele.EVM.storageStore evm3 evm3.executionEnv.codeOwner
     (forkDstArtSlot I) dstArtNew
   have hprefix :
-      ExecBlock config { contract := contract, locals := forkStore I } evm0 nonpayable
+      ExecBlock fork config { contract := contract, locals := forkStore I } evm0 nonpayable
         (.ok { contract := contract, locals := forkStore I } evm0) := by
-    change ExecBlock config { contract := contract, locals := forkStore I } evm0
+    change ExecBlock fork config { contract := contract, locals := forkStore I } evm0
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)) ]
       (.ok { contract := contract, locals := forkStore I } evm0)
     exact ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwei))
       ExecBlock.nil
   have hsrcInkBlock :=
-    execForkSrcInkUpdateOk (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm0) (I := I) (locals := forkStore I)
+    execForkSrcInkUpdateOk (fork := fork) (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm0) (I := I) (locals := forkStore I)
       srcInkOld srcInkNew hsz164 (forkStore_get_ilk I) (forkStore_get_src I)
       (forkStore_get_dink I) (forkStore_urns I) hloadSrcInk hsrcInkNew
       hsrcInkGuardNeg hsrcInkGuardPos
   have hsrcArtBlock :=
-    execForkSrcArtUpdateOk (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm1) (I := I)
+    execForkSrcArtUpdateOk (fork := fork) (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm1) (I := I)
       (locals := forkStoreSrcInkNew I srcInkNew) srcArtOld srcArtNew hsz164
       (forkStoreSrcInkNew_get_ilk I srcInkNew)
       (forkStoreSrcInkNew_get_src I srcInkNew)
@@ -8193,7 +8195,7 @@ theorem execForkSourceRevertUtabMul {evm0 : EVM.State} {I : ExecutionEnv}
       (by simpa [evm1, storageStore_executionEnv] using hloadSrcArt) hsrcArtNew
       hsrcArtGuardNeg hsrcArtGuardPos
   have hdstInkBlock :=
-    execForkDstInkUpdateOk (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm2) (I := I)
+    execForkDstInkUpdateOk (fork := fork) (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm2) (I := I)
       (locals := forkStoreSrcArtNew I srcInkNew srcArtNew) dstInkOld dstInkNew hsz164
       (forkStoreSrcArtNew_get_ilk I srcInkNew srcArtNew)
       (forkStoreSrcArtNew_get_dst I srcInkNew srcArtNew)
@@ -8202,7 +8204,7 @@ theorem execForkSourceRevertUtabMul {evm0 : EVM.State} {I : ExecutionEnv}
       (by simpa [evm1, evm2, storageStore_executionEnv] using hloadDstInk) hdstInkNew
       hdstInkGuardNeg hdstInkGuardPos
   have hdstArtBlock :=
-    execForkDstArtUpdateOk (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm3) (I := I)
+    execForkDstArtUpdateOk (fork := fork) (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm3) (I := I)
       (locals := forkStoreDstInkNew I srcInkNew srcArtNew dstInkNew) dstArtOld dstArtNew
       hsz164 (forkStoreDstInkNew_get_ilk I srcInkNew srcArtNew dstInkNew)
       (forkStoreDstInkNew_get_dst I srcInkNew srcArtNew dstInkNew)
@@ -8211,7 +8213,7 @@ theorem execForkSourceRevertUtabMul {evm0 : EVM.State} {I : ExecutionEnv}
       (by simpa [evm1, evm2, evm3, storageStore_executionEnv] using hloadDstArt)
       hdstArtNew hdstArtGuardNeg hdstArtGuardPos
   have hfinalLoadsBlock :=
-    execForkFinalLoadsOk (evm := evm4) (I := I)
+    execForkFinalLoadsOk (fork := fork) (evm := evm4) (I := I)
       srcInkNew srcArtNew dstInkNew dstArtNew srcArtFinal dstArtFinal
       srcInkFinal dstInkFinal hsz164
       (by
@@ -8260,7 +8262,7 @@ theorem execForkSourceRevertUtabMul {evm0 : EVM.State} {I : ExecutionEnv}
           dstArtNew srcArtFinal dstArtFinal srcInkFinal dstInkFinal)]
     simpa [hloadRateFinal]
   have hutabRevert :
-      ExecBlock config { contract := contract, locals := localsFinal } evm4
+      ExecBlock fork config { contract := contract, locals := localsFinal } evm4
         (checkedMulUintInto "utab" (.var "srcArtFinal")
           (.storage (ilksF (.var "ilk") "rate"))) .reverted :=
     execForkMulUintIntoRevertOfOverflow (evm := evm4) (locals := localsFinal)
@@ -8397,7 +8399,7 @@ theorem execForkSourceRevertVtabMul {evm0 : EVM.State} {I : ExecutionEnv}
     (hutabGuard : rate.toNat = 0 ∨ utab.toNat / rate.toNat = srcArtFinal.toNat)
     (hover : UInt256.size ≤ dstArtFinal.toNat * rate.toNat)
     (hperm : evm0.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm0 (forkStore I) forkTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 (forkStore I) forkTransition.body .reverted := by
   let evm1 := Stele.EVM.storageStore evm0 evm0.executionEnv.codeOwner
     (forkSrcInkSlot I) srcInkNew
   let evm2 := Stele.EVM.storageStore evm1 evm1.executionEnv.codeOwner
@@ -8407,20 +8409,20 @@ theorem execForkSourceRevertVtabMul {evm0 : EVM.State} {I : ExecutionEnv}
   let evm4 := Stele.EVM.storageStore evm3 evm3.executionEnv.codeOwner
     (forkDstArtSlot I) dstArtNew
   have hprefix :
-      ExecBlock config { contract := contract, locals := forkStore I } evm0 nonpayable
+      ExecBlock fork config { contract := contract, locals := forkStore I } evm0 nonpayable
         (.ok { contract := contract, locals := forkStore I } evm0) := by
-    change ExecBlock config { contract := contract, locals := forkStore I } evm0
+    change ExecBlock fork config { contract := contract, locals := forkStore I } evm0
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)) ]
       (.ok { contract := contract, locals := forkStore I } evm0)
     exact ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwei))
       ExecBlock.nil
   have hsrcInkBlock :=
-    execForkSrcInkUpdateOk (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm0) (I := I) (locals := forkStore I)
+    execForkSrcInkUpdateOk (fork := fork) (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm0) (I := I) (locals := forkStore I)
       srcInkOld srcInkNew hsz164 (forkStore_get_ilk I) (forkStore_get_src I)
       (forkStore_get_dink I) (forkStore_urns I) hloadSrcInk hsrcInkNew
       hsrcInkGuardNeg hsrcInkGuardPos
   have hsrcArtBlock :=
-    execForkSrcArtUpdateOk (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm1) (I := I)
+    execForkSrcArtUpdateOk (fork := fork) (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm1) (I := I)
       (locals := forkStoreSrcInkNew I srcInkNew) srcArtOld srcArtNew hsz164
       (forkStoreSrcInkNew_get_ilk I srcInkNew)
       (forkStoreSrcInkNew_get_src I srcInkNew)
@@ -8429,7 +8431,7 @@ theorem execForkSourceRevertVtabMul {evm0 : EVM.State} {I : ExecutionEnv}
       (by simpa [evm1, storageStore_executionEnv] using hloadSrcArt) hsrcArtNew
       hsrcArtGuardNeg hsrcArtGuardPos
   have hdstInkBlock :=
-    execForkDstInkUpdateOk (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm2) (I := I)
+    execForkDstInkUpdateOk (fork := fork) (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm2) (I := I)
       (locals := forkStoreSrcArtNew I srcInkNew srcArtNew) dstInkOld dstInkNew hsz164
       (forkStoreSrcArtNew_get_ilk I srcInkNew srcArtNew)
       (forkStoreSrcArtNew_get_dst I srcInkNew srcArtNew)
@@ -8438,7 +8440,7 @@ theorem execForkSourceRevertVtabMul {evm0 : EVM.State} {I : ExecutionEnv}
       (by simpa [evm1, evm2, storageStore_executionEnv] using hloadDstInk) hdstInkNew
       hdstInkGuardNeg hdstInkGuardPos
   have hdstArtBlock :=
-    execForkDstArtUpdateOk (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm3) (I := I)
+    execForkDstArtUpdateOk (fork := fork) (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm3) (I := I)
       (locals := forkStoreDstInkNew I srcInkNew srcArtNew dstInkNew) dstArtOld dstArtNew
       hsz164 (forkStoreDstInkNew_get_ilk I srcInkNew srcArtNew dstInkNew)
       (forkStoreDstInkNew_get_dst I srcInkNew srcArtNew dstInkNew)
@@ -8447,7 +8449,7 @@ theorem execForkSourceRevertVtabMul {evm0 : EVM.State} {I : ExecutionEnv}
       (by simpa [evm1, evm2, evm3, storageStore_executionEnv] using hloadDstArt)
       hdstArtNew hdstArtGuardNeg hdstArtGuardPos
   have hfinalLoadsBlock :=
-    execForkFinalLoadsOk (evm := evm4) (I := I)
+    execForkFinalLoadsOk (fork := fork) (evm := evm4) (I := I)
       srcInkNew srcArtNew dstInkNew dstArtNew srcArtFinal dstArtFinal
       srcInkFinal dstInkFinal hsz164
       (by
@@ -8466,7 +8468,7 @@ theorem execForkSourceRevertVtabMul {evm0 : EVM.State} {I : ExecutionEnv}
       Stele.EVM.storageLoad evm4 evm4.executionEnv.codeOwner (forkIlkRateSlot I) = rate := by
     simpa [evm1, evm2, evm3, evm4, storageStore_executionEnv] using hloadRate
   have hutabBlock :=
-    execForkUtabFinalMulOk (evm := evm4) (I := I)
+    execForkUtabFinalMulOk (fork := fork) (evm := evm4) (I := I)
       srcInkNew srcArtNew dstInkNew dstArtNew srcArtFinal dstArtFinal
       srcInkFinal dstInkFinal rate utab hsz164 hloadRateFinal
       hutabProd hutabFit hutabGuard
@@ -8500,7 +8502,7 @@ theorem execForkSourceRevertVtabMul {evm0 : EVM.State} {I : ExecutionEnv}
           srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab)]
     simpa [hloadRateFinal]
   have hvtabRevert :
-      ExecBlock config { contract := contract, locals := localsUtab } evm4
+      ExecBlock fork config { contract := contract, locals := localsUtab } evm4
         (checkedMulUintInto "vtab" (.var "dstArtFinal")
           (.storage (ilksF (.var "ilk") "rate"))) .reverted :=
     execForkMulUintIntoRevertOfOverflow (evm := evm4) (locals := localsUtab)
@@ -8650,7 +8652,7 @@ theorem execForkSourceRevertSrcInkSpotMul {evm0 : EVM.State} {I : ExecutionEnv}
     (hvtabGuard : rate.toNat = 0 ∨ vtab.toNat / rate.toNat = dstArtFinal.toNat)
     (hover : UInt256.size ≤ srcInkFinal.toNat * spot.toNat)
     (hperm : evm0.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm0 (forkStore I) forkTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 (forkStore I) forkTransition.body .reverted := by
   let evm1 := Stele.EVM.storageStore evm0 evm0.executionEnv.codeOwner
     (forkSrcInkSlot I) srcInkNew
   let evm2 := Stele.EVM.storageStore evm1 evm1.executionEnv.codeOwner
@@ -8660,20 +8662,20 @@ theorem execForkSourceRevertSrcInkSpotMul {evm0 : EVM.State} {I : ExecutionEnv}
   let evm4 := Stele.EVM.storageStore evm3 evm3.executionEnv.codeOwner
     (forkDstArtSlot I) dstArtNew
   have hprefix :
-      ExecBlock config { contract := contract, locals := forkStore I } evm0 nonpayable
+      ExecBlock fork config { contract := contract, locals := forkStore I } evm0 nonpayable
         (.ok { contract := contract, locals := forkStore I } evm0) := by
-    change ExecBlock config { contract := contract, locals := forkStore I } evm0
+    change ExecBlock fork config { contract := contract, locals := forkStore I } evm0
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)) ]
       (.ok { contract := contract, locals := forkStore I } evm0)
     exact ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwei))
       ExecBlock.nil
   have hsrcInkBlock :=
-    execForkSrcInkUpdateOk (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm0) (I := I) (locals := forkStore I)
+    execForkSrcInkUpdateOk (fork := fork) (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm0) (I := I) (locals := forkStore I)
       srcInkOld srcInkNew hsz164 (forkStore_get_ilk I) (forkStore_get_src I)
       (forkStore_get_dink I) (forkStore_urns I) hloadSrcInk hsrcInkNew
       hsrcInkGuardNeg hsrcInkGuardPos
   have hsrcArtBlock :=
-    execForkSrcArtUpdateOk (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm1) (I := I)
+    execForkSrcArtUpdateOk (fork := fork) (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm1) (I := I)
       (locals := forkStoreSrcInkNew I srcInkNew) srcArtOld srcArtNew hsz164
       (forkStoreSrcInkNew_get_ilk I srcInkNew)
       (forkStoreSrcInkNew_get_src I srcInkNew)
@@ -8682,7 +8684,7 @@ theorem execForkSourceRevertSrcInkSpotMul {evm0 : EVM.State} {I : ExecutionEnv}
       (by simpa [evm1, storageStore_executionEnv] using hloadSrcArt) hsrcArtNew
       hsrcArtGuardNeg hsrcArtGuardPos
   have hdstInkBlock :=
-    execForkDstInkUpdateOk (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm2) (I := I)
+    execForkDstInkUpdateOk (fork := fork) (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm2) (I := I)
       (locals := forkStoreSrcArtNew I srcInkNew srcArtNew) dstInkOld dstInkNew hsz164
       (forkStoreSrcArtNew_get_ilk I srcInkNew srcArtNew)
       (forkStoreSrcArtNew_get_dst I srcInkNew srcArtNew)
@@ -8691,7 +8693,7 @@ theorem execForkSourceRevertSrcInkSpotMul {evm0 : EVM.State} {I : ExecutionEnv}
       (by simpa [evm1, evm2, storageStore_executionEnv] using hloadDstInk) hdstInkNew
       hdstInkGuardNeg hdstInkGuardPos
   have hdstArtBlock :=
-    execForkDstArtUpdateOk (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm3) (I := I)
+    execForkDstArtUpdateOk (fork := fork) (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm3) (I := I)
       (locals := forkStoreDstInkNew I srcInkNew srcArtNew dstInkNew) dstArtOld dstArtNew
       hsz164 (forkStoreDstInkNew_get_ilk I srcInkNew srcArtNew dstInkNew)
       (forkStoreDstInkNew_get_dst I srcInkNew srcArtNew dstInkNew)
@@ -8700,7 +8702,7 @@ theorem execForkSourceRevertSrcInkSpotMul {evm0 : EVM.State} {I : ExecutionEnv}
       (by simpa [evm1, evm2, evm3, storageStore_executionEnv] using hloadDstArt)
       hdstArtNew hdstArtGuardNeg hdstArtGuardPos
   have hfinalLoadsBlock :=
-    execForkFinalLoadsOk (evm := evm4) (I := I)
+    execForkFinalLoadsOk (fork := fork) (evm := evm4) (I := I)
       srcInkNew srcArtNew dstInkNew dstArtNew srcArtFinal dstArtFinal
       srcInkFinal dstInkFinal hsz164
       (by
@@ -8722,12 +8724,12 @@ theorem execForkSourceRevertSrcInkSpotMul {evm0 : EVM.State} {I : ExecutionEnv}
       Stele.EVM.storageLoad evm4 evm4.executionEnv.codeOwner (forkIlkSpotSlot I) = spot := by
     simpa [evm1, evm2, evm3, evm4, storageStore_executionEnv] using hloadSpot
   have hutabBlock :=
-    execForkUtabFinalMulOk (evm := evm4) (I := I)
+    execForkUtabFinalMulOk (fork := fork) (evm := evm4) (I := I)
       srcInkNew srcArtNew dstInkNew dstArtNew srcArtFinal dstArtFinal
       srcInkFinal dstInkFinal rate utab hsz164 hloadRateFinal
       hutabProd hutabFit hutabGuard
   have hvtabBlock :=
-    execForkVtabFinalMulOk (evm := evm4) (I := I)
+    execForkVtabFinalMulOk (fork := fork) (evm := evm4) (I := I)
       srcInkNew srcArtNew dstInkNew dstArtNew srcArtFinal dstArtFinal
       srcInkFinal dstInkFinal rate utab vtab hsz164 hloadRateFinal
       hvtabProd hvtabFit hvtabGuard
@@ -8761,7 +8763,7 @@ theorem execForkSourceRevertSrcInkSpotMul {evm0 : EVM.State} {I : ExecutionEnv}
           srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab)]
     simpa [hloadSpotFinal]
   have hsrcInkSpotRevert :
-      ExecBlock config { contract := contract, locals := localsVtab } evm4
+      ExecBlock fork config { contract := contract, locals := localsVtab } evm4
         (checkedMulUintInto "srcInkSpot" (.var "srcInkFinal")
           (.storage (ilksF (.var "ilk") "spot"))) .reverted :=
     execForkMulUintIntoRevertOfOverflow (evm := evm4) (locals := localsVtab)
@@ -8914,7 +8916,7 @@ theorem execForkSourceRevertDstInkSpotMul {evm0 : EVM.State} {I : ExecutionEnv}
     (hsrcInkSpotGuard : spot.toNat = 0 ∨ srcInkSpot.toNat / spot.toNat = srcInkFinal.toNat)
     (hover : UInt256.size ≤ dstInkFinal.toNat * spot.toNat)
     (hperm : evm0.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm0 (forkStore I) forkTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 (forkStore I) forkTransition.body .reverted := by
   let evm1 := Stele.EVM.storageStore evm0 evm0.executionEnv.codeOwner
     (forkSrcInkSlot I) srcInkNew
   let evm2 := Stele.EVM.storageStore evm1 evm1.executionEnv.codeOwner
@@ -8924,20 +8926,20 @@ theorem execForkSourceRevertDstInkSpotMul {evm0 : EVM.State} {I : ExecutionEnv}
   let evm4 := Stele.EVM.storageStore evm3 evm3.executionEnv.codeOwner
     (forkDstArtSlot I) dstArtNew
   have hprefix :
-      ExecBlock config { contract := contract, locals := forkStore I } evm0 nonpayable
+      ExecBlock fork config { contract := contract, locals := forkStore I } evm0 nonpayable
         (.ok { contract := contract, locals := forkStore I } evm0) := by
-    change ExecBlock config { contract := contract, locals := forkStore I } evm0
+    change ExecBlock fork config { contract := contract, locals := forkStore I } evm0
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)) ]
       (.ok { contract := contract, locals := forkStore I } evm0)
     exact ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwei))
       ExecBlock.nil
   have hsrcInkBlock :=
-    execForkSrcInkUpdateOk (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm0) (I := I) (locals := forkStore I)
+    execForkSrcInkUpdateOk (fork := fork) (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm0) (I := I) (locals := forkStore I)
       srcInkOld srcInkNew hsz164 (forkStore_get_ilk I) (forkStore_get_src I)
       (forkStore_get_dink I) (forkStore_urns I) hloadSrcInk hsrcInkNew
       hsrcInkGuardNeg hsrcInkGuardPos
   have hsrcArtBlock :=
-    execForkSrcArtUpdateOk (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm1) (I := I)
+    execForkSrcArtUpdateOk (fork := fork) (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm1) (I := I)
       (locals := forkStoreSrcInkNew I srcInkNew) srcArtOld srcArtNew hsz164
       (forkStoreSrcInkNew_get_ilk I srcInkNew)
       (forkStoreSrcInkNew_get_src I srcInkNew)
@@ -8946,7 +8948,7 @@ theorem execForkSourceRevertDstInkSpotMul {evm0 : EVM.State} {I : ExecutionEnv}
       (by simpa [evm1, storageStore_executionEnv] using hloadSrcArt) hsrcArtNew
       hsrcArtGuardNeg hsrcArtGuardPos
   have hdstInkBlock :=
-    execForkDstInkUpdateOk (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm2) (I := I)
+    execForkDstInkUpdateOk (fork := fork) (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm2) (I := I)
       (locals := forkStoreSrcArtNew I srcInkNew srcArtNew) dstInkOld dstInkNew hsz164
       (forkStoreSrcArtNew_get_ilk I srcInkNew srcArtNew)
       (forkStoreSrcArtNew_get_dst I srcInkNew srcArtNew)
@@ -8955,7 +8957,7 @@ theorem execForkSourceRevertDstInkSpotMul {evm0 : EVM.State} {I : ExecutionEnv}
       (by simpa [evm1, evm2, storageStore_executionEnv] using hloadDstInk) hdstInkNew
       hdstInkGuardNeg hdstInkGuardPos
   have hdstArtBlock :=
-    execForkDstArtUpdateOk (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm3) (I := I)
+    execForkDstArtUpdateOk (fork := fork) (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm3) (I := I)
       (locals := forkStoreDstInkNew I srcInkNew srcArtNew dstInkNew) dstArtOld dstArtNew
       hsz164 (forkStoreDstInkNew_get_ilk I srcInkNew srcArtNew dstInkNew)
       (forkStoreDstInkNew_get_dst I srcInkNew srcArtNew dstInkNew)
@@ -8964,7 +8966,7 @@ theorem execForkSourceRevertDstInkSpotMul {evm0 : EVM.State} {I : ExecutionEnv}
       (by simpa [evm1, evm2, evm3, storageStore_executionEnv] using hloadDstArt)
       hdstArtNew hdstArtGuardNeg hdstArtGuardPos
   have hfinalLoadsBlock :=
-    execForkFinalLoadsOk (evm := evm4) (I := I)
+    execForkFinalLoadsOk (fork := fork) (evm := evm4) (I := I)
       srcInkNew srcArtNew dstInkNew dstArtNew srcArtFinal dstArtFinal
       srcInkFinal dstInkFinal hsz164
       (by
@@ -8986,17 +8988,17 @@ theorem execForkSourceRevertDstInkSpotMul {evm0 : EVM.State} {I : ExecutionEnv}
       Stele.EVM.storageLoad evm4 evm4.executionEnv.codeOwner (forkIlkSpotSlot I) = spot := by
     simpa [evm1, evm2, evm3, evm4, storageStore_executionEnv] using hloadSpot
   have hutabBlock :=
-    execForkUtabFinalMulOk (evm := evm4) (I := I)
+    execForkUtabFinalMulOk (fork := fork) (evm := evm4) (I := I)
       srcInkNew srcArtNew dstInkNew dstArtNew srcArtFinal dstArtFinal
       srcInkFinal dstInkFinal rate utab hsz164 hloadRateFinal
       hutabProd hutabFit hutabGuard
   have hvtabBlock :=
-    execForkVtabFinalMulOk (evm := evm4) (I := I)
+    execForkVtabFinalMulOk (fork := fork) (evm := evm4) (I := I)
       srcInkNew srcArtNew dstInkNew dstArtNew srcArtFinal dstArtFinal
       srcInkFinal dstInkFinal rate utab vtab hsz164 hloadRateFinal
       hvtabProd hvtabFit hvtabGuard
   have hsrcInkSpotBlock :=
-    execForkSrcInkSpotFinalMulOk (evm := evm4) (I := I)
+    execForkSrcInkSpotFinalMulOk (fork := fork) (evm := evm4) (I := I)
       srcInkNew srcArtNew dstInkNew dstArtNew srcArtFinal dstArtFinal
       srcInkFinal dstInkFinal spot utab vtab srcInkSpot hsz164 hloadSpotFinal
       hsrcInkSpotProd hsrcInkSpotFit hsrcInkSpotGuard
@@ -9031,7 +9033,7 @@ theorem execForkSourceRevertDstInkSpotMul {evm0 : EVM.State} {I : ExecutionEnv}
           srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab srcInkSpot)]
     simpa [hloadSpotFinal]
   have hdstInkSpotRevert :
-      ExecBlock config { contract := contract, locals := localsSrcInkSpot } evm4
+      ExecBlock fork config { contract := contract, locals := localsSrcInkSpot } evm4
         (checkedMulUintInto "dstInkSpot" (.var "dstInkFinal")
           (.storage (ilksF (.var "ilk") "spot"))) .reverted :=
     execForkMulUintIntoRevertOfOverflow (evm := evm4) (locals := localsSrcInkSpot)
@@ -9196,7 +9198,7 @@ theorem execForkSourceRevertFinal {evm0 : EVM.State} {I : ExecutionEnv}
     let finalLocals :=
       forkStoreDstInkSpotFinal I srcInkNew srcArtNew dstInkNew dstArtNew
         srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab srcInkSpot dstInkSpot
-    ExecBlock config { contract := contract, locals := finalLocals } evm4
+    ExecBlock fork config { contract := contract, locals := finalLocals } evm4
       [ .require (bothExpr (wishExpr (.var "src") sender) (wishExpr (.var "dst") sender)),
         .require (.binary .le (.var "utab") (.var "srcInkSpot")),
         .require (.binary .le (.var "vtab") (.var "dstInkSpot")),
@@ -9209,23 +9211,23 @@ theorem execForkSourceRevertFinal {evm0 : EVM.State} {I : ExecutionEnv}
             (.binary .ge (.var "vtab") (.storage (ilksF (.var "ilk") "dust")))
             (.binary .eq (.var "dstArtFinal") (.intLit 0))) ]
       .reverted →
-    ExecTransitionBody config contract evm0 (forkStore I) forkTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 (forkStore I) forkTransition.body .reverted := by
   intro evm1 evm2 evm3 evm4 finalLocals hfinalBlock
   have hprefix :
-      ExecBlock config { contract := contract, locals := forkStore I } evm0 nonpayable
+      ExecBlock fork config { contract := contract, locals := forkStore I } evm0 nonpayable
         (.ok { contract := contract, locals := forkStore I } evm0) := by
-    change ExecBlock config { contract := contract, locals := forkStore I } evm0
+    change ExecBlock fork config { contract := contract, locals := forkStore I } evm0
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)) ]
       (.ok { contract := contract, locals := forkStore I } evm0)
     exact ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwei))
       ExecBlock.nil
   have hsrcInkBlock :=
-    execForkSrcInkUpdateOk (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm0) (I := I) (locals := forkStore I)
+    execForkSrcInkUpdateOk (fork := fork) (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm0) (I := I) (locals := forkStore I)
       srcInkOld srcInkNew hsz164 (forkStore_get_ilk I) (forkStore_get_src I)
       (forkStore_get_dink I) (forkStore_urns I) hloadSrcInk hsrcInkNew
       hsrcInkGuardNeg hsrcInkGuardPos
   have hsrcArtBlock :=
-    execForkSrcArtUpdateOk (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm1) (I := I)
+    execForkSrcArtUpdateOk (fork := fork) (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm1) (I := I)
       (locals := forkStoreSrcInkNew I srcInkNew) srcArtOld srcArtNew hsz164
       (forkStoreSrcInkNew_get_ilk I srcInkNew)
       (forkStoreSrcInkNew_get_src I srcInkNew)
@@ -9234,7 +9236,7 @@ theorem execForkSourceRevertFinal {evm0 : EVM.State} {I : ExecutionEnv}
       (by simpa [evm1, storageStore_executionEnv] using hloadSrcArt) hsrcArtNew
       hsrcArtGuardNeg hsrcArtGuardPos
   have hdstInkBlock :=
-    execForkDstInkUpdateOk (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm2) (I := I)
+    execForkDstInkUpdateOk (fork := fork) (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm2) (I := I)
       (locals := forkStoreSrcArtNew I srcInkNew srcArtNew) dstInkOld dstInkNew hsz164
       (forkStoreSrcArtNew_get_ilk I srcInkNew srcArtNew)
       (forkStoreSrcArtNew_get_dst I srcInkNew srcArtNew)
@@ -9243,7 +9245,7 @@ theorem execForkSourceRevertFinal {evm0 : EVM.State} {I : ExecutionEnv}
       (by simpa [evm1, evm2, storageStore_executionEnv] using hloadDstInk) hdstInkNew
       hdstInkGuardNeg hdstInkGuardPos
   have hdstArtBlock :=
-    execForkDstArtUpdateOk (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm3) (I := I)
+    execForkDstArtUpdateOk (fork := fork) (hperm := by simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm) (evm := evm3) (I := I)
       (locals := forkStoreDstInkNew I srcInkNew srcArtNew dstInkNew) dstArtOld dstArtNew
       hsz164 (forkStoreDstInkNew_get_ilk I srcInkNew srcArtNew dstInkNew)
       (forkStoreDstInkNew_get_dst I srcInkNew srcArtNew dstInkNew)
@@ -9252,7 +9254,7 @@ theorem execForkSourceRevertFinal {evm0 : EVM.State} {I : ExecutionEnv}
       (by simpa [evm1, evm2, evm3, storageStore_executionEnv] using hloadDstArt)
       hdstArtNew hdstArtGuardNeg hdstArtGuardPos
   have hfinalLoadsBlock :=
-    execForkFinalLoadsOk (evm := evm4) (I := I)
+    execForkFinalLoadsOk (fork := fork) (evm := evm4) (I := I)
       srcInkNew srcArtNew dstInkNew dstArtNew srcArtFinal dstArtFinal
       srcInkFinal dstInkFinal hsz164
       (by
@@ -9277,22 +9279,22 @@ theorem execForkSourceRevertFinal {evm0 : EVM.State} {I : ExecutionEnv}
       Stele.EVM.storageLoad evm4 evm4.executionEnv.codeOwner (forkIlkSpotSlot I) = spot := by
     simpa [evm1, evm2, evm3, evm4, storageStore_executionEnv] using hloadSpot
   have hutabBlock :=
-    execForkUtabFinalMulOk (evm := evm4) (I := I)
+    execForkUtabFinalMulOk (fork := fork) (evm := evm4) (I := I)
       srcInkNew srcArtNew dstInkNew dstArtNew srcArtFinal dstArtFinal
       srcInkFinal dstInkFinal rate utab hsz164 hloadRateFinal
       hutabProd hutabFit hutabGuard
   have hvtabBlock :=
-    execForkVtabFinalMulOk (evm := evm4) (I := I)
+    execForkVtabFinalMulOk (fork := fork) (evm := evm4) (I := I)
       srcInkNew srcArtNew dstInkNew dstArtNew srcArtFinal dstArtFinal
       srcInkFinal dstInkFinal rate utab vtab hsz164 hloadRateFinal
       hvtabProd hvtabFit hvtabGuard
   have hsrcInkSpotBlock :=
-    execForkSrcInkSpotFinalMulOk (evm := evm4) (I := I)
+    execForkSrcInkSpotFinalMulOk (fork := fork) (evm := evm4) (I := I)
       srcInkNew srcArtNew dstInkNew dstArtNew srcArtFinal dstArtFinal
       srcInkFinal dstInkFinal spot utab vtab srcInkSpot hsz164 hloadSpotFinal
       hsrcInkSpotProd hsrcInkSpotFit hsrcInkSpotGuard
   have hdstInkSpotBlock :=
-    execForkDstInkSpotFinalMulOk (evm := evm4) (I := I)
+    execForkDstInkSpotFinalMulOk (fork := fork) (evm := evm4) (I := I)
       srcInkNew srcArtNew dstInkNew dstArtNew srcArtFinal dstArtFinal
       srcInkFinal dstInkFinal spot utab vtab srcInkSpot dstInkSpot hsz164 hloadSpotFinal
       hdstInkSpotProd hdstInkSpotFit hdstInkSpotGuard
@@ -9444,7 +9446,7 @@ theorem execForkSourceRevertWish {evm0 : EVM.State} {I : ExecutionEnv}
     evalExpr? config { contract := contract, locals := finalLocals } evm4
         (bothExpr (wishExpr (.var "src") sender) (wishExpr (.var "dst") sender)) =
         .ok (.bool false) →
-    ExecTransitionBody config contract evm0 (forkStore I) forkTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 (forkStore I) forkTransition.body .reverted := by
   intro evm1 evm2 evm3 evm4 finalLocals hwish
   exact execForkSourceRevertFinal (hperm := hperm) (evm0 := evm0) (I := I)
     srcInkOld srcInkNew srcArtOld srcArtNew dstInkOld dstInkNew dstArtOld dstArtNew
@@ -9514,7 +9516,7 @@ theorem vatReachForkBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vatSelBytes 10)) :
-    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vatBytecode I g (initState σ σ₀ g A I)
         ⟨1095⟩ [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : vatSelWord I = ⟨0x870c616d⟩ :=
@@ -9622,11 +9624,11 @@ theorem RD.solcForkExternalLoadAndJump {code : ByteArray} {g : Sat256} {s0 : Sta
     {ee : ExecutionEnv} {k C : ℕ} {decoded ret routine de : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
     {acc : AccountMap}
-    (h : RD code ee g s0 decoded (de :: ⟨4⟩ :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 decoded (de :: ⟨4⟩ :: ret :: R) mem aw rdata acc k C)
     (hwf : solcForkExternalLoadAndJumpWf code decoded routine)
     (hroutine : (D_J code 0).contains routine = true)
     (hov : R.length + 9 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 routine
+    ∃ k' C', RD fork code ee g s0 routine
       (calldataWord ee.calldata 132 ::
         calldataWord ee.calldata 100 ::
         UInt256.land solcAddrMask (calldataWord ee.calldata 68) ::
@@ -9683,10 +9685,10 @@ theorem RD.solcForkExternalLoadAndJump {code : ByteArray} {g : Sat256} {s0 : Sta
 
 theorem vatForkX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz164 : 164 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD vatBytecode I g
+    (hreach : ∃ k C, RD fork vatBytecode I g
       (initState σ σ₀ g A I) ⟨1095⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I) ⟨4726⟩
+    ∃ k C, RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨4726⟩
         [forkDartWord I, forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I,
           forkIlkWord I, ⟨524⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -9712,10 +9714,10 @@ theorem vatForkX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem vatForkX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 164)
     (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD vatBytecode I g
+    (hreach : ∃ k C, RD fork vatBytecode I g
       (initState σ σ₀ g A I) ⟨1095⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev vatBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vatBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨160⟩ = ⟨1⟩ := by
     apply ult_one
@@ -9735,10 +9737,10 @@ theorem vatForkBodyCoreDecodeFailed_short
     (hcode : I.code = vatBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 164)
     (hsel : selIs I (vatSelBytes 10))
-    (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1095⟩ [vatSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact (vatForkX_shortarg (g := Sat256.ofUInt256 g) hsz4 hshort hsize hreach)
     |>.reEquivDecodingFailed hcode (vatDispatchFork hsel)
       (vatDecode_fork_none_short hsz4 hshort)
@@ -9748,14 +9750,14 @@ theorem RD.vatCheckedMulUintOk {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {x y ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {activeWords : UInt256}
     {acc : AccountMap}
-    (h : RD vatBytecode ee g s0 ⟨6752⟩ (x :: y :: ret :: R) mem
+    (h : RD fork vatBytecode ee g s0 ⟨6752⟩ (x :: y :: ret :: R) mem
       activeWords rdata acc k C)
     (hok :
       x = ⟨0⟩ ∨
         UInt256.eq (UInt256.div (UInt256.mul y x) x) y ≠ ⟨0⟩)
     (hret : (D_J vatBytecode 0).contains ret = true)
     (hov : R.length + 10 ≤ 1024) :
-    ∃ k' C', RD vatBytecode ee g s0 ret ((UInt256.mul y x) :: R) mem
+    ∃ k' C', RD fork vatBytecode ee g s0 ret ((UInt256.mul y x) :: R) mem
       activeWords rdata acc k' C' := by
   let prod := UInt256.mul y x
   have rd6753 := h.jumpdest (by native_decide) (by evm_ov)
@@ -9820,13 +9822,13 @@ theorem RD.vatCheckedMulUintRevert {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {x y ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {activeWords : UInt256}
     {acc : AccountMap}
-    (h : RD vatBytecode ee g s0 ⟨6752⟩ (x :: y :: ret :: R) mem
+    (h : RD fork vatBytecode ee g s0 ⟨6752⟩ (x :: y :: ret :: R) mem
       activeWords rdata acc k C)
     (hfail :
       ¬ (x = ⟨0⟩ ∨
         UInt256.eq (UInt256.div (UInt256.mul y x) x) y ≠ ⟨0⟩))
     (hov : R.length + 10 ≤ 1024) :
-    RDrev vatBytecode g s0 := by
+    RDrev fork vatBytecode g s0 := by
   let prod := UInt256.mul y x
   have hxzero : x ≠ ⟨0⟩ := by
     intro hx
@@ -9880,7 +9882,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.vatForkSrcInkSubSuccess
     {σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256}
     {mem : ByteArray}
-    (h : RD vatBytecode I g (initState σ σ₀ g A I) ⟨4726⟩
+    (h : RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨4726⟩
       [forkDartWord I, forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I,
         forkIlkWord I, ⟨524⟩, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C)
@@ -9896,7 +9898,7 @@ theorem RD.vatForkSrcInkSubSuccess
         UInt256.lt
           (UInt256.sub (solcSlotWord σ I (forkSrcInkSlot I)) (forkDinkWord I))
           (solcSlotWord σ I (forkSrcInkSlot I)) = ⟨0⟩) :
-    ∃ k' C', RD vatBytecode I g (initState σ σ₀ g A I) ⟨4792⟩
+    ∃ k' C', RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨4792⟩
       [UInt256.sub (solcSlotWord σ I (forkSrcInkSlot I)) (forkDinkWord I),
         forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I, forkDartWord I,
         forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I, forkIlkWord I,
@@ -10081,7 +10083,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.vatForkSrcInkSubRevert
     {σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256}
     {mem : ByteArray}
-    (h : RD vatBytecode I g (initState σ σ₀ g A I) ⟨4726⟩
+    (h : RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨4726⟩
       [forkDartWord I, forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I,
         forkIlkWord I, ⟨524⟩, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C)
@@ -10100,7 +10102,7 @@ theorem RD.vatForkSrcInkSubRevert
           UInt256.lt
             (UInt256.sub (solcSlotWord σ I (forkSrcInkSlot I)) (forkDinkWord I))
             (solcSlotWord σ I (forkSrcInkSlot I)) = ⟨0⟩)) :
-    RDrev vatBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vatBytecode g (initState σ σ₀ g A I) := by
   let urnsIlk := solcMappingSlot ⟨3⟩ (forkIlkWord I)
   let srcBase := solcMappingSlot urnsIlk (forkSrcMaskedWord I)
   let dstBase := solcMappingSlot urnsIlk (forkDstMaskedWord I)
@@ -10269,19 +10271,19 @@ theorem RD.vatForkSrcInkSubRevert
 theorem RD.vatForkSrcInkStoreSplit
     {σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel srcInkNew : UInt256}
     {mem : ByteArray}
-    (h : RD vatBytecode I g (initState σ σ₀ g A I) ⟨4792⟩
+    (h : RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨4792⟩
       [srcInkNew, forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I, forkDartWord I,
         forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I, forkIlkWord I,
         ⟨524⟩, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     (I.perm = true ∧
-    ∃ k' C', RD vatBytecode I g (initState σ σ₀ g A I) ⟨4795⟩
+    ∃ k' C', RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨4795⟩
       [forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I, forkDartWord I,
         forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I, forkIlkWord I,
         ⟨524⟩, sel]
       mem (UInt256.ofNat 3) ByteArray.empty
       (sstoreAccountMap I.codeOwner σ (forkSrcInkSlot I) srcInkNew) k' C') ∨
-      (I.perm = false ∧ RDstatic vatBytecode g (initState σ σ₀ g A I)) := by
+      (I.perm = false ∧ RDstatic fork vatBytecode g (initState σ σ₀ g A I)) := by
   have rd4793 := h.jumpdest (by native_decide) (by evm_ov)
   have rd4794pre := rd4793.dup4 (by native_decide) (by evm_ov)
   by_cases hperm : I.perm = true
@@ -10295,7 +10297,7 @@ theorem RD.vatForkSrcInkStoreSplit
 theorem RD.vatForkSrcArtSubSuccess
     {σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel srcInkNew : UInt256}
     {mem : ByteArray}
-    (h : RD vatBytecode I g (initState σ σ₀ g A I) ⟨4792⟩
+    (h : RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨4792⟩
       [srcInkNew, forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I, forkDartWord I,
         forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I, forkIlkWord I,
         ⟨524⟩, sel]
@@ -10323,7 +10325,7 @@ theorem RD.vatForkSrcArtSubSuccess
           (solcSlotWord
             (sstoreAccountMap I.codeOwner σ (forkSrcInkSlot I) srcInkNew)
             I (forkSrcArtSlot I)) = ⟨0⟩) :
-    ∃ k' C', RD vatBytecode I g (initState σ σ₀ g A I) ⟨4809⟩
+    ∃ k' C', RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨4809⟩
       [UInt256.sub
           (solcSlotWord
             (sstoreAccountMap I.codeOwner σ (forkSrcInkSlot I) srcInkNew)
@@ -10368,7 +10370,7 @@ theorem RD.vatForkSrcArtSubSuccess
 theorem RD.vatForkSrcArtSubRevert
     {σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel srcInkNew : UInt256}
     {mem : ByteArray}
-    (h : RD vatBytecode I g (initState σ σ₀ g A I) ⟨4792⟩
+    (h : RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨4792⟩
       [srcInkNew, forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I, forkDartWord I,
         forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I, forkIlkWord I,
         ⟨524⟩, sel]
@@ -10405,7 +10407,7 @@ theorem RD.vatForkSrcArtSubRevert
             (solcSlotWord
               (sstoreAccountMap I.codeOwner σ (forkSrcInkSlot I) srcInkNew)
               I (forkSrcArtSlot I)) = ⟨0⟩)) :
-    RDrev vatBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vatBytecode g (initState σ σ₀ g A I) := by
   let srcBase := forkSrcUrnBase I
   let σSrcInk := sstoreAccountMap I.codeOwner σ (forkSrcInkSlot I) srcInkNew
   let srcArtOld := solcSlotWord σSrcInk I (forkSrcArtSlot I)
@@ -10437,7 +10439,7 @@ theorem RD.vatForkSrcArtSubRevert
 theorem RD.vatForkDstInkAddSuccess
     {σ σ₀ A I} {g : Sat256} {k C : ℕ}
     {sel srcInkNew srcArtNew : UInt256} {mem : ByteArray}
-    (h : RD vatBytecode I g (initState σ σ₀ g A I) ⟨4809⟩
+    (h : RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨4809⟩
       [srcArtNew, forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I, forkDartWord I,
         forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I, forkIlkWord I,
         ⟨524⟩, sel]
@@ -10472,7 +10474,7 @@ theorem RD.vatForkDstInkAddSuccess
               (sstoreAccountMap I.codeOwner σ (forkSrcInkSlot I) srcInkNew)
               (forkSrcArtSlot I) srcArtNew)
             I (forkDstInkSlot I)) = ⟨0⟩) :
-    ∃ k' C', RD vatBytecode I g (initState σ σ₀ g A I) ⟨4826⟩
+    ∃ k' C', RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨4826⟩
       [forkDinkWord I +
           solcSlotWord
             (sstoreAccountMap I.codeOwner
@@ -10497,7 +10499,7 @@ theorem RD.vatForkDstInkAddSuccess
   have rd4814pre := rd4813pre.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4815raw⟩ := rd4814pre.sstore hperm (by native_decide) (by evm_ov)
   have hrd4815 :
-      ∃ k' C', RD vatBytecode I g (initState σ σ₀ g A I) ⟨4815⟩
+      ∃ k' C', RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨4815⟩
         [forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I, forkDartWord I,
           forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I, forkIlkWord I,
           ⟨524⟩, sel]
@@ -10533,7 +10535,7 @@ theorem RD.vatForkDstInkAddSuccess
 theorem RD.vatForkDstInkAddRevert
     {σ σ₀ A I} {g : Sat256} {k C : ℕ}
     {sel srcInkNew srcArtNew : UInt256} {mem : ByteArray}
-    (h : RD vatBytecode I g (initState σ σ₀ g A I) ⟨4809⟩
+    (h : RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨4809⟩
       [srcArtNew, forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I, forkDartWord I,
         forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I, forkIlkWord I,
         ⟨524⟩, sel]
@@ -10580,7 +10582,7 @@ theorem RD.vatForkDstInkAddRevert
                 (sstoreAccountMap I.codeOwner σ (forkSrcInkSlot I) srcInkNew)
                 (forkSrcArtSlot I) srcArtNew)
               I (forkDstInkSlot I)) = ⟨0⟩)) :
-    RDrev vatBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vatBytecode g (initState σ σ₀ g A I) := by
   let srcBase := forkSrcUrnBase I
   let dstBase := forkDstUrnBase I
   let σSrcInk := sstoreAccountMap I.codeOwner σ (forkSrcInkSlot I) srcInkNew
@@ -10592,7 +10594,7 @@ theorem RD.vatForkDstInkAddRevert
   have rd4814pre := rd4813pre.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4815raw⟩ := rd4814pre.sstore hperm (by native_decide) (by evm_ov)
   have hrd4815 :
-      ∃ k' C', RD vatBytecode I g (initState σ σ₀ g A I) ⟨4815⟩
+      ∃ k' C', RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨4815⟩
         [forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I, forkDartWord I,
           forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I, forkIlkWord I,
           ⟨524⟩, sel]
@@ -10625,7 +10627,7 @@ theorem RD.vatForkDstInkAddRevert
 theorem RD.vatForkDstArtAddSuccess
     {σ σ₀ A I} {g : Sat256} {k C : ℕ}
     {sel srcInkNew srcArtNew dstInkNew : UInt256} {mem : ByteArray}
-    (h : RD vatBytecode I g (initState σ σ₀ g A I) ⟨4826⟩
+    (h : RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨4826⟩
       [dstInkNew, forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I, forkDartWord I,
         forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I, forkIlkWord I,
         ⟨524⟩, sel]
@@ -10670,7 +10672,7 @@ theorem RD.vatForkDstArtAddSuccess
                 (forkSrcArtSlot I) srcArtNew)
               (forkDstInkSlot I) dstInkNew)
             I (forkDstArtSlot I)) = ⟨0⟩) :
-    ∃ k' C', RD vatBytecode I g (initState σ σ₀ g A I) ⟨4843⟩
+    ∃ k' C', RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨4843⟩
       [forkDartWord I +
           solcSlotWord
             (sstoreAccountMap I.codeOwner
@@ -10697,7 +10699,7 @@ theorem RD.vatForkDstArtAddSuccess
   have rd4828pre := rd4827.dup3 (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4829raw⟩ := rd4828pre.sstore hperm (by native_decide) (by evm_ov)
   have hrd4829 :
-      ∃ k' C', RD vatBytecode I g (initState σ σ₀ g A I) ⟨4829⟩
+      ∃ k' C', RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨4829⟩
         [forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I, forkDartWord I,
           forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I, forkIlkWord I,
           ⟨524⟩, sel]
@@ -10735,7 +10737,7 @@ theorem RD.vatForkDstArtAddSuccess
 theorem RD.vatForkDstArtAddRevert
     {σ σ₀ A I} {g : Sat256} {k C : ℕ}
     {sel srcInkNew srcArtNew dstInkNew : UInt256} {mem : ByteArray}
-    (h : RD vatBytecode I g (initState σ σ₀ g A I) ⟨4826⟩
+    (h : RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨4826⟩
       [dstInkNew, forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I, forkDartWord I,
         forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I, forkIlkWord I,
         ⟨524⟩, sel]
@@ -10796,7 +10798,7 @@ theorem RD.vatForkDstArtAddRevert
                   (forkSrcArtSlot I) srcArtNew)
                 (forkDstInkSlot I) dstInkNew)
               I (forkDstArtSlot I)) = ⟨0⟩)) :
-    RDrev vatBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vatBytecode g (initState σ σ₀ g A I) := by
   let dstBase := forkDstUrnBase I
   let σSrcInk := sstoreAccountMap I.codeOwner σ (forkSrcInkSlot I) srcInkNew
   let σSrcArt := sstoreAccountMap I.codeOwner σSrcInk (forkSrcArtSlot I) srcArtNew
@@ -10806,7 +10808,7 @@ theorem RD.vatForkDstArtAddRevert
   have rd4828pre := rd4827.dup3 (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4829raw⟩ := rd4828pre.sstore hperm (by native_decide) (by evm_ov)
   have hrd4829 :
-      ∃ k' C', RD vatBytecode I g (initState σ σ₀ g A I) ⟨4829⟩
+      ∃ k' C', RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨4829⟩
         [forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I, forkDartWord I,
           forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I, forkIlkWord I,
           ⟨524⟩, sel]
@@ -10841,7 +10843,7 @@ theorem RD.vatForkDstArtAddRevert
 theorem RD.vatForkUtabMulSuccess
     {σ σ₀ A I} {g : Sat256} {k C : ℕ}
     {sel srcInkNew srcArtNew dstInkNew dstArtNew : UInt256} {mem : ByteArray}
-    (h : RD vatBytecode I g (initState σ σ₀ g A I) ⟨4843⟩
+    (h : RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨4843⟩
       [dstArtNew, forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I, forkDartWord I,
         forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I, forkIlkWord I,
         ⟨524⟩, sel]
@@ -10901,7 +10903,7 @@ theorem RD.vatForkUtabMulSuccess
                 (forkDstInkSlot I) dstInkNew)
               (forkDstArtSlot I) dstArtNew)
             I (forkSrcArtSlot I)) ≠ ⟨0⟩) :
-    ∃ k' C', RD vatBytecode I g (initState σ σ₀ g A I) ⟨4871⟩
+    ∃ k' C', RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨4871⟩
       [UInt256.mul
           (solcSlotWord
             (sstoreAccountMap I.codeOwner
@@ -10949,7 +10951,7 @@ theorem RD.vatForkUtabMulSuccess
   have rd4850pre := rd4849.swap1 (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4851raw⟩ := rd4850pre.sstore hperm (by native_decide) (by evm_ov)
   have hrd4851 :
-      ∃ k' C', RD vatBytecode I g (initState σ σ₀ g A I) ⟨4851⟩
+      ∃ k' C', RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨4851⟩
         [dstArtNew, forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I, forkDartWord I,
           forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I, forkIlkWord I,
           ⟨524⟩, sel]
@@ -10999,7 +11001,7 @@ theorem RD.vatForkUtabMulSuccess
 theorem RD.vatForkUtabMulRevert
     {σ σ₀ A I} {g : Sat256} {k C : ℕ}
     {sel srcInkNew srcArtNew dstInkNew dstArtNew : UInt256} {mem : ByteArray}
-    (h : RD vatBytecode I g (initState σ σ₀ g A I) ⟨4843⟩
+    (h : RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨4843⟩
       [dstArtNew, forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I, forkDartWord I,
         forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I, forkIlkWord I,
         ⟨524⟩, sel]
@@ -11059,7 +11061,7 @@ theorem RD.vatForkUtabMulRevert
                 (forkDstInkSlot I) dstInkNew)
               (forkDstArtSlot I) dstArtNew)
             I (forkSrcArtSlot I)) ≠ ⟨0⟩)) :
-    RDrev vatBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vatBytecode g (initState σ σ₀ g A I) := by
   let srcBase := forkSrcUrnBase I
   let dstBase := forkDstUrnBase I
   let ilkBase := forkIlkBase I
@@ -11077,7 +11079,7 @@ theorem RD.vatForkUtabMulRevert
   have rd4850pre := rd4849.swap1 (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4851raw⟩ := rd4850pre.sstore hperm (by native_decide) (by evm_ov)
   have hrd4851 :
-      ∃ k' C', RD vatBytecode I g (initState σ σ₀ g A I) ⟨4851⟩
+      ∃ k' C', RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨4851⟩
         [dstArtNew, forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I, forkDartWord I,
           forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I, forkIlkWord I,
           ⟨524⟩, sel]
@@ -11125,7 +11127,7 @@ theorem RD.vatForkUtabMulRevert
 theorem RD.vatForkVtabMulSuccess
     {σ σ₀ A I} {g : Sat256} {k C : ℕ}
     {sel srcInkNew srcArtNew dstInkNew dstArtNew utab : UInt256} {mem : ByteArray}
-    (h : RD vatBytecode I g (initState σ σ₀ g A I) ⟨4871⟩
+    (h : RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨4871⟩
       [utab, ⟨0⟩, forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I,
         forkDartWord I, forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I,
         forkIlkWord I, ⟨524⟩, sel]
@@ -11186,7 +11188,7 @@ theorem RD.vatForkVtabMulSuccess
                 (forkDstInkSlot I) dstInkNew)
               (forkDstArtSlot I) dstArtNew)
             I (forkDstArtSlot I)) ≠ ⟨0⟩) :
-    ∃ k' C', RD vatBytecode I g (initState σ σ₀ g A I) ⟨4893⟩
+    ∃ k' C', RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨4893⟩
       [UInt256.mul
           (solcSlotWord
             (sstoreAccountMap I.codeOwner
@@ -11268,7 +11270,7 @@ theorem RD.vatForkVtabMulSuccess
 theorem RD.vatForkVtabMulRevert
     {σ σ₀ A I} {g : Sat256} {k C : ℕ}
     {sel srcInkNew srcArtNew dstInkNew dstArtNew utab : UInt256} {mem : ByteArray}
-    (h : RD vatBytecode I g (initState σ σ₀ g A I) ⟨4871⟩
+    (h : RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨4871⟩
       [utab, ⟨0⟩, forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I,
         forkDartWord I, forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I,
         forkIlkWord I, ⟨524⟩, sel]
@@ -11329,7 +11331,7 @@ theorem RD.vatForkVtabMulRevert
                 (forkDstInkSlot I) dstInkNew)
               (forkDstArtSlot I) dstArtNew)
             I (forkDstArtSlot I)) ≠ ⟨0⟩)) :
-    RDrev vatBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vatBytecode g (initState σ σ₀ g A I) := by
   let dstBase := forkDstUrnBase I
   let ilkBase := forkIlkBase I
   let σSrcInk := sstoreAccountMap I.codeOwner σ (forkSrcInkSlot I) srcInkNew
@@ -11380,14 +11382,14 @@ set_option maxHeartbeats 1000000 in
 theorem RD.vatForkWishLoadedAt6557
     {σInit σ σ₀ A I} {g : Sat256} {k C : ℕ}
     {usr slot ret : UInt256} {R : List UInt256} {mem : ByteArray}
-    (h : RD vatBytecode I g (initState σInit σ₀ g A I) ⟨6557⟩
+    (h : RD fork vatBytecode I g (initState σInit σ₀ g A I) ⟨6557⟩
       (UInt256.ofNat I.source.val :: usr :: ret :: R)
       mem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hmem : mem.size = 96)
     (hclean : UInt256.land solcAddrMask usr = usr)
     (hslot : slot = solcMappingSlot (solcMappingSlot ⟨1⟩ usr) (hopeSourceWord I))
     (hov : R.length + 12 ≤ 1024) :
-    ∃ k' C', RD vatBytecode I g (initState σInit σ₀ g A I) ⟨6599⟩
+    ∃ k' C', RD fork vatBytecode I g (initState σInit σ₀ g A I) ⟨6599⟩
       (solcSlotWordAt slot σ I :: ⟨1⟩ :: ⟨0⟩ :: usr :: hopeSourceWord I ::
         UInt256.ofNat I.source.val :: usr :: ret :: R)
       (twoWordHashMem (hopeSourceWord I) (solcMappingSlot ⟨1⟩ usr)
@@ -11493,13 +11495,13 @@ set_option maxHeartbeats 1000000 in
 theorem RD.vatForkWishReturnOk
     {σInit σ σ₀ A I} {g : Sat256} {k C : ℕ}
     {usr slot ret : UInt256} {R : List UInt256} {mem : ByteArray}
-    (h : RD vatBytecode I g (initState σInit σ₀ g A I) ⟨6599⟩
+    (h : RD fork vatBytecode I g (initState σInit σ₀ g A I) ⟨6599⟩
       (solcSlotWordAt slot σ I :: ⟨1⟩ :: ⟨0⟩ :: usr :: hopeSourceWord I ::
         UInt256.ofNat I.source.val :: usr :: ret :: R)
       mem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hret : (D_J vatBytecode 0).contains ret = true)
     (hov : R.length + 9 ≤ 1024) :
-    ∃ k' C', RD vatBytecode I g (initState σInit σ₀ g A I) ret
+    ∃ k' C', RD fork vatBytecode I g (initState σInit σ₀ g A I) ret
       (UInt256.lor
         (UInt256.eq (solcSlotWordAt slot σ I) ⟨1⟩)
         (UInt256.eq usr (hopeSourceWord I)) :: R)
@@ -11537,14 +11539,14 @@ set_option maxHeartbeats 1000000 in
 theorem RD.vatForkWishSuccess
     {σInit σ σ₀ A I} {g : Sat256} {k C : ℕ}
     {sel utab vtab : UInt256} {mem : ByteArray}
-    (h : RD vatBytecode I g (initState σInit σ₀ g A I) ⟨4893⟩
+    (h : RD fork vatBytecode I g (initState σInit σ₀ g A I) ⟨4893⟩
       [vtab, ⟨0⟩, utab, forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I,
         forkDartWord I, forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I,
         forkIlkWord I, ⟨524⟩, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hmem : mem.size = 96)
     (hwish : forkBothWishWord σ I ≠ ⟨0⟩) :
-    ∃ k' C', RD vatBytecode I g (initState σInit σ₀ g A I) ⟨4990⟩
+    ∃ k' C', RD fork vatBytecode I g (initState σInit σ₀ g A I) ⟨4990⟩
       [vtab, utab, forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I,
         forkDartWord I, forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I,
         forkIlkWord I, ⟨524⟩, sel]
@@ -11632,7 +11634,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.vatForkWishBranchRevert
     {σInit σ σ₀ A I} {g : Sat256} {k C : ℕ}
     {sel utab vtab : UInt256} {mem : ByteArray}
-    (h : RD vatBytecode I g (initState σInit σ₀ g A I) ⟨4893⟩
+    (h : RD fork vatBytecode I g (initState σInit σ₀ g A I) ⟨4893⟩
       [vtab, ⟨0⟩, utab, forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I,
         forkDartWord I, forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I,
         forkIlkWord I, ⟨524⟩, sel]
@@ -11640,7 +11642,7 @@ theorem RD.vatForkWishBranchRevert
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hwish : forkBothWishWord σ I = ⟨0⟩) :
-    RDrev vatBytecode g (initState σInit σ₀ g A I) := by
+    RDrev fork vatBytecode g (initState σInit σ₀ g A I) := by
   let memSrc :=
     twoWordHashMem (hopeSourceWord I) (solcMappingSlot ⟨1⟩ (forkSrcMaskedWord I))
       (twoWordHashMem (forkSrcMaskedWord I) ⟨1⟩ mem)
@@ -11744,7 +11746,7 @@ theorem RD.vatForkWishBranchRevert
 theorem RD.vatForkSrcUnsafeCheckSuccess
     {σInit σ σ₀ A I} {g : Sat256} {k C : ℕ}
     {sel utab vtab : UInt256} {mem : ByteArray}
-    (h : RD vatBytecode I g (initState σInit σ₀ g A I) ⟨4990⟩
+    (h : RD fork vatBytecode I g (initState σInit σ₀ g A I) ⟨4990⟩
       [vtab, utab, forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I,
         forkDartWord I, forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I,
         forkIlkWord I, ⟨524⟩, sel]
@@ -11763,7 +11765,7 @@ theorem RD.vatForkSrcUnsafeCheckSuccess
         (UInt256.mul
           (solcSlotWord σ I (forkSrcInkSlot I))
           (solcSlotWord σ I (forkIlkSpotSlot I))) = ⟨0⟩) :
-    ∃ k' C', RD vatBytecode I g (initState σInit σ₀ g A I) ⟨5079⟩
+    ∃ k' C', RD fork vatBytecode I g (initState σInit σ₀ g A I) ⟨5079⟩
       [vtab, utab, forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I,
         forkDartWord I, forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I,
         forkIlkWord I, ⟨524⟩, sel]
@@ -11821,7 +11823,7 @@ theorem RD.vatForkSrcUnsafeCheckSuccess
 theorem RD.vatForkSrcUnsafeMulRevert
     {σInit σ σ₀ A I} {g : Sat256} {k C : ℕ}
     {sel utab vtab : UInt256} {mem : ByteArray}
-    (h : RD vatBytecode I g (initState σInit σ₀ g A I) ⟨4990⟩
+    (h : RD fork vatBytecode I g (initState σInit σ₀ g A I) ⟨4990⟩
       [vtab, utab, forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I,
         forkDartWord I, forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I,
         forkIlkWord I, ⟨524⟩, sel]
@@ -11835,7 +11837,7 @@ theorem RD.vatForkSrcUnsafeMulRevert
               (solcSlotWord σ I (forkIlkSpotSlot I)))
             (solcSlotWord σ I (forkIlkSpotSlot I)))
           (solcSlotWord σ I (forkSrcInkSlot I)) ≠ ⟨0⟩)) :
-    RDrev vatBytecode g (initState σInit σ₀ g A I) := by
+    RDrev fork vatBytecode g (initState σInit σ₀ g A I) := by
   let srcInkFinal := solcSlotWord σ I (forkSrcInkSlot I)
   let spot := solcSlotWord σ I (forkIlkSpotSlot I)
   let srcInkSpot := UInt256.mul srcInkFinal spot
@@ -11877,7 +11879,7 @@ theorem RD.vatForkSrcUnsafeMulRevert
 theorem RD.vatForkSrcUnsafeCheckRevert
     {σInit σ σ₀ A I} {g : Sat256} {k C : ℕ}
     {sel utab vtab : UInt256} {mem : ByteArray}
-    (h : RD vatBytecode I g (initState σInit σ₀ g A I) ⟨4990⟩
+    (h : RD fork vatBytecode I g (initState σInit σ₀ g A I) ⟨4990⟩
       [vtab, utab, forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I,
         forkDartWord I, forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I,
         forkIlkWord I, ⟨524⟩, sel]
@@ -11898,7 +11900,7 @@ theorem RD.vatForkSrcUnsafeCheckRevert
         (UInt256.mul
           (solcSlotWord σ I (forkSrcInkSlot I))
           (solcSlotWord σ I (forkIlkSpotSlot I))) ≠ ⟨0⟩) :
-    RDrev vatBytecode g (initState σInit σ₀ g A I) := by
+    RDrev fork vatBytecode g (initState σInit σ₀ g A I) := by
   let srcInkFinal := solcSlotWord σ I (forkSrcInkSlot I)
   let spot := solcSlotWord σ I (forkIlkSpotSlot I)
   let srcInkSpot := UInt256.mul srcInkFinal spot
@@ -11961,7 +11963,7 @@ theorem RD.vatForkSrcUnsafeCheckRevert
 theorem RD.vatForkDstUnsafeCheckSuccess
     {σInit σ σ₀ A I} {g : Sat256} {k C : ℕ}
     {sel utab vtab : UInt256} {mem : ByteArray}
-    (h : RD vatBytecode I g (initState σInit σ₀ g A I) ⟨5079⟩
+    (h : RD fork vatBytecode I g (initState σInit σ₀ g A I) ⟨5079⟩
       [vtab, utab, forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I,
         forkDartWord I, forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I,
         forkIlkWord I, ⟨524⟩, sel]
@@ -11980,7 +11982,7 @@ theorem RD.vatForkDstUnsafeCheckSuccess
         (UInt256.mul
           (solcSlotWord σ I (forkDstInkSlot I))
           (solcSlotWord σ I (forkIlkSpotSlot I))) = ⟨0⟩) :
-    ∃ k' C', RD vatBytecode I g (initState σInit σ₀ g A I) ⟨5168⟩
+    ∃ k' C', RD fork vatBytecode I g (initState σInit σ₀ g A I) ⟨5168⟩
       [vtab, utab, forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I,
         forkDartWord I, forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I,
         forkIlkWord I, ⟨524⟩, sel]
@@ -12038,7 +12040,7 @@ theorem RD.vatForkDstUnsafeCheckSuccess
 theorem RD.vatForkDstUnsafeMulRevert
     {σInit σ σ₀ A I} {g : Sat256} {k C : ℕ}
     {sel utab vtab : UInt256} {mem : ByteArray}
-    (h : RD vatBytecode I g (initState σInit σ₀ g A I) ⟨5079⟩
+    (h : RD fork vatBytecode I g (initState σInit σ₀ g A I) ⟨5079⟩
       [vtab, utab, forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I,
         forkDartWord I, forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I,
         forkIlkWord I, ⟨524⟩, sel]
@@ -12052,7 +12054,7 @@ theorem RD.vatForkDstUnsafeMulRevert
               (solcSlotWord σ I (forkIlkSpotSlot I)))
             (solcSlotWord σ I (forkIlkSpotSlot I)))
           (solcSlotWord σ I (forkDstInkSlot I)) ≠ ⟨0⟩)) :
-    RDrev vatBytecode g (initState σInit σ₀ g A I) := by
+    RDrev fork vatBytecode g (initState σInit σ₀ g A I) := by
   let dstInkFinal := solcSlotWord σ I (forkDstInkSlot I)
   let spot := solcSlotWord σ I (forkIlkSpotSlot I)
   let dstInkSpot := UInt256.mul dstInkFinal spot
@@ -12094,7 +12096,7 @@ theorem RD.vatForkDstUnsafeMulRevert
 theorem RD.vatForkDstUnsafeCheckRevert
     {σInit σ σ₀ A I} {g : Sat256} {k C : ℕ}
     {sel utab vtab : UInt256} {mem : ByteArray}
-    (h : RD vatBytecode I g (initState σInit σ₀ g A I) ⟨5079⟩
+    (h : RD fork vatBytecode I g (initState σInit σ₀ g A I) ⟨5079⟩
       [vtab, utab, forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I,
         forkDartWord I, forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I,
         forkIlkWord I, ⟨524⟩, sel]
@@ -12115,7 +12117,7 @@ theorem RD.vatForkDstUnsafeCheckRevert
         (UInt256.mul
           (solcSlotWord σ I (forkDstInkSlot I))
           (solcSlotWord σ I (forkIlkSpotSlot I))) ≠ ⟨0⟩) :
-    RDrev vatBytecode g (initState σInit σ₀ g A I) := by
+    RDrev fork vatBytecode g (initState σInit σ₀ g A I) := by
   let dstInkFinal := solcSlotWord σ I (forkDstInkSlot I)
   let spot := solcSlotWord σ I (forkIlkSpotSlot I)
   let dstInkSpot := UInt256.mul dstInkFinal spot
@@ -12178,7 +12180,7 @@ theorem RD.vatForkDstUnsafeCheckRevert
 theorem RD.vatForkDustChecksSuccess
     {σInit σ σ₀ A I} {g : Sat256} {k C : ℕ}
     {sel utab vtab : UInt256} {mem : ByteArray}
-    (h : RD vatBytecode I g (initState σInit σ₀ g A I) ⟨5168⟩
+    (h : RD fork vatBytecode I g (initState σInit σ₀ g A I) ⟨5168⟩
       [vtab, utab, forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I,
         forkDartWord I, forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I,
         forkIlkWord I, ⟨524⟩, sel]
@@ -12191,7 +12193,7 @@ theorem RD.vatForkDustChecksSuccess
       UInt256.lor
         (UInt256.eq ⟨0⟩ (solcSlotWord σ I (forkDstArtSlot I)))
         (UInt256.isZero (UInt256.lt vtab (solcSlotWord σ I (forkIlkDustSlot I)))) ≠ ⟨0⟩) :
-    ∃ k' C', RD vatBytecode I g (initState σInit σ₀ g A I) ⟨5344⟩
+    ∃ k' C', RD fork vatBytecode I g (initState σInit σ₀ g A I) ⟨5344⟩
       [vtab, utab, forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I,
         forkDartWord I, forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I,
         forkIlkWord I, ⟨524⟩, sel]
@@ -12282,7 +12284,7 @@ theorem RD.vatForkDustChecksSuccess
 theorem RD.vatForkSrcDustCheckRevert
     {σInit σ σ₀ A I} {g : Sat256} {k C : ℕ}
     {sel utab vtab : UInt256} {mem : ByteArray}
-    (h : RD vatBytecode I g (initState σInit σ₀ g A I) ⟨5168⟩
+    (h : RD fork vatBytecode I g (initState σInit σ₀ g A I) ⟨5168⟩
       [vtab, utab, forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I,
         forkDartWord I, forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I,
         forkIlkWord I, ⟨524⟩, sel]
@@ -12293,7 +12295,7 @@ theorem RD.vatForkSrcDustCheckRevert
       UInt256.lor
         (UInt256.eq ⟨0⟩ (solcSlotWord σ I (forkSrcArtSlot I)))
         (UInt256.isZero (UInt256.lt utab (solcSlotWord σ I (forkIlkDustSlot I)))) = ⟨0⟩) :
-    RDrev vatBytecode g (initState σInit σ₀ g A I) := by
+    RDrev fork vatBytecode g (initState σInit σ₀ g A I) := by
   let dust := solcSlotWord σ I (forkIlkDustSlot I)
   let srcArtFinal := solcSlotWord σ I (forkSrcArtSlot I)
   have rd5169 := h.jumpdest (by native_decide) (by evm_ov)
@@ -12350,7 +12352,7 @@ theorem RD.vatForkSrcDustCheckRevert
 theorem RD.vatForkDstDustCheckRevert
     {σInit σ σ₀ A I} {g : Sat256} {k C : ℕ}
     {sel utab vtab : UInt256} {mem : ByteArray}
-    (h : RD vatBytecode I g (initState σInit σ₀ g A I) ⟨5168⟩
+    (h : RD fork vatBytecode I g (initState σInit σ₀ g A I) ⟨5168⟩
       [vtab, utab, forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I,
         forkDartWord I, forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I,
         forkIlkWord I, ⟨524⟩, sel]
@@ -12365,7 +12367,7 @@ theorem RD.vatForkDstDustCheckRevert
       UInt256.lor
         (UInt256.eq ⟨0⟩ (solcSlotWord σ I (forkDstArtSlot I)))
         (UInt256.isZero (UInt256.lt vtab (solcSlotWord σ I (forkIlkDustSlot I)))) = ⟨0⟩) :
-    RDrev vatBytecode g (initState σInit σ₀ g A I) := by
+    RDrev fork vatBytecode g (initState σInit σ₀ g A I) := by
   let dust := solcSlotWord σ I (forkIlkDustSlot I)
   let srcArtFinal := solcSlotWord σ I (forkSrcArtSlot I)
   let dstArtFinal := solcSlotWord σ I (forkDstArtSlot I)
@@ -12460,12 +12462,12 @@ theorem RD.vatForkDstDustCheckRevert
 theorem RD.vatForkCleanupSuccess
     {σInit σ σ₀ A I} {g : Sat256} {k C : ℕ}
     {sel utab vtab : UInt256} {mem : ByteArray}
-    (h : RD vatBytecode I g (initState σInit σ₀ g A I) ⟨5344⟩
+    (h : RD fork vatBytecode I g (initState σInit σ₀ g A I) ⟨5344⟩
       [vtab, utab, forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I,
         forkDartWord I, forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I,
         forkIlkWord I, ⟨524⟩, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD vatBytecode I g (initState σInit σ₀ g A I) ⟨524⟩ [sel]
+    ∃ k' C', RD fork vatBytecode I g (initState σInit σ₀ g A I) ⟨524⟩ [sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd5345 := h.jumpdest (by native_decide) (by evm_ov)
   have rd5346 := rd5345.pop (by native_decide) (by evm_ov)
@@ -12485,7 +12487,7 @@ theorem RD.vatForkSuccessPath
     {σ σ₀ A I} {g : Sat256} {k C : ℕ}
     {sel srcInkNew srcArtNew dstInkNew dstArtNew utab vtab : UInt256}
     {mem : ByteArray}
-    (h : RD vatBytecode I g (initState σ σ₀ g A I) ⟨4726⟩
+    (h : RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨4726⟩
       [forkDartWord I, forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I,
         forkIlkWord I, ⟨524⟩, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C)
@@ -12951,7 +12953,7 @@ theorem RD.vatForkSuccessPath
                   (forkDstInkSlot I) dstInkNew)
                 (forkDstArtSlot I) dstArtNew)
               I (forkIlkDustSlot I)))) ≠ ⟨0⟩) :
-    ∃ k' C', RD vatBytecode I g (initState σ σ₀ g A I) ⟨524⟩ [sel]
+    ∃ k' C', RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨524⟩ [sel]
       (twoWordHashMem (hopeSourceWord I) (solcMappingSlot ⟨1⟩ (forkDstMaskedWord I))
         (twoWordHashMem (forkDstMaskedWord I) ⟨1⟩
           (twoWordHashMem (hopeSourceWord I) (solcMappingSlot ⟨1⟩ (forkSrcMaskedWord I))
@@ -13050,9 +13052,9 @@ theorem RD.vatForkSuccessPath
 theorem RD.vatForkFinishSuccess
     {σInit σFinal σ₀ A I} {g : Sat256} {sel : UInt256}
     {mem : ByteArray}
-    (h : ∃ k C, RD vatBytecode I g (initState σInit σ₀ g A I) ⟨524⟩
+    (h : ∃ k C, RD fork vatBytecode I g (initState σInit σ₀ g A I) ⟨524⟩
       [sel] mem (UInt256.ofNat 3) ByteArray.empty σFinal k C) :
-    RDret vatBytecode g (initState σInit σ₀ g A I)
+    RDret fork vatBytecode g (initState σInit σ₀ g A I)
       σFinal ByteArray.empty := by
   obtain ⟨_, _, h524⟩ := h
   have h525 := h524.jumpdest (by native_decide) (by evm_ov)
@@ -13261,7 +13263,7 @@ theorem vatForkSourceSuccessBodyFromFinalGuards
       (forkDstInkSlot I) dstInkNew
     let evm4 := Stele.EVM.storageStore evm3 evm3.executionEnv.codeOwner
       (forkDstArtSlot I) dstArtNew
-    ExecTransitionBody config contract evm0 (forkStore I) forkTransition.body
+    ExecTransitionBody fork config contract evm0 (forkStore I) forkTransition.body
       (.returned { contract := contract, locals := finalLocals } evm4 none) := by
   intro srcInkNew srcArtNew dstInkNew dstArtNew srcArtFinal dstArtFinal
     srcInkFinal dstInkFinal rate spot dust utab vtab srcInkSpot dstInkSpot finalLocals
@@ -13480,7 +13482,7 @@ theorem vatForkSourceRevertBodyFromFinalBlock
       (forkDstInkSlot I) dstInkNew
     let evm4 := Stele.EVM.storageStore evm3 evm3.executionEnv.codeOwner
       (forkDstArtSlot I) dstArtNew
-    ExecBlock config { contract := contract, locals := finalLocals } evm4
+    ExecBlock fork config { contract := contract, locals := finalLocals } evm4
       [ .require (bothExpr (wishExpr (.var "src") sender) (wishExpr (.var "dst") sender)),
         .require (.binary .le (.var "utab") (.var "srcInkSpot")),
         .require (.binary .le (.var "vtab") (.var "dstInkSpot")),
@@ -13493,7 +13495,7 @@ theorem vatForkSourceRevertBodyFromFinalBlock
             (.binary .ge (.var "vtab") (.storage (ilksF (.var "ilk") "dust")))
             (.binary .eq (.var "dstArtFinal") (.intLit 0))) ]
       .reverted →
-    ExecTransitionBody config contract evm0 (forkStore I) forkTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 (forkStore I) forkTransition.body .reverted := by
   intro srcInkNew srcArtNew dstInkNew dstArtNew srcArtFinal dstArtFinal
     srcInkFinal dstInkFinal rate spot utab vtab srcInkSpot dstInkSpot finalLocals
     evm0 evm1 evm2 evm3 evm4 hfinalBlock
@@ -13592,16 +13594,16 @@ theorem vatForkSuccessEquivFromFinalState
     (hdecode :
       config.externalABI.decodeCalldata? (forkTransition.params.map Param.name)
         (transitionSignature forkTransition).paramTypes I.calldata = some (forkStore I))
-    (hret : RDret vatBytecode (Sat256.ofUInt256 g)
+    (hret : RDret fork vatBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (forkAfterDstArt σ I) ByteArray.empty)
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (forkStore I) forkTransition.body
         (.returned { contract := contract, locals := finalLocals } evmFinal none))
     (haccounts : Eq (forkAfterDstArt σ I) evmFinal.accountMap) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have henc : returnEquiv ByteArray.empty none forkTransition.returnType := by
     rw [show forkTransition.returnType = [] by rfl]
     exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
@@ -13616,7 +13618,7 @@ theorem vatForkSuccessEquivFromSourceFinal
     (hdecode :
       config.externalABI.decodeCalldata? (forkTransition.params.map Param.name)
         (transitionSignature forkTransition).paramTypes I.calldata = some (forkStore I))
-    (hret : RDret vatBytecode (Sat256.ofUInt256 g)
+    (hret : RDret fork vatBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (forkAfterDstArt σ I) ByteArray.empty)
     (hbody :
@@ -13633,9 +13635,9 @@ theorem vatForkSuccessEquivFromSourceFinal
         (forkDstInkSlot I) dstInkNew
       let evm4 := Stele.EVM.storageStore evm3 evm3.executionEnv.codeOwner
         (forkDstArtSlot I) dstArtNew
-      ExecTransitionBody config contract evm0 (forkStore I) forkTransition.body
+      ExecTransitionBody fork config contract evm0 (forkStore I) forkTransition.body
         (.returned { contract := contract, locals := finalLocals } evm4 none)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   dsimp at hbody
   have hsourceAccounts :=
     forkSourceFinal_accountMap_eq
@@ -13707,7 +13709,7 @@ theorem vatForkSuccessEquivFromFinalGuards
       config.externalABI.decodeCalldata? (forkTransition.params.map Param.name)
         (transitionSignature forkTransition).paramTypes I.calldata = some (forkStore I))
     (hdecoded :
-      ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
+      ∃ k C, RD fork vatBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4726⟩
         [forkDartWord I, forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I,
           forkIlkWord I, ⟨524⟩, vatSelWord I]
@@ -13815,7 +13817,7 @@ theorem vatForkSuccessEquivFromFinalGuards
               (solcSlotWord (forkAfterDstArt σ I) I (forkDstArtSlot I))
               (solcSlotWord (forkAfterDstArt σ I) I (forkIlkRateSlot I)))
             (solcSlotWord (forkAfterDstArt σ I) I (forkIlkDustSlot I)))) ≠ ⟨0⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let utab :=
     UInt256.mul
       (solcSlotWord (forkAfterDstArt σ I) I (forkSrcArtSlot I))
@@ -13927,7 +13929,7 @@ theorem vatForkSuccessEquivFromFinalGuards
     (by
         simpa [hdstTabEq] using hdstDust)
   have hbody :=
-    vatForkSourceSuccessBodyFromFinalGuards (hperm := hperm)
+    vatForkSourceSuccessBodyFromFinalGuards (fork := fork) (hperm := hperm)
       (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g)
       hwv hsz164 hsrcInkNegS hsrcInkPosS hsrcArtNegS hsrcArtPosS
@@ -13938,11 +13940,11 @@ theorem vatForkSuccessEquivFromFinalGuards
     hret hbody
 
 set_option maxHeartbeats 1000000 in
-theorem vatForkBodyCore : VatBodyTheoremAnyPerm 10 := by
+theorem vatForkBodyCore : VatBodyTheoremAnyPerm fork 10 := by
   intro σ σ₀ A I g hcode hsize hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 10) rfl hsel
-  have hreach := vatReachForkBody (σ := σ)
+  have hreach := vatReachForkBody (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz164 : 164 ≤ I.calldata.size
@@ -14268,7 +14270,7 @@ theorem vatForkBodyCore : VatBodyTheoremAnyPerm 10 := by
                                       (forkDstInkNew σ I) (forkDstArtNew σ I)
                                       slot rfl rfl rfl rfl
                               have hsourceBodyOf :
-                                  ExecBlock config { contract := contract, locals := finalLocalsS } evm4
+                                  ExecBlock fork config { contract := contract, locals := finalLocalsS } evm4
                                     [ .require (bothExpr (wishExpr (.var "src") sender)
                                         (wishExpr (.var "dst") sender)),
                                       .require (.binary .le (.var "utab") (.var "srcInkSpot")),
@@ -14284,7 +14286,7 @@ theorem vatForkBodyCore : VatBodyTheoremAnyPerm 10 := by
                                             (.storage (ilksF (.var "ilk") "dust")))
                                           (.binary .eq (.var "dstArtFinal") (.intLit 0))) ]
                                     .reverted →
-                                  ExecTransitionBody config contract evm0 (forkStore I)
+                                  ExecTransitionBody fork config contract evm0 (forkStore I)
                                     forkTransition.body .reverted := by
                                 intro hfinal
                                 simpa [evm0, evm1, evm2, evm3, evm4, σFinalS,
@@ -14952,7 +14954,7 @@ theorem vatForkBodyCore : VatBodyTheoremAnyPerm 10 := by
                                   (b := solcSlotWord (forkAfterDstArt σ I) I
                                     (forkIlkSpotSlot I))
                                   hsrcInkSpotOkS
-                              have hbody := execForkSourceRevertDstInkSpotMul (hperm := hperm)
+                              have hbody := execForkSourceRevertDstInkSpotMul (fork := fork) (hperm := hperm)
                                 (evm0 := evm0) (I := I)
                                 (solcSlotWord σ I (forkSrcInkSlot I))
                                 (forkSrcInkNew σ I)
@@ -15341,7 +15343,7 @@ theorem vatForkBodyCore : VatBodyTheoremAnyPerm 10 := by
                               (b := solcSlotWord (forkAfterDstArt σ I) I
                                 (forkIlkRateSlot I))
                               hvtabOkS
-                            have hbody := execForkSourceRevertSrcInkSpotMul (hperm := hperm)
+                            have hbody := execForkSourceRevertSrcInkSpotMul (fork := fork) (hperm := hperm)
                               (evm0 := evm0) (I := I)
                               (solcSlotWord σ I (forkSrcInkSlot I))
                               (forkSrcInkNew σ I)
@@ -15639,7 +15641,7 @@ theorem vatForkBodyCore : VatBodyTheoremAnyPerm 10 := by
                             (b := solcSlotWord (forkAfterDstArt σ I) I
                               (forkIlkRateSlot I))
                             hutabOkS
-                          have hbody := execForkSourceRevertVtabMul (hperm := hperm)
+                          have hbody := execForkSourceRevertVtabMul (fork := fork) (hperm := hperm)
                             (evm0 := evm0) (I := I)
                             (solcSlotWord σ I (forkSrcInkSlot I))
                             (forkSrcInkNew σ I)
@@ -15847,7 +15849,7 @@ theorem vatForkBodyCore : VatBodyTheoremAnyPerm 10 := by
                                     (forkSrcArtSlot I)) ≠ ⟨0⟩) := by
                           intro hokS
                           exact hutabOk (by simpa [σFinal] using hokS)
-                        have hbody := execForkSourceRevertUtabMul (hperm := hperm)
+                        have hbody := execForkSourceRevertUtabMul (fork := fork) (hperm := hperm)
                           (evm0 := evm0) (I := I)
                           (solcSlotWord σ I (forkSrcInkSlot I)) (forkSrcInkNew σ I)
                           (solcSlotWord (forkAfterSrcInk σ I) I (forkSrcArtSlot I))
@@ -16009,7 +16011,7 @@ theorem vatForkBodyCore : VatBodyTheoremAnyPerm 10 := by
                       simp [initState, Stele.EVM.storageLoad, solcSlotWord, State.lookupAccount,
                         Account.lookupStorage, storageStore_accountMap, forkAfterSrcInk,
                         forkAfterSrcArt, forkAfterDstInk]
-                    have hbody := execForkSourceRevertDstArtGuardPos (hperm := hperm)
+                    have hbody := execForkSourceRevertDstArtGuardPos (fork := fork) (hperm := hperm)
                       (evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I) (I := I)
                       (solcSlotWord σ I (forkSrcInkSlot I)) (forkSrcInkNew σ I)
                       (solcSlotWord (forkAfterSrcInk σ I) I (forkSrcArtSlot I))
@@ -16132,7 +16134,7 @@ theorem vatForkBodyCore : VatBodyTheoremAnyPerm 10 := by
                     simp [initState, Stele.EVM.storageLoad, solcSlotWord, State.lookupAccount,
                       Account.lookupStorage, storageStore_accountMap, forkAfterSrcInk,
                       forkAfterSrcArt, forkAfterDstInk]
-                  have hbody := execForkSourceRevertDstArtGuardNeg (hperm := hperm)
+                  have hbody := execForkSourceRevertDstArtGuardNeg (fork := fork) (hperm := hperm)
                     (evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I) (I := I)
                     (solcSlotWord σ I (forkSrcInkSlot I)) (forkSrcInkNew σ I)
                     (solcSlotWord (forkAfterSrcInk σ I) I (forkSrcArtSlot I))
@@ -16231,7 +16233,7 @@ theorem vatForkBodyCore : VatBodyTheoremAnyPerm 10 := by
                     solcSlotWord (forkAfterSrcArt σ I) I (forkDstInkSlot I) := by
                   simp [initState, Stele.EVM.storageLoad, solcSlotWord, State.lookupAccount,
                     Account.lookupStorage, storageStore_accountMap, forkAfterSrcInk, forkAfterSrcArt]
-                have hbody := execForkSourceRevertDstInkGuardPos (hperm := hperm)
+                have hbody := execForkSourceRevertDstInkGuardPos (fork := fork) (hperm := hperm)
                   (evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I) (I := I)
                   (solcSlotWord σ I (forkSrcInkSlot I)) (forkSrcInkNew σ I)
                   (solcSlotWord (forkAfterSrcInk σ I) I (forkSrcArtSlot I))
@@ -16319,7 +16321,7 @@ theorem vatForkBodyCore : VatBodyTheoremAnyPerm 10 := by
                 simp [initState, Stele.EVM.storageLoad, solcSlotWord, State.lookupAccount,
                   Account.lookupStorage, storageStore_accountMap, storageStore_executionEnv,
                   forkAfterSrcInk, forkAfterSrcArt]
-              have hbody := execForkSourceRevertDstInkGuardNeg (hperm := hperm)
+              have hbody := execForkSourceRevertDstInkGuardNeg (fork := fork) (hperm := hperm)
                 (evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I) (I := I)
                 (solcSlotWord σ I (forkSrcInkSlot I)) (forkSrcInkNew σ I)
                 (solcSlotWord (forkAfterSrcInk σ I) I (forkSrcArtSlot I))
@@ -16389,7 +16391,7 @@ theorem vatForkBodyCore : VatBodyTheoremAnyPerm 10 := by
               simp [initState, Stele.EVM.storageLoad, solcSlotWord, State.lookupAccount,
                 Account.lookupStorage, storageStore_accountMap, storageStore_executionEnv,
                 forkAfterSrcInk]
-            have hbody := execForkSourceRevertSrcArtGuardPos (hperm := hperm)
+            have hbody := execForkSourceRevertSrcArtGuardPos (fork := fork) (hperm := hperm)
               (evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I) (I := I)
               (solcSlotWord σ I (forkSrcInkSlot I)) (forkSrcInkNew σ I)
               (solcSlotWord (forkAfterSrcInk σ I) I (forkSrcArtSlot I))
@@ -16446,7 +16448,7 @@ theorem vatForkBodyCore : VatBodyTheoremAnyPerm 10 := by
             simp [initState, Stele.EVM.storageLoad, solcSlotWord, State.lookupAccount,
               Account.lookupStorage, storageStore_accountMap, storageStore_executionEnv,
               forkAfterSrcInk]
-          have hbody := execForkSourceRevertSrcArtGuardNeg (hperm := hperm)
+          have hbody := execForkSourceRevertSrcArtGuardNeg (fork := fork) (hperm := hperm)
             (evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I) (I := I)
             (solcSlotWord σ I (forkSrcInkSlot I)) (forkSrcInkNew σ I)
             (solcSlotWord (forkAfterSrcInk σ I) I (forkSrcArtSlot I))
@@ -16482,7 +16484,7 @@ theorem vatForkBodyCore : VatBodyTheoremAnyPerm 10 := by
             solcSlotWord σ I (forkSrcInkSlot I) := by
           simp [initState, Stele.EVM.storageLoad, solcSlotWord, State.lookupAccount,
             Account.lookupStorage]
-        have hbody := execForkSourceRevertSrcInkGuardPos
+        have hbody := execForkSourceRevertSrcInkGuardPos (fork := fork)
           (evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I) (I := I)
           (solcSlotWord σ I (forkSrcInkSlot I)) (forkSrcInkNew σ I)
           (by simpa [initState] using hwv) hsz164 hloadSrcInk rfl
@@ -16506,7 +16508,7 @@ theorem vatForkBodyCore : VatBodyTheoremAnyPerm 10 := by
           solcSlotWord σ I (forkSrcInkSlot I) := by
         simp [initState, Stele.EVM.storageLoad, solcSlotWord, State.lookupAccount,
           Account.lookupStorage]
-      have hbody := execForkSourceRevertSrcInkGuardNeg
+      have hbody := execForkSourceRevertSrcInkGuardNeg (fork := fork)
         (evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I) (I := I)
         (solcSlotWord σ I (forkSrcInkSlot I)) (forkSrcInkNew σ I)
         (by simpa [initState] using hwv) hsz164 hloadSrcInk rfl

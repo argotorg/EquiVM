@@ -13,6 +13,8 @@ import Benchmarks.Dss.Jug.Vow
 import Benchmarks.Dss.Jug.Wards
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Jug benchmark correctness stub
 
@@ -30,7 +32,7 @@ namespace Benchmarks.Dss.Jug
 /-- `callvalue ≠ 0` makes the global non-payable guard revert before dispatch. -/
 theorem jugNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = jugBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeRefinementFor config contract
+    runtimeRefinementFor fork config contract
       σ σ₀ g A I := by
   exact (jugX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
@@ -55,7 +57,7 @@ theorem jugNoDispatch {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 12 → (jugSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (jugX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
       |>.reEquivNoDispatch hcode (jugDispatch_none_nomatch hnm)
@@ -94,8 +96,8 @@ theorem jugNoSelectorMatches {I : ExecutionEnv}
 
 theorem jugCorrect :
     runtimeRefinement config jugBytecode contract := by
-  refine runtimeRefinement.intro ?_
-  intro σ σ₀ g A I hcode hsize
+  refine runtimeRefinementOn.intro ?_
+  intro fork _hfork σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hbase : selIs I (jugSelBytes 0)
     · exact jugBaseBody hcode hsize hwv hbase

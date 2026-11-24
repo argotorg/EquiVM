@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapWriteSource
 import Benchmarks.UniswapV3.Pool.Slot0Memory
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_017
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -12,14 +14,14 @@ theorem swapWriteLoadX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p cache snap exactWord free : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (c : SwapCacheData) (initial : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨4021⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨4021⟩
       ([p, exactWord, cache, snap] ++ R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hc : SwapCacheMemory mem cache c)
     (hs : Slot0Memory mem snap initial.accountMap initial.executionEnv)
     (hbc : cache.toNat + 192 ≤ 2 ^ 200) (hbs : snap.toNat + 224 ≤ 2 ^ 200)
     (hov : R.length + 16 ≤ 1024) :
     ∃ aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 ⟨14801⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨14801⟩
         (oracleWriteEntryWords (swapWriteArgs c initial) ++
           [⟨4077⟩, ⟨0⟩, ⟨0⟩, p, exactWord, cache, snap] ++ R)
         mem aw' rdata σ k' C' ∧ HeapMemory mem aw' free ∧ aw.toNat ≤ aw'.toNat := by

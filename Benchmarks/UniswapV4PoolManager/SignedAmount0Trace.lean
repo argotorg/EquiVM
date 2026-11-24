@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.SignedAmount0Words
 import Benchmarks.UniswapV4PoolManager.SignedAmount0PathTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -14,10 +16,10 @@ theorem signedAmount0Trace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (ha : a.toNat < 2^160) (hb : b.toNat < 2^160)
     (hdlo : -(2^127 : Int) ≤ delta) (hdhi : delta < 2^127)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨17703⟩ (a :: b :: EVM.wordOfInt delta :: ret :: R) mem aw rdata σ k C) :
-    if signedAmount0Fits a b delta then ∃ k' C', RD (deployedRuntime v) I g s0 ret
+    (h : RD fork (deployedRuntime v) I g s0 ⟨17703⟩ (a :: b :: EVM.wordOfInt delta :: ret :: R) mem aw rdata σ k C) :
+    if signedAmount0Fits a b delta then ∃ k' C', RD fork (deployedRuntime v) I g s0 ret
       (signedAmount0Word a b delta :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hcmp := liquidityNegativeCmp hdlo hdhi
   by_cases hz : delta < 0
   · have rd1 := poolManagerBlocks.poolManager_block_17703_fallthrough

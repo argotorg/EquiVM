@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PoolModifyFlipTrace
 import Benchmarks.UniswapV4PoolManager.PoolModifyBitmaps
 import Benchmarks.UniswapV4PoolManager.MappingScratchMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -19,22 +21,22 @@ theorem poolModifyFlipMemory_loadWord (mem : ByteArray) (id tick spacing read : 
 def poolModifyBitmapsMemory (mem : ByteArray) (id : UInt256) (p : PoolModifyParams) (fl fu : Bool) : ByteArray :=
   poolModifyFlipMemory (poolModifyFlipMemory mem id p.lower p.spacing fl) id p.upper p.spacing fu
 
-def poolModifyBitmapsNormal (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
+def poolModifyBitmapsNormal (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
     (σ₀ : AccountMap) (mem rdata : ByteArray) (id ptr x0 x1 x2 x4 x5 x9 params : UInt256)
     (p : PoolModifyParams) (R : List UInt256) (fl fu : Bool) (_ : Frame) (post : State) : Prop :=
   post.executionEnv = I ∧ post.σ₀ = σ₀ ∧ ∃ aw k C,
-    RD (deployedRuntime v) I g s0 ⟨5722⟩
+    RD fork (deployedRuntime v) I g s0 ⟨5722⟩
       (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: p.upper :: EVM.wordOfInt p.delta :: p.lower :: x9 :: params :: R)
       (poolModifyBitmapsMemory mem id p fl fu) aw rdata post.accountMap k C
 
 def poolModifyBitmapsActiveWords (aw params ptr : UInt256) (fl fu : Bool) : UInt256 :=
   poolModifyFlipActiveWords (poolModifyFlipActiveWords aw params ptr false fl) params ptr true fu
 
-def poolModifyBitmapsNormalAtAW (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
+def poolModifyBitmapsNormalAtAW (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
     (σ₀ : AccountMap) (mem rdata : ByteArray) (id ptr x0 x1 x2 x4 x5 x9 params : UInt256)
     (p : PoolModifyParams) (R : List UInt256) (fl fu : Bool) (aw : UInt256) (_ : Frame) (post : State) : Prop :=
   post.executionEnv = I ∧ post.σ₀ = σ₀ ∧ ∃ k C,
-    RD (deployedRuntime v) I g s0 ⟨5722⟩
+    RD fork (deployedRuntime v) I g s0 ⟨5722⟩
       (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: p.upper :: EVM.wordOfInt p.delta :: p.lower :: x9 :: params :: R)
       (poolModifyBitmapsMemory mem id p fl fu) aw rdata post.accountMap k C
 
@@ -51,11 +53,11 @@ theorem poolModifyBitmapsExactTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : St
     (hptr : 64 ≤ ptr.toNat) (hspan : ptr.toNat+96 ≤ mem.size) (hfit : ptr.toNat+128 < UInt256.size)
     (hfl : memLoad ptr mem = UInt256.fromBool fl)
     (hfu : memLoad (ptr+UInt256.ofNat 64) mem = UInt256.fromBool fu)
-    (h : RD (deployedRuntime v) I g s0 ⟨7256⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨7256⟩
       (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: p.upper :: EVM.wordOfInt p.delta :: p.lower :: x9 :: params :: R)
       mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0
-      (poolModifyBitmapsNormalAtAW v I g s0 evm.σ₀ mem rdata id ptr x0 x1 x2 x4 x5 x9 params p R fl fu (poolModifyBitmapsActiveWords aw params ptr fl fu))
+    blockResultTrace fork (deployedRuntime v) g s0
+      (poolModifyBitmapsNormalAtAW fork v I g s0 evm.σ₀ mem rdata id ptr x0 x1 x2 x4 x5 x9 params p R fl fu (poolModifyBitmapsActiveWords aw params ptr fl fu))
       (fun _ _ => False) (poolModifyBitmapsResult f evm id p fl fu) := by
   have hlo := poolModifyFlipExactTrace f false fl v hstack hI hc hl (poolTicksValid_bounds ht).1 hm hs hfl h
   apply blockResultTrace_continueBlock hlo
@@ -85,11 +87,11 @@ theorem poolModifyBitmapsTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hptr : 64 ≤ ptr.toNat) (hspan : ptr.toNat+96 ≤ mem.size) (hfit : ptr.toNat+128 < UInt256.size)
     (hfl : memLoad ptr mem = UInt256.fromBool fl)
     (hfu : memLoad (ptr+UInt256.ofNat 64) mem = UInt256.fromBool fu)
-    (h : RD (deployedRuntime v) I g s0 ⟨7256⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨7256⟩
       (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: p.upper :: EVM.wordOfInt p.delta :: p.lower :: x9 :: params :: R)
       mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0
-      (poolModifyBitmapsNormal v I g s0 evm.σ₀ mem rdata id ptr x0 x1 x2 x4 x5 x9 params p R fl fu)
+    blockResultTrace fork (deployedRuntime v) g s0
+      (poolModifyBitmapsNormal fork v I g s0 evm.σ₀ mem rdata id ptr x0 x1 x2 x4 x5 x9 params p R fl fu)
       (fun _ _ => False) (poolModifyBitmapsResult f evm id p fl fu) := by
   have hr := poolModifyBitmapsExactTrace f v hstack hI hc hl hu ht hm hmem hs hp hps hptr hspan hfit hfl hfu h
   apply blockResultTrace_mono hr

@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.TimestampArraySource
 import Benchmarks.EAS.EAS.MultiTimestampEVM
 import Benchmarks.EAS.EAS.TimeArrayLoop
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -15,18 +17,18 @@ theorem timestampArrayLoop_correct {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hread : ∀ i, i < words.length → lookupNth? words i = some (timeArrayWord ee start (UInt256.ofNat i))) :
     ∀ n i (locals : Store) (evm : EVM.State) (mem : ByteArray) (aw : UInt256) (k C : Nat),
       i + n = words.length → TimeArrayInv locals words time heap i → evm.executionEnv = ee →
-      RD (deployedRuntime v) ee g s0 ⟨874⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨874⟩
         (UInt256.ofNat i :: UInt256.ofNat words.length :: start :: time :: R)
         mem aw rdata evm.accountMap k C →
       (∃ locals' evm',
-        ExecStmt config {contract := contract, locals := locals, immutables := imms} evm timestampArrayLoop
+        ExecStmt fork config {contract := contract, locals := locals, immutables := imms} evm timestampArrayLoop
           (.ok {contract := contract, locals := locals', immutables := imms} evm') ∧
         TimeArrayInv locals' words time heap words.length ∧
-        RDret (deployedRuntime v) g s0 evm'.accountMap time.toByteArray) ∨
-      (ExecStmt config {contract := contract, locals := locals, immutables := imms} evm timestampArrayLoop .reverted ∧
-        RDrev (deployedRuntime v) g s0) ∨
-      (ExecStmt config {contract := contract, locals := locals, immutables := imms} evm timestampArrayLoop .staticViolation ∧
-        RDstatic (deployedRuntime v) g s0) := by
+        RDret fork (deployedRuntime v) g s0 evm'.accountMap time.toByteArray) ∨
+      (ExecStmt fork config {contract := contract, locals := locals, immutables := imms} evm timestampArrayLoop .reverted ∧
+        RDrev fork (deployedRuntime v) g s0) ∨
+      (ExecStmt fork config {contract := contract, locals := locals, immutables := imms} evm timestampArrayLoop .staticViolation ∧
+        RDstatic fork (deployedRuntime v) g s0) := by
   intro n i0 locals0 evm0 mem0 aw0 k0 C0 hn h0 he0 rd0
   refine timeArrayLoop_correct (pc := ⟨874⟩) (R := R) (time := time) (start := start) (imms := imms)
     (words := words) (heap := heap) (body := timestampArrayIteration)
@@ -42,7 +44,7 @@ theorem timestampArrayLoop_correct {ee : ExecutionEnv} {g : Sat256} {s0 : State}
         rw [timestampWord_solc, heen] at hz
         exact hz
       by_cases hp : ee.perm = true
-      · have hsource := timestampArrayIteration_ok (hperm := (congrArg ExecutionEnv.perm heen).trans hp) (imms := imms) h hi hw hlen hz
+      · have hsource := timestampArrayIteration_ok (fork := fork) (hperm := (congrArg ExecutionEnv.perm heen).trans hp) (imms := imms) h hi hw hlen hz
         obtain ⟨mem', aw', k', C', rd'⟩ := easMultiTimestamp_step v hstack hiword hz' hp rd
         have hinc : UInt256.ofNat i + (⟨1⟩ : UInt256) = UInt256.ofNat (i + 1) := by
           rw [u256_add_comm]
@@ -55,7 +57,7 @@ theorem timestampArrayLoop_correct {ee : ExecutionEnv} {g : Sat256} {s0 : State}
         exact Or.inl ⟨timeArrayNext locals heap i, timestampStore evm word time, hsource,
           timeArrayNext_inv h, hsenv, mem', aw', k', C', rd'⟩
       · have hp' : ee.perm = false := Bool.eq_false_iff.mpr hp
-        have hsource := timestampArrayIteration_static (imms := imms) h hi hw hz (by rw [heen]; exact hp')
+        have hsource := timestampArrayIteration_static (fork := fork) (imms := imms) h hi hw hz (by rw [heen]; exact hp')
         obtain ⟨k', C', rd'⟩ := easMultiTimestamp_call v hstack hiword rd
         have hr := easTimestamp_static (word := word) (time := time) (ret := ⟨916⟩) v
           (by simp only [List.length_cons]; omega) hz' hp' rd'
@@ -63,7 +65,7 @@ theorem timestampArrayLoop_correct {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     · have hz' : UInt256.land (solcSlotWord evm.accountMap ee (timestampSlot word)) easUint64Mask ≠ ⟨0⟩ := by
         rw [timestampWord_solc, heen] at hz
         exact hz
-      have hsource := timestampArrayIteration_revert (imms := imms) h hi hw hz
+      have hsource := timestampArrayIteration_revert (fork := fork) (imms := imms) h hi hw hz
       obtain ⟨k', C', rd'⟩ := easMultiTimestamp_call v hstack hiword rd
       have hr := easTimestamp_revert (word := word) (time := time) v
         (by simp only [List.length_cons]; omega) hz' rd'

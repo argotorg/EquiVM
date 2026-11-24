@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.SafeTransferSourceTail
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
@@ -42,7 +44,7 @@ theorem safeTransferPrepared_other (frame : Frame) (isFrom : Bool) (n : Nat) (na
 
 theorem safeTransferSource_allocate {frame : Frame} {evm : EVM.State} {n : Nat}
     (isFrom : Bool) (hm : frame.locals.get? "__memory" = some (.int (Int.ofNat n))) :
-    ABlock config evm frame (safeTransferFunctionFor isFrom).body
+    ABlock fork config evm frame (safeTransferFunctionFor isFrom).body
       (safeTransferPrepared frame isFrom n)
       ([.require (safeTransferCap (.var "__memory")), .require safeTransferCodeGuard,
         safeTransferCallStmt isFrom] ++ safeTransferTail) := by
@@ -53,7 +55,7 @@ theorem safeTransferSource_allocate {frame : Frame} {evm : EVM.State} {n : Nat}
 theorem safeTransferSource_inputRevert {frame : Frame} {evm : EVM.State} {n : Nat}
     (isFrom : Bool) (hm : frame.locals.get? "__memory" = some (.int (Int.ofNat n)))
     (hc : 2 ^ 64 ≤ n + safeTransferInputAllocation isFrom) :
-    ExecFuncBody config frame evm (safeTransferFunctionFor isFrom).body .reverted := by
+    ExecFuncBody fork config frame evm (safeTransferFunctionFor isFrom).body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply (safeTransferSource_allocate isFrom hm).run (ExecBlock.consRevert (.requireFalse ?_))
   have he : evalExpr? config (safeTransferPrepared frame isFrom n) evm (.var "__memory") =
@@ -64,7 +66,7 @@ theorem safeTransferSource_inputRevert {frame : Frame} {evm : EVM.State} {n : Na
 theorem safeTransferSource_afterInput {frame : Frame} {evm : EVM.State} {n : Nat}
     (isFrom : Bool) (hm : frame.locals.get? "__memory" = some (.int (Int.ofNat n)))
     (hc : n + safeTransferInputAllocation isFrom < 2 ^ 64) :
-    ABlock config evm frame (safeTransferFunctionFor isFrom).body
+    ABlock fork config evm frame (safeTransferFunctionFor isFrom).body
       (safeTransferPrepared frame isFrom n)
       ([.require safeTransferCodeGuard, safeTransferCallStmt isFrom] ++ safeTransferTail) := by
   apply (safeTransferSource_allocate isFrom hm).requireStep
@@ -78,7 +80,7 @@ theorem safeTransferSource_noCode {frame : Frame} {evm : EVM.State} {n : Nat}
     (hc : n + safeTransferInputAllocation isFrom < 2 ^ 64)
     (hcode : evalExpr? config (safeTransferPrepared frame isFrom n) evm safeTransferCodeGuard =
       .ok (.bool false)) :
-    ExecFuncBody config frame evm (safeTransferFunctionFor isFrom).body .reverted :=
+    ExecFuncBody fork config frame evm (safeTransferFunctionFor isFrom).body .reverted :=
   .execBlockRevert ((safeTransferSource_afterInput isFrom hm hc).run
     (.consRevert (.requireFalse hcode)))
 
@@ -97,14 +99,14 @@ theorem safeTransferSource_call {frame : Frame} {evm evm' : EVM.State} {n : Nat}
     (ht : (safeTransferPrepared frame isFrom n).locals.get? "token" = some (.address token))
     (hd : evalExpr? config (safeTransferPrepared frame isFrom n) evm
       (safeTransferCallDataExpr isFrom) = .ok (.bytes calldata))
-    (hcall : callViaEVM evm token 0 calldata (z, evm', out)) :
-    StateBlock config frame evm (safeTransferFunctionFor isFrom).body
+    (hcall : callViaEVM fork evm token 0 calldata (z, evm', out)) :
+    StateBlock fork config frame evm (safeTransferFunctionFor isFrom).body
       (safeTransferCalled frame isFrom n z out) evm' safeTransferTail := by
-  have hp := (safeTransferSource_afterInput isFrom hm hc).requireStep hcode
+  have hp := (safeTransferSource_afterInput (fork := fork) isFrom hm hc).requireStep hcode
   apply StateBlock.step (StateBlock.ofABlock hp)
   have ht' : evalExpr? config (safeTransferPrepared frame isFrom n) evm (.var "token") =
       .ok (.address token) := by simp only [evalExpr?, ht, EvalResult.ofOption]
-  have hc' : callViaEVM evm (EVM.address token.val) 0 calldata (z, evm', out) := by
+  have hc' : callViaEVM fork evm (EVM.address token.val) 0 calldata (z, evm', out) := by
     have ht : EVM.address token.val = token := by
       apply Fin.ext
       exact Nat.mod_eq_of_lt token.isLt

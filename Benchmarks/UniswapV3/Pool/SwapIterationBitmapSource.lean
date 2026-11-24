@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapIterationSource
 import Benchmarks.UniswapV3.Pool.BitmapNextCostInternal
 import Benchmarks.UniswapV3.Pool.PositionGetSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -42,7 +44,7 @@ def swapIterationBitmapFrame (frame : Frame) (v : UniswapV3PoolImmutables) (a : 
 
 theorem swapIterationInitSource {frame : Frame} {evm : EVM.State} (s : SwapStateData)
     (hs : frame.locals.get? "state" = some s.value) :
-    ExecBlock config frame evm (swapLoopBody.take 2)
+    ExecBlock fork config frame evm (swapLoopBody.take 2)
       (.ok (swapIterationInputFrame frame s) evm) := by
   exact ExecBlock.consNormal (swapIterationZeroSource frame evm)
     (ExecBlock.consNormal (swapIterationStartSource s (swapIterationInitial ⟨0⟩)

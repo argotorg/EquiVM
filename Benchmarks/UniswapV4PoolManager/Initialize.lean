@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.InitializePreludeSource
 import Benchmarks.UniswapV4PoolManager.InitializeBodyCorrect
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_013
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # PoolManager `initialize((address,address,uint24,int24,address),uint160)`
 
@@ -26,15 +28,15 @@ theorem poolManagerInitializeBody {σ σ₀ A I} {g : UInt256} (v : PoolManagerI
     (_hWF : Syntax.poolManagerWF σ I)
     (hGas : Syntax.poolManagerGasBound g)
     (hsel : selIs I (poolManagerSelBytes 4)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (poolManagerSelBytes 4) rfl hsel
   have hd : dispatchMsg contract I.calldata = some initializeTransition := by
     apply poolManagerDispatch_initialize <;> first
     | exact hsel
     | exact selectorNe_of_selIs hsel (by decide +kernel)
-  obtain ⟨k, C, rdEntry⟩ := poolManagerReachInitializeBody (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, rdEntry⟩ := poolManagerReachInitializeBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
-  change RD (deployedRuntime v) I (Sat256.ofUInt256 g)
+  change RD fork (deployedRuntime v) I (Sat256.ofUInt256 g)
     (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3990⟩ [solcSelectorWord I]
     entryMemory ⟨3⟩ .empty σ k C at rdEntry
   have hjump : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 816) = true := by
@@ -79,8 +81,8 @@ theorem poolManagerInitializeBody {σ σ₀ A I} {g : UInt256} (v : PoolManagerI
               (by decide) (by decide) (by decide) (by change aw1.toNat ≤ 2048; have hh : aw1.toNat ≤ 10 := haw1; omega)
               hGas (poolKeyMemory_load64 key) rdBody with hog | ⟨result, hbody, htrace⟩
           · exact reEquiv_outOfGas (Xi_error_of_X (g := g) (by rw [← hcode] at hog; exact hog))
-          · have hpre := initializePreludeSource (imms := immStore v) (evm := evm) hwv hhi hk
-            have hb : ExecTransitionBody config contract evm args initializeTransition.body result (immStore v) := by
+          · have hpre := initializePreludeSource (fork := fork) (imms := immStore v) (evm := evm) hwv hhi hk
+            have hb : ExecTransitionBody fork config contract evm args initializeTransition.body result (immStore v) := by
               simpa only [List.take_append_drop] using execFuncBody_prepend hpre hbody
             exact signedResultTrace_refinement hcode hd hdec hb htrace rfl rfl rfl
       · have hguard := viaIRStaticLenCheckHuge (words := 6) (Nat.le_of_not_gt hhi) hsize (by decide)

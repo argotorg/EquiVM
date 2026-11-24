@@ -2,6 +2,8 @@ import Benchmarks.CurveVault.DebitAllowancePrepare
 import Benchmarks.CurveVault.AllowanceSpend
 import Benchmarks.CurveVault.DebitSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -26,17 +28,17 @@ theorem vaultDebitAllowance (isWithdraw : Bool) {I : ExecutionEnv} {g : Sat256} 
     (ho : locals.get? "_owner" = some (.address (AccountAddress.ofNat owner.toNat)))
     (hv : locals.get? (vaultDebitSharesName isWithdraw) = some (.int (Int.ofNat shares.toNat)))
     (hperm : I.perm = true) (hstack : R.length + 7 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat (if isWithdraw then 4431 else 5104)) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat (if isWithdraw then 4431 else 5104)) R mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (locals' : Store) (mem' : ByteArray) (aw' : UInt256) (k' C' : Nat),
-      ExecBlock config {contract := contract, locals := locals} evm (vaultDebitAllowanceBody isWithdraw)
+      ExecBlock fork config {contract := contract, locals := locals} evm (vaultDebitAllowanceBody isWithdraw)
         (.ok {contract := contract, locals := locals'} evm') ∧
       SourceState s0 I σ' evm' ∧
       WordMemoryRange mem mem' 192 (vaultDebitAllowanceFlow isWithdraw).allowanceOffset ∧
       (∀ name, ("allowance_" == name) = false → ((vaultDebitAllowanceRetVar isWithdraw) == name) = false →
         locals'.get? name = locals.get? name) ∧
-      RD vaultBytecode I g s0 (UInt256.ofNat (vaultDebitAllowanceFlow isWithdraw).next) R mem' aw' rdata σ' k' C') ∨
-    (ExecBlock config {contract := contract, locals := locals} evm (vaultDebitAllowanceBody isWithdraw) .reverted ∧
-      RDrev vaultBytecode g s0) := by
+      RD fork vaultBytecode I g s0 (UInt256.ofNat (vaultDebitAllowanceFlow isWithdraw).next) R mem' aw' rdata σ' k' C') ∨
+    (ExecBlock fork config {contract := contract, locals := locals} evm (vaultDebitAllowanceBody isWithdraw) .reverted ∧
+      RDrev fork vaultBytecode g s0) := by
   let old := codeOwnerStorageWord I σ (vaultAllowanceSlot (AccountAddress.ofNat owner.toNat) I.source)
   let locals0 := locals.insert "allowance_" (.int (Int.ofNat old.toNat))
   have hread := vaultAllowanceEvalAt evm locals (.var "_owner") (.env .caller)
@@ -44,7 +46,7 @@ theorem vaultDebitAllowance (isWithdraw : Bool) {I : ExecutionEnv} {g : Sat256} 
     (by rw [evalExpr?]; simp only [ho, EvalResult.ofOption])
     (by simp only [evalExpr?, envValue, hs.env, pure])
   rw [hs.storageRead] at hread
-  have hlet : ExecStmt config {contract := contract, locals := locals} evm (vaultDebitAllowanceBody isWithdraw)[0]!
+  have hlet : ExecStmt fork config {contract := contract, locals := locals} evm (vaultDebitAllowanceBody isWithdraw)[0]!
       (.ok {contract := contract, locals := locals0} evm) := ExecStmt.letDecl hread
   have ha0 : locals0.get? "allowance_" = some (.int (Int.ofNat old.toNat)) := store_get_self _ _ _
   have ho0 : locals0.get? "_owner" = some (.address (AccountAddress.ofNat owner.toNat)) := by

@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.AssetResultMemory
 import Benchmarks.CompoundIII.Comet.AssetEncoding
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -16,9 +18,9 @@ theorem cometAssetEncoder {v : CometWithExtendedAssetListImmutables}
     (hbound : dest.toNat + 256 < UInt256.size) (hc : AssetCanonical out)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
     (hword : ∀ j < 8, memLoad (src + UInt256.ofNat (32 * j)) mem = calldataWord out (32 * j))
-    (h : RD (deployedRuntime v) ee g s0 ⟨2971⟩ (dest :: src :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨2971⟩ (dest :: src :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret ((dest + ⟨256⟩) :: R)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret ((dest + ⟨256⟩) :: R)
       (assetStore mem dest out 8) aw' rdata σ k' C' := by
   have hr (n : Nat) (hn : n ≤ 8) (j : Nat) (hj : j < 8) :
       memLoad (src + UInt256.ofNat (32 * j)) (assetStore mem dest out n) =
@@ -79,7 +81,7 @@ theorem cometAssetEncoder {v : CometWithExtendedAssetListImmutables}
   simp only [cometWithExtendedAssetList_block_3055_memory,
     show UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 64))
       (UInt256.ofNat 1) = assetMask64 from rfl, hm4] at r2
-  change RD _ _ _ _ _ (src :: UInt256.ofNat 224 :: UInt256.ofNat 224 :: dest :: ⟨3121⟩ :: ret ::
+  change RD fork _ _ _ _ _ (src :: UInt256.ofNat 224 :: UInt256.ofNat 224 :: dest :: ⟨3121⟩ :: ret ::
     (dest + ⟨256⟩) :: R) (writeWord (assetStore mem dest out 4)
       (dest + UInt256.ofNat 128).toNat (calldataWord out 128)) _ _ _ _ _ at r2
   rw [← assetStore_succ mem dest out 4] at r2

@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.PoolModifyContext
 import Benchmarks.UniswapV4PoolManager.ConditionalSource
 import Benchmarks.UniswapV4PoolManager.TickClearSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -31,7 +33,7 @@ theorem poolModifyClear {f : Frame} {evm : State} {id : UInt256} {p : PoolModify
     {upper fl fu : Bool} {gl gu : UInt256} {tick : Int} (hc : PoolModifyContext f id p)
     (ht : f.locals.get? (poolModifyTickName upper) = some (.int tick))
     (hs : f.locals.get? "state" = some (poolModifyStateValue fl gl fu gu)) :
-    ExecStmt config f evm (poolModifyClearStmt upper)
+    ExecStmt fork config f evm (poolModifyClearStmt upper)
       (poolModifyClearResult f evm id tick upper (if upper then fu else fl)) := by
   have he := evalStructField (evalLocalValue (cfg := config) (f := f) (evm := evm) hs)
     (show lookupField? (poolModifyStateValue fl gl fu gu) (poolModifyFlipField upper) =
@@ -39,7 +41,7 @@ theorem poolModifyClear {f : Frame} {evm : State} {id : UInt256} {p : PoolModify
   let fa := poolModifyClearAliasFrame f id upper
   have ht' : fa.locals.get? (poolModifyTickName upper) = some (.int tick) :=
     (store_get_ne _ _ (by cases upper <;> decide : (poolModifyClearAlias upper == poolModifyTickName upper) = false)).trans ht
-  have hcall := tickClearCall (f := fa) (evm := evm) hc.contract (evalLocalValue (store_get_self _ _ _))
+  have hcall := tickClearCall (fork := fork) (f := fa) (evm := evm) hc.contract (evalLocalValue (store_get_self _ _ _))
     (evalLocalValue ht') (poolModifyClearRet upper)
   exact execStmt_conditionalAliasCall he (resolveStorageAlias hc.self) hcall
 

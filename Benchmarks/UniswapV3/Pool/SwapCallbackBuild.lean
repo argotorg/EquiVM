@@ -6,6 +6,8 @@ import Benchmarks.UniswapV3.Pool.Dispatch
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_018
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_019
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -36,12 +38,12 @@ theorem swapCallbackBuildX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
       UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (zeroForOne : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (swapBalanceBeforeReturn zeroForOne)
+    (rd : RD fork (deployedRuntime v) ee g s0 (swapBalanceBeforeReturn zeroForOne)
       (bal :: junk0 :: junk1 :: junk2 :: junk3 :: junk4 :: amount1 :: amount0 :: len :: start :: R)
         mem aw rdata σ k C)
     (hm : HeapMemory mem aw p) (hc : start.toNat + len.toNat ≤ ee.calldata.size)
     (hb : p.toNat + len.toNat + 164 ≤ 2 ^ 200) (hov : R.length + 23 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (swapCallbackEntry zeroForOne)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (swapCallbackEntry zeroForOne)
       (len :: start :: (p + ⟨132⟩) :: (p + ⟨68⟩) :: (p + ⟨4⟩) ::
         len :: start :: amount1 :: amount0 :: ⟨4198899251⟩ :: EVM.word ee.source.val ::
         bal :: junk1 :: junk2 :: junk3 :: junk4 :: amount1 :: amount0 :: len :: start :: R)

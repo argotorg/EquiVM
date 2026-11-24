@@ -2,19 +2,21 @@ import Benchmarks.EAS.EAS.MultiDelegatedAttestPrepareRun
 import Benchmarks.EAS.EAS.MultiDelegatedAttestVerifyLoop
 import Benchmarks.EAS.EAS.MultiDelegatedAttestCopyRun
 import Benchmarks.EAS.EAS.MultiDelegatedAttestCallRun
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
 
-def MultiDelegatedAttestAt (v : EASImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
+def MultiDelegatedAttestAt (fork : Ethereum.Fork) (v : EASImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     (n : Nat) (base table : UInt256) (R : List UInt256) (i : Nat) (L : Store) (evm : EVM.State) : Prop :=
   ∃ (σ : AccountMap) (mem out : ByteArray) (aw : UInt256) (k C : Nat)
       (heap available : UInt256) (groups : List (List UInt256)),
     SourceState s0 ee σ evm ∧ heap.toNat≤2^64-1 ∧ groups.length=n ∧
     MultiDelegatedAttestLocals L (delegatedBatchValues .attest ee.calldata base n) groups available heap.toNat i ∧
     MultiAttestMemory mem table groups i heap.toNat ∧
-    RD (deployedRuntime v) ee g s0 ⟨2777⟩
+    RD fork (deployedRuntime v) ee g s0 ⟨2777⟩
       (multiDelegatedAttestLoopStack n i base available (UInt256.ofNat groups.flatten.length) table R) mem aw out σ k C
 
 theorem multiDelegatedAttestIterationRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
@@ -22,14 +24,14 @@ theorem multiDelegatedAttestIterationRun {L : Store} {evm : EVM.State} {ee : Exe
     (v : EASImmutables) (hstack : R.length+50≤1024)
     (hsize : ee.calldata.size<2^255) (hbase : base.toNat+32*n<UInt256.size)
     (hbaseEq : base=checkAttestationCopyBase ee.calldata) (hi : i<n)
-    (h : MultiDelegatedAttestAt v ee g s0 n base table R i L evm) :
-    (∃ L' evm', ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedAttestIteration
+    (h : MultiDelegatedAttestAt fork v ee g s0 n base table R i L evm) :
+    (∃ L' evm', ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedAttestIteration
       (.ok {contract := contract,locals := L',immutables := immStore v} evm') ∧
-      MultiDelegatedAttestAt v ee g s0 n base table R (i+1) L' evm') ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedAttestIteration .reverted ∧
-      RDrev (deployedRuntime v) g s0) ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedAttestIteration .staticViolation ∧
-      RDstatic (deployedRuntime v) g s0) := by
+      MultiDelegatedAttestAt fork v ee g s0 n base table R (i+1) L' evm') ∨
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedAttestIteration .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) ∨
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedAttestIteration .staticViolation ∧
+      RDstatic fork (deployedRuntime v) g s0) := by
   obtain ⟨σ,mem,out,aw,k,C,heap,available,groups,hstate,hh,hg,hf,hm,rd⟩ := h
   have hn : n<UInt256.size := by omega
   have hlo : 224≤heap.toNat := by have := hm.view.span;have := hm.low;omega
@@ -37,7 +39,7 @@ theorem multiDelegatedAttestIterationRun {L : Store} {evm : EVM.State} {ee : Exe
   have hread := multiDelegatedAttestPrepareRun (evm := evm) v (by omega) hf hi hn (by omega) rd
   rcases hread with ⟨L1,a1,k1,C1,hbatch,hs1,hf1,r1⟩ | ⟨hs1,hrev⟩
   · let root := multiRequestRoot ee.calldata base i
-    have hv0 : MultiDelegatedAttestVerifyAt v ee g s0 (delegatedBatchValues .attest ee.calldata base n) groups n i base available table root
+    have hv0 : MultiDelegatedAttestVerifyAt fork v ee g s0 (delegatedBatchValues .attest ee.calldata base n) groups n i base available table root
         mem heap.toNat R 0 L1 evm := by
       exact ⟨σ,mem,out,a1,k1,C1,heap,hstate,le_refl _,hh,MemoryPrefix.refl _ _,hf1,
         by intros;omega,by have := hm.view.covered;have := hm.view.span;have := hm.low;omega,hfree,r1⟩

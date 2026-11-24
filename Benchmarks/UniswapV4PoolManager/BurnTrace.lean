@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.SafeCast
 import Benchmarks.UniswapV4PoolManager.AccountDeltaTrace
 import Benchmarks.UniswapV4PoolManager.BurnFromTrace
 
+variable {fork : Ethereum.Fork}
+
 /-! Public burn bytecode: checked amount, currency accounting, then ERC6909 burnFrom. -/
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
@@ -10,23 +12,23 @@ open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
 
-def burnAccountTraceResult (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
+def burnAccountTraceResult (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
     (evm : EVM.State) (sender : UInt256) (currency : AccountAddress) (amount : UInt256) : Prop :=
-  if amount.toNat = 0 then burnFromTraceResult v I g s0 evm sender (accountWord currency) amount else
+  if amount.toNat = 0 then burnFromTraceResult fork v I g s0 evm sender (accountWord currency) amount else
   if int256Fits (currencyDeltaValue evm I.source currency + Int.ofNat amount.toNat) then
-    if I.perm = false then RDstatic (deployedRuntime v) g s0 else
-    burnFromTraceResult v I g s0 (accountDeltaPost evm I.source currency (Int.ofNat amount.toNat))
+    if I.perm = false then RDstatic fork (deployedRuntime v) g s0 else
+    burnFromTraceResult fork v I g s0 (accountDeltaPost evm I.source currency (Int.ofNat amount.toNat))
       sender (accountWord currency) amount
-  else RDrev (deployedRuntime v) g s0
+  else RDrev fork (deployedRuntime v) g s0
 
 theorem burnAccountTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} {evm : EVM.State}
     {mem rdata : ByteArray} {aw sender amount extra : UInt256} {currency : AccountAddress} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length + 17 ≤ 1024) (hmem : mem.size = 96)
     (hI : evm.executionEnv = I) (hcs : sender.toNat < EVM.addressModulus) (hfit : amount.toNat < 2^127)
-    (h : RD (deployedRuntime v) I g s0 ⟨12528⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨12528⟩
       (accountWord currency :: EVM.wordOfInt (Int.ofNat amount.toNat) :: accountWord I.source :: ⟨955⟩ ::
         burnFromStack sender (accountWord currency) amount (extra :: R)) mem aw rdata evm.accountMap k C) :
-    burnAccountTraceResult v I g s0 evm sender currency amount := by
+    burnAccountTraceResult fork v I g s0 evm sender currency amount := by
   have hlo : -(2^127 : Int) ≤ Int.ofNat amount.toNat := by simp only [Int.ofNat_eq_natCast]; omega
   have hhi : Int.ofNat amount.toNat < (2^127 : Int) := by simp only [Int.ofNat_eq_natCast]; omega
   have hj : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 955) = true := by
@@ -54,18 +56,18 @@ theorem burnAccountTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} {evm : EVM
         exact burnFromTrace v (by omega) hmem' ((accountDeltaPost_env _ _ _ _).trans hI) hcs hburn
     · rw [if_neg hsum] at haccount ⊢; exact haccount
 
-def burnTraceResult (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
+def burnTraceResult (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
     (evm : EVM.State) (sender id amount : UInt256) : Prop :=
-  if transientWord evm lockSlot = ⟨0⟩ then RDrev (deployedRuntime v) g s0 else
-  if amount.toNat < 2^127 then burnAccountTraceResult v I g s0 evm sender (AccountAddress.ofNat id.toNat) amount
-  else RDrev (deployedRuntime v) g s0
+  if transientWord evm lockSlot = ⟨0⟩ then RDrev fork (deployedRuntime v) g s0 else
+  if amount.toNat < 2^127 then burnAccountTraceResult fork v I g s0 evm sender (AccountAddress.ofNat id.toNat) amount
+  else RDrev fork (deployedRuntime v) g s0
 
 theorem burnTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} {evm : EVM.State}
     {mem rdata : ByteArray} {aw sender id amount extra : UInt256} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length + 17 ≤ 1024) (hmem : mem.size = 96)
     (hI : evm.executionEnv = I) (hcs : sender.toNat < EVM.addressModulus)
-    (h : RD (deployedRuntime v) I g s0 ⟨834⟩ (amount :: id :: sender :: extra :: R) mem aw rdata evm.accountMap k C) :
-    burnTraceResult v I g s0 evm sender id amount := by
+    (h : RD fork (deployedRuntime v) I g s0 ⟨834⟩ (amount :: id :: sender :: extra :: R) mem aw rdata evm.accountMap k C) :
+    burnTraceResult fork v I g s0 evm sender id amount := by
   rw [burnTraceResult]
   by_cases hl : transientWord evm lockSlot = ⟨0⟩
   · rw [if_pos hl]
@@ -84,7 +86,7 @@ theorem burnTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} {evm : EVM.State}
     have hjCast : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 12458) = true := by
       rw [deployedRuntime_jumps]; jump_dest
     have hcast := poolManagerBlocks.poolManager_block_874 (by simp only [List.length_cons]; omega) hjCast hunlocked
-    change RD (deployedRuntime v) I g s0 ⟨12458⟩
+    change RD fork (deployedRuntime v) I g s0 ⟨12458⟩
       (amount :: ⟨947⟩ :: ⟨955⟩ :: burnFromStack sender (UInt256.land id solcAddrMask) amount (extra :: R))
       mem aw rdata evm.accountMap _ _ at hcast
     rw [← accountWord_fromId] at hcast
@@ -98,7 +100,7 @@ theorem burnTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} {evm : EVM.State}
         rw [deployedRuntime_jumps]; jump_dest
       have haccount := poolManagerBlocks.poolManager_block_947
         (by change R.length + 1 + 12 ≤ 1024; omega) hjAccount hprepare
-      change RD (deployedRuntime v) I g s0 ⟨12528⟩
+      change RD fork (deployedRuntime v) I g s0 ⟨12528⟩
         (accountWord (AccountAddress.ofNat id.toNat) :: amount :: accountWord I.source :: ⟨955⟩ ::
           burnFromStack sender (accountWord (AccountAddress.ofNat id.toNat)) amount (extra :: R))
         mem aw rdata evm.accountMap _ _ at haccount

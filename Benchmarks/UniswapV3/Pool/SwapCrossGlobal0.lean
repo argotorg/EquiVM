@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapCrossCallSource
 import Benchmarks.UniswapV3.Pool.SwapFeeGrowthStoreTrace
 import Benchmarks.UniswapV3.Pool.SwapCrossTick
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -13,7 +15,7 @@ theorem swapCrossGlobal0X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {aw p q free exactWord cache snap dataStart dataLength ret : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : SwapArgs) (s : SwapStateData) (d : SwapIterationData)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3775⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3775⟩
       (q :: swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
       mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hs : SwapStateMemory mem p s)
@@ -21,7 +23,7 @@ theorem swapCrossGlobal0X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hbp : p.toNat + 224 ≤ 2 ^ 200) (hbq : q.toNat + 224 ≤ 2 ^ 200)
     (hov : R.length + 20 ≤ 1024) :
     ∃ aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 ⟨3804⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨3804⟩
         ([(if a.zeroForOne then s.feeGrowth else feeGrowthWord false σ ee),
           EVM.wordOfInt d.tickNext, ⟨3851⟩, ⟨0⟩, q] ++
           swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
@@ -41,7 +43,7 @@ theorem swapCrossGlobal0X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
       uniswapV3Pool_block_3791 (immWords := wordsOf (immStore v))
         (by change R.length + 17 + 2 ≤ 1024; omega)
         (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; native_decide) rr)
-    change RD (deployedRuntime v) ee g s0 ⟨3804⟩
+    change RD fork (deployedRuntime v) ee g s0 ⟨3804⟩
       ([feeGrowthWord false σ ee, EVM.wordOfInt d.tickNext, ⟨3851⟩, ⟨0⟩, q] ++
         swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
       mem _ rdata σ k2 C2 at r2

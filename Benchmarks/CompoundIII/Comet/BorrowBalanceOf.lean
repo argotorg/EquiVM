@@ -6,6 +6,8 @@ import Benchmarks.CompoundIII.Comet.RuntimeBlocks_010
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_012
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_018
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # CometWithExtendedAssetList `borrowBalanceOf(address)`
 
@@ -27,7 +29,7 @@ theorem borrowBalanceX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetLi
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 18)) :
-    CheckedAddressGetterResult
+    CheckedAddressGetterResult fork
       (BorrowBalanceValid v (solcSlotWordAt ⟨0⟩ σ I) (solcSlotWordAt ⟨1⟩ σ I) (timestampWord I)
         (userBasicWord σ I (AccountAddress.ofNat (calldataWord I.calldata 4).toNat)))
       (deployedRuntime v) I g (initState σ σ₀ g A I) σ
@@ -108,7 +110,7 @@ theorem borrowBalanceX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetLi
 theorem cometWithExtendedAssetListBorrowBalanceOfBody {σ σ₀ A I} {g : UInt256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 18)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (cometWithExtendedAssetListSelBytes 18) rfl hsel
   apply checkedAddressGetter_refines (t := borrowBalanceOfTransition) hcode hsz
     (cometSelectorDispatch ⟨18, by decide⟩ hsel) rfl borrowBalanceTransition_body

@@ -4,6 +4,8 @@ import Benchmarks.Safe.ViaIR.IRMemoryAllocation
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_027
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_045
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -12,8 +14,8 @@ namespace Benchmarks.Safe.ViaIR
 set_option maxRecDepth 2000
 
 theorem safePreModuleCallFailure {I g s0 σ k C aw mem rdata ptr} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨9990⟩ (⟨0⟩ :: ptr :: R) mem aw rdata σ k C)
-    (hov : R.length + 6 ≤ 1024) : RDrev safeBytecode g s0 := by
+    (h : RD fork safeBytecode I g s0 ⟨9990⟩ (⟨0⟩ :: ptr :: R) mem aw rdata σ k C)
+    (hov : R.length + 6 ≤ 1024) : RDrev fork safeBytecode g s0 := by
   have h₁ := safeRuntime_block_9990_taken (by omega) (by decide) (by jump_dest) h
   exact safeRuntime_block_5682 (by
     simp only [safeRuntime_block_9990_taken_stack, List.length_cons]; omega)
@@ -23,20 +25,20 @@ theorem safePreModuleCallFailure {I g s0 σ k C aw mem rdata ptr} {R : List UInt
 
 theorem safePreModuleReturn {I g s0 σ k C aw mem out}
     {ptr : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨9990⟩ (⟨1⟩ :: ptr :: R)
+    (h : RD fork safeBytecode I g s0 ⟨9990⟩ (⟨1⟩ :: ptr :: R)
       (preModuleOutputMemory mem out ptr) aw out σ k C)
     (hf : memLoad ⟨64⟩ mem = ptr) (hm : ptr.toNat + 32 ≤ mem.size) (hp : 96 ≤ ptr.toNat)
     (hbptr : ptr.toNat + 32 < UInt256.size)
     (hb : out.size < 2 ^ 255) (hov : R.length + 13 ≤ 1024) :
-    RDrev safeBytecode g s0 ∨
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨10003⟩ (⟨0⟩ :: calldataWord out 0 :: R)
+    RDrev fork safeBytecode g s0 ∨
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨10003⟩ (⟨0⟩ :: calldataWord out 0 :: R)
       (preModuleReturnMemory mem out ptr) aw' out σ k' C' ∧
       config.externalABI.decode? "checkModuleTransaction" out =
         some [.fixedBytes bytes32Width (EVM.Word.toBytesBE (calldataWord out 0))] := by
   have hout : out.size < UInt256.size := lt_trans hb (by decide)
   have h₁ := safeRuntime_block_9990_fallthrough (by simp; omega) (by decide) h
   have h₂ := safeRuntime_block_9997_taken (by simp; omega) (by decide) (by jump_dest) h₁
-  have hstart : ∃ k' C', RD safeBytecode I g s0 ⟨10028⟩
+  have hstart : ∃ k' C', RD fork safeBytecode I g s0 ⟨10028⟩
       (ptr :: UInt256.ofNat (min 32 out.size) :: ptr :: R)
       (preModuleOutputMemory mem out ptr) aw out σ k' C' := by
     by_cases hl : 32 ≤ out.size
@@ -67,7 +69,7 @@ theorem safePreModuleReturn {I g s0 σ k C aw mem out}
     rw [preModuleNextPtr, roundedCalldataLengthMask _ hlen,
       ← wordOfNatAdd _ _ hbadd, hptr]
   rw [hnext] at h₅
-  change RD safeBytecode I g s0 ⟨10041⟩
+  change RD fork safeBytecode I g s0 ⟨10041⟩
     (UInt256.ofNat (min 32 out.size) :: ptr :: ⟨32⟩ :: ptr :: R)
     (preModuleReturnMemory mem out ptr) aw' out σ k' C' at h₅
   by_cases hl : 32 ≤ out.size

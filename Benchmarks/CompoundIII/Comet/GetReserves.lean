@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.Dispatch
 import Benchmarks.CompoundIII.Comet.GetReservesEvm
 import Benchmarks.CompoundIII.Comet.ReservesExternal
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # CometWithExtendedAssetList `getReserves()`
 
@@ -22,7 +24,7 @@ set_option maxRecDepth 10000
 theorem cometWithExtendedAssetListGetReservesBody {σ σ₀ A I} {g : UInt256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 1)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (cometWithExtendedAssetListSelBytes 1) rfl hsel
   have hd : selectorDispatchMsg contract I.calldata = some getReservesTransition :=
     cometSelectorDispatch ⟨1, by decide⟩ hsel
@@ -31,7 +33,7 @@ theorem cometWithExtendedAssetListGetReservesBody {σ σ₀ A I} {g : UInt256} (
       (transitionSignature getReservesTransition).paramTypes I.calldata = some (∅ : Store) := by
     change decodeCalldataWithMode .solc0815 [] [] I.calldata = some (∅ : Store)
     exact decodeCalldataWithMode_empty_ok hsz
-  have hX := getReservesX (σ := σ) (σ₀ := σ₀) (A := A)
+  have hX := getReservesX (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
   by_cases hv : I.weiValue = ⟨0⟩
   · by_cases hhi : I.calldata.size < 2^255 + 4

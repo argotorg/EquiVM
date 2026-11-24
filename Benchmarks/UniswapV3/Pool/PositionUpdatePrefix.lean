@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.PositionUpdateModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -10,7 +12,7 @@ macro "position_update_get" : tactic =>
     Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert, Std.HashMap.getElem?_empty]; rfl))
 
 theorem positionUpdateSnapshotSource (imms : Store) (evm : EVM.State) (a : PositionUpdateArgs) :
-    ExecBlock config (positionUpdateFrame imms a) evm (positionUpdateFunction.body.take 3)
+    ExecBlock fork config (positionUpdateFrame imms a) evm (positionUpdateFunction.body.take 3)
       (.ok (positionUpdateZeroFrame imms a evm) evm) := by
   refine ExecBlock.consNormal (stele' := positionUpdateAliasFrame imms a) (evm' := evm)
     (ExecStmt.letStorage ?_) ?_
@@ -67,7 +69,7 @@ theorem evalPositionUpdateLiquidityArgs (imms : Store) (evm : EVM.State) (a : Po
 
 theorem positionUpdateLiquidityCall (imms : Store) (evm : EVM.State) (a : PositionUpdateArgs)
     (hv : liquidityDeltaValid (positionUpdateLiquidityBefore a evm) a.delta) :
-    ExecStmt config (positionUpdateZeroFrame imms a evm) evm
+    ExecStmt fork config (positionUpdateZeroFrame imms a evm) evm
       (.internalCall "LiquidityMath_addDelta" positionUpdateLiquidityArgs "__c0")
       (.ok (positionUpdateAddFrame imms a evm) evm) :=
   internalCallFunctionReturn (callee := liquidityDeltaFunction)

@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.SupplyCollateralFrames
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -9,7 +11,7 @@ set_option maxRecDepth 2000
 theorem supplyCollateralPrefix_source {sender dst asset amount out}
     (frame : Frame) (evm : EVM.State)
     (hf : SupplyCollateralArgs frame sender dst asset amount out) :
-    ExecBlock config frame evm supplyCollateralPrefix
+    ExecBlock fork config frame evm supplyCollateralPrefix
       (supplyCollateralPrefixResult frame evm dst asset amount out) := by
   let total := withdrawCollateralTotal evm asset
   let reserved := supplyCollateralReserved evm asset
@@ -37,7 +39,7 @@ theorem supplyCollateralPrefix_source {sender dst asset amount out}
   by_cases ht : (withdrawCollateralTotal evm asset).toNat + amount.toNat < 2^128
   · have hadd := checkedNarrowAddSourceOk ⟨128, by decide⟩ (by decide) htotal hra ht
     have hw := assignLocalCollateralTotal (cfg := config) (evm := evm) (total + amount) hrt
-    apply ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inl rfl) hadd hw)
+    apply ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inl rfl) hadd hw)
     have hget : totals.locals.get? "totals" =
         some (totalsCollateralValue (total + amount) reserved) := by
       simp only [totals, supplyCollateralTotalsFrame, Std.HashMap.get?_eq_getElem?,
@@ -84,7 +86,7 @@ theorem supplyCollateralPrefix_source {sender dst asset amount out}
           exact ExecBlock.consStatic (ExecStmt.assignStatic (hval evm) hwrite hp)
         · simp only [supplyCollateralPrefixResult, supplyCollateralPrefixOutcome,
             if_pos ht, if_pos hcap, if_pos hb, hp, if_true]
-          apply ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hp) (hval evm) hwrite)
+          apply ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hp) (hval evm) hwrite)
           have hnext : evalExpr? config ready
               (storeTotalsCollateral evm asset (total + amount) reserved)
               (.var "dstCollateralNew") = .ok (.int next.toNat) := by
@@ -95,7 +97,7 @@ theorem supplyCollateralPrefix_source {sender dst asset amount out}
             (.var "dst") (.var "asset") next hfargs.contract hfargs.user
             (by simp only [evalExpr?, hfargs.dst, EvalResult.ofOption])
             (by simp only [evalExpr?, hfargs.asset, EvalResult.ofOption])
-          exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by
+          exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by
             simpa only [storeTotalsCollateral, storePackedWord, storageStore_executionEnv]
               using hp)) hnext hwrite2) .nil
       · simp only [supplyCollateralPrefixResult, supplyCollateralPrefixOutcome,

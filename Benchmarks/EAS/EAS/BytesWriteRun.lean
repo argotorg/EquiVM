@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.BytesLongRun
 import Benchmarks.EAS.EAS.BytesShortMemory
 import Benchmarks.EAS.EAS.BytesCleanRun
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -13,12 +15,12 @@ theorem easBytesWrite {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hb : ptr.toNat+bytes.size+64 < UInt256.size)
     (hin : ptr.toNat+32+32*((bytes.size+31)/32) ≤ mem.size)
     (hread : mem.readWithPadding (ptr.toNat+32) bytes.size = bytes)
-    (rd : RD (deployedRuntime v) ee g s0 (recordBytesDecodedPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (recordBytesDecodedPC site)
       (old::ptr::UInt256.ofNat bytes.size::slot::recordBytesSaved site word src t1 t2 t3 t4 R)
       mem aw rdata σ k C) :
     ∃ mem' aw' k' C', (∀ limit, MemoryPrefix mem mem' limit) ∧
       memLoad (UInt256.ofNat 64) mem' = memLoad (UInt256.ofNat 64) mem ∧
-      RD (deployedRuntime v) ee g s0 (bytesWrittenPC site)
+      RD fork (deployedRuntime v) ee g s0 (bytesWrittenPC site)
         (bytesWriteSaved site word src t1 t2 t3 t4 R) mem' aw' rdata
         (bytesWriteAccounts σ ee (slot+⟨6⟩) bytes old.toNat) k' C' := by
   have hsz : (UInt256.ofNat bytes.size).toNat = bytes.size := ulit_toNat' _ (by omega)

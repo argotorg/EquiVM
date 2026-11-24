@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.TransferBaseSupplyTotalsEvm
 import Benchmarks.CompoundIII.Comet.TransferBaseBorrowTotalsEvm
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -14,10 +16,10 @@ theorem cometTransferBaseTotals {v : CometWithExtendedAssetListImmutables}
     (hS : supplied.toNat < 2^104) (hW : withdrawn.toNat < 2^104)
     (hB : borrowed.toNat < 2^104) (hR : repaid.toNat < 2^104)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨14841⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨14841⟩
       (supplied :: repaid :: srcNext :: srcPtr :: dstNext :: dstPtr :: balance :: withdrawn ::
         src :: borrowed :: R) mem aw rdata σ k C) :
-    internalRun (deployedRuntime v) ee g s0 mem aw rdata ⟨14930⟩
+    internalRun fork (deployedRuntime v) ee g s0 mem aw rdata ⟨14930⟩
       (srcNext :: srcPtr :: dstNext :: dstPtr :: balance :: withdrawn :: src :: supplied :: R)
       (transferBaseTotalsOutcome evm supplied withdrawn borrowed repaid) := by
   have hfirst := cometTransferBaseSupplyTotals hstack hS hW hs h

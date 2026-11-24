@@ -1,5 +1,7 @@
 import Benchmarks.Dss.GemJoin.ConstructorBase
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS GemJoin constructor argument and guard traces
 -/
@@ -15,10 +17,10 @@ theorem gemJoinInitcodeNonpayableRevert
     (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress)
     (hcode : I.code = gemJoinCtorCode vat ilk gem)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev (gemJoinCtorCode vat ilk gem) g
+    RDrev fork (gemJoinCtorCode vat ilk gem) g
       (initState σ σ₀ g A I) := by
   have rd0 :
-      RD (gemJoinCtorCode vat ilk gem) I g
+      RD fork (gemJoinCtorCode vat ilk gem) I g
         (initState σ σ₀ g A I) ⟨0⟩ []
         ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
@@ -38,9 +40,9 @@ theorem gemJoinCtorArgCopyTrace
     {I : ExecutionEnv} {g0 : Sat256} {s0 : State} {rdata : ByteArray}
     {acc : AccountMap} {k C : Nat}
     (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress)
-    (h : RD (gemJoinCtorCode vat ilk gem) I g0 s0 ⟨18⟩ []
+    (h : RD fork (gemJoinCtorCode vat ilk gem) I g0 s0 ⟨18⟩ []
       solcFreePtrMem (UInt256.ofNat 3) rdata acc k C) :
-    ∃ k' C', RD (gemJoinCtorCode vat ilk gem) I g0 s0 ⟨38⟩
+    ∃ k' C', RD fork (gemJoinCtorCode vat ilk gem) I g0 s0 ⟨38⟩
       [(UInt256.ofNat (gemJoinCtorCode vat ilk gem).size).sub ⟨2326⟩, ⟨128⟩]
       (gemJoinCtorArgFreeMem vat ilk gem) (UInt256.ofNat 7) rdata acc k' C' := by
   have hcopy :
@@ -73,7 +75,7 @@ theorem gemJoinCtorArgCopyTrace
     dup2, dup2, add, push1 ⟨64⟩,
     raw mstore 0 (gemJoinCtorArgFreeMem vat ilk gem) (UInt256.ofNat 7)
       (by gem_ctor_decode) mem_cost hfree (by decide) (by evm_ov)]
-  have rd38' : RD (gemJoinCtorCode vat ilk gem) I g0 s0 ⟨38⟩
+  have rd38' : RD fork (gemJoinCtorCode vat ilk gem) I g0 s0 ⟨38⟩
       [(UInt256.ofNat (gemJoinCtorCode vat ilk gem).size).sub ⟨2326⟩, ⟨128⟩]
       (gemJoinCtorArgFreeMem vat ilk gem) (UInt256.ofNat 7) rdata acc
       (k + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1)
@@ -93,10 +95,10 @@ theorem gemJoinCtorArgDecodeTrace
     {I : ExecutionEnv} {g0 : Sat256} {s0 : State} {rdata : ByteArray}
     {acc : AccountMap} {k C : Nat}
     (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress)
-    (h : RD (gemJoinCtorCode vat ilk gem) I g0 s0 ⟨38⟩
+    (h : RD fork (gemJoinCtorCode vat ilk gem) I g0 s0 ⟨38⟩
       [(UInt256.ofNat (gemJoinCtorCode vat ilk gem).size).sub ⟨2326⟩, ⟨128⟩]
       (gemJoinCtorArgFreeMem vat ilk gem) (UInt256.ofNat 7) rdata acc k C) :
-    ∃ k' C', RD (gemJoinCtorCode vat ilk gem) I g0 s0 ⟨68⟩
+    ∃ k' C', RD fork (gemJoinCtorCode vat ilk gem) I g0 s0 ⟨68⟩
       [solcSourceWord I, EVM.word gem.val, ilk, ⟨32⟩, EVM.word vat.val, ⟨64⟩]
       (gemJoinCtorArgFreeMem vat ilk gem) (UInt256.ofNat 7) rdata acc k' C' := by
   have rdBeforeJump := gem_ctor_run h with [
@@ -131,7 +133,7 @@ theorem gemJoinCtorArgDecodeTrace
     raw mload 0 (EVM.word gem.val) (UInt256.ofNat 7)
       (by gem_ctor_decode) mem_cost h192 (by decide) (by evm_ov),
     caller]
-  have rd68' : ∃ k' C', RD (gemJoinCtorCode vat ilk gem) I g0 s0 ⟨68⟩
+  have rd68' : ∃ k' C', RD fork (gemJoinCtorCode vat ilk gem) I g0 s0 ⟨68⟩
       [solcSourceWord I, EVM.word gem.val, ilk, ⟨32⟩, EVM.word vat.val, ⟨64⟩]
       (gemJoinCtorArgFreeMem vat ilk gem) (UInt256.ofNat 7) rdata acc k' C' := by
     refine ⟨
@@ -153,13 +155,13 @@ theorem gemJoinCtorArgsReach
     (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress)
     (hcode : I.code = gemJoinCtorCode vat ilk gem)
     (hwv : I.weiValue = ⟨0⟩) :
-    ∃ k C, RD (gemJoinCtorCode vat ilk gem) I g0
+    ∃ k C, RD fork (gemJoinCtorCode vat ilk gem) I g0
       (initState σ σ₀ g0 A I) ⟨68⟩
       [solcSourceWord I, EVM.word gem.val, ilk, ⟨32⟩, EVM.word vat.val, ⟨64⟩]
       (gemJoinCtorArgFreeMem vat ilk gem) (UInt256.ofNat 7) ByteArray.empty
       σ k C := by
   have rd8 :
-      RD (gemJoinCtorCode vat ilk gem) I g0
+      RD fork (gemJoinCtorCode vat ilk gem) I g0
         (initState σ σ₀ g0 A I) ⟨8⟩
         [UInt256.isZero I.weiValue, I.weiValue] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ 6 26 := by
@@ -172,7 +174,7 @@ theorem gemJoinCtorArgsReach
       (by gem_ctor_decode) (by gem_ctor_decode) (by gem_ctor_decode) (by gem_ctor_decode)
       (by gem_ctor_jd)
   have rd18' :
-      RD (gemJoinCtorCode vat ilk gem) I g0
+      RD fork (gemJoinCtorCode vat ilk gem) I g0
         (initState σ σ₀ g0 A I) ⟨18⟩
         [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k18 C18 := by
     simpa [show ((⟨16⟩ : UInt256) + ⟨1⟩ + ⟨1⟩) = ⟨18⟩ from by native_decide]

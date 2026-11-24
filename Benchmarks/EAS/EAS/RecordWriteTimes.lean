@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.RecordWriteStart
 import Benchmarks.EAS.EAS.RuntimeBlocks_031
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -41,9 +43,9 @@ theorem easRecordWriteTimes {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {src dataPtr slot word t1 t2 t3 t4 : UInt256} {a : AttestationRecord} {R : List UInt256}
     (v : EASImmutables) (site : UIDSite) (hstack : R.length+22 ≤ 1024) (hperm : ee.perm = true)
     (hv : AttestationMemoryView mem src dataPtr a)
-    (rd : RD (deployedRuntime v) ee g s0 (recordTimePC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (recordTimePC site)
       (recordTimeStack site mem slot word src t1 t2 t3 t4 R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (recordFieldsPC site)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (recordFieldsPC site)
       (recordFieldsStack site slot word src t1 t2 t3 t4 R) mem aw' rdata
       (writeScalarAccounts (((attestationScalarWrites slot a).drop 3).take 2) σ ee) k' C' := by
   have heq := recordTimeAccounts_fields hv σ ee slot
@@ -51,14 +53,14 @@ theorem easRecordWriteTimes {ee : ExecutionEnv} {g : Sat256} {s0 : State}
   | single s1 s2 s3 s4 s5 s6 s7 s8 =>
     obtain ⟨aw',k',C',hr⟩ := easBlocks.eas_block_8627_packed (immWords := wordsOf (immStore v))
       (by simp only [List.length_cons]; omega) hperm (by rw [easPatchedValidJumpsRuntime v]; jump_dest) rd
-    change RD (deployedRuntime v) ee g s0 (UInt256.ofNat 8775)
+    change RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 8775)
       (recordFieldsStack (.single s1 s2 s3 s4 s5 s6 s7 s8) slot word src t1 t2 t3 t4 R) mem aw' rdata
       (recordTimeAccounts σ ee mem slot src) k' C' at hr
     exact ⟨aw',k',C',by simpa only [heq,recordFieldsPC] using hr⟩
   | many s1 s2 s3 s4 s5 s6 =>
     obtain ⟨aw',k',C',hr⟩ := easBlocks.eas_block_10875_packed (immWords := wordsOf (immStore v))
       (by simp only [List.length_cons]; omega) hperm (by rw [easPatchedValidJumpsRuntime v]; jump_dest) rd
-    change RD (deployedRuntime v) ee g s0 (UInt256.ofNat 10990)
+    change RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 10990)
       (recordFieldsStack (.many s1 s2 s3 s4 s5 s6) slot word src t1 t2 t3 t4 R) mem aw' rdata
       (recordTimeAccounts σ ee mem slot src) k' C' at hr
     exact ⟨aw',k',C',by simpa only [heq,recordFieldsPC] using hr⟩

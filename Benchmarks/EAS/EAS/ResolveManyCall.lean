@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.ResolveManyRun
 import Benchmarks.EAS.EAS.HeapCall
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -21,9 +23,9 @@ theorem resolveManyCallRun {locals imms : Store} {args : List Expr} {retVar : Id
     (hvalues : WordArrayMemoryView mem values words ptr.toNat) (hlen : ats.length = words.length)
     (hheap : ptr.toNat ≤ 2^64-1) (hh : memLoad (UInt256.ofNat 64) mem = ptr)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 (resolveManyEntryPC rev)
+    (rd : RD fork (deployedRuntime v) ee g s0 (resolveManyEntryPC rev)
       (schema::array::values::available::last.toUInt256::ret::R) mem aw rdata σ k C) :
-    HeapCallPostOrStatic ((resolveManyUsedValue target words).toNat ≤ available.toNat) config (deployedRuntime v) ee g s0 {contract := contract, locals := locals, immutables := imms}
+    HeapCallPostOrStatic fork ((resolveManyUsedValue target words).toNat ≤ available.toNat) config (deployedRuntime v) ee g s0 {contract := contract, locals := locals, immutables := imms}
       evm "_resolveAttestations" args retVar (.int (Int.ofNat (resolveManyUsedValue target words).toNat))
       ret (resolveManyUsedValue target words::R) mem ptr.toNat := by
   exact (resolveManyRun (imms := imms) v hfield ht hstack hperm hs harray hvalues hlen hheap hh hret rd).call

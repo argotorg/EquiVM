@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.TimeArrayFinish
 import Benchmarks.EAS.EAS.OffchainSource
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -27,22 +29,22 @@ theorem offchainArrayIteration_ok {evm : EVM.State} {locals imms : Store}
     (hw : lookupNth? words i = some word) (hlen : words.length < UInt256.size)
     (hz : offchainWord evm evm.executionEnv.source word = ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm offchainArrayIteration
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm offchainArrayIteration
       (.ok {contract := contract, locals := timeArrayNext locals heap i, immutables := imms} (offchainStore evm evm.executionEnv.source word time)) := by
-  exact timeArrayFinish h hi hlen (offchainCall_ok (hperm := hperm) (offchainArrayArgs_eval h hi hw) hz)
+  exact timeArrayFinish h hi hlen (offchainCall_ok (fork := fork) (hperm := hperm) (offchainArrayArgs_eval h hi hw) hz)
 
 theorem offchainArrayIteration_revert {evm : EVM.State} {locals imms : Store}
     {words : List UInt256} {time word : UInt256} {heap i : Nat}
     (h : TimeArrayInv locals words time heap i) (hi : i < words.length)
     (hw : lookupNth? words i = some word) (hz : offchainWord evm evm.executionEnv.source word ≠ ⟨0⟩) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm offchainArrayIteration .reverted :=
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm offchainArrayIteration .reverted :=
   ExecBlock.consRevert (offchainCall_revert (offchainArrayArgs_eval h hi hw) hz)
 
 theorem offchainArrayIteration_static {evm : EVM.State} {locals imms : Store}
     {words : List UInt256} {time word : UInt256} {heap i : Nat}
     (h : TimeArrayInv locals words time heap i) (hi : i < words.length)
     (hw : lookupNth? words i = some word) (hz : offchainWord evm evm.executionEnv.source word = ⟨0⟩) (hp : evm.executionEnv.perm = false) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm offchainArrayIteration .staticViolation :=
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm offchainArrayIteration .staticViolation :=
   ExecBlock.consStatic (offchainCall_static (offchainArrayArgs_eval h hi hw) hz hp)
 
 theorem offchainStore_env (evm : EVM.State) (word time : UInt256) :

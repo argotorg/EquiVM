@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Cat.Common
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -153,10 +155,10 @@ target duplicated on top and the `STATICCALL` argument frame assembled below. -/
 theorem RD.catBiteIlksToStaticcallGuard
     {σ σ₀ A I} {g : UInt256} {urn ilk : UInt256} {R : List UInt256} {k C : ℕ}
     (hR : R.length + 16 ≤ 1024)
-    (rd1163 : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd1163 : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1163⟩
       (urn :: ilk :: R) solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1233⟩
       (catBiteVatTargetWord σ I :: catBiteVatTargetWord σ I ::
         catBiteIlksOutPtr :: catBiteIlksInSize :: catBiteIlksOutPtr :: catBiteIlksOutSize ::
@@ -196,7 +198,7 @@ theorem RD.catBiteIlksToStaticcallGuard
   have rd1164 := rd1163.jumpdest (by native_decide) (by evm_ov)
   have rd1166 := rd1164.push1 ⟨3⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1167, C1167, rd1167raw⟩ := rd1166.sload (by native_decide) (by evm_ov)
-  have rd1167 : RD catBytecode I (Sat256.ofUInt256 g)
+  have rd1167 : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1167⟩
       (solcSlotWordAt ⟨3⟩ σ I :: urn :: ilk :: R)
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k1167 C1167 := by

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.SwapStepSelectWords
 import Benchmarks.UniswapV4PoolManager.NextPriceOutputTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -12,16 +14,16 @@ theorem swapStepOutputSelectTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (zeroForOne : Bool) (hstack : R.length+33 ≤ 1024)
     (hp : price.toNat < 2^160) (hl : liquidity.toNat < 2^128)
-    (h : RD (deployedRuntime v) I g s0 ⟨20631⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨20631⟩
       ([target, price, desired, j, if zeroForOne then ⟨1⟩ else ⟨0⟩, liquidity,
         remaining, x1, x2, x3, x4, x5, x6, x7, x8, j] ++ R) mem aw rdata σ k C) :
     (swapStepOutputSelectFits price liquidity remaining desired zeroForOne → ∃ k' C', C ≤ C' ∧
-      RD (deployedRuntime v) I g s0 ⟨20667⟩
+      RD fork (deployedRuntime v) I g s0 ⟨20667⟩
         ([if zeroForOne then ⟨1⟩ else ⟨0⟩, swapStepSelectedPrice price target liquidity remaining desired false zeroForOne,
           liquidity, price, ⟨160⟩, swapStepSelectedAmount remaining desired, j,
           swapStepSelectedPrice price target liquidity remaining desired false zeroForOne,
           solcAddrMask, remaining, x1, x2, x3, x4, x5, x6, x7, x8, j] ++ R) mem aw rdata σ k' C') ∧
-    (¬swapStepOutputSelectFits price liquidity remaining desired zeroForOne → RDrev (deployedRuntime v) g s0) := by
+    (¬swapStepOutputSelectFits price liquidity remaining desired zeroForOne → RDrev fork (deployedRuntime v) g s0) := by
   by_cases ht : swapStepReachesTarget remaining desired
   · have rd1 := poolManagerBlocks.poolManager_block_20631_fallthrough
       (by change R.length+18 ≤ 1024; omega) (ult_zero ht) h

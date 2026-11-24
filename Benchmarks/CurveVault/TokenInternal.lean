@@ -2,6 +2,8 @@ import Benchmarks.CurveVault.TokenSource
 import Benchmarks.CurveVault.TokenOutputMemory
 import Benchmarks.CurveVault.TokenReturnEVM
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch Reasoning.VyperCalls
 namespace Benchmarks.CurveVault
 
@@ -19,15 +21,15 @@ theorem vaultTokenRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (ha : locals.get? "amount" = some (.int (Int.ofNat amount.toNat)))
     (hperm : I.perm = true) (hstack : R.length + 9 ≤ 1024)
     (hvalid : (D_J vaultBytecode 0).contains returnPc = true)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 7556) (returnPc :: R) mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 7556) (returnPc :: R) mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (mem' out : ByteArray) (locals' : Store)
       (aw' : UInt256) (k' C' : Nat),
-      ExecFuncBody config {contract := contract, locals := locals} evm vaultTokenFunction.body
+      ExecFuncBody fork config {contract := contract, locals := locals} evm vaultTokenFunction.body
         (.returned {contract := contract, locals := locals'} evm' none) ∧
       SourceState s0 I σ' evm' ∧ WordMemoryRange mem mem' 352 UInt256.size ∧
-      RD vaultBytecode I g s0 returnPc R mem' aw' out σ' k' C') ∨
-    (ExecFuncBody config {contract := contract, locals := locals} evm vaultTokenFunction.body
-      .reverted ∧ RDrev vaultBytecode g s0) := by
+      RD fork vaultBytecode I g s0 returnPc R mem' aw' out σ' k' C') ∨
+    (ExecFuncBody fork config {contract := contract, locals := locals} evm vaultTokenFunction.body
+      .reverted ∧ RDrev fork vaultBytecode g s0) := by
   by_cases hzero : amount = ⟨0⟩
   · have rd7680 := vaultBlocks.vault_block_7556_taken
       (by simp only [List.length_cons]; omega) (by rw [hma, hzero]; decide +kernel) (by native_decide) h
@@ -44,7 +46,7 @@ theorem vaultTokenRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (by simp only [List.length_cons]; omega) rd7565
   dsimp only [vaultBlocks.vault_block_7565_stack] at rd7594
   rw [hmt] at rd7594
-  change RD vaultBytecode I g s0 (UInt256.ofNat 7594)
+  change RD fork vaultBytecode I g s0 (UInt256.ofNat 7594)
     (_ :: token :: ⟨0⟩ :: UInt256.ofNat 220 :: UInt256.ofNat 100 ::
       UInt256.ofNat 192 :: UInt256.ofNat 32 :: token :: returnPc :: R)
     (vaultTokenCallMemory mem) aw1 rdata σ k1 C1 at rd7594
@@ -53,7 +55,7 @@ theorem vaultTokenRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (by rw [vaultTokenPayload_size]; exact le_trans (by decide +kernel) Ethereum.EVM.pow_two_64_le_maxReturnDataSizeByGas)
     (by simp only [List.length_cons]; omega)
   have hwide : out.size < UInt256.size := lt_trans hout (by decide +kernel)
-  change RD vaultBytecode I g s0 (UInt256.ofNat 7595) ((if z then ⟨1⟩ else ⟨0⟩) :: token :: returnPc :: R)
+  change RD fork vaultBytecode I g s0 (UInt256.ofNat 7595) ((if z then ⟨1⟩ else ⟨0⟩) :: token :: returnPc :: R)
     (callOutputMem (vaultTokenCallMemory mem) out (UInt256.ofNat 192) (UInt256.ofNat 32)) _ out σ' k2 C2 at rd7595
   cases z with
   | false =>

@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Spot.PokeTraceBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Spot
@@ -9,12 +11,12 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (spotSelBytes 8)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (spotSelBytes 8) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some pokeTransition :=
     spotDispatchPoke hsel
-  have hreach := spotReachPokeBody (σ := σ)
+  have hreach := spotReachPokeBody (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
@@ -31,7 +33,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
         pokePipCode_zero_of_codeSize_zero
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcodeSize
       have hbody :
-          ExecTransitionBody config contract
+          ExecTransitionBody fork config contract
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (pokeLocals I) pokeTransition.body .reverted := by
         simpa using
@@ -52,11 +54,12 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
       by_cases hdepthEq : I.depth = 1024
       · obtain ⟨_, _, rd680⟩ := RD.spotPokePeekCallDepthLimit rd679 hdepthEq
         let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
-        let A_pip := (evmS.addAccessedAccount (EVM.address (pokePipAddress σ I))).substate
+        let A_pip := (Ethereum.EVM.callSubstate fork evmS.accountMap (EVM.address
+          (pokePipAddress σ I)) evmS.substate)
         have hdepthInit : evmS.executionEnv.depth = 1024 := by
           simpa [evmS, initState] using hdepthEq
         have hcallStele :
-            typedCallViaEVM config evmS (EVM.address (pokePipAddress σ I)) "peek" 0 []
+            typedCallViaEVM fork config evmS (EVM.address (pokePipAddress σ I)) "peek" 0 []
               (false, { evmS with substate := A_pip }, ByteArray.empty) true := by
           simpa [A_pip] using
             (callNotMade_depthLimit (cfg := config) (evm := evmS)
@@ -66,7 +69,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                 pokePeekOutPtr.toNat pokePeekInSize.toNat)
               (pokePeekEncode_eq I) hdepthInit)
         have hbody :
-            ExecTransitionBody config contract
+            ExecTransitionBody fork config contract
               (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               (pokeLocals I) pokeTransition.body .reverted := by
           simpa [evmS] using
@@ -95,10 +98,11 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
           exact hdepthEq hbad
         have hΘE :
             (σ', g'', A', z, out) =
-              Ethereum.EVM.Θ evmE.accountMap evmE.σ₀ Ain
+              Ethereum.EVM.Θ fork evmE.accountMap evmE.σ₀ Ain
                 (AccountAddress.ofUInt256 (UInt256.ofNat evmE.executionEnv.codeOwner))
                 evmE.executionEnv.sender (AccountAddress.ofUInt256 (pokePipTargetWord σ I))
-                (toExecute evmE.accountMap (AccountAddress.ofUInt256 (pokePipTargetWord σ I)))
+                (toExecute fork evmE.accountMap (AccountAddress.ofUInt256
+                  (pokePipTargetWord σ I)))
                 callGas (UInt256.ofNat evmE.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
                 ((pokePeekCalldataMem I).readWithPadding
                   pokePeekOutPtr.toNat pokePeekInSize.toNat)
@@ -124,7 +128,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
             (by simp [evmE, evmS, initState])
             (by simp [evmE, evmS, initState])
         cases z
-        · have rd680False : RD spotBytecode I (Sat256.ofUInt256 g)
+        · have rd680False : RD fork spotBytecode I (Sat256.ofUInt256 g)
               (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨680⟩
               (⟨0⟩ :: pokePeekEndPtr :: pokePeekSelectorPlainWord ::
                 pokePipTargetWord σ I :: ⟨0⟩ :: ⟨0⟩ :: pokeIlkWord I ::
@@ -132,7 +136,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
               (pokePeekPostCallMem I out) (UInt256.ofNat 6) out σ' k680 C680 := by
             simpa using rd680
           have hbody :
-              ExecTransitionBody config contract
+              ExecTransitionBody fork config contract
                 (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 (pokeLocals I) pokeTransition.body .reverted := by
             simpa [evmS] using
@@ -145,7 +149,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                 (out := out) hwv hsz36 hpipCodeStele (by simpa [evmS] using hcallStele))
           have hrev := RD.spotPokePeekCallFailed rd680False hout
           exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
-        · have rd680True : RD spotBytecode I (Sat256.ofUInt256 g)
+        · have rd680True : RD fork spotBytecode I (Sat256.ofUInt256 g)
               (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨680⟩
               (⟨1⟩ :: pokePeekEndPtr :: pokePeekSelectorPlainWord ::
                 pokePipTargetWord σ I :: ⟨0⟩ :: ⟨0⟩ :: pokeIlkWord I ::
@@ -155,7 +159,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
           obtain ⟨_, _, rd698⟩ := RD.spotPokePeekCallSucceeded rd680True
           by_cases hshort : out.size < 64
           · have hbody :
-                ExecTransitionBody config contract
+                ExecTransitionBody fork config contract
                   (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                   (pokeLocals I) pokeTransition.body .reverted := by
               simpa [evmS] using
@@ -199,7 +203,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                   exact pokeVatCode_zero_of_codeSize_zero (evm := evmPipS) (by
                     simpa [evmPipS, evmS, initState] using hvatCodeSizeStele)
                 have hbody :
-                    ExecTransitionBody config contract
+                    ExecTransitionBody fork config contract
                       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                       (pokeLocals I) pokeTransition.body .reverted := by
                   simpa [evmS, evmPipS] using
@@ -222,12 +226,12 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                 let evmPipSAligned := { evmPipS with substate := A' }
                 have hΘFileE :
                     (σ'', gFile'', AFile', zFile, fileOut) =
-                    Ethereum.EVM.Θ evmPipE.accountMap evmPipE.σ₀ AinFile
+                    Ethereum.EVM.Θ fork evmPipE.accountMap evmPipE.σ₀ AinFile
                         (AccountAddress.ofUInt256
                           (UInt256.ofNat evmPipE.executionEnv.codeOwner))
                         evmPipE.executionEnv.sender
                         (AccountAddress.ofUInt256 (pokeVatTargetWord σ' I))
-                        (toExecute evmPipE.accountMap
+                        (toExecute fork evmPipE.accountMap
                         (AccountAddress.ofUInt256 (pokeVatTargetWord σ' I)))
                         callGasFile (UInt256.ofNat evmPipE.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
                         (ByteArray.readWithPadding
@@ -265,7 +269,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                 have hfileDepth : evmPipS.executionEnv.depth ≠ 1024 := by
                   simpa [evmPipS, evmS, initState] using hdepthNe
                 have hfileCallStele :
-                    typedCallViaEVM config evmPipS
+                    typedCallViaEVM fork config evmPipS
                       (EVM.address (pokeVatAddress evmPipS.accountMap evmPipS.executionEnv))
                       "file" 0
                       [.fixedBytes bytes32Width (pokeIlkBytes I),
@@ -292,7 +296,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                   exact pokeVatCode_pos_of_codeSize_ne_zero (evm := evmPipS) (by
                     simpa [evmPipS, evmS, initState] using hvatCodeSizeStele)
                 cases zFile
-                · have rd902False : RD spotBytecode I (Sat256.ofUInt256 g)
+                · have rd902False : RD fork spotBytecode I (Sat256.ofUInt256 g)
                       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨902⟩
                       (⟨0⟩ :: pokeVatFileEndPtr :: pokeVatFileSelectorPlainWord ::
                         pokeVatTargetWord σ' I :: ⟨0⟩ :: pokePeekHasWord out ::
@@ -301,7 +305,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                       (UInt256.ofNat 8) fileOut σ'' k902 C902 := by
                     simpa using rd902
                   have hbody :
-                      ExecTransitionBody config contract
+                      ExecTransitionBody fork config contract
                         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                         (pokeLocals I) pokeTransition.body .reverted := by
                     simpa [evmS, evmPipS] using
@@ -319,7 +323,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                         hdecPeek hhasZero hvatCodeStele hfileCallStele)
                   have hrev := RD.spotPokeVatFileCallFailed rd902False hfileOutSize
                   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
-                · have rd902True : RD spotBytecode I (Sat256.ofUInt256 g)
+                · have rd902True : RD fork spotBytecode I (Sat256.ofUInt256 g)
                       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨902⟩
                       (⟨1⟩ :: pokeVatFileEndPtr :: pokeVatFileSelectorPlainWord ::
                         pokeVatTargetWord σ' I :: ⟨0⟩ :: pokePeekHasWord out ::
@@ -329,7 +333,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                     simpa using rd902
                   obtain ⟨_, _, rd920⟩ := RD.spotPokeVatFileCallSucceeded rd902True
                   have hbodySplit :
-                      (I.perm = true → ExecTransitionBody config contract
+                      (I.perm = true → ExecTransitionBody fork config contract
                         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                         (pokeLocals I) pokeTransition.body
                         (.returned
@@ -339,7 +343,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                             accountMap := σ''_stele
                             substate := A''_stele }
                           none)) ∧
-                      (I.perm = false → ExecTransitionBody config contract
+                      (I.perm = false → ExecTransitionBody fork config contract
                         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                         (pokeLocals I) pokeTransition.body .staticViolation) := by
                     simpa [evmS, evmPipS] using
@@ -395,10 +399,10 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                 simp [val, valScaled]
               have hsourceArithmeticReverts
                   (harith :
-                    ExecBlock config
+                    ExecBlock fork config
                       { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ }
                       evmPipS pokeTrueBranchStmts .reverted) :
-                  ExecTransitionBody config contract
+                  ExecTransitionBody fork config contract
                     (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                     (pokeLocals I) pokeTransition.body .reverted := by
                 have htail := spotPokeTrueTailArithmeticReverts hhasNe harith
@@ -439,7 +443,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                         pokeParWord evmPipS.accountMap evmPipS.executionEnv = ⟨0⟩ := by
                       rw [hparEq, hparZero]
                     have harith :=
-                      execPokeTrueRdivParDivZeroReverts evmPipS I out hlo32
+                      execPokeTrueRdivParDivZeroReverts (fork := fork) evmPipS I out hlo32
                         hvalScaled (by simpa [val] using hfitVal) hfitPar hparZeroS
                     have hbody := hsourceArithmeticReverts
                       (by simpa [pokeTrueBranchStmts] using harith)
@@ -448,7 +452,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                         rw [← hcode] at hoog
                         simpa [initState, Sat256.ofUInt256] using hoog))
                     · have hxi :
-                          Ξ σ σ₀ g A I = .error .InvalidInstruction :=
+                          Ξ fork σ σ₀ g A I = .error .InvalidInstruction :=
                         Xi_error_of_X (g := g) (by
                           rw [← hcode] at hinvalid
                           simpa [initState, Sat256.ofUInt256] using hinvalid)
@@ -503,7 +507,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                         have hmatZeroS : pokeMatWord evmPipS.accountMap I = ⟨0⟩ := by
                           rw [hmatEq, hmatZero]
                         have harith :=
-                          execPokeTrueRdivMatDivZeroReverts evmPipS I out
+                          execPokeTrueRdivMatDivZeroReverts (fork := fork) evmPipS I out
                             hsz36 hlo32 (by simp [evmPipS, evmS, initState])
                             hvalScaled (by simpa [val] using hfitVal) hfitPar
                             hparNeS hspot1S hfitMat hmatZeroS
@@ -514,7 +518,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                             rw [← hcode] at hoog
                             simpa [initState, Sat256.ofUInt256] using hoog))
                         · have hxi :
-                              Ξ σ σ₀ g A I = .error .InvalidInstruction :=
+                              Ξ fork σ σ₀ g A I = .error .InvalidInstruction :=
                             Xi_error_of_X (g := g) (by
                               rw [← hcode] at hinvalid
                               simpa [initState, Sat256.ofUInt256] using hinvalid)
@@ -538,7 +542,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                           dsimp [spot2]
                           rw [hmatEq]
                         have harith :=
-                          execPokeTrueArithmeticReturns evmPipS I out
+                          execPokeTrueArithmeticReturns (fork := fork) evmPipS I out
                             hsz36 hlo32 (by simp [evmPipS, evmS, initState])
                             hvalScaled (by simpa [val] using hfitVal) hfitPar
                             hparNeS hspot1S hfitMat hmatNeS hspot2S
@@ -564,7 +568,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                               (by simpa [pokeTrueBranchStmts] using harith)
                               hvatNoCodeStele
                           have hbody :
-                              ExecTransitionBody config contract
+                              ExecTransitionBody fork config contract
                                 (initState σ σ₀
                                   (Sat256.ofUInt256 g) A I)
                                 (pokeLocals I) pokeTransition.body .reverted := by
@@ -592,12 +596,13 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                           let evmPipSAligned := { evmPipS with substate := A' }
                           have hΘFileE :
                               (σ'', gFile'', AFile', zFile, fileOut) =
-                                Ethereum.EVM.Θ evmPipE.accountMap evmPipE.σ₀ AinFile
+                                Ethereum.EVM.Θ fork evmPipE.accountMap
+                                  evmPipE.σ₀ AinFile
                                   (AccountAddress.ofUInt256
                                     (UInt256.ofNat evmPipE.executionEnv.codeOwner))
                                   evmPipE.executionEnv.sender
                                   (AccountAddress.ofUInt256 (pokeVatTargetWord σ' I))
-                                  (toExecute evmPipE.accountMap
+                                  (toExecute fork evmPipE.accountMap
                                     (AccountAddress.ofUInt256 (pokeVatTargetWord σ' I)))
                                   callGasFile
                                   (UInt256.ofNat evmPipE.executionEnv.gasPrice)
@@ -642,7 +647,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                           have hfileDepth : evmPipS.executionEnv.depth ≠ 1024 := by
                             simpa [evmPipS, evmS, initState] using hdepthNe
                           have hfileCallStele :
-                              typedCallViaEVM config evmPipS
+                              typedCallViaEVM fork config evmPipS
                                 (EVM.address
                                   (pokeVatAddress evmPipS.accountMap
                                     evmPipS.executionEnv))
@@ -673,7 +678,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                             exact pokeVatCode_pos_of_codeSize_ne_zero (evm := evmPipS) (by
                               simpa [evmPipS, evmS, initState] using hvatCodeSizeStele)
                           cases zFile
-                          · have rd902False : RD spotBytecode I (Sat256.ofUInt256 g)
+                          · have rd902False : RD fork spotBytecode I (Sat256.ofUInt256 g)
                                 (initState σ σ₀
                                   (Sat256.ofUInt256 g) A I) ⟨902⟩
                                 (⟨0⟩ :: pokeVatFileEndPtr ::
@@ -697,7 +702,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                                 (by simpa [pokeTrueBranchStmts] using harith)
                                 hvatCodeStele hfileCallStele
                             have hbody :
-                                ExecTransitionBody config contract
+                                ExecTransitionBody fork config contract
                                   (initState σ σ₀
                                     (Sat256.ofUInt256 g) A I)
                                   (pokeLocals I) pokeTransition.body .reverted := by
@@ -711,7 +716,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                             have hrev := RD.spotPokeVatFileCallFailed
                               rd902False hfileOutSize
                             exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
-                          · have rd902True : RD spotBytecode I (Sat256.ofUInt256 g)
+                          · have rd902True : RD fork spotBytecode I (Sat256.ofUInt256 g)
                                 (initState σ σ₀
                                   (Sat256.ofUInt256 g) A I) ⟨902⟩
                                 (⟨1⟩ :: pokeVatFileEndPtr ::
@@ -737,7 +742,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                                 (by simpa [pokeTrueBranchStmts] using harith)
                                 hvatCodeStele hfileCallStele
                             have hbodySplit :
-                                (I.perm = true → ExecTransitionBody config contract
+                                (I.perm = true → ExecTransitionBody fork config contract
                                   (initState σ σ₀
                                     (Sat256.ofUInt256 g) A I)
                                   (pokeLocals I) pokeTransition.body
@@ -750,7 +755,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                                       accountMap := σ''_stele
                                       substate := A''_stele }
                                     none)) ∧
-                                (I.perm = false → ExecTransitionBody config contract
+                                (I.perm = false → ExecTransitionBody fork config contract
                                   (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                                   (pokeLocals I) pokeTransition.body .staticViolation) := by
                               simpa [evmS, evmPipS] using
@@ -808,7 +813,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                           (by simp only [List.length_cons, List.length_nil]; omega)
                           hoverMat rd2093Mat
                       have harith :=
-                        execPokeTrueRdivMatMulOverflowReverts evmPipS I out
+                        execPokeTrueRdivMatMulOverflowReverts (fork := fork) evmPipS I out
                           hsz36 hlo32 (by simp [evmPipS, evmS, initState])
                           hvalScaled (by simpa [val] using hfitVal) hfitPar
                           hparNeS hspot1S hoverMat
@@ -826,7 +831,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                       (by simp only [List.length_cons, List.length_nil]; omega)
                       hoverPar rd2093Par
                   have harith :=
-                    execPokeTrueRdivParMulOverflowReverts evmPipS I out hlo32
+                    execPokeTrueRdivParMulOverflowReverts (fork := fork) evmPipS I out hlo32
                       hvalScaled (by simpa [val] using hfitVal) hoverPar
                   have hbody := hsourceArithmeticReverts
                     (by simpa [pokeTrueBranchStmts] using harith)
@@ -842,7 +847,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                     (by simp only [List.length_cons, List.length_nil]; omega)
                     (by simpa [val] using hoverVal) rd2051Val
                 have harith :=
-                  execPokeTrueValScaledOverflowReverts evmPipS I out hlo32
+                  execPokeTrueValScaledOverflowReverts (fork := fork) evmPipS I out hlo32
                     (by simpa [val] using hoverVal)
                 have hbody := hsourceArithmeticReverts
                   (by simpa [pokeTrueBranchStmts] using harith)

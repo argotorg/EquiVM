@@ -2,6 +2,8 @@ import Benchmarks.Safe.ViaIR.TokenTransferSource
 import Benchmarks.Safe.ViaIR.SafeMulSource
 import Benchmarks.Safe.ViaIR.InternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.ViaIR
@@ -59,7 +61,7 @@ def nativeFinal (p : PaymentInput) (I : ExecutionEnv) (z : Bool) (out : ByteArra
 end PaymentInput
 
 theorem safePaymentReceiver (p : PaymentInput) (evm : EVM.State) :
-    ExecStmt config p.frame evm
+    ExecStmt fork config p.frame evm
       (.letDecl "receiver" (some addr)
         (.ite (eqE (.var "refundReceiver") zeroAddr) origin (.var "refundReceiver")))
       (.ok (p.receiverFrame evm.executionEnv) evm) := by
@@ -78,7 +80,7 @@ theorem safePaymentReceiver (p : PaymentInput) (evm : EVM.State) :
 
 theorem safePaymentTotal (p : PaymentInput) (evm : EVM.State)
     (hfit : p.gasUsed.toNat + p.baseGas.toNat < UInt256.size) :
-    ExecStmt config (p.receiverFrame evm.executionEnv) evm
+    ExecStmt fork config (p.receiverFrame evm.executionEnv) evm
       (.internalCall "_add" [.var "gasUsed", .var "baseGas"] "gasTotal")
       (.ok (p.totalFrame evm.executionEnv) evm) := by
   apply safeInternalAdd rfl ?_ ?_ hfit <;>
@@ -87,14 +89,14 @@ theorem safePaymentTotal (p : PaymentInput) (evm : EVM.State)
 
 theorem safePaymentPrefix {p : PaymentInput} {evm : EVM.State} {result : ExecResult}
     (hfit : p.gasUsed.toNat + p.baseGas.toNat < UInt256.size)
-    (htail : ExecBlock config (p.totalFrame evm.executionEnv) evm
+    (htail : ExecBlock fork config (p.totalFrame evm.executionEnv) evm
       (handlePaymentFunction.body.drop 2) result) :
-    ExecBlock config p.frame evm handlePaymentFunction.body result :=
+    ExecBlock fork config p.frame evm handlePaymentFunction.body result :=
   .consNormal (safePaymentReceiver p evm) (.consNormal (safePaymentTotal p evm hfit) htail)
 
 theorem safePaymentAddOverflow (p : PaymentInput) (evm : EVM.State)
     (hover : UInt256.size ≤ p.gasUsed.toNat + p.baseGas.toNat) :
-    ExecFuncBody config p.frame evm handlePaymentFunction.body .reverted := by
+    ExecFuncBody fork config p.frame evm handlePaymentFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   refine .consNormal (safePaymentReceiver p evm) (.consRevert ?_)
   apply safeInternalAddOverflow (a := p.gasUsed) (b := p.baseGas) rfl ?_ ?_ hover <;>
@@ -143,8 +145,8 @@ theorem safeInternalTransferToken {p : TokenTransferInput} {caller : Frame} {evm
     (ht : evalExpr? config caller evm token = .ok (.address p.token))
     (hr : evalExpr? config caller evm receiver = .ok (.address p.receiver))
     (ha : evalExpr? config caller evm amount = .ok (uint256Value p.amount))
-    (hbody : ExecFuncBody config p.frame evm transferTokenFunction.body result) :
-    ExecStmt config caller evm (.internalCall "transferToken" [token, receiver, amount] retVar)
+    (hbody : ExecFuncBody fork config p.frame evm transferTokenFunction.body result) :
+    ExecStmt fork config caller evm (.internalCall "transferToken" [token, receiver, amount] retVar)
       (internalCallResult caller retVar result) := by
   apply internalCallFunctionResult (callee := transferTokenFunction)
     (argVals := [.address p.token, .address p.receiver, uint256Value p.amount]) (locals := p.args)

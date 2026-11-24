@@ -1,5 +1,7 @@
 import Benchmarks.Safe.ViaIR.TransactionStructTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -32,7 +34,7 @@ theorem transactionHashMemory_free {I : ExecutionEnv} {mem : ByteArray} {ptr : N
 set_option maxRecDepth 2000 in
 theorem safeTransactionHashTrace (tx : SafeTransaction)
     {I g s0 σ k C aw mem rdata ptr} {off ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨9040⟩
+    (h : RD fork safeBytecode I g s0 ⟨9040⟩
       (UInt256.ofNat tx.target.val :: tx.value :: off :: UInt256.ofNat tx.payload.size ::
         tx.operation :: tx.safeTxGas :: tx.baseGas :: tx.gasPrice ::
         UInt256.ofNat tx.gasToken.val :: UInt256.ofNat tx.refundReceiver.val ::
@@ -43,7 +45,7 @@ theorem safeTransactionHashTrace (tx : SafeTransaction)
     (hi : off.toNat + tx.payload.size ≤ I.calldata.size)
     (hd : I.calldata.extract off.toNat (off.toNat + tx.payload.size) = tx.payload)
     (hov : R.length + 20 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ret (transactionWord I tx :: R)
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ret (transactionWord I tx :: R)
       (transactionHashMemory mem ptr I off tx) aw' rdata σ k' C' := by
   obtain ⟨aw₁, k₁, C₁, h₁⟩ := safeTransactionDomainTrace h hf (by omega) (by simp; omega)
   have hfree : memLoad ⟨64⟩ (domainMemoryAt mem ptr I) = UInt256.ofNat ptr := by
@@ -54,7 +56,7 @@ theorem safeTransactionHashTrace (tx : SafeTransaction)
   rw [safeTransactionPrefixMemory hfree hb hn (by rw [domainMemoryAt_size]; omega) hi hd] at h₂
   change memLoad (UInt256.ofNat 64) (domainMemoryAt mem ptr I) = UInt256.ofNat ptr at hfree
   simp only [safeRuntime_block_9114_stack, hfree] at h₂
-  change RD safeBytecode I g s0 ⟨9228⟩
+  change RD fork safeBytecode I g s0 ⟨9228⟩
     (UInt256.ofNat ptr :: ⟨6401⟩ :: (UInt256.ofNat ptr + UInt256.ofNat 32) :: domainWord I ::
       UInt256.ofNat ptr :: ⟨30⟩ :: ⟨66⟩ :: ret :: R)
     (transactionStructHashMemory

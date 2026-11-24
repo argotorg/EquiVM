@@ -7,6 +7,8 @@ import Benchmarks.CurveVault.RuntimeBlocks_018
 import Benchmarks.CurveVault.RuntimeBlocks_031
 import Benchmarks.CurveVault.Entry
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -29,31 +31,31 @@ theorem vaultMutationEntry (flow : VaultFlow) {σ σ₀ A I} {g : UInt256} {t : 
       (transitionSignature t).paramTypes I.calldata = some decoded)
     (hbody : t.body = stmts ++ vaultMutationEntryBody name args)
     (hretTy : t.returnType = [.elem (.int (.uint ⟨256, by decide⟩))])
-    (hprefix : ExecBlock config {contract := contract, locals := decoded}
+    (hprefix : ExecBlock fork config {contract := contract, locals := decoded}
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) stmts
       (.ok {contract := contract, locals := locals} (initState σ σ₀ (Sat256.ofUInt256 g) A I)))
     (hstack : R.length + 3 ≤ 1024)
-    (h : RD vaultBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+    (h : RD fork vaultBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (UInt256.ofNat flow.lockEntry) R mem aw rdata σ k C)
     (hrun : ∀ {aw0 : UInt256} {k0 C0 : Nat}, I.perm = true →
-      RD vaultBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      RD fork vaultBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (UInt256.ofNat flow.bodyEntry) R mem aw0 rdata σ k0 C0 →
       (∃ (evm1 : State) (σ1 : AccountMap) (value : UInt256),
-        ExecStmt config {contract := contract, locals := locals}
+        ExecStmt fork config {contract := contract, locals := locals}
           (vaultSetLock (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1⟩) (.internalCall name args "__r")
           (.ok {contract := contract, locals := locals.insert "__r" (.int (Int.ofNat value.toNat))} evm1) ∧
         SourceState (initState σ σ₀ (Sat256.ofUInt256 g) A I) I σ1 evm1 ∧
-        RDret vaultBytecode (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        RDret fork vaultBytecode (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (tstoreAccountMap I.codeOwner σ1 ⟨0⟩ ⟨0⟩) value.toByteArray) ∨
-      (ExecStmt config {contract := contract, locals := locals}
+      (ExecStmt fork config {contract := contract, locals := locals}
         (vaultSetLock (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1⟩) (.internalCall name args "__r") .reverted ∧
-        RDrev vaultBytecode (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I))) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+        RDrev fork vaultBytecode (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I))) :
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hload : Stele.EVM.transientLoad evm evm.executionEnv.codeOwner ⟨0⟩ = codeOwnerTransientWord I σ ⟨0⟩ :=
     codeOwnerTransientWord_initState _
   by_cases hlocked : codeOwnerTransientWord I σ ⟨0⟩ = ⟨1⟩
-  · have hrev : RDrev vaultBytecode (Sat256.ofUInt256 g) evm := by
+  · have hrev : RDrev fork vaultBytecode (Sat256.ofUInt256 g) evm := by
       cases flow
       · obtain ⟨_, _, _, rdFail⟩ := vaultBlocks.vault_block_2159_taken_packed (by omega)
           (by change UInt256.eq _ (codeOwnerTransientWord I σ ⟨0⟩) ≠ _; rw [hlocked]; decide +kernel)
@@ -71,13 +73,13 @@ theorem vaultMutationEntry (flow : VaultFlow) {σ σ₀ A I} {g : UInt256} {t : 
           (by change UInt256.eq _ (codeOwnerTransientWord I σ ⟨0⟩) ≠ _; rw [hlocked]; decide +kernel)
           (by native_decide) h
         exact vaultBlocks.vault_block_8284 (by omega) rdFail
-    have hsource : ExecTransitionBody config contract evm decoded t.body .reverted := by
+    have hsource : ExecTransitionBody fork config contract evm decoded t.body .reverted := by
       apply ExecFuncBody.execBlockRevert
       rw [hbody]
       exact execBlock_append hprefix (ExecBlock.consRevert (ExecStmt.requireFalse
         (vaultLockEval_fail evm locals (by rw [hload]; exact hlocked))))
     exact hrev.reEquivExecutionRevert hcode hd hdec hsource
-  have hbodyReach : ∃ aw0 k0 C0, RD vaultBytecode I (Sat256.ofUInt256 g) evm
+  have hbodyReach : ∃ aw0 k0 C0, RD fork vaultBytecode I (Sat256.ofUInt256 g) evm
       (UInt256.ofNat flow.bodyEntry) R mem aw0 rdata σ k0 C0 := by
     cases flow
     · exact vaultBlocks.vault_block_2159_fallthrough_packed (by omega) (u256_eq_of_ne (Ne.symm hlocked)) h
@@ -87,14 +89,14 @@ theorem vaultMutationEntry (flow : VaultFlow) {σ σ₀ A I} {g : UInt256} {t : 
   obtain ⟨aw0, k0, C0, rdBody⟩ := hbodyReach
   have hlock : Stele.EVM.transientLoad evm evm.executionEnv.codeOwner ⟨0⟩ ≠ ⟨1⟩ := by
     rw [hload]; exact hlocked
-  have hlockStmt := ExecStmt.requireTrue (vaultLockEval_pass evm locals hlock)
+  have hlockStmt := ExecStmt.requireTrue (fork := fork) (vaultLockEval_pass evm locals hlock)
   by_cases hperm : I.perm = true
   swap
   · have hp : I.perm = false := by simpa using hperm
     have rdPushOne := rdBody.push1 (UInt256.ofNat 1) (by cases flow <;> native_decide) (by omega)
     have rdStore := rdPushOne.push0 (by cases flow <;> native_decide) (by simp only [List.length_cons]; omega)
     have hstatic := tstoreStaticReach rdStore hp (by cases flow <;> native_decide) (by omega)
-    have hsource : ExecTransitionBody config contract evm decoded t.body .staticViolation := by
+    have hsource : ExecTransitionBody fork config contract evm decoded t.body .staticViolation := by
       apply ExecFuncBody.execBlockStatic
       rw [hbody]
       apply execBlock_append hprefix
@@ -103,23 +105,23 @@ theorem vaultMutationEntry (flow : VaultFlow) {σ σ₀ A I} {g : UInt256} {t : 
     exact hstatic.reEquivStaticHalt hcode hd hdec hsource
   rcases hrun hperm rdBody with ⟨evm1, σ1, shares, hcall, hs1, hret⟩ | ⟨hcall, hrev⟩
   swap
-  · have hsource : ExecTransitionBody config contract evm decoded t.body .reverted := by
+  · have hsource : ExecTransitionBody fork config contract evm decoded t.body .reverted := by
       apply ExecFuncBody.execBlockRevert
       rw [hbody]
       apply execBlock_append hprefix
-      exact ExecBlock.consNormal hlockStmt (ExecBlock.consNormal (vaultLockSet (hperm := by assumption) evm locals ⟨1⟩)
+      exact ExecBlock.consNormal hlockStmt (ExecBlock.consNormal (vaultLockSet (fork := fork) (hperm := by assumption) evm locals ⟨1⟩)
         (ExecBlock.consRevert hcall))
     exact hrev.reEquivExecutionRevert hcode hd hdec hsource
-  have hsource : ExecTransitionBody config contract evm decoded t.body
+  have hsource : ExecTransitionBody fork config contract evm decoded t.body
       (.returned {contract := contract, locals := locals.insert "__r" (.int (Int.ofNat shares.toNat))}
         (vaultSetLock evm1 ⟨0⟩) (some [.int (Int.ofNat shares.toNat)])) := by
     apply ExecFuncBody.execBlockRet
     rw [hbody]
     apply execBlock_append hprefix
     apply ExecBlock.consNormal hlockStmt
-    apply ExecBlock.consNormal (vaultLockSet (hperm := by assumption) evm locals ⟨1⟩)
+    apply ExecBlock.consNormal (vaultLockSet (fork := fork) (hperm := by assumption) evm locals ⟨1⟩)
     apply ExecBlock.consNormal hcall
-    apply ExecBlock.consNormal (vaultLockSet (hperm := (congrArg ExecutionEnv.perm hs1.env).trans hperm) _ _ ⟨0⟩)
+    apply ExecBlock.consNormal (vaultLockSet (fork := fork) (hperm := (congrArg ExecutionEnv.perm hs1.env).trans hperm) _ _ ⟨0⟩)
     exact ExecBlock.consReturn (ExecStmt.return (by
       simp only [evalExprs?, evalExpr?, store_get_self, collapseReturns, EvalResult.ofOption, EvalResult.bind, pure, bind]))
   have hsFinal : SourceState evm I (tstoreAccountMap I.codeOwner σ1 ⟨0⟩ ⟨0⟩) (vaultSetLock evm1 ⟨0⟩) := by

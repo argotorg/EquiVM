@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.CollateralLoopWords
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -109,7 +111,7 @@ theorem collateralAdd_exec {frame : Frame} {evm : EVM.State} {liquidity value : 
     (hf : frame.locals.get? "liquidity" = some (.int (signedWord liquidity)))
     (he : frame.locals.get? "__c8" = some (.int value.toNat))
     (hl : signedWord liquidity < 0) (hv : value.toNat < 2^255) :
-    ExecStmt config frame evm collateralAddStmt
+    ExecStmt fork config frame evm collateralAddStmt
       (.ok (collateralAddFrame frame liquidity value) evm) := by
   obtain ⟨hlo, hhi⟩ := collateralSum_bounds hl hv
   have hsum := signedWord_add_of_range hlo hhi

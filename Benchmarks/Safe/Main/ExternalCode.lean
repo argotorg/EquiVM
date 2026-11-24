@@ -1,5 +1,7 @@
 import Benchmarks.Safe.Main.Common
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.Main
@@ -30,7 +32,7 @@ theorem extcodecopy_xstep {s : State} {code : ByteArray} {pc target dest source 
     (hdec : decode code pc = some (.EXTCODECOPY, .none))
     (hstk : s.machineState.stack = target :: dest :: source :: len :: t)
     (hov : t.length ≤ 1024) :
-    Xstep (D_J code 0) s =
+    Xstep fork (D_J code 0) s =
       (if s.machineState.gasAvailable.toNat < memoryExpansionCost s .EXTCODECOPY
        then .error .OutOfGass
        else if (s.machineState.gasAvailable.subNat (memoryExpansionCost s .EXTCODECOPY)).toNat <
@@ -49,9 +51,9 @@ theorem extcodecopy_xstep {s : State} {code : ByteArray} {pc target dest source 
 theorem rdExtcodecopy {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : ℕ} {target dest source len : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (target :: dest :: source :: len :: t) mem aw rdata σ k C)
+    (h : RD fork code ee g s0 pc (target :: dest :: source :: len :: t) mem aw rdata σ k C)
     (hdec : decode code pc = some (.EXTCODECOPY, .none)) (hov : t.length ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (pc + ⟨1⟩) t
+    ∃ k' C', RD fork code ee g s0 (pc + ⟨1⟩) t
       ((externalCode σ target).write source.toNat mem dest.toNat len.toNat)
       (M aw dest len) rdata σ k' C' := by
   unfold RD at h
@@ -60,7 +62,7 @@ theorem rdExtcodecopy {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
   · have hmc : memoryExpansionCost s .EXTCODECOPY = memExpansionCost aw dest len := by
       simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
         List.getElem!_cons_zero, List.getElem!_cons_succ, memExpansionCost, M]
-    have st := extcodecopy_xstep hcode hpc hdec hstk hov
+    have st := extcodecopy_xstep (fork := fork) hcode hpc hdec hstk hov
     rw [hmc, collapse_two_stage] at st
     let cost := memExpansionCost aw dest len +
       (Caccess (AccountAddress.ofUInt256 target) s.substate +

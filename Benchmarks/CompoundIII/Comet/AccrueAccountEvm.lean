@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.AccrueInternalEvm
 import Benchmarks.CompoundIII.Comet.AbiRoutines
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_008
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -15,9 +17,9 @@ theorem cometAccrueAccountCall {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 evm : State} {rdata : ByteArray}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} (addr : AccountAddress)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨5305⟩ [EVM.word addr.val, ⟨22⟩]
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨5305⟩ [EVM.word addr.val, ⟨22⟩]
       solcFreePtrMem aw rdata σ k C) :
-    voidOutcomeRun (deployedRuntime v) g s0 (accrueAccountOutcome v evm addr) := by
+    voidOutcomeRun fork (deployedRuntime v) g s0 (accrueAccountOutcome v evm addr) := by
   have r1 := cometWithExtendedAssetList_block_5305 (immWords := wordsOf (immStore v))
     (by change 4 ≤ 1024; decide)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
@@ -33,20 +35,20 @@ theorem cometAccrueAccountCall {v : CometWithExtendedAssetListImmutables}
   | staticViolation =>
       simpa only [accrueAccountOutcome, hx, voidOutcomeRun, internalRun] using hr
 
-def AccrueAccountResult (v : CometWithExtendedAssetListImmutables) (I : ExecutionEnv)
+def AccrueAccountResult (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables) (I : ExecutionEnv)
     (g : Sat256) (s0 : EVM.State) : Prop :=
   if I.weiValue = ⟨0⟩ ∧ 36 ≤ I.calldata.size ∧ I.calldata.size < 2^255 + 4 ∧
       (calldataWord I.calldata 4).toNat < EVM.addressModulus then
-    voidOutcomeRun (deployedRuntime v) g s0
+    voidOutcomeRun fork (deployedRuntime v) g s0
       (accrueAccountOutcome v s0 (AccountAddress.ofNat (calldataWord I.calldata 4).toNat))
-  else RDrev (deployedRuntime v) g s0
+  else RDrev fork (deployedRuntime v) g s0
 
 theorem accrueAccountX {σ σ₀ A I} {g : Sat256}
     (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 52)) :
-    AccrueAccountResult v I g (initState σ σ₀ g A I) := by
+    AccrueAccountResult fork v I g (initState σ σ₀ g A I) := by
   obtain ⟨k, C, rd⟩ := cometWithExtendedAssetListReachAccrueAccountBody
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) v hcode hsz hsize hsel
   have rd1 := cometWithExtendedAssetList_block_925 (immWords := wordsOf (immStore v))
@@ -68,7 +70,7 @@ theorem accrueAccountX {σ σ₀ A I} {g : Sat256}
             (by rw [cometWithExtendedAssetListPatchedValidJumps v]; jump_dest) rd4
           unfold AccrueAccountResult
           rw [if_pos ⟨hv, hlo, hhi, hc⟩]
-          change RD _ _ _ _ _ [calldataWord I.calldata 4, UInt256.ofNat 22] _ _ _ _ _ _ at rd5
+          change RD fork _ _ _ _ _ [calldataWord I.calldata 4, UInt256.ofNat 22] _ _ _ _ _ _ at rd5
           rw [← addressWord_eq_ofNat_address hc] at rd5
           exact cometAccrueAccountCall _ SourceState.init rd5
         · simp only [AccrueAccountResult, hc, and_false, if_false]

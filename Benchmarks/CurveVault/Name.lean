@@ -2,6 +2,8 @@ import Benchmarks.CurveVault.Dispatch
 import Benchmarks.CurveVault.Entry
 import Benchmarks.CurveVault.StringRoutine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Vault `name()`
 
@@ -18,7 +20,7 @@ namespace Benchmarks.CurveVault
 theorem vaultNameBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vaultBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vaultSelBytes 4)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (vaultSelBytes 4) rfl hsel
   have hd : dispatchMsg contract I.calldata = some nameTransition := by
     apply vaultDispatch_name
@@ -43,7 +45,7 @@ theorem vaultNameBody {σ σ₀ A I} {g : UInt256}
     (_hwf : storageWF σ I)
     (hcode : I.code = vaultBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vaultSelBytes 4)) :
-    runtimeRefinementFor config contract σ σ₀ g A I :=
+    runtimeRefinementFor fork config contract σ σ₀ g A I :=
   vaultNameBodyCore hcode hsize hsel
 
 end Benchmarks.CurveVault

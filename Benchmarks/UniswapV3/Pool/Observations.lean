@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.Calldata
 import Benchmarks.UniswapV3.Pool.ObservationStorage
 import Benchmarks.UniswapV3.Pool.TupleReturn
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # UniswapV3Pool `observations(uint256)`
 
@@ -37,7 +39,7 @@ theorem uniswapV3PoolObservationsReturns (v : UniswapV3PoolImmutables) (evm : EV
     (locals : Store) (index : UInt256) (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hbase : locals.get? "observations" = none)
     (hindex : locals.get? "arg0" = some (.int (Int.ofNat index.toNat))) (hin : index.toNat < 65535) :
-    ExecTransitionBody config contract evm locals observationsTransition.body
+    ExecTransitionBody fork config contract evm locals observationsTransition.body
       (.returned { contract := contract, locals := locals, immutables := immStore v } evm
         (some (observationsReturnValues index evm.accountMap evm.executionEnv))) (immStore v) := by
   apply ExecFuncBody.execBlockRet
@@ -53,7 +55,7 @@ theorem uniswapV3PoolObservationsOutOfBounds (v : UniswapV3PoolImmutables) (evm 
     (locals : Store) (index : UInt256) (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hbase : locals.get? "observations" = none)
     (hindex : locals.get? "arg0" = some (.int (Int.ofNat index.toNat))) (hout : ¬ index.toNat < 65535) :
-    ExecTransitionBody config contract evm locals observationsTransition.body .reverted (immStore v) := by
+    ExecTransitionBody fork config contract evm locals observationsTransition.body .reverted (immStore v) := by
   apply ExecFuncBody.execBlockRevert
   apply (ABlock.start.requireStep (evalCallvalueEq_true hwv)).run
   apply ExecBlock.consRevert
@@ -93,9 +95,9 @@ def observationsCleanWords (a b c d : UInt256) : List UInt256 :=
 theorem observationsReturnX {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : Nat} {v : UniswapV3PoolImmutables} {a b c d aw : UInt256} {R : List UInt256}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD (deployedRuntime v) ee g s0 ⟨766⟩ (d :: c :: b :: a :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨766⟩ (d :: c :: b :: a :: R)
       solcFreePtrMem aw rdata acc k C) (hov : R.length + 7 ≤ 1024) :
-    RDret (deployedRuntime v) g s0 acc (wordBytes (observationsCleanWords a b c d)) := by
+    RDret fork (deployedRuntime v) g s0 acc (wordBytes (observationsCleanWords a b c d)) := by
   have hret := uniswapV3Pool_block_766 (immWords := wordsOf (immStore v)) hov h
   have hload : memLoad (UInt256.ofNat 64) solcFreePtrMem = ⟨128⟩ := solcFreePtrMem_mload64
   simp only [hload, show (⟨128⟩ : UInt256).toNat = 128 from rfl,
@@ -123,7 +125,7 @@ theorem uniswapV3PoolObservationsDecodedX {σ σ₀ A I} {g : Sat256} (v : Unisw
     (hcode : I.code = deployedRuntime v) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (uniswapV3PoolSelBytes 4)) (hlen : 36 ≤ I.calldata.size) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨5334⟩
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨5334⟩
       [calldataWord I.calldata 4, UInt256.ofNat 766, solcSelectorWord I]
       solcFreePtrMem ⟨3⟩ ByteArray.empty σ k C := by
   obtain ⟨k, C, rdEntry⟩ := uniswapV3PoolReachObservationsBody (g := g) (σ := σ) (σ₀ := σ₀)
@@ -141,7 +143,7 @@ theorem uniswapV3PoolObservationsX {σ σ₀ A I} {g : Sat256} (v : UniswapV3Poo
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (uniswapV3PoolSelBytes 4)) (hlen : 36 ≤ I.calldata.size)
     (hin : (calldataWord I.calldata 4).toNat < 65535) :
-    RDret (deployedRuntime v) g (initState σ σ₀ g A I) σ
+    RDret fork (deployedRuntime v) g (initState σ σ₀ g A I) σ
       (wordBytes (observationsReturnWords (calldataWord I.calldata 4) σ I)) := by
   obtain ⟨k, C, rdRead⟩ := uniswapV3PoolObservationsDecodedX (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hwv hsz hsize hsel hlen
@@ -179,7 +181,7 @@ theorem uniswapV3PoolObservationsOutOfBoundsX {σ σ₀ A I} {g : Sat256} (v : U
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (uniswapV3PoolSelBytes 4)) (hlen : 36 ≤ I.calldata.size)
     (hout : ¬ (calldataWord I.calldata 4).toNat < 65535) :
-    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
   obtain ⟨k, C, rdRead⟩ := uniswapV3PoolObservationsDecodedX (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hwv hsz hsize hsel hlen
   have rdRevert := uniswapV3Pool_block_5334_fallthrough (immWords := wordsOf (immStore v))
@@ -191,7 +193,7 @@ theorem uniswapV3PoolObservationsShortX {σ σ₀ A I} {g : Sat256} (v : Uniswap
     (hcode : I.code = deployedRuntime v) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (uniswapV3PoolSelBytes 4)) (hshort : I.calldata.size < 36) :
-    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
   obtain ⟨k, C, rdEntry⟩ := uniswapV3PoolReachObservationsBody (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hwv hsz hsize hsel
   have rdRevert := uniswapV3Pool_block_737_fallthrough (immWords := wordsOf (immStore v))
@@ -205,7 +207,7 @@ theorem uniswapV3PoolObservationsBody {σ σ₀ A I} {g : UInt256} (v : UniswapV
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (uniswapV3PoolSelBytes 4)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (uniswapV3PoolSelBytes 4) rfl hsel
   have hd : dispatchMsg contract I.calldata = some observationsTransition := by
     apply uniswapV3PoolDispatch_observations <;>

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.ModifyPositionMiddleStoresSource
 import Benchmarks.UniswapV3.Pool.ModifyPositionOutsideModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -122,7 +124,7 @@ theorem evalModifyPositionMiddleAmountExprs (v : UniswapV3PoolImmutables)
 
 theorem modifyPositionMiddleAssignAmountSource (v : UniswapV3PoolImmutables)
     (a : ModifyPositionArgs) (evm evm' : EVM.State) (second : Bool) :
-    ExecStmt config (modifyPositionMiddleAmountFrame v a evm second) evm'
+    ExecStmt fork config (modifyPositionMiddleAmountFrame v a evm second) evm'
       (.assign .localVar ⟨if second then "amount1" else "amount0", []⟩
         (.var (modifyPositionMiddleAmountName second)))
       (.ok (modifyPositionMiddleAssignedFrame v a evm second) evm') := by

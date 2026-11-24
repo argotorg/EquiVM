@@ -2,6 +2,8 @@ import Benchmarks.CurveVault.Limits
 import Benchmarks.CurveVault.ConversionPrefix
 import Benchmarks.CurveVault.RuntimeBlocks_012
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -12,8 +14,8 @@ theorem vaultMaxMintCapacity {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hl : memLoad (UInt256.ofNat 608) mem = limit)
     (ha : memLoad (UInt256.ofNat 672) mem = assets)
     (hstack : R.length + 7 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 2947) R mem aw rdata σ k C) :
-    ∃ aw' k' C', RD vaultBytecode I g s0 (UInt256.ofNat 2993)
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 2947) R mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork vaultBytecode I g s0 (UInt256.ofNat 2993)
       (UInt256.sub (wordMax limit assets) assets :: assets :: wordMax limit assets :: UInt256.ofNat 32 :: R)
       (assets.toByteArray.write 0 mem 640 32) aw' rdata σ k' C' := by
   let written := assets.toByteArray.write 0 mem 640 32
@@ -30,14 +32,14 @@ theorem vaultMaxMintCapacity {I : ExecutionEnv} {g : Sat256} {s0 : State}
     change UInt256.gt (UInt256.sub (mx written) (memLoad (UInt256.ofNat 640) written)) (mx written) = _
     rw [hmx, ha']
     exact sub_wordMax_noUnderflow limit assets) h
-  change RD vaultBytecode I g s0 (UInt256.ofNat 2993)
+  change RD fork vaultBytecode I g s0 (UInt256.ofNat 2993)
     (UInt256.sub (mx ((memLoad (UInt256.ofNat 672) mem).toByteArray.write 0 mem 640 32))
       (memLoad (UInt256.ofNat 640) ((memLoad (UInt256.ofNat 672) mem).toByteArray.write 0 mem 640 32)) ::
       memLoad (UInt256.ofNat 640) ((memLoad (UInt256.ofNat 672) mem).toByteArray.write 0 mem 640 32) ::
       mx ((memLoad (UInt256.ofNat 672) mem).toByteArray.write 0 mem 640 32) :: UInt256.ofNat 32 :: R)
     ((memLoad (UInt256.ofNat 672) mem).toByteArray.write 0 mem 640 32) _ rdata σ _ _ at rd
   rw [ha] at rd
-  change RD vaultBytecode I g s0 (UInt256.ofNat 2993)
+  change RD fork vaultBytecode I g s0 (UInt256.ofNat 2993)
     (UInt256.sub (mx written) (memLoad (UInt256.ofNat 640) written) ::
       memLoad (UInt256.ofNat 640) written :: mx written :: UInt256.ofNat 32 :: R) written _ rdata σ _ _ at rd
   rw [hmx, ha'] at rd

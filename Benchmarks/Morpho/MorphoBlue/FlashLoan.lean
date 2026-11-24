@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.FlashLoanCalls
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -10,13 +12,13 @@ set_option maxRecDepth 1000
 theorem morphoFlashLoanBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 22)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 22) rfl hsel
   have hd : selectorDispatchMsg contract I.calldata = some flashLoanTransition :=
     morphoSelectorDispatch_of_selIs (by decide) hsel
   obtain ⟨k0, C0, rd0⟩ := morphoReachFlashLoanBody (g := .ofUInt256 g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hsz hsize hsel
-  change RD _ _ _ _ _ _ solcFreePtrMem _ _ _ _ _ at rd0
+  change RD fork _ _ _ _ _ _ solcFreePtrMem _ _ _ _ _ at rd0
   by_cases hcv : I.weiValue = ⟨0⟩
   swap
   · have rd1 := morphoBlocks.morpho_block_920_taken (immWords := wordsOf (immStore v))
@@ -66,8 +68,8 @@ theorem morphoFlashLoanBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutables)
         have hread := calldataBytesPayload_read hbytes
         have hdataSize := calldataBytesPayload_size hbytes
         have hi := flashLoanFrame_inputs token assets data I.calldata (immStore v)
-        have pref := morphoFlashLoanSourceEnter (hperm := hp) token assets data evm (immStore v) hcv hbound hz
-        have hr : RD (deployedRuntime v) I (.ofUInt256 g) evm (UInt256.ofNat 14666)
+        have pref := morphoFlashLoanSourceEnter (fork := fork) (hperm := hp) token assets data evm (immStore v) hcv hbound hz
+        have hr : RD fork (deployedRuntime v) I (.ofUInt256 g) evm (UInt256.ofNat 14666)
             [UInt256.ofNat token.val, UInt256.ofNat I.source.val, assets, UInt256.ofNat 1113,
               (UInt256.ofNat 4 + calldataWord I.calldata 68) + UInt256.ofNat 32,
               calldataWord I.calldata (4 + (calldataWord I.calldata 68).toNat), UInt256.ofNat 0,

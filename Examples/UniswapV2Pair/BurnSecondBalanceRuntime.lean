@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.BurnFirstBalanceRuntime
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -9,13 +11,13 @@ theorem uniswapBurnRuntimeSecondBalanceOfExtcodesize
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {σ : AccountMap}
     {out : ByteArray} {balance0 token1 : UInt256} {R : List UInt256} {k C : ℕ}
-    (rd4324 : RD uniswapV2PairBytecode I g s0 ⟨4324⟩
+    (rd4324 : RD fork uniswapV2PairBytecode I g s0 ⟨4324⟩
       (balance0 :: ⟨0⟩ :: token1 :: R)
       (balanceOfThisStaticcallMem (UInt256.ofNat I.codeOwner.val) out)
       balanceOfThisStaticcallActiveWords out σ k C)
     (hout32 : 32 ≤ out.size) (houtSize : out.size < UInt256.size)
     (hov : R.length + 24 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨4387⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨4387⟩
       (UInt256.land token1 solcAddrMask :: UInt256.land token1 solcAddrMask ::
         ⟨128⟩ :: ⟨36⟩ :: ⟨128⟩ :: ⟨32⟩ :: ⟨164⟩ :: balanceOfSelectorWord ::
         UInt256.land token1 solcAddrMask :: ⟨0⟩ :: balance0 :: token1 :: R)
@@ -61,7 +63,7 @@ theorem uniswapBurnRuntimeSecondBalanceOfResultBranchesOfTail
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {σ : AccountMap}
     {o : ByteArray} {target : UInt256} {R : List UInt256} {k C : ℕ}
-    (rd4387 : RD uniswapV2PairBytecode I g s0 ⟨4387⟩
+    (rd4387 : RD fork uniswapV2PairBytecode I g s0 ⟨4387⟩
       (target :: target :: ⟨128⟩ :: ⟨36⟩ :: ⟨128⟩ :: ⟨32⟩ :: ⟨164⟩ ::
         balanceOfSelectorWord :: target :: R)
       (balanceOfThisRebuiltCalldataMem (UInt256.ofNat I.codeOwner.val) o) balanceOfThisStaticcallActiveWords
@@ -73,16 +75,16 @@ theorem uniswapBurnRuntimeSecondBalanceOfResultBranchesOfTail
       (z1 : Bool) (o1 : ByteArray) (A_in1 : Substate) (callGas1 : UInt256),
       (∃ (g'' : UInt256) (A' : Substate),
         (σ'', g'', A', z1, o1) = Ethereum.EVM.Θ
-          σ s0.σ₀ A_in1
+          fork σ s0.σ₀ A_in1
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
-          (AccountAddress.ofUInt256 target) (toExecute σ (AccountAddress.ofUInt256 target))
+          (AccountAddress.ofUInt256 target) (toExecute fork σ (AccountAddress.ofUInt256 target))
           callGas1 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((balanceOfThisRebuiltCalldataMem (UInt256.ofNat I.codeOwner.val) o).readWithPadding 128 36)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
-      ∧ (z1 = false → RDrev uniswapV2PairBytecode g s0)
-      ∧ (z1 = true → o1.size < 32 → RDrev uniswapV2PairBytecode g s0)
+      ∧ (z1 = false → RDrev fork uniswapV2PairBytecode g s0)
+      ∧ (z1 = true → o1.size < 32 → RDrev fork uniswapV2PairBytecode g s0)
       ∧ (z1 = true → 32 ≤ o1.size → ∃ k' C',
-        RD uniswapV2PairBytecode I g s0 ⟨4444⟩
+        RD fork uniswapV2PairBytecode I g s0 ⟨4444⟩
           (UInt256.ofNat (fromByteArrayBigEndian (o1.extract 0 32)) :: R)
           (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
           balanceOfThisStaticcallActiveWords o1 σ'' k' C')
@@ -149,10 +151,10 @@ theorem uniswapBurnRuntimeSecondBalanceOfMissingCodeReverts
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {σ : AccountMap}
     {mem rdata : ByteArray} {aw target : UInt256} {R : List UInt256} {k C : ℕ}
-    (rd4387 : RD uniswapV2PairBytecode I g s0 ⟨4387⟩
+    (rd4387 : RD fork uniswapV2PairBytecode I g s0 ⟨4387⟩
       (target :: target :: R) mem aw rdata σ k C)
     (hnoCode : extCodeSizeWord σ target = ⟨0⟩) (hov : R.length + 4 ≤ 1024) :
-    RDrev uniswapV2PairBytecode g s0 := by
+    RDrev fork uniswapV2PairBytecode g s0 := by
   exact RD.solcExtcodesizeGuardMissing (okPc := ⟨4399⟩) rd4387 hnoCode
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)

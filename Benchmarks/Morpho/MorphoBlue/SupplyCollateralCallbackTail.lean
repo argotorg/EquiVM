@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.SupplyCollateralCallbackSource
 import Benchmarks.Morpho.MorphoBlue.SupplyCollateralCallbackReach
 import Benchmarks.Morpho.MorphoBlue.SupplyCollateralTransfer
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -17,9 +19,9 @@ theorem morphoSupplyCollateralCallbackTail {v : MorphoImmutables} {ee : Executio
     (htoken : memLoad (UInt256.ofNat 160) mem = p.collateralToken) (hn : 0 < data.size)
     (hlen : len.toNat ≤ solcMaxU64) (hsrc : srcOff.toNat + len.toNat ≤ ee.calldata.size)
     (hdata : ee.calldata.readWithPadding srcOff.toNat len.toNat = data) (hdataSize : data.size = len.toNat)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 10307)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 10307)
       [srcOff, len, solcAddrMask, assets, UInt256.ofNat 0, UInt256.ofNat 128] mem aw out σ k C) :
-    VoidBlockRefines config (deployedRuntime v) ee g s0
+    VoidBlockRefines fork config (deployedRuntime v) ee g s0
       { contract := contract, locals := locals, immutables := imms } evm (supplyCollateralTransition.body.drop 10) := by
   have hg : evalExpr? config { contract := contract, locals := locals, immutables := imms } evm
       (.binary .gt (.arrayLength .localVar ⟨"data", []⟩) (.intLit 0)) = .ok (.bool true) := by
@@ -52,9 +54,9 @@ theorem morphoSupplyCollateralCallbackTail {v : MorphoImmutables} {ee : Executio
     have hmout : callOutputMem (supplyCollateralCallbackMem ee mem (UInt256.ofNat 544) assets srcOff len)
         result (UInt256.ofNat 544) (UInt256.ofNat 0) =
         supplyCollateralCallbackMem ee mem (UInt256.ofNat 544) assets srcOff len := callOutputMem_zero _ _ _
-    change RD _ _ _ _ (UInt256.ofNat 10380) _ _ _ _ _ _ _ at rd2
+    change RD fork _ _ _ _ (UInt256.ofNat 10380) _ _ _ _ _ _ _ at rd2
     rw [hmout] at rd2
-    have hcall' : typedCallViaEVM config evm evm.executionEnv.source "onMorphoSupplyCollateral" 0
+    have hcall' : typedCallViaEVM fork config evm evm.executionEnv.source "onMorphoSupplyCollateral" 0
         [.int (Int.ofNat assets.toNat), .bytes data] (z, evm1, result) := by
       refine ⟨_, supplyCollateralCallback_encode assets data, ?_⟩
       simpa only [accountAddress_roundtrip, hs.env] using hcall
@@ -82,7 +84,7 @@ theorem morphoSupplyCollateralCallbackTail {v : MorphoImmutables} {ee : Executio
       have hl1 := (hl.insert "callback" (.address evm.executionEnv.source) (by decide) (by decide)).insert
         "__c2" .unit (by decide) (by decide)
       have hf := morphoSupplyCollateralTransfer p _ imms hc hl1 hs1 hm2 (le_trans hsize hp.size) hzero2 htoken2 rd3
-      have hab : StateBlock config { contract := contract, locals := locals, immutables := imms } evm
+      have hab : StateBlock fork config { contract := contract, locals := locals, immutables := imms } evm
           (supplyCollateralTransition.body.drop 10)
           (callerCallbackCalledFrame { contract := contract, locals := locals, immutables := imms }
             evm.executionEnv.source "__c2") evm1 (supplyCollateralTransition.body.drop 11) :=

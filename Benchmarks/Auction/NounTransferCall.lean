@@ -1,6 +1,8 @@
 import Benchmarks.Auction.NounTransferPrefix
 import Benchmarks.Auction.BurnCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -52,7 +54,7 @@ theorem nounTransferCall_heap {mem aw ptr} (hm : HeapMemory mem aw ptr)
   exact ⟨hh.size, hh.free, hh.lower, hh.gap, activeWords_expand hh.active hb⟩
 
 theorem nounTransferCall {I g s0 snap nounId bidder ret R mem aw ptr rdata σ k C evm}
-    (h : RD auctionBytecode I g s0 ⟨4536⟩ (snap :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨4536⟩ (snap :: ret :: R) mem aw rdata σ k C)
     (hs : SourceState s0 I σ evm) (hperm : I.perm = true)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 100 ≤ 2 ^ 200)
     (hn : loadedWord mem snap = nounId) (ha : expandedWords aw snap ⟨32⟩ = aw)
@@ -61,10 +63,10 @@ theorem nounTransferCall {I g s0 snap nounId bidder ret R mem aw ptr rdata σ k 
     (hyes : extCodeSizeWord σ (nounsWord σ I) ≠ ⟨0⟩) (hov : R.length + 17 ≤ 1024) :
     ∃ (evm' : EVM.State) (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (k' C' : Nat),
-      callViaEVM evm (AccountAddress.ofUInt256 (nounsWord σ I)) 0
+      callViaEVM fork evm (AccountAddress.ofUInt256 (nounsWord σ I)) 0
         (nounTransferData I bidder nounId) (z, evm', out) ∧
       SourceState s0 I σ' evm' ∧
-      RD auctionBytecode I g s0 ⟨4628⟩
+      RD fork auctionBytecode I g s0 ⟨4628⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: (ptr + ⟨100⟩) :: ⟨0x23b872dd⟩ ::
           nounsWord σ I :: snap :: ret :: R)
         (callMem3 mem ptr transferFromWord (contractAddressWord I) (UInt256.land bidder
@@ -83,18 +85,18 @@ theorem nounTransferCall {I g s0 snap nounId bidder ret R mem aw ptr rdata σ k 
   exact ⟨evm', σ', z, out, _, _, hc, hs', rd4628, ho⟩
 
 theorem nounTransferAfterSuccess {I g s0 snap ret R mem aw ptr out acc k C target}
-    (h : RD auctionBytecode I g s0 ⟨4628⟩
+    (h : RD fork auctionBytecode I g s0 ⟨4628⟩
       (⟨1⟩ :: (ptr + ⟨100⟩) :: ⟨0x23b872dd⟩ :: target :: snap :: ret :: R)
       mem aw out acc k C) (hov : R.length + 9 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨4647⟩ (snap :: ret :: R) mem aw out acc k' C' := by
+    ∃ k' C', RD fork auctionBytecode I g s0 ⟨4647⟩ (snap :: ret :: R) mem aw out acc k' C' := by
   exact ⟨_, _, evm_run h with [iszero, dup1, iszero, push2 ⟨4642⟩,
     jumpiT (by decide) (by jump_dest), jumpdest, pop, pop, pop, pop]⟩
 
 set_option synthInstance.maxSize 1024 in
 theorem nounTransferAfterFailure {I g s0 snap ret R mem aw ptr out acc k C target}
-    (h : RD auctionBytecode I g s0 ⟨4628⟩
+    (h : RD fork auctionBytecode I g s0 ⟨4628⟩
       (⟨0⟩ :: (ptr + ⟨100⟩) :: ⟨0x23b872dd⟩ :: target :: snap :: ret :: R)
-      mem aw out acc k C) (hov : R.length + 10 ≤ 1024) : RDrev auctionBytecode g s0 := by
+      mem aw out acc k C) (hov : R.length + 10 ≤ 1024) : RDrev fork auctionBytecode g s0 := by
   have rd4635 := evm_run h with [iszero, dup1, iszero, push2 ⟨4642⟩, jumpiNT (by decide)]
   exact rd4635.revertData (by unfold revertDataWf; native_decide) (by evm_ov)
 

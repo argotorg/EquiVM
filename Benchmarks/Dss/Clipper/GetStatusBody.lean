@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Clipper.GetStatusSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -15,7 +17,7 @@ theorem clipperGetStatusBodyReturnsRdivBranch (v : ClipperImmutables)
       0 < (UInt256.ofNat ((evm.lookupAccount (clipperStatusCalcAddress evm)).option 0
         (fun acc => acc.code.size))).toNat)
     (hcall :
-      typedCallViaEVM config evm (EVM.address (clipperStatusCalcAddress evm))
+      typedCallViaEVM fork config evm (EVM.address (clipperStatusCalcAddress evm))
         "price" 0
         [.int (Int.ofNat (clipperGetStatusTopWord evm I).toNat),
           .int (Int.ofNat
@@ -38,7 +40,7 @@ theorem clipperGetStatusBodyReturnsRdivBranch (v : ClipperImmutables)
             (UInt256.sub (clipperTimestampWord evmPrice) (clipperGetStatusTicWord evm I))
             (UInt256.div (UInt256.mul price clipperRayWord) (clipperGetStatusTopWord evm I)), immutables := immStore v }
         evmPrice (.binary .lt (.var "ratio") (.storage cuspRef)) = .ok (.bool done)) :
-    ExecTransitionBody config contract evm (clipperGetStatusStore I)
+    ExecTransitionBody fork config contract evm (clipperGetStatusStore I)
       getStatusTransition.body
       (.returned
         { contract := contract, locals := clipperGetStatusLocalsNeedsRedo evm I done price, immutables := immStore v }
@@ -55,7 +57,7 @@ theorem clipperGetStatusBodyReturnsRdivBranch (v : ClipperImmutables)
   let priceFrame : Frame := { contract := contract, locals := clipperGetStatusLocalsPrice evm I done price, immutables := immStore v }
   let needsFrame : Frame := { contract := contract, locals := clipperGetStatusLocalsNeedsRedo evm I done price, immutables := immStore v }
   have hletUsr :
-      ExecStmt config startFrame evm
+      ExecStmt fork config startFrame evm
         (.letDecl "usr" (some addr) (.storage (salesF (.var "id") "usr")))
         (.ok usrFrame evm) := by
     simpa [startFrame, usrFrame, clipperGetStatusLocalsUsr] using
@@ -66,7 +68,7 @@ theorem clipperGetStatusBodyReturnsRdivBranch (v : ClipperImmutables)
         (by simpa [startFrame, clipperGetStatusUsrWord] using
           clipperEvalGetStatusSalesUsr v evm I))
   have hletTic :
-      ExecStmt config usrFrame evm
+      ExecStmt fork config usrFrame evm
         (.letDecl "tic" (some uint96) (.storage (salesF (.var "id") "tic")))
         (.ok ticFrame evm) := by
     simpa [usrFrame, ticFrame, clipperGetStatusLocalsTic] using
@@ -76,14 +78,14 @@ theorem clipperGetStatusBodyReturnsRdivBranch (v : ClipperImmutables)
         (value := .int (Int.ofNat (clipperGetStatusTicWord evm I).toNat))
         (by simpa [usrFrame] using clipperEvalGetStatusSalesTicAfterUsr v evm I))
   have hstatus :
-      ExecStmt config ticFrame evm
+      ExecStmt fork config ticFrame evm
         (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
         (.ok stFrame evmPrice) := by
     simpa [ticFrame, stFrame] using
       clipperGetStatusStatusCallReturnsRdivBranch v I price hlePrice hcode hcall hdec
         hleDone htail hmul htop done hdone
   have hletDone :
-      ExecStmt config stFrame evmPrice
+      ExecStmt fork config stFrame evmPrice
         (.letDecl "done" (some boolTy) (tuple0 (.var "st")))
         (.ok doneFrame evmPrice) := by
     simpa [stFrame, doneFrame, clipperGetStatusLocalsDone] using
@@ -93,7 +95,7 @@ theorem clipperGetStatusBodyReturnsRdivBranch (v : ClipperImmutables)
         (by simpa [stFrame] using
           clipperEvalGetStatusDoneFromStatusAt v evm evmPrice I done price))
   have hletPrice :
-      ExecStmt config doneFrame evmPrice
+      ExecStmt fork config doneFrame evmPrice
         (.letDecl "price" (some uint256) (tuple1 (.var "st")))
         (.ok priceFrame evmPrice) := by
     simpa [doneFrame, priceFrame, clipperGetStatusLocalsPrice] using
@@ -104,7 +106,7 @@ theorem clipperGetStatusBodyReturnsRdivBranch (v : ClipperImmutables)
         (by simpa [doneFrame] using
           clipperEvalGetStatusPriceFromStatusAt v evm evmPrice I done price))
   have hletNeeds :
-      ExecStmt config priceFrame evmPrice
+      ExecStmt fork config priceFrame evmPrice
         (.letDecl "needsRedo" (some boolTy)
           (.binary .and (.binary .ne (.var "usr") zeroAddr) (.var "done")))
         (.ok needsFrame evmPrice) := by
@@ -117,7 +119,7 @@ theorem clipperGetStatusBodyReturnsRdivBranch (v : ClipperImmutables)
         (by simpa [priceFrame] using
           clipperEvalGetStatusNeedsRedoAt v evm evmPrice I done price))
   have hret :
-      ExecBlock config needsFrame evmPrice
+      ExecBlock fork config needsFrame evmPrice
         [ .return [ .var "needsRedo", .var "price",
             .storage (salesF (.var "id") "lot"),
             .storage (salesF (.var "id") "tab") ] ]

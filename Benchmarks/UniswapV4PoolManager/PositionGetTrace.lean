@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PositionGetSource
 import Benchmarks.UniswapV4PoolManager.PositionGetMemory
 import Benchmarks.UniswapV4PoolManager.PositionGetCostBlock
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -23,10 +25,10 @@ theorem positionGetCostTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hfh : free.toNat+64 < UInt256.size)
     (ha : UInt256.land (memLoad params mem) solcAddrMask = accountWord owner)
     (hs : memLoad (params+UInt256.ofNat 160) mem = salt)
-    (h : RD (deployedRuntime v) I g s0 ⟨5802⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨5802⟩
       (params :: delta :: x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: upper :: fee0 :: lower :: x9 :: fee1 :: R)
       mem aw rdata evm.accountMap k C) :
-    ∃ k' C', Cₘ (positionGetActiveWords aw params free)+C ≤ C'+Cₘ aw ∧ RD (deployedRuntime v) I g s0 ⟨5915⟩
+    ∃ k' C', Cₘ (positionGetActiveWords aw params free)+C ≤ C'+Cₘ aw ∧ RD fork (deployedRuntime v) I g s0 ⟨5915⟩
       (positionGetOutputStack evm id owner lower upper salt delta x0 x1 x2 x3 x4 x5 fee0 x9 fee1 R)
       (positionGetMemory mem free id owner lower upper salt) (positionGetActiveWords aw params free) rdata evm.accountMap k' C' := by
   obtain ⟨k1, C1, hcost, rd1⟩ := positionGetCostBlock (by simp only [List.length_cons]; omega) h
@@ -65,10 +67,10 @@ theorem positionGetTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hfh : free.toNat+64 < UInt256.size)
     (ha : UInt256.land (memLoad params mem) solcAddrMask = accountWord owner)
     (hs : memLoad (params+UInt256.ofNat 160) mem = salt)
-    (h : RD (deployedRuntime v) I g s0 ⟨5802⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨5802⟩
       (params :: delta :: x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: upper :: fee0 :: lower :: x9 :: fee1 :: R)
       mem aw rdata evm.accountMap k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) I g s0 ⟨5915⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 ⟨5915⟩
       (positionGetOutputStack evm id owner lower upper salt delta x0 x1 x2 x3 x4 x5 fee0 x9 fee1 R)
       (positionGetMemory mem free id owner lower upper salt) aw' rdata evm.accountMap k' C' := by
   obtain ⟨k', C', _, hr⟩ := positionGetCostTrace v hstack hI hm hmem hfree hfl hfh ha hs h

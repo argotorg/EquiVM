@@ -2,6 +2,8 @@ import Reasoning.WordArithmetic
 import Reasoning.EVMWord
 import Benchmarks.Dss.StairstepExponentialDecrease.RpowEVM
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -353,10 +355,10 @@ theorem evalExpr_priceDiv_ok {evm : EVM.State} {I : ExecutionEnv} {step : UInt25
 theorem stairstepPriceSourceStepZeroReverts {evm : EVM.State} {I : ExecutionEnv}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hstep : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩ = ⟨0⟩) :
-    ExecTransitionBody config contract evm (priceLocals I) priceTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (priceLocals I) priceTransition.body .reverted := by
   have hlet := evalExpr_priceDiv_step_zero (evm := evm) (I := I) hstep
   have hblock :
-      ExecBlock config { contract := contract, locals := priceLocals I } evm
+      ExecBlock fork config { contract := contract, locals := priceLocals I } evm
         [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
           .letDecl "n" (some uint256) (.binary .div (.var "dur") (.storage stepRef)),
           .internalCall "rpow" [.storage cutRef, .var "n", .intLit RAY] "pow",
@@ -368,7 +370,7 @@ theorem stairstepPriceSourceStepZeroReverts {evm : EVM.State} {I : ExecutionEnv}
   simpa [ExecTransitionBody, priceTransition, nonpayable] using ExecFuncBody.execBlockRevert hblock
 
 theorem stairstepExecRpowFunctionReturnNZero (evm : EVM.State) {x b : UInt256} :
-    ExecFuncBody config { contract := contract, locals := priceUintTernaryLocals x ⟨0⟩ b }
+    ExecFuncBody fork config { contract := contract, locals := priceUintTernaryLocals x ⟨0⟩ b }
       evm rpowFunction.body
       (.returned { contract := contract, locals := priceUintTernaryLocals x ⟨0⟩ b } evm
         (some [.int (Int.ofNat b.toNat)])) := by
@@ -400,13 +402,13 @@ theorem stairstepExecRpowFunctionReturnNZero (evm : EVM.State) {x b : UInt256} :
         (.binary .eq (.var "n") (.intLit 0)) = .ok (.bool true) := by
     simp [evalExpr?, EvalResult.bind, bind, hn, hzeroLit, evalBinaryOp?]
   have hthen :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .return [.var "b"] ]
         (.returned { contract := contract, locals := locals } evm
           (some [.int (Int.ofNat b.toNat)])) :=
     ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton hb))
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm rpowFunction.body
+      ExecBlock fork config { contract := contract, locals := locals } evm rpowFunction.body
         (.returned { contract := contract, locals := locals } evm
           (some [.int (Int.ofNat b.toNat)])) := by
     simpa [rpowFunction] using ExecBlock.consReturn (ExecStmt.iteTrue hnZero hthen)
@@ -415,7 +417,7 @@ theorem stairstepExecRpowFunctionReturnNZero (evm : EVM.State) {x b : UInt256} :
 theorem stairstepExecRmulFunctionReturn (evm : EVM.State) {x y prod q : UInt256}
     (hprod : prod = x * y) (hfit : x.toNat * y.toNat < UInt256.size)
     (hq : q = UInt256.div prod stairstepRay) :
-    ExecFuncBody config { contract := contract, locals := priceUintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := priceUintBinaryLocals x y } evm
       rmulFunction.body
       (.returned { contract := contract, locals := priceUintBinaryLocalsZAssigned x y prod q }
         evm (some [.int (Int.ofNat q.toNat)])) := by
@@ -521,7 +523,7 @@ theorem stairstepExecRmulFunctionReturn (evm : EVM.State) {x y prod q : UInt256}
       (locals := localsQ) (name := "z") (value := q)
       (priceUintBinaryLocalsZAssigned_get_z x y prod q)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .letDecl "z" (some uint256) (mul256 (.var "x") (.var "y")),
           .require
             (.binary .or
@@ -533,14 +535,14 @@ theorem stairstepExecRmulFunctionReturn (evm : EVM.State) {x y prod q : UInt256}
           (some [.int (Int.ofNat q.toNat)])) := by
     refine ExecBlock.consNormal (ExecStmt.letDecl hMul) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hReq) ?_
-    refine ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hDivRay hAssign) ?_
+    refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hDivRay hAssign) ?_
     exact ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton hzQ))
   simpa [rmulFunction, checkedMulUintInto, locals, localsZ, localsQ]
     using ExecFuncBody.execBlockRet hblock
 
 theorem stairstepExecRmulFunctionRevertMul (evm : EVM.State) {x y : UInt256}
     (hover : UInt256.size ≤ x.toNat * y.toNat) :
-    ExecFuncBody config { contract := contract, locals := priceUintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := priceUintBinaryLocals x y } evm
       rmulFunction.body .reverted := by
   let locals := priceUintBinaryLocals x y
   have hx :
@@ -558,7 +560,7 @@ theorem stairstepExecRmulFunctionRevertMul (evm : EVM.State) {x y : UInt256}
         (mul256 (.var "x") (.var "y")) = .revert :=
     evalExpr_price_mul256_revert hx hy hover
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .letDecl "z" (some uint256) (mul256 (.var "x") (.var "y")),
           .require
             (.binary .or
@@ -652,7 +654,7 @@ theorem stairstepPriceSourceXZeroNNonzeroReturns {evm : EVM.State} {σ : Account
     (hstep : priceStepWord σ I ≠ ⟨0⟩)
     (hn : priceN σ I ≠ ⟨0⟩)
     (hcut : priceCutWord σ I = ⟨0⟩) :
-    ExecTransitionBody config contract evm (priceLocals I) priceTransition.body
+    ExecTransitionBody fork config contract evm (priceLocals I) priceTransition.body
       (.returned { contract := contract, locals := priceLocalsOut σ I ⟨0⟩ ⟨0⟩ }
         evm (some [.int 0])) := by
   have hlet :
@@ -672,10 +674,10 @@ theorem stairstepPriceSourceXZeroNNonzeroReturns {evm : EVM.State} {σ : Account
         some (uintTernaryLocals ⟨0⟩ (priceN σ I) stairstepRay) := by
     simp [rpowFunction, uintTernaryLocals, bindParams?, hcut, u256_zero_toNat]
   have hrpowReturn :
-      ExecStmt config { contract := contract, locals := priceLocalsN σ I } evm
+      ExecStmt fork config { contract := contract, locals := priceLocalsN σ I } evm
         (.internalCall "rpow" [.storage cutRef, .var "n", .intLit RAY] "pow")
         (.ok { contract := contract, locals := priceLocalsPow σ I ⟨0⟩ } evm) := by
-    have h := internalCallFunctionReturn
+    have h := internalCallFunctionReturn (fork := fork)
       (cfg := config) (caller := { contract := contract, locals := priceLocalsN σ I })
       (evm := evm) (name := "rpow") (retVar := "pow")
       (args := [.storage cutRef, .var "n", .intLit RAY])
@@ -684,7 +686,7 @@ theorem stairstepPriceSourceXZeroNNonzeroReturns {evm : EVM.State} {σ : Account
       (callee := rpowFunction)
       (locals := uintTernaryLocals ⟨0⟩ (priceN σ I) stairstepRay)
       hrpowArgs hlookupRpow hbindRpow
-      (execRpowFunctionReturnXZeroNNonzero (evm := evm) (n := priceN σ I)
+      (execRpowFunctionReturnXZeroNNonzero (fork := fork) (evm := evm) (n := priceN σ I)
         (b := stairstepRay) hn)
     simpa [resumeAfterInternalCall, priceLocalsPow] using h
   have hrmulArgs := evalExprs_priceRmulArgs (evm := evm) (σ := σ) (I := I)
@@ -701,10 +703,10 @@ theorem stairstepPriceSourceXZeroNNonzeroReturns {evm : EVM.State} {σ : Account
   have hq : (⟨0⟩ : UInt256) = UInt256.div (priceTop I * ⟨0⟩) stairstepRay := by
     rw [hprodZero, uint256_div_zero_num]
   have hrmulReturn :
-      ExecStmt config { contract := contract, locals := priceLocalsPow σ I ⟨0⟩ } evm
+      ExecStmt fork config { contract := contract, locals := priceLocalsPow σ I ⟨0⟩ } evm
         (.internalCall "rmul" [.var "top", .var "pow"] "out")
         (.ok { contract := contract, locals := priceLocalsOut σ I ⟨0⟩ ⟨0⟩ } evm) := by
-    have h := internalCallFunctionReturn
+    have h := internalCallFunctionReturn (fork := fork)
       (cfg := config)
       (caller := Frame.mk contract (priceLocalsPow σ I ⟨0⟩) ∅)
       (evm := evm) (name := "rmul") (retVar := "out")
@@ -712,7 +714,7 @@ theorem stairstepPriceSourceXZeroNNonzeroReturns {evm : EVM.State} {σ : Account
       (argVals := [.int (Int.ofNat (priceTop I).toNat), .int 0])
       (callee := rmulFunction) (locals := priceUintBinaryLocals (priceTop I) ⟨0⟩)
       hrmulArgs hlookupRmul hbindRmul
-      (stairstepExecRmulFunctionReturn evm (x := priceTop I) (y := ⟨0⟩)
+      (stairstepExecRmulFunctionReturn (fork := fork) evm (x := priceTop I) (y := ⟨0⟩)
         (prod := priceTop I * ⟨0⟩) (q := ⟨0⟩) rfl
         (by norm_num [UInt256.size]) hq)
     simpa [resumeAfterInternalCall, priceLocalsOut] using h
@@ -725,7 +727,7 @@ theorem stairstepPriceSourceXZeroNNonzeroReturns {evm : EVM.State} {σ : Account
       (priceLocalsOut_get_out σ I ⟨0⟩ ⟨0⟩)
     simpa [u256_zero_toNat] using h
   have hblock :
-      ExecBlock config { contract := contract, locals := priceLocals I } evm
+      ExecBlock fork config { contract := contract, locals := priceLocals I } evm
         [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
           .letDecl "n" (some uint256) (.binary .div (.var "dur") (.storage stepRef)),
           .internalCall "rpow" [.storage cutRef, .var "n", .intLit RAY] "pow",
@@ -751,7 +753,7 @@ theorem stairstepPriceSourceNZeroReturns {evm : EVM.State} {σ : AccountMap}
     (hstep : priceStepWord σ I ≠ ⟨0⟩)
     (hn : priceN σ I = ⟨0⟩)
     (hfit : stairstepRay.toNat * (priceTop I).toNat < UInt256.size) :
-    ExecTransitionBody config contract evm (priceLocals I) priceTransition.body
+    ExecTransitionBody fork config contract evm (priceLocals I) priceTransition.body
       (.returned { contract := contract, locals := priceLocalsOut σ I stairstepRay (priceTop I) }
         evm (some [.int (Int.ofNat (priceTop I).toNat)])) := by
   have hlet :
@@ -772,10 +774,10 @@ theorem stairstepPriceSourceNZeroReturns {evm : EVM.State} {σ : AccountMap}
         some (priceUintTernaryLocals (priceCutWord σ I) ⟨0⟩ stairstepRay) := by
     simp [rpowFunction, priceUintTernaryLocals, bindParams?]
   have hrpowReturn :
-      ExecStmt config { contract := contract, locals := priceLocalsN σ I } evm
+      ExecStmt fork config { contract := contract, locals := priceLocalsN σ I } evm
         (.internalCall "rpow" [.storage cutRef, .var "n", .intLit RAY] "pow")
         (.ok { contract := contract, locals := priceLocalsPow σ I stairstepRay } evm) := by
-    have h := internalCallFunctionReturn
+    have h := internalCallFunctionReturn (fork := fork)
       (cfg := config) (caller := { contract := contract, locals := priceLocalsN σ I })
       (evm := evm) (name := "rpow") (retVar := "pow")
       (args := [.storage cutRef, .var "n", .intLit RAY])
@@ -784,7 +786,7 @@ theorem stairstepPriceSourceNZeroReturns {evm : EVM.State} {σ : AccountMap}
       (callee := rpowFunction)
       (locals := priceUintTernaryLocals (priceCutWord σ I) ⟨0⟩ stairstepRay)
       hrpowArgs hlookupRpow hbindRpow
-      (stairstepExecRpowFunctionReturnNZero (evm := evm) (x := priceCutWord σ I)
+      (stairstepExecRpowFunctionReturnNZero (fork := fork) (evm := evm) (x := priceCutWord σ I)
         (b := stairstepRay))
     simpa [resumeAfterInternalCall, priceLocalsPow] using h
   have hrmulArgs := evalExprs_priceRmulRayArgs (evm := evm) (σ := σ) (I := I)
@@ -803,10 +805,10 @@ theorem stairstepPriceSourceNZeroReturns {evm : EVM.State} {σ : AccountMap}
     rw [hprodComm]
     exact (stairstepRay_mul_div_cancel (priceTop I) hfit).symm
   have hrmulReturn :
-      ExecStmt config { contract := contract, locals := priceLocalsPow σ I stairstepRay } evm
+      ExecStmt fork config { contract := contract, locals := priceLocalsPow σ I stairstepRay } evm
         (.internalCall "rmul" [.var "top", .var "pow"] "out")
         (.ok (Frame.mk contract (priceLocalsOut σ I stairstepRay (priceTop I)) ∅) evm) := by
-    have h := internalCallFunctionReturn
+    have h := internalCallFunctionReturn (fork := fork)
       (cfg := config)
       (caller := Frame.mk contract (priceLocalsPow σ I stairstepRay) ∅)
       (evm := evm) (name := "rmul") (retVar := "out")
@@ -815,7 +817,7 @@ theorem stairstepPriceSourceNZeroReturns {evm : EVM.State} {σ : AccountMap}
         .int (Int.ofNat stairstepRay.toNat)])
       (callee := rmulFunction) (locals := priceUintBinaryLocals (priceTop I) stairstepRay)
       hrmulArgs hlookupRmul hbindRmul
-      (stairstepExecRmulFunctionReturn evm (x := priceTop I) (y := stairstepRay)
+      (stairstepExecRmulFunctionReturn (fork := fork) evm (x := priceTop I) (y := stairstepRay)
         (prod := priceTop I * stairstepRay) (q := priceTop I) rfl hfitLocal hq)
     simpa [resumeAfterInternalCall, priceLocalsOut] using h
   have hout :
@@ -824,7 +826,7 @@ theorem stairstepPriceSourceNZeroReturns {evm : EVM.State} {σ : AccountMap}
           evm (.var "out") = .ok (.int (Int.ofNat (priceTop I).toNat)) :=
     evalExpr_price_varUInt256 (priceLocalsOut_get_out σ I stairstepRay (priceTop I))
   have hblock :
-      ExecBlock config { contract := contract, locals := priceLocals I } evm
+      ExecBlock fork config { contract := contract, locals := priceLocals I } evm
         [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
           .letDecl "n" (some uint256) (.binary .div (.var "dur") (.storage stepRef)),
           .internalCall "rpow" [.storage cutRef, .var "n", .intLit RAY] "pow",
@@ -850,7 +852,7 @@ theorem stairstepPriceSourceNZeroRmulOverflowReverts {evm : EVM.State} {σ : Acc
     (hstep : priceStepWord σ I ≠ ⟨0⟩)
     (hn : priceN σ I = ⟨0⟩)
     (hover : UInt256.size ≤ stairstepRay.toNat * (priceTop I).toNat) :
-    ExecTransitionBody config contract evm (priceLocals I) priceTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (priceLocals I) priceTransition.body .reverted := by
   have hlet :
       evalExpr? config { contract := contract, locals := priceLocals I } evm
         (.binary .div (.var "dur") (.storage stepRef)) =
@@ -869,10 +871,10 @@ theorem stairstepPriceSourceNZeroRmulOverflowReverts {evm : EVM.State} {σ : Acc
         some (priceUintTernaryLocals (priceCutWord σ I) ⟨0⟩ stairstepRay) := by
     simp [rpowFunction, priceUintTernaryLocals, bindParams?]
   have hrpowReturn :
-      ExecStmt config { contract := contract, locals := priceLocalsN σ I } evm
+      ExecStmt fork config { contract := contract, locals := priceLocalsN σ I } evm
         (.internalCall "rpow" [.storage cutRef, .var "n", .intLit RAY] "pow")
         (.ok { contract := contract, locals := priceLocalsPow σ I stairstepRay } evm) := by
-    have h := internalCallFunctionReturn
+    have h := internalCallFunctionReturn (fork := fork)
       (cfg := config) (caller := { contract := contract, locals := priceLocalsN σ I })
       (evm := evm) (name := "rpow") (retVar := "pow")
       (args := [.storage cutRef, .var "n", .intLit RAY])
@@ -881,7 +883,7 @@ theorem stairstepPriceSourceNZeroRmulOverflowReverts {evm : EVM.State} {σ : Acc
       (callee := rpowFunction)
       (locals := priceUintTernaryLocals (priceCutWord σ I) ⟨0⟩ stairstepRay)
       hrpowArgs hlookupRpow hbindRpow
-      (stairstepExecRpowFunctionReturnNZero (evm := evm) (x := priceCutWord σ I)
+      (stairstepExecRpowFunctionReturnNZero (fork := fork) (evm := evm) (x := priceCutWord σ I)
         (b := stairstepRay))
     simpa [resumeAfterInternalCall, priceLocalsPow] using h
   have hrmulArgs := evalExprs_priceRmulRayArgs (evm := evm) (σ := σ) (I := I)
@@ -895,7 +897,7 @@ theorem stairstepPriceSourceNZeroRmulOverflowReverts {evm : EVM.State} {σ : Acc
   have hoverLocal : UInt256.size ≤ (priceTop I).toNat * stairstepRay.toNat := by
     simpa [Nat.mul_comm] using hover
   have hrmulRevert :
-      ExecStmt config { contract := contract, locals := priceLocalsPow σ I stairstepRay } evm
+      ExecStmt fork config { contract := contract, locals := priceLocalsPow σ I stairstepRay } evm
         (.internalCall "rmul" [.var "top", .var "pow"] "out") .reverted :=
     internalCallFunctionRevert
       (cfg := config)
@@ -909,7 +911,7 @@ theorem stairstepPriceSourceNZeroRmulOverflowReverts {evm : EVM.State} {σ : Acc
       (stairstepExecRmulFunctionRevertMul evm (x := priceTop I) (y := stairstepRay)
         hoverLocal)
   have hblock :
-      ExecBlock config { contract := contract, locals := priceLocals I } evm
+      ExecBlock fork config { contract := contract, locals := priceLocals I } evm
         [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
           .letDecl "n" (some uint256) (.binary .div (.var "dur") (.storage stepRef)),
           .internalCall "rpow" [.storage cutRef, .var "n", .intLit RAY] "pow",
@@ -932,11 +934,11 @@ theorem stairstepPriceSourceRpowReverts {evm : EVM.State} {σ : AccountMap}
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩ = priceCutWord σ I)
     (hstep : priceStepWord σ I ≠ ⟨0⟩)
     (hrpowBody :
-      ExecFuncBody config
+      ExecFuncBody fork config
         { contract := contract,
           locals := uintTernaryLocals (priceCutWord σ I) (priceN σ I) stairstepRay }
         evm rpowFunction.body .reverted) :
-    ExecTransitionBody config contract evm (priceLocals I) priceTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (priceLocals I) priceTransition.body .reverted := by
   have hlet :
       evalExpr? config { contract := contract, locals := priceLocals I } evm
         (.binary .div (.var "dur") (.storage stepRef)) =
@@ -954,7 +956,7 @@ theorem stairstepPriceSourceRpowReverts {evm : EVM.State} {σ : AccountMap}
         some (uintTernaryLocals (priceCutWord σ I) (priceN σ I) stairstepRay) := by
     simp [rpowFunction, uintTernaryLocals, bindParams?]
   have hrpowRevert :
-      ExecStmt config { contract := contract, locals := priceLocalsN σ I } evm
+      ExecStmt fork config { contract := contract, locals := priceLocalsN σ I } evm
         (.internalCall "rpow" [.storage cutRef, .var "n", .intLit RAY] "pow")
         .reverted :=
     internalCallFunctionRevert
@@ -967,7 +969,7 @@ theorem stairstepPriceSourceRpowReverts {evm : EVM.State} {σ : AccountMap}
       (locals := uintTernaryLocals (priceCutWord σ I) (priceN σ I) stairstepRay)
       hrpowArgs hlookupRpow hbindRpow hrpowBody
   have hblock :
-      ExecBlock config { contract := contract, locals := priceLocals I } evm
+      ExecBlock fork config { contract := contract, locals := priceLocals I } evm
         [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
           .letDecl "n" (some uint256) (.binary .div (.var "dur") (.storage stepRef)),
           .internalCall "rpow" [.storage cutRef, .var "n", .intLit RAY] "pow",
@@ -989,14 +991,14 @@ theorem stairstepPriceSourceRpowReturns {evm : EVM.State} {σ : AccountMap}
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩ = priceCutWord σ I)
     (hstep : priceStepWord σ I ≠ ⟨0⟩)
     (hrpowBody :
-      ExecFuncBody config
+      ExecFuncBody fork config
         { contract := contract,
           locals := uintTernaryLocals (priceCutWord σ I) (priceN σ I) stairstepRay }
         evm rpowFunction.body
         (.returned { contract := contract, locals := rpowLocals } evm
           (some [.int (Int.ofNat pow.toNat)])))
     (hfit : pow.toNat * (priceTop I).toNat < UInt256.size) :
-    ExecTransitionBody config contract evm (priceLocals I) priceTransition.body
+    ExecTransitionBody fork config contract evm (priceLocals I) priceTransition.body
       (.returned
         { contract := contract,
           locals :=
@@ -1021,7 +1023,7 @@ theorem stairstepPriceSourceRpowReturns {evm : EVM.State} {σ : AccountMap}
         some (uintTernaryLocals (priceCutWord σ I) (priceN σ I) stairstepRay) := by
     simp [rpowFunction, uintTernaryLocals, bindParams?]
   have hrpowReturn :
-      ExecStmt config { contract := contract, locals := priceLocalsN σ I } evm
+      ExecStmt fork config { contract := contract, locals := priceLocalsN σ I } evm
         (.internalCall "rpow" [.storage cutRef, .var "n", .intLit RAY] "pow")
         (.ok { contract := contract, locals := priceLocalsPow σ I pow } evm) := by
     have h := internalCallFunctionReturn
@@ -1051,10 +1053,10 @@ theorem stairstepPriceSourceRpowReturns {evm : EVM.State} {σ : AccountMap}
     rw [show pow * priceTop I = priceTop I * pow by
       simpa using u256_mul_comm pow (priceTop I)]
   have hrmulReturn :
-      ExecStmt config { contract := contract, locals := priceLocalsPow σ I pow } evm
+      ExecStmt fork config { contract := contract, locals := priceLocalsPow σ I pow } evm
         (.internalCall "rmul" [.var "top", .var "pow"] "out")
         (.ok { contract := contract, locals := priceLocalsOut σ I pow out } evm) := by
-    have h := internalCallFunctionReturn
+    have h := internalCallFunctionReturn (fork := fork)
       (cfg := config)
       (caller := Frame.mk contract (priceLocalsPow σ I pow) ∅)
       (evm := evm) (name := "rmul") (retVar := "out")
@@ -1062,7 +1064,7 @@ theorem stairstepPriceSourceRpowReturns {evm : EVM.State} {σ : AccountMap}
       (argVals := [.int (Int.ofNat (priceTop I).toNat), .int (Int.ofNat pow.toNat)])
       (callee := rmulFunction) (locals := priceUintBinaryLocals (priceTop I) pow)
       hrmulArgs hlookupRmul hbindRmul
-      (stairstepExecRmulFunctionReturn evm (x := priceTop I) (y := pow)
+      (stairstepExecRmulFunctionReturn (fork := fork) evm (x := priceTop I) (y := pow)
         (prod := priceTop I * pow) (q := out) rfl hfitLocal hq)
     simpa [resumeAfterInternalCall, priceLocalsOut, out] using h
   have hout :
@@ -1070,7 +1072,7 @@ theorem stairstepPriceSourceRpowReturns {evm : EVM.State} {σ : AccountMap}
         evm (.var "out") = .ok (.int (Int.ofNat out.toNat)) :=
     evalExpr_price_varUInt256 (priceLocalsOut_get_out σ I pow out)
   have hblock :
-      ExecBlock config { contract := contract, locals := priceLocals I } evm
+      ExecBlock fork config { contract := contract, locals := priceLocals I } evm
         [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
           .letDecl "n" (some uint256) (.binary .div (.var "dur") (.storage stepRef)),
           .internalCall "rpow" [.storage cutRef, .var "n", .intLit RAY] "pow",
@@ -1096,14 +1098,14 @@ theorem stairstepPriceSourceRpowReturnsRmulOverflowReverts
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩ = priceCutWord σ I)
     (hstep : priceStepWord σ I ≠ ⟨0⟩)
     (hrpowBody :
-      ExecFuncBody config
+      ExecFuncBody fork config
         { contract := contract,
           locals := uintTernaryLocals (priceCutWord σ I) (priceN σ I) stairstepRay }
         evm rpowFunction.body
         (.returned { contract := contract, locals := rpowLocals } evm
           (some [.int (Int.ofNat pow.toNat)])))
     (hover : UInt256.size ≤ pow.toNat * (priceTop I).toNat) :
-    ExecTransitionBody config contract evm (priceLocals I) priceTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (priceLocals I) priceTransition.body .reverted := by
   have hlet :
       evalExpr? config { contract := contract, locals := priceLocals I } evm
         (.binary .div (.var "dur") (.storage stepRef)) =
@@ -1121,7 +1123,7 @@ theorem stairstepPriceSourceRpowReturnsRmulOverflowReverts
         some (uintTernaryLocals (priceCutWord σ I) (priceN σ I) stairstepRay) := by
     simp [rpowFunction, uintTernaryLocals, bindParams?]
   have hrpowReturn :
-      ExecStmt config { contract := contract, locals := priceLocalsN σ I } evm
+      ExecStmt fork config { contract := contract, locals := priceLocalsN σ I } evm
         (.internalCall "rpow" [.storage cutRef, .var "n", .intLit RAY] "pow")
         (.ok { contract := contract, locals := priceLocalsPow σ I pow } evm) := by
     have h := internalCallFunctionReturn
@@ -1147,7 +1149,7 @@ theorem stairstepPriceSourceRpowReturnsRmulOverflowReverts
   have hoverLocal : UInt256.size ≤ (priceTop I).toNat * pow.toNat := by
     simpa [Nat.mul_comm] using hover
   have hrmulRevert :
-      ExecStmt config { contract := contract, locals := priceLocalsPow σ I pow } evm
+      ExecStmt fork config { contract := contract, locals := priceLocalsPow σ I pow } evm
         (.internalCall "rmul" [.var "top", .var "pow"] "out") .reverted :=
     internalCallFunctionRevert
       (cfg := config)
@@ -1159,7 +1161,7 @@ theorem stairstepPriceSourceRpowReturnsRmulOverflowReverts
       hrmulArgs hlookupRmul hbindRmul
       (stairstepExecRmulFunctionRevertMul evm (x := priceTop I) (y := pow) hoverLocal)
   have hblock :
-      ExecBlock config { contract := contract, locals := priceLocals I } evm
+      ExecBlock fork config { contract := contract, locals := priceLocals I } evm
         [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
           .letDecl "n" (some uint256) (.binary .div (.var "dur") (.storage stepRef)),
           .internalCall "rpow" [.storage cutRef, .var "n", .intLit RAY] "pow",

@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.OracleReadMemory
 import Benchmarks.UniswapV3.Pool.OracleWriteModel
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_048
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -19,11 +21,11 @@ theorem oracleWriteReadMemory_eq {mem : ByteArray} {aw p : UInt256}
 theorem oracleWriteReadHeadX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p index : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14823⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14823⟩
       (index :: UInt256.ofNat 8 :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw p) (hb : p.toNat + 128 ≤ 2 ^ 200) (hov : R.length + 9 ≤ 1024) :
     let last := oracleStoredObservation index σ ee
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨14908⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨14908⟩
       ((if last.initialized then ⟨1⟩ else ⟨0⟩) :: UInt256.ofNat 4294967295 :: p :: last.timestamp :: R)
       (observationReadHeadMem mem p last) (oracleReadHeadAw mem aw) rdata σ k' C' := by
   dsimp only
@@ -46,7 +48,7 @@ def oracleWriteReadWords (a : OracleWriteArgs) (p : UInt256) : List UInt256 :=
 theorem oracleWriteReadFinishRawX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p timeRaw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : OracleWriteArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14908⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14908⟩
       ((if (oracleStoredObservation a.index σ ee).initialized then ⟨1⟩ else ⟨0⟩) ::
         UInt256.ofNat 4294967295 :: p :: (oracleStoredObservation a.index σ ee).timestamp ::
         ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: a.cardinalityNext :: a.cardinality :: a.liquidity ::
@@ -56,7 +58,7 @@ theorem oracleWriteReadFinishRawX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat
     (hm : HeapMemory mem aw p) (hb : p.toNat + 128 ≤ 2 ^ 200)
     (ht : UInt256.land timeRaw (UInt256.ofNat 4294967295) = a.time) (hov : R.length + 16 ≤ 1024) :
     let last := oracleStoredObservation a.index σ ee
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0
       (if last.timestamp = a.time then ⟨14924⟩ else ⟨14935⟩)
       (oracleWriteReadWords {a with time := timeRaw} p ++ R) (wordArrayAllocMem mem p last.words) aw' rdata σ k' C' ∧
       HeapMemory (wordArrayAllocMem mem p last.words) aw' (p + ⟨128⟩) ∧
@@ -71,7 +73,7 @@ theorem oracleWriteReadFinishRawX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat
       (by evm_ov) (by rw [hmask, heq, uInt256_eq_self]; decide) rd
     simp only [uniswapV3Pool_block_14908_fallthrough_stack,
       uniswapV3Pool_block_14908_fallthrough_memory, hp96] at rr
-    change RD _ _ _ _ _ _
+    change RD fork _ _ _ _ _ _
       (wordArrayAllocMem mem p (oracleStoredObservation a.index σ ee).words) _ _ _ _ _ at rr
     simp only [if_pos heq, oracleWriteReadWords, List.cons_append, List.nil_append]
     exact ⟨_, _, _, rr, hh, ho⟩
@@ -85,7 +87,7 @@ theorem oracleWriteReadFinishRawX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat
       (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; jump_dest) rd
     simp only [uniswapV3Pool_block_14908_taken_stack,
       uniswapV3Pool_block_14908_taken_memory, hp96] at rr
-    change RD _ _ _ _ _ _
+    change RD fork _ _ _ _ _ _
       (wordArrayAllocMem mem p (oracleStoredObservation a.index σ ee).words) _ _ _ _ _ at rr
     simp only [if_neg heq, oracleWriteReadWords, List.cons_append, List.nil_append]
     exact ⟨_, _, _, rr, hh, ho⟩
@@ -93,7 +95,7 @@ theorem oracleWriteReadFinishRawX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat
 theorem oracleWriteReadFinishX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : OracleWriteArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14908⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14908⟩
       ((if (oracleStoredObservation a.index σ ee).initialized then ⟨1⟩ else ⟨0⟩) ::
         UInt256.ofNat 4294967295 :: p :: (oracleStoredObservation a.index σ ee).timestamp ::
         ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: a.cardinalityNext :: a.cardinality :: a.liquidity ::
@@ -103,7 +105,7 @@ theorem oracleWriteReadFinishX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256
     (hm : HeapMemory mem aw p) (hb : p.toNat + 128 ≤ 2 ^ 200)
     (ht : a.time.toNat < 2 ^ 32) (hov : R.length + 16 ≤ 1024) :
     let last := oracleStoredObservation a.index σ ee
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0
       (if last.timestamp = a.time then ⟨14924⟩ else ⟨14935⟩)
       (oracleWriteReadWords a p ++ R) (wordArrayAllocMem mem p last.words) aw' rdata σ k' C' ∧
       HeapMemory (wordArrayAllocMem mem p last.words) aw' (p + ⟨128⟩) ∧

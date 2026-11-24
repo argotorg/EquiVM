@@ -1,6 +1,8 @@
 import Benchmarks.CurveVault.MaxMintCapacity
 import Benchmarks.CurveVault.ConvertSharesForward
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -11,13 +13,13 @@ theorem vaultMaxMintRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {k C : Nat} {R : List UInt256} {locals : Store}
     (hs : SourceState s0 I σ evm) (hloc : locals.get? "maxSupply" = none)
     (hstack : R.length + 15 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 2911) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 2911) R mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (locals' : Store) (value : UInt256),
-      ExecFuncBody config {contract := contract, locals := locals} evm vaultMaxMintFunction.body
+      ExecFuncBody fork config {contract := contract, locals := locals} evm vaultMaxMintFunction.body
         (.returned {contract := contract, locals := locals'} evm' (some [.int (Int.ofNat value.toNat)])) ∧
-      SourceState s0 I σ' evm' ∧ RDret vaultBytecode g s0 σ' value.toByteArray) ∨
-    (ExecFuncBody config {contract := contract, locals := locals} evm vaultMaxMintFunction.body .reverted ∧
-      RDrev vaultBytecode g s0) := by
+      SourceState s0 I σ' evm' ∧ RDret fork vaultBytecode g s0 σ' value.toByteArray) ∨
+    (ExecFuncBody fork config {contract := contract, locals := locals} evm vaultMaxMintFunction.body .reverted ∧
+      RDrev fork vaultBytecode g s0) := by
   let limit := codeOwnerStorageWord I σ ⟨5⟩
   let locals1 := locals.insert "max_supply" (.int (Int.ofNat limit.toNat))
   let mem1 := limit.toByteArray.write 0 mem 608 32
@@ -36,7 +38,7 @@ theorem vaultMaxMintRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
           rw [hread]; exact (u256_lnot_eq_zero_iff limit).mpr hmax) h
     have rd3058 := vaultBlocks.vault_block_2927 (by omega) (by native_decide) rd2927
     have hret := vaultBlocks.vault_block_3058 (by omega) rd3058
-    change RDret vaultBytecode g s0 σ ((limit.toByteArray.write 0 mem 608 32).readWithPadding 608 32) at hret
+    change RDret fork vaultBytecode g s0 σ ((limit.toByteArray.write 0 mem 608 32).readWithPadding 608 32) at hret
     rw [toByteArray_write_read_back_of_gap _ _ _ hgap] at hret
     refine Or.inl ⟨evm, σ, locals1, limit, ?_, hs, hret⟩
     apply ExecFuncBody.execBlockRet
@@ -97,7 +99,7 @@ theorem vaultMaxMintRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
         ⟨evm'', σ'', calleeLocals2, scratch2, value, aw2, out2, k2, C2, hconvert, hs'', _, rd3054⟩ | ⟨hconvert, hrev⟩
       · have rd3058 := vaultBlocks.vault_block_3054 (by simp only [List.length_cons]; omega) rd3054
         have hret := vaultBlocks.vault_block_3058 (by omega) rd3058
-        change RDret vaultBytecode g s0 σ'' ((value.toByteArray.write 0 scratch2 672 32).readWithPadding 672 32) at hret
+        change RDret fork vaultBytecode g s0 σ'' ((value.toByteArray.write 0 scratch2 672 32).readWithPadding 672 32) at hret
         rw [toByteArray_write_read_back_of_gap _ _ _
           (lt_of_le_of_lt (Nat.sub_le _ _) (lt_usize 672 (by norm_num)))] at hret
         have hcall2 := internalCallFunctionReturn (caller := {contract := contract, locals := locals2})

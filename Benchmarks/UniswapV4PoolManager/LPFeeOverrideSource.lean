@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.Slot0Source
 import Benchmarks.UniswapV4PoolManager.Values
 import Benchmarks.UniswapV4PoolManager.ValueLocals
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -23,7 +25,7 @@ theorem lpFeeOverrideValidate_lookup : lookupCallable? contract "LPFeeLibrary_re
 
 theorem lpFeeOverrideBody {f : Frame} {evm : State} {fee : UInt256}
     (hs : f.locals.get? "self" = some (.int (Int.ofNat fee.toNat))) (hc : fee.toNat < 2^24) :
-    ExecFuncBody config f evm lpFeeOverrideFunction.body (.returned f evm (some [.bool (lpFeeIsOverride fee)])) := by
+    ExecFuncBody fork config f evm lpFeeOverrideFunction.body (.returned f evm (some [.bool (lpFeeIsOverride fee)])) := by
   have he := evalUintWordAnd (y := UInt256.ofNat 4194304) ⟨24, by decide⟩ hc (by decide)
     (evalLocalValue (cfg := config) (evm := evm) hs)
     (show evalExpr? config f evm (.intLit 4194304) = .ok (.int (Int.ofNat (UInt256.ofNat 4194304).toNat)) by
@@ -34,7 +36,7 @@ theorem lpFeeOverrideBody {f : Frame} {evm : State} {fee : UInt256}
 
 theorem lpFeeRemoveOverrideBody {f : Frame} {evm : State} {fee : UInt256}
     (hs : f.locals.get? "self" = some (.int (Int.ofNat fee.toNat))) (hc : fee.toNat < 2^24) :
-    ExecFuncBody config f evm lpFeeRemoveOverrideFunction.body
+    ExecFuncBody fork config f evm lpFeeRemoveOverrideFunction.body
       (.returned f evm (some [.int (Int.ofNat (lpFeeRemoveOverride fee).toNat)])) := by
   exact .execBlockRet (ABlock.start.returns
     (evalUintWordAnd (y := UInt256.ofNat 12582911) ⟨24, by decide⟩ hc (by decide)
@@ -43,7 +45,7 @@ theorem lpFeeRemoveOverrideBody {f : Frame} {evm : State} {fee : UInt256}
 theorem lpFeeOverrideCall {f : Frame} {evm : State} {e : Expr} {fee : UInt256}
     (hf : f.contract = contract) (hc : fee.toNat < 2^24)
     (he : evalExpr? config f evm e = .ok (.int (Int.ofNat fee.toNat))) (ret : Ident) :
-    ExecStmt config f evm (.internalCall "LPFeeLibrary_isOverride" [e] ret)
+    ExecStmt fork config f evm (.internalCall "LPFeeLibrary_isOverride" [e] ret)
       (.ok (valueLocal f ret (.bool (lpFeeIsOverride fee))) evm) := by
   apply internalCallFunctionReturn (argVals := [.int (Int.ofNat fee.toNat)])
     (value := some [.bool (lpFeeIsOverride fee)]) (evalExprs?_singleton he)
@@ -53,7 +55,7 @@ theorem lpFeeOverrideCall {f : Frame} {evm : State} {e : Expr} {fee : UInt256}
 theorem lpFeeRemoveOverrideCall {f : Frame} {evm : State} {e : Expr} {fee : UInt256}
     (hf : f.contract = contract) (hc : fee.toNat < 2^24)
     (he : evalExpr? config f evm e = .ok (.int (Int.ofNat fee.toNat))) (ret : Ident) :
-    ExecStmt config f evm (.internalCall "LPFeeLibrary_removeOverrideFlag" [e] ret)
+    ExecStmt fork config f evm (.internalCall "LPFeeLibrary_removeOverrideFlag" [e] ret)
       (.ok (valueLocal f ret (.int (Int.ofNat (lpFeeRemoveOverride fee).toNat))) evm) := by
   apply internalCallFunctionReturn (argVals := [.int (Int.ofNat fee.toNat)])
     (value := some [.int (Int.ofNat (lpFeeRemoveOverride fee).toNat)]) (evalExprs?_singleton he)
@@ -63,7 +65,7 @@ theorem lpFeeRemoveOverrideCall {f : Frame} {evm : State} {e : Expr} {fee : UInt
 theorem lpFeeOverrideValidateBody {f : Frame} {evm : State} {fee : UInt256}
     (hf : f.contract = contract) (hs : f.locals.get? "self" = some (.int (Int.ofNat fee.toNat)))
     (hc : fee.toNat < 2^24) :
-    ∃ f', ExecFuncBody config f evm lpFeeOverrideValidateFunction.body
+    ∃ f', ExecFuncBody fork config f evm lpFeeOverrideValidateFunction.body
       (if (lpFeeRemoveOverride fee).toNat ≤ 1000000 then
         .returned f' evm (some [.int (Int.ofNat (lpFeeRemoveOverride fee).toNat)]) else .reverted) := by
   let f1 := valueLocal f "fee" (.int 0)
@@ -72,13 +74,13 @@ theorem lpFeeOverrideValidateBody {f : Frame} {evm : State} {fee : UInt256}
   let f4 := valueLocal f3 "__c1" .unit
   have hself1 : f1.locals.get? "self" = some (.int (Int.ofNat fee.toNat)) :=
     (store_get_ne _ _ (by decide : ("fee" == "self") = false)).trans hs
-  have hremove := lpFeeRemoveOverrideCall (f := f1) (evm := evm) hf hc (evalLocalValue hself1) "__c0"
-  have hpre : ExecBlock config f evm (lpFeeOverrideValidateFunction.body.take 3) (.ok f3 evm) :=
+  have hremove := lpFeeRemoveOverrideCall (fork := fork) (f := f1) (evm := evm) hf hc (evalLocalValue hself1) "__c0"
+  have hpre : ExecBlock fork config f evm (lpFeeOverrideValidateFunction.body.take 3) (.ok f3 evm) :=
     ExecBlock.consNormal (ExecStmt.letDecl (by simp only [evalExpr?, pure]))
-      (ExecBlock.consNormal hremove (execBlock_singleton (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+      (ExecBlock.consNormal hremove (execBlock_singleton (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
         (evalLocalValue (store_get_self _ _ _)) (assignLocalValue
           ((store_get_ne _ _ (by decide : ("__c0" == "fee") = false)).trans (store_get_self _ _ _))))))
-  have hvalidate := lpFeeValidateCall (f := f3) (evm := evm) hf
+  have hvalidate := lpFeeValidateCall (fork := fork) (f := f3) (evm := evm) hf
     (evalLocalValue (store_get_self _ _ _)) "__c1"
   by_cases hv : (lpFeeRemoveOverride fee).toNat ≤ 1000000
   · rw [if_pos hv] at hvalidate
@@ -95,7 +97,7 @@ theorem lpFeeOverrideValidateBody {f : Frame} {evm : State} {fee : UInt256}
 theorem lpFeeOverrideValidateCall {f : Frame} {evm : State} {fee : UInt256} {e : Expr}
     (hf : f.contract = contract) (hc : fee.toNat < 2^24)
     (he : evalExpr? config f evm e = .ok (.int (Int.ofNat fee.toNat))) (ret : Ident) :
-    ExecStmt config f evm (.internalCall "LPFeeLibrary_removeOverrideFlagAndValidate" [e] ret)
+    ExecStmt fork config f evm (.internalCall "LPFeeLibrary_removeOverrideFlagAndValidate" [e] ret)
       (if (lpFeeRemoveOverride fee).toNat ≤ 1000000 then
         .ok (valueLocal f ret (.int (Int.ofNat (lpFeeRemoveOverride fee).toNat))) evm else .reverted) := by
   obtain ⟨f', hb⟩ := lpFeeOverrideValidateBody

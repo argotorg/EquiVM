@@ -3,6 +3,8 @@ import Benchmarks.Dss.Flopper.ConstructorBase
 import Benchmarks.Dss.Flopper.File
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Flopper constructor Stele source semantics
 -/
@@ -288,7 +290,7 @@ theorem flopperCtorBodySuccess
     let evm7 := flopperCtorAfterVatState evm6 vat
     let evm8 := flopperCtorAfterGemState evm7 gem
     let evm9 := flopperCtorAfterLiveState evm8
-    ExecBlock config { contract := contract, locals := locals } evm0 constructorDecl.body
+    ExecBlock fork config { contract := contract, locals := locals } evm0 constructorDecl.body
       (.ok { contract := contract, locals := locals } evm9) := by
   intro locals evm0 evm1 evm2 evm3 evm4 evm5 evm6 evm7 evm8 evm9
   have hp0 : evm0.executionEnv.perm = true := hperm
@@ -366,17 +368,17 @@ theorem flopperCtorBodySuccess
   simp only [constructorDecl, nonpayable, List.cons_append, List.nil_append]
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hp0) (by simp [evalExpr?, pure, defaultBeg]) hassignBeg) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hp1) (by simp [evalExpr?, pure, defaultPad]) hassignPad) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hp2) (by simp [evalExpr?, pure, defaultTtl]) hassignTtl) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hp3) (by simp [evalExpr?, pure, defaultTau]) hassignTau) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hp4) (by simp [evalExpr?, pure]) hassignKicks) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hp5) (by simp [evalExpr?, pure]) hassignWards) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hp6) ?_ hassignVat) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hp0) (by simp [evalExpr?, pure, defaultBeg]) hassignBeg) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hp1) (by simp [evalExpr?, pure, defaultPad]) hassignPad) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hp2) (by simp [evalExpr?, pure, defaultTtl]) hassignTtl) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hp3) (by simp [evalExpr?, pure, defaultTau]) hassignTau) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hp4) (by simp [evalExpr?, pure]) hassignKicks) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hp5) (by simp [evalExpr?, pure]) hassignWards) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hp6) ?_ hassignVat) ?_
   · simpa [locals] using evalExpr_flopperCtorLocalVat (evm := evm6) vat gem
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hp7) ?_ hassignGem) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hp7) ?_ hassignGem) ?_
   · simpa [locals] using evalExpr_flopperCtorLocalGem (evm := evm7) vat gem
-  exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hp8) (by simp [evalExpr?, pure]) hassignLive)
+  exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hp8) (by simp [evalExpr?, pure]) hassignLive)
     ExecBlock.nil
 
 theorem flopperSteleCtorExecSuccess
@@ -384,7 +386,7 @@ theorem flopperSteleCtorExecSuccess
     {g : UInt256} (vat gem : AccountAddress)
     (hwv : I.weiValue = ⟨0⟩)
     (hperm : I.perm = true) :
-    steleCtorExec config contract [.address vat, .address gem] σ σ₀ g A I
+    steleCtorExec fork config contract [.address vat, .address gem] σ σ₀ g A I
       (.returned { contract := contract, locals := flopperCtorLocals vat gem }
         (flopperCtorAfterLiveState
           (flopperCtorAfterGemState
@@ -409,7 +411,7 @@ theorem flopperSteleCtorExecSuccess
   · rfl
   · simpa [ExecTransitionBody, contract, constructorDecl] using
       ExecFuncBody.execBlockOK
-        (flopperCtorBodySuccess (hperm := hperm)
+        (flopperCtorBodySuccess (fork := fork) (hperm := hperm)
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
           vat gem hwv)
 
@@ -417,7 +419,7 @@ theorem flopperSteleCtorExecReverts_nonpayable
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (vat gem : AccountAddress)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    steleCtorExec config contract [.address vat, .address gem] σ σ₀ g A I .reverted := by
+    steleCtorExec fork config contract [.address vat, .address gem] σ σ₀ g A I .reverted := by
   refine steleCtorExec.intro
     (evmState := initState σ σ₀
       (Sat256.ofUInt256 g) A I)

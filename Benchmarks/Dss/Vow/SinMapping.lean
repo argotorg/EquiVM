@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Vow.Common
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -67,7 +69,7 @@ theorem vowReachSinMappingBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0xcb, 0x5c, 0xc1, 0x09]⟩) :
-    ∃ k C, RD vowBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vowBytecode I g (initState σ σ₀ g A I)
         ⟨700⟩ [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : vowSelWord I = ⟨3411853577⟩ :=
@@ -101,17 +103,17 @@ theorem vowSinMappingBodyCore
       config.externalABI.decodeCalldata? (sinTransition.params.map Param.name)
         (transitionSignature sinTransition).paramTypes I.calldata =
           some ((∅ : Store).insert "arg0" (.int (Int.ofNat (sinMappingKey I).toNat))))
-    (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨700⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let key := sinMappingKey I
   let slot := solcMappingSlot ⟨4⟩ key
   let locals : Store := (∅ : Store).insert "arg0" (.int (Int.ofNat key.toNat))
   have hslot : sinMappingSlotFor I = slot := by
     simp [slot, key, sinMappingSlotFor_eq]
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals sinTransition.body
         (.returned { contract := contract, locals := locals }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -137,7 +139,7 @@ theorem vowSinMappingBodyCore
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by jump_dest) hsz36 hsize
   obtain ⟨_, _, hroutine⟩ :
-      ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
+      ∃ k C, RD fork vowBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4084⟩
         [key, ⟨357⟩, sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
@@ -156,7 +158,7 @@ theorem vowSinMappingBodyCore
       repeat' first | apply And.intro | native_decide)
     (by jump_dest) (by simp)
   have hret :
-      RDret vowBytecode (Sat256.ofUInt256 g)
+      RDret fork vowBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (UInt256.toByteArray (solcSlotWordAt slot σ I)) := by
     have hret' := RD.solcReturnWordFromMem
@@ -192,7 +194,7 @@ theorem vowSinMappingBody {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hsel : selIs I ⟨#[0xcb, 0x5c, 0xc1, 0x09]⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := by omega
   exact vowSinMappingBodyCore hcode hwv hsz36 hsize (vowDispatch_sin hsel)
     (vowDecode_sin_ok hsz36)
@@ -203,9 +205,9 @@ theorem vowSinMappingShort {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hsel : selIs I ⟨#[0xcb, 0x5c, 0xc1, 0x09]⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hreach :=
-    vowReachSinMappingBody (σ := σ)
+    vowReachSinMappingBody (fork := fork) (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       hcode hwv hsz4 hsize hsel
   have hlt :

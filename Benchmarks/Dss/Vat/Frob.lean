@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Vat.FrobLive
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Vat
@@ -7,11 +9,11 @@ namespace Benchmarks.Dss.Vat
 suppress_compilation
 
 set_option maxHeartbeats 0 in
-theorem vatFrobBodyCore : VatBodyTheoremAnyPerm 11 := by
+theorem vatFrobBodyCore : VatBodyTheoremAnyPerm fork 11 := by
   intro σ σ₀ A I g hcode hsize hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 11) rfl hsel
-  have hreach := vatReachFrobBody (σ := σ)
+  have hreach := vatReachFrobBody (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz196 : 196 ≤ I.calldata.size

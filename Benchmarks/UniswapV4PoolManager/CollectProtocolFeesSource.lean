@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.CurrencyReservesRead
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -25,10 +27,10 @@ theorem collectCurrencyFrame_get {f : Frame} {evm : EVM.State} {currency : Accou
 
 theorem collectCurrencyGuard {f : Frame} {evm : EVM.State} {currency : AccountAddress}
     (hf : f.contract = contract) (hc : f.locals.get? "currency" = some (.address currency)) :
-    ExecBlock config f evm ((collectProtocolFeesTransition.body.drop 5).take 2)
+    ExecBlock fork config f evm ((collectProtocolFeesTransition.body.drop 5).take 2)
       (if currency = AccountAddress.ofNat 0 ∨ syncedCurrency evm ≠ currency then
         .ok (collectCurrencyFrame f evm currency) evm else .reverted) := by
-  have hzero := currencyZeroCall (evm := evm) hf (evalLocalValue hc) "__c0"
+  have hzero := currencyZeroCall (fork := fork) (evm := evm) hf (evalLocalValue hc) "__c0"
   by_cases hz : currency = AccountAddress.ofNat 0
   · rw [if_pos (Or.inl hz), collectCurrencyFrame, if_pos hz, decide_eq_true hz] at ⊢
     rw [decide_eq_true hz] at hzero
@@ -36,7 +38,7 @@ theorem collectCurrencyGuard {f : Frame} {evm : EVM.State} {currency : AccountAd
       (ExecStmt.iteFalse (evalNotBool (va := true) (evalLocalValue (store_get_self _ _ _))) ExecBlock.nil) ExecBlock.nil)
   · rw [decide_eq_false hz] at hzero
     let f1 : Frame := {f with locals := f.locals.insert "__c0" (.bool false)}
-    have hsync := syncedCurrencyCall (f := f1) (evm := evm) hf "syncedCurrency"
+    have hsync := syncedCurrencyCall (fork := fork) (f := f1) (evm := evm) hf "syncedCurrency"
     have hc1 : ({f1 with locals := f1.locals.insert "syncedCurrency" (.address (syncedCurrency evm))} : Frame).locals.get?
         "currency" = some (.address currency) :=
       (store_get_ne _ _ (by decide : ("syncedCurrency" == "currency") = false)).trans

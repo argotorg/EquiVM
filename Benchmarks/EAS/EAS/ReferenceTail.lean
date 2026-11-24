@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.CalldataGuards
 import Benchmarks.EAS.EAS.RequestDecode
 import Benchmarks.EAS.EAS.RuntimeBlocks_025
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables ABI.Solc08Calldata
 namespace Benchmarks.EAS.EAS
@@ -53,11 +55,11 @@ theorem easRequestReference {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {base head ret : UInt256} {R : List UInt256} (v : EASImmutables) (hstack : R.length+6 ≤ 1024)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨6189⟩ (base::head::ret::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨6189⟩ (base::head::ret::R) mem aw rdata σ k C) :
     if requestReferenceValid ee.calldata base head then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret
         ((base+calldataWord ee.calldata head.toNat)::R) mem aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hb : (UInt256.sub (UInt256.ofNat ee.calldata.size) base)+UInt256.ofNat 115792089237316195423570985008687907853269984665640564039457584007913129639745 =
       (UInt256.ofNat ee.calldata.size-base)-⟨191⟩ := by rw [word_sub_eq_add_neg (UInt256.ofNat ee.calldata.size-base) ⟨191⟩]; rfl
   by_cases hv : requestReferenceValid ee.calldata base head

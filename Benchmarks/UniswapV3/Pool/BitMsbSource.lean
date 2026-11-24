@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.BitMsbStepSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -43,7 +45,7 @@ theorem evalBitMsbGuard (imms : Store) (evm : EVM.State) (x : UInt256) :
     rfl)) (by simp only [evalExpr?, pure]; rfl)
 
 theorem bitMsbReverts (imms : Store) (evm : EVM.State) (x : UInt256) (hx : ¬0 < x.toNat) :
-    ExecFuncBody config (bitMsbFrame imms x) evm bitMsbFunction.body .reverted := by
+    ExecFuncBody fork config (bitMsbFrame imms x) evm bitMsbFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   refine ExecBlock.consNormal (stele' := bitMsbZeroFrame imms x)
     (ExecStmt.letDecl (by simp only [evalExpr?, pure])) ?_
@@ -51,7 +53,7 @@ theorem bitMsbReverts (imms : Store) (evm : EVM.State) (x : UInt256) (hx : ¬0 <
     (by simpa only [hx, decide_false] using evalBitMsbGuard imms evm x))
 
 theorem bitMsbReturns (imms : Store) (evm : EVM.State) (x : UInt256) (hx : 0 < x.toNat) :
-    ∃ out, ExecFuncBody config (bitMsbFrame imms x) evm bitMsbFunction.body
+    ∃ out, ExecFuncBody fork config (bitMsbFrame imms x) evm bitMsbFunction.body
       (.returned out evm (some [.int (Int.ofNat (tickLogMsbCount x))])) := by
   have hr : (bitMsbZeroFrame imms x).locals.get? "r" = some (.int 0) :=
     Std.HashMap.getElem?_insert_self
@@ -68,7 +70,7 @@ theorem bitMsbReturns (imms : Store) (evm : EVM.State) (x : UInt256) (hx : 0 < x
     (ExecStmt.letDecl (by simp only [evalExpr?, pure])) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (by simpa only [hx, decide_true] using evalBitMsbGuard imms evm x)) ?_
-  change ExecBlock _ _ _ ((bitMsbPrefixBits.map (fun b ↦ bitMsbStepStmt b true)) ++
+  change ExecBlock fork _ _ _ ((bitMsbPrefixBits.map (fun b ↦ bitMsbStepStmt b true)) ++
     [bitMsbStepStmt 1 false, .return [.var "r"]]) _
   apply execBlock_append_ok hs
   refine ExecBlock.consNormal ht (ExecBlock.consReturn (ExecStmt.return ?_))

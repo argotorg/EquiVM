@@ -1,24 +1,26 @@
 import Benchmarks.EAS.Attester.AttestTrace
 import Benchmarks.EAS.Attester.AttestReturnMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.EAS.Attester.Immutables attesterRuntimeBlocks
 
 namespace Benchmarks.EAS.Attester
 
 theorem attestAfterCallFailure {words : String → UInt256} {I g s0 σ k C mem aw out R}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨2128⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨2128⟩
       (⟨0⟩ :: R) mem aw out σ k C) (hstack : R.length + 4 ≤ 1024) :
-    RDrev (immutableLayout.runtime attesterBytecode words) g s0 := by
+    RDrev fork (immutableLayout.runtime attesterBytecode words) g s0 := by
   have h' := attesterRuntime_block_2128_fallthrough (by omega) (by decide) h
   exact attesterRuntime_block_2135
     (by simpa only [attesterRuntime_block_2128_fallthrough_stack, List.length_cons] using hstack) h'
 
 theorem attestReachDecodeReturn {words : String → UInt256} {I g s0 σ k C aw out sel schema input t}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨2128⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨2128⟩
       [⟨1⟩, ⟨804⟩, ⟨4050855399⟩, t, ⟨0⟩, input, schema, ⟨162⟩, sel]
       (attestOutputMemory schema input out) aw out σ k C) :
-    ∃ aw' k' C', RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3827⟩
+    ∃ aw' k' C', RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3827⟩
       [⟨448⟩, ⟨448⟩ + UInt256.ofNat out.size, ⟨2180⟩, ⟨0⟩, input, schema, ⟨162⟩, sel]
       (attestDecodedMemory schema input out) aw' out σ k' C' := by
   have h' := attesterRuntime_block_2128_taken (by simp) (by decide)
@@ -30,10 +32,10 @@ theorem attestReachDecodeReturn {words : String → UInt256} {I g s0 σ k C aw o
   exact ⟨aw', k', C', h''⟩
 
 theorem attestDecodeReturnShort {words : String → UInt256} {I g s0 σ k C aw out mem R}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3827⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3827⟩
       (⟨448⟩ :: (⟨448⟩ + UInt256.ofNat out.size) :: R) mem aw out σ k C)
     (hstack : R.length + 6 ≤ 1024) (hshort : out.size < 32) :
-    RDrev (immutableLayout.runtime attesterBytecode words) g s0 := by
+    RDrev fork (immutableLayout.runtime attesterBytecode words) g s0 := by
   have hlen := solcReturnStaticLenCheckShort (base := 448) (words := 1) hshort
     (by decide) (by change 448 + out.size < 2 ^ 256; omega) (by decide)
   change UInt256.slt (UInt256.sub (⟨448⟩ + UInt256.ofNat out.size) ⟨448⟩) (UInt256.ofNat 32) = ⟨1⟩
@@ -43,11 +45,11 @@ theorem attestDecodeReturnShort {words : String → UInt256} {I g s0 σ k C aw o
     (by simp only [attesterRuntime_block_3827_fallthrough_stack, List.length_cons]; omega) h'
 
 theorem attestDecodeReturn {words : String → UInt256} {I g s0 σ k C aw out sel schema input}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3827⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3827⟩
       [⟨448⟩, ⟨448⟩ + UInt256.ofNat out.size, ⟨2180⟩, ⟨0⟩, input, schema, ⟨162⟩, sel]
       (attestDecodedMemory schema input out) aw out σ k C)
     (hlen : 32 ≤ out.size) (hhi : out.size < 2 ^ 255) :
-    ∃ aw' k' C', RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨162⟩
+    ∃ aw' k' C', RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨162⟩
       [calldataWord out 0, sel] (attestDecodedMemory schema input out) aw' out σ k' C' := by
   have hcheck := solcReturnStaticLenCheckOk (base := 448) (words := 1) hlen hhi
     (by decide) (by change 448 + out.size < 2 ^ 256; omega)
@@ -65,11 +67,11 @@ theorem attestDecodeReturn {words : String → UInt256} {I g s0 σ k C aw out se
   exact ⟨_, _, _, h'''⟩
 
 theorem attestReturnWord {words : String → UInt256} {I g s0 σ k C aw out mem R uid ptr}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨162⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨162⟩
       (uid :: R) mem aw out σ k C)
     (hstack : R.length + 3 ≤ 1024) (hsize : 96 ≤ mem.size)
     (hptr : memLoad (UInt256.ofNat 64) mem = ptr) (hlo : 96 ≤ ptr.toNat) :
-    RDret (immutableLayout.runtime attesterBytecode words) g s0 σ uid.toByteArray := by
+    RDret fork (immutableLayout.runtime attesterBytecode words) g s0 σ uid.toByteArray := by
   have h' := attesterRuntime_block_162 hstack
     (by rw [attesterRuntime_validJumps]; native_decide) h
   have hret := attesterRuntime_block_134 hstack h'
@@ -81,7 +83,7 @@ theorem attestReturnWord {words : String → UInt256} {I g s0 σ k C aw out mem 
     rw [u256_add_comm, ← u256_ofNat_toNat ptr]
     exact usub_uadd_lit_cancel_mod ptr.val.isLt (by decide)
   rw [hsub] at hret
-  change RDret _ _ _ _ ((Reasoning.Theory.writeWord mem ptr.toNat uid).readWithPadding ptr.toNat 32)
+  change RDret fork _ _ _ _ ((Reasoning.Theory.writeWord mem ptr.toNat uid).readWithPadding ptr.toNat 32)
       at hret
   simpa only [writeWord_sparse_read_back] using hret
 

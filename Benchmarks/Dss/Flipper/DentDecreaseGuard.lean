@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Flipper.DentLotGuard
 import Benchmarks.Dss.Flipper.CheckedMul
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Flipper
@@ -300,7 +302,7 @@ theorem flipperDentSourceBodyBegLotOverflow {σ σ₀ A I} {g : UInt256}
     (hoverBeg : UInt256.size ≤ (dentBegWord σ I).toNat * (dentLot I).toNat) :
     let locals := dentLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals dentTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals dentTransition.body .reverted := by
   intro locals evm0
   have hguyGuard :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -333,7 +335,7 @@ theorem flipperDentSourceBodyBegLotOverflow {σ σ₀ A I} {g : UInt256}
     exact evalExpr_dentBegLotMul_afterLotOne_revert
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hoverBeg
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 dentTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 dentTransition.body
         .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -384,7 +386,7 @@ theorem flipperDentSourceBodyLotOneOverflow {σ σ₀ A I} {g : UInt256}
     (hoverLot : UInt256.size ≤ (bidLotWord (dentId I) σ I).toNat * flipperONEWord.toNat) :
     let locals := dentLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals dentTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals dentTransition.body .reverted := by
   intro locals evm0
   have hguyGuard :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -400,7 +402,7 @@ theorem flipperDentSourceBodyLotOneOverflow {σ σ₀ A I} {g : UInt256}
     exact evalExpr_dentLotOneMul_revert
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hoverLot
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 dentTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 dentTransition.body
         .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -451,7 +453,7 @@ theorem flipperDentSourceBodyInsufficientDecrease {σ σ₀ A I} {g : UInt256}
     (hgt : (dentLotOneWord σ I).toNat < (dentBegLotWord σ I).toNat) :
     let locals := dentLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals dentTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals dentTransition.body .reverted := by
   intro locals evm0
   have hguyGuard :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -500,7 +502,7 @@ theorem flipperDentSourceBodyInsufficientDecrease {σ σ₀ A I} {g : UInt256}
       evalExpr_dentDecreaseRequire_false
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hgt
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 dentTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 dentTransition.body
         .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -523,9 +525,9 @@ theorem flipperDentSourceBodyInsufficientDecrease {σ σ₀ A I} {g : UInt256}
 theorem flipperDentX_lotOneCheckedMulCall {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem : ByteArray}
     (hmemSize : mem.size = 96)
-    (h : RD flipperBytecode I g s0 ⟨4601⟩ [dentBid I, dentLot I, dentId I, ret, sel]
+    (h : RD fork flipperBytecode I g s0 ⟨4601⟩ [dentBid I, dentLot I, dentId I, ret, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ⟨6305⟩
+    ∃ k' C', RD fork flipperBytecode I g s0 ⟨6305⟩
       [flipperONEWord, bidLotWord (dentId I) σ I, ⟨4638⟩, dentBid I,
         dentLot I, dentId I, ret, sel]
       (twoWordHashMem (dentId I) ⟨1⟩ mem)
@@ -553,7 +555,7 @@ theorem flipperDentX_lotOneCheckedMulCall {σ I} {g : Sat256} {s0 : State}
       (by decide) (by evm_ov),
     raw add (by native_decide) (by evm_ov)]
   obtain ⟨k4619, C4619, rd4619raw⟩ := rd4619.sload (by native_decide) (by evm_ov)
-  have rd4621 : RD flipperBytecode I g s0 ⟨4621⟩
+  have rd4621 : RD fork flipperBytecode I g s0 ⟨4621⟩
       [bidLotWord (dentId I) σ I, dentBid I, dentLot I, dentId I, ret, sel]
       (twoWordHashMem (dentId I) ⟨1⟩ mem)
       (UInt256.ofNat 3) ByteArray.empty σ k4619 C4619 := by
@@ -576,9 +578,9 @@ theorem flipperDentX_lotOneOverflow {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem : ByteArray}
     (hmemSize : mem.size = 96)
     (hover : UInt256.size ≤ (bidLotWord (dentId I) σ I).toNat * flipperONEWord.toNat)
-    (h : RD flipperBytecode I g s0 ⟨4601⟩ [dentBid I, dentLot I, dentId I, ret, sel]
+    (h : RD fork flipperBytecode I g s0 ⟨4601⟩ [dentBid I, dentLot I, dentId I, ret, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flipperBytecode g s0 := by
+    RDrev fork flipperBytecode g s0 := by
   obtain ⟨_, _, rd6305⟩ := flipperDentX_lotOneCheckedMulCall hmemSize h
   exact flipperCheckedMulRevert (ret := ⟨4638⟩) (x := bidLotWord (dentId I) σ I)
     (y := flipperONEWord) (R := [dentBid I, dentLot I, dentId I, ret, sel])
@@ -588,9 +590,9 @@ theorem flipperDentX_afterLotOneOk {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem : ByteArray}
     (hmemSize : mem.size = 96)
     (hfit : (bidLotWord (dentId I) σ I).toNat * flipperONEWord.toNat < UInt256.size)
-    (h : RD flipperBytecode I g s0 ⟨4601⟩ [dentBid I, dentLot I, dentId I, ret, sel]
+    (h : RD fork flipperBytecode I g s0 ⟨4601⟩ [dentBid I, dentLot I, dentId I, ret, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ⟨4638⟩
+    ∃ k' C', RD fork flipperBytecode I g s0 ⟨4638⟩
       [dentLotOneWord σ I, dentBid I, dentLot I, dentId I, ret, sel]
       (twoWordHashMem (dentId I) ⟨1⟩ mem)
       (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -603,10 +605,10 @@ theorem flipperDentX_afterLotOneOk {σ I} {g : Sat256} {s0 : State}
 
 theorem flipperDentX_begLotCheckedMulCall {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem : ByteArray}
-    (h : RD flipperBytecode I g s0 ⟨4638⟩
+    (h : RD fork flipperBytecode I g s0 ⟨4638⟩
       [dentLotOneWord σ I, dentBid I, dentLot I, dentId I, ret, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ⟨6305⟩
+    ∃ k' C', RD fork flipperBytecode I g s0 ⟨6305⟩
       [dentLot I, dentBegWord σ I, ⟨4650⟩, dentLotOneWord σ I, dentBid I,
         dentLot I, dentId I, ret, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -615,7 +617,7 @@ theorem flipperDentX_begLotCheckedMulCall {σ I} {g : Sat256} {s0 : State}
     raw push2 ⟨4650⟩ (by native_decide) (by evm_ov),
     raw push1 ⟨4⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k4644, C4644, rd4644raw⟩ := rd4644.sload (by native_decide) (by evm_ov)
-  have rd4645 : RD flipperBytecode I g s0 ⟨4645⟩
+  have rd4645 : RD fork flipperBytecode I g s0 ⟨4645⟩
       [dentBegWord σ I, ⟨4650⟩, dentLotOneWord σ I, dentBid I, dentLot I,
         dentId I, ret, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k4644 C4644 := by
@@ -630,9 +632,9 @@ theorem flipperDentX_begLotOverflow {σ I} {g : Sat256} {s0 : State}
     (hmemSize : mem.size = 96)
     (hfitLot : (bidLotWord (dentId I) σ I).toNat * flipperONEWord.toNat < UInt256.size)
     (hoverBeg : UInt256.size ≤ (dentBegWord σ I).toNat * (dentLot I).toNat)
-    (h : RD flipperBytecode I g s0 ⟨4601⟩ [dentBid I, dentLot I, dentId I, ret, sel]
+    (h : RD fork flipperBytecode I g s0 ⟨4601⟩ [dentBid I, dentLot I, dentId I, ret, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flipperBytecode g s0 := by
+    RDrev fork flipperBytecode g s0 := by
   obtain ⟨_, _, rd4638⟩ := flipperDentX_afterLotOneOk hmemSize hfitLot h
   obtain ⟨_, _, rd6305⟩ := flipperDentX_begLotCheckedMulCall rd4638
   exact flipperCheckedMulRevert (ret := ⟨4650⟩) (x := dentBegWord σ I)
@@ -645,9 +647,9 @@ theorem flipperDentX_checkedMulOk {σ I} {g : Sat256} {s0 : State}
     (hmemSize : mem.size = 96)
     (hfitLot : (bidLotWord (dentId I) σ I).toNat * flipperONEWord.toNat < UInt256.size)
     (hfitBeg : (dentBegWord σ I).toNat * (dentLot I).toNat < UInt256.size)
-    (h : RD flipperBytecode I g s0 ⟨4601⟩ [dentBid I, dentLot I, dentId I, ret, sel]
+    (h : RD fork flipperBytecode I g s0 ⟨4601⟩ [dentBid I, dentLot I, dentId I, ret, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ⟨4650⟩
+    ∃ k' C', RD fork flipperBytecode I g s0 ⟨4650⟩
       [dentBegLotWord σ I, dentLotOneWord σ I, dentBid I, dentLot I, dentId I, ret, sel]
       (twoWordHashMem (dentId I) ⟨1⟩ mem)
       (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -662,10 +664,10 @@ theorem flipperDentX_checkedMulOk {σ I} {g : Sat256} {s0 : State}
 theorem flipperDentX_decreaseOk {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem : ByteArray}
     (hle : (dentBegLotWord σ I).toNat ≤ (dentLotOneWord σ I).toNat)
-    (h : RD flipperBytecode I g s0 ⟨4650⟩
+    (h : RD fork flipperBytecode I g s0 ⟨4650⟩
       [dentBegLotWord σ I, dentLotOneWord σ I, dentBid I, dentLot I, dentId I, ret, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ⟨4733⟩
+    ∃ k' C', RD fork flipperBytecode I g s0 ⟨4733⟩
       [dentBid I, dentLot I, dentId I, ret, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd4653 := evm_run h with [
@@ -684,10 +686,10 @@ theorem flipperDentX_insufficientDecrease {σ I} {g : Sat256} {s0 : State}
     (hmemSize : mem.size = 96)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hgt : (dentLotOneWord σ I).toNat < (dentBegLotWord σ I).toNat)
-    (h : RD flipperBytecode I g s0 ⟨4650⟩
+    (h : RD fork flipperBytecode I g s0 ⟨4650⟩
       [dentBegLotWord σ I, dentLotOneWord σ I, dentBid I, dentLot I, dentId I, ret, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flipperBytecode g s0 := by
+    RDrev fork flipperBytecode g s0 := by
   have rd4653 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw gt (by native_decide) (by evm_ov),

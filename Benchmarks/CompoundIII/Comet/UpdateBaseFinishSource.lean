@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.UpdateBaseModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -8,7 +10,7 @@ theorem basicSetIndex_source (frame : Frame) (evm : EVM.State) (basic : UserBasi
     (borrow : Bool) (hc : frame.contract = contract)
     (hb : frame.locals.get? "basic" = some (userBasicValue basic))
     (hx : frame.locals.get? (trackingIndexName borrow) = none) :
-    ExecStmt config frame evm (basicSetIndexStmt borrow)
+    ExecStmt fork config frame evm (basicSetIndexStmt borrow)
       (.ok { frame with
         locals := frame.locals.insert "basic" (userBasicValue
           { basic with index := accountRewardIndex evm borrow,
@@ -22,7 +24,7 @@ theorem updateBaseIndex_source (frame : Frame) (evm : EVM.State) (basic : UserBa
     (hb : frame.locals.get? "basic" = some (userBasicValue basic))
     (hp : frame.locals.get? "principalNew" = some (.int (signed104 principal)))
     (hx : ∀ borrow, frame.locals.get? (trackingIndexName borrow) = none) :
-    ExecStmt config frame evm
+    ExecStmt fork config frame evm
       (.ite (.binary .ge (.var "principalNew") (.intLit 0))
         [basicSetIndexStmt false] [basicSetIndexStmt true])
       (.ok { frame with
@@ -54,13 +56,13 @@ theorem updateBaseFinish_source (frame : Frame) (evm : EVM.State) (addr : Accoun
     (ha : frame.locals.get? "account" = some (.address addr))
     (hu : frame.locals.get? "userBasic" = none)
     (hx : ∀ borrow, frame.locals.get? (trackingIndexName borrow) = none) :
-    internalBlockResult config frame evm updateBaseFinishBlock
+    internalBlockResult fork config frame evm updateBaseFinishBlock
       (if evm.executionEnv.perm then
         .ok (storeUserBasic evm addr (basicSetIndex evm basic principal))
         else .staticViolation) := by
   let basic' := basicSetIndex evm basic principal
   let frame' : Frame := { frame with locals := frame.locals.insert "basic" (userBasicValue basic') }
-  have hindex := updateBaseIndex_source frame evm basic principal hc hb hp hx
+  have hindex := updateBaseIndex_source (fork := fork) frame evm basic principal hc hb hp hx
   have heb : evalExpr? config frame' evm (.var "basic") = .ok (userBasicValue basic') := by
     simp only [evalExpr?, frame', Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert,
       EvalResult.ofOption]
@@ -77,6 +79,6 @@ theorem updateBaseFinish_source (frame : Frame) (evm : EVM.State) (addr : Accoun
     exact ExecBlock.consNormal hindex (ExecBlock.consStatic (ExecStmt.assignStatic heb hw hperm))
   · simp only [if_true, internalBlockResult]
     exact ⟨frame', ExecBlock.consNormal hindex
-      (ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) heb hw) ExecBlock.nil)⟩
+      (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) heb hw) ExecBlock.nil)⟩
 
 end Benchmarks.CompoundIII.Comet

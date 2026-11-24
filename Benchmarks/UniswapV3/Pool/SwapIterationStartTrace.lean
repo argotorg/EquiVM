@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapIterationSource
 import Benchmarks.UniswapV3.Pool.SwapLoopGuardTrace
 import Benchmarks.UniswapV3.Pool.WordArrayUpdate
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -20,7 +22,7 @@ theorem swapIterationStartBoundX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat2
     {aw p q free exactWord cache snap dataStart dataLength ret : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : SwapArgs) (s : SwapStateData)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3042⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3042⟩
       (q :: swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
       mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hs : SwapStateMemory mem p s)
@@ -28,7 +30,7 @@ theorem swapIterationStartBoundX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat2
     (hql : 96 ≤ q.toNat) (hdisj : p.toNat + 224 ≤ q.toNat)
     (hb : q.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 20 ≤ 1024) :
     ∃ aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 ⟨11307⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨11307⟩
         ([a.zeroForOne.toUInt256, wordsOf (immStore v) "tickSpacing", EVM.wordOfInt s.tick,
           ⟨6⟩, ⟨3109⟩, q] ++ swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
         (writeWord mem q.toNat s.price) aw' rdata σ k' C' ∧
@@ -86,7 +88,7 @@ theorem swapIterationStartX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {aw p q free exactWord cache snap dataStart dataLength ret : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : SwapArgs) (s : SwapStateData)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3042⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3042⟩
       (q :: swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
       mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hs : SwapStateMemory mem p s)
@@ -94,7 +96,7 @@ theorem swapIterationStartX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hql : 96 ≤ q.toNat) (hdisj : p.toNat + 224 ≤ q.toNat)
     (hb : q.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 20 ≤ 1024) :
     ∃ aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 ⟨11307⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨11307⟩
         ([a.zeroForOne.toUInt256, wordsOf (immStore v) "tickSpacing", EVM.wordOfInt s.tick,
           ⟨6⟩, ⟨3109⟩, q] ++ swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
         (writeWord mem q.toNat s.price) aw' rdata σ k' C' ∧

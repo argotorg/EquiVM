@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.ResolveOneCall
 import Benchmarks.EAS.EAS.WordArrayMemory
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -31,8 +33,8 @@ theorem easMemoryArrayFirst {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {ptr ret : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length+4 ≤ 1024) (hn : memLoad ptr mem ≠ ⟨0⟩)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5712⟩ (ptr::ret::R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5712⟩ (ptr::ret::R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret
       (UInt256.ofNat (ptr.toNat+32)::R) mem aw' rdata σ k' C' := by
   obtain ⟨aw1,k1,C1,rd1⟩ := easBlocks.eas_block_5712_fallthrough_packed (immWords := wordsOf (immStore v))
     (by simp only [List.length_cons]; omega) (isZero_eq_zero_of_ne hn) rd
@@ -48,8 +50,8 @@ theorem easMemoryArrayIndex {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length+5 ≤ 1024) (hi : i < len) (hlen : len < UInt256.size)
     (hprod : 32*i < UInt256.size) (hl : memLoad ptr mem = UInt256.ofNat len)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5725⟩ (ptr::UInt256.ofNat i::ret::R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5725⟩ (ptr::UInt256.ofNat i::ret::R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret
       (UInt256.ofNat (ptr.toNat+32+32*i)::R) mem aw' rdata σ k' C' := by
   obtain ⟨aw1,k1,C1,rd1⟩ := easBlocks.eas_block_5725_fallthrough_packed (immWords := wordsOf (immStore v))
     (by simp only [List.length_cons]; omega)

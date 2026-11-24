@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.PositionOwedStorage
 import Benchmarks.UniswapV3.Pool.SourceWordArithmetic
 import Benchmarks.UniswapV3.Pool.LiquidityDeltaModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -55,7 +57,7 @@ theorem burnAmount_cast (i : Int) :
 
 theorem burnLetPosition (v : UniswapV3PoolImmutables) (a : BurnArgs)
     (key : UInt256) (a0 a1 : Int) (evm : EVM.State) :
-    ExecStmt config (burnResultFrame v a key a0 a1) evm
+    ExecStmt fork config (burnResultFrame v a key a0 a1) evm
       (.letStorage "position" ⟨"positions", [.mindex (.tupleGet (.var "__c1") 0)]⟩)
       (.ok (burnPositionFrame v a key a0 a1) evm) := by
   have hget : (burnResultFrame v a key a0 a1).locals.get? "__c1" =
@@ -74,7 +76,7 @@ theorem burnLetPosition (v : UniswapV3PoolImmutables) (a : BurnArgs)
 
 theorem burnAmountsSource (v : UniswapV3PoolImmutables) (a : BurnArgs)
     (key : UInt256) (a0 a1 : Int) (evm : EVM.State) :
-    ExecBlock config (burnResultFrame v a key a0 a1) evm (burnTransition.body.drop 7 |>.take 5)
+    ExecBlock fork config (burnResultFrame v a key a0 a1) evm (burnTransition.body.drop 7 |>.take 5)
       (.ok (burnAmountsFrame v a key a0 a1) evm) := by
   refine ExecBlock.consNormal (burnLetPosition v a key a0 a1 evm) ?_
   have h0 : evalExpr? config (burnPositionFrame v a key a0 a1) evm
@@ -96,14 +98,14 @@ theorem burnAmountsSource (v : UniswapV3PoolImmutables) (a : BurnArgs)
   have h0i : evalExpr? config (burnIntsFrame v a key a0 a1) evm (.var "amount0Int") =
       .ok (.int a0) := evalExpr_var_get (by burn_amounts_get)
   refine ExecBlock.consNormal (stele := burnIntsFrame v a key a0 a1)
-    (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat (burnAmount a0).toNat))
+    (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat (burnAmount a0).toNat))
     (by simp only [evalExpr?, h0i, castValue?, evalBinaryOp?, bind, EvalResult.bind,
           EvalResult.ofOption, pure, burnAmount_cast])
     (assignLocalVarBase_frame (old := .int 0) (by burn_amounts_get))) ?_
   have h1i : evalExpr? config (burnAmount0Frame v a key a0 a1) evm (.var "amount1Int") =
       .ok (.int a1) := evalExpr_var_get (by burn_amounts_get)
   exact ExecBlock.consNormal (stele := burnAmount0Frame v a key a0 a1)
-    (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat (burnAmount a1).toNat))
+    (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat (burnAmount a1).toNat))
     (by simp only [evalExpr?, h1i, castValue?, evalBinaryOp?, bind, EvalResult.bind,
           EvalResult.ofOption, pure, burnAmount_cast])
     (assignLocalVarBase_frame (old := .int 0) (by burn_amounts_get))) ExecBlock.nil

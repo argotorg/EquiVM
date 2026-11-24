@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapStateAllocation
 import Benchmarks.UniswapV3.Pool.SwapEntryTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -9,7 +11,7 @@ set_option maxRecDepth 10000
 theorem swapInitTailBoundedX {limit : Nat} {σ σsnap : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw q cache snap fee exactWord dataStart dataLength ret : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables} (a : SwapArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2911⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2911⟩
       ([UInt256.ofNat 1, UInt256.ofNat 1, slot0FieldWord 0 20 σsnap ee,
         q + UInt256.ofNat 64, q, ⟨0⟩, exactWord, cache, snap, ⟨0⟩, ⟨0⟩] ++
         swapWords a dataStart dataLength ++ ret :: R)
@@ -24,7 +26,7 @@ theorem swapInitTailBoundedX {limit : Nat} {σ σsnap : AccountMap} {ee : Execut
         (swapStateInitWords (EVM.wordOfInt a.amountSpecified) (slot0FieldWord 0 20 σsnap ee)
           (EVM.wordOfInt (slot0TickValue σsnap ee)) (feeGrowthWord (!a.zeroForOne) σ ee)
           (poolLiquidityWord σ ee))
-      RD (deployedRuntime v) ee g s0 ⟨2991⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨2991⟩
         ([q, exactWord, cache, snap, ⟨0⟩, ⟨0⟩] ++ swapWords a dataStart dataLength ++ ret :: R)
         mem' aw' rdata σ k' C' ∧ HeapMemory mem' aw' (q + UInt256.ofNat 224) ∧
       MemoryPrefix mem mem' q.toNat ∧ BoundedActiveWords aw' limit ∧
@@ -93,7 +95,7 @@ theorem swapInitTailBoundedX {limit : Nat} {σ σsnap : AccountMap} {ee : Execut
 theorem swapInitTailX {σ σsnap : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw q cache snap fee exactWord dataStart dataLength ret : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables} (a : SwapArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2911⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2911⟩
       ([UInt256.ofNat 1, UInt256.ofNat 1, slot0FieldWord 0 20 σsnap ee,
         q + UInt256.ofNat 64, q, ⟨0⟩, exactWord, cache, snap, ⟨0⟩, ⟨0⟩] ++
         swapWords a dataStart dataLength ++ ret :: R)
@@ -108,7 +110,7 @@ theorem swapInitTailX {σ σsnap : AccountMap} {ee : ExecutionEnv} {g : Sat256}
         (swapStateInitWords (EVM.wordOfInt a.amountSpecified) (slot0FieldWord 0 20 σsnap ee)
           (EVM.wordOfInt (slot0TickValue σsnap ee)) (feeGrowthWord (!a.zeroForOne) σ ee)
           (poolLiquidityWord σ ee))
-      RD (deployedRuntime v) ee g s0 ⟨2991⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨2991⟩
         ([q, exactWord, cache, snap, ⟨0⟩, ⟨0⟩] ++ swapWords a dataStart dataLength ++ ret :: R)
         mem' aw' rdata σ k' C' ∧ HeapMemory mem' aw' (q + UInt256.ofNat 224) ∧
       MemoryPrefix mem mem' q.toNat := by

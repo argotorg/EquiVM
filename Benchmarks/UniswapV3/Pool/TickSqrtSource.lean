@@ -1,12 +1,14 @@
 import Benchmarks.UniswapV3.Pool.TickSqrtReadySource
 import Benchmarks.UniswapV3.Pool.TickSqrtTailSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 
 theorem tickSqrtReturns (imms : Store) (evm : EVM.State) (tick : Int)
     (hlo : -(2 ^ 23 : Int) ≤ tick) (hhi : tick < 2 ^ 23) (h : tick.natAbs ≤ 887272) :
-    ∃ out, ExecFuncBody config (tickSqrtFrame imms tick) evm tickSqrtFunction.body
+    ∃ out, ExecFuncBody fork config (tickSqrtFrame imms tick) evm tickSqrtFunction.body
       (.returned out evm (some [.int (Int.ofNat (tickSqrtValue tick).toNat)])) := by
   obtain ⟨frame, hp, hr, ht, hs⟩ := tickSqrtRatiosSource imms evm tick hlo hhi h
   obtain ⟨out, hb⟩ := tickSqrtTailSource (evm := evm) tick

@@ -5,6 +5,8 @@ import Benchmarks.Morpho.MorphoBlue.HealthyPriceRefine
 import Benchmarks.Morpho.MorphoBlue.AccrueMemoryAdvance
 import Benchmarks.Morpho.MorphoBlue.MarketMemoryPrefix
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -14,17 +16,17 @@ set_option maxRecDepth 1000
 def healthyMemoryCost (p : MarketParamsWords) (account : UInt256) (evm : EVM.State) : Nat :=
   if positionFieldWord evm.accountMap evm.executionEnv p.id account 1 = ⟨0⟩ then 0 else 32
 
-inductive HealthyFunctionRefines (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
+inductive HealthyFunctionRefines (fork : Ethereum.Fork) (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     (p : MarketParamsWords) (account : UInt256) (imms : Store) (evm : EVM.State)
     (mem : ByteArray) (fp ret : UInt256) (R : List UInt256) (spare : Nat) : Prop where
-  | reverted : ExecFuncBody config (healthyFrame p account imms) evm healthyFunction.body .reverted →
-      RDrev (deployedRuntime v) g s0 → HealthyFunctionRefines v ee g s0 p account imms evm mem fp ret R spare
+  | reverted : ExecFuncBody fork config (healthyFrame p account imms) evm healthyFunction.body .reverted →
+      RDrev fork (deployedRuntime v) g s0 → HealthyFunctionRefines fork v ee g s0 p account imms evm mem fp ret R spare
   | ok {frame' evm' σ' mem' fp' aw' out' k' C'} (z : Bool) :
-      ExecFuncBody config (healthyFrame p account imms) evm healthyFunction.body
+      ExecFuncBody fork config (healthyFrame p account imms) evm healthyFunction.body
         (.returned frame' evm' (some [.bool z])) → SourceState s0 ee σ' evm' →
       MorphoHeap mem' fp' spare → HeapAdvance mem fp mem' fp' (healthyMemoryCost p account evm) →
-      RD (deployedRuntime v) ee g s0 ret ((if z then UInt256.ofNat 1 else UInt256.ofNat 0) :: R)
-        mem' aw' out' σ' k' C' → HealthyFunctionRefines v ee g s0 p account imms evm mem fp ret R spare
+      RD fork (deployedRuntime v) ee g s0 ret ((if z then UInt256.ofNat 1 else UInt256.ofNat 0) :: R)
+        mem' aw' out' σ' k' C' → HealthyFunctionRefines fork v ee g s0 p account imms evm mem fp ret R spare
 
 theorem morphoHealthyFunctionRefine {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : State} {mem out : ByteArray} {aw fp account ret : UInt256} {σ : AccountMap}
@@ -33,9 +35,9 @@ theorem morphoHealthyFunctionRefine {v : MorphoImmutables} {ee : ExecutionEnv} {
     (hs : SourceState s0 ee σ evm) (hm : MorphoHeap mem fp spare) (hb : 64 ≤ spare)
     (hparams : p.InMemory (UInt256.ofNat 128) mem) (hsize : 288 ≤ mem.size) (hbefore : 288 ≤ fp.toNat)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13948)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13948)
       ([UInt256.ofNat 128, p.id, account, ret] ++ R) mem aw out σ k C) :
-    HealthyFunctionRefines v ee g s0 p account imms evm mem fp ret R (spare - 32) := by
+    HealthyFunctionRefines fork v ee g s0 p account imms evm mem fp ret R (spare - 32) := by
   have hg := morphoHealthyGuard (v := v) (by omega) hc hvalid h
   have hm1 := hm.positionHash p.id account
   have hp1 := supplyPositionMem_prefix p.id account mem fp.toNat
@@ -51,7 +53,7 @@ theorem morphoHealthyFunctionRefine {v : MorphoImmutables} {ee : ExecutionEnv} {
     obtain ⟨a1, k1, C1, rd1⟩ := hg
     have hz' : positionFieldWord evm.accountMap evm.executionEnv p.id account 1 ≠ ⟨0⟩ := by
       simpa only [hs.env, ← hs.accounts] using hz
-    have pref := morphoHealthySourcePrelude p account imms evm hc hz'
+    have pref := morphoHealthySourcePrelude (fork := fork) p account imms evm hc hz'
     have hparams1 := hparams.ofPrefix hp1 (by decide) (by decide) hsize hbefore
     obtain ⟨gasArg, a2, k2, C2, rd2⟩ := morphoHealthyPrepareCall (v := v) p (by omega) hpc.2.2.1 hm1.free
       (by simpa only [show UInt256.ofNat 128 + UInt256.ofNat (32 * 2) = UInt256.ofNat 192 from by decide]

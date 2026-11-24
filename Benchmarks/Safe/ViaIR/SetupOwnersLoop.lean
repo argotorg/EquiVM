@@ -1,5 +1,7 @@
 import Benchmarks.Safe.ViaIR.SetupOwnersIteration
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -10,7 +12,7 @@ set_option maxRecDepth 2000
 theorem safeSetupOwnersLoop (fuel : Nat) (p : SetupOwnersInput) (evm : EVM.State)
     {locals i current ptr I g s0 k C aw mem rdata}
     {handler len dataStart target token receiver payment : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3333⟩
+    (h : RD fork safeBytecode I g s0 ⟨3333⟩
       (UInt256.ofNat ptr :: UInt256.ofNat i :: current :: p.threshold :: handler :: handler ::
         len :: dataStart :: target :: target :: token :: receiver :: payment ::
           UInt256.ofNat p.owners.length :: ⟨0⟩ :: R) mem aw rdata evm.accountMap k C)
@@ -20,16 +22,16 @@ theorem safeSetupOwnersLoop (fuel : Nat) (p : SetupOwnersInput) (evm : EVM.State
     (hc : current.toNat < EVM.addressModulus)
     (ho : ∀ j (hj : j < p.owners.length), p.owners[j].toNat < EVM.addressModulus)
     (hperm : I.perm = true) (hov : R.length + 32 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧
-      ExecStmt config { contract := contract, locals := locals } evm
+    (RDrev fork safeBytecode g s0 ∧
+      ExecStmt fork config { contract := contract, locals := locals } evm
         (.while setupOwnersLoopCondition setupOwnersLoopBody) .reverted) ∨
     ∃ locals' evm' current' mem' aw' k' C',
-      ExecStmt config { contract := contract, locals := locals } evm
+      ExecStmt fork config { contract := contract, locals := locals } evm
         (.while setupOwnersLoopCondition setupOwnersLoopBody)
         (.ok { contract := contract, locals := locals' } evm') ∧
       SetupOwnersLocals p locals' p.owners.length current' ∧
       current'.toNat < EVM.addressModulus ∧ evm'.executionEnv = I ∧ evm'.σ₀ = evm.σ₀ ∧
-      RD safeBytecode I g s0 ⟨3341⟩
+      RD fork safeBytecode I g s0 ⟨3341⟩
         (UInt256.ofNat ptr :: UInt256.ofNat p.owners.length :: current' :: p.threshold ::
           handler :: handler :: len :: dataStart :: target :: target :: token :: receiver ::
             payment :: UInt256.ofNat p.owners.length :: ⟨0⟩ :: R) mem' aw' rdata evm'.accountMap k' C' ∧

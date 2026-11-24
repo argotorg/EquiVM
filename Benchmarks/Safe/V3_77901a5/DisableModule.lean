@@ -7,6 +7,8 @@ import Benchmarks.Safe.V3_77901a5.Blocks.Runtime_026
 import Benchmarks.Safe.V3_77901a5.Blocks.Runtime_027
 import Benchmarks.Safe.V3_77901a5.Blocks.Runtime_030
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 open Benchmarks.Safe.V3_77901a5.RuntimeBlocks
@@ -61,7 +63,7 @@ theorem safeDisableModuleSource (evm : EVM.State) (prev key : UInt256)
     (hauth : evm.executionEnv.source = evm.executionEnv.codeOwner)
     (hgood : key ≠ ⟨0⟩ ∧ key ≠ ⟨1⟩) (hlink : moduleLink evm prev = key)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (disableModuleArgs prev key) disablemoduleTransition.body
+    ExecTransitionBody fork config contract evm (disableModuleArgs prev key) disablemoduleTransition.body
       (.returned (disableModuleFrame prev key) (disableModuleState evm prev key) none) := by
   have hbase : (disableModuleArgs prev key)["modules"]? = none := by
     simp [disableModuleArgs, Std.HashMap.getElem_insert]
@@ -90,7 +92,7 @@ theorem safeDisableModuleSourceStatic (evm : EVM.State) (prev key : UInt256)
     (hauth : evm.executionEnv.source = evm.executionEnv.codeOwner)
     (hgood : key ≠ ⟨0⟩ ∧ key ≠ ⟨1⟩) (hlink : moduleLink evm prev = key)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (disableModuleArgs prev key) disablemoduleTransition.body
+    ExecTransitionBody fork config contract evm (disableModuleArgs prev key) disablemoduleTransition.body
       .staticViolation := by
   have hbase : (disableModuleArgs prev key)["modules"]? = none := by
     simp [disableModuleArgs, Std.HashMap.getElem_insert]
@@ -110,7 +112,7 @@ theorem safeDisableModuleSourceInvalid (evm : EVM.State) (prev key : UInt256)
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩)
     (hauth : evm.executionEnv.source = evm.executionEnv.codeOwner)
     (hgood : ¬ (key ≠ ⟨0⟩ ∧ key ≠ ⟨1⟩)) :
-    ExecTransitionBody config contract evm (disableModuleArgs prev key) disablemoduleTransition.body
+    ExecTransitionBody fork config contract evm (disableModuleArgs prev key) disablemoduleTransition.body
       .reverted :=
   .execBlockRevert (.consNormal (.requireTrue (evalCallvalueEq_true hvalue))
     (.consNormal (.requireTrue (by simpa [hauth] using safeEvalAuthorized evm _))
@@ -122,7 +124,7 @@ theorem safeDisableModuleSourceUnlinked (evm : EVM.State) (prev key : UInt256)
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩)
     (hauth : evm.executionEnv.source = evm.executionEnv.codeOwner)
     (hgood : key ≠ ⟨0⟩ ∧ key ≠ ⟨1⟩) (hlink : moduleLink evm prev ≠ key) :
-    ExecTransitionBody config contract evm (disableModuleArgs prev key) disablemoduleTransition.body
+    ExecTransitionBody fork config contract evm (disableModuleArgs prev key) disablemoduleTransition.body
       .reverted :=
   .execBlockRevert (.consNormal (.requireTrue (evalCallvalueEq_true hvalue))
     (.consNormal (.requireTrue (by simpa [hauth] using safeEvalAuthorized evm _))
@@ -133,16 +135,16 @@ theorem safeDisableModuleSourceUnlinked (evm : EVM.State) (prev key : UInt256)
 theorem safeDisableModuleUnauthorized (evm : EVM.State) (locals : Store)
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩)
     (hauth : evm.executionEnv.source ≠ evm.executionEnv.codeOwner) :
-    ExecTransitionBody config contract evm locals disablemoduleTransition.body .reverted :=
+    ExecTransitionBody fork config contract evm locals disablemoduleTransition.body .reverted :=
   .execBlockRevert (nonpayableSecondRequireReverts hvalue
     (by simpa [hauth] using safeEvalAuthorized evm _))
 
 theorem safeDisableModuleReachCheck {I g s0 σ k C aw mem rdata}
     {key : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨5532⟩ (key :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨5532⟩ (key :: R) mem aw rdata σ k C)
     (hov : R.length + 4 ≤ 1024) (hcanon : key.toNat < EVM.addressModulus)
     (hgood : key ≠ ⟨0⟩ ∧ key ≠ ⟨1⟩) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨5585⟩ (key :: R) mem aw rdata σ k' C' := by
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨5585⟩ (key :: R) mem aw rdata σ k' C' := by
   have h5549 := safeRuntime_block_5532_fallthrough hov
     (by rw [safeAddressMask, solcAddrMask_clean hcanon]; exact isZero_eq_zero_of_ne hgood.1) h
   have h5563 := safeRuntime_block_5549 hov h5549
@@ -152,18 +154,18 @@ theorem safeDisableModuleReachCheck {I g s0 σ k C aw mem rdata}
   exact ⟨_, _, safeRuntime_block_5563_taken (by simp; omega) (by decide) (by jump_dest) h5563⟩
 
 theorem safeDisableModuleReject {I g s0 σ k C aw mem rdata} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨5563⟩ (⟨1⟩ :: R) mem aw rdata σ k C)
-    (hov : R.length + 6 ≤ 1024) : RDrev safeBytecode g s0 := by
+    (h : RD fork safeBytecode I g s0 ⟨5563⟩ (⟨1⟩ :: R) mem aw rdata σ k C)
+    (hov : R.length + 6 ≤ 1024) : RDrev fork safeBytecode g s0 := by
   have h5569 := safeRuntime_block_5563_fallthrough (by omega) (by decide) h
-  change RD safeBytecode I g s0 ⟨5569⟩ R mem aw rdata σ _ _ at h5569
+  change RD fork safeBytecode I g s0 ⟨5569⟩ R mem aw rdata σ _ _ at h5569
   have h6898 := safeRuntime_block_5569 (by omega) (by jump_dest) h5569
   exact safeRuntime_block_6898 (by simp [safeRuntime_block_5569_stack]; omega) h6898
 
 theorem safeDisableModuleTraceInvalid {I g s0 σ k C aw mem rdata}
     {key : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨5532⟩ (key :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨5532⟩ (key :: R) mem aw rdata σ k C)
     (hov : R.length + 7 ≤ 1024) (hcanon : key.toNat < EVM.addressModulus)
-    (hgood : ¬ (key ≠ ⟨0⟩ ∧ key ≠ ⟨1⟩)) : RDrev safeBytecode g s0 := by
+    (hgood : ¬ (key ≠ ⟨0⟩ ∧ key ≠ ⟨1⟩)) : RDrev fork safeBytecode g s0 := by
   by_cases hz : key = ⟨0⟩
   · have h5563 := safeRuntime_block_5532_taken (by omega)
       (by rw [safeAddressMask, solcAddrMask_clean hcanon, hz]; decide) (by jump_dest) h
@@ -193,11 +195,11 @@ theorem safeDisableModuleAccounts (evm : EVM.State) (prev key : UInt256) :
   rfl
 
 theorem safeDisableModuleTrace {I g s0 σ k C aw mem rdata} {prev key : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨5637⟩ (key :: prev :: ⟨664⟩ :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨5637⟩ (key :: prev :: ⟨664⟩ :: R) mem aw rdata σ k C)
     (hov : R.length + 13 ≤ 1024) (hmem : mem.size = 96)
     (hprev : prev.toNat < EVM.addressModulus) (hkey : key.toNat < EVM.addressModulus)
     (hperm : I.perm = true) :
-    RDret safeBytecode g s0 (disableModuleAccounts σ I prev key) ByteArray.empty := by
+    RDret fork safeBytecode g s0 (disableModuleAccounts σ I prev key) ByteArray.empty := by
   obtain ⟨_, _, h5710⟩ := safeRuntime_block_5637 (by simp; omega) hperm h
   have h664 := safeRuntime_block_5710 (by omega) hperm (by jump_dest) h5710
   have hret := safeRuntime_block_664 (by simp [safeRuntime_block_5710_stack]; omega) h664
@@ -223,7 +225,7 @@ theorem safeDisableModuleTrace {I g s0 σ k C aw mem rdata} {prev key : UInt256}
       setAddressOffset0Word old ⟨0⟩ := by
     rw [setAddressOffset0Word, u256_land_zero_left, u256_lor_zero, u256_land_comm]
   simp only [hfirst] at hret
-  change RDret safeBytecode g s0 (sstoreAccountMap I.codeOwner
+  change RDret fork safeBytecode g s0 (sstoreAccountMap I.codeOwner
     (sstoreAccountMap I.codeOwner σ (mapSlot prev ⟨1⟩)
       (setAddressOffset0Word (solcSlotWordAt (mapSlot prev ⟨1⟩) σ I)
         (UInt256.land (solcSlotWordAt (mapSlot key ⟨1⟩) σ I) solcAddrMask))) (mapSlot key ⟨1⟩)
@@ -233,9 +235,9 @@ theorem safeDisableModuleTrace {I g s0 σ k C aw mem rdata} {prev key : UInt256}
 
 theorem safeDisableModuleTraceStatic {I g s0 σ k C aw mem rdata}
     {prev key : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨5637⟩ (key :: prev :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨5637⟩ (key :: prev :: R) mem aw rdata σ k C)
     (hov : R.length + 12 ≤ 1024) (hperm : I.perm = false) :
-    RDstatic safeBytecode g s0 := by
+    RDstatic fork safeBytecode g s0 := by
   have hhash := evm_run h with [jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub,
     dup2, dup2, and, push0, dup2, dup2, genMstore, push1 ⟨1⟩, push1 ⟨32⟩, genMstore,
     push1 ⟨64⟩, dup1, dup3, genKeccak256, dup1]
@@ -263,8 +265,8 @@ theorem safeDisableModuleCheckWord (σ : AccountMap) (I : ExecutionEnv) (prev ke
   rw [twoWordHashMemMapSlot prev ⟨1⟩ solcFreePtrMem_size, u256_land_comm solcAddrMask]
 
 theorem safeDisableModuleTraceUnlinked {I g s0 σ k C aw mem rdata} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨5621⟩ R mem aw rdata σ k C)
-    (hov : R.length + 6 ≤ 1024) : RDrev safeBytecode g s0 := by
+    (h : RD fork safeBytecode I g s0 ⟨5621⟩ R mem aw rdata σ k C)
+    (hov : R.length + 6 ≤ 1024) : RDrev fork safeBytecode g s0 := by
   have h6898 := safeRuntime_block_5621 (by omega) (by jump_dest) h
   exact safeRuntime_block_6898 (by simp; omega) h6898
 
@@ -272,10 +274,10 @@ theorem safeDisablemoduleBodyCore
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some disablemoduleTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨hlong, hword⟩ := selectorDispatchFacts 0xe0 0x09 0xcf 0xde ⟨0xe009cfde⟩
     hdispatch disablemoduleSelectorBytes (by decide)
-  obtain ⟨k, C, h1377⟩ := safeReachEntry (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, h1377⟩ := safeReachEntry (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) ⟨0xe009cfde⟩ 2 ⟨1377⟩ hcode hsize hlong hword
     (by native_decide)
   by_cases hvalue : I.weiValue = ⟨0⟩
@@ -298,7 +300,7 @@ theorem safeDisablemoduleBodyCore
               decodeCalldata_address_address_ok hlen hbig hc0 hc1
             by_cases hauth : I.source = I.codeOwner
             · obtain ⟨_, _, h5532⟩ := safeAuthorizedTrace h6757 (by simp) hauth (by jump_dest)
-              change RD safeBytecode I (.ofUInt256 g) (initState σ σ₀ (.ofUInt256 g) A I) ⟨5532⟩
+              change RD fork safeBytecode I (.ofUInt256 g) (initState σ σ₀ (.ofUInt256 g) A I) ⟨5532⟩
                 [calldataWord I.calldata 36, calldataWord I.calldata 4, ⟨664⟩, selWord I]
                 _ _ _ σ _ _ at h5532
               by_cases hgood : calldataWord I.calldata 36 ≠ ⟨0⟩ ∧ calldataWord I.calldata 36 ≠ ⟨1⟩
@@ -324,7 +326,7 @@ theorem safeDisablemoduleBodyCore
                   cases hperm : I.perm with
                   | false =>
                       have hstatic := safeDisableModuleTraceStatic h5637 (by simp) hperm
-                      have hbody := safeDisableModuleSourceStatic (initState σ σ₀ (.ofUInt256 g) A
+                      have hbody := safeDisableModuleSourceStatic (fork := fork) (initState σ σ₀ (.ofUInt256 g) A
                         I)
                         (calldataWord I.calldata 4) (calldataWord I.calldata 36)
                         hc0 hc1 hvalue hauth hgood hlink' hperm
@@ -337,7 +339,7 @@ theorem safeDisablemoduleBodyCore
                           solcAddrMask_clean_left hc0]
                         exact twoWordHashMem_size_96 _ _ solcFreePtrMem_size
                       have hret := safeDisableModuleTrace h5637 (by simp) hmem hc0 hc1 hperm
-                      have hbody := safeDisableModuleSource (hperm := by assumption) (initState σ σ₀ (.ofUInt256 g) A I)
+                      have hbody := safeDisableModuleSource (fork := fork) (hperm := by assumption) (initState σ σ₀ (.ofUInt256 g) A I)
                         (calldataWord I.calldata 4) (calldataWord I.calldata 36)
                         hc0 hc1 hvalue hauth hgood hlink'
                       refine reEquivReturnElim hcode hret fun _ _ hsuccess ↦ ?_
@@ -350,13 +352,13 @@ theorem safeDisablemoduleBodyCore
                     (hword.trans (uInt256_eq_zero_of_ne
                       (fun he ↦ hlink (uInt256_eq_one_eq he).symm))) h5585
                   have hrev := safeDisableModuleTraceUnlinked h5621 (by simp)
-                  have hbody := safeDisableModuleSourceUnlinked (initState σ σ₀ (.ofUInt256 g) A I)
+                  have hbody := safeDisableModuleSourceUnlinked (fork := fork) (initState σ σ₀ (.ofUInt256 g) A I)
                     (calldataWord I.calldata 4) (calldataWord I.calldata 36)
                     hc0 hc1 hvalue hauth hgood (by rwa [hmodule])
                   exact RDrev.reEquivElim hcode hrev fun _ _ hΞ ↦
                     reEquivSelectorExecution hdispatch hdec hbody (.revert hΞ rfl)
               · have hrev := safeDisableModuleTraceInvalid h5532 (by simp) hc1 hgood
-                have hbody := safeDisableModuleSourceInvalid (initState σ σ₀ (.ofUInt256 g) A I)
+                have hbody := safeDisableModuleSourceInvalid (fork := fork) (initState σ σ₀ (.ofUInt256 g) A I)
                   (calldataWord I.calldata 4) (calldataWord I.calldata 36) hc1 hvalue hauth hgood
                 exact RDrev.reEquivElim hcode hrev fun _ _ hΞ ↦
                   reEquivSelectorExecution hdispatch hdec hbody (.revert hΞ rfl)
@@ -388,7 +390,7 @@ theorem safeDisablemoduleRefines
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some disablemoduleTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact safeDisablemoduleBodyCore hcode hsize hdispatch
 
 end Benchmarks.Safe.V3_77901a5

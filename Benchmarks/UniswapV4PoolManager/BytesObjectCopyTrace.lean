@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.BytesObjectMemory
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_026
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -13,10 +15,10 @@ theorem bytesObjectCopyTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+9 ≤ 1024)
     (hsrc : src.toNat+32 < UInt256.size) (hfit : ptr.toNat+len.toNat+64 < UInt256.size)
-    (h : RD (deployedRuntime v) I g s0 ⟨9389⟩ (src :: len :: ptr :: saved :: R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨9389⟩ (src :: len :: ptr :: saved :: R)
       (writeWord mem ptr.toNat len) aw rdata σ k C) :
     ∃ aw' k' C', C+58+3*((len.toNat+31)/32)+Cₘ aw' ≤ C'+Cₘ aw ∧
-      RD (deployedRuntime v) I g s0 ⟨9049⟩ (saved :: ptr :: saved :: R)
+      RD fork (deployedRuntime v) I g s0 ⟨9049⟩ (saved :: ptr :: saved :: R)
         (bytesObjectMemory mem (src.toNat+32) ptr len) aw' rdata σ k' C' := by
   have hs : (src+UInt256.ofNat 32).toNat = src.toNat+32 := uadd_word_ofNat_toNat src 32 hsrc
   have hp : (ptr+UInt256.ofNat 32).toNat = ptr.toNat+32 := uadd_word_ofNat_toNat ptr 32 (by omega)

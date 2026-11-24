@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.TransferBaseBalanceSource
 import Benchmarks.CompoundIII.Comet.TransferBaseAmountsSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -13,11 +15,11 @@ theorem transferBaseMath_source (frame : Frame) (evm : EVM.State)
     (hsp : frame.locals.get? "srcPrincipal" = some (.int (signed104 srcPrincipal)))
     (hdp : frame.locals.get? "dstPrincipal" = some (.int (signed104 dstPrincipal)))
     (ha : frame.locals.get? "amount" = some (.int amount.toNat)) :
-    ExecBlock config frame evm transferBaseMathBlock
+    ExecBlock fork config frame evm transferBaseMathBlock
       (if TransferBaseMathFits evm srcPrincipal dstPrincipal amount then
         .ok (transferBaseMathFrame frame evm srcPrincipal dstPrincipal amount) evm
       else .reverted) := by
-  have hbal := transferBaseBalances_source frame evm srcPrincipal dstPrincipal amount hc hsp hdp ha
+  have hbal := transferBaseBalances_source (fork := fork) frame evm srcPrincipal dstPrincipal amount hc hsp hdp ha
   by_cases hb : TransferBaseBalanceFits evm srcPrincipal dstPrincipal amount
   · rw [if_pos hb] at hbal
     let fb := transferBaseBalanceFrame frame evm srcPrincipal dstPrincipal amount
@@ -34,7 +36,7 @@ theorem transferBaseMath_source (frame : Frame) (evm : EVM.State)
     have hbc : fb.contract = contract := by
       simp only [fb, transferBaseBalanceFrame, transferBaseSrcBalanceFrame]
       exact hc
-    have hpr := transferBasePrincipals_source fb evm srcPrincipal dstPrincipal amount hbc hsb hdb
+    have hpr := transferBasePrincipals_source (fork := fork) fb evm srcPrincipal dstPrincipal amount hbc hsb hdb
     by_cases hp : PrincipalValueFits evm (withdrawBaseBalance evm srcPrincipal amount) ∧
         PrincipalValueFits evm (supplyBaseBalance evm dstPrincipal amount)
     · rw [if_pos hp] at hpr
@@ -60,7 +62,7 @@ theorem transferBaseMath_source (frame : Frame) (evm : EVM.State)
         rw [supplyBasePrincipal, principalValueWord_signed104 hp.2]
         simp only [fp, transferBasePrincipalFrame, Std.HashMap.get?_eq_getElem?,
           Std.HashMap.getElem?_insert]; rfl
-      have ham := transferBaseAmounts_source fp evm srcPrincipal dstPrincipal
+      have ham := transferBaseAmounts_source (fork := fork) fp evm srcPrincipal dstPrincipal
         (withdrawBasePrincipal evm srcPrincipal amount) (supplyBasePrincipal evm dstPrincipal amount)
         hpc hsp' hdp' hsn hdn
       by_cases hm : WithdrawAmountsFits srcPrincipal (withdrawBasePrincipal evm srcPrincipal amount) ∧

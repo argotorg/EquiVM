@@ -2,19 +2,21 @@ import Benchmarks.Morpho.MorphoBlue.FlashLoanTail
 import Benchmarks.Morpho.MorphoBlue.FlashLoanEnter
 import Benchmarks.Morpho.MorphoBlue.FlashLoanStatic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
 
-inductive FlashLoanCallsRefines (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
+inductive FlashLoanCallsRefines (fork : Ethereum.Fork) (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     (frame : Frame) (evm : EVM.State) : Prop where
-  | reverted : ExecBlock config frame evm (flashLoanTransition.body.drop 5) .reverted →
-      RDrev (deployedRuntime v) g s0 → FlashLoanCallsRefines v ee g s0 frame evm
-  | ok {frame' evm' σ'} : ExecBlock config frame evm (flashLoanTransition.body.drop 5) (.ok frame' evm') →
-      SourceState s0 ee σ' evm' → RDret (deployedRuntime v) g s0 σ' ByteArray.empty →
-      FlashLoanCallsRefines v ee g s0 frame evm
+  | reverted : ExecBlock fork config frame evm (flashLoanTransition.body.drop 5) .reverted →
+      RDrev fork (deployedRuntime v) g s0 → FlashLoanCallsRefines fork v ee g s0 frame evm
+  | ok {frame' evm' σ'} : ExecBlock fork config frame evm (flashLoanTransition.body.drop 5) (.ok frame' evm') →
+      SourceState s0 ee σ' evm' → RDret fork (deployedRuntime v) g s0 σ' ByteArray.empty →
+      FlashLoanCallsRefines fork v ee g s0 frame evm
 
 theorem morphoFlashLoanCalls {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : State} {out data : ByteArray} {aw srcOff len assets : UInt256} {σ : AccountMap}
@@ -23,11 +25,11 @@ theorem morphoFlashLoanCalls {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat
     (hs : SourceState s0 ee σ evm)
     (hlen : len.toNat ≤ solcMaxU64) (hsrc : srcOff.toNat + len.toNat ≤ ee.calldata.size)
     (hdata : ee.calldata.readWithPadding srcOff.toNat len.toNat = data) (hdataSize : data.size = len.toNat)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14666)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14666)
       [UInt256.ofNat token.val, UInt256.ofNat ee.source.val, assets, UInt256.ofNat 1113,
         srcOff, len, UInt256.ofNat 0, assets, UInt256.ofNat token.val, UInt256.ofNat 0]
       (flashLoanEnterMem assets) aw out σ k C) :
-    FlashLoanCallsRefines v ee g s0 { contract := contract, locals := locals, immutables := imms } evm := by
+    FlashLoanCallsRefines fork v ee g s0 { contract := contract, locals := locals, immutables := imms } evm := by
   have hm := flashLoanEnterMem_facts assets
   have he := flashLoanFirstTransfer_args hi evm
   rw [hs.env] at he

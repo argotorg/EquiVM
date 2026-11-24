@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapIterationResultMemory
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_014
 import Benchmarks.UniswapV3.Pool.AmountDeltaSortTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -17,7 +19,7 @@ theorem swapIterationResultStoreX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (s : SwapStateData) (d : SwapIterationData) (price amountIn amountOut fee : UInt256)
     (exactInput : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3347⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3347⟩
       ([fee, amountOut, amountIn, priceRaw, q, p, exactInput.toUInt256] ++ R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hs : SwapStateMemory mem p s)
     (hd : SwapIterationMemory mem q d)
@@ -25,7 +27,7 @@ theorem swapIterationResultStoreX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat
     (hp : 96 ≤ p.toNat) (hdisj : p.toNat + 224 ≤ q.toNat)
     (hb : q.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 9 ≤ 1024) :
     ∃ k' C', C + 1 + (Cₘ (swapIterationResultAw aw p q) - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 (if exactInput then ⟨3383⟩ else ⟨3445⟩)
+      RD fork (deployedRuntime v) ee g s0 (if exactInput then ⟨3383⟩ else ⟨3445⟩)
         ([q, p, exactInput.toUInt256] ++ R)
         (swapIterationResultMem mem p q price amountIn amountOut fee)
         (swapIterationResultAw aw p q) rdata σ k' C' ∧
@@ -45,7 +47,7 @@ theorem swapIterationResultStoreX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat
     (show q.toNat + 128 < UInt256.size by change _ < 2 ^ 256; omega)
   have hp64 := uadd_word_ofNat_toNat p 64
     (show p.toNat + 64 < UInt256.size by change _ < 2 ^ 256; omega)
-  have rr : RD (deployedRuntime v) ee g s0 (if exactInput then ⟨3383⟩ else ⟨3445⟩)
+  have rr : RD fork (deployedRuntime v) ee g s0 (if exactInput then ⟨3383⟩ else ⟨3445⟩)
       ([q, p, exactInput.toUInt256] ++ R)
       (swapIterationResultMem mem p q price amountIn amountOut fee)
       (swapIterationResultAw aw p q) rdata σ (k + 27)

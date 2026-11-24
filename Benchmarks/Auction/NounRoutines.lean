@@ -1,6 +1,8 @@
 import Benchmarks.Auction.NounSource
 import Benchmarks.Auction.NounTransferCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -13,7 +15,7 @@ def settleTransferStmts : List Stmt :=
     [.env .this, auctionMemField "bidder", auctionMemField "nounId"] "_tf"
 
 theorem burnRoutine {I g s0 snap nounId ret R mem aw ptr rdata σ k C evm locals}
-    (h : RD auctionBytecode I g s0 ⟨4435⟩ (snap :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨4435⟩ (snap :: ret :: R) mem aw rdata σ k C)
     (hs : SourceState s0 I σ evm) (hperm : I.perm = true)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 36 ≤ 2 ^ 200)
     (hn : loadedWord mem snap = nounId) (ha : expandedWords aw snap ⟨32⟩ = aw)
@@ -23,17 +25,17 @@ theorem burnRoutine {I g s0 snap nounId ret R mem aw ptr rdata σ k C evm locals
     (hov : R.length + 16 ≤ 1024) :
     (∃ (evm' : EVM.State) (σ' : AccountMap)
         (out : ByteArray) (k' C' : Nat),
-      ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
+      ExecBlock fork auctionConfig { contract := auctionContract, locals := locals } evm
         settleBurnStmts
         (.ok { contract := auctionContract, locals := locals.insert "_burn" (collapseReturns []) }
           evm') ∧
       SourceState s0 I σ' evm' ∧
-      RD auctionBytecode I g s0 ⟨4647⟩ (snap :: ret :: R)
+      RD fork auctionBytecode I g s0 ⟨4647⟩ (snap :: ret :: R)
         (callMem1 mem ptr burnWord nounId) (burnCallWords aw ptr) out σ' k' C' ∧
       HeapMemory (callMem1 mem ptr burnWord nounId) (burnCallWords aw ptr) ptr ∧
       MemoryPrefix mem (callMem1 mem ptr burnWord nounId) ptr.toNat) ∨
-    (ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
-      settleBurnStmts .reverted ∧ RDrev auctionBytecode g s0) := by
+    (ExecBlock fork auctionConfig { contract := auctionContract, locals := locals } evm
+      settleBurnStmts .reverted ∧ RDrev fork auctionBytecode g s0) := by
   by_cases hcode : extCodeSizeWord σ (nounsWord σ I) = ⟨0⟩
   · exact Or.inr ⟨checkedNounSourceNoCode hs hbase hcode, burnNoCode h hm hb hn ha hcode hov⟩
   · obtain ⟨evm', σ', z, out, _, _, hc, hs', rd4513, _⟩ :=
@@ -49,7 +51,7 @@ theorem burnRoutine {I g s0 snap nounId ret R mem aw ptr rdata σ k C evm locals
         hs', rd4647, burnCall_heap hm nounId hb, callMem1_prefix hm burnWord nounId⟩
 
 theorem nounTransferRoutine {I g s0 snap nounId bidder ret R mem aw ptr rdata σ k C evm locals}
-    (h : RD auctionBytecode I g s0 ⟨4536⟩ (snap :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨4536⟩ (snap :: ret :: R) mem aw rdata σ k C)
     (hs : SourceState s0 I σ evm) (hperm : I.perm = true)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 100 ≤ 2 ^ 200)
     (hn : loadedWord mem snap = nounId) (ha : expandedWords aw snap ⟨32⟩ = aw)
@@ -63,12 +65,12 @@ theorem nounTransferRoutine {I g s0 snap nounId bidder ret R mem aw ptr rdata σ
         .int (Int.ofNat nounId.toNat)]) (hov : R.length + 17 ≤ 1024) :
     (∃ (evm' : EVM.State) (σ' : AccountMap)
         (out : ByteArray) (k' C' : Nat),
-      ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
+      ExecBlock fork auctionConfig { contract := auctionContract, locals := locals } evm
         settleTransferStmts
         (.ok { contract := auctionContract, locals := locals.insert "_tf" (collapseReturns []) }
           evm') ∧
       SourceState s0 I σ' evm' ∧
-      RD auctionBytecode I g s0 ⟨4647⟩ (snap :: ret :: R)
+      RD fork auctionBytecode I g s0 ⟨4647⟩ (snap :: ret :: R)
         (callMem3 mem ptr transferFromWord (contractAddressWord I) (UInt256.land bidder
           solcAddrMask)
           nounId) (nounTransferCallWords aw ptr) out σ' k' C' ∧
@@ -76,8 +78,8 @@ theorem nounTransferRoutine {I g s0 snap nounId bidder ret R mem aw ptr rdata σ
         (UInt256.land bidder solcAddrMask) nounId) (nounTransferCallWords aw ptr) ptr ∧
       MemoryPrefix mem (callMem3 mem ptr transferFromWord (contractAddressWord I)
         (UInt256.land bidder solcAddrMask) nounId) ptr.toNat) ∨
-    (ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
-      settleTransferStmts .reverted ∧ RDrev auctionBytecode g s0) := by
+    (ExecBlock fork auctionConfig { contract := auctionContract, locals := locals } evm
+      settleTransferStmts .reverted ∧ RDrev fork auctionBytecode g s0) := by
   by_cases hcode : extCodeSizeWord σ (nounsWord σ I) = ⟨0⟩
   · exact Or.inr ⟨checkedNounSourceNoCode hs hbase hcode,
       nounTransferNoCode h hm hb hn ha hbid hab hcode hov⟩

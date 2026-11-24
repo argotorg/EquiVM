@@ -3,6 +3,8 @@ import Benchmarks.Safe.V3_77901a5.ExecGuardSource
 import Benchmarks.Safe.V3_77901a5.RawValueCall
 import Benchmarks.Safe.V3_77901a5.Blocks.Runtime_020
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V3_77901a5.RuntimeBlocks
 
@@ -12,7 +14,7 @@ set_option maxRecDepth 100000 in
 theorem safeExecGuardCallTrace (p : ExecTransactionInput) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata ptr src sigPtr locals} {guard hash : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3647⟩
+    (h : RD fork safeBytecode I g s0 ⟨3647⟩
       (execGuardSaved p src (UInt256.ofNat sigPtr) guard hash R) mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ) (hworld : evm.σ₀ = s0.σ₀)
     (hl : ExecTransactionLocals p locals)
@@ -26,15 +28,15 @@ theorem safeExecGuardCallTrace (p : ExecTransactionInput) (evm : EVM.State)
     (hb : ptr + 452 + ABI.paddedSize p.tx.payload.size + ABI.paddedSize p.signatures.size <
       UInt256.size)
     (ho : p.tx.operation.toNat < 2) (hov : R.length + 48 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧ ExecStmt config { contract := contract, locals := locals }
+    (RDrev fork safeBytecode g s0 ∧ ExecStmt fork config { contract := contract, locals := locals }
       evm execGuardCheck .reverted) ∨
     ∃ evm' words aw' out k' C',
-      ExecStmt config { contract := contract, locals := locals } evm execGuardCheck
+      ExecStmt fork config { contract := contract, locals := locals } evm execGuardCheck
         (.ok { contract := contract
                locals := locals.insert "_guardChecked" (collapseReturns []) } evm') ∧
       evm'.executionEnv = I ∧ evm'.σ₀ = s0.σ₀ ∧
       words.length = (p.signatures.size + 31) / 32 ∧
-      RD safeBytecode I g s0 ⟨3758⟩
+      RD fork safeBytecode I g s0 ⟨3758⟩
         (execGuardSaved p src (UInt256.ofNat sigPtr) guard hash R)
         (execGuardCallMemory I.calldata mem ptr src p (UInt256.ofNat I.source.val) words)
         aw' out evm'.accountMap k' C' := by
@@ -84,7 +86,7 @@ theorem safeExecGuardCallTrace (p : ExecTransactionInput) (evm : EVM.State)
     rawValueCallTraceFrom evm h₃ hee hacc hworld (by native_decide)
       (by simp [execGuardSaved]; omega) (Or.inr rfl)
   rw [callOutputMem_zero] at h₄
-  have htyped : typedCallViaEVM config evm (EVM.address (AccountAddress.ofUInt256 guard))
+  have htyped : typedCallViaEVM fork config evm (EVM.address (AccountAddress.ofUInt256 guard))
       "checkTransaction" 0 (execGuardArguments p evm.executionEnv.source)
       (called, evm', out) := by
     refine ⟨(execGuardCallMemory I.calldata mem ptr src p

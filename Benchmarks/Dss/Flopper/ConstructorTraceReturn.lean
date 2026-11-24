@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Flopper.ConstructorTraceStores
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Flopper constructor return trace
 -/
@@ -15,9 +17,9 @@ theorem flopperCtorReturnTrace
     {I : ExecutionEnv} {g : Sat256} {s0 : State} {rdata : ByteArray}
     {acc : AccountMap} {k C : Nat}
     (vat gem : AccountAddress)
-    (h : RD (flopperCtorCode vat gem) I g s0 ⟨206⟩ []
+    (h : RD fork (flopperCtorCode vat gem) I g s0 ⟨206⟩ []
       (flopperCtorWardsHashMem I vat gem) (UInt256.ofNat 6) rdata acc k C) :
-    RDret (flopperCtorCode vat gem) g s0 acc flopperBytecode := by
+    RDret fork (flopperCtorCode vat gem) g s0 acc flopperBytecode := by
   have hcopy : (flopperCtorCode vat gem).write 220 (flopperCtorWardsHashMem I vat gem) 0 4780 =
       flopperCtorReturnMem I vat gem := by
     rfl
@@ -38,7 +40,7 @@ theorem flopperInitcodeSuccess
     (hcode : I.code = flopperCtorCode vat gem)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) :
-    RDret (flopperCtorCode vat gem) g
+    RDret fork (flopperCtorCode vat gem) g
       (initState σ σ₀ g A I)
       (flopperCtorFinalMap (flopperCtorAfterKicksMap σ I) I vat gem)
       flopperBytecode := by

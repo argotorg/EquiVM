@@ -1,21 +1,23 @@
 import Benchmarks.CompoundIII.Comet.AbsorbLoopTailModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
 namespace Benchmarks.CompoundIII.Comet
 
-inductive AbsorbBasePriceTrace (v : CometWithExtendedAssetListImmutables) (account : AccountAddress)
+inductive AbsorbBasePriceTrace (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables) (account : AccountAddress)
     (basic : UserBasicData) (old : UInt256) (evm : State) : InternalOutcome → Prop where
   | priceFailed {evm' z out}
-      (hc : callViaEVM evm v.baseTokenPriceFeed 0 pricePayload (z, evm', out) false)
+      (hc : callViaEVM fork evm v.baseTokenPriceFeed 0 pricePayload (z, evm', out) false)
       (hh : out.size < 2^255) (hv : ¬ (z = true ∧ PriceValid out)) :
-      AbsorbBasePriceTrace v account basic old evm .reverted
+      AbsorbBasePriceTrace fork v account basic old evm .reverted
   | finished {evm' out result}
-      (hc : callViaEVM evm v.baseTokenPriceFeed 0 pricePayload (true, evm', out) false)
+      (hc : callViaEVM fork evm v.baseTokenPriceFeed 0 pricePayload (true, evm', out) false)
       (hh : out.size < 2^255) (hv : PriceValid out)
-      (ht : AbsorbLoopTailTrace v account basic old (calldataWord out 32) 0 ⟨0⟩ evm' result) :
-      AbsorbBasePriceTrace v account basic old evm result
+      (ht : AbsorbLoopTailTrace fork v account basic old (calldataWord out 32) 0 ⟨0⟩ evm' result) :
+      AbsorbBasePriceTrace fork v account basic old evm result
 
 def absorbBasePriceFrame (frame : Frame) (price : UInt256) : Frame :=
   { frame with locals := frame.locals.insert "basePrice" (.int price.toNat) }

@@ -3,6 +3,8 @@ import Examples.UniswapV2Pair.BalanceCallSource
 import Examples.UniswapV2Pair.MintFeeFactoryCompleteCases
 import Examples.UniswapV2Pair.MintSimpleFactoryCompleteCases
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 set_option maxRecDepth 2000000
 namespace UniswapV2Pair
@@ -13,7 +15,7 @@ theorem uniswapMintBody
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x6a, 0x62, 0x78, 0x42]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some mintTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hsz36 : 36 ≤ I.calldata.size
   · by_cases hlocked :
       ((σ.get? I.codeOwner |>.option (⟨0⟩ : UInt256)
@@ -26,7 +28,7 @@ theorem uniswapMintBody
         exact not_not.mp hlocked
       have hsz4 : 4 ≤ I.calldata.size :=
         calldata_size_ge_of_selIs I ⟨#[0x6a, 0x62, 0x78, 0x42]⟩ rfl hsel
-      have hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      have hreach : ∃ k C, RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1041⟩
           [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
           σ k C :=
@@ -50,7 +52,7 @@ theorem uniswapMintBody
             (σ₀ := σ₀) (A := A) (I := I)
             (g := Sat256.ofUInt256 g) htoken0NoCode
         have hbody :
-            ExecTransitionBody config contract evmS (mintStore I) mintTransition.body
+            ExecTransitionBody fork config contract evmS (mintStore I) mintTransition.body
               .reverted := by
           exact uniswapMintBodyReverts_firstNoCode (hperm := by assumption) evmS I
             (by simp only [evmS, initState]; exact hwv)
@@ -75,7 +77,7 @@ theorem uniswapMintBody
           by_cases hz : z = false
           · exact (hrev hz).reEquivExecutionRevert hcode hdispatch
               (uniswapDecode_mint_ok hsz36) (by
-                have hcall0 : typedCallViaEVM config (uniswapLockEnteredState evmS)
+                have hcall0 : typedCallViaEVM fork config (uniswapLockEnteredState evmS)
                     (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evmS) ⟨6⟩))
                     "balanceOf" 0
                     [.address (uniswapLockEnteredState evmS).executionEnv.codeOwner]
@@ -87,7 +89,7 @@ theorem uniswapMintBody
                   hunlockedStele hguard0 hcall0)
           · by_cases hshort : o.size < 32
             · have hzTrue : z = true := Bool.eq_true_of_not_eq_false hz
-              have hcall0 : typedCallViaEVM config (uniswapLockEnteredState evmS)
+              have hcall0 : typedCallViaEVM fork config (uniswapLockEnteredState evmS)
                   (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evmS) ⟨6⟩))
                   "balanceOf" 0
                   [.address (uniswapLockEnteredState evmS).executionEnv.codeOwner]
@@ -100,7 +102,7 @@ theorem uniswapMintBody
                   (decodeReturnValueWithMode_legacy_uint256_none_short (returndata := o)
                     hshort)
               have hbody :
-                  ExecTransitionBody config contract evmS (mintStore I) mintTransition.body
+                  ExecTransitionBody fork config contract evmS (mintStore I) mintTransition.body
                     .reverted := by
                 exact uniswapMintBodyReverts_firstCallDecode (hperm := by assumption) evmS evm0S I
                   (by simp only [evmS, initState]; exact hwv)
@@ -113,7 +115,7 @@ theorem uniswapMintBody
               have henv0I : evm0S.executionEnv = I := by
                 simpa [evmS, uniswapLockEnteredState, uniswapUnlockedState, initState,
                   storageStore_executionEnv] using henv0
-              have hcall0 : typedCallViaEVM config (uniswapLockEnteredState evmS)
+              have hcall0 : typedCallViaEVM fork config (uniswapLockEnteredState evmS)
                   (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evmS) ⟨6⟩))
                   "balanceOf" 0
                   [.address (uniswapLockEnteredState evmS).executionEnv.codeOwner]
@@ -132,7 +134,7 @@ theorem uniswapMintBody
                 extCodeSizeWord σ'
                   (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I)) = ⟨0⟩
               · have hbody :
-                    ExecTransitionBody config contract evmS (mintStore I) mintTransition.body
+                    ExecTransitionBody fork config contract evmS (mintStore I) mintTransition.body
                       .reverted := by
                   have hguard1 :=
                     mintToken1GuardFalse_of_noCode
@@ -165,12 +167,12 @@ theorem uniswapMintBody
                 have hPostAccounts1 : σ'' = evm1S.accountMap := hMap1.symm
                 have hσ01I : evm1S.σ₀ = σ₀ := hσ01.trans hσ0
                 by_cases hz1 : z1 = false
-                · have hcall1 : typedCallViaEVM config evm0S
+                · have hcall1 : typedCallViaEVM fork config evm0S
                       (EVM.address (uniswapAddressAtSlot evm0S ⟨7⟩)) "balanceOf" 0
                       [.address evm0S.executionEnv.codeOwner] (false, evm1S, o1) false := by
                     simpa [hz1] using hcall1All
                   have hbody :
-                      ExecTransitionBody config contract evmS (mintStore I) mintTransition.body
+                      ExecTransitionBody fork config contract evmS (mintStore I) mintTransition.body
                         .reverted := by
                     exact uniswapMintBodyReverts_secondCallFailure (hperm := by assumption) evmS evm0S evm1S I
                       (by simp only [evmS, initState]; exact hwv)
@@ -179,7 +181,7 @@ theorem uniswapMintBody
                     (uniswapDecode_mint_ok hsz36) hbody
                 · by_cases hshort1 : o1.size < 32
                   · have hz1True : z1 = true := Bool.eq_true_of_not_eq_false hz1
-                    have hcall1 : typedCallViaEVM config evm0S
+                    have hcall1 : typedCallViaEVM fork config evm0S
                         (EVM.address (uniswapAddressAtSlot evm0S ⟨7⟩)) "balanceOf" 0
                         [.address evm0S.executionEnv.codeOwner] (true, evm1S, o1) false := by
                       simpa [hz1True] using hcall1All
@@ -189,7 +191,7 @@ theorem uniswapMintBody
                         (decodeReturnValueWithMode_legacy_uint256_none_short (returndata := o1)
                           hshort1)
                     have hbody :
-                        ExecTransitionBody config contract evmS (mintStore I) mintTransition.body
+                        ExecTransitionBody fork config contract evmS (mintStore I) mintTransition.body
                           .reverted := by
                       exact uniswapMintBodyReverts_secondCallDecode (hperm := by assumption) evmS evm0S evm1S I
                         (by simp only [evmS, initState]; exact hwv)
@@ -199,7 +201,7 @@ theorem uniswapMintBody
                   · have hz1True : z1 = true := Bool.eq_true_of_not_eq_false hz1
                     have ho132 : 32 ≤ o1.size := not_lt.mp hshort1
                     let balance1 := UInt256.ofNat (fromByteArrayBigEndian (o1.extract 0 32))
-                    have hcall1 : typedCallViaEVM config evm0S
+                    have hcall1 : typedCallViaEVM fork config evm0S
                         (EVM.address (uniswapAddressAtSlot evm0S ⟨7⟩)) "balanceOf" 0
                         [.address evm0S.executionEnv.codeOwner] (true, evm1S, o1) false := by
                       simpa [hz1True] using hcall1All
@@ -231,7 +233,7 @@ theorem uniswapMintBody
                             (uniswapReserve0Word (uniswapLockEnteredState evmS)).toNat := by
                         simpa [hreserve0Eq] using hlt0
                       have hbody :
-                          ExecTransitionBody config contract evmS (mintStore I) mintTransition.body
+                          ExecTransitionBody fork config contract evmS (mintStore I) mintTransition.body
                             .reverted := by
                         exact uniswapMintBodyReverts_amount0Underflow (hperm := by assumption) evmS evm0S evm1S I
                           (by simp only [evmS, initState]; exact hwv)
@@ -257,7 +259,7 @@ theorem uniswapMintBody
                               (uniswapReserve1Word (uniswapLockEnteredState evmS)).toNat := by
                           simpa [hreserve1Eq] using hlt1
                         have hbody :
-                            ExecTransitionBody config contract evmS (mintStore I) mintTransition.body
+                            ExecTransitionBody fork config contract evmS (mintStore I) mintTransition.body
                               .reverted := by
                           exact uniswapMintBodyReverts_amount1Underflow (hperm := by assumption) evmS evm0S evm1S I
                             (by simp only [evmS, initState]; exact hwv)
@@ -307,7 +309,7 @@ theorem uniswapMintBody
                                 uniswapReserve1Word (uniswapLockEnteredState evmS))
                               hPostAccounts1 henv1I hfactoryNoCode
                           have hbody :
-                              ExecTransitionBody config contract evmS (mintStore I)
+                              ExecTransitionBody fork config contract evmS (mintStore I)
                                 mintTransition.body .reverted := by
                             exact uniswapMintBodyReverts_mintFeeNoCode (hperm := by assumption) evmS evm0S evm1S I
                               (by simp only [evmS, initState]; exact hwv)
@@ -348,12 +350,12 @@ theorem uniswapMintBody
                             uniswapMintFeeRuntimeFactoryResultBranchesFromCall rd7781
                               ho32 hoSize ho132 ho1Size houtFeeSize
                           by_cases hzFee : zFee = false
-                          · have hfeeCall : typedCallViaEVM config evm1S
+                          · have hfeeCall : typedCallViaEVM fork config evm1S
                                 (EVM.address (uniswapAddressAtSlot evm1S ⟨5⟩))
                                 "feeTo" 0 [] (false, evmFeeS, outFee) false := by
                               simpa [hzFee] using hfeeCallAll
                             have hbody :
-                                ExecTransitionBody config contract evmS (mintStore I)
+                                ExecTransitionBody fork config contract evmS (mintStore I)
                                   mintTransition.body .reverted := by
                               exact uniswapMintBodyReverts_mintFeeCallFailure (hperm := by assumption)
                                 evmS evm0S evm1S evmFeeS I
@@ -364,14 +366,14 @@ theorem uniswapMintBody
                               hcode hdispatch (uniswapDecode_mint_ok hsz36) hbody
                           · by_cases houtFeeShort : outFee.size < 32
                             · have hzFeeTrue : zFee = true := Bool.eq_true_of_not_eq_false hzFee
-                              have hfeeCall : typedCallViaEVM config evm1S
+                              have hfeeCall : typedCallViaEVM fork config evm1S
                                   (EVM.address (uniswapAddressAtSlot evm1S ⟨5⟩))
                                   "feeTo" 0 [] (true, evmFeeS, outFee) false := by
                                 simpa [hzFeeTrue] using hfeeCallAll
                               have hfeeDec : config.externalABI.decode? "feeTo" outFee = none :=
                                 uniswapFeeToDecode_none_short houtFeeShort
                               have hbody :
-                                  ExecTransitionBody config contract evmS (mintStore I)
+                                  ExecTransitionBody fork config contract evmS (mintStore I)
                                     mintTransition.body .reverted := by
                                 exact uniswapMintBodyReverts_mintFeeDecode (hperm := by assumption)
                                   evmS evm0S evm1S evmFeeS I
@@ -388,7 +390,7 @@ theorem uniswapMintBody
                               let feeTo : AccountAddress :=
                                 AccountAddress.ofNat
                                   (fromByteArrayBigEndian (outFee.extract 0 32))
-                              have hfeeCall : typedCallViaEVM config evm1S
+                              have hfeeCall : typedCallViaEVM fork config evm1S
                                   (EVM.address (uniswapAddressAtSlot evm1S ⟨5⟩))
                                   "feeTo" 0 [] (true, evmFeeS, outFee) false := by
                                 simpa [hzFeeTrue] using hfeeCallAll
@@ -463,9 +465,10 @@ theorem uniswapMintBody
           have hdepthStele : evmL.executionEnv.depth = 1024 := by
             simpa [evmL, evmS, uniswapLockEnteredState, uniswapUnlockedState, initState,
               storageStore_executionEnv] using hdepth1024
-          have hcall0 : typedCallViaEVM config evmL target "balanceOf" 0
+          have hcall0 : typedCallViaEVM fork config evmL target "balanceOf" 0
               [.address evmL.executionEnv.codeOwner]
-              (false, { evmL with substate := (evmL.addAccessedAccount target).substate },
+              (false, { evmL with substate := (Ethereum.EVM.callSubstate fork
+                evmL.accountMap target evmL.substate) },
                 ByteArray.empty) false := by
             exact callNotMade_depthLimit
               (cfg := config) (evm := evmL) (tgt := target)
@@ -474,14 +477,15 @@ theorem uniswapMintBody
               (balanceOfThisCalldataMem_encode evmL.executionEnv.codeOwner)
               hdepthStele
           have hbody :
-              ExecTransitionBody config contract evmS (mintStore I) mintTransition.body
+              ExecTransitionBody fork config contract evmS (mintStore I) mintTransition.body
                 .reverted := by
             exact uniswapMintBodyReverts_firstCallFailure (hperm := by assumption) evmS
-              { evmL with substate := (evmL.addAccessedAccount target).substate } I
+              { evmL with substate := (Ethereum.EVM.callSubstate fork
+                evmL.accountMap target evmL.substate) } I
               (by simp only [evmS, initState]; exact hwv)
               hunlockedStele hguard0 hcall0
           have hRuntime :
-              RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+              RDrev fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
                 (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
             obtain ⟨_, _, _, rd3463⟩ :=
               uniswapMintRuntimeFirstBalanceOfStaticcallEntry
@@ -500,7 +504,7 @@ theorem uniswapMintBodyAnyPerm
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x6a, 0x62, 0x78, 0x42]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some mintTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hperm : I.perm = true
   · exact uniswapMintBody hcode hsize hperm hwv hsel hdispatch
   replace hperm : I.perm = false := by simpa using hperm
@@ -516,7 +520,7 @@ theorem uniswapMintBodyAnyPerm
         exact not_not.mp hlocked
       have hsz4 : 4 ≤ I.calldata.size :=
         calldata_size_ge_of_selIs I ⟨#[0x6a, 0x62, 0x78, 0x42]⟩ rfl hsel
-      have hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      have hreach : ∃ k C, RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1041⟩
           [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
           σ k C :=

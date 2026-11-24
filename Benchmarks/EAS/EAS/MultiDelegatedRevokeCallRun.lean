@@ -2,6 +2,8 @@ import Benchmarks.EAS.EAS.MultiDelegatedRevokeVerifySource
 import Benchmarks.EAS.EAS.MultiDelegatedRevokeControl
 import Benchmarks.EAS.EAS.SpendAndIncrementSource
 import Benchmarks.EAS.EAS.MultiAttestFacts
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -31,7 +33,7 @@ theorem multiDelegatedRevokeCallRun {L : Store} {evm : EVM.State} {ee : Executio
     (hi : i<n) (hn : n<UInt256.size) (hh : heap.toNat ≤ 2^64-1)
     (hfree : memLoad (UInt256.ofNat 64) mem = heap) (hzero : memLoad (UInt256.ofNat 96) mem = ⟨0⟩)
     (hsize : ee.calldata.size < UInt256.size)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨1552⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨1552⟩
       (multiDelegatedRevokeVerifyStack r.data.length base (UInt256.ofNat n) available (UInt256.ofNat n-⟨1⟩) row data
         (UInt256.ofNat i::R)) mem aw out σ k C) :
     (∃ (L' : Store) (evm' : EVM.State) (σ' : AccountMap) (mem' out' : ByteArray) (aw' : UInt256)
@@ -39,14 +41,14 @@ theorem multiDelegatedRevokeCallRun {L : Store} {evm : EVM.State} {ee : Executio
       SourceState s0 ee σ' evm' ∧ heap.toNat ≤ next ∧ next ≤ 2^64-1 ∧ MemoryPrefix mem mem' heap.toNat ∧
       MultiDelegatedRevokeLocals L' requests (UInt256.sub available used) next (i+1) ∧
       memLoad (UInt256.ofNat 64) mem' = UInt256.ofNat next ∧
-      ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm (multiDelegatedRevokeCall++multiDelegatedRevokeUpdate)
+      ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm (multiDelegatedRevokeCall++multiDelegatedRevokeUpdate)
         (.ok {contract := contract,locals := L',immutables := immStore v} evm') ∧
-      RD (deployedRuntime v) ee g s0 ⟨1298⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨1298⟩
         (multiDelegatedRevokeLoopStack n (i+1) base (UInt256.sub available used) R) mem' aw' out' σ' k' C') ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm (multiDelegatedRevokeCall++multiDelegatedRevokeUpdate) .reverted ∧
-      RDrev (deployedRuntime v) g s0) ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm (multiDelegatedRevokeCall++multiDelegatedRevokeUpdate) .staticViolation ∧
-      RDstatic (deployedRuntime v) g s0) := by
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm (multiDelegatedRevokeCall++multiDelegatedRevokeUpdate) .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) ∨
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm (multiDelegatedRevokeCall++multiDelegatedRevokeUpdate) .staticViolation ∧
+      RDstatic fork (deployedRuntime v) g s0) := by
   have he : evalExprs? config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedRevokeCallArgs =
       .ok [wordBytes32Value r.schema,.array (r.data.map RevocationRequestRecord.tuple),.address r.revoker,
         .int (Int.ofNat available.toNat),.bool (decide (i=n-1)),.int (Int.ofNat heap.toNat)] := by
@@ -64,10 +66,10 @@ theorem multiDelegatedRevokeCallRun {L : Store} {evm : EVM.State} {ee : Executio
     · let L2 := multiDelegatedRevokeCallLocals L used next
       have hf2 : MultiDelegatedRevokeLocals L2 requests available next i := hf.outer.called used next
       have hres : L2.get? "__c1"=some (.int (Int.ofNat used.toNat)) := heapResultLocals_result _ _ _ _ _ _ (by decide)
-      have hsol1 : ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedRevokeCall
+      have hsol1 : ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedRevokeCall
           (.ok {contract := contract,locals := L2,immutables := immStore v} e2) :=
         heapResultBlock_ok (result := "__c1") (cursor := "$EAS.freeMemory") hcall hf.outer.heap (by decide) (by decide) (by decide)
-      have hsol2 : ExecBlock config {contract := contract,locals := L2,immutables := immStore v} e2 multiDelegatedRevokeUpdate
+      have hsol2 : ExecBlock fork config {contract := contract,locals := L2,immutables := immStore v} e2 multiDelegatedRevokeUpdate
           (.ok {contract := contract,locals := spendAndIncrementLocals L2 available used i,immutables := immStore v} e2) :=
         spendAndIncrementSource hf2.available hres hf2.index (by omega) hu
       obtain ⟨a3,k3,C3,r3⟩ := easMultiDelegatedRevokeUpdate v (by omega) hu r2

@@ -4,6 +4,8 @@ import Benchmarks.CurveVault.BalanceStorage
 import Benchmarks.CurveVault.Memory
 import Benchmarks.CurveVault.RuntimeBlocks_024
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -20,8 +22,8 @@ theorem vaultBalanceOfReturn {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap}
     {k C : Nat} {key : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024) (hcanon : key.toNat < EVM.addressModulus)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 6730) (key :: R) mem aw rdata σ k C) :
-    RDret vaultBytecode g s0 σ
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 6730) (key :: R) mem aw rdata σ k C) :
+    RDret fork vaultBytecode g s0 σ
       (codeOwnerStorageWord I σ (vyperMappingSlot ⟨13⟩ (.address (AccountAddress.ofNat key.toNat)))).toByteArray := by
   let argMem := key.toByteArray.write 0 mem 64 32
   have hgap : 64 - mem.size < USize.size :=
@@ -32,7 +34,7 @@ theorem vaultBalanceOfReturn {I : ExecutionEnv} {g : Sat256} {s0 : State}
     le_trans (by decide +kernel : 64 ≤ 64 + 32) (toByteArray_write_size_ge_off_add32 key mem 64 hgap)
   have hhash := vyperHashMem_address ⟨13⟩ key argMem hmem hcanon
   have hret := vaultBlocks.vault_block_6730 hstack h
-  change RDret vaultBytecode g s0 σ
+  change RDret fork vaultBytecode g s0 σ
     (((codeOwnerStorageWord I σ (keccakWord ⟨0⟩ (UInt256.ofNat 64)
       (wordAt0Mem ⟨13⟩ (wordAt32Mem (memLoad (UInt256.ofNat 64) argMem) argMem)))).toByteArray.write 0
       (wordAt0Mem ⟨13⟩ (wordAt32Mem (memLoad (UInt256.ofNat 64) argMem) argMem)) 96 32).readWithPadding 96 32) at hret
@@ -43,7 +45,7 @@ theorem vaultBalanceOfReturn {I : ExecutionEnv} {g : Sat256} {s0 : State}
 theorem vaultBalanceOfBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vaultBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vaultSelBytes 21)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (vaultSelBytes 21) rfl hsel
   have hd : dispatchMsg contract I.calldata = some balanceOfTransition := by
     apply vaultDispatch_balanceOf
@@ -68,7 +70,7 @@ theorem vaultBalanceOfBodyCore {σ σ₀ A I} {g : UInt256}
     change evalExpr? config _ _ _ = .ok (.int (Int.ofNat
       (Stele.EVM.storageLoad (initState σ σ₀ (Sat256.ofUInt256 g) A I) I.codeOwner _).toNat)) at heval
     rw [codeOwnerStorageWord_initState] at heval
-    have hsource := nonpayableReturnExprBodyReturns (contract := contract) hvalue heval
+    have hsource := nonpayableReturnExprBodyReturns (fork := fork) (contract := contract) hvalue heval
     exact hret.reEquivExecution hcode hd hdec hsource
       (returnEquiv_of_encode (uint256ReturnEncoding _))
   · have rdRevert := vaultBlocks.vault_block_6718_taken (by simp)
@@ -82,7 +84,7 @@ theorem vaultBalanceOfBody {σ σ₀ A I} {g : UInt256}
     (_hwf : storageWF σ I)
     (hcode : I.code = vaultBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vaultSelBytes 21)) :
-    runtimeRefinementFor config contract σ σ₀ g A I :=
+    runtimeRefinementFor fork config contract σ σ₀ g A I :=
   vaultBalanceOfBodyCore hcode hsize hsel
 
 end Benchmarks.CurveVault

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.TickFeePrefixTrace
 import Benchmarks.UniswapV3.Pool.TickFeeSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -10,7 +12,7 @@ set_option maxRecDepth 1000
 theorem tickFeeFinishX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : TickFeeArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨21476⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨21476⟩
       (tickFeeSide a σ ee false true :: tickFeeSide a σ ee false false ::
         solcMappingSlot ⟨5⟩ (EVM.wordOfInt a.upper) ::
         solcMappingSlot ⟨5⟩ (EVM.wordOfInt a.lower) :: ⟨0⟩ :: ⟨0⟩ ::
@@ -18,7 +20,7 @@ theorem tickFeeFinishX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
         EVM.wordOfInt a.lower :: ⟨5⟩ :: ret :: R) mem aw rdata σ k C)
     (hfit : a.Fits) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
     (hov : R.length + 18 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (tickFeeInside a σ ee true :: tickFeeInside a σ ee false :: R) mem aw rdata σ k' C' := by
   rcases hfit with ⟨hlb, hub, hcb⟩
   have hu : UInt256.signextend (UInt256.ofNat 2) (EVM.wordOfInt a.upper) =
@@ -34,7 +36,7 @@ theorem tickFeeFinishX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
       if a.current < a.upper then ⟨1⟩ else ⟨0⟩ := by
     rw [hc, hu]
     exact slt_wordOfInt _ _ (by omega) (by omega) (by omega) (by omega)
-  have rready : ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨21529⟩
+  have rready : ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨21529⟩
       (tickFeeSide a σ ee true true :: tickFeeSide a σ ee true false ::
         tickFeeSide a σ ee false true :: tickFeeSide a σ ee false false ::
         solcMappingSlot ⟨5⟩ (EVM.wordOfInt a.upper) ::
@@ -68,12 +70,12 @@ theorem tickFeeFinishX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem tickFeeExactX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : TickFeeArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨21387⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨21387⟩
       (a.global1 :: a.global0 :: EVM.wordOfInt a.current :: EVM.wordOfInt a.upper ::
         EVM.wordOfInt a.lower :: ⟨5⟩ :: ret :: R) mem aw rdata σ k C)
     (hfit : a.Fits) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
     (hov : R.length + 18 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (tickFeeInside a σ ee true :: tickFeeInside a σ ee false :: R)
       (tickFeeMemory mem a) (tickFeeMemoryWords aw) rdata σ k' C' := by
   obtain ⟨kp, Cp, rp⟩ := tickFeePrefixExactX (v := v) a rd hfit hov
@@ -84,12 +86,12 @@ theorem tickFeeExactX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem tickFeeX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : TickFeeArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨21387⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨21387⟩
       (a.global1 :: a.global0 :: EVM.wordOfInt a.current :: EVM.wordOfInt a.upper ::
         EVM.wordOfInt a.lower :: ⟨5⟩ :: ret :: R) mem aw rdata σ k C)
     (hfit : a.Fits) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
     (hov : R.length + 18 ≤ 1024) :
-    ∃ k' C' aw', RD (deployedRuntime v) ee g s0 ret
+    ∃ k' C' aw', RD fork (deployedRuntime v) ee g s0 ret
       (tickFeeInside a σ ee true :: tickFeeInside a σ ee false :: R)
       (tickFeeMemory mem a) aw' rdata σ k' C' := by
   obtain ⟨k', C', r'⟩ := tickFeeExactX (v := v) a rd hfit hret hov

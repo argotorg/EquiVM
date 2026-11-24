@@ -2,6 +2,8 @@ import Benchmarks.EAS.EAS.AttestationAlias
 import Benchmarks.EAS.EAS.RequireList
 import Benchmarks.EAS.EAS.UIDLoopSource
 import Benchmarks.EAS.EAS.WordExpr
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 
@@ -24,9 +26,9 @@ theorem revokeGuards_source {L imms : Store} {evm : EVM.State} {word schema : UI
     (hs : L.get? "schema" = some (wordBytes32Value schema))
     (hr : L.get? "revoker" = some (.address revoker)) :
     if revokeGuardsValid (storedAttestationRecord evm word) schema revoker then
-      ExecBlock config {contract := contract,locals := L,immutables := imms} evm revokeGuards
+      ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm revokeGuards
         (.ok {contract := contract,locals := L,immutables := imms} evm)
-    else ExecBlock config {contract := contract,locals := L,immutables := imms} evm revokeGuards .reverted := by
+    else ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm revokeGuards .reverted := by
   let a := storedAttestationRecord evm word
   have hread (f : ScalarFieldWrite) := attestationAlias_scalar (evm := evm) (imms := imms) (f := f) ha
   have hu : evalExpr? config {contract := contract,locals := L,immutables := imms} evm
@@ -59,7 +61,7 @@ theorem revokeGuards_source {L imms : Store} {evm : EVM.State} {word schema : UI
     apply Bool.eq_iff_iff.mpr
     simp only [beq_iff_eq,Value.address.injEq,decide_eq_true_eq]
   have heTime := evalWordEqZero ht
-  have h := execRequires (cfg := config) (frame := {contract := contract,locals := L,immutables := imms}) (evm := evm)
+  have h := execRequires (fork := fork) (cfg := config) (frame := {contract := contract,locals := L,immutables := imms}) (evm := evm)
     [(revokeUIDGuard,decide (a.uid ≠ ⟨0⟩)),(revokeSchemaGuard,decide (a.schema = schema)),
       (revokeAttesterGuard,decide (a.attester = revoker)),(revokeRevocableGuard,a.revocable),
       (revokeTimeGuard,decide (a.revocationTime = ⟨0⟩))]

@@ -1,6 +1,8 @@
 import Benchmarks.CurveVault.MintInternal
 import Benchmarks.CurveVault.BurnInternal
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -21,24 +23,24 @@ theorem vaultSupplyForward (isMint : Bool) {I : ExecutionEnv} {g : Sat256} {s0 e
       .ok [.address (AccountAddress.ofNat owner.toNat), .int (Int.ofNat value.toNat)])
     (hperm : I.perm = true) (hstack : R.length + 7 ≤ 1024)
     (hvalid : (D_J vaultBytecode 0).contains returnPc = true)
-    (h : RD vaultBytecode I g s0 (if isMint then UInt256.ofNat 7682 else UInt256.ofNat 8024)
+    (h : RD fork vaultBytecode I g s0 (if isMint then UInt256.ofNat 7682 else UInt256.ofNat 8024)
       (returnPc :: R) mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (aw' : UInt256) (k' C' : Nat),
-      ExecStmt config {contract := contract, locals := locals} evm
+      ExecStmt fork config {contract := contract, locals := locals} evm
         (.internalCall (vaultSupplyFunction isMint).name args retVar)
         (.ok {contract := contract, locals := locals.insert retVar .unit} evm') ∧
       SourceState s0 I σ' evm' ∧
-      RD vaultBytecode I g s0 returnPc R (vaultSupplyMemory mem owner value) aw' rdata σ' k' C') ∨
-    (ExecStmt config {contract := contract, locals := locals} evm
-      (.internalCall (vaultSupplyFunction isMint).name args retVar) .reverted ∧ RDrev vaultBytecode g s0) := by
+      RD fork vaultBytecode I g s0 returnPc R (vaultSupplyMemory mem owner value) aw' rdata σ' k' C') ∨
+    (ExecStmt fork config {contract := contract, locals := locals} evm
+      (.internalCall (vaultSupplyFunction isMint).name args retVar) .reverted ∧ RDrev fork vaultBytecode g s0) := by
   let calleeLocals := vaultSupplyLocals isMint (AccountAddress.ofNat owner.toNat) value
   have hcallee :
       (∃ (evm' : State) (σ' : AccountMap) (aw' : UInt256) (k' C' : Nat),
-        ExecFuncBody config {contract := contract, locals := calleeLocals} evm (vaultSupplyFunction isMint).body
+        ExecFuncBody fork config {contract := contract, locals := calleeLocals} evm (vaultSupplyFunction isMint).body
           (.returned {contract := contract, locals := calleeLocals} evm' none) ∧ SourceState s0 I σ' evm' ∧
-        RD vaultBytecode I g s0 returnPc R (vaultSupplyMemory mem owner value) aw' rdata σ' k' C') ∨
-      (ExecFuncBody config {contract := contract, locals := calleeLocals} evm (vaultSupplyFunction isMint).body
-        .reverted ∧ RDrev vaultBytecode g s0) := by
+        RD fork vaultBytecode I g s0 returnPc R (vaultSupplyMemory mem owner value) aw' rdata σ' k' C') ∨
+      (ExecFuncBody fork config {contract := contract, locals := calleeLocals} evm (vaultSupplyFunction isMint).body
+        .reverted ∧ RDrev fork vaultBytecode g s0) := by
     cases isMint with
     | false =>
       exact vaultBurnRoutine hs hsize hmo hmv hcanon

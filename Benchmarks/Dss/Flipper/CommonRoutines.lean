@@ -1,6 +1,8 @@
 import Reasoning.SolcRoutines
 import Benchmarks.Dss.Flipper.Common
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Flipper
@@ -12,11 +14,11 @@ abbrev flipperFileUnrecognizedRawWord : UInt256 :=
 theorem RD.flipperFileUnrecognizedRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {stk : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD flipperBytecode ee g s0 ⟨1911⟩ stk mem (UInt256.ofNat 3) rdata acc k C)
+    (h : RD fork flipperBytecode ee g s0 ⟨1911⟩ stk mem (UInt256.ofNat 3) rdata acc k C)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : stk.length + 5 ≤ 1024) :
-    RDrev flipperBytecode g s0 := by
+    RDrev fork flipperBytecode g s0 := by
   have rdMload := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),

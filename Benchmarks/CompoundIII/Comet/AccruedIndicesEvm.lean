@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.UtilizationEvm
 import Benchmarks.CompoundIII.Comet.SupplyRateRoutine
 import Benchmarks.CompoundIII.Comet.BorrowRateRoutine
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables
@@ -18,14 +20,14 @@ theorem cometAccruedIndices {v : CometWithExtendedAssetListImmutables}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} {elapsed ret : UInt256} {R : List UInt256}
     (hstack : R.length + 32 ≤ 1024) (ht : elapsed.toNat < 2^40)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨8445⟩ (elapsed :: ret :: R) mem aw rdata σ k C) :
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨8445⟩ (elapsed :: ret :: R) mem aw rdata σ k C) :
     let w0 := solcSlotWordAt ⟨0⟩ σ ee
     let w1 := solcSlotWordAt ⟨1⟩ σ ee
     if AccruedIndicesValid v w0 w1 elapsed then
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
         (accruedIndex v w0 w1 elapsed true :: accruedIndex v w0 w1 elapsed false :: R)
         mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   dsimp only
   let w0 := solcSlotWordAt ⟨0⟩ σ ee
   let w1 := solcSlotWordAt ⟨1⟩ σ ee
@@ -39,13 +41,13 @@ theorem cometAccruedIndices {v : CometWithExtendedAssetListImmutables}
     rw [u256_land_comm]
     exact (totalsIndexWord_eq w0 true).symm
   change if AccruedIndicesValid v w0 w1 elapsed then
-    ∃ k' C', RD _ _ _ _ ret
+    ∃ k' C', RD fork _ _ _ _ ret
       (accruedIndex v w0 w1 elapsed true :: accruedIndex v w0 w1 elapsed false :: R)
       mem aw rdata σ k' C' else _
   by_cases hz : elapsed = ⟨0⟩
   · obtain ⟨k1, C1, r1⟩ := cometWithExtendedAssetList_block_8445_fallthrough
       (immWords := wordsOf (immStore v)) (by omega) hz h
-    change RD _ _ _ _ _ (mask :: elapsed :: UInt256.land mask w0 :: ret ::
+    change RD fork _ _ _ _ _ (mask :: elapsed :: UInt256.land mask w0 :: ret ::
       UInt256.land mask (UInt256.shiftRight w0 ⟨64⟩) :: R) _ _ _ _ _ _ at r1
     rw [hiS, hiB] at r1
     have r2 := cometWithExtendedAssetList_block_8476
@@ -55,7 +57,7 @@ theorem cometAccruedIndices {v : CometWithExtendedAssetListImmutables}
   · obtain ⟨k1, C1, r1⟩ := cometWithExtendedAssetList_block_8445_taken
       (immWords := wordsOf (immStore v)) (by omega) hz
       (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
-    change RD _ _ _ _ _ (mask :: elapsed :: UInt256.land mask w0 :: ret ::
+    change RD fork _ _ _ _ _ (mask :: elapsed :: UInt256.land mask w0 :: ret ::
       UInt256.land mask (UInt256.shiftRight w0 ⟨64⟩) :: R) _ _ _ _ _ _ at r1
     rw [hiS, hiB] at r1
     have r2 := cometWithExtendedAssetList_block_8482

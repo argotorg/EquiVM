@@ -4,6 +4,8 @@ import Benchmarks.Safe.ViaIR.Blocks.Runtime_041
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_044
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_045
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -15,7 +17,7 @@ set_option maxHeartbeats 1000000
 theorem safePreModuleEncode (words : List UInt256)
     {I g s0 σ k C aw mem rdata ptr src len} {target value operation guard oldHash ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨9899⟩
+    (h : RD fork safeBytecode I g s0 ⟨9899⟩
       (operation :: value :: guard :: UInt256.ofNat src :: ret :: oldHash :: target :: R)
       mem aw rdata σ k C)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr)
@@ -25,7 +27,7 @@ theorem safePreModuleEncode (words : List UInt256)
     (ha : src + 32 + 32 * words.length ≤ ptr)
     (hb : ptr + 228 + 32 * words.length < UInt256.size)
     (ho : operation.toNat < 2) (hov : R.length + 24 ≤ 1024) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨9979⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨9979⟩
       (UInt256.ofNat (ptr + 196 + 32 * words.length) :: UInt256.ofNat ptr :: ⟨0⟩ ::
         UInt256.ofNat ptr :: guard :: UInt256.ofNat ptr :: ⟨32⟩ :: UInt256.ofNat ptr :: ret :: R)
       (writeWord (memoryBytesEncodedMemory

@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.MultiDelegatedAttestVerifyDone
 import Benchmarks.EAS.EAS.MultiAttestUpdate
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -12,8 +14,8 @@ theorem easMultiDelegatedAttestUpdate {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
     (ht : table.toNat+32+32*n ≤ result.toNat) (hb : heap < UInt256.size)
     (hm : AttestResultMemoryView mem result uid words used heap)
     (hl : memLoad table mem = UInt256.ofNat n) (hused : used.toNat ≤ available.toNat)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3131⟩ (result::multiDelegatedAttestSaved n i base table available count R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨2777⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3131⟩ (result::multiDelegatedAttestSaved n i base table available count R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨2777⟩
       (multiDelegatedAttestLoopStack n (i+1) base (UInt256.sub available used) (UInt256.ofNat words.length+count) table R)
       (Reasoning.Theory.writeWord mem (table.toNat+32+32*i) uid) aw' rdata σ k' C' := by
   simp only [multiDelegatedAttestSaved,List.cons_append,List.nil_append] at rd

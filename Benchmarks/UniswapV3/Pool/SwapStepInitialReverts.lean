@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.SwapStepInitialSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -7,7 +9,7 @@ set_option maxRecDepth 1000
 theorem swapStepInitialCallReverts (imms : Store) (evm : EVM.State) (a : SwapStepArgs)
     (input : Bool) (ha : a.Fits)
     (hv : ¬amountDeltaValid (swapStepDeltaOne a input) (swapStepDeltaArgs a a.target input)) :
-    ExecStmt config (swapStepInitialZeroFrame imms a input) evm
+    ExecStmt fork config (swapStepInitialZeroFrame imms a input) evm
       (.internalCall (amountDeltaName (swapStepDeltaOne a input))
         (swapStepDeltaCallArgs a input "sqrtRatioTargetX96") (swapStepInitialCallName a input))
       .reverted := by
@@ -19,11 +21,11 @@ theorem swapStepInitialCallReverts (imms : Store) (evm : EVM.State) (a : SwapSte
 theorem swapStepInitialChoiceReverts (imms : Store) (evm : EVM.State) (a : SwapStepArgs)
     (input : Bool) (ha : a.Fits)
     (hv : ¬amountDeltaValid (swapStepDeltaOne a input) (swapStepDeltaArgs a a.target input)) :
-    ExecStmt config (swapStepInitialZeroFrame imms a input) evm
+    ExecStmt fork config (swapStepInitialZeroFrame imms a input) evm
       ((swapStepPriceBranch input)[if input then 2 else 1]!) .reverted := by
   have he := evalExpr_var_get (cfg := config) (evm := evm)
     (swapStepInitialZeroGet imms a input).2.2.2.1
-  have hc := swapStepInitialCallReverts imms evm a input ha hv
+  have hc := swapStepInitialCallReverts (fork := fork) imms evm a input ha hv
   cases hz : swapStepZeroForOne a
   · cases input <;> apply ExecStmt.iteFalse (by simpa only [hz] using he)
     all_goals
@@ -41,15 +43,15 @@ theorem swapStepInitialBranchReverts (imms : Store) (evm : EVM.State) (a : SwapS
     (hb : if input then fullMathValid (EVM.wordOfInt a.remaining) (swapStepComplement a)
       (UInt256.ofNat 1000000) else True)
     (hv : ¬amountDeltaValid (swapStepDeltaOne a input) (swapStepDeltaArgs a a.target input)) :
-    ExecBlock config (swapStepReadyFrame imms a) evm (swapStepPriceBranch input) .reverted := by
+    ExecBlock fork config (swapStepReadyFrame imms a) evm (swapStepPriceBranch input) .reverted := by
   rw [← List.take_append_drop (if input then 2 else 1) (swapStepPriceBranch input)]
   apply execBlock_append_ok (swapStepInitialPrefix imms evm a input hb)
-  have hc := swapStepInitialChoiceReverts imms evm a input ha hv
+  have hc := swapStepInitialChoiceReverts (fork := fork) imms evm a input ha hv
   cases input <;> exact ExecBlock.consRevert hc
 
 theorem swapStepBudgetFunctionReverts (imms : Store) (evm : EVM.State) (a : SwapStepArgs)
     (hv : ¬swapStepBudgetValid a) :
-    ExecFuncBody config (swapStepFrame imms a) evm swapStepFunction.body .reverted := by
+    ExecFuncBody fork config (swapStepFrame imms a) evm swapStepFunction.body .reverted := by
   have hi : swapStepExactIn a = true := by
     cases h : swapStepExactIn a
     · exact False.elim (hv (by simp only [swapStepBudgetValid, h, Bool.false_eq_true, if_false]))
@@ -66,9 +68,9 @@ theorem swapStepBudgetFunctionReverts (imms : Store) (evm : EVM.State) (a : Swap
 
 theorem swapStepInitialFunctionReverts (imms : Store) (evm : EVM.State) (a : SwapStepArgs)
     (ha : a.Fits) (hb : swapStepBudgetValid a) (hv : ¬swapStepInitialValid a) :
-    ExecFuncBody config (swapStepFrame imms a) evm swapStepFunction.body .reverted := by
+    ExecFuncBody fork config (swapStepFrame imms a) evm swapStepFunction.body .reverted := by
   have he := evalExpr_var_get (cfg := config) (evm := evm) (swapStepReadyGet imms a).2.2.2.2.2.2
-  have hr := swapStepInitialBranchReverts imms evm a (swapStepExactIn a) ha hb hv
+  have hr := swapStepInitialBranchReverts (fork := fork) imms evm a (swapStepExactIn a) ha hb hv
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 6 swapStepFunction.body]
   apply execBlock_append_ok (swapStepPrefixSource imms evm a)

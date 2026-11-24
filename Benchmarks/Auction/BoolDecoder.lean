@@ -2,6 +2,8 @@ import Reasoning.WordArithmetic
 import Benchmarks.Auction.CalldataHead
 import Benchmarks.Auction.DynamicMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -13,12 +15,12 @@ theorem boolHeadWf : calldataHeadWf auctionBytecode ⟨6062⟩ ⟨6078⟩ ⟨32�
   native_decide
 
 theorem boolDecodeOk {I g s0 off finish ret R mem aw rdata acc k C word}
-    (h : RD auctionBytecode I g s0 ⟨6062⟩ (off :: finish :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨6062⟩ (off :: finish :: ret :: R)
       mem aw rdata acc k C)
     (hcheck : UInt256.slt (UInt256.sub finish off) ⟨32⟩ = ⟨0⟩)
     (hload : loadedWord mem off = word) (hc : word = ⟨0⟩ ∨ word = ⟨1⟩)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret (word :: R)
+    ∃ k' C', RD fork auctionBytecode I g s0 ret (word :: R)
       mem (expandedWords aw off ⟨32⟩) rdata acc k' C' := by
   obtain ⟨_, _, rd6078⟩ := calldataHeadOk h boolHeadWf hcheck hov
   have rd6081 := evm_run rd6078 with [jumpdest, dup2,
@@ -29,11 +31,11 @@ theorem boolDecodeOk {I g s0 off finish ret R mem aw rdata acc k C word}
   exact oneResultReturn rd5350 hret (by evm_ov)
 
 theorem boolDecodeNoncanonical {I g s0 off finish ret R mem aw rdata acc k C word}
-    (h : RD auctionBytecode I g s0 ⟨6062⟩ (off :: finish :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨6062⟩ (off :: finish :: ret :: R)
       mem aw rdata acc k C)
     (hcheck : UInt256.slt (UInt256.sub finish off) ⟨32⟩ = ⟨0⟩)
     (hload : loadedWord mem off = word) (hc : ¬ (word = ⟨0⟩ ∨ word = ⟨1⟩))
-    (hov : R.length + 8 ≤ 1024) : RDrev auctionBytecode g s0 := by
+    (hov : R.length + 8 ≤ 1024) : RDrev fork auctionBytecode g s0 := by
   obtain ⟨_, _, rd6078⟩ := calldataHeadOk h boolHeadWf hcheck hov
   have rd6081 := evm_run rd6078 with [jumpdest, dup2,
     raw mloadSymbolic (by native_decide) (by evm_ov)]
@@ -45,10 +47,10 @@ theorem boolDecodeNoncanonical {I g s0 off finish ret R mem aw rdata acc k C wor
     raw solcPush0Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by evm_ov)]
 
 theorem boolDecodeShort {I g s0 off finish ret R mem aw rdata acc k C}
-    (h : RD auctionBytecode I g s0 ⟨6062⟩ (off :: finish :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨6062⟩ (off :: finish :: ret :: R)
       mem aw rdata acc k C)
     (hcheck : UInt256.slt (UInt256.sub finish off) ⟨32⟩ = ⟨1⟩)
-    (hov : R.length + 8 ≤ 1024) : RDrev auctionBytecode g s0 :=
+    (hov : R.length + 8 ≤ 1024) : RDrev fork auctionBytecode g s0 :=
   calldataHeadFail h boolHeadWf hcheck hov
 
 end Auction

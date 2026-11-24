@@ -2,6 +2,8 @@ import Benchmarks.CurveVault.MutationConversion
 import Benchmarks.CurveVault.CreditSource
 import Benchmarks.CurveVault.RuntimeBlocks_011
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -16,15 +18,15 @@ theorem vaultDepositConversion {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (ha : locals.get? "_assets" = some (.int (Int.ofNat (calldataWord I.calldata 4).toNat)))
     (ht : locals.get? "total_assets" = some (.int (Int.ofNat total.toNat)))
     (hmt : memLoad (UInt256.ofNat 640) mem = total) (hstack : R.length + 14 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 2498) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 2498) R mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (mem' out : ByteArray) (shares aw' : UInt256) (k' C' : Nat),
-      ExecBlock config {contract := contract, locals := locals} evm vaultDepositConversionBody
+      ExecBlock fork config {contract := contract, locals := locals} evm vaultDepositConversionBody
         (.ok {contract := contract, locals := locals.insert "to_mint" (.int (Int.ofNat shares.toNat))} evm') ∧
       SourceState s0 I σ' evm' ∧ WordMemoryRange mem mem' 576 672 ∧ 704 ≤ mem'.size ∧
       memLoad (UInt256.ofNat 672) mem' = shares ∧
-      RD vaultBytecode I g s0 (UInt256.ofNat 2666) R mem' aw' out σ' k' C') ∨
-    (ExecBlock config {contract := contract, locals := locals} evm vaultDepositConversionBody
-      .reverted ∧ RDrev vaultBytecode g s0) := by
+      RD fork vaultBytecode I g s0 (UInt256.ofNat 2666) R mem' aw' out σ' k' C') ∨
+    (ExecBlock fork config {contract := contract, locals := locals} evm vaultDepositConversionBody
+      .reverted ∧ RDrev fork vaultBytecode g s0) := by
   let assets := calldataWord I.calldata 4
   have hargs : evalExprs? config {contract := contract, locals := locals} evm
       [.var "_assets", .boolLit true, .var "total_assets"] =
@@ -58,7 +60,7 @@ theorem vaultDepositConversion {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (by
       change memLoad (UInt256.ofNat 672) ((memLoad (UInt256.ofNat 704) returned).toByteArray.write 0 returned 672 32) ≠ _
       rw [hread, hread']; exact hz) (by native_decide) rdCheck
-  change RD vaultBytecode I g s0 (UInt256.ofNat 2666) R
+  change RD fork vaultBytecode I g s0 (UInt256.ofNat 2666) R
     ((memLoad (UInt256.ofNat 704) returned).toByteArray.write 0 returned 672 32) aw2 out σ1 k2 C2 at rdNext
   rw [hread] at rdNext
   have hfinalFrame : WordMemoryRange mem prepared 576 672 :=

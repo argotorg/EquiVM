@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Jug.FileDuty
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -176,10 +178,10 @@ theorem jugInitSourceBodySplit {σ σ₀ A I} {g : UInt256}
     let evm1 := Stele.EVM.storageStore evm0 I.codeOwner (fileDutyDutySlotFor I) initOne
     let evm2 := Stele.EVM.storageStore evm1 I.codeOwner (fileDutyRhoSlotFor I)
       (initTimestampWord I)
-    (I.perm = true → ExecTransitionBody config contract evm0 locals initTransition.body
+    (I.perm = true → ExecTransitionBody fork config contract evm0 locals initTransition.body
       (.returned { contract := contract, locals := locals } evm2 none)) ∧
     (I.perm = false →
-      ExecTransitionBody config contract evm0 locals initTransition.body .staticViolation) := by
+      ExecTransitionBody fork config contract evm0 locals initTransition.body .staticViolation) := by
   intro locals evm0 evm1 evm2
   have hguard :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -226,10 +228,10 @@ theorem jugInitSourceBodySplit {σ σ₀ A I} {g : UInt256}
         simp [evm1, evm0, initState, storageStore_executionEnv]
       simpa [henv]
     simpa [locals, evm2, howner] using assign_initRhoStorage evm1 I hsz36
-  have hbody : ∀ r, ExecBlock config { contract := contract, locals := locals } evm0
+  have hbody : ∀ r, ExecBlock fork config { contract := contract, locals := locals } evm0
       [ .assign .storage (ilksF (.var "ilk") "duty") (.intLit one),
         .assign .storage (ilksF (.var "ilk") "rho") (.env .timestamp) ] r →
-      ExecBlock config { contract := contract, locals := locals } evm0 initTransition.body r := by
+      ExecBlock fork config { contract := contract, locals := locals } evm0 initTransition.body r := by
     intro r h
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -237,8 +239,8 @@ theorem jugInitSourceBodySplit {σ σ₀ A I} {g : UInt256}
     exact ExecBlock.consNormal (ExecStmt.requireTrue hdutyGuard) h
   refine ⟨fun hperm => ?_, fun hpf => ?_⟩
   · simpa [ExecTransitionBody, locals, evm0, evm1, evm2] using ExecFuncBody.execBlockOK
-      (hbody _ (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) hone hassignDuty)
-        (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [evm1, storageStore_executionEnv] using hperm)) htimestamp hassignRho) ExecBlock.nil)))
+      (hbody _ (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) hone hassignDuty)
+        (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [evm1, storageStore_executionEnv] using hperm)) htimestamp hassignRho) ExecBlock.nil)))
   · simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockStatic
       (hbody _ (ExecBlock.consStatic (ExecStmt.assignStatic hone hassignDuty
         (by simp [evm0, initState]; exact hpf))))
@@ -254,7 +256,7 @@ theorem jugInitSourceBody {σ σ₀ A I} {g : UInt256}
     let evm1 := Stele.EVM.storageStore evm0 I.codeOwner (fileDutyDutySlotFor I) initOne
     let evm2 := Stele.EVM.storageStore evm1 I.codeOwner (fileDutyRhoSlotFor I)
       (initTimestampWord I)
-    ExecTransitionBody config contract evm0 locals initTransition.body
+    ExecTransitionBody fork config contract evm0 locals initTransition.body
       (.returned { contract := contract, locals := locals } evm2 none) :=
   (jugInitSourceBodySplit (σ₀ := σ₀) (A := A) (g := g) hwv hsz36 hauth hduty).1 hperm
 
@@ -266,7 +268,7 @@ theorem jugInitSourceBodyStatic {σ σ₀ A I} {g : UInt256}
     (hperm : I.perm = false) :
     let locals := initLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals initTransition.body
+    ExecTransitionBody fork config contract evm0 locals initTransition.body
       .staticViolation :=
   (jugInitSourceBodySplit (σ₀ := σ₀) (A := A) (g := g) hwv hsz36 hauth hduty).2 hperm
 
@@ -275,7 +277,7 @@ theorem jugInitSourceBodyAuthReverts {σ σ₀ A I} {g : UInt256}
     (hauth : relyAuthWord σ I ≠ ⟨1⟩) :
     let locals := initLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals initTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals initTransition.body .reverted := by
   intro locals evm0
   have hguard :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -306,7 +308,7 @@ theorem jugInitSourceBodyAlreadyInit {σ σ₀ A I} {g : UInt256}
     (hduty : solcSlotWordAt (fileDutyDutySlotFor I) σ I ≠ ⟨0⟩) :
     let locals := initLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals initTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals initTransition.body .reverted := by
   intro locals evm0
   have hguard :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -325,7 +327,7 @@ theorem jugInitSourceBodyAlreadyInit {σ σ₀ A I} {g : UInt256}
       (evalExpr_initDutyEqZero_false (evm := evm0) (I := I) hsz36 (by
         simpa [evm0, initState, solcSlotWordAt] using hduty))
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 initTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 initTransition.body
         .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -337,7 +339,7 @@ theorem jugReachInitBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = jugBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (jugSelBytes 7)) :
-    ∃ k C, RD jugBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork jugBytecode I g (initState σ σ₀ g A I)
         ⟨299⟩ [jugSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : jugSelWord I = ⟨0x3b663195⟩ :=
@@ -363,11 +365,11 @@ theorem RD.jugInitDecodeToRoutine {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret de sel : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
     {acc : AccountMap}
-    (h : RD code ee g s0 ⟨321⟩ (de :: ⟨4⟩ :: ret :: sel :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 ⟨321⟩ (de :: ⟨4⟩ :: ret :: sel :: R) mem aw rdata acc k C)
     (hwf : code = jugBytecode)
     (hroutine : (D_J code 0).contains ⟨1032⟩ = true)
     (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨1032⟩
+    ∃ k' C', RD fork code ee g s0 ⟨1032⟩
       (calldataWord ee.calldata 4 :: ret :: sel :: R)
       mem aw rdata acc k' C' := by
   subst hwf
@@ -381,10 +383,10 @@ theorem RD.jugInitDecodeToRoutine {code : ByteArray} {g : Sat256} {s0 : State}
 
 theorem jugInitX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD jugBytecode I g
+    (hreach : ∃ k C, RD fork jugBytecode I g
       (initState σ σ₀ g A I) ⟨299⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD jugBytecode I g (initState σ σ₀ g A I) ⟨1032⟩
+    ∃ k C, RD fork jugBytecode I g (initState σ σ₀ g A I) ⟨1032⟩
         [fileDutyIlkWord I, ⟨226⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
@@ -404,10 +406,10 @@ theorem jugInitX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 set_option maxHeartbeats 1000000 in
 theorem jugInitX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : relyAuthWord σ I = ⟨1⟩)
-    (h : RD jugBytecode I g s0 ⟨1032⟩
+    (h : RD fork jugBytecode I g s0 ⟨1032⟩
       [fileDutyIlkWord I, ⟨226⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD jugBytecode I g s0 ⟨1121⟩
+    ∃ k' C', RD fork jugBytecode I g s0 ⟨1121⟩
       [fileDutyIlkWord I, ⟨226⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hauthSlot :
@@ -438,7 +440,7 @@ theorem jugInitX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
     (by evm_ov)
   obtain ⟨k1049, C1049, rd1049raw⟩ := rd1048.sload (by native_decide) (by evm_ov)
-  have rd1049 : RD jugBytecode I g s0 ⟨1049⟩
+  have rd1049 : RD fork jugBytecode I g s0 ⟨1049⟩
       (relyAuthWord σ I :: fileDutyIlkWord I :: ⟨226⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1049 C1049 := by
     simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1049raw
@@ -454,10 +456,10 @@ theorem jugInitX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 set_option maxHeartbeats 1000000 in
 theorem jugInitX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : relyAuthWord σ I ≠ ⟨1⟩)
-    (h : RD jugBytecode I g s0 ⟨1032⟩
+    (h : RD fork jugBytecode I g s0 ⟨1032⟩
       [fileDutyIlkWord I, ⟨226⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev jugBytecode g s0 := by
+    RDrev fork jugBytecode g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
@@ -486,7 +488,7 @@ theorem jugInitX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
     (by evm_ov)
   obtain ⟨k1049, C1049, rd1049raw⟩ := rd1048.sload (by native_decide) (by evm_ov)
-  have rd1049 : RD jugBytecode I g s0 ⟨1049⟩
+  have rd1049 : RD fork jugBytecode I g s0 ⟨1049⟩
       (relyAuthWord σ I :: fileDutyIlkWord I :: ⟨226⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1049 C1049 := by
     simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1049raw
@@ -520,10 +522,10 @@ theorem jugInitX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 theorem jugInitX_dutyZero {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hsz36 : 36 ≤ I.calldata.size)
     (hduty : solcSlotWordAt (fileDutyDutySlotFor I) σ I = ⟨0⟩)
-    (h : RD jugBytecode I g s0 ⟨1121⟩
+    (h : RD fork jugBytecode I g s0 ⟨1121⟩
       [fileDutyIlkWord I, ⟨226⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD jugBytecode I g s0 ⟨1210⟩
+    ∃ k' C', RD fork jugBytecode I g s0 ⟨1210⟩
       [fileDutyDutySlotFor I, fileDutyIlkWord I, ⟨226⟩, sel]
       (fileDutyIlkHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hslot :
@@ -551,7 +553,7 @@ theorem jugInitX_dutyZero {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (UInt256.ofNat 3) (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
   have rd1137 := rd1136.dup1 (by native_decide) (by evm_ov)
   obtain ⟨k1138, C1138, rd1138raw⟩ := rd1137.sload (by native_decide) (by evm_ov)
-  have rd1138 : RD jugBytecode I g s0 ⟨1138⟩
+  have rd1138 : RD fork jugBytecode I g s0 ⟨1138⟩
       (solcSlotWordAt (fileDutyDutySlotFor I) σ I :: solcMappingSlot ⟨1⟩ (fileDutyIlkWord I) ::
         fileDutyIlkWord I :: ⟨226⟩ :: [sel])
       (fileDutyIlkHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1138 C1138 := by
@@ -567,10 +569,10 @@ theorem jugInitX_dutyZero {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 theorem jugInitX_alreadyInit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hsz36 : 36 ≤ I.calldata.size)
     (hduty : solcSlotWordAt (fileDutyDutySlotFor I) σ I ≠ ⟨0⟩)
-    (h : RD jugBytecode I g s0 ⟨1121⟩
+    (h : RD fork jugBytecode I g s0 ⟨1121⟩
       [fileDutyIlkWord I, ⟨226⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev jugBytecode g s0 := by
+    RDrev fork jugBytecode g s0 := by
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((fileDutyIlkHashMem I).readWithPadding 0 64))) =
@@ -596,7 +598,7 @@ theorem jugInitX_alreadyInit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (UInt256.ofNat 3) (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
   have rd1137 := rd1136.dup1 (by native_decide) (by evm_ov)
   obtain ⟨k1138, C1138, rd1138raw⟩ := rd1137.sload (by native_decide) (by evm_ov)
-  have rd1138 : RD jugBytecode I g s0 ⟨1138⟩
+  have rd1138 : RD fork jugBytecode I g s0 ⟨1138⟩
       (solcSlotWordAt (fileDutyDutySlotFor I) σ I :: solcMappingSlot ⟨1⟩ (fileDutyIlkWord I) ::
         fileDutyIlkWord I :: ⟨226⟩ :: [sel])
       (fileDutyIlkHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1138 C1138 := by
@@ -628,16 +630,16 @@ theorem jugInitX_alreadyInit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 
 theorem jugInitX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
-    (h : RD jugBytecode I g s0 ⟨1210⟩
+    (h : RD fork jugBytecode I g s0 ⟨1210⟩
       [fileDutyDutySlotFor I, fileDutyIlkWord I, ⟨226⟩, sel]
       (fileDutyIlkHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     (I.perm = true ∧
-    RDret jugBytecode g s0
+    RDret fork jugBytecode g s0
       (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σ (fileDutyDutySlotFor I) initOne)
         (fileDutyRhoSlotFor I) (initTimestampWord I))
       ByteArray.empty) ∨
-      (I.perm = false ∧ RDstatic jugBytecode g s0) := by
+      (I.perm = false ∧ RDstatic fork jugBytecode g s0) := by
   have rd1211 := h.jumpdest (by native_decide) (by evm_ov)
   have rd1224 := rd1211.pushConst initOne
     (width := 12) (op := .PUSH12) (by decide) (by native_decide) (by evm_ov)
@@ -661,10 +663,10 @@ theorem jugInitX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C : �
 
 theorem jugInitX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hperm : I.perm = true)
-    (h : RD jugBytecode I g s0 ⟨1210⟩
+    (h : RD fork jugBytecode I g s0 ⟨1210⟩
       [fileDutyDutySlotFor I, fileDutyIlkWord I, ⟨226⟩, sel]
       (fileDutyIlkHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret jugBytecode g s0
+    RDret fork jugBytecode g s0
       (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σ (fileDutyDutySlotFor I) initOne)
         (fileDutyRhoSlotFor I) (initTimestampWord I))
@@ -674,10 +676,10 @@ theorem jugInitX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 theorem jugInitX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
-    (hreach : ∃ k C, RD jugBytecode I g
+    (hreach : ∃ k C, RD fork jugBytecode I g
       (initState σ σ₀ g A I) ⟨299⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev jugBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork jugBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -703,10 +705,10 @@ theorem jugInitBodyCoreOk
     (hdecode :
       config.externalABI.decodeCalldata? (initTransition.params.map Param.name)
         (transitionSignature initTransition).paramTypes I.calldata = some (initLocals I))
-    (hreach : ∃ k C, RD jugBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨299⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let dutySlot := fileDutyDutySlotFor I
   let rhoSlot := fileDutyRhoSlotFor I
   let locals := initLocals I
@@ -718,10 +720,10 @@ theorem jugInitBodyCoreOk
   have hdutyStele : solcSlotWordAt dutySlot σ I = ⟨0⟩ := by
     simpa [dutySlot] using hduty
   have hbody :
-      ExecTransitionBody config contract evm0 locals initTransition.body
+      ExecTransitionBody fork config contract evm0 locals initTransition.body
         (.returned { contract := contract, locals := locals } evm2 none) := by
     simpa [evm0, evm1, evm2, locals, dutySlot, rhoSlot, timestamp] using
-      (jugInitSourceBody (hperm := hperm) (σ := σ)
+      (jugInitSourceBody (fork := fork) (hperm := hperm) (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hsz36 hauthStele hdutyStele)
   obtain ⟨_, _, hdecoded⟩ := jugInitX_decoded (g := Sat256.ofUInt256 g)
     hsz36 hsize hreach
@@ -751,17 +753,17 @@ theorem jugInitBodyCoreStatic
     (hdecode :
       config.externalABI.decodeCalldata? (initTransition.params.map Param.name)
         (transitionSignature initTransition).paramTypes I.calldata = some (initLocals I))
-    (hreach : ∃ k C, RD jugBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨299⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨_, _, hdecoded⟩ := jugInitX_decoded (g := Sat256.ofUInt256 g)
     hsz36 hsize hreach
   obtain ⟨_, _, hauthz⟩ := jugInitX_authorized (I := I) hauth hdecoded
   obtain ⟨_, _, hdutyZero⟩ := jugInitX_dutyZero (I := I) hsz36 hduty hauthz
   exact (permSplit_false hperm (jugInitX_storeAuthorizedSplit hdutyZero))
     |>.reEquivStaticHalt hcode hdispatch hdecode
-      (jugInitSourceBodyStatic (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      (jugInitSourceBodyStatic (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         hwv hsz36 hauth hduty hperm)
 
 theorem jugInitBodyCoreUnauthorized
@@ -774,17 +776,17 @@ theorem jugInitBodyCoreUnauthorized
     (hdecode :
       config.externalABI.decodeCalldata? (initTransition.params.map Param.name)
         (transitionSignature initTransition).paramTypes I.calldata = some (initLocals I))
-    (hreach : ∃ k C, RD jugBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨299⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let locals := initLocals I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthStele : relyAuthWord σ I ≠ ⟨1⟩ := hauth
   have hbody :
-      ExecTransitionBody config contract evm0 locals initTransition.body .reverted := by
+      ExecTransitionBody fork config contract evm0 locals initTransition.body .reverted := by
     simpa [evm0, locals] using
-      (jugInitSourceBodyAuthReverts (σ := σ)
+      (jugInitSourceBodyAuthReverts (fork := fork) (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauthStele)
   obtain ⟨_, _, hdecoded⟩ := jugInitX_decoded (g := Sat256.ofUInt256 g)
     hsz36 hsize hreach
@@ -802,18 +804,18 @@ theorem jugInitBodyCoreAlreadyInit
     (hdecode :
       config.externalABI.decodeCalldata? (initTransition.params.map Param.name)
         (transitionSignature initTransition).paramTypes I.calldata = some (initLocals I))
-    (hreach : ∃ k C, RD jugBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨299⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let locals := initLocals I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthStele : relyAuthWord σ I = ⟨1⟩ := hauth
   have hdutyStele : solcSlotWordAt (fileDutyDutySlotFor I) σ I ≠ ⟨0⟩ := hduty
   have hbody :
-      ExecTransitionBody config contract evm0 locals initTransition.body .reverted := by
+      ExecTransitionBody fork config contract evm0 locals initTransition.body .reverted := by
     simpa [evm0, locals] using
-      (jugInitSourceBodyAlreadyInit (σ := σ)
+      (jugInitSourceBodyAlreadyInit (fork := fork) (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hsz36 hauthStele hdutyStele)
   obtain ⟨_, _, hdecoded⟩ := jugInitX_decoded (g := Sat256.ofUInt256 g)
     hsz36 hsize hreach
@@ -826,10 +828,10 @@ theorem jugInitBodyCoreDecodeFailed_short
     (hcode : I.code = jugBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some initTransition)
-    (hreach : ∃ k C, RD jugBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨299⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact (jugInitX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch (jugDecode_init_none_short hsz4 hshort)
 
@@ -839,12 +841,12 @@ theorem jugInitBody {σ σ₀ A I} {g : UInt256}
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (jugSelBytes 7)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (jugSelBytes 7) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some initTransition :=
     jugDispatchInit hsel
-  have hreach := jugReachInitBody
+  have hreach := jugReachInitBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
@@ -865,7 +867,7 @@ theorem jugInitBodyAnyPerm {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (jugSelBytes 7)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hperm : I.perm = true
   · exact jugInitBody hcode hsize hperm hwv hsel
   replace hperm : I.perm = false := by simpa using hperm
@@ -873,7 +875,7 @@ theorem jugInitBodyAnyPerm {σ σ₀ A I} {g : UInt256}
     calldata_size_ge_of_selIs I (jugSelBytes 7) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some initTransition :=
     jugDispatchInit hsel
-  have hreach := jugReachInitBody
+  have hreach := jugReachInitBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size

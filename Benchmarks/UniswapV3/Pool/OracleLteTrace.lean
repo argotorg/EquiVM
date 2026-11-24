@@ -4,6 +4,8 @@ import Benchmarks.UniswapV3.Pool.RuntimeBlocks_069
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_044
 import Benchmarks.UniswapV3.Pool.Routines
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -14,17 +16,17 @@ theorem oracleLteAdjustedMonoX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256
     {s0 : EVM.State} {k C : Nat} {aw ret timeRaw aRaw bRaw : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (time a b : UInt256)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨20254⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨20254⟩
       (⟨0⟩ :: bRaw :: aRaw :: timeRaw :: ret :: R) mem aw rdata σ k C)
     (ht : UInt256.land (UInt256.ofNat 4294967295) timeRaw = time)
     (ha : UInt256.land (UInt256.ofNat 4294967295) aRaw = a)
     (hb : UInt256.land (UInt256.ofNat 4294967295) bRaw = b)
     (hab : a.toNat < 2 ^ 32) (hbb : b.toNat < 2 ^ 32)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 10 ≤ 1024) :
-    ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) ee g s0 ret
+    ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) ee g s0 ret
       ((if oracleAdjusted time a ≤ oracleAdjusted time b then ⟨1⟩ else ⟨0⟩) :: R)
       mem aw rdata σ k' C' := by
-  have hA : ∃ kA CA, C ≤ CA ∧ RD (deployedRuntime v) ee g s0 ⟨20302⟩
+  have hA : ∃ kA CA, C ≤ CA ∧ RD fork (deployedRuntime v) ee g s0 ⟨20302⟩
       (UInt256.ofNat (oracleAdjusted time a) :: ⟨0⟩ :: ⟨0⟩ ::
         bRaw :: aRaw :: timeRaw :: ret :: R) mem aw rdata σ kA CA := by
     by_cases h : time.toNat < a.toNat
@@ -43,7 +45,7 @@ theorem oracleLteAdjustedMonoX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256
       simpa only [uniswapV3Pool_block_20276_stack, uniswapV3Pool_block_20254_fallthrough_stack,
         ha, oracleAdjustedWord_eq time a hab, if_neg h] using r2
   obtain ⟨kA, CA, hCA, rdA⟩ := hA
-  have hB : ∃ kB CB, CA ≤ CB ∧ RD (deployedRuntime v) ee g s0 ⟨20359⟩
+  have hB : ∃ kB CB, CA ≤ CB ∧ RD fork (deployedRuntime v) ee g s0 ⟨20359⟩
       (UInt256.ofNat (oracleAdjusted time b) :: ⟨0⟩ ::
         UInt256.ofNat (oracleAdjusted time a) :: ⟨0⟩ :: bRaw :: aRaw :: timeRaw :: ret :: R)
       mem aw rdata σ kB CB := by
@@ -73,15 +75,15 @@ theorem oracleLteMonoX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret timeRaw aRaw bRaw : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (time a b : UInt256)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨20184⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨20184⟩
       (bRaw :: aRaw :: timeRaw :: ret :: R) mem aw rdata σ k C)
     (ht : UInt256.land (UInt256.ofNat 4294967295) timeRaw = time)
     (ha : UInt256.land (UInt256.ofNat 4294967295) aRaw = a)
     (hb : UInt256.land (UInt256.ofNat 4294967295) bRaw = b)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 10 ≤ 1024) :
-    ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) ee g s0 ret
+    ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) ee g s0 ret
       ((if oracleLte time a b then ⟨1⟩ else ⟨0⟩) :: R) mem aw rdata σ k' C' := by
-  have hcond : ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) ee g s0 ⟨20226⟩
+  have hcond : ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) ee g s0 ⟨20226⟩
       ((if a.toNat ≤ time.toNat ∧ b.toNat ≤ time.toNat then ⟨1⟩ else ⟨0⟩) ::
         ⟨0⟩ :: bRaw :: aRaw :: timeRaw :: ret :: R) mem aw rdata σ k' C' := by
     by_cases h : a.toNat ≤ time.toNat
@@ -129,14 +131,14 @@ theorem oracleLteAdjustedX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret timeRaw aRaw bRaw : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (time a b : UInt256)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨20254⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨20254⟩
       (⟨0⟩ :: bRaw :: aRaw :: timeRaw :: ret :: R) mem aw rdata σ k C)
     (ht : UInt256.land (UInt256.ofNat 4294967295) timeRaw = time)
     (ha : UInt256.land (UInt256.ofNat 4294967295) aRaw = a)
     (hb : UInt256.land (UInt256.ofNat 4294967295) bRaw = b)
     (hab : a.toNat < 2 ^ 32) (hbb : b.toNat < 2 ^ 32)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 10 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       ((if oracleAdjusted time a ≤ oracleAdjusted time b then ⟨1⟩ else ⟨0⟩) :: R)
       mem aw rdata σ k' C'  := by
   obtain ⟨k, C, _, hout⟩ := oracleLteAdjustedMonoX (v := v) time a b rd ht ha hb hab hbb hret hov
@@ -146,13 +148,13 @@ theorem oracleLteX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret timeRaw aRaw bRaw : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (time a b : UInt256)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨20184⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨20184⟩
       (bRaw :: aRaw :: timeRaw :: ret :: R) mem aw rdata σ k C)
     (ht : UInt256.land (UInt256.ofNat 4294967295) timeRaw = time)
     (ha : UInt256.land (UInt256.ofNat 4294967295) aRaw = a)
     (hb : UInt256.land (UInt256.ofNat 4294967295) bRaw = b)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 10 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       ((if oracleLte time a b then ⟨1⟩ else ⟨0⟩) :: R) mem aw rdata σ k' C'  := by
   obtain ⟨k, C, _, hout⟩ := oracleLteMonoX (v := v) time a b rd ht ha hb hret hov
   exact ⟨k, C, hout⟩

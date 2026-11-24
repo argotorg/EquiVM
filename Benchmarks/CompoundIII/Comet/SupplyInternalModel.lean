@@ -2,37 +2,39 @@ import Benchmarks.CompoundIII.Comet.SupplyAssetModel
 import Benchmarks.CompoundIII.Comet.AuthorizationSource
 import Benchmarks.CompoundIII.Comet.ReentrancyModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
 namespace Benchmarks.CompoundIII.Comet
 
-inductive SupplyInternalAfter (v : CometWithExtendedAssetListImmutables)
+inductive SupplyInternalAfter (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables)
     (operator sender dst asset : AccountAddress) (amount : UInt256) (evm : EVM.State) :
     InternalOutcome → Prop where
   | unauthorized (ha : ¬ AuthorizationValid evm ⟨0, by decide⟩ operator sender) :
-      SupplyInternalAfter v operator sender dst asset amount evm .reverted
+      SupplyInternalAfter fork v operator sender dst asset amount evm .reverted
   | reverted (ha : AuthorizationValid evm ⟨0, by decide⟩ operator sender)
-      (ht : SupplyAssetTrace v sender dst asset amount evm .reverted) :
-      SupplyInternalAfter v operator sender dst asset amount evm .reverted
+      (ht : SupplyAssetTrace fork v sender dst asset amount evm .reverted) :
+      SupplyInternalAfter fork v operator sender dst asset amount evm .reverted
   | staticViolation (ha : AuthorizationValid evm ⟨0, by decide⟩ operator sender)
-      (ht : SupplyAssetTrace v sender dst asset amount evm .staticViolation) :
-      SupplyInternalAfter v operator sender dst asset amount evm .staticViolation
+      (ht : SupplyAssetTrace fork v sender dst asset amount evm .staticViolation) :
+      SupplyInternalAfter fork v operator sender dst asset amount evm .staticViolation
   | done {evm'} (ha : AuthorizationValid evm ⟨0, by decide⟩ operator sender)
-      (ht : SupplyAssetTrace v sender dst asset amount evm (.ok evm'))
+      (ht : SupplyAssetTrace fork v sender dst asset amount evm (.ok evm'))
       (hp : evm'.executionEnv.perm = true) :
-      SupplyInternalAfter v operator sender dst asset amount evm (.ok (reentrancyState evm' false))
+      SupplyInternalAfter fork v operator sender dst asset amount evm (.ok (reentrancyState evm' false))
 
-inductive SupplyInternalTrace (v : CometWithExtendedAssetListImmutables)
+inductive SupplyInternalTrace (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables)
     (operator sender dst asset : AccountAddress) (amount : UInt256) (evm : EVM.State) :
     InternalOutcome → Prop where
   | reverted (he : reentrancyOutcome evm true = .reverted) :
-      SupplyInternalTrace v operator sender dst asset amount evm .reverted
+      SupplyInternalTrace fork v operator sender dst asset amount evm .reverted
   | staticViolation (he : reentrancyOutcome evm true = .staticViolation) :
-      SupplyInternalTrace v operator sender dst asset amount evm .staticViolation
+      SupplyInternalTrace fork v operator sender dst asset amount evm .staticViolation
   | done {evm' result} (he : reentrancyOutcome evm true = .ok evm')
-      (ht : SupplyInternalAfter v operator sender dst asset amount evm' result) :
-      SupplyInternalTrace v operator sender dst asset amount evm result
+      (ht : SupplyInternalAfter fork v operator sender dst asset amount evm' result) :
+      SupplyInternalTrace fork v operator sender dst asset amount evm result
 
 def supplyInternalTail : List Stmt :=
   authorizationBlock ⟨0, by decide⟩ "from" ++ [supplyAssetStmt, .internalCall "nonReentrantAfter" [] "__c7"]

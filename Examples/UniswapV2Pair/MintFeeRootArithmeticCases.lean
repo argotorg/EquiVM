@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.MintFeeOnKLastNonzeroRevertCases
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace UniswapV2Pair
@@ -11,7 +13,7 @@ theorem uniswapMintFeeActualRootArithmeticCasesOfTail
     {evmFeeS : EVM.State} {mem rdata : ByteArray} {k C : ℕ}
     {rootK rootKLast : Int} {feeTo : AccountAddress}
     {kLast feeToWord reserve0 reserve1 ret : UInt256} {R : List UInt256}
-    (rd7899 : RD uniswapV2PairBytecode I g
+    (rd7899 : RD fork uniswapV2PairBytecode I g
       s0 ⟨7899⟩
       (UInt256.ofNat rootKLast.toNat :: ⟨0⟩ :: UInt256.ofNat rootK.toNat :: kLast ::
         feeToWord :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
@@ -26,10 +28,10 @@ theorem uniswapMintFeeActualRootArithmeticCasesOfTail
     (mintFeeNumeratorNat evmFeeS rootK rootKLast < UInt256.size ∧
       mintFeeRootTimesFiveNat rootK < UInt256.size ∧
       mintFeeDenominatorNat rootK rootKLast < UInt256.size) ∨
-    (ExecBlock config
+    (ExecBlock fork config
       (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast)
       evmFeeS [mintFeeRootComparisonStmt] .reverted ∧
-      RDrev uniswapV2PairBytecode g
+      RDrev fork uniswapV2PairBytecode g
         s0) := by
   by_cases hnumFit : mintFeeNumeratorNat evmFeeS rootK rootKLast < UInt256.size
   · by_cases hrootFiveFit : mintFeeRootTimesFiveNat rootK < UInt256.size

@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.BytesLongControl
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -16,9 +18,9 @@ theorem easBytesLongHeader {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {x0 x1 x2 len slot : UInt256} {R : List UInt256} (v : EASImmutables) (site : UIDSite)
     (hstack : R.length+7 ≤ 1024) (hp : ee.perm = true)
-    (rd : RD (deployedRuntime v) ee g s0 (bytesLongHeaderPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (bytesLongHeaderPC site)
       (x0::x1::x2::len::UInt256.ofNat 1::UInt256.ofNat 6::slot::R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (bytesWrittenPC site) R mem aw' rdata
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (bytesWrittenPC site) R mem aw' rdata
       (sstoreAccountMap ee.codeOwner σ (slot+⟨6⟩) (UInt256.shiftLeft len (UInt256.ofNat 1)+⟨1⟩)) k' C' := by
   cases site with
   | single s1 s2 s3 s4 s5 s6 s7 s8 =>
@@ -33,9 +35,9 @@ theorem easBytesLongTail {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {idx ptr stride dst len slot : UInt256} {R : List UInt256} (v : EASImmutables) (site : UIDSite)
     (hstack : R.length+10 ≤ 1024) (hp : ee.perm = true)
-    (rd : RD (deployedRuntime v) ee g s0 (bytesLongTailPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (bytesLongTailPC site)
       (idx::ptr::stride::dst::len::slot::R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (bytesWrittenPC site) R mem aw' rdata
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (bytesWrittenPC site) R mem aw' rdata
       (sstoreAccountMap ee.codeOwner
         (if len.toNat%32=0 then σ else sstoreAccountMap ee.codeOwner σ dst
           (bytesLongTailEVMWord (memLoad (ptr+stride) mem) len))

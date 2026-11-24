@@ -1,6 +1,8 @@
 import Benchmarks.Auction.DepositSource
 import Benchmarks.Auction.BurnCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -39,7 +41,7 @@ theorem nounsCodeGuardSource {s0 I σ evm locals}
 theorem checkedNounSourceNoCode {s0 I σ evm locals name retVar args}
     (hs : SourceState s0 I σ evm) (hb : locals.get? "nouns" = none)
     (hno : extCodeSizeWord σ (nounsWord σ I) = ⟨0⟩) :
-    ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
+    ExecBlock fork auctionConfig { contract := auctionContract, locals := locals } evm
       (checkedExternalCallStmts (.storage nounsRef) name (.intLit 0) args retVar) .reverted := by
   exact ExecBlock.consRevert (ExecStmt.requireFalse (by
     rw [nounsCodeGuardSource hs hb, hno]
@@ -51,9 +53,9 @@ theorem checkedNounSourceSuccess {s0 I σ evm evm' locals name retVar args value
     (hargs : evalExprs? auctionConfig { contract := auctionContract, locals := locals } evm args =
       .ok values)
     (hencode : auctionConfig.externalABI.encode? name values = some cdata)
-    (hc : callViaEVM evm (AccountAddress.ofUInt256 (nounsWord σ I)) 0 cdata (true, evm', out))
+    (hc : callViaEVM fork evm (AccountAddress.ofUInt256 (nounsWord σ I)) 0 cdata (true, evm', out))
     (hdecode : auctionConfig.externalABI.decode? name out = some []) :
-    ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
+    ExecBlock fork auctionConfig { contract := auctionContract, locals := locals } evm
       (checkedExternalCallStmts (.storage nounsRef) name (.intLit 0) args retVar)
       (.ok { contract := auctionContract, locals := locals.insert retVar (collapseReturns []) }
         evm') := by
@@ -69,8 +71,8 @@ theorem checkedNounSourceFailure {s0 I σ evm evm' locals name retVar args value
     (hargs : evalExprs? auctionConfig { contract := auctionContract, locals := locals } evm args =
       .ok values)
     (hencode : auctionConfig.externalABI.encode? name values = some cdata)
-    (hc : callViaEVM evm (AccountAddress.ofUInt256 (nounsWord σ I)) 0 cdata (false, evm', out)) :
-    ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
+    (hc : callViaEVM fork evm (AccountAddress.ofUInt256 (nounsWord σ I)) 0 cdata (false, evm', out)) :
+    ExecBlock fork auctionConfig { contract := auctionContract, locals := locals } evm
       (checkedExternalCallStmts (.storage nounsRef) name (.intLit 0) args retVar) .reverted := by
   apply checkedExternalCallFailure (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evm' := evm') (out := out)
     (target := AccountAddress.ofUInt256 (nounsWord σ I))

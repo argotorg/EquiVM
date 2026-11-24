@@ -1,5 +1,7 @@
 import Benchmarks.EAS.Attester.MultiRevokeSourceRow
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory
 
 namespace Benchmarks.EAS.Attester
@@ -24,10 +26,10 @@ theorem revokeOuterRun {cfg : Config} {C : ContractDecl} {imms : Store} {evm : S
     (hfilled : ∀ k < i, requests[k]? = expected[k]?)
     (hviews : ∀ k < n, RevokeRowView schemas rows expected k) :
     ((∃ k, i ≤ k ∧ k < n ∧ rows[k]? = some (.array [])) ∧
-      ExecForLoop cfg ⟨C, locals, imms⟩ evm revokeOuterCond revokeOuterPost revokeOuterBody
+      ExecForLoop fork cfg ⟨C, locals, imms⟩ evm revokeOuterCond revokeOuterPost revokeOuterBody
           .reverted) ∨
     ((∀ k, i ≤ k → k < n → rows[k]? ≠ some (.array [])) ∧
-      ∃ result, ExecForLoop cfg ⟨C, locals, imms⟩ evm revokeOuterCond revokeOuterPost
+      ∃ result, ExecForLoop fork cfg ⟨C, locals, imms⟩ evm revokeOuterCond revokeOuterPost
           revokeOuterBody
         (.ok ⟨C, result, imms⟩ evm) ∧ result.get? "multiRequests" = some (.array expected) ∧
         ∀ name, revokeOuterUntouched name → result.get? name = locals.get? name) := by
@@ -61,7 +63,7 @@ theorem revokeOuterRun {cfg : Config} {C : ContractDecl} {imms : Store} {evm : S
         have hi1 : l1.get? "i" = some (.int (Int.ofNat i)) :=
           (hsame "i" (by simp [revokeRowUntouched])).trans hindex
         let l2 := l1.insert "i" (.int (Int.ofNat (i + 1)))
-        have hpost : ExecBlock cfg ⟨C, l1, imms⟩ evm revokeOuterPost
+        have hpost : ExecBlock fork cfg ⟨C, l1, imms⟩ evm revokeOuterPost
             (.ok ⟨C, l2, imms⟩ evm) := execLocalIncrement hi1 (by omega)
         have hpreserved (name : Ident) (hname : revokeOuterUntouched name) :
             l2.get? name = locals.get? name := by
@@ -109,20 +111,20 @@ theorem revokeOuterFor {cfg : Config} {C : ContractDecl} {imms : Store} {evm : S
     (hlen : requests.length = n) (hexpected : expected.length = n)
     (hviews : ∀ k < n, RevokeRowView schemas rows expected k) :
     ((∃ k < n, rows[k]? = some (.array [])) ∧
-      ExecStmt cfg ⟨C, locals, imms⟩ evm
+      ExecStmt fork cfg ⟨C, locals, imms⟩ evm
         (.for [.letDecl "i" (some uint256) (.intLit 0)] revokeOuterCond revokeOuterPost
             revokeOuterBody)
         .reverted) ∨
     ((∀ k < n, rows[k]? ≠ some (.array [])) ∧
-      ∃ result, ExecStmt cfg ⟨C, locals, imms⟩ evm
+      ∃ result, ExecStmt fork cfg ⟨C, locals, imms⟩ evm
         (.for [.letDecl "i" (some uint256) (.intLit 0)] revokeOuterCond revokeOuterPost
             revokeOuterBody)
         (.ok ⟨C, result, imms⟩ evm) ∧ result.get? "multiRequests" = some (.array expected) ∧
         ∀ name, revokeOuterUntouched name → result.get? name = locals.get? name) := by
-  have hinit : ExecBlock cfg ⟨C, locals, imms⟩ evm [.letDecl "i" (some uint256) (.intLit 0)]
+  have hinit : ExecBlock fork cfg ⟨C, locals, imms⟩ evm [.letDecl "i" (some uint256) (.intLit 0)]
       (.ok ⟨C, locals.insert "i" (.int 0), imms⟩ evm) :=
     ExecBlock.consNormal (ExecStmt.letDecl (by simp only [evalExpr?, pure])) ExecBlock.nil
-  have hrun := revokeOuterRun (cfg := cfg) (C := C) (imms := imms) (evm := evm)
+  have hrun := revokeOuterRun (fork := fork) (cfg := cfg) (C := C) (imms := imms) (evm := evm)
     (locals := locals.insert "i" (.int 0)) (schemas := schemas) (rows := rows)
     (requests := requests) (expected := expected) (i := 0) (remaining := n)
     hn (by omega) (by simp)

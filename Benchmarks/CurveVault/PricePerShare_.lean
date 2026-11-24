@@ -3,13 +3,15 @@ import Benchmarks.CurveVault.Entry
 import Benchmarks.CurveVault.Lock
 import Benchmarks.CurveVault.PriceInternal
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
 theorem vaultPricePerShare_BodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vaultBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vaultSelBytes 12)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (vaultSelBytes 12) rfl hsel
   have hd : dispatchMsg contract I.calldata = some pricePerShare_Transition := by
     apply vaultDispatch_pricePerShare_
@@ -37,7 +39,7 @@ theorem vaultPricePerShare_BodyCore {σ σ₀ A I} {g : UInt256}
       (by change UInt256.eq _ (codeOwnerTransientWord I σ ⟨0⟩) ≠ _
           rw [hlocked]; decide +kernel) (by native_decide) rd1533
     have hrev := vaultBlocks.vault_block_8284 (by simp) rdRevert
-    have hsource : ExecTransitionBody config contract evm ∅ pricePerShare_Transition.body .reverted :=
+    have hsource : ExecTransitionBody fork config contract evm ∅ pricePerShare_Transition.body .reverted :=
       ExecFuncBody.execBlockRevert (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hvalue))
         (ExecBlock.consNormal (ExecStmt.letDecl hflagEval)
           (ExecBlock.consRevert (ExecStmt.requireFalse (vaultLockEval_fail evm locals (by rw [hload]; exact hlocked))))))
@@ -56,7 +58,7 @@ theorem vaultPricePerShare_BodyCore {σ σ₀ A I} {g : UInt256}
     · have hcall := internalCallFunctionReturn (caller := {contract := contract, locals := locals})
         (callee := vaultPriceFunction) (name := "pricePerShare_body") (args := [.var "_is_floor"])
         (argVals := [.bool true]) (retVar := "__r") hargEval rfl rfl hcallee
-      have hsource : ExecTransitionBody config contract evm ∅ pricePerShare_Transition.body
+      have hsource : ExecTransitionBody fork config contract evm ∅ pricePerShare_Transition.body
           (.returned {contract := contract, locals := locals.insert "__r" (.int (Int.ofNat value.toNat))}
             evm' (some [.int (Int.ofNat value.toNat)])) := by
         apply ExecFuncBody.execBlockRet
@@ -67,7 +69,7 @@ theorem vaultPricePerShare_BodyCore {σ σ₀ A I} {g : UInt256}
           simp [resumeAfterInternalCall, collapseReturns, evalExpr?, EvalResult.ofOption]))))
       exact hret.reEquivExecutionGen hcode hd hdec hsource hs.accounts
         (returnEquiv_of_encode (uint256ReturnEncoding _))
-    · have hsource : ExecTransitionBody config contract evm ∅ pricePerShare_Transition.body .reverted := by
+    · have hsource : ExecTransitionBody fork config contract evm ∅ pricePerShare_Transition.body .reverted := by
         apply ExecFuncBody.execBlockRevert
         apply ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hvalue))
         apply ExecBlock.consNormal (ExecStmt.letDecl hflagEval)
@@ -80,6 +82,6 @@ theorem vaultPricePerShare_Body {σ σ₀ A I} {g : UInt256}
     (_hwf : storageWF σ I)
     (hcode : I.code = vaultBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vaultSelBytes 12)) :
-    runtimeRefinementFor config contract σ σ₀ g A I :=
+    runtimeRefinementFor fork config contract σ σ₀ g A I :=
   vaultPricePerShare_BodyCore hcode hsize hsel
 end Benchmarks.CurveVault

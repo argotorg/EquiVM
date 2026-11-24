@@ -1,6 +1,8 @@
 import Benchmarks.Safe.ViaIR.ExecTransactionPaymentSource
 import Benchmarks.Safe.ViaIR.ExecTransactionSuccessCheck
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -13,9 +15,9 @@ def execEventSaved (guard hash paid : UInt256) (z : Bool) (R : List UInt256) :
 
 private theorem safeExecPaymentDiscard {I g s0 σ k C aw mem rdata}
     {a b c d : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4758⟩ (a :: b :: c :: d :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨4758⟩ (a :: b :: c :: d :: R) mem aw rdata σ k C)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨4763⟩ R mem aw rdata σ k' C' := by
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨4763⟩ R mem aw rdata σ k' C' := by
   have h₁ := evm_run h with [jumpdest, pop, pop, pop, pop]
   exact ⟨_, _, h₁⟩
 
@@ -23,7 +25,7 @@ set_option maxRecDepth 5000 in
 theorem safeExecTransactionPayment (p : ExecTransactionInput) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata ptr locals} {guard hash used : UInt256}
     {z : Bool} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4749⟩
+    (h : RD fork safeBytecode I g s0 ⟨4749⟩
       (execPaymentSaved p guard hash used z R) mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ) (hworld : evm.σ₀ = s0.σ₀)
     (hcFields : ExecTransactionCalldataFields I.calldata p)
@@ -32,16 +34,16 @@ theorem safeExecTransactionPayment (p : ExecTransactionInput) (evm : EVM.State)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr) (hm : 128 ≤ mem.size) (hp : 128 ≤ ptr)
     (hz : memLoad ⟨96⟩ mem = ⟨0⟩) (hb : ptr < 2 ^ 220)
     (hov : R.length + 40 ≤ 1024) :
-    RDrev safeBytecode g s0 ∨
-    (RDstatic safeBytecode g s0 ∧ ExecBlock config { contract := contract, locals := locals }
+    RDrev fork safeBytecode g s0 ∨
+    (RDstatic fork safeBytecode g s0 ∧ ExecBlock fork config { contract := contract, locals := locals }
       evm (exectransactionTransition.body.drop 16) .staticViolation) ∨
     ∃ paid called evm' σ' mem' ptr' out aw' k' C',
-      (∀ result, ExecBlock config (execPaymentFinal locals paid called) evm'
+      (∀ result, ExecBlock fork config (execPaymentFinal locals paid called) evm'
         (exectransactionTransition.body.drop 18) result →
-        ExecBlock config { contract := contract, locals := locals } evm
+        ExecBlock fork config { contract := contract, locals := locals } evm
           (exectransactionTransition.body.drop 16) result) ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧ evm'.σ₀ = s0.σ₀ ∧
-      RD safeBytecode I g s0 ⟨4763⟩ (execEventSaved guard hash paid z R)
+      RD fork safeBytecode I g s0 ⟨4763⟩ (execEventSaved guard hash paid z R)
         mem' aw' out σ' k' C' ∧
       memLoad ⟨64⟩ mem' = UInt256.ofNat ptr' ∧ memLoad ⟨96⟩ mem' = ⟨0⟩ ∧
       ptr ≤ ptr' ∧ ptr' ≤ ptr + 2 ^ 139 ∧ 128 ≤ mem'.size ∧
@@ -55,7 +57,7 @@ theorem safeExecTransactionPayment (p : ExecTransactionInput) (evm : EVM.State)
   · have h₁ := safeRuntime_block_4749_fallthrough (by simp; omega)
       (by rw [hzero]; decide) h
     obtain ⟨k₂, C₂, h₂⟩ := safeExecPaymentDiscard h₁ (by simp; omega)
-    have hs : ExecStmt config (execPaymentInit locals) evm execPaymentStmt
+    have hs : ExecStmt fork config (execPaymentInit locals) evm execPaymentStmt
         (.ok (execPaymentFinal locals ⟨0⟩ false) evm) :=
       .iteFalse (by simpa only [hzero, ne_self_iff_false, decide_false] using hc) .nil
     exact .inr (.inr ⟨⟨0⟩, false, evm, σ, mem, ptr, rdata, _, k₂, C₂,
@@ -78,7 +80,7 @@ theorem safeExecTransactionPayment (p : ExecTransactionInput) (evm : EVM.State)
   let paid := UInt256.mul (execPaymentInput p used).gasTotal
     (paymentPrice (execPaymentInput p used) I)
   have hs := safeExecPaymentCall p evm hli hui hbody
-  have hstmt : ExecStmt config (execPaymentInit locals) evm execPaymentStmt
+  have hstmt : ExecStmt fork config (execPaymentInit locals) evm execPaymentStmt
       (.ok (execPaymentFinal locals paid true) evm') :=
     .iteTrue hcond (.consNormal hs
       (.consNormal (safeExecPaymentAssign locals evm' paid) .nil))

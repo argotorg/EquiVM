@@ -3,6 +3,8 @@ import Benchmarks.CurveVault.Memory
 import Benchmarks.CurveVault.RuntimeBlocks_030
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -14,7 +16,7 @@ def vaultApproveLocals (owner spender : AccountAddress) (value : UInt256) : Stor
 
 theorem vaultApproveSource (evm : State) (owner spender : AccountAddress) (value : UInt256)
     (hperm : evm.executionEnv.perm = true) :
-    ExecFuncBody config {contract := contract, locals := vaultApproveLocals owner spender value}
+    ExecFuncBody fork config {contract := contract, locals := vaultApproveLocals owner spender value}
       evm vaultApproveFunction.body
       (.returned {contract := contract, locals := vaultApproveLocals owner spender value}
         (Stele.EVM.storageStore evm evm.executionEnv.codeOwner (vaultAllowanceSlot owner spender) value) none) := by
@@ -30,10 +32,10 @@ theorem vaultApproveSource (evm : State) (owner spender : AccountAddress) (value
     simp only [evalExpr?, locals, vaultApproveLocals, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert]
     rfl
   apply ExecFuncBody.execBlockOK
-  apply ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) (hv evm)
+  apply ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (hv evm)
     (vaultAllowanceAssign evm locals (.var "_owner") (.var "_spender") owner spender value
       (by simp [locals, vaultApproveLocals]) (ha evm) (hb evm)))
-  refine ExecBlock.consNormal (ExecStmt.emit (hperm := by simpa only [storageStore_executionEnv] using hperm) (vals := [.address owner, .address spender, .int (Int.ofNat value.toNat)]) ?_) ExecBlock.nil
+  refine ExecBlock.consNormal (ExecStmt.emit (fork := fork) (hperm := by simpa only [storageStore_executionEnv] using hperm) (vals := [.address owner, .address spender, .int (Int.ofNat value.toNat)]) ?_) ExecBlock.nil
   change evalExprs? config {contract := contract, locals := locals} _
     [.var "_owner", .var "_spender", .var "_value"] = _
   simp only [evalExprs?, ha, hb, hv, EvalResult.bind, pure, bind]
@@ -63,15 +65,15 @@ theorem vaultApproveRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hcanon0 : owner.toNat < EVM.addressModulus) (hcanon1 : spender.toNat < EVM.addressModulus)
     (hperm : I.perm = true) (hstack : R.length + 6 ≤ 1024)
     (hvalid : (D_J vaultBytecode 0).contains returnPc = true)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 7939) (returnPc :: R) mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 7939) (returnPc :: R) mem aw rdata σ k C) :
     ∃ (evm' : State) (σ' : AccountMap) (aw' : UInt256) (k' C' : Nat),
-      ExecFuncBody config {contract := contract, locals := (vaultApproveLocals
+      ExecFuncBody fork config {contract := contract, locals := (vaultApproveLocals
         (AccountAddress.ofNat owner.toNat) (AccountAddress.ofNat spender.toNat) value)}
         evm vaultApproveFunction.body
         (.returned {contract := contract, locals := (vaultApproveLocals
           (AccountAddress.ofNat owner.toNat) (AccountAddress.ofNat spender.toNat) value)} evm' none) ∧
       SourceState s0 I σ' evm' ∧
-      RD vaultBytecode I g s0 returnPc R (vaultApproveMemory mem owner spender value) aw' rdata σ' k' C' := by
+      RD fork vaultBytecode I g s0 returnPc R (vaultApproveMemory mem owner spender value) aw' rdata σ' k' C' := by
   let hashMem0 := wordAt0Mem ⟨12⟩ (wordAt32Mem owner mem)
   have hsize0 : hashMem0.size = mem.size := vyperHashMem_size _ _ _ (by omega)
   have hms0 : memLoad (UInt256.ofNat 96) hashMem0 = spender := by
@@ -100,7 +102,7 @@ theorem vaultApproveRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     rw [hhash0, hms0]
     rfl
   obtain ⟨aw', k', C', rd⟩ := vaultBlocks.vault_block_7939_packed hstack hperm hvalid h
-  change RD vaultBytecode I g s0 returnPc R (vaultBlocks.vault_block_7939_memory (mem := mem)) aw' rdata
+  change RD fork vaultBytecode I g s0 returnPc R (vaultBlocks.vault_block_7939_memory (mem := mem)) aw' rdata
     (sstoreAccountMap I.codeOwner σ
       (keccakWord ⟨0⟩ (UInt256.ofNat 64)
         (wordAt0Mem (keccakWord ⟨0⟩ (UInt256.ofNat 64)

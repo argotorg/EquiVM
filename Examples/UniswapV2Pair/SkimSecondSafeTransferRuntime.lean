@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.SkimSecondRuntime
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -816,12 +818,12 @@ theorem RD.uniswapSkimExcessSuccessToSafeTransferEntry {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {balance reserve toWord token safeRet : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6879⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6879⟩
       (reserve :: balance :: ⟨5325⟩ :: toWord :: token :: safeRet :: R)
       mem aw rdata σ k C)
     (hle : reserve.toNat ≤ balance.toNat)
     (hov : R.length + 12 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6370⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6370⟩
       (UInt256.sub balance reserve :: toWord :: token :: safeRet :: R)
       mem aw rdata σ k' C' := by
   obtain ⟨_, _, rd5325⟩ :=
@@ -1144,7 +1146,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade {g : Sat256} {s0 : State
     {ee : ExecutionEnv} {k C : ℕ}
     {self value toWord prevValue token token0 ret sel : UInt256}
     {o out2 : ByteArray} {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6370⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6370⟩
       (value :: toWord :: token :: ret :: token :: token0 :: toWord :: ⟨570⟩ :: sel :: [])
       (skimSecondBalanceStaticcallMem self o toWord prevValue out2) (UInt256.ofNat 13) out2
       σ k C)
@@ -1156,15 +1158,15 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade {g : Sat256} {s0 : State
       (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
         (σ', g'', A', z, out) =
-          Ethereum.EVM.Θ σ s0.σ₀ A_in
+          Ethereum.EVM.Θ fork σ s0.σ₀ A_in
             (AccountAddress.ofUInt256 (UInt256.ofNat ee.codeOwner)) ee.sender
             (AccountAddress.ofUInt256 (UInt256.land token solcAddrMask))
-            (toExecute σ (AccountAddress.ofUInt256 (UInt256.land token solcAddrMask)))
+            (toExecute fork σ (AccountAddress.ofUInt256 (UInt256.land token solcAddrMask)))
             callGas (UInt256.ofNat ee.gasPrice) ⟨0⟩ ⟨0⟩
             ((skimSecondSafeTransferCallMem2 self o toWord prevValue out2 value)
               |>.readWithPadding 456 68)
             (ee.depth + 1) ee.header ee.blobVersionedHashes ee.blocks ee.perm)
-      ∧ RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
+      ∧ RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨524⟩ ::
             UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
             value :: toWord :: token :: ret :: token :: token0 :: toWord :: ⟨570⟩ ::

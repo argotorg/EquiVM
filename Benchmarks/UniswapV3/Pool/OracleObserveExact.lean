@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.OracleObservePair
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -17,7 +19,7 @@ theorem oracleObserveBeforeBranch {frame : Frame} {evm : EVM.State}
     (target : UInt256) (before : OracleObservation)
     (ht : frame.locals.get? "target" = some (.int (Int.ofNat target.toNat)))
     (hb : frame.locals.get? "beforeOrAt" = some before.value) (he : target = before.timestamp) :
-    ExecStmt config frame evm oracleObserveSingleFunction.body[7]!
+    ExecStmt fork config frame evm oracleObserveSingleFunction.body[7]!
       (.returned frame evm (some before.cumulatives)) := by
   refine ExecStmt.iteTrue ?_ (ExecBlock.consReturn (ExecStmt.return (evalOracleCumulatives before hb)))
   have h := evalExpr_word_eq (evalExpr_var_get (cfg := config) (evm := evm) ht)
@@ -30,7 +32,7 @@ theorem oracleObserveAfterBranch {frame : Frame} {evm : EVM.State}
     (hb : frame.locals.get? "beforeOrAt" = some before.value)
     (ha : frame.locals.get? "atOrAfter" = some after.value)
     (hne : target ≠ before.timestamp) (he : target = after.timestamp) :
-    ExecStmt config frame evm oracleObserveSingleFunction.body[7]!
+    ExecStmt fork config frame evm oracleObserveSingleFunction.body[7]!
       (.returned frame evm (some after.cumulatives)) := by
   refine ExecStmt.iteFalse ?_ (ExecBlock.consReturn (ExecStmt.iteTrue ?_
     (ExecBlock.consReturn (ExecStmt.return (evalOracleCumulatives after ha)))))
@@ -49,14 +51,14 @@ theorem oracleObserveNonzeroExactReturns (imms : Store) (evm : EVM.State)
       evm.accountMap evm.executionEnv before after)
     (hexact : oracleDelta time secondsAgo = before.timestamp ∨
       oracleDelta time secondsAgo = after.timestamp) :
-    ∃ frame, ExecFuncBody config
+    ∃ frame, ExecFuncBody fork config
       (oracleObserveSingleFrame imms time secondsAgo tick index liquidity cardinality)
       evm oracleObserveSingleFunction.body (.returned frame evm
         (some (if oracleDelta time secondsAgo = before.timestamp then before else after).cumulatives)) := by
   let f := oracleObservePairFrame imms time secondsAgo tick index liquidity cardinality before after
   obtain ⟨ht, hb, ha⟩ := oracleObservePairGets imms time secondsAgo tick index liquidity cardinality
     before after
-  have hstmt : ExecStmt config f evm oracleObserveSingleFunction.body[7]!
+  have hstmt : ExecStmt fork config f evm oracleObserveSingleFunction.body[7]!
       (.returned f evm
         (some (if oracleDelta time secondsAgo = before.timestamp then before else after).cumulatives)) := by
     by_cases he : oracleDelta time secondsAgo = before.timestamp

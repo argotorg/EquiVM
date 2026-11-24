@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.SchemaDecode
 import Benchmarks.EAS.EAS.GetSchemaTail
 import Benchmarks.EAS.EAS.RuntimeBlocks_033
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -24,15 +26,15 @@ theorem easSchemaReturn {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length+12 ≤ 1024) (hlo : 96 ≤ ptr.toNat) (hptr : ptr.toNat ≤ 2^64-1)
     (hin : ptr.toNat ≤ mem.size) (hout : out.size < 2^138)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨4883⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨4883⟩
       (ptr::UInt256.ofNat out.size::⟨9829⟩::UInt256.ofNat out.size::ptr::ret::R)
       (out.write 0 mem ptr.toNat out.size) aw out σ k C) :
     if schemaCallValid ptr.toNat true out then
-      ∃ mem' aw' k' C', RD (deployedRuntime v) ee g s0 ret (UInt256.ofNat (schemaCopyHeap ptr.toNat out)::R) mem' aw' out σ k' C' ∧
+      ∃ mem' aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (UInt256.ofNat (schemaCopyHeap ptr.toNat out)::R) mem' aw' out σ k' C' ∧
         MemoryPrefix mem mem' ptr.toNat ∧
         SchemaMemoryView mem' (UInt256.ofNat (schemaCopyHeap ptr.toNat out)) (decodedSchemaRecord out (schemaReturnOffset out)) ∧
         memLoad (UInt256.ofNat 64) mem' = UInt256.ofNat (schemaFinalHeap ptr.toNat out)
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have ho : (UInt256.ofNat out.size).toNat = out.size := ulit_toNat' _ (by change out.size < 2^256; omega)
   by_cases hg : schemaCopyHeap ptr.toNat out ≤ 2^64-1 ∧ ptr.toNat ≤ schemaCopyHeap ptr.toNat out
   · obtain ⟨aw1,k1,C1,rd1⟩ := easAllocate_ok v (by simp only [List.length_cons]; omega)

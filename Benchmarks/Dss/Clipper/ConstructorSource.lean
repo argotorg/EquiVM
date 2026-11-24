@@ -2,6 +2,8 @@ import Reasoning.WordArithmetic
 import Benchmarks.Dss.Clipper.ConstructorBase
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Clipper constructor source semantics
 -/
@@ -213,7 +215,7 @@ theorem clipperCtorBodySuccess
     let evm3 := clipperCtorAfterDogState evm2 dog
     let evm4 := clipperCtorAfterBufState evm3
     let evm5 := clipperCtorAfterWardsState evm4
-    ExecBlock config
+    ExecBlock fork config
       { contract := contract, locals := locals, immutables := initialImmutables contract }
       evm0 constructorDecl.body
       (.ok { contract := contract, locals := locals, immutables := clipperCtorFinalImms vat ilk }
@@ -235,7 +237,7 @@ theorem clipperCtorBodySuccess
   have hwards := assign_clipperCtorWardsCaller (imms := clipperCtorFinalImms vat ilk) evm4
     (locals := locals) (hbase "wards" (by decide))
   simp only [constructorDecl, nonpayable, List.cons_append, List.nil_append]
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hstopped) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hstopped) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · exact evalCallvalueEq_true (by
       rw [clipperCtorAfterStoppedState, storageStore_executionEnv']
@@ -248,12 +250,12 @@ theorem clipperCtorBodySuccess
       (ty := .bytes ⟨31, by decide⟩) ?_ rfl ?_) ?_
   · exact evalExpr_clipperCtorLocalIlk (evm := evm1) vat spotter dog ilk
   · simp [elemValueFits, bytes32Width, hilk]
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [evm1, clipperCtorAfterStoppedState, storageStore_executionEnv, evm0, initState] using hperm)) ?_ hspotter) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [evm1, clipperCtorAfterStoppedState, storageStore_executionEnv, evm0, initState] using hperm)) ?_ hspotter) ?_
   · exact evalExpr_clipperCtorLocalSpotter (evm := evm1) vat spotter dog ilk
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [evm2, evm1, clipperCtorAfterStoppedState, clipperCtorAfterSpotterState, storageStore_executionEnv, evm0, initState] using hperm)) ?_ hdog) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [evm2, evm1, clipperCtorAfterStoppedState, clipperCtorAfterSpotterState, storageStore_executionEnv, evm0, initState] using hperm)) ?_ hdog) ?_
   · exact evalExpr_clipperCtorLocalDog (evm := evm2) vat spotter dog ilk
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [evm3, evm2, evm1, clipperCtorAfterStoppedState, clipperCtorAfterSpotterState, clipperCtorAfterDogState, storageStore_executionEnv, evm0, initState] using hperm)) (by simp [evalExpr?, pure, RAY]) hbuf) ?_
-  exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [evm4, evm3, evm2, evm1, clipperCtorAfterStoppedState, clipperCtorAfterSpotterState, clipperCtorAfterDogState, clipperCtorAfterBufState, storageStore_executionEnv, evm0, initState] using hperm)) (by simp [evalExpr?, pure]) hwards)
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [evm3, evm2, evm1, clipperCtorAfterStoppedState, clipperCtorAfterSpotterState, clipperCtorAfterDogState, storageStore_executionEnv, evm0, initState] using hperm)) (by simp [evalExpr?, pure, RAY]) hbuf) ?_
+  exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [evm4, evm3, evm2, evm1, clipperCtorAfterStoppedState, clipperCtorAfterSpotterState, clipperCtorAfterDogState, clipperCtorAfterBufState, storageStore_executionEnv, evm0, initState] using hperm)) (by simp [evalExpr?, pure]) hwards)
     ExecBlock.nil
 
 theorem clipperSteleCtorExecSuccess
@@ -261,7 +263,7 @@ theorem clipperSteleCtorExecSuccess
     (vat spotter dog : AccountAddress) (ilk : List UInt8) (hilk : ilk.length = 32)
     (hwv : I.weiValue = ⟨0⟩)
     (hperm : I.perm = true) :
-    steleCtorExec config contract
+    steleCtorExec fork config contract
       [.address vat, .address spotter, .address dog, .fixedBytes bytes32Width ilk]
       σ σ₀ g A I
       (.returned
@@ -280,7 +282,7 @@ theorem clipperSteleCtorExecSuccess
     (argsStore := clipperCtorLocals vat spotter dog ilk) ?_ rfl ?_ ?_
   · rfl
   · rfl
-  · exact ExecFuncBody.execBlockOK (clipperCtorBodySuccess (hperm := hperm)
+  · exact ExecFuncBody.execBlockOK (clipperCtorBodySuccess (fork := fork) (hperm := hperm)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) vat spotter dog ilk hilk hwv)
 
 theorem clipperSteleCtorExecReverts_nonpayable
@@ -288,7 +290,7 @@ theorem clipperSteleCtorExecReverts_nonpayable
     (vat spotter dog : AccountAddress) (ilk : List UInt8)
     (hwv : I.weiValue ≠ ⟨0⟩)
     (hperm : I.perm = true) :
-    steleCtorExec config contract
+    steleCtorExec fork config contract
       [.address vat, .address spotter, .address dog, .fixedBytes bytes32Width ilk]
       σ σ₀ g A I .reverted := by
   let evm0 := initState σ σ₀
@@ -296,13 +298,13 @@ theorem clipperSteleCtorExecReverts_nonpayable
   have hstopped := assign_clipperCtorStoppedStorage (imms := initialImmutables contract) evm0
     (clipperCtorLocals vat spotter dog ilk)
     (by simp [clipperCtorLocals])
-  have hbody : ExecBlock config
+  have hbody : ExecBlock fork config
       { contract := contract, locals := clipperCtorLocals vat spotter dog ilk,
         immutables := initialImmutables contract } evm0
       constructorDecl.body .reverted := by
     simp only [constructorDecl, nonpayable, List.cons_append, List.nil_append]
     refine ExecBlock.consNormal
-      (ExecStmt.assign (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hstopped) ?_
+      (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hstopped) ?_
     exact blockReverts_nonPayable (by
       rw [clipperCtorAfterStoppedState, storageStore_executionEnv']
       simpa [evm0, initState] using hwv)

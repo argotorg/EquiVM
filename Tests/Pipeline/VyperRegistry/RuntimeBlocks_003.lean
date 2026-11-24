@@ -1,6 +1,8 @@
 import Reasoning.Reach
 import Tests.Pipeline.VyperRegistry.Bytecode
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM
 open Reasoning.Theory Reasoning.Reach
 
@@ -10,8 +12,8 @@ namespace registryBlocks
 theorem registry_block_442_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (UInt256.ofNat 2) (⟨0⟩ : UInt256))) = (UInt256.ofNat 0))
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 442) R mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 450) R mem aw rdata σ k' C' := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 442) R mem aw rdata σ k C)
+    : ∃ (k' C' : ℕ), RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 450) R mem aw rdata σ k' C' := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push1 (UInt256.ofNat 2) (by native_decide) (by evm_ov)
@@ -25,8 +27,8 @@ theorem registry_block_442_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : St
 theorem registry_block_442_fallthrough_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (UInt256.ofNat 2) (⟨0⟩ : UInt256))) = (UInt256.ofNat 0))
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 442) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 450) R mem aw' rdata σ k' C' := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 442) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 450) R mem aw' rdata σ k' C' := by
   obtain ⟨k0, C0, h0⟩ := registry_block_442_fallthrough hstack hcond h
   obtain ⟨k', C', h'⟩ := RD.pack h0
   exact ⟨_, k', C', h'⟩
@@ -34,8 +36,8 @@ theorem registry_block_442_fallthrough_packed {ee : ExecutionEnv} {g : Sat256} {
 /-- Automatically generated RD summary for bytecode block at pc 450. -/
 theorem registry_block_450 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024)
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 450) R mem aw rdata σ k C)
-    : RDrev Tests.Pipeline.VyperRegistry.registryBytecode g s0 := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 450) R mem aw rdata σ k C)
+    : RDrev fork Tests.Pipeline.VyperRegistry.registryBytecode g s0 := by
   let r0 := h
   have r1 := r0.push1 (UInt256.ofNat 32) (by native_decide) (by evm_ov)
   have r2 := r1.dup1 (by native_decide) (by evm_ov)
@@ -107,8 +109,8 @@ theorem registry_block_569_taken {ee : ExecutionEnv} {g : Sat256} {s0 : State} {
     (hstack : R.length + 4 ≤ 1024)
     (hcond : (UInt256.isZero (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (UInt256.ofNat 2) (⟨0⟩ : UInt256)))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Tests.Pipeline.VyperRegistry.registryBytecode 0).contains (UInt256.ofNat 1661) = true)
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 569) R mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 1661) (registry_block_569_taken_stack (ee := ee) (σ := σ) (R := R)) mem aw rdata σ k' C' := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 569) R mem aw rdata σ k C)
+    : ∃ (k' C' : ℕ), RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 1661) (registry_block_569_taken_stack (ee := ee) (σ := σ) (R := R)) mem aw rdata σ k' C' := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push1 (UInt256.ofNat 1) (by native_decide) (by evm_ov)
@@ -126,8 +128,8 @@ theorem registry_block_569_taken_packed {ee : ExecutionEnv} {g : Sat256} {s0 : S
     (hstack : R.length + 4 ≤ 1024)
     (hcond : (UInt256.isZero (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (UInt256.ofNat 2) (⟨0⟩ : UInt256)))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Tests.Pipeline.VyperRegistry.registryBytecode 0).contains (UInt256.ofNat 1661) = true)
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 569) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 1661) (registry_block_569_taken_stack (ee := ee) (σ := σ) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 569) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 1661) (registry_block_569_taken_stack (ee := ee) (σ := σ) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k0, C0, h0⟩ := registry_block_569_taken hstack hcond hvalid h
   obtain ⟨k', C', h'⟩ := RD.pack h0
   exact ⟨_, k', C', h'⟩
@@ -140,8 +142,8 @@ def registry_block_569_fallthrough_stack {ee : ExecutionEnv} {σ : AccountMap} {
 theorem registry_block_569_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hcond : (UInt256.isZero (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (UInt256.ofNat 2) (⟨0⟩ : UInt256)))) = (UInt256.ofNat 0))
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 569) R mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 581) (registry_block_569_fallthrough_stack (ee := ee) (σ := σ) (R := R)) mem aw rdata σ k' C' := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 569) R mem aw rdata σ k C)
+    : ∃ (k' C' : ℕ), RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 581) (registry_block_569_fallthrough_stack (ee := ee) (σ := σ) (R := R)) mem aw rdata σ k' C' := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push1 (UInt256.ofNat 1) (by native_decide) (by evm_ov)
@@ -158,8 +160,8 @@ theorem registry_block_569_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : St
 theorem registry_block_569_fallthrough_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hcond : (UInt256.isZero (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (UInt256.ofNat 2) (⟨0⟩ : UInt256)))) = (UInt256.ofNat 0))
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 569) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 581) (registry_block_569_fallthrough_stack (ee := ee) (σ := σ) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 569) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 581) (registry_block_569_fallthrough_stack (ee := ee) (σ := σ) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k0, C0, h0⟩ := registry_block_569_fallthrough hstack hcond h
   obtain ⟨k', C', h'⟩ := RD.pack h0
   exact ⟨_, k', C', h'⟩
@@ -178,8 +180,8 @@ theorem registry_block_581_taken {ee : ExecutionEnv} {g : Sat256} {s0 : State} {
     (hperm : ee.perm = true)
     (hcond : (UInt256.isZero ((sstoreAccountMap ee.codeOwner σ (UInt256.ofNat 2) (UInt256.sub x0 x1)).get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((keccakWord (⟨0⟩ : UInt256) (UInt256.ofNat 64) ((UInt256.ofNat 1).toByteArray.write 0 ((memLoad (UInt256.ofNat 256) (((sstoreAccountMap ee.codeOwner σ (UInt256.ofNat 2) (UInt256.sub x0 x1)).get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((UInt256.ofNat 3) + (UInt256.sub x0 x1)) (⟨0⟩ : UInt256))).toByteArray.write 0 mem (UInt256.ofNat 256).toNat 32)).toByteArray.write 0 (((sstoreAccountMap ee.codeOwner σ (UInt256.ofNat 2) (UInt256.sub x0 x1)).get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((UInt256.ofNat 3) + (UInt256.sub x0 x1)) (⟨0⟩ : UInt256))).toByteArray.write 0 mem (UInt256.ofNat 256).toNat 32) (UInt256.ofNat 32).toNat 32) (⟨0⟩ : UInt256).toNat 32)) + (UInt256.ofNat 2)) (⟨0⟩ : UInt256)))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Tests.Pipeline.VyperRegistry.registryBytecode 0).contains (UInt256.ofNat 666) = true)
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 581) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 666) (registry_block_581_taken_stack (R := R)) (registry_block_581_taken_memory (ee := ee) (mem := mem) (σ := σ) (x0 := x0) (x1 := x1)) (M (M (M (M (M aw (UInt256.ofNat 256) (⟨32⟩ : UInt256)) (UInt256.ofNat 256) (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ : UInt256)) (⟨0⟩ : UInt256) (⟨32⟩ : UInt256)) (⟨0⟩ : UInt256) (UInt256.ofNat 64)) rdata (sstoreAccountMap ee.codeOwner σ (UInt256.ofNat 2) (UInt256.sub x0 x1)) k' C' := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 581) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (k' C' : ℕ), RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 666) (registry_block_581_taken_stack (R := R)) (registry_block_581_taken_memory (ee := ee) (mem := mem) (σ := σ) (x0 := x0) (x1 := x1)) (M (M (M (M (M aw (UInt256.ofNat 256) (⟨32⟩ : UInt256)) (UInt256.ofNat 256) (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ : UInt256)) (⟨0⟩ : UInt256) (⟨32⟩ : UInt256)) (⟨0⟩ : UInt256) (UInt256.ofNat 64)) rdata (sstoreAccountMap ee.codeOwner σ (UInt256.ofNat 2) (UInt256.sub x0 x1)) k' C' := by
   let r0 := h
   have r1 := r0.sub (by native_decide) (by evm_ov)
   have r2 := r1.dup1 (by native_decide) (by evm_ov)
@@ -221,8 +223,8 @@ theorem registry_block_581_taken_packed {ee : ExecutionEnv} {g : Sat256} {s0 : S
     (hperm : ee.perm = true)
     (hcond : (UInt256.isZero ((sstoreAccountMap ee.codeOwner σ (UInt256.ofNat 2) (UInt256.sub x0 x1)).get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((keccakWord (⟨0⟩ : UInt256) (UInt256.ofNat 64) ((UInt256.ofNat 1).toByteArray.write 0 ((memLoad (UInt256.ofNat 256) (((sstoreAccountMap ee.codeOwner σ (UInt256.ofNat 2) (UInt256.sub x0 x1)).get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((UInt256.ofNat 3) + (UInt256.sub x0 x1)) (⟨0⟩ : UInt256))).toByteArray.write 0 mem (UInt256.ofNat 256).toNat 32)).toByteArray.write 0 (((sstoreAccountMap ee.codeOwner σ (UInt256.ofNat 2) (UInt256.sub x0 x1)).get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((UInt256.ofNat 3) + (UInt256.sub x0 x1)) (⟨0⟩ : UInt256))).toByteArray.write 0 mem (UInt256.ofNat 256).toNat 32) (UInt256.ofNat 32).toNat 32) (⟨0⟩ : UInt256).toNat 32)) + (UInt256.ofNat 2)) (⟨0⟩ : UInt256)))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Tests.Pipeline.VyperRegistry.registryBytecode 0).contains (UInt256.ofNat 666) = true)
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 581) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 666) (registry_block_581_taken_stack (R := R)) (registry_block_581_taken_memory (ee := ee) (mem := mem) (σ := σ) (x0 := x0) (x1 := x1)) aw' rdata (sstoreAccountMap ee.codeOwner σ (UInt256.ofNat 2) (UInt256.sub x0 x1)) k' C' := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 581) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 666) (registry_block_581_taken_stack (R := R)) (registry_block_581_taken_memory (ee := ee) (mem := mem) (σ := σ) (x0 := x0) (x1 := x1)) aw' rdata (sstoreAccountMap ee.codeOwner σ (UInt256.ofNat 2) (UInt256.sub x0 x1)) k' C' := by
   obtain ⟨k0, C0, h0⟩ := registry_block_581_taken hstack hperm hcond hvalid h
   obtain ⟨k', C', h'⟩ := RD.pack h0
   exact ⟨_, k', C', h'⟩
@@ -240,8 +242,8 @@ theorem registry_block_581_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : St
     (hstack : R.length + 3 ≤ 1024)
     (hperm : ee.perm = true)
     (hcond : (UInt256.isZero ((sstoreAccountMap ee.codeOwner σ (UInt256.ofNat 2) (UInt256.sub x0 x1)).get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((keccakWord (⟨0⟩ : UInt256) (UInt256.ofNat 64) ((UInt256.ofNat 1).toByteArray.write 0 ((memLoad (UInt256.ofNat 256) (((sstoreAccountMap ee.codeOwner σ (UInt256.ofNat 2) (UInt256.sub x0 x1)).get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((UInt256.ofNat 3) + (UInt256.sub x0 x1)) (⟨0⟩ : UInt256))).toByteArray.write 0 mem (UInt256.ofNat 256).toNat 32)).toByteArray.write 0 (((sstoreAccountMap ee.codeOwner σ (UInt256.ofNat 2) (UInt256.sub x0 x1)).get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((UInt256.ofNat 3) + (UInt256.sub x0 x1)) (⟨0⟩ : UInt256))).toByteArray.write 0 mem (UInt256.ofNat 256).toNat 32) (UInt256.ofNat 32).toNat 32) (⟨0⟩ : UInt256).toNat 32)) + (UInt256.ofNat 2)) (⟨0⟩ : UInt256)))) = (UInt256.ofNat 0))
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 581) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 624) (registry_block_581_fallthrough_stack (R := R)) (registry_block_581_fallthrough_memory (ee := ee) (mem := mem) (σ := σ) (x0 := x0) (x1 := x1)) (M (M (M (M (M aw (UInt256.ofNat 256) (⟨32⟩ : UInt256)) (UInt256.ofNat 256) (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ : UInt256)) (⟨0⟩ : UInt256) (⟨32⟩ : UInt256)) (⟨0⟩ : UInt256) (UInt256.ofNat 64)) rdata (sstoreAccountMap ee.codeOwner σ (UInt256.ofNat 2) (UInt256.sub x0 x1)) k' C' := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 581) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (k' C' : ℕ), RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 624) (registry_block_581_fallthrough_stack (R := R)) (registry_block_581_fallthrough_memory (ee := ee) (mem := mem) (σ := σ) (x0 := x0) (x1 := x1)) (M (M (M (M (M aw (UInt256.ofNat 256) (⟨32⟩ : UInt256)) (UInt256.ofNat 256) (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ : UInt256)) (⟨0⟩ : UInt256) (⟨32⟩ : UInt256)) (⟨0⟩ : UInt256) (UInt256.ofNat 64)) rdata (sstoreAccountMap ee.codeOwner σ (UInt256.ofNat 2) (UInt256.sub x0 x1)) k' C' := by
   let r0 := h
   have r1 := r0.sub (by native_decide) (by evm_ov)
   have r2 := r1.dup1 (by native_decide) (by evm_ov)
@@ -282,8 +284,8 @@ theorem registry_block_581_fallthrough_packed {ee : ExecutionEnv} {g : Sat256} {
     (hstack : R.length + 3 ≤ 1024)
     (hperm : ee.perm = true)
     (hcond : (UInt256.isZero ((sstoreAccountMap ee.codeOwner σ (UInt256.ofNat 2) (UInt256.sub x0 x1)).get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((keccakWord (⟨0⟩ : UInt256) (UInt256.ofNat 64) ((UInt256.ofNat 1).toByteArray.write 0 ((memLoad (UInt256.ofNat 256) (((sstoreAccountMap ee.codeOwner σ (UInt256.ofNat 2) (UInt256.sub x0 x1)).get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((UInt256.ofNat 3) + (UInt256.sub x0 x1)) (⟨0⟩ : UInt256))).toByteArray.write 0 mem (UInt256.ofNat 256).toNat 32)).toByteArray.write 0 (((sstoreAccountMap ee.codeOwner σ (UInt256.ofNat 2) (UInt256.sub x0 x1)).get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((UInt256.ofNat 3) + (UInt256.sub x0 x1)) (⟨0⟩ : UInt256))).toByteArray.write 0 mem (UInt256.ofNat 256).toNat 32) (UInt256.ofNat 32).toNat 32) (⟨0⟩ : UInt256).toNat 32)) + (UInt256.ofNat 2)) (⟨0⟩ : UInt256)))) = (UInt256.ofNat 0))
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 581) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 624) (registry_block_581_fallthrough_stack (R := R)) (registry_block_581_fallthrough_memory (ee := ee) (mem := mem) (σ := σ) (x0 := x0) (x1 := x1)) aw' rdata (sstoreAccountMap ee.codeOwner σ (UInt256.ofNat 2) (UInt256.sub x0 x1)) k' C' := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 581) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 624) (registry_block_581_fallthrough_stack (R := R)) (registry_block_581_fallthrough_memory (ee := ee) (mem := mem) (σ := σ) (x0 := x0) (x1 := x1)) aw' rdata (sstoreAccountMap ee.codeOwner σ (UInt256.ofNat 2) (UInt256.sub x0 x1)) k' C' := by
   obtain ⟨k0, C0, h0⟩ := registry_block_581_fallthrough hstack hperm hcond h
   obtain ⟨k', C', h'⟩ := RD.pack h0
   exact ⟨_, k', C', h'⟩
@@ -301,8 +303,8 @@ theorem registry_block_624_taken {ee : ExecutionEnv} {g : Sat256} {s0 : State} {
     (hstack : R.length + 5 ≤ 1024)
     (hcond : (UInt256.gt (UInt256.sub (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (UInt256.ofNat 20) (⟨0⟩ : UInt256))) (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((keccakWord (⟨0⟩ : UInt256) (UInt256.ofNat 64) ((UInt256.ofNat 1).toByteArray.write 0 ((memLoad (UInt256.ofNat 256) mem).toByteArray.write 0 mem (UInt256.ofNat 32).toNat 32) (⟨0⟩ : UInt256).toNat 32)) + (UInt256.ofNat 1)) (⟨0⟩ : UInt256)))) (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (UInt256.ofNat 20) (⟨0⟩ : UInt256)))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Tests.Pipeline.VyperRegistry.registryBytecode 0).contains (UInt256.ofNat 1661) = true)
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 624) R mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 1661) (registry_block_624_taken_stack (ee := ee) (mem := mem) (σ := σ) (R := R)) (registry_block_624_taken_memory (mem := mem)) (M (M (M (M aw (UInt256.ofNat 256) (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ : UInt256)) (⟨0⟩ : UInt256) (⟨32⟩ : UInt256)) (⟨0⟩ : UInt256) (UInt256.ofNat 64)) rdata σ k' C' := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 624) R mem aw rdata σ k C)
+    : ∃ (k' C' : ℕ), RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 1661) (registry_block_624_taken_stack (ee := ee) (mem := mem) (σ := σ) (R := R)) (registry_block_624_taken_memory (mem := mem)) (M (M (M (M aw (UInt256.ofNat 256) (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ : UInt256)) (⟨0⟩ : UInt256) (⟨32⟩ : UInt256)) (⟨0⟩ : UInt256) (UInt256.ofNat 64)) rdata σ k' C' := by
   let r0 := h
   have r1 := r0.push1 (UInt256.ofNat 20) (by native_decide) (by evm_ov)
   obtain ⟨_, _, r2⟩ := RD.sload r1 (by native_decide) (by evm_ov)
@@ -338,8 +340,8 @@ theorem registry_block_624_taken_packed {ee : ExecutionEnv} {g : Sat256} {s0 : S
     (hstack : R.length + 5 ≤ 1024)
     (hcond : (UInt256.gt (UInt256.sub (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (UInt256.ofNat 20) (⟨0⟩ : UInt256))) (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((keccakWord (⟨0⟩ : UInt256) (UInt256.ofNat 64) ((UInt256.ofNat 1).toByteArray.write 0 ((memLoad (UInt256.ofNat 256) mem).toByteArray.write 0 mem (UInt256.ofNat 32).toNat 32) (⟨0⟩ : UInt256).toNat 32)) + (UInt256.ofNat 1)) (⟨0⟩ : UInt256)))) (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (UInt256.ofNat 20) (⟨0⟩ : UInt256)))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Tests.Pipeline.VyperRegistry.registryBytecode 0).contains (UInt256.ofNat 1661) = true)
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 624) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 1661) (registry_block_624_taken_stack (ee := ee) (mem := mem) (σ := σ) (R := R)) (registry_block_624_taken_memory (mem := mem)) aw' rdata σ k' C' := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 624) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 1661) (registry_block_624_taken_stack (ee := ee) (mem := mem) (σ := σ) (R := R)) (registry_block_624_taken_memory (mem := mem)) aw' rdata σ k' C' := by
   obtain ⟨k0, C0, h0⟩ := registry_block_624_taken hstack hcond hvalid h
   obtain ⟨k', C', h'⟩ := RD.pack h0
   exact ⟨_, k', C', h'⟩
@@ -356,8 +358,8 @@ def registry_block_624_fallthrough_memory {mem : ByteArray} : ByteArray :=
 theorem registry_block_624_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
     (hcond : (UInt256.gt (UInt256.sub (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (UInt256.ofNat 20) (⟨0⟩ : UInt256))) (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((keccakWord (⟨0⟩ : UInt256) (UInt256.ofNat 64) ((UInt256.ofNat 1).toByteArray.write 0 ((memLoad (UInt256.ofNat 256) mem).toByteArray.write 0 mem (UInt256.ofNat 32).toNat 32) (⟨0⟩ : UInt256).toNat 32)) + (UInt256.ofNat 1)) (⟨0⟩ : UInt256)))) (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (UInt256.ofNat 20) (⟨0⟩ : UInt256)))) = (UInt256.ofNat 0))
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 624) R mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 659) (registry_block_624_fallthrough_stack (ee := ee) (mem := mem) (σ := σ) (R := R)) (registry_block_624_fallthrough_memory (mem := mem)) (M (M (M (M aw (UInt256.ofNat 256) (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ : UInt256)) (⟨0⟩ : UInt256) (⟨32⟩ : UInt256)) (⟨0⟩ : UInt256) (UInt256.ofNat 64)) rdata σ k' C' := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 624) R mem aw rdata σ k C)
+    : ∃ (k' C' : ℕ), RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 659) (registry_block_624_fallthrough_stack (ee := ee) (mem := mem) (σ := σ) (R := R)) (registry_block_624_fallthrough_memory (mem := mem)) (M (M (M (M aw (UInt256.ofNat 256) (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ : UInt256)) (⟨0⟩ : UInt256) (⟨32⟩ : UInt256)) (⟨0⟩ : UInt256) (UInt256.ofNat 64)) rdata σ k' C' := by
   let r0 := h
   have r1 := r0.push1 (UInt256.ofNat 20) (by native_decide) (by evm_ov)
   obtain ⟨_, _, r2⟩ := RD.sload r1 (by native_decide) (by evm_ov)
@@ -392,8 +394,8 @@ theorem registry_block_624_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : St
 theorem registry_block_624_fallthrough_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
     (hcond : (UInt256.gt (UInt256.sub (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (UInt256.ofNat 20) (⟨0⟩ : UInt256))) (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((keccakWord (⟨0⟩ : UInt256) (UInt256.ofNat 64) ((UInt256.ofNat 1).toByteArray.write 0 ((memLoad (UInt256.ofNat 256) mem).toByteArray.write 0 mem (UInt256.ofNat 32).toNat 32) (⟨0⟩ : UInt256).toNat 32)) + (UInt256.ofNat 1)) (⟨0⟩ : UInt256)))) (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (UInt256.ofNat 20) (⟨0⟩ : UInt256)))) = (UInt256.ofNat 0))
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 624) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 659) (registry_block_624_fallthrough_stack (ee := ee) (mem := mem) (σ := σ) (R := R)) (registry_block_624_fallthrough_memory (mem := mem)) aw' rdata σ k' C' := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 624) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 659) (registry_block_624_fallthrough_stack (ee := ee) (mem := mem) (σ := σ) (R := R)) (registry_block_624_fallthrough_memory (mem := mem)) aw' rdata σ k' C' := by
   obtain ⟨k0, C0, h0⟩ := registry_block_624_fallthrough hstack hcond h
   obtain ⟨k', C', h'⟩ := RD.pack h0
   exact ⟨_, k', C', h'⟩
@@ -406,8 +408,8 @@ def registry_block_659_stack {R : List UInt256} : List UInt256 :=
 theorem registry_block_659 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hperm : ee.perm = true)
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 659) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 666) (registry_block_659_stack (R := R)) mem aw rdata (sstoreAccountMap ee.codeOwner σ (UInt256.ofNat 20) x0) k' C' := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 659) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : ∃ (k' C' : ℕ), RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 666) (registry_block_659_stack (R := R)) mem aw rdata (sstoreAccountMap ee.codeOwner σ (UInt256.ofNat 20) x0) k' C' := by
   let r0 := h
   have r1 := r0.swap1 (by native_decide) (by evm_ov)
   have r2 := r1.pop (by native_decide) (by evm_ov)
@@ -422,8 +424,8 @@ theorem registry_block_659 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : 
 theorem registry_block_659_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hperm : ee.perm = true)
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 659) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 666) (registry_block_659_stack (R := R)) mem aw' rdata (sstoreAccountMap ee.codeOwner σ (UInt256.ofNat 20) x0) k' C' := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 659) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 666) (registry_block_659_stack (R := R)) mem aw' rdata (sstoreAccountMap ee.codeOwner σ (UInt256.ofNat 20) x0) k' C' := by
   obtain ⟨k0, C0, h0⟩ := registry_block_659 hstack hperm h
   obtain ⟨k', C', h'⟩ := RD.pack h0
   exact ⟨_, k', C', h'⟩
@@ -432,8 +434,8 @@ theorem registry_block_659_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} 
 theorem registry_block_666 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hperm : ee.perm = true)
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 666) R mem aw rdata σ k C)
-    : RDret Tests.Pipeline.VyperRegistry.registryBytecode g s0 (sstoreAccountMap ee.codeOwner (sstoreAccountMap ee.codeOwner (sstoreAccountMap ee.codeOwner σ (keccakWord (⟨0⟩ : UInt256) (UInt256.ofNat 64) ((UInt256.ofNat 1).toByteArray.write 0 ((memLoad (UInt256.ofNat 256) mem).toByteArray.write 0 mem (UInt256.ofNat 32).toNat 32) (⟨0⟩ : UInt256).toNat 32)) (⟨0⟩ : UInt256)) ((keccakWord (⟨0⟩ : UInt256) (UInt256.ofNat 64) ((UInt256.ofNat 1).toByteArray.write 0 ((memLoad (UInt256.ofNat 256) mem).toByteArray.write 0 mem (UInt256.ofNat 32).toNat 32) (⟨0⟩ : UInt256).toNat 32)) + (UInt256.ofNat 1)) (⟨0⟩ : UInt256)) ((keccakWord (⟨0⟩ : UInt256) (UInt256.ofNat 64) ((UInt256.ofNat 1).toByteArray.write 0 ((memLoad (UInt256.ofNat 256) mem).toByteArray.write 0 mem (UInt256.ofNat 32).toNat 32) (⟨0⟩ : UInt256).toNat 32)) + (UInt256.ofNat 2)) (⟨0⟩ : UInt256)) (((UInt256.ofNat 1).toByteArray.write 0 ((memLoad (UInt256.ofNat 256) mem).toByteArray.write 0 mem (UInt256.ofNat 32).toNat 32) (⟨0⟩ : UInt256).toNat 32).readWithPadding (UInt256.ofNat 256).toNat (UInt256.ofNat 32).toNat) := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 666) R mem aw rdata σ k C)
+    : RDret fork Tests.Pipeline.VyperRegistry.registryBytecode g s0 (sstoreAccountMap ee.codeOwner (sstoreAccountMap ee.codeOwner (sstoreAccountMap ee.codeOwner σ (keccakWord (⟨0⟩ : UInt256) (UInt256.ofNat 64) ((UInt256.ofNat 1).toByteArray.write 0 ((memLoad (UInt256.ofNat 256) mem).toByteArray.write 0 mem (UInt256.ofNat 32).toNat 32) (⟨0⟩ : UInt256).toNat 32)) (⟨0⟩ : UInt256)) ((keccakWord (⟨0⟩ : UInt256) (UInt256.ofNat 64) ((UInt256.ofNat 1).toByteArray.write 0 ((memLoad (UInt256.ofNat 256) mem).toByteArray.write 0 mem (UInt256.ofNat 32).toNat 32) (⟨0⟩ : UInt256).toNat 32)) + (UInt256.ofNat 1)) (⟨0⟩ : UInt256)) ((keccakWord (⟨0⟩ : UInt256) (UInt256.ofNat 64) ((UInt256.ofNat 1).toByteArray.write 0 ((memLoad (UInt256.ofNat 256) mem).toByteArray.write 0 mem (UInt256.ofNat 32).toNat 32) (⟨0⟩ : UInt256).toNat 32)) + (UInt256.ofNat 2)) (⟨0⟩ : UInt256)) (((UInt256.ofNat 1).toByteArray.write 0 ((memLoad (UInt256.ofNat 256) mem).toByteArray.write 0 mem (UInt256.ofNat 32).toNat 32) (⟨0⟩ : UInt256).toNat 32).readWithPadding (UInt256.ofNat 256).toNat (UInt256.ofNat 32).toNat) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push1 (UInt256.ofNat 1) (by native_decide) (by evm_ov)
@@ -469,8 +471,8 @@ theorem registry_block_704_taken {ee : ExecutionEnv} {g : Sat256} {s0 : State} {
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.xor x0 (UInt256.ofNat 1143006342)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Tests.Pipeline.VyperRegistry.registryBytecode 0).contains (UInt256.ofNat 736) = true)
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 704) (x0 :: R) mem aw rdata σ k C)
-    : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 736) (x0 :: R) mem aw rdata σ (k + 6) (C + ((23))) := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 704) (x0 :: R) mem aw rdata σ k C)
+    : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 736) (x0 :: R) mem aw rdata σ (k + 6) (C + ((23))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push4 (UInt256.ofNat 1143006342) (by native_decide) (by evm_ov)
@@ -486,8 +488,8 @@ theorem registry_block_704_taken_packed {ee : ExecutionEnv} {g : Sat256} {s0 : S
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.xor x0 (UInt256.ofNat 1143006342)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Tests.Pipeline.VyperRegistry.registryBytecode 0).contains (UInt256.ofNat 736) = true)
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 704) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 736) (x0 :: R) mem aw' rdata σ k' C' := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 704) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 736) (x0 :: R) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (registry_block_704_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -495,8 +497,8 @@ theorem registry_block_704_taken_packed {ee : ExecutionEnv} {g : Sat256} {s0 : S
 theorem registry_block_704_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.xor x0 (UInt256.ofNat 1143006342)) = (UInt256.ofNat 0))
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 704) (x0 :: R) mem aw rdata σ k C)
-    : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 716) (x0 :: R) mem aw rdata σ (k + 6) (C + ((23))) := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 704) (x0 :: R) mem aw rdata σ k C)
+    : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 716) (x0 :: R) mem aw rdata σ (k + 6) (C + ((23))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push4 (UInt256.ofNat 1143006342) (by native_decide) (by evm_ov)
@@ -511,8 +513,8 @@ theorem registry_block_704_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : St
 theorem registry_block_704_fallthrough_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.xor x0 (UInt256.ofNat 1143006342)) = (UInt256.ofNat 0))
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 704) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 716) (x0 :: R) mem aw' rdata σ k' C' := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 704) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 716) (x0 :: R) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (registry_block_704_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -521,8 +523,8 @@ theorem registry_block_716_taken {ee : ExecutionEnv} {g : Sat256} {s0 : State} {
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.lor ee.weiValue (UInt256.lt (UInt256.ofNat ee.calldata.size) (UInt256.ofNat 36))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Tests.Pipeline.VyperRegistry.registryBytecode 0).contains (UInt256.ofNat 1661) = true)
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 716) R mem aw rdata σ k C)
-    : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 1661) R mem aw rdata σ (k + 7) (C + ((26))) := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 716) R mem aw rdata σ k C)
+    : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 1661) R mem aw rdata σ (k + 7) (C + ((26))) := by
   let r0 := h
   have r1 := r0.push1 (UInt256.ofNat 36) (by native_decide) (by evm_ov)
   have r2 := r1.calldatasize (by native_decide) (by evm_ov)
@@ -539,8 +541,8 @@ theorem registry_block_716_taken_packed {ee : ExecutionEnv} {g : Sat256} {s0 : S
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.lor ee.weiValue (UInt256.lt (UInt256.ofNat ee.calldata.size) (UInt256.ofNat 36))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Tests.Pipeline.VyperRegistry.registryBytecode 0).contains (UInt256.ofNat 1661) = true)
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 716) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 1661) R mem aw' rdata σ k' C' := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 716) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 1661) R mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (registry_block_716_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -548,8 +550,8 @@ theorem registry_block_716_taken_packed {ee : ExecutionEnv} {g : Sat256} {s0 : S
 theorem registry_block_716_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.lor ee.weiValue (UInt256.lt (UInt256.ofNat ee.calldata.size) (UInt256.ofNat 36))) = (UInt256.ofNat 0))
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 716) R mem aw rdata σ k C)
-    : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 726) R mem aw rdata σ (k + 7) (C + ((26))) := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 716) R mem aw rdata σ k C)
+    : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 726) R mem aw rdata σ (k + 7) (C + ((26))) := by
   let r0 := h
   have r1 := r0.push1 (UInt256.ofNat 36) (by native_decide) (by evm_ov)
   have r2 := r1.calldatasize (by native_decide) (by evm_ov)
@@ -565,8 +567,8 @@ theorem registry_block_716_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : St
 theorem registry_block_716_fallthrough_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.lor ee.weiValue (UInt256.lt (UInt256.ofNat ee.calldata.size) (UInt256.ofNat 36))) = (UInt256.ofNat 0))
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 716) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 726) R mem aw' rdata σ k' C' := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 716) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 726) R mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (registry_block_716_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -578,8 +580,8 @@ def registry_block_726_memory {mem : ByteArray} : ByteArray :=
 theorem registry_block_726 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hvalid : (D_J Tests.Pipeline.VyperRegistry.registryBytecode 0).contains (UInt256.ofNat 793) = true)
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 726) R mem aw rdata σ k C)
-    : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 793) R (registry_block_726_memory (mem := mem)) (M aw (UInt256.ofNat 288) (⟨32⟩ : UInt256)) rdata σ (k + 5) (C + ((20) + (memExpansionCost aw (UInt256.ofNat 288) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 726) R mem aw rdata σ k C)
+    : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 793) R (registry_block_726_memory (mem := mem)) (M aw (UInt256.ofNat 288) (⟨32⟩ : UInt256)) rdata σ (k + 5) (C + ((20) + (memExpansionCost aw (UInt256.ofNat 288) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have r1 := r0.push1 (UInt256.ofNat 1) (by native_decide) (by evm_ov)
   have r2 := r1.push2 (UInt256.ofNat 288) (by native_decide) (by evm_ov)
@@ -593,8 +595,8 @@ theorem registry_block_726 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : 
 theorem registry_block_726_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hvalid : (D_J Tests.Pipeline.VyperRegistry.registryBytecode 0).contains (UInt256.ofNat 793) = true)
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 726) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 793) R (registry_block_726_memory (mem := mem)) aw' rdata σ k' C' := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 726) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 793) R (registry_block_726_memory (mem := mem)) aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (registry_block_726 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -603,8 +605,8 @@ theorem registry_block_736_taken {ee : ExecutionEnv} {g : Sat256} {s0 : State} {
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.xor x0 (UInt256.ofNat 1639501452)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Tests.Pipeline.VyperRegistry.registryBytecode 0).contains (UInt256.ofNat 1533) = true)
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 736) (x0 :: R) mem aw rdata σ k C)
-    : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 1533) (x0 :: R) mem aw rdata σ (k + 6) (C + ((23))) := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 736) (x0 :: R) mem aw rdata σ k C)
+    : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 1533) (x0 :: R) mem aw rdata σ (k + 6) (C + ((23))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push4 (UInt256.ofNat 1639501452) (by native_decide) (by evm_ov)
@@ -620,8 +622,8 @@ theorem registry_block_736_taken_packed {ee : ExecutionEnv} {g : Sat256} {s0 : S
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.xor x0 (UInt256.ofNat 1639501452)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Tests.Pipeline.VyperRegistry.registryBytecode 0).contains (UInt256.ofNat 1533) = true)
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 736) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 1533) (x0 :: R) mem aw' rdata σ k' C' := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 736) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 1533) (x0 :: R) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (registry_block_736_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -629,8 +631,8 @@ theorem registry_block_736_taken_packed {ee : ExecutionEnv} {g : Sat256} {s0 : S
 theorem registry_block_736_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.xor x0 (UInt256.ofNat 1639501452)) = (UInt256.ofNat 0))
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 736) (x0 :: R) mem aw rdata σ k C)
-    : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 748) (x0 :: R) mem aw rdata σ (k + 6) (C + ((23))) := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 736) (x0 :: R) mem aw rdata σ k C)
+    : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 748) (x0 :: R) mem aw rdata σ (k + 6) (C + ((23))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push4 (UInt256.ofNat 1639501452) (by native_decide) (by evm_ov)
@@ -645,8 +647,8 @@ theorem registry_block_736_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : St
 theorem registry_block_736_fallthrough_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.xor x0 (UInt256.ofNat 1639501452)) = (UInt256.ofNat 0))
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 736) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 748) (x0 :: R) mem aw' rdata σ k' C' := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 736) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 748) (x0 :: R) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (registry_block_736_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -655,8 +657,8 @@ theorem registry_block_748_taken {ee : ExecutionEnv} {g : Sat256} {s0 : State} {
     (hstack : R.length + 2 ≤ 1024)
     (hcond : ee.weiValue ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Tests.Pipeline.VyperRegistry.registryBytecode 0).contains (UInt256.ofNat 1661) = true)
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 748) R mem aw rdata σ k C)
-    : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 1661) R mem aw rdata σ (k + 3) (C + ((15))) := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 748) R mem aw rdata σ k C)
+    : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 1661) R mem aw rdata σ (k + 3) (C + ((15))) := by
   let r0 := h
   have r1 := r0.callvalue (by native_decide) (by evm_ov)
   have r2 := r1.push2 (UInt256.ofNat 1661) (by native_decide) (by evm_ov)
@@ -669,8 +671,8 @@ theorem registry_block_748_taken_packed {ee : ExecutionEnv} {g : Sat256} {s0 : S
     (hstack : R.length + 2 ≤ 1024)
     (hcond : ee.weiValue ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Tests.Pipeline.VyperRegistry.registryBytecode 0).contains (UInt256.ofNat 1661) = true)
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 748) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 1661) R mem aw' rdata σ k' C' := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 748) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 1661) R mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (registry_block_748_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -678,8 +680,8 @@ theorem registry_block_748_taken_packed {ee : ExecutionEnv} {g : Sat256} {s0 : S
 theorem registry_block_748_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : ee.weiValue = (UInt256.ofNat 0))
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 748) R mem aw rdata σ k C)
-    : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 753) R mem aw rdata σ (k + 3) (C + ((15))) := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 748) R mem aw rdata σ k C)
+    : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 753) R mem aw rdata σ (k + 3) (C + ((15))) := by
   let r0 := h
   have r1 := r0.callvalue (by native_decide) (by evm_ov)
   have r2 := r1.push2 (UInt256.ofNat 1661) (by native_decide) (by evm_ov)
@@ -691,16 +693,16 @@ theorem registry_block_748_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : St
 theorem registry_block_748_fallthrough_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : ee.weiValue = (UInt256.ofNat 0))
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 748) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 753) R mem aw' rdata σ k' C' := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 748) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 753) R mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (registry_block_748_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
 /-- Automatically generated RD summary for bytecode block at pc 753. -/
 theorem registry_block_753 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
-    (h : RD Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 753) R mem aw rdata σ k C)
-    : RDret Tests.Pipeline.VyperRegistry.registryBytecode g s0 σ (((σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (UInt256.ofNat 19) (⟨0⟩ : UInt256))).toByteArray.write 0 mem (UInt256.ofNat 64).toNat 32).readWithPadding (UInt256.ofNat 64).toNat (UInt256.ofNat 32).toNat) := by
+    (h : RD fork Tests.Pipeline.VyperRegistry.registryBytecode ee g s0 (UInt256.ofNat 753) R mem aw rdata σ k C)
+    : RDret fork Tests.Pipeline.VyperRegistry.registryBytecode g s0 σ (((σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (UInt256.ofNat 19) (⟨0⟩ : UInt256))).toByteArray.write 0 mem (UInt256.ofNat 64).toNat 32).readWithPadding (UInt256.ofNat 64).toNat (UInt256.ofNat 32).toNat) := by
   let r0 := h
   have r1 := r0.push1 (UInt256.ofNat 19) (by native_decide) (by evm_ov)
   obtain ⟨_, _, r2⟩ := RD.sload r1 (by native_decide) (by evm_ov)

@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.MintTailRuntimeCases
 import Examples.UniswapV2Pair.MintProportionalArithmetic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace UniswapV2Pair
@@ -13,7 +15,7 @@ theorem uniswapMintProportionalRuntimeCases
     {mem rdata : ByteArray} {k C : ℕ}
     {totalSupply feeOn amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel :
       UInt256} {locals : Store} (evm : EVM.State) (recipient : AccountAddress) (fee : Bool)
-    (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd3701 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
       [feeOn, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0,
         ⟨0⟩, toWord, ⟨861⟩, sel]
@@ -42,18 +44,18 @@ theorem uniswapMintProportionalRuntimeCases
     (hperm : I.perm = true)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (ExecBlock config { contract := contract, locals := locals } evm
+    (ExecBlock fork config { contract := contract, locals := locals } evm
         ([mintLiquidityBranchStmt] ++ mintAfterLiquidityTailStmts) .reverted ∧
-      (RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+      (RDrev fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∨
-        RDinvalid uniswapV2PairBytecode (Sat256.ofUInt256 g)
+        RDinvalid fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I))) ∨
     (∃ liquidity frame' evm' σ',
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         ([mintLiquidityBranchStmt] ++ mintAfterLiquidityTailStmts) (.returned frame' evm'
           (some [uniswapUint256Value liquidity])) ∧
       σ' = evm'.accountMap ∧
-      RDret uniswapV2PairBytecode (Sat256.ofUInt256 g)
+      RDret fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         σ' (UInt256.toByteArray liquidity)) := by
   obtain ⟨_, _, rd3762⟩ := uniswapMintRuntimeAfterMintFeeTotalSupplyNonzero rd3701
@@ -68,13 +70,13 @@ theorem uniswapMintProportionalRuntimeCases
       ((locals.insert "liquidity0" (mintProportionalLiquidityValue amount0 totalSupply reserve0)).insert
         "liquidity1" (mintProportionalLiquidityValue amount1 totalSupply reserve1)).insert
         "liquidity" (uniswapUint256Value liquidity), ∅⟩
-    have hbranch : ExecStmt config ⟨contract, locals, ∅⟩ evm mintLiquidityBranchStmt
+    have hbranch : ExecStmt fork config ⟨contract, locals, ∅⟩ evm mintLiquidityBranchStmt
         (.ok afterBranch evm) := uniswapMintProportionalLiquidityBranchMin evm amount0 amount1
       totalSupply reserve0 reserve1 htotal htotalNonzero hamount0 hamount1 hreserve0 hreserve1
       hfit0 hfit1 hr0 hr1
     obtain ⟨k3841, C3841, rd3841Raw⟩ := uniswapMintRuntimeProportionalLiquidityEntry rd3762
       hclean0 hclean1 hfit0 hfit1 hr0 hr1
-    have rd3841 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    have rd3841 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3841⟩
         [totalSupply, feeOn, amount1, amount0, balance1, balance0, reserve1, reserve0,
           liquidity, toWord, ⟨861⟩, sel]

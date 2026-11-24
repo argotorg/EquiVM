@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.ArithmeticRoutines
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables
@@ -83,8 +85,8 @@ theorem cometCheckedAdd64 {v : CometWithExtendedAssetListImmutables}
     (hstack : R.length + 6 ≤ 1024) (hx : x.toNat < 2^64) (hy : y.toNat < 2^64)
     (hfit : x.toNat + y.toNat < 2^64)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7830⟩ (x :: y :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret ((x + y) :: R) mem aw rdata σ k' C' := by
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7830⟩ (x :: y :: ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret ((x + y) :: R) mem aw rdata σ k' C' := by
   have hg : UInt256.gt x (UInt256.sub
       (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 64))
         (UInt256.ofNat 1)) y) = ⟨0⟩ := by
@@ -108,8 +110,8 @@ theorem cometCheckedAdd64_revert {v : CometWithExtendedAssetListImmutables}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} {x y : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024) (hx : x.toNat < 2^64) (hy : y.toNat < 2^64)
     (hover : 2^64 ≤ x.toNat + y.toNat)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7830⟩ (x :: y :: R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7830⟩ (x :: y :: R) mem aw rdata σ k C) :
+    RDrev fork (deployedRuntime v) g s0 := by
   have hg : UInt256.gt x (UInt256.sub
       (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 64))
         (UInt256.ofNat 1)) y) ≠ ⟨0⟩ := by

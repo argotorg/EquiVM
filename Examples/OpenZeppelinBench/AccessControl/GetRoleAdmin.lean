@@ -4,6 +4,8 @@ import Examples.OpenZeppelinBench.AccessControl.Storage
 import Reasoning.ABI
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -129,7 +131,7 @@ theorem accessControlDecode_getRoleAdmin_none_huge {I : ExecutionEnv}
 
 theorem accessControlGetRoleAdminBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩) (hsz36 : 36 ≤ I.calldata.size) :
-  ExecTransitionBody config contract evm (getRoleAdminStore I) getRoleAdminTransition.body
+  ExecTransitionBody fork config contract evm (getRoleAdminStore I) getRoleAdminTransition.body
       (.returned { contract := contract, locals := getRoleAdminStore I } evm
         (some [(.fixedBytes bytes32Width
           (EVM.Word.toBytesBE (getRoleAdminCurrent evm I)))])) := by
@@ -287,10 +289,10 @@ theorem getRoleAdminReturnMem_read128 (I : ExecutionEnv) (val : UInt256) :
     rw [toByteArray_size])
 
 theorem accessControlGetRoleAdminX_toDecoder {σ σ₀ A I} {g : Sat256}
-    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+    (hreach : ∃ k C, RD fork accessControlBenchBytecode I g
       (initState σ σ₀ g A I) ⟨166⟩ [accessControlSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨899⟩
+    ∃ k C, RD fork accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨899⟩
       [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨180⟩, ⟨200⟩, accessControlSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd166⟩ := hreach
@@ -300,10 +302,10 @@ theorem accessControlGetRoleAdminX_toDecoder {σ σ₀ A I} {g : Sat256}
 
 theorem accessControlGetRoleAdminX_decodeRevert {σ σ₀ A I} {g : Sat256}
     (hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩)
-    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+    (hreach : ∃ k C, RD fork accessControlBenchBytecode I g
       (initState σ σ₀ g A I) ⟨166⟩ [accessControlSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev accessControlBenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork accessControlBenchBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd899⟩ := accessControlGetRoleAdminX_toDecoder
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hreach
   exact evm_run rd899 with [
@@ -314,10 +316,10 @@ theorem accessControlGetRoleAdminX_decodeRevert {σ σ₀ A I} {g : Sat256}
 theorem accessControlGetRoleAdminX_decoded {σ σ₀ A I} {g : Sat256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
-    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+    (hreach : ∃ k C, RD fork accessControlBenchBytecode I g
       (initState σ σ₀ g A I) ⟨166⟩ [accessControlSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨180⟩
+    ∃ k C, RD fork accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨180⟩
       [getRoleAdminRoleWord I, ⟨200⟩, accessControlSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨0⟩ :=
@@ -334,10 +336,10 @@ theorem accessControlGetRoleAdminX_decoded {σ σ₀ A I} {g : Sat256}
 theorem accessControlGetRoleAdminX {σ σ₀ A I} {g : Sat256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
-    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+    (hreach : ∃ k C, RD fork accessControlBenchBytecode I g
       (initState σ σ₀ g A I) ⟨166⟩ [accessControlSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret accessControlBenchBytecode g (initState σ σ₀ g A I) σ
+    RDret fork accessControlBenchBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (getRoleAdminWord σ I)) := by
   obtain ⟨_, _, rd180⟩ := accessControlGetRoleAdminX_decoded
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hsz36 hsize hszhi hreach
@@ -355,7 +357,7 @@ theorem accessControlGetRoleAdminX {σ σ₀ A I} {g : Sat256}
     push1 ⟨1⟩, add]
   obtain ⟨_, _, rd198₀⟩ := rd194pre.sload (by decide) (by evm_ov)
   have rd198 :
-      ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨198⟩
+      ∃ k C, RD fork accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨198⟩
         [getRoleAdminWord σ I, ⟨200⟩, accessControlSelWord I]
         (getRoleAdminHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by
@@ -405,11 +407,11 @@ theorem accessControlGetRoleAdminBody {σ σ₀ A I}
     (hcode : I.code = accessControlBenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x24, 0x8a, 0x9c, 0xa3]⟩)
-    (hreach : ∃ k C, RD accessControlBenchBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork accessControlBenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨166⟩
       [accessControlSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeRefinementFor config contract
+    runtimeRefinementFor fork config contract
       σ σ₀ g A I := by
   have hsz4 := accessControlGetRoleAdminSelector_size hsel
   have hd := accessControlDispatch_getRoleAdmin (cd := I.calldata) (by
@@ -418,7 +420,7 @@ theorem accessControlGetRoleAdminBody {σ σ₀ A I}
   · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
     · have hdec := accessControlDecode_getRoleAdmin_ok (I := I) hsz36 hbig
       have hbody :
-          ExecTransitionBody config contract
+          ExecTransitionBody fork config contract
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (getRoleAdminStore I) getRoleAdminTransition.body
             (.returned { contract := contract, locals := getRoleAdminStore I }

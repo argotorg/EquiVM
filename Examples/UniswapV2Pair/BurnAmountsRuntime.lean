@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.BurnBeforeFeeSource
 import Examples.UniswapV2Pair.Invalid
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -10,9 +12,9 @@ theorem uniswapBurnRuntimeTotalSupplyLoaded
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {σ : AccountMap}
     {mem rdata : ByteArray} {aw feeOn : UInt256} {R : List UInt256} {k C : ℕ}
-    (rd4472 : RD uniswapV2PairBytecode I g s0 ⟨4472⟩ (feeOn :: ⟨0⟩ :: R)
+    (rd4472 : RD fork uniswapV2PairBytecode I g s0 ⟨4472⟩ (feeOn :: ⟨0⟩ :: R)
       mem aw rdata σ k C) (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨4479⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨4479⟩
       (solcSlotWordAt ⟨0⟩ σ I :: feeOn :: R) mem aw rdata σ k' C' := by
   have rd4475 := evm_run rd4472 with [jumpdest, push1 ⟨0⟩]
   obtain ⟨_, _, rd4476⟩ := rd4475.sload (by native_decide)
@@ -26,10 +28,10 @@ theorem uniswapBurnRuntimeAmount0MulEntry
     {σ : AccountMap}
     {mem rdata : ByteArray} {aw totalSupply feeOn liquidity balance0 balance1 : UInt256}
     {R : List UInt256} {k C : ℕ}
-    (rd4479 : RD uniswapV2PairBytecode I g s0 ⟨4479⟩
+    (rd4479 : RD fork uniswapV2PairBytecode I g s0 ⟨4479⟩
       (totalSupply :: feeOn :: liquidity :: balance1 :: balance0 :: R) mem aw rdata σ k C)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨6780⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨6780⟩
       (balance0 :: liquidity :: ⟨4495⟩ :: totalSupply :: totalSupply :: feeOn :: liquidity ::
         balance1 :: balance0 :: R) mem aw rdata σ k' C' := by
   have rd := evm_run rd4479 with [dup1, push2 ⟨4495⟩, dup5, dup8,
@@ -43,10 +45,10 @@ theorem uniswapBurnRuntimeAmount1MulEntry
     {σ : AccountMap}
     {mem rdata : ByteArray} {aw totalSupply feeOn liquidity balance0 balance1 : UInt256}
     {R : List UInt256} {k C : ℕ}
-    (rd4506 : RD uniswapV2PairBytecode I g s0 ⟨4506⟩
+    (rd4506 : RD fork uniswapV2PairBytecode I g s0 ⟨4506⟩
       (totalSupply :: feeOn :: liquidity :: balance1 :: balance0 :: R) mem aw rdata σ k C)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨6780⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨6780⟩
       (balance1 :: liquidity :: ⟨4522⟩ :: totalSupply :: totalSupply :: feeOn :: liquidity ::
         balance1 :: balance0 :: R) mem aw rdata σ k' C' := by
   have rd := evm_run rd4506 with [dup1, push2 ⟨4522⟩, dup5, dup7,
@@ -60,10 +62,10 @@ theorem uniswapBurnRuntimeAmount0DivSuccess
     {σ : AccountMap}
     {mem rdata : ByteArray} {aw product totalSupply : UInt256}
     {R : List UInt256} {k C : ℕ}
-    (rd : RD uniswapV2PairBytecode I g s0 ⟨4495⟩ (product :: totalSupply :: R)
+    (rd : RD fork uniswapV2PairBytecode I g s0 ⟨4495⟩ (product :: totalSupply :: R)
       mem aw rdata σ k C)
     (hnonzero : totalSupply ≠ ⟨0⟩) (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨4504⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨4504⟩
       (UInt256.div product totalSupply :: R) mem aw rdata σ k' C' := by
   exact ⟨_, _, evm_run rd with [jumpdest, dup2, push2 ⟨4502⟩,
     jumpiT hnonzero (by jump_dest), jumpdest, div]⟩
@@ -73,9 +75,9 @@ theorem uniswapBurnRuntimeAmount0DivZero
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {σ : AccountMap}
     {mem rdata : ByteArray} {aw product : UInt256} {R : List UInt256} {k C : ℕ}
-    (rd : RD uniswapV2PairBytecode I g s0 ⟨4495⟩ (product :: ⟨0⟩ :: R)
+    (rd : RD fork uniswapV2PairBytecode I g s0 ⟨4495⟩ (product :: ⟨0⟩ :: R)
       mem aw rdata σ k C) (hov : R.length + 6 ≤ 1024) :
-    RDinvalid uniswapV2PairBytecode g s0 := by
+    RDinvalid fork uniswapV2PairBytecode g s0 := by
   have rdInvalid := evm_run rd with [jumpdest, dup2, push2 ⟨4502⟩,
     jumpiNT (by native_decide)]
   exact RD.invalidHalt rdInvalid (by native_decide)
@@ -86,10 +88,10 @@ theorem uniswapBurnRuntimeAmount1DivSuccess
     {σ : AccountMap}
     {mem rdata : ByteArray} {aw product totalSupply : UInt256}
     {R : List UInt256} {k C : ℕ}
-    (rd : RD uniswapV2PairBytecode I g s0 ⟨4522⟩ (product :: totalSupply :: R)
+    (rd : RD fork uniswapV2PairBytecode I g s0 ⟨4522⟩ (product :: totalSupply :: R)
       mem aw rdata σ k C)
     (hnonzero : totalSupply ≠ ⟨0⟩) (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨4531⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨4531⟩
       (UInt256.div product totalSupply :: R) mem aw rdata σ k' C' := by
   exact ⟨_, _, evm_run rd with [jumpdest, dup2, push2 ⟨4529⟩,
     jumpiT hnonzero (by jump_dest), jumpdest, div]⟩
@@ -99,9 +101,9 @@ theorem uniswapBurnRuntimeAmount1DivZero
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {σ : AccountMap}
     {mem rdata : ByteArray} {aw product : UInt256} {R : List UInt256} {k C : ℕ}
-    (rd : RD uniswapV2PairBytecode I g s0 ⟨4522⟩ (product :: ⟨0⟩ :: R)
+    (rd : RD fork uniswapV2PairBytecode I g s0 ⟨4522⟩ (product :: ⟨0⟩ :: R)
       mem aw rdata σ k C) (hov : R.length + 6 ≤ 1024) :
-    RDinvalid uniswapV2PairBytecode g s0 := by
+    RDinvalid fork uniswapV2PairBytecode g s0 := by
   have rdInvalid := evm_run rd with [jumpdest, dup2, push2 ⟨4529⟩,
     jumpiNT (by native_decide)]
   exact RD.invalidHalt rdInvalid (by native_decide)
@@ -112,11 +114,11 @@ theorem uniswapBurnRuntimeAmount0Computed
     {σ : AccountMap}
     {mem rdata : ByteArray} {aw product totalSupply feeOn liquidity balance0 balance1
       token0 token1 reserve0 reserve1 : UInt256} {R : List UInt256} {k C : ℕ}
-    (rd : RD uniswapV2PairBytecode I g s0 ⟨4495⟩
+    (rd : RD fork uniswapV2PairBytecode I g s0 ⟨4495⟩
       (product :: totalSupply :: totalSupply :: feeOn :: liquidity :: balance1 :: balance0 ::
         token1 :: token0 :: reserve1 :: reserve0 :: ⟨0⟩ :: ⟨0⟩ :: R) mem aw rdata σ k C)
     (hnonzero : totalSupply ≠ ⟨0⟩) (hov : R.length + 24 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨4506⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨4506⟩
       (totalSupply :: feeOn :: liquidity :: balance1 :: balance0 :: token1 :: token0 ::
         reserve1 :: reserve0 :: ⟨0⟩ :: UInt256.div product totalSupply :: R) mem aw rdata σ k' C' := by
   obtain ⟨_, _, rdDiv⟩ := uniswapBurnRuntimeAmount0DivSuccess rd hnonzero
@@ -129,11 +131,11 @@ theorem uniswapBurnRuntimeAmount1Computed
     {σ : AccountMap}
     {mem rdata : ByteArray} {aw product totalSupply feeOn liquidity balance0 balance1
       token0 token1 reserve0 reserve1 amount0 : UInt256} {R : List UInt256} {k C : ℕ}
-    (rd : RD uniswapV2PairBytecode I g s0 ⟨4522⟩
+    (rd : RD fork uniswapV2PairBytecode I g s0 ⟨4522⟩
       (product :: totalSupply :: totalSupply :: feeOn :: liquidity :: balance1 :: balance0 ::
         token1 :: token0 :: reserve1 :: reserve0 :: ⟨0⟩ :: amount0 :: R) mem aw rdata σ k C)
     (hnonzero : totalSupply ≠ ⟨0⟩) (hov : R.length + 24 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨4533⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨4533⟩
       (totalSupply :: feeOn :: liquidity :: balance1 :: balance0 :: token1 :: token0 ::
         reserve1 :: reserve0 :: UInt256.div product totalSupply :: amount0 :: R) mem aw rdata σ k' C' := by
   obtain ⟨_, _, rdDiv⟩ := uniswapBurnRuntimeAmount1DivSuccess rd hnonzero

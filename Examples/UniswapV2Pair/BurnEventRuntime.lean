@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.SyncDynamicCore
 import Examples.UniswapV2Pair.Dup16Routines
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 
@@ -14,14 +16,14 @@ theorem RD.uniswapBurnEmitEvent {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {supply fee liquidity balance1 balance0 token1 token0 reserve1 reserve0 amount1 amount0 toWord ret : UInt256}
     {aw ptr : UInt256} {R : List UInt256} {mem rdata : ByteArray} {k C : Nat}
     {σ : AccountMap}
-    (rd : RD uniswapV2PairBytecode I g s0 ⟨4933⟩
+    (rd : RD fork uniswapV2PairBytecode I g s0 ⟨4933⟩
       (supply :: fee :: liquidity :: balance1 :: balance0 :: token1 :: token0 :: reserve1 :: reserve0 ::
         amount1 :: amount0 :: toWord :: ret :: R) mem aw rdata σ k C)
     (hin : 96 ≤ mem.size) (hlo : 96 ≤ ptr.toNat) (hgap : ptr.toNat - mem.size < USize.size)
     (hfit : ptr.toNat + 95 < UInt256.size) (haw : aw.toNat * 32 < UInt256.size)
     (hcover : ptr.toNat + 64 ≤ aw.toNat * 32) (hread : mem.readWithPadding 64 32 = ptr.toByteArray)
     (hperm : I.perm = true) (hov : R.length + 20 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨5006⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨5006⟩
       (supply :: fee :: liquidity :: balance1 :: balance0 :: token1 :: token0 :: reserve1 :: reserve0 ::
         amount1 :: amount0 :: toWord :: ret :: R)
       (pairDynamicMem mem ptr amount0 amount1) aw rdata σ k' C' := by
@@ -51,7 +53,7 @@ theorem RD.uniswapBurnEmitEvent {g : Sat256} {s0 : State} {I : ExecutionEnv}
   have rd4963 := evm_run rd4950 with [push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub,
     dup16, and, swap3, caller, swap3]
   have rd4996 := rd4963.pushConst uniswapBurnTopic (width := 32) (op := .PUSH32)
-    (by native_decide) (by decide) (by evm_ov)
+    (by native_decide) (by decide +kernel) (by evm_ov)
   have rd5005 := evm_run rd4996 with [swap3, swap1, dup2, swap1, sub, swap1, swap2, add, swap1]
   rw [u256_sub_self, show (⟨64⟩ : UInt256) + ⟨0⟩ = ⟨64⟩ by rfl] at rd5005
   have hwLog := UInt256_M_same_of_cover_len aw ptr 64 hcover
@@ -65,12 +67,12 @@ theorem RD.uniswapBurnUnlockAndJump {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {supply fee liquidity balance1 balance0 token1 token0 reserve1 reserve0 amount1 amount0 toWord ret : UInt256}
     {aw : UInt256} {R : List UInt256} {mem rdata : ByteArray} {k C : Nat}
     {σ : AccountMap}
-    (rd : RD uniswapV2PairBytecode I g s0 ⟨5006⟩
+    (rd : RD fork uniswapV2PairBytecode I g s0 ⟨5006⟩
       (supply :: fee :: liquidity :: balance1 :: balance0 :: token1 :: token0 :: reserve1 :: reserve0 ::
         amount1 :: amount0 :: toWord :: ret :: R) mem aw rdata σ k C)
     (hperm : I.perm = true) (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 13 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ret (amount1 :: amount0 :: R) mem aw rdata
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ret (amount1 :: amount0 :: R) mem aw rdata
       (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨1⟩) k' C' := by
   have rd5021 := evm_run rd with [pop, pop, pop, pop, pop, pop, pop, pop, pop,
     push1 ⟨1⟩, push1 ⟨12⟩, dup2, swap1]

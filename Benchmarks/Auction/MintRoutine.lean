@@ -1,6 +1,8 @@
 import Benchmarks.Auction.MintCall
 import Benchmarks.Auction.MintReturn
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -12,17 +14,17 @@ def mintFinalWords (aw ptr : UInt256) : UInt256 :=
   expandedWords (mintCallWords aw ptr) ptr ⟨32⟩
 
 theorem mintRoutine {I g s0 ret R mem aw ptr rdata σ k C evm}
-    (h : RD auctionBytecode I g s0 ⟨3000⟩ (ret :: R) mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨3000⟩ (ret :: R) mem aw rdata σ k C)
     (hs : SourceState s0 I σ evm) (hperm : I.perm = true)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 2 ^ 139 ≤ 2 ^ 200)
     (hov : R.length + 13 ≤ 1024) :
     ∃ (evm' : EVM.State) (σ' : AccountMap)
       (z : Bool) (out : ByteArray),
-      callViaEVM evm (AccountAddress.ofUInt256 (nounsWord σ I)) 0
+      callViaEVM fork evm (AccountAddress.ofUInt256 (nounsWord σ I)) 0
         mintSelector (z, evm', out) ∧
       SourceState s0 I σ' evm' ∧ out.size < 2 ^ 138 ∧
       ((z = true ∧ 32 ≤ out.size ∧
-          (∃ k' C', RD auctionBytecode I g s0 ⟨3172⟩ (calldataWord out 0 :: ret :: R)
+          (∃ k' C', RD fork auctionBytecode I g s0 ⟨3172⟩ (calldataWord out 0 :: ret :: R)
             (mintFinalMem mem out ptr) (mintFinalWords aw ptr) out σ' k' C') ∧
           MemoryCursor (mintFinalMem mem out ptr) (mintFinalWords aw ptr)
             (returnReservePtr ptr out.size) ∧
@@ -30,9 +32,9 @@ theorem mintRoutine {I g s0 ret R mem aw ptr rdata σ k C evm}
           ptr.toNat ≤ (returnReservePtr ptr out.size).toNat ∧
           (returnReservePtr ptr out.size).toNat ≤ ptr.toNat + 2 ^ 139 ∧
           aw.toNat ≤ (mintFinalWords aw ptr).toNat) ∨
-        (z = true ∧ out.size < 32 ∧ RDrev auctionBytecode g s0) ∨
+        (z = true ∧ out.size < 32 ∧ RDrev fork auctionBytecode g s0) ∨
         (z = false ∧
-          (∃ k' C', RD auctionBytecode I g s0 ⟨3116⟩ (ret :: R)
+          (∃ k' C', RD fork auctionBytecode I g s0 ⟨3116⟩ (ret :: R)
             (mintCallMem mem out ptr) (mintCallWords aw ptr) out σ' k' C') ∧
           HeapMemory (mintCallMem mem out ptr) (mintCallWords aw ptr) ptr ∧
           MemoryPrefix mem (mintCallMem mem out ptr) ptr.toNat ∧

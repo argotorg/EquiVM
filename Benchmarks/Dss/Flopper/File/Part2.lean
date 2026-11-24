@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Flopper.File.Part1
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -11,10 +13,10 @@ theorem flopperFileX_unrecognized {σ I} {g : Sat256} {s0 : State}
     (hpad : calldataWord I.calldata 4 ≠ ABI.bytesToWord filePadBytes)
     (httl : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileTtlBytes)
     (htau : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileTauBytes)
-    (h : RD flopperBytecode I g s0 ⟨1308⟩
+    (h : RD fork flopperBytecode I g s0 ⟨1308⟩
       [fileData I, calldataWord I.calldata 4, ⟨334⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flopperBytecode g s0 := by
+    RDrev fork flopperBytecode g s0 := by
   have rd1309 := h.jumpdest (by native_decide) (by evm_ov)
   have rd1310 := rd1309.dup2 (by native_decide) (by evm_ov)
   have rd1314 := rd1310.pushConst (⟨0x626567⟩ : UInt256)
@@ -115,22 +117,22 @@ theorem flopperFileBodyCoreBeg
     (hdecode :
       config.externalABI.decodeCalldata? (fileTransition.params.map Param.name)
         (transitionSignature fileTransition).paramTypes I.calldata = some (fileLocals I))
-    (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨336⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let data := fileData I
   let locals := fileLocals I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evm1 := fileBegPostState evm0 I
   have hauthStele : relyAuthWord σ I = ⟨1⟩ := hauth
   have hbodySplit :
-      (I.perm = true → ExecTransitionBody config contract evm0 locals fileTransition.body
+      (I.perm = true → ExecTransitionBody fork config contract evm0 locals fileTransition.body
         (.returned { contract := contract, locals := locals } evm1 none)) ∧
-      (I.perm = false → ExecTransitionBody config contract evm0 locals
+      (I.perm = false → ExecTransitionBody fork config contract evm0 locals
         fileTransition.body .staticViolation) := by
     simpa [evm0, evm1, locals, data] using
-      (flopperFileBegSourceBodySplit (σ := σ)
+      (flopperFileBegSourceBodySplit (fork := fork) (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauthStele hwhat)
   obtain ⟨_, _, hdecoded⟩ := flopperFileX_decoded (g := Sat256.ofUInt256 g)
     hsz68 hsize hreach
@@ -160,22 +162,22 @@ theorem flopperFileBodyCorePad
     (hdecode :
       config.externalABI.decodeCalldata? (fileTransition.params.map Param.name)
         (transitionSignature fileTransition).paramTypes I.calldata = some (fileLocals I))
-    (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨336⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let data := fileData I
   let locals := fileLocals I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evm1 := filePadPostState evm0 I
   have hauthStele : relyAuthWord σ I = ⟨1⟩ := hauth
   have hbodySplit :
-      (I.perm = true → ExecTransitionBody config contract evm0 locals fileTransition.body
+      (I.perm = true → ExecTransitionBody fork config contract evm0 locals fileTransition.body
         (.returned { contract := contract, locals := locals } evm1 none)) ∧
-      (I.perm = false → ExecTransitionBody config contract evm0 locals
+      (I.perm = false → ExecTransitionBody fork config contract evm0 locals
         fileTransition.body .staticViolation) := by
     simpa [evm0, evm1, locals, data] using
-      (flopperFilePadSourceBodySplit (σ := σ)
+      (flopperFilePadSourceBodySplit (fork := fork) (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauthStele hbeg hwhat)
   obtain ⟨_, _, hdecoded⟩ := flopperFileX_decoded (g := Sat256.ofUInt256 g)
     hsz68 hsize hreach
@@ -208,21 +210,21 @@ theorem flopperFileBodyCoreTtl
     (hdecode :
       config.externalABI.decodeCalldata? (fileTransition.params.map Param.name)
         (transitionSignature fileTransition).paramTypes I.calldata = some (fileLocals I))
-    (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨336⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let locals := fileLocals I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evm1 := fileTtlPostState evm0 I
   have hauthStele : relyAuthWord σ I = ⟨1⟩ := hauth
   have hbodySplit :
-      (I.perm = true → ExecTransitionBody config contract evm0 locals fileTransition.body
+      (I.perm = true → ExecTransitionBody fork config contract evm0 locals fileTransition.body
         (.returned { contract := contract, locals := locals } evm1 none)) ∧
-      (I.perm = false → ExecTransitionBody config contract evm0 locals
+      (I.perm = false → ExecTransitionBody fork config contract evm0 locals
         fileTransition.body .staticViolation) := by
     simpa [evm0, evm1, locals] using
-      (flopperFileTtlSourceBodySplit (σ := σ)
+      (flopperFileTtlSourceBodySplit (fork := fork) (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauthStele hbeg hpad hwhat)
   obtain ⟨_, _, hdecoded⟩ := flopperFileX_decoded (g := Sat256.ofUInt256 g)
     hsz68 hsize hreach
@@ -261,21 +263,21 @@ theorem flopperFileBodyCoreTau
     (hdecode :
       config.externalABI.decodeCalldata? (fileTransition.params.map Param.name)
         (transitionSignature fileTransition).paramTypes I.calldata = some (fileLocals I))
-    (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨336⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let locals := fileLocals I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evm1 := fileTauPostState evm0 I
   have hauthStele : relyAuthWord σ I = ⟨1⟩ := hauth
   have hbodySplit :
-      (I.perm = true → ExecTransitionBody config contract evm0 locals fileTransition.body
+      (I.perm = true → ExecTransitionBody fork config contract evm0 locals fileTransition.body
         (.returned { contract := contract, locals := locals } evm1 none)) ∧
-      (I.perm = false → ExecTransitionBody config contract evm0 locals
+      (I.perm = false → ExecTransitionBody fork config contract evm0 locals
         fileTransition.body .staticViolation) := by
     simpa [evm0, evm1, locals] using
-      (flopperFileTauSourceBodySplit (σ := σ)
+      (flopperFileTauSourceBodySplit (fork := fork) (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauthStele hbeg hpad httl hwhat)
   obtain ⟨_, _, hdecoded⟩ := flopperFileX_decoded (g := Sat256.ofUInt256 g)
     hsz68 hsize hreach
@@ -313,17 +315,17 @@ theorem flopperFileBodyCoreUnauthorized
     (hdecode :
       config.externalABI.decodeCalldata? (fileTransition.params.map Param.name)
         (transitionSignature fileTransition).paramTypes I.calldata = some (fileLocals I))
-    (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨336⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let locals := fileLocals I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthStele : relyAuthWord σ I ≠ ⟨1⟩ := hauth
   have hbody :
-      ExecTransitionBody config contract evm0 locals fileTransition.body .reverted := by
+      ExecTransitionBody fork config contract evm0 locals fileTransition.body .reverted := by
     simpa [evm0, locals] using
-      (flopperFileSourceBodyAuthReverts (σ := σ)
+      (flopperFileSourceBodyAuthReverts (fork := fork) (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauthStele)
   obtain ⟨_, _, hdecoded⟩ := flopperFileX_decoded (g := Sat256.ofUInt256 g)
     hsz68 hsize hreach
@@ -344,17 +346,17 @@ theorem flopperFileBodyCoreUnrecognized
     (hdecode :
       config.externalABI.decodeCalldata? (fileTransition.params.map Param.name)
         (transitionSignature fileTransition).paramTypes I.calldata = some (fileLocals I))
-    (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨336⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let locals := fileLocals I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthStele : relyAuthWord σ I = ⟨1⟩ := hauth
   have hbody :
-      ExecTransitionBody config contract evm0 locals fileTransition.body .reverted := by
+      ExecTransitionBody fork config contract evm0 locals fileTransition.body .reverted := by
     simpa [evm0, locals] using
-      (flopperFileSourceBodyUnrecognized (σ := σ)
+      (flopperFileSourceBodyUnrecognized (fork := fork) (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauthStele hbeg hpad httl htau)
   obtain ⟨_, _, hdecoded⟩ := flopperFileX_decoded (g := Sat256.ofUInt256 g)
     hsz68 hsize hreach
@@ -375,10 +377,10 @@ theorem flopperFileBodyCoreDecodeFailed_short
     (hcode : I.code = flopperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68)
     (hdispatch : dispatchMsg contract I.calldata = some fileTransition)
-    (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨336⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact (flopperFileX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch (flopperDecode_file_none_short hsz4 hshort)
 
@@ -387,12 +389,12 @@ theorem flopperFileBodyCore {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flopperSelBytes 6)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flopperSelBytes 6) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some fileTransition :=
     flopperDispatchFile hsel
-  have hreach := flopperReachFileBody
+  have hreach := flopperReachFileBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz68 : 68 ≤ I.calldata.size

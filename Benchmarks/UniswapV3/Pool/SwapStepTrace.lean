@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapStepPriceTrace
 import Benchmarks.UniswapV3.Pool.SwapStepAmountsTrace
 import Benchmarks.UniswapV3.Pool.SwapStepFeeTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -15,7 +17,7 @@ noncomputable def swapStepRawResults (a : SwapStepArgs) (currentRaw targetRaw : 
 theorem swapStepX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret currentRaw targetRaw liquidityRaw feeRaw : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables} (a : SwapStepArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨12447⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨12447⟩
       (swapStepRawWords a currentRaw targetRaw liquidityRaw feeRaw ++ ret :: R)
       mem aw rdata σ k C)
     (hc : UInt256.land currentRaw (UInt256.ofNat (2 ^ 160 - 1)) = a.current)
@@ -25,8 +27,8 @@ theorem swapStepX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (ha : a.Fits) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
     (hov : R.length + 50 ≤ 1024) :
     (¬swapStepValid a ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    (swapStepValid a ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    (swapStepValid a ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (swapStepRawResults a currentRaw targetRaw ++ R) mem aw rdata σ k' C') := by
   rcases swapStepPriceX (v := v) a rd hc ht hl hf ha (by simpa only [List.length_cons] using hov)
       with ⟨hbad, rr⟩ | ⟨hp, kp, Cp, rp⟩

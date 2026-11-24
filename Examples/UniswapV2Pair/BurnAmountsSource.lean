@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.BurnAmountsRuntime
 import Examples.UniswapV2Pair.MintProportionalProductOverflow
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -73,7 +75,7 @@ theorem uniswapBurnAmountsSourceSuccess
     (hfit0 : mintAmountProductNat liquidity balance0 < UInt256.size)
     (hfit1 : mintAmountProductNat liquidity balance1 < UInt256.size)
     (hnonzero : totalSupply ≠ ⟨0⟩) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       [burnAmount0Stmt, burnAmount1Stmt]
       (.ok { contract := contract, locals := burnAmountsStore locals liquidity balance0 balance1 totalSupply } evm) := by
   refine ExecBlock.consNormal
@@ -94,7 +96,7 @@ theorem uniswapBurnAmountsSourceRevert_product1
     (hfit0 : mintAmountProductNat liquidity balance0 < UInt256.size)
     (hover1 : UInt256.size ≤ liquidity.toNat * balance1.toNat)
     (hnonzero : totalSupply ≠ ⟨0⟩) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       [burnAmount0Stmt, burnAmount1Stmt] .reverted := by
   refine ExecBlock.consNormal
     (ExecStmt.letDecl (evalExpr_burn_amount_of_get evm "balance0" liquidity balance0 totalSupply

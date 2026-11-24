@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.Dispatch
 import Benchmarks.CompoundIII.Comet.SupplyEvm
 import Benchmarks.CompoundIII.Comet.SupplySource
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # CometWithExtendedAssetList `supply(address,uint256)`
 
@@ -22,7 +24,7 @@ set_option maxRecDepth 2000
 theorem cometWithExtendedAssetListSupplyBody {σ σ₀ A I} {g : UInt256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 66)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (cometWithExtendedAssetListSelBytes 66) rfl hsel
   have hd : selectorDispatchMsg contract I.calldata = some supplyTransition :=
     cometSelectorDispatch ⟨66, by decide⟩ hsel
@@ -31,7 +33,7 @@ theorem cometWithExtendedAssetListSupplyBody {σ σ₀ A I} {g : UInt256} (v : C
       (transitionSignature supplyTransition).paramTypes I.calldata =
       decodeCalldata ["asset", "amount"] [.elem .address, abiUInt256] I.calldata := by
     exact solc0815_decodeCalldata_scalar_eq (by decide)
-  have hX := supplyX (σ := σ) (σ₀ := σ₀) (A := A)
+  have hX := supplyX (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
   by_cases hlo : 68 ≤ I.calldata.size
   · by_cases hhi : I.calldata.size < 2^255 + 4

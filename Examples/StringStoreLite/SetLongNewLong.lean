@@ -1,6 +1,8 @@
 import Examples.StringStoreLite.SetLongOldShort
 import Examples.StringStoreLite.SetLongOldLong
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # StringStoreLite — valid set-branch, new long
 
@@ -38,7 +40,7 @@ theorem stringStoreLiteSetNewLongRuntime
           ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32) ≠ ⟨0⟩)
     (hnewShort :
       ¬ (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat < 32) :
-    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor fork stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   have hsel' : ((⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩ : ByteArray) == I.calldata.extract 0 4) =
       true := by
@@ -123,7 +125,7 @@ theorem stringStoreLiteSetNewLongRuntime
     (σ := σ) (σ₀ := σ₀) (A := A)
     (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz36 hhi hsize hsel hoffMax hstart hlenMaxWord hpayloadWord
-  have rd175 : RD stringStoreLiteBytecode I (Sat256.ofUInt256 g)
+  have rd175 : RD fork stringStoreLiteBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨175⟩
       [len, payloadStart, ⟨93⟩, stringStoreLiteSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k175 C175 := by
@@ -161,7 +163,7 @@ theorem stringStoreLiteSetNewLongRuntime
                 evmStele1 := by
           simp [evmStele1, evmStele0, initState]
         have hsplit :=
-          stringStoreLiteX_setLongValueShortValidPresentResidual hcode hsize hwv hsel
+          stringStoreLiteX_setLongValueShortValidPresentResidual (fork := fork) hcode hsize hwv hsel
             hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayload
             hvalueNonempty hnewShort hflag hvalid accStele0 haccStele0
             evmStele1 hdataWrite
@@ -240,7 +242,7 @@ theorem stringStoreLiteSetNewLongRuntime
               clearCurrentHashAw (setHelperEntryAw len) :=
             longDataWordsLoopAw_setHelper_eq (len := len) hlenMaxLen (len.toNat / 32) (by omega)
           have hreach261 :
-              ∃ k C, RD stringStoreLiteBytecode I (Sat256.ofUInt256 g)
+              ∃ k C, RD fork stringStoreLiteBytecode I (Sat256.ofUInt256 g)
                 (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨261⟩
                 [⟨0⟩, ⟨128⟩, ⟨0⟩, len, payloadStart, ⟨93⟩, stringStoreLiteSelWord I]
                 (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
@@ -285,7 +287,7 @@ theorem stringStoreLiteSetNewLongRuntime
             · simp [evmEvm1]
             · simpa [evmEvm1, evmStele0, initState, hpostMap]
           have hret' :
-              RDret stringStoreLiteBytecode (Sat256.ofUInt256 g)
+              RDret fork stringStoreLiteBytecode (Sat256.ofUInt256 g)
                 (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 evmEvm1.accountMap
                 (UInt256.toByteArray (UInt256.ofNat (setDecodedValueBytes I).size)) := by
@@ -335,7 +337,7 @@ theorem stringStoreLiteSetNewLongRuntime
             exact setRuntimeStaticOfWrite hcode hwv hpf (permSplit_false hpf hsplit) hd hdec hwrite
           obtain ⟨k261, C261, rd261₀⟩ := permSplit_true hperm hsplit
           have hreach261 :
-              ∃ k C, RD stringStoreLiteBytecode I (Sat256.ofUInt256 g)
+              ∃ k C, RD fork stringStoreLiteBytecode I (Sat256.ofUInt256 g)
                 (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨261⟩
                 [⟨0⟩, ⟨128⟩, ⟨0⟩, len, payloadStart, ⟨93⟩, stringStoreLiteSelWord I]
                 (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
@@ -386,7 +388,7 @@ theorem stringStoreLiteSetNewLongRuntime
             · simp [evmEvm1]
             · simpa [evmEvm1, evmStele0, initState, hpostMap]
           have hret' :
-              RDret stringStoreLiteBytecode (Sat256.ofUInt256 g)
+              RDret fork stringStoreLiteBytecode (Sat256.ofUInt256 g)
                 (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 evmEvm1.accountMap
                 (UInt256.toByteArray (UInt256.ofNat (setDecodedValueBytes I).size)) := by
@@ -407,7 +409,7 @@ theorem stringStoreLiteSetNewLongRuntime
         writeCurrentMalformedShort (evm := evmStele0)
           (header := currentLengthHeaderWord σ I)
           (value := setDecodedValueBytes I) hload hflag hbad
-      have hbody := setBodyRevertsOfWrite
+      have hbody := setBodyRevertsOfWrite (fork := fork)
         (evm := evmStele0) (value := setDecodedValueBytes I)
         (by simp [evmStele0, initState]; exact hwv) hwrite
       exact hrev.reEquivExecutionRevert hcode hd hdec hbody
@@ -422,7 +424,7 @@ theorem stringStoreLiteSetNewLongRuntime
         writeCurrentMalformedLong (evm := evmStele0)
           (header := currentLengthHeaderWord σ I)
           (value := setDecodedValueBytes I) hload hflag hbadLong
-      have hbody := setBodyRevertsOfWrite
+      have hbody := setBodyRevertsOfWrite (fork := fork)
         (evm := evmStele0) (value := setDecodedValueBytes I)
         (by simp [evmStele0, initState]; exact hwv) hwrite
       exact hrev.reEquivExecutionRevert hcode hd hdec hbody
@@ -482,7 +484,7 @@ theorem stringStoreLiteSetNewLongRuntime
               evmStele1 := by
         simp [evmStele1, evmStele0, oldLen, initState]
       have hsplit :=
-        stringStoreLiteX_setLongValueLongValidResidual hcode hsize hwv hsel
+        stringStoreLiteX_setLongValueLongValidResidual (fork := fork) hcode hsize hwv hsel
           hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayload hvalueNonempty
           hnewShort hflag hbadLong accStele0 haccStele0 evmStele1
           (by simpa [oldLen] using hdataWrite)

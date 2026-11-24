@@ -1,6 +1,8 @@
 import Reasoning.ABIViews
 import Benchmarks.Dss.Vat.Rely
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 50000000
@@ -166,10 +168,10 @@ theorem vatInitSourceBodySplit {σ σ₀ A I} {g : UInt256}
     let locals := initStore I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Stele.EVM.storageStore evm0 I.codeOwner (initRateSlot I) initRayWord
-    (I.perm = true → ExecTransitionBody config contract evm0 locals initTransition.body
+    (I.perm = true → ExecTransitionBody fork config contract evm0 locals initTransition.body
       (.returned { contract := contract, locals := locals } evm1 none)) ∧
     (I.perm = false →
-      ExecTransitionBody config contract evm0 locals initTransition.body
+      ExecTransitionBody fork config contract evm0 locals initTransition.body
         .staticViolation) := by
   intro locals evm0 evm1
   have hguard := vatAuthGuardEval_true
@@ -196,9 +198,9 @@ theorem vatInitSourceBodySplit {σ σ₀ A I} {g : UInt256}
         .storage (ilksF (.var "ilk") "rate") (.int (Int.ofNat initRayWord.toNat)) =
           .ok ({ contract := contract, locals := locals }, evm1) := by
     simpa [locals, evm1] using assign_initRateStorage evm0 I hsz36
-  have hbody : ∀ r, ExecStmt config { contract := contract, locals := locals } evm0
+  have hbody : ∀ r, ExecStmt fork config { contract := contract, locals := locals } evm0
       (.assign .storage (ilksF (.var "ilk") "rate") (.intLit ray)) r →
-      ExecBlock config { contract := contract, locals := locals } evm0 initTransition.body r := by
+      ExecBlock fork config { contract := contract, locals := locals } evm0 initTransition.body r := by
     intro r h
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -207,7 +209,7 @@ theorem vatInitSourceBodySplit {σ σ₀ A I} {g : UInt256}
     exact execBlock_singleton h
   refine ⟨fun hperm => ?_, fun hpf => ?_⟩
   · simpa [ExecTransitionBody, locals, evm0, evm1] using
-      ExecFuncBody.execBlockOK (hbody _ (ExecStmt.assign (hperm := Or.inr hperm) hray hassign))
+      ExecFuncBody.execBlockOK (hbody _ (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) hray hassign))
   · simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockStatic
       (hbody _ (ExecStmt.assignStatic hray hassign (by simp [evm0, initState]; exact hpf)))
 
@@ -216,7 +218,7 @@ theorem vatInitSourceBodyAuthReverts {σ σ₀ A I} {g : UInt256}
     (hauth : solcSlotWordAt (vatCallerWardsSlot I) σ I ≠ ⟨1⟩) :
     let locals := initStore I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals initTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals initTransition.body .reverted := by
   intro locals evm0
   have hguard := vatAuthGuardEval_false
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -241,7 +243,7 @@ theorem vatInitSourceBodyAlreadyInit {σ σ₀ A I} {g : UInt256}
     (hrate : solcSlotWordAt (initRateSlot I) σ I ≠ ⟨0⟩) :
     let locals := initStore I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals initTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals initTransition.body .reverted := by
   intro locals evm0
   have hguard := vatAuthGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -255,7 +257,7 @@ theorem vatInitSourceBodyAlreadyInit {σ σ₀ A I} {g : UInt256}
       (evalExpr_initRateEqZero_false (evm := evm0) (I := I) hsz36 (by
         simpa [evm0, initState, solcSlotWordAt] using hrate))
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 initTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 initTransition.body
         .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -298,7 +300,7 @@ theorem vatReachInitBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vatSelBytes 17)) :
-    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vatBytecode I g (initState σ σ₀ g A I)
         ⟨682⟩ [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : vatSelWord I = ⟨0x3b663195⟩ :=
@@ -343,11 +345,11 @@ theorem RD.solcOneWordExternalLoadAndJump {code : ByteArray} {g : Sat256} {s0 : 
     {ee : ExecutionEnv} {k C : ℕ} {decoded ret routine de : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
     {acc : AccountMap}
-    (h : RD code ee g s0 decoded (de :: ⟨4⟩ :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 decoded (de :: ⟨4⟩ :: ret :: R) mem aw rdata acc k C)
     (hwf : solcOneWordExternalLoadAndJumpWf code decoded routine)
     (hroutine : (D_J code 0).contains routine = true)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 routine (calldataWord ee.calldata 4 :: ret :: R)
+    ∃ k' C', RD fork code ee g s0 routine (calldataWord ee.calldata 4 :: ret :: R)
       mem aw rdata acc k' C' := by
   rcases hwf with ⟨hd0, hd1, hd2, hd3, hd6⟩
   have rd1 := h.jumpdest hd0 (by evm_ov)
@@ -360,10 +362,10 @@ theorem RD.solcOneWordExternalLoadAndJump {code : ByteArray} {g : Sat256} {s0 : 
 
 theorem vatInitX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD vatBytecode I g
+    (hreach : ∃ k C, RD fork vatBytecode I g
       (initState σ σ₀ g A I) ⟨682⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I) ⟨2231⟩
+    ∃ k C, RD fork vatBytecode I g (initState σ σ₀ g A I) ⟨2231⟩
         [initIlkWord I, ⟨524⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
@@ -443,13 +445,13 @@ abbrev vatIlkAlreadyInitRawWord : UInt256 :=
 theorem RD.vatInitRateGuardOk {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc okPc key ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
+    (h : RD fork code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : vatInitRateGuardWf code pc okPc)
     (hrate : solcSlotWord σ ee (solcMappingSlot ⟨2⟩ key + ⟨1⟩) = ⟨0⟩)
     (hmem : mem.size = 96)
     (hok : (D_J code 0).contains okPc = true)
     (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 okPc (key :: ret :: R)
+    ∃ k' C', RD fork code ee g s0 okPc (key :: ret :: R)
       (twoWordHashMem key ⟨2⟩ mem) (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd4, hd5, hd6, hd8, hd10, hd11, hd13, hd14, hd15, hd17,
@@ -488,7 +490,7 @@ theorem RD.vatInitRateGuardOk {code : ByteArray} {g : Sat256} {s0 : State}
 theorem RD.vatInitRateGuardRevert {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc okPc key ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
+    (h : RD fork code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : vatInitRateGuardWf code pc okPc)
     (htail : solcErrorStringRevertTailWf code (vatInitRateGuardTailPc pc) ⟨20⟩
       vatIlkAlreadyInitRawWord ⟨98⟩ .PUSH20 20)
@@ -496,7 +498,7 @@ theorem RD.vatInitRateGuardRevert {code : ByteArray} {g : Sat256} {s0 : State}
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 7 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd4, hd5, hd6, hd8, hd10, hd11, hd13, hd14, hd15, hd17,
       hd18, hd19, hd20, hd23⟩
@@ -585,16 +587,16 @@ theorem RD.vatInitRateGuardRevert {code : ByteArray} {g : Sat256} {s0 : State}
 theorem RD.vatInitStoreRaySplit {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
+    (h : RD fork code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : vatInitStoreRayWf code pc)
     (hret : (D_J code 0).contains ret = true)
     (hmem : mem.size = 96)
     (hov : R.length + 6 ≤ 1024) :
     (ee.perm = true ∧
-    ∃ k' C', RD code ee g s0 ret R (twoWordHashMem key ⟨2⟩ mem) (UInt256.ofNat 3) rdata
+    ∃ k' C', RD fork code ee g s0 ret R (twoWordHashMem key ⟨2⟩ mem) (UInt256.ofNat 3) rdata
       (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨2⟩ key + ⟨1⟩) initRayWord)
       k' C') ∨
-      (ee.perm = false ∧ RDstatic code g s0) := by
+      (ee.perm = false ∧ RDstatic fork code g s0) := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd4, hd5, hd6, hd8, hd10, hd11, hd13, hd14, hd15, hd28,
       hd30, hd31, hd32, hd33, hd34⟩
@@ -631,10 +633,10 @@ theorem RD.vatInitStoreRaySplit {code : ByteArray} {g : Sat256} {s0 : State}
 theorem vatInitX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
-    (hreach : ∃ k C, RD vatBytecode I g
+    (hreach : ∃ k C, RD fork vatBytecode I g
       (initState σ σ₀ g A I) ⟨682⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev vatBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork vatBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -660,18 +662,18 @@ theorem vatInitBodyCoreOk
     (hdecode :
       config.externalABI.decodeCalldata? (initTransition.params.map Param.name)
         (transitionSignature initTransition).paramTypes I.calldata = some (initStore I))
-    (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨682⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let slot := initRateSlot I
   let locals := initStore I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evm1 := Stele.EVM.storageStore evm0 I.codeOwner slot initRayWord
-  have hboth := vatInitSourceBodySplit (σ := σ)
+  have hboth := vatInitSourceBodySplit (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hsz36 hauth hrate
   have hbody (hperm : I.perm = true) :
-      ExecTransitionBody config contract evm0 locals initTransition.body
+      ExecTransitionBody fork config contract evm0 locals initTransition.body
         (.returned { contract := contract, locals := locals } evm1 none) := by
     simpa [evm0, evm1, locals, slot] using hboth.1 hperm
   obtain ⟨_, _, hdecoded⟩ := vatInitX_decoded (g := Sat256.ofUInt256 g)
@@ -718,7 +720,7 @@ theorem vatInitBodyCoreOk
   · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode (hboth.2 hpf)
   have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
   have hret :
-      RDret vatBytecode (Sat256.ofUInt256 g)
+      RDret fork vatBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (sstoreAccountMap I.codeOwner σ slot initRayWord) ByteArray.empty := by
     simpa [slot, initRateSlot_eq I hsz36] using
@@ -742,16 +744,16 @@ theorem vatInitBodyCoreUnauthorized
     (hdecode :
       config.externalABI.decodeCalldata? (initTransition.params.map Param.name)
         (transitionSignature initTransition).paramTypes I.calldata = some (initStore I))
-    (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨682⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let locals := initStore I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
-      ExecTransitionBody config contract evm0 locals initTransition.body .reverted := by
+      ExecTransitionBody fork config contract evm0 locals initTransition.body .reverted := by
     simpa [evm0, locals] using
-      (vatInitSourceBodyAuthReverts (σ := σ)
+      (vatInitSourceBodyAuthReverts (fork := fork) (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauth)
   obtain ⟨_, _, hdecoded⟩ := vatInitX_decoded (g := Sat256.ofUInt256 g)
     hsz36 hsize hreach
@@ -782,16 +784,16 @@ theorem vatInitBodyCoreAlreadyInit
     (hdecode :
       config.externalABI.decodeCalldata? (initTransition.params.map Param.name)
         (transitionSignature initTransition).paramTypes I.calldata = some (initStore I))
-    (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨682⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let locals := initStore I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
-      ExecTransitionBody config contract evm0 locals initTransition.body .reverted := by
+      ExecTransitionBody fork config contract evm0 locals initTransition.body .reverted := by
     simpa [evm0, locals] using
-      (vatInitSourceBodyAlreadyInit (σ := σ)
+      (vatInitSourceBodyAlreadyInit (fork := fork) (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hsz36 hauth hrate)
   obtain ⟨_, _, hdecoded⟩ := vatInitX_decoded (g := Sat256.ofUInt256 g)
     hsz36 hsize hreach
@@ -835,20 +837,20 @@ theorem vatInitBodyCoreDecodeFailed_short
     (hcode : I.code = vatBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some initTransition)
-    (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨682⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact (vatInitX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch (vatDecode_init_none_short hsz4 hshort)
 
-theorem vatInitBodyCore : VatBodyTheoremAnyPerm 17 := by
+theorem vatInitBodyCore : VatBodyTheoremAnyPerm fork 17 := by
   intro σ σ₀ A I g hcode hsize hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 17) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some initTransition :=
     vatDispatchInit hsel
-  have hreach := vatReachInitBody
+  have hreach := vatReachInitBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size

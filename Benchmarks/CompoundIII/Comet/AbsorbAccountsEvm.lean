@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.AbsorbAccountsControl
 import Benchmarks.CompoundIII.Comet.AbsorbDecodeWords
 import Benchmarks.CompoundIII.Comet.AbsorbInternalGas
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -28,17 +30,17 @@ theorem absorbAccountOffset_eq {cd : ByteArray} {i : Nat}
       omega)]
   omega
 
-def absorbAccountsRun (code : ByteArray) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
+def absorbAccountsRun (fork : Ethereum.Fork) (code : ByteArray) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     (absorber : UInt256) (R : List UInt256) : InternalOutcome → Prop
   | .ok evm => ∃ σ mem free aw data k C,
       SourceState s0 ee σ evm ∧ 96 ≤ free.toNat ∧ free.toNat + 256 < 2^64 ∧
       memLoad ⟨64⟩ mem = free ∧ 96 ≤ mem.size ∧ free.toNat ≤ mem.size + 32 ∧
       229 * absorbArrayLength ee.calldata ≤ C ∧
-      RD code ee g s0 ⟨16703⟩
+      RD fork code ee g s0 ⟨16703⟩
         (absorbAccountsStack (absorbArrayLength ee.calldata) (absorbArrayBase ee.calldata)
           absorber (absorbArrayLength ee.calldata) R) mem aw data σ k C
-  | .reverted => RDrev code g s0
-  | .staticViolation => RDstatic code g s0
+  | .reverted => RDrev fork code g s0
+  | .staticViolation => RDstatic fork code g s0
 
 theorem cometAbsorbAccounts {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 evm : State} {mem rdata : ByteArray}
@@ -48,12 +50,12 @@ theorem cometAbsorbAccounts {v : CometWithExtendedAssetListImmutables}
     (hspent : 229 * i ≤ C) (hupper : free.toNat ≤ 128 + i * absorbAllocationPerAccount)
     (hfree : memLoad ⟨64⟩ mem = free) (hlo : 96 ≤ free.toNat) (hmem : 96 ≤ mem.size)
     (hgap : free.toNat ≤ mem.size + 32) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨16695⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨16695⟩
       (absorbAccountsStack i (absorbArrayBase ee.calldata) absorber
         (absorbArrayLength ee.calldata) R) mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
-      ∃ result, AbsorbAccountsTrace v ee.calldata i evm result ∧
-        absorbAccountsRun (deployedRuntime v) ee g s0 absorber R result := by
+    X fork (g.toNat + 1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+      ∃ result, AbsorbAccountsTrace fork v ee.calldata i evm result ∧
+        absorbAccountsRun fork (deployedRuntime v) ee g s0 absorber R result := by
   have hn : absorbArrayLength ee.calldata < 2^64 := by
     have hb := hvalid.2.2.2.2.2.1
     change absorbArrayLength ee.calldata ≤ 2^64 - 1 at hb

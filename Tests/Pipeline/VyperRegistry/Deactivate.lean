@@ -1,5 +1,7 @@
 import Tests.Pipeline.VyperRegistry.Helpers
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Registry `deactivate(uint256)`
 
@@ -91,7 +93,7 @@ theorem memLoad288_dMem2 (σ : AccountMap) (I : ExecutionEnv) : memLoad (UInt256
 theorem registryDeactivateBody {σ σ₀ A I} {g : UInt256} (hwf : storageWF σ I)
     (hcode : I.code = registryBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (registrySelBytes 6)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (registrySelBytes 6) rfl hsel
   obtain ⟨_, _, rd⟩ := registryReachDeactivateBody (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) hcode hsz hsize hsel
   have hd : dispatchMsg contract I.calldata = some deactivateTransition :=
@@ -137,7 +139,7 @@ theorem registryDeactivateBody {σ σ₀ A I} {g : UInt256} (hwf : storageWF σ 
     (by rw [slotWord_eq]; exact isZero_xor_ne_zero_of_eq hown) (by jump_dest) rd2
   have rd4 := registryBlocks.registry_block_1659 (by simp) (by jump_dest) rd3
   simp only [registryBlocks.registry_block_1659_stack] at rd4
-  have hcheck : ExecStmt config (frame (dStore I)) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+  have hcheck : ExecStmt fork config (frame (dStore I)) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (.internalCall "ownable__check_owner" [] "__c0")
       (.ok (resumeAfterInternalCall (frame (dStore I)) "__c0" none) (initState σ σ₀ (Sat256.ofUInt256 g) A I)) :=
     ExecStmt.internalCallReturn (callee := checkOwnerCallee) rfl checkOwnerCallee_lookup rfl
@@ -287,7 +289,7 @@ theorem registryDeactivateBody {σ σ₀ A I} {g : UInt256} (hwf : storageWF σ 
       (hty := by show storageTypeAt? contract.storage _ = _; decide) (hloc := rfl)
     erw [storageLocStore_uint256, storageStore_executionEnv]
     rfl
-  have hbody : ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) (dStore I)
+  have hbody : ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) (dStore I)
       deactivateTransition.body
       (.returned (frame L2)
         (Stele.EVM.storageStore

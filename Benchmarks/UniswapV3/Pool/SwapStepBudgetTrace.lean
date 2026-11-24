@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapStepPrefixTrace
 import Benchmarks.UniswapV3.Pool.WordSubMask
 import Benchmarks.UniswapV3.Pool.FullMathTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -19,13 +21,13 @@ theorem swapStepComplementRaw (a : SwapStepArgs) (feeRaw : UInt256)
 theorem swapStepBudgetX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw currentRaw targetRaw liquidityRaw feeRaw : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables} (a : SwapStepArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨12479⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨12479⟩
       (swapStepReadyWords a currentRaw targetRaw liquidityRaw feeRaw ++ R)
       mem aw rdata σ k C)
     (hf : UInt256.land feeRaw (UInt256.ofNat (2 ^ 24 - 1)) = a.fee)
     (hi : swapStepExactIn a = true) (hov : R.length + 29 ≤ 1024) :
-    (¬swapStepBudgetValid a ∧ RDrev (deployedRuntime v) g s0) ∨
-    (swapStepBudgetValid a ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨12504⟩
+    (¬swapStepBudgetValid a ∧ RDrev fork (deployedRuntime v) g s0) ∨
+    (swapStepBudgetValid a ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨12504⟩
       (swapStepBudget a :: ⟨0⟩ ::
         swapStepReadyWords a currentRaw targetRaw liquidityRaw feeRaw ++ R)
       mem aw rdata σ k' C') := by

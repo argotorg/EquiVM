@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Flopper.Dispatch
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -43,7 +45,7 @@ theorem flopperReachWardsBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flopperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (flopperSelBytes 18)) :
-    ∃ k C, RD flopperBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork flopperBytecode I g (initState σ σ₀ g A I)
         ⟨766⟩ [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : flopperSelWord I = ⟨0xbf353dbb⟩ := by
@@ -92,11 +94,11 @@ private theorem wardsMappingGetterWf :
 set_option maxHeartbeats 1000000 in
 private theorem wardsReachDecoded
     {σ σ₀ A I} {g sel : UInt256}
-    (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨766⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨788⟩
       (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩ :: ⟨4⟩ :: ⟨644⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -111,11 +113,11 @@ private theorem wardsReachDecoded
 set_option maxHeartbeats 1000000 in
 private theorem wardsReachRoutine
     {σ σ₀ A I} {g sel : UInt256}
-    (hdecoded : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    (hdecoded : ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨788⟩
       (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩ :: ⟨4⟩ :: ⟨644⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3874⟩
       (UInt256.land solcAddrMask (calldataWord I.calldata 4) :: ⟨644⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -130,11 +132,11 @@ private theorem wardsReachRoutine
 set_option maxHeartbeats 0 in
 private theorem wardsReturnFromMapping
     {σ σ₀ A I} {g sel key : UInt256} {k C : ℕ}
-    (hretPc : RD flopperBytecode I (Sat256.ofUInt256 g)
+    (hretPc : RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨644⟩
       (solcSlotWord σ I (solcMappingSlot ⟨0⟩ key) :: ⟨644⟩ :: [sel])
       (solcMappingHashMem ⟨0⟩ key) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret flopperBytecode (Sat256.ofUInt256 g)
+    RDret fork flopperBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
       (UInt256.toByteArray (solcSlotWord σ I (solcMappingSlot ⟨0⟩ key))) := by
   have hret' := RD.solcReturnWordFromMem
@@ -157,7 +159,7 @@ private theorem wardsReturnFromMapping
 set_option maxHeartbeats 3000000 in
 private theorem wardsRuntimeEquivFromReturn
     {σ σ₀ A I} {g slot : UInt256}
-    (hret : RDret flopperBytecode (Sat256.ofUInt256 g)
+    (hret : RDret fork flopperBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
       (UInt256.toByteArray (solcSlotWordAt slot σ I)))
     (hcode : I.code = flopperBytecode)
@@ -166,7 +168,7 @@ private theorem wardsRuntimeEquivFromReturn
       (wardsTransition.params.map Param.name)
       (transitionSignature wardsTransition).paramTypes I.calldata =
         some ((∅ : Store).insert "arg0" (.address (wardsMappingArg I))))
-    (hbody : ExecTransitionBody config contract
+    (hbody : ExecTransitionBody fork config contract
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       ((∅ : Store).insert "arg0" (.address (wardsMappingArg I))) wardsTransition.body
       (.returned { contract := contract, locals := ((∅ : Store).insert "arg0" (.address (wardsMappingArg I))) }
@@ -176,7 +178,7 @@ private theorem wardsRuntimeEquivFromReturn
     (henc : returnEquiv (UInt256.toByteArray (solcSlotWordAt slot σ I))
       (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))])
       wardsTransition.returnType) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   rcases hret with hoog | ⟨s, hX, hsacc⟩
   · exact reEquiv_outOfGas (Xi_error_of_X (g := g) (by
       rw [← hcode] at hoog
@@ -223,10 +225,10 @@ theorem flopperWardsBodyCoreOk
       config.externalABI.decodeCalldata? (wardsTransition.params.map Param.name)
         (transitionSignature wardsTransition).paramTypes I.calldata =
           some ((∅ : Store).insert "arg0" (.address (wardsMappingArg I))))
-    (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨766⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let key := wardsMappingKey I
   let slot := solcMappingSlot ⟨0⟩ key
   let locals : Store := (∅ : Store).insert "arg0" (.address (wardsMappingArg I))
@@ -235,7 +237,7 @@ theorem flopperWardsBodyCoreOk
   have hslot : wardsMappingSlotFor I = slot := by
     simpa only [slot, key] using wardsMappingSlotFor_eq I
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals wardsTransition.body
         (.returned { contract := contract, locals := locals }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -263,7 +265,7 @@ theorem flopperWardsBodyCoreOk
     (by exact hroutine)
     wardsMappingGetterWf
     (by jump_dest) (by simp)
-  have hret := wardsReturnFromMapping (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+  have hret := wardsReturnFromMapping (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) (sel := sel) (key := key) hretPc
   have henc :
       returnEquiv (UInt256.toByteArray (solcSlotWordAt slot σ I))
@@ -279,10 +281,10 @@ theorem flopperWardsBodyCoreDecodeFailed_short
     (hcode : I.code = flopperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some wardsTransition)
-    (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨766⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -304,12 +306,12 @@ theorem flopperWardsBody {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flopperSelBytes 18)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flopperSelBytes 18) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some wardsTransition :=
     flopperDispatchWards hsel
-  have hreach := flopperReachWardsBody (σ := σ)
+  have hreach := flopperReachWardsBody (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size

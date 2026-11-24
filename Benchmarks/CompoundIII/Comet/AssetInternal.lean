@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.AssetResponseEvm
 import Benchmarks.CompoundIII.Comet.AssetZeroMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -19,15 +21,15 @@ theorem cometAssetAfterZero {v : CometWithExtendedAssetListImmutables}
     (hptr : ptr.toNat + 512 < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7187⟩ (dummy :: i :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7187⟩ (dummy :: i :: ret :: R)
       mem aw rdata σ k C) :
     ∃ (evm' : EVM.State) (σ' : AccountMap) (z : Bool) (out : ByteArray),
-      callViaEVM evm v.assetList 0 (assetPayload i) (z, evm', out) false ∧
+      callViaEVM fork evm v.assetList 0 (assetPayload i) (z, evm', out) false ∧
       SourceState s0 ee σ' evm' ∧ out.size < 2^138 ∧
       if z = true ∧ AssetValid out then
-        ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret ((ptr + ⟨256⟩) :: R)
+        ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret ((ptr + ⟨256⟩) :: R)
           (assetResultMemory mem ptr i out) aw' out σ' k' C'
-      else RDrev (deployedRuntime v) g s0 := by
+      else RDrev fork (deployedRuntime v) g s0 := by
   have r1 := cometWithExtendedAssetList_block_7187
     (immWords := wordsOf (immStore v)) (by change R.length + 1 + 10 ≤ 1024; omega) h
   have hm : UInt256.land
@@ -47,7 +49,7 @@ theorem cometAssetAfterZero {v : CometWithExtendedAssetListImmutables}
       immutableLayout_inBounds, immutableTemplate_size64))
     (assetInputMemory_payload hb) (by rw [assetPayload_size]; decide)
     (by change R.length + 3 + 1 ≤ 1024; omega)
-  have hc' : callViaEVM evm v.assetList 0 (assetPayload i) (z, evm', out) false := by
+  have hc' : callViaEVM fork evm v.assetList 0 (assetPayload i) (z, evm', out) false := by
     have ht : AccountAddress.ofUInt256 (EVM.word v.assetList.val) = v.assetList :=
       accountAddress_roundtrip v.assetList
     simpa only [ht] using hc
@@ -64,16 +66,16 @@ theorem cometAssetInternal {v : CometWithExtendedAssetListImmutables}
     (hptr : ptr.toNat + 768 < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7179⟩ (i :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7179⟩ (i :: ret :: R)
       mem aw rdata σ k C) :
     ∃ (evm' : EVM.State) (σ' : AccountMap) (z : Bool) (out : ByteArray),
-      callViaEVM evm v.assetList 0 (assetPayload i) (z, evm', out) false ∧
+      callViaEVM fork evm v.assetList 0 (assetPayload i) (z, evm', out) false ∧
       SourceState s0 ee σ' evm' ∧ out.size < 2^138 ∧
       if z = true ∧ AssetValid out then
-        ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (((ptr + ⟨256⟩) + ⟨256⟩) :: R)
+        ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (((ptr + ⟨256⟩) + ⟨256⟩) :: R)
           (assetResultMemory (assetZeroMemory mem ptr) (ptr + ⟨256⟩) i out)
           aw' out σ' k' C'
-      else RDrev (deployedRuntime v) g s0 := by
+      else RDrev fork (deployedRuntime v) g s0 := by
   have r1 := cometWithExtendedAssetList_block_7179
     (immWords := wordsOf (immStore v)) (by change R.length + 2 + 2 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h

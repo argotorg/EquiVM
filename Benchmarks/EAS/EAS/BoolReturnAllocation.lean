@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.BoolMemory
 import Benchmarks.EAS.EAS.ResolverCallSource
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -29,16 +31,16 @@ theorem boolReturnAtAllocation {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hvalidLength : (D_J (deployedRuntime v) 0).contains lengthPC = true)
     (hvalidDecoded : (D_J (deployedRuntime v) 0).contains decodedPC = true)
     (hdecode : ∀ {mem' aw' k' C'},
-      RD (deployedRuntime v) ee g s0 lengthPC lengthStack mem' aw' out σ k' C' →
+      RD fork (deployedRuntime v) ee g s0 lengthPC lengthStack mem' aw' out σ k' C' →
       if 32 ≤ out.size then ∃ aw'' k'' C'',
-        RD (deployedRuntime v) ee g s0 ⟨7319⟩ (ptr::decodedPC::R) mem' aw'' out σ k'' C''
-      else RDrev (deployedRuntime v) g s0)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨4883⟩
+        RD fork (deployedRuntime v) ee g s0 ⟨7319⟩ (ptr::decodedPC::R) mem' aw'' out σ k'' C''
+      else RDrev fork (deployedRuntime v) g s0)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨4883⟩
       (ptr::UInt256.ofNat (min out.size 32)::lengthPC::lengthStack) mem aw out σ k C) :
     if resolverCallValid ptr.toNat true out then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 decodedPC (calldataWord out 0::R)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 decodedPC (calldataWord out 0::R)
         (resolverReturnMemory mem ptr out) aw' out σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hlen : (UInt256.ofNat (min out.size 32)).toNat = min out.size 32 :=
     ulit_toNat' _ (by change min out.size 32 < 2^256; omega)
   by_cases hg : allocateNext ptr.toNat (min out.size 32) ≤ 2^64-1 ∧ ptr.toNat ≤ allocateNext ptr.toNat (min out.size 32)
@@ -55,9 +57,9 @@ theorem boolReturnAtAllocation {ee : ExecutionEnv} {g : Sat256} {s0 : State}
       have hb := easDecodeBoolMemory v hdecodeStack hvalidDecoded rd2
       change (if memLoad ptr (resolverReturnMemory mem ptr out) = ⟨0⟩ ∨
           memLoad ptr (resolverReturnMemory mem ptr out) = ⟨1⟩ then
-        ∃ aw' k' C', RD (deployedRuntime v) ee g s0 decodedPC
+        ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 decodedPC
           (memLoad ptr (resolverReturnMemory mem ptr out)::R) (resolverReturnMemory mem ptr out) aw' out σ k' C'
-        else RDrev (deployedRuntime v) g s0) at hb
+        else RDrev fork (deployedRuntime v) g s0) at hb
       rw [hm] at hb
       by_cases hc : calldataWord out 0 = ⟨0⟩ ∨ calldataWord out 0 = ⟨1⟩
       · have hv : resolverCallValid ptr.toNat true out := ⟨rfl,hg,hl,hc⟩

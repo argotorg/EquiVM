@@ -1,5 +1,7 @@
 import Benchmarks.Auction.InitializeSourceStores
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 100000
@@ -19,22 +21,22 @@ theorem initializePrefixSourceSplit (evm : EVM.State) (args : InitializeArgs)
     (hg : initializingWord evm.accountMap evm.executionEnv ≠ ⟨0⟩ ∨
       initializedWord evm.accountMap evm.executionEnv = ⟨0⟩) :
     ((initializeTop evm = true → evm.executionEnv.perm = true) →
-      ExecBlock auctionConfig { contract := auctionContract, locals := args.locals } evm
+      ExecBlock fork auctionConfig { contract := auctionContract, locals := args.locals } evm
       initializePrefixStatements
       (.ok { contract := auctionContract, locals := args.bodyLocals (initializeTop evm) }
         (initializerEnteredState evm))) ∧
       (evm.executionEnv.perm = false → initializeTop evm = true →
-        ExecBlock auctionConfig { contract := auctionContract, locals := args.locals } evm
+        ExecBlock fork auctionConfig { contract := auctionContract, locals := args.locals } evm
           initializePrefixStatements .staticViolation) := by
-  have hbegin := initializerBeginSourceSplit evm (args.bodyLocals (initializeTop evm))
+  have hbegin := initializerBeginSourceSplit (fork := fork) evm (args.bodyLocals (initializeTop evm))
     (by simp [InitializeArgs.bodyLocals, InitializeArgs.locals])
     (by simp [InitializeArgs.bodyLocals, InitializeArgs.locals])
     (by simp [InitializeArgs.bodyLocals])
   have hprefix {result : ExecResult}
-      (htail : ExecBlock auctionConfig
+      (htail : ExecBlock fork auctionConfig
         { contract := auctionContract, locals := args.bodyLocals (initializeTop evm) } evm
         (initializePrefixStatements.drop 3) result) :
-      ExecBlock auctionConfig { contract := auctionContract, locals := args.locals }
+      ExecBlock fork auctionConfig { contract := auctionContract, locals := args.locals }
         evm initializePrefixStatements result := by
     apply ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv))
     apply ExecBlock.consNormal (ExecStmt.requireTrue
@@ -51,7 +53,7 @@ theorem initializePrefixSource (evm : EVM.State) (args : InitializeArgs)
     (hg : initializingWord evm.accountMap evm.executionEnv ≠ ⟨0⟩ ∨
       initializedWord evm.accountMap evm.executionEnv = ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock auctionConfig { contract := auctionContract, locals := args.locals } evm
+    ExecBlock fork auctionConfig { contract := auctionContract, locals := args.locals } evm
       initializePrefixStatements
       (.ok { contract := auctionContract, locals := args.bodyLocals (initializeTop evm) }
         (initializerEnteredState evm)) :=
@@ -62,12 +64,12 @@ theorem initializeBody (evm : EVM.State) (args : InitializeArgs)
     (hg : initializingWord evm.accountMap evm.executionEnv ≠ ⟨0⟩ ∨
       initializedWord evm.accountMap evm.executionEnv = ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody auctionConfig auctionContract evm args.locals initializeTransition.body
+    ExecTransitionBody fork auctionConfig auctionContract evm args.locals initializeTransition.body
       (.returned { contract := auctionContract, locals := args.bodyLocals (initializeTop evm) }
         (initializeFinalState args evm) none) := by
-  have hp := initializePrefixSource evm args hwv hg hperm
+  have hp := initializePrefixSource (fork := fork) evm args hwv hg hperm
   generalize hE : initializerEnteredState evm = evmE at hp
-  have hs := initializeSetupSource (hperm := by
+  have hs := initializeSetupSource (fork := fork) (hperm := by
     rw [← hE, initializerEnteredState_env]; exact hperm) evmE (args.bodyLocals (initializeTop evm))
     (by simp [InitializeArgs.bodyLocals, InitializeArgs.locals])
     (by simp [InitializeArgs.bodyLocals, InitializeArgs.locals])
@@ -84,16 +86,16 @@ theorem initializeBody (evm : EVM.State) (args : InitializeArgs)
     rw [hBfull] at heq
     rw [henvB, ← heq]
     exact initializeBaseMap_unpaused _ _
-  have hpa := pauseBlock (hperm := by rw [henvB]; exact hperm) evmB (args.bodyLocals (initializeTop evm))
+  have hpa := pauseBlock (fork := fork) (hperm := by rw [henvB]; exact hperm) evmB (args.bodyLocals (initializeTop evm))
     (by simp [InitializeArgs.bodyLocals, InitializeArgs.locals]) hBp
   generalize hP : Stele.EVM.storageStore evmB evmB.executionEnv.codeOwner ⟨51⟩
     (pauseWord (Stele.EVM.storageLoad evmB evmB.executionEnv.codeOwner ⟨51⟩)) = evmP at hpa
   have hPfull : initializePausedState evm = evmP := by
     rw [initializePausedState, hBfull]; exact hP
-  have ha := initializeParamsSource evmP args (initializeTop evm) hc
+  have ha := initializeParamsSource (fork := fork) evmP args (initializeTop evm) hc
     (by rw [← hPfull, initializePausedState_env]; exact hperm)
   generalize hA : args.storeState evmP = evmA at ha
-  have he := initializerExitSource (hperm := by
+  have he := initializerExitSource (fork := fork) (hperm := by
     rw [← hA, InitializeArgs.storeState_env, ← hPfull, initializePausedState_env]
     exact hperm) evmA (args.bodyLocals (initializeTop evm)) (initializeTop evm)
     (by simp [InitializeArgs.bodyLocals, InitializeArgs.locals])
@@ -107,22 +109,22 @@ theorem initializeBodyStatic (evm : EVM.State) (args : InitializeArgs)
     (hg : initializingWord evm.accountMap evm.executionEnv ≠ ⟨0⟩ ∨
       initializedWord evm.accountMap evm.executionEnv = ⟨0⟩)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody auctionConfig auctionContract evm args.locals
+    ExecTransitionBody fork auctionConfig auctionContract evm args.locals
       initializeTransition.body .staticViolation := by
-  have hp := initializePrefixSourceSplit evm args hwv hg
+  have hp := initializePrefixSourceSplit (fork := fork) evm args hwv hg
   apply ExecFuncBody.execBlockStatic
-  change ExecBlock _ _ _
+  change ExecBlock fork _ _ _
     (initializePrefixStatements ++ initializeTransition.body.drop 4) .staticViolation
   by_cases htop : initializeTop evm = true
   · exact execBlock_append_term (hp.2 hperm htop) (by intro _ _ h; cases h)
   · apply execBlock_append (hp.1 (fun hb ↦ (htop hb).elim))
-    have hs := initializeSetupSourceSplit (initializerEnteredState evm)
+    have hs := initializeSetupSourceSplit (fork := fork) (initializerEnteredState evm)
       (args.bodyLocals (initializeTop evm))
       (by simp [InitializeArgs.bodyLocals, InitializeArgs.locals])
       (by simp [InitializeArgs.bodyLocals, InitializeArgs.locals])
       (by simp [InitializeArgs.bodyLocals, InitializeArgs.locals])
     have hstatic := hs.2 (by rw [initializerEnteredState, if_neg htop]; exact hperm)
-    change ExecBlock _ _ _
+    change ExecBlock fork _ _ _
       ([.assign .storage pausedRef (.boolLit false), .assign .storage statusRef notEntered,
         .assign .storage ownerRef sender] ++ initializeTransition.body.drop 7) .staticViolation
     exact execBlock_append_term hstatic (by intro _ _ h; cases h)
@@ -131,7 +133,7 @@ theorem initializeBodyReverts (evm : EVM.State) (args : InitializeArgs)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hi : initializingWord evm.accountMap evm.executionEnv = ⟨0⟩)
     (hz : initializedWord evm.accountMap evm.executionEnv ≠ ⟨0⟩) :
-    ExecTransitionBody auctionConfig auctionContract evm args.locals initializeTransition.body
+    ExecTransitionBody fork auctionConfig auctionContract evm args.locals initializeTransition.body
       .reverted := by
   apply ExecFuncBody.execBlockRevert
   exact nonpayableSecondRequireReverts hwv

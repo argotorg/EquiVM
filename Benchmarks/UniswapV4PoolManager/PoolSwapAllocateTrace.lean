@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.Allocate96Trace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_053
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -14,8 +16,8 @@ theorem poolSwapAllocateTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+10 ≤ 1024)
     (hp : memLoad (UInt256.ofNat 64) mem = ptr) (hf : ptr.toNat+96 ≤ solcMaxU64)
-    (h : RD (deployedRuntime v) I g s0 ⟨18777⟩ (pool :: params :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ C+Cₘ (poolSwapAllocateAW aw) ≤ C'+Cₘ aw ∧ RD (deployedRuntime v) I g s0 ⟨18793⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨18777⟩ (pool :: params :: ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', C ≤ C' ∧ C+Cₘ (poolSwapAllocateAW aw) ≤ C'+Cₘ aw ∧ RD fork (deployedRuntime v) I g s0 ⟨18793⟩
       ([⟨0⟩, params, ret, pool, ptr]++R) (writeWord mem 64 (ptr+⟨96⟩))
       (poolSwapAllocateAW aw) rdata σ k' C' := by
   have rd1 := poolManagerBlocks.poolManager_block_18777 (by omega)

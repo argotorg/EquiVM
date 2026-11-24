@@ -3,6 +3,8 @@ import Benchmarks.Safe.Main.FallbackMemory
 import Reasoning.ABIViews
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.Main
@@ -32,11 +34,11 @@ def fallbackFinalLocals (cd : ByteArray) (handler : UInt256) (z : Bool) (out : B
 
 theorem safeFallbackPrefix (evm : EVM.State) {result : ExecResult}
     (hv : evm.executionEnv.weiValue = ⟨0⟩)
-    (htail : ExecBlock config
+    (htail : ExecBlock fork config
       { contract := contract, locals :=
           fallbackLocals evm.executionEnv.calldata (fallbackHandler evm) }
       evm [fallbackChoice] result) :
-    ExecBlock config { contract := contract, locals := fallbackArgs evm.executionEnv.calldata }
+    ExecBlock fork config { contract := contract, locals := fallbackArgs evm.executionEnv.calldata }
       evm fallbackTransition.body result := by
   refine .consNormal (.requireTrue (evalCallvalueEq_true hv))
     (.consNormal (.letDecl ?_) (.consNormal (.letDecl ?_) htail))
@@ -74,7 +76,7 @@ theorem safeFallbackData (evm : EVM.State) (handler : UInt256) :
 
 theorem safeFallbackZero (evm : EVM.State) (hv : evm.executionEnv.weiValue = ⟨0⟩)
     (hz : fallbackHandler evm = ⟨0⟩) :
-    ExecTransitionBody config contract evm (fallbackArgs evm.executionEnv.calldata)
+    ExecTransitionBody fork config contract evm (fallbackArgs evm.executionEnv.calldata)
       fallbackTransition.body
       (.returned { contract := contract, locals :=
           fallbackLocals evm.executionEnv.calldata (fallbackHandler evm) }
@@ -88,9 +90,9 @@ theorem safeFallbackZero (evm : EVM.State) (hv : evm.executionEnv.weiValue = ⟨
 
 theorem safeFallbackCallSuccess {evm evm' : EVM.State} {out : ByteArray}
     (hv : evm.executionEnv.weiValue = ⟨0⟩) (hn : fallbackHandler evm ≠ ⟨0⟩)
-    (hcall : callViaEVM evm (AccountAddress.ofNat (fallbackHandler evm).toNat) 0
+    (hcall : callViaEVM fork evm (AccountAddress.ofNat (fallbackHandler evm).toNat) 0
       (fallbackCallData evm.executionEnv.calldata evm.executionEnv.source) (true, evm', out)) :
-    ExecTransitionBody config contract evm (fallbackArgs evm.executionEnv.calldata)
+    ExecTransitionBody fork config contract evm (fallbackArgs evm.executionEnv.calldata)
       fallbackTransition.body
       (.returned { contract := contract, locals :=
           fallbackFinalLocals evm.executionEnv.calldata (fallbackHandler evm) true out }
@@ -108,9 +110,9 @@ theorem safeFallbackCallSuccess {evm evm' : EVM.State} {out : ByteArray}
 
 theorem safeFallbackCallFailure {evm evm' : EVM.State} {out : ByteArray}
     (hv : evm.executionEnv.weiValue = ⟨0⟩) (hn : fallbackHandler evm ≠ ⟨0⟩)
-    (hcall : callViaEVM evm (AccountAddress.ofNat (fallbackHandler evm).toNat) 0
+    (hcall : callViaEVM fork evm (AccountAddress.ofNat (fallbackHandler evm).toNat) 0
       (fallbackCallData evm.executionEnv.calldata evm.executionEnv.source) (false, evm', out)) :
-    ExecTransitionBody config contract evm (fallbackArgs evm.executionEnv.calldata)
+    ExecTransitionBody fork config contract evm (fallbackArgs evm.executionEnv.calldata)
       fallbackTransition.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply safeFallbackPrefix evm hv
@@ -123,7 +125,7 @@ theorem safeFallbackCallFailure {evm evm' : EVM.State} {out : ByteArray}
   · simp [evalExpr?, EvalResult.ofOption, Std.HashMap.getElem_insert]
 
 theorem safeFallbackValueRevert (evm : EVM.State) (hv : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecTransitionBody config contract evm (fallbackArgs evm.executionEnv.calldata)
+    ExecTransitionBody fork config contract evm (fallbackArgs evm.executionEnv.calldata)
       fallbackTransition.body .reverted :=
   .execBlockRevert (.consRevert (.requireFalse (evalCallvalueEq_false hv)))
 

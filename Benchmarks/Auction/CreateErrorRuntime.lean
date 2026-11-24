@@ -1,21 +1,23 @@
 import Benchmarks.Auction.ErrorDecodeRoutine
 import Benchmarks.Auction.ErrorSelector
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
 set_option synthInstance.maxSize 1024 in
 theorem createErrorDecodeRuntime {I g s0 ret R mem aw ptr out acc k C}
-    (h : RD auctionBytecode I g s0 ⟨3116⟩ (ret :: R) mem aw out acc k C)
+    (h : RD fork auctionBytecode I g s0 ⟨3116⟩ (ret :: R) mem aw out acc k C)
     (hm : HeapMemory mem aw ptr) (hin : ptr.toNat ≤ mem.size)
     (hb : ptr.toNat + out.size + 64 ≤ 2 ^ 200)
     (he : returnSelector out = ⟨0x08c379a0⟩) (hov : R.length + 19 ≤ 1024) :
     (ErrorDataValid out ∧ ErrorAllocAllowed ptr (errorAllocSize out) ∧
-      ∃ value mem' aw' k' C', RD auctionBytecode I g s0 ⟨3655⟩
+      ∃ value mem' aw' k' C', RD fork auctionBytecode I g s0 ⟨3655⟩
         (⟨2850⟩ :: value :: ret :: R) mem' aw' out acc k' C') ∨
     ((¬ ErrorDataValid out ∨ ¬ ErrorAllocAllowed ptr (errorAllocSize out)) ∧
-      RDrev auctionBytecode g s0) := by
+      RDrev fork auctionBytecode g s0) := by
   have ho : out.size < UInt256.size := by change out.size < 2 ^ 256; omega
   obtain ⟨_, _, rd3123⟩ := createErrorSelectorPrefix h hm ho (by omega)
   have rd5925 := evm_run rd3123 with [jumpdest, dup1, push4 ⟨0x08c379a0⟩, sub, push2 ⟨3162⟩,

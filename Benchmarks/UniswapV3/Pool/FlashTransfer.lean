@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.FlashTransferBuild
 import Benchmarks.UniswapV3.Pool.SafeTransfer
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -11,7 +13,7 @@ theorem flashTransferX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {aw p junk bal1 bal0 fee1 fee0 liquidity len start amount1 amount0 : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (second : Bool) (recipient : AccountAddress) (locals : Store)
-    (rd : RD (deployedRuntime v) ee g s0 (flashTransferEntry second)
+    (rd : RD fork (deployedRuntime v) ee g s0 (flashTransferEntry second)
       (flashTransferInput second junk bal1 bal0 fee1 fee0 liquidity len start amount1 amount0 recipient R)
       mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hperm : ee.perm = true)
@@ -21,16 +23,16 @@ theorem flashTransferX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hm : HeapMemory mem aw p) (hmem : 128 ≤ mem.size)
     (hzero : memLoad (UInt256.ofNat 96) mem = ⟨0⟩)
     (hb : p.toNat + 2 ^ 138 + 195 ≤ 2 ^ 200) (hov : R.length + 30 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧
-      ExecStmt config {contract := contract, locals := locals, immutables := immStore v} evm
+    (RDrev fork (deployedRuntime v) g s0 ∧
+      ExecStmt fork config {contract := contract, locals := locals, immutables := immStore v} evm
         (flashTransferStmt second) .reverted) ∨
     ∃ evm' σ' out mem' aw' next k' C', SourceState s0 ee σ' evm' ∧
-      ExecStmt config {contract := contract, locals := locals, immutables := immStore v} evm
+      ExecStmt fork config {contract := contract, locals := locals, immutables := immStore v} evm
         (flashTransferStmt second)
         (.ok { contract := contract
                locals := flashTransferLocals locals second (if second then amount1 else amount0)
                immutables := immStore v } evm') ∧
-      RD (deployedRuntime v) ee g s0 (flashTransferExit second)
+      RD fork (deployedRuntime v) ee g s0 (flashTransferExit second)
         (flashTransferRest bal1 bal0 fee1 fee0 liquidity len start amount1 amount0 recipient R)
         mem' aw' out σ' k' C' ∧
       HeapMemory mem' aw' next ∧ 128 ≤ mem'.size ∧ memLoad (UInt256.ofNat 96) mem' = ⟨0⟩ ∧

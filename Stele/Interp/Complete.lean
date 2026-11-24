@@ -1,5 +1,7 @@
 import Stele.Interp.Sound
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Completeness of the executable semantics
 
@@ -71,8 +73,8 @@ theorem complete_of_succ {run : Nat → List Witness → Outcome × List Witness
 theorem execStmt_guard {cfg : Config} {stele : Frame} {evm : EVM.State} {stmt : Stmt}
     {r : ExecResult} {fuel : Nat} {ω rest : List Witness}
     (h : oversizedAllocation cfg stele evm stmt = none →
-      Reaches (execStmt (fuel + 1) scriptOracle ω cfg stele evm stmt) r rest) :
-    Reaches (execStmt (fuel + 1) scriptOracle ω cfg stele evm stmt) r rest := by
+      Reaches (execStmt fork (fuel + 1) scriptOracle ω cfg stele evm stmt) r rest) :
+    Reaches (execStmt fork (fuel + 1) scriptOracle ω cfg stele evm stmt) r rest := by
   rcases hover : oversizedAllocation cfg stele evm stmt with _ | why
   · exact h hover
   · rw [execStmt]; simp only [hover]; exact .unsupported why ω
@@ -80,37 +82,37 @@ theorem execStmt_guard {cfg : Config} {stele : Frame} {evm : EVM.State} {stmt : 
 theorem stmt_complete {cfg : Config} {stele : Frame} {evm : EVM.State} {stmt : Stmt}
     {r : ExecResult} (ω : List Witness) (n : Nat)
     (h : ∀ fuel, n ≤ fuel → ∀ rest, oversizedAllocation cfg stele evm stmt = none →
-      Reaches (execStmt (fuel + 1) scriptOracle (ω ++ rest) cfg stele evm stmt) r rest) :
+      Reaches (execStmt fork (fuel + 1) scriptOracle (ω ++ rest) cfg stele evm stmt) r rest) :
     ∃ ω n, ∀ fuel, n ≤ fuel → ∀ rest,
-      Reaches (execStmt fuel scriptOracle (ω ++ rest) cfg stele evm stmt) r rest :=
-  complete_of_succ (run := fun fuel ω => execStmt fuel scriptOracle ω cfg stele evm stmt) ω n
+      Reaches (execStmt fork fuel scriptOracle (ω ++ rest) cfg stele evm stmt) r rest :=
+  complete_of_succ (run := fun fuel ω => execStmt fork fuel scriptOracle ω cfg stele evm stmt) ω n
     fun fuel hn rest => execStmt_guard (h fuel hn rest)
 
 theorem loop_complete {cfg : Config} {stele : Frame} {evm : EVM.State} {cond : Expr}
     {post body : List Stmt} {r : ExecResult} (ω : List Witness) (n : Nat)
     (h : ∀ fuel, n ≤ fuel → ∀ rest,
-      Reaches (execForLoop (fuel + 1) scriptOracle (ω ++ rest) cfg stele evm cond post body)
+      Reaches (execForLoop fork (fuel + 1) scriptOracle (ω ++ rest) cfg stele evm cond post body)
         r rest) :
     ∃ ω n, ∀ fuel, n ≤ fuel → ∀ rest,
-      Reaches (execForLoop fuel scriptOracle (ω ++ rest) cfg stele evm cond post body) r rest :=
+      Reaches (execForLoop fork fuel scriptOracle (ω ++ rest) cfg stele evm cond post body) r rest :=
   complete_of_succ
-    (run := fun fuel ω => execForLoop fuel scriptOracle ω cfg stele evm cond post body) ω n h
+    (run := fun fuel ω => execForLoop fork fuel scriptOracle ω cfg stele evm cond post body) ω n h
 
 theorem block_complete {cfg : Config} {stele : Frame} {evm : EVM.State} {stmts : List Stmt}
     {r : ExecResult} (ω : List Witness) (n : Nat)
     (h : ∀ fuel, n ≤ fuel → ∀ rest,
-      Reaches (execBlock (fuel + 1) scriptOracle (ω ++ rest) cfg stele evm stmts) r rest) :
+      Reaches (execBlock fork (fuel + 1) scriptOracle (ω ++ rest) cfg stele evm stmts) r rest) :
     ∃ ω n, ∀ fuel, n ≤ fuel → ∀ rest,
-      Reaches (execBlock fuel scriptOracle (ω ++ rest) cfg stele evm stmts) r rest :=
-  complete_of_succ (run := fun fuel ω => execBlock fuel scriptOracle ω cfg stele evm stmts) ω n h
+      Reaches (execBlock fork fuel scriptOracle (ω ++ rest) cfg stele evm stmts) r rest :=
+  complete_of_succ (run := fun fuel ω => execBlock fork fuel scriptOracle ω cfg stele evm stmts) ω n h
 
 theorem body_complete {cfg : Config} {stele : Frame} {evm : EVM.State} {body : List Stmt}
     {r : ExecResult} (ω : List Witness) (n : Nat)
     (h : ∀ fuel, n ≤ fuel → ∀ rest,
-      Reaches (execFuncBody (fuel + 1) scriptOracle (ω ++ rest) cfg stele evm body) r rest) :
+      Reaches (execFuncBody fork (fuel + 1) scriptOracle (ω ++ rest) cfg stele evm body) r rest) :
     ∃ ω n, ∀ fuel, n ≤ fuel → ∀ rest,
-      Reaches (execFuncBody fuel scriptOracle (ω ++ rest) cfg stele evm body) r rest :=
-  complete_of_succ (run := fun fuel ω => execFuncBody fuel scriptOracle ω cfg stele evm body)
+      Reaches (execFuncBody fork fuel scriptOracle (ω ++ rest) cfg stele evm body) r rest :=
+  complete_of_succ (run := fun fuel ω => execFuncBody fork fuel scriptOracle ω cfg stele evm body)
     ω n h
 
 /-- Unfold one step of the interpreter `f` and reduce it with the derivation's hypotheses.
@@ -132,9 +134,9 @@ scoped macro "follow" h:term : tactic =>
 
 theorem callViaEVMRun_complete {evm : EVM.State} {target : EVM.Address} {value : Int}
     {calldata : ByteArray} {z : Bool} {evm' : EVM.State} {out : ByteArray} {perm : Bool}
-    (h : callViaEVM evm target value calldata (z, evm', out) perm) :
+    (h : callViaEVM fork evm target value calldata (z, evm', out) perm) :
     ∃ ω₀ : List Witness, ∀ ω,
-      callViaEVMRun scriptOracle (ω₀ ++ ω) evm target value calldata perm =
+      callViaEVMRun fork scriptOracle (ω₀ ++ ω) evm target value calldata perm =
         .ok ((z, evm', out), ω) := by
   rcases h with ⟨hvw, -, hevm', hle, hd⟩ | ⟨hA, hevm', hng⟩
   · rename_i valueWord σ' g' A'
@@ -154,9 +156,9 @@ theorem callViaEVMRun_complete {evm : EVM.State} {target : EVM.Address} {value :
 
 theorem delegateCallViaEVMRun_complete {evm : EVM.State} {target : EVM.Address}
     {calldata : ByteArray} {z : Bool} {evm' : EVM.State} {out : ByteArray}
-    (h : delegateCallViaEVM evm target calldata (z, evm', out)) :
+    (h : delegateCallViaEVM fork evm target calldata (z, evm', out)) :
     ∃ ω₀ : List Witness, ∀ ω,
-      delegateCallViaEVMRun scriptOracle (ω₀ ++ ω) evm target calldata =
+      delegateCallViaEVMRun fork scriptOracle (ω₀ ++ ω) evm target calldata =
         .ok ((z, evm', out), ω) := by
   rcases h with ⟨-, hevm', hd⟩ | ⟨hA, hevm', hd⟩
   · rename_i σ' g' A'
@@ -170,9 +172,9 @@ theorem delegateCallViaEVMRun_complete {evm : EVM.State} {target : EVM.Address}
 theorem typedCallViaEVMRun_complete {cfg : Config} {evm : EVM.State} {target : EVM.Address}
     {name : Ident} {value : Int} {args : List Value} {z : Bool} {evm' : EVM.State}
     {out : ByteArray} {perm : Bool}
-    (h : typedCallViaEVM cfg evm target name value args (z, evm', out) perm) :
+    (h : typedCallViaEVM fork cfg evm target name value args (z, evm', out) perm) :
     ∃ ω₀ : List Witness, ∀ ω,
-      typedCallViaEVMRun scriptOracle (ω₀ ++ ω) cfg evm target name value args perm =
+      typedCallViaEVMRun fork scriptOracle (ω₀ ++ ω) cfg evm target name value args perm =
         .ok ((z, evm', out), ω) := by
   obtain ⟨calldata, henc, hcall⟩ := h
   obtain ⟨ω₀, hrun⟩ := callViaEVMRun_complete hcall
@@ -180,7 +182,7 @@ theorem typedCallViaEVMRun_complete {cfg : Config} {evm : EVM.State} {target : E
 
 theorem newViaEVMRun_complete {cfg : Config} {evm : EVM.State} {name : Ident} {value : Int}
     {args : List Value} {salt : Option ByteArray} {addr : EVM.Address} {evm' : EVM.State}
-    {z : Bool} (h : newViaEVM cfg evm name value args salt (addr, evm', z)) :
+    {z : Bool} (h : newViaEVM fork cfg evm name value args salt (addr, evm', z)) :
     ∃ ω₀ : List Witness, ∀ ω,
       newViaEVMRun scriptOracle (ω₀ ++ ω) cfg evm name value args salt =
         .ok ((addr, evm', z), ω) := by
@@ -215,9 +217,9 @@ theorem not_callStatic {w : EVM.Word} {perm : Bool} (h : w = ⟨0⟩ ∨ perm = 
 mutual
 
 theorem execStmt_complete {cfg : Config} {stele : Frame} {evm : EVM.State} {stmt : Stmt}
-    {r : ExecResult} (h : ExecStmt cfg stele evm stmt r) :
+    {r : ExecResult} (h : ExecStmt fork cfg stele evm stmt r) :
     ∃ ω n, ∀ fuel, n ≤ fuel → ∀ rest,
-      Reaches (execStmt fuel scriptOracle (ω ++ rest) cfg stele evm stmt) r rest := by
+      Reaches (execStmt fork fuel scriptOracle (ω ++ rest) cfg stele evm stmt) r rest := by
   match h with
   | .letDecl hv =>
     exact stmt_complete [] 0 fun _ _ _ hover => by step execStmt [hover, hv]; constructor
@@ -498,9 +500,9 @@ theorem execStmt_complete {cfg : Config} {stele : Frame} {evm : EVM.State} {stmt
       step execStmt [hover, hargs]; rw [if_pos hp]; constructor
 
 theorem execForLoop_complete {cfg : Config} {stele : Frame} {evm : EVM.State} {cond : Expr}
-    {post body : List Stmt} {r : ExecResult} (h : ExecForLoop cfg stele evm cond post body r) :
+    {post body : List Stmt} {r : ExecResult} (h : ExecForLoop fork cfg stele evm cond post body r) :
     ∃ ω n, ∀ fuel, n ≤ fuel → ∀ rest,
-      Reaches (execForLoop fuel scriptOracle (ω ++ rest) cfg stele evm cond post body) r rest := by
+      Reaches (execForLoop fork fuel scriptOracle (ω ++ rest) cfg stele evm cond post body) r rest := by
   match h with
   | .falseDone hc =>
     exact loop_complete [] 0 fun _ _ _ => by step execForLoop [hc]; constructor
@@ -574,9 +576,9 @@ theorem execForLoop_complete {cfg : Config} {stele : Frame} {evm : EVM.State} {c
     follow (h₂ fuel (by omega) rest)
 
 theorem execBlock_complete {cfg : Config} {stele : Frame} {evm : EVM.State} {stmts : List Stmt}
-    {r : ExecResult} (h : ExecBlock cfg stele evm stmts r) :
+    {r : ExecResult} (h : ExecBlock fork cfg stele evm stmts r) :
     ∃ ω n, ∀ fuel, n ≤ fuel → ∀ rest,
-      Reaches (execBlock fuel scriptOracle (ω ++ rest) cfg stele evm stmts) r rest := by
+      Reaches (execBlock fork fuel scriptOracle (ω ++ rest) cfg stele evm stmts) r rest := by
   match h with
   | .nil => exact block_complete [] 0 fun _ _ _ => by step execBlock []; constructor
   | .consNormal hs hb =>
@@ -613,9 +615,9 @@ theorem execBlock_complete {cfg : Config} {stele : Frame} {evm : EVM.State} {stm
     follow (h₁ fuel hf rest)
 
 theorem execFuncBody_complete {cfg : Config} {stele : Frame} {evm : EVM.State} {body : List Stmt}
-    {r : ExecResult} (h : ExecFuncBody cfg stele evm body r) :
+    {r : ExecResult} (h : ExecFuncBody fork cfg stele evm body r) :
     ∃ ω n, ∀ fuel, n ≤ fuel → ∀ rest,
-      Reaches (execFuncBody fuel scriptOracle (ω ++ rest) cfg stele evm body) r rest := by
+      Reaches (execFuncBody fork fuel scriptOracle (ω ++ rest) cfg stele evm body) r rest := by
   match h with
   | .execBlockOK hb =>
     obtain ⟨ω₁, n₁, h₁⟩ := execBlock_complete hb
@@ -670,15 +672,15 @@ theorem selectorDispatchMsg_eq_none_of_size {contract : ContractDecl} {calldata 
   show ¬ ((KEC (transitionSigStr t).toByteArray).extract 0 4 == calldata.extract 0 4) = true
   intro heq
   have hs := size_eq_of_beq heq
-  have h32 : (KEC (transitionSigStr t).toByteArray).size = 32 := Keccak256.hash_size_eq_32 _
+  have h32 : (KEC (transitionSigStr t).toByteArray).size = 32 := Crypto.Keccak256.hash_size_eq_32 _
   rw [ByteArray.size_extract, ByteArray.size_extract, h, h32] at hs
   exact absurd hs (by decide)
 
 theorem steleExecRun_complete {cfg : Config} {contract : ContractDecl} {immutables : Store}
     {σ σ₀ : AccountMap} {g : UInt256} {A : Substate} {I : ExecutionEnv} {r : ExecResult}
-    {rc : ReturnConvention} (h : steleExec cfg contract immutables σ σ₀ g A I r rc) :
+    {rc : ReturnConvention} (h : steleExec fork cfg contract immutables σ σ₀ g A I r rc) :
     ∃ fuel ω p,
-      steleExecRun fuel scriptOracle ω cfg contract immutables σ σ₀ g A I =
+      steleExecRun fork fuel scriptOracle ω cfg contract immutables σ σ₀ g A I =
         (.ran p.1 rc, p.2) ∧ Reaches p r [] := by
   cases h with
   | noMatch hd =>
@@ -722,9 +724,9 @@ theorem steleExecRun_complete {cfg : Config} {contract : ContractDecl} {immutabl
 
 theorem steleCtorExecRun_complete {cfg : Config} {contract : ContractDecl} {args : List Value}
     {σ σ₀ : AccountMap} {g : UInt256} {A : Substate} {I : ExecutionEnv} {r : ExecResult}
-    (h : steleCtorExec cfg contract args σ σ₀ g A I r) :
+    (h : steleCtorExec fork cfg contract args σ σ₀ g A I r) :
     ∃ fuel ω p,
-      steleCtorExecRun fuel scriptOracle ω cfg contract args σ σ₀ g A I = some p ∧
+      steleCtorExecRun fork fuel scriptOracle ω cfg contract args σ σ₀ g A I = some p ∧
         Reaches p r [] := by
   cases h with
   | intro hevm hlen hstore hbody =>

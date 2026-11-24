@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Vow.HealFinal
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -12,7 +14,7 @@ theorem vowHealBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xf3, 0x7a, 0xc6, 0x1c]⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0xf3, 0x7a, 0xc6, 0x1c]⟩ rfl hsel
   by_cases hshort : I.calldata.size < 36
@@ -24,7 +26,7 @@ theorem vowHealBody {σ σ₀ A I} {g : UInt256}
       config.externalABI.decodeCalldata? (healTransition.params.map Param.name)
         (transitionSignature healTransition).paramTypes I.calldata = some (healLocals I) := by
     simpa [healLocals] using vowDecode_heal_ok (I := I) hsz36
-  have hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
+  have hreach : ∃ k C, RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨818⟩ [vowSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C :=
     vowReachHealBody (σ := σ)
@@ -58,7 +60,7 @@ theorem vowHealBody {σ σ₀ A I} {g : UInt256}
     · exact vowHealDaiCallFailureBodyCore (σ'_evm := σ_dai)
         (A'_evm := A_dai) hcode hwv hdispatch hdecode (by simpa using rd4719)
         (by simpa using hcallDai) hoszDai hvatCodeStele
-    · have rd4719True : RD vowBytecode I (Sat256.ofUInt256 g)
+    · have rd4719True : RD fork vowBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4719⟩
           (⟨1⟩ :: kissDaiEndPtr I :: ⟨1814410054⟩ ::
             kissDaiTargetWord σ I :: healRad I :: ⟨412⟩ :: vowSelWord I :: [])
@@ -67,7 +69,7 @@ theorem vowHealBody {σ σ₀ A I} {g : UInt256}
           (UInt256.ofNat 6) oDai σ_dai k4719 C4719 := by
         simpa using rd4719
       have hcallDaiTrue :
-          typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
             (true,
               { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -142,7 +144,7 @@ theorem vowHealBody {σ σ₀ A I} {g : UInt256}
               substate := A_dai
           }
         have hcallDaiStele :
-            typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+            typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
               (true, evmDaiStele, oDai) false := by
           simpa [evmDaiStele] using hcallDaiTrue
@@ -225,7 +227,7 @@ theorem vowHealBody {σ σ₀ A I} {g : UInt256}
               substate := A_sin
           }
         have hcallSinEvm :
-            typedCallViaEVM config evmSinEvmIn
+            typedCallViaEVM fork config evmSinEvmIn
               (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
               (zSin, evmSinEvmOut, outSin) false := by
           simpa [evmSinEvmIn, evmSinEvmOut, hVatAddrSin] using hcallSinRaw
@@ -239,7 +241,7 @@ theorem vowHealBody {σ σ₀ A I} {g : UInt256}
               substate := A_sin_stele
           }
         have hcallSinStele :
-            typedCallViaEVM config evmDaiStele
+            typedCallViaEVM fork config evmDaiStele
               (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
               (zSin, evmSinStele, outSin) false := by
           simpa [evmSinStele, evmSinEvmIn, evmSinEvmOut, evmDaiStele]
@@ -250,7 +252,7 @@ theorem vowHealBody {σ σ₀ A I} {g : UInt256}
             hcode hwv hdispatch hdecode (by simpa using rd1277) houtSinSize
             hvatCodeStele hcallDaiStele hdecDai hvatDaiEnough hvatLoadDai hvatCodeSinStele
             (by simpa using hcallSinStele)
-        have rd1277True : RD vowBytecode I (Sat256.ofUInt256 g)
+        have rd1277True : RD fork vowBytecode I (Sat256.ofUInt256 g)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1277⟩
             (⟨1⟩ :: healSinEndPtr :: healSinSelector :: kissDaiTargetWord σ_dai I ::
               ⟨1325⟩ :: ⟨4921⟩ :: healRad I :: ⟨412⟩ :: vowSelWord I :: [])
@@ -259,7 +261,7 @@ theorem vowHealBody {σ σ₀ A I} {g : UInt256}
             (UInt256.ofNat 6) outSin σ_sin k1277 C1277 := by
           simpa using rd1277
         have hcallSinTrue :
-            typedCallViaEVM config evmDaiStele
+            typedCallViaEVM fork config evmDaiStele
               (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
               (true, evmSinStele, outSin) false := by
           simpa using hcallSinStele
@@ -457,7 +459,7 @@ theorem vowHealBody {σ σ₀ A I} {g : UInt256}
                 substate := A_heal
             }
           have hcallHealEvm :
-              typedCallViaEVM config evmHealEvmIn
+              typedCallViaEVM fork config evmHealEvmIn
                 (EVM.address (kissVatAddress σ I)) "heal" 0
                 [.int (Int.ofNat (healRad I).toNat)]
                 (zHeal, evmHealEvmOut, outHeal) true := by
@@ -472,7 +474,7 @@ theorem vowHealBody {σ σ₀ A I} {g : UInt256}
                 substate := A_heal_stele
             }
           have hcallHealStele :
-              typedCallViaEVM config evmSinStele
+              typedCallViaEVM fork config evmSinStele
                 (EVM.address (kissVatAddress σ I)) "heal" 0
                 [.int (Int.ofNat (healRad I).toNat)]
                 (zHeal, evmHealStele, outHeal) true := by
@@ -568,9 +570,10 @@ theorem vowHealBody {σ σ₀ A I} {g : UInt256}
     obtain ⟨k4719, C4719, rd4719⟩ :=
       RD.vowHealDaiCallDepthLimit hreach hsz36 hsize hcodeSizeDaiNE hdepthEq
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    let A_dai := (evm0.addAccessedAccount (EVM.address (kissVatAddress σ I))).substate
+    let A_dai := (Ethereum.EVM.callSubstate fork evm0.accountMap (EVM.address
+      (kissVatAddress σ I)) evm0.substate)
     have hcallDaiDepth :
-        typedCallViaEVM config evm0
+        typedCallViaEVM fork config evm0
           (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
           (false, { evm0 with accountMap := σ, substate := A_dai },
             ByteArray.empty) false := by

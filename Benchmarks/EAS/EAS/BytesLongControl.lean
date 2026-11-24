@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.BytesShortEVM
 import Benchmarks.EAS.EAS.BytesDataHash
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -15,9 +17,9 @@ theorem easBytesLongPrepare {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {ptr len slot : UInt256} {R : List UInt256} (v : EASImmutables) (site : UIDSite)
     (hstack : R.length+8 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 (bytesLongPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (bytesLongPC site)
       (ptr::UInt256.ofNat 32::len::slot::R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (bytesLongLoopPC site)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (bytesLongLoopPC site)
       (⟨0⟩::ptr::UInt256.ofNat 32::solidityBytesDataBaseSlot (slot+⟨6⟩)::len::slot::R)
       (Reasoning.Theory.writeWord mem 0 (slot+⟨6⟩)) aw' rdata σ k' C' := by
   have hh : keccakWord (UInt256.ofNat 0) (UInt256.ofNat 32)
@@ -38,9 +40,9 @@ theorem easBytesLongStep {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {idx ptr stride dst len slot word src t1 t2 t3 t4 : UInt256} {R : List UInt256}
     (v : EASImmutables) (site : UIDSite) (hstack : R.length+24 ≤ 1024) (hp : ee.perm = true)
     (hc : UInt256.lt idx (UInt256.land len (UInt256.ofNat (2^256-32))) ≠ ⟨0⟩)
-    (rd : RD (deployedRuntime v) ee g s0 (bytesLongLoopPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (bytesLongLoopPC site)
       (idx::ptr::stride::dst::len::slot::bytesWriteSaved site word src t1 t2 t3 t4 R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (bytesLongLoopPC site)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (bytesLongLoopPC site)
       ((UInt256.ofNat 32+idx)::ptr::(UInt256.ofNat 32+stride)::(dst+UInt256.ofNat 1)::len::slot::
         bytesWriteSaved site word src t1 t2 t3 t4 R) mem aw' rdata
       (sstoreAccountMap ee.codeOwner σ dst (memLoad (stride+ptr) mem)) k' C' := by
@@ -60,9 +62,9 @@ theorem easBytesLongDone {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {idx ptr stride dst len : UInt256} {R : List UInt256} (v : EASImmutables) (site : UIDSite)
     (hstack : R.length+7 ≤ 1024) (hc : UInt256.lt idx (UInt256.land len (UInt256.ofNat (2^256-32))) = ⟨0⟩)
-    (rd : RD (deployedRuntime v) ee g s0 (bytesLongLoopPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (bytesLongLoopPC site)
       (idx::ptr::stride::dst::len::R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (bytesLongTailPC site)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (bytesLongTailPC site)
       (idx::ptr::stride::dst::len::R) mem aw' rdata σ k' C' := by
   cases site with
   | single s1 s2 s3 s4 s5 s6 s7 s8 =>

@@ -4,6 +4,8 @@ import Benchmarks.Safe.V2_0e91d99.SetupDecodeScalars
 import Benchmarks.Safe.V2_0e91d99.AddressArrayMemory
 import Benchmarks.Safe.V2_0e91d99.Blocks.Runtime_023
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V2_0e91d99.RuntimeBlocks
 
@@ -16,10 +18,10 @@ def setupEventSaved (I : ExecutionEnv) (n len : Nat) (R : List UInt256) : List U
 
 set_option maxRecDepth 100000 in
 theorem safeSetupEventStart {I g s0 σ k C aw rdata n len} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4561⟩ (setupDecodedStack I.calldata n len R)
+    (h : RD fork safeBytecode I g s0 ⟨4561⟩ (setupDecodedStack I.calldata n len R)
       solcFreePtrMem aw rdata σ k C)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨11388⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨11388⟩
       (⟨128⟩ :: calldataWord I.calldata 132 :: calldataWord I.calldata 68 ::
         calldataWord I.calldata 36 :: UInt256.ofNat n ::
         UInt256.ofNat (setupOwnersStart I.calldata) :: ⟨4626⟩ :: setupEventSaved I n len R)
@@ -32,13 +34,13 @@ theorem safeSetupEventStart {I g s0 σ k C aw rdata n len} {R : List UInt256}
 
 set_option maxRecDepth 100000 in
 theorem safeSetupEventTrace {I g s0 σ k C aw rdata n len} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4561⟩ (setupDecodedStack I.calldata n len R)
+    (h : RD fork safeBytecode I g s0 ⟨4561⟩ (setupDecodedStack I.calldata n len R)
       solcFreePtrMem aw rdata σ k C)
     (hb : SetupCalldataBounds I.calldata n len)
     (hc : ∀ w ∈ calldataWords I.calldata (setupOwnersStart I.calldata) n,
       w.toNat < EVM.addressModulus)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨4626⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨4626⟩
       (UInt256.ofNat (288 + 32 * n) :: setupEventSaved I n len R)
       (setupEventInitialMemory I.calldata n) aw' rdata σ k' C' := by
   have hu : UInt256.size = 2 ^ 256 := rfl
@@ -51,12 +53,12 @@ theorem safeSetupEventTrace {I g s0 σ k C aw rdata n len} {R : List UInt256}
 
 set_option maxRecDepth 100000 in
 theorem safeSetupEventTraceRevert {I g s0 σ k C aw rdata n len} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4561⟩ (setupDecodedStack I.calldata n len R)
+    (h : RD fork safeBytecode I g s0 ⟨4561⟩ (setupDecodedStack I.calldata n len R)
       solcFreePtrMem aw rdata σ k C)
     (hb : SetupCalldataBounds I.calldata n len)
     (hc : ¬∀ w ∈ calldataWords I.calldata (setupOwnersStart I.calldata) n,
       w.toNat < EVM.addressModulus)
-    (hov : R.length + 32 ≤ 1024) : RDrev safeBytecode g s0 := by
+    (hov : R.length + 32 ≤ 1024) : RDrev fork safeBytecode g s0 := by
   have hu : UInt256.size = 2 ^ 256 := rfl
   have hn := hb.ownersLength
   obtain ⟨_, _, _, h₁⟩ := safeSetupEventStart h hov
@@ -67,19 +69,19 @@ theorem safeSetupEventTraceRevert {I g s0 σ k C aw rdata n len} {R : List UInt2
 set_option maxRecDepth 100000 in
 theorem safeSetupEventStatic {I g s0 σ k C aw mem rdata finish topic sender}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4626⟩ (finish :: topic :: sender :: R) mem aw rdata σ k C)
-    (hp : I.perm = false) (hov : R.length + 6 ≤ 1024) : RDstatic safeBytecode g s0 := by
+    (h : RD fork safeBytecode I g s0 ⟨4626⟩ (finish :: topic :: sender :: R) mem aw rdata σ k C)
+    (hp : I.perm = false) (hov : R.length + 6 ≤ 1024) : RDstatic fork safeBytecode g s0 := by
   have h₁ := evm_run h with [jumpdest, push1 ⟨64⟩, genMload, dup1, swap2, sub, swap1]
   exact RD.log2Static h₁ hp (by native_decide) (by omega)
 
 set_option maxRecDepth 100000 in
 theorem safeSetupOwnersAllocate {I g s0 σ k C aw rdata n len} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4626⟩
+    (h : RD fork safeBytecode I g s0 ⟨4626⟩
       (UInt256.ofNat (288 + 32 * n) :: setupEventSaved I n len R)
       (setupEventInitialMemory I.calldata n) aw rdata σ k C)
     (hb : SetupCalldataBounds I.calldata n len)
     (hp : I.perm = true) (hov : R.length + 32 ≤ 1024) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨8086⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨8086⟩
       (calldataWord I.calldata 36 :: ⟨128⟩ :: ⟨4695⟩ :: setupDecodedStack I.calldata n len R)
       (setupOwnersAllocatedMemory I.calldata n) aw' rdata σ k' C' := by
   have hu : UInt256.size = 2 ^ 256 := rfl

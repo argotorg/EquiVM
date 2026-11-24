@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.WithdrawReservesModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -34,7 +36,7 @@ theorem withdrawReservesAmount_eval (v : CometWithExtendedAssetListImmutables)
 theorem withdrawReservesReady (v : CometWithExtendedAssetListImmutables)
     (initial evm : EVM.State) (recipient : AccountAddress) (amount reserves : UInt256)
     (hv : WithdrawReservesAllowed reserves amount) :
-    ABlock config evm (withdrawReservesFrame v initial recipient amount reserves)
+    ABlock fork config evm (withdrawReservesFrame v initial recipient amount reserves)
       withdrawReservesTail (withdrawReservesUnsignedFrame v initial recipient amount reserves)
       [.internalCall "doTransferOut" [.immutable "baseToken", .var "to", .var "amount"] "__c2",
         withdrawReservesEmit] := by
@@ -50,7 +52,7 @@ theorem withdrawReservesReady (v : CometWithExtendedAssetListImmutables)
 theorem withdrawReservesChecks_revert (v : CometWithExtendedAssetListImmutables)
     (initial evm : EVM.State) (recipient : AccountAddress) (amount reserves : UInt256)
     (hv : ¬ WithdrawReservesAllowed reserves amount) :
-    ExecBlock config (withdrawReservesFrame v initial recipient amount reserves) evm
+    ExecBlock fork config (withdrawReservesFrame v initial recipient amount reserves) evm
       withdrawReservesTail .reverted := by
   by_cases hn : reserves.toNat < 2^255
   · have ha : ¬ amount.toNat ≤ reserves.toNat := fun ha ↦ hv ⟨hn, ha⟩
@@ -67,9 +69,9 @@ theorem withdrawReservesChecks_revert (v : CometWithExtendedAssetListImmutables)
 
 theorem withdrawReservesAfter_source {v : CometWithExtendedAssetListImmutables}
     {evm : EVM.State} {recipient : AccountAddress} {amount reserves : UInt256}
-    {result : Option EVM.State} (ht : WithdrawReservesAfter v recipient amount reserves evm result)
+    {result : Option EVM.State} (ht : WithdrawReservesAfter fork v recipient amount reserves evm result)
     (initial : EVM.State) :
-    WithdrawReservesBlockResult (withdrawReservesFrame v initial recipient amount reserves)
+    WithdrawReservesBlockResult fork (withdrawReservesFrame v initial recipient amount reserves)
       evm withdrawReservesTail result := by
   cases ht with
   | checksFailed hv =>
@@ -107,7 +109,7 @@ theorem withdrawReservesAfter_source {v : CometWithExtendedAssetListImmutables}
       by_cases hp : evm'.executionEnv.perm = true
       · rw [if_pos hp]
         refine ⟨final, (withdrawReservesReady v initial evm recipient amount reserves hv).run ?_⟩
-        exact ExecBlock.consNormal hc (ExecBlock.consNormal (ExecStmt.emit (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hemit) ExecBlock.nil)
+        exact ExecBlock.consNormal hc (ExecBlock.consNormal (ExecStmt.emit (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hemit) ExecBlock.nil)
       · rw [if_neg hp]
         apply (withdrawReservesReady v initial evm recipient amount reserves hv).run
         exact ExecBlock.consNormal hc

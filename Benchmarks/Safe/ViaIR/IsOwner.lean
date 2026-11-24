@@ -3,6 +3,8 @@ import Benchmarks.Safe.ViaIR.Membership
 import Benchmarks.Safe.ViaIR.Routines
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_030
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -16,7 +18,7 @@ def isOwnerArgs (key : UInt256) : Store :=
 theorem safeIsOwnerSource (evm : EVM.State) (key : UInt256)
     (hcanon : key.toNat < EVM.addressModulus)
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract evm (isOwnerArgs key) isownerTransition.body
+    ExecTransitionBody fork config contract evm (isOwnerArgs key) isownerTransition.body
       (.returned { contract := contract, locals := isOwnerArgs key } evm
         (some [.bool (addressMembership key (UInt256.land
           (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (mapSlot key ⟨2⟩))
@@ -41,10 +43,10 @@ theorem safeIsOwnerSource (evm : EVM.State) (key : UInt256)
 
 set_option maxRecDepth 100000 in
 theorem safeIsOwnerTrace {I g s0 σ k C} {key : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6420⟩ (key :: solcAddrMask :: R) solcFreePtrMem
+    (h : RD fork safeBytecode I g s0 ⟨6420⟩ (key :: solcAddrMask :: R) solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hov : R.length + 7 ≤ 1024) (hcanon : key.toNat < EVM.addressModulus) :
-    RDret safeBytecode g s0 σ (addressMembership key
+    RDret fork safeBytecode g s0 σ (addressMembership key
       (UInt256.land (solcSlotWordAt (mapSlot key ⟨2⟩) σ I) solcAddrMask)).toUInt256.toByteArray := by
   by_cases hs : key = ⟨1⟩
   · have h6432 := safeRuntime_block_6420_fallthrough (by omega)
@@ -61,7 +63,7 @@ theorem safeIsOwnerTrace {I g s0 σ k C} {key : UInt256} {R : List UInt256}
     obtain ⟨_, _, h6432⟩ := safeRuntime_block_6444 (by omega) (by jump_dest) h6444
     simp only [safeRuntime_block_6444_stack, safeRuntime_block_6444_memory,
       safeAddressMask] at h6432
-    change RD safeBytecode I g s0 ⟨6432⟩
+    change RD fork safeBytecode I g s0 ⟨6432⟩
       (UInt256.isZero (UInt256.land (solcSlotWordAt
         (keccakWord ⟨0⟩ (UInt256.ofNat 64) (twoWordHashMem key ⟨2⟩ solcFreePtrMem)) σ I)
         solcAddrMask) :: ⟨32⟩ :: R) (twoWordHashMem key ⟨2⟩ solcFreePtrMem) _ _ σ _ _ at h6432
@@ -77,10 +79,10 @@ theorem safeIsownerBodyCore
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some isownerTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨hlong, hword⟩ := selectorDispatchFacts 0x2f 0x54 0xbf 0x6e ⟨0x2f54bf6e⟩
     hdispatch isownerSelectorBytes (by decide)
-  obtain ⟨k, C, h6387⟩ := safeReachEntry (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, h6387⟩ := safeReachEntry (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) ⟨0x2f54bf6e⟩ 4 ⟨6387⟩ hcode hsize hlong hword
     (by native_decide)
   by_cases hvalue : I.weiValue = ⟨0⟩
@@ -96,7 +98,7 @@ theorem safeIsownerBodyCore
             (by simp [safeRuntime_block_6405_stack]) hcanon (by jump_dest)
           simp only [safeRuntime_block_6405_stack, safeAddressMask] at h6420
           have hret := safeIsOwnerTrace h6420 (by simp) hcanon
-          have hbody := safeIsOwnerSource (initState σ σ₀ (.ofUInt256 g) A I)
+          have hbody := safeIsOwnerSource (fork := fork) (initState σ σ₀ (.ofUInt256 g) A I)
             (calldataWord I.calldata 4) hcanon hvalue
           refine RDret.reEquivElim hcode hret fun _ _ hsuccess ↦ ?_
           exact reEquivSelectorExecution hdispatch (decodeCalldata_address_ok hlen hbig hcanon)
@@ -135,7 +137,7 @@ theorem safeIsownerRefines
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some isownerTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact safeIsownerBodyCore hcode hsize hdispatch
 
 end Benchmarks.Safe.ViaIR

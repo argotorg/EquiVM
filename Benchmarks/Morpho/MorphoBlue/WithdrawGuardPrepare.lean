@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.SupplyGuards
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -24,10 +26,10 @@ variable {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
   {R : List UInt256}
 
 theorem morphoWithdrawCreated (p : MarketParamsWords) (hstack : R.length + 32 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 7514)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 7514)
       ([receiver, account, shares, assets, UInt256.ofNat 128, UInt256.ofNat 0, UInt256.ofNat 64] ++ R)
       (createMarketDecodedMem p) aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
       ([UInt256.isZero (UInt256.isZero (marketFieldWord σ ee p.id 4)), UInt256.ofNat 288, UInt256.ofNat 7572] ++
         withdrawCreatedTail p.id assets shares account receiver R) (accruePublicMem p) aw' out σ k' C' := by
   have hid : keccakWord (UInt256.ofNat 128) (UInt256.ofNat 160) (createMarketDecodedMem p) = p.id :=
@@ -39,7 +41,7 @@ theorem morphoWithdrawCreated (p : MarketParamsWords) (hstack : R.length + 32 �
   let mem := twoWordHashMem p.id (UInt256.ofNat 3) (createMarketDecodedMem p)
   have hh : keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) mem = solcMappingSlot ⟨3⟩ p.id :=
     twoWordHashMem_solcMappingSlot_any _ _ _
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     ([UInt256.ofNat 585, UInt256.isZero (UInt256.isZero (UInt256.land
       (solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) mem + UInt256.ofNat 2) σ ee)
       uint128Mask)), UInt256.ofNat 7572] ++ withdrawCreatedTail p.id assets shares account receiver R)
@@ -56,9 +58,9 @@ theorem morphoWithdrawCreated (p : MarketParamsWords) (hstack : R.length + 32 �
   exact ⟨a2, _, _, rd3⟩
 
 theorem morphoWithdrawInput (p : MarketParamsWords) (hstack : R.length + 32 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 7572)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 7572)
       (withdrawCreatedTail p.id assets shares account receiver R) (accruePublicMem p) aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
       ([UInt256.xor (UInt256.isZero assets) (UInt256.isZero shares), UInt256.ofNat 352, UInt256.ofNat 7594] ++
         withdrawInputTail p.id assets shares account receiver R) (supplyInputMem p) aw' out σ k' C' := by
   have rd1 := morphoBlocks.morpho_block_7572 (immWords := wordsOf (immStore v))
@@ -74,9 +76,9 @@ theorem morphoWithdrawInput (p : MarketParamsWords) (hstack : R.length + 32 ≤ 
 
 theorem morphoWithdrawAddress (p : MarketParamsWords) (hstack : R.length + 32 ≤ 1024)
     (hc : receiver.toNat < EVM.addressModulus)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 7594)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 7594)
       (withdrawInputTail p.id assets shares account receiver R) (supplyInputMem p) aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
       ([UInt256.isZero (UInt256.isZero receiver), UInt256.ofNat 416, UInt256.ofNat 7629] ++
         withdrawAccrueTail p.id assets shares account receiver R) (supplyGuardMem p) aw' out σ k' C' := by
   have rd1 := morphoBlocks.morpho_block_7594 (immWords := wordsOf (immStore v))

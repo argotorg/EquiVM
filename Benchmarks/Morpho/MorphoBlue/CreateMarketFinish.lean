@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.CreateMarketStore
 import Benchmarks.Morpho.MorphoBlue.CreateMarketCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -10,9 +12,9 @@ set_option maxRecDepth 1000
 theorem morphoCreateMarketNoIrmReturns {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     (p : MarketParamsWords) (hc : p.Canonical) (hperm : ee.perm = true) (hi0 : p.irm = ⟨0⟩)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5234)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5234)
       (createMarketLogStack p) (createMarketEventMem p) aw rdata σ k C) :
-    RDret (deployedRuntime v) g s0 σ ByteArray.empty := by
+    RDret fork (deployedRuntime v) g s0 σ ByteArray.empty := by
   have hi := (createMarketEventMemory p).2.2 ⟨3, by decide⟩
   change memLoad (UInt256.ofNat 224) (createMarketEventMem p) = p.irm at hi
   have rd1 := morphoBlocks.morpho_block_5234_fallthrough
@@ -24,11 +26,11 @@ theorem morphoCreateMarketNoIrmReturns {v : MorphoImmutables} {ee : ExecutionEnv
 theorem morphoCreateMarketReachCall {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     (p : MarketParamsWords) (hc : p.Canonical) (hperm : ee.perm = true) (hi0 : p.irm ≠ ⟨0⟩)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5234)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5234)
       (createMarketLogStack p) (createMarketEventMem p) aw rdata σ k C) :
     ∃ mem aw' gasArg k' C',
       mem.readWithPadding 480 356 = borrowRateCalldata p σ ee p.id ∧
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5322)
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5322)
         [gasArg, p.irm, UInt256.ofNat 0, UInt256.ofNat 480, UInt256.ofNat 356,
          UInt256.ofNat 480, UInt256.ofNat 32, UInt256.ofNat 480, UInt256.ofNat 32, UInt256.ofNat 0]
         mem aw' rdata σ k' C' := by
@@ -56,7 +58,7 @@ theorem morphoCreateMarketReachCall {v : MorphoImmutables} {ee : ExecutionEnv} {
   obtain ⟨aw2, k2, C2, rd2⟩ := morphoBlocks.morpho_block_5247_packed
     (immWords := wordsOf (immStore v)) (by simp)
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) rd1
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     [memLoad (UInt256.ofNat 64) hm + UInt256.ofNat 4, UInt256.ofNat 128,
      keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) hm, UInt256.ofNat 5318,
      memLoad (UInt256.ofNat 64) hm, UInt256.ofNat 0, memLoad (UInt256.ofNat 64) hm, p.irm,

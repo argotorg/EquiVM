@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SignedAmountDeltaModel
 import Benchmarks.UniswapV3.Pool.AmountDeltaPrefix
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -46,7 +48,7 @@ macro "signed_amount_delta_get" : tactic =>
 
 theorem signedAmountDeltaPrefixSource (imms : Store) (evm : EVM.State) (second : Bool)
     (a : SignedAmountDeltaArgs) :
-    ExecBlock config (signedAmountDeltaFrame imms a) evm
+    ExecBlock fork config (signedAmountDeltaFrame imms a) evm
       ((signedAmountDeltaFunction second).body.take 2)
       (.ok (signedAmountDeltaReadyFrame imms second a) evm) := by
   cases second <;>

@@ -4,6 +4,8 @@ import Benchmarks.Safe.ViaIR.IRLengthCheck
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_007
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_012
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -13,12 +15,12 @@ set_option maxRecDepth 2000
 
 set_option maxHeartbeats 1000000 in
 theorem safeDecodeTransactionArgsStart {I g s0 σ k C aw mem rdata} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨2253⟩ (⟨0⟩ :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨2253⟩ (⟨0⟩ :: R) mem aw rdata σ k C)
     (hc : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩)
       (UInt256.ofNat 320) = ⟨0⟩)
     (hlong : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hov : R.length + 21 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨6952⟩ (⟨2273⟩ :: ⟨0⟩ :: R)
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨6952⟩ (⟨2273⟩ :: ⟨0⟩ :: R)
       mem aw rdata σ k' C' := by
   have h₁ := safeRuntime_block_2253_fallthrough (by simp; omega) (by
     rw [safeIRArgumentSizeSub hlong hsize]
@@ -28,11 +30,11 @@ theorem safeDecodeTransactionArgsStart {I g s0 σ k C aw mem rdata} {R : List UI
 
 set_option maxHeartbeats 1000000 in
 theorem safeDecodeTransactionArgsToBytes {I g s0 σ k C aw mem rdata} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨2273⟩
+    (h : RD fork safeBytecode I g s0 ⟨2273⟩
       (calldataWord I.calldata 4 :: ⟨0⟩ :: R) mem aw rdata σ k C)
     (hoff : (calldataWord I.calldata 68).toNat ≤ 2 ^ 64 - 1)
     (hov : R.length + 21 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨7083⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨7083⟩
       (UInt256.ofNat (4 + (calldataWord I.calldata 68).toNat) ::
         UInt256.ofNat I.calldata.size :: ⟨2304⟩ :: calldataWord I.calldata 4 :: ⟨0⟩ :: R)
       mem aw rdata σ k' C' := by
@@ -44,7 +46,7 @@ theorem safeDecodeTransactionArgsToBytes {I g s0 σ k C aw mem rdata} {R : List 
       (UInt256.ofNat (2 ^ 64 - 1)).toNat = 2 ^ 64 - 1 by decide +kernel] using hoff)]
     rfl) h
   have h₂ := safeRuntime_block_2291 (by simp; omega) (by jump_dest) h₁
-  change RD safeBytecode I g s0 ⟨7083⟩
+  change RD fork safeBytecode I g s0 ⟨7083⟩
     ((UInt256.ofNat 4 + calldataWord I.calldata 68) :: UInt256.ofNat I.calldata.size ::
       ⟨2304⟩ :: calldataWord I.calldata 4 :: ⟨0⟩ :: R) mem aw rdata σ _ _ at h₂
   have hadd : UInt256.ofNat 4 + calldataWord I.calldata 68 =
@@ -57,10 +59,10 @@ theorem safeDecodeTransactionArgsToBytes {I g s0 σ k C aw mem rdata} {R : List 
 set_option maxHeartbeats 1000000 in
 theorem safeDecodeTransactionArgsToToken {I g s0 σ k C aw mem rdata}
     {len off : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨2304⟩
+    (h : RD fork safeBytecode I g s0 ⟨2304⟩
       (len :: off :: calldataWord I.calldata 4 :: ⟨0⟩ :: R) mem aw rdata σ k C)
     (ho : (calldataWord I.calldata 100).toNat < 2) (hov : R.length + 21 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨6974⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨6974⟩
       (⟨2334⟩ :: len :: off :: calldataWord I.calldata 4 :: calldataWord I.calldata 100 ::
         ⟨1055⟩ :: ⟨32⟩ :: ⟨0⟩ :: len :: off :: calldataWord I.calldata 4 ::
         calldataWord I.calldata 100 :: R) mem aw rdata σ k' C' := by
@@ -83,7 +85,7 @@ def transactionArgsStack (I : ExecutionEnv) (len : Nat) (R : List UInt256) : Lis
 
 set_option maxHeartbeats 1000000 in
 theorem safeDecodeTransactionArgsValid {I g s0 σ k C aw mem rdata len} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨2253⟩ (⟨0⟩ :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨2253⟩ (⟨0⟩ :: R) mem aw rdata σ k C)
     (hh : 324 ≤ I.calldata.size) (hs : I.calldata.size < 2 ^ 255)
     (hc : (calldataWord I.calldata 4).toNat < EVM.addressModulus)
     (hoff : (calldataWord I.calldata 68).toNat ≤ 2 ^ 64 - 1)
@@ -95,7 +97,7 @@ theorem safeDecodeTransactionArgsValid {I g s0 σ k C aw mem rdata len} {R : Lis
     (hgas : (calldataWord I.calldata 228).toNat < EVM.addressModulus)
     (href : (calldataWord I.calldata 260).toNat < EVM.addressModulus)
     (hov : R.length + 24 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨9040⟩ (transactionArgsStack I len R)
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨9040⟩ (transactionArgsStack I len R)
       mem aw rdata σ k' C' := by
   obtain ⟨_, _, h₁⟩ := safeDecodeTransactionArgsStart h
     (solcDecodeLenCheckOk hh (by omega) (lt_size_of_lt_sign hs) (by decide))
@@ -125,10 +127,10 @@ theorem safeDecodeTransactionArgsValid {I g s0 σ k C aw mem rdata len} {R : Lis
 
 set_option maxHeartbeats 1000000 in
 theorem safeDecodeTransactionArgsEvidence {I g s0 σ k C aw mem rdata} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨2253⟩ (⟨0⟩ :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨2253⟩ (⟨0⟩ :: R) mem aw rdata σ k C)
     (hlong : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hov : R.length + 24 ≤ 1024) :
-    RDrev safeBytecode g s0 ∨
+    RDrev fork safeBytecode g s0 ∨
     ∃ len k' C', 324 ≤ I.calldata.size ∧ I.calldata.size < 2 ^ 255 ∧
       (calldataWord I.calldata 4).toNat < EVM.addressModulus ∧
       (calldataWord I.calldata 68).toNat ≤ 2 ^ 64 - 1 ∧
@@ -138,11 +140,11 @@ theorem safeDecodeTransactionArgsEvidence {I g s0 σ k C aw mem rdata} {R : List
       (calldataWord I.calldata 100).toNat < 2 ∧
       (calldataWord I.calldata 228).toNat < EVM.addressModulus ∧
       (calldataWord I.calldata 260).toNat < EVM.addressModulus ∧
-      RD safeBytecode I g s0 ⟨9040⟩ (transactionArgsStack I len R)
+      RD fork safeBytecode I g s0 ⟨9040⟩ (transactionArgsStack I len R)
         mem aw rdata σ k' C' := by
   have hfail (hc : UInt256.slt
       (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) (UInt256.ofNat 320) = ⟨1⟩) :
-      RDrev safeBytecode g s0 := by
+      RDrev fork safeBytecode g s0 := by
     have h₁ := safeRuntime_block_2253_taken (by simp; omega) (by
       rw [safeIRArgumentSizeSub hlong hsize]
       change UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩)

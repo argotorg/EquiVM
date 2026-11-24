@@ -7,6 +7,8 @@ import Reasoning.SteleBody
 import Reasoning.Reach
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # CtorStore — whole-contract equivalence for a constructor storage write
 
@@ -28,10 +30,10 @@ theorem ctorStoreDispatch_none (cd : ByteArray) :
 set_option maxHeartbeats 400000 in
 theorem ctorStoreRuntimeRevert {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = ctorStoreRuntimeBytecode) :
-    RDrev ctorStoreRuntimeBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork ctorStoreRuntimeBytecode g (initState σ σ₀ g A I) := by
   set s0 := initState σ σ₀ g A I with hs0
   have rd0 :
-      RD ctorStoreRuntimeBytecode I g s0 ⟨0⟩ [] ByteArray.empty (UInt256.ofNat 0)
+      RD fork ctorStoreRuntimeBytecode I g s0 ⟨0⟩ [] ByteArray.empty (UInt256.ofNat 0)
         ByteArray.empty σ 0 0 := by
     rw [hs0]; exact RD.initState hcode
   exact evm_run rd0 with [
@@ -47,8 +49,8 @@ theorem ctorStoreRuntimeRevert {σ σ₀ A I} {g : Sat256}
 
 theorem ctorStoreRuntimeCorrect :
     runtimeRefinement ctorStoreConfig ctorStoreRuntimeBytecode CtorStore.contract := by
-  refine ⟨fun σ σ₀ g A I hcode _hsize => ?_⟩
-  exact (ctorStoreRuntimeRevert (σ := σ)
+  refine ⟨fun fork _hfork σ σ₀ g A I hcode _hsize => ?_⟩
+  exact (ctorStoreRuntimeRevert (fork := fork) (σ := σ)
     (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode).reEquivNoDispatch hcode
       (ctorStoreDispatch_none I.calldata)
@@ -243,17 +245,17 @@ theorem ctorStoreInitcodeRun {σ σ₀ A I} {g : Sat256}
     (w : UInt256)
     (hcode : I.code = ctorStoreInitcode ++ (EVM.Word.toBytesBE w).toByteArray)
     (hperm : I.perm = true) :
-    RDret (ctorStoreInitcode ++ (EVM.Word.toBytesBE w).toByteArray) g
+    RDret fork (ctorStoreInitcode ++ (EVM.Word.toBytesBE w).toByteArray) g
       (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ ⟨0⟩ w)
       ctorStoreRuntimeBytecode := by
   set code := ctorStoreInitcode ++ (EVM.Word.toBytesBE w).toByteArray with hcodeDef
   set s0 := initState σ σ₀ g A I with hs0
   have rd0 :
-      RD code I g s0 ⟨0⟩ [] ByteArray.empty (UInt256.ofNat 0) ByteArray.empty
+      RD fork code I g s0 ⟨0⟩ [] ByteArray.empty (UInt256.ofNat 0) ByteArray.empty
         σ 0 0 := by
     rw [hs0]; exact RD.initState hcode
-  have rdBeforeStore : RD code I g s0 ⟨9⟩ [⟨0⟩, w] (ctorStoreArgMem w) (UInt256.ofNat 1)
+  have rdBeforeStore : RD fork code I g s0 ⟨9⟩ [⟨0⟩, w] (ctorStoreArgMem w) (UInt256.ofNat 1)
       ByteArray.empty σ 7 24 := by
     subst code
     exact evm_run rd0 with [
@@ -328,7 +330,7 @@ theorem ctorStoreCtorBodyReturns (evm : EVM.State) (locals : Store) (i : Int)
     (h0 : 0 ≤ i)
     (hx : locals.get? "x" = some (.int i))
     (hbase : locals.get? "stored" = none) (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody ctorStoreConfig CtorStore.contract evm locals CtorStore.contract.ctor.body
+    ExecTransitionBody fork ctorStoreConfig CtorStore.contract evm locals CtorStore.contract.ctor.body
       (.returned { contract := CtorStore.contract, locals := locals }
         (EVM.storageStore evm evm.executionEnv.codeOwner ⟨0⟩ (EVM.word i.toNat)) none) := by
   refine ExecFuncBody.execBlockOK
@@ -345,7 +347,7 @@ theorem ctorStoreSteleCtorExec
     {A : Ethereum.Substate}
     {I : Ethereum.ExecutionEnv}
     (i : Int) (h0 : 0 ≤ i) (hperm : I.perm = true) :
-    steleCtorExec ctorStoreConfig CtorStore.contract [.int i] σ σ₀ g A I
+    steleCtorExec fork ctorStoreConfig CtorStore.contract [.int i] σ σ₀ g A I
       (.returned
         { contract := CtorStore.contract
           locals := Std.HashMap.ofList (List.zip (CtorStore.contract.ctor.params.map Param.name) [.int i]) }
@@ -366,11 +368,11 @@ theorem ctorStoreSteleCtorExec
 theorem ctorStoreConstructorCorrect :
     typedConstructorRefinement ctorStoreConfig ctorStoreInitcode CtorStore.contract
       (fun _ => ctorStoreRuntimeBytecode) := by
-  intro σ σ₀ g A I args deployedInitcode hdeploy hcode _hcalldata hperm
+  intro fork _hfork σ σ₀ g A I args deployedInitcode hdeploy hcode _hcalldata hperm
   rcases ctorStoreDeployment_shape hdeploy with ⟨i, hargs, h0, _hlt, hdeployed⟩
   subst args
   rw [hdeployed] at hcode
-  have hrd := ctorStoreInitcodeRun (σ := σ)
+  have hrd := ctorStoreInitcodeRun (fork := fork) (σ := σ)
       (σ₀ := σ₀)
       (A := A) (I := I) (g := Sat256.ofUInt256 g) (w := EVM.word i.toNat) hcode hperm
   rcases hrd with hoog | ⟨s, hX, hacc⟩
@@ -383,7 +385,7 @@ theorem ctorStoreConstructorCorrect :
       simpa [initState, Sat256.ofUInt256] using hX)
     rw [hacc] at hsuccess
     refine typedConstructorRefinementFor.execution hsuccess
-      (ctorStoreSteleCtorExec (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
+      (ctorStoreSteleCtorExec (fork := fork) (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
         i h0 hperm) ?_
     refine ctorResultEquiv.success rfl rfl ?_ rfl
     simp [storageStore_accountMap, initState]

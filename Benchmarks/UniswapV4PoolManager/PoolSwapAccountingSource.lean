@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.PoolSwapAccountingFrame
 import Benchmarks.UniswapV4PoolManager.PoolSwapTickSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -42,9 +44,9 @@ theorem poolSwapAccountingSource {f : Frame} {evm : State} {id : UInt256}
     (hfee : f.locals.get? "swapFee" = some (.int (Int.ofNat fee.toNat)))
     (hprot : f.locals.get? "protocolFee" = some (.int (Int.ofNat protocol.toNat)))
     (ha : f.locals.get? "amountToProtocol" = some (.int (Int.ofNat amount.toNat))) :
-    ExecBlock config f evm (poolSwapLoopBody.drop 15)
+    ExecBlock fork config f evm (poolSwapLoopBody.drop 15)
       (poolSwapAccountingResult f evm id s r p remaining calculated fee protocol amount) := by
-  have hfirst := poolSwapAmountSource (evm := evm) hf hs hp hrem hcalc
+  have hfirst := poolSwapAmountSource (fork := fork) (evm := evm) hf hs hp hrem hcalc
   unfold poolSwapAccountingResult
   by_cases hfit : poolSwapAmountFits s p.amountSpecified calculated
   · rw [if_pos hfit] at hfirst ⊢
@@ -58,7 +60,7 @@ theorem poolSwapAccountingSource {f : Frame} {evm : State} {id : UInt256}
       (hget1 "step" (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)).trans hs
     have hr1 : f1.locals.get? "result" = some (poolSwapResultValue r) :=
       (hget1 "result" (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)).trans hr
-    have hfees := poolSwapFeeSource (evm := evm) hf1 hs1 hr1
+    have hfees := poolSwapFeeSource (fork := fork) (evm := evm) hf1 hs1 hr1
       ((hget1 "swapFee" (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)).trans hfee)
       ((hget1 "protocolFee" (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)).trans hprot)
       ((hget1 "amountToProtocol" (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)).trans ha)
@@ -71,7 +73,7 @@ theorem poolSwapAccountingSource {f : Frame} {evm : State} {id : UInt256}
         (hamount : ("amountToProtocol" == key) = false) : f3.locals.get? key = f1.locals.get? key :=
       (poolSwapGrowthFrame_get f2 s2 r.liquidity key hc20 hstep).trans
         (poolSwapProtocolFrame_get f1 s fee protocol amount key hd hstep hamount)
-    have htick := poolSwapTickSource (evm := evm) (s := poolSwapAccountingStep s r fee protocol) hf3 hs3
+    have htick := poolSwapTickSource (fork := fork) (evm := evm) (s := poolSwapAccountingStep s r fee protocol) hf3 hs3
       ((hget3 "result" (by decide) (by decide) (by decide) (by decide)).trans hr1)
       ((hget3 "self" (by decide) (by decide) (by decide) (by decide)).trans
         ((hget1 "self" (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)).trans hself))

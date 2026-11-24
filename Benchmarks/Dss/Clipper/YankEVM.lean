@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Clipper.YankSource
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -1031,10 +1033,10 @@ theorem clipperYankX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hauth : clipperRelyAuthWord σ I = ⟨1⟩)
-    (h : RD code I g s0 ⟨1912⟩
+    (h : RD fork code I g s0 ⟨1912⟩
       [clipperYankArgWord I, ⟨502⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD code I g s0 ⟨1994⟩
+    ∃ k' C', RD fork code I g s0 ⟨1994⟩
       [clipperYankArgWord I, ⟨502⟩, sel]
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hauthSlot :
@@ -1069,7 +1071,7 @@ theorem clipperYankX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by evm_ov)
   obtain ⟨k1929, C1929, rd1929raw⟩ := rd1928.sload
     (by clipper_yank_decode) (by evm_ov)
-  have rd1929 : RD code I g s0 ⟨1929⟩
+  have rd1929 : RD fork code I g s0 ⟨1929⟩
       (clipperRelyAuthWord σ I :: clipperYankArgWord I :: ⟨502⟩ :: [sel])
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1929 C1929 := by
     simpa [clipperRelyAuthWord, solcSlotWord,
@@ -1088,10 +1090,10 @@ theorem clipperYankX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hauth : clipperRelyAuthWord σ I ≠ ⟨1⟩)
-    (h : RD code I g s0 ⟨1912⟩
+    (h : RD fork code I g s0 ⟨1912⟩
       [clipperYankArgWord I, ⟨502⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((clipperRelyAuthHashMem I).readWithPadding 0 64))) =
@@ -1124,7 +1126,7 @@ theorem clipperYankX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by evm_ov)
   obtain ⟨k1929, C1929, rd1929raw⟩ := rd1928.sload
     (by clipper_yank_decode) (by evm_ov)
-  have rd1929 : RD code I g s0 ⟨1929⟩
+  have rd1929 : RD fork code I g s0 ⟨1929⟩
       (clipperRelyAuthWord σ I :: clipperYankArgWord I :: ⟨502⟩ :: [sel])
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1929 C1929 := by
     simpa [clipperRelyAuthWord, solcSlotWord,
@@ -1231,10 +1233,10 @@ theorem clipperYankX_lockOpen {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
-    (h : RD code I g s0 ⟨1994⟩
+    (h : RD fork code I g s0 ⟨1994⟩
       [clipperYankArgWord I, ⟨502⟩, sel]
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD code I g s0 ⟨2071⟩
+    ∃ k' C', RD fork code I g s0 ⟨2071⟩
       [clipperYankArgWord I, ⟨502⟩, sel]
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd1997pre := evm_run h with [
@@ -1242,7 +1244,7 @@ theorem clipperYankX_lockOpen {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     raw push1 ⟨13⟩ (by clipper_yank_decode) (by evm_ov)]
   obtain ⟨k1998, C1998, rd1998raw⟩ := rd1997pre.sload
     (by clipper_yank_decode) (by evm_ov)
-  have rd1998 : RD code I g s0 ⟨1998⟩
+  have rd1998 : RD fork code I g s0 ⟨1998⟩
       (solcSlotWord σ I ⟨13⟩ :: clipperYankArgWord I :: ⟨502⟩ :: [sel])
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1998 C1998 := by
     simpa [solcSlotWord] using rd1998raw
@@ -1258,15 +1260,15 @@ theorem clipperYankX_lockOpen {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 theorem clipperYankX_lockStoreSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (h : RD code I g s0 ⟨2071⟩
+    (h : RD fork code I g s0 ⟨2071⟩
       [clipperYankArgWord I, ⟨502⟩, sel]
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     (I.perm = true ∧
-      ∃ k' C', RD code I g s0 ⟨2077⟩
+      ∃ k' C', RD fork code I g s0 ⟨2077⟩
         [clipperYankArgWord I, ⟨502⟩, sel]
         (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
         (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) k' C') ∨
-      (I.perm = false ∧ RDstatic code g s0) := by
+      (I.perm = false ∧ RDstatic fork code g s0) := by
   have rd2076 := evm_run h with [
     raw jumpdest (by clipper_yank_decode) (by evm_ov),
     raw push1 ⟨1⟩ (by clipper_yank_decode) (by evm_ov),
@@ -1287,10 +1289,10 @@ theorem clipperYankX_usrNonzero {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (husr :
       clipperYankSalesUsrWord σ I ≠ ⟨0⟩)
-    (h : RD code I g s0 ⟨2077⟩
+    (h : RD fork code I g s0 ⟨2077⟩
       [clipperYankArgWord I, ⟨502⟩, sel]
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD code I g s0 ⟨2184⟩
+    ∃ k' C', RD fork code I g s0 ⟨2184⟩
       [clipperYankArgWord I, ⟨502⟩, sel]
       (twoWordHashMem (clipperYankArgWord I) ⟨12⟩ (clipperRelyAuthHashMem I))
       (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -1330,7 +1332,7 @@ theorem clipperYankX_usrNonzero {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   rw [u256_add_comm ⟨3⟩ (clipperYankSalesBaseSlot I)] at rd2094pre
   obtain ⟨k2095, C2095, rd2095raw⟩ := rd2094pre.sload
     (by clipper_yank_decode) (by evm_ov)
-  have rd2095 : RD code I g s0 ⟨2095⟩
+  have rd2095 : RD fork code I g s0 ⟨2095⟩
       (solcSlotWord σ I (clipperYankSalesUsrSlot I) :: clipperYankArgWord I ::
         ⟨502⟩ :: [sel])
       (twoWordHashMem (clipperYankArgWord I) ⟨12⟩ (clipperRelyAuthHashMem I))
@@ -1357,10 +1359,10 @@ set_option maxHeartbeats 1000000 in
 theorem clipperYankX_loadDogAndTab {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (h : RD code I g s0 ⟨2184⟩
+    (h : RD fork code I g s0 ⟨2184⟩
       [clipperYankArgWord I, ⟨502⟩, sel]
       (clipperYankSalesHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD code I g s0 ⟨2208⟩
+    ∃ k' C', RD fork code I g s0 ⟨2208⟩
       (clipperYankSalesTabWord σ I :: ⟨0⟩ :: solcSlotWord σ I ⟨1⟩ ::
         ⟨64⟩ :: clipperYankArgWord I :: ⟨502⟩ :: [sel])
       (clipperYankSalesHashMemRefresh I) (UInt256.ofNat 3) ByteArray.empty σ k'
@@ -1378,7 +1380,7 @@ theorem clipperYankX_loadDogAndTab {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     raw dup1 (by clipper_yank_decode) (by evm_ov)]
   obtain ⟨k2189, C2189, rd2189raw⟩ := rd2188pre.sload
     (by clipper_yank_decode) (by evm_ov)
-  have rd2189 : RD code I g s0 ⟨2189⟩
+  have rd2189 : RD fork code I g s0 ⟨2189⟩
       (solcSlotWord σ I ⟨1⟩ :: ⟨1⟩ :: clipperYankArgWord I :: ⟨502⟩ :: [sel])
       (clipperYankSalesHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k2189
       C2189 := by
@@ -1411,7 +1413,7 @@ theorem clipperYankX_loadDogAndTab {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   rw [u256_add_comm ⟨1⟩ (clipperYankSalesBaseSlot I)] at rd2207pre
   obtain ⟨k2208, C2208, rd2208raw⟩ := rd2207pre.sload
     (by clipper_yank_decode) (by evm_ov)
-  have rd2208 : RD code I g s0 ⟨2208⟩
+  have rd2208 : RD fork code I g s0 ⟨2208⟩
       (solcSlotWord σ I (clipperYankSalesTabSlot I) :: ⟨0⟩ :: solcSlotWord σ I ⟨1⟩ ::
         ⟨64⟩ :: clipperYankArgWord I :: ⟨502⟩ :: [sel])
       (clipperYankSalesHashMemRefresh I) (UInt256.ofNat 3) ByteArray.empty σ
@@ -1423,12 +1425,12 @@ set_option maxHeartbeats 1000000 in
 theorem clipperYankX_dogDigsCallSetup {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (h : RD code I g s0 ⟨2208⟩
+    (h : RD fork code I g s0 ⟨2208⟩
       [clipperYankSalesTabWord σ I, ⟨0⟩, solcSlotWord σ I ⟨1⟩, ⟨64⟩,
         clipperYankArgWord I, ⟨502⟩, sel]
       (clipperYankSalesHashMemRefresh I) (UInt256.ofNat 3) ByteArray.empty σ
       k C) :
-    ∃ k' C', RD code I g s0 ⟨2279⟩
+    ∃ k' C', RD fork code I g s0 ⟨2279⟩
       (UInt256.land solcAddrMask (solcSlotWord σ I ⟨1⟩) :: ⟨0⟩ :: ⟨128⟩ ::
         ⟨128⟩ :: clipperYankArgWord I :: ⟨502⟩ :: [sel])
       (clipperDogDigsCalldataMem v (clipperYankSalesTabWord σ I)
@@ -1525,10 +1527,10 @@ theorem clipperYankX_dogDigsExtcodesizeGuard {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel target : UInt256} {mem : ByteArray}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (h : RD code I g s0 ⟨2279⟩
+    (h : RD fork code I g s0 ⟨2279⟩
       [target, ⟨0⟩, ⟨128⟩, ⟨128⟩, clipperYankArgWord I, ⟨502⟩, sel]
       mem (UInt256.ofNat 7) ByteArray.empty σ k C) :
-    ∃ k' C', RD code I g s0 ⟨2301⟩
+    ∃ k' C', RD fork code I g s0 ⟨2301⟩
       (target :: target :: ⟨0⟩ :: ⟨128⟩ :: ⟨68⟩ :: ⟨128⟩ :: ⟨0⟩ ::
         ⟨196⟩ :: clipperDogDigsSelectorWord :: target :: clipperYankArgWord I ::
         ⟨502⟩ :: [sel])
@@ -1560,14 +1562,14 @@ theorem clipperYankX_dogDigsNoCode {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel target tab : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (rd2301 : RD code I g s0 ⟨2301⟩
+    (rd2301 : RD fork code I g s0 ⟨2301⟩
       (target :: target :: ⟨0⟩ :: ⟨128⟩ :: ⟨68⟩ :: ⟨128⟩ :: ⟨0⟩ ::
         ⟨196⟩ :: clipperDogDigsSelectorWord :: target :: clipperYankArgWord I ::
         ⟨502⟩ :: [sel])
       (clipperDogDigsCalldataMem v tab (clipperYankSalesHashMemRefresh I))
       (UInt256.ofNat 7) ByteArray.empty σ k C)
     (hcodeSizeDog : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨2301⟩) (okPc := ⟨2313⟩)
     rd2301 hcodeSizeDog
     (by clipper_yank_decode) (by clipper_yank_decode) (by clipper_yank_decode)
@@ -1580,7 +1582,7 @@ theorem clipperYankX_dogDigsPostCall {σ₀ σStart σ I}
     {g : Sat256} {A : Substate} {k C : ℕ} {sel target tab : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (rd2301 : RD code I g (initState σStart σ₀ g A I) ⟨2301⟩
+    (rd2301 : RD fork code I g (initState σStart σ₀ g A I) ⟨2301⟩
       (target :: target :: ⟨0⟩ :: ⟨128⟩ :: ⟨68⟩ :: ⟨128⟩ :: ⟨0⟩ ::
         ⟨196⟩ :: clipperDogDigsSelectorWord :: target :: clipperYankArgWord I ::
         ⟨502⟩ :: [sel])
@@ -1590,7 +1592,7 @@ theorem clipperYankX_dogDigsPostCall {σ₀ σStart σ I}
     (hdepth : I.depth.val < 1024) (hperm : I.perm = true) :
     ∃ (σ_dog : AccountMap)
       (zDog : Bool) (outDog : ByteArray) (A_dog : Substate) (k' C' : ℕ),
-      RD code I g (initState σStart σ₀ g A I) ⟨2317⟩
+      RD fork code I g (initState σStart σ₀ g A I) ⟨2317⟩
         ((if zDog then ⟨1⟩ else ⟨0⟩) :: ⟨196⟩ :: clipperDogDigsSelectorWord ::
           target :: clipperYankArgWord I :: ⟨502⟩ :: [sel])
         (outDog.write 0
@@ -1601,7 +1603,7 @@ theorem clipperYankX_dogDigsPostCall {σ₀ σStart σ I}
             (⟨128⟩ : UInt256).toNat (⟨68⟩ : UInt256).toNat)
             (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat))
         outDog σ_dog k' C' ∧
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         { initState σStart σ₀ g A I with accountMap := σ }
         (EVM.address (AccountAddress.ofUInt256 target)) "digs" 0
         [v.ilk, .int (Int.ofNat tab.toNat)]
@@ -1659,10 +1661,10 @@ theorem RD.clipperYankDogDigsCallFailure
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {rest : List UInt256}
-    (rd : RD code ee g s0 ⟨2317⟩ (⟨0⟩ :: rest) mem aw o acc k C)
+    (rd : RD fork code ee g s0 ⟨2317⟩ (⟨0⟩ :: rest) mem aw o acc k C)
     (hosz : o.size < UInt256.size)
     (hov : rest.length + 5 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨2317⟩) (okPc := ⟨2333⟩)
     rd (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by clipper_yank_decode) (by clipper_yank_decode)
@@ -1679,7 +1681,7 @@ theorem RD.clipperYankDogDigsCallDepthLimit
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {σStart σ σ₀ A I} {g : Sat256} {k C : ℕ}
     {sel target tab : UInt256}
-    (rd2301 : RD code I g (initState σStart σ₀ g A I) ⟨2301⟩
+    (rd2301 : RD fork code I g (initState σStart σ₀ g A I) ⟨2301⟩
       (target :: target :: ⟨0⟩ :: ⟨128⟩ :: ⟨68⟩ :: ⟨128⟩ :: ⟨0⟩ ::
         ⟨196⟩ :: clipperDogDigsSelectorWord :: target :: clipperYankArgWord I ::
         ⟨502⟩ :: [sel])
@@ -1687,7 +1689,7 @@ theorem RD.clipperYankDogDigsCallDepthLimit
       (UInt256.ofNat 7) ByteArray.empty σ k C)
     (hcodeSizeDog : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩)
     (hdepth : I.depth = 1024) :
-    ∃ k' C', RD code I g (initState σStart σ₀ g A I) ⟨2317⟩
+    ∃ k' C', RD fork code I g (initState σStart σ₀ g A I) ⟨2317⟩
       (⟨0⟩ :: ⟨196⟩ :: clipperDogDigsSelectorWord :: target ::
         clipperYankArgWord I :: ⟨502⟩ :: [sel])
       (clipperDogDigsCalldataMem v tab (clipperYankSalesHashMemRefresh I))
@@ -1723,11 +1725,11 @@ theorem RD.clipperYankDogDigsCallSuccessToFluxSetup
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {sel target : UInt256}
-    (rd : RD code ee g s0 ⟨2317⟩
+    (rd : RD fork code ee g s0 ⟨2317⟩
       (⟨1⟩ :: ⟨196⟩ :: clipperDogDigsSelectorWord :: target ::
         clipperYankArgWord ee :: ⟨502⟩ :: [sel])
       mem aw o acc k C) :
-    ∃ k' C', RD code ee g s0 ⟨2335⟩
+    ∃ k' C', RD fork code ee g s0 ⟨2335⟩
       (⟨196⟩ :: clipperDogDigsSelectorWord :: target ::
         clipperYankArgWord ee :: ⟨502⟩ :: [sel])
       mem aw o acc k' C' := by
@@ -1746,9 +1748,9 @@ set_option maxHeartbeats 1000000 in
 theorem clipperYankX_inactiveAuctionTail {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (h : RD code I g s0 ⟨2108⟩ [clipperYankArgWord I, ⟨502⟩, sel]
+    (h : RD fork code I g s0 ⟨2108⟩ [clipperYankArgWord I, ⟨502⟩, sel]
       (clipperYankSalesHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   have rdMload := evm_run h with [
     raw push1 ⟨64⟩ (by clipper_yank_decode) (by evm_ov),
     raw dup1 (by clipper_yank_decode) (by evm_ov),
@@ -1812,10 +1814,10 @@ theorem clipperYankX_usrZero {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (husr : clipperYankSalesUsrWord σ I = ⟨0⟩)
-    (h : RD code I g s0 ⟨2077⟩
+    (h : RD fork code I g s0 ⟨2077⟩
       [clipperYankArgWord I, ⟨502⟩, sel]
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC
@@ -1850,7 +1852,7 @@ theorem clipperYankX_usrZero {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   rw [u256_add_comm ⟨3⟩ (clipperYankSalesBaseSlot I)] at rd2094pre
   obtain ⟨k2095, C2095, rd2095raw⟩ := rd2094pre.sload
     (by clipper_yank_decode) (by evm_ov)
-  have rd2095 : RD code I g s0 ⟨2095⟩
+  have rd2095 : RD fork code I g s0 ⟨2095⟩
       (solcSlotWord σ I (clipperYankSalesUsrSlot I) :: clipperYankArgWord I ::
         ⟨502⟩ :: [sel])
       (clipperYankSalesHashMem I)
@@ -1894,16 +1896,16 @@ theorem clipperYankX_locked {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hlocked : solcSlotWord σ I ⟨13⟩ ≠ ⟨0⟩)
-    (h : RD code I g s0 ⟨1994⟩
+    (h : RD fork code I g s0 ⟨1994⟩
       [clipperYankArgWord I, ⟨502⟩, sel]
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   have rd1997pre := evm_run h with [
     raw jumpdest (by clipper_yank_decode) (by evm_ov),
     raw push1 ⟨13⟩ (by clipper_yank_decode) (by evm_ov)]
   obtain ⟨k1998, C1998, rd1998raw⟩ := rd1997pre.sload
     (by clipper_yank_decode) (by evm_ov)
-  have rd1998 : RD code I g s0 ⟨1998⟩
+  have rd1998 : RD fork code I g s0 ⟨1998⟩
       (solcSlotWord σ I ⟨13⟩ :: clipperYankArgWord I :: ⟨502⟩ :: [sel])
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1998 C1998 := by
     simpa [solcSlotWord] using rd1998raw

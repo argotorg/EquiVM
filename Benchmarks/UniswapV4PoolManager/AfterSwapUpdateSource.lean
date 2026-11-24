@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.SafeCast128Source
 import Benchmarks.UniswapV4PoolManager.ValueLocals
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -22,8 +24,8 @@ theorem afterSwapUpdateSource {f : Frame} {evm : State} {unspecified : Int} {del
     (hf : f.contract = contract)
     (hu : f.locals.get? "unspecified" = some (.int unspecified))
     (hr : f.locals.get? "result" = some (.int (EVM.signed delta))) :
-    ExecBlock config f evm afterSwapUpdateStmts (afterSwapUpdateResult f evm unspecified delta) := by
-  have hcast := signedToInt128Call (evm := evm) hf (evalLocalValue hr) "delta"
+    ExecBlock fork config f evm afterSwapUpdateStmts (afterSwapUpdateResult f evm unspecified delta) := by
+  have hcast := signedToInt128Call (fork := fork) (evm := evm) hf (evalLocalValue hr) "delta"
   by_cases hc : signedFits ⟨128, by decide⟩ (EVM.signed delta)
   · rw [if_pos hc] at hcast
     rw [afterSwapUpdateResult, if_pos hc]
@@ -37,7 +39,7 @@ theorem afterSwapUpdateSource {f : Frame} {evm : State} {unspecified : Int} {del
     have hsum := evalSignedRange ⟨128, by decide⟩ hadd
     by_cases hs : signedFits ⟨128, by decide⟩ (unspecified+EVM.signed delta)
     · rw [if_pos hs] at hsum ⊢
-      exact ExecBlock.consNormal hcast (execBlock_singleton (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hsum (assignLocalValue hu1)))
+      exact ExecBlock.consNormal hcast (execBlock_singleton (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hsum (assignLocalValue hu1)))
     · rw [if_neg hs] at hsum ⊢
       exact ExecBlock.consNormal hcast (ExecBlock.consRevert (ExecStmt.assignExprRevert hsum))
   · rw [if_neg hc] at hcast

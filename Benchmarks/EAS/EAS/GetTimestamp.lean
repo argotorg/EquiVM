@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.ScalarDecode
 import Benchmarks.EAS.EAS.Storage
 
+variable {fork : Ethereum.Fork}
+
 /-! # EAS `getTimestamp(bytes32)` refinement -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,13 +17,13 @@ theorem getTimestampEVM {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length + 4 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2222⟩ R mem aw rdata σ k C) :
-    RDret (deployedRuntime v) g s0 σ
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2222⟩ R mem aw rdata σ k C) :
+    RDret fork (deployedRuntime v) g s0 σ
       (UInt256.land (solcSlotWord σ ee (timestampSlot (calldataWord ee.calldata 4))) easUint64Mask).toByteArray := by
   have hr := easBlocks.eas_block_2222 (immWords := wordsOf (immStore v)) hstack rd
   rw [show (UInt256.ofNat 32).toNat = 32 from rfl,
     ← Reasoning.Theory.writeWord, writeWord_sparse_read_back] at hr
-  change RDret _ _ _ _
+  change RDret fork _ _ _ _
     (UInt256.land (solcSlotWord σ ee (UInt256.ofNat (fromByteArrayBigEndian
       (KEC ((twoWordHashMem (calldataWord ee.calldata 4) ⟨2⟩ mem).readWithPadding 0 64))))) easUint64Mask).toByteArray at hr
   rw [twoWordHashMem_solcMappingSlot_any] at hr
@@ -30,7 +32,7 @@ theorem getTimestampEVM {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 theorem easGetTimestampBody {σ σ₀ A I} {g : UInt256} (v : EASImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (easSelBytes 12)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (easSelBytes 12) rfl hsel
   have hd : dispatchMsg contract I.calldata = some getTimestampTransition := by
     apply easDispatch_getTimestamp (hsel := hsel)
@@ -38,7 +40,7 @@ theorem easGetTimestampBody {σ σ₀ A I} {g : UInt256} (v : EASImmutables)
       change ¬ (_ == I.calldata.extract 0 4) = true
       rw [← byteArray_eq_of_beq hsel]
       decide +kernel
-  obtain ⟨k, C, rd⟩ := easReachGetTimestampBody (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, rd⟩ := easReachGetTimestampBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
   by_cases hv : I.weiValue = ⟨0⟩
   · have rd1 := easBlocks.eas_block_2174_fallthrough (immWords := wordsOf (immStore v)) (by simp) hv rd

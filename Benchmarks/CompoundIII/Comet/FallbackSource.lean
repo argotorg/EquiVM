@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.DelegateCallBridge
 import Benchmarks.CompoundIII.Comet.SourceSelectors
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -44,16 +46,16 @@ def fallbackResultFrame (v : CometWithExtendedAssetListImmutables) (cd : ByteArr
 
 theorem cometFallbackSource {v : CometWithExtendedAssetListImmutables} {evm evm' : State}
     {cd out : ByteArray} {z : Bool}
-    (hc : delegateCallViaEVM evm v.extensionDelegate cd (z, evm', out)) :
-    ExecTransitionBody config contract evm (fallbackArgs cd) fallbackTransition.body
+    (hc : delegateCallViaEVM fork evm v.extensionDelegate cd (z, evm', out)) :
+    ExecTransitionBody fork config contract evm (fallbackArgs cd) fallbackTransition.body
       (if z then .returned (fallbackResultFrame v cd z out) evm' (some [.bytes out])
        else .reverted) (immStore v) := by
-  have hlet : ExecStmt config
+  have hlet : ExecStmt fork config
       { contract := contract, locals := fallbackArgs cd, immutables := immStore v } evm
       (.letDecl "delegate" (some (.elem .address)) (.immutable "extensionDelegate"))
       (.ok (fallbackDelegateFrame v cd) evm) :=
     ExecStmt.letDecl (evalImmutable_extensionDelegate config contract (fallbackArgs cd) evm v)
-  have hcall : ExecStmt config (fallbackDelegateFrame v cd) evm
+  have hcall : ExecStmt fork config (fallbackDelegateFrame v cd) evm
       (.delegateCall (.var "delegate") (.var "data") "ok" "result")
       (.ok (fallbackResultFrame v cd z out) evm') := by
     apply delegateCallSource ?_ ?_ hc

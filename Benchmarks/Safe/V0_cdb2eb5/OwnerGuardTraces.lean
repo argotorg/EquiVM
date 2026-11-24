@@ -5,6 +5,8 @@ import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_014
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_030
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_038
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V0_cdb2eb5.RuntimeBlocks
 
@@ -23,14 +25,14 @@ theorem safeCanAddOwnerCheckWord (σ : AccountMap) (I : ExecutionEnv) (key : UIn
 
 theorem safeCanAddOwnerTrace {I g s0 σ k C aw mem rdata} {key top : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨1744⟩ (top :: key :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨1744⟩ (top :: key :: R) mem aw rdata σ k C)
     (hov : R.length + 10 ≤ 1024) (hc : key.toNat < EVM.addressModulus)
     (hm : mem.size = 96) (h64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hv : validOwner σ I key) (he : ownerLinkAt σ I key = ⟨0⟩)
     :
     ∃ mem' aw' k' C', mem'.size = 96 ∧
       mem'.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ ∧
-      RD safeBytecode I g s0 ⟨1845⟩ (top :: key :: R) mem' aw' rdata σ k' C' := by
+      RD fork safeBytecode I g s0 ⟨1845⟩ (top :: key :: R) mem' aw' rdata σ k' C' := by
   obtain ⟨mem', aw', k', C', hm', hr, h'⟩ := safeCanAddOwnerHeapTrace h hov hc
     (by omega) hv he
   exact ⟨mem', aw', k', C', hm'.trans hm, (hr 64 32 (by omega) (by omega)).trans h64, h'⟩
@@ -38,17 +40,17 @@ theorem safeCanAddOwnerTrace {I g s0 σ k C aw mem rdata} {key top : UInt256}
 
 theorem safeCanAddOwnerTraceInvalid {I g s0 σ k C aw mem rdata} {key top : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨1744⟩ (top :: key :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨1744⟩ (top :: key :: R) mem aw rdata σ k C)
     (hov : R.length + 10 ≤ 1024) (hc : key.toNat < EVM.addressModulus)
-    (hm : 32 ≤ mem.size) (hv : ¬validOwner σ I key) : RDrev safeBytecode g s0 := by
+    (hm : 32 ≤ mem.size) (hv : ¬validOwner σ I key) : RDrev fork safeBytecode g s0 := by
   exact safeInvalidOwnerTrace h (by omega) hc hv
 
 theorem safeCanAddOwnerTraceExisting {I g s0 σ k C aw mem rdata} {key top : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨1744⟩ (top :: key :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨1744⟩ (top :: key :: R) mem aw rdata σ k C)
     (hov : R.length + 10 ≤ 1024) (hc : key.toNat < EVM.addressModulus)
     (hm : mem.size = 96) (hv : validOwner σ I key) (he : ownerLinkAt σ I key ≠ ⟨0⟩) :
-    RDrev safeBytecode g s0 := by
+    RDrev fork safeBytecode g s0 := by
   exact safeCanAddOwnerHeapTraceExisting h hov hc (by omega) hv he
 
 
@@ -74,7 +76,7 @@ theorem safeCanRemoveOwnerCheckWord (σ : AccountMap) (I : ExecutionEnv)
 
 theorem safeCanRemoveOwnerTrace {I g s0 σ k C aw mem rdata} {prev key top : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6729⟩ (top :: key :: prev :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨6729⟩ (top :: key :: prev :: R) mem aw rdata σ k C)
     (hov : R.length + 11 ≤ 1024)
     (hp : prev.toNat < EVM.addressModulus) (hc : key.toNat < EVM.addressModulus)
     (hm : mem.size = 96) (h64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -82,7 +84,7 @@ theorem safeCanRemoveOwnerTrace {I g s0 σ k C aw mem rdata} {prev key top : UIn
     :
     ∃ mem' aw' k' C', mem'.size = 96 ∧
       mem'.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ ∧
-      RD safeBytecode I g s0 ⟨6834⟩ (top :: key :: prev :: R) mem' aw' rdata σ k' C' := by
+      RD fork safeBytecode I g s0 ⟨6834⟩ (top :: key :: prev :: R) mem' aw' rdata σ k' C' := by
   obtain ⟨_, _, h₂⟩ := safeValidRemoveOwnerTrace h (by simp; omega) hc hv
   have hword := safeCanRemoveOwnerCheckWord σ I prev key mem hp hc hm
   simp only [safeRuntime_block_6782_taken_memory] at hword
@@ -99,18 +101,18 @@ theorem safeCanRemoveOwnerTrace {I g s0 σ k C aw mem rdata} {prev key top : UIn
 
 theorem safeCanRemoveOwnerTraceInvalid {I g s0 σ k C aw mem rdata} {key top : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6729⟩ (top :: key :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨6729⟩ (top :: key :: R) mem aw rdata σ k C)
     (hov : R.length + 10 ≤ 1024) (hc : key.toNat < EVM.addressModulus)
-    (hm : 32 ≤ mem.size) (hv : ¬validOwner σ I key) : RDrev safeBytecode g s0 := by
+    (hm : 32 ≤ mem.size) (hv : ¬validOwner σ I key) : RDrev fork safeBytecode g s0 := by
   exact safeInvalidRemoveOwnerTrace h (by omega) hc hv
 
 theorem safeCanRemoveOwnerTraceUnlinked {I g s0 σ k C aw mem rdata} {prev key top : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6729⟩ (top :: key :: prev :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨6729⟩ (top :: key :: prev :: R) mem aw rdata σ k C)
     (hov : R.length + 10 ≤ 1024)
     (hp : prev.toNat < EVM.addressModulus) (hc : key.toNat < EVM.addressModulus)
     (hm : mem.size = 96) (hv : validOwner σ I key) (hl : ownerLinkAt σ I prev ≠ key) :
-    RDrev safeBytecode g s0 := by
+    RDrev fork safeBytecode g s0 := by
   obtain ⟨_, _, h₂⟩ := safeValidRemoveOwnerTrace h (by simp; omega) hc hv
   have hword := safeCanRemoveOwnerCheckWord σ I prev key mem hp hc hm
   simp only [safeRuntime_block_6782_taken_memory] at hword
@@ -120,7 +122,7 @@ theorem safeCanRemoveOwnerTraceUnlinked {I g s0 σ k C aw mem rdata} {prev key t
   exact safeRuntime_block_6990 (by simp; omega) h₄
 theorem safeSwapCanRemoveOwnerTrace {I g s0 σ k C aw mem rdata} {prev key top : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6282⟩ (top :: key :: prev :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨6282⟩ (top :: key :: prev :: R) mem aw rdata σ k C)
     (hov : R.length + 11 ≤ 1024)
     (hp : prev.toNat < EVM.addressModulus) (hc : key.toNat < EVM.addressModulus)
     (hm : mem.size = 96) (h64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -128,7 +130,7 @@ theorem safeSwapCanRemoveOwnerTrace {I g s0 σ k C aw mem rdata} {prev key top :
     :
     ∃ mem' aw' k' C', mem'.size = 96 ∧
       mem'.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ ∧
-      RD safeBytecode I g s0 ⟨6387⟩ (top :: key :: prev :: R) mem' aw' rdata σ k' C' := by
+      RD fork safeBytecode I g s0 ⟨6387⟩ (top :: key :: prev :: R) mem' aw' rdata σ k' C' := by
   obtain ⟨_, _, h₂⟩ := safeValidSwapOldOwnerTrace h (by simp; omega) hc hv
   have hword := safeCanRemoveOwnerCheckWord σ I prev key mem hp hc hm
   simp only [safeRuntime_block_6782_taken_memory] at hword
@@ -145,18 +147,18 @@ theorem safeSwapCanRemoveOwnerTrace {I g s0 σ k C aw mem rdata} {prev key top :
 
 theorem safeSwapCanRemoveOwnerTraceInvalid {I g s0 σ k C aw mem rdata} {key top : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6282⟩ (top :: key :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨6282⟩ (top :: key :: R) mem aw rdata σ k C)
     (hov : R.length + 10 ≤ 1024) (hc : key.toNat < EVM.addressModulus)
-    (hm : 32 ≤ mem.size) (hv : ¬validOwner σ I key) : RDrev safeBytecode g s0 := by
+    (hm : 32 ≤ mem.size) (hv : ¬validOwner σ I key) : RDrev fork safeBytecode g s0 := by
   exact safeInvalidSwapOldOwnerTrace h (by omega) hc hv
 
 theorem safeSwapCanRemoveOwnerTraceUnlinked {I g s0 σ k C aw mem rdata} {prev key top : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6282⟩ (top :: key :: prev :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨6282⟩ (top :: key :: prev :: R) mem aw rdata σ k C)
     (hov : R.length + 10 ≤ 1024)
     (hp : prev.toNat < EVM.addressModulus) (hc : key.toNat < EVM.addressModulus)
     (hm : mem.size = 96) (hv : validOwner σ I key) (hl : ownerLinkAt σ I prev ≠ key) :
-    RDrev safeBytecode g s0 := by
+    RDrev fork safeBytecode g s0 := by
   obtain ⟨_, _, h₂⟩ := safeValidSwapOldOwnerTrace h (by simp; omega) hc hv
   have hword := safeCanRemoveOwnerCheckWord σ I prev key mem hp hc hm
   simp only [safeRuntime_block_6782_taken_memory] at hword
@@ -167,14 +169,14 @@ theorem safeSwapCanRemoveOwnerTraceUnlinked {I g s0 σ k C aw mem rdata} {prev k
 
 theorem safeSwapCanAddOwnerTrace {I g s0 σ k C aw mem rdata} {key : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6162⟩ (key :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨6162⟩ (key :: R) mem aw rdata σ k C)
     (hov : R.length + 10 ≤ 1024) (hc : key.toNat < EVM.addressModulus)
     (hm : mem.size = 96) (h64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hv : validOwner σ I key) (hself : key ≠ UInt256.ofNat I.codeOwner.val)
     (he : ownerLinkAt σ I key = ⟨0⟩) :
     ∃ mem' aw' k' C', mem'.size = 96 ∧
       mem'.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ ∧
-      RD safeBytecode I g s0 ⟨6282⟩ (key :: R) mem' aw' rdata σ k' C' := by
+      RD fork safeBytecode I g s0 ⟨6282⟩ (key :: R) mem' aw' rdata σ k' C' := by
   obtain ⟨_, _, h₂⟩ := safeValidSwapNewOwnerTrace h (by omega) hc hv hself
   have hword := safeCanAddOwnerHeapCheckWord σ I key mem hc
   simp only [safeRuntime_block_1797_taken_memory] at hword
@@ -189,10 +191,10 @@ theorem safeSwapCanAddOwnerTrace {I g s0 σ k C aw mem rdata} {key : UInt256}
 
 theorem safeSwapCanAddOwnerTraceExisting {I g s0 σ k C aw mem rdata} {key : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6162⟩ (key :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨6162⟩ (key :: R) mem aw rdata σ k C)
     (hov : R.length + 10 ≤ 1024) (hc : key.toNat < EVM.addressModulus)
     (hv : validOwner σ I key) (hself : key ≠ UInt256.ofNat I.codeOwner.val)
-    (he : ownerLinkAt σ I key ≠ ⟨0⟩) : RDrev safeBytecode g s0 := by
+    (he : ownerLinkAt σ I key ≠ ⟨0⟩) : RDrev fork safeBytecode g s0 := by
   obtain ⟨_, _, h₂⟩ := safeValidSwapNewOwnerTrace h (by omega) hc hv hself
   have hword := safeCanAddOwnerHeapCheckWord σ I key mem hc
   simp only [safeRuntime_block_1797_taken_memory] at hword

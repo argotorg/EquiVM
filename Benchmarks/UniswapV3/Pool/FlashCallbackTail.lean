@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.FlashCallValues
 import Benchmarks.UniswapV3.Pool.FlashSettlement
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -10,7 +12,7 @@ theorem flashCallbackTailX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : EVM.State} {k C : Nat} {aw p before1 before0 fee1 fee0 liquidity len start : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : FlashArgs) (locals : Store)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨6827⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨6827⟩
       (before1 :: before0 :: fee1 :: fee0 :: liquidity :: len :: start :: a.amount1 :: a.amount0 ::
         EVM.word a.recipient.val :: ⟨857⟩ :: R) mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hperm : ee.perm = true)
@@ -21,14 +23,14 @@ theorem flashCallbackTailX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hc : start.toNat + len.toNat ≤ ee.calldata.size) (hl : len.toNat ≤ 2 ^ 32)
     (hliquidity : liquidity.toNat < 2 ^ 128)
     (hb : p.toNat + 2 ^ 141 ≤ 2 ^ 200) (hov : R.length + 33 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧
-      ExecBlock config {contract := contract, locals := locals, immutables := immStore v} evm
+    (RDrev fork (deployedRuntime v) g s0 ∧
+      ExecBlock fork config {contract := contract, locals := locals, immutables := immStore v} evm
         (flashTransition.body.drop 12) .reverted) ∨
     ∃ evm' locals',
-      ExecBlock config {contract := contract, locals := locals, immutables := immStore v} evm
+      ExecBlock fork config {contract := contract, locals := locals, immutables := immStore v} evm
         (flashTransition.body.drop 12)
         (.ok {contract := contract, locals := locals', immutables := immStore v} evm') ∧
-      RDret (deployedRuntime v) g s0 evm'.accountMap ByteArray.empty := by
+      RDret fork (deployedRuntime v) g s0 evm'.accountMap ByteArray.empty := by
   rcases flashCallbackX (v := v)
       (frame := {contract := contract, locals := locals, immutables := immStore v})
       rd hs hperm hm hvalues.fee0 hvalues.fee1 (by rw [← hdata]; exact hvalues.data)
@@ -55,7 +57,7 @@ theorem flashCallbackTailX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     · refine Or.inl ⟨rdBad, ?_⟩
       rw [← List.take_append_drop 3 (flashTransition.body.drop 12)]
       apply execBlock_append_ok hsourceCallback
-      change ExecBlock _ _ _ (flashTransition.body.drop 15) _
+      change ExecBlock fork _ _ _ (flashTransition.body.drop 15) _
       rw [← List.take_append_drop 2 (flashTransition.body.drop 15)]
       rw [flashBalanceStmts_eq] at hbad
       exact execBlockAppendReverted hbad
@@ -65,14 +67,14 @@ theorem flashCallbackTailX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
       · refine Or.inl ⟨rdBad, ?_⟩
         rw [← List.take_append_drop 3 (flashTransition.body.drop 12)]
         apply execBlock_append_ok hsourceCallback
-        change ExecBlock _ _ _ (flashTransition.body.drop 15) _
+        change ExecBlock fork _ _ _ (flashTransition.body.drop 15) _
         rw [← List.take_append_drop 2 (flashTransition.body.drop 15)]
         rw [flashBalanceStmts_eq] at hsourceBalances
         exact execBlock_append_ok hsourceBalances hbad
       · refine Or.inr ⟨evm3, locals3, ?_, rdDone⟩
         rw [← List.take_append_drop 3 (flashTransition.body.drop 12)]
         apply execBlock_append_ok hsourceCallback
-        change ExecBlock _ _ _ (flashTransition.body.drop 15) _
+        change ExecBlock fork _ _ _ (flashTransition.body.drop 15) _
         rw [← List.take_append_drop 2 (flashTransition.body.drop 15)]
         rw [flashBalanceStmts_eq] at hsourceBalances
         exact execBlock_append_ok hsourceBalances hsourceTail

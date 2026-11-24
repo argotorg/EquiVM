@@ -1,6 +1,8 @@
 import Benchmarks.Auction.InitializerFlags
 import Benchmarks.Auction.DynamicMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option synthInstance.maxSize 4096
@@ -72,10 +74,10 @@ theorem initializerGuards : ∀ i : InitializerSite, initializerGuardWf i := by
   native_decide
 
 theorem initializerGuardOk {I g s0 R mem aw rdata σ k C} (i : InitializerSite)
-    (h : RD auctionBytecode I g s0 (initializerPc i) R mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 (initializerPc i) R mem aw rdata σ k C)
     (hg : initializingWord σ I ≠ ⟨0⟩ ∨ initializedWord σ I = ⟨0⟩)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 (initializerGuardSuccess i) R
+    ∃ k' C', RD fork auctionBytecode I g s0 (initializerGuardSuccess i) R
       mem aw rdata σ k' C' := by
   obtain ⟨h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13,
     h14, h15, h16, h17, h18, h19, hd1, hd2⟩ := initializerGuards i
@@ -85,7 +87,7 @@ theorem initializerGuardOk {I g s0 R mem aw rdata σ k C} (i : InitializerSite)
   have rdTest := evm_run rdWord with [
     raw push2 ⟨256⟩ h3 (by evm_ov), raw swap1 h4 (by evm_ov), raw div h5 (by evm_ov),
     raw push1 ⟨255⟩ h6 (by evm_ov), raw and h7 (by evm_ov) ]
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     (UInt256.land ⟨255⟩ (UInt256.div (solcSlotWord σ I ⟨0⟩) ⟨256⟩) :: R)
     _ _ _ _ _ _ at rdTest
   rw [u256_land_comm ⟨255⟩] at rdTest
@@ -99,7 +101,7 @@ theorem initializerGuardOk {I g s0 R mem aw rdata σ k C} (i : InitializerSite)
     have rdMerge := evm_run rdSecondWord with [
       raw push1 ⟨255⟩ h14 (by evm_ov), raw and h15 (by evm_ov),
       raw iszero h16 (by evm_ov) ]
-    change RD _ _ _ _ _ (UInt256.isZero (UInt256.land ⟨255⟩ (solcSlotWord σ I ⟨0⟩)) :: R)
+    change RD fork _ _ _ _ _ (UInt256.isZero (UInt256.land ⟨255⟩ (solcSlotWord σ I ⟨0⟩)) :: R)
       _ _ _ _ _ _ at rdMerge
     rw [u256_land_comm ⟨255⟩] at rdMerge
     have ht : UInt256.isZero (initializedWord σ I) ≠ ⟨0⟩ := by rw [hz]; decide
@@ -114,9 +116,9 @@ theorem initializerGuardOk {I g s0 R mem aw rdata σ k C} (i : InitializerSite)
       raw jumpiT h19 hi hd2 (by evm_ov) ]⟩
 
 theorem initializerGuardReady {I g s0 R mem aw rdata σ k C} (i : InitializerSite)
-    (h : RD auctionBytecode I g s0 (initializerPc i) R mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 (initializerPc i) R mem aw rdata σ k C)
     (hr : InitializerReady σ I) (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 (initializerGuardSuccess i) R
+    ∃ k' C', RD fork auctionBytecode I g s0 (initializerGuardSuccess i) R
       mem aw rdata σ k' C' := by
   apply initializerGuardOk i h _ hov
   rcases hr with hi | ha

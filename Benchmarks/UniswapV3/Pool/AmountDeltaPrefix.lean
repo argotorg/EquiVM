@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.AmountDeltaModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -49,7 +51,7 @@ theorem amountDeltaPrefixBody (second : Bool) : (amountDeltaFunction second).bod
       (.intLit 0), amountDeltaSwapStmt] := by cases second <;> rfl
 
 theorem amountDeltaSwapSource (imms : Store) (evm : EVM.State) (second : Bool) (a : AmountDeltaArgs) :
-    ExecStmt config (amountDeltaZeroFrame imms second a) evm amountDeltaSwapStmt
+    ExecStmt fork config (amountDeltaZeroFrame imms second a) evm amountDeltaSwapStmt
       (.ok (amountDeltaSortedFrame imms second a) evm) := by
   have ha : evalExpr? config (amountDeltaZeroFrame imms second a) evm (.var "sqrtRatioAX96") =
       .ok (.int (Int.ofNat a.sqrtA.toNat)) := evalExpr_var_get (by amount_delta_prefix_get)
@@ -64,15 +66,15 @@ theorem amountDeltaSwapSource (imms : Store) (evm : EVM.State) (second : Bool) (
     refine ExecBlock.consNormal (stele' := amountDeltaSwapAFrame imms second a) (evm' := evm)
       (ExecStmt.letDecl (evalExpr_var_get (by amount_delta_prefix_get))) ?_
     refine ExecBlock.consNormal (stele' := amountDeltaSwapLowerFrame imms second a) (evm' := evm)
-      (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalExpr_var_get (by amount_delta_prefix_get))
+      (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalExpr_var_get (by amount_delta_prefix_get))
         (assignLocalVarBase_frame (by amount_delta_prefix_get))) ?_
-    exact ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalExpr_var_get (by amount_delta_prefix_get))
+    exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalExpr_var_get (by amount_delta_prefix_get))
       (assignLocalVarBase_frame (by amount_delta_prefix_get))) ExecBlock.nil
   · simp only [amountDeltaSortedFrame, if_neg hs]
     exact ExecStmt.iteFalse (by simpa only [decide_eq_false hs] using hg) ExecBlock.nil
 
 theorem amountDeltaPrefixSource (imms : Store) (evm : EVM.State) (second : Bool) (a : AmountDeltaArgs) :
-    ExecBlock config (amountDeltaFrame imms a) evm ((amountDeltaFunction second).body.take 2)
+    ExecBlock fork config (amountDeltaFrame imms a) evm ((amountDeltaFunction second).body.take 2)
       (.ok (amountDeltaSortedFrame imms second a) evm) := by
   rw [amountDeltaPrefixBody]
   exact ExecBlock.consNormal

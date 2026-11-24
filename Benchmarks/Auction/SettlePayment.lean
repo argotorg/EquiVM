@@ -1,6 +1,8 @@
 import Benchmarks.Auction.SettleNoun
 import Benchmarks.Auction.PaymentInternal
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -42,9 +44,9 @@ theorem settlePaymentArgs {s0 I σ evm locals s ptr}
     evalExpr?, hv.ptr, EvalResult.ofOption, hw, ht, pure, bind, EvalResult.bind]
 
 theorem settlePaymentPrefix {I g s0 s snap ret R mem aw rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨4658⟩ (snap :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨4658⟩ (snap :: ret :: R) mem aw rdata σ k C)
     (hm : SnapshotMemory s mem aw snap) (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨3337⟩
+    ∃ k' C', RD fork auctionBytecode I g s0 ⟨3337⟩
       (s.amount :: ownerWord σ I :: ⟨4688⟩ :: snap :: ret :: R)
       mem aw rdata σ k' C' := by
   have rd4666 := evm_run h with [push2 ⟨4688⟩, push2 ⟨4678⟩, push1 ⟨151⟩]
@@ -61,22 +63,22 @@ theorem settlePaymentPrefix {I g s0 s snap ret R mem aw rdata σ k C}
   exact ⟨_, _, evm_run rd4684 with [push2 ⟨3337⟩, jump (by jump_dest)]⟩
 
 theorem settlePaymentRoutine {I g s0 s snap ret R mem aw ptr rdata σ k C evm locals}
-    (h : RD auctionBytecode I g s0 ⟨4647⟩ (snap :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨4647⟩ (snap :: ret :: R) mem aw rdata σ k C)
     (hs : SourceState s0 I σ evm) (hperm : I.perm = true)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 2 ^ 140 ≤ 2 ^ 200)
     (hsm : SnapshotMemory s mem aw snap) (hsep : snap.toNat + 192 ≤ ptr.toNat)
     (hv : SettleValues locals s ptr) (hov : R.length + 26 ≤ 1024) :
     (∃ (evm' : EVM.State) (σ' : AccountMap)
         (locals' : Store) (mem' : ByteArray) (aw' ptr' : UInt256) (out : ByteArray) (k' C' : Nat),
-      ExecStmt auctionConfig { contract := auctionContract, locals := locals } evm
+      ExecStmt fork auctionConfig { contract := auctionContract, locals := locals } evm
         settlePaymentStmt (.ok { contract := auctionContract, locals := locals' } evm') ∧
       SettleValues locals' s ptr' ∧ SourceState s0 I σ' evm' ∧
-      RD auctionBytecode I g s0 ⟨4688⟩ (snap :: ret :: R) mem' aw' out σ' k' C' ∧
+      RD fork auctionBytecode I g s0 ⟨4688⟩ (snap :: ret :: R) mem' aw' out σ' k' C' ∧
       MemoryCursor mem' aw' ptr' ∧ SnapshotMemory s mem' aw' snap ∧
       MemoryPrefix mem mem' ptr.toNat ∧ ptr.toNat ≤ ptr'.toNat ∧
       ptr'.toNat ≤ ptr.toNat + 2 ^ 140 ∧ aw.toNat ≤ aw'.toNat) ∨
-    (ExecStmt auctionConfig { contract := auctionContract, locals := locals } evm
-      settlePaymentStmt .reverted ∧ RDrev auctionBytecode g s0) := by
+    (ExecStmt fork auctionConfig { contract := auctionContract, locals := locals } evm
+      settlePaymentStmt .reverted ∧ RDrev fork auctionBytecode g s0) := by
   have hl : loadedWord mem (snap + ⟨32⟩) = s.amount := hsm.load ⟨1, by decide⟩
   have ha : expandedWords aw (snap + ⟨32⟩) ⟨32⟩ = aw := hsm.expand_eq ⟨1, by decide⟩
   have rd4653 := evm_run h with [jumpdest, push1 ⟨32⟩, dup2, add,

@@ -2,6 +2,8 @@ import Benchmarks.CurveVault.AllowanceStorage
 import Benchmarks.CurveVault.Arithmetic
 import Benchmarks.CurveVault.ApproveInternal
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -57,7 +59,7 @@ theorem vaultAdjustPrefixSource (increase : Bool) (evm : State) (locals : Store)
     (hdelta : locals.get? (vaultAdjustDeltaName increase) = some (.int (Int.ofNat delta.toNat)))
     (hold : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner
       (vaultAllowanceSlot evm.executionEnv.source spender) = old) :
-    ExecBlock config {contract := contract, locals := locals} evm ((vaultAdjustFunction increase).body.take 3)
+    ExecBlock fork config {contract := contract, locals := locals} evm ((vaultAdjustFunction increase).body.take 3)
       (.ok {contract := contract, locals := vaultAdjustPrefixLocals locals increase old delta} evm) := by
   have hread := vaultAllowanceEvalAt evm locals (.env .caller) (.var "_spender")
     evm.executionEnv.source spender hbase (by simp [evalExpr?, envValue, pure])
@@ -105,17 +107,17 @@ theorem vaultAdjustPrefixSource (increase : Bool) (evm : State) (locals : Store)
   · rw [hc] at hcond
     simp only [vaultAdjustPrefixLocals,
       show vaultAdjustOverflow increase old (vaultAdjustWrapped increase old delta) = true from hc, if_true]
-    change ExecBlock _ _ _ _ (.ok {contract := contract, locals := (locals1.insert "allowance_"
+    change ExecBlock fork _ _ _ _ (.ok {contract := contract, locals := (locals1.insert "allowance_"
       (.int (Int.ofNat (vaultAdjustBound increase).toNat)))} evm)
     refine ExecBlock.consNormal (ExecStmt.iteTrue hcond ?_) ExecBlock.nil
-    exact ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (by simp [evalExpr?, pure])
+    exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (by simp [evalExpr?, pure])
       (assignLocalVarBase_ok (old := .int (Int.ofNat wrapped.toNat)) (store_get_self _ _ _))) ExecBlock.nil
   · have hc' : vaultAdjustOverflow increase old wrapped = false := by simpa using hc
     rw [hc'] at hcond
     simp only [vaultAdjustPrefixLocals,
       show vaultAdjustOverflow increase old (vaultAdjustWrapped increase old delta) = false from hc',
       Bool.false_eq_true, if_false]
-    change ExecBlock _ _ _ _ (.ok {contract := contract, locals := locals1} evm)
+    change ExecBlock fork _ _ _ _ (.ok {contract := contract, locals := locals1} evm)
     exact ExecBlock.consNormal (ExecStmt.iteFalse hcond ExecBlock.nil) ExecBlock.nil
 
 end Benchmarks.CurveVault

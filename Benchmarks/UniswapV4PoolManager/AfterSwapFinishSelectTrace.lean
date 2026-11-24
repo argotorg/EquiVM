@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.AfterSwapFinishActiveTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_044
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -14,13 +16,13 @@ theorem afterSwapFinishSelectTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : PoolManagerImmutables) (hstack : R.length+10 ≤ 1024)
     (hs : signedFits ⟨128, by decide⟩ specified) (hu : signedFits ⟨128, by decide⟩ unspecified)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨15800⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨15800⟩
       (x0 :: x1 :: x2 :: x3 :: x4 :: EVM.wordOfInt unspecified :: EVM.wordOfInt specified :: delta :: ret :: ptr :: R)
       mem aw rdata σ k C) :
     if unspecified ≠ 0 ∨ specified ≠ 0 then ∃ k' C', C ≤ C' ∧
-      RD (deployedRuntime v) I g s0 ⟨15832⟩
+      RD fork (deployedRuntime v) I g s0 ⟨15832⟩
         (ptr :: EVM.wordOfInt unspecified :: EVM.wordOfInt specified :: delta :: ret :: ⟨0⟩ :: R) mem aw rdata σ k' C'
-    else ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ret (⟨0⟩ :: delta :: R) mem aw rdata σ k' C' := by
+    else ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ret (⟨0⟩ :: delta :: R) mem aw rdata σ k' C' := by
   have hsc : UInt256.signextend (UInt256.ofNat 15) (EVM.wordOfInt specified) = EVM.wordOfInt specified :=
     signextend128_wordOfInt hs.1 hs.2
   have huc : UInt256.signextend (UInt256.ofNat 15) (EVM.wordOfInt unspecified) = EVM.wordOfInt unspecified :=

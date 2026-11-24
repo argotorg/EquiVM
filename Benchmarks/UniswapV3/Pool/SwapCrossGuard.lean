@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapIterationPriceStore
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_015
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -22,14 +24,14 @@ theorem swapCrossGuardX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p q free : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (s : SwapStateData) (d : SwapIterationData)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3637⟩ (q :: p :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3637⟩ (q :: p :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hs : SwapStateMemory mem p s)
     (hd : SwapIterationMemory mem q d) (hprice : s.price.toNat < 2 ^ 160)
     (hnext : d.priceNext.toNat < 2 ^ 160)
     (hbp : p.toNat + 224 ≤ 2 ^ 200) (hbq : q.toNat + 224 ≤ 2 ^ 200)
     (hov : R.length + 7 ≤ 1024) :
     ∃ aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 (if s.price = d.priceNext then ⟨3672⟩ else ⟨3934⟩)
+      RD fork (deployedRuntime v) ee g s0 (if s.price = d.priceNext then ⟨3672⟩ else ⟨3934⟩)
         (q :: p :: R) mem aw' rdata σ k' C' ∧ HeapMemory mem aw' free ∧
       aw.toNat ≤ aw'.toNat := by
   have hlp : memLoad (UInt256.ofNat 64 + p) mem = s.price := by

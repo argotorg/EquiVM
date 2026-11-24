@@ -2,6 +2,8 @@ import Benchmarks.CurveVault.AvailableBalanceCalls
 import Benchmarks.CurveVault.SubOrZero
 import Benchmarks.CurveVault.Memory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch Reasoning.VyperCalls
 namespace Benchmarks.CurveVault
 
@@ -17,16 +19,16 @@ theorem vaultAvailableBalanceRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : S
     {k C : Nat} {dest returnPc : UInt256} {R : List UInt256}
     (hs : SourceState s0 I σ evm) (hstack : R.length + 11 ≤ 1024)
     (hvalid : (D_J vaultBytecode 0).contains returnPc = true)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 7819) (dest :: returnPc :: R) mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 7819) (dest :: returnPc :: R) mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (locals' : Store) (scratch : ByteArray) (value aw' : UInt256)
         (out : ByteArray) (k' C' : Nat),
-      ExecFuncBody config {contract := contract, locals := ∅} evm vaultAvailableBalanceFunction.body
+      ExecFuncBody fork config {contract := contract, locals := ∅} evm vaultAvailableBalanceFunction.body
         (.returned {contract := contract, locals := locals'} evm' (some [.int (Int.ofNat value.toNat)])) ∧
       SourceState s0 I σ' evm' ∧ WordMemoryRange mem scratch 288 UInt256.size ∧
-      RD vaultBytecode I g s0 returnPc R
+      RD fork vaultBytecode I g s0 returnPc R
         (value.toByteArray.write 0 scratch dest.toNat 32) aw' out σ' k' C') ∨
-    (ExecFuncBody config {contract := contract, locals := ∅} evm vaultAvailableBalanceFunction.body .reverted ∧
-      RDrev vaultBytecode g s0) := by
+    (ExecFuncBody fork config {contract := contract, locals := ∅} evm vaultAvailableBalanceFunction.body .reverted ∧
+      RDrev fork vaultBytecode g s0) := by
   rcases vaultAvailableBalanceCall (locals := ∅) hs (by simp)
     (by simp only [List.length_cons]; omega) h with h0 | ⟨hsource, hrev⟩
   swap
@@ -51,7 +53,7 @@ theorem vaultAvailableBalanceRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : S
   let selectorMem := (UInt256.ofNat 454557923).toByteArray.write 0 arg0Mem 192 32
   let mem1 := b.toByteArray.write 0 selectorMem 192 32
   let locals1 := vaultControllerCallLocals locals0 evm0 "controller_admin_fees" "__c1" (.int (Int.ofNat b.toNat))
-  change RD vaultBytecode I g s0 (UInt256.ofNat 7912)
+  change RD fork vaultBytecode I g s0 (UInt256.ofNat 7912)
     (codeOwnerStorageWord I σ0 ⟨3⟩ :: dest :: returnPc :: R)
     (b.toByteArray.write 0 ((UInt256.ofNat 454557923).toByteArray.write 0
       ((memLoad (UInt256.ofNat 128) mem0).toByteArray.write 0 mem0 64 32) 192 32) 192 32)
@@ -69,7 +71,7 @@ theorem vaultAvailableBalanceRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : S
   have hwordB : memLoad (UInt256.ofNat 192) mem1 = b := memLoad_write_back _ _ 192 (by decide +kernel) (hgap _ (by omega) _)
   have rd7791 := vaultBlocks.vault_block_7912 (by simp only [List.length_cons]; omega) (by native_decide) rd1
   let argMem := b.toByteArray.write 0 mem1 96 32
-  change RD vaultBytecode I g s0 (UInt256.ofNat 7791)
+  change RD fork vaultBytecode I g s0 (UInt256.ofNat 7791)
     (UInt256.ofNat 256 :: UInt256.ofNat 7930 :: dest :: returnPc :: R)
     ((memLoad (UInt256.ofNat 192) mem1).toByteArray.write 0 mem1 96 32) _ out1 σ1 _ _ at rd7791
   rw [hwordB] at rd7791
@@ -81,7 +83,7 @@ theorem vaultAvailableBalanceRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : S
   let scratch := value.toByteArray.write 0 argMem 256 32
   have hval : memLoad (UInt256.ofNat 256) scratch = value := memLoad_write_back _ _ 256 (by decide +kernel) (hgap _ (by omega) _)
   have rdRet := vaultBlocks.vault_block_7930 (by omega) hvalid rd7930
-  change RD vaultBytecode I g s0 returnPc R
+  change RD fork vaultBytecode I g s0 returnPc R
     ((memLoad (UInt256.ofNat 256) scratch).toByteArray.write 0 scratch dest.toNat 32) _ out1 σ1 _ _ at rdRet
   rw [hval] at rdRet
   have hevalA : evalExpr? config {contract := contract, locals := locals1} evm1 (.var "__c0") = .ok (.int (Int.ofNat a.toNat)) :=
@@ -90,7 +92,7 @@ theorem vaultAvailableBalanceRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : S
   have hevalB : evalExpr? config {contract := contract, locals := locals1} evm1 (.var "__c1") = .ok (.int (Int.ofNat b.toNat)) :=
     evalExpr_varUInt256 (by simp [locals1, vaultControllerCallLocals])
   let calleeLocals := ((∅ : Store).insert "b" (.int (Int.ofNat b.toNat))).insert "a" (.int (Int.ofNat a.toNat))
-  have hcallee := vaultSubOrZeroSource (evm := evm1) (locals := calleeLocals) (a := a) (b := b)
+  have hcallee := vaultSubOrZeroSource (fork := fork) (evm := evm1) (locals := calleeLocals) (a := a) (b := b)
     (by simp [calleeLocals]) (by simp only [calleeLocals, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert]; rfl)
   have hcall := internalCallFunctionReturn (caller := {contract := contract, locals := locals1})
     (callee := vaultSubOrZeroFunction) (name := "crv_math_sub_or_zero")

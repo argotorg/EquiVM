@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.PackedPresentValueEvm
 import Benchmarks.CompoundIII.Comet.SignedDebtWords
 import Benchmarks.CompoundIII.Comet.Signed104Encoding
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -18,9 +20,9 @@ theorem cometAbsorbEvents {v : CometWithExtendedAssetListImmutables}
     (hf : memLoad ⟨64⟩ mem = free) (hl : 96 ≤ free.toNat) (hm : free.toNat ≤ mem.size)
     (hb : free.toNat + 64 < UInt256.size)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨17410⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨17410⟩
       (value :: account :: paid :: principal :: absorber :: ret :: R) mem aw rdata σ k C) :
-    ∃ mem' aw' k' C', RD (deployedRuntime v) ee g s0 ret R mem' aw' rdata σ k' C' ∧
+    ∃ mem' aw' k' C', RD fork (deployedRuntime v) ee g s0 ret R mem' aw' rdata σ k' C' ∧
       memLoad ⟨64⟩ mem' = free ∧ mem.size ≤ mem'.size := by
   let mem1 := pairEventMem mem free paid value
   have he1 : cometWithExtendedAssetList_block_17410_taken_memory

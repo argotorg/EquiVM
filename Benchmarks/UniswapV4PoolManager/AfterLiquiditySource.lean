@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.AfterLiquiditySelectionSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -24,9 +26,9 @@ theorem afterLiquidityBody {f : Frame} {evm post : State} {hook : AccountAddress
     (he : f.locals.get? "feesAccrued" = some (.int (EVM.signed fees)))
     (hb : f.locals.get? "hookData" = some (.bytes data))
     (hc : PoolKeyCanonical key) (hl : int24Canonical p.lower) (hu : int24Canonical p.upper)
-    (hcall : evm.executionEnv.source ≠ hook → afterLiquidityActive hook p → callViaEVM evm hook 0
+    (hcall : evm.executionEnv.source ≠ hook → afterLiquidityActive hook p → callViaEVM fork evm hook 0
       (afterLiquidityPayload (afterLiquidityAdd p) evm.executionEnv.source key p delta fees data) (z, post, out)) :
-    ExecFuncBody config f evm afterLiquidityFunction.body
+    ExecFuncBody fork config f evm afterLiquidityFunction.body
       (afterLiquidityResult f evm post hook key p delta fees data z out) := by
   apply execFuncBody_block
   have hsender : evalExpr? config f evm (.env .caller) = .ok (.address evm.executionEnv.source) := by
@@ -47,7 +49,7 @@ theorem afterLiquidityBody {f : Frame} {evm post : State} {hook : AccountAddress
     have hcaller : f1.locals.get? "callerDelta" = some (.int (EVM.signed delta)) := store_get_self _ _ _
     have hhook : f1.locals.get? "hookDelta" = some (.int 0) :=
       (store_get_ne _ _ (by decide : ("callerDelta" == "hookDelta") = false)).trans (store_get_self _ _ _)
-    have hpre : ExecBlock config f evm (afterLiquidityFunction.body.take 3) (.ok f1 evm) := by
+    have hpre : ExecBlock fork config f evm (afterLiquidityFunction.body.take 3) (.ok f1 evm) := by
       apply ExecBlock.consNormal (ExecStmt.iteFalse (heq.trans (by rw [decide_eq_false hself])) ExecBlock.nil)
       apply ExecBlock.consNormal (ExecStmt.letDecl (show evalExpr? config f evm (.intLit 0) = .ok (.int 0) by
         simp only [evalExpr?, pure]))
@@ -61,7 +63,7 @@ theorem afterLiquidityBody {f : Frame} {evm post : State} {hook : AccountAddress
       ((hget "feesAccrued" (by decide) (by decide)).trans he)
       ((hget "hookData" (by decide) (by decide)).trans hb)
       hcaller hhook hc hl hu (hcall hself)
-    have htail : ExecBlock config f1 evm (afterLiquidityFunction.body.drop 3)
+    have htail : ExecBlock fork config f1 evm (afterLiquidityFunction.body.drop 3)
         (continueBlockResult (fun f' next => afterLiquidityReturnResult f' next hook p delta out)
           (afterLiquiditySelectedResult f1 evm post hook key p delta fees data z out)) := by
       apply execBlock_continue (execBlock_singleton hsel)

@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.SourceComposition
 
+variable {fork : Ethereum.Fork}
+
 /-! Composing internal calls without repeating every callee branch. -/
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
@@ -28,8 +30,8 @@ theorem internalCallFunctionExec {cfg : Config} {caller : Frame} {evm : EVM.Stat
     (hargs : evalExprs? cfg caller evm args = .ok argVals)
     (hlookup : lookupCallable? caller.contract name = some callee.toCallable)
     (hbind : bindParams? callee.params argVals = some locals)
-    (hbody : ExecFuncBody cfg {caller with locals := locals} evm callee.body result) :
-    ExecStmt cfg caller evm (.internalCall name args retVar) (resumeCallResult caller retVar result) := by
+    (hbody : ExecFuncBody fork cfg {caller with locals := locals} evm callee.body result) :
+    ExecStmt fork cfg caller evm (.internalCall name args retVar) (resumeCallResult caller retVar result) := by
   cases hbody with
   | execBlockOK h => exact internalCallFunctionReturn hargs hlookup hbind (.execBlockOK h)
   | execBlockRet h => exact internalCallFunctionReturn hargs hlookup hbind (.execBlockRet h)
@@ -53,8 +55,8 @@ theorem finishBlockResult_static : finishBlockResult .staticViolation = .staticV
 
 -- LIBRARY CANDIDATE: lift a block using the function body's return convention.
 theorem execFuncBody_block {cfg : Config} {f : Frame} {evm : EVM.State} {stmts : List Stmt} {result : ExecResult}
-    (h : ExecBlock cfg f evm stmts result) :
-    ExecFuncBody cfg f evm stmts (finishBlockResult result) := by
+    (h : ExecBlock fork cfg f evm stmts result) :
+    ExecFuncBody fork cfg f evm stmts (finishBlockResult result) := by
   cases result with
   | ok => exact .execBlockOK h
   | returned => exact .execBlockRet h
@@ -66,7 +68,7 @@ theorem execFuncBody_block {cfg : Config} {f : Frame} {evm : EVM.State} {stmts :
   | staticViolation => exact .execBlockStatic h
 
 theorem execFuncBody_singleton {cfg : Config} {f : Frame} {evm : EVM.State} {stmt : Stmt} {result : ExecResult}
-    (h : ExecStmt cfg f evm stmt result) :
-    ExecFuncBody cfg f evm [stmt] (finishBlockResult result) := execFuncBody_block (execBlock_singleton h)
+    (h : ExecStmt fork cfg f evm stmt result) :
+    ExecFuncBody fork cfg f evm [stmt] (finishBlockResult result) := execFuncBody_block (execBlock_singleton h)
 
 end Benchmarks.UniswapV4PoolManager

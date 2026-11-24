@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.CreateAssetListInternal
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -36,14 +38,14 @@ theorem constructorSourceFactory_args {c : ConstructorConfig} {w feed factory : 
 theorem constructorSourceAssets_exec {c : ConstructorConfig} {w feed factory : UInt256}
     {evm evm' evm'' : EVM.State} {out : ByteArray}
     (hn : c.assetConfigs.length < UInt256.size)
-    (hp : ExecBlock config (constructorSourceEntry c) evm (contract.ctor.body.take 36)
+    (hp : ExecBlock fork config (constructorSourceEntry c) evm (contract.ctor.body.take 36)
       (.ok (constructorSourceFactory c w feed factory) evm'))
-    (hc : callViaEVM evm' (AccountAddress.ofUInt256 factory) 0
+    (hc : callViaEVM fork evm' (AccountAddress.ofUInt256 factory) 0
       (createAssetListPayload c.assetConfigs c.assetConfigs.length) (true, evm'', out))
     (hhi : out.size < 2^255) (hv : ConstructorFactoryReturnValid out) :
-    ExecBlock config (constructorSourceEntry c) evm contract.ctor.body
+    ExecBlock fork config (constructorSourceEntry c) evm contract.ctor.body
       (.ok (constructorSourceFinal c w feed factory (calldataWord out 0)) evm'') := by
-  change ExecBlock config _ _ (contract.ctor.body.take 36 ++
+  change ExecBlock fork config _ _ (contract.ctor.body.take 36 ++
     [.internalCall "createAssetList_call"
       [.var "__c2", .field (.var "config") "assetConfigs"] "__c3",
       .setImmutable "assetList" (.var "__c3")]) _
@@ -59,12 +61,12 @@ theorem constructorSourceAssets_exec {c : ConstructorConfig} {w feed factory : U
 theorem constructorSourceAssets_revert {c : ConstructorConfig} {w feed factory : UInt256}
     {evm evm' evm'' : EVM.State} {z : Bool} {out : ByteArray}
     (hn : c.assetConfigs.length < UInt256.size)
-    (hp : ExecBlock config (constructorSourceEntry c) evm (contract.ctor.body.take 36)
+    (hp : ExecBlock fork config (constructorSourceEntry c) evm (contract.ctor.body.take 36)
       (.ok (constructorSourceFactory c w feed factory) evm'))
-    (hc : callViaEVM evm' (AccountAddress.ofUInt256 factory) 0
+    (hc : callViaEVM fork evm' (AccountAddress.ofUInt256 factory) 0
       (createAssetListPayload c.assetConfigs c.assetConfigs.length) (z, evm'', out))
     (hhi : out.size < 2^255) (hv : ¬ (z = true ∧ ConstructorFactoryReturnValid out)) :
-    ExecBlock config (constructorSourceEntry c) evm contract.ctor.body .reverted := by
+    ExecBlock fork config (constructorSourceEntry c) evm contract.ctor.body .reverted := by
   rw [← List.take_append_drop 36 contract.ctor.body]
   apply execBlockAppendOk hp
   exact .consRevert (createAssetList_call_revert rfl hn constructorSourceFactory_args.1

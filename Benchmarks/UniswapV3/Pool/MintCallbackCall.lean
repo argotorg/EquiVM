@@ -4,6 +4,8 @@ import Benchmarks.UniswapV3.Pool.MintCallbackSource
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_022
 import Benchmarks.UniswapV3.Pool.FlashCallbackCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -16,7 +18,7 @@ theorem mintCallbackCallX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {aw p amount0 amount1 len junk2 junk4 junk5 junk6 junk7 junk8 junk9 selector : UInt256}
     {target : AccountAddress} {mem rdata data : ByteArray} {R : List UInt256}
     {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨6050⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨6050⟩
       (UInt256.lnot ⟨31⟩ :: len :: junk2 :: (p + ⟨132⟩) :: junk4 :: junk5 ::
         junk6 :: junk7 :: junk8 :: junk9 :: selector :: EVM.word target.val :: R)
       mem aw rdata σ k C)
@@ -29,11 +31,11 @@ theorem mintCallbackCallX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
       mintCallbackCalldata amount0 amount1 data)
     (hl : len.toNat ≤ 2 ^ 32) (hb : p.toNat + len.toNat + 164 ≤ 2 ^ 200)
     (hov : R.length + 14 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧ ExecBlock config frame evm mintCallbackStmts .reverted) ∨
+    (RDrev fork (deployedRuntime v) g s0 ∧ ExecBlock fork config frame evm mintCallbackStmts .reverted) ∨
     ∃ evm' σ' out aw' k' C', SourceState s0 ee σ' evm' ∧
-      ExecBlock config frame evm mintCallbackStmts
+      ExecBlock fork config frame evm mintCallbackStmts
         (.ok {frame with locals := frame.locals.insert "__c4" .unit} evm') ∧
-      RD (deployedRuntime v) ee g s0 ⟨6116⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨6116⟩
         (⟨0⟩ :: ((p + ⟨132⟩) + UInt256.ofNat (paddedSize len.toNat)) ::
           selector :: EVM.word target.val :: R) mem aw' out σ' k' C' ∧
       HeapMemory mem aw' p := by
@@ -65,7 +67,7 @@ theorem mintCallbackCallX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
           (⟨6099⟩ : UInt256), (UInt8.ofNat 241), .CALL, none,
           immutableLayout_inBounds, immutableTemplate_size64))
         (by rw [hsize]; exact hcd) hsmall (by evm_ov)
-    change callViaEVM evm (AccountAddress.ofUInt256 (EVM.word target.val)) 0
+    change callViaEVM fork evm (AccountAddress.ofUInt256 (EVM.word target.val)) 0
       (mintCallbackCalldata amount0 amount1 data) (ok, evm', out) at hcall
     rw [show AccountAddress.ofUInt256 (EVM.word target.val) = target from
       accountAddress_roundtrip target] at hcall

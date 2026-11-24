@@ -1,6 +1,8 @@
 import Reasoning.WordArithmetic
 import Benchmarks.Dss.Pot.RpowLoop
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 open Reasoning.Theory.RpowBase
@@ -54,7 +56,7 @@ theorem execRpowLoopPrefixOk {evm : EVM.State} {locals : Store}
     let xxRound := xx + half
     let x' := UInt256.div xxRound b
     ∃ locals',
-      ExecBlock config { contract := contract, locals := locals } evm rpowLoopPrefix
+      ExecBlock fork config { contract := contract, locals := locals } evm rpowLoopPrefix
         (.ok { contract := contract, locals := locals' } evm) ∧
       RpowLoopStore x' n b z half locals' := by
   intro xx xxRound x'
@@ -169,7 +171,7 @@ theorem execRpowLoopPrefixOk {evm : EVM.State} {locals : Store}
   have hstoreX : RpowLoopStore x' n b z half localsX :=
     hstoreRound.set_x x'
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .letDecl "xx" (some uint256) (mul256 (.var "x") (.var "x")),
           .require
             (.binary .or
@@ -183,7 +185,7 @@ theorem execRpowLoopPrefixOk {evm : EVM.State} {locals : Store}
     refine ExecBlock.consNormal (ExecStmt.requireTrue hmulXXReq) ?_
     refine ExecBlock.consNormal (ExecStmt.letDecl haddXX) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue haddXXReq) ?_
-    exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inl rfl) hdivX hassignX) ExecBlock.nil
+    exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inl rfl) hdivX hassignX) ExecBlock.nil
   exact ⟨localsX, by
     simpa [rpowLoopPrefix, checkedMulUintInto, checkedAddUintInto, xx, xxRound, x',
       localsXX, localsRound, localsX] using hblock, hstoreX⟩
@@ -208,7 +210,7 @@ theorem execRpowLoopBodyOkOdd {evm : EVM.State} {locals : Store}
     let z' := UInt256.div zxRound b
     let n' := UInt256.div n ⟨2⟩
     ∃ locals',
-      ExecBlock config { contract := contract, locals := locals } evm rpowLoopBody
+      ExecBlock fork config { contract := contract, locals := locals } evm rpowLoopBody
         (.ok { contract := contract, locals := locals' } evm) ∧
       RpowLoopStore x' n' b z' half locals' := by
   intro xx xxRound x' zx zxRound z' n'
@@ -461,7 +463,7 @@ theorem execRpowLoopBodyOkOdd {evm : EVM.State} {locals : Store}
   have hstoreN : RpowLoopStore x' n' b z' half localsN :=
     hstoreZ.set_n n'
   have hthen :
-      ExecBlock config { contract := contract, locals := localsX } evm
+      ExecBlock fork config { contract := contract, locals := localsX } evm
         (checkedMulUintInto "zx" (.var "z") (.var "x") ++
           checkedAddUintInto "zxRound" (.var "zx") (.var "half") ++
           [ .assign .localVar { base := "z" }
@@ -472,9 +474,9 @@ theorem execRpowLoopBodyOkOdd {evm : EVM.State} {locals : Store}
     refine ExecBlock.consNormal (ExecStmt.requireTrue hmulZXReq) ?_
     refine ExecBlock.consNormal (ExecStmt.letDecl haddZX) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue haddZXReq) ?_
-    exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inl rfl) hdivZ hassignZ) ExecBlock.nil
+    exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inl rfl) hdivZ hassignZ) ExecBlock.nil
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .letDecl "xx" (some uint256) (mul256 (.var "x") (.var "x")),
           .require
             (.binary .or
@@ -496,9 +498,9 @@ theorem execRpowLoopBodyOkOdd {evm : EVM.State} {locals : Store}
     refine ExecBlock.consNormal (ExecStmt.requireTrue hmulXXReq) ?_
     refine ExecBlock.consNormal (ExecStmt.letDecl haddXX) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue haddXXReq) ?_
-    refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inl rfl) hdivX hassignX) ?_
+    refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inl rfl) hdivX hassignX) ?_
     refine ExecBlock.consNormal (ExecStmt.iteTrue hoddCond hthen) ?_
-    exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inl rfl) hdivN hassignN) ExecBlock.nil
+    exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inl rfl) hdivN hassignN) ExecBlock.nil
   exact ⟨localsN, by
     simpa [rpowLoopBody, checkedMulUintInto, checkedAddUintInto, xx, xxRound, x', zx,
       zxRound, z', n', localsXX, localsRound, localsX, localsZX, localsZXRound, localsZ,
@@ -509,7 +511,7 @@ theorem execRpowOddTailRevertZX {evm : EVM.State} {locals : Store}
     (hstore : RpowLoopStore x n b z half locals)
     (hodd : n.toNat % 2 ≠ 0)
     (hover : UInt256.size ≤ z.toNat * x.toNat) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       [ .ite
           (.binary .ne (.binary .mod (.var "n") (.intLit 2)) (.intLit 0))
           (checkedMulUintInto "zx" (.var "z") (.var "x") ++
@@ -529,7 +531,7 @@ theorem execRpowOddTailRevertZX {evm : EVM.State} {locals : Store}
         (mul256 (.var "z") (.var "x")) = .revert :=
     evalExpr_mul256_revert hstore.eval_z hstore.eval_x hover
   have hthen :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         (checkedMulUintInto "zx" (.var "z") (.var "x") ++
           checkedAddUintInto "zxRound" (.var "zx") (.var "half") ++
           [ .assign .localVar { base := "z" }
@@ -545,7 +547,7 @@ theorem execRpowOddTailRevertZXRound {evm : EVM.State} {locals : Store}
     (hodd : n.toNat % 2 ≠ 0)
     (hfit : z.toNat * x.toNat < UInt256.size)
     (hover : UInt256.size ≤ (z * x).toNat + half.toNat) :
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       [ .ite
           (.binary .ne (.binary .mod (.var "n") (.intLit 2)) (.intLit 0))
           (checkedMulUintInto "zx" (.var "z") (.var "x") ++
@@ -631,7 +633,7 @@ theorem execRpowOddTailRevertZXRound {evm : EVM.State} {locals : Store}
         (add256 (.var "zx") (.var "half")) = .revert :=
     evalExpr_add256_revert hzx hstoreZX.eval_half (by simpa [zx] using hover)
   have hthen :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         (checkedMulUintInto "zx" (.var "z") (.var "x") ++
           checkedAddUintInto "zxRound" (.var "zx") (.var "half") ++
           [ .assign .localVar { base := "z" }
@@ -652,14 +654,14 @@ theorem execRpowLoopBodyRevertZX {evm : EVM.State} {locals : Store}
     (hodd : n.toNat % 2 ≠ 0)
     (hover :
       UInt256.size ≤ z.toNat * (UInt256.div ((x * x) + half) b).toNat) :
-    ExecBlock config { contract := contract, locals := locals } evm rpowLoopBody .reverted := by
+    ExecBlock fork config { contract := contract, locals := locals } evm rpowLoopBody .reverted := by
   let xx := x * x
   let xxRound := xx + half
   let x' := UInt256.div xxRound b
   obtain ⟨localsX, hprefix, hstoreX⟩ :=
     execRpowLoopPrefixOk (evm := evm) (locals := locals) hstore hb hfitXX hfitXXRound
   have htail :
-      ExecBlock config { contract := contract, locals := localsX } evm rpowLoopTail .reverted := by
+      ExecBlock fork config { contract := contract, locals := localsX } evm rpowLoopTail .reverted := by
     simpa [rpowLoopTail, x', xxRound, xx, checkedMulUintInto, checkedAddUintInto] using
       (execRpowOddTailRevertZX (evm := evm) (locals := localsX)
         (x := x') (n := n) (b := b) (z := z) (half := half) hstoreX hodd
@@ -679,14 +681,14 @@ theorem execRpowLoopBodyRevertZXRound {evm : EVM.State} {locals : Store}
     (hover :
       UInt256.size ≤
         (z * UInt256.div ((x * x) + half) b).toNat + half.toNat) :
-    ExecBlock config { contract := contract, locals := locals } evm rpowLoopBody .reverted := by
+    ExecBlock fork config { contract := contract, locals := locals } evm rpowLoopBody .reverted := by
   let xx := x * x
   let xxRound := xx + half
   let x' := UInt256.div xxRound b
   obtain ⟨localsX, hprefix, hstoreX⟩ :=
     execRpowLoopPrefixOk (evm := evm) (locals := locals) hstore hb hfitXX hfitXXRound
   have htail :
-      ExecBlock config { contract := contract, locals := localsX } evm rpowLoopTail .reverted := by
+      ExecBlock fork config { contract := contract, locals := localsX } evm rpowLoopTail .reverted := by
     simpa [rpowLoopTail, x', xxRound, xx, checkedMulUintInto, checkedAddUintInto] using
       (execRpowOddTailRevertZXRound (evm := evm) (locals := localsX)
         (x := x') (n := n) (b := b) (z := z) (half := half) hstoreX hodd
@@ -700,11 +702,11 @@ theorem RD.potDripRpowLoopExit
     {mem out : ByteArray} {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
-    (rd2395 : RD potBytecode I (Sat256.ofUInt256 g)
+    (rd2395 : RD fork potBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2395⟩
       (half :: scratch :: z :: b :: ⟨0⟩ :: x :: ⟨1926⟩ :: R)
       mem aw out acc k C) :
-    ∃ k' C', RD potBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork potBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1926⟩
       (z :: R) mem aw out acc k' C' := by
   have rd2401 := evm_run rd2395 with [
@@ -736,11 +738,11 @@ theorem RD.potDripRpowLoopBodyEntry
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hnz : n ≠ ⟨0⟩)
-    (rd2395 : RD potBytecode I (Sat256.ofUInt256 g)
+    (rd2395 : RD fork potBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2395⟩
       (half :: scratch :: z :: b :: n :: x :: ⟨1926⟩ :: R)
       mem aw out acc k C) :
-    ∃ k' C', RD potBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork potBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2402⟩
       (half :: scratch :: z :: b :: n :: x :: ⟨1926⟩ :: R)
       mem aw out acc k' C' := by
@@ -759,11 +761,11 @@ theorem RD.potDripRpowLoopRevertXX
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hover : UInt256.size ≤ x.toNat * x.toNat)
-    (rd2402 : RD potBytecode I (Sat256.ofUInt256 g)
+    (rd2402 : RD fork potBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2402⟩
       (half :: scratch :: z :: b :: n :: x :: ⟨1926⟩ :: R)
       mem aw out acc k C) :
-    RDrev potBytecode (Sat256.ofUInt256 g)
+    RDrev fork potBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   have hdivNe : UInt256.div (x * x) x ≠ x :=
     u256_mul_div_overflow_ne x x hover
@@ -791,11 +793,11 @@ theorem RD.potDripRpowLoopRevertXXRound
     (hRlen : R.length ≤ 1000)
     (hfit : x.toNat * x.toNat < UInt256.size)
     (hover : UInt256.size ≤ (x * x).toNat + half.toNat)
-    (rd2402 : RD potBytecode I (Sat256.ofUInt256 g)
+    (rd2402 : RD fork potBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2402⟩
       (half :: scratch :: z :: b :: n :: x :: ⟨1926⟩ :: R)
       mem aw out acc k C) :
-    RDrev potBytecode (Sat256.ofUInt256 g)
+    RDrev fork potBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   let xx := x * x
   have hdivWord : UInt256.div xx x = x := by
@@ -853,14 +855,14 @@ theorem RD.potDripRpowLoopOddTailEntry
     (hfitXX : x.toNat * x.toNat < UInt256.size)
     (hfitXXRound : (x * x).toNat + half.toNat < UInt256.size)
     (hodd : n.toNat % 2 ≠ 0)
-    (rd2402 : RD potBytecode I (Sat256.ofUInt256 g)
+    (rd2402 : RD fork potBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2402⟩
       (half :: scratch :: z :: b :: n :: x :: ⟨1926⟩ :: R)
       mem aw out acc k C) :
     let xx := x * x
     let xxRound := xx + half
     let x' := UInt256.div xxRound b
-    ∃ k' C', RD potBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork potBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2450⟩
       (half :: scratch :: z :: b :: n :: x' :: ⟨1926⟩ :: R)
       mem aw out acc k' C' := by
@@ -947,11 +949,11 @@ theorem RD.potDripRpowLoopRevertZX
     (hodd : n.toNat % 2 ≠ 0)
     (hover :
       UInt256.size ≤ z.toNat * (UInt256.div ((x * x) + half) b).toNat)
-    (rd2402 : RD potBytecode I (Sat256.ofUInt256 g)
+    (rd2402 : RD fork potBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2402⟩
       (half :: scratch :: z :: b :: n :: x :: ⟨1926⟩ :: R)
       mem aw out acc k C) :
-    RDrev potBytecode (Sat256.ofUInt256 g)
+    RDrev fork potBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   let xx := x * x
   let xxRound := xx + half
@@ -1024,11 +1026,11 @@ theorem RD.potDripRpowLoopRevertZXRound
     (hover :
       UInt256.size ≤
         (z * UInt256.div ((x * x) + half) b).toNat + half.toNat)
-    (rd2402 : RD potBytecode I (Sat256.ofUInt256 g)
+    (rd2402 : RD fork potBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2402⟩
       (half :: scratch :: z :: b :: n :: x :: ⟨1926⟩ :: R)
       mem aw out acc k C) :
-    RDrev potBytecode (Sat256.ofUInt256 g)
+    RDrev fork potBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   let xx := x * x
   let xxRound := xx + half
@@ -1111,7 +1113,7 @@ theorem RD.potDripRpowLoopStepEven
     (hfitXX : x.toNat * x.toNat < UInt256.size)
     (hfitXXRound : (x * x).toNat + half.toNat < UInt256.size)
     (heven : n.toNat % 2 = 0)
-    (rd2402 : RD potBytecode I (Sat256.ofUInt256 g)
+    (rd2402 : RD fork potBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2402⟩
       (half :: scratch :: z :: b :: n :: x :: ⟨1926⟩ :: R)
       mem aw out acc k C) :
@@ -1119,7 +1121,7 @@ theorem RD.potDripRpowLoopStepEven
     let xxRound := xx + half
     let x' := UInt256.div xxRound b
     let n' := UInt256.div n ⟨2⟩
-    ∃ k' C', RD potBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork potBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2395⟩
       (half :: scratch :: z :: b :: n' :: x' :: ⟨1926⟩ :: R)
       mem aw out acc k' C' := by
@@ -1216,7 +1218,7 @@ theorem RD.potDripRpowLoopStepOdd
       z.toNat * (UInt256.div ((x * x) + half) b).toNat < UInt256.size)
     (hfitZXRound :
       (z * UInt256.div ((x * x) + half) b).toNat + half.toNat < UInt256.size)
-    (rd2402 : RD potBytecode I (Sat256.ofUInt256 g)
+    (rd2402 : RD fork potBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2402⟩
       (half :: scratch :: z :: b :: n :: x :: ⟨1926⟩ :: R)
       mem aw out acc k C) :
@@ -1227,7 +1229,7 @@ theorem RD.potDripRpowLoopStepOdd
     let zxRound := zx + half
     let z' := UInt256.div zxRound b
     let n' := UInt256.div n ⟨2⟩
-    ∃ k' C', RD potBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork potBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2395⟩
       (half :: scratch :: z' :: b :: n' :: x' :: ⟨1926⟩ :: R)
       mem aw out acc k' C' := by
@@ -1398,21 +1400,21 @@ theorem rpowLoopCoupled
     (hstore : RpowLoopStore x n b z half locals)
     (hb : b ≠ ⟨0⟩)
     (hle : n.toNat ≤ v)
-    (rd2395 : RD potBytecode I (Sat256.ofUInt256 g)
+    (rd2395 : RD fork potBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2395⟩
       (half :: scratch :: z :: b :: n :: x :: ⟨1926⟩ :: R)
       mem aw out acc k C) :
     (∃ xFinal zFinal localsFinal k' C',
       RpowLoopStore xFinal ⟨0⟩ b zFinal half localsFinal ∧
-      ExecStmt config { contract := contract, locals := locals } evm
+      ExecStmt fork config { contract := contract, locals := locals } evm
         (.while (.binary .ne (.var "n") (.intLit 0)) rpowLoopBody)
         (.ok { contract := contract, locals := localsFinal } evm) ∧
-      RD potBytecode I (Sat256.ofUInt256 g)
+      RD fork potBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1926⟩
         (zFinal :: R) mem aw out acc k' C') ∨
-    (ExecStmt config { contract := contract, locals := locals } evm
+    (ExecStmt fork config { contract := contract, locals := locals } evm
         (.while (.binary .ne (.var "n") (.intLit 0)) rpowLoopBody) .reverted ∧
-      RDrev potBytecode (Sat256.ofUInt256 g)
+      RDrev fork potBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)) := by
   revert x n z locals k C
   induction v with
@@ -1445,14 +1447,14 @@ theorem rpowLoopCoupled
         obtain ⟨_, _, rd2402⟩ :=
           RD.potDripRpowLoopBodyEntry (R := R) hRlen hnz rd2395
         by_cases hoverXX : UInt256.size ≤ x.toNat * x.toNat
-        · have hbody : ExecBlock config { contract := contract, locals := locals } evm
+        · have hbody : ExecBlock fork config { contract := contract, locals := locals } evm
               rpowLoopBody .reverted :=
             execRpowLoopBodyRevertXX hstore hoverXX
           have hrev := RD.potDripRpowLoopRevertXX (R := R) hRlen hoverXX rd2402
           exact .inr ⟨ExecStmt.whileRevert hcond hbody, hrev⟩
         · have hfitXX : x.toNat * x.toNat < UInt256.size := Nat.lt_of_not_ge hoverXX
           by_cases hoverXXRound : UInt256.size ≤ (x * x).toNat + half.toNat
-          · have hbody : ExecBlock config { contract := contract, locals := locals } evm
+          · have hbody : ExecBlock fork config { contract := contract, locals := locals } evm
                 rpowLoopBody .reverted :=
               execRpowLoopBodyRevertXXRound hstore hfitXX hoverXXRound
             have hrev := RD.potDripRpowLoopRevertXXRound
@@ -1465,7 +1467,7 @@ theorem rpowLoopCoupled
             by_cases hodd : n.toNat % 2 ≠ 0
             · by_cases hoverZX :
                   UInt256.size ≤ z.toNat * (UInt256.div ((x * x) + half) b).toNat
-              · have hbody : ExecBlock config { contract := contract, locals := locals } evm
+              · have hbody : ExecBlock fork config { contract := contract, locals := locals } evm
                     rpowLoopBody .reverted :=
                   execRpowLoopBodyRevertZX hstore hb hfitXX hfitXXRound hodd hoverZX
                 have hrev := RD.potDripRpowLoopRevertZX
@@ -1477,7 +1479,7 @@ theorem rpowLoopCoupled
                 by_cases hoverZXRound :
                     UInt256.size ≤
                       (z * UInt256.div ((x * x) + half) b).toNat + half.toNat
-                · have hbody : ExecBlock config { contract := contract, locals := locals } evm
+                · have hbody : ExecBlock fork config { contract := contract, locals := locals } evm
                       rpowLoopBody .reverted :=
                     execRpowLoopBodyRevertZXRound hstore hb hfitXX hfitXXRound hodd
                       hfitZX hoverZXRound

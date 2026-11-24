@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.AuthorizationSigVerification
 import Benchmarks.Morpho.MorphoBlue.WordCallOutputMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -17,9 +19,9 @@ theorem morphoAuthorizationFinish {v : MorphoImmutables} {ee : ExecutionEnv} {g 
     {s0 : State} {out : ByteArray} {aw : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (a : AuthorizationWords) (hc : a.Canonical) (ho : EcrecoverOutput out)
     (hstack : R.length + 24 ≤ 1024) (hperm : ee.perm = true)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 6527) (authorizationVerifiedTail R)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 6527) (authorizationVerifiedTail R)
       (authorizationVerifiedMem v a ee.calldata out) aw out σ k C) :
-    RDret (deployedRuntime v) g s0 (authorizationFinalAccounts a σ ee) ByteArray.empty := by
+    RDret fork (deployedRuntime v) g s0 (authorizationFinalAccounts a σ ee) ByteArray.empty := by
   let mem := authorizationVerifiedMem v a ee.calldata out
   have hp := authorizationVerifiedMem_properties v a ee.calldata out ho
   have hn : memLoad (UInt256.ofNat 224) mem = a.nonce := hp.2.1 ⟨3, by decide⟩
@@ -53,7 +55,7 @@ theorem morphoAuthorizationFinish {v : MorphoImmutables} {ee : ExecutionEnv} {g 
   let key1 := UInt256.land (memLoad (UInt256.ofNat 160) m0) solcAddrMask
   let slot0 := keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) m0
   let slot := keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) (twoWordHashMem key1 slot0 m0)
-  change RDret _ _ _ (sstoreAccountMap ee.codeOwner σ slot
+  change RDret fork _ _ _ (sstoreAccountMap ee.codeOwner σ slot
     (UInt256.lor (UInt256.land (UInt256.isZero (UInt256.isZero
       (UInt256.isZero (UInt256.isZero (memLoad (UInt256.ofNat 192) m))))) (UInt256.ofNat 255))
       (UInt256.land (solcSlotWordAt slot σ ee)

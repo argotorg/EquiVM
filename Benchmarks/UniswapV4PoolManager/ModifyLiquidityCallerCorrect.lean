@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.ModifyLiquidityReturnTrace
 import Benchmarks.UniswapV4PoolManager.ABIResultTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_018
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -18,11 +20,11 @@ theorem modifyLiquidityCallerCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : S
     (he : f.locals.get? "feesAccrued" = some (.int (EVM.signed fees)))
     (hkey : PoolKeyView mem keyPtr key) (hkl : 96 ≤ keyPtr.toNat)
     (hfit : free.toNat+64 < UInt256.size) (hfree : memLoad (UInt256.ofNat 64) mem = free)
-    (h : RD (deployedRuntime v) I g s0 ⟨6231⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨6231⟩
       ([discard, keyPtr, ⟨6240⟩, fees, caller, UInt256.ofNat 64, junk] ++ R)
       mem aw rdata evm.accountMap k C) :
-    ∃ result, ExecBlock config f evm (modifyLiquidityTransition.body.drop 30) result ∧
-      abiResultTrace modifyLiquidityTransition.returnType (deployedRuntime v) g s0 result := by
+    ∃ result, ExecBlock fork config f evm (modifyLiquidityTransition.body.drop 30) result ∧
+      abiResultTrace fork modifyLiquidityTransition.returnType (deployedRuntime v) g s0 result := by
   have rd := poolManagerBlocks.poolManager_block_6231 (R := [UInt256.ofNat 64, junk] ++ R)
     (by simp only [List.length_append, List.length_cons, List.length_nil]; omega)
     (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) h
@@ -30,17 +32,17 @@ theorem modifyLiquidityCallerCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : S
     (R := [fees, caller, UInt256.ofNat 64, junk] ++ R) f "__c9" v
     (by simp only [List.length_append, List.length_cons, List.length_nil]; omega) hI hkey (by omega)
     (by rw [deployedRuntime_jumps]; jump_dest) rd
-  have hs := accountPoolCall hf (evalLocalValue (evm := evm) hk) (evalLocalValue hc)
+  have hs := accountPoolCall (fork := fork) hf (evalLocalValue (evm := evm) hk) (evalLocalValue hc)
     (show evalExpr? config f evm (.env .caller) = .ok (.address I.source) by
       simp only [evalExpr?, envValue, hI, pure]) "__c9"
-  change ExecStmt config f evm modifyLiquidityTransition.body[30]!
+  change ExecStmt fork config f evm modifyLiquidityTransition.body[30]!
     (resumeCallResult f "__c9" (accountPoolResult (accountPoolCalleeFrame f key caller I.source) evm key caller I.source)) at hs
   generalize hx : resumeCallResult f "__c9"
     (accountPoolResult (accountPoolCalleeFrame f key caller I.source) evm key caller I.source) = result at hs ht
   cases result with
   | ok ff post =>
       obtain ⟨rfl, rfl, aw1, k1, C1, rd1⟩ := ht
-      have hreturn : ExecStmt config {f with locals := f.locals.insert "__c9" .unit}
+      have hreturn : ExecStmt fork config {f with locals := f.locals.insert "__c9" .unit}
           (accountPoolPost evm key caller I.source) modifyLiquidityTransition.body[31]!
           (.returned {f with locals := f.locals.insert "__c9" .unit} (accountPoolPost evm key caller I.source)
             (some [.int (EVM.signed caller), .int (EVM.signed fees)])) := by

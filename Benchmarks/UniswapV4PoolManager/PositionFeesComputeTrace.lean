@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PositionFeesSource
 import Benchmarks.UniswapV4PoolManager.FullMath128Trace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_018
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -15,14 +17,14 @@ def positionFeesStoreStack (evm : State) (id key liquidity fee0 fee1 r0 r1 : UIn
 theorem positionFeesComputeTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {mem rdata : ByteArray} {aw id key liquidity fee0 fee1 r0 r1 : UInt256} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+18 ≤ 1024) (hI : evm.executionEnv = I)
-    (h : RD (deployedRuntime v) I g s0 ⟨5950⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨5950⟩
       (liquidity :: fee1 :: positionSlot id key :: r0 :: r1 :: fee0 :: R) mem aw rdata evm.accountMap k C) :
     if fullMath128Fits (positionFeeDifference evm id key fee0 false) liquidity then
       if fullMath128Fits (positionFeeDifference evm id key fee1 true) liquidity then
-        ∃ k' C', RD (deployedRuntime v) I g s0 ⟨5985⟩
+        ∃ k' C', RD fork (deployedRuntime v) I g s0 ⟨5985⟩
           (positionFeesStoreStack evm id key liquidity fee0 fee1 r0 r1 R) mem aw rdata evm.accountMap k' C'
-      else RDrev (deployedRuntime v) g s0
-    else RDrev (deployedRuntime v) g s0 := by
+      else RDrev fork (deployedRuntime v) g s0
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hread (slot : UInt256) :
       (evm.accountMap.get? I.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD slot ⟨0⟩)) =
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner slot :=

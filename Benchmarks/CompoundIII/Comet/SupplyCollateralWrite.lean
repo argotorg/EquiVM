@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.TotalsCollateralStoreEvm
 import Benchmarks.CompoundIII.Comet.CollateralMappingMemory
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_065
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -20,10 +22,10 @@ theorem cometSupplyCollateralWrite {v : CometWithExtendedAssetListImmutables}
     (hstack : R.length + 30 ≤ 1024) (htotal : total.toNat < 2^128)
     (hm : TotalsCollateralMemory mem totalPtr total reserved) (hlo : 96 ≤ totalPtr.toNat)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨14040⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨14040⟩
       (supplyCollateralWriteStack sender dst asset ptr totalPtr amount balance next ret R)
       mem aw out σ k C) :
-    internalMemoryRun (deployedRuntime v) ee g s0
+    internalMemoryRun fork (deployedRuntime v) ee g s0
       (supplyCollateralWriteMemory mem dst asset) out ⟨14071⟩
       (supplyCollateralMemberStack sender dst asset ptr amount balance next ret R)
       (if evm.executionEnv.perm then .ok

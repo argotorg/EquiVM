@@ -3,6 +3,8 @@ import Benchmarks.Safe.ViaIR.ContractSignatureReturn
 import Benchmarks.Safe.ViaIR.RawStaticCall
 import Benchmarks.Safe.ViaIR.ContractSignatureReject
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.ViaIR
@@ -10,7 +12,7 @@ namespace Benchmarks.Safe.ViaIR
 theorem safeContractSignatureTrace (words : List UInt256)
     {I g s0 σ k C aw mem rdata ptr src} {signature : ByteArray}
     {hash owner last sig : UInt256} {R : List UInt256} (evm : EVM.State)
-    (h : RD safeBytecode I g s0 ⟨7707⟩
+    (h : RD fork safeBytecode I g s0 ⟨7707⟩
       (UInt256.ofNat src :: last :: owner :: sig :: hash :: R) mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ) (hworld : evm.σ₀ = s0.σ₀)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr) (hz : memLoad ⟨96⟩ mem = ⟨0⟩)
@@ -25,16 +27,16 @@ theorem safeContractSignatureTrace (words : List UInt256)
     (hreturn : contractSignatureCallEnd ptr signature.size + 2 ^ 138 + 64 < UInt256.size)
     (hsmall : contractSignatureCallLength signature.size ≤ maxReturnDataSizeByGas)
     (hov : R.length + 23 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧ ∃ evm' z out,
-      callViaEVM evm (EVM.address (AccountAddress.ofUInt256 owner)) 0
+    (RDrev fork safeBytecode g s0 ∧ ∃ evm' z out,
+      callViaEVM fork evm (EVM.address (AccountAddress.ofUInt256 owner)) 0
         (contractSignatureCallBytes hash signature) (z, evm', out) false ∧
       contractSignatureResult z out = false) ∨
     ∃ evm' σ' z out aw' k' C',
-      callViaEVM evm (EVM.address (AccountAddress.ofUInt256 owner)) 0
+      callViaEVM fork evm (EVM.address (AccountAddress.ofUInt256 owner)) 0
         (contractSignatureCallBytes hash signature) (z, evm', out) false ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧ evm'.σ₀ = s0.σ₀ ∧
       contractSignatureResult z out = true ∧
-      RD safeBytecode I g s0 ⟨7803⟩ (last :: owner :: sig :: hash :: R)
+      RD fork safeBytecode I g s0 ⟨7803⟩ (last :: owner :: sig :: hash :: R)
         (signatureReturnMemory (contractSignatureCallMemory mem ptr signature.size hash words)
           (contractSignatureCallEnd ptr signature.size) out) aw' out σ' k' C' ∧
       out.size < 2 ^ 138 ∧
@@ -57,7 +59,7 @@ theorem safeContractSignatureTrace (words : List UInt256)
   have ho : out.size < 2 ^ 138 := hbound (by
     rw [paddedReadSize, ulit_toNat' _ hlen]
     exact hsmall)
-  have hc' : callViaEVM evm (EVM.address (AccountAddress.ofUInt256 owner)) 0
+  have hc' : callViaEVM fork evm (EVM.address (AccountAddress.ofUInt256 owner)) 0
       (contractSignatureCallBytes hash signature) (z, evm', out) false := by
     simpa only [addressOfAddress, ulit_toNat' (ptr + 32) hptr,
       ulit_toNat' (contractSignatureCallLength signature.size) hlen,
@@ -97,7 +99,7 @@ theorem safeContractSignatureTrace (words : List UInt256)
     rw [h32, returnDataMemory_word _ _ _ (by omega)]
   have hfinish := safeContractSignatureFinish h₃ hl' hw' hout (by simp; omega)
   cases hv : contractSignatureResult z out
-  · have hr : RDrev safeBytecode g s0 := by simpa only [hv, Bool.false_eq_true, if_false]
+  · have hr : RDrev fork safeBytecode g s0 := by simpa only [hv, Bool.false_eq_true, if_false]
       using hfinish
     exact .inl ⟨hr, evm', z, out, hc', hv⟩
   · obtain ⟨aw'', k'', C'', h₄⟩ := by simpa only [hv, if_true] using hfinish

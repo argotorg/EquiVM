@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.RepayAmountsModel
 import Benchmarks.CompoundIII.Comet.PrincipalDifferenceSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -22,11 +24,11 @@ theorem repayAmountsDiff_source {cfg frame evm old next}
 
 theorem repayAmounts_source (evm : EVM.State) (imms : Store) (old next : UInt256) :
     if RepayAmountsFits old next then
-      ExecFuncBody config (withdrawAmountsEntry imms old next) evm repayAmountsCallable.body
+      ExecFuncBody fork config (withdrawAmountsEntry imms old next) evm repayAmountsCallable.body
         (.returned (withdrawAmountsEntry imms old next) evm
           (some [.int (repayAmount old next).toNat,
             .int (supplyAmount old next).toNat]))
-    else ExecFuncBody config (withdrawAmountsEntry imms old next) evm
+    else ExecFuncBody fork config (withdrawAmountsEntry imms old next) evm
       repayAmountsCallable.body .reverted := by
   let frame := withdrawAmountsEntry imms old next
   have ho : evalExpr? config frame evm (.var "oldPrincipal") = .ok (.int (signed104 old)) := by
@@ -51,8 +53,8 @@ theorem repayAmounts_source (evm : EVM.State) (imms : Store) (old next : UInt256
     apply ExecBlock.consReturn (ExecStmt.return ?_)
     simp only [evalExprs?, evalExpr?, pure, bind, EvalResult.bind]; rfl
   · have hle : signed104 old ≤ signed104 next := by omega
-    have hi := ExecStmt.iteFalse (cfg := config) (thenB := [.return [.intLit 0, .intLit 0]])
-      (hg.trans (by rw [decide_eq_false hinc])) (ExecBlock.nil (stele := frame) (evm := evm))
+    have hi := ExecStmt.iteFalse (fork := fork) (cfg := config) (thenB := [.return [.intLit 0, .intLit 0]])
+      (hg.trans (by rw [decide_eq_false hinc])) (ExecBlock.nil (fork := fork) (stele := frame) (evm := evm))
     have hd := repayAmountsDiff_source ho hn hle
     by_cases hp : signed104 next ≤ 0
     · simp only [RepayAmountsFits, repayAmount, supplyAmount,
@@ -129,14 +131,14 @@ theorem repayAmounts_call (frame : Frame) (evm : EVM.State) (old next : UInt256)
     (oldExpr nextExpr : Expr) (ret : Ident) (hc : frame.contract = contract)
     (ho : evalExpr? config frame evm oldExpr = .ok (.int (signed104 old)))
     (hn : evalExpr? config frame evm nextExpr = .ok (.int (signed104 next))) :
-    ExecStmt config frame evm (.internalCall "repayAndSupplyAmount" [oldExpr, nextExpr] ret)
+    ExecStmt fork config frame evm (.internalCall "repayAndSupplyAmount" [oldExpr, nextExpr] ret)
       (if RepayAmountsFits old next then
         .ok { frame with
           locals := frame.locals.insert ret
             (.tuple [.int (repayAmount old next).toNat,
               .int (supplyAmount old next).toNat]) } evm
       else .reverted) := by
-  have hb := repayAmounts_source evm frame.immutables old next
+  have hb := repayAmounts_source (fork := fork) evm frame.immutables old next
   have he : evalExprs? config frame evm [oldExpr, nextExpr] =
       .ok [.int (signed104 old), .int (signed104 next)] := by
     simp only [evalExprs?, ho, hn, pure, bind, EvalResult.bind]

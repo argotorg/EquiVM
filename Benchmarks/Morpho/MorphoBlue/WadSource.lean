@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.TaylorSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
@@ -32,7 +34,7 @@ def wMulDownResultFrame (x y : UInt256) (imms : Store) : Frame :=
 
 theorem morphoWMulDownBodyOk (x y : UInt256) (evm : EVM.State) (imms : Store)
     (hfit : x.toNat * y.toNat < UInt256.size) :
-    ExecFuncBody config (mathBinaryFrame x y imms) evm wMulDownFunction.body
+    ExecFuncBody fork config (mathBinaryFrame x y imms) evm wMulDownFunction.body
       (.returned (wMulDownResultFrame x y imms) evm (some [.int (Int.ofNat (wMulDownResult x y).toNat)])) := by
   apply ExecFuncBody.execBlockRet
   apply ExecBlock.consNormal (morphoMulDivDownCallOk x y wad evm _ imms _ _ _ _
@@ -43,7 +45,7 @@ theorem morphoWMulDownBodyOk (x y : UInt256) (evm : EVM.State) (imms : Store)
 
 theorem morphoWMulDownBodyReverts (x y : UInt256) (evm : EVM.State) (imms : Store)
     (hover : UInt256.size ≤ x.toNat * y.toNat) :
-    ExecFuncBody config (mathBinaryFrame x y imms) evm wMulDownFunction.body .reverted := by
+    ExecFuncBody fork config (mathBinaryFrame x y imms) evm wMulDownFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   exact ExecBlock.consRevert (morphoMulDivDownCallReverts x y wad evm _ imms _ _ _ _
     (mathBinary_eval_x x y imms evm) (mathBinary_eval_y x y imms evm) (evalWad _ evm) (.inl hover))
@@ -54,7 +56,7 @@ theorem morphoWMulDownCallOk (x y : UInt256) (evm : EVM.State) (locals imms : St
       .ok (.int (Int.ofNat x.toNat)))
     (hy : evalExpr? config { contract := contract, locals := locals, immutables := imms } evm ey =
       .ok (.int (Int.ofNat y.toNat))) (hfit : x.toNat * y.toNat < UInt256.size) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm
       (.internalCall "MathLib_wMulDown" [ex, ey] retVar)
       (.ok { contract := contract, locals := locals.insert retVar (.int (Int.ofNat (wMulDownResult x y).toNat)), immutables := imms } evm) := by
   exact internalCallFunctionReturn (callee := wMulDownFunction)
@@ -69,7 +71,7 @@ theorem morphoWMulDownCallReverts (x y : UInt256) (evm : EVM.State) (locals imms
       .ok (.int (Int.ofNat x.toNat)))
     (hy : evalExpr? config { contract := contract, locals := locals, immutables := imms } evm ey =
       .ok (.int (Int.ofNat y.toNat))) (hover : UInt256.size ≤ x.toNat * y.toNat) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm
       (.internalCall "MathLib_wMulDown" [ex, ey] retVar) .reverted := by
   exact internalCallFunctionRevert (callee := wMulDownFunction)
     (argVals := [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)])

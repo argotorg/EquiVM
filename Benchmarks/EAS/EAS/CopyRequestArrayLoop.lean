@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.CopyRequestArrayStep
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -13,19 +15,19 @@ theorem copyRequestArrayLoop {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {
     (n : Nat) (hn : i+n = rs.length)
     (hf : CopyRequestArrayLocals L rs heap.toNat i) (hm : CopyRequestArrayMemory mem array rs i heap.toNat)
     (hh : heap.toNat ≤ 2^64-1) (hfree : memLoad (UInt256.ofNat 64) mem = heap)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5594⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5594⟩
       (UInt256.ofNat (array.toNat+32+32*i)::UInt256.ofNat (offset.toNat+32*i)::offset::
         UInt256.ofNat (offset.toNat+32*rs.length)::UInt256.ofNat ee.calldata.size::ret::array::R) mem aw rdata σ k C) :
     (∃ L' mem' aw' k' C' next,
       heap.toNat ≤ next ∧ next ≤ 2^64-1 ∧ MemoryPrefix mem mem' array.toNat ∧
       CopyRequestArrayLocals L' rs next rs.length ∧ AttestationRequestArrayRegion mem' array rs array.toNat next ∧
       memLoad (UInt256.ofNat 64) mem' = UInt256.ofNat next ∧
-      ExecStmt config {contract := contract,locals := L,immutables := immStore v} evm
+      ExecStmt fork config {contract := contract,locals := L,immutables := immStore v} evm
         (.while copyRequestArrayGuard copyRequestArrayIteration)
         (.ok {contract := contract,locals := L',immutables := immStore v} evm) ∧
-      RD (deployedRuntime v) ee g s0 ret (array::R) mem' aw' rdata σ k' C') ∨
-    (ExecStmt config {contract := contract,locals := L,immutables := immStore v} evm
-      (.while copyRequestArrayGuard copyRequestArrayIteration) .reverted ∧ RDrev (deployedRuntime v) g s0) := by
+      RD fork (deployedRuntime v) ee g s0 ret (array::R) mem' aw' rdata σ k' C') ∨
+    (ExecStmt fork config {contract := contract,locals := L,immutables := immStore v} evm
+      (.while copyRequestArrayGuard copyRequestArrayIteration) .reverted ∧ RDrev fork (deployedRuntime v) g s0) := by
   induction n generalizing i L mem aw heap k C with
   | zero =>
     have hi : i = rs.length := by omega

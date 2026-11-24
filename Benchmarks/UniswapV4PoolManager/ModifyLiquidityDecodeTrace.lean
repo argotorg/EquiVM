@@ -6,6 +6,8 @@ import Benchmarks.UniswapV4PoolManager.BytesSliceTrace
 import Benchmarks.UniswapV4PoolManager.TickLogCompiled
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_016
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -18,10 +20,10 @@ theorem modifyLiquidityDecodeTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : PoolManagerImmutables) (hstack : R.length+10 ≤ 1024)
     (hlen : 324 ≤ I.calldata.size) (hhi : I.calldata.size < calldataLimit)
     (hsize : I.calldata.size < UInt256.size) (haw : aw.toNat ≤ 10)
-    (h : RD (deployedRuntime v) I g s0 ⟨5248⟩ R entryMemory aw rdata σ k C) :
-    (¬ModifyLiquidityCalldataBounds I.calldata ∧ RDrev (deployedRuntime v) g s0) ∨
+    (h : RD fork (deployedRuntime v) I g s0 ⟨5248⟩ R entryMemory aw rdata σ k C) :
+    (¬ModifyLiquidityCalldataBounds I.calldata ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (ModifyLiquidityCalldataBounds I.calldata ∧ ∃ aw' k' C', aw'.toNat ≤ 14 ∧ Cₘ aw' ≤ C' ∧
-      RD (deployedRuntime v) I g s0 ⟨5394⟩
+      RD fork (deployedRuntime v) I g s0 ⟨5394⟩
         ([calldataWord I.calldata (modifyLiquidityDataStart I.calldata),
           UInt256.ofNat (modifyLiquidityDataStart I.calldata+32), ⟨160⟩, ⟨320⟩] ++ R)
         (modifyLiquidityDecodeMemory (poolKeyOfCalldata I.calldata)
@@ -92,7 +94,7 @@ theorem modifyLiquidityDecodeTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
       emptyRevert v (by change R.length+5 ≤ 1024; omega) hr⟩
   obtain ⟨k8, C8, rd8⟩ := RD.pack (poolManagerBlocks.poolManager_block_5340_fallthrough
     (by omega) (ugt_zero ho) rd7)
-  change RD _ _ _ _ ⟨5381⟩ (calldataWord I.calldata 292 :: ⟨160⟩ :: ⟨320⟩ :: R)
+  change RD fork _ _ _ _ ⟨5381⟩ (calldataWord I.calldata 292 :: ⟨160⟩ :: ⟨320⟩ :: R)
     (modifyLiquidityDecodeMemory (poolKeyOfCalldata I.calldata) (modifyLiquidityOfCalldata I.calldata))
     (M (M (M (M (M (M aw1 (UInt256.ofNat 64) ⟨32⟩) (UInt256.ofNat 64) ⟨32⟩)
       ⟨320⟩ ⟨32⟩) ⟨352⟩ ⟨32⟩) ⟨384⟩ ⟨32⟩) ⟨416⟩ ⟨32⟩) _ _ _ _ at rd8

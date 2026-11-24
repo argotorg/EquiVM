@@ -4,6 +4,8 @@ import Benchmarks.WETH9.Bytecode
 import Benchmarks.WETH9.ConstructorTrusted
 import Reasoning.Reach
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # WETH9 constructor — the symbolic keccak-data clear loop (creation.hex pc 254–276)
 
@@ -36,17 +38,17 @@ theorem weth9ClearLoopAndReturn
     (hK : K.toNat + oldWords < UInt256.size)
     (hperm : ee.perm = true)
     (hRA : (D_J weth9CreationBytecode 0).contains retAddr = true)
-    (h : RD weth9CreationBytecode ee g s0 ⟨254⟩
+    (h : RD fork weth9CreationBytecode ee g s0 ⟨254⟩
           [K, K + UInt256.ofNat oldWords, ⟨274⟩, ⟨244⟩, slot, retAddr]
           mem aw rdata σ' k C) :
-    ∃ k' C', RD weth9CreationBytecode ee g s0 retAddr [slot] mem aw rdata
+    ∃ k' C', RD fork weth9CreationBytecode ee g s0 retAddr [slot] mem aw rdata
           (clearDataWordsForwardFrom ee.codeOwner σ' K ⟨0⟩ oldWords) k' C' := by
   -- Package the loop into `RD.whileLoopCarryFull`.
   have hexit : ∀ a : ℕ, a + 0 = oldWords → ∀ k C,
-      RD weth9CreationBytecode ee g s0 ⟨254⟩
+      RD fork weth9CreationBytecode ee g s0 ⟨254⟩
         [K + UInt256.ofNat a, K + UInt256.ofNat oldWords, ⟨274⟩, ⟨244⟩, slot, retAddr]
         mem aw rdata (clearDataWordsForwardFrom ee.codeOwner σ' K ⟨0⟩ a) k C →
-      ∃ k' C', RD weth9CreationBytecode ee g s0 ⟨244⟩
+      ∃ k' C', RD fork weth9CreationBytecode ee g s0 ⟨244⟩
         [K + UInt256.ofNat a, K + UInt256.ofNat oldWords, ⟨274⟩, ⟨244⟩, slot, retAddr]
         mem aw rdata (clearDataWordsForwardFrom ee.codeOwner σ' K ⟨0⟩ a) k' C' := by
     intro a hInv k C hrd
@@ -58,11 +60,11 @@ theorem weth9ClearLoopAndReturn
     exact ⟨_, _, evm_run hrd with [
       jumpdest, dup1, dup3, gt, iszero, push2 ⟨244⟩, jumpiT hcond (by native_decide)]⟩
   have hbody : ∀ (v : ℕ) (a : ℕ), a + (v + 1) = oldWords → ∀ k C,
-      RD weth9CreationBytecode ee g s0 ⟨254⟩
+      RD fork weth9CreationBytecode ee g s0 ⟨254⟩
         [K + UInt256.ofNat a, K + UInt256.ofNat oldWords, ⟨274⟩, ⟨244⟩, slot, retAddr]
         mem aw rdata (clearDataWordsForwardFrom ee.codeOwner σ' K ⟨0⟩ a) k C →
       ∃ a' k' C', a' + v = oldWords ∧
-        RD weth9CreationBytecode ee g s0 ⟨254⟩
+        RD fork weth9CreationBytecode ee g s0 ⟨254⟩
           [K + UInt256.ofNat a', K + UInt256.ofNat oldWords, ⟨274⟩, ⟨244⟩, slot, retAddr]
           mem aw rdata (clearDataWordsForwardFrom ee.codeOwner σ' K ⟨0⟩ a') k' C' := by
     intro v a hInv k C hrd
@@ -82,7 +84,7 @@ theorem weth9ClearLoopAndReturn
     rw [clearCursor_succ K a, ← clearDataWordsForwardFrom_append ee.codeOwner σ' K a] at hnext
     exact ⟨a + 1, _, _, by omega, hnext⟩
   -- Feed the initial cursor state and run the loop to exhaustion.
-  have h0 : RD weth9CreationBytecode ee g s0 ⟨254⟩
+  have h0 : RD fork weth9CreationBytecode ee g s0 ⟨254⟩
       [K + UInt256.ofNat 0, K + UInt256.ofNat oldWords, ⟨274⟩, ⟨244⟩, slot, retAddr]
       mem aw rdata (clearDataWordsForwardFrom ee.codeOwner σ' K ⟨0⟩ 0) k C := by
     rw [show K + UInt256.ofNat 0 = K from by

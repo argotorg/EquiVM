@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.UIDHead
 import Benchmarks.EAS.EAS.UIDMemory
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -32,11 +34,11 @@ theorem easUIDCopy {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {heap dataPtr : UInt256} {a : AttestationRecord} {R : List UInt256} (v : EASImmutables) (site : UIDSite)
     (hstack : R.length+10 ≤ 1024) (hh : heap.toNat ≤ 2^64-1) (hlen : a.data.size < 2^64)
-    (rd : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 4400)
+    (rd : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 4400)
       ((dataPtr+UInt256.ofNat 32)::(heap+UInt256.ofNat 153)::UInt256.ofNat a.data.size::uidCopyReturnPC site::
         UInt256.ofNat a.data.size::heap::R)
       (uidHeadMemory mem (heap.toNat+32) a) aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (uidCopyReturnPC site) (UInt256.ofNat a.data.size::heap::R)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (uidCopyReturnPC site) (UInt256.ofNat a.data.size::heap::R)
       (uidCopyMemory mem heap dataPtr a) aw' rdata σ k' C' := by
   have hl : (UInt256.ofNat a.data.size).toNat = a.data.size := ulit_toNat' _ (by change a.data.size < 2^256; omega)
   have hd : (heap+UInt256.ofNat 153).toNat = heap.toNat+153 := uadd_word_ofNat_toNat heap 153 (by change heap.toNat+153 < 2^256; omega)
@@ -52,10 +54,10 @@ theorem easUIDTail {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {heap dataPtr bump : UInt256} {a : AttestationRecord} {R : List UInt256} (v : EASImmutables) (site : UIDSite)
     (hstack : R.length+8 ≤ 1024) (hh : heap.toNat ≤ 2^64-1) (hlen : a.data.size < 2^64)
-    (rd : RD (deployedRuntime v) ee g s0 (uidCopyReturnPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (uidCopyReturnPC site)
       (UInt256.ofNat a.data.size::heap::heap::(heap+UInt256.ofNat 32)::bump::R)
       (uidCopyMemory mem heap dataPtr a) aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 4883)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 4883)
       (heap::UInt256.ofNat (157+a.data.size)::uidHashPC site::heap::(heap+UInt256.ofNat 32)::bump::R)
       (uidMemory mem heap dataPtr a bump) aw' rdata σ k' C' := by
   have hl : a.data.size+153 < UInt256.size := by change a.data.size+153 < 2^256; omega

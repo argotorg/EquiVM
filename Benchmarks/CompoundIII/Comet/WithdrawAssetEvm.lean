@@ -5,6 +5,8 @@ import Benchmarks.CompoundIII.Comet.Safe128Evm
 import Benchmarks.CompoundIII.Comet.BalanceEvm
 import Benchmarks.CompoundIII.Comet.DynamicReturnEvm
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -19,11 +21,11 @@ theorem cometWithdrawAsset {v : CometWithExtendedAssetListImmutables}
     (hfree : memLoad ⟨64⟩ mem = free) (hlo : 96 ≤ free.toNat) (hmem : 96 ≤ mem.size)
     (hbound : free.toNat + 672 + 1696 * v.numAssets.toNat < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨15632⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨15632⟩
       (EVM.word asset.val :: EVM.word recipient.val :: amount :: EVM.word src.val :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ result, WithdrawAssetTrace v src recipient asset amount evm result ∧
-      internalDynamicRun (deployedRuntime v) ee g s0 ret R result := by
+    ∃ result, WithdrawAssetTrace fork v src recipient asset amount evm result ∧
+      internalDynamicRun fork (deployedRuntime v) ee g s0 ret R result := by
   have hbase : UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160))
       (UInt256.ofNat 1)) (wordsOf (immStore v) "baseToken") = EVM.word v.baseToken.val := by
     rw [wordsOf_immStore_baseToken]
@@ -60,7 +62,7 @@ theorem cometWithdrawAsset {v : CometWithExtendedAssetListImmutables}
         have r5 := cometWithExtendedAssetList_block_15708
           (immWords := wordsOf (immStore v)) (by change R.length + 2 + 4 ≤ 1024; omega)
           (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r4
-        change RD _ _ _ _ _ (EVM.word src.val :: EVM.word recipient.val ::
+        change RD fork _ _ _ _ _ (EVM.word src.val :: EVM.word recipient.val ::
           balanceWord v _ _ _ _ :: UInt256.ofNat 3121 :: ret :: R) _ _ _ _ _ _ at r5
         rw [← hword] at r5
         obtain ⟨result, ht, hr⟩ := cometWithdrawBase (v := v) src recipient

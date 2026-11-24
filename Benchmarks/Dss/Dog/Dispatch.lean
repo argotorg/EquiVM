@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Dog.Selectors
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Dog dispatcher facts
 
@@ -701,7 +703,7 @@ theorem dogDispatch_none_nomatch {cd : ByteArray}
 
 theorem dogBodyReverts_of_nonpayable {v : DogImmutables} {evm : EVM.State} {locals : Store}
     {rest : List Stmt} (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecTransitionBody config contract evm locals (nonpayable ++ rest) .reverted (immStore v) := by
+    ExecTransitionBody fork config contract evm locals (nonpayable ++ rest) .reverted (immStore v) := by
   simpa only [nonpayable, List.singleton_append] using
     (bodyReverts_nonPayable (cfg := config) (contract := contract) (evm := evm)
       (locals := locals) (rest := rest) h)
@@ -709,20 +711,20 @@ theorem dogBodyReverts_of_nonpayable {v : DogImmutables} {evm : EVM.State} {loca
 theorem dogBodyReverts_nonPayable (v : DogImmutables) (t : TransitionDecl)
     (_ht : t ∈ contract.transitions) (evm : EVM.State) (locals : Store)
     (_h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecTransitionBody config contract evm locals t.body .reverted (immStore v) := by
+    ExecTransitionBody fork config contract evm locals t.body .reverted (immStore v) := by
   simp [contract, transitions] at _ht
   rcases _ht with
     rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
       rfl | rfl | rfl | rfl <;>
-    (change ExecTransitionBody config contract evm locals (nonpayable ++ _) .reverted (immStore v)
+    (change ExecTransitionBody fork config contract evm locals (nonpayable ++ _) .reverted (immStore v)
      exact dogBodyReverts_of_nonpayable _h)
 
 theorem dogX_callvalue_ne {v : DogImmutables} {code : ByteArray}
     {σ σ₀ A I} {g : Sat256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev code g (initState σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
+    RDrev fork code g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (fork := fork) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode
     (by rw [dogDecodePatchedEqTemplate1405 (pc := ⟨0⟩) hpatch (by native_decide)];
         native_decide)
@@ -765,8 +767,8 @@ theorem dogX_short {v : DogImmutables} {code : ByteArray}
     {σ σ₀ A I} {g : Sat256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    RDrev code g (initState σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
+    RDrev fork code g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (fork := fork) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode
     (by rw [dogDecodePatchedEqTemplate1405 (pc := ⟨0⟩) hpatch (by native_decide)];
         native_decide)
@@ -853,7 +855,7 @@ theorem dogReachSelector {v : DogImmutables} {code : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD code I g (initState σ σ₀ g A I) ⟨32⟩
+    ∃ k C, RD fork code I g (initState σ σ₀ g A I) ⟨32⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   exact solcLegacyDispatchReachSelector
     (bodyPc := (⟨18⟩ : UInt256)) (loadPc := (⟨26⟩ : UInt256))
@@ -1050,11 +1052,11 @@ theorem dogLowSplitWellFormed {v : DogImmutables} {code : ByteArray}
 theorem dogJumpToDispatchRevert {v : DogImmutables} {code : ByteArray}
     {σ σ₀ A I} {g : Sat256} {pc : UInt256} {k C : ℕ}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
-    (h : RD code I g (initState σ σ₀ g A I) pc [solcSelectorWord I]
+    (h : RD fork code I g (initState σ σ₀ g A I) pc [solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hpush : decode code pc = some (.Push .PUSH2, some (⟨267⟩, 2)))
     (hjump : decode code (pc + UInt256.ofNat 3) = some (.JUMP, .none)) :
-    RDrev code g (initState σ σ₀ g A I) := by
+    RDrev fork code g (initState σ σ₀ g A I) := by
   have h267 := h.push2 ⟨267⟩ hpush
     (by simp only [List.length_singleton]; omega)
     |>.jump hjump (dogPatchedDJumpPrefix1405 ⟨267⟩ hpatch (by native_decide))
@@ -1082,9 +1084,9 @@ theorem dogJumpToDispatchRevert {v : DogImmutables} {code : ByteArray}
 theorem dogDispatchRevertAt {v : DogImmutables} {code : ByteArray}
     {σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
-    (h : RD code I g (initState σ σ₀ g A I) ⟨267⟩ [solcSelectorWord I]
+    (h : RD fork code I g (initState σ σ₀ g A I) ⟨267⟩ [solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev code g (initState σ σ₀ g A I) := by
+    RDrev fork code g (initState σ σ₀ g A I) := by
   have h268 := h.jumpdest
     (by
       rw [dogDecodePatchedEqTemplate1405 (pc := ⟨267⟩) hpatch (by native_decide)]
@@ -1110,10 +1112,10 @@ theorem dogVeryHighNoMatchRevert {v : DogImmutables} {code : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hsz : 4 ≤ I.calldata.size)
     (hnm : ∀ i, i < 17 → (dogSelBytes i == I.calldata.extract 0 4) = false)
-    (h : RD code I g (initState σ σ₀ g A I) ⟨54⟩ [solcSelectorWord I]
+    (h : RD fork code I g (initState σ σ₀ g A I) ⟨54⟩ [solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev code g (initState σ σ₀ g A I) := by
-  have h65 : RD code I g (initState σ σ₀ g A I) ⟨65⟩ [solcSelectorWord I]
+    RDrev fork code g (initState σ σ₀ g A I) := by
+  have h65 : RD fork code I g (initState σ σ₀ g A I) ⟨65⟩ [solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ (k + 5) (C + 22) := by
     simpa [selArmNextPc] using
       h.selectorArmNotTaken (selNat := dogSelectorWord 4) (tgt := (⟨629⟩ : UInt256))
@@ -1143,7 +1145,7 @@ theorem dogVeryHighNoMatchRevert {v : DogImmutables} {code : ByteArray}
           native_decide)
         (dogSelectorEqZero I hsz hnm 4 (by omega))
         (by simp)
-  have h76 : RD code I g (initState σ σ₀ g A I) ⟨76⟩ [solcSelectorWord I]
+  have h76 : RD fork code I g (initState σ σ₀ g A I) ⟨76⟩ [solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ ((k + 5) + 5)
       ((C + 22) + 22) := by
     simpa [selArmNextPc] using
@@ -1174,7 +1176,7 @@ theorem dogVeryHighNoMatchRevert {v : DogImmutables} {code : ByteArray}
           native_decide)
         (dogSelectorEqZero I hsz hnm 11 (by omega))
         (by simp)
-  have h87 : RD code I g (initState σ σ₀ g A I) ⟨87⟩ [solcSelectorWord I]
+  have h87 : RD fork code I g (initState σ σ₀ g A I) ⟨87⟩ [solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ (((k + 5) + 5) + 5)
       (((C + 22) + 22) + 22) := by
     simpa [selArmNextPc] using
@@ -1205,7 +1207,7 @@ theorem dogVeryHighNoMatchRevert {v : DogImmutables} {code : ByteArray}
           native_decide)
         (dogSelectorEqZero I hsz hnm 10 (by omega))
         (by simp)
-  have h98 : RD code I g (initState σ σ₀ g A I) ⟨98⟩ [solcSelectorWord I]
+  have h98 : RD fork code I g (initState σ σ₀ g A I) ⟨98⟩ [solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ ((((k + 5) + 5) + 5) + 5)
       ((((C + 22) + 22) + 22) + 22) := by
     simpa [selArmNextPc] using
@@ -1236,7 +1238,7 @@ theorem dogVeryHighNoMatchRevert {v : DogImmutables} {code : ByteArray}
           native_decide)
         (dogSelectorEqZero I hsz hnm 2 (by omega))
         (by simp)
-  have h109 : RD code I g (initState σ σ₀ g A I) ⟨109⟩ [solcSelectorWord I]
+  have h109 : RD fork code I g (initState σ σ₀ g A I) ⟨109⟩ [solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ
       (((((k + 5) + 5) + 5) + 5) + 5) (((((C + 22) + 22) + 22) + 22) + 22) := by
     simpa [selArmNextPc] using
@@ -1283,10 +1285,10 @@ theorem dogMiddleNoMatchRevert {v : DogImmutables} {code : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hsz : 4 ≤ I.calldata.size)
     (hnm : ∀ i, i < 17 → (dogSelBytes i == I.calldata.extract 0 4) = false)
-    (h : RD code I g (initState σ σ₀ g A I) ⟨114⟩ [solcSelectorWord I]
+    (h : RD fork code I g (initState σ σ₀ g A I) ⟨114⟩ [solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev code g (initState σ σ₀ g A I) := by
-  have h125 : RD code I g (initState σ σ₀ g A I) ⟨125⟩ [solcSelectorWord I]
+    RDrev fork code g (initState σ σ₀ g A I) := by
+  have h125 : RD fork code I g (initState σ σ₀ g A I) ⟨125⟩ [solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ (k + 5) (C + 22) := by
     simpa [selArmNextPc] using
       h.selectorArmNotTaken (selNat := dogSelectorWord 1) (tgt := (⟨504⟩ : UInt256))
@@ -1316,7 +1318,7 @@ theorem dogMiddleNoMatchRevert {v : DogImmutables} {code : ByteArray}
           native_decide)
         (dogSelectorEqZero I hsz hnm 1 (by omega))
         (by simp)
-  have h136 : RD code I g (initState σ σ₀ g A I) ⟨136⟩ [solcSelectorWord I]
+  have h136 : RD fork code I g (initState σ σ₀ g A I) ⟨136⟩ [solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ ((k + 5) + 5)
       ((C + 22) + 22) := by
     simpa [selArmNextPc] using
@@ -1347,7 +1349,7 @@ theorem dogMiddleNoMatchRevert {v : DogImmutables} {code : ByteArray}
           native_decide)
         (dogSelectorEqZero I hsz hnm 16 (by omega))
         (by simp)
-  have h147 : RD code I g (initState σ σ₀ g A I) ⟨147⟩ [solcSelectorWord I]
+  have h147 : RD fork code I g (initState σ σ₀ g A I) ⟨147⟩ [solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ (((k + 5) + 5) + 5)
       (((C + 22) + 22) + 22) := by
     simpa [selArmNextPc] using
@@ -1378,7 +1380,7 @@ theorem dogMiddleNoMatchRevert {v : DogImmutables} {code : ByteArray}
           native_decide)
         (dogSelectorEqZero I hsz hnm 6 (by omega))
         (by simp)
-  have h158 : RD code I g (initState σ σ₀ g A I) ⟨158⟩ [solcSelectorWord I]
+  have h158 : RD fork code I g (initState σ σ₀ g A I) ⟨158⟩ [solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ ((((k + 5) + 5) + 5) + 5)
       ((((C + 22) + 22) + 22) + 22) := by
     simpa [selArmNextPc] using
@@ -1425,10 +1427,10 @@ theorem dogLowHighNoMatchRevert {v : DogImmutables} {code : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hsz : 4 ≤ I.calldata.size)
     (hnm : ∀ i, i < 17 → (dogSelBytes i == I.calldata.extract 0 4) = false)
-    (h : RD code I g (initState σ σ₀ g A I) ⟨174⟩ [solcSelectorWord I]
+    (h : RD fork code I g (initState σ σ₀ g A I) ⟨174⟩ [solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev code g (initState σ σ₀ g A I) := by
-  have h185 : RD code I g (initState σ σ₀ g A I) ⟨185⟩ [solcSelectorWord I]
+    RDrev fork code g (initState σ σ₀ g A I) := by
+  have h185 : RD fork code I g (initState σ σ₀ g A I) ⟨185⟩ [solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ (k + 5) (C + 22) := by
     simpa [selArmNextPc] using
       h.selectorArmNotTaken (selNat := dogSelectorWord 13) (tgt := (⟨394⟩ : UInt256))
@@ -1458,7 +1460,7 @@ theorem dogLowHighNoMatchRevert {v : DogImmutables} {code : ByteArray}
           native_decide)
         (dogSelectorEqZero I hsz hnm 13 (by omega))
         (by simp)
-  have h196 : RD code I g (initState σ σ₀ g A I) ⟨196⟩ [solcSelectorWord I]
+  have h196 : RD fork code I g (initState σ σ₀ g A I) ⟨196⟩ [solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ ((k + 5) + 5)
       ((C + 22) + 22) := by
     simpa [selArmNextPc] using
@@ -1489,7 +1491,7 @@ theorem dogLowHighNoMatchRevert {v : DogImmutables} {code : ByteArray}
           native_decide)
         (dogSelectorEqZero I hsz hnm 3 (by omega))
         (by simp)
-  have h207 : RD code I g (initState σ σ₀ g A I) ⟨207⟩ [solcSelectorWord I]
+  have h207 : RD fork code I g (initState σ σ₀ g A I) ⟨207⟩ [solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ (((k + 5) + 5) + 5)
       (((C + 22) + 22) + 22) := by
     simpa [selArmNextPc] using
@@ -1520,7 +1522,7 @@ theorem dogLowHighNoMatchRevert {v : DogImmutables} {code : ByteArray}
           native_decide)
         (dogSelectorEqZero I hsz hnm 12 (by omega))
         (by simp)
-  have h218 : RD code I g (initState σ σ₀ g A I) ⟨218⟩ [solcSelectorWord I]
+  have h218 : RD fork code I g (initState σ σ₀ g A I) ⟨218⟩ [solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ ((((k + 5) + 5) + 5) + 5)
       ((((C + 22) + 22) + 22) + 22) := by
     simpa [selArmNextPc] using
@@ -1567,10 +1569,10 @@ theorem dogLowLowNoMatchRevert {v : DogImmutables} {code : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hsz : 4 ≤ I.calldata.size)
     (hnm : ∀ i, i < 17 → (dogSelBytes i == I.calldata.extract 0 4) = false)
-    (h : RD code I g (initState σ σ₀ g A I) ⟨223⟩ [solcSelectorWord I]
+    (h : RD fork code I g (initState σ σ₀ g A I) ⟨223⟩ [solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev code g (initState σ σ₀ g A I) := by
-  have h234 : RD code I g (initState σ σ₀ g A I) ⟨234⟩ [solcSelectorWord I]
+    RDrev fork code g (initState σ σ₀ g A I) := by
+  have h234 : RD fork code I g (initState σ σ₀ g A I) ⟨234⟩ [solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ (k + 5) (C + 22) := by
     simpa [selArmNextPc] using
       h.selectorArmNotTaken (selNat := dogSelectorWord 7) (tgt := (⟨272⟩ : UInt256))
@@ -1600,7 +1602,7 @@ theorem dogLowLowNoMatchRevert {v : DogImmutables} {code : ByteArray}
           native_decide)
         (dogSelectorEqZero I hsz hnm 7 (by omega))
         (by simp)
-  have h245 : RD code I g (initState σ σ₀ g A I) ⟨245⟩ [solcSelectorWord I]
+  have h245 : RD fork code I g (initState σ σ₀ g A I) ⟨245⟩ [solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ ((k + 5) + 5)
       ((C + 22) + 22) := by
     simpa [selArmNextPc] using
@@ -1631,7 +1633,7 @@ theorem dogLowLowNoMatchRevert {v : DogImmutables} {code : ByteArray}
           native_decide)
         (dogSelectorEqZero I hsz hnm 8 (by omega))
         (by simp)
-  have h256 : RD code I g (initState σ σ₀ g A I) ⟨256⟩ [solcSelectorWord I]
+  have h256 : RD fork code I g (initState σ σ₀ g A I) ⟨256⟩ [solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ (((k + 5) + 5) + 5)
       (((C + 22) + 22) + 22) := by
     simpa [selArmNextPc] using
@@ -1662,7 +1664,7 @@ theorem dogLowLowNoMatchRevert {v : DogImmutables} {code : ByteArray}
           native_decide)
         (dogSelectorEqZero I hsz hnm 14 (by omega))
         (by simp)
-  have h267 : RD code I g (initState σ σ₀ g A I) ⟨267⟩ [solcSelectorWord I]
+  have h267 : RD fork code I g (initState σ σ₀ g A I) ⟨267⟩ [solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ ((((k + 5) + 5) + 5) + 5)
       ((((C + 22) + 22) + 22) + 22) := by
     simpa [selArmNextPc] using
@@ -1701,7 +1703,7 @@ theorem dogX_noMatch {v : DogImmutables} {code : ByteArray}
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 17 → (dogSelBytes i == I.calldata.extract 0 4) = false) :
-    RDrev code g (initState σ σ₀ g A I) := by
+    RDrev fork code g (initState σ σ₀ g A I) := by
   obtain ⟨k32, C32, h32⟩ :=
     dogReachSelector (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hpatch hcode hwv hsz hsize
@@ -1737,20 +1739,20 @@ theorem dogX_noMatch {v : DogImmutables} {code : ByteArray}
     native_decide
   by_cases hroot :
       UInt256.gt (armSelNat code (⟨32⟩ : UInt256)) (solcSelectorWord I) = ⟨0⟩
-  · have h43 : RD code I g (initState σ σ₀ g A I) ⟨43⟩
+  · have h43 : RD fork code I g (initState σ σ₀ g A I) ⟨43⟩
         [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ (k32 + 5) (C32 + 22) := by
       simpa [selArmNextPc, hrootWidth] using
         RD.selectorSplitNotTakenAuto h32 (dogRootSplitWellFormed hpatch) hroot (by simp)
     by_cases hhigh :
         UInt256.gt (armSelNat code (⟨43⟩ : UInt256)) (solcSelectorWord I) = ⟨0⟩
-    · have h54 : RD code I g (initState σ σ₀ g A I) ⟨54⟩
+    · have h54 : RD fork code I g (initState σ σ₀ g A I) ⟨54⟩
           [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
           σ (k32 + 5 + 5) (C32 + 22 + 22) := by
         simpa [selArmNextPc, hhighWidth] using
           RD.selectorSplitNotTakenAuto h43 (dogHighSplitWellFormed hpatch) hhigh (by simp)
       exact dogVeryHighNoMatchRevert hpatch hsz hnm h54
-    · have h113 : RD code I g (initState σ σ₀ g A I) ⟨113⟩
+    · have h113 : RD fork code I g (initState σ σ₀ g A I) ⟨113⟩
           [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
           σ (k32 + 5 + 5) (C32 + 22 + 22) := by
         simpa [hhighTgt] using
@@ -1765,7 +1767,7 @@ theorem dogX_noMatch {v : DogImmutables} {code : ByteArray}
           native_decide)
         (by simp only [List.length_singleton]; omega)
       exact dogMiddleNoMatchRevert hpatch hsz hnm h114
-  · have h162 : RD code I g (initState σ σ₀ g A I) ⟨162⟩
+  · have h162 : RD fork code I g (initState σ σ₀ g A I) ⟨162⟩
         [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ (k32 + 5) (C32 + 22) := by
       simpa [hrootTgt] using
@@ -1774,7 +1776,7 @@ theorem dogX_noMatch {v : DogImmutables} {code : ByteArray}
             rw [hrootTgt]
             exact dogPatchedDJumpPrefix1405 ⟨162⟩ hpatch (by native_decide))
           (by simp)
-    have h163 : RD code I g (initState σ σ₀ g A I) ⟨163⟩
+    have h163 : RD fork code I g (initState σ σ₀ g A I) ⟨163⟩
         [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ (k32 + 5 + 1) (C32 + 22 + 1) := by
       simpa using
@@ -1785,13 +1787,13 @@ theorem dogX_noMatch {v : DogImmutables} {code : ByteArray}
           (by simp only [List.length_singleton]; omega)
     by_cases hlow :
         UInt256.gt (armSelNat code (⟨163⟩ : UInt256)) (solcSelectorWord I) = ⟨0⟩
-    · have h174 : RD code I g (initState σ σ₀ g A I) ⟨174⟩
+    · have h174 : RD fork code I g (initState σ σ₀ g A I) ⟨174⟩
           [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
           σ (k32 + 5 + 1 + 5) (C32 + 22 + 1 + 22) := by
         simpa [selArmNextPc, hlowWidth] using
           RD.selectorSplitNotTakenAuto h163 (dogLowSplitWellFormed hpatch) hlow (by simp)
       exact dogLowHighNoMatchRevert hpatch hsz hnm h174
-    · have h222 : RD code I g (initState σ σ₀ g A I) ⟨222⟩
+    · have h222 : RD fork code I g (initState σ σ₀ g A I) ⟨222⟩
           [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
           σ (k32 + 5 + 1 + 5) (C32 + 22 + 1 + 22) := by
         simpa [hlowTgt] using
@@ -1811,7 +1813,7 @@ theorem dogNonPayable {v : DogImmutables} {code : ByteArray}
     {σ σ₀ A I} {g : UInt256}
     (_hpatch : patchRuntime dogBytecode (patches v) = some code)
     (_hcode : I.code = code) (_hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   exact (dogX_callvalue_ne (g := Sat256.ofUInt256 g) _hpatch _hcode _hwv).reEquivElim
     _hcode fun _ _ hrev => by
       by_cases hdisp : dispatchMsg contract I.calldata = none
@@ -1837,7 +1839,7 @@ theorem dogNoDispatch {v : DogImmutables} {code : ByteArray}
     (_hsize : I.calldata.size < UInt256.size)
     (_hwv : I.weiValue = ⟨0⟩)
     (_hnm : ∀ i, i < 17 → (dogSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   by_cases hshort : I.calldata.size < 4
   · exact (dogX_short (g := Sat256.ofUInt256 g) _hpatch _hcode _hwv hshort)
       |>.reEquivNoDispatch _hcode (dogDispatch_none_short hshort)

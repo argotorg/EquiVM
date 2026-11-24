@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.ResolveOneFinish
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -14,9 +16,9 @@ theorem resolveOneResolverRun {locals imms : Store} {ee : ExecutionEnv} {g : Sat
     (hsrc : src.toNat+320 ≤ ptr.toNat) (hdata : dataPtr.toNat+32+32*((a.data.size+31)/32) ≤ ptr.toNat)
     (hheap : ptr.toNat ≤ 2^64-1) (hh : memLoad (UInt256.ofNat 64) mem = ptr)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨15784⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨15784⟩
       (src::rev.toUInt256::UInt256.ofNat target.val::last.toUInt256::available::value::ret::R) mem aw rdata σ k C) :
-    HeapReturnRun config (deployedRuntime v) ee g s0 {contract := contract, locals := locals, immutables := imms}
+    HeapReturnRun fork config (deployedRuntime v) ee g s0 {contract := contract, locals := locals, immutables := imms}
       evm ([resolveOneResolver,resolveOneRefund] ++ resolveOneReturn) (.int (Int.ofNat value.toNat)) ret (value::R) mem ptr.toNat := by
   have hlo : 96 ≤ ptr.toNat := by have h := hview.sourceLow; omega
   have hb : ptr.toNat+420+32*((a.data.size+31)/32) < UInt256.size := by change _ < 2^256; omega

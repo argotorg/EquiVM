@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.WordOperationsSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -26,7 +28,7 @@ theorem tickLogBody {f : Frame} {evm : EVM.State} {r log2 : UInt256} {bit : Nat}
     (hl : f.locals.get? "log2" = some (.int (EVM.signed log2)))
     (hb : f.locals.get? "bit" = some (.int (Int.ofNat bit)))
     (hn : f.locals.get? "normalize" = some (.bool normalize)) :
-    ∃ f', ExecFuncBody config f evm tickLogFunction.body
+    ∃ f', ExecFuncBody fork config f evm tickLogFunction.body
       (.returned f' evm (some [.int (Int.ofNat (tickLogNext r normalize).toNat),
         .int (EVM.signed (tickLogWord r log2 bit))])) := by
   let f1 : Frame := {f with locals := f.locals.insert "r" (.int (Int.ofNat (tickLogSquare r).toNat))}
@@ -35,12 +37,12 @@ theorem tickLogBody {f : Frame} {evm : EVM.State} {r log2 : UInt256} {bit : Nat}
   have hsquare := evalWordShr (b := .intLit 127) (n := 127) (by decide)
     (evalWordMul (evalLocalValue (cfg := config) (evm := evm) hr) (evalLocalValue hr))
     (by simp only [evalExpr?, pure]; rfl)
-  have hs : ExecStmt config f evm tickLogFunction.body[0]! (.ok f1 evm) :=
+  have hs : ExecStmt fork config f evm tickLogFunction.body[0]! (.ok f1 evm) :=
     ExecStmt.assign (hperm := Or.inl rfl) hsquare (assignLocalValue hr)
   have hr1 : f1.locals.get? "r" = some (.int (Int.ofNat (tickLogSquare r).toNat)) := store_get_self _ _ _
   have hflag := evalWordShr (cfg := config) (evm := evm) (b := .intLit 128) (n := 128) (by decide)
     (evalLocalValue hr1) (by simp only [evalExpr?, pure]; rfl)
-  have hf : ExecStmt config f1 evm tickLogFunction.body[1]! (.ok f2 evm) := ExecStmt.letDecl hflag
+  have hf : ExecStmt fork config f1 evm tickLogFunction.body[1]! (.ok f2 evm) := ExecStmt.letDecl hflag
   have hl2 : f2.locals.get? "log2" = some (.int (EVM.signed log2)) :=
     (store_get_ne2 _ _ _ (by decide : ("r" == "log2") = false)
       (by decide : ("f" == "log2") = false)).trans hl
@@ -52,7 +54,7 @@ theorem tickLogBody {f : Frame} {evm : EVM.State} {r log2 : UInt256} {bit : Nat}
     (evalLocalValue hflag2)
   rw [normalizeInt_sint256_word_of_lt _ (by have hh := tickLogFlag_lt_two r; change _ < 2^255; omega)] at hcast
   have hlog := evalSignedWordOr (evalLocalValue hl2) (evalSignedShlOfNat hbit hcast (evalLocalValue hb2))
-  have hlogstmt : ExecStmt config f2 evm tickLogFunction.body[2]! (.ok f3 evm) :=
+  have hlogstmt : ExecStmt fork config f2 evm tickLogFunction.body[2]! (.ok f3 evm) :=
     ExecStmt.assign (hperm := Or.inl rfl) hlog (assignLocalValue hl2)
   have hr3 : f3.locals.get? "r" = some (.int (Int.ofNat (tickLogSquare r).toNat)) :=
     (store_get_ne2 _ _ _ (by decide : ("f" == "r") = false)
@@ -85,7 +87,7 @@ theorem tickLogBody {f : Frame} {evm : EVM.State} {r log2 : UInt256} {bit : Nat}
     refine ⟨f4, .execBlockRet (ExecBlock.consNormal hs (ExecBlock.consNormal hf
       (ExecBlock.consNormal hlogstmt (ExecBlock.consNormal
         (ExecStmt.iteTrue (evalLocalValue hn3)
-          (execBlock_singleton (ExecStmt.assign (hperm := Or.inl rfl) hnorm (assignLocalValue hr3))))
+          (execBlock_singleton (ExecStmt.assign (fork := fork) (hperm := Or.inl rfl) hnorm (assignLocalValue hr3))))
         (ExecBlock.consReturn (ExecStmt.return ?_))))))⟩
     change evalExprs? config f4 evm [.var "r", .var "log2"] = _
     simp only [evalExprs?, evalLocalValue hr4, evalLocalValue hl4, bind, EvalResult.bind, pure]
@@ -97,7 +99,7 @@ theorem tickLogCall {f : Frame} {evm : EVM.State} {er el eb en : Expr}
     (hl : evalExpr? config f evm el = .ok (.int (EVM.signed log2)))
     (hb : evalExpr? config f evm eb = .ok (.int (Int.ofNat bit)))
     (hn : evalExpr? config f evm en = .ok (.bool normalize)) (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "TickMath_logStep" [er, el, eb, en] retVar)
+    ExecStmt fork config f evm (.internalCall "TickMath_logStep" [er, el, eb, en] retVar)
       (.ok {f with locals := f.locals.insert retVar (.tuple
         [.int (Int.ofNat (tickLogNext r normalize).toNat), .int (EVM.signed (tickLogWord r log2 bit))])} evm) := by
   let locals := ((((∅ : Store).insert "normalize" (.bool normalize)).insert "bit" (.int (Int.ofNat bit))).insert

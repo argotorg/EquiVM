@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.ConditionalSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 
@@ -8,10 +10,10 @@ theorem execBlock_rejectUnlessPair {cfg : Config} {f : Frame} {evm : State}
     {a b : Expr} {p q : Prop} [Decidable p] [Decidable q]
     (ha : evalExpr? cfg f evm a = .ok (.bool (decide (¬p))))
     (hb : evalExpr? cfg f evm b = .ok (.bool (decide (¬q)))) :
-    ExecBlock cfg f evm [.ite a [.require (.boolLit false)] [], .ite b [.require (.boolLit false)] []]
+    ExecBlock fork cfg f evm [.ite a [.require (.boolLit false)] [], .ite b [.require (.boolLit false)] []]
       (if p ∧ q then .ok f evm else .reverted) := by
-  have h0 := execStmt_rejectIf ha
-  have h1 := execStmt_rejectIf hb
+  have h0 := execStmt_rejectIf (fork := fork) ha
+  have h1 := execStmt_rejectIf (fork := fork) hb
   by_cases hp : p
   · simp only [hp, not_true_eq_false, decide_false, Bool.false_eq_true, if_false] at h0
     by_cases hq : q

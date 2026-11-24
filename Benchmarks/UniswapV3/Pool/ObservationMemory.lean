@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.WordArrayMemory
 import Benchmarks.UniswapV3.Pool.OracleTransformSource
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_074
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -18,10 +20,10 @@ abbrev ObservationMemory (mem : ByteArray) (p : UInt256) (last : OracleObservati
 theorem observationZeroCursorX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret p : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨22090⟩ (ret :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨22090⟩ (ret :: R) mem aw rdata σ k C)
     (hm : MemoryCursor mem aw p) (hb : p.toNat + 128 ≤ 2 ^ 200)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 6 ≤ 1024) :
-    ∃ aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧ RD (deployedRuntime v) ee g s0 ret (p :: R)
+    ∃ aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧ RD fork (deployedRuntime v) ee g s0 ret (p :: R)
       (wordArrayAllocMem mem p [⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩]) aw' rdata σ k' C' ∧
       HeapMemory (wordArrayAllocMem mem p [⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩]) aw' (p + ⟨128⟩) ∧
       (p + ⟨128⟩).toNat ≤ aw'.toNat * 32 + 32 := by
@@ -66,10 +68,10 @@ theorem observationZeroCursorX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256
 theorem observationZeroMonoX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret p : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨22090⟩ (ret :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨22090⟩ (ret :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw p) (hb : p.toNat + 128 ≤ 2 ^ 200)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 6 ≤ 1024) :
-    ∃ aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧ RD (deployedRuntime v) ee g s0 ret (p :: R)
+    ∃ aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧ RD fork (deployedRuntime v) ee g s0 ret (p :: R)
       (wordArrayAllocMem mem p [⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩]) aw' rdata σ k' C' ∧
       HeapMemory (wordArrayAllocMem mem p [⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩]) aw' (p + ⟨128⟩) ∧
       (p + ⟨128⟩).toNat ≤ aw'.toNat * 32 + 32 := by
@@ -78,10 +80,10 @@ theorem observationZeroMonoX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem observationZeroX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret p : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨22090⟩ (ret :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨22090⟩ (ret :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw p) (hb : p.toNat + 128 ≤ 2 ^ 200)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 6 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (p :: R)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (p :: R)
       (wordArrayAllocMem mem p [⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩]) aw' rdata σ k' C' ∧
       HeapMemory (wordArrayAllocMem mem p [⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩]) aw' (p + ⟨128⟩)  := by
   obtain ⟨aw', k', C', _, hout, hheap, _⟩ := observationZeroMonoX (v := v) rd hm hb hret hov

@@ -9,6 +9,8 @@ import Reasoning.SteleBody
 import Reasoning.Stepping
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO DSS Dai constructor correctness stub
 
@@ -1071,7 +1073,7 @@ theorem daiSteleCtorExecReverts_nonpayable
     {I : ExecutionEnv}
     (chainId : Int)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    steleCtorExec config contract [.int chainId]
+    steleCtorExec fork config contract [.int chainId]
       σ σ₀ g A I .reverted := by
   refine steleCtorExec.intro
     (evmState := initState σ σ₀
@@ -1092,10 +1094,10 @@ theorem daiInitcodeNonpayableRevert
     (tail : ByteArray)
     (hcode : I.code = daiCreationBytecode ++ tail)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev (daiCreationBytecode ++ tail) g
+    RDrev fork (daiCreationBytecode ++ tail) g
       (initState σ σ₀ g A I) := by
   have rd0 :
-      RD (daiCreationBytecode ++ tail) I g
+      RD fork (daiCreationBytecode ++ tail) I g
         (initState σ σ₀ g A I) ⟨0⟩ []
         ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
@@ -1120,12 +1122,12 @@ theorem daiCtorPayableGuardTrace
     (chainIdWord : UInt256)
     (hcode : I.code = daiCtorCode chainIdWord)
     (hwv : I.weiValue = ⟨0⟩) :
-    ∃ k C, RD (daiCtorCode chainIdWord) I g
+    ∃ k C, RD fork (daiCtorCode chainIdWord) I g
       (initState σ σ₀ g A I) ⟨18⟩
       [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C := by
   have rd0 :
-      RD (daiCtorCode chainIdWord) I g
+      RD fork (daiCtorCode chainIdWord) I g
         (initState σ σ₀ g A I) ⟨0⟩ []
         ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
@@ -1150,9 +1152,9 @@ theorem daiCtorArgCodecopyTrace
     {acc : AccountMap}
     {k C : Nat}
     (chainIdWord : UInt256)
-    (h : RD (daiCtorCode chainIdWord) I g s0 ⟨18⟩ []
+    (h : RD fork (daiCtorCode chainIdWord) I g s0 ⟨18⟩ []
       solcFreePtrMem (UInt256.ofNat 3) rdata acc k C) :
-    ∃ k' C', RD (daiCtorCode chainIdWord) I g s0 ⟨32⟩
+    ∃ k' C', RD fork (daiCtorCode chainIdWord) I g s0 ⟨32⟩
       [⟨32⟩, ⟨128⟩] (daiCtorArgMem chainIdWord) (UInt256.ofNat 5)
       rdata acc k' C' := by
   have rd := dai_ctor_run h with [
@@ -1169,7 +1171,7 @@ theorem daiCtorArgCodecopyTrace
         rw [daiCtorArgLen_eq]
         exact daiCtorArg_codecopy_mem chainIdWord)
       (by rw [daiCtorArgLen_eq]; decide) (by evm_ov)]
-  have rd' : RD (daiCtorCode chainIdWord) I g s0 ⟨32⟩
+  have rd' : RD fork (daiCtorCode chainIdWord) I g s0 ⟨32⟩
       [⟨32⟩, ⟨128⟩] (daiCtorArgMem chainIdWord) (UInt256.ofNat 5) rdata acc
       (k + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1)
       (C + 3 + (0 + 3) + 3 + 2 + 3 + 3 + 3 + 3 +
@@ -1185,9 +1187,9 @@ theorem daiCtorArgFreePtrTrace
     {acc : AccountMap}
     {k C : Nat}
     (chainIdWord : UInt256)
-    (h : RD (daiCtorCode chainIdWord) I g s0 ⟨32⟩
+    (h : RD fork (daiCtorCode chainIdWord) I g s0 ⟨32⟩
       [⟨32⟩, ⟨128⟩] (daiCtorArgMem chainIdWord) (UInt256.ofNat 5) rdata acc k C) :
-    ∃ k' C', RD (daiCtorCode chainIdWord) I g s0 ⟨38⟩
+    ∃ k' C', RD fork (daiCtorCode chainIdWord) I g s0 ⟨38⟩
       [⟨32⟩, ⟨128⟩] (daiCtorArgFreeMem chainIdWord) (UInt256.ofNat 5)
       rdata acc k' C' := by
   have rd := dai_ctor_run h with [
@@ -1204,9 +1206,9 @@ theorem daiCtorArgCopyTrace
     {acc : AccountMap}
     {k C : Nat}
     (chainIdWord : UInt256)
-    (h : RD (daiCtorCode chainIdWord) I g s0 ⟨18⟩ []
+    (h : RD fork (daiCtorCode chainIdWord) I g s0 ⟨18⟩ []
       solcFreePtrMem (UInt256.ofNat 3) rdata acc k C) :
-    ∃ k' C', RD (daiCtorCode chainIdWord) I g s0 ⟨38⟩
+    ∃ k' C', RD fork (daiCtorCode chainIdWord) I g s0 ⟨38⟩
       [⟨32⟩, ⟨128⟩] (daiCtorArgFreeMem chainIdWord) (UInt256.ofNat 5)
       rdata acc k' C' := by
   obtain ⟨_, _, rd32⟩ := daiCtorArgCodecopyTrace (I := I) chainIdWord h
@@ -1220,9 +1222,9 @@ theorem daiCtorArgLengthCheckTrace
     {acc : AccountMap}
     {k C : Nat}
     {chainIdWord : UInt256}
-    (h : RD (daiCtorCode chainIdWord) I g s0 ⟨38⟩
+    (h : RD fork (daiCtorCode chainIdWord) I g s0 ⟨38⟩
       [⟨32⟩, ⟨128⟩] mem (UInt256.ofNat 5) rdata acc k C) :
-    ∃ k' C', RD (daiCtorCode chainIdWord) I g s0 ⟨53⟩
+    ∃ k' C', RD fork (daiCtorCode chainIdWord) I g s0 ⟨53⟩
       [⟨128⟩] mem (UInt256.ofNat 5) rdata acc k' C' := by
   have rd := dai_ctor_run h with [
     push1 ⟨32⟩, dup2, lt, iszero, push2 ⟨51⟩,
@@ -1239,7 +1241,7 @@ theorem daiInitcodePrologueSuccess
     (chainIdWord : UInt256)
     (hcode : I.code = daiCtorCode chainIdWord)
     (hwv : I.weiValue = ⟨0⟩) :
-    ∃ k C, RD (daiCtorCode chainIdWord) I g
+    ∃ k C, RD fork (daiCtorCode chainIdWord) I g
       (initState σ σ₀ g A I) ⟨53⟩
       [⟨128⟩] (daiCtorArgFreeMem chainIdWord) (UInt256.ofNat 5) ByteArray.empty
       σ k C := by
@@ -1259,11 +1261,11 @@ theorem daiCtorWardsStoreTrace
     {rdata : ByteArray}
     {k C : Nat}
     (chainIdWord : UInt256)
-    (h : RD (daiCtorCode chainIdWord) I g s0 ⟨53⟩
+    (h : RD fork (daiCtorCode chainIdWord) I g s0 ⟨53⟩
       [⟨128⟩] (daiCtorArgFreeMem chainIdWord) (UInt256.ofNat 5) rdata
       σ k C)
     (hperm : I.perm = true) :
-    ∃ k' C', RD (daiCtorCode chainIdWord) I g s0 ⟨77⟩
+    ∃ k' C', RD fork (daiCtorCode chainIdWord) I g s0 ⟨77⟩
       [⟨1⟩, ⟨32⟩, ⟨64⟩, chainIdWord]
       (daiCtorWardsHashMem I chainIdWord) (UInt256.ofNat 5) rdata
       (sstoreAccountMap I.codeOwner σ (daiCtorWardsSlot I) ⟨1⟩) k' C' := by
@@ -1296,7 +1298,7 @@ theorem daiInitcodeAfterWardsStore
     (hcode : I.code = daiCtorCode chainIdWord)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) :
-    ∃ k C, RD (daiCtorCode chainIdWord) I g
+    ∃ k C, RD fork (daiCtorCode chainIdWord) I g
       (initState σ σ₀ g A I) ⟨77⟩
       [⟨1⟩, ⟨32⟩, ⟨64⟩, chainIdWord]
       (daiCtorWardsHashMem I chainIdWord) (UInt256.ofNat 5) ByteArray.empty
@@ -1317,10 +1319,10 @@ theorem daiCtorDomainWordsTrace
     {acc : AccountMap}
     {k C : Nat}
     (chainIdWord : UInt256)
-    (h : RD (daiCtorCode chainIdWord) I g s0 ⟨77⟩
+    (h : RD fork (daiCtorCode chainIdWord) I g s0 ⟨77⟩
       [⟨1⟩, ⟨32⟩, ⟨64⟩, chainIdWord]
       (daiCtorWardsHashMem I chainIdWord) (UInt256.ofNat 5) rdata acc k C) :
-    ∃ k' C', RD (daiCtorCode chainIdWord) I g s0 ⟨261⟩
+    ∃ k' C', RD fork (daiCtorCode chainIdWord) I g s0 ⟨261⟩
       [⟨160⟩, ⟨32⟩, ⟨64⟩, ⟨288⟩]
       (daiCtorDomainWordsMem I chainIdWord) (UInt256.ofNat 15) rdata acc k' C' := by
   have rdNameLen := dai_ctor_run h with [
@@ -1397,10 +1399,10 @@ theorem daiCtorDomainHashTrace
     {acc : AccountMap}
     {k C : Nat}
     (chainIdWord : UInt256)
-    (h : RD (daiCtorCode chainIdWord) I g s0 ⟨261⟩
+    (h : RD fork (daiCtorCode chainIdWord) I g s0 ⟨261⟩
       [⟨160⟩, ⟨32⟩, ⟨64⟩, ⟨288⟩]
       (daiCtorDomainWordsMem I chainIdWord) (UInt256.ofNat 15) rdata acc k C) :
-    ∃ k' C', RD (daiCtorCode chainIdWord) I g s0 ⟨284⟩
+    ∃ k' C', RD fork (daiCtorCode chainIdWord) I g s0 ⟨284⟩
       [daiCtorDomainWord chainIdWord (daiCtorThisWord I)]
       (daiCtorDomainHashMem I chainIdWord) (UInt256.ofNat 15) rdata acc k' C' := by
   have rd := dai_ctor_run h with [
@@ -1433,9 +1435,9 @@ theorem daiCtorReturnTrace
     {acc : AccountMap}
     {k C : Nat}
     (chainIdWord : UInt256)
-    (h : RD (daiCtorCode chainIdWord) I g s0 ⟨287⟩ []
+    (h : RD fork (daiCtorCode chainIdWord) I g s0 ⟨287⟩ []
       (daiCtorDomainHashMem I chainIdWord) (UInt256.ofNat 15) rdata acc k C) :
-    RDret (daiCtorCode chainIdWord) g s0 acc daiBytecode := by
+    RDret fork (daiCtorCode chainIdWord) g s0 acc daiBytecode := by
   have rdBeforeReturn := dai_ctor_run h with [
     push2 ⟨4011⟩, dup1, push2 ⟨301⟩, push1 ⟨0⟩,
     raw codecopy 364 (daiCtorReturnMem I chainIdWord) (UInt256.ofNat 126)
@@ -1460,7 +1462,7 @@ theorem daiInitcodeSuccess
     (hcode : I.code = daiCtorCode chainIdWord)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) :
-    RDret (daiCtorCode chainIdWord) g
+    RDret fork (daiCtorCode chainIdWord) g
       (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ (daiCtorWardsSlot I) ⟨1⟩)
@@ -1468,13 +1470,13 @@ theorem daiInitcodeSuccess
           (daiCtorDomainWord chainIdWord (daiCtorThisWord I)))
       daiBytecode := by
   obtain ⟨_, _, rdAfterWardsStore⟩ :=
-    daiInitcodeAfterWardsStore
+    daiInitcodeAfterWardsStore (fork := fork)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
       chainIdWord hcode hperm hwv
   obtain ⟨_, _, rdDomainWords⟩ :=
-    daiCtorDomainWordsTrace (I := I) chainIdWord rdAfterWardsStore
+    daiCtorDomainWordsTrace (fork := fork) (I := I) chainIdWord rdAfterWardsStore
   obtain ⟨_, _, rdDomainHash⟩ :=
-    daiCtorDomainHashTrace (I := I) chainIdWord rdDomainWords
+    daiCtorDomainHashTrace (fork := fork) (I := I) chainIdWord rdDomainWords
   have rdBeforeDomainStore := dai_ctor_run rdDomainHash with [push1 ⟨5⟩]
   obtain ⟨_, _, rdAfterDomainStore⟩ :=
     rdBeforeDomainStore.sstore hperm (by dai_ctor_decode) (by evm_ov)
@@ -1491,7 +1493,7 @@ theorem daiSteleCtorExecSuccess
     (hlt : chainId < Int.ofNat (EVM.twoPow 256))
     (hwv : I.weiValue = ⟨0⟩)
     (hperm : I.perm = true) :
-    steleCtorExec config contract [.int chainId]
+    steleCtorExec fork config contract [.int chainId]
       σ σ₀ g A I
       (.returned (daiCtorFrame chainId)
         (daiCtorPostState
@@ -1543,7 +1545,7 @@ theorem daiSteleCtorExecSuccess
 
 theorem daiConstructorCorrect :
     typedConstructorRefinement config daiCreationBytecode contract (fun _ => daiBytecode) := by
-  intro σ σ₀ g A I
+  intro fork _hfork σ σ₀ g A I
       args deployedInitcode hdeploy hcode _hcalldata hperm
   rcases daiDeployment_shape hdeploy with ⟨chainId, hargs, h0, hlt, hdeployed⟩
   subst args
@@ -1552,7 +1554,7 @@ theorem daiConstructorCorrect :
       rw [hcode, hdeployed]
       unfold daiCtorCode
       rfl
-    have hrd := daiInitcodeSuccess
+    have hrd := daiInitcodeSuccess (fork := fork)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) (EVM.word chainId.toNat) hcodeCtor hperm hwv
     rcases hrd with hOOG | ⟨s, hX, hacc⟩
@@ -1565,7 +1567,7 @@ theorem daiConstructorCorrect :
         simpa [Sat256.ofUInt256] using hX)
       rw [hacc] at hsuccess
       refine typedConstructorRefinementFor.execution hsuccess
-        (daiSteleCtorExecSuccess (hperm := hperm)
+        (daiSteleCtorExecSuccess (fork := fork) (hperm := hperm)
           (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
           chainId h0 hlt hwv) ?_
       refine ctorResultEquiv.success rfl rfl ?_ rfl
@@ -1573,7 +1575,7 @@ theorem daiConstructorCorrect :
   · let tail := (EVM.Word.toBytesBE (EVM.word chainId.toNat)).toByteArray
     have hcodeTail : I.code = daiCreationBytecode ++ tail := by
       rw [hcode, hdeployed]
-    have hrd := daiInitcodeNonpayableRevert
+    have hrd := daiInitcodeNonpayableRevert (fork := fork)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) tail hcodeTail hwv
     rcases hrd.xiResult hcodeTail with hOOG | ⟨g', o, hrev⟩

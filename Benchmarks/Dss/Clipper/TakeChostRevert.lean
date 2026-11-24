@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Clipper.TakeChost
 import Benchmarks.Dss.Clipper.TakeChostSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -22,11 +24,11 @@ theorem RD.clipperTakeNoPartialPurchaseRevertTail {code : ByteArray}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {acc : AccountMap}
     {stk : List UInt256} {mem rdata : ByteArray} {k C : ℕ}
-    (h : RD code ee g s0 ⟨4127⟩ stk mem (UInt256.ofNat 7) rdata acc k C)
+    (h : RD fork code ee g s0 ⟨4127⟩ stk mem (UInt256.ofNat 7) rdata acc k C)
     (hmem : mem.size = 196)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : stk.length + 5 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   have rdMload := evm_run h with [
     raw push1 ⟨64⟩ (by clipper_runtime_decode) (by evm_ov),
     raw dup1 (by clipper_runtime_decode) (by evm_ov),
@@ -93,7 +95,7 @@ theorem RD.clipperTakeOweLtTabSliceLtLotNoPartialPurchaseReverts {code : ByteArr
     {σ : AccountMap}
     {price slice tab lot tic packed stopped dataLen dataStart who max amt id : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {k C : ℕ}
-    (h : RD code ee g s0 ⟨4057⟩
+    (h : RD fork code ee g s0 ⟨4057⟩
       (UInt256.mul price slice :: slice :: ⟨0⟩ :: tab :: lot ::
         price :: tic :: packed :: stopped :: dataLen :: dataStart :: who ::
         max :: amt :: id :: R)
@@ -107,7 +109,7 @@ theorem RD.clipperTakeOweLtTabSliceLtLotNoPartialPurchaseReverts {code : ByteArr
     (hmem : mem.size = 196)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 30 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   have hgtWord : UInt256.gt (UInt256.mul price slice) tab = ⟨0⟩ := ugt_zero hle
   have hltWord : UInt256.lt (UInt256.mul price slice) tab = ⟨1⟩ := ult_one hlt
   have hsliceLtWord : UInt256.lt slice lot = ⟨1⟩ := ult_one hsliceLt

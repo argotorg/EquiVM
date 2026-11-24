@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.TotalsPrincipalWrite
 import Benchmarks.CompoundIII.Comet.InternalOutcome
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_057
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -15,9 +17,9 @@ theorem cometStoreTotalsPrincipal {v : CometWithExtendedAssetListImmutables}
     (borrow : Bool) (hstack : R.length + 7 ≤ 1024) (hperm : evm.executionEnv.perm = true)
     (hs : SourceState s0 ee σ evm)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 (if borrow then ⟨12377⟩ else ⟨12322⟩)
+    (h : RD fork (deployedRuntime v) ee g s0 (if borrow then ⟨12377⟩ else ⟨12322⟩)
       (UInt256.ofNat 1 :: value :: ret :: R) mem aw rdata σ k C) :
-    internalRun (deployedRuntime v) ee g s0 mem aw rdata ret R
+    internalRun fork (deployedRuntime v) ee g s0 mem aw rdata ret R
       (.ok (storeTotalsPrincipal evm borrow value)) := by
   have hp : ee.perm = true := by rw [← hs.env]; exact hperm
   cases borrow

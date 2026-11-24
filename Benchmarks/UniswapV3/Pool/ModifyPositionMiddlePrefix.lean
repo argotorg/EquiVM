@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.ModifyPositionMiddleModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -7,7 +9,7 @@ set_option maxRecDepth 10000
 
 theorem modifyPositionMiddlePrefixSource (v : UniswapV3PoolImmutables)
     (a : ModifyPositionArgs) (evm : EVM.State) :
-    ExecBlock config (modifyPositionUpdatedFrame (immStore v) a evm)
+    ExecBlock fork config (modifyPositionUpdatedFrame (immStore v) a evm)
       (modifyPositionUpdatedState v a evm) (modifyPositionMiddleBody.take 2)
       (.ok (modifyPositionMiddleTimeFrame v a evm) (modifyPositionUpdatedState v a evm)) := by
   have hf : modifyPositionUpdatedFrame (immStore v) a evm =
@@ -16,11 +18,11 @@ theorem modifyPositionMiddlePrefixSource (v : UniswapV3PoolImmutables)
   have he := evalLiquidity (modifyPositionUpdatedFrame (immStore v) a evm).locals (immStore v)
     (modifyPositionUpdatedState v a evm) (by modify_position_updated_get)
   rw [← hf] at he
-  have hli : ExecStmt config (modifyPositionUpdatedFrame (immStore v) a evm)
+  have hli : ExecStmt fork config (modifyPositionUpdatedFrame (immStore v) a evm)
       (modifyPositionUpdatedState v a evm) modifyPositionMiddleBody[0]!
       (.ok (modifyPositionMiddleLiquidityFrame v a evm) (modifyPositionUpdatedState v a evm)) :=
     ExecStmt.letDecl he
-  have hcall : ExecStmt config (modifyPositionMiddleLiquidityFrame v a evm)
+  have hcall : ExecStmt fork config (modifyPositionMiddleLiquidityFrame v a evm)
       (modifyPositionUpdatedState v a evm) (.internalCall "_blockTimestamp" [] "__c6")
       (.ok (modifyPositionMiddleTimeFrame v a evm) (modifyPositionUpdatedState v a evm)) := by
     exact internalCallFunctionReturn (callee := blockTimestampFunction) (argVals := []) (locals := ∅)

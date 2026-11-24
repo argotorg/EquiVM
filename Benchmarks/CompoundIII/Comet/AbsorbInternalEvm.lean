@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.CollateralCheckEvm
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_056
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_080
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -18,10 +20,10 @@ theorem cometAbsorbInternal {v : CometWithExtendedAssetListImmutables}
     (hgap : free.toNat ≤ mem.size + 32)
     (hbound : free.toNat + 480 + 1856 * v.numAssets.toNat + 256 < 2^64)
     (hs : SourceState s0 ee σ evm) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨16978⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨16978⟩
       (absorber :: EVM.word account.val :: ret :: R) mem aw rdata σ k C) :
-    ∃ result, AbsorbInternalTrace v account evm result ∧
-      internalBoundedRun (deployedRuntime v) ee g s0 96
+    ∃ result, AbsorbInternalTrace fork v account evm result ∧
+      internalBoundedRun fork (deployedRuntime v) ee g s0 96
         (free.toNat + 480 + 1856 * v.numAssets.toNat) ret R result := by
   have r1 := cometWithExtendedAssetList_block_16978 (immWords := wordsOf (immStore v))
     (by change R.length + 1 + 6 ≤ 1024; omega)

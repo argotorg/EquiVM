@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_053
 import Benchmarks.UniswapV4PoolManager.ReachCost
 import Benchmarks.UniswapV4PoolManager.WordBoolean
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -16,10 +18,10 @@ theorem poolSwapResultLoadTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hs : memLoad params mem = p.amountSpecified)
     (ho : memLoad (params+UInt256.ofNat 128)
       (poolSwapResultInitMem mem state packed (poolLiquidityWord evm id)) = p.lpFeeOverride)
-    (h : RD (deployedRuntime v) I g s0 ⟨18842⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨18842⟩
       ([ret, params, state+UInt256.ofNat 32, state+UInt256.ofNat 64, state, protocol, amount, inv,
         packed, poolSlot id, state]++R) mem aw rdata evm.accountMap k C) :
-    ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 (if lpFeeIsOverride p.lpFeeOverride then ⟨18928⟩ else ⟨22246⟩)
+    ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 (if lpFeeIsOverride p.lpFeeOverride then ⟨18928⟩ else ⟨22246⟩)
       ([p.lpFeeOverride, slot0SqrtPriceWord packed, ret, params, p.amountSpecified, ⟨0⟩, state, protocol, amount,
         inv, packed, poolSlot id, state]++R)
       (poolSwapResultInitMem mem state packed (poolLiquidityWord evm id)) (poolSwapResultInitAW aw state params)

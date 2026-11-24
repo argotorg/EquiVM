@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SafeCast256Source
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_043
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -10,10 +12,10 @@ set_option maxRecDepth 10000
 theorem safeCast256X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (y : UInt256)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨12945⟩ (y :: ret :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨12945⟩ (y :: ret :: R) mem aw rdata σ k C)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 5 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧ ¬ safeCast256Valid y) ∨
-      (safeCast256Valid y ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    (RDrev fork (deployedRuntime v) g s0 ∧ ¬ safeCast256Valid y) ∨
+      (safeCast256Valid y ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
         (y :: R) mem aw rdata σ k' C') := by
   classical
   have hb : (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 255)).toNat = 2 ^ 255 :=

@@ -5,6 +5,8 @@ import Benchmarks.Safe.ViaIR.IRMemoryAllocation
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_027
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_046
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -14,20 +16,20 @@ set_option maxRecDepth 2000
 
 theorem safePostModuleCheckTrace {I g s0 σ k C aw mem rdata}
     {hash guard ptr ret : UInt256} {R : List UInt256} (z : Bool) (evm : EVM.State)
-    (h : RD safeBytecode I g s0 ⟨10191⟩
+    (h : RD fork safeBytecode I g s0 ⟨10191⟩
       (guard :: hash :: z.toUInt256 :: ret :: R) mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ) (hworld : evm.σ₀ = s0.σ₀)
     (hf : memLoad ⟨64⟩ mem = ptr) (hm : 96 ≤ mem.size) (hp : 96 ≤ ptr.toNat)
     (hb : ptr.toNat + 68 < UInt256.size) (hov : R.length + 16 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧
-      (ExecStmt config (postModuleFrame (AccountAddress.ofUInt256 guard) hash z) evm
+    (RDrev fork safeBytecode g s0 ∧
+      (ExecStmt fork config (postModuleFrame (AccountAddress.ofUInt256 guard) hash z) evm
         postModuleCheck .reverted ∨ UInt256.land guard solcAddrMask ≠ ⟨0⟩)) ∨
     ∃ frame evm' σ' mem' aw' rdata' scratch₁ scratch₂ k' C',
-      ExecStmt config (postModuleFrame (AccountAddress.ofUInt256 guard) hash z) evm
+      ExecStmt fork config (postModuleFrame (AccountAddress.ofUInt256 guard) hash z) evm
         postModuleCheck (.ok frame evm') ∧
       frame.locals["success"]? = some (.bool z) ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧ evm'.σ₀ = s0.σ₀ ∧
-      RD safeBytecode I g s0 ⟨10210⟩
+      RD fork safeBytecode I g s0 ⟨10210⟩
         (scratch₁ :: scratch₂ :: z.toUInt256 :: ⟨0⟩ :: ret :: R)
         mem' aw' rdata' σ' k' C' ∧
       (mem' = mem ∨ mem' = postModuleReturnMemory mem ptr hash z) := by
@@ -68,7 +70,7 @@ theorem safePostModuleCheckTrace {I g s0 σ k C aw mem rdata}
     rawValueCallTraceFrom evm h₃ hee hacc hworld (by native_decide) (by simp; omega)
       (Or.inr rfl)
   rw [callOutputMem_zero] at h₄
-  have htyped : typedCallViaEVM config evm
+  have htyped : typedCallViaEVM fork config evm
       (EVM.address (AccountAddress.ofUInt256 guard)) "checkAfterModuleExecution" 0
       [.fixedBytes bytes32Width (EVM.Word.toBytesBE hash), .bool z] (called, evm', out) := by
     refine ⟨_, safePostModuleEncoding mem ptr hash z, ?_⟩

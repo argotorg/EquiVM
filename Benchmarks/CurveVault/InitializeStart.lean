@@ -2,6 +2,8 @@ import Benchmarks.CurveVault.InitializeDecimalsCall
 import Benchmarks.CurveVault.InitializeStorage
 import Benchmarks.CurveVault.Memory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch Reasoning.VyperCalls
 namespace Benchmarks.CurveVault
 
@@ -13,24 +15,24 @@ theorem vaultInitializeBorrowedDecimals {I : ExecutionEnv} {g : Sat256} {s0 evm 
     (hbase : locals.get? "_borrowed_token" = none)
     (hmt : memLoad (UInt256.ofNat 128) mem = token) (hcanon : token.toNat < EVM.addressModulus)
     (hperm : I.perm = true) (haw : aw.toNat ≤ 10) (hstack : R.length + 7 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 221) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 221) R mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (decimals : UInt256) (mem' out : ByteArray)
         (aw' : UInt256) (k' C' : Nat),
       decimals.toNat < 256 ∧ aw'.toNat ≤ 10 ∧
-      ExecBlock config {contract := contract, locals := locals} evm (initializeTransition.body.drop 2 |>.take 2)
+      ExecBlock fork config {contract := contract, locals := locals} evm (initializeTransition.body.drop 2 |>.take 2)
         (.ok {contract := contract, locals := locals.insert "__c0" (.int (Int.ofNat decimals.toNat))} evm') ∧
       SourceState s0 I σ' evm' ∧ 256 ≤ mem'.size ∧ mem'.size = max mem.size 256 ∧
       WordMemoryRange mem mem' 0 224 ∧
-      RD vaultBytecode I g s0 (UInt256.ofNat 294) (decimals :: ⟨32⟩ :: token :: R) mem' aw' out σ' k' C') ∨
-    (ExecBlock config {contract := contract, locals := locals} evm (initializeTransition.body.drop 2 |>.take 2)
-      .reverted ∧ RDrev vaultBytecode g s0) := by
+      RD fork vaultBytecode I g s0 (UInt256.ofNat 294) (decimals :: ⟨32⟩ :: token :: R) mem' aw' out σ' k' C') ∨
+    (ExecBlock fork config {contract := contract, locals := locals} evm (initializeTransition.body.drop 2 |>.take 2)
+      .reverted ∧ RDrev fork vaultBytecode g s0) := by
   let evm0 := Stele.EVM.storageStore evm I.codeOwner ⟨0⟩ token
   let σ0 := sstoreAccountMap I.codeOwner σ ⟨0⟩ token
   let mem0 := vaultBlocks.vault_block_221_memory (mem := mem)
   have hs0 : SourceState s0 I σ0 evm0 := hs.storageWrite ⟨0⟩ token
   have hword : UInt256.ofNat (AccountAddress.ofNat token.toNat).val = token := by
     simpa only [keyValueToWord_address] using keyValueToWord_address_of_canonical token hcanon
-  have hassign : ExecStmt config {contract := contract, locals := locals} evm initializeTransition.body[2]!
+  have hassign : ExecStmt fork config {contract := contract, locals := locals} evm initializeTransition.body[2]!
       (.ok {contract := contract, locals := locals} evm0) :=
     ExecStmt.assign (hperm := Or.inr (by simpa only [hs.env] using hperm)) (by simp only [evalExpr?, ht, EvalResult.ofOption]; rfl)
       (by simpa only [hs.env, hword] using

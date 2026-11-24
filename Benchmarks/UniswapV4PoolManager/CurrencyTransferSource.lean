@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.LocalBytes
 import Benchmarks.UniswapV4PoolManager.CallComposition
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -26,17 +28,17 @@ def transferReturnStatements : List Stmt :=
 theorem transferReturnBody {f : Frame} {evm : EVM.State} {z : Bool} {out : ByteArray}
     (hb : f.locals.get? "returned" = some (.bytes out))
     (hz : f.locals.get? "success" = some (.bool z)) :
-    ∃ f', ExecBlock config f evm transferReturnStatements
+    ∃ f', ExecBlock fork config f evm transferReturnStatements
       (if z = true ∧ transferReturnValid out then .ok f' evm else .reverted) := by
   let f1 : Frame := {f with locals := f.locals.insert "validReturn" (.bool (decide (out.size = 0)))}
   let f2 : Frame := if 32 ≤ out.size then
     {f1 with locals := f1.locals.insert "validReturn" (.bool (decide (returnedBalanceWord out = ⟨1⟩)))} else f1
-  have hlet : ExecStmt config f evm transferReturnStatements[0]! (.ok f1 evm) :=
+  have hlet : ExecStmt fork config f evm transferReturnStatements[0]! (.ok f1 evm) :=
     ExecStmt.letDecl (evalNatEqLiteral (evalLocalBytesLength hb))
   have hb1 : f1.locals.get? "returned" = some (.bytes out) :=
     (store_get_ne _ _ (by decide : ("validReturn" == "returned") = false)).trans hb
   have hg := evalNatGtLiteral (cfg := config) (k := 31) (evm := evm) (evalLocalBytesLength hb1)
-  have hite : ExecStmt config f1 evm transferReturnStatements[1]! (.ok f2 evm) := by
+  have hite : ExecStmt fork config f1 evm transferReturnStatements[1]! (.ok f2 evm) := by
     by_cases hlo : 32 ≤ out.size
     · rw [decide_eq_true (by omega : 31 < out.size)] at hg
       apply ExecStmt.iteTrue hg
@@ -48,7 +50,7 @@ theorem transferReturnBody {f : Frame} {evm : EVM.State} {z : Bool} {out : ByteA
       change evalExpr? config f1 evm _ = .ok (.bool (decide ((returnedBalanceWord out).toNat = 1))) at heq
       simp only [hword] at heq
       simpa only [f2, if_pos hlo] using execBlock_singleton
-        (ExecStmt.assign (hperm := Or.inl rfl) heq (assignLocalValue (store_get_self _ _ _)))
+        (ExecStmt.assign (fork := fork) (hperm := Or.inl rfl) heq (assignLocalValue (store_get_self _ _ _)))
     · rw [decide_eq_false (by omega : ¬ 31 < out.size)] at hg
       simpa only [f2, if_neg hlo] using ExecStmt.iteFalse hg (ExecBlock.nil (cfg := config))
   have hvalid : f2.locals.get? "validReturn" = some (.bool (decide (transferReturnValid out))) := by
@@ -78,13 +80,13 @@ theorem currencyTransferNativeBody {f : Frame} {evm evm' : EVM.State}
     (hc : f.locals.get? "currency" = some (.address (AccountAddress.ofNat 0)))
     (ht : f.locals.get? "to" = some (.address recipient))
     (ha : f.locals.get? "amount" = some (.int (Int.ofNat amount.toNat)))
-    (hcall : callViaEVM evm recipient (Int.ofNat amount.toNat) .empty (z, evm', out))
+    (hcall : callViaEVM fork evm recipient (Int.ofNat amount.toNat) .empty (z, evm', out))
     (hperm : amount = ⟨0⟩ ∨ evm.executionEnv.perm = true) :
-    ∃ f', ExecFuncBody config f evm currencyTransferFunction.body
+    ∃ f', ExecFuncBody fork config f evm currencyTransferFunction.body
       (if z then .returned f' evm' none else .reverted) := by
   let f' : Frame := {f with locals := (f.locals.insert "success" (.bool z)).insert "returned" (.bytes out)}
   have hguard := evalEqAddress (evm := evm) (evalLocalValue hc) (evalAddressLiteral config f evm (.ofNat 0))
-  have hlow : ExecStmt config f evm (.lowLevelCall (.var "to") (.var "amount") (.bytesLit .empty) "success" "returned")
+  have hlow : ExecStmt fork config f evm (.lowLevelCall (.var "to") (.var "amount") (.bytesLit .empty) "success" "returned")
       (.ok f' evm') := lowLevelCallSource (cfg := config) (frame := f)
         (hperm := by simpa only [wordOfInt_ofNat_toNat] using hperm) (evalLocalValue ht) (evalLocalValue ha)
         (by simp only [evalExpr?, pure]) hcall
@@ -103,7 +105,7 @@ theorem currencyTransferNativeStatic {f : Frame} {evm : EVM.State} {recipient : 
     (ht : f.locals.get? "to" = some (.address recipient))
     (ha : f.locals.get? "amount" = some (.int (Int.ofNat amount.toNat)))
     (hamount : amount ≠ ⟨0⟩) (hperm : evm.executionEnv.perm = false) :
-    ExecFuncBody config f evm currencyTransferFunction.body .staticViolation := by
+    ExecFuncBody fork config f evm currencyTransferFunction.body .staticViolation := by
   have hguard := evalEqAddress (evm := evm) (evalLocalValue hc) (evalAddressLiteral config f evm (.ofNat 0))
   simp only [decide_true] at hguard
   exact .execBlockStatic (ExecBlock.consStatic (ExecStmt.iteTrue hguard
@@ -116,16 +118,16 @@ theorem currencyTransferTokenBody {f : Frame} {evm evm' : EVM.State}
     (ht : f.locals.get? "to" = some (.address recipient))
     (ha : f.locals.get? "amount" = some (.int (Int.ofNat amount.toNat)))
     (hn : currency ≠ AccountAddress.ofNat 0)
-    (hcall : callViaEVM evm currency 0 (transferPayload recipient amount) (z, evm', out)) :
-    ∃ f', ExecFuncBody config f evm currencyTransferFunction.body
+    (hcall : callViaEVM fork evm currency 0 (transferPayload recipient amount) (z, evm', out)) :
+    ∃ f', ExecFuncBody fork config f evm currencyTransferFunction.body
       (if z = true ∧ transferReturnValid out then .returned f' evm' none else .reverted) := by
   let f1 : Frame := {f with locals := f.locals.insert "payload" (.bytes (transferPayload recipient amount))}
   let f2 : Frame := {f1 with locals := (f1.locals.insert "success" (.bool z)).insert "returned" (.bytes out)}
   have hguard := evalEqAddress (evm := evm) (evalLocalValue hc) (evalAddressLiteral config f evm (.ofNat 0))
   rw [decide_eq_false hn] at hguard
-  have hlet : ExecStmt config f evm (.letDecl "payload" (some .bytes) transferPayloadExpr) (.ok f1 evm) :=
+  have hlet : ExecStmt fork config f evm (.letDecl "payload" (some .bytes) transferPayloadExpr) (.ok f1 evm) :=
     ExecStmt.letDecl (evalTransferPayload ht ha)
-  have hlow : ExecStmt config f1 evm (.lowLevelCall (.var "currency") (.intLit 0) (.var "payload") "success" "returned")
+  have hlow : ExecStmt fork config f1 evm (.lowLevelCall (.var "currency") (.intLit 0) (.var "payload") "success" "returned")
       (.ok f2 evm') := lowLevelCallSource (cfg := config) (frame := f1) (hperm := Or.inl rfl)
         (evalLocalValue ((store_get_ne _ _ (by decide : ("payload" == "currency") = false)).trans hc))
         (by simp only [evalExpr?, pure]) (evalLocalValue (store_get_self _ _ _)) hcall

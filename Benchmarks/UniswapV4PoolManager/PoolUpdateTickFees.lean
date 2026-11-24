@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.TickStorage
 import Benchmarks.UniswapV4PoolManager.PoolFeeGrowthStorage
 import Benchmarks.UniswapV4PoolManager.Slot0TickSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -27,7 +29,7 @@ def tickFeeWriteBody : List Stmt :=
 theorem tickFeeWriteSource {f : Frame} {evm : EVM.State} {id : UInt256} {tick : Int}
     (hs : f.locals.get? "self" = some (poolRefValue id))
     (hi : f.locals.get? "info" = some (tickRefValue id tick)) :
-    ExecBlock config f evm tickFeeWriteBody
+    ExecBlock fork config f evm tickFeeWriteBody
       (if evm.executionEnv.perm = false then .staticViolation else .ok f (tickFeeWrites evm id tick)) := by
   have h0 := poolFeeGrowth_read (evm := evm) hs false
   have hw0 := tickField_write (evm := evm) hi .feeGrowthOutside0 (poolFeeGrowthWord evm id false)
@@ -35,8 +37,8 @@ theorem tickFeeWriteSource {f : Frame} {evm : EVM.State} {id : UInt256} {tick : 
   · rw [if_pos hp]
     exact ExecBlock.consStatic (ExecStmt.assignStatic h0 hw0 hp)
   · rw [if_neg hp]
-    exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (Bool.eq_true_of_not_eq_false hp)) h0 hw0)
-      (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [tickFeeWrite0, storageStore_executionEnv] using Bool.eq_true_of_not_eq_false hp)) (poolFeeGrowth_read (evm := tickFeeWrite0 evm id tick) hs true)
+    exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (Bool.eq_true_of_not_eq_false hp)) h0 hw0)
+      (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [tickFeeWrite0, storageStore_executionEnv] using Bool.eq_true_of_not_eq_false hp)) (poolFeeGrowth_read (evm := tickFeeWrite0 evm id tick) hs true)
         (tickField_write hi .feeGrowthOutside1 (poolFeeGrowthWord (tickFeeWrite0 evm id tick) id true))) ExecBlock.nil)
 
 def tickFeeFrame (f : Frame) (evm : EVM.State) (id : UInt256) (gross : Int) : Frame :=
@@ -56,12 +58,12 @@ theorem poolUpdateTickFees {f : Frame} {evm : EVM.State} {id : UInt256} {tick gr
     (hi : f.locals.get? "info" = some (tickRefValue id tick))
     (ht : f.locals.get? "tick" = some (.int tick))
     (hg : f.locals.get? "liquidityGrossBefore" = some (.int gross)) :
-    ExecStmt config f evm poolUpdateTickFunction.body[9]! (tickFeeResult f evm id tick gross) := by
+    ExecStmt fork config f evm poolUpdateTickFunction.body[9]! (tickFeeResult f evm id tick gross) := by
   have hzero := evalIntEq (evalLocalValue (cfg := config) (evm := evm) hg)
     (show evalExpr? config f evm (.intLit 0) = .ok (.int 0) by simp only [evalExpr?, pure])
   by_cases hz : gross = 0
   · let f1 : Frame := {f with locals := f.locals.insert "__c1" (.int (EVM.signed (slot0TickWord (poolSlot0Word evm id))))}
-    have hcall : ExecStmt config f evm (.internalCall "Slot0Library_tick"
+    have hcall : ExecStmt fork config f evm (.internalCall "Slot0Library_tick"
         [.storage {base := "self", steps := [.field "slot0"]}] "__c1") (.ok f1 evm) :=
       slot0TickCall hf (poolSlot0_read hs) "__c1"
     have hcmp : evalExpr? config f1 evm (.binary .le (.var "tick") (.var "__c1")) =
@@ -71,7 +73,7 @@ theorem poolUpdateTickFees {f : Frame} {evm : EVM.State} {id : UInt256} {tick gr
         evalLocalValue (store_get_self _ _ _)]
       rfl
     by_cases hc : tick ≤ EVM.signed (slot0TickWord (poolSlot0Word evm id))
-    · have hb := tickFeeWriteSource (f := f1) (evm := evm)
+    · have hb := tickFeeWriteSource (fork := fork) (f := f1) (evm := evm)
         ((store_get_ne _ _ (by decide : ("__c1" == "self") = false)).trans hs)
         ((store_get_ne _ _ (by decide : ("__c1" == "info") = false)).trans hi)
       simp only [tickFeeResult, tickFeesNeeded, hz, hc, and_self, if_true, tickFeeFrame]

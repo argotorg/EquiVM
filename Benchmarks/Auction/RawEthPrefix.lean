@@ -1,16 +1,18 @@
 import Benchmarks.Auction.EmptyBytes
 import Benchmarks.Auction.CallBridge
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
 theorem rawEthPrefix {I g s0 amount recipient ret R mem aw ptr rdata acc k C}
-    (h : RD auctionBytecode I g s0 ⟨4768⟩ (amount :: recipient :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨4768⟩ (amount :: recipient :: ret :: R)
       mem aw rdata acc k C)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 64 ≤ 2 ^ 200)
     (hov : R.length + 20 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨4827⟩
+    ∃ k' C', RD fork auctionBytecode I g s0 ⟨4827⟩
       (⟨30000⟩ :: UInt256.land recipient solcAddrMask :: amount :: nextEmptyPtr ptr :: ⟨0⟩ ::
         nextEmptyPtr ptr :: ⟨0⟩ :: nextEmptyPtr ptr :: amount :: ⟨30000⟩ ::
         UInt256.land recipient solcAddrMask :: ⟨0⟩ :: ⟨0⟩ :: amount :: recipient :: ret :: R)
@@ -23,7 +25,7 @@ theorem rawEthPrefix {I g s0 amount recipient ret R mem aw ptr rdata acc k C}
   have rd4784 := evm_run rd4777 with [push1 ⟨32⟩, dup3, add, swap1, swap3,
     raw mstoreSymbolic (by native_decide) (by evm_ov)]
   rw [expandedWords64_eq (activeWords_expand32 hm.active (by omega))] at rd4784
-  change RD _ _ _ _ ⟨4784⟩ (ptr :: ⟨0⟩ :: amount :: recipient :: ret :: R)
+  change RD fork _ _ _ _ ⟨4784⟩ (ptr :: ⟨0⟩ :: amount :: recipient :: ret :: R)
     (emptyHeaderMem mem ptr) (emptyHeaderWords aw ptr) _ _ _ _ at rd4784
   have rd4806 := evm_run rd4784 with [dup2, swap1, push1 ⟨1⟩, push1 ⟨1⟩,
     push1 ⟨160⟩, shl, sub, dup6, and, swap1, push2 ⟨30000⟩, swap1, dup6,
@@ -36,7 +38,7 @@ theorem rawEthPrefix {I g s0 amount recipient ret R mem aw ptr rdata acc k C}
     push2 ⟨6093⟩, jump (by jump_dest)]
   obtain ⟨_, _, rd4815⟩ := encodeEmptyBytes rd6093 (emptyHeader_zero hm hb)
     (by jump_dest) (by evm_ov)
-  change RD _ _ _ _ ⟨4815⟩
+  change RD fork _ _ _ _ ⟨4815⟩
     (nextEmptyPtr ptr :: amount :: ⟨30000⟩ :: UInt256.land recipient solcAddrMask ::
       ⟨0⟩ :: ⟨0⟩ :: amount :: recipient :: ret :: R)
     (emptyEncodedMem mem ptr) (emptyEncodedWords aw ptr) _ _ _ _ at rd4815
@@ -50,17 +52,17 @@ theorem rawEthPrefix {I g s0 amount recipient ret R mem aw ptr rdata acc k C}
 
 
 theorem rawEthCall {I g s0 amount recipient ret R mem aw ptr rdata σ k C evm}
-    (h : RD auctionBytecode I g s0 ⟨4768⟩ (amount :: recipient :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨4768⟩ (amount :: recipient :: ret :: R)
       mem aw rdata σ k C)
     (hs : SourceState s0 I σ evm) (hperm : I.perm = true)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 64 ≤ 2 ^ 200)
     (hov : R.length + 20 ≤ 1024) :
     ∃ (evm' : EVM.State) (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (k' C' : Nat),
-      callViaEVM evm (AccountAddress.ofUInt256 (UInt256.land recipient solcAddrMask))
+      callViaEVM fork evm (AccountAddress.ofUInt256 (UInt256.land recipient solcAddrMask))
         (Int.ofNat amount.toNat) ByteArray.empty (z, evm', out) ∧
       SourceState s0 I σ' evm' ∧
-      RD auctionBytecode I g s0 ⟨4833⟩
+      RD fork auctionBytecode I g s0 ⟨4833⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨0⟩ :: ⟨0⟩ :: amount :: recipient :: ret :: R)
         (emptyEncodedMem mem ptr) (emptyEncodedWords aw ptr) out σ' k' C' ∧
       out.size < 2 ^ 138 := by

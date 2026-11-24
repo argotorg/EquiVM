@@ -1,6 +1,8 @@
 import Benchmarks.Safe.Runs1e6.PreModuleCallEncoding
 import Benchmarks.Safe.Runs1e6.P256Source
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.Runs1e6
@@ -91,8 +93,8 @@ theorem evalTokenTransferResult (p : TokenTransferInput) (evm : EVM.State)
 
 theorem safeTokenTransferSource {evm evm' : EVM.State} {p : TokenTransferInput}
     {z : Bool} {out : ByteArray}
-    (hc : callViaEVM evm (EVM.address p.token) 0 p.callBytes (z, evm', out)) :
-    ExecFuncBody config p.frame evm transferTokenFunction.body
+    (hc : callViaEVM fork evm (EVM.address p.token) 0 p.callBytes (z, evm', out)) :
+    ExecFuncBody fork config p.frame evm transferTokenFunction.body
       (.returned (p.finalFrame z out) evm' (some [.bool (tokenTransferResult z out)])) := by
   apply ExecFuncBody.execBlockRet
   refine .consNormal ?_ (.consReturn (.return

@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.OracleWriteTransformTrace
 import Benchmarks.UniswapV3.Pool.OracleWriteStaticTrace
 import Benchmarks.UniswapV3.Pool.OracleObservationPacked
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -12,15 +14,15 @@ theorem oracleWriteStoreRawX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p q free ret timeRaw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : OracleWriteArgs)
     (obs : OracleObservation)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨15020⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨15020⟩
       (oracleWriteTransformedWords {a with time := timeRaw} p q ++ ret :: R) mem aw rdata σ k C)
     (hfit : a.Fits) (hn : (oracleWriteCardinality a).toNat ≠ 0)
     (hh : HeapMemory mem aw free) (hm : ObservationMemory mem q obs) (hv : obs.Valid)
     (hb : q.toNat + 128 ≤ 2 ^ 200)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 21 ≤ 1024) :
-    (RDstatic (deployedRuntime v) g s0 ∧ ee.perm = false) ∨
+    (RDstatic fork (deployedRuntime v) g s0 ∧ ee.perm = false) ∨
       (ee.perm = true ∧ ∃ aw' k' C',
-        RD (deployedRuntime v) ee g s0 ret (oracleWriteCardinality a :: oracleWriteIndex a :: R)
+        RD fork (deployedRuntime v) ee g s0 ret (oracleWriteCardinality a :: oracleWriteIndex a :: R)
           mem aw' rdata (oracleObservationMap σ ee (oracleWriteIndex a) obs) k' C' ∧
         HeapMemory mem aw' free) := by
   have hi := oracleWriteIndex_lt a hfit hn
@@ -60,7 +62,7 @@ theorem oracleWriteStoreRawX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     have hslot : (⟨8⟩ : UInt256) + oracleWriteIndex a = observationSlot (oracleWriteIndex a) :=
       u256_add_comm _ _
     simp only [uniswapV3Pool_block_15206_stack, hslot] at rr
-    change RD (deployedRuntime v) ee g s0 ret (oracleWriteCardinality a :: oracleWriteIndex a :: R)
+    change RD fork (deployedRuntime v) ee g s0 ret (oracleWriteCardinality a :: oracleWriteIndex a :: R)
       mem _ rdata (sstoreAccountMap ee.codeOwner σ (observationSlot (oracleWriteIndex a))
         (oracleObservationPackedWord obs (solcSlotWordAt (observationSlot (oracleWriteIndex a)) σ ee)))
       kr Cr at rr
@@ -71,15 +73,15 @@ theorem oracleWriteStoreX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p q free ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : OracleWriteArgs)
     (obs : OracleObservation)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨15020⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨15020⟩
       (oracleWriteTransformedWords a p q ++ ret :: R) mem aw rdata σ k C)
     (hfit : a.Fits) (hn : (oracleWriteCardinality a).toNat ≠ 0)
     (hh : HeapMemory mem aw free) (hm : ObservationMemory mem q obs) (hv : obs.Valid)
     (hb : q.toNat + 128 ≤ 2 ^ 200)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 21 ≤ 1024) :
-    (RDstatic (deployedRuntime v) g s0 ∧ ee.perm = false) ∨
+    (RDstatic fork (deployedRuntime v) g s0 ∧ ee.perm = false) ∨
       (ee.perm = true ∧ ∃ aw' k' C',
-        RD (deployedRuntime v) ee g s0 ret (oracleWriteCardinality a :: oracleWriteIndex a :: R)
+        RD fork (deployedRuntime v) ee g s0 ret (oracleWriteCardinality a :: oracleWriteIndex a :: R)
           mem aw' rdata (oracleObservationMap σ ee (oracleWriteIndex a) obs) k' C' ∧
         HeapMemory mem aw' free) := by
   exact oracleWriteStoreRawX (v := v) (timeRaw := a.time) a obs rd hfit hn hh hm hv hb hret hov

@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.AbsorbSeizeEvm
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -13,10 +15,10 @@ theorem cometAbsorbAssetMapping {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (account asset : AccountAddress) (hstack : R.length + 22 ≤ 1024)
     (hm : memLoad (ptr + UInt256.ofNat 32) mem = EVM.word asset.val)
-    (h : RD (deployedRuntime v) ee g s0 ⟨17589⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨17589⟩
       (ptr :: absorber :: EVM.word account.val :: i :: assets :: reserved :: old :: principal ::
         price :: EVM.word account.val :: delta :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨17630⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨17630⟩
       (userCollateralSlot account asset :: ⟨6⟩ :: EVM.word asset.val :: delta ::
         EVM.word account.val :: ptr :: absorber :: EVM.word account.val :: i :: assets ::
         reserved :: old :: principal :: price :: EVM.word account.val :: EVM.word asset.val :: R)
@@ -47,10 +49,10 @@ theorem cometAbsorbAssetSeize {v : CometWithExtendedAssetListImmutables}
     (account asset : AccountAddress) (hstack : R.length + 22 ≤ 1024)
     (hm : memLoad (ptr + UInt256.ofNat 32) mem = EVM.word asset.val)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨17589⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨17589⟩
       (ptr :: absorber :: EVM.word account.val :: i :: assets :: reserved :: old :: principal ::
         price :: EVM.word account.val :: delta :: R) mem aw rdata σ k C) :
-    internalMemoryRun (deployedRuntime v) ee g s0
+    internalMemoryRun fork (deployedRuntime v) ee g s0
       (absorbSeizeMemory (userCollateralMemory mem account asset) account asset) rdata ⟨17713⟩
       (delta :: withdrawCollateralBalance evm account asset :: ptr :: absorber ::
         EVM.word account.val :: i :: assets :: reserved :: old :: principal :: price ::

@@ -1,6 +1,8 @@
 import Benchmarks.WETH9.StringEncode
 import Benchmarks.WETH9.StringReturnSymbol2
 
+variable {fork : Ethereum.Fork}
+
 /-! # WETH9 `Symbol` refinement
 
 `symbol()` is the slot-1 twin of `name()`: a public non-payable getter returning the dynamic string
@@ -231,13 +233,13 @@ theorem weth9Decode_symbol_ok {I : ExecutionEnv} (hsz4 : 4 ≤ I.calldata.size) 
 theorem weth9SymbolBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 7)) (hwf : weth9StorageWF σ I) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (weth9SelBytes 7) (by native_decide) hsel
   by_cases hwv : I.weiValue = ⟨0⟩
   · -- string return: the Stele `.return [.storage symbolRef]` body ABI-encodes to the EVM encoder's
     -- output (`StringReturnSymbol2.lean`); `weth9StorageWF` excludes the ≥2^64-byte regime.
-    have hbody := nonpayableReturnExprBodyReturns (cfg := config) (contract := contract)
+    have hbody := nonpayableReturnExprBodyReturns (fork := fork) (cfg := config) (contract := contract)
       (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I) (locals := ∅)
       (by simp only [initState]; exact hwv) weth9SymbolEval
     by_cases hlen0 : weth9StringLen (solcSlotWord σ I ⟨1⟩) = ⟨0⟩
@@ -274,7 +276,7 @@ theorem weth9SymbolBodyCore {σ σ₀ A I} {g : UInt256}
             rw [if_neg hge32]
             exact weth9SymbolEncode_long hge31 (weth9StorageWF_symbolReturnSizeBound hwf hsel hwv)))
   · -- non-payable revert: EVM reverts at symbol's callvalue guard (entry 623, gt 635).
-    obtain ⟨_, _, h623⟩ := weth9ReachSymbol (σ := σ)
+    obtain ⟨_, _, h623⟩ := weth9ReachSymbol (fork := fork) (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsz4 hsize hsel
     have hrev := solcFunctionGuardPeelRev (gt := ⟨635⟩) h623 hwv
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)

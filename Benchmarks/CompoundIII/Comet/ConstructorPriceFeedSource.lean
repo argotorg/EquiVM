@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.ConstructorPriceFeedCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -39,13 +41,13 @@ theorem constructorSource_priceFeedGuard (c : ConstructorConfig) (w feed : UInt2
 
 theorem constructorSourcePriceFeed_exec {c : ConstructorConfig} {w : UInt256}
     {evm evm' evm'' : EVM.State} {feed : ByteArray}
-    (hp : ExecBlock config (constructorSourceEntry c) evm (contract.ctor.body.take 7)
+    (hp : ExecBlock fork config (constructorSourceEntry c) evm (contract.ctor.body.take 7)
       (.ok (constructorSourceDecimals c w) evm'))
-    (hc : callViaEVM evm' c.baseTokenPriceFeed 0 decimalsPayload (true, evm'', feed) false)
+    (hc : callViaEVM fork evm' c.baseTokenPriceFeed 0 decimalsPayload (true, evm'', feed) false)
     (hhi : feed.size < 2^255) (hvalid : DecimalsReturnValid feed) :
-    ExecBlock config (constructorSourceEntry c) evm (contract.ctor.body.take 8)
+    ExecBlock fork config (constructorSourceEntry c) evm (contract.ctor.body.take 8)
       (.ok (constructorSourcePriceFeed c w (calldataWord feed 0)) evm'') := by
-  change ExecBlock config _ _ (contract.ctor.body.take 7 ++
+  change ExecBlock fork config _ _ (contract.ctor.body.take 7 ++
     [.externalCall (.field (.var "config") "baseTokenPriceFeed") "decimals" (.intLit 0) []
       "__c1" (perm := false)]) _
   apply execBlockAppendOk hp
@@ -53,14 +55,14 @@ theorem constructorSourcePriceFeed_exec {c : ConstructorConfig} {w : UInt256}
 
 theorem constructorSourcePriceFeedChecked_exec {c : ConstructorConfig} {w : UInt256}
     {evm evm' evm'' : EVM.State} {feed : ByteArray}
-    (hp : ExecBlock config (constructorSourceEntry c) evm (contract.ctor.body.take 7)
+    (hp : ExecBlock fork config (constructorSourceEntry c) evm (contract.ctor.body.take 7)
       (.ok (constructorSourceDecimals c w) evm'))
-    (hc : callViaEVM evm' c.baseTokenPriceFeed 0 decimalsPayload (true, evm'', feed) false)
+    (hc : callViaEVM fork evm' c.baseTokenPriceFeed 0 decimalsPayload (true, evm'', feed) false)
     (hhi : feed.size < 2^255) (hlo : 32 ≤ feed.size) (hword : calldataWord feed 0 = ⟨8⟩) :
-    ExecBlock config (constructorSourceEntry c) evm (contract.ctor.body.take 9)
+    ExecBlock fork config (constructorSourceEntry c) evm (contract.ctor.body.take 9)
       (.ok (constructorSourcePriceFeed c w (calldataWord feed 0)) evm'') := by
   have hd := constructorSourcePriceFeed_exec hp hc hhi ⟨hlo, by rw [hword]; decide⟩
-  change ExecBlock config _ _ (contract.ctor.body.take 8 ++
+  change ExecBlock fork config _ _ (contract.ctor.body.take 8 ++
     [.require (.binary .eq (.var "__c1") (.intLit 8))]) _
   apply execBlockAppendOk hd
   exact .consNormal (.requireTrue (by
@@ -68,12 +70,12 @@ theorem constructorSourcePriceFeedChecked_exec {c : ConstructorConfig} {w : UInt
 
 theorem constructorSourcePriceFeedChecked_revert {c : ConstructorConfig} {w : UInt256}
     {evm evm' evm'' : EVM.State} {z : Bool} {feed : ByteArray}
-    (hp : ExecBlock config (constructorSourceEntry c) evm (contract.ctor.body.take 7)
+    (hp : ExecBlock fork config (constructorSourceEntry c) evm (contract.ctor.body.take 7)
       (.ok (constructorSourceDecimals c w) evm'))
-    (hc : callViaEVM evm' c.baseTokenPriceFeed 0 decimalsPayload (z, evm'', feed) false)
+    (hc : callViaEVM fork evm' c.baseTokenPriceFeed 0 decimalsPayload (z, evm'', feed) false)
     (hhi : feed.size < 2^255)
     (hvalid : ¬ (z = true ∧ 32 ≤ feed.size ∧ calldataWord feed 0 = ⟨8⟩)) :
-    ExecBlock config (constructorSourceEntry c) evm contract.ctor.body .reverted := by
+    ExecBlock fork config (constructorSourceEntry c) evm contract.ctor.body .reverted := by
   by_cases hdecode : z = true ∧ DecimalsReturnValid feed
   · rcases hdecode with ⟨rfl, hdecode⟩
     have hd := constructorSourcePriceFeed_exec hp hc hhi hdecode

@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.RuntimeBlocks_037
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_045
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_046
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -15,8 +17,8 @@ theorem cometTokenBalanceFailed {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem out : ByteArray} {aw : UInt256}
     {σ : AccountMap} {k C : Nat} {ptr asset : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 ⟨9600⟩ (⟨0⟩ :: asset :: ptr :: R)
-      mem aw out σ k C) : RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨9600⟩ (⟨0⟩ :: asset :: ptr :: R)
+      mem aw out σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   have r1 := cometWithExtendedAssetList_block_9600_taken
     (immWords := wordsOf (immStore v)) (by omega) (by decide)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
@@ -31,9 +33,9 @@ theorem cometTokenBalanceResponseStart {v : CometWithExtendedAssetListImmutables
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem out : ByteArray} {aw : UInt256}
     {σ : AccountMap} {k C : Nat} {ptr asset : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 ⟨9600⟩ (⟨1⟩ :: asset :: ptr :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨9600⟩ (⟨1⟩ :: asset :: ptr :: R)
       mem aw out σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨9652⟩ (ptr :: asset :: ⟨0⟩ :: R)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨9652⟩ (ptr :: asset :: ⟨0⟩ :: R)
       mem aw out σ k' C' := by
   have r1 := cometWithExtendedAssetList_block_9600_fallthrough
     (immWords := wordsOf (immStore v)) hstack (by decide) h
@@ -47,8 +49,8 @@ theorem cometTokenBalanceShort {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {ptr asset : UInt256} {R : List UInt256}
     (hstack : R.length + 10 ≤ 1024) (hptr : ptr.toNat + 32 < 2^64)
     (hshort : out.size < 32)
-    (h : RD (deployedRuntime v) ee g s0 ⟨9652⟩ (ptr :: asset :: ⟨0⟩ :: R)
-      mem aw out σ k C) : RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨9652⟩ (ptr :: asset :: ⟨0⟩ :: R)
+      mem aw out σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   have hsize : out.size < UInt256.size := by change out.size < 2^256; omega
   have r1 := cometWithExtendedAssetList_block_9652_taken
     (immWords := wordsOf (immStore v)) (by omega)
@@ -78,9 +80,9 @@ theorem cometTokenBalanceFull {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {ptr asset : UInt256} {R : List UInt256}
     (hstack : R.length + 10 ≤ 1024) (hlo : 96 ≤ ptr.toNat)
     (hptr : ptr.toNat + 36 < 2^64) (hout : 32 ≤ out.size) (hhi : out.size < UInt256.size)
-    (h : RD (deployedRuntime v) ee g s0 ⟨9652⟩ (ptr :: asset :: ⟨0⟩ :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨9652⟩ (ptr :: asset :: ⟨0⟩ :: R)
       (tokenBalanceCopyMemory mem ptr ee.codeOwner out) aw out σ k C) :
-    ∃ aw' k' C' dummy, RD (deployedRuntime v) ee g s0 ⟨9615⟩
+    ∃ aw' k' C' dummy, RD fork (deployedRuntime v) ee g s0 ⟨9615⟩
       (dummy :: asset :: calldataWord out 0 :: R)
       (tokenBalanceReturnMemory mem ptr ee.codeOwner out) aw' out σ k' C' := by
   have r1 := cometWithExtendedAssetList_block_9652_fallthrough
@@ -107,7 +109,7 @@ theorem cometTokenBalanceFull {v : CometWithExtendedAssetListImmutables}
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r6
   have hw := tokenBalanceReturnMemory_word (mem := mem) (owner := ee.codeOwner) hlo
     (by change ptr.toNat + 36 < 2^256; omega) hout hhi
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     (_ :: asset :: memLoad ptr (tokenBalanceReturnMemory mem ptr ee.codeOwner out) :: R)
     (tokenBalanceReturnMemory mem ptr ee.codeOwner out) _ _ _ _ _ at r7
   rw [hw] at r7

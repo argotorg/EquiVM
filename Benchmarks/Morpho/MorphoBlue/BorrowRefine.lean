@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.BorrowUpdates
 import Benchmarks.Morpho.MorphoBlue.BorrowAccrueRefine
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -14,9 +16,9 @@ theorem morphoBorrowRefine {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat25
     (hr : receiver.toNat < EVM.addressModulus)
     (hl : MarketTransferLocals p assets shares account receiver locals) (hs : SourceState s0 ee σ evm)
     (hac : locals.get? "__accrued" = some (.bool (accrueActive p evm)))
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 8481)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 8481)
       (borrowAccrueTail p.id assets shares account receiver []) (withdrawGuardMem p ee account) aw out σ k C) :
-    ReturnBlockRefines config (deployedRuntime v) ee g s0
+    ReturnBlockRefines fork config (deployedRuntime v) ee g s0
       { contract := contract, locals := locals, immutables := imms } evm
       (borrowTransition.body.drop 11) borrowTransition.returnType := by
   have hf := morphoBorrowAccrueRefine p locals imms (by decide) hc hl hac hs h

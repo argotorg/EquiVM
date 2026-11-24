@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.SignedArithmeticEvm
 import Benchmarks.CompoundIII.Comet.SignedDebtWords
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -14,10 +16,10 @@ theorem cometSignedSubNonnegRight {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {a b ret : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024) (hb : b.toNat < 2^255)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨9713⟩ (a :: b :: ret :: R) mem aw rdata σ k C) :
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨9713⟩ (a :: b :: ret :: R) mem aw rdata σ k C) :
     (-(2^255 : Int) ≤ signedWord a - Int.ofNat b.toNat ∧ ∃ k' C',
-      RD (deployedRuntime v) ee g s0 ret (UInt256.sub a b :: R) mem aw rdata σ k' C') ∨
-    (¬ -(2^255 : Int) ≤ signedWord a - Int.ofNat b.toNat ∧ RDrev (deployedRuntime v) g s0) := by
+      RD fork (deployedRuntime v) ee g s0 ret (UInt256.sub a b :: R) mem aw rdata σ k' C') ∨
+    (¬ -(2^255 : Int) ≤ signedWord a - Int.ofNat b.toNat ∧ RDrev fork (deployedRuntime v) g s0) := by
   have hlimit : signedWord (b + UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 255)) =
       Int.ofNat b.toNat - (2^255 : Int) := by
     rw [signedWord_eq, uadd_toNat]

@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.AttestDecode
 import Benchmarks.EAS.EAS.OneRequestAllocate
 import Benchmarks.EAS.EAS.RuntimeBlocks_004
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables ABI.Solc08Calldata
 namespace Benchmarks.EAS.EAS
@@ -25,11 +27,11 @@ instance (cd : ByteArray) : Decidable (attestHeadValid cd) := inferInstanceAs (D
 theorem easAttestHead {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : EASImmutables) (hstack : R.length+6 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨450⟩ R mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨450⟩ R mem aw rdata σ k C) :
     (attestHeadValid ee.calldata →
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨516⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨516⟩
         (attestRoot ee.calldata::calldataWord ee.calldata 4::R) mem aw' rdata σ k' C') ∧
-    (¬ attestHeadValid ee.calldata → RDrev (deployedRuntime v) g s0) := by
+    (¬ attestHeadValid ee.calldata → RDrev fork (deployedRuntime v) g s0) := by
   by_cases ho : (calldataWord ee.calldata 4).toNat ≤ solcMaxU64
   · obtain ⟨a1,k1,C1,r1⟩ := easBlocks.eas_block_450_fallthrough_packed (immWords := wordsOf (immStore v))
       (by omega) (ugt_zero ho) rd
@@ -58,11 +60,11 @@ theorem easRequestReference_branches {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {base head ret : UInt256} {R : List UInt256} (v : EASImmutables) (hstack : R.length+6 ≤ 1024)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨6189⟩ (base::head::ret::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨6189⟩ (base::head::ret::R) mem aw rdata σ k C) :
     (requestReferenceValid ee.calldata base head →
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret
         ((base+calldataWord ee.calldata head.toNat)::R) mem aw' rdata σ k' C') ∧
-    (¬ requestReferenceValid ee.calldata base head → RDrev (deployedRuntime v) g s0) := by
+    (¬ requestReferenceValid ee.calldata base head → RDrev fork (deployedRuntime v) g s0) := by
   have h := easRequestReference v hstack hret rd
   constructor
   · intro hv
@@ -78,13 +80,13 @@ theorem easAttestPrepare {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : EASImmutables) (hstack : R.length+21 ≤ 1024)
     (hroot : root = UInt256.ofNat 4+offset) (hlo : 96 ≤ heap.toNat) (hh : heap.toNat+256 ≤ 2^64-1)
     (hheap : memLoad (UInt256.ofNat 64) mem = heap)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨516⟩ (root::offset::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨516⟩ (root::offset::R) mem aw rdata σ k C) :
     (requestReferenceValid ee.calldata root (root+UInt256.ofNat 32) →
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨5344⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨5344⟩
         (attestRequestData ee.calldata root::UInt256.ofNat ee.calldata.size::UInt256.ofNat 557::root::heap::
           UInt256.ofNat 587::UInt256.ofNat 32::UInt256.ofNat 594::UInt256.ofNat 32::R)
         (oneRequestArrayMemory mem heap) aw' rdata σ k' C') ∧
-    (¬ requestReferenceValid ee.calldata root (root+UInt256.ofNat 32) → RDrev (deployedRuntime v) g s0) := by
+    (¬ requestReferenceValid ee.calldata root (root+UInt256.ofNat 32) → RDrev fork (deployedRuntime v) g s0) := by
   obtain ⟨a1,k1,C1,r1⟩ := easBlocks.eas_block_516_packed (immWords := wordsOf (immStore v))
     (by omega) (by rw [easPatchedValidJumpsRuntime v]; jump_dest) rd
   simp only [easBlocks.eas_block_516_stack] at r1

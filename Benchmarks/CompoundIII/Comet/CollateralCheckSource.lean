@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.CollateralDebtSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -9,7 +11,7 @@ set_option maxRecDepth 2000
 
 theorem collateralPrincipal_read (v : CometWithExtendedAssetListImmutables)
     (account : AccountAddress) (evm : EVM.State) :
-    ExecStmt config (collateralCheckEntry v account) evm
+    ExecStmt fork config (collateralCheckEntry v account) evm
       (.letDecl "principal" (some (.elem (.int (.sint ⟨104, by decide⟩))))
         collateralPrincipalExpr)
       (.ok (collateralPrincipalFrame v account (collateralBasicWord evm account)) evm) := by
@@ -30,7 +32,7 @@ theorem collateralPrincipalCond_eval (v : CometWithExtendedAssetListImmutables)
 
 theorem collateralBits_read (v : CometWithExtendedAssetListImmutables)
     (account : AccountAddress) (evm : EVM.State) :
-    ExecBlock config (collateralPrincipalFrame v account (collateralBasicWord evm account))
+    ExecBlock fork config (collateralPrincipalFrame v account (collateralBasicWord evm account))
       evm collateralBitsBlock
       (.ok (collateralBitsFrame v account (collateralBasicWord evm account)) evm) := by
   let f := collateralPrincipalFrame v account (collateralBasicWord evm account)
@@ -51,13 +53,13 @@ theorem collateralBits_read (v : CometWithExtendedAssetListImmutables)
 theorem collateralPresent_call (v : CometWithExtendedAssetListImmutables)
     (account : AccountAddress) (evm : EVM.State)
     (hp : signed104 (collateralBasicWord evm account) < 0) :
-    ExecStmt config (collateralBitsFrame v account (collateralBasicWord evm account)) evm
+    ExecStmt fork config (collateralBitsFrame v account (collateralBasicWord evm account)) evm
       (.internalCall "presentValue" [.var "principal"] "__c0")
       (if -(2^103 : Int) < signed104 (collateralBasicWord evm account) then
         .ok (collateralPresentFrame v account (collateralBasicWord evm account)
           (signedPresentMagnitude evm (collateralBasicWord evm account) true)) evm
         else .reverted) := by
-  have he := signedPresent_call (collateralBitsFrame v account (collateralBasicWord evm account))
+  have he := signedPresent_call (fork := fork) (collateralBitsFrame v account (collateralBasicWord evm account))
     evm (collateralBasicWord evm account) (.var "principal") "__c0" rfl
     (by simp only [evalExpr?, collateralBitsFrame, collateralPrincipalFrame,
       Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert, EvalResult.ofOption]; rfl)
@@ -66,10 +68,10 @@ theorem collateralPresent_call (v : CometWithExtendedAssetListImmutables)
 
 theorem collateralCheck_source {v : CometWithExtendedAssetListImmutables} {borrow : Bool}
     {account : AccountAddress} {evm : EVM.State} {result : Option (EVM.State × Bool)}
-    (ht : CollateralCheckTrace v borrow account evm result) :
-    CollateralCheckSourceResult (collateralCheckEntry v account) evm
+    (ht : CollateralCheckTrace fork v borrow account evm result) :
+    CollateralCheckSourceResult fork (collateralCheckEntry v account) evm
       (collateralCheckCallable borrow).body result := by
-  have hpref := collateralPrincipal_read v account evm
+  have hpref := collateralPrincipal_read (fork := fork) v account evm
   have hcond := collateralPrincipalCond_eval v account (collateralBasicWord evm account) evm
   cases ht with
   | solvent hp =>
@@ -78,15 +80,15 @@ theorem collateralCheck_source {v : CometWithExtendedAssetListImmutables} {borro
         (ABlock.start.returns (by simp only [evalExpr?, pure]))))⟩
   | minimum hp hm =>
       rw [decide_eq_false (by omega)] at hcond
-      have hbits := collateralBits_read v account evm
-      have hpresent := collateralPresent_call v account evm hp
+      have hbits := collateralBits_read (fork := fork) v account evm
+      have hpresent := collateralPresent_call (fork := fork) v account evm hp
       rw [if_neg hm] at hpresent
       exact ExecBlock.consNormal hpref (ExecBlock.consNormal (ExecStmt.iteFalse hcond .nil)
         (execBlockAppendOk hbits (ExecBlock.consRevert hpresent)))
   | debt hp hm hdebt =>
       rw [decide_eq_false (by omega)] at hcond
-      have hbits := collateralBits_read v account evm
-      have hpresent := collateralPresent_call v account evm hp
+      have hbits := collateralBits_read (fork := fork) v account evm
+      have hpresent := collateralPresent_call (fork := fork) v account evm hp
       rw [if_pos hm] at hpresent
       have htail := collateralDebt_source hdebt
       cases result with
@@ -102,13 +104,13 @@ theorem collateralCheck_source {v : CometWithExtendedAssetListImmutables} {borro
 
 theorem collateralCheck_call {v : CometWithExtendedAssetListImmutables} {borrow : Bool}
     {account : AccountAddress} {evm : EVM.State} {result : Option (EVM.State × Bool)}
-    (ht : CollateralCheckTrace v borrow account evm result) (frame : Frame) (expr : Expr)
+    (ht : CollateralCheckTrace fork v borrow account evm result) (frame : Frame) (expr : Expr)
     (ret : Ident) (hc : frame.contract = contract) (hi : frame.immutables = immStore v)
     (he : evalExpr? config frame evm expr = .ok (.address account)) :
     match result with
-    | none => ExecStmt config frame evm (.internalCall (collateralCheckName borrow) [expr] ret)
+    | none => ExecStmt fork config frame evm (.internalCall (collateralCheckName borrow) [expr] ret)
         .reverted
-    | some (evm', value) => ExecStmt config frame evm
+    | some (evm', value) => ExecStmt fork config frame evm
         (.internalCall (collateralCheckName borrow) [expr] ret)
         (.ok { frame with locals := frame.locals.insert ret (.bool value) } evm') := by
   have hsource := collateralCheck_source ht

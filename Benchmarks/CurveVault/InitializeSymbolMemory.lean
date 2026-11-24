@@ -1,5 +1,7 @@
 import Benchmarks.CurveVault.InitializeNameMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -76,8 +78,8 @@ theorem vaultInitializeBuildSymbol {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {size word x0 x1 x2 x3 : UInt256} {R : List UInt256}
     (hmem : 448 ≤ mem.size) (hn : memLoad (UInt256.ofNat 224) mem = size)
     (hw : memLoad (UInt256.ofNat 256) mem = word) (hstack : R.length + 7 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 651) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD vaultBytecode I g s0 (UInt256.ofNat 768)
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 651) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork vaultBytecode I g s0 (UInt256.ofNat 768)
       ((UInt256.ofNat 31 + ((UInt256.ofNat 2 + size) + UInt256.ofNat 32)) :: ⟨0⟩ ::
         ((UInt256.ofNat 2 + size) + UInt256.ofNat 32) :: UInt256.ofNat 352 :: R)
       (vaultStringScratch mem 2 vaultSymbolPrefix size word) aw' rdata σ k' C' := by

@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.PositionUpdateFeeTrace
 import Benchmarks.UniswapV3.Pool.PositionUpdateFinishTrace
 import Benchmarks.UniswapV3.Pool.PositionUpdateSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -12,17 +14,17 @@ theorem positionUpdateX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : PositionUpdateArgs) (evm : EVM.State)
     (hs : SourceState s0 ee σ evm)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨21559⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨21559⟩
       (a.growth1 :: a.growth0 :: EVM.wordOfInt a.delta :: solcMappingSlot ⟨7⟩ a.key :: ret :: R)
       mem aw rdata σ k C)
     (hm : HeapMemory mem aw p) (hb : p.toNat + 160 ≤ 2 ^ 200)
     (hdlo : -(2 ^ 127 : Int) ≤ a.delta) (hdhi : a.delta < 2 ^ 127)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 25 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧ ¬ positionUpdateLiquidityValid a evm) ∨
+    (RDrev fork (deployedRuntime v) g s0 ∧ ¬ positionUpdateLiquidityValid a evm) ∨
       (positionUpdateLiquidityValid a evm ∧
-        ((RDstatic (deployedRuntime v) g s0 ∧ ee.perm = false) ∨
+        ((RDstatic fork (deployedRuntime v) g s0 ∧ ee.perm = false) ∨
           (ee.perm = true ∧ ∃ σ' k' C' aw', SourceState s0 ee σ' (positionUpdateFinalState a evm) ∧
-            RD (deployedRuntime v) ee g s0 ret R
+            RD fork (deployedRuntime v) ee g s0 ret R
               (wordArrayAllocMem mem p (positionSnapshotWords a.key σ ee)) aw' rdata σ' k' C' ∧
             HeapMemory (wordArrayAllocMem mem p (positionSnapshotWords a.key σ ee)) aw' (p + ⟨160⟩)))) := by
   obtain ⟨aw1, k1, C1, r1, heap1, region1⟩ := positionSnapshotX (v := v) rd hm hb (by omega)

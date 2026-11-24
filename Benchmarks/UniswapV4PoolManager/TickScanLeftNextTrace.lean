@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.MostSignificantBitTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_054
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_061
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -13,9 +15,9 @@ theorem tickScanLeftNextTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw masked compressed spacing initialized : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+12 ≤ 1024)
-    (h : RD (deployedRuntime v) I g s0 (if masked = ⟨0⟩ then ⟨21091⟩ else ⟨19372⟩)
+    (h : RD fork (deployedRuntime v) I g s0 (if masked = ⟨0⟩ then ⟨21091⟩ else ⟨19372⟩)
       ([masked, tickPositionBit compressed, compressed, spacing, initialized] ++ R) mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨19401⟩
+    ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨19401⟩
       (initialized :: tickScanResultWord compressed spacing masked true :: R) mem aw rdata σ k' C' := by
   by_cases hz : masked = ⟨0⟩
   · rw [if_pos hz] at h

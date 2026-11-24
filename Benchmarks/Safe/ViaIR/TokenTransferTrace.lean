@@ -2,6 +2,8 @@ import Benchmarks.Safe.ViaIR.TokenTransferPrepare
 import Benchmarks.Safe.ViaIR.TokenTransferReturn
 import Benchmarks.Safe.ViaIR.RawValueCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.ViaIR
@@ -40,20 +42,20 @@ theorem tokenTransferOutputMemory_free (mem : ByteArray) (ptr : Nat)
 set_option maxRecDepth 5000 in
 theorem safeTokenTransferTrace (p : TokenTransferInput) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata ptr} {guard success hash flag : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨5152⟩
+    (h : RD fork safeBytecode I g s0 ⟨5152⟩
       (p.amount :: UInt256.ofNat p.token.val :: ⟨0⟩ :: ⟨32⟩ :: UInt256.ofNat p.receiver.val ::
         guard :: success :: hash :: flag :: ⟨0⟩ :: R) mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ) (hworld : evm.σ₀ = s0.σ₀)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr) (hm : 128 ≤ mem.size) (hp : 128 ≤ ptr)
     (hz : memLoad ⟨96⟩ mem = ⟨0⟩) (hb : ptr + 128 < UInt256.size)
     (hov : R.length + 24 ≤ 1024) :
-    RDrev safeBytecode g s0 ∨
+    RDrev fork safeBytecode g s0 ∨
     ∃ (evm' : EVM.State) (σ' : AccountMap) (z : Bool) (out : ByteArray)
       (aw' : UInt256) (k' C' : Nat),
-      ExecFuncBody config p.frame evm transferTokenFunction.body
+      ExecFuncBody fork config p.frame evm transferTokenFunction.body
         (.returned (p.finalFrame z out) evm' (some [.bool (tokenTransferResult z out)])) ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧ evm'.σ₀ = s0.σ₀ ∧
-      RD safeBytecode I g s0 ⟨5231⟩
+      RD fork safeBytecode I g s0 ⟨5231⟩
         ((tokenTransferResult z out).toUInt256 :: p.amount :: guard :: success :: hash ::
           flag :: ⟨0⟩ :: R) (tokenTransferOutputMemory mem ptr p out) aw' out σ' k' C' ∧
       memLoad ⟨64⟩ (tokenTransferOutputMemory mem ptr p out) = UInt256.ofNat (ptr + 128) ∧
@@ -72,7 +74,7 @@ theorem safeTokenTransferTrace (p : TokenTransferInput) (evm : EVM.State)
       (by simp; omega) (.inr rfl)
   have hread := tokenTransferMemory_read mem ptr (UInt256.ofNat p.receiver.val) p.amount
     (by omega)
-  have hc' : callViaEVM evm (EVM.address p.token) 0 p.callBytes (z, evm', out) := by
+  have hc' : callViaEVM fork evm (EVM.address p.token) 0 p.callBytes (z, evm', out) := by
     simpa only [accountAddress_roundtrip, addressOfAddress, ulit_toNat' (ptr + 32) (by omega),
       show (⟨68⟩ : UInt256).toNat = 68 from rfl, hread, TokenTransferInput.callBytes] using hc
   have hbz : (if z then (⟨1⟩ : UInt256) else ⟨0⟩) = z.toUInt256 := by cases z <;> rfl

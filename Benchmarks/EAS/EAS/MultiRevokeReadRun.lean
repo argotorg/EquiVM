@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.MultiRevokeSource
 import Benchmarks.EAS.EAS.MultiRevokeControl
 import Benchmarks.EAS.EAS.CopyRevocationArrayControl
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -27,21 +29,21 @@ theorem multiRevokeReadRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g 
     (h : MultiRevokeLocals L (multiRevocationValues ee.calldata base n) available heap.toNat i)
     (hi : i<n) (hn : n<UInt256.size) (hbase : base.toNat+32*i < UInt256.size)
     (hsize : ee.calldata.size < 2^255) (hfree : memLoad (UInt256.ofNat 64) mem = heap)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3396⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3396⟩
       (multiRevokeLoopStack n i base available R) mem aw rdata σ k C) :
     (∃ (rs : List RevocationRequestRecord) (aw' : UInt256) (k' C' : Nat),
       decodeRevocationArray ee.calldata (multiRequestArray ee.calldata (multiRequestRoot ee.calldata base i)) = some rs ∧
       (multiRevokeCheckedLocals L ee.calldata base n i).get? "multiRequest" =
         some (multiRevocationTuple (calldataWord ee.calldata (multiRequestRoot ee.calldata base i).toNat) rs) ∧
-      ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm (multiRevokeRead++[multiAttestCheck])
+      ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm (multiRevokeRead++[multiAttestCheck])
         (.ok {contract := contract,locals := multiRevokeCheckedLocals L ee.calldata base n i,immutables := immStore v} evm) ∧
-      RD (deployedRuntime v) ee g s0 ⟨5924⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨5924⟩
         ((multiRequestArray ee.calldata (multiRequestRoot ee.calldata base i)+UInt256.ofNat 32)::
           calldataWord ee.calldata (multiRequestArray ee.calldata (multiRequestRoot ee.calldata base i)).toNat::
           UInt256.ofNat ee.calldata.size::⟨3530⟩::multiRevokeCopySaved ee n i base available R) mem aw' rdata σ k' C') ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm (multiRevokeRead++[multiAttestCheck]) .reverted ∧
-      RDrev (deployedRuntime v) g s0) := by
-  have hr : ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm multiRevokeRead
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm (multiRevokeRead++[multiAttestCheck]) .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) := by
+  have hr : ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm multiRevokeRead
       (.ok {contract := contract,locals := multiRevokeCheckedLocals L ee.calldata base n i,immutables := immStore v} evm) := by
     have hi' : i < (multiRevocationValues ee.calldata base n).length := by rw [multiRevocationValues_length]; exact hi
     have hn' : (multiRevocationValues ee.calldata base n).length < UInt256.size := by rw [multiRevocationValues_length]; exact hn
@@ -49,7 +51,7 @@ theorem multiRevokeReadRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g 
         .ok (multiRevocationValues ee.calldata base n)[i] := by
       rw [multiRevocationValues_get]
       exact multiRevocationValue_normalizes _ _ _
-    have hs := multiRequestReadSource (imms := immStore v) (evm := evm) multiRevocationABI h.requests h.index hi' hn' hnorm
+    have hs := multiRequestReadSource (fork := fork) (imms := immStore v) (evm := evm) multiRevocationABI h.requests h.index hi' hn' hnorm
     simpa only [multiRevocationValues_length,multiRevocationValues_get] using hs
   have he := easMultiRevokeAccess v (by omega) hi hn hbase rd
   cases hd : decodeMultiRevocation ee.calldata base i with

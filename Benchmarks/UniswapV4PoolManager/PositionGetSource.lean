@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.PositionStorage
 import Benchmarks.UniswapV4PoolManager.PositionKeySource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -18,20 +20,20 @@ theorem positionGetBody {f : Frame} {evm : EVM.State} {id : UInt256} {owner : Ac
     (hu : f.locals.get? "tickUpper" = some (.int (EVM.signed upper)))
     (hsalt : f.locals.get? "salt" = some (wordBytes32Value salt))
     (hlo : int24Canonical lower) (hup : int24Canonical upper) :
-    ∃ f', ExecFuncBody config f evm positionGetFunction.body
+    ∃ f', ExecFuncBody fork config f evm positionGetFunction.body
       (.returned f' evm (some [positionRefValue id (positionKey owner lower upper salt)])) := by
   let key := positionKey owner lower upper salt
   let f1 : Frame := {f with locals := f.locals.insert "positionKey" (wordBytes32Value key)}
   let f2 : Frame := {f1 with locals := f1.locals.insert "position" (positionRefValue id key)}
   let f3 : Frame := {f2 with locals := f2.locals.insert positionGetReturnAlias (positionRefValue id key)}
-  have h0 : ExecStmt config f evm positionGetFunction.body[0]! (.ok f1 evm) :=
+  have h0 : ExecStmt fork config f evm positionGetFunction.body[0]! (.ok f1 evm) :=
     positionKeyCall hf (evalLocalValue ha) (evalLocalValue hl) (evalLocalValue hu) (evalLocalValue hsalt)
       hlo hup "positionKey"
-  have h1 : ExecStmt config f1 evm positionGetFunction.body[1]! (.ok f2 evm) :=
+  have h1 : ExecStmt fork config f1 evm positionGetFunction.body[1]! (.ok f2 evm) :=
     ExecStmt.letStorage (positionMappingResolve
       ((store_get_ne _ _ (by decide : ("positionKey" == "self") = false)).trans hs)
       (evalLocalValue (store_get_self _ _ _)))
-  have h2 : ExecStmt config f2 evm positionGetFunction.body[2]! (.ok f3 evm) :=
+  have h2 : ExecStmt fork config f2 evm positionGetFunction.body[2]! (.ok f3 evm) :=
     ExecStmt.letStorage (resolveStorageAlias (store_get_self _ _ _))
   exact ⟨f3, .execBlockRet (ExecBlock.consNormal h0 (ExecBlock.consNormal h1 (ExecBlock.consNormal h2
     (ABlock.start.returns (evalLocalValue (store_get_self _ _ _))))))⟩
@@ -44,7 +46,7 @@ theorem positionGetCall {f : Frame} {evm : EVM.State} {em ea el eu es : Expr}
     (hu : evalExpr? config f evm eu = .ok (.int (EVM.signed upper)))
     (hs : evalExpr? config f evm es = .ok (wordBytes32Value salt))
     (hlo : int24Canonical lower) (hup : int24Canonical upper) (ret : Ident) :
-    ExecStmt config f evm (.internalCall "Position_get" [em, ea, el, eu, es] ret)
+    ExecStmt fork config f evm (.internalCall "Position_get" [em, ea, el, eu, es] ret)
       (.ok {f with locals := f.locals.insert ret (positionRefValue id (positionKey owner lower upper salt))} evm) := by
   obtain ⟨f', hbody⟩ := positionGetBody
     (f := {f with locals := ((((((∅ : Store).insert "salt" (wordBytes32Value salt)).insert

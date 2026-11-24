@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.CollateralDebtEvm
 import Benchmarks.CompoundIII.Comet.SignedPresentValueEvm
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -16,10 +18,10 @@ theorem cometCollateralCheck {v : CometWithExtendedAssetListImmutables}
     (hgap : free.toNat ≤ mem.size + 32)
     (hbound : free.toNat + 160 + 928 * v.numAssets.toNat + 256 < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 (collateralCheckPc borrow)
+    (h : RD fork (deployedRuntime v) ee g s0 (collateralCheckPc borrow)
       (EVM.word account.val :: ret :: R) mem aw rdata σ k C) :
-    ∃ result, CollateralCheckTrace v borrow account evm result ∧
-      CollateralLoopRun v ee g s0 ret R (free.toNat + 160 + 928 * v.numAssets.toNat) result := by
+    ∃ result, CollateralCheckTrace fork v borrow account evm result ∧
+      CollateralLoopRun fork v ee g s0 ret R (free.toNat + 160 + 928 * v.numAssets.toNat) result := by
   obtain ⟨aw1, k1, C1, r1⟩ := cometCollateralPrincipalRead borrow account (by omega) hs h
   have hsize1 := collateralBasicMemory_size (mem := mem) account (by omega)
   have hmem1 : 96 ≤ (collateralBasicMemory mem account).size := by rw [hsize1]; exact hmem

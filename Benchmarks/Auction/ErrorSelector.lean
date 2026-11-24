@@ -1,15 +1,17 @@
 import Benchmarks.Auction.ErrorSelectorMemory
 import Benchmarks.Auction.RevertData
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
 theorem errorSelectorRoutine {I g s0 ret R mem aw ptr out acc k C}
-    (h : RD auctionBytecode I g s0 ⟨5843⟩ (ret :: R) mem aw out acc k C)
+    (h : RD fork auctionBytecode I g s0 ⟨5843⟩ (ret :: R) mem aw out acc k C)
     (hm : HeapMemory mem aw ptr) (ho : out.size < UInt256.size)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 5 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret (returnSelector out :: R)
+    ∃ k' C', RD fork auctionBytecode I g s0 ret (returnSelector out :: R)
       (errorSelectorMem mem out) (errorSelectorWords aw out) out acc k' C' := by
   have hn : (UInt256.ofNat out.size).toNat = out.size := ulit_toNat' _ ho
   have rd5853 := evm_run h with [jumpdest, push0, push1 ⟨3⟩,
@@ -27,7 +29,7 @@ theorem errorSelectorRoutine {I g s0 ret R mem aw ptr out acc k C}
     have rd5865 := evm_run rd5862 with [push1 ⟨224⟩, shr]
     rw [copiedSelector hm.size hl] at rd5865
     simpa only [returnSelector, errorSelectorMem, errorSelectorWords, if_pos hl] using
-      (show ∃ k' C', RD auctionBytecode I g s0 ret
+      (show ∃ k' C', RD fork auctionBytecode I g s0 ret
           (UInt256.shiftRight (calldataWord out 0) ⟨224⟩ :: R)
           (out.write 0 mem 0 4) (expandedWords (expandedWords aw ⟨0⟩ ⟨4⟩) ⟨0⟩ ⟨32⟩)
           out acc k' C' from
@@ -40,20 +42,20 @@ theorem errorSelectorRoutine {I g s0 ret R mem aw ptr out acc k C}
       using rdret⟩
 
 theorem createErrorSelectorPrefix {I g s0 ret R mem aw ptr out acc k C}
-    (h : RD auctionBytecode I g s0 ⟨3116⟩ (ret :: R) mem aw out acc k C)
+    (h : RD fork auctionBytecode I g s0 ⟨3116⟩ (ret :: R) mem aw out acc k C)
     (hm : HeapMemory mem aw ptr) (ho : out.size < UInt256.size)
     (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨3123⟩ (returnSelector out :: ret :: R)
+    ∃ k' C', RD fork auctionBytecode I g s0 ⟨3123⟩ (returnSelector out :: ret :: R)
       (errorSelectorMem mem out) (errorSelectorWords aw out) out acc k' C' := by
   have rd5843 := evm_run h with [push2 ⟨3123⟩, push2 ⟨5843⟩, jump (by jump_dest)]
   exact errorSelectorRoutine rd5843 hm ho (by jump_dest) (by evm_ov)
 
 set_option synthInstance.maxSize 1024 in
 theorem createErrorSelectorWrong {I g s0 ret R mem aw ptr out acc k C}
-    (h : RD auctionBytecode I g s0 ⟨3116⟩ (ret :: R) mem aw out acc k C)
+    (h : RD fork auctionBytecode I g s0 ⟨3116⟩ (ret :: R) mem aw out acc k C)
     (hm : HeapMemory mem aw ptr) (ho : out.size < UInt256.size)
     (he : returnSelector out ≠ ⟨0x08c379a0⟩) (hov : R.length + 6 ≤ 1024) :
-    RDrev auctionBytecode g s0 := by
+    RDrev fork auctionBytecode g s0 := by
   obtain ⟨_, _, rd3123⟩ := createErrorSelectorPrefix h hm ho hov
   have rd3165 := evm_run rd3123 with [jumpdest, dup1, push4 ⟨0x08c379a0⟩, sub, push2 ⟨3162⟩,
     jumpiT (u256_sub_ne_zero_of_ne he.symm) (by jump_dest), jumpdest, pop, jumpdest]

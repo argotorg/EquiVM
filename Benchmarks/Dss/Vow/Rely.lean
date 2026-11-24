@@ -1,6 +1,8 @@
 import Reasoning.SolcRoutines
 import Benchmarks.Dss.Vow.Deny
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -124,12 +126,12 @@ abbrev vowNotLiveRawWord : UInt256 :=
 theorem RD.vowLiveGuardOk {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc okPc key ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
+    (h : RD fork code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : vowLiveGuardWf code pc okPc)
     (hlive : solcSlotWord σ ee ⟨12⟩ = ⟨1⟩)
     (hok : (D_J code 0).contains okPc = true)
     (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 okPc (key :: ret :: R) mem (UInt256.ofNat 3) rdata
+    ∃ k' C', RD fork code ee g s0 okPc (key :: ret :: R) mem (UInt256.ofNat 3) rdata
       σ k' C' := by
   rcases hwf with ⟨hd0, hd1, hd3, hd4, hd6, hd7, hd10⟩
   have rd3 := h.jumpdest hd0 (by evm_ov) |>.push1 ⟨12⟩ hd1 (by evm_ov)
@@ -149,7 +151,7 @@ theorem RD.vowLiveGuardOk {code : ByteArray} {g : Sat256} {s0 : State}
 theorem RD.vowLiveGuardRevert {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc okPc key ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
+    (h : RD fork code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : vowLiveGuardWf code pc okPc)
     (htail : solcErrorStringRevertTailWf code (vowLiveGuardTailPc pc) ⟨12⟩
       vowNotLiveRawWord ⟨160⟩ .PUSH12 12)
@@ -157,7 +159,7 @@ theorem RD.vowLiveGuardRevert {code : ByteArray} {g : Sat256} {s0 : State}
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 7 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   rcases hwf with ⟨hd0, hd1, hd3, hd4, hd6, hd7, hd10⟩
   have rd3 := h.jumpdest hd0 (by evm_ov) |>.push1 ⟨12⟩ hd1 (by evm_ov)
   obtain ⟨_, _, rd4⟩ := rd3.sload hd3 (by evm_ov)
@@ -227,7 +229,7 @@ theorem vowReachRelyBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x65, 0xfa, 0xe3, 0x5e]⟩) :
-    ∃ k C, RD vowBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork vowBytecode I g (initState σ σ₀ g A I)
         ⟨517⟩ [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : vowSelWord I = ⟨1710941022⟩ :=
@@ -262,10 +264,10 @@ theorem vowRelyBodyCore
       config.externalABI.decodeCalldata? (relyTransition.params.map Param.name)
         (transitionSignature relyTransition).paramTypes I.calldata =
           some ((∅ : Store).insert "usr" (.address (relyUsr I))))
-    (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨517⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let key := relyKey I
   let slot := solcMappingSlot ⟨0⟩ key
   let callerSlot := vowCallerWardsSlot I
@@ -338,9 +340,9 @@ theorem vowRelyBodyCore
             simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
               relyEvaledRef, relySlotFor])
           (hstore := hstore)
-      have hpre : ∀ r, ExecBlock config { contract := contract, locals := locals } evm0
+      have hpre : ∀ r, ExecBlock fork config { contract := contract, locals := locals } evm0
           [.assign .storage (wardsRef (.var "usr")) (.intLit 1)] r →
-          ExecBlock config { contract := contract, locals := locals } evm0
+          ExecBlock fork config { contract := contract, locals := locals } evm0
             [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
               .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)),
               .require (.binary .eq (.storage liveRef) (.intLit 1)),
@@ -352,11 +354,11 @@ theorem vowRelyBodyCore
         refine ExecBlock.consNormal (ExecStmt.requireTrue hguardLive) ?_
         exact hrest
       have hbody (hperm : I.perm = true) :
-          ExecTransitionBody config contract evm0 locals relyTransition.body
+          ExecTransitionBody fork config contract evm0 locals relyTransition.body
             (.returned { contract := contract, locals := locals } evm1 none) := by
         simpa [ExecTransitionBody, relyTransition, nonpayable, auth, evm0, evm1] using
           ExecFuncBody.execBlockOK (hpre _ (ExecBlock.consNormal
-            (ExecStmt.assign (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hassign) ExecBlock.nil))
+            (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hassign) ExecBlock.nil))
       have hliveSolc : solcSlotWord σ I ⟨12⟩ = ⟨1⟩ := by
         simpa [solcSlotWordAt] using hliveEvm
       obtain ⟨_, _, hstorePc⟩ := RD.vowLiveGuardOk
@@ -392,7 +394,7 @@ theorem vowRelyBodyCore
       obtain ⟨_, _, hretPc⟩ := permSplit_true hperm hstore
       have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
       have hret :
-          RDret vowBytecode (Sat256.ofUInt256 g)
+          RDret fork vowBytecode (Sat256.ofUInt256 g)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (sstoreAccountMap I.codeOwner σ slot ⟨1⟩) ByteArray.empty := by
         simpa [slot] using RD.stop hretPc' (by native_decide) (by simp)
@@ -408,7 +410,7 @@ theorem vowRelyBodyCore
         intro hstele
         exact hliveEvm (by rw [hliveWord, hstele])
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-      have hbody : ExecTransitionBody config contract evm0 locals relyTransition.body .reverted := by
+      have hbody : ExecTransitionBody fork config contract evm0 locals relyTransition.body .reverted := by
         have hguardAuth := vowAuthGuardEval_true
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := Sat256.ofUInt256 g) (locals := locals)
@@ -418,7 +420,7 @@ theorem vowRelyBodyCore
           (g := Sat256.ofUInt256 g) (locals := locals)
           (by simp [locals]) hliveStele
         have hblock :
-            ExecBlock config { contract := contract, locals := locals } evm0
+            ExecBlock fork config { contract := contract, locals := locals } evm0
               [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
                 .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)),
                 .require (.binary .eq (.storage liveRef) (.intLit 1)),
@@ -455,12 +457,12 @@ theorem vowRelyBodyCore
       intro hstele
       exact hauthEvm (by rw [hcallerWord, hstele])
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    have hbody : ExecTransitionBody config contract evm0 locals relyTransition.body .reverted := by
+    have hbody : ExecTransitionBody fork config contract evm0 locals relyTransition.body .reverted := by
       have hguard := vowAuthGuardEval_false
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) (locals := locals)
         (by simp [locals]) hauthStele
-      have hblock := nonpayableSecondRequireReverts
+      have hblock := nonpayableSecondRequireReverts (fork := fork)
         (cfg := config) (stele := { contract := contract, locals := locals })
         (evm := evm0)
         (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
@@ -491,7 +493,7 @@ theorem vowRelyBody {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hsel : selIs I ⟨#[0x65, 0xfa, 0xe3, 0x5e]⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := by omega
   exact vowRelyBodyCore hcode hwv hsz36 hsize (vowDispatch_rely hsel)
     (vowDecode_rely_ok hsz36)
@@ -502,9 +504,9 @@ theorem vowRelyShort {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hsel : selIs I ⟨#[0x65, 0xfa, 0xe3, 0x5e]⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hreach :=
-    vowReachRelyBody (σ := σ)
+    vowReachRelyBody (fork := fork) (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       hcode hwv hsz4 hsize hsel
   have hlt :

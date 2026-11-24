@@ -1,22 +1,24 @@
 import Benchmarks.Safe.V1_0227664.GuardTrace
 import Benchmarks.Safe.V1_0227664.TypedStaticCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V1_0227664
 
 theorem safeGuardCall {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     {k C : Nat} {aw gasArg guard : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g (initState σ σ₀ g A I) ⟨5897⟩
+    (h : RD fork safeBytecode I g (initState σ σ₀ g A I) ⟨5897⟩
       (gasArg :: guard :: ⟨128⟩ :: ⟨36⟩ :: ⟨128⟩ :: ⟨32⟩ :: R)
       (guardCallMemory .transaction) aw ByteArray.empty σ k C)
     (hov : R.length + 1 ≤ 1024) :
     ∃ (evm' : EVM.State) (σ' : AccountMap) (z : Bool) (out : ByteArray) (aw' : UInt256)
       (k' C' : Nat),
-      typedCallViaEVM config (initState σ σ₀ g A I) (AccountAddress.ofNat guard.toNat)
+      typedCallViaEVM fork config (initState σ σ₀ g A I) (AccountAddress.ofNat guard.toNat)
         "supportsInterface" 0 [guardInterfaceValue .transaction] (z, evm', out) false ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧
-      RD safeBytecode I g (initState σ σ₀ g A I) ⟨5898⟩
+      RD fork safeBytecode I g (initState σ σ₀ g A I) ⟨5898⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: R) ((guardOutputMemory .transaction) out) aw' out σ' k' C' ∧
       out.size < 2 ^ 138 := by
   obtain ⟨evm', σ', z, out, aw', k', C', hc, hee, hacc, hr, hout⟩ :=

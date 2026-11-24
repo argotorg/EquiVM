@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.TransferInternalEvm
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_009
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_027
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -14,10 +16,10 @@ theorem cometTransferCall {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 evm : State} {rdata : ByteArray}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} (dst : AccountAddress)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨4994⟩ [EVM.word dst.val, ⟨2116⟩]
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨4994⟩ [EVM.word dst.val, ⟨2116⟩]
       solcFreePtrMem aw rdata σ k C) :
-    ∃ result, TransferInternalTrace v ee.source ee.source dst v.baseToken
-      (calldataWord ee.calldata 36) evm result ∧ returnOutcomeRun (deployedRuntime v) g s0 (transferReturnData true) result := by
+    ∃ result, TransferInternalTrace fork v ee.source ee.source dst v.baseToken
+      (calldataWord ee.calldata 36) evm result ∧ returnOutcomeRun fork (deployedRuntime v) g s0 (transferReturnData true) result := by
   have r1 := cometWithExtendedAssetList_block_4994 (immWords := wordsOf (immStore v))
     (by change 4 ≤ 1024; decide)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
@@ -37,20 +39,20 @@ theorem cometTransferCall {v : CometWithExtendedAssetListImmutables}
     change 128 + 736 + 1696 * v.numAssets.toNat < 2^64
     omega
 
-def TransferResult (v : CometWithExtendedAssetListImmutables) (I : ExecutionEnv)
+def TransferResult (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables) (I : ExecutionEnv)
     (g : Sat256) (s0 : EVM.State) : Prop :=
   if I.weiValue = ⟨0⟩ ∧ 68 ≤ I.calldata.size ∧ I.calldata.size < 2^255 + 4 ∧
       (calldataWord I.calldata 4).toNat < EVM.addressModulus then
-    ∃ result, TransferInternalTrace v I.source I.source
+    ∃ result, TransferInternalTrace fork v I.source I.source
       (AccountAddress.ofNat (calldataWord I.calldata 4).toNat) v.baseToken
-      (calldataWord I.calldata 36) s0 result ∧ returnOutcomeRun (deployedRuntime v) g s0 (transferReturnData true) result
-  else RDrev (deployedRuntime v) g s0
+      (calldataWord I.calldata 36) s0 result ∧ returnOutcomeRun fork (deployedRuntime v) g s0 (transferReturnData true) result
+  else RDrev fork (deployedRuntime v) g s0
 
 theorem transferX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 49)) :
-    TransferResult v I g (initState σ σ₀ g A I) := by
+    TransferResult fork v I g (initState σ σ₀ g A I) := by
   obtain ⟨k, C, rd⟩ := cometWithExtendedAssetListReachTransferBody
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) v hcode hsz hsize hsel
   have rd1 := cometWithExtendedAssetList_block_952 (immWords := wordsOf (immStore v))
@@ -72,7 +74,7 @@ theorem transferX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImm
             (by rw [cometWithExtendedAssetListPatchedValidJumps v]; jump_dest) rd4
           unfold TransferResult
           rw [if_pos ⟨hv, hlo, hhi, hc⟩]
-          change RD _ _ _ _ _ [calldataWord I.calldata 4, UInt256.ofNat 2116] _ _ _ _ _ _ at rd5
+          change RD fork _ _ _ _ _ [calldataWord I.calldata 4, UInt256.ofNat 2116] _ _ _ _ _ _ at rd5
           rw [← addressWord_eq_ofNat_address hc] at rd5
           exact cometTransferCall _ SourceState.init rd5
         · simp only [TransferResult, hc, and_false, if_false]

@@ -32,6 +32,8 @@ import Benchmarks.Dss.Vow.Wait
 import Benchmarks.Dss.Vow.Wards
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Vow benchmark correctness stub
 
@@ -49,7 +51,7 @@ namespace Benchmarks.Dss.Vow
 /-- `callvalue ≠ 0` makes the global non-payable guard revert before dispatch. -/
 theorem vowNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeRefinementFor config contract
+    runtimeRefinementFor fork config contract
       σ σ₀ g A I := by
   exact (vowX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
@@ -73,7 +75,7 @@ theorem vowNonPayable {σ σ₀ A I} {g : UInt256}
 theorem vowShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (_hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    runtimeRefinementFor config contract
+    runtimeRefinementFor fork config contract
       σ σ₀ g A I := by
   exact (vowX_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch hcode
     (vowDispatch_none_short hsz)
@@ -83,7 +85,7 @@ theorem vowNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 24 → (vowSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeRefinementFor config contract
+    runtimeRefinementFor fork config contract
       σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (vowX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
@@ -147,29 +149,29 @@ theorem vowNoSelectorMatches {I : ExecutionEnv}
 
 theorem vowCorrectWith
     (cageBody :
-      ∀ {σ σ₀ A I} {g : UInt256},
+      ∀ {fork : Ethereum.Fork} {σ σ₀ A I} {g : UInt256},
         I.code = vowBytecode →
         I.calldata.size < UInt256.size →
         I.weiValue = ⟨0⟩ →
         selIs I ⟨#[0x69, 0x24, 0x50, 0x09]⟩ →
-        runtimeRefinementFor config contract σ σ₀ g A I)
+        runtimeRefinementFor fork config contract σ σ₀ g A I)
     (flapBody :
-      ∀ {σ σ₀ A I} {g : UInt256},
+      ∀ {fork : Ethereum.Fork} {σ σ₀ A I} {g : UInt256},
         I.code = vowBytecode →
         I.calldata.size < UInt256.size →
         I.weiValue = ⟨0⟩ →
         selIs I ⟨#[0x0e, 0x01, 0x19, 0x8b]⟩ →
-        runtimeRefinementFor config contract σ σ₀ g A I)
+        runtimeRefinementFor fork config contract σ σ₀ g A I)
     (flopBody :
-      ∀ {σ σ₀ A I} {g : UInt256},
+      ∀ {fork : Ethereum.Fork} {σ σ₀ A I} {g : UInt256},
         I.code = vowBytecode →
         I.calldata.size < UInt256.size →
         I.weiValue = ⟨0⟩ →
         selIs I ⟨#[0xbb, 0xbb, 0x0d, 0x7b]⟩ →
-        runtimeRefinementFor config contract σ σ₀ g A I) :
+        runtimeRefinementFor fork config contract σ σ₀ g A I) :
     runtimeRefinement config vowBytecode contract := by
-  refine runtimeRefinement.intro ?_
-  intro σ σ₀ g A I hcode hsize
+  refine runtimeRefinementOn.intro ?_
+  intro fork _hfork σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hAsh : selIs I ⟨#[0x2a, 0x1d, 0x2b, 0x3c]⟩
     · exact vowAshBody hcode hsize hwv hAsh

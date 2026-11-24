@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.CreateAssetListSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -11,9 +13,9 @@ theorem createAssetList_call_ok {frame : Frame} {evm evm' : EVM.State}
     (hfactory : evalExpr? config frame evm factoryExpr = .ok (.address factory))
     (hassets : evalExpr? config frame evm assetsExpr =
       .ok (.array (assets.map ConstructorAsset.value)))
-    (hc : callViaEVM evm factory 0 (createAssetListPayload assets assets.length) (true, evm', out))
+    (hc : callViaEVM fork evm factory 0 (createAssetListPayload assets assets.length) (true, evm', out))
     (hhi : out.size < 2^255) (hv : ConstructorFactoryReturnValid out) :
-    ExecStmt config frame evm (.internalCall "createAssetList_call" [factoryExpr, assetsExpr] ret)
+    ExecStmt fork config frame evm (.internalCall "createAssetList_call" [factoryExpr, assetsExpr] ret)
       (.ok { frame with locals := (frame.locals.insert ret
         (.address (AccountAddress.ofUInt256 (calldataWord out 0)))) } evm') := by
   obtain ⟨final, hb⟩ := createAssetListBody_ok frame.immutables factory assets hn hc hhi hv
@@ -34,9 +36,9 @@ theorem createAssetList_call_revert {frame : Frame} {evm evm' : EVM.State}
     (hfactory : evalExpr? config frame evm factoryExpr = .ok (.address factory))
     (hassets : evalExpr? config frame evm assetsExpr =
       .ok (.array (assets.map ConstructorAsset.value)))
-    (hc : callViaEVM evm factory 0 (createAssetListPayload assets assets.length) (z, evm', out))
+    (hc : callViaEVM fork evm factory 0 (createAssetListPayload assets assets.length) (z, evm', out))
     (hhi : out.size < 2^255) (hv : ¬ (z = true ∧ ConstructorFactoryReturnValid out)) :
-    ExecStmt config frame evm (.internalCall "createAssetList_call" [factoryExpr, assetsExpr] ret)
+    ExecStmt fork config frame evm (.internalCall "createAssetList_call" [factoryExpr, assetsExpr] ret)
       .reverted := by
   apply ExecStmt.internalCallRevert (callee := createAssetListCallable)
     (locals := ((∅ : Store).insert "assets" (.array (assets.map ConstructorAsset.value))).insert

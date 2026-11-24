@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.NoDelegateCall
 import Benchmarks.UniswapV3.Pool.CheckTicksSource
 import Benchmarks.UniswapV3.Pool.TickReferences
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -25,7 +27,7 @@ def snapshotCheckedFrame (v : UniswapV3PoolImmutables) (lower upper : Int) : Fra
 
 theorem snapshotInitialPrefix (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (lower upper : Int) (hwv : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecBlock config (snapshotFrame v lower upper) evm (snapshotTransition.body.take 4)
+    ExecBlock fork config (snapshotFrame v lower upper) evm (snapshotTransition.body.take 4)
       (.ok (snapshotInitialFrame v lower upper) evm) := by
   apply (ABlock.start.requireStep (evalCallvalueEq_true hwv)).run
   refine ExecBlock.consNormal (ExecStmt.letDecl (value := .int 0) (by simp only [evalExpr?, pure])) ?_
@@ -34,7 +36,7 @@ theorem snapshotInitialPrefix (v : UniswapV3PoolImmutables) (evm : EVM.State)
 
 theorem snapshotDelegateCall (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (lower upper : Int) (hself : evm.executionEnv.codeOwner = v.original) :
-    ExecStmt config (snapshotInitialFrame v lower upper) evm
+    ExecStmt fork config (snapshotInitialFrame v lower upper) evm
       (.internalCall "checkNotDelegateCall" [] "__c0") (.ok (snapshotDelegateFrame v lower upper) evm) :=
   internalCallFunctionReturn (callee := noDelegateCallFunction) (argVals := []) (locals := ∅)
     (calleeStele := noDelegateCallFrame v) (value := none)
@@ -49,7 +51,7 @@ theorem snapshotCheckTicksArgs (v : UniswapV3PoolImmutables) (evm : EVM.State) (
 
 theorem snapshotCheckTicksCall (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (lower upper : Int) (hticks : validTicks lower upper) :
-    ExecStmt config (snapshotDelegateFrame v lower upper) evm
+    ExecStmt fork config (snapshotDelegateFrame v lower upper) evm
       (.internalCall "checkTicks" [.var "tickLower", .var "tickUpper"] "__c1")
       (.ok (snapshotCheckedFrame v lower upper) evm) :=
   internalCallFunctionReturn (callee := checkTicksFunction) (locals := checkTicksLocals lower upper)
@@ -60,9 +62,9 @@ theorem snapshotCheckTicksCall (v : UniswapV3PoolImmutables) (evm : EVM.State)
 theorem snapshotCheckedPrefix (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (lower upper : Int) (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hself : evm.executionEnv.codeOwner = v.original) (hticks : validTicks lower upper) :
-    ExecBlock config (snapshotFrame v lower upper) evm (snapshotTransition.body.take 6)
+    ExecBlock fork config (snapshotFrame v lower upper) evm (snapshotTransition.body.take 6)
       (.ok (snapshotCheckedFrame v lower upper) evm) := by
-  change ExecBlock _ _ _ (snapshotTransition.body.take 4 ++ (snapshotTransition.body.drop 4).take 2) _
+  change ExecBlock fork _ _ _ (snapshotTransition.body.take 4 ++ (snapshotTransition.body.drop 4).take 2) _
   apply execBlock_append_ok (snapshotInitialPrefix v evm lower upper hwv)
   exact ExecBlock.consNormal (snapshotDelegateCall v evm lower upper hself)
     (ExecBlock.consNormal (snapshotCheckTicksCall v evm lower upper hticks) ExecBlock.nil)
@@ -70,7 +72,7 @@ theorem snapshotCheckedPrefix (v : UniswapV3PoolImmutables) (evm : EVM.State)
 theorem snapshotRevertsDelegate (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (lower upper : Int) (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hself : evm.executionEnv.codeOwner ≠ v.original) :
-    ExecTransitionBody config contract evm (snapshotLocals lower upper) snapshotTransition.body .reverted (immStore v) := by
+    ExecTransitionBody fork config contract evm (snapshotLocals lower upper) snapshotTransition.body .reverted (immStore v) := by
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 4 snapshotTransition.body]
   apply execBlock_append_ok (snapshotInitialPrefix v evm lower upper hwv)
@@ -81,7 +83,7 @@ theorem snapshotRevertsDelegate (v : UniswapV3PoolImmutables) (evm : EVM.State)
 theorem snapshotRevertsTicks (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (lower upper : Int) (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hself : evm.executionEnv.codeOwner = v.original) (hticks : ¬ validTicks lower upper) :
-    ExecTransitionBody config contract evm (snapshotLocals lower upper) snapshotTransition.body .reverted (immStore v) := by
+    ExecTransitionBody fork config contract evm (snapshotLocals lower upper) snapshotTransition.body .reverted (immStore v) := by
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 4 snapshotTransition.body]
   apply execBlock_append_ok (snapshotInitialPrefix v evm lower upper hwv)
@@ -108,7 +110,7 @@ def snapshotAliasesFrame (v : UniswapV3PoolImmutables) (lower upper : Int) : Fra
 
 theorem snapshotAliasPrefix (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (lower upper : Int) :
-    ExecBlock config (snapshotCheckedFrame v lower upper) evm
+    ExecBlock fork config (snapshotCheckedFrame v lower upper) evm
       ((snapshotTransition.body.drop 6).take 8) (.ok (snapshotAliasesFrame v lower upper) evm) := by
   refine ExecBlock.consNormal (ExecStmt.letDecl (value := .int 0) (by simp only [evalExpr?, pure])) ?_
   refine ExecBlock.consNormal (ExecStmt.letDecl (value := .int 0) (by simp only [evalExpr?, pure])) ?_
@@ -116,7 +118,7 @@ theorem snapshotAliasPrefix (v : UniswapV3PoolImmutables) (evm : EVM.State)
   refine ExecBlock.consNormal (ExecStmt.letDecl (value := .int 0) (by simp only [evalExpr?, pure])) ?_
   refine ExecBlock.consNormal (ExecStmt.letDecl (value := .int 0) (by simp only [evalExpr?, pure])) ?_
   refine ExecBlock.consNormal (ExecStmt.letDecl (value := .int 0) (by simp only [evalExpr?, pure])) ?_
-  change ExecBlock config (snapshotZerosFrame v lower upper) evm _ _
+  change ExecBlock fork config (snapshotZerosFrame v lower upper) evm _ _
   refine ExecBlock.consNormal (stele' := snapshotLowerAliasFrame v lower upper) (evm' := evm)
     (ExecStmt.letStorage ?_) ?_
   · exact resolveTickReference _ _ evm "tickLower" lower

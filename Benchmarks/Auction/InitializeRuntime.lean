@@ -2,6 +2,8 @@ import Benchmarks.Auction.InitializerRoutines
 import Benchmarks.Auction.InitializeStores
 import Benchmarks.Auction.PauseRoutine
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 100000
@@ -43,13 +45,13 @@ theorem initializeBaseMap_unpaused (σ : AccountMap) (I : ExecutionEnv) :
   exact pausedWord_initializerPauseMap _ _
 
 theorem initializeNestedSetupSplit {I g s0 R rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨2213⟩ R solcFreePtrMem (UInt256.ofNat 3)
+    (h : RD fork auctionBytecode I g s0 ⟨2213⟩ R solcFreePtrMem (UInt256.ofNat 3)
       rdata (initializerEntered σ I) k C)
     (hov : R.length + 16 ≤ 1024) :
     (I.perm = true ∧
-      ∃ k' C', RD auctionBytecode I g s0 ⟨2237⟩ R solcFreePtrMem (UInt256.ofNat 3)
+      ∃ k' C', RD fork auctionBytecode I g s0 ⟨2237⟩ R solcFreePtrMem (UInt256.ofNat 3)
         rdata (initializeBaseMap σ I) k' C') ∨
-      (I.perm = false ∧ RDstatic auctionBytecode g s0) := by
+      (I.perm = false ∧ RDstatic fork auctionBytecode g s0) := by
   have hr := initializerEntered_ready σ I
   have rd3778 := evm_run h with [
     jumpdest, push2 ⟨2221⟩, push2 ⟨3778⟩, jump (by jump_dest) ]
@@ -66,26 +68,26 @@ theorem initializeNestedSetupSplit {I g s0 R rdata σ k C}
   exact ownableInitializer rd3987 hr2 hperm (by jump_dest) hov
 
 theorem initializeNestedSetup {I g s0 R rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨2213⟩ R solcFreePtrMem (UInt256.ofNat 3)
+    (h : RD fork auctionBytecode I g s0 ⟨2213⟩ R solcFreePtrMem (UInt256.ofNat 3)
       rdata (initializerEntered σ I) k C)
     (hperm : I.perm = true) (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨2237⟩ R solcFreePtrMem (UInt256.ofNat 3)
+    ∃ k' C', RD fork auctionBytecode I g s0 ⟨2237⟩ R solcFreePtrMem (UInt256.ofNat 3)
       rdata (initializeBaseMap σ I) k' C' :=
   permSplit_true hperm (initializeNestedSetupSplit h hov)
 
 theorem initializeRuntimeSplit {I g s0 ret R rdata σ k C} (args : InitializeArgs)
-    (h : RD auctionBytecode I g s0 ⟨2130⟩ (args.words.reverse ++ ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨2130⟩ (args.words.reverse ++ ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hc : args.canonical) (hg : initializingWord σ I ≠ ⟨0⟩ ∨ initializedWord σ I = ⟨0⟩)
     (hret : (D_J auctionBytecode 0).contains ret = true)
     (hov : R.length + 24 ≤ 1024) :
     (I.perm = true ∧
-      ∃ k' C', RD auctionBytecode I g s0 ret R
+      ∃ k' C', RD fork auctionBytecode I g s0 ret R
         (addressEventMem solcFreePtrMem (solcSourceWord I))
         (addressEventWords solcFreePtrMem (UInt256.ofNat 3) (solcSourceWord I))
         rdata (initializeFinalMap args σ I) k' C') ∨
-      (I.perm = false ∧ RDstatic auctionBytecode g s0) := by
-  change RD _ _ _ _ _
+      (I.perm = false ∧ RDstatic fork auctionBytecode g s0) := by
+  change RD fork _ _ _ _ _
     (args.duration :: args.minBidIncrement :: args.reservePrice :: args.timeBuffer ::
       args.weth :: args.nouns :: ret :: R) _ _ _ _ _ _ at h
   obtain ⟨_, _, rd2181⟩ := initializerGuardOk 0 h hg (by evm_ov)
@@ -101,12 +103,12 @@ theorem initializeRuntimeSplit {I g s0 ret R rdata σ k C} (args : InitializeArg
   exact initializeExit args rd2326 hperm hret (by omega)
 
 theorem initializeRuntime {I g s0 ret R rdata σ k C} (args : InitializeArgs)
-    (h : RD auctionBytecode I g s0 ⟨2130⟩ (args.words.reverse ++ ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨2130⟩ (args.words.reverse ++ ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hc : args.canonical) (hg : initializingWord σ I ≠ ⟨0⟩ ∨ initializedWord σ I = ⟨0⟩)
     (hperm : I.perm = true) (hret : (D_J auctionBytecode 0).contains ret = true)
     (hov : R.length + 24 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret R
+    ∃ k' C', RD fork auctionBytecode I g s0 ret R
       (addressEventMem solcFreePtrMem (solcSourceWord I))
       (addressEventWords solcFreePtrMem (UInt256.ofNat 3) (solcSourceWord I))
       rdata (initializeFinalMap args σ I) k' C' :=

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.UpdatePositionTickEntryTrace
 import Benchmarks.UniswapV3.Pool.UpdatePositionBitmapModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -31,10 +33,10 @@ theorem updatePositionBitmapGuardX {σ : AccountMap} {ee : ExecutionEnv} {g : Sa
     {s0 : EVM.State} {k C : Nat} {aw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : UpdatePositionArgs) (evm : EVM.State) (upper : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (updatePositionBitmapEntryPC upper)
+    (rd : RD fork (deployedRuntime v) ee g s0 (updatePositionBitmapEntryPC upper)
       (updatePositionBitmapEntryWords v a evm upper ++ R) mem aw rdata σ k C)
     (hov : R.length + 15 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0
       (if updatePositionFlipped v a evm upper then updatePositionBitmapCallPC upper
         else updatePositionBitmapReturnPC upper)
       (updatePositionBitmapWords v a evm ++ R) mem aw rdata σ k' C' := by
@@ -75,10 +77,10 @@ theorem updatePositionBitmapCallEntryX {σ : AccountMap} {ee : ExecutionEnv} {g 
     {s0 : EVM.State} {k C : Nat} {aw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : UpdatePositionArgs) (evm : EVM.State) (upper : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (updatePositionBitmapCallPC upper)
+    (rd : RD fork (deployedRuntime v) ee g s0 (updatePositionBitmapCallPC upper)
       (updatePositionBitmapWords v a evm ++ R) mem aw rdata σ k C)
     (hov : R.length + 18 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨21285⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨21285⟩
       (v.tickSpacing :: EVM.wordOfInt (if upper then a.upper else a.lower) :: ⟨6⟩ ::
         updatePositionBitmapReturnPC upper :: updatePositionBitmapWords v a evm ++ R)
       mem aw rdata σ k' C' := by

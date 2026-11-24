@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.ErrorRoutines
 import Benchmarks.Morpho.MorphoBlue.AdminCommon
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Morpho `enableLltv(uint256)`
 
@@ -49,7 +51,7 @@ theorem morphoEnableLltvBodySplit (v : MorphoImmutables) (evm : EVM.State)
     (hdisabled : lltvEnabledByte evm.accountMap evm.executionEnv
       (calldataWord evm.executionEnv.calldata 4) = ⟨0⟩)
     (hlimit : (calldataWord evm.executionEnv.calldata 4).toNat < 1000000000000000000) :
-    (evm.executionEnv.perm = true → ExecTransitionBody config contract evm (enableLltvArgs evm.executionEnv.calldata)
+    (evm.executionEnv.perm = true → ExecTransitionBody fork config contract evm (enableLltvArgs evm.executionEnv.calldata)
       enableLltvTransition.body
       (.returned (enableLltvFrame v evm.executionEnv.calldata)
         (Stele.EVM.storageStore evm evm.executionEnv.codeOwner
@@ -58,7 +60,7 @@ theorem morphoEnableLltvBodySplit (v : MorphoImmutables) (evm : EVM.State)
             (solcMappingSlot ⟨5⟩ (calldataWord evm.executionEnv.calldata 4))
             evm.accountMap evm.executionEnv) (UInt256.lnot ⟨255⟩)) ⟨1⟩)) none) (immStore v)) ∧
     (evm.executionEnv.perm = false →
-      ExecTransitionBody config contract evm (enableLltvArgs evm.executionEnv.calldata)
+      ExecTransitionBody fork config contract evm (enableLltvArgs evm.executionEnv.calldata)
         enableLltvTransition.body .staticViolation (immStore v)) := by
   have howner := evalMorphoOwnerCheck evm (enableLltvFrame v evm.executionEnv.calldata).locals
     (immStore v) (by simp [enableLltvFrame, addressAdminFrame, enableLltvArgs])
@@ -68,7 +70,7 @@ theorem morphoEnableLltvBodySplit (v : MorphoImmutables) (evm : EVM.State)
   have hload := evalMorphoLltvEnabled evm _ (immStore v) (.var "lltv") _ hbase hkey
   have hnot := evalNotBoolWord hload
   simp only [lltvEnabledByte] at hdisabled
-  have hprefix : ABlock config evm
+  have hprefix : ABlock fork config evm
       { contract := contract, locals := enableLltvArgs evm.executionEnv.calldata, immutables := immStore v }
       enableLltvTransition.body (enableLltvFrame v evm.executionEnv.calldata)
       (enableLltvTransition.body.drop 6) :=
@@ -84,8 +86,8 @@ theorem morphoEnableLltvBodySplit (v : MorphoImmutables) (evm : EVM.State)
   · intro hperm
     apply ExecFuncBody.execBlockOK
     apply hprefix.run
-    apply ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) (htrue evm) hassign)
-    apply ExecBlock.consNormal (ExecStmt.emit (hperm := by simpa only [storageStore_executionEnv] using hperm) (evalExprs?_singleton (enableLltvArg_eval v _ _)))
+    apply ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (htrue evm) hassign)
+    apply ExecBlock.consNormal (ExecStmt.emit (fork := fork) (hperm := by simpa only [storageStore_executionEnv] using hperm) (evalExprs?_singleton (enableLltvArg_eval v _ _)))
     exact ExecBlock.nil
   · intro hperm
     exact ExecFuncBody.execBlockStatic
@@ -97,7 +99,7 @@ theorem morphoEnableLltvBodyRejects (v : MorphoImmutables) (evm : EVM.State)
     (hbad : solcSourceWord evm.executionEnv ≠ solcAddressSlotWord ⟨0⟩ evm.accountMap evm.executionEnv ∨
       lltvEnabledByte evm.accountMap evm.executionEnv (calldataWord evm.executionEnv.calldata 4) ≠ ⟨0⟩ ∨
       ¬ (calldataWord evm.executionEnv.calldata 4).toNat < 1000000000000000000) :
-    ExecTransitionBody config contract evm (enableLltvArgs evm.executionEnv.calldata)
+    ExecTransitionBody fork config contract evm (enableLltvArgs evm.executionEnv.calldata)
       enableLltvTransition.body .reverted (immStore v) := by
   have howner := evalMorphoOwnerCheck evm (enableLltvFrame v evm.executionEnv.calldata).locals
     (immStore v) (by simp [enableLltvFrame, addressAdminFrame, enableLltvArgs])
@@ -136,14 +138,14 @@ theorem morphoEnableLltvReachOwnerCheck {σ σ₀ A I} {g : Sat256} (v : MorphoI
     (hsel : selIs I (morphoSelBytes 7))
     (hcv : I.weiValue = ⟨0⟩) (hlen : 36 ≤ I.calldata.size)
     (hbound : I.calldata.size < 2 ^ 255 + 4) :
-    ∃ aw k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 12097)
+    ∃ aw k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 12097)
       [UInt256.eq (solcSourceWord I) (solcAddressSlotWord ⟨0⟩ σ I),
        UInt256.ofNat 128, UInt256.ofNat 9104, calldataWord I.calldata 4,
        UInt256.ofNat 32, enableLltvTopic, ⟨0⟩]
       (morphoNotOwnerMem solcFreePtrMem) aw ByteArray.empty σ k C := by
   obtain ⟨k, C, rd⟩ := morphoReachEnableLltvBody (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode (by omega) hsize hsel
-  change RD _ _ _ _ _ _ solcFreePtrMem _ _ _ _ _ at rd
+  change RD fork _ _ _ _ _ _ solcFreePtrMem _ _ _ _ _ at rd
   have rdGuard := morphoBlocks.morpho_block_8981_fallthrough
     (immWords := wordsOf (immStore v)) (by decide) hcv rd
   have hcond := solcCalldataStaticLenCheckOk (words := 1) hlen hbound hsize
@@ -167,7 +169,7 @@ theorem morphoEnableLltvReachEnabledCheck {σ σ₀ A I} {g : Sat256} (v : Morph
     (hcv : I.weiValue = ⟨0⟩) (hlen : 36 ≤ I.calldata.size)
     (hbound : I.calldata.size < 2 ^ 255 + 4)
     (ho : solcSourceWord I = solcAddressSlotWord ⟨0⟩ σ I) :
-    ∃ aw k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 12097)
+    ∃ aw k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 12097)
       [UInt256.isZero (lltvEnabledByte σ I (calldataWord I.calldata 4)),
        UInt256.ofNat 192, UInt256.ofNat 9131, calldataWord I.calldata 4,
        UInt256.ofNat 32, enableLltvTopic, ⟨0⟩]
@@ -180,7 +182,7 @@ theorem morphoEnableLltvReachEnabledCheck {σ σ₀ A I} {g : Sat256} (v : Morph
   obtain ⟨kh, Ch, rdMessage⟩ := morphoBlocks.morpho_block_9104
     (immWords := wordsOf (immStore v)) (by simp)
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) rdNext
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     [UInt256.ofNat 585,
       UInt256.isZero (UInt256.land (solcSlotWordAt
         (keccakWord ⟨0⟩ (UInt256.ofNat 64) (lltvCheckMem (calldataWord I.calldata 4))) σ I)
@@ -217,7 +219,7 @@ theorem morphoEnableLltvReachLimitCheck {σ σ₀ A I} {g : Sat256} (v : MorphoI
     (hbound : I.calldata.size < 2 ^ 255 + 4)
     (ho : solcSourceWord I = solcAddressSlotWord ⟨0⟩ σ I)
     (hdisabled : lltvEnabledByte σ I (calldataWord I.calldata 4) = ⟨0⟩) :
-    ∃ aw k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 12097)
+    ∃ aw k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 12097)
       [UInt256.lt (calldataWord I.calldata 4) (UInt256.ofNat 1000000000000000000),
        UInt256.ofNat 256, UInt256.ofNat 9203, calldataWord I.calldata 4,
        UInt256.ofNat 32, enableLltvTopic, ⟨0⟩]
@@ -235,7 +237,7 @@ theorem morphoEnableLltvReachLimitCheck {σ σ₀ A I} {g : Sat256} (v : MorphoI
   have rdCheck := morphoBlocks.morpho_block_9146
     (immWords := wordsOf (immStore v)) (by simp)
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) rdMessage
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     [UInt256.lt (calldataWord I.calldata 4) (UInt256.ofNat 1000000000000000000),
       memLoad (UInt256.ofNat 64) (morphoAlreadySetMem (lltvCheckMem (calldataWord I.calldata 4))),
       UInt256.ofNat 9203, calldataWord I.calldata 4, UInt256.ofNat 32, enableLltvTopic, ⟨0⟩]
@@ -251,7 +253,7 @@ theorem morphoEnableLltvXRejects {σ σ₀ A I} {g : Sat256} (v : MorphoImmutabl
     (hbad : solcSourceWord I ≠ solcAddressSlotWord ⟨0⟩ σ I ∨
       lltvEnabledByte σ I (calldataWord I.calldata 4) ≠ ⟨0⟩ ∨
       ¬ (calldataWord I.calldata 4).toNat < 1000000000000000000) :
-    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
   by_cases ho : solcSourceWord I = solcAddressSlotWord ⟨0⟩ σ I
   · have hrest := hbad.resolve_left (not_not.mpr ho)
     by_cases hd : lltvEnabledByte σ I (calldataWord I.calldata 4) = ⟨0⟩
@@ -276,9 +278,9 @@ theorem morphoEnableLltvStoreStatic {v : MorphoImmutables} {ee : ExecutionEnv} {
     {s0 : EVM.State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : Nat} {key size topic zero : UInt256} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024) (hperm : ee.perm = false)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 9203)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 9203)
       (key :: size :: topic :: zero :: R) mem aw rdata σ k C) :
-    RDstatic (deployedRuntime v) g s0 := by
+    RDstatic fork (deployedRuntime v) g s0 := by
   let r0 := h
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.Morpho.MorphoBlue.immutableLayout, Benchmarks.Morpho.MorphoBlue.morphoBytecode, wordsOf (immStore v), (⟨9203⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, morphoBlocks.immutableLayout_inBounds, morphoBlocks.immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.dup1 (by immutable_decode(Benchmarks.Morpho.MorphoBlue.immutableLayout, Benchmarks.Morpho.MorphoBlue.morphoBytecode, wordsOf (immStore v), (⟨9204⟩ : UInt256), UInt8.ofNat 128, .DUP1, none, morphoBlocks.immutableLayout_inBounds, morphoBlocks.immutableTemplate_size64)) (by evm_ov)
@@ -307,11 +309,11 @@ theorem morphoEnableLltvXSplit {σ σ₀ A I} {g : Sat256} (v : MorphoImmutables
     (ho : solcSourceWord I = solcAddressSlotWord ⟨0⟩ σ I)
     (hdisabled : lltvEnabledByte σ I (calldataWord I.calldata 4) = ⟨0⟩)
     (hlimit : (calldataWord I.calldata 4).toNat < 1000000000000000000) :
-    (I.perm = true ∧ RDret (deployedRuntime v) g (initState σ σ₀ g A I)
+    (I.perm = true ∧ RDret fork (deployedRuntime v) g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ (solcMappingSlot ⟨5⟩ (calldataWord I.calldata 4))
         (UInt256.lor (UInt256.land (solcSlotWordAt (solcMappingSlot ⟨5⟩
           (calldataWord I.calldata 4)) σ I) (UInt256.lnot ⟨255⟩)) ⟨1⟩)) ByteArray.empty) ∨
-    (I.perm = false ∧ RDstatic (deployedRuntime v) g (initState σ σ₀ g A I)) := by
+    (I.perm = false ∧ RDstatic fork (deployedRuntime v) g (initState σ σ₀ g A I)) := by
   obtain ⟨aw, k, C, rd⟩ := morphoEnableLltvReachLimitCheck (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hsize hsel hcv hlen hbound ho hdisabled
   have hc : UInt256.lt (calldataWord I.calldata 4) (UInt256.ofNat 1000000000000000000) = ⟨1⟩ :=
@@ -323,7 +325,7 @@ theorem morphoEnableLltvXSplit {σ σ₀ A I} {g : Sat256} (v : MorphoImmutables
     have ret := morphoBlocks.morpho_block_9203 (immWords := wordsOf (immStore v)) (by decide) hperm rdStore
     let mem := twoWordHashMem (calldataWord I.calldata 4) (UInt256.ofNat 5)
       (lltvLimitMem (calldataWord I.calldata 4))
-    change RDret _ _ _ (sstoreAccountMap I.codeOwner σ (keccakWord ⟨0⟩ (UInt256.ofNat 64) mem)
+    change RDret fork _ _ _ (sstoreAccountMap I.codeOwner σ (keccakWord ⟨0⟩ (UInt256.ofNat 64) mem)
       (UInt256.lor (UInt256.land (solcSlotWordAt (keccakWord ⟨0⟩ (UInt256.ofNat 64) mem) σ I)
         (UInt256.ofNat 115792089237316195423570985008687907853269984665640564039457584007913129639680))
         (UInt256.ofNat 1)))
@@ -343,7 +345,7 @@ theorem morphoEnableLltvXReverts {σ σ₀ A I} {g : Sat256} (v : MorphoImmutabl
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 7))
     (hbad : I.weiValue ≠ ⟨0⟩ ∨ I.calldata.size < 36 ∨ 2 ^ 255 + 4 ≤ I.calldata.size) :
-    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 7) rfl hsel
   obtain ⟨k, C, rd⟩ := morphoReachEnableLltvBody (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hsz hsize hsel
@@ -370,7 +372,7 @@ theorem morphoEnableLltvXReverts {σ σ₀ A I} {g : Sat256} (v : MorphoImmutabl
 theorem morphoEnableLltvBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 7)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 7) rfl hsel
   have hd : selectorDispatchMsg contract I.calldata = some enableLltvTransition :=
     morphoSelectorDispatch_of_selIs (by decide) hsel
@@ -385,7 +387,7 @@ theorem morphoEnableLltvBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutables)
             lltvEnabledByte σ I (calldataWord I.calldata 4) = ⟨0⟩ ∧
             (calldataWord I.calldata 4).toNat < 1000000000000000000
         · rcases hguards with ⟨ho, hdisabled, hlimit⟩
-          have hbody := morphoEnableLltvBodySplit v (initState σ σ₀ (.ofUInt256 g) A I)
+          have hbody := morphoEnableLltvBodySplit (fork := fork) v (initState σ σ₀ (.ofUInt256 g) A I)
             hcv hbound ho hdisabled hlimit
           rcases morphoEnableLltvXSplit (g := .ofUInt256 g) (σ₀ := σ₀) (A := A)
             v hcode hsize hsel hcv hlen hbound ho hdisabled hlimit with ⟨hp, hx⟩ | ⟨hp, hx⟩

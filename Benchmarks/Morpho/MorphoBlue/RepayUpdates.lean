@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.RepayTail
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -17,9 +19,9 @@ theorem morphoRepayUpdates {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat25
     (htoken : memLoad (UInt256.ofNat 128) mem = p.loanToken)
     (hlen : len.toNat ≤ solcMaxU64) (hsrc : srcOff.toNat + len.toNat ≤ ee.calldata.size)
     (hdata : ee.calldata.readWithPadding srcOff.toNat len.toNat = data) (hdataSize : data.size = len.toNat)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 10609)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 10609)
       (repayUpdateTail p.id assets shares account srcOff len []) mem aw out σ k C) :
-    ReturnBlockRefines config (deployedRuntime v) ee g s0
+    ReturnBlockRefines fork config (deployedRuntime v) ee g s0
       { contract := contract, locals := locals, immutables := imms } evm
       (repayTransition.body.drop 12) repayTransition.returnType := by
   have hp := morphoRepayPositionRefine p data locals imms (by decide) ha hl hs hm h

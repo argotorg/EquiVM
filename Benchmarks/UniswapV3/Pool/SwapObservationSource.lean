@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapCrossFlags
 import Benchmarks.UniswapV3.Pool.SourceTuples
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -63,14 +65,14 @@ def swapObservationFrame (frame : Frame) (c : SwapCacheData) (tick : Int)
 theorem swapObservationStoresSource {frame : Frame} {evm : EVM.State}
     (c : SwapCacheData) (tick : Int) (seconds : UInt256)
     (hc : frame.locals.get? "cache" = some c.value) :
-    ExecBlock config (swapObservationCallFrame frame tick seconds) evm
+    ExecBlock fork config (swapObservationCallFrame frame tick seconds) evm
       (swapObservationBody.drop 1) (.ok (swapObservationFrame frame c tick seconds) evm) := by
   have hc0 := (resumeAfterInternalCall_get frame "__c12" "cache"
     (some [.int tick, .int (Int.ofNat seconds.toNat)]) (by decide)).trans hc
   have hr : (swapObservationCallFrame frame tick seconds).locals.get? "__c12" =
       some (.tuple [.int tick, .int (Int.ofNat seconds.toNat)]) :=
     Std.HashMap.getElem?_insert_self
-  have h1 : ExecStmt config (swapObservationCallFrame frame tick seconds) evm
+  have h1 : ExecStmt fork config (swapObservationCallFrame frame tick seconds) evm
       swapObservationBody[1]! (.ok (swapObservationTickFrame frame c tick seconds) evm) :=
     ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalExpr_tupleGet (evalExpr_var_get hr) rfl)
       (assignLocalField_frame hc0 rfl rfl)
@@ -78,11 +80,11 @@ theorem swapObservationStoresSource {frame : Frame} {evm : EVM.State}
       some (.tuple [.int tick, .int (Int.ofNat seconds.toNat)]) := by
     simpa only [swapObservationTickFrame, swapCacheFrame, Std.HashMap.get?_eq_getElem?,
       Std.HashMap.getElem?_insert] using hr
-  have h2 : ExecStmt config (swapObservationTickFrame frame c tick seconds) evm
+  have h2 : ExecStmt fork config (swapObservationTickFrame frame c tick seconds) evm
       swapObservationBody[2]! (.ok (swapObservationSecondsFrame frame c tick seconds) evm) :=
     ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalExpr_tupleGet (evalExpr_var_get hr1) rfl)
       (assignLocalField_frame Std.HashMap.getElem?_insert_self rfl rfl)
-  have h3 : ExecStmt config (swapObservationSecondsFrame frame c tick seconds) evm
+  have h3 : ExecStmt fork config (swapObservationSecondsFrame frame c tick seconds) evm
       swapObservationBody[3]! (.ok (swapObservationFrame frame c tick seconds) evm) :=
     ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (by simp only [evalExpr?, pure]; rfl)
       (assignLocalField_frame Std.HashMap.getElem?_insert_self rfl rfl)

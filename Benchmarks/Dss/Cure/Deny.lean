@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Cure.Rely
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -55,7 +57,7 @@ theorem cureReachDenyBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cureSelBytes 2)) :
-    ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) ⟨732⟩
+    ∃ k C, RD fork cureBytecode I g (initState σ σ₀ g A I) ⟨732⟩
       [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hsw : cureSelWord I = ⟨0x9c52a7f1⟩ :=
     cureSelWord_eq_of_beq I hsz 0x9c 0x52 0xa7 0xf1 ⟨0x9c52a7f1⟩
@@ -73,7 +75,7 @@ abbrev cureDenyEventTopic : UInt256 :=
 theorem RD.cureDenyStoreZeroSplit {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD cureBytecode ee g s0 ⟨3517⟩ (key :: ret :: R) mem (UInt256.ofNat 3)
+    (h : RD fork cureBytecode ee g s0 ⟨3517⟩ (key :: ret :: R) mem (UInt256.ofNat 3)
         rdata σ k C)
     (hret : (D_J cureBytecode 0).contains ret = true)
     (hmem : mem.size = 96)
@@ -81,10 +83,10 @@ theorem RD.cureDenyStoreZeroSplit {g : Sat256} {s0 : State}
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hov : R.length + 7 ≤ 1024) :
     (ee.perm = true ∧
-      ∃ k' C', RD cureBytecode ee g s0 ret R (twoWordHashMem key ⟨0⟩ mem)
+      ∃ k' C', RD fork cureBytecode ee g s0 ret R (twoWordHashMem key ⟨0⟩ mem)
         (UInt256.ofNat 3) rdata
         (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨0⟩ key) ⟨0⟩) k' C') ∨
-      (ee.perm = false ∧ RDstatic cureBytecode g s0) := by
+      (ee.perm = false ∧ RDstatic fork cureBytecode g s0) := by
   have hmask : UInt256.land solcAddrMask key = key :=
     solcAddrMask_clean_left hcanonKey
   have hmaskLiteral :
@@ -173,7 +175,7 @@ theorem cureDenyBodyCore {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (cureSelBytes 2)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let sel := cureSelWord I
   let key := denyKey I
   let slot := solcMappingSlot ⟨0⟩ key
@@ -183,7 +185,7 @@ theorem cureDenyBodyCore {σ σ₀ A I} {g : UInt256}
     calldata_size_ge_of_selIs I (cureSelBytes 2) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some denyTransition :=
     cureDispatchDeny hsel
-  have hreach := cureReachDenyBody (σ := σ)
+  have hreach := cureReachDenyBody (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
@@ -222,10 +224,10 @@ theorem cureDenyBodyCore {σ σ₀ A I} {g : UInt256}
       · let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
         let evm1 := Stele.EVM.storageStore evm0 I.codeOwner (denySlotFor I) ⟨0⟩
         have hbodySplit :
-            (I.perm = true → ExecTransitionBody config contract evm0 locals denyTransition.body
+            (I.perm = true → ExecTransitionBody fork config contract evm0 locals denyTransition.body
               (.returned { contract := contract, locals := locals } evm1 none)) ∧
             (I.perm = false →
-              ExecTransitionBody config contract evm0 locals denyTransition.body
+              ExecTransitionBody fork config contract evm0 locals denyTransition.body
                 .staticViolation) := by
           have hguardAuth := cureAuthGuardEval_true
             (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -258,9 +260,9 @@ theorem cureDenyBodyCore {σ σ₀ A I} {g : UInt256}
                   denyEvaledRef, denySlotFor])
               (hstore := hstore)
           have hprefix {result : ExecResult}
-              (hrest : ExecBlock config { contract := contract, locals := locals } evm0
+              (hrest : ExecBlock fork config { contract := contract, locals := locals } evm0
                 (denyTransition.body.drop 3) result) :
-              ExecBlock config { contract := contract, locals := locals } evm0
+              ExecBlock fork config { contract := contract, locals := locals } evm0
                 denyTransition.body result := by
             refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
             · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -272,7 +274,7 @@ theorem cureDenyBodyCore {σ σ₀ A I} {g : UInt256}
           constructor
           · intro hperm
             exact ExecFuncBody.execBlockOK (hprefix
-              (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) hrhs hassign) ExecBlock.nil))
+              (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) hrhs hassign) ExecBlock.nil))
           · intro hperm
             exact ExecFuncBody.execBlockStatic (hprefix
               (ExecBlock.consStatic (ExecStmt.assignStatic hrhs hassign
@@ -308,7 +310,7 @@ theorem cureDenyBodyCore {σ σ₀ A I} {g : UInt256}
         have hbody := hbodySplit.1 hperm
         have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
         have hret :
-            RDret cureBytecode (Sat256.ofUInt256 g)
+            RDret fork cureBytecode (Sat256.ofUInt256 g)
               (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               (sstoreAccountMap I.codeOwner σ slot ⟨0⟩) ByteArray.empty := by
           simpa [slot] using RD.stop hretPc' (by native_decide) (by simp)
@@ -322,7 +324,7 @@ theorem cureDenyBodyCore {σ σ₀ A I} {g : UInt256}
           haccounts henc
       ·
         let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-        have hbody : ExecTransitionBody config contract evm0 locals denyTransition.body .reverted := by
+        have hbody : ExecTransitionBody fork config contract evm0 locals denyTransition.body .reverted := by
           have hguardAuth := cureAuthGuardEval_true
             (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
             (g := Sat256.ofUInt256 g) (locals := locals)
@@ -332,7 +334,7 @@ theorem cureDenyBodyCore {σ σ₀ A I} {g : UInt256}
             (g := Sat256.ofUInt256 g) (locals := locals)
             (by simp [locals]) hliveEvm
           have hblock :
-              ExecBlock config { contract := contract, locals := locals } evm0
+              ExecBlock fork config { contract := contract, locals := locals } evm0
                 [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
                   .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)),
                   .require (.binary .eq (.storage liveRef) (.intLit 1)),
@@ -367,12 +369,12 @@ theorem cureDenyBodyCore {σ σ₀ A I} {g : UInt256}
         exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
     ·
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-      have hbody : ExecTransitionBody config contract evm0 locals denyTransition.body .reverted := by
+      have hbody : ExecTransitionBody fork config contract evm0 locals denyTransition.body .reverted := by
         have hguard := cureAuthGuardEval_false
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := Sat256.ofUInt256 g) (locals := locals)
           (by simp [locals]) hauthEvm
-        have hblock := nonpayableSecondRequireReverts
+        have hblock := nonpayableSecondRequireReverts (fork := fork)
           (cfg := config) (stele := { contract := contract, locals := locals })
           (evm := evm0)
           (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))

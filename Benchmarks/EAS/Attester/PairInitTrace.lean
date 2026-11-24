@@ -1,24 +1,26 @@
 import Benchmarks.EAS.Attester.Common
 import Benchmarks.EAS.Attester.PairAllocMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.EAS.Attester.Immutables attesterRuntimeBlocks
 
 namespace Benchmarks.EAS.Attester
 
-def PairInitStep (loop done : Nat) (second : UInt256) : Prop :=
+def PairInitStep (fork : Ethereum.Fork) (loop done : Nat) (second : UInt256) : Prop :=
   ∀ {words : String → UInt256} {I g s0 σ mem aw out k C R} {free slot n : Nat},
     memLoad (UInt256.ofNat 64) mem = UInt256.ofNat free →
     free + 64 < UInt256.size → slot + 32 < UInt256.size →
     0 < n → n < UInt256.size → R.length + 6 ≤ 1024 →
-    RD (immutableLayout.runtime attesterBytecode words) I g s0 (UInt256.ofNat loop)
+    RD fork (immutableLayout.runtime attesterBytecode words) I g s0 (UInt256.ofNat loop)
       (UInt256.ofNat slot :: UInt256.ofNat n :: R) mem aw out σ k C →
-    ∃ aw' k' C', RD (immutableLayout.runtime attesterBytecode words) I g s0
+    ∃ aw' k' C', RD fork (immutableLayout.runtime attesterBytecode words) I g s0
       (UInt256.ofNat (if n = 1 then done else loop))
       (UInt256.ofNat (slot + 32) :: UInt256.ofNat (n - 1) :: R)
       (pairSlotMemory mem free slot ⟨0⟩ second) aw' out σ k' C'
 
-theorem pairInitStep321 : PairInitStep 321 359 ⟨96⟩ := by
+theorem pairInitStep321 : PairInitStep fork 321 359 ⟨96⟩ := by
   intro words I g s0 σ mem aw out k C R free slot n hptr hfree hslot hn hnfit hstack h
   have hf : free < UInt256.size := by omega
   have hs : slot < UInt256.size := by omega
@@ -46,7 +48,7 @@ theorem pairInitStep321 : PairInitStep 321 359 ⟨96⟩ := by
       ulit_toNat' _ hf, ulit_toNat' _ hs, ulit_toNat' _ hf32,
       pairSlotMemory, writeCascade, Reasoning.Theory.writeWord, Nat.add_comm] using h'
 
-theorem pairInitStep536 : PairInitStep 536 573 ⟨0⟩ := by
+theorem pairInitStep536 : PairInitStep fork 536 573 ⟨0⟩ := by
   intro words I g s0 σ mem aw out k C R free slot n hptr hfree hslot hn hnfit hstack h
   have hf : free < UInt256.size := by omega
   have hs : slot < UInt256.size := by omega
@@ -74,7 +76,7 @@ theorem pairInitStep536 : PairInitStep 536 573 ⟨0⟩ := by
       ulit_toNat' _ hf, ulit_toNat' _ hs, ulit_toNat' _ hf32,
       pairSlotMemory, writeCascade, Reasoning.Theory.writeWord, Nat.add_comm] using h'
 
-theorem pairInitStep1063 : PairInitStep 1063 1101 ⟨96⟩ := by
+theorem pairInitStep1063 : PairInitStep fork 1063 1101 ⟨96⟩ := by
   intro words I g s0 σ mem aw out k C R free slot n hptr hfree hslot hn hnfit hstack h
   have hf : free < UInt256.size := by omega
   have hs : slot < UInt256.size := by omega
@@ -102,15 +104,15 @@ theorem pairInitStep1063 : PairInitStep 1063 1101 ⟨96⟩ := by
       ulit_toNat' _ hf, ulit_toNat' _ hs, ulit_toNat' _ hf32,
       pairSlotMemory, writeCascade, Reasoning.Theory.writeWord, Nat.add_comm] using h'
 
-theorem pairInitRun {loop done : Nat} {second : UInt256} (hstep : PairInitStep loop done second)
+theorem pairInitRun {loop done : Nat} {second : UInt256} (hstep : PairInitStep fork loop done second)
     {words : String → UInt256} {I g s0 σ mem aw out k C R} {free slot n : Nat}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 (UInt256.ofNat loop)
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 (UInt256.ofNat loop)
       (UInt256.ofNat slot :: UInt256.ofNat n :: R) mem aw out σ k C)
     (hstack : R.length + 6 ≤ 1024) (hfree : 96 ≤ free) (hslot : 96 ≤ slot)
     (hptr : memLoad (UInt256.ofNat 64) mem = UInt256.ofNat free)
     (hf : free + 64 * n < UInt256.size) (hs : slot + 32 * n < UInt256.size)
     (hn : 0 < n) :
-    ∃ aw' k' C', RD (immutableLayout.runtime attesterBytecode words) I g s0 (UInt256.ofNat done)
+    ∃ aw' k' C', RD fork (immutableLayout.runtime attesterBytecode words) I g s0 (UInt256.ofNat done)
       (UInt256.ofNat (slot + 32 * n) :: UInt256.ofNat 0 :: R)
       (pairSlotsMemory mem free slot second n) aw' out σ k' C' := by
   induction n generalizing mem free slot aw k C with

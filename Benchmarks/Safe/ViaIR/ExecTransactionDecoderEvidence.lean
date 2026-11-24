@@ -2,6 +2,8 @@ import Benchmarks.Safe.ViaIR.ExecTransactionDecoder
 import Benchmarks.Safe.ViaIR.ExecTransactionDecodeReverts
 import Benchmarks.Safe.ViaIR.MemoryBytesDecodeEvidence
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.ViaIR
@@ -9,13 +11,13 @@ namespace Benchmarks.Safe.ViaIR
 set_option maxRecDepth 2000 in
 theorem safeDecodeExecTransactionEvidence {I g s0 σ k C aw rdata}
     {scratch : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4354⟩ (scratch :: R) solcFreePtrMem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨4354⟩ (scratch :: R) solcFreePtrMem aw rdata σ k C)
     (hlong : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hov : R.length + 28 ≤ 1024) :
-    RDrev safeBytecode g s0 ∨ ∃ dataLen sigLen aw' k' C',
+    RDrev fork safeBytecode g s0 ∨ ∃ dataLen sigLen aw' k' C',
       ExecTransactionCalldataBounds I.calldata dataLen sigLen ∧
       (calldataWord I.calldata 100).toNat < 2 ∧ sigLen ≤ 2 ^ 64 - 192 ∧
-      RD safeBytecode I g s0 ⟨4469⟩ (execTransactionDecodedStack I.calldata dataLen ⟨128⟩ R)
+      RD fork safeBytecode I g s0 ⟨4469⟩ (execTransactionDecodedStack I.calldata dataLen ⟨128⟩ R)
         (memoryBytesDecoded (execTransactionCalldataInput I.calldata dataLen sigLen).signatures)
         aw' rdata σ k' C' := by
   by_cases hh : 324 ≤ I.calldata.size

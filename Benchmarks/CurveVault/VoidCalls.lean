@@ -1,5 +1,7 @@
 import Benchmarks.CurveVault.Calls
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch Reasoning.VyperCalls
 namespace Benchmarks.CurveVault
 
@@ -18,23 +20,23 @@ theorem checkedVoidCallBridge {cfg : Config} {decl : ContractDecl} {code : ByteA
     (hpc : decode code pc = some (.CALL, .none)) (hsmall : inSize.toNat ≤ 2 ^ 64)
     (hstack : R.length + 1 ≤ 1024)
     (hprepare : extCodeSizeWord σ target ≠ ⟨0⟩ → ∃ gasArg aw k C,
-      RD code I g s0 pc (gasArg :: target :: ⟨0⟩ :: inOffset :: inSize :: outOffset :: ⟨0⟩ :: R)
+      RD fork code I g s0 pc (gasArg :: target :: ⟨0⟩ :: inOffset :: inSize :: outOffset :: ⟨0⟩ :: R)
         mem aw rdata σ k C)
-    (hnoCode : extCodeSizeWord σ target = ⟨0⟩ → RDrev code g s0)
+    (hnoCode : extCodeSizeWord σ target = ⟨0⟩ → RDrev fork code g s0)
     (hpass : ∀ {aw out σ' k C},
-      RD code I g s0 (pc + ⟨1⟩) (⟨1⟩ :: R) mem aw out σ' k C →
-      ∃ aw' k' C', RD code I g s0 next nextStack mem aw' out σ' k' C')
+      RD fork code I g s0 (pc + ⟨1⟩) (⟨1⟩ :: R) mem aw out σ' k C →
+      ∃ aw' k' C', RD fork code I g s0 next nextStack mem aw' out σ' k' C')
     (hfail : ∀ {aw out σ' k C},
-      RD code I g s0 (pc + ⟨1⟩) (⟨0⟩ :: R) mem aw out σ' k C → RDrev code g s0) :
+      RD fork code I g s0 (pc + ⟨1⟩) (⟨0⟩ :: R) mem aw out σ' k C → RDrev fork code g s0) :
     (∃ (evm' : State) (σ' : AccountMap) (out : ByteArray) (aw' : UInt256) (k' C' : Nat),
-      ExecBlock cfg {contract := decl, locals := locals} evm
+      ExecBlock fork cfg {contract := decl, locals := locals} evm
         [.require (.binary .gt (.extCodeSize receiver) (.intLit 0)),
           .externalCall receiver name (.intLit 0) args retVar]
         (.ok {contract := decl, locals := locals.insert retVar (collapseReturns [])} evm') ∧
-      SourceState s0 I σ' evm' ∧ RD code I g s0 next nextStack mem aw' out σ' k' C') ∨
-    (ExecBlock cfg {contract := decl, locals := locals} evm
+      SourceState s0 I σ' evm' ∧ RD fork code I g s0 next nextStack mem aw' out σ' k' C') ∨
+    (ExecBlock fork cfg {contract := decl, locals := locals} evm
       [.require (.binary .gt (.extCodeSize receiver) (.intLit 0)),
-        .externalCall receiver name (.intLit 0) args retVar] .reverted ∧ RDrev code g s0) := by
+        .externalCall receiver name (.intLit 0) args retVar] .reverted ∧ RDrev fork code g s0) := by
   have hguard := evalExpr_codeGuard_of_accounts_eq hs.accounts rfl hr
   by_cases hzero : extCodeSizeWord σ target = ⟨0⟩
   · have hg : evalExpr? cfg {contract := decl, locals := locals} evm
@@ -50,7 +52,7 @@ theorem checkedVoidCallBridge {cfg : Config} {decl : ContractDecl} {code : ByteA
   obtain ⟨gasArg, aw, k, C, rdCall⟩ := hprepare hzero
   obtain ⟨evm', σ', z, out, k', C', hcall, hs', rd, _, _⟩ :=
     typedCallBridge rdCall hs hpc hencode hsmall hstack
-  change RD code I g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: R)
+  change RD fork code I g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: R)
     (callOutputMem mem out outOffset ⟨0⟩) _ out σ' k' C' at rd
   rw [callOutputMem_zero] at rd
   have hcall' := hcall

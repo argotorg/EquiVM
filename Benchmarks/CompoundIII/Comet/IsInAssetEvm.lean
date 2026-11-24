@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.BitMembershipWords
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_054
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -14,9 +16,9 @@ theorem cometIsInAsset {v : CometWithExtendedAssetListImmutables}
     (hstack : R.length + 7 ≤ 1024)
     (ha : assets.toNat < 2^16) (ho : offset.toNat < 2^8) (hr : reserved.toNat < 2^8)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨11456⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨11456⟩
       (assets :: offset :: reserved :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (boolWord (isInAssetBool assets offset reserved) :: R) mem aw rdata σ k' C' := by
   have hc : UInt256.land (UInt256.ofNat 255) offset = offset := by
     rw [u256_land_comm]

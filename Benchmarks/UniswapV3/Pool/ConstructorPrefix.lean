@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.Calls
 import Benchmarks.UniswapV3.Pool.FactoryOwner
 import Benchmarks.UniswapV3.Pool.SourceExpressions
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -26,7 +28,7 @@ def constructorCallFrame (original : AccountAddress) (ok : Bool) (out : ByteArra
       "parameterData" (.bytes out)}
 
 theorem constructorOriginalSource (evm : EVM.State) (hwv : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecBlock config constructorInitialFrame evm (contract.ctor.body.take 3)
+    ExecBlock fork config constructorInitialFrame evm (contract.ctor.body.take 3)
       (.ok (constructorReadyFrame evm.executionEnv.codeOwner) evm) := by
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
   refine ExecBlock.consNormal (ExecStmt.setImmutable (value := .address evm.executionEnv.codeOwner)
@@ -44,20 +46,20 @@ theorem evalConstructorCodeGuard (evm : EVM.State) :
 
 theorem constructorPrefixSource (evm : EVM.State) (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hcode : extCodeSizeWord evm.accountMap (EVM.word evm.executionEnv.source.val) ≠ ⟨0⟩) :
-    ExecBlock config constructorInitialFrame evm (contract.ctor.body.take 4)
+    ExecBlock fork config constructorInitialFrame evm (contract.ctor.body.take 4)
       (.ok (constructorReadyFrame evm.executionEnv.codeOwner) evm) := by
   have hpos : 0 < (extCodeSizeWord evm.accountMap (EVM.word evm.executionEnv.source.val)).toNat := by
     by_contra h
     exact hcode (uint256_toNat_eq_zero (by omega))
-  change ExecBlock _ _ _ (contract.ctor.body.take 3 ++ [(contract.ctor.body[3]!)]) _
+  change ExecBlock fork _ _ _ (contract.ctor.body.take 3 ++ [(contract.ctor.body[3]!)]) _
   exact execBlock_append_ok (constructorOriginalSource evm hwv)
     (ExecBlock.consNormal (ExecStmt.requireTrue
       (by simpa only [hpos, decide_true] using evalConstructorCodeGuard evm)) ExecBlock.nil)
 
 theorem constructorCallSource (evm evm' : EVM.State) (ok : Bool) (out : ByteArray)
-    (hcall : callViaEVM evm evm.executionEnv.source 0 constructorParameterCalldata
+    (hcall : callViaEVM fork evm evm.executionEnv.source 0 constructorParameterCalldata
       (ok, evm', out) false) :
-    ExecStmt config (constructorReadyFrame evm.executionEnv.codeOwner) evm (contract.ctor.body[4]!)
+    ExecStmt fork config (constructorReadyFrame evm.executionEnv.codeOwner) evm (contract.ctor.body[4]!)
       (.ok (constructorCallFrame evm.executionEnv.codeOwner ok out) evm') :=
   lowLevelCallWithPermSource (hperm := Or.inl rfl) (by simp only [evalExpr?, envValue, pure])
     (by simp only [evalExpr?, pure])
@@ -77,13 +79,13 @@ theorem evalConstructorData (original : AccountAddress) (evm : EVM.State)
       .ok (.bytes out) := evalExpr_var_get Std.HashMap.getElem?_insert_self
 
 theorem constructorRevertsNonpayable (evm : EVM.State) (hwv : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecFuncBody config constructorInitialFrame evm contract.ctor.body .reverted := by
+    ExecFuncBody fork config constructorInitialFrame evm contract.ctor.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   exact ExecBlock.consRevert (ExecStmt.requireFalse (evalCallvalueEq_false hwv))
 
 theorem constructorRevertsNoCode (evm : EVM.State) (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hcode : extCodeSizeWord evm.accountMap (EVM.word evm.executionEnv.source.val) = ⟨0⟩) :
-    ExecFuncBody config constructorInitialFrame evm contract.ctor.body .reverted := by
+    ExecFuncBody fork config constructorInitialFrame evm contract.ctor.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 3 contract.ctor.body]
   apply execBlock_append_ok (constructorOriginalSource evm hwv)
@@ -93,9 +95,9 @@ theorem constructorRevertsNoCode (evm : EVM.State) (hwv : evm.executionEnv.weiVa
 theorem constructorRevertsCall (evm evm' : EVM.State) (out : ByteArray)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hcode : extCodeSizeWord evm.accountMap (EVM.word evm.executionEnv.source.val) ≠ ⟨0⟩)
-    (hcall : callViaEVM evm evm.executionEnv.source 0 constructorParameterCalldata
+    (hcall : callViaEVM fork evm evm.executionEnv.source 0 constructorParameterCalldata
       (false, evm', out) false) :
-    ExecFuncBody config constructorInitialFrame evm contract.ctor.body .reverted := by
+    ExecFuncBody fork config constructorInitialFrame evm contract.ctor.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 4 contract.ctor.body]
   apply execBlock_append_ok (constructorPrefixSource evm hwv hcode)
@@ -105,11 +107,11 @@ theorem constructorRevertsCall (evm evm' : EVM.State) (out : ByteArray)
 theorem constructorAfterCallSource (evm evm' : EVM.State) (out : ByteArray)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hcode : extCodeSizeWord evm.accountMap (EVM.word evm.executionEnv.source.val) ≠ ⟨0⟩)
-    (hcall : callViaEVM evm evm.executionEnv.source 0 constructorParameterCalldata
+    (hcall : callViaEVM fork evm evm.executionEnv.source 0 constructorParameterCalldata
       (true, evm', out) false) :
-    ExecBlock config constructorInitialFrame evm (contract.ctor.body.take 6)
+    ExecBlock fork config constructorInitialFrame evm (contract.ctor.body.take 6)
       (.ok (constructorCallFrame evm.executionEnv.codeOwner true out) evm') := by
-  change ExecBlock _ _ _ (contract.ctor.body.take 4 ++ (contract.ctor.body.drop 4).take 2) _
+  change ExecBlock fork _ _ _ (contract.ctor.body.take 4 ++ (contract.ctor.body.drop 4).take 2) _
   exact execBlock_append_ok (constructorPrefixSource evm hwv hcode)
     (ExecBlock.consNormal (constructorCallSource evm evm' true out hcall)
       (ExecBlock.consNormal (ExecStmt.requireTrue (evalConstructorSuccess _ evm' true out)) ExecBlock.nil))

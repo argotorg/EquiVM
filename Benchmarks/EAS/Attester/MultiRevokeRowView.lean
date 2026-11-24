@@ -1,6 +1,8 @@
 import Benchmarks.EAS.Attester.NestedDecodeTrace
 import Benchmarks.EAS.Attester.WordHelpers
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.EAS.Attester.Immutables attesterRuntimeBlocks
 
@@ -8,16 +10,16 @@ namespace Benchmarks.EAS.Attester
 
 theorem multiRevokeRowView {words : String → UInt256} {I g s0 σ mem aw out k C R}
     {n i : Nat} {base secondData schemaData : UInt256}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨367⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨367⟩
       ([UInt256.ofNat i, base, UInt256.ofNat n, UInt256.ofNat n, secondData,
         UInt256.ofNat n, schemaData] ++ R) mem aw out σ k C)
     (hstack : R.length + 18 ≤ 1024) (hi : i < n) (hn : n < UInt256.size) :
     ((¬ NestedHeadChecks I.calldata secondData (rowEntry secondData i) ∨
         rowLength I.calldata secondData i = ⟨0⟩) ∧
-      RDrev (immutableLayout.runtime attesterBytecode words) g s0) ∨
+      RDrev fork (immutableLayout.runtime attesterBytecode words) g s0) ∨
     (NestedHeadChecks I.calldata secondData (rowEntry secondData i) ∧
       rowLength I.calldata secondData i ≠ ⟨0⟩ ∧ ∃ aw' k' C',
-      RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨479⟩
+      RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨479⟩
         ([rowLength I.calldata secondData i, rowLength I.calldata secondData i,
           rowData I.calldata secondData i, UInt256.ofNat i, base, UInt256.ofNat n,
           UInt256.ofNat n, secondData, UInt256.ofNat n, schemaData] ++ R)

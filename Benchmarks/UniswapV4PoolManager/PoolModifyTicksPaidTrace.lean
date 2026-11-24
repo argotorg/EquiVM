@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PoolModifyTicksTrace
 import Benchmarks.UniswapV4PoolManager.PoolModifyTwoTicksPaidTrace
 import Benchmarks.UniswapV4PoolManager.PoolModifyTickFinishPaidTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -20,11 +22,11 @@ theorem poolModifyTicksActivePaidTrace {I : ExecutionEnv} {g : Sat256} {s0 evm :
     (hpb : (params+UInt256.ofNat 128).toNat+32 ≤ ptr.toNat)
     (hptr : 160 ≤ ptr.toNat) (hfit : ptr.toNat+128 < UInt256.size)
     (hactive : ptr.toNat+128 ≤ aw.toNat*32) (hpaid : Cₘ aw ≤ C)
-    (h : RD (deployedRuntime v) I g s0 ⟨6949⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨6949⟩
       (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: p.upper :: EVM.wordOfInt p.delta :: p.lower :: x9 :: params :: R)
       mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0 (fun _ post => post.executionEnv = I ∧ post.σ₀ = evm.σ₀ ∧
-      ∃ k' C', Cₘ aw ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨5722⟩
+    blockResultTrace fork (deployedRuntime v) g s0 (fun _ post => post.executionEnv = I ∧ post.σ₀ = evm.σ₀ ∧
+      ∃ k' C', Cₘ aw ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨5722⟩
         (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: p.upper :: EVM.wordOfInt p.delta :: p.lower :: x9 :: params :: R)
         (poolModifyTicksActiveMemory mem ptr id p evm) aw rdata post.accountMap k' C')
       (fun _ _ => False) (poolModifyTicksActiveResult f evm id p) := by
@@ -64,12 +66,12 @@ theorem poolModifyTicksPaidTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State
     (hpb : (params+UInt256.ofNat 128).toNat+32 ≤ ptr.toNat)
     (hptr : 160 ≤ ptr.toNat) (hfit : ptr.toNat+128 < UInt256.size)
     (hactive : ptr.toNat+128 ≤ aw.toNat*32) (hpaid : Cₘ aw ≤ C)
-    (h : RD (deployedRuntime v) I g s0 (if p.delta ≠ 0 then ⟨6949⟩ else ⟨5722⟩)
+    (h : RD fork (deployedRuntime v) I g s0 (if p.delta ≠ 0 then ⟨6949⟩ else ⟨5722⟩)
       (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: p.upper :: EVM.wordOfInt p.delta :: p.lower :: x9 :: params :: R)
       mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0
+    blockResultTrace fork (deployedRuntime v) g s0
       (fun _ post => post.executionEnv = I ∧ post.σ₀ = evm.σ₀ ∧ ∃ kr Cr, Cₘ aw ≤ Cr ∧
-        RD (deployedRuntime v) I g s0 ⟨5722⟩
+        RD fork (deployedRuntime v) I g s0 ⟨5722⟩
           (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: p.upper :: EVM.wordOfInt p.delta :: p.lower :: x9 :: params :: R)
           (poolModifyTicksMemory mem ptr id p evm) aw rdata post.accountMap kr Cr)
       (fun _ _ => False) (poolModifyTicksResult f evm id p) := by

@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.AfterLiquiditySelectTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -7,14 +9,14 @@ namespace Benchmarks.UniswapV4PoolManager
 open poolManagerBlocks
 set_option maxRecDepth 5000
 
-def afterLiquidityTraceResult (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256)
+def afterLiquidityTraceResult (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256)
     (s0 evm post : State) (mem rdata : ByteArray) (free src len ret delta fees : UInt256)
     (key : PoolKeyWords) (p : ModifyLiquidityWords) (hook : AccountAddress) (z : Bool) (out : ByteArray)
     (R : List UInt256) : Prop :=
-  let old := afterLiquidityReturnTrace v I g s0 mem rdata evm.accountMap ret delta ⟨0⟩ R
+  let old := afterLiquidityReturnTrace fork v I g s0 mem rdata evm.accountMap ret delta ⟨0⟩ R
   if I.source = hook then old
   else if afterLiquidityActive hook p then
-    afterLiquidityActiveResult v I g s0 post (afterLiquidityAdd p) mem src free len ret hook key p delta fees z out R
+    afterLiquidityActiveResult fork v I g s0 post (afterLiquidityAdd p) mem src free len ret hook key p delta fees z out R
   else old
 
 theorem afterLiquidityHookTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
@@ -31,17 +33,17 @@ theorem afterLiquidityHookTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hgas : g.toNat < 324518553658429321982441292826060) (hpaid : Cₘ aw ≤ C)
     (hfree : memLoad (UInt256.ofNat 64) mem = free)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨14427⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨14427⟩
       (accountWord hook :: keyPtr :: paramsPtr :: delta :: fees :: src :: len :: ret :: R)
       mem aw rdata evm.accountMap k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
     ∃ post z out,
       (I.source ≠ hook → afterLiquidityActive hook p →
-        callViaEVM evm hook 0 (afterLiquidityPayload (afterLiquidityAdd p) I.source key p delta fees
+        callViaEVM fork evm hook 0 (afterLiquidityPayload (afterLiquidityAdd p) I.source key p delta fees
           (I.calldata.extract src.toNat (src.toNat+len.toNat))) (z, post, out)) ∧
       (I.source ≠ hook → afterLiquidityActive hook p → AllocationBounds free (afterLiquidityAllocationSize len)) ∧
       post.executionEnv = I ∧ post.σ₀ = s0.σ₀ ∧ out.size < 2^138 ∧
-      afterLiquidityTraceResult v I g s0 evm post mem rdata free src len ret delta fees key p hook z out R := by
+      afterLiquidityTraceResult fork v I g s0 evm post mem rdata free src len ret delta fees key p hook z out R := by
   have hclean : UInt256.land (accountWord hook) (UInt256.ofNat 1461501637330902918203684832716283019655932542975) =
       accountWord hook := solcAddrMask_clean (accountWord_canonical hook)
   have heq : I.source = hook ↔ accountWord I.source = accountWord hook := by

@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.AbsorbCollateralMathModel
 import Benchmarks.CompoundIII.Comet.AbsorbCollateralFactorEvm
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -17,13 +19,13 @@ theorem cometAbsorbCollateralMathWords {v : CometWithExtendedAssetListImmutables
     (hs : scale.toNat < 2^64) (hf : factor.toNat < 2^64)
     (hms : memLoad (ptr + UInt256.ofNat 96) mem = scale)
     (hmf : memLoad (ptr + UInt256.ofNat 192) mem = factor)
-    (h : RD (deployedRuntime v) ee g s0 ⟨17736⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨17736⟩
       (price :: delta :: seized :: ptr :: R) mem aw rdata σ k C) :
     if AbsorbCollateralWordsValid delta seized price scale factor then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨17811⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨17811⟩
         ((delta + mulFactorWord (mulPriceWord seized price scale) factor) :: seized ::
           mulPriceWord seized price scale :: R) mem aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have r1 := cometWithExtendedAssetList_block_17736 (immWords := wordsOf (immStore v))
     (by omega) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
   dsimp only [cometWithExtendedAssetList_block_17736_stack] at r1
@@ -62,13 +64,13 @@ theorem cometAbsorbCollateralMath {v : CometWithExtendedAssetListImmutables}
     {aw price delta seized ptr free : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 10 ≤ 1024) (hn : seized.toNat < 2^128)
     (hc : AssetCanonical out) (hm : AssetMemory mem ptr free out)
-    (h : RD (deployedRuntime v) ee g s0 ⟨17736⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨17736⟩
       (price :: delta :: seized :: ptr :: R) mem aw rdata σ k C) :
     if AbsorbCollateralMathValid delta seized price out then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨17811⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨17811⟩
         (absorbCollateralDelta delta seized price out :: seized ::
           absorbCollateralValue seized price out :: R) mem aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   exact cometAbsorbCollateralMathWords (v := v) hstack hn hc.2.2.2.1 hc.2.2.2.2.2.2.1
     (hm.words 3 (by decide)) (hm.words 6 (by decide)) h
 

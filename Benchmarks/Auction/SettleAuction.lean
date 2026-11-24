@@ -1,6 +1,8 @@
 import Benchmarks.Auction.SettleEntry
 import Benchmarks.Auction.Events
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 100000
@@ -10,8 +12,8 @@ namespace Auction
 theorem settleAuctionBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (_hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (entryBytes 13))
-    (hreach : EntryReached 13 σ σ₀ A I g) :
-    runtimeRefinementFor auctionConfig auctionContract σ σ₀ g A I := by
+    (hreach : EntryReached fork 13 σ σ₀ A I g) :
+    runtimeRefinementFor fork auctionConfig auctionContract σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
   · have hd := dispatchEntry 13 hsel
     have hsz := calldata_size_ge_of_selIs I (entryBytes 13) (entryBytes_size 13) hsel
@@ -27,7 +29,7 @@ theorem settleAuctionBodyCore {σ σ₀ A I} {g : UInt256}
     have rd2351 := evm_run rd778 with [push2 ⟨413⟩, push2 ⟨2351⟩, jump (by jump_dest)]
     by_cases hp : pausedWord σ I = ⟨0⟩
     · have he := readPausedFalse evm0 ∅ (by simp) hp
-      have hbody : ExecTransitionBody auctionConfig auctionContract evm0 ∅
+      have hbody : ExecTransitionBody fork auctionConfig auctionContract evm0 ∅
           settleAuctionTransition.body .reverted := by
         apply ExecFuncBody.execBlockRevert
         exact ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv))
@@ -38,7 +40,7 @@ theorem settleAuctionBodyCore {σ σ₀ A I} {g : UInt256}
       have hstatus := statusGuardSource (locals := ∅) hs0 (by simp)
       by_cases hentered : solcSlotWord σ I ⟨101⟩ = ⟨2⟩
       · rw [decide_eq_false (not_not_intro hentered)] at hstatus
-        have hbody : ExecTransitionBody auctionConfig auctionContract evm0 ∅
+        have hbody : ExecTransitionBody fork auctionConfig auctionContract evm0 ∅
             settleAuctionTransition.body .reverted := by
           apply ExecFuncBody.execBlockRevert
           exact ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv))
@@ -48,12 +50,12 @@ theorem settleAuctionBodyCore {σ σ₀ A I} {g : UInt256}
           hcode hd hdec hbody
       · rw [decide_eq_true hentered] at hstatus
         obtain ⟨_, _, rd2458⟩ := reentrancyAllowed 1 rd2424 hentered (by evm_ov)
-        have hstoreSplit := statusStoreSourceSplit (evm := evm0) (locals := ∅) (word := ⟨2⟩)
+        have hstoreSplit := statusStoreSourceSplit (fork := fork) (evm := evm0) (locals := ∅) (word := ⟨2⟩)
           (e := entered) (by simp) (by simp only [entered, evalExpr?, pure]; rfl)
         have hprefix {result : ExecResult}
-            (htail : ExecBlock auctionConfig { contract := auctionContract, locals := ∅ }
+            (htail : ExecBlock fork auctionConfig { contract := auctionContract, locals := ∅ }
               evm0 (settleAuctionTransition.body.drop 3) result) :
-            ExecBlock auctionConfig { contract := auctionContract, locals := ∅ }
+            ExecBlock fork auctionConfig { contract := auctionContract, locals := ∅ }
               evm0 settleAuctionTransition.body result :=
           ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv))
             (ExecBlock.consNormal (ExecStmt.requireTrue hpaused)
@@ -75,10 +77,10 @@ theorem settleAuctionBodyCore {σ σ₀ A I} {g : UInt256}
           ⟨evm', σ', mem', aw', ptr', out, _, _, hcall, hs', rd2471, _, _, _, _, _⟩ |
             ⟨hcall, hr⟩
         · obtain ⟨_, _, rd413⟩ := settleExit rd2471 hperm (by jump_dest) (by evm_ov)
-          have hexit := statusStoreSource (hperm := by rw [hs'.env]; exact hperm) (evm := evm')
+          have hexit := statusStoreSource (fork := fork) (hperm := by rw [hs'.env]; exact hperm) (evm := evm')
             (locals := (∅ : Store).insert "_s" (.int (Int.ofNat ptr'.toNat))) (word := ⟨1⟩)
             (e := notEntered) (by simp) (by simp only [notEntered, evalExpr?, pure]; rfl)
-          have hbody : ExecTransitionBody auctionConfig auctionContract evm0 ∅
+          have hbody : ExecTransitionBody fork auctionConfig auctionContract evm0 ∅
               settleAuctionTransition.body
               (.returned
                 { contract := auctionContract
@@ -91,7 +93,7 @@ theorem settleAuctionBodyCore {σ σ₀ A I} {g : UInt256}
           exact (auctionStop rd413 (by evm_ov)).reEquivExecutionGen
             hcode hd hdec hbody hsFinal.accounts
             (.fallthrough rfl rfl (by native_decide))
-        · have hbody : ExecTransitionBody auctionConfig auctionContract evm0 ∅
+        · have hbody : ExecTransitionBody fork auctionConfig auctionContract evm0 ∅
               settleAuctionTransition.body .reverted := by
             apply ExecFuncBody.execBlockRevert
             exact hprefix (ExecBlock.consNormal hstore (ExecBlock.consRevert hcall))

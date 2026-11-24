@@ -3,6 +3,8 @@ import Benchmarks.Safe.V2_0e91d99.AddressReturnDecoder
 import Benchmarks.Safe.V2_0e91d99.WordArrayMemory
 import Benchmarks.Safe.V2_0e91d99.LocalArrays
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V2_0e91d99
@@ -85,9 +87,9 @@ theorem evalEcrecoverReturn (evm : EVM.State) (p : EcrecoverInput) (z : Bool) (o
       accountAddress_ofUInt256_eq_ofNat_toNat]
 
 theorem safeEcrecoverSource {evm evm' : EVM.State} {p : EcrecoverInput} {z : Bool} {out : ByteArray}
-    (hc : callViaEVM evm (AccountAddress.ofNat 1) 0 (wordBytes (ecrecoverWords p))
+    (hc : callViaEVM fork evm (AccountAddress.ofNat 1) 0 (wordBytes (ecrecoverWords p))
       (z, evm', out) false) :
-    ExecFuncBody config (ecrecoverFrame p) evm ecrecoverAddressFunction.body
+    ExecFuncBody fork config (ecrecoverFrame p) evm ecrecoverAddressFunction.body
       (if z then .returned (ecrecoverFinalFrame p true out) evm'
         (some [.address (AccountAddress.ofUInt256 (calldataWord out 0))]) else .reverted) := by
   have ht : evalExpr? config (ecrecoverFrame p) evm ecrecoverPrecompile =
@@ -99,7 +101,7 @@ theorem safeEcrecoverSource {evm evm' : EVM.State} {p : EcrecoverInput} {z : Boo
   have hs : evalExpr? config (ecrecoverFinalFrame p z out) evm' (.var "ecrecoverSuccess") =
       .ok (.bool z) := evalLocalValue (by
     simp [ecrecoverFinalFrame, Std.HashMap.getElem_insert])
-  have hc' : callViaEVM evm (EVM.address (AccountAddress.ofNat 1)) 0
+  have hc' : callViaEVM fork evm (EVM.address (AccountAddress.ofNat 1)) 0
       (wordBytes (ecrecoverWords p)) (z, evm', out) false := by
     simpa only [addressOfAddress] using hc
   cases z

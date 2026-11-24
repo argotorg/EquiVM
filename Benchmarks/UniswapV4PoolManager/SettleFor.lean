@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.SettleEntrySource
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_027
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_006
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # PoolManager `settleFor(address)`
 
@@ -26,15 +28,15 @@ theorem poolManagerSettleForBody {σ σ₀ A I} {g : UInt256} (v : PoolManagerIm
     (_hWF : Syntax.poolManagerWF σ I)
     (_hGas : Syntax.poolManagerGasBound g)
     (hsel : selIs I (poolManagerSelBytes 12)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (poolManagerSelBytes 12) rfl hsel
   have hd : dispatchMsg contract I.calldata = some settleForTransition := by
     apply poolManagerDispatch_settleFor <;> first
     | exact hsel
     | exact selectorNe_of_selIs hsel (by decide +kernel)
-  obtain ⟨k, C, rdEntry⟩ := poolManagerReachSettleForBody (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, rdEntry⟩ := poolManagerReachSettleForBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
-  change RD (deployedRuntime v) I (Sat256.ofUInt256 g)
+  change RD fork (deployedRuntime v) I (Sat256.ofUInt256 g)
     (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨9593⟩ [solcSelectorWord I]
     entryMemory ⟨3⟩ .empty σ k C at rdEntry
   have hjump : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 816) = true := by
@@ -69,7 +71,7 @@ theorem poolManagerSettleForBody {σ σ₀ A I} {g : UInt256} (v : PoolManagerIm
                 rw [← transientWord_accountMap hI]; exact isZero_eq_zero_of_ne hl) rdLock
           have rdSettle := poolManagerBlocks.poolManager_block_9683 (by simp)
             (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rdCall
-          change RD _ _ _ _ ⟨13357⟩
+          change RD fork _ _ _ _ ⟨13357⟩
             (calldataWord I.calldata 4 :: ⟨1954⟩ :: ⟨32⟩ :: [solcSelectorWord I]) _ _ _ _ _ _ at rdSettle
           rw [← hword] at rdSettle
           let caller := settleEntryFrame args (immStore v) evm

@@ -1,5 +1,7 @@
 import Examples.OpenZeppelinBench.Pausable.Common
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -12,7 +14,7 @@ theorem pausableGuardedWhenPausedBodyReturns (evm : EVM.State) (locals : Store)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocals : locals.get? "_paused" = none)
     (hnz : pausedWord evm.accountMap evm.executionEnv ≠ ⟨0⟩) :
-    ExecTransitionBody config contract evm locals guardedWhenPausedTransition.body
+    ExecTransitionBody fork config contract evm locals guardedWhenPausedTransition.body
       (.returned { contract := contract, locals := locals } evm (some [(.bool true)])) := by
   refine ExecFuncBody.execBlockRet ?_
   unfold guardedWhenPausedTransition
@@ -24,7 +26,7 @@ theorem pausableGuardedWhenPausedBodyReturns (evm : EVM.State) (locals : Store)
 theorem pausableGuardedWhenPausedBodyReverts (evm : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hzero : pausedWord evm.accountMap evm.executionEnv = ⟨0⟩) :
-    ExecTransitionBody config contract evm ∅ guardedWhenPausedTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm ∅ guardedWhenPausedTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   unfold guardedWhenPausedTransition
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
@@ -34,11 +36,11 @@ theorem pausableGuardedWhenPausedBodyReverts (evm : EVM.State)
 /-! ## `guardedWhenPaused()` EVM traces and refinement -/
 
 theorem pausableX_guardedWhenPaused {σ σ₀ A I} {g : Sat256}
-    (hreach : ∃ k C, RD pausableBenchBytecode I g
+    (hreach : ∃ k C, RD fork pausableBenchBytecode I g
       (initState σ σ₀ g A I) ⟨141⟩ [pausableSelWord I] solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hnz : pausedWord σ I ≠ ⟨0⟩) :
-    RDret pausableBenchBytecode g (initState σ σ₀ g A I) σ
+    RDret fork pausableBenchBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray ⟨1⟩) := by
   obtain ⟨_, _, rd141⟩ := hreach
   have rd182 := evm_run rd141 with [
@@ -55,11 +57,11 @@ theorem pausableX_guardedWhenPaused {σ σ₀ A I} {g : Sat256}
     omega)
 
 theorem pausableX_guardedWhenPaused_revert {σ σ₀ A I} {g : Sat256}
-    (hreach : ∃ k C, RD pausableBenchBytecode I g
+    (hreach : ∃ k C, RD fork pausableBenchBytecode I g
       (initState σ σ₀ g A I) ⟨141⟩ [pausableSelWord I] solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hzero : pausedWord σ I = ⟨0⟩) :
-    RDrev pausableBenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork pausableBenchBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd141⟩ := hreach
   have rd182 := evm_run rd141 with [
     jumpdest, push2 ⟨105⟩, push2 ⟨182⟩, jump (by jump_dest)]
@@ -102,18 +104,18 @@ theorem pausableGuardedWhenPausedBody {σ σ₀ A I}
     (hcode : I.code = pausableBenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xdd, 0xf7, 0x03, 0x09]⟩)
-    (hreach : ∃ k C, RD pausableBenchBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork pausableBenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨141⟩
       [pausableSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
   have hsz := pausableGuardedWhenPausedSelector_size hsel
   have hd := pausableDispatch_guardedWhenPaused (cd := I.calldata) hsel
   have hdec := pausableDecode_guardedWhenPaused (I := I) hsz
   by_cases hzero : pausedWord σ I = ⟨0⟩
   · have hbody :
-        ExecTransitionBody config contract
+        ExecTransitionBody fork config contract
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
           guardedWhenPausedTransition.body .reverted := by
       exact pausableGuardedWhenPausedBodyReverts
@@ -122,7 +124,7 @@ theorem pausableGuardedWhenPausedBody {σ σ₀ A I}
     exact (pausableX_guardedWhenPaused_revert (g := Sat256.ofUInt256 g) hreach hzero)
       |>.reEquivExecutionRevert hcode hd hdec hbody
   · have hbody :
-        ExecTransitionBody config contract
+        ExecTransitionBody fork config contract
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
           guardedWhenPausedTransition.body
           (.returned { contract := contract, locals := ∅ }

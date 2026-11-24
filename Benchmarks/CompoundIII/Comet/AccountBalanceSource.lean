@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.CurrentIndicesSource
 import Benchmarks.CompoundIII.Comet.UserBasicFields
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -32,7 +34,7 @@ theorem accountBalancePrefix (v : CometWithExtendedAssetListImmutables)
     let w1 := Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩
     let time := timestampWord evm.executionEnv
     let basic := Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (userBasicSlot addr)
-    ExecBlock config (accountBalanceEntry v addr) evm (currentIndicesBlock ++ accountBalanceRead borrow)
+    ExecBlock fork config (accountBalanceEntry v addr) evm (currentIndicesBlock ++ accountBalanceRead borrow)
       (.ok (accountBalanceFrame v addr borrow w0 w1 time basic) evm) := by
   dsimp only
   let w0 := Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩
@@ -45,7 +47,7 @@ theorem accountBalancePrefix (v : CometWithExtendedAssetListImmutables)
     { f1 with
       locals := f1.locals.insert (indexLocalName borrow)
         (.int (currentIndex v w0 w1 time borrow).toNat) }
-  have hpref := currentIndicesBlock_result v f0 evm rfl rfl (by simp [f0, accountBalanceEntry])
+  have hpref := currentIndicesBlock_result (fork := fork) v f0 evm rfl rfl (by simp [f0, accountBalanceEntry])
   dsimp only at hpref
   rw [if_pos hv] at hpref
   have heidx : evalExpr? config f1 evm (.tupleGet (.var "__c1") (if borrow then 1 else 0)) =

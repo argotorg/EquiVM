@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.RevokeIdentityControl
 import Benchmarks.EAS.EAS.RevokeStatusControl
 import Benchmarks.EAS.EAS.RevokeGuards
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -10,13 +12,13 @@ theorem easRevokeGuards {evm : EVM.State} {ee : ExecutionEnv} {g : Sat256} {s0 :
     {cell request idx word schema : UInt256} {revoker : AccountAddress} {R : List UInt256}
     (v : EASImmutables) (kind : RevokeKind) (hstack : R.length+11 ≤ 1024)
     (hs : SourceState s0 ee σ evm) (hp : memLoad cell mem = request) (hw : memLoad request mem = word)
-    (rd : RD (deployedRuntime v) ee g s0 kind.uidPC
+    (rd : RD fork (deployedRuntime v) ee g s0 kind.uidPC
       (cell::idx::revokeGuardTail kind schema (UInt256.ofNat revoker.val) R) mem aw rdata σ k C) :
     if revokeGuardsValid (storedAttestationRecord evm word) schema revoker then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 kind.writePC
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 kind.writePC
         (revokeWriteStack kind request idx (dbSlot word) schema (UInt256.ofNat revoker.val) R)
         (twoWordHashMem word ⟨1⟩ mem) aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   let a := storedAttestationRecord evm word
   have huWord : a.uid = solcSlotWord σ ee (dbSlot word) := hs.storageRead _
   have hsWord : a.schema = solcSlotWord σ ee (dbSlot word+⟨1⟩) := hs.storageRead _

@@ -1,6 +1,8 @@
 import Benchmarks.Auction.RawEthPrefix
 import Benchmarks.Auction.RawEthReturn
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -16,17 +18,17 @@ def rawEthWords (aw ptr : UInt256) (out : ByteArray) : UInt256 :=
 
 /-- The 30,000-gas ETH call at 4768, including allocation and all return-data branches. -/
 theorem rawEthRoutine {I g s0 amount recipient ret R mem aw ptr rdata σ k C evm}
-    (h : RD auctionBytecode I g s0 ⟨4768⟩ (amount :: recipient :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨4768⟩ (amount :: recipient :: ret :: R)
       mem aw rdata σ k C)
     (hs : SourceState s0 I σ evm) (hperm : I.perm = true)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 2 ^ 139 ≤ 2 ^ 200)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 20 ≤ 1024) :
     ∃ (evm' : EVM.State) (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (k' C' : Nat),
-      callViaEVM evm (AccountAddress.ofUInt256 (UInt256.land recipient solcAddrMask))
+      callViaEVM fork evm (AccountAddress.ofUInt256 (UInt256.land recipient solcAddrMask))
         (Int.ofNat amount.toNat) ByteArray.empty (z, evm', out) ∧
       SourceState s0 I σ' evm' ∧
-      RD auctionBytecode I g s0 ret ((if z then ⟨1⟩ else ⟨0⟩) :: R)
+      RD fork auctionBytecode I g s0 ret ((if z then ⟨1⟩ else ⟨0⟩) :: R)
         (rawEthMem mem out ptr) (rawEthWords aw ptr out) out σ' k' C' ∧
       HeapMemory (rawEthMem mem out ptr) (rawEthWords aw ptr out) (rawEthPtr ptr out) ∧
       MemoryPrefix mem (rawEthMem mem out ptr) ptr.toNat ∧

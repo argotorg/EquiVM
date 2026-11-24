@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Cat.Storage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -191,7 +193,7 @@ theorem catReachFileUintBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x29, 0xae, 0x81, 0x14]⟩) :
-    ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork catBytecode I g (initState σ σ₀ g A I)
         ⟨304⟩ [catSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : catSelWord I = ⟨699302164⟩ :=
@@ -222,11 +224,11 @@ theorem RD.catFileUintDecodeToRoutine {code : ByteArray} {g : Sat256} {s0 : Stat
     {ee : ExecutionEnv} {k C : ℕ} {ret de sel : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
     {acc : AccountMap}
-    (h : RD code ee g s0 ⟨326⟩ (de :: ⟨4⟩ :: ret :: sel :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 ⟨326⟩ (de :: ⟨4⟩ :: ret :: sel :: R) mem aw rdata acc k C)
     (hwf : code = catBytecode)
     (hroutine : (D_J code 0).contains ⟨1035⟩ = true)
     (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨1035⟩
+    ∃ k' C', RD fork code ee g s0 ⟨1035⟩
       (calldataWord ee.calldata 36 :: calldataWord ee.calldata 4 :: ret :: sel :: R)
       mem aw rdata acc k' C' := by
   subst hwf
@@ -245,13 +247,13 @@ theorem RD.catFileUintDecodeToRoutine {code : ByteArray} {g : Sat256} {s0 : Stat
       using rd338.jump (by native_decide) hroutine (by evm_ov)⟩
 
 theorem RD.catFileUintToSwitch {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
+    (hreach : ∃ k C, RD fork catBytecode I g (initState σ σ₀ g A I)
       ⟨304⟩ [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz68 : 68 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hauth :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩) :
-    ∃ k C, RD catBytecode I g (initState σ σ₀ g A I) ⟨1124⟩
+    ∃ k C, RD fork catBytecode I g (initState σ σ₀ g A I) ⟨1124⟩
       (fileUintData I :: calldataWord I.calldata 4 :: ⟨302⟩ :: sel :: [])
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -276,13 +278,13 @@ theorem RD.catFileUintToSwitch {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   exact ⟨_, _, hafterAuth⟩
 
 theorem RD.catFileUintAuthRevert {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
+    (hreach : ∃ k C, RD fork catBytecode I g (initState σ σ₀ g A I)
       ⟨304⟩ [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz68 : 68 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hauth :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩) :
-    RDrev catBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork catBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcTwoAddressExternalLenOk
     (code := catBytecode) (sel := sel) (entry := ⟨304⟩) (ret := ⟨302⟩)
     (decoded := ⟨326⟩) hreach
@@ -310,15 +312,15 @@ theorem RD.catFileUintAuthRevert {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem RD.catFileUintStoreBoxSplit {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD catBytecode ee g s0 ⟨1124⟩ (data :: what :: ret :: sel :: R) mem
+    (h : RD fork catBytecode ee g s0 ⟨1124⟩ (data :: what :: ret :: sel :: R) mem
       (UInt256.ofNat 3) rdata σ k C)
     (hmatch : what = ABI.bytesToWord fileUintBoxBytes)
     (hret : (D_J catBytecode 0).contains ret = true)
     (hov : R.length + 7 ≤ 1024) :
     (ee.perm = true ∧
-      ∃ k' C', RD catBytecode ee g s0 ret (sel :: R) mem (UInt256.ofNat 3) rdata
+      ∃ k' C', RD fork catBytecode ee g s0 ret (sel :: R) mem (UInt256.ofNat 3) rdata
         (sstoreAccountMap ee.codeOwner σ ⟨5⟩ data) k' C') ∨
-      (ee.perm = false ∧ RDstatic catBytecode g s0) := by
+      (ee.perm = false ∧ RDstatic fork catBytecode g s0) := by
   have rd1125 := h.jumpdest (by native_decide) (by evm_ov)
   have rd1126 := rd1125.dup2 (by native_decide) (by evm_ov)
   have rd1130 := rd1126.pushConst (⟨806383⟩ : UInt256) (width := 3) (op := .PUSH3)
@@ -354,11 +356,11 @@ theorem RD.catFileUintStoreBoxSplit {g : Sat256} {s0 : State} {ee : ExecutionEnv
 theorem RD.catFileUintSkipBox {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD catBytecode ee g s0 ⟨1124⟩ (data :: what :: ret :: sel :: R) mem
+    (h : RD fork catBytecode ee g s0 ⟨1124⟩ (data :: what :: ret :: sel :: R) mem
       (UInt256.ofNat 3) rdata acc k C)
     (hneq : what ≠ ABI.bytesToWord fileUintBoxBytes)
     (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD catBytecode ee g s0 ⟨953⟩ (data :: what :: ret :: sel :: R) mem
+    ∃ k' C', RD fork catBytecode ee g s0 ⟨953⟩ (data :: what :: ret :: sel :: R) mem
       (UInt256.ofNat 3) rdata acc k' C' := by
   have rd1125 := h.jumpdest (by native_decide) (by evm_ov)
   have rd1126 := rd1125.dup2 (by native_decide) (by evm_ov)
@@ -387,11 +389,11 @@ abbrev catFileUintUnrecognizedRawWord : UInt256 :=
 theorem RD.catFileUintUnrecognizedRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {stk : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD catBytecode ee g s0 ⟨953⟩ stk mem (UInt256.ofNat 3) rdata acc k C)
+    (h : RD fork catBytecode ee g s0 ⟨953⟩ stk mem (UInt256.ofNat 3) rdata acc k C)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : stk.length + 5 ≤ 1024) :
-    RDrev catBytecode g s0 := by
+    RDrev fork catBytecode g s0 := by
   have rdMload := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
@@ -447,7 +449,7 @@ theorem RD.catFileUintUnrecognizedRevert {g : Sat256} {s0 : State} {ee : Executi
 /-! ### Success + revert reachability wrappers -/
 
 theorem RD.catFileUintBoxSuccessSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
+    (hreach : ∃ k C, RD fork catBytecode I g (initState σ σ₀ g A I)
       ⟨304⟩ [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz68 : 68 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
@@ -455,9 +457,9 @@ theorem RD.catFileUintBoxSuccessSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩)
     (hwhat : fileUintWhat I = fileUintBoxBytes) :
     (I.perm = true ∧
-      RDret catBytecode g (initState σ σ₀ g A I)
+      RDret fork catBytecode g (initState σ σ₀ g A I)
         (sstoreAccountMap I.codeOwner σ ⟨5⟩ (fileUintData I)) ByteArray.empty) ∨
-      (I.perm = false ∧ RDstatic catBytecode g (initState σ σ₀ g A I)) := by
+      (I.perm = false ∧ RDstatic fork catBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, hswitch⟩ := RD.catFileUintToSwitch hreach hsz68 hsize hauth
   have hword :
       calldataWord I.calldata 4 = ABI.bytesToWord fileUintBoxBytes :=
@@ -474,14 +476,14 @@ theorem RD.catFileUintBoxSuccessSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256
 
 theorem RD.catFileUintUnrecognizedParamRevert
     {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
+    (hreach : ∃ k C, RD fork catBytecode I g (initState σ σ₀ g A I)
       ⟨304⟩ [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz68 : 68 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hauth :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩)
     (hnotBox : fileUintWhat I ≠ fileUintBoxBytes) :
-    RDrev catBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork catBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, hswitch⟩ := RD.catFileUintToSwitch hreach hsz68 hsize hauth
   have hboxNe :
       calldataWord I.calldata 4 ≠ ABI.bytesToWord fileUintBoxBytes :=
@@ -508,10 +510,10 @@ theorem fileUintBoxSourceBodySplit {σ σ₀ A I} {g : UInt256}
     let locals := fileUintLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Stele.EVM.storageStore evm0 I.codeOwner ⟨5⟩ (fileUintData I)
-    (I.perm = true → ExecTransitionBody config contract evm0 locals fileUintTransition.body
+    (I.perm = true → ExecTransitionBody fork config contract evm0 locals fileUintTransition.body
       (.returned { contract := contract, locals := locals } evm1 none)) ∧
     (I.perm = false →
-      ExecTransitionBody config contract evm0 locals fileUintTransition.body .staticViolation) := by
+      ExecTransitionBody fork config contract evm0 locals fileUintTransition.body .staticViolation) := by
   intro locals evm0 evm1
   have hguard := catAuthGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -536,9 +538,9 @@ theorem fileUintBoxSourceBodySplit {σ σ₀ A I} {g : UInt256}
     simpa [evm1] using
       (assign_fileUintBoxStorage evm0 (locals := locals) (fileUintData I)
         (by simp [locals, fileUintLocals]))
-  have hbody : ∀ r, ExecStmt config { contract := contract, locals := locals } evm0
+  have hbody : ∀ r, ExecStmt fork config { contract := contract, locals := locals } evm0
       (.assign .storage boxRef (.var "data")) r →
-      ExecBlock config { contract := contract, locals := locals } evm0
+      ExecBlock fork config { contract := contract, locals := locals } evm0
         fileUintTransition.body r := by
     intro r h
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
@@ -546,7 +548,7 @@ theorem fileUintBoxSourceBodySplit {σ σ₀ A I} {g : UInt256}
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
     exact execBlock_singleton (ExecStmt.iteTrue hcond (execBlock_singleton h))
   refine ⟨fun hperm ↦ ?_, fun hperm ↦ ?_⟩
-  · exact ExecFuncBody.execBlockOK (hbody _ (ExecStmt.assign (hperm := Or.inr hperm) hdata hassign))
+  · exact ExecFuncBody.execBlockOK (hbody _ (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) hdata hassign))
   · exact ExecFuncBody.execBlockStatic
       (hbody _ (ExecStmt.assignStatic hdata hassign (by simp [evm0, initState]; exact hperm)))
 
@@ -558,7 +560,7 @@ theorem fileUintBoxSourceBody {σ σ₀ A I} {g : UInt256}
     let locals := fileUintLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Stele.EVM.storageStore evm0 I.codeOwner ⟨5⟩ (fileUintData I)
-    ExecTransitionBody config contract evm0 locals fileUintTransition.body
+    ExecTransitionBody fork config contract evm0 locals fileUintTransition.body
       (.returned { contract := contract, locals := locals } evm1 none) :=
   (fileUintBoxSourceBodySplit (σ₀ := σ₀) (A := A) (g := g)
     hwv hauth hwhat).1 hperm
@@ -569,7 +571,7 @@ theorem fileUintUnrecognizedSourceBody {σ σ₀ A I} {g : UInt256}
     (hnotBox : fileUintWhat I ≠ fileUintBoxBytes) :
     let locals := fileUintLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals fileUintTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals fileUintTransition.body .reverted := by
   intro locals evm0
   have hguard := catAuthGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -586,7 +588,7 @@ theorem fileUintUnrecognizedSourceBody {σ σ₀ A I} {g : UInt256}
         .ok (.bool false) := by
     simp [evalExpr?, pure]
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 fileUintTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 fileUintTransition.body
         .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -607,10 +609,10 @@ theorem catFileUintBodyCore
       config.externalABI.decodeCalldata? (fileUintTransition.params.map Param.name)
         (transitionSignature fileUintTransition).paramTypes I.calldata =
           some (fileUintLocals I))
-    (hreach : ∃ k C, RD catBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨304⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let data := fileUintData I
   let callerSlot := catCallerWardsSlot I
   let locals := fileUintLocals I
@@ -629,10 +631,10 @@ theorem catFileUintBodyCore
     · let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evm1 := Stele.EVM.storageStore evm0 I.codeOwner ⟨5⟩ data
       have hbody (hperm : I.perm = true) :
-          ExecTransitionBody config contract evm0 locals fileUintTransition.body
+          ExecTransitionBody fork config contract evm0 locals fileUintTransition.body
             (.returned { contract := contract, locals := locals } evm1 none) := by
         simpa [evm0, evm1, locals, data] using
-          (fileUintBoxSourceBody (hperm := hperm) (σ := σ)
+          (fileUintBoxSourceBody (fork := fork) (hperm := hperm) (σ := σ)
             (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauthStele hbox)
       have hstoreSplit := RD.catFileUintBoxSuccessSplit hreach hsz68 hsize hauthSolc hbox
       rcases hstoreSplit with ⟨hperm, hret⟩ | ⟨hperm, hstatic⟩
@@ -647,7 +649,7 @@ theorem catFileUintBodyCore
         haccounts henc
     · let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       have hbody :
-          ExecTransitionBody config contract evm0 locals fileUintTransition.body
+          ExecTransitionBody fork config contract evm0 locals fileUintTransition.body
             .reverted := by
         simpa [evm0, locals] using
           (fileUintUnrecognizedSourceBody
@@ -660,12 +662,12 @@ theorem catFileUintBodyCore
       exact hauthEvm (by rw [hcallerWord, hstele])
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     have hbody :
-        ExecTransitionBody config contract evm0 locals fileUintTransition.body .reverted := by
+        ExecTransitionBody fork config contract evm0 locals fileUintTransition.body .reverted := by
       have hguard := catAuthGuardEval_false
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) (locals := locals)
         (by simp [locals, fileUintLocals]) hauthStele
-      have hblock := nonpayableSecondRequireReverts
+      have hblock := nonpayableSecondRequireReverts (fork := fork)
         (cfg := config) (stele := { contract := contract, locals := locals })
         (evm := evm0)
         (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
@@ -689,9 +691,9 @@ theorem catFileUintShort {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68)
     (hsel : selIs I ⟨#[0x29, 0xae, 0x81, 0x14]⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hreach :=
-    catReachFileUintBody (σ := σ)
+    catReachFileUintBody (fork := fork) (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       hcode hwv hsz4 hsize hsel
   have hlt :
@@ -715,7 +717,7 @@ theorem catFileUintBody {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x29, 0xae, 0x81, 0x14]⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x29, 0xae, 0x81, 0x14]⟩ (by native_decide) hsel
   by_cases hshort : I.calldata.size < 68

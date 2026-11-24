@@ -2,6 +2,8 @@ import Benchmarks.Dss.Clipper.UintEntry
 import Benchmarks.Dss.Clipper.Invalid
 import Ethereum.Theory.OpcodeLemmas
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -154,7 +156,7 @@ theorem clipperActiveBodyReturns (v : ClipperImmutables) (evm : EVM.State)
     (hbound :
       (clipperActiveArgWord I).toNat <
         (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat) :
-    ExecTransitionBody config contract evm (clipperActiveStore I)
+    ExecTransitionBody fork config contract evm (clipperActiveStore I)
       activeTransition.body
       (.returned { contract := contract, locals := clipperActiveStore I, immutables := immStore v } evm
         (some [(.int (Int.ofNat
@@ -169,7 +171,7 @@ theorem clipperActiveBodyReverts (v : ClipperImmutables) (evm : EVM.State)
     (hbound :
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat ≤
         (clipperActiveArgWord I).toNat) :
-    ExecTransitionBody config contract evm (clipperActiveStore I)
+    ExecTransitionBody fork config contract evm (clipperActiveStore I)
       activeTransition.body .reverted (immStore v) := by
   refine ExecFuncBody.execBlockRevert ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true h)) ?_
@@ -184,12 +186,12 @@ theorem clipperReachActiveBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutable
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (clipperSelBytes 0)) :
-    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨883⟩ : UInt256)
+    ∃ k C, RD fork code I g (initState σ σ₀ g A I) (⟨883⟩ : UInt256)
       [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
-  obtain ⟨_, _, h32⟩ := clipperReachRoot
+  obtain ⟨_, _, h32⟩ := clipperReachRoot (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperActiveSelectorWord hsz hsel
-  have h43 := RD.selectorSplitNotTakenPush2 (pc := (⟨32⟩ : UInt256))
+  have h43 := RD.selectorSplitNotTakenPush2 (fork := fork) (pc := (⟨32⟩ : UInt256))
     (next := (⟨43⟩ : UInt256)) (pivot := clipperSelNat 20)
     (tgt := (⟨260⟩ : UInt256)) h32
     (by
@@ -213,7 +215,7 @@ theorem clipperReachActiveBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutable
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h162 := RD.selectorSplitTakenPush2 (pc := (⟨43⟩ : UInt256)) (pivot := clipperSelNat 3)
+  have h162 := RD.selectorSplitTakenPush2 (fork := fork) (pc := (⟨43⟩ : UInt256)) (pivot := clipperSelNat 3)
     (tgt := (⟨162⟩ : UInt256)) h43
     (by
         change decode code (⟨43⟩ : UInt256) = some (.DUP1, .none)
@@ -236,7 +238,7 @@ theorem clipperReachActiveBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutable
     (by rw [hword]; native_decide)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨162⟩ : UInt256) (by native_decide))
     (by simp)
-  have h222 := RD.selectorSplitTakenPush2 (pc := (⟨163⟩ : UInt256)) (pivot := clipperSelNat 13)
+  have h222 := RD.selectorSplitTakenPush2 (fork := fork) (pc := (⟨163⟩ : UInt256)) (pivot := clipperSelNat 13)
     (tgt := (⟨222⟩ : UInt256))
     (h162.jumpdest
       (by
@@ -414,10 +416,10 @@ theorem clipperActiveX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD code I g
+    (hreach : ∃ k C, RD fork code I g
       (initState σ σ₀ g A I) (⟨883⟩ : UInt256) [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨3497⟩ : UInt256)
+    ∃ k C, RD fork code I g (initState σ σ₀ g A I) (⟨3497⟩ : UInt256)
       (clipperActiveArgWord I :: ⟨476⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd905⟩ := solcOneUintExternalLenOk
@@ -440,10 +442,10 @@ theorem clipperActiveX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
-    (hreach : ∃ k C, RD code I g
+    (hreach : ∃ k C, RD fork code I g
       (initState σ σ₀ g A I) (⟨883⟩ : UInt256) [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev code g (initState σ σ₀ g A I) := by
+    RDrev fork code g (initState σ σ₀ g A I) := by
   exact solcOneUintExternalShort
     (entry := (⟨883⟩ : UInt256)) (ret := (⟨476⟩ : UInt256))
     (routine := (⟨3497⟩ : UInt256)) hreach
@@ -453,14 +455,14 @@ set_option maxHeartbeats 1000000 in
 theorem clipperActiveArrayBounds_ok {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret : UInt256} {R : List UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 (⟨3497⟩ : UInt256)
+    (h : RD fork code ee g s0 (⟨3497⟩ : UInt256)
       (clipperActiveArgWord ee :: ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : clipperActiveArrayGetterWf code)
     (h3510 : (D_J code 0).contains (⟨3510⟩ : UInt256) = true)
     (hbound : (clipperActiveArgWord ee).toNat < (solcSlotWord σ ee ⟨11⟩).toNat)
     (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (⟨3510⟩ : UInt256)
+    ∃ k' C', RD fork code ee g s0 (⟨3510⟩ : UInt256)
       (clipperActiveArgWord ee :: ⟨11⟩ :: clipperActiveArgWord ee :: ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
@@ -487,12 +489,12 @@ set_option maxHeartbeats 1000000 in
 theorem clipperActiveArrayPrepareHash_ok {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret : UInt256} {R : List UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 (⟨3510⟩ : UInt256)
+    (h : RD fork code ee g s0 (⟨3510⟩ : UInt256)
       (clipperActiveArgWord ee :: ⟨11⟩ :: clipperActiveArgWord ee :: ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : clipperActiveArrayGetterWf code)
     (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (⟨3520⟩ : UInt256)
+    ∃ k' C', RD fork code ee g s0 (⟨3520⟩ : UInt256)
       (⟨0⟩ :: ⟨32⟩ :: clipperActiveArgWord ee :: clipperActiveArgWord ee :: ret :: R)
       clipperActiveHashMem (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
@@ -514,12 +516,12 @@ set_option maxHeartbeats 4000000 in
 theorem clipperActiveArrayHashSlot_ok {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret : UInt256} {R : List UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 (⟨3520⟩ : UInt256)
+    (h : RD fork code ee g s0 (⟨3520⟩ : UInt256)
       (⟨0⟩ :: ⟨32⟩ :: clipperActiveArgWord ee :: clipperActiveArgWord ee :: ret :: R)
       clipperActiveHashMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : clipperActiveArrayGetterWf code)
     (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (⟨3522⟩ : UInt256)
+    ∃ k' C', RD fork code ee g s0 (⟨3522⟩ : UInt256)
       (clipperActiveSlot ee :: clipperActiveArgWord ee :: ret :: R)
       clipperActiveHashMem (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
@@ -538,12 +540,12 @@ theorem clipperActiveArrayHashSlot_ok {code : ByteArray} {g : Sat256} {s0 : Stat
 theorem clipperActiveArrayHash_ok {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret : UInt256} {R : List UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 (⟨3510⟩ : UInt256)
+    (h : RD fork code ee g s0 (⟨3510⟩ : UInt256)
       (clipperActiveArgWord ee :: ⟨11⟩ :: clipperActiveArgWord ee :: ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : clipperActiveArrayGetterWf code)
     (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (⟨3522⟩ : UInt256)
+    ∃ k' C', RD fork code ee g s0 (⟨3522⟩ : UInt256)
       (clipperActiveSlot ee :: clipperActiveArgWord ee :: ret :: R)
       clipperActiveHashMem (UInt256.ofNat 3) rdata σ k' C' := by
   obtain ⟨_, _, rd3520⟩ := clipperActiveArrayPrepareHash_ok h hwf hov
@@ -552,13 +554,13 @@ theorem clipperActiveArrayHash_ok {code : ByteArray} {g : Sat256} {s0 : State}
 theorem clipperActiveArrayFinish_ok {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret : UInt256} {R : List UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 (⟨3522⟩ : UInt256)
+    (h : RD fork code ee g s0 (⟨3522⟩ : UInt256)
       (clipperActiveSlot ee :: clipperActiveArgWord ee :: ret :: R)
       clipperActiveHashMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : clipperActiveArrayGetterWf code)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret
+    ∃ k' C', RD fork code ee g s0 ret
       (clipperActiveWord σ ee :: ret :: R)
       clipperActiveHashMem (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
@@ -577,13 +579,13 @@ theorem clipperActiveArrayFinish_ok {code : ByteArray} {g : Sat256} {s0 : State}
 theorem clipperActiveArrayLoad_ok {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret : UInt256} {R : List UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 (⟨3510⟩ : UInt256)
+    (h : RD fork code ee g s0 (⟨3510⟩ : UInt256)
       (clipperActiveArgWord ee :: ⟨11⟩ :: clipperActiveArgWord ee :: ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : clipperActiveArrayGetterWf code)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret
+    ∃ k' C', RD fork code ee g s0 ret
       (clipperActiveWord σ ee :: ret :: R)
       clipperActiveHashMem (UInt256.ofNat 3) rdata σ k' C' := by
   obtain ⟨_, _, rd3522⟩ := clipperActiveArrayHash_ok h hwf hov
@@ -592,7 +594,7 @@ theorem clipperActiveArrayLoad_ok {code : ByteArray} {g : Sat256} {s0 : State}
 theorem clipperActiveArrayGetter_ok {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret : UInt256} {R : List UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 (⟨3497⟩ : UInt256)
+    (h : RD fork code ee g s0 (⟨3497⟩ : UInt256)
       (clipperActiveArgWord ee :: ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : clipperActiveArrayGetterWf code)
@@ -600,7 +602,7 @@ theorem clipperActiveArrayGetter_ok {code : ByteArray} {g : Sat256} {s0 : State}
     (h3510 : (D_J code 0).contains (⟨3510⟩ : UInt256) = true)
     (hbound : (clipperActiveArgWord ee).toNat < (solcSlotWord σ ee ⟨11⟩).toNat)
     (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret
+    ∃ k' C', RD fork code ee g s0 ret
       (clipperActiveWord σ ee :: ret :: R)
       clipperActiveHashMem (UInt256.ofNat 3) rdata σ k' C' := by
   obtain ⟨_, _, rd3510⟩ :=
@@ -611,13 +613,13 @@ set_option maxHeartbeats 1000000 in
 theorem clipperActiveArrayGetter_invalid {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret : UInt256} {R : List UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 (⟨3497⟩ : UInt256)
+    (h : RD fork code ee g s0 (⟨3497⟩ : UInt256)
       (clipperActiveArgWord ee :: ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : clipperActiveArrayGetterWf code)
     (hbound : (solcSlotWord σ ee ⟨11⟩).toNat ≤ (clipperActiveArgWord ee).toNat)
     (hov : R.length + 8 ≤ 1024) :
-    RDinvalid code g s0 := by
+    RDinvalid fork code g s0 := by
   rcases hwf with
     ⟨hd3497, hd3498, hd3500, hd3501, hd3502, hd3503, hd3504, hd3505, hd3508,
       hd3509, _hd3510, _hd3511, _hd3513, _hd3514, _hd3515, _hd3516, _hd3518,
@@ -643,10 +645,10 @@ theorem clipperX_active_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hbound : (clipperActiveArgWord I).toNat < (solcSlotWord σ I ⟨11⟩).toNat)
-    (hreach : ∃ k C, RD code I g
+    (hreach : ∃ k C, RD fork code I g
       (initState σ σ₀ g A I) (⟨883⟩ : UInt256) [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret code g (initState σ σ₀ g A I) σ
+    RDret fork code g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (clipperActiveWord σ I)) := by
   obtain ⟨_, _, rd3497⟩ := clipperActiveX_decoded (v := v) hpatch hsz36 hsize hreach
   obtain ⟨_, _, rd476⟩ := clipperActiveArrayGetter_ok
@@ -672,10 +674,10 @@ theorem clipperX_active_invalid {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hbound : (solcSlotWord σ I ⟨11⟩).toNat ≤ (clipperActiveArgWord I).toNat)
-    (hreach : ∃ k C, RD code I g
+    (hreach : ∃ k C, RD fork code I g
       (initState σ σ₀ g A I) (⟨883⟩ : UInt256) [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDinvalid code g (initState σ σ₀ g A I) := by
+    RDinvalid fork code g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd3497⟩ := clipperActiveX_decoded (v := v) hpatch hsz36 hsize hreach
   exact clipperActiveArrayGetter_invalid
     (ret := (⟨476⟩ : UInt256)) (R := [sel]) rd3497
@@ -688,12 +690,12 @@ theorem clipperActiveBody (v : ClipperImmutables) {code : ByteArray}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 0)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 0) (by native_decide) hsel
   have hdispatch : dispatchMsg contract I.calldata = some activeTransition :=
     clipperDispatch_active hsel
-  have hreach := clipperReachActiveBody
+  have hreach := clipperReachActiveBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (v := v) hpatch hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
@@ -702,7 +704,7 @@ theorem clipperActiveBody (v : ClipperImmutables) {code : ByteArray}
     · have hboundStele :
           (clipperActiveArgWord I).toNat < (solcSlotWord σ I ⟨11⟩).toNat := hbound
       have hbody :
-          ExecTransitionBody config contract
+          ExecTransitionBody fork config contract
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (clipperActiveStore I) activeTransition.body
             (.returned { contract := contract, locals := clipperActiveStore I, immutables := immStore v }
@@ -726,7 +728,7 @@ theorem clipperActiveBody (v : ClipperImmutables) {code : ByteArray}
       have hboundStele :
           (solcSlotWord σ I ⟨11⟩).toNat ≤ (clipperActiveArgWord I).toNat := hboundEvm
       have hbody :
-          ExecTransitionBody config contract
+          ExecTransitionBody fork config contract
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (clipperActiveStore I) activeTransition.body .reverted (immStore v) := by
         simpa [solcSlotWord, initState, Stele.EVM.storageLoad, State.lookupAccount] using

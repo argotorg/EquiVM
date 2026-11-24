@@ -2,6 +2,8 @@ import Reasoning.WordArithmetic
 import Benchmarks.Auction.CallMemory
 import Benchmarks.Auction.CallBridge
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -11,11 +13,11 @@ def wethWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
 
 
 theorem depositPrefix {I g s0 amount recipient ret R mem aw ptr rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨3352⟩ (amount :: recipient :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨3352⟩ (amount :: recipient :: ret :: R)
       mem aw rdata σ k C)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 32 ≤ 2 ^ 200)
     (hov : R.length + 17 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨3417⟩
+    ∃ k' C', RD fork auctionBytecode I g s0 ⟨3417⟩
       (wethWord σ I :: wethWord σ I :: amount :: ptr :: ⟨4⟩ :: ptr :: ⟨0⟩ ::
         (ptr + ⟨4⟩) :: amount :: ⟨0xd0e30db0⟩ :: wethWord σ I :: amount ::
         recipient :: ret :: R)
@@ -29,7 +31,7 @@ theorem depositPrefix {I g s0 amount recipient ret R mem aw ptr rdata σ k C}
   have he : UInt256.exp ⟨256⟩ ⟨0⟩ = ⟨1⟩ := by native_decide
   have hmask : UInt256.sub (UInt256.shiftLeft ⟨1⟩ ⟨160⟩) ⟨1⟩ = solcAddrMask := by decide
   simp only [he, hmask, word_div_one, u256_land_comm solcAddrMask, maskTwice] at rd3387
-  change RD _ _ _ _ ⟨3387⟩ (⟨0xd0e30db0⟩ :: wethWord σ I :: amount :: recipient :: ret :: R)
+  change RD fork _ _ _ _ ⟨3387⟩ (⟨0xd0e30db0⟩ :: wethWord σ I :: amount :: recipient :: ret :: R)
     mem aw rdata σ _ _ at rd3387
   have rd3391 := evm_run rd3387 with [dup3, push1 ⟨64⟩,
     raw mloadSymbolic (by native_decide) (by evm_ov)]
@@ -39,7 +41,7 @@ theorem depositPrefix {I g s0 amount recipient ret R mem aw ptr rdata σ k C}
   have hsel : UInt256.shiftLeft (UInt256.land ⟨0xffffffff⟩ ⟨0xd0e30db0⟩) ⟨224⟩ =
       depositWord := by native_decide
   simp only [hsel] at rd3403
-  change RD _ _ _ _ ⟨3403⟩ (ptr :: amount :: ⟨0xd0e30db0⟩ :: wethWord σ I ::
+  change RD fork _ _ _ _ ⟨3403⟩ (ptr :: amount :: ⟨0xd0e30db0⟩ :: wethWord σ I ::
     amount :: recipient :: ret :: R) (selectorMem mem ptr depositWord)
     (expandedWords aw ptr ⟨32⟩) rdata σ _ _ at rd3403
   have hh := selectorMem_heap hm depositWord hb
@@ -51,11 +53,11 @@ theorem depositPrefix {I g s0 amount recipient ret R mem aw ptr rdata σ k C}
   exact ⟨_, _, rd3417⟩
 
 theorem depositCodeGuard {I g s0 amount recipient ret R mem aw ptr rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨3352⟩ (amount :: recipient :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨3352⟩ (amount :: recipient :: ret :: R)
       mem aw rdata σ k C)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 32 ≤ 2 ^ 200)
     (hov : R.length + 17 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨3424⟩
+    ∃ k' C', RD fork auctionBytecode I g s0 ⟨3424⟩
       (⟨3428⟩ :: UInt256.isZero (UInt256.isZero (extCodeSizeWord σ (wethWord σ I))) ::
         UInt256.isZero (extCodeSizeWord σ (wethWord σ I)) :: wethWord σ I ::
         amount :: ptr :: ⟨4⟩ :: ptr :: ⟨0⟩ :: (ptr + ⟨4⟩) :: amount ::
@@ -66,21 +68,21 @@ theorem depositCodeGuard {I g s0 amount recipient ret R mem aw ptr rdata σ k C}
   exact ⟨_, _, evm_run rd3418 with [iszero, dup1, iszero, push2 ⟨3428⟩]⟩
 
 theorem depositNoCode {I g s0 amount recipient ret R mem aw ptr rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨3352⟩ (amount :: recipient :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨3352⟩ (amount :: recipient :: ret :: R)
       mem aw rdata σ k C)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 32 ≤ 2 ^ 200)
     (hno : extCodeSizeWord σ (wethWord σ I) = ⟨0⟩) (hov : R.length + 18 ≤ 1024) :
-    RDrev auctionBytecode g s0 := by
+    RDrev fork auctionBytecode g s0 := by
   obtain ⟨_, _, rd3424⟩ := depositCodeGuard h hm hb (by omega)
   exact evm_run rd3424 with [jumpiNT (by rw [hno]; decide),
     raw solcPush0Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by evm_ov)]
 
 theorem depositCallPrefix {I g s0 amount recipient ret R mem aw ptr rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨3352⟩ (amount :: recipient :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨3352⟩ (amount :: recipient :: ret :: R)
       mem aw rdata σ k C)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 32 ≤ 2 ^ 200)
     (hyes : extCodeSizeWord σ (wethWord σ I) ≠ ⟨0⟩) (hov : R.length + 18 ≤ 1024) :
-    ∃ gasArg k' C', RD auctionBytecode I g s0 ⟨3431⟩
+    ∃ gasArg k' C', RD fork auctionBytecode I g s0 ⟨3431⟩
       (gasArg :: wethWord σ I :: amount :: ptr :: ⟨4⟩ :: ptr :: ⟨0⟩ ::
         (ptr + ⟨4⟩) :: amount :: ⟨0xd0e30db0⟩ :: wethWord σ I :: amount ::
         recipient :: ret :: R)

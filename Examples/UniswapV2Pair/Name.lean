@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.StringReturn
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -19,7 +21,7 @@ theorem nameReturnEncoding :
 /-- The Stele `name()` body returns `"Uniswap V2"` as a dynamic string value. -/
 theorem uniswapNameBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract evm locals nameTransition.body
+    ExecTransitionBody fork config contract evm locals nameTransition.body
       (.returned { contract := contract, locals := locals } evm (some [(.bytes nameBytes)])) := by
   simpa [nameTransition] using uniswapBytesLiteralBodyReturns evm locals nameBytes h
 
@@ -59,10 +61,10 @@ private theorem nameReturnRead :
 
 /-- Runtime-only `name()` slice from selector dispatch through dynamic string return. -/
 theorem uniswapX_name {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨572⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret uniswapV2PairBytecode g (initState σ σ₀ g A I) σ
+    RDret fork uniswapV2PairBytecode g (initState σ σ₀ g A I) σ
       nameReturnBytes := by
   obtain ⟨_, _, h572⟩ := hreach
   have h2814 := evm_run h572 with [jumpdest, push2 ⟨580⟩, push2 ⟨2814⟩, jump (by jump_dest)]
@@ -146,12 +148,12 @@ theorem uniswapNameBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (nameTransition.params.map Param.name)
         (transitionSignature nameTransition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨572⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ nameTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -171,7 +173,7 @@ theorem uniswapNameBody
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x06, 0xfd, 0xde, 0x03]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some nameTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x06, 0xfd, 0xde, 0x03]⟩ rfl hsel
   exact uniswapNameBodyCore hcode hwv hdispatch (uniswapDecode_name hsz)

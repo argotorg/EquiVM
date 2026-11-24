@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.WordRangeSourceStep
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 3000
@@ -19,7 +21,7 @@ def wordRangeFirstFrame (evm : EVM.State) (imms : Store) (start : UInt256) (n : 
 
 theorem wordRangePrelude (evm : EVM.State) (imms : Store) (start : UInt256) (n : Nat)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hhi : evm.executionEnv.calldata.size < calldataLimit) :
-    ABlock config evm {contract := contract, locals := wordRangeArgs start n, immutables := imms}
+    ABlock fork config evm {contract := contract, locals := wordRangeArgs start n, immutables := imms}
       extsload_bytes32_uint256Transition.body (wordRangeFirstFrame evm imms start n)
       (extsload_bytes32_uint256Transition.body.drop 5) := by
   refine ABlock.start.requireStep (evalCallvalueEq_true hwv)
@@ -42,7 +44,7 @@ theorem wordRangePrelude (evm : EVM.State) (imms : Store) (start : UInt256) (n :
 
 theorem wordRangeSource (evm : EVM.State) (imms : Store) (start : UInt256) (n : Nat)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hhi : evm.executionEnv.calldata.size < calldataLimit) :
-    ∃ f, ExecTransitionBody config contract evm (wordRangeArgs start n)
+    ∃ f, ExecTransitionBody fork config contract evm (wordRangeArgs start n)
       extsload_bytes32_uint256Transition.body
       (.returned f evm (some [.array (wordArrayValues (wordRangeValue evm start) 0 n)])) imms := by
   let f := wordRangeFirstFrame evm imms start n
@@ -68,12 +70,12 @@ theorem wordRangeSource (evm : EVM.State) (imms : Store) (start : UInt256) (n : 
       store_get_ne (k := "nSlots") (a := "rawSlots") _ _ (by decide),
       store_get_ne (k := "startSlot") (a := "rawSlots") _ _ (by decide), store_get_empty]
   have heq := evalNatEqZero (cfg := config) (f := f) (evm := evm) (evalLocalValue hn)
-  have hp := wordRangePrelude evm imms start n hwv hhi
+  have hp := wordRangePrelude (fork := fork) evm imms start n hwv hhi
   by_cases hz : n = 0
   · subst n
     refine ⟨f, ExecFuncBody.execBlockRet (hp.run ?_)⟩
     simp only [wordArrayValues, wordArrayWords, List.map_nil]
-    change ExecBlock config f evm _ (.returned f evm (some [.array []]))
+    change ExecBlock fork config f evm _ (.returned f evm (some [.array []]))
     have hr0 : f.locals.get? "result" = some (.array []) := by
       simpa only [res, List.replicate_zero] using hres
     exact ExecBlock.consReturn (ExecStmt.iteTrue (by simpa only [decide_true] using heq)
@@ -98,7 +100,7 @@ theorem wordRangeSource (evm : EVM.State) (imms : Store) (start : UInt256) (n : 
         .ok (wordBytes32Value (wordRangeValue evm start 0)) := by
       rw [wordRangeValue_zero]
       exact evalCastValue (evalLocalValue (store_get_self _ _ _)) (castUint256ToBytes32 _)
-    have hassign := ExecStmt.assign (hperm := Or.inl rfl) hfirst
+    have hassign := ExecStmt.assign (fork := fork) (hperm := Or.inl rfl) hfirst
       (assignLocalArrayAt hres (show evalExpr? config f evm (.intLit 0) = .ok (.int (Int.ofNat 0)) by
         simp only [evalExpr?, pure]; rfl)
         (by simp only [res, List.length_replicate]; omega))

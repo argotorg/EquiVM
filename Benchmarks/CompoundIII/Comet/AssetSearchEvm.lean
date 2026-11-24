@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.AssetSearch
 import Benchmarks.CompoundIII.Comet.AssetMemory
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_038
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -9,29 +11,29 @@ namespace Benchmarks.CompoundIII.Comet
 
 set_option maxRecDepth 10000
 
-def AssetSearchRun (v : CometWithExtendedAssetListImmutables) (ee : ExecutionEnv)
+def AssetSearchRun (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables) (ee : ExecutionEnv)
     (g : Sat256) (s0 : State) (ret : UInt256) (R : List UInt256)
     (result : Option (EVM.State × ByteArray)) : Prop :=
   match result with
-  | none => RDrev (deployedRuntime v) g s0
+  | none => RDrev fork (deployedRuntime v) g s0
   | some (evm', out) => ∃ σ' mem ptr free aw k C,
       SourceState s0 ee σ' evm' ∧ AssetValid out ∧ AssetMemory mem ptr free out ∧
-      RD (deployedRuntime v) ee g s0 ret (ptr :: R) mem aw out σ' k C
+      RD fork (deployedRuntime v) ee g s0 ret (ptr :: R) mem aw out σ' k C
 
 /-- The search also retains allocation bounds for callers that query price feeds. -/
-def AssetSearchRunBounded (v : CometWithExtendedAssetListImmutables) (ee : ExecutionEnv)
+def AssetSearchRunBounded (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables) (ee : ExecutionEnv)
     (g : Sat256) (s0 : State) (ret : UInt256) (R : List UInt256) (limit : Nat)
     (result : Option (EVM.State × ByteArray)) : Prop :=
   match result with
-  | none => RDrev (deployedRuntime v) g s0
+  | none => RDrev fork (deployedRuntime v) g s0
   | some (evm', out) => ∃ σ' mem ptr free aw k C,
       SourceState s0 ee σ' evm' ∧ AssetValid out ∧ AssetMemory mem ptr free out ∧
       free.toNat ≤ limit ∧ free.toNat ≤ mem.size ∧
-      RD (deployedRuntime v) ee g s0 ret (ptr :: R) mem aw out σ' k C
+      RD fork (deployedRuntime v) ee g s0 ret (ptr :: R) mem aw out σ' k C
 
 theorem AssetSearchRunBounded.forget {v ee g s0 ret R limit result}
-    (h : AssetSearchRunBounded v ee g s0 ret R limit result) :
-    AssetSearchRun v ee g s0 ret R result := by
+    (h : AssetSearchRunBounded fork v ee g s0 ret R limit result) :
+    AssetSearchRun fork v ee g s0 ret R result := by
   cases result with
   | none => exact h
   | some pair =>
@@ -48,10 +50,10 @@ theorem cometAssetSearchLoopBounded {v : CometWithExtendedAssetListImmutables}
     (hptr : ptr.toNat + 768 * (v.numAssets.toNat - i) + 256 < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7535⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7535⟩
       (UInt256.ofNat i :: EVM.word asset.val :: ret :: v.numAssets :: ⟨255⟩ :: R)
       mem aw rdata σ k C) :
-    ∃ result, AssetSearch v asset i evm result ∧ AssetSearchRunBounded v ee g s0 ret R
+    ∃ result, AssetSearch fork v asset i evm result ∧ AssetSearchRunBounded fork v ee g s0 ret R
       (ptr.toNat + 768 * (v.numAssets.toNat - i)) result := by
   have hi8 : i < 256 := lt_of_le_of_lt hi v.numAssets_lt
   have hin : (UInt256.ofNat i).toNat = i :=
@@ -159,10 +161,10 @@ theorem cometAssetSearchLoop {v : CometWithExtendedAssetListImmutables}
     (hptr : ptr.toNat + 768 * (v.numAssets.toNat - i) + 256 < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7535⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7535⟩
       (UInt256.ofNat i :: EVM.word asset.val :: ret :: v.numAssets :: ⟨255⟩ :: R)
       mem aw rdata σ k C) :
-    ∃ result, AssetSearch v asset i evm result ∧ AssetSearchRun v ee g s0 ret R result := by
+    ∃ result, AssetSearch fork v asset i evm result ∧ AssetSearchRun fork v ee g s0 ret R result := by
   obtain ⟨result, hsearch, hrun⟩ := cometAssetSearchLoopBounded hstack hi hfree hlo hptr hret hs h
   exact ⟨result, hsearch, hrun.forget⟩
 
@@ -174,9 +176,9 @@ theorem cometAssetSearchInternalBounded {v : CometWithExtendedAssetListImmutable
     (hlo : 96 ≤ ptr.toNat) (hptr : ptr.toNat + 512 + 768 * v.numAssets.toNat < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7482⟩ (EVM.word asset.val :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7482⟩ (EVM.word asset.val :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ result, AssetSearch v asset 0 evm result ∧ AssetSearchRunBounded v ee g s0 ret R
+    ∃ result, AssetSearch fork v asset 0 evm result ∧ AssetSearchRunBounded fork v ee g s0 ret R
       (ptr.toNat + 256 + 768 * v.numAssets.toNat) result := by
   have r1 := cometWithExtendedAssetList_block_7482
     (immWords := wordsOf (immStore v)) (by omega)
@@ -207,9 +209,9 @@ theorem cometAssetSearchInternal {v : CometWithExtendedAssetListImmutables}
     (hlo : 96 ≤ ptr.toNat) (hptr : ptr.toNat + 512 + 768 * v.numAssets.toNat < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7482⟩ (EVM.word asset.val :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7482⟩ (EVM.word asset.val :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ result, AssetSearch v asset 0 evm result ∧ AssetSearchRun v ee g s0 ret R result := by
+    ∃ result, AssetSearch fork v asset 0 evm result ∧ AssetSearchRun fork v ee g s0 ret R result := by
   obtain ⟨result, hsearch, hrun⟩ := cometAssetSearchInternalBounded hstack hfree hlo hptr hret hs h
   exact ⟨result, hsearch, hrun.forget⟩
 

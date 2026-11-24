@@ -14,6 +14,12 @@ import Reasoning.Reach
 import Reasoning.Constructor
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
+-- Concrete decoder facts must reduce the empty padding of a complete PUSH operand.
+set_option allowUnsafeReducibility true in
+attribute [local semireducible] ByteArray.zeroes
+
 /-!
 # Caller — runtime-equivalence proof for `run(address t, uint256 n)`
 
@@ -48,14 +54,14 @@ theorem callerBodySuccess (evm : EVM.State) (locals : Stele.Store) {tval : EVM.A
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (ht : locals.get? "t" = some (.address tval))
     (hn : locals.get? "n" = some (.int nval))
-    (hcall : typedCallViaEVM callerConfig evm (EVM.address tval) "pow2" 0 [.int nval]
+    (hcall : typedCallViaEVM fork callerConfig evm (EVM.address tval) "pow2" 0 [.int nval]
               (true, evm', out))
     (hdec : callerConfig.externalABI.decode? "pow2" out = some [value])
     (hassign : assignStorageRef? callerConfig
         { contract := callerContract, locals := locals.insert "tmp" value } evm'
         .storage { base := "stored", steps := [] } value = .ok (stele'', evm''))
     (hperm : evm'.executionEnv.perm = true) :
-    ExecTransitionBody callerConfig callerContract evm locals runTransition.body
+    ExecTransitionBody fork callerConfig callerContract evm locals runTransition.body
       (.returned stele'' evm'' none) := by
   refine ExecFuncBody.execBlockOK
     (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv))
@@ -81,14 +87,14 @@ theorem callerBodyStatic (evm : EVM.State) (locals : Stele.Store) {tval : EVM.Ad
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (ht : locals.get? "t" = some (.address tval))
     (hn : locals.get? "n" = some (.int nval))
-    (hcall : typedCallViaEVM callerConfig evm (EVM.address tval) "pow2" 0 [.int nval]
+    (hcall : typedCallViaEVM fork callerConfig evm (EVM.address tval) "pow2" 0 [.int nval]
               (true, evm', out))
     (hdec : callerConfig.externalABI.decode? "pow2" out = some [value])
     (hassign : assignStorageRef? callerConfig
         { contract := callerContract, locals := locals.insert "tmp" value } evm'
         .storage { base := "stored", steps := [] } value = .ok (stele'', evm''))
     (hperm : evm'.executionEnv.perm = false) :
-    ExecTransitionBody callerConfig callerContract evm locals runTransition.body
+    ExecTransitionBody fork callerConfig callerContract evm locals runTransition.body
       .staticViolation := by
   refine ExecFuncBody.execBlockStatic
     (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv))
@@ -113,9 +119,9 @@ theorem callerBodyExtFail (evm : EVM.State) (locals : Stele.Store) {tval : EVM.A
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (ht : locals.get? "t" = some (.address tval))
     (hn : locals.get? "n" = some (.int nval))
-    (hcall : typedCallViaEVM callerConfig evm (EVM.address tval) "pow2" 0 [.int nval]
+    (hcall : typedCallViaEVM fork callerConfig evm (EVM.address tval) "pow2" 0 [.int nval]
               (false, evm', out)) :
-    ExecTransitionBody callerConfig callerContract evm locals runTransition.body .reverted := by
+    ExecTransitionBody fork callerConfig callerContract evm locals runTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert
     (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv))
       (ExecBlock.consRevert (ExecStmt.externalCallFailure
@@ -136,10 +142,10 @@ theorem callerBodyDecodeRevert (evm : EVM.State) (locals : Stele.Store) {tval : 
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (ht : locals.get? "t" = some (.address tval))
     (hn : locals.get? "n" = some (.int nval))
-    (hcall : typedCallViaEVM callerConfig evm (EVM.address tval) "pow2" 0 [.int nval]
+    (hcall : typedCallViaEVM fork callerConfig evm (EVM.address tval) "pow2" 0 [.int nval]
               (true, evm', out))
     (hdec : callerConfig.externalABI.decode? "pow2" out = none) :
-    ExecTransitionBody callerConfig callerContract evm locals runTransition.body .reverted := by
+    ExecTransitionBody fork callerConfig callerContract evm locals runTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert
     (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv))
       (ExecBlock.consRevert (ExecStmt.externalCallReturnDecodeRevert
@@ -200,7 +206,7 @@ theorem callerContains504 : (D_J callerBytecode 0).contains ⟨504⟩ = true := 
 theorem callerX_callvalue_ne
     {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = callerBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev callerBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork callerBytecode g (initState σ σ₀ g A I) := by
   exact evm_run (solcGuardPrologueRD hcode (by decide) (by decide) (by decide) (by decide)
         (by decide) (by decide)) with [
       push2 ⟨15⟩,
@@ -212,7 +218,7 @@ theorem callerX_callvalue_ne
 theorem callerX_cvz_prefix
     {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = callerBytecode) (hwv : I.weiValue = ⟨0⟩) :
-    RD callerBytecode I g (initState σ σ₀ g A I) ⟨24⟩
+    RD fork callerBytecode I g (initState σ σ₀ g A I) ⟨24⟩
         [⟨41⟩, UInt256.lt (UInt256.ofNat I.calldata.size) ⟨4⟩]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ 14 53 := by
   exact evm_run (solcGuardPrologueRD hcode (by decide) (by decide) (by decide) (by decide)
@@ -251,7 +257,7 @@ theorem callerReachBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = callerBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    ∃ k C, RD callerBytecode I g (initState σ σ₀ g A I) ⟨45⟩
+    ∃ k C, RD fork callerBytecode I g (initState σ σ₀ g A I) ⟨45⟩
         [callerSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   exact solcDispatchReachBody
     (firstArmPc := callerFirstArmPc) (bodyPC := ⟨45⟩) (i := 0)
@@ -266,7 +272,7 @@ theorem callerReachBody {σ σ₀ A I} {g : Sat256}
 theorem callerX_cvz_short
     {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = callerBytecode) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    RDrev callerBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork callerBytecode g (initState σ σ₀ g A I) := by
   exact evm_run (callerX_cvz_prefix hcode hwv) with [
     jumpiT (lt_four_ne_zero_of_lt hsz) callerContains41,
     jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
@@ -278,7 +284,7 @@ theorem callerX_cvz_revertB
     (hcode : I.code = callerBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < Ethereum.UInt256.size)
     (hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = false) :
-    RDrev callerBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork callerBytecode g (initState σ σ₀ g A I) := by
   exact evm_run (callerX_cvz_prefix hcode hwv) with [
     jumpiNT (lt_four_eq_zero_of_ge hsz hsize),
     push0, calldataload, push1 ⟨224⟩, shr, dup1, push4 ⟨941609360⟩, eq, push2 ⟨45⟩,
@@ -298,11 +304,11 @@ theorem callerX_toDecoder {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = callerBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    ∃ k C, RD callerBytecode I g (initState σ σ₀ g A I) ⟨348⟩
+    ∃ k C, RD fork callerBytecode I g (initState σ σ₀ g A I) ⟨348⟩
         [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨66⟩, ⟨71⟩,
           UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
-  obtain ⟨k0, C0, rd0⟩ := callerReachBody (σ := σ) (σ₀ := σ₀)
+  obtain ⟨k0, C0, rd0⟩ := callerReachBody (fork := fork) (σ := σ) (σ₀ := σ₀)
       (A := A) (g := g) hcode hwv hsz hsize hmatch
   have rd := evm_run rd0 with [
     jumpdest, push2 ⟨71⟩, push1 ⟨4⟩, dup1, calldatasize, sub, dup2, add, swap1, push2 ⟨66⟩,
@@ -332,14 +338,14 @@ theorem callerX_dec277 {σ σ₀ A I} {g : Sat256}
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsz68 : 68 ≤ I.calldata.size) (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    ∃ k C, RD callerBytecode I g (initState σ σ₀ g A I) ⟨277⟩
+    ∃ k C, RD fork callerBytecode I g (initState σ σ₀ g A I) ⟨277⟩
         [⟨4⟩ + ⟨0⟩, UInt256.ofNat I.calldata.size, ⟨383⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨4⟩,
           UInt256.ofNat I.calldata.size, ⟨66⟩, ⟨71⟩,
           UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨0⟩ :=
     solcDecodeLenCheckOk_4_64 hsz68 hszhi hsize
-  obtain ⟨k0, C0, rd0⟩ := callerX_toDecoder (σ := σ) (σ₀ := σ₀)
+  obtain ⟨k0, C0, rd0⟩ := callerX_toDecoder (fork := fork) (σ := σ) (σ₀ := σ₀)
       (A := A) (g := g) hcode hwv hsz hsize hmatch
   exact ⟨_, _, evm_run rd0 with [
     jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero, push2 ⟨370⟩,
@@ -357,7 +363,7 @@ theorem callerX_dec264 {σ σ₀ A I} {g : Sat256}
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsz68 : 68 ≤ I.calldata.size) (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    ∃ k C, RD callerBytecode I g (initState σ σ₀ g A I) ⟨264⟩
+    ∃ k C, RD fork callerBytecode I g (initState σ σ₀ g A I) ⟨264⟩
         [UInt256.land (uInt256OfByteArray (I.calldata.readBytes (⟨4⟩ + ⟨0⟩ : UInt256).toNat 32)) addrMask,
           uInt256OfByteArray (I.calldata.readBytes (⟨4⟩ + ⟨0⟩ : UInt256).toNat 32),
           ⟨291⟩, uInt256OfByteArray (I.calldata.readBytes (⟨4⟩ + ⟨0⟩ : UInt256).toNat 32),
@@ -384,7 +390,7 @@ theorem callerX_dec291 {σ σ₀ A I} {g : Sat256}
     (hsz68 : 68 ≤ I.calldata.size) (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hclean : UInt256.eq (callerArg0 I) (UInt256.land (callerArg0 I) addrMask) = ⟨1⟩) :
-    ∃ k C, RD callerBytecode I g (initState σ σ₀ g A I) ⟨291⟩
+    ∃ k C, RD fork callerBytecode I g (initState σ σ₀ g A I) ⟨291⟩
         [callerArg0 I, ⟨4⟩ + ⟨0⟩, UInt256.ofNat I.calldata.size, ⟨383⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨4⟩,
           UInt256.ofNat I.calldata.size, ⟨66⟩, ⟨71⟩,
           UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩]
@@ -450,7 +456,7 @@ theorem callerX_decoded {σ σ₀ A I} {g : Sat256}
     (hsz68 : 68 ≤ I.calldata.size) (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hclean : UInt256.eq (callerArg0 I) (UInt256.land (callerArg0 I) addrMask) = ⟨1⟩) :
-    ∃ k C, RD callerBytecode I g (initState σ σ₀ g A I) ⟨66⟩
+    ∃ k C, RD fork callerBytecode I g (initState σ σ₀ g A I) ⟨66⟩
         [callerArg1 I, callerArg0 I, ⟨71⟩,
           UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -476,7 +482,7 @@ theorem callerX_body117 {σ σ₀ A I} {g : Sat256}
     (hsz68 : 68 ≤ I.calldata.size) (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hclean : UInt256.eq (callerArg0 I) (UInt256.land (callerArg0 I) addrMask) = ⟨1⟩) :
-    ∃ k C, RD callerBytecode I g (initState σ σ₀ g A I) ⟨117⟩
+    ∃ k C, RD fork callerBytecode I g (initState σ σ₀ g A I) ⟨117⟩
         [⟨128⟩, UInt256.shiftLeft (UInt256.land ⟨4294967295⟩ ⟨1143701499⟩) ⟨224⟩, ⟨128⟩, callerArg1 I,
           ⟨1143701499⟩, UInt256.land addrMask (callerArg0 I), callerArg1 I, callerArg0 I, ⟨71⟩,
           UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩]
@@ -503,7 +509,7 @@ theorem callerX_body425 {σ σ₀ A I} {g : Sat256}
     (hsz68 : 68 ≤ I.calldata.size) (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hclean : UInt256.eq (callerArg0 I) (UInt256.land (callerArg0 I) addrMask) = ⟨1⟩) :
-    ∃ k C, RD callerBytecode I g (initState σ σ₀ g A I) ⟨425⟩
+    ∃ k C, RD fork callerBytecode I g (initState σ σ₀ g A I) ⟨425⟩
         [⟨4⟩ + ⟨128⟩, callerArg1 I, ⟨130⟩, ⟨1143701499⟩, UInt256.land addrMask (callerArg0 I),
           callerArg1 I, callerArg0 I, ⟨71⟩,
           UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩]
@@ -630,7 +636,7 @@ theorem callerX_toCall142 {σ σ₀ A I} {g : Sat256}
     (hsz68 : 68 ≤ I.calldata.size) (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hclean : UInt256.eq (callerArg0 I) (UInt256.land (callerArg0 I) addrMask) = ⟨1⟩) :
-    ∃ k C, RD callerBytecode I g (initState σ σ₀ g A I) ⟨142⟩
+    ∃ k C, RD fork callerBytecode I g (initState σ σ₀ g A I) ⟨142⟩
         [UInt256.land addrMask (callerArg0 I), ⟨0⟩, callerOutPtr I,
           UInt256.sub ⟨164⟩ (callerOutPtr I), callerOutPtr I, ⟨32⟩, ⟨164⟩, ⟨1143701499⟩,
           UInt256.land addrMask (callerArg0 I), callerArg1 I, callerArg0 I, ⟨71⟩,
@@ -666,7 +672,7 @@ theorem callerX_afterCall {σ σ₀ A I} {g : Sat256}
     (hdepth : I.depth.val < 1024) :
     ∃ (σ' : AccountMap) (z : Bool)
       (mem' : ByteArray) (aw' : UInt256) (rdata' : ByteArray) (k' C' : ℕ),
-      RD callerBytecode I g (initState σ σ₀ g A I) (⟨142⟩ + ⟨1⟩ + ⟨1⟩)
+      RD fork callerBytecode I g (initState σ σ₀ g A I) (⟨142⟩ + ⟨1⟩ + ⟨1⟩)
         ((if z then ⟨1⟩ else ⟨0⟩) ::
           ⟨164⟩ :: ⟨1143701499⟩ :: UInt256.land addrMask (callerArg0 I) :: callerArg1 I ::
           callerArg0 I :: ⟨71⟩ ::
@@ -691,14 +697,14 @@ theorem callerX_postCall {σ σ₀ A I} {g : Sat256}
     (hdepth : I.depth.val < 1024) :
     ∃ (σ' : AccountMap) (z : Bool) (o : ByteArray)
       (A' : Substate) (k' C' : ℕ),
-      RD callerBytecode I g (initState σ σ₀ g A I) (⟨142⟩ + ⟨1⟩ + ⟨1⟩)
+      RD fork callerBytecode I g (initState σ σ₀ g A I) (⟨142⟩ + ⟨1⟩ + ⟨1⟩)
         ((if z then ⟨1⟩ else ⟨0⟩) ::
           ⟨164⟩ :: ⟨1143701499⟩ :: UInt256.land addrMask (callerArg0 I) :: callerArg1 I ::
           callerArg0 I :: ⟨71⟩ ::
           UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩ :: [])
         (o.write 0 (callerCalldataMem I) (callerOutPtr I).toNat
           (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat) ⟨6⟩ o σ' k' C'
-    ∧ typedCallViaEVM callerConfig (initState σ σ₀ g A I)
+    ∧ typedCallViaEVM fork callerConfig (initState σ σ₀ g A I)
         (EVM.address (AccountAddress.ofNat (callerArg0 I).toNat)) "pow2" 0
         [.int (Int.ofNat (callerArg1 I).toNat)]
         (z, { initState σ σ₀ g A I with
@@ -735,12 +741,12 @@ theorem callerX_postCall {σ σ₀ A I} {g : Sat256}
 theorem callerX_postRevert {σ σ₀ A I} {g : Sat256}
     {acc : AccountMap}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {k C : ℕ} {rest : List UInt256}
-    (rd : RD callerBytecode I g (initState σ σ₀ g A I) (⟨142⟩ + ⟨1⟩ + ⟨1⟩)
+    (rd : RD fork callerBytecode I g (initState σ σ₀ g A I) (⟨142⟩ + ⟨1⟩ + ⟨1⟩)
             (⟨0⟩ :: rest) mem aw rdata acc k C)
     (hov : rest.length + 4 ≤ 1024) :
-    RDrev callerBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork callerBytecode g (initState σ σ₀ g A I) := by
   -- 144 ISZERO; 145 DUP1; 146 ISZERO; 147 PUSH2 158; 150 JUMPI (not taken, z = false)
-  have rd151 : RD callerBytecode I g (initState σ σ₀ g A I)
+  have rd151 : RD fork callerBytecode I g (initState σ σ₀ g A I)
       (⟨142⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 3 + ⟨1⟩)
       (UInt256.isZero ⟨0⟩ :: rest) mem aw rdata acc _ _ :=
     evm_run rd with [iszero, dup1, iszero, push2 ⟨158⟩, jumpiNT (by decide)]
@@ -766,10 +772,10 @@ theorem callerX_succ_to165 {σ σ₀ A I} {g : Sat256}
     {acc : AccountMap}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {k C : ℕ}
     {d0 d1 d2 : UInt256} {tl : List UInt256}
-    (rd : RD callerBytecode I g (initState σ σ₀ g A I) (⟨142⟩ + ⟨1⟩ + ⟨1⟩)
+    (rd : RD fork callerBytecode I g (initState σ σ₀ g A I) (⟨142⟩ + ⟨1⟩ + ⟨1⟩)
             (⟨1⟩ :: d0 :: d1 :: d2 :: tl) mem aw rdata acc k C)
     (hov : tl.length + 7 ≤ 1024) :
-    ∃ k' C', RD callerBytecode I g (initState σ σ₀ g A I) ⟨165⟩
+    ∃ k' C', RD fork callerBytecode I g (initState σ σ₀ g A I) ⟨165⟩
         (⟨64⟩ :: tl) mem aw rdata acc k' C' := by
   -- 144 ISZERO; DUP1; ISZERO; PUSH2 158; JUMPI (taken, z = true) → 158; POP×4; PUSH1 64
   refine ⟨_, _, evm_run rd with [iszero, dup1, iszero, push2 ⟨158⟩,
@@ -791,12 +797,12 @@ def callerMem2 (o mem : ByteArray) : ByteArray :=
 theorem callerX_succ_to470 {σ σ₀ A I} {g : Sat256}
     {acc : AccountMap}
     {mem : ByteArray} {o : ByteArray} {k C : ℕ} {arg1 arg0 sel : UInt256}
-    (rd : RD callerBytecode I g (initState σ σ₀ g A I) ⟨165⟩
+    (rd : RD fork callerBytecode I g (initState σ σ₀ g A I) ⟨165⟩
             [⟨64⟩, arg1, arg0, ⟨71⟩, sel] mem ⟨6⟩ o acc k C)
     (hfp : (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
            else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
           = ⟨128⟩) :
-    ∃ k' C', RD callerBytecode I g (initState σ σ₀ g A I) ⟨470⟩
+    ∃ k' C', RD fork callerBytecode I g (initState σ σ₀ g A I) ⟨470⟩
       [⟨128⟩, UInt256.add ⟨128⟩ (UInt256.ofNat o.size), ⟨194⟩, arg1, arg0, ⟨71⟩, sel]
       (callerMem2 o mem) ⟨6⟩ o acc k' C' := by
   refine ⟨_, _, evm_run rd with [
@@ -816,11 +822,11 @@ theorem callerX_succ_to470 {σ σ₀ A I} {g : Sat256}
 theorem callerX_succ_to491 {σ σ₀ A I} {g : Sat256}
     {acc : AccountMap}
     {mem2 : ByteArray} {o : ByteArray} {k C : ℕ} {arg1 arg0 sel : UInt256}
-    (rd : RD callerBytecode I g (initState σ σ₀ g A I) ⟨470⟩
+    (rd : RD fork callerBytecode I g (initState σ σ₀ g A I) ⟨470⟩
             [⟨128⟩, UInt256.add ⟨128⟩ (UInt256.ofNat o.size), ⟨194⟩, arg1, arg0, ⟨71⟩, sel]
             mem2 ⟨6⟩ o acc k C)
     (ho32 : 32 ≤ o.size) (ho : o.size < 2 ^ 255) :
-    ∃ k' C', RD callerBytecode I g (initState σ σ₀ g A I) ⟨491⟩
+    ∃ k' C', RD fork callerBytecode I g (initState σ σ₀ g A I) ⟨491⟩
       [⟨0⟩, ⟨128⟩, UInt256.add ⟨128⟩ (UInt256.ofNat o.size), ⟨194⟩, arg1, arg0, ⟨71⟩, sel]
       mem2 ⟨6⟩ o acc k' C' := by
   refine ⟨_, _, evm_run rd with [
@@ -833,11 +839,11 @@ theorem callerX_succ_to491 {σ σ₀ A I} {g : Sat256}
 theorem callerX_succ_revert {σ σ₀ A I} {g : Sat256}
     {acc : AccountMap}
     {mem2 : ByteArray} {o : ByteArray} {k C : ℕ} {arg1 arg0 sel : UInt256}
-    (rd : RD callerBytecode I g (initState σ σ₀ g A I) ⟨470⟩
+    (rd : RD fork callerBytecode I g (initState σ σ₀ g A I) ⟨470⟩
             [⟨128⟩, UInt256.add ⟨128⟩ (UInt256.ofNat o.size), ⟨194⟩, arg1, arg0, ⟨71⟩, sel]
             mem2 ⟨6⟩ o acc k C)
     (ho : o.size < 32) :
-    RDrev callerBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork callerBytecode g (initState σ σ₀ g A I) := by
   exact evm_run rd with [
     jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt, iszero, push2 ⟨491⟩,
     jumpiNT (by rw [solcDecodeEndLenCheckShort_128_32 ho]; decide),
@@ -849,11 +855,11 @@ theorem callerX_succ_revert {σ σ₀ A I} {g : Sat256}
 theorem callerX_succ_revert_huge {σ σ₀ A I} {g : Sat256}
     {acc : AccountMap}
     {mem2 : ByteArray} {o : ByteArray} {k C : ℕ} {arg1 arg0 sel : UInt256}
-    (rd : RD callerBytecode I g (initState σ σ₀ g A I) ⟨470⟩
+    (rd : RD fork callerBytecode I g (initState σ σ₀ g A I) ⟨470⟩
             [⟨128⟩, UInt256.add ⟨128⟩ (UInt256.ofNat o.size), ⟨194⟩, arg1, arg0, ⟨71⟩, sel]
             mem2 ⟨6⟩ o acc k C)
     (hhi : 2 ^ 255 ≤ o.size) (hlo : o.size < UInt256.size) :
-    RDrev callerBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork callerBytecode g (initState σ σ₀ g A I) := by
   exact evm_run rd with [
     jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt, iszero, push2 ⟨491⟩,
     jumpiNT (by rw [solcDecodeEndLenCheckHuge_128_32 hhi hlo]; decide),
@@ -868,16 +874,16 @@ theorem callerX_succ_revert_huge {σ σ₀ A I} {g : Sat256}
 theorem callerX_succ_tail {σ σ₀ A I} {g : Sat256}
     {σx : AccountMap}
     {mem2 : ByteArray} {o : ByteArray} {k C : ℕ} {arg1 arg0 sel : UInt256}
-    (rd : RD callerBytecode I g (initState σ σ₀ g A I) ⟨491⟩
+    (rd : RD fork callerBytecode I g (initState σ σ₀ g A I) ⟨491⟩
             [⟨0⟩, ⟨128⟩, UInt256.add ⟨128⟩ (UInt256.ofNat o.size), ⟨194⟩, arg1, arg0, ⟨71⟩, sel]
             mem2 ⟨6⟩ o σx k C)
     (hword : mem2.readWithPadding 128 32 = o.extract 0 32)
     (hsize2 : 128 < mem2.size) :
-    (I.perm = true ∧ RDret callerBytecode g (initState σ σ₀ g A I)
+    (I.perm = true ∧ RDret fork callerBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σx ⟨0⟩
               (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32))))
       ByteArray.empty)
-    ∨ (I.perm = false ∧ RDstatic callerBytecode g (initState σ σ₀ g A I)) := by
+    ∨ (I.perm = false ∧ RDstatic fork callerBytecode g (initState σ σ₀ g A I)) := by
   have rd198 := evm_run rd with [
     jumpdest, push0, push2 ⟨504⟩, dup5, dup3, dup6, add, push2 ⟨450⟩, jump callerContains450,
     jumpdest, push0, dup2,
@@ -910,18 +916,18 @@ theorem callerX_succ_tail {σ σ₀ A I} {g : Sat256}
 theorem callerX_successChain {σ σ₀ A I} {g : Sat256}
     {σx : AccountMap}
     {mem : ByteArray} {o : ByteArray} {k C : ℕ} {arg1 arg0 sel d0 d1 d2 : UInt256}
-    (rd144 : RD callerBytecode I g (initState σ σ₀ g A I) (⟨142⟩ + ⟨1⟩ + ⟨1⟩)
+    (rd144 : RD fork callerBytecode I g (initState σ σ₀ g A I) (⟨142⟩ + ⟨1⟩ + ⟨1⟩)
             (⟨1⟩ :: d0 :: d1 :: d2 :: arg1 :: arg0 :: ⟨71⟩ :: sel :: []) mem ⟨6⟩ o σx k C)
     (ho32 : 32 ≤ o.size) (ho : o.size < 2 ^ 255)
     (hfp : (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
            else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
           = ⟨128⟩)
     (hword : mem.readWithPadding 128 32 = o.extract 0 32) (hmsz : 160 ≤ mem.size) :
-    (I.perm = true ∧ RDret callerBytecode g (initState σ σ₀ g A I)
+    (I.perm = true ∧ RDret fork callerBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σx ⟨0⟩
               (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32))))
       ByteArray.empty)
-    ∨ (I.perm = false ∧ RDstatic callerBytecode g (initState σ σ₀ g A I)) := by
+    ∨ (I.perm = false ∧ RDstatic fork callerBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨k1, C1, rd165⟩ := callerX_succ_to165 rd144 (by simp)
   obtain ⟨k2, C2, rd470⟩ := callerX_succ_to470 rd165 hfp
   obtain ⟨k3, C3, rd491⟩ := callerX_succ_to491 rd470 ho32 ho
@@ -1017,10 +1023,10 @@ theorem callerX_shortarg {σ σ₀ A I} {g : Sat256}
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
     (hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    RDrev callerBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork callerBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ :=
     solcDecodeLenCheckShort_4_64 hsz hshort hsize
-  obtain ⟨k0, C0, rd0⟩ := callerX_toDecoder (σ := σ) (σ₀ := σ₀)
+  obtain ⟨k0, C0, rd0⟩ := callerX_toDecoder (fork := fork) (σ := σ) (σ₀ := σ₀)
       (A := A) (g := g) hcode hwv hsz hsize hmatch
   have rd := evm_run rd0 with [
     jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero, push2 ⟨370⟩,
@@ -1034,10 +1040,10 @@ theorem callerX_hugearg {σ σ₀ A I} {g : Sat256}
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hbig : 2 ^ 255 + 4 ≤ I.calldata.size)
     (hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    RDrev callerBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork callerBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ :=
     solcDecodeLenCheckHuge_4_64 hbig hsize
-  obtain ⟨k0, C0, rd0⟩ := callerX_toDecoder (σ := σ) (σ₀ := σ₀)
+  obtain ⟨k0, C0, rd0⟩ := callerX_toDecoder (fork := fork) (σ := σ) (σ₀ := σ₀)
       (A := A) (g := g) hcode hwv hsz hsize hmatch
   have rd := evm_run rd0 with [
     jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero, push2 ⟨370⟩,
@@ -1053,12 +1059,12 @@ theorem callerX_noncanon {σ σ₀ A I} {g : Sat256}
     (hsz68 : 68 ≤ I.calldata.size) (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hnc : UInt256.eq (callerArg0 I) (UInt256.land (callerArg0 I) addrMask) = ⟨0⟩) :
-    RDrev callerBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork callerBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨k, C, rd⟩ := callerX_dec264 hcode hwv hsz hsize hsz68 hszhi hmatch
   exact (evm_run rd with [
     jumpdest, dup2, eq, push2 ⟨274⟩, jumpiNT (by rw [hnc]),
     raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ] :
-    RDrev callerBytecode g (initState σ σ₀ g A I))
+    RDrev fork callerBytecode g (initState σ σ₀ g A I))
 
 /-! ## Decoded-store accessors and the canonical-execution coupling -/
 
@@ -1102,7 +1108,7 @@ theorem callerExec_canonical {σ σ₀ A I} {g : Sat256}
     (hsz68 : 68 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
     (hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hclean : UInt256.eq (callerArg0 I) (UInt256.land (callerArg0 I) addrMask) = ⟨1⟩) :
-    runtimeRefinementFor callerConfig callerContract
+    runtimeRefinementFor fork callerConfig callerContract
       σ σ₀ g.toUInt256 A I := by
   have hcanon := callerArg0_canonical hclean
   have hd : dispatchMsg callerContract I.calldata = some runTransition := by
@@ -1201,7 +1207,7 @@ theorem callerX_callDepthLimit {σ σ₀ A I} {g : Sat256}
     (hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hclean : UInt256.eq (callerArg0 I) (UInt256.land (callerArg0 I) addrMask) = ⟨1⟩)
     (hdepth : I.depth = 1024) :
-    RDrev callerBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork callerBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨k, C, rd142⟩ := callerX_toCall142 hcode hwv hsz hsize hsz68 hszhi hmatch hclean
   obtain ⟨gv, rd143⟩ := rd142.gas (by decide) (by evm_ov)
   obtain ⟨k', C', rd144⟩ := rd143.callDepthLimit (by decide) hdepth (by evm_ov)
@@ -1213,7 +1219,7 @@ theorem callerReEquiv_callvalueZero
     {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = callerBytecode) (hsize : I.calldata.size < Ethereum.UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) :
-    runtimeRefinementFor callerConfig callerContract
+    runtimeRefinementFor fork callerConfig callerContract
       σ σ₀ g.toUInt256 A I := by
   by_cases hsz : I.calldata.size < 4
   · exact (callerX_cvz_short hcode hwv hsz).reEquivNoDispatch hcode (callerDispatch.none_short hsz)
@@ -1267,7 +1273,7 @@ theorem callerReEquiv_callvalueZero
 /-- The runtime bytecode refines the Stele specification, for every initial state. -/
 theorem callerCorrect :
     runtimeRefinement callerConfig callerBytecode callerContract := by
-  refine ⟨fun σ σ₀ g A I
+  refine ⟨fun fork _hfork σ σ₀ g A I
       hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact callerReEquiv_callvalueZero (g := Sat256.ofUInt256 g) hcode hsize hwv
@@ -1324,12 +1330,12 @@ theorem callerFinal_read :
 set_option maxHeartbeats 400000 in
 theorem callerInitcodeRun {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = callerInitcode) :
-    RDret callerInitcode g
+    RDret fork callerInitcode g
       (initState σ σ₀ g A I) σ
       callerBytecode := by
   set s0 := initState σ σ₀ g A I with hs0
   have rd0 :
-      RD callerInitcode I g s0 ⟨0⟩ [] ByteArray.empty (UInt256.ofNat 0) ByteArray.empty
+      RD fork callerInitcode I g s0 ⟨0⟩ [] ByteArray.empty (UInt256.ofNat 0) ByteArray.empty
         σ 0 0 := by
     rw [hs0]; exact RD.initState hcode
   exact evm_run rd0 with [

@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.RecordValuesStore
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -22,9 +24,9 @@ theorem easRecordEvent {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {dst word t1 idx t3 t4 : UInt256} {R : List UInt256}
     (v : EASImmutables) (site : UIDSite) (hstack : R.length+19 ≤ 1024)
     (hp : ee.perm = true)
-    (rd : RD (deployedRuntime v) ee g s0 (recordUIDStorePC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (recordUIDStorePC site)
       (recordUIDStoreStack site dst word t1 idx t3 t4 R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (recordNextPC site)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (recordNextPC site)
       (recordNextStack site t1 (idx+UInt256.ofNat 1) t3 t4 R)
       (recordEventMemory mem dst word) aw' rdata σ k' C' := by
   cases site with

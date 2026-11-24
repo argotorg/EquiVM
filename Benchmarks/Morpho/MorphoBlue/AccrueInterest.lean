@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.AccruePublicSource
 import Benchmarks.Morpho.MorphoBlue.AccruePublicRoutines
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -12,7 +14,7 @@ theorem morphoAccrueInterestXReverts {σ σ₀ A I} {g : Sat256} (v : MorphoImmu
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 1))
     (hbad : I.weiValue ≠ ⟨0⟩ ∨ I.calldata.size < 164 ∨ 2 ^ 255 + 4 ≤ I.calldata.size) :
-    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 1) rfl hsel
   obtain ⟨k, C, rd⟩ := morphoReachAccrueInterestBody (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hsz hsize hsel
@@ -40,7 +42,7 @@ theorem morphoAccrueInterestXReverts {σ σ₀ A I} {g : Sat256} (v : MorphoImmu
 theorem morphoAccrueInterestBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 1)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hd : selectorDispatchMsg contract I.calldata = some accrueInterestTransition :=
     morphoSelectorDispatch_of_selIs (by decide) hsel
   let p := marketParamsFromCalldata I.calldata
@@ -56,7 +58,7 @@ theorem morphoAccrueInterestBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutab
             (σ := σ) (σ₀ := σ₀) (A := A) (g := .ofUInt256 g) v hcode hsize hsel hcv hlen hbound
           obtain ⟨aw1, k1, C1, rd1⟩ := morphoDecodeMarketParamsOk (v := v) (by simp)
             (by rw [morphoPatchedValidJumps v]; jump_dest) hc rd0
-          change RD _ _ _ _ (UInt256.ofNat 11100) [UInt256.ofNat 128, UInt256.ofNat 1211, UInt256.ofNat 0]
+          change RD fork _ _ _ _ (UInt256.ofNat 11100) [UInt256.ofNat 128, UInt256.ofNat 1211, UInt256.ofNat 0]
             (createMarketDecodedMem p) _ _ _ _ _ at rd1
           by_cases hcreated : marketFieldWord σ I p.id 4 ≠ ⟨0⟩
           · obtain ⟨aw2, k2, C2, rd2⟩ := morphoAccruePublicEnter (v := v) p hcreated rd1
@@ -66,7 +68,7 @@ theorem morphoAccrueInterestBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutab
               (createMarketHeap_morpho hm (by decide) 512 (by decide) (lt_usize _ (by decide)))
               (by decide) hm.params (by decide) (by rw [hm.size]; decide) (by decide)
               (by rw [morphoPatchedValidJumps v]; jump_dest) rd2
-            have pref := morphoAccruePublicGuard p hc (initState σ σ₀ (.ofUInt256 g) A I) (immStore v) hcv hbound hcreated
+            have pref := morphoAccruePublicGuard (fork := fork) p hc (initState σ σ₀ (.ofUInt256 g) A I) (immStore v) hcv hbound hcreated
             have hparams := createMarketParams_eval p I.calldata (immStore v) (initState σ σ₀ (.ofUInt256 g) A I)
             have hid := createMarketId_eval p I.calldata (immStore v) (initState σ σ₀ (.ofUInt256 g) A I)
             cases hf with
@@ -85,13 +87,13 @@ theorem morphoAccrueInterestBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutab
             | @ok frame' evm' value σ' mem' fp' aw' rdata' k' C' hb hv hs' hm' hr =>
               have hcall := morphoAccrueInternalOk p _ (immStore v) _ evm' frame' value
                 (.var "marketParams") (.var "id") "__c1" hparams hid hb
-              have hstele : ExecTransitionBody config contract (initState σ σ₀ (.ofUInt256 g) A I)
+              have hstele : ExecTransitionBody fork config contract (initState σ σ₀ (.ofUInt256 g) A I)
                   (createMarketArgs p) accrueInterestTransition.body
                   (.returned (resumeAfterInternalCall (createMarketFrame p I.calldata (immStore v)) "__c1" value) evm' none)
                   (immStore v) :=
                 ExecFuncBody.execBlockOK (pref.run (ExecBlock.consNormal hcall ExecBlock.nil))
               have hx := morphoBlocks.morpho_block_1211 (immWords := wordsOf (immStore v)) (by simp) hr
-              have hx' : RDret (deployedRuntime v) (.ofUInt256 g) (initState σ σ₀ (.ofUInt256 g) A I) σ' ByteArray.empty := by
+              have hx' : RDret fork (deployedRuntime v) (.ofUInt256 g) (initState σ σ₀ (.ofUInt256 g) A I) σ' ByteArray.empty := by
                 simpa only [show (UInt256.ofNat 0).toNat = 0 from rfl, byteArray_readWithPadding_zero] using hx
               exact reEquivSelectorExecutionGen hcode hx' hd hdec hstele hs'.accounts
                 (.fallthrough rfl rfl (by native_decide))

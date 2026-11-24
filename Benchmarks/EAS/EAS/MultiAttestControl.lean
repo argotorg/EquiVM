@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.MultiAttestHead
 import Benchmarks.EAS.EAS.MultiRequestControl
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -16,14 +18,14 @@ theorem easMultiAttestAccess {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C n i : Nat}
     {base table available count : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length+30 ≤ 1024) (hi : i<n) (hn : n<UInt256.size) (hb : base.toNat+32*i<UInt256.size)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3767⟩ (multiAttestLoopStack n i base table available count R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3767⟩ (multiAttestLoopStack n i base table available count R) mem aw rdata σ k C) :
     let root := multiRequestRoot ee.calldata base i
     let header := multiRequestArray ee.calldata root
     if multiRequestReferenceValid ee.calldata base i ∧ requestArrayAccessValid ee.calldata root then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨5544⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨5544⟩
         ((header+UInt256.ofNat 32)::calldataWord ee.calldata header.toNat::UInt256.ofNat ee.calldata.size::⟨3846⟩::
           multiAttestCopySaved ee n i base table available count R) mem aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   dsimp only
   have hc : UInt256.lt (UInt256.ofNat i) (UInt256.ofNat n) ≠ ⟨0⟩ := by
     rw [ult_one (by rw [ulit_toNat' _ (by omega : i<UInt256.size),ulit_toNat' _ hn]; exact hi)]
@@ -58,9 +60,9 @@ theorem easMultiAttestCall {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C n i : Nat}
     {base table available count data : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length+17 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3846⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3846⟩
       (data::multiAttestCopySaved ee n i base table available count R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨9856⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨9856⟩
       (calldataWord ee.calldata (multiRequestRoot ee.calldata base i).toNat::data::UInt256.ofNat ee.source.val::available::
         multiAttestLastWord n i::⟨3131⟩::multiAttestSaved n i base table available count R) mem aw' rdata σ k' C' := by
   obtain ⟨a,j,D,h⟩ := easBlocks.eas_block_3846_packed (immWords := wordsOf (immStore v))
@@ -71,8 +73,8 @@ theorem easMultiAttestDone {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C n : Nat}
     {base table available count : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length+12 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3767⟩ (multiAttestLoopStack n n base table available count R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨11975⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3767⟩ (multiAttestLoopStack n n base table available count R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨11975⟩
       (table::count::⟨2797⟩::⟨398⟩::multiAttestLoopStack n n base table available count R) mem aw' rdata σ k' C' := by
   obtain ⟨a1,j1,D1,h1⟩ := easBlocks.eas_block_3767_fallthrough_packed (immWords := wordsOf (immStore v))
     (by simp only [List.length_cons]; omega) (ult_zero (le_refl _)) rd

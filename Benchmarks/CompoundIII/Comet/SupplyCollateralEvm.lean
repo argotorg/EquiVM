@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.TransferInEvm
 import Benchmarks.CompoundIII.Comet.Safe128Evm
 import Benchmarks.CompoundIII.Comet.AssetSearchEvm
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -17,11 +19,11 @@ theorem cometSupplyCollateral {v : CometWithExtendedAssetListImmutables}
     (ha : amount.toNat < 2^128) (hfree : memLoad ⟨64⟩ mem = free) (hlo : 96 ≤ free.toNat)
     (hbound : free.toNat + 576 + 768 * v.numAssets.toNat < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨13820⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨13820⟩
       (EVM.word sender.val :: EVM.word dst.val :: EVM.word asset.val :: amount :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ result, SupplyCollateralTrace v sender dst asset amount evm result ∧
-      internalDynamicRun (deployedRuntime v) ee g s0 ret R result := by
+    ∃ result, SupplyCollateralTrace fork v sender dst asset amount evm result ∧
+      internalDynamicRun fork (deployedRuntime v) ee g s0 ret R result := by
   have r1 := cometWithExtendedAssetList_block_13820
     (immWords := wordsOf (immStore v)) (by change R.length + 1 + 10 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h

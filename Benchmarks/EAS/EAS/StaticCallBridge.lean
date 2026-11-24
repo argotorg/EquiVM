@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.Common
 import Reasoning.ExternalCall
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 
@@ -7,19 +9,20 @@ namespace Benchmarks.EAS.EAS
 theorem staticcallBridge {code : ByteArray} {I : ExecutionEnv} {g : Sat256} {s0 evm : EVM.State}
     {pc : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap}
     {k C : Nat} {gasArg target inOffset inSize outOffset outSize : UInt256} {calldata : ByteArray}
-    (rd : RD code I g s0 pc (gasArg::target::inOffset::inSize::outOffset::outSize::R) mem aw rdata σ k C)
+    (rd : RD fork code I g s0 pc (gasArg::target::inOffset::inSize::outOffset::outSize::R) mem aw rdata σ k C)
     (hs : SourceState s0 I σ evm) (hdec : decode code pc = some (.STATICCALL, none))
     (hcd : mem.readWithPadding inOffset.toNat inSize.toNat = calldata)
     (hsmall : calldata.size ≤ Ethereum.EVM.maxReturnDataSizeByGas) (hstack : R.length+1 ≤ 1024) :
     ∃ (evm' : EVM.State) (σ' : AccountMap) (success : Bool) (out : ByteArray) (k' C' : Nat),
-      callViaEVM evm (AccountAddress.ofUInt256 target) 0 calldata (success,evm',out) false ∧
+      callViaEVM fork evm (AccountAddress.ofUInt256 target) 0 calldata (success,evm',out) false ∧
       SourceState s0 I σ' evm' ∧
-      RD code I g s0 (pc+⟨1⟩) ((if success then ⟨1⟩ else ⟨0⟩)::R)
+      RD fork code I g s0 (pc+⟨1⟩) ((if success then ⟨1⟩ else ⟨0⟩)::R)
         (callOutputMem mem out outOffset outSize) (callActiveWords aw inOffset inSize outOffset outSize) out σ' k' C' ∧
       out.size < 2^138 := by
   by_cases hd : I.depth = 1024
   · obtain ⟨k',C',rd'⟩ := RD.solcStaticcallDepthLimit rd hdec hd hstack
-    let evm' := {evm with substate := (evm.addAccessedAccount (AccountAddress.ofUInt256 target)).substate}
+    let evm' := {evm with substate := (Ethereum.EVM.callSubstate fork
+      evm.accountMap (AccountAddress.ofUInt256 target) evm.substate)}
     refine ⟨evm',σ,false,ByteArray.empty,k',C',?_,⟨hs.world,hs.env,hs.accounts⟩,rd',by decide⟩
     apply callViaEVM.callNotMade rfl rfl
     intro hn
@@ -45,9 +48,9 @@ theorem lowLevelCallSource_perm {cfg : Config} {frame : Frame} {evm evm' : EVM.S
     (hr : evalExpr? cfg frame evm receiver = .ok (.address target))
     (hv : evalExpr? cfg frame evm eth = .ok (.int value))
     (hd : evalExpr? cfg frame evm cdata = .ok (.bytes calldata))
-    (hc : callViaEVM evm target value calldata (z,evm',out) perm)
+    (hc : callViaEVM fork evm target value calldata (z,evm',out) perm)
     (hperm : EVM.wordOfInt value = ⟨0⟩ ∨ evm.executionEnv.perm = true) :
-    ExecStmt cfg frame evm (.lowLevelCall receiver eth cdata success data perm)
+    ExecStmt fork cfg frame evm (.lowLevelCall receiver eth cdata success data perm)
       (.ok {frame with locals := (frame.locals.insert success (.bool z)).insert data (.bytes out)} evm') := by
   have ht : EVM.address target.val = target := by
     apply Fin.ext

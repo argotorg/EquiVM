@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Dog.Dispatch
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Dog.Immutables
 
@@ -17,7 +19,7 @@ theorem dogReachLiveBody {v : DogImmutables} {code : ByteArray}
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (dogSelBytes 12)) :
-    ∃ k C, RD code I g (initState σ σ₀ g A I) ⟨440⟩
+    ∃ k C, RD fork code I g (initState σ σ₀ g A I) ⟨440⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨0x957aa58c⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x95 0x7a 0xa5 0x8c ⟨0x957aa58c⟩
@@ -42,7 +44,7 @@ theorem dogReachLiveBody {v : DogImmutables} {code : ByteArray}
     rw [dogPushAtPatchedEqTemplate1405 (pc := selArmPush4Pc (⟨32⟩ : UInt256))
       hpatch (by native_decide)]
     native_decide
-  have h162 : RD code I g (initState σ σ₀ g A I) ⟨162⟩
+  have h162 : RD fork code I g (initState σ σ₀ g A I) ⟨162⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ (k32 + 5) (C32 + 22) := by
     simpa [hrootTgt] using
@@ -51,7 +53,7 @@ theorem dogReachLiveBody {v : DogImmutables} {code : ByteArray}
           rw [hrootTgt]
           exact dogPatchedDJumpPrefix1405 ⟨162⟩ hpatch (by native_decide))
         (by simp)
-  have h163 : RD code I g (initState σ σ₀ g A I) ⟨163⟩
+  have h163 : RD fork code I g (initState σ σ₀ g A I) ⟨163⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ (k32 + 5 + 1) (C32 + 22 + 1) := by
     simpa using
@@ -67,7 +69,7 @@ theorem dogReachLiveBody {v : DogImmutables} {code : ByteArray}
     rw [dogPushAtPatchedEqTemplate1405 (pc := selArmPush4Pc (⟨163⟩ : UInt256))
       hpatch (by native_decide)]
     native_decide
-  have h174 : RD code I g (initState σ σ₀ g A I) ⟨174⟩
+  have h174 : RD fork code I g (initState σ σ₀ g A I) ⟨174⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ (k32 + 5 + 1 + 5) (C32 + 22 + 1 + 22) := by
     simpa [selArmNextPc, hlowWidth] using
@@ -81,7 +83,7 @@ theorem dogReachLiveBody {v : DogImmutables} {code : ByteArray}
   have hlive : UInt256.eq (dogSelectorWord 12) (solcSelectorWord I) ≠ ⟨0⟩ := by
     rw [hword]
     native_decide
-  have h185 : RD code I g (initState σ σ₀ g A I) ⟨185⟩
+  have h185 : RD fork code I g (initState σ σ₀ g A I) ⟨185⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ (k32 + 5 + 1 + 5 + 5) (C32 + 22 + 1 + 22 + 22) := by
     simpa [selArmNextPc] using
@@ -105,7 +107,7 @@ theorem dogReachLiveBody {v : DogImmutables} {code : ByteArray}
           native_decide)
         hrely
         (by simp)
-  have h196 : RD code I g (initState σ σ₀ g A I) ⟨196⟩
+  have h196 : RD fork code I g (initState σ σ₀ g A I) ⟨196⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ (k32 + 5 + 1 + 5 + 5 + 5) (C32 + 22 + 1 + 22 + 22 + 22) := by
     simpa [selArmNextPc] using
@@ -129,7 +131,7 @@ theorem dogReachLiveBody {v : DogImmutables} {code : ByteArray}
           native_decide)
         hcage
         (by simp)
-  have h440 : RD code I g (initState σ σ₀ g A I) ⟨440⟩
+  have h440 : RD fork code I g (initState σ σ₀ g A I) ⟨440⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ (k32 + 5 + 1 + 5 + 5 + 5 + 5)
       (C32 + 22 + 1 + 22 + 22 + 22 + 22) := by
@@ -164,11 +166,11 @@ theorem dogLiveBodyCore {v : DogImmutables} {code : ByteArray}
     (_hsize : I.calldata.size < UInt256.size)
     (_hwv : I.weiValue = ⟨0⟩)
     (_hsel : selIs I (dogSelBytes 12)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (dogSelBytes 12) rfl _hsel
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ liveTransition.body
         (.returned { contract := contract, locals := ∅, immutables := immStore v }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)

@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.TickPriceCanonical
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_014
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_015
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -15,9 +17,9 @@ theorem poolInitializeStaticTrace {immWords : String → UInt256} {ee : Executio
     {mem rdata : ByteArray} {aw : UInt256} {σ : AccountMap} {k C : Nat}
     {x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 : UInt256} {R : List UInt256}
     (hstack : R.length + 17 ≤ 1024) (hperm : ee.perm = false)
-    (h : RD (immutableLayout.runtime poolManagerBytecode immWords) ee g s0 ⟨4418⟩
+    (h : RD fork (immutableLayout.runtime poolManagerBytecode immWords) ee g s0 ⟨4418⟩
       (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: x12 :: x13 :: R)
-      mem aw rdata σ k C) : RDstatic (immutableLayout.runtime poolManagerBytecode immWords) g s0 := by
+      mem aw rdata σ k C) : RDstatic fork (immutableLayout.runtime poolManagerBytecode immWords) g s0 := by
   let r0 := h
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨4418⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.swap3 (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨4419⟩ : UInt256), UInt8.ofNat 146, .SWAP3, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
@@ -45,12 +47,12 @@ theorem poolInitializeTickTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw price slot id currency1Ptr feePtr hooksPtr keyPtr spacingPtr fee : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length + 35 ≤ 1024) (hp : price.toNat < 2^160)
-    (h : RD (deployedRuntime v) I g s0 ⟨4341⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨4341⟩
       (price :: slot :: id :: currency1Ptr :: feePtr :: hooksPtr :: keyPtr :: price :: spacingPtr :: fee :: R)
       mem aw rdata σ k C) :
-    (tickPriceResult price = none ∧ RDrev (deployedRuntime v) g s0) ∨
+    (tickPriceResult price = none ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (∃ tick k' C', tickPriceResult price = some tick ∧ int24Canonical tick ∧
-      RD (deployedRuntime v) I g s0 ⟨4418⟩
+      RD fork (deployedRuntime v) I g s0 ⟨4418⟩
         (tick :: poolInitializeTickTail slot fee id currency1Ptr feePtr hooksPtr keyPtr price spacingPtr R)
         mem aw rdata σ k' C') := by
   have rd1 := poolManagerBlocks.poolManager_block_4341 (by omega)
@@ -71,11 +73,11 @@ theorem poolInitializeStoreTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State
     {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length + 17 ≤ 1024) (hI : evm.executionEnv = I)
     (hp : price.toNat < 2^160) (hf : fee.toNat < 2^24) (ht : int24Canonical tick)
-    (h : RD (deployedRuntime v) I g s0 ⟨4418⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨4418⟩
       (tick :: poolInitializeTickTail (poolSlot id) fee id currency1Ptr feePtr hooksPtr keyPtr price spacingPtr R)
       mem aw rdata evm.accountMap k C) :
-    if I.perm = false then RDstatic (deployedRuntime v) g s0 else
-    ∃ aw' k' C', RD (deployedRuntime v) I g s0 ⟨4555⟩
+    if I.perm = false then RDstatic fork (deployedRuntime v) g s0 else
+    ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 ⟨4555⟩
       (memLoad hooksPtr (initializeEventMemory mem feePtr hooksPtr spacingPtr price tick) ::
         keyPtr :: price :: tick :: UInt256.ofNat 32 :: R)
       (initializeEventMemory mem feePtr hooksPtr spacingPtr price tick) aw' rdata

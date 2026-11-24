@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.PositionUpdateFeesSource
 import Benchmarks.UniswapV3.Pool.PositionUpdateStoreModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -17,7 +19,7 @@ theorem evalPositionUpdateNonzero (imms : Store) (original current : EVM.State)
   simp
 
 theorem positionUpdateLiquidityStore (imms : Store) (evm : EVM.State) (a : PositionUpdateArgs) :
-    ExecStmt config (positionUpdateReadyFrame imms a evm) evm
+    ExecStmt fork config (positionUpdateReadyFrame imms a evm) evm
       (.assign .storage ⟨"self", [.field "liquidity"]⟩ (.var "liquidityNext"))
       (if evm.executionEnv.perm then .ok (positionUpdateReadyFrame imms a evm)
         (positionLiquidityState evm a.key (EVM.wordOfInt (positionUpdateLiquidityNext a evm))) else .staticViolation) := by
@@ -29,7 +31,7 @@ theorem positionUpdateLiquidityStore (imms : Store) (evm : EVM.State) (a : Posit
 theorem positionUpdateLiquidityStoreChoice (imms : Store) (evm : EVM.State)
     (a : PositionUpdateArgs)
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config (positionUpdateReadyFrame imms a evm) evm (positionUpdateFunction.body[8]!)
+    ExecStmt fork config (positionUpdateReadyFrame imms a evm) evm (positionUpdateFunction.body[8]!)
       (.ok (positionUpdateReadyFrame imms a evm) (positionUpdateLiquidityState a evm)) := by
   have hc := evalPositionUpdateNonzero imms evm evm a
   by_cases hz : a.delta = 0
@@ -42,7 +44,7 @@ theorem positionUpdateLiquidityStoreChoice (imms : Store) (evm : EVM.State)
 
 theorem positionUpdateGrowthStore (imms : Store) (original current : EVM.State)
     (a : PositionUpdateArgs) (second : Bool) :
-    ExecStmt config (positionUpdateReadyFrame imms a original) current
+    ExecStmt fork config (positionUpdateReadyFrame imms a original) current
       (.assign .storage ⟨"self", [.field (positionLastField second)]⟩
         (.var (positionUpdateGrowthName second)))
       (if current.executionEnv.perm then .ok (positionUpdateReadyFrame imms a original)
@@ -55,12 +57,12 @@ theorem positionUpdateGrowthStore (imms : Store) (original current : EVM.State)
 theorem positionUpdateStoresSource (imms : Store) (evm : EVM.State)
     (a : PositionUpdateArgs) (hv : positionUpdateLiquidityValid a evm)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config (positionUpdateFrame imms a) evm (positionUpdateFunction.body.take 11)
+    ExecBlock fork config (positionUpdateFrame imms a) evm (positionUpdateFunction.body.take 11)
       (.ok (positionUpdateReadyFrame imms a evm) (positionUpdateGrowthState a evm)) := by
-  change ExecBlock config (positionUpdateFrame imms a) evm
+  change ExecBlock fork config (positionUpdateFrame imms a) evm
     (positionUpdateFunction.body.take 8 ++ (positionUpdateFunction.body.drop 8).take 3) _
   exact execBlock_append_ok (positionUpdateFeesSource imms evm a hv)
-    (ExecBlock.consNormal (positionUpdateLiquidityStoreChoice (hperm := by assumption) imms evm a)
+    (ExecBlock.consNormal (positionUpdateLiquidityStoreChoice (fork := fork) (hperm := by assumption) imms evm a)
       (ExecBlock.consNormal (by simpa only [positionUpdateLiquidityState_executionEnv, hperm, if_true] using (positionUpdateGrowthStore imms evm (positionUpdateLiquidityState a evm) a false))
         (ExecBlock.consNormal (by simpa only [positionLastState_executionEnv, positionUpdateLiquidityState_executionEnv, hperm, if_true] using (positionUpdateGrowthStore imms evm
             (positionLastState (positionUpdateLiquidityState a evm) a.key false (a.growth false)) a true)) ExecBlock.nil)))
@@ -80,7 +82,7 @@ theorem evalPositionUpdateFeesGuard (imms : Store) (original current : EVM.State
 theorem positionUpdateOwedStore (imms : Store) (original current : EVM.State)
     (a : PositionUpdateArgs) (second : Bool)
     (hperm : current.executionEnv.perm = true) :
-    ExecStmt config (positionUpdateReadyFrame imms a original) current (positionUpdateOwedStmt second)
+    ExecStmt fork config (positionUpdateReadyFrame imms a original) current (positionUpdateOwedStmt second)
       (.ok (positionUpdateReadyFrame imms a original)
         (positionUpdateOwedState a original current second)) := by
   rw [positionUpdateReadyFrame_eq imms a original]
@@ -89,7 +91,7 @@ theorem positionUpdateOwedStore (imms : Store) (original current : EVM.State)
 
 theorem positionUpdateOwedChoice (imms : Store) (evm : EVM.State) (a : PositionUpdateArgs)
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config (positionUpdateReadyFrame imms a evm) (positionUpdateGrowthState a evm)
+    ExecStmt fork config (positionUpdateReadyFrame imms a evm) (positionUpdateGrowthState a evm)
       (positionUpdateFunction.body[11]!)
       (.ok (positionUpdateReadyFrame imms a evm) (positionUpdateFinalState a evm)) := by
   have hc := evalPositionUpdateFeesGuard imms evm (positionUpdateGrowthState a evm) a
@@ -98,7 +100,7 @@ theorem positionUpdateOwedChoice (imms : Store) (evm : EVM.State) (a : PositionU
     exact ExecStmt.iteFalse (by simpa only [hf] using hc) ExecBlock.nil
   · simp only [positionUpdateFinalState, hf, if_true]
     exact ExecStmt.iteTrue (by simpa only [hf] using hc)
-      (ExecBlock.consNormal (positionUpdateOwedStore (hperm := by simpa only [positionUpdateOwedState_executionEnv, positionUpdateGrowthState_executionEnv] using hperm) imms evm _ a false)
-        (ExecBlock.consNormal (positionUpdateOwedStore (hperm := by simpa only [positionUpdateOwedState_executionEnv, positionUpdateGrowthState_executionEnv] using hperm) imms evm _ a true) ExecBlock.nil))
+      (ExecBlock.consNormal (positionUpdateOwedStore (fork := fork) (hperm := by simpa only [positionUpdateOwedState_executionEnv, positionUpdateGrowthState_executionEnv] using hperm) imms evm _ a false)
+        (ExecBlock.consNormal (positionUpdateOwedStore (fork := fork) (hperm := by simpa only [positionUpdateOwedState_executionEnv, positionUpdateGrowthState_executionEnv] using hperm) imms evm _ a true) ExecBlock.nil))
 
 end Benchmarks.UniswapV3.Pool

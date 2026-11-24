@@ -2,6 +2,8 @@ import Benchmarks.Safe.V3_77901a5.SignatureBranchSource
 import Benchmarks.Safe.V3_77901a5.EcrecoverSource
 import Benchmarks.Safe.V3_77901a5.InternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V3_77901a5
@@ -23,8 +25,8 @@ theorem safeInternalEcrecover {p : SignatureInput} {f : Frame} {evm : EVM.State}
     (hv : evalExpr? config f evm v = .ok (uint256Value input.v))
     (hr : f.locals["r"]? = some (wordBytes32Value input.r))
     (hs : f.locals["s"]? = some (wordBytes32Value input.s))
-    (hbody : ExecFuncBody config (ecrecoverFrame input) evm ecrecoverAddressFunction.body result) :
-    ExecStmt config f evm (signatureRecoverBody digest v)[0]!
+    (hbody : ExecFuncBody fork config (ecrecoverFrame input) evm ecrecoverAddressFunction.body result) :
+    ExecStmt fork config f evm (signatureRecoverBody digest v)[0]!
       (internalCallResult f "recoveredOwner" result) := by
   apply internalCallFunctionResult (callee := ecrecoverAddressFunction)
     (argVals := [wordBytes32Value input.digest, uint256Value input.v,
@@ -44,9 +46,9 @@ theorem signatureRecoverSource {p : SignatureInput} {f : Frame} {evm evm' : EVM.
     (hr : f.locals["r"]? = some (wordBytes32Value input.r))
     (hs : f.locals["s"]? = some (wordBytes32Value input.s))
     (ho : f.locals["currentOwner"]? = some old)
-    (hbody : ExecFuncBody config (ecrecoverFrame input) evm ecrecoverAddressFunction.body
+    (hbody : ExecFuncBody fork config (ecrecoverFrame input) evm ecrecoverAddressFunction.body
       (.returned f' evm' (some [.address (AccountAddress.ofUInt256 owner)]))) :
-    ExecBlock config f evm (signatureRecoverBody digest v)
+    ExecBlock fork config f evm (signatureRecoverBody digest v)
       (.ok (signatureRecoveredFrame f owner) evm') := by
   have hcall := safeInternalEcrecover hc hd hv hr hs hbody
   exact .consNormal hcall (.consNormal (.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
@@ -60,9 +62,9 @@ theorem signatureRecoverSourceRejected {p : SignatureInput} {f : Frame} {evm : E
     (hv : evalExpr? config f evm v = .ok (uint256Value input.v))
     (hr : f.locals["r"]? = some (wordBytes32Value input.r))
     (hs : f.locals["s"]? = some (wordBytes32Value input.s))
-    (hbody : ExecFuncBody config (ecrecoverFrame input) evm
+    (hbody : ExecFuncBody fork config (ecrecoverFrame input) evm
       ecrecoverAddressFunction.body .reverted) :
-    ExecBlock config f evm (signatureRecoverBody digest v) .reverted :=
+    ExecBlock fork config f evm (signatureRecoverBody digest v) .reverted :=
   .consRevert (safeInternalEcrecover hc hd hv hr hs hbody)
 
 theorem SignatureCore.recovered {p : SignatureInput} {f : Frame}

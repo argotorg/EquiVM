@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.AmountDeltaTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_059
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_061
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -13,13 +15,13 @@ theorem swapStepOutputDeltaTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (zeroForOne : Bool) (hstack : R.length+21 ≤ 1024)
     (hp : price.toNat < 2^160) (ht : target.toNat < 2^160) (hl : liquidity.toNat < 2^128)
-    (h : RD (deployedRuntime v) I g s0 ⟨20607⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨20607⟩
       ([price, j, if zeroForOne then ⟨1⟩ else ⟨0⟩, target, fee, liquidity] ++ R) mem aw rdata σ k C) :
     if swapStepDeltaFits price target liquidity false zeroForOne then ∃ k' C', C ≤ C' ∧
-      RD (deployedRuntime v) I g s0 ⟨20631⟩
+      RD fork (deployedRuntime v) I g s0 ⟨20631⟩
         ([target, price, swapStepDeltaWord price target liquidity false zeroForOne,
           j, if zeroForOne then ⟨1⟩ else ⟨0⟩, liquidity] ++ R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   cases zeroForOne with
   | false =>
     simp only [swapStepDeltaFits, swapStepDeltaWord, Bool.false_eq_true, if_false, Bool.not_false] at h ⊢

@@ -5,6 +5,8 @@ import Benchmarks.EAS.Attester.MultiRevoke
 import Benchmarks.EAS.Attester.Revoke
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # EAS Attester benchmark correctness stub
 
@@ -20,7 +22,7 @@ namespace Benchmarks.EAS.Attester
 theorem attesterCorrect (imms : Store) (_hfit : immutablesFit contract imms) :
     runtimeRefinement config (deployedRuntime attesterBytecode imms) contract
       (restrictImmutables contract imms) := by
-  refine ⟨fun σ σ₀ g A I hcode hsize ↦ ?_⟩
+  refine ⟨fun fork _hfork σ σ₀ g A I hcode hsize ↦ ?_⟩
   by_cases hvalue : I.weiValue = ⟨0⟩
   · by_cases hshort : I.calldata.size < 4
     · exact attesterNoDispatch imms _hfit hcode hsize hvalue

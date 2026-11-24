@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.AuthorizationSigSourceDecode
 import Benchmarks.Morpho.MorphoBlue.StateBlock
 import Benchmarks.Morpho.MorphoBlue.Storage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Morpho.MorphoBlue.Immutables
 namespace Benchmarks.Morpho.MorphoBlue
@@ -79,14 +81,14 @@ theorem morphoAuthorizationNonceSourceStart (evm : EVM.State) (v : MorphoImmutab
     (hsel : selIs evm.executionEnv (morphoSelBytes 27))
     (ht : (UInt256.ofNat evm.executionEnv.header.timestamp).toNat ≤
       (authorizationFromCalldata evm.executionEnv.calldata).deadline.toNat) :
-    ABlock config evm (authorizationSigFrame evm.executionEnv.calldata v)
+    ABlock fork config evm (authorizationSigFrame evm.executionEnv.calldata v)
       setAuthorizationWithSigTransition.body
       (authorizationUsedFrame (authorizationDecodedFrame evm.executionEnv.calldata v)
         (authorizationUsedNonce (authorizationFromCalldata evm.executionEnv.calldata)
           evm.accountMap evm.executionEnv))
       (setAuthorizationWithSigTransition.body.drop 12) := by
   have hl := authorizationDecodedFrame_locals evm.executionEnv.calldata v
-  have p0 := (morphoAuthorizationSigSourceDecode evm v hcv hsel hb).requireStep
+  have p0 := (morphoAuthorizationSigSourceDecode (fork := fork) evm v hcv hsel hb).requireStep
     (by simpa only [ht, decide_true] using hl.evalTimestamp (immStore v) evm)
   exact p0.letStep (hl.evalNonce (immStore v) evm hb.2.2)
 
@@ -127,7 +129,7 @@ theorem morphoAuthorizationNonceSourceExpr (frame : Frame) (evm : EVM.State) (n 
 
 theorem morphoAuthorizationNonceSourceOverflow (frame : Frame) (evm : EVM.State) (n : UInt256)
     (hn : UInt256.size ≤ n.toNat + 1) :
-    ExecBlock config (authorizationUsedFrame frame n) evm
+    ExecBlock fork config (authorizationUsedFrame frame n) evm
       (setAuthorizationWithSigTransition.body.drop 12) .reverted :=
   ExecBlock.consRevert (ExecStmt.assignExprRevert
     (checkedAddSourceOverflow (authorizationUsedFrame_eval frame evm n)

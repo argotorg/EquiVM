@@ -4,6 +4,8 @@ import Benchmarks.UniswapV3.Pool.BalanceCaller
 import Benchmarks.UniswapV3.Pool.SourceFrame
 import Benchmarks.UniswapV3.Pool.SourceCallFrames
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -42,9 +44,9 @@ theorem swapBalanceBeforeEntryX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat25
     {s0 : EVM.State} {k C : Nat} {aw : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (zeroForOne : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (swapTransferExit zeroForOne) R mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 (swapTransferExit zeroForOne) R mem aw rdata σ k C)
     (hov : R.length + 3 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (balanceEntry (!zeroForOne))
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (balanceEntry (!zeroForOne))
       ([swapBalanceBeforeReturn zeroForOne, ⟨0⟩] ++ R) mem aw rdata σ k' C' := by
   cases zeroForOne
   · exact ⟨_, _, uniswapV3Pool_block_4894 (immWords := wordsOf (immStore v)) hov
@@ -56,18 +58,18 @@ theorem swapBalanceBeforeX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw free : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (zeroForOne : Bool) (frame : Frame) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 (swapTransferExit zeroForOne) R mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 (swapTransferExit zeroForOne) R mem aw rdata σ k C)
     (hsource : SourceState s0 ee σ evm) (hf : frame.contract = contract)
     (hi : frame.immutables = immStore v)
     (hm : HeapMemory mem aw free) (hmem : 128 ≤ mem.size)
     (hzero : memLoad (UInt256.ofNat 96) mem = ⟨0⟩)
     (hb : free.toNat + 2 ^ 138 + 163 ≤ 2 ^ 200) (hov : R.length + 19 ≤ 1024) :
-    (ExecStmt config frame evm (swapPaymentBody zeroForOne)[1]! .reverted ∧
-      RDrev (deployedRuntime v) g s0) ∨
+    (ExecStmt fork config frame evm (swapPaymentBody zeroForOne)[1]! .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) ∨
     ∃ evm' σ' out mem' aw' next value k' C', SourceState s0 ee σ' evm' ∧
-      ExecStmt config frame evm (swapPaymentBody zeroForOne)[1]!
+      ExecStmt fork config frame evm (swapPaymentBody zeroForOne)[1]!
         (.ok (swapBalanceBeforeFrame frame zeroForOne value) evm') ∧
-      RD (deployedRuntime v) ee g s0 (swapBalanceBeforeReturn zeroForOne)
+      RD fork (deployedRuntime v) ee g s0 (swapBalanceBeforeReturn zeroForOne)
         ([value, ⟨0⟩] ++ R) mem' aw' out σ' k' C' ∧
       HeapMemory mem' aw' next ∧ MemoryPrefix mem mem' free.toNat ∧
       128 ≤ mem'.size ∧ memLoad (UInt256.ofNat 96) mem' = ⟨0⟩ ∧
@@ -84,7 +86,7 @@ theorem swapBalanceBeforeX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     exact Or.inl ⟨hx, rr⟩
   · have hx := poolBalanceReturns v frame.locals (swapBalanceBeforeName zeroForOne) evm evm'
       (!zeroForOne) (balanceValue out) _ hex
-    have hx' : ExecStmt config frame evm (swapPaymentBody zeroForOne)[1]!
+    have hx' : ExecStmt fork config frame evm (swapPaymentBody zeroForOne)[1]!
         (.ok (swapBalanceBeforeFrame frame zeroForOne (balanceValue out)) evm') := by
       rw [swapBalanceBeforeStmt_eq, frame_eq_of_parts hf hi]
       exact hx

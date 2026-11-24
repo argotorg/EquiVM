@@ -2,6 +2,8 @@ import Benchmarks.EAS.EAS.DelegatedBatchIndex
 import Benchmarks.EAS.EAS.FixedAllocate
 import Benchmarks.EAS.EAS.RuntimeBlocks_006
 import Benchmarks.EAS.EAS.RuntimeBlocks_007
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -17,11 +19,11 @@ theorem easDelegatedRevocationReserve {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
     {root heap a b c d : UInt256} {R : List UInt256}
     (v : EASImmutables) (hstack : R.length+11 ≤ 1024) (hh : heap.toNat ≤ 2^64-1)
     (hfree : memLoad (UInt256.ofNat 64) mem = heap)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨1318⟩ (root::a::b::c::d::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨1318⟩ (root::a::b::c::d::R) mem aw rdata σ k C) :
     if delegatedBatchHeadValid ee.calldata root ∧ heap.toNat+128 ≤ 2^64-1 then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨1342⟩ (d::a::root::b::c::heap::R)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨1342⟩ (d::a::root::b::c::heap::R)
         (delegatedRevocationReservedMemory mem heap) aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   by_cases hv : delegatedBatchHeadValid ee.calldata root
   · obtain ⟨a1,j1,D1,r1⟩ := easBlocks.eas_block_1318_fallthrough_packed (immWords := wordsOf (immStore v))
       (by simp only [List.length_cons]; omega) hv rd
@@ -49,14 +51,14 @@ theorem easDelegatedRevocationDataAccess {ee : ExecutionEnv} {g : Sat256} {s0 : 
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {root row a b c d : UInt256} {R : List UInt256}
     (v : EASImmutables) (hstack : R.length+13 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨1342⟩ (d::a::root::b::c::row::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨1342⟩ (d::a::root::b::c::row::R) mem aw rdata σ k C) :
     if delegatedBatchArrayAccess ee.calldata root 32 then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨5924⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨5924⟩
         ((delegatedBatchArray ee.calldata root 32+UInt256.ofNat 32)::
           calldataWord ee.calldata (delegatedBatchArray ee.calldata root 32).toNat::UInt256.ofNat ee.calldata.size::
           ⟨1396⟩::d::a::root::b::c::row::R)
         (delegatedRevocationSchemaMemory mem row (calldataWord ee.calldata root.toNat)) aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   by_cases ho : (calldataWord ee.calldata (root+UInt256.ofNat 32).toNat).toNat ≤ 2^64-1
   · obtain ⟨a1,j1,D1,r1⟩ := easBlocks.eas_block_1342_fallthrough_packed (immWords := wordsOf (immStore v))
       (by omega) (ugt_zero ho) rd

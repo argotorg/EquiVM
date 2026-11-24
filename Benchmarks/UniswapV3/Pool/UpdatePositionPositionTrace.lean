@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.UpdatePositionPositionSource
 import Benchmarks.UniswapV3.Pool.UpdatePositionFeeTrace
 import Benchmarks.UniswapV3.Pool.PositionUpdateInternal
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -16,22 +18,22 @@ theorem updatePositionPositionX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat25
     {s0 : EVM.State} {k C : Nat} {aw p : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : UpdatePositionArgs) (evm : EVM.State)
     (hs : SourceState s0 ee σ (updatePositionChangedState v a evm))
-    (rd : RD (deployedRuntime v) ee g s0 ⟨19510⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨19510⟩
       (updatePositionInside v a evm true :: updatePositionInside v a evm false ::
         ⟨0⟩ :: ⟨0⟩ :: updatePositionChangedWords v a evm ++ R) mem aw rdata σ k C)
     (ha : a.Fits) (hm : HeapMemory mem aw p) (hb : p.toNat + 160 ≤ 2 ^ 200)
     (hov : R.length + 37 ≤ 1024) :
-    (ExecStmt config (updatePositionFee1Frame v a evm) (updatePositionChangedState v a evm)
+    (ExecStmt fork config (updatePositionFee1Frame v a evm) (updatePositionChangedState v a evm)
       (.internalCall "Position_update" updatePositionPositionExprs "__c8") .reverted ∧
-      RDrev (deployedRuntime v) g s0) ∨
-    (ExecStmt config (updatePositionFee1Frame v a evm) (updatePositionChangedState v a evm)
+      RDrev fork (deployedRuntime v) g s0) ∨
+    (ExecStmt fork config (updatePositionFee1Frame v a evm) (updatePositionChangedState v a evm)
       (.internalCall "Position_update" updatePositionPositionExprs "__c8") .staticViolation ∧
-      RDstatic (deployedRuntime v) g s0) ∨
-    (ExecStmt config (updatePositionFee1Frame v a evm) (updatePositionChangedState v a evm)
+      RDstatic fork (deployedRuntime v) g s0) ∨
+    (ExecStmt fork config (updatePositionFee1Frame v a evm) (updatePositionChangedState v a evm)
       (.internalCall "Position_update" updatePositionPositionExprs "__c8")
       (.ok (updatePositionPositionFrame v a evm) (updatePositionPositionState v a evm)) ∧
       ∃ σ' aw' k' C', SourceState s0 ee σ' (updatePositionPositionState v a evm) ∧
-      RD (deployedRuntime v) ee g s0 ⟨19527⟩ (updatePositionPositionWords v a evm ++ R)
+      RD fork (deployedRuntime v) ee g s0 ⟨19527⟩ (updatePositionPositionWords v a evm ++ R)
         (updatePositionPositionMemory mem p v a evm) aw' rdata σ' k' C' ∧
       HeapMemory (updatePositionPositionMemory mem p v a evm) aw' (p + ⟨160⟩)) := by
   obtain ⟨_, _, r1⟩ := updatePositionPositionEntryX (v := v) a evm rd (by omega)

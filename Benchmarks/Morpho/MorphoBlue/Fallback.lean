@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.Dispatch
 import Benchmarks.Morpho.MorphoBlue.BodyCommon
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Morpho fallback correctness
 
@@ -48,12 +50,12 @@ theorem fallbackByte_eval (evm : EVM.State) (v : MorphoImmutables) (i : Nat) (b 
 set_option maxRecDepth 10000 in
 theorem fallbackBodyReverts (evm : EVM.State) (v : MorphoImmutables)
     (hnm : (morphoSelBytes 27 == evm.executionEnv.calldata.extract 0 4) = false) :
-    ExecTransitionBody config contract evm (fallbackLocals evm.executionEnv.calldata)
+    ExecTransitionBody fork config contract evm (fallbackLocals evm.executionEnv.calldata)
       setAuthorizationWithSigTransition.body .reverted (immStore v) := by
   by_cases hcv : evm.executionEnv.weiValue = ⟨0⟩
   · apply ExecFuncBody.execBlockRevert
-    have prelude :=  ABlock.requireStep
-      (ABlock.start (cfg := config) (evm := evm)
+    have prelude :=  ABlock.requireStep (fork := fork)
+      (ABlock.start (fork := fork) (cfg := config) (evm := evm)
         (stele := {
           contract := contract
           locals := fallbackLocals evm.executionEnv.calldata
@@ -107,8 +109,8 @@ theorem fallbackBodyReverts (evm : EVM.State) (v : MorphoImmutables)
 theorem morphoNoDispatch {σ σ₀ A I} {g : UInt256} (v : MorphoImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 28 → (morphoSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
-  have rev : RDrev (deployedRuntime v) (.ofUInt256 g)
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
+  have rev : RDrev fork (deployedRuntime v) (.ofUInt256 g)
       (initState σ σ₀ (.ofUInt256 g) A I) := by
     by_cases hsz : 4 ≤ I.calldata.size
     · exact morphoX_noMatch v hcode hsz hsize hnm

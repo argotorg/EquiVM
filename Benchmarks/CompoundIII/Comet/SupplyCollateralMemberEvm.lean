@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.InternalDynamicOutcome
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_064
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_065
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -19,10 +21,10 @@ theorem cometSupplyCollateralMember {v : CometWithExtendedAssetListImmutables}
     (hoffset : memLoad ptr mem = calldataWord out 0) (hv : AssetValid out)
     (hb : balance.toNat < 2^128) (hn : next.toNat < 2^128)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨14071⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨14071⟩
       (supplyCollateralMemberStack sender dst asset ptr amount balance next ret R)
       mem aw out σ k C) :
-    internalDynamicRun (deployedRuntime v) ee g s0 ret R
+    internalDynamicRun fork (deployedRuntime v) ee g s0 ret R
       (assetMembershipResult evm dst (calldataWord out 0) balance next) := by
   have r1 := cometWithExtendedAssetList_block_14071
     (immWords := wordsOf (immStore v)) (by change R.length + 1 + 12 ≤ 1024; omega)

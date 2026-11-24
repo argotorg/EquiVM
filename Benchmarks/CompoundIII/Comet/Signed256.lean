@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.PrincipalWords
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_048
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables
@@ -24,9 +26,9 @@ theorem signed256Callable_result (evm : EVM.State) (imms : Store) (n : UInt256) 
     let frame : Frame :=
       { contract := contract, locals := (∅ : Store).insert "n" (.int n.toNat), immutables := imms }
     if n.toNat < 2^255 then
-      ExecFuncBody config frame evm signed256Callable.body
+      ExecFuncBody fork config frame evm signed256Callable.body
         (.returned frame evm (some [.int n.toNat]))
-    else ExecFuncBody config frame evm signed256Callable.body .reverted := by
+    else ExecFuncBody fork config frame evm signed256Callable.body .reverted := by
   dsimp only
   let frame : Frame :=
     { contract := contract, locals := (∅ : Store).insert "n" (.int n.toNat), immutables := imms }
@@ -55,9 +57,9 @@ theorem signed256Callable_result (evm : EVM.State) (imms : Store) (n : UInt256) 
 theorem signed256_call_ok (frame : Frame) (evm : EVM.State) (n : UInt256)
     (expr : Expr) (ret : Ident) (hc : frame.contract = contract)
     (he : evalExpr? config frame evm expr = .ok (.int n.toNat)) (hn : n.toNat < 2^255) :
-    ExecStmt config frame evm (.internalCall "signed256" [expr] ret)
+    ExecStmt fork config frame evm (.internalCall "signed256" [expr] ret)
       (.ok { frame with locals := frame.locals.insert ret (.int n.toNat) } evm) := by
-  have hb := signed256Callable_result evm frame.immutables n
+  have hb := signed256Callable_result (fork := fork) evm frame.immutables n
   dsimp only at hb
   rw [if_pos hn] at hb
   exact ExecStmt.internalCallReturn (callee := signed256Callable)
@@ -68,8 +70,8 @@ theorem signed256_call_ok (frame : Frame) (evm : EVM.State) (n : UInt256)
 theorem signed256_call_revert (frame : Frame) (evm : EVM.State) (n : UInt256)
     (expr : Expr) (ret : Ident) (hc : frame.contract = contract)
     (he : evalExpr? config frame evm expr = .ok (.int n.toNat)) (hn : ¬ n.toNat < 2^255) :
-    ExecStmt config frame evm (.internalCall "signed256" [expr] ret) .reverted := by
-  have hb := signed256Callable_result evm frame.immutables n
+    ExecStmt fork config frame evm (.internalCall "signed256" [expr] ret) .reverted := by
+  have hb := signed256Callable_result (fork := fork) evm frame.immutables n
   dsimp only at hb
   rw [if_neg hn] at hb
   exact ExecStmt.internalCallRevert (callee := signed256Callable)
@@ -82,8 +84,8 @@ theorem cometSigned256 {v : CometWithExtendedAssetListImmutables}
     {aw n ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024) (hn : n.toNat < 2^255)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨10129⟩ (n :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret (n :: R) mem aw rdata σ k' C' := by
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨10129⟩ (n :: ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret (n :: R) mem aw rdata σ k' C' := by
   have r1 := cometWithExtendedAssetList_block_10129_fallthrough
     (immWords := wordsOf (immStore v)) (by simpa using hstack)
     (ugt_zero (by change n.toNat ≤ 2^255 - 1; omega)) h
@@ -94,8 +96,8 @@ theorem cometSigned256_revert {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray}
     {aw n ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024) (hn : ¬ n.toNat < 2^255)
-    (h : RD (deployedRuntime v) ee g s0 ⟨10129⟩ (n :: ret :: R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨10129⟩ (n :: ret :: R) mem aw rdata σ k C) :
+    RDrev fork (deployedRuntime v) g s0 := by
   have r1 := cometWithExtendedAssetList_block_10129_taken
     (immWords := wordsOf (immStore v)) (by simpa using hstack)
     (by rw [ugt_one (by change 2^255 - 1 < n.toNat; omega)]; decide)

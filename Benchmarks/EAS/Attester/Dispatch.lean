@@ -1,5 +1,7 @@
 import Benchmarks.EAS.Attester.DispatchTrace
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Attester dispatch scaffold
 
@@ -58,9 +60,9 @@ theorem attesterNonPayable (imms : Store) (hfit : immutablesFit contract imms)
     {σ σ₀ : AccountMap} {g : UInt256} {A : Substate} {I : ExecutionEnv}
     (hcode : I.code = deployedRuntime attesterBytecode imms)
     (hsize : I.calldata.size < UInt256.size) (hvalue : I.weiValue ≠ ⟨0⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I (restrictImmutables contract imms) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (restrictImmutables contract imms) := by
   have hcode' := hcode.trans (deployedRuntime_eq_layout hfit)
-  have hrev := attesterRuntimeRevertValue (σ := σ) (σ₀ := σ₀) (A := A)
+  have hrev := attesterRuntimeRevertValue (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) hcode' hvalue
   apply hrev.reEquivNonPayableOfMem hcode'
   intro t ht callargs
@@ -73,10 +75,10 @@ theorem attesterNoDispatch (imms : Store) (hfit : immutablesFit contract imms)
     (hcode : I.code = deployedRuntime attesterBytecode imms)
     (hsize : I.calldata.size < UInt256.size) (hvalue : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = none) :
-    runtimeRefinementFor config contract σ σ₀ g A I (restrictImmutables contract imms) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (restrictImmutables contract imms) := by
   have hcode' := hcode.trans (deployedRuntime_eq_layout hfit)
   by_cases hshort : I.calldata.size < 4
-  · exact (attesterRuntimeRevertShort (σ := σ) (σ₀ := σ₀) (A := A)
+  · exact (attesterRuntimeRevertShort (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
       (g := Sat256.ofUInt256 g) hcode' hvalue hshort).reEquivNoDispatch hcode' hdispatch
   · have hnone := hdispatch
     rw [dispatchMsg_eq_dispatchList contract I.calldata, contract_transitions] at hnone
@@ -94,7 +96,7 @@ theorem attesterNoDispatch (imms : Store) (hfit : immutablesFit contract imms)
           split at hnone
           · cases hnone
           · rename_i hrevoke
-            exact (attesterRuntimeRevertUnknown (σ := σ) (σ₀ := σ₀) (A := A)
+            exact (attesterRuntimeRevertUnknown (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
               (g := Sat256.ofUInt256 g) hcode' hvalue (by omega) hsize
               (Bool.eq_false_of_not_eq_true hattest)
               (Bool.eq_false_of_not_eq_true hmultiAttest)

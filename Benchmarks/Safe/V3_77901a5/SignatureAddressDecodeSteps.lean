@@ -4,6 +4,8 @@ import Benchmarks.Safe.V3_77901a5.MemoryBytesDecodeEvidence
 import Benchmarks.Safe.V3_77901a5.Blocks.Runtime_041
 import Benchmarks.Safe.V3_77901a5.Blocks.Runtime_048
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V3_77901a5.RuntimeBlocks
 
@@ -31,10 +33,10 @@ def signatureDecodedStack (counted : Bool) (cd : ByteArray) (R : List UInt256) :
 
 theorem safeSignatureDecodeHeaderRevert (counted : Bool)
     {I g s0 σ k C aw mem rdata stop ret} {R : List UInt256}
-    (h : RD safeBytecode I g s0 (signatureDecodePC counted) (⟨4⟩ :: stop :: ret :: R)
+    (h : RD fork safeBytecode I g s0 (signatureDecodePC counted) (⟨4⟩ :: stop :: ret :: R)
       mem aw rdata σ k C)
     (hc : UInt256.slt (UInt256.sub stop ⟨4⟩) (UInt256.ofNat (signatureAddressHead counted)) = ⟨1⟩)
-    (hov : R.length + 18 ≤ 1024) : RDrev safeBytecode g s0 := by
+    (hov : R.length + 18 ≤ 1024) : RDrev fork safeBytecode g s0 := by
   cases counted with
   | false =>
     simp only [signatureAddressHead, Bool.false_eq_true, if_false] at hc
@@ -49,11 +51,11 @@ theorem safeSignatureDecodeHeaderRevert (counted : Bool)
 
 theorem safeSignatureDecodeAddress (counted : Bool)
     {I g s0 σ k C aw mem rdata stop ret} {R : List UInt256}
-    (h : RD safeBytecode I g s0 (signatureDecodePC counted) (⟨4⟩ :: stop :: ret :: R)
+    (h : RD fork safeBytecode I g s0 (signatureDecodePC counted) (⟨4⟩ :: stop :: ret :: R)
       mem aw rdata σ k C)
     (hc : UInt256.slt (UInt256.sub stop ⟨4⟩) (UInt256.ofNat (signatureAddressHead counted)) = ⟨0⟩)
     (hov : R.length + 18 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨9076⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨9076⟩
       (calldataWord I.calldata 4 :: signatureAddressPC counted ::
         signatureAddressStack counted I.calldata stop ret R) mem aw rdata σ k' C' := by
   cases counted with
@@ -73,10 +75,10 @@ theorem safeSignatureDecodeAddress (counted : Bool)
 set_option maxHeartbeats 1000000 in
 theorem safeSignatureDecodeOffsetRevert (counted : Bool)
     {I g s0 σ k C aw mem rdata stop ret} {R : List UInt256}
-    (h : RD safeBytecode I g s0 (signatureAddressPC counted)
+    (h : RD fork safeBytecode I g s0 (signatureAddressPC counted)
       (signatureAddressStack counted I.calldata stop ret R) mem aw rdata σ k C)
     (hoff : 2 ^ 64 - 1 < (calldataWord I.calldata 68).toNat)
-    (hov : R.length + 18 ≤ 1024) : RDrev safeBytecode g s0 := by
+    (hov : R.length + 18 ≤ 1024) : RDrev fork safeBytecode g s0 := by
   have hmax : UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 64))
       (UInt256.ofNat 1) = UInt256.ofNat (2 ^ 64 - 1) := by decide +kernel
   have hgt : UInt256.gt (calldataWord I.calldata 68) (UInt256.ofNat (2 ^ 64 - 1)) = ⟨1⟩ :=
@@ -104,11 +106,11 @@ theorem safeSignatureDecodeOffsetRevert (counted : Bool)
 set_option maxHeartbeats 1000000 in
 theorem safeSignatureDecodeBytes (counted : Bool)
     {I g s0 σ k C aw mem rdata stop ret} {R : List UInt256}
-    (h : RD safeBytecode I g s0 (signatureAddressPC counted)
+    (h : RD fork safeBytecode I g s0 (signatureAddressPC counted)
       (signatureAddressStack counted I.calldata stop ret R) mem aw rdata σ k C)
     (hoff : (calldataWord I.calldata 68).toNat ≤ 2 ^ 64 - 1)
     (hov : R.length + 18 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨9242⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨9242⟩
       (UInt256.ofNat (4 + (calldataWord I.calldata 68).toNat) :: stop :: signatureBytesPC counted ::
         signatureBytesSaved counted I.calldata stop ret R) mem aw rdata σ k' C' := by
   have hmax : UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 64))
@@ -152,10 +154,10 @@ theorem safeSignatureDecodeBytes (counted : Bool)
 set_option maxHeartbeats 1000000 in
 theorem safeSignatureDecodeFinish (counted : Bool)
     {I g s0 σ k C aw mem rdata stop ret} {R : List UInt256}
-    (h : RD safeBytecode I g s0 (signatureBytesPC counted)
+    (h : RD fork safeBytecode I g s0 (signatureBytesPC counted)
       (⟨128⟩ :: signatureBytesSaved counted I.calldata stop ret R) mem aw rdata σ k C)
     (hov : R.length + 18 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ k' C', RD safeBytecode I g s0 ret (signatureDecodedStack counted I.calldata R)
+    ∃ k' C', RD fork safeBytecode I g s0 ret (signatureDecodedStack counted I.calldata R)
       mem aw rdata σ k' C' := by
   cases counted with
   | false =>

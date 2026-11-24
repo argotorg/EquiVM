@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.WithdrawCollateralTrace
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_065
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -12,9 +14,9 @@ theorem cometCollateralLogStatic {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray} {aw : UInt256}
     {σ : AccountMap} {k C : Nat} {x0 x1 x2 x3 x4 x5 x6 x7 : UInt256} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024) (hperm : ee.perm = false)
-    (h : RD (deployedRuntime v) ee g s0 ⟨14109⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨14109⟩
       (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: R) mem aw rdata σ k C) :
-    RDstatic (deployedRuntime v) g s0 := by
+    RDstatic fork (deployedRuntime v) g s0 := by
   have r1 := h.jumpdest
     (by immutable_decode(immutableLayout, cometWithExtendedAssetListBytecode,
       wordsOf (immStore v), (⟨14109⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none,
@@ -37,9 +39,9 @@ theorem cometCollateralLog {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {x0 x1 x2 x3 x4 x5 x6 ret : UInt256} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨14109⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨14109⟩
       (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: ret :: R) mem aw rdata σ k C) :
-    internalMemoryRun (deployedRuntime v) ee g s0 mem rdata ret R (emitOutcome evm) := by
+    internalMemoryRun fork (deployedRuntime v) ee g s0 mem rdata ret R (emitOutcome evm) := by
   unfold emitOutcome
   rw [hs.env]
   cases hp : ee.perm

@@ -1,5 +1,7 @@
 import Examples.StringStoreLite.SetLong
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # StringStoreLite — top-level runtime assembly
 
@@ -24,7 +26,7 @@ theorem stringStoreLiteClearCurrentLongValid
     (hflag : UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩ ≠ ⟨0⟩)
     (hvalid : UInt256.sub (UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩)
         (UInt256.lt (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨32⟩) ≠ ⟨0⟩) :
-    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor fork stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   let len := UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩
   have hlen : len = UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩ := rfl
@@ -54,7 +56,7 @@ theorem stringStoreLiteClearCurrentLongValid
   have hsz := clearCurrentSelector_size hsel
   have hd := stringStoreLiteDispatch_clearCurrent (cd := I.calldata) hsel'
   have hdec := stringStoreLiteDecode_clearCurrent (I := I) hsz
-  have hreach := stringStoreLiteReachClearCurrent
+  have hreach := stringStoreLiteReachClearCurrent (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz hsize hsel
   have hsplit := stringStoreLiteX_clearCurrentLongValidGenerated
@@ -88,10 +90,10 @@ theorem stringStoreLiteClearCurrentLongValid
     exact (permSplit_false hpf hsplit).reEquivStaticHalt hcode hd hdec
       (clearCurrentBodyStatic (evm := evmStele0) (by simp [evmStele0, initState]; exact hwv)
         hread hdel (by simp [evmStele0, initState]; exact hpf))
-  have hbodyBytes := clearCurrentBodyReturnsBytes (hperm := by assumption) (evm := evmStele0) (evm' := evmStele1)
+  have hbodyBytes := clearCurrentBodyReturnsBytes (fork := fork) (hperm := by assumption) (evm := evmStele0) (evm' := evmStele1)
     (copy := copy) (by simp [evmStele0, initState]; exact hwv) hread hdel
   have hbody :
-      ExecTransitionBody stringStoreLiteConfig stringStoreLiteContract evmStele0 ∅
+      ExecTransitionBody fork stringStoreLiteConfig stringStoreLiteContract evmStele0 ∅
         clearCurrentTransition.body
         (.returned
           { contract := stringStoreLiteContract,
@@ -114,7 +116,7 @@ theorem stringStoreLiteSetRuntime
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩)
     (hsz : 4 ≤ I.calldata.size) :
-    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor fork stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   by_cases hheadShort : I.calldata.size < 36
   · exact stringStoreLiteSetHeadShortRuntime hcode hsize hwv hsel hsz hheadShort
@@ -216,7 +218,7 @@ theorem stringStoreLiteSetRuntime
                     not_ne_iff.mp hpayloadList
                   exact stringStoreLiteSetValidRuntime hcode hsize hwv hsel
                     hsz36 hhi hoff hlenWord hsizeSign hlenHuge hpayload hlenZero
-          · have hrev := stringStoreLiteX_setDecoderSignedStartHigh
+          · have hrev := stringStoreLiteX_setDecoderSignedStartHigh (fork := fork)
                 (σ := σ) (σ₀ := σ₀)
                 (A := A) (I := I) (g := Sat256.ofUInt256 g)
                 hcode hwv hsz36 hhi hsize hsel hoff hsizeSign
@@ -234,7 +236,7 @@ theorem stringStoreLiteClearCurrentRuntime
     (hcode : I.code = stringStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xa6, 0xdf, 0xa2, 0x62]⟩) :
-    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor fork stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   by_cases hflag : UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩ = ⟨0⟩
   · by_cases hvalid : UInt256.sub (UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩)
@@ -269,8 +271,8 @@ set_option maxHeartbeats 1200000 in
 theorem stringStoreLiteCorrect :
     runtimeRefinement stringStoreLiteConfig stringStoreLiteBytecode
       stringStoreLiteContract := by
-  refine runtimeRefinement.intro ?_
-  intro σ σ₀ g A I hcode hsize
+  refine runtimeRefinementOn.intro ?_
+  intro fork _hfork σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size
     · by_cases hselSet : selIs I ⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩

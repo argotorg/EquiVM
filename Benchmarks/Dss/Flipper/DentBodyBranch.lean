@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Flipper.DentRefundMain
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxHeartbeats 0
@@ -47,11 +49,11 @@ theorem flipperDentBodyFrom4601LotLower
           .ok (.bool true))
     (hmemSize : mem.size = 96)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (h : RD flipperBytecode I (Sat256.ofUInt256 g)
+    (h : RD fork flipperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4601⟩
       [dentBid I, dentLot I, dentId I, ⟨323⟩, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let locals := dentLocals I
   have hlotWordEq : bidLotWord (dentId I) σ I = bidLotWord (dentId I) σ I := rfl
@@ -72,7 +74,7 @@ theorem flipperDentBodyFrom4601LotLower
         UInt256.size ≤ (bidLotWord (dentId I) σ I).toNat * flipperONEWord.toNat := by
       simpa [← hlotWordEq] using hoverLot
     have hbody :
-        ExecTransitionBody config contract evm0 locals dentTransition.body .reverted := by
+        ExecTransitionBody fork config contract evm0 locals dentTransition.body .reverted := by
       simpa [evm0, locals] using
         (flipperDentSourceBodyLotOneOverflow
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -90,7 +92,7 @@ theorem flipperDentBodyFrom4601LotLower
           UInt256.size ≤ (dentBegWord σ I).toNat * (dentLot I).toNat := by
         simpa [← hbegWordEq] using hoverBeg
       have hbody :
-          ExecTransitionBody config contract evm0 locals dentTransition.body .reverted := by
+          ExecTransitionBody fork config contract evm0 locals dentTransition.body .reverted := by
         simpa [evm0, locals] using
           (flipperDentSourceBodyBegLotOverflow
             (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -146,7 +148,7 @@ theorem flipperDentBodyFrom4601LotLower
             (dentLotOneWord σ I).toNat < (dentBegLotWord σ I).toNat := by
           simpa [← hlotOneWordEq, ← hbegLotWordEq] using hgtEvm
         have hbody :
-            ExecTransitionBody config contract evm0 locals dentTransition.body .reverted := by
+            ExecTransitionBody fork config contract evm0 locals dentTransition.body .reverted := by
           simpa [evm0, locals] using
             (flipperDentSourceBodyInsufficientDecrease
               (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)

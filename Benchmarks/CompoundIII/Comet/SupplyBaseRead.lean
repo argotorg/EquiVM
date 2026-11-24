@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.WithdrawBaseRead
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -13,11 +15,11 @@ theorem cometSupplyBaseRead {v : CometWithExtendedAssetListImmutables}
     (dst : AccountAddress) (hstack : R.length + 15 ≤ 1024)
     (hfree : memLoad (UInt256.ofNat 64) mem = free) (hmem : 96 ≤ mem.size)
     (hb : free.toNat + 160 < 2^64) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨12473⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨12473⟩
       (amount :: sender :: ⟨12591⟩ :: EVM.word dst.val :: ret :: R) mem aw rdata σ k C) :
     ∃ aw' k' C',
       UserBasicMemory (withdrawBaseReadMemory mem free evm dst) free (withdrawBaseBasic evm dst) ∧
-      RD (deployedRuntime v) ee g s0 ⟨12495⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨12495⟩
         (free :: ⟨12604⟩ :: amount :: sender :: ⟨12591⟩ :: EVM.word dst.val :: ret :: R)
         (withdrawBaseReadMemory mem free evm dst) aw' rdata σ k' C'  := by
   have r1 := cometWithExtendedAssetList_block_12473

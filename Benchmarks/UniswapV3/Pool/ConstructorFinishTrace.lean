@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.ConstructorRuntime
 import Benchmarks.UniswapV3.Pool.CreationBlocks_002
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolCreationBlocks
@@ -73,9 +75,9 @@ theorem constructorPatchedRuntime_read (words : String → UInt256) :
 
 theorem constructorFinishX {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {σ : AccountMap} {aw : UInt256} {k C : Nat} {out : ByteArray}
-    (rd : RD (uniswapV3PoolCreationBytecode ++ tail) ee g s0 ⟨381⟩ []
+    (rd : RD fork (uniswapV3PoolCreationBytecode ++ tail) ee g s0 ⟨381⟩ []
       (constructorFinalMem ee.codeOwner out) aw out σ k C) (hlen : 160 ≤ out.size) :
-    RDret (uniswapV3PoolCreationBytecode ++ tail) g s0 σ
+    RDret fork (uniswapV3PoolCreationBytecode ++ tail) g s0 σ
       (deployedRuntime (constructorValuation ee.codeOwner out)) := by
   let words := wordsOf (immStore (constructorValuation ee.codeOwner out))
   obtain ⟨ho, hf, h0, h1, hfee, ht, hm⟩ := constructorFinalReadWords ee.codeOwner out hlen
@@ -83,11 +85,11 @@ theorem constructorFinishX {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256}
   simp only [uniswapV3PoolCreation_block_381_stack, ho, hf, h0, h1, hfee] at rp
   rw [constructorRuntimeSummaryMem tail _ _ hlen] at rp
   have rr := uniswapV3PoolCreation_block_488 (by decide) rp
-  change RDret (uniswapV3PoolCreationBytecode ++ tail) g s0 σ
+  change RDret fork (uniswapV3PoolCreationBytecode ++ tail) g s0 σ
     ((writeCascade (writeCascade uniswapV3PoolBytecode ((constructorPatchWrites words).take 9))
       ((constructorPatchWrites words).drop 9)).readWithPadding 0 22142) at rr
   rw [← writeCascade_append, List.take_append_drop] at rr
-  change RDret (uniswapV3PoolCreationBytecode ++ tail) g s0 σ
+  change RDret fork (uniswapV3PoolCreationBytecode ++ tail) g s0 σ
     ((constructorPatchedRuntime words).readWithPadding 0 22142) at rr
   rw [constructorPatchedRuntime_read, constructorPatchedRuntime_eq] at rr
   exact rr

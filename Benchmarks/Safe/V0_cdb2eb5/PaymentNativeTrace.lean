@@ -3,6 +3,8 @@ import Benchmarks.Safe.V0_cdb2eb5.PaymentNativeReturn
 import Benchmarks.Safe.V0_cdb2eb5.RawValueCall
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_035
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V0_cdb2eb5.RuntimeBlocks
 
@@ -11,7 +13,7 @@ namespace Benchmarks.Safe.V0_cdb2eb5
 set_option maxRecDepth 100000 in
 theorem safePaymentNativeTrace (p : PaymentInput) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata ptr} {ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7973⟩
+    (h : RD fork safeBytecode I g s0 ⟨7973⟩
       (UInt256.mul p.gasTotal (p.nativePrice I) :: UInt256.ofNat (p.receiver I).val :: ⟨0⟩ ::
         UInt256.ofNat p.refundReceiver.val :: UInt256.ofNat p.gasToken.val :: p.gasPrice ::
         p.baseGas :: p.gasUsed :: ret :: R) mem aw rdata σ k C)
@@ -22,7 +24,7 @@ theorem safePaymentNativeTrace (p : PaymentInput) (evm : EVM.State)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr) (hm : 128 ≤ mem.size) (hp : 128 ≤ ptr)
     (hz : memLoad ⟨96⟩ mem = ⟨0⟩) (hb : ptr < 2 ^ 220)
     (hov : R.length + 24 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    PaymentOutcome p evm I g s0 mem ptr ret R := by
+    PaymentOutcome fork p evm I g s0 mem ptr ret R := by
   obtain ⟨aw₁, k₁, C₁, h₁⟩ := safeRuntime_block_7973_packed (by simp; omega) h
   have hr := safePaymentReceiverWord p I
   have hf₁ : memLoad (UInt256.ofNat 64) mem = UInt256.ofNat ptr := hf
@@ -39,7 +41,7 @@ theorem safePaymentNativeTrace (p : PaymentInput) (evm : EVM.State)
       (by simpa only [hee] using hpfalse) (by simpa only [hee] using hnonzero)
   obtain ⟨evm', σ', z, out, aw₂, k₂, C₂, hc, hee', hacc', hw', h₂, hout, hbound⟩ :=
     rawValueCallTraceFrom evm h₁ hee hacc hworld (by native_decide) (by simp; omega) hperm
-  have hc' : callViaEVM evm (EVM.address (p.receiver evm.executionEnv))
+  have hc' : callViaEVM fork evm (EVM.address (p.receiver evm.executionEnv))
       (Int.ofNat (UInt256.mul p.gasTotal (p.nativePrice evm.executionEnv)).toNat)
       ByteArray.empty (z, evm', out) := by
     simpa only [hee, accountAddress_roundtrip, addressOfAddress,
@@ -51,7 +53,7 @@ theorem safePaymentNativeTrace (p : PaymentInput) (evm : EVM.State)
   rw [hbz, callOutputMem_zero] at h₂
   obtain ⟨aw₃, k₃, C₃, h₃⟩ := safePaymentReturnBuffer h₂ hf
     (by change ptr + out.size + 64 < 2 ^ 256; omega) (by simp; omega)
-  have hbody := safePaymentNativeSource (hperm := by simpa only [hee, or_comm] using hperm) hsum (by simpa only [hee] using hprod) htoken hc'
+  have hbody := safePaymentNativeSource (fork := fork) (hperm := by simpa only [hee, or_comm] using hperm) hsum (by simpa only [hee] using hprod) htoken hc'
   have hfinish := safePaymentNativeFinish z h₃ (by omega) hret
   cases z
   · exact .inl ⟨hfinish, hbody⟩

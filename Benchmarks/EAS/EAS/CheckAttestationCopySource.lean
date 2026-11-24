@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.CheckAttestationCopyPrefix
 import Benchmarks.EAS.EAS.CheckAttestationCopyLoop
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -14,10 +16,10 @@ theorem checkAttestationCopySource {L imms : Store} {evm : EVM.State} {index len
     (hi : L.get? "index"=some (.int (Int.ofNat index))) (hl : L.get? "length"=some (.int (Int.ofNat len)))
     (hh : L.get? "$EAS.freeMemory"=some (.int (Int.ofNat heap))) (hbound : len<UInt256.size) :
     (checkAttestationCopyValid evm.executionEnv.calldata index len →
-      ∃ L', ExecFuncBody config {contract := contract,locals := L,immutables := imms} evm checkAttestationCopyFunction.body
+      ∃ L', ExecFuncBody fork config {contract := contract,locals := L,immutables := imms} evm checkAttestationCopyFunction.body
         (.returned {contract := contract,locals := L',immutables := imms} evm (some [.tuple [],.int (Int.ofNat heap)]))) ∧
     (¬checkAttestationCopyValid evm.executionEnv.calldata index len →
-      ExecFuncBody config {contract := contract,locals := L,immutables := imms} evm checkAttestationCopyFunction.body .reverted) := by
+      ExecFuncBody fork config {contract := contract,locals := L,immutables := imms} evm checkAttestationCopyFunction.body .reverted) := by
   obtain ⟨L1,hprefix,hd1,hi1,hl1,hh1⟩ := checkAttestationCopyPrefixSource (imms := imms) (evm := evm) hi hl hh
   let data := checkAttestationCopyData evm.executionEnv.calldata index
   have hsize : evalExpr? config {contract := contract,locals := L1,immutables := imms} evm
@@ -25,11 +27,11 @@ theorem checkAttestationCopySource {L imms : Store} {evm : EVM.State} {index len
     simp only [evalExpr?,hi1,readLocalPath?,bind,EvalResult.bind,pure]
   have hguard := naturalLeSource (checkAttestationCopySlot_eval (imms := imms) (evm := evm) hd1 hl1) (evalCastUint256Nat hsize)
   by_cases hext : (UInt256.ofNat ((checkAttestationCopyData evm.executionEnv.calldata index).toNat+32*len)).toNat≤(UInt256.ofNat evm.executionEnv.calldata.size).toNat
-  · have hg : ExecStmt config {contract := contract,locals := L1,immutables := imms} evm checkAttestationCopyExtent
+  · have hg : ExecStmt fork config {contract := contract,locals := L1,immutables := imms} evm checkAttestationCopyExtent
         (.ok {contract := contract,locals := L1,immutables := imms} evm) :=
       ExecStmt.requireTrue (by simpa only [decide_eq_true hext] using hguard)
     let L2 := L1.insert "i" (.int 0)
-    have hinit : ExecStmt config {contract := contract,locals := L1,immutables := imms} evm
+    have hinit : ExecStmt fork config {contract := contract,locals := L1,immutables := imms} evm
         (.letDecl "i" (some abiUInt256) (.intLit 0)) (.ok {contract := contract,locals := L2,immutables := imms} evm) :=
       ExecStmt.letDecl (by simp only [evalExpr?,pure])
     have hf2 : CheckAttestationCopyLocals L2 data len heap 0 := by
@@ -73,12 +75,12 @@ theorem checkAttestationCopyCall {L imms : Store} {evm : EVM.State} {index len h
     (he : evalExprs? config {contract := contract,locals := L,immutables := imms} evm args=
       .ok [.int (Int.ofNat index),.int (Int.ofNat len),.int (Int.ofNat heap)]) (hbound : len<UInt256.size) :
     (checkAttestationCopyValid evm.executionEnv.calldata index len →
-      ExecStmt config {contract := contract,locals := L,immutables := imms} evm (.internalCall "_checkAttestationArrayCopy" args retVar)
+      ExecStmt fork config {contract := contract,locals := L,immutables := imms} evm (.internalCall "_checkAttestationArrayCopy" args retVar)
         (.ok (resumeAfterInternalCall {contract := contract,locals := L,immutables := imms} retVar
           (some [.tuple [],.int (Int.ofNat heap)])) evm)) ∧
     (¬checkAttestationCopyValid evm.executionEnv.calldata index len →
-      ExecStmt config {contract := contract,locals := L,immutables := imms} evm (.internalCall "_checkAttestationArrayCopy" args retVar) .reverted) := by
-  have hs := checkAttestationCopySource (L := checkAttestationCopyArgs index len heap) (imms := imms) (evm := evm)
+      ExecStmt fork config {contract := contract,locals := L,immutables := imms} evm (.internalCall "_checkAttestationArrayCopy" args retVar) .reverted) := by
+  have hs := checkAttestationCopySource (fork := fork) (L := checkAttestationCopyArgs index len heap) (imms := imms) (evm := evm)
     (index := index) (len := len) (heap := heap) (store_get_self _ _ _)
     (by simp (disch := decide) only [checkAttestationCopyArgs,store_get_ne,store_get_self])
     (by simp (disch := decide) only [checkAttestationCopyArgs,store_get_ne,store_get_self]) hbound

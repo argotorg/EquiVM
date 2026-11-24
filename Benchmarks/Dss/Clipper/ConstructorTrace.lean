@@ -1,6 +1,8 @@
 import Reasoning.WordArithmetic
 import Benchmarks.Dss.Clipper.ConstructorBase
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Clipper constructor creation-bytecode trace
 -/
@@ -20,11 +22,11 @@ theorem clipperCtorStoppedReach
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat spotter dog : AccountAddress) (ilk : List UInt8)
     (hcode : I.code = clipperCtorCode vat spotter dog ilk) (hperm : I.perm = true) :
-    ∃ k C, RD (clipperCtorCode vat spotter dog ilk) I g
+    ∃ k C, RD fork (clipperCtorCode vat spotter dog ilk) I g
       (initState σ σ₀ g A I) ⟨10⟩ []
       clipperCtorFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (sstoreAccountMap I.codeOwner σ ⟨14⟩ ⟨0⟩) k C := by
-  have rd0 : RD (clipperCtorCode vat spotter dog ilk) I g
+  have rd0 : RD fork (clipperCtorCode vat spotter dog ilk) I g
       (initState σ σ₀ g A I) ⟨0⟩ []
       ByteArray.empty (UInt256.ofNat 0) ByteArray.empty (σ) 0 0 :=
     RD.initState hcode
@@ -45,9 +47,9 @@ theorem clipperInitcodeNonpayableRevert
     (vat spotter dog : AccountAddress) (ilk : List UInt8)
     (hcode : I.code = clipperCtorCode vat spotter dog ilk)
     (hperm : I.perm = true) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev (clipperCtorCode vat spotter dog ilk) g
+    RDrev fork (clipperCtorCode vat spotter dog ilk) g
       (initState σ σ₀ g A I) := by
-  obtain ⟨_, _, rd10⟩ := clipperCtorStoppedReach
+  obtain ⟨_, _, rd10⟩ := clipperCtorStoppedReach (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     vat spotter dog ilk hcode hperm
   have rd17 := clipper_ctor_run rd10 with [
@@ -61,13 +63,13 @@ theorem clipperCtorArgsReach
     (vat spotter dog : AccountAddress) (ilk : List UInt8) (hilk : ilk.length = 32)
     (hcode : I.code = clipperCtorCode vat spotter dog ilk)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩) :
-    ∃ k C, RD (clipperCtorCode vat spotter dog ilk) I g
+    ∃ k C, RD fork (clipperCtorCode vat spotter dog ilk) I g
       (initState σ σ₀ g A I) ⟨78⟩
       [ABI.bytesToWord ilk, EVM.word dog.val, ⟨64⟩, EVM.word spotter.val,
         ⟨32⟩, EVM.word vat.val, ⟨96⟩]
       (clipperCtorArgFreeMem vat spotter dog ilk) (UInt256.ofNat 10) ByteArray.empty
       (sstoreAccountMap I.codeOwner σ ⟨14⟩ ⟨0⟩) k C := by
-  obtain ⟨_, _, rd10⟩ := clipperCtorStoppedReach
+  obtain ⟨_, _, rd10⟩ := clipperCtorStoppedReach (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     vat spotter dog ilk hcode hperm
   have rd23 := clipper_ctor_run rd10 with [
@@ -132,13 +134,13 @@ theorem clipperCtorArgsReach
 theorem clipperCtorVatDecodeReach
     {σ σStopped σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat spotter dog : AccountAddress) (ilk : List UInt8) {k C : Nat}
-    (rd78 : RD (clipperCtorCode vat spotter dog ilk) I g
+    (rd78 : RD fork (clipperCtorCode vat spotter dog ilk) I g
       (initState σ σ₀ g A I) ⟨78⟩
       [ABI.bytesToWord ilk, EVM.word dog.val, ⟨64⟩, EVM.word spotter.val,
         ⟨32⟩, EVM.word vat.val, ⟨96⟩]
       (clipperCtorArgFreeMem vat spotter dog ilk) (UInt256.ofNat 10) ByteArray.empty
       (σStopped) k C) :
-    ∃ k' C', RD (clipperCtorCode vat spotter dog ilk) I g
+    ∃ k' C', RD fork (clipperCtorCode vat spotter dog ilk) I g
       (initState σ σ₀ g A I) ⟨95⟩
       [EVM.word dog.val, ⟨64⟩, EVM.word spotter.val, ⟨32⟩,
         EVM.word vat.val, ABI.bytesToWord ilk]
@@ -166,13 +168,13 @@ theorem clipperCtorSpotterStoreReach
     {σ σStopped σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat spotter dog : AccountAddress) (ilk : List UInt8) {k C : Nat}
     (hperm : I.perm = true)
-    (rd95 : RD (clipperCtorCode vat spotter dog ilk) I g
+    (rd95 : RD fork (clipperCtorCode vat spotter dog ilk) I g
       (initState σ σ₀ g A I) ⟨95⟩
       [EVM.word dog.val, ⟨64⟩, EVM.word spotter.val, ⟨32⟩,
         EVM.word vat.val, ABI.bytesToWord ilk]
       (clipperCtorVatMem vat spotter dog ilk) (UInt256.ofNat 10) ByteArray.empty
       (σStopped) k C) :
-    ∃ k' C', RD (clipperCtorCode vat spotter dog ilk) I g
+    ∃ k' C', RD fork (clipperCtorCode vat spotter dog ilk) I g
       (initState σ σ₀ g A I) ⟨129⟩
       [UInt256.lnot solcAddrMask, solcAddrMask, EVM.word dog.val, ⟨64⟩,
         EVM.word spotter.val, ⟨32⟩, EVM.word vat.val, ABI.bytesToWord ilk]
@@ -182,7 +184,7 @@ theorem clipperCtorSpotterStoreReach
           (EVM.word spotter.val))) k' C' := by
   have rdBeforeSload := clipper_ctor_run rd95 with [push1 ⟨3⟩, dup1]
   obtain ⟨k99, C99, rd99raw⟩ := rdBeforeSload.sload (by clipper_ctor_decode) (by evm_ov)
-  have rd99 : RD (clipperCtorCode vat spotter dog ilk) I g
+  have rd99 : RD fork (clipperCtorCode vat spotter dog ilk) I g
       (initState σ σ₀ g A I) ⟨99⟩
       [solcSlotWord σStopped I ⟨3⟩, ⟨3⟩, EVM.word dog.val, ⟨64⟩,
         EVM.word spotter.val, ⟨32⟩, EVM.word vat.val, ABI.bytesToWord ilk]
@@ -204,13 +206,13 @@ theorem clipperCtorDogStoreReach
     {σ σSpotter σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat spotter dog : AccountAddress) (ilk : List UInt8) {k C : Nat}
     (hperm : I.perm = true)
-    (rd129 : RD (clipperCtorCode vat spotter dog ilk) I g
+    (rd129 : RD fork (clipperCtorCode vat spotter dog ilk) I g
       (initState σ σ₀ g A I) ⟨129⟩
       [UInt256.lnot solcAddrMask, solcAddrMask, EVM.word dog.val, ⟨64⟩,
         EVM.word spotter.val, ⟨32⟩, EVM.word vat.val, ABI.bytesToWord ilk]
       (clipperCtorVatMem vat spotter dog ilk) (UInt256.ofNat 10) ByteArray.empty
       (σSpotter) k C) :
-    ∃ k' C', RD (clipperCtorCode vat spotter dog ilk) I g
+    ∃ k' C', RD fork (clipperCtorCode vat spotter dog ilk) I g
       (initState σ σ₀ g A I) ⟨145⟩
       [⟨1⟩, EVM.word dog.val, ⟨64⟩, EVM.word spotter.val, ⟨32⟩,
         EVM.word vat.val, ABI.bytesToWord ilk]
@@ -220,7 +222,7 @@ theorem clipperCtorDogStoreReach
           (EVM.word dog.val))) k' C' := by
   have rdBeforeSload := clipper_ctor_run rd129 with [push1 ⟨1⟩, dup1]
   obtain ⟨k133, C133, rd133raw⟩ := rdBeforeSload.sload (by clipper_ctor_decode) (by evm_ov)
-  have rd133 : RD (clipperCtorCode vat spotter dog ilk) I g
+  have rd133 : RD fork (clipperCtorCode vat spotter dog ilk) I g
       (initState σ σ₀ g A I) ⟨133⟩
       [solcSlotWord σSpotter I ⟨1⟩, ⟨1⟩, UInt256.lnot solcAddrMask,
         solcAddrMask, EVM.word dog.val, ⟨64⟩, EVM.word spotter.val, ⟨32⟩,
@@ -239,13 +241,13 @@ theorem clipperCtorBufWardsReach
     {σ σDog σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat spotter dog : AccountAddress) (ilk : List UInt8) (hilk : ilk.length = 32)
     {k C : Nat} (hperm : I.perm = true)
-    (rd145 : RD (clipperCtorCode vat spotter dog ilk) I g
+    (rd145 : RD fork (clipperCtorCode vat spotter dog ilk) I g
       (initState σ σ₀ g A I) ⟨145⟩
       [⟨1⟩, EVM.word dog.val, ⟨64⟩, EVM.word spotter.val, ⟨32⟩,
         EVM.word vat.val, ABI.bytesToWord ilk]
       (clipperCtorVatMem vat spotter dog ilk) (UInt256.ofNat 10) ByteArray.empty
       (σDog) k C) :
-    ∃ k' C', RD (clipperCtorCode vat spotter dog ilk) I g
+    ∃ k' C', RD fork (clipperCtorCode vat spotter dog ilk) I g
       (initState σ σ₀ g A I) ⟨183⟩
       [solcSourceWord I, EVM.word dog.val, ⟨64⟩, EVM.word spotter.val,
         ⟨0⟩, EVM.word vat.val, ABI.bytesToWord ilk]
@@ -259,7 +261,7 @@ theorem clipperCtorBufWardsReach
         clipperCtorIlkMem vat spotter dog ilk := by
     rw [show (⟨128⟩ : UInt256).toNat = 128 by decide]
     rfl
-  have rd149 : RD (clipperCtorCode vat spotter dog ilk) I g
+  have rd149 : RD fork (clipperCtorCode vat spotter dog ilk) I g
       (initState σ σ₀ g A I) ⟨149⟩
       [⟨128⟩, ABI.bytesToWord ilk, ⟨1⟩, EVM.word dog.val, ⟨64⟩,
         EVM.word spotter.val, ⟨32⟩, EVM.word vat.val, ABI.bytesToWord ilk]
@@ -295,13 +297,13 @@ theorem clipperCtorRelyLogReach
     {σ σWards σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat spotter dog : AccountAddress) (ilk : List UInt8) (hilk : ilk.length = 32)
     {k C : Nat} (hperm : I.perm = true)
-    (rd183 : RD (clipperCtorCode vat spotter dog ilk) I g
+    (rd183 : RD fork (clipperCtorCode vat spotter dog ilk) I g
       (initState σ σ₀ g A I) ⟨183⟩
       [solcSourceWord I, EVM.word dog.val, ⟨64⟩, EVM.word spotter.val,
         ⟨0⟩, EVM.word vat.val, ABI.bytesToWord ilk]
       (clipperCtorWardsHashMem I vat spotter dog ilk) (UInt256.ofNat 10) ByteArray.empty
       (σWards) k C) :
-    ∃ k' C', RD (clipperCtorCode vat spotter dog ilk) I g
+    ∃ k' C', RD fork (clipperCtorCode vat spotter dog ilk) I g
       (initState σ σ₀ g A I) ⟨230⟩ []
       (clipperCtorWardsHashMem I vat spotter dog ilk) (UInt256.ofNat 10) ByteArray.empty
       (σWards) k' C' := by
@@ -366,10 +368,10 @@ theorem clipperCtorReturnTrace
     {I : ExecutionEnv} {g : Sat256} {s0 : State} {rdata : ByteArray}
     {acc : AccountMap} {k C : Nat}
     (vat spotter dog : AccountAddress) (ilk : List UInt8) (hilk : ilk.length = 32)
-    (h : RD (clipperCtorCode vat spotter dog ilk) I g s0 ⟨230⟩ []
+    (h : RD fork (clipperCtorCode vat spotter dog ilk) I g s0 ⟨230⟩ []
       (clipperCtorWardsHashMem I vat spotter dog ilk) (UInt256.ofNat 10)
       rdata acc k C) :
-    RDret (clipperCtorCode vat spotter dog ilk) g s0 acc
+    RDret fork (clipperCtorCode vat spotter dog ilk) g s0 acc
       (clipperCtorPatchedRuntime vat ilk) := by
   have hvatload :
       (if (⟨160⟩ : UInt256).toNat ≥
@@ -524,7 +526,7 @@ theorem clipperInitcodeSuccess
     (vat spotter dog : AccountAddress) (ilk : List UInt8) (hilk : ilk.length = 32)
     (hcode : I.code = clipperCtorCode vat spotter dog ilk)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩) :
-    RDret (clipperCtorCode vat spotter dog ilk) g
+    RDret fork (clipperCtorCode vat spotter dog ilk) g
       (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner

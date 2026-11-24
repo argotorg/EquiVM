@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.PositionUpdateModel
 import Benchmarks.UniswapV3.Pool.PositionScalarStorage
 import Benchmarks.UniswapV3.Pool.FlashProtocolWords
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 
@@ -40,7 +42,7 @@ theorem positionUpdateOwedSource (locals imms : Store) (original current : EVM.S
     (howed : locals.get? (positionOwedField second) =
       some (.int (Int.ofNat (positionUpdateOwed a original second).toNat)))
     (hperm : current.executionEnv.perm = true) :
-    ExecStmt config {contract := contract, locals := locals, immutables := imms} current
+    ExecStmt fork config {contract := contract, locals := locals, immutables := imms} current
       (positionUpdateOwedStmt second)
       (.ok {contract := contract, locals := locals, immutables := imms}
         (positionUpdateOwedState a original current second)) := by

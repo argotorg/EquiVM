@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.ConstructorChecksMemory
 import Benchmarks.CompoundIII.Comet.ConstructorSourceChecks
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open cometWithExtendedAssetListCreationBlocks
 
@@ -20,16 +22,16 @@ theorem cometConstructorChecks {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {aw : UInt256} {k C : Nat} (hsize : 22161 + 224 * c.assetConfigs.length < UInt256.size)
     (hfree : constructorAssetFree c c.assetConfigs.length < 2^64)
     (hout : out.size < UInt256.size)
-    (h : RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) ee g s0 ⟨764⟩
+    (h : RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) ee g s0 ⟨764⟩
       (calldataWord out 0 :: UInt256.ofNat (constructorRecordBase c) ::
         constructorAssetLoopStack c c.assetConfigs.length)
       (constructorDecimalsReturnMemory c out) aw out σ k C) :
     if ConstructorChecksValid c then
-      ∃ aw' k' C', RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray)
+      ∃ aw' k' C', RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray)
         ee g s0 ⟨832⟩ (calldataWord out 0 :: UInt256.ofNat (constructorRecordBase c) ::
           constructorAssetLoopStack c c.assetConfigs.length)
         (constructorDecimalsReturnMemory c out) aw' out σ k' C'
-    else RDrev (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) g s0 := by
+    else RDrev fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) g s0 := by
   have hf := constructorDecimalsReturnMemory_scalar (c := c) (out := out) (j := 13)
     (by decide) hsize hfree hout
   have hb := constructorDecimalsReturnMemory_scalar (c := c) (out := out) (j := 17)

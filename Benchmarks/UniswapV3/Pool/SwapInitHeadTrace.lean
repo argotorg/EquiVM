@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.BoundedActiveWords
 import Benchmarks.UniswapV3.Pool.SwapInitStack
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -10,7 +12,7 @@ set_option maxRecDepth 10000
 theorem swapInitHeadBoundedX {limit : Nat} {σ σsnap : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw aw0 p snap fee remaining x5 x6 x7 x8 x9 : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2822⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2822⟩
       ([UInt256.ofNat ee.header.timestamp, UInt256.ofNat 64 + p, p, ⟨0⟩,
         snap, x5, x6, x7, x8, x9, remaining] ++ R)
       (swapCacheHeadMem (writeWord mem 64 (p + UInt256.ofNat 192)) p fee σ ee)
@@ -19,7 +21,7 @@ theorem swapInitHeadBoundedX {limit : Nat} {σ σsnap : AccountMap} {ee : Execut
     (hs : Slot0Memory mem snap σsnap ee) (hsl : 96 ≤ snap.toNat)
     (hsb : snap.toNat + 224 ≤ p.toNat) (hb : p.toNat + 256 ≤ limit)
     (hov : R.length + 15 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨2911⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨2911⟩
       ([UInt256.ofNat 1, UInt256.ofNat 1, slot0FieldWord 0 20 σsnap ee,
         (p + UInt256.ofNat 192) + UInt256.ofNat 64, p + UInt256.ofNat 192, ⟨0⟩,
         UInt256.sgt remaining (UInt256.ofNat 0), p, snap, x5, x6, x7, x8, x9, remaining] ++ R)
@@ -89,7 +91,7 @@ theorem swapInitHeadBoundedX {limit : Nat} {σ σsnap : AccountMap} {ee : Execut
 theorem swapInitHeadX {σ σsnap : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw aw0 p snap fee remaining x5 x6 x7 x8 x9 : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2822⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2822⟩
       ([UInt256.ofNat ee.header.timestamp, UInt256.ofNat 64 + p, p, ⟨0⟩,
         snap, x5, x6, x7, x8, x9, remaining] ++ R)
       (swapCacheHeadMem (writeWord mem 64 (p + UInt256.ofNat 192)) p fee σ ee)
@@ -98,7 +100,7 @@ theorem swapInitHeadX {σ σsnap : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hs : Slot0Memory mem snap σsnap ee) (hsl : 96 ≤ snap.toNat)
     (hsb : snap.toNat + 224 ≤ p.toNat) (hb : p.toNat + 256 ≤ 2 ^ 200)
     (hov : R.length + 15 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨2911⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨2911⟩
       ([UInt256.ofNat 1, UInt256.ofNat 1, slot0FieldWord 0 20 σsnap ee,
         (p + UInt256.ofNat 192) + UInt256.ofNat 64, p + UInt256.ofNat 192, ⟨0⟩,
         UInt256.sgt remaining (UInt256.ofNat 0), p, snap, x5, x6, x7, x8, x9, remaining] ++ R)

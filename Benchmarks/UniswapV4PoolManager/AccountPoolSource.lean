@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.BalanceDeltaComponentSource
 import Benchmarks.UniswapV4PoolManager.PoolKeySource
 import Benchmarks.UniswapV4PoolManager.BlockContinuation
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -32,8 +34,8 @@ structure AccountPoolContext (f : Frame) (key : PoolKeyWords) (delta : UInt256) 
 
 theorem accountPoolStep {f : Frame} {evm : State} {key : PoolKeyWords}
     {delta : UInt256} {target : AccountAddress} (hc : AccountPoolContext f key delta target) (one : Bool) :
-    ExecBlock config f evm (accountPoolStepStmts one) (accountPoolStepResult f evm key delta target one) := by
-  have hgetter := balanceDeltaComponentCall hc.contract (evalLocalValue (evm := evm) hc.delta)
+    ExecBlock fork config f evm (accountPoolStepStmts one) (accountPoolStepResult f evm key delta target one) := by
+  have hgetter := balanceDeltaComponentCall (fork := fork) hc.contract (evalLocalValue (evm := evm) hc.delta)
     one (accountPoolComponentRet one)
   have hk : (accountPoolStepFrame f delta one).locals.get? "key" = some (poolKeyValue key) := by
     exact (store_get_ne _ _ (by cases one <;> decide)).trans hc.key
@@ -42,7 +44,7 @@ theorem accountPoolStep {f : Frame} {evm : State} {key : PoolKeyWords}
   have hcurr := evalStructField (evalLocalValue (cfg := config) (evm := evm) hk)
     (field := if one then "currency1" else "currency0")
     (value := .address (accountPoolCurrency key one)) (by cases one <;> rfl)
-  have haccount := accountDeltaCall (f := accountPoolStepFrame f delta one) hc.contract hcurr
+  have haccount := accountDeltaCall (fork := fork) (f := accountPoolStepFrame f delta one) hc.contract hcurr
     (evalLocalValue (store_get_self _ _ _)) (evalLocalValue ht) (accountPoolAccountRet one)
   exact ExecBlock.consNormal hgetter (execBlock_singleton haccount)
 
@@ -70,9 +72,9 @@ def accountPoolResult (f : Frame) (evm : State) (key : PoolKeyWords)
 
 theorem accountPoolBody {f : Frame} {evm : State} {key : PoolKeyWords}
     {delta : UInt256} {target : AccountAddress} (hc : AccountPoolContext f key delta target) :
-    ExecFuncBody config f evm accountPoolFunction.body (accountPoolResult f evm key delta target) := by
+    ExecFuncBody fork config f evm accountPoolFunction.body (accountPoolResult f evm key delta target) := by
   apply execFuncBody_block
-  change ExecBlock config f evm (accountPoolStepStmts false ++ accountPoolStepStmts true) _
+  change ExecBlock fork config f evm (accountPoolStepStmts false ++ accountPoolStepStmts true) _
   apply execBlock_continue (accountPoolStep hc false)
   intro f1 post hh
   exact accountPoolStep (accountPoolStepResult_context hc hh) true
@@ -85,7 +87,7 @@ theorem accountPoolCall {f : Frame} {evm : State} {key : PoolKeyWords}
     (hf : f.contract = contract) (hk : evalExpr? config f evm ek = .ok (poolKeyValue key))
     (hd : evalExpr? config f evm ed = .ok (.int (EVM.signed delta)))
     (ht : evalExpr? config f evm et = .ok (.address target)) (ret : Ident) :
-    ExecStmt config f evm (.internalCall "_accountPoolBalanceDelta" [ek, ed, et] ret)
+    ExecStmt fork config f evm (.internalCall "_accountPoolBalanceDelta" [ek, ed, et] ret)
       (resumeCallResult f ret (accountPoolResult
         {f with locals := (((∅ : Store).insert "target" (.address target)).insert "delta"
           (.int (EVM.signed delta))).insert "key" (poolKeyValue key)} evm key delta target)) := by

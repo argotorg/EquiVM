@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.ConstructorAllocate
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open cometWithExtendedAssetListCreationBlocks
 
@@ -10,9 +12,9 @@ theorem cometCreationReadAddress {tail : ByteArray} {ee : ExecutionEnv} {g : Sat
     {R : List UInt256} (hstack : R.length + 5 ≤ 1024)
     (hread : memLoad ptr mem = w) (hcanon : w.toNat < 2^160)
     (hret : (D_J cometWithExtendedAssetListCreationBytecode 0).contains ret = true)
-    (h : RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨2747⟩
+    (h : RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨2747⟩
       (ptr :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ret
+    ∃ aw' k' C', RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ret
       (w :: R) mem aw' rdata σ k' C' := by
   have hclean := u256LandMaskCleanOfToNat (bits := 160) w
     (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1))
@@ -29,9 +31,9 @@ theorem cometCreationReadUint64 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat2
     {R : List UInt256} (hstack : R.length + 5 ≤ 1024)
     (hread : memLoad ptr mem = w) (hcanon : w.toNat < 2^64)
     (hret : (D_J cometWithExtendedAssetListCreationBytecode 0).contains ret = true)
-    (h : RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨2768⟩
+    (h : RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨2768⟩
       (ptr :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ret
+    ∃ aw' k' C', RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ret
       (w :: R) mem aw' rdata σ k' C' := by
   have hclean := u256LandMaskCleanOfToNat (bits := 64) w
     (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 64)) (UInt256.ofNat 1))
@@ -48,9 +50,9 @@ theorem cometCreationReadUint104 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat
     {R : List UInt256} (hstack : R.length + 5 ≤ 1024)
     (hread : memLoad ptr mem = w) (hcanon : w.toNat < 2^104)
     (hret : (D_J cometWithExtendedAssetListCreationBytecode 0).contains ret = true)
-    (h : RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨2789⟩
+    (h : RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨2789⟩
       (ptr :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ret
+    ∃ aw' k' C', RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ret
       (w :: R) mem aw' rdata σ k' C' := by
   have hclean := u256LandMaskCleanOfToNat (bits := 104) w
     (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 104)) (UInt256.ofNat 1))
@@ -67,9 +69,9 @@ theorem cometCreationReadUint8 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat25
     {R : List UInt256} (hstack : R.length + 4 ≤ 1024)
     (hread : memLoad ptr mem = w) (hcanon : w.toNat < 2^8)
     (hret : (D_J cometWithExtendedAssetListCreationBytecode 0).contains ret = true)
-    (h : RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨2810⟩
+    (h : RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨2810⟩
       (ptr :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ret
+    ∃ aw' k' C', RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ret
       (w :: R) mem aw' rdata σ k' C' := by
   have hclean := u256LandMaskCleanOfToNat (bits := 8) w
     (UInt256.ofNat 255) (by native_decide) hcanon

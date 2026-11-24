@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.RecoverRun
 import Benchmarks.EAS.EAS.RecordFieldExpr
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -30,7 +32,7 @@ theorem decodeSignatureExpr_eval {cfg : Config} {frame : Frame} {evm : EVM.State
 theorem decodeSignatureSource {cfg : Config} {frame : Frame} {evm : EVM.State} {s : SignatureRecord} {heap : Nat}
     (hd : frame.locals.get? "signature" = some s.tuple)
     (hh : frame.locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap))) :
-    ExecFuncBody cfg frame evm decodeSignatureFunction.body
+    ExecFuncBody fork cfg frame evm decodeSignatureFunction.body
       (.returned frame evm (some [s.struct,.int (Int.ofNat heap)])) := by
   rw [decodeSignature_body]
   apply ExecFuncBody.execBlockRet
@@ -49,7 +51,7 @@ theorem decodeSignatureCall {cfg : Config} {L imms : Store} {evm : EVM.State}
     {args : List Expr} {retVar : Ident} {s : SignatureRecord} {heap : Nat}
     (he : evalExprs? cfg {contract := contract,locals := L,immutables := imms} evm args =
       .ok [s.tuple,.int (Int.ofNat heap)]) :
-    ExecStmt cfg {contract := contract,locals := L,immutables := imms} evm
+    ExecStmt fork cfg {contract := contract,locals := L,immutables := imms} evm
       (.internalCall "_decodeSignature" args retVar)
       (.ok (resumeAfterInternalCall {contract := contract,locals := L,immutables := imms} retVar
         (some [s.struct,.int (Int.ofNat heap)])) evm) := by
@@ -97,9 +99,9 @@ theorem recoverSignatureCallRun {L imms : Store} {args : List Expr} {retVar : Id
     (hstack : R.length+15 ≤ 1024) (hs : SourceState s0 ee σ evm)
     (hh : memLoad (UInt256.ofNat 64) mem = heap) (hlo : 96 ≤ heap.toNat) (hheap : heap.toNat ≤ 2^64-1)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13723⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13723⟩
       (hash::sigPtr::⟨13745⟩::saved0::saved1::saved2::ret::R) mem aw rdata σ k C) :
-    ∃ a : AccountAddress, HeapCallPost (a ≠ 0) config (deployedRuntime v) ee g s0
+    ∃ a : AccountAddress, HeapCallPost fork (a ≠ 0) config (deployedRuntime v) ee g s0
       {contract := contract,locals := L,immutables := imms} evm "ECDSA_recover" args retVar (.address a)
       ret (saved0::saved1::saved2::UInt256.ofNat a.val::R) mem heap.toNat := by
   have r1 := easBlocks.eas_block_13723 (immWords := wordsOf (immStore v))

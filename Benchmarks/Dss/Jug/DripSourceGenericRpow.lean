@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Jug.DripSourceRho
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 open Reasoning.Theory.RpowB
@@ -20,7 +22,7 @@ theorem jugDripSourceBodyVatIlksRpowReverts
             (dripVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcall :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-      typedCallViaEVM config evm0 (EVM.address (dripVatAddress σ I)) "ilks" 0
+      typedCallViaEVM fork config evm0 (EVM.address (dripVatAddress σ I)) "ilks" 0
         [.fixedBytes bytes32Width (fileDutyIlkBytes I)] (true, evmVat, out) true)
     (hdec :
       config.externalABI.decode? "ilks" out =
@@ -34,7 +36,7 @@ theorem jugDripSourceBodyVatIlksRpowReverts
       UInt256.sub (UInt256.ofNat evmVat.executionEnv.header.timestamp)
         (solcSlotWordAt (fileDutyRhoSlotFor I) evmVat.accountMap evmVat.executionEnv) = age)
     (hrpowBody :
-      ExecFuncBody config
+      ExecFuncBody fork config
         { contract := contract,
           locals :=
             uintTernaryLocals
@@ -44,7 +46,7 @@ theorem jugDripSourceBodyVatIlksRpowReverts
         evmVat rpowFunction.body .reverted) :
     let locals := dripLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals dripTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals dripTransition.body .reverted := by
   intro locals evm0
   let base := solcSlotWordAt ⟨4⟩ evmVat.accountMap evmVat.executionEnv
   let duty := solcSlotWordAt (fileDutyDutySlotFor I) evmVat.accountMap evmVat.executionEnv
@@ -94,18 +96,18 @@ theorem jugDripSourceBodyVatIlksRpowReverts
   have hfitAdd : base.toNat + duty.toNat < UInt256.size := by
     exact Nat.lt_of_not_ge haddNo
   have haddReturn :
-      ExecStmt config { contract := contract, locals := dripVatIlksPrevLocals I out } evmVat
+      ExecStmt fork config { contract := contract, locals := dripVatIlksPrevLocals I out } evmVat
         (.internalCall "_add"
           [.storage baseRef, .storage (ilksF (.var "ilk") "duty")] "fee")
         (.ok { contract := contract, locals := dripFeeLocals I out fee } evmVat) := by
-    have h := internalCallFunctionReturn
+    have h := internalCallFunctionReturn (fork := fork)
       (cfg := config) (caller := { contract := contract, locals := dripVatIlksPrevLocals I out })
       (evm := evmVat) (name := "_add") (retVar := "fee")
       (args := [.storage baseRef, .storage (ilksF (.var "ilk") "duty")])
       (argVals := [.int (Int.ofNat base.toNat), .int (Int.ofNat duty.toNat)])
       (callee := addFunction) (locals := uintBinaryLocals base duty)
       haddArgs hlookupAdd hbindAdd
-      (execAddFunctionReturn evmVat (x := base) (y := duty) (sum := fee) rfl hfitAdd)
+      (execAddFunctionReturn (fork := fork) evmVat (x := base) (y := duty) (sum := fee) rfl hfitAdd)
     simpa [resumeAfterInternalCall, dripFeeLocals, fee] using h
   have hrpowArgs :
       evalExprs? config { contract := contract, locals := dripFeeLocals I out fee } evmVat
@@ -124,11 +126,11 @@ theorem jugDripSourceBodyVatIlksRpowReverts
         some (uintTernaryLocals fee age jugRay) := by
     simp [rpowFunction, uintTernaryLocals, bindParams?]
   have hrpowBodyLocal :
-      ExecFuncBody config { contract := contract, locals := uintTernaryLocals fee age jugRay }
+      ExecFuncBody fork config { contract := contract, locals := uintTernaryLocals fee age jugRay }
         evmVat rpowFunction.body .reverted := by
     simpa [fee, base, duty] using hrpowBody
   have hrpowRevert :
-      ExecStmt config { contract := contract, locals := dripFeeLocals I out fee } evmVat
+      ExecStmt fork config { contract := contract, locals := dripFeeLocals I out fee } evmVat
         (.internalCall "_rpow"
           [ .var "fee",
             sub256 (.env .timestamp) (.storage (ilksF (.var "ilk") "rho")),
@@ -147,7 +149,7 @@ theorem jugDripSourceBodyVatIlksRpowReverts
       (callee := rpowFunction) (locals := uintTernaryLocals fee age jugRay)
       hrpowArgs hlookupRpow hbindRpow hrpowBodyLocal
   have hprevStmt :
-      ExecStmt config { contract := contract, locals := dripVatIlksLocals I out } evmVat
+      ExecStmt fork config { contract := contract, locals := dripVatIlksLocals I out } evmVat
         (.letDecl "prev" (some uint256) (.tupleGet (.var "vatIlk") 1))
         (.ok { contract := contract, locals := dripVatIlksPrevLocals I out } evmVat) := by
     simpa [dripVatIlksPrevLocals] using
@@ -161,7 +163,7 @@ theorem jugDripSourceBodyVatIlksRpowReverts
         (value := .int (Int.ofNat (dripVatIlksPrevWord out).toNat))
         hprev)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 dripTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 dripTransition.body
         .reverted := by
     simp only [dripTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
       List.nil_append]
@@ -170,7 +172,7 @@ theorem jugDripSourceBodyVatIlksRpowReverts
     refine ExecBlock.consNormal (ExecStmt.requireTrue htimeGuard) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hvatGuard) ?_
     refine ExecBlock.consNormal
-      (ExecStmt.externalCallSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0) hvat
+      (ExecStmt.externalCallSuccess (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0) hvat
         (by simp [evalExpr?, pure]) hargs (by simpa [evm0] using hcall) hdec) ?_
     refine ExecBlock.consNormal (by
       simpa [locals, dripVatIlksLocals, collapseReturns] using hprevStmt) ?_
@@ -197,7 +199,7 @@ theorem jugDripSourceBodyVatIlksRmulOverflowRevertsGeneric
             (dripVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcall :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-      typedCallViaEVM config evm0 (EVM.address (dripVatAddress σ I)) "ilks" 0
+      typedCallViaEVM fork config evm0 (EVM.address (dripVatAddress σ I)) "ilks" 0
         [.fixedBytes bytes32Width (fileDutyIlkBytes I)] (true, evmVat, out) true)
     (hdec :
       config.externalABI.decode? "ilks" out =
@@ -211,7 +213,7 @@ theorem jugDripSourceBodyVatIlksRmulOverflowRevertsGeneric
       UInt256.sub (UInt256.ofNat evmVat.executionEnv.header.timestamp)
         (solcSlotWordAt (fileDutyRhoSlotFor I) evmVat.accountMap evmVat.executionEnv) = age)
     (hrpowBody :
-      ExecFuncBody config
+      ExecFuncBody fork config
         { contract := contract,
           locals :=
             uintTernaryLocals
@@ -225,7 +227,7 @@ theorem jugDripSourceBodyVatIlksRmulOverflowRevertsGeneric
       UInt256.size ≤ pow.toNat * (dripVatIlksPrevWord out).toNat) :
     let locals := dripLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals dripTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals dripTransition.body .reverted := by
   intro locals evm0
   let base := solcSlotWordAt ⟨4⟩ evmVat.accountMap evmVat.executionEnv
   let duty := solcSlotWordAt (fileDutyDutySlotFor I) evmVat.accountMap evmVat.executionEnv
@@ -275,18 +277,18 @@ theorem jugDripSourceBodyVatIlksRmulOverflowRevertsGeneric
   have hfitAdd : base.toNat + duty.toNat < UInt256.size := by
     exact Nat.lt_of_not_ge haddNo
   have haddReturn :
-      ExecStmt config { contract := contract, locals := dripVatIlksPrevLocals I out } evmVat
+      ExecStmt fork config { contract := contract, locals := dripVatIlksPrevLocals I out } evmVat
         (.internalCall "_add"
           [.storage baseRef, .storage (ilksF (.var "ilk") "duty")] "fee")
         (.ok { contract := contract, locals := dripFeeLocals I out fee } evmVat) := by
-    have h := internalCallFunctionReturn
+    have h := internalCallFunctionReturn (fork := fork)
       (cfg := config) (caller := { contract := contract, locals := dripVatIlksPrevLocals I out })
       (evm := evmVat) (name := "_add") (retVar := "fee")
       (args := [.storage baseRef, .storage (ilksF (.var "ilk") "duty")])
       (argVals := [.int (Int.ofNat base.toNat), .int (Int.ofNat duty.toNat)])
       (callee := addFunction) (locals := uintBinaryLocals base duty)
       haddArgs hlookupAdd hbindAdd
-      (execAddFunctionReturn evmVat (x := base) (y := duty) (sum := fee) rfl hfitAdd)
+      (execAddFunctionReturn (fork := fork) evmVat (x := base) (y := duty) (sum := fee) rfl hfitAdd)
     simpa [resumeAfterInternalCall, dripFeeLocals, fee] using h
   have hrpowArgs :
       evalExprs? config { contract := contract, locals := dripFeeLocals I out fee } evmVat
@@ -305,13 +307,13 @@ theorem jugDripSourceBodyVatIlksRmulOverflowRevertsGeneric
         some (uintTernaryLocals fee age jugRay) := by
     simp [rpowFunction, uintTernaryLocals, bindParams?]
   have hrpowBodyLocal :
-      ExecFuncBody config { contract := contract, locals := uintTernaryLocals fee age jugRay }
+      ExecFuncBody fork config { contract := contract, locals := uintTernaryLocals fee age jugRay }
         evmVat rpowFunction.body
         (.returned { contract := contract, locals := rpowLocals } evmVat
           (some [.int (Int.ofNat pow.toNat)])) := by
     simpa [fee, base, duty] using hrpowBody
   have hrpowReturn :
-      ExecStmt config { contract := contract, locals := dripFeeLocals I out fee } evmVat
+      ExecStmt fork config { contract := contract, locals := dripFeeLocals I out fee } evmVat
         (.internalCall "_rpow"
           [ .var "fee",
             sub256 (.env .timestamp) (.storage (ilksF (.var "ilk") "rho")),
@@ -346,7 +348,7 @@ theorem jugDripSourceBodyVatIlksRmulOverflowRevertsGeneric
         some (uintBinaryLocals pow (dripVatIlksPrevWord out)) := by
     simp [rmulFunction, uintBinaryLocals, bindParams?]
   have hrmulRevert :
-      ExecStmt config { contract := contract, locals := dripPowLocals I out fee pow } evmVat
+      ExecStmt fork config { contract := contract, locals := dripPowLocals I out fee pow } evmVat
         (.internalCall "_rmul" [.var "pow", .var "prev"] "rate") .reverted := by
     exact internalCallFunctionRevert
       (cfg := config) (caller := { contract := contract, locals := dripPowLocals I out fee pow })
@@ -360,7 +362,7 @@ theorem jugDripSourceBodyVatIlksRmulOverflowRevertsGeneric
       (execRmulFunctionRevertMul evmVat (x := pow) (y := dripVatIlksPrevWord out)
         hrmulOverflow)
   have hprevStmt :
-      ExecStmt config { contract := contract, locals := dripVatIlksLocals I out } evmVat
+      ExecStmt fork config { contract := contract, locals := dripVatIlksLocals I out } evmVat
         (.letDecl "prev" (some uint256) (.tupleGet (.var "vatIlk") 1))
         (.ok { contract := contract, locals := dripVatIlksPrevLocals I out } evmVat) := by
     simpa [dripVatIlksPrevLocals] using
@@ -374,7 +376,7 @@ theorem jugDripSourceBodyVatIlksRmulOverflowRevertsGeneric
         (value := .int (Int.ofNat (dripVatIlksPrevWord out).toNat))
         hprev)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 dripTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 dripTransition.body
         .reverted := by
     simp only [dripTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
       List.nil_append]
@@ -383,7 +385,7 @@ theorem jugDripSourceBodyVatIlksRmulOverflowRevertsGeneric
     refine ExecBlock.consNormal (ExecStmt.requireTrue htimeGuard) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hvatGuard) ?_
     refine ExecBlock.consNormal
-      (ExecStmt.externalCallSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0) hvat
+      (ExecStmt.externalCallSuccess (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0) hvat
         (by simp [evalExpr?, pure]) hargs (by simpa [evm0] using hcall) hdec) ?_
     refine ExecBlock.consNormal (by
       simpa [locals, dripVatIlksLocals, collapseReturns] using hprevStmt) ?_
@@ -413,7 +415,7 @@ theorem jugDripSourceBodyVatIlksDiffXBoundRevertsGeneric
             (dripVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcall :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-      typedCallViaEVM config evm0 (EVM.address (dripVatAddress σ I)) "ilks" 0
+      typedCallViaEVM fork config evm0 (EVM.address (dripVatAddress σ I)) "ilks" 0
         [.fixedBytes bytes32Width (fileDutyIlkBytes I)] (true, evmVat, out) true)
     (hdec :
       config.externalABI.decode? "ilks" out =
@@ -427,7 +429,7 @@ theorem jugDripSourceBodyVatIlksDiffXBoundRevertsGeneric
       UInt256.sub (UInt256.ofNat evmVat.executionEnv.header.timestamp)
         (solcSlotWordAt (fileDutyRhoSlotFor I) evmVat.accountMap evmVat.executionEnv) = age)
     (hrpowBody :
-      ExecFuncBody config
+      ExecFuncBody fork config
         { contract := contract,
           locals :=
             uintTernaryLocals
@@ -443,7 +445,7 @@ theorem jugDripSourceBodyVatIlksDiffXBoundRevertsGeneric
         Reasoning.Theory.maxInt256) :
     let locals := dripLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals dripTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals dripTransition.body .reverted := by
   intro locals evm0
   let base := solcSlotWordAt ⟨4⟩ evmVat.accountMap evmVat.executionEnv
   let duty := solcSlotWordAt (fileDutyDutySlotFor I) evmVat.accountMap evmVat.executionEnv
@@ -500,18 +502,18 @@ theorem jugDripSourceBodyVatIlksDiffXBoundRevertsGeneric
   have hfitAdd : base.toNat + duty.toNat < UInt256.size := by
     exact Nat.lt_of_not_ge haddNo
   have haddReturn :
-      ExecStmt config { contract := contract, locals := dripVatIlksPrevLocals I out } evmVat
+      ExecStmt fork config { contract := contract, locals := dripVatIlksPrevLocals I out } evmVat
         (.internalCall "_add"
           [.storage baseRef, .storage (ilksF (.var "ilk") "duty")] "fee")
         (.ok { contract := contract, locals := dripFeeLocals I out fee } evmVat) := by
-    have h := internalCallFunctionReturn
+    have h := internalCallFunctionReturn (fork := fork)
       (cfg := config) (caller := { contract := contract, locals := dripVatIlksPrevLocals I out })
       (evm := evmVat) (name := "_add") (retVar := "fee")
       (args := [.storage baseRef, .storage (ilksF (.var "ilk") "duty")])
       (argVals := [.int (Int.ofNat base.toNat), .int (Int.ofNat duty.toNat)])
       (callee := addFunction) (locals := uintBinaryLocals base duty)
       haddArgs hlookupAdd hbindAdd
-      (execAddFunctionReturn evmVat (x := base) (y := duty) (sum := fee) rfl hfitAdd)
+      (execAddFunctionReturn (fork := fork) evmVat (x := base) (y := duty) (sum := fee) rfl hfitAdd)
     simpa [resumeAfterInternalCall, dripFeeLocals, fee] using h
   have hrpowArgs :
       evalExprs? config { contract := contract, locals := dripFeeLocals I out fee } evmVat
@@ -530,13 +532,13 @@ theorem jugDripSourceBodyVatIlksDiffXBoundRevertsGeneric
         some (uintTernaryLocals fee age jugRay) := by
     simp [rpowFunction, uintTernaryLocals, bindParams?]
   have hrpowBodyLocal :
-      ExecFuncBody config { contract := contract, locals := uintTernaryLocals fee age jugRay }
+      ExecFuncBody fork config { contract := contract, locals := uintTernaryLocals fee age jugRay }
         evmVat rpowFunction.body
         (.returned { contract := contract, locals := rpowLocals } evmVat
           (some [.int (Int.ofNat pow.toNat)])) := by
     simpa [fee, base, duty] using hrpowBody
   have hrpowReturn :
-      ExecStmt config { contract := contract, locals := dripFeeLocals I out fee } evmVat
+      ExecStmt fork config { contract := contract, locals := dripFeeLocals I out fee } evmVat
         (.internalCall "_rpow"
           [ .var "fee",
             sub256 (.env .timestamp) (.storage (ilksF (.var "ilk") "rho")),
@@ -573,17 +575,17 @@ theorem jugDripSourceBodyVatIlksDiffXBoundRevertsGeneric
     dsimp [rate]
     rw [hprodComm]
   have hrmulReturn :
-      ExecStmt config { contract := contract, locals := dripPowLocals I out fee pow } evmVat
+      ExecStmt fork config { contract := contract, locals := dripPowLocals I out fee pow } evmVat
         (.internalCall "_rmul" [.var "pow", .var "prev"] "rate")
         (.ok { contract := contract, locals := dripRateLocals I out fee pow rate } evmVat) := by
-    have h := internalCallFunctionReturn
+    have h := internalCallFunctionReturn (fork := fork)
       (cfg := config) (caller := { contract := contract, locals := dripPowLocals I out fee pow })
       (evm := evmVat) (name := "_rmul") (retVar := "rate")
       (args := [.var "pow", .var "prev"])
       (argVals := [.int (Int.ofNat pow.toNat), .int (Int.ofNat prev.toNat)])
       (callee := rmulFunction) (locals := uintBinaryLocals pow prev)
       hrmulArgs hlookupRmul hbindRmul
-      (execRmulFunctionReturn evmVat (x := pow) (y := prev) (prod := pow * prev)
+      (execRmulFunctionReturn (fork := fork) evmVat (x := pow) (y := prev) (prod := pow * prev)
         (q := rate) rfl hfitRmulLocal hq)
     simpa [resumeAfterInternalCall, dripRateLocals] using h
   have hdiffArgs :
@@ -598,7 +600,7 @@ theorem jugDripSourceBodyVatIlksDiffXBoundRevertsGeneric
         some (uintBinaryLocals rate prev) := by
     simp [diffFunction, uintBinaryLocals, bindParams?]
   have hdiffRevert :
-      ExecStmt config { contract := contract, locals := dripRateLocals I out fee pow rate }
+      ExecStmt fork config { contract := contract, locals := dripRateLocals I out fee pow rate }
         evmVat (.internalCall "_diff" [.var "rate", .var "prev"] "delta") .reverted := by
     by_cases hlo : -((2 : Int) ^ 255) ≤ (rate.toNat : Int) - (prev.toNat : Int)
     · by_cases hhi : (rate.toNat : Int) - (prev.toNat : Int) < (2 : Int) ^ 255
@@ -640,7 +642,7 @@ theorem jugDripSourceBodyVatIlksDiffXBoundRevertsGeneric
         hdiffArgs hlookupDiff hbindDiff
         (execDiffFunctionRevertCast evmVat (x := rate) (y := prev) hbad)
   have hprevStmt :
-      ExecStmt config { contract := contract, locals := dripVatIlksLocals I out } evmVat
+      ExecStmt fork config { contract := contract, locals := dripVatIlksLocals I out } evmVat
         (.letDecl "prev" (some uint256) (.tupleGet (.var "vatIlk") 1))
         (.ok { contract := contract, locals := dripVatIlksPrevLocals I out } evmVat) := by
     simpa [dripVatIlksPrevLocals, prev] using
@@ -654,7 +656,7 @@ theorem jugDripSourceBodyVatIlksDiffXBoundRevertsGeneric
         (value := .int (Int.ofNat prev.toNat))
         hprev)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 dripTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 dripTransition.body
         .reverted := by
     simp only [dripTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
       List.nil_append]
@@ -663,7 +665,7 @@ theorem jugDripSourceBodyVatIlksDiffXBoundRevertsGeneric
     refine ExecBlock.consNormal (ExecStmt.requireTrue htimeGuard) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hvatGuard) ?_
     refine ExecBlock.consNormal
-      (ExecStmt.externalCallSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0) hvat
+      (ExecStmt.externalCallSuccess (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0) hvat
         (by simp [evalExpr?, pure]) hargs (by simpa [evm0] using hcall) hdec) ?_
     refine ExecBlock.consNormal (by
       simpa [locals, dripVatIlksLocals, collapseReturns] using hprevStmt) ?_
@@ -696,7 +698,7 @@ theorem jugDripSourceBodyVatIlksDiffYBoundRevertsGeneric
             (dripVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcall :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-      typedCallViaEVM config evm0 (EVM.address (dripVatAddress σ I)) "ilks" 0
+      typedCallViaEVM fork config evm0 (EVM.address (dripVatAddress σ I)) "ilks" 0
         [.fixedBytes bytes32Width (fileDutyIlkBytes I)] (true, evmVat, out) true)
     (hdec :
       config.externalABI.decode? "ilks" out =
@@ -710,7 +712,7 @@ theorem jugDripSourceBodyVatIlksDiffYBoundRevertsGeneric
       UInt256.sub (UInt256.ofNat evmVat.executionEnv.header.timestamp)
         (solcSlotWordAt (fileDutyRhoSlotFor I) evmVat.accountMap evmVat.executionEnv) = age)
     (hrpowBody :
-      ExecFuncBody config
+      ExecFuncBody fork config
         { contract := contract,
           locals :=
             uintTernaryLocals
@@ -727,7 +729,7 @@ theorem jugDripSourceBodyVatIlksDiffYBoundRevertsGeneric
     (hprevMaxNot : ¬ ((dripVatIlksPrevWord out).toNat : Int) ≤ Reasoning.Theory.maxInt256) :
     let locals := dripLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals dripTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals dripTransition.body .reverted := by
   intro locals evm0
   let base := solcSlotWordAt ⟨4⟩ evmVat.accountMap evmVat.executionEnv
   let duty := solcSlotWordAt (fileDutyDutySlotFor I) evmVat.accountMap evmVat.executionEnv
@@ -784,18 +786,18 @@ theorem jugDripSourceBodyVatIlksDiffYBoundRevertsGeneric
   have hfitAdd : base.toNat + duty.toNat < UInt256.size := by
     exact Nat.lt_of_not_ge haddNo
   have haddReturn :
-      ExecStmt config { contract := contract, locals := dripVatIlksPrevLocals I out } evmVat
+      ExecStmt fork config { contract := contract, locals := dripVatIlksPrevLocals I out } evmVat
         (.internalCall "_add"
           [.storage baseRef, .storage (ilksF (.var "ilk") "duty")] "fee")
         (.ok { contract := contract, locals := dripFeeLocals I out fee } evmVat) := by
-    have h := internalCallFunctionReturn
+    have h := internalCallFunctionReturn (fork := fork)
       (cfg := config) (caller := { contract := contract, locals := dripVatIlksPrevLocals I out })
       (evm := evmVat) (name := "_add") (retVar := "fee")
       (args := [.storage baseRef, .storage (ilksF (.var "ilk") "duty")])
       (argVals := [.int (Int.ofNat base.toNat), .int (Int.ofNat duty.toNat)])
       (callee := addFunction) (locals := uintBinaryLocals base duty)
       haddArgs hlookupAdd hbindAdd
-      (execAddFunctionReturn evmVat (x := base) (y := duty) (sum := fee) rfl hfitAdd)
+      (execAddFunctionReturn (fork := fork) evmVat (x := base) (y := duty) (sum := fee) rfl hfitAdd)
     simpa [resumeAfterInternalCall, dripFeeLocals, fee] using h
   have hrpowArgs :
       evalExprs? config { contract := contract, locals := dripFeeLocals I out fee } evmVat
@@ -814,13 +816,13 @@ theorem jugDripSourceBodyVatIlksDiffYBoundRevertsGeneric
         some (uintTernaryLocals fee age jugRay) := by
     simp [rpowFunction, uintTernaryLocals, bindParams?]
   have hrpowBodyLocal :
-      ExecFuncBody config { contract := contract, locals := uintTernaryLocals fee age jugRay }
+      ExecFuncBody fork config { contract := contract, locals := uintTernaryLocals fee age jugRay }
         evmVat rpowFunction.body
         (.returned { contract := contract, locals := rpowLocals } evmVat
           (some [.int (Int.ofNat pow.toNat)])) := by
     simpa [fee, base, duty] using hrpowBody
   have hrpowReturn :
-      ExecStmt config { contract := contract, locals := dripFeeLocals I out fee } evmVat
+      ExecStmt fork config { contract := contract, locals := dripFeeLocals I out fee } evmVat
         (.internalCall "_rpow"
           [ .var "fee",
             sub256 (.env .timestamp) (.storage (ilksF (.var "ilk") "rho")),
@@ -857,17 +859,17 @@ theorem jugDripSourceBodyVatIlksDiffYBoundRevertsGeneric
     dsimp [rate]
     rw [hprodComm]
   have hrmulReturn :
-      ExecStmt config { contract := contract, locals := dripPowLocals I out fee pow } evmVat
+      ExecStmt fork config { contract := contract, locals := dripPowLocals I out fee pow } evmVat
         (.internalCall "_rmul" [.var "pow", .var "prev"] "rate")
         (.ok { contract := contract, locals := dripRateLocals I out fee pow rate } evmVat) := by
-    have h := internalCallFunctionReturn
+    have h := internalCallFunctionReturn (fork := fork)
       (cfg := config) (caller := { contract := contract, locals := dripPowLocals I out fee pow })
       (evm := evmVat) (name := "_rmul") (retVar := "rate")
       (args := [.var "pow", .var "prev"])
       (argVals := [.int (Int.ofNat pow.toNat), .int (Int.ofNat prev.toNat)])
       (callee := rmulFunction) (locals := uintBinaryLocals pow prev)
       hrmulArgs hlookupRmul hbindRmul
-      (execRmulFunctionReturn evmVat (x := pow) (y := prev) (prod := pow * prev)
+      (execRmulFunctionReturn (fork := fork) evmVat (x := pow) (y := prev) (prod := pow * prev)
         (q := rate) rfl hfitRmulLocal hq)
     simpa [resumeAfterInternalCall, dripRateLocals] using h
   have hdiffArgs :
@@ -882,7 +884,7 @@ theorem jugDripSourceBodyVatIlksDiffYBoundRevertsGeneric
         some (uintBinaryLocals rate prev) := by
     simp [diffFunction, uintBinaryLocals, bindParams?]
   have hdiffRevert :
-      ExecStmt config { contract := contract, locals := dripRateLocals I out fee pow rate }
+      ExecStmt fork config { contract := contract, locals := dripRateLocals I out fee pow rate }
         evmVat (.internalCall "_diff" [.var "rate", .var "prev"] "delta") .reverted := by
     by_cases hlo : -((2 : Int) ^ 255) ≤ (rate.toNat : Int) - (prev.toNat : Int)
     · have hhi : (rate.toNat : Int) - (prev.toNat : Int) < (2 : Int) ^ 255 := by
@@ -917,7 +919,7 @@ theorem jugDripSourceBodyVatIlksDiffYBoundRevertsGeneric
         hdiffArgs hlookupDiff hbindDiff
         (execDiffFunctionRevertCast evmVat (x := rate) (y := prev) hbad)
   have hprevStmt :
-      ExecStmt config { contract := contract, locals := dripVatIlksLocals I out } evmVat
+      ExecStmt fork config { contract := contract, locals := dripVatIlksLocals I out } evmVat
         (.letDecl "prev" (some uint256) (.tupleGet (.var "vatIlk") 1))
         (.ok { contract := contract, locals := dripVatIlksPrevLocals I out } evmVat) := by
     simpa [dripVatIlksPrevLocals, prev] using
@@ -931,7 +933,7 @@ theorem jugDripSourceBodyVatIlksDiffYBoundRevertsGeneric
         (value := .int (Int.ofNat prev.toNat))
         hprev)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 dripTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 dripTransition.body
         .reverted := by
     simp only [dripTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
       List.nil_append]
@@ -940,7 +942,7 @@ theorem jugDripSourceBodyVatIlksDiffYBoundRevertsGeneric
     refine ExecBlock.consNormal (ExecStmt.requireTrue htimeGuard) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hvatGuard) ?_
     refine ExecBlock.consNormal
-      (ExecStmt.externalCallSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0) hvat
+      (ExecStmt.externalCallSuccess (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0) hvat
         (by simp [evalExpr?, pure]) hargs (by simpa [evm0] using hcall) hdec) ?_
     refine ExecBlock.consNormal (by
       simpa [locals, dripVatIlksLocals, collapseReturns] using hprevStmt) ?_

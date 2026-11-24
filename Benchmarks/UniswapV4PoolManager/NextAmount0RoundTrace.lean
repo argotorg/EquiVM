@@ -5,6 +5,8 @@ import Benchmarks.UniswapV4PoolManager.ReachCost
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_038
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_059
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -15,12 +17,12 @@ theorem nextAmount0RoundTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw n price d ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (checked : Bool) (hstack : R.length+16 ≤ 1024)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨23656⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨23656⟩
       ([n, price, d, if checked then ⟨20528⟩ else ⟨23953⟩,
         if checked then ⟨13903⟩ else solcAddrMask, ret] ++ R) mem aw rdata σ k C) :
     if nextAmount0RoundFits n price d checked then ∃ k' C', C ≤ C' ∧
-      RD (deployedRuntime v) I g s0 ret (nextAmount0RoundWord n price d checked :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+      RD fork (deployedRuntime v) I g s0 ret (nextAmount0RoundWord n price d checked :: R) mem aw rdata σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hreturn : (D_J (deployedRuntime v) 0).contains (if checked then ⟨20528⟩ else ⟨23953⟩) = true := by
     cases checked <;> rw [deployedRuntime_jumps] <;> jump_dest
   by_cases hf : fullMathRoundFits n price d

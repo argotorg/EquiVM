@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.SwapReserveSource
 import Examples.UniswapV2Pair.BurnInitialSource
 import Examples.UniswapV2Pair.AddressComparison
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -17,10 +19,10 @@ abbrev swapRecipientRequireExpr : Expr :=
 abbrev swapRecipientRequireStmt : Stmt := .require swapRecipientRequireExpr
 
 theorem uniswapSwapTokenPrefix (evm : EVM.State) (I : ExecutionEnv)
-    (hreserve : ExecBlock config { contract := contract, locals := swapStore I } evm swapReserveGuardPrefix
+    (hreserve : ExecBlock fork config { contract := contract, locals := swapStore I } evm swapReserveGuardPrefix
       (.ok { contract := contract, locals := swapReserveStore (uniswapLockEnteredState evm) I }
         (uniswapLockEnteredState evm))) :
-    ExecBlock config { contract := contract, locals := swapStore I } evm swapTokenPrefix
+    ExecBlock fork config { contract := contract, locals := swapStore I } evm swapTokenPrefix
       (.ok { contract := contract, locals := swapTokenStore (uniswapLockEnteredState evm) I }
         (uniswapLockEnteredState evm)) := by
   let evmL := uniswapLockEnteredState evm
@@ -67,15 +69,15 @@ theorem swapTokenStore_recipientGets (evm : EVM.State) (I : ExecutionEnv) :
   · exact store_get_self _ _ _
 
 theorem uniswapSwapBodyReverts_recipientGuard (evm : EVM.State) (I : ExecutionEnv)
-    (hprefix : ExecBlock config { contract := contract, locals := swapStore I } evm swapTokenPrefix
+    (hprefix : ExecBlock fork config { contract := contract, locals := swapStore I } evm swapTokenPrefix
       (.ok { contract := contract, locals := swapTokenStore (uniswapLockEnteredState evm) I }
         (uniswapLockEnteredState evm)))
     (hnot : ¬ (AccountAddress.ofNat (swapToWord I).toNat ≠ uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩ ∧
       AccountAddress.ofNat (swapToWord I).toNat ≠ uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨7⟩)) :
-    ExecTransitionBody config contract evm (swapStore I) swapTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (swapStore I) swapTransition.body .reverted := by
   obtain ⟨hto, ht0, ht1⟩ := swapTokenStore_recipientGets (uniswapLockEnteredState evm) I
   have hreq := evalExpr_swap_recipientRequire (uniswapLockEnteredState evm) hto ht0 ht1
-  have htail : ExecBlock config
+  have htail : ExecBlock fork config
       { contract := contract, locals := swapTokenStore (uniswapLockEnteredState evm) I }
       (uniswapLockEnteredState evm) [swapRecipientRequireStmt] .reverted :=
     ExecBlock.consRevert (ExecStmt.requireFalse (by simpa only [hnot, decide_false] using hreq))
@@ -90,12 +92,12 @@ abbrev swapRecipientGuardPrefix : List Stmt := swapTokenPrefix ++ [swapRecipient
 
 set_option maxHeartbeats 400000 in
 theorem uniswapSwapRecipientGuardPrefix (evm : EVM.State) (I : ExecutionEnv)
-    (hprefix : ExecBlock config { contract := contract, locals := swapStore I } evm swapTokenPrefix
+    (hprefix : ExecBlock fork config { contract := contract, locals := swapStore I } evm swapTokenPrefix
       (.ok { contract := contract, locals := swapTokenStore (uniswapLockEnteredState evm) I }
         (uniswapLockEnteredState evm)))
     (hvalid : AccountAddress.ofNat (swapToWord I).toNat ≠ uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩ ∧
       AccountAddress.ofNat (swapToWord I).toNat ≠ uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨7⟩) :
-    ExecBlock config { contract := contract, locals := swapStore I } evm swapRecipientGuardPrefix
+    ExecBlock fork config { contract := contract, locals := swapStore I } evm swapRecipientGuardPrefix
       (.ok { contract := contract, locals := swapTokenStore (uniswapLockEnteredState evm) I }
         (uniswapLockEnteredState evm)) := by
   obtain ⟨hto, ht0, ht1⟩ := swapTokenStore_recipientGets (uniswapLockEnteredState evm) I
@@ -104,13 +106,13 @@ theorem uniswapSwapRecipientGuardPrefix (evm : EVM.State) (I : ExecutionEnv)
       AccountAddress.ofNat (swapToWord I).toNat ≠ uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨7⟩) = true :=
     decide_eq_true hvalid
   rw [hd] at hreq
-  have hreqTrue : ExecStmt config
+  have hreqTrue : ExecStmt fork config
       { contract := contract, locals := swapTokenStore (uniswapLockEnteredState evm) I }
       (uniswapLockEnteredState evm) swapRecipientRequireStmt
       (.ok { contract := contract, locals := swapTokenStore (uniswapLockEnteredState evm) I }
         (uniswapLockEnteredState evm)) :=
     ExecStmt.requireTrue hreq
-  have htail : ExecBlock config
+  have htail : ExecBlock fork config
       { contract := contract, locals := swapTokenStore (uniswapLockEnteredState evm) I }
       (uniswapLockEnteredState evm) [swapRecipientRequireStmt]
       (.ok { contract := contract, locals := swapTokenStore (uniswapLockEnteredState evm) I }

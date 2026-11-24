@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Flopper.ConstructorBase
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Flopper constructor default-store and nonpayable traces
 -/
@@ -16,12 +18,12 @@ theorem flopperCtorDefaultsReach
     (vat gem : AccountAddress)
     (hcode : I.code = flopperCtorCode vat gem)
     (hperm : I.perm = true) :
-    ∃ k C, RD (flopperCtorCode vat gem) I g
+    ∃ k C, RD fork (flopperCtorCode vat gem) I g
       (initState σ σ₀ g A I) ⟨78⟩
       [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (flopperCtorAfterKicksMap σ I) k C := by
   have rd0 :
-      RD (flopperCtorCode vat gem) I g
+      RD fork (flopperCtorCode vat gem) I g
         (initState σ σ₀ g A I) ⟨0⟩ []
         ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
@@ -36,7 +38,7 @@ theorem flopperCtorDefaultsReach
   have rd16 := flopper_ctor_run rd14 with [push1 ⟨4⟩]
   obtain ⟨k17, C17, rd17raw⟩ := rd16.sstore hperm (by flopper_ctor_decode) (by evm_ov)
   have rd17 :
-      RD (flopperCtorCode vat gem) I g
+      RD fork (flopperCtorCode vat gem) I g
         (initState σ σ₀ g A I) ⟨17⟩ []
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         (flopperCtorAfterBegMap σ I) k17 C17 := by
@@ -46,7 +48,7 @@ theorem flopperCtorDefaultsReach
   have rd28 := flopper_ctor_run rd26 with [push1 ⟨5⟩]
   obtain ⟨k29, C29, rd29raw⟩ := rd28.sstore hperm (by flopper_ctor_decode) (by evm_ov)
   have rd29 :
-      RD (flopperCtorCode vat gem) I g
+      RD fork (flopperCtorCode vat gem) I g
         (initState σ σ₀ g A I) ⟨29⟩ []
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         (flopperCtorAfterPadMap σ I) k29 C29 := by
@@ -54,7 +56,7 @@ theorem flopperCtorDefaultsReach
   have rd32pre := flopper_ctor_run rd29 with [push1 ⟨6⟩, dup1]
   obtain ⟨k33, C33, rd33raw⟩ := rd32pre.sload (by flopper_ctor_decode) (by evm_ov)
   have rd33 :
-      RD (flopperCtorCode vat gem) I g
+      RD fork (flopperCtorCode vat gem) I g
         (initState σ σ₀ g A I) ⟨33⟩
         [solcSlotWord (flopperCtorAfterPadMap σ I) I ⟨6⟩, ⟨6⟩]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
@@ -77,7 +79,7 @@ theorem flopperCtorDefaultsReach
   have rd72 := flopper_ctor_run rd70 with [or, swap1]
   obtain ⟨k73, C73, rd73raw⟩ := rd72.sstore hperm (by flopper_ctor_decode) (by evm_ov)
   have rd73 :
-      RD (flopperCtorCode vat gem) I g
+      RD fork (flopperCtorCode vat gem) I g
         (initState σ σ₀ g A I) ⟨73⟩ []
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         (flopperCtorAfterPackedDefaultsMap σ I) k73 C73 := by
@@ -94,12 +96,12 @@ theorem flopperCtorGuardSuccessReach
     (hcode : I.code = flopperCtorCode vat gem)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) :
-    ∃ k C, RD (flopperCtorCode vat gem) I g
+    ∃ k C, RD fork (flopperCtorCode vat gem) I g
       (initState σ σ₀ g A I) ⟨91⟩
       [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (flopperCtorAfterKicksMap σ I) k C := by
   obtain ⟨_, _, rd78⟩ :=
-    flopperCtorDefaultsReach
+    flopperCtorDefaultsReach (fork := fork)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
       vat gem hcode hperm
   have rdBeforeJump := flopper_ctor_run rd78 with [
@@ -117,10 +119,10 @@ theorem flopperInitcodeNonpayableRevert
     (hcode : I.code = flopperCtorCode vat gem)
     (hperm : I.perm = true)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev (flopperCtorCode vat gem) g
+    RDrev fork (flopperCtorCode vat gem) g
       (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd78⟩ :=
-    flopperCtorDefaultsReach
+    flopperCtorDefaultsReach (fork := fork)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
       vat gem hcode hperm
   have rd85 := flopper_ctor_run rd78 with [

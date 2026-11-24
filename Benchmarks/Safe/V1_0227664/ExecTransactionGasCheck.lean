@@ -2,6 +2,8 @@ import Benchmarks.Safe.V1_0227664.ExecTransactionGasMath
 import Benchmarks.Safe.V1_0227664.Blocks.Runtime_019
 import Benchmarks.Safe.V1_0227664.Blocks.Runtime_029
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V1_0227664.RuntimeBlocks
 
@@ -13,17 +15,17 @@ def execCheckGasFrame (locals : Store) (gas : UInt256) : Frame :=
 set_option maxRecDepth 100000 in
 theorem safeExecGasCheck (p : ExecTransactionInput) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata src locals} {sigPtr guard hash : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3572⟩
+    (h : RD fork safeBytecode I g s0 ⟨3572⟩
       (execGuardSaved p src sigPtr guard hash R) mem aw rdata σ k C)
     (hl : ExecTransactionLocals p locals) (hov : R.length + 32 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧ ExecBlock config { contract := contract, locals := locals }
+    (RDrev fork safeBytecode g s0 ∧ ExecBlock fork config { contract := contract, locals := locals }
       evm (exectransactionTransition.body.drop 8) .reverted) ∨
     ∃ gas k' C',
-      (∀ result, ExecBlock config (execCheckGasFrame locals gas) evm
+      (∀ result, ExecBlock fork config (execCheckGasFrame locals gas) evm
         (exectransactionTransition.body.drop 10) result →
-        ExecBlock config { contract := contract, locals := locals } evm
+        ExecBlock fork config { contract := contract, locals := locals } evm
           (exectransactionTransition.body.drop 8) result) ∧
-      RD safeBytecode I g s0 ⟨3644⟩ (execGuardSaved p src sigPtr guard hash R)
+      RD fork safeBytecode I g s0 ⟨3644⟩ (execGuardSaved p src sigPtr guard hash R)
         mem aw rdata σ k' C' := by
   have hsafe (gas : UInt256) : evalExpr? config (execCheckGasFrame locals gas) evm
       (.var "safeTxGas") = .ok (uint256Value p.tx.safeTxGas) :=
@@ -45,7 +47,7 @@ theorem safeExecGasCheck (p : ExecTransactionInput) (evm : EVM.State)
   · have hc : UInt256.lt gas (execRequiredGas p.tx.safeTxGas) = ⟨0⟩ := ult_zero henough
     have h₂ := safeRuntime_block_3620_taken (by simp [execGuardSaved]; omega)
       (by rw [hc]; decide) (by jump_dest) h₁
-    have hsource : ExecStmt config (execCheckGasFrame locals gas) evm
+    have hsource : ExecStmt fork config (execCheckGasFrame locals gas) evm
         (.require (geE (.var "gasForCheck") requiredTransactionGasExpr))
         (.ok (execCheckGasFrame locals gas) evm) :=
       .requireTrue (by simpa only [henough, decide_true] using he)

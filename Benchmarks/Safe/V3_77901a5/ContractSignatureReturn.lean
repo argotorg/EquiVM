@@ -4,6 +4,8 @@ import Benchmarks.Safe.V3_77901a5.Blocks.Runtime_030
 import Benchmarks.Safe.V3_77901a5.Blocks.Runtime_031
 import Benchmarks.Safe.V3_77901a5.Blocks.Runtime_038
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V3_77901a5.RuntimeBlocks
 
@@ -41,10 +43,10 @@ theorem signatureReturnMemory_word (mem out : ByteArray) (ptr : Nat)
 
 theorem safeContractSignatureReturnBuffer {I g s0 σ k C aw mem ptr}
     {out : ByteArray} {a b c : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨8797⟩ (a :: b :: c :: R) mem aw out σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨8797⟩ (a :: b :: c :: R) mem aw out σ k C)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr)
     (hb : ptr + out.size + 64 < UInt256.size) (hov : R.length + 7 ≤ 1024) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨8846⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨8846⟩
       (UInt256.ofNat out.size :: UInt256.ofNat (signatureReturnPtr ptr out) :: a :: R)
       (signatureReturnMemory mem ptr out) aw' out σ k' C' := by
   by_cases hz : out.size = 0
@@ -72,25 +74,25 @@ theorem safeContractSignatureReturnBuffer {I g s0 σ k C aw mem ptr}
 
 theorem safeContractSignatureCallFailure {I g s0 σ k C aw mem out}
     {size ptr d0 d1 d2 d3 d4 d5 d6 ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨8846⟩
+    (h : RD fork safeBytecode I g s0 ⟨8846⟩
       (size :: ptr :: ⟨0⟩ :: d0 :: d1 :: d2 :: d3 :: d4 :: d5 :: d6 :: ret :: R)
       mem aw out σ k C)
     (hov : R.length + 13 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ret (⟨0⟩ :: R) mem aw' out σ k' C' := by
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ret (⟨0⟩ :: R) mem aw' out σ k' C' := by
   have h₁ := safeRuntime_block_8846_taken (by simp; omega) (by decide) (by jump_dest) h
   have h₂ := safeRuntime_block_8865_taken (by simp only [safeRuntime_block_8846_taken_stack, List.length_cons]; omega) (by decide) (by jump_dest) h₁
   exact safeRuntime_block_8904_packed (by omega) hret h₂
 
 theorem safeContractSignatureFinish {I g s0 σ k C aw mem} {out : ByteArray} {z : Bool}
     {size ptr d0 d1 d2 d3 d4 d5 d6 ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨8846⟩
+    (h : RD fork safeBytecode I g s0 ⟨8846⟩
       (size :: ptr :: z.toUInt256 :: d0 :: d1 :: d2 :: d3 :: d4 :: d5 :: d6 :: ret :: R)
       mem aw out σ k C)
     (hl : memLoad ptr mem = UInt256.ofNat out.size)
     (hw : out.size = 32 → memLoad (ptr + UInt256.ofNat 32) mem = calldataWord out 0)
     (hb : out.size < UInt256.size) (hov : R.length + 16 ≤ 1024)
     (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ret
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ret
       ((contractSignatureResult z out).toUInt256 :: R) mem aw' out σ k' C' := by
   cases z with
   | false => exact safeContractSignatureCallFailure h (by omega) hret
@@ -137,11 +139,11 @@ theorem safeContractSignatureFinish {I g s0 σ k C aw mem} {out : ByteArray} {z 
 -- The caller enforces GS024 after the secured helper returns its Boolean.
 theorem safeContractSignatureRequire {I g s0 σ k C aw mem out} {z : Bool}
     {d0 d1 d2 d3 d4 d5 ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7053⟩
+    (h : RD fork safeBytecode I g s0 ⟨7053⟩
       (z.toUInt256 :: d0 :: d1 :: d2 :: d3 :: d4 :: d5 :: ret :: R) mem aw out σ k C)
     (hov : R.length + 13 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    (RDrev safeBytecode g s0 ∧ z = false) ∨
-    ∃ aw' k' C', RD safeBytecode I g s0 ret R mem aw' out σ k' C' ∧ z = true := by
+    (RDrev fork safeBytecode g s0 ∧ z = false) ∨
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ret R mem aw' out σ k' C' ∧ z = true := by
   cases z
   · have h₁ := safeRuntime_block_7053_fallthrough (by simp; omega) rfl h
     have h₂ := safeRuntime_block_7058 (by simp only [safeRuntime_block_7053_fallthrough_stack, List.length_cons]; omega) (by jump_dest) h₁

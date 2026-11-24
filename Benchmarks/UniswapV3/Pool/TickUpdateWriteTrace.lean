@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.TickUpdateStorage
 import Benchmarks.UniswapV3.Pool.TickUpdateWords
 import Benchmarks.UniswapV3.Pool.TickHistoryWords
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -12,10 +14,10 @@ set_option maxRecDepth 1000
 theorem tickUpdateOutsideX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw after before flipped ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : TickUpdateArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨20956⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨20956⟩
       (after :: before :: tickClearBase a.tick :: flipped :: tickUpdateWords a ++ ret :: R)
       mem aw rdata σ k C) (hfit : a.TraceFits) (hp : ee.perm = true) (hov : R.length + 22 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨21082⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨21082⟩
       (after :: before :: tickClearBase a.tick :: flipped :: tickUpdateWords a ++ ret :: R)
       mem aw rdata (tickUpdateOutsideMap a σ ee) k' C' := by
   have hb := hfit.2.2.2.2
@@ -33,10 +35,10 @@ theorem tickUpdateOutsideX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem tickUpdateInitializedX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw after before : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (tick : Int)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨21082⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨21082⟩
       (after :: before :: tickClearBase tick :: R) mem aw rdata σ k C)
     (hp : ee.perm = true) (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨21130⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨21130⟩
       (after :: before :: tickClearBase tick :: R) mem aw rdata
       (tickHistoryMap σ ee tick .initialized ⟨1⟩) k' C' := by
   obtain ⟨kf, Cf, rf⟩ := uniswapV3Pool_block_21082 (immWords := wordsOf (immStore v)) hov hp rd
@@ -46,10 +48,10 @@ theorem tickUpdateInitializedX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256
 theorem tickUpdateGrossX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw after before flipped ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : TickUpdateArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨21130⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨21130⟩
       (after :: before :: tickClearBase a.tick :: flipped :: tickUpdateWords a ++ ret :: R)
       mem aw rdata σ k C) (hp : ee.perm = true) (hov : R.length + 20 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (if a.upper then ⟨21203⟩ else ⟨21161⟩)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (if a.upper then ⟨21203⟩ else ⟨21161⟩)
       (after :: before :: tickClearBase a.tick :: flipped :: tickUpdateWords a ++ ret :: R)
       mem aw rdata (tickLiquidityMap σ ee a.tick false after) k' C' := by
   cases hu : a.upper

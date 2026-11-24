@@ -21,6 +21,8 @@ import Benchmarks.Dss.Cure.Wards
 import Benchmarks.Dss.Cure.When
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Cure benchmark correctness scaffold
 
@@ -36,8 +38,8 @@ namespace Benchmarks.Dss.Cure
 
 theorem cureCorrect :
     runtimeRefinementWithWF cureStorageWF noGasBound config cureBytecode contract := by
-  refine runtimeRefinementWithWF.intro ?_
-  intro σ σ₀ g A I hcode hsize hStorageWF _
+  refine runtimeRefinementWithWFOn.intro ?_
+  intro fork _hfork σ σ₀ g A I hcode hsize hStorageWF _
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hamt : selIs I (cureSelBytes 0)
     · exact cureAmtBodyCore hcode hsize hwv hamt

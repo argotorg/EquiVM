@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.TransferPayload
 import Benchmarks.CompoundIII.Comet.TransferCallSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -26,26 +28,26 @@ def transferOutCallFrame (imms : Store) (asset recipient : AccountAddress) (amou
   let f := transferOutEntry imms asset recipient amount
   { f with locals := (f.locals.insert "ok" (.bool z)).insert "data" (.bytes out) }
 
-inductive TransferOutTrace (asset recipient : AccountAddress) (amount : UInt256)
+inductive TransferOutTrace (fork : Ethereum.Fork) (asset recipient : AccountAddress) (amount : UInt256)
     (evm : EVM.State) : Option EVM.State → Prop where
   | codeMissing (hc : extCodeSizeWord evm.accountMap (EVM.word asset.val) = ⟨0⟩) :
-      TransferOutTrace asset recipient amount evm none
+      TransferOutTrace fork asset recipient amount evm none
   | callResult {evm' : EVM.State} {z : Bool} {out : ByteArray}
       (hne : extCodeSizeWord evm.accountMap (EVM.word asset.val) ≠ ⟨0⟩)
-      (hc : callViaEVM evm asset 0 (transferPayload recipient amount) (z, evm', out))
-      (hh : out.size < 2^255) : TransferOutTrace asset recipient amount evm
+      (hc : callViaEVM fork evm asset 0 (transferPayload recipient amount) (z, evm', out))
+      (hh : out.size < 2^255) : TransferOutTrace fork asset recipient amount evm
         (if z = true ∧ TransferReturnValid out then some evm' else none)
 
-def TransferOutSourceResult (frame : Frame) (evm : EVM.State) (result : Option EVM.State) : Prop :=
+def TransferOutSourceResult (fork : Ethereum.Fork) (frame : Frame) (evm : EVM.State) (result : Option EVM.State) : Prop :=
   match result with
-  | none => ExecFuncBody config frame evm transferOutCallable.body .reverted
-  | some evm' => ∃ final, ExecFuncBody config frame evm transferOutCallable.body
+  | none => ExecFuncBody fork config frame evm transferOutCallable.body .reverted
+  | some evm' => ∃ final, ExecFuncBody fork config frame evm transferOutCallable.body
       (.returned final evm' none)
 
 theorem transferOut_source {asset recipient : AccountAddress} {amount : UInt256}
     {evm : EVM.State} {result : Option EVM.State}
-    (ht : TransferOutTrace asset recipient amount evm result) (imms : Store) :
-    TransferOutSourceResult (transferOutEntry imms asset recipient amount) evm result := by
+    (ht : TransferOutTrace fork asset recipient amount evm result) (imms : Store) :
+    TransferOutSourceResult fork (transferOutEntry imms asset recipient amount) evm result := by
   have he : evalExpr? config (transferOutEntry imms asset recipient amount) evm
       (.var "asset") = .ok (.address asset) := by
     simp only [evalExpr?, transferOutEntry, Std.HashMap.get?_eq_getElem?,
@@ -78,12 +80,12 @@ theorem transferOut_source {asset recipient : AccountAddress} {amount : UInt256}
 
 theorem transferOut_call {asset recipient : AccountAddress} {amount : UInt256}
     {evm : EVM.State} {result : Option EVM.State}
-    (ht : TransferOutTrace asset recipient amount evm result) (frame : Frame)
+    (ht : TransferOutTrace fork asset recipient amount evm result) (frame : Frame)
     (assetExpr toExpr amountExpr : Expr) (ret : Ident) (hf : frame.contract = contract)
     (ha : evalExpr? config frame evm assetExpr = .ok (.address asset))
     (ht' : evalExpr? config frame evm toExpr = .ok (.address recipient))
     (ham : evalExpr? config frame evm amountExpr = .ok (.int (Int.ofNat amount.toNat))) :
-    ExecStmt config frame evm (.internalCall "doTransferOut" [assetExpr, toExpr, amountExpr] ret)
+    ExecStmt fork config frame evm (.internalCall "doTransferOut" [assetExpr, toExpr, amountExpr] ret)
       (match result with
         | none => .reverted
         | some evm' => .ok { frame with locals := frame.locals.insert ret .unit } evm') := by
@@ -104,7 +106,7 @@ theorem transferOut_call {asset recipient : AccountAddress} {amount : UInt256}
       (by rw [hf]; exact transferOutCallable_lookup) rfl (by simpa only [hf] using hb)
 
 theorem TransferOutTrace.executionEnv_eq {asset recipient amount evm result}
-    (ht : TransferOutTrace asset recipient amount evm result) :
+    (ht : TransferOutTrace fork asset recipient amount evm result) :
     ∀ evm', result = some evm' → evm'.executionEnv = evm.executionEnv := by
   cases ht with
   | codeMissing _ => intro evm' he; cases he

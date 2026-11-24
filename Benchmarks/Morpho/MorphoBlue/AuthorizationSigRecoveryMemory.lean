@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.AuthorizationSigSignatureDecode
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -34,9 +36,9 @@ theorem authorizationRecoveryMem_eq (v : MorphoImmutables) (a : AuthorizationWor
 theorem morphoAuthorizationRecoveryInput {v : MorphoImmutables} {ee : ExecutionEnv}
     {g : Sat256} {s0 : State} {out : ByteArray} {aw : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (a : AuthorizationWords) (hstack : R.length + 24 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 6372)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 6372)
       (authorizationSignatureStack v a ee.calldata R) (authorizationDigestReadyMem v a) aw out σ k C) :
-    ∃ gasArg aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 6409)
+    ∃ gasArg aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 6409)
       ([gasArg, UInt256.ofNat 1, UInt256.ofNat 768, UInt256.ofNat 128,
         UInt256.ofNat 0, UInt256.ofNat 32] ++ authorizationRecoveryTail R)
       (authorizationRecoveryMem v a ee.calldata) aw' out σ k' C' := by

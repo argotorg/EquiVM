@@ -1,5 +1,7 @@
 import Benchmarks.Auction.Storage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 100000
@@ -9,7 +11,7 @@ namespace Auction
 theorem minBidIncrementPercentageBodyReturns (evm : EVM.State) (locals : Store)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hbase : locals.get? "minBidIncrementPercentage" = none) :
-    ExecTransitionBody auctionConfig auctionContract evm locals minBidIncGetter.body
+    ExecTransitionBody fork auctionConfig auctionContract evm locals minBidIncGetter.body
       (.returned { contract := auctionContract, locals := locals } evm
         (some [.int (Int.ofNat
           (UInt256.land (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨205⟩)
@@ -20,10 +22,10 @@ theorem minBidIncrementPercentageBodyReturns (evm : EVM.State) (locals : Store)
         (.int uint8Int) (auctionUint8LocAt ⟨205⟩ 0) hbase (by native_decide) rfl, loadUint8])
 
 theorem minBidIncrementPercentageEncode {ee g s0 val R rdata acc k C}
-    (h : RD auctionBytecode ee g s0 ⟨810⟩ (val :: R)
+    (h : RD fork auctionBytecode ee g s0 ⟨810⟩ (val :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata acc k C)
     (hov : R.length + 5 ≤ 1024) :
-    RDret auctionBytecode g s0 acc (UInt256.toByteArray (UInt256.land val ⟨255⟩)) := by
+    RDret fork auctionBytecode g s0 acc (UInt256.toByteArray (UInt256.land val ⟨255⟩)) := by
   have rd318 := evm_run h with [
     jumpdest, push1 ⟨64⟩,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost
@@ -35,8 +37,8 @@ theorem minBidIncrementPercentageEncode {ee g s0 val R rdata acc k C}
   exact rd318.auctionReturn32 hov
 
 theorem minBidIncrementPercentageX {σ σ₀ A I} {g : UInt256}
-    (hreach : EntryReached 14 σ σ₀ A I g) (hwv : I.weiValue = ⟨0⟩) :
-    RDret auctionBytecode (Sat256.ofUInt256 g)
+    (hreach : EntryReached fork 14 σ σ₀ A I g) (hwv : I.weiValue = ⟨0⟩) :
+    RDret fork auctionBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
       (UInt256.toByteArray (UInt256.land (solcSlotWord σ I ⟨205⟩) ⟨255⟩)) := by
   obtain ⟨_, _, rd785⟩ := hreach
@@ -52,8 +54,8 @@ theorem minBidIncrementPercentageX {σ σ₀ A I} {g : UInt256}
 theorem minBidIncrementPercentageBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (_hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (entryBytes 14))
-    (hreach : EntryReached 14 σ σ₀ A I g) :
-    runtimeRefinementFor auctionConfig auctionContract
+    (hreach : EntryReached fork 14 σ σ₀ A I g) :
+    runtimeRefinementFor fork auctionConfig auctionContract
       σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
   · have hsz := calldata_size_ge_of_selIs I (entryBytes 14) (entryBytes_size 14) hsel
@@ -62,7 +64,7 @@ theorem minBidIncrementPercentageBodyCore {σ σ₀ A I} {g : UInt256}
         (minBidIncGetter.params.map Param.name)
         (transitionSignature minBidIncGetter).paramTypes I.calldata = some ∅ :=
       decodeCalldata_empty_ok hsz
-    have hbody : ExecTransitionBody auctionConfig auctionContract
+    have hbody : ExecTransitionBody fork auctionConfig auctionContract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ minBidIncGetter.body
         (.returned { contract := auctionContract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)

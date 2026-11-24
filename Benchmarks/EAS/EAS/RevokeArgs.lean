@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.RevokeSetup
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 
@@ -18,7 +20,7 @@ theorem revoke_bind (schema : UInt256) (rs : List RevocationRequestRecord) (revo
 
 theorem revokeLengthSource {cfg : Config} {L imms : Store} {evm : EVM.State} {rs : List RevocationRequestRecord}
     (hd : L.get? "data" = some (.array (rs.map RevocationRequestRecord.tuple))) :
-    ExecStmt cfg {contract := contract,locals := L,immutables := imms} evm revokeLengthDecl
+    ExecStmt fork cfg {contract := contract,locals := L,immutables := imms} evm revokeLengthDecl
       (.ok {contract := contract,locals := L.insert "length" (.int (Int.ofNat rs.length)),immutables := imms} evm) := by
   apply ExecStmt.letDecl
   simpa only [List.length_map] using evalLocalArrayLength (cfg := cfg) (stele := {contract := contract,locals := L,immutables := imms}) (evm := evm) hd

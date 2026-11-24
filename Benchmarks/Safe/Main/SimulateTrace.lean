@@ -3,6 +3,8 @@ import Benchmarks.Safe.Main.RawDelegateCall
 import Benchmarks.Safe.Main.Blocks.Runtime_010
 import Benchmarks.Safe.Main.Blocks.Runtime_023
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Main.RuntimeBlocks
 
@@ -10,9 +12,9 @@ namespace Benchmarks.Safe.Main
 
 set_option maxRecDepth 100000 in
 theorem safeSimulateReverts {σ σ₀ A I} {g : Sat256} {k C aw mem rdata} {R : List UInt256}
-    (h : RD safeBytecode I g (initState σ σ₀ g A I) ⟨1208⟩ R mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g (initState σ σ₀ g A I) ⟨1208⟩ R mem aw rdata σ k C)
     (hov : R.length + 17 ≤ 1024) :
-    RDrev safeBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork safeBytecode g (initState σ σ₀ g A I) := by
   by_cases hv : UInt256.isZero I.weiValue = UInt256.ofNat 0
   · have h₁ := safeRuntime_block_1208_fallthrough (by omega) hv h
     exact safeRuntime_block_1216

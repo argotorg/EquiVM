@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.RuntimeBlocks_039
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_046
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_047
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -15,8 +17,8 @@ theorem cometSignedSubNonneg {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {a b ret : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024) (ha : a.toNat < 2^255) (hb : b.toNat < 2^255)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨9713⟩ (a :: b :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret (UInt256.sub a b :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨9713⟩ (a :: b :: ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret (UInt256.sub a b :: R)
       mem aw rdata σ k' C' := by
   have hb0 : UInt256.slt b (UInt256.ofNat 0) = ⟨0⟩ :=
     slt_lit_zero (by decide) (Nat.zero_le _) hb
@@ -43,10 +45,10 @@ theorem cometSignedAddNonneg {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {a b ret : UInt256} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024) (hb : b.toNat < 2^255)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨9768⟩ (b :: a :: ret :: R) mem aw rdata σ k C) :
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨9768⟩ (b :: a :: ret :: R) mem aw rdata σ k C) :
     if signedWord a + Int.ofNat b.toNat < (2^255 : Int) then
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ret ((a + b) :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret ((a + b) :: R) mem aw rdata σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   let limit := UInt256.sub
     (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 255))
       (UInt256.ofNat 1)) b
@@ -74,7 +76,7 @@ theorem cometSignedAddNonneg {v : CometWithExtendedAssetListImmutables}
           rw [hb0]; exact uint256_land_zero_right _) r1
     have r3 := cometWithExtendedAssetList_block_9809
       (immWords := wordsOf (immStore v)) (by omega) hret r2
-    change RD _ _ _ _ _ ((b + a) :: R) _ _ _ _ _ _ at r3
+    change RD fork _ _ _ _ _ ((b + a) :: R) _ _ _ _ _ _ at r3
     rw [u256_add_comm b a] at r3
     exact ⟨_, _, r3⟩
   · have hcmp : UInt256.sgt a limit = ⟨1⟩ := by
@@ -97,10 +99,10 @@ theorem cometSignedAddNonnegRight {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {a b ret : UInt256} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024) (hb : b.toNat < 2^255)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨9768⟩ (a :: b :: ret :: R) mem aw rdata σ k C) :
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨9768⟩ (a :: b :: ret :: R) mem aw rdata σ k C) :
     if signedWord a + Int.ofNat b.toNat < (2^255 : Int) then
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ret ((a + b) :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret ((a + b) :: R) mem aw rdata σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   by_cases ha : a.toNat < 2^255
   · have hr := cometSignedAddNonneg hstack ha hret h
     have heq : signedWord b + Int.ofNat a.toNat = signedWord a + Int.ofNat b.toNat := by

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.Slot0Storage
 import Benchmarks.UniswapV3.Pool.SourceExpressions
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -20,7 +22,7 @@ def poolLockPrefixBody : List Stmt :=
 
 theorem poolAmountsInitSource (locals imms : Store) (evm : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm
       poolAmountsInitBody (.ok (poolAmountsFrame locals imms) evm) := by
   apply (ABlock.start.requireStep (evalCallvalueEq_true hwv)).run
   refine ExecBlock.consNormal (ExecStmt.letDecl (name := "amount0")
@@ -39,7 +41,7 @@ theorem evalPoolAmountsUnlocked (locals imms : Store) (evm : EVM.State)
 
 theorem poolAmountsAssignLock (locals imms : Store) (evm : EVM.State)
     (hslot : (poolAmountsFrame locals imms).locals.get? "slot0" = none) :
-    ExecStmt config (poolAmountsFrame locals imms) evm
+    ExecStmt fork config (poolAmountsFrame locals imms) evm
       (.assign .storage ⟨"slot0", [.field "unlocked"]⟩ (.boolLit false))
       (if evm.executionEnv.perm then .ok (poolAmountsFrame locals imms) (storeSlot0Unlocked evm false) else .staticViolation) :=
   execStmt_assign_storage (by simp only [evalExpr?, pure]) (assignSlot0Unlocked evm _ imms false hslot)
@@ -49,7 +51,7 @@ theorem poolLockPrefixSource (locals imms : Store) (evm : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : slot0FieldWord 30 1 evm.accountMap evm.executionEnv ≠ ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm
       poolLockPrefixBody (.ok (poolAmountsFrame locals imms) (storeSlot0Unlocked evm false)) := by
   apply execBlock_append_ok (poolAmountsInitSource locals imms evm hwv)
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
@@ -60,9 +62,9 @@ theorem poolEntryRevertsLocked (locals imms : Store) (evm : EVM.State) (rest : L
     (hslot : (poolAmountsFrame locals imms).locals.get? "slot0" = none)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocked : slot0FieldWord 30 1 evm.accountMap evm.executionEnv = ⟨0⟩) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm
       (poolLockPrefixBody ++ rest) .reverted := by
-  change ExecBlock config _ _ (poolAmountsInitBody ++
+  change ExecBlock fork config _ _ (poolAmountsInitBody ++
     .require (.storage ⟨"slot0", [.field "unlocked"]⟩) ::
     .assign .storage ⟨"slot0", [.field "unlocked"]⟩ (.boolLit false) :: rest) _
   apply execBlock_append_ok (poolAmountsInitSource locals imms evm hwv)
@@ -74,9 +76,9 @@ theorem poolEntryStatic (locals imms : Store) (evm : EVM.State) (rest : List Stm
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : slot0FieldWord 30 1 evm.accountMap evm.executionEnv ≠ ⟨0⟩)
     (hperm : evm.executionEnv.perm = false) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm
       (poolLockPrefixBody ++ rest) .staticViolation := by
-  change ExecBlock config _ _ (poolAmountsInitBody ++
+  change ExecBlock fork config _ _ (poolAmountsInitBody ++
     .require (.storage ⟨"slot0", [.field "unlocked"]⟩) ::
     .assign .storage ⟨"slot0", [.field "unlocked"]⟩ (.boolLit false) :: rest) _
   apply execBlock_append_ok (poolAmountsInitSource locals imms evm hwv)

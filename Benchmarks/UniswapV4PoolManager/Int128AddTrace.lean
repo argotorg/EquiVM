@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.Signed128Range
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_044
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_022
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -13,10 +15,10 @@ theorem int128AddTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : PoolManagerImmutables) (hstack : R.length+5 ≤ 1024)
     (ha : signedFits ⟨128, by decide⟩ a) (hb : signedFits ⟨128, by decide⟩ b)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨15674⟩ (EVM.wordOfInt a :: EVM.wordOfInt b :: ret :: R) mem aw rdata σ k C) :
+    (h : RD fork (deployedRuntime v) I g s0 ⟨15674⟩ (EVM.wordOfInt a :: EVM.wordOfInt b :: ret :: R) mem aw rdata σ k C) :
     if signedFits ⟨128, by decide⟩ (a+b) then ∃ k' C',
-      RD (deployedRuntime v) I g s0 ret (EVM.wordOfInt (a+b) :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+      RD fork (deployedRuntime v) I g s0 ret (EVM.wordOfInt (a+b) :: R) mem aw rdata σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hsa : UInt256.signextend (UInt256.ofNat 15) (EVM.wordOfInt a) = EVM.wordOfInt a :=
     signextend128_wordOfInt ha.1 ha.2
   have hsb : UInt256.signextend (UInt256.ofNat 15) (EVM.wordOfInt b) = EVM.wordOfInt b :=

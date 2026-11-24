@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.TypedDataEVM
 import Benchmarks.EAS.EAS.HeapCall
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -13,11 +15,11 @@ theorem typedDataCallRun {L imms : Store} {args : List Expr} {retVar : Ident}
     (hstack : R.length+9 ≤ 1024) (hs : SourceState s0 ee σ evm)
     (hh : memLoad (UInt256.ofNat 64) mem = heap) (hlo : 96 ≤ heap.toNat) (hheap : heap.toNat ≤ 2^64-1)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨15654⟩ (domain::structHash::ret::R) mem aw rdata σ k C) :
-    HeapCallRun config (deployedRuntime v) ee g s0 {contract := contract,locals := L,immutables := imms}
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨15654⟩ (domain::structHash::ret::R) mem aw rdata σ k C) :
+    HeapCallRun fork config (deployedRuntime v) ee g s0 {contract := contract,locals := L,immutables := imms}
       evm "ECDSA_toTypedDataHash" args retVar (wordBytes32Value (typedDataWord domain structHash))
       ret (typedDataWord domain structHash::R) mem heap.toNat := by
-  have hsrc := typedDataSource (L := typedDataArgs domain structHash heap.toNat) (imms := imms) (evm := evm)
+  have hsrc := typedDataSource (fork := fork) (L := typedDataArgs domain structHash heap.toNat) (imms := imms) (evm := evm)
     (domain := domain) (structHash := structHash) (heap := heap.toNat)
     (by simp only [typedDataArgs,store_get_self])
     (by simp (disch := decide) only [typedDataArgs,store_get_ne,store_get_self])

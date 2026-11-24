@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.SafeTransferSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -66,9 +68,9 @@ theorem poolTransferReturns (v : UniswapV3PoolImmutables) (locals : Store)
     (calleeFrame : Frame)
     (hrecipient : locals.get? "recipient" = some (.address recipient))
     (hget : locals.get? (poolAmountName second) = some (.int (Int.ofNat amount.toNat)))
-    (hcall : ExecFuncBody config (safeTransferFrame (immStore v) (poolToken v second) recipient amount)
+    (hcall : ExecFuncBody fork config (safeTransferFrame (immStore v) (poolToken v second) recipient amount)
       evm safeTransferFunction.body (.returned calleeFrame evm' none)) :
-    ExecStmt config {contract := contract, locals := locals, immutables := immStore v} evm
+    ExecStmt fork config {contract := contract, locals := locals, immutables := immStore v} evm
       (poolTransferStmt second)
       (.ok { contract := contract
              locals := locals.insert (poolTransferCallName second) .unit
@@ -82,9 +84,9 @@ theorem poolTransferReverts (v : UniswapV3PoolImmutables) (locals : Store)
     (evm : EVM.State) (second : Bool) (recipient : AccountAddress) (amount : UInt256)
     (hrecipient : locals.get? "recipient" = some (.address recipient))
     (hget : locals.get? (poolAmountName second) = some (.int (Int.ofNat amount.toNat)))
-    (hcall : ExecFuncBody config (safeTransferFrame (immStore v) (poolToken v second) recipient amount)
+    (hcall : ExecFuncBody fork config (safeTransferFrame (immStore v) (poolToken v second) recipient amount)
       evm safeTransferFunction.body .reverted) :
-    ExecStmt config {contract := contract, locals := locals, immutables := immStore v} evm
+    ExecStmt fork config {contract := contract, locals := locals, immutables := immStore v} evm
       (poolTransferStmt second) .reverted := by
   exact internalCallFunctionRevert (callee := safeTransferFunction)
     (locals := safeTransferLocals (poolToken v second) recipient amount)

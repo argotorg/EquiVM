@@ -3,6 +3,8 @@ import Benchmarks.EAS.EAS.AllocateBounds
 import Benchmarks.EAS.EAS.StructEncodeViews
 import Benchmarks.EAS.EAS.RuntimeBlocks_029
 import Benchmarks.EAS.EAS.RuntimeBlocks_033
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -33,9 +35,9 @@ theorem easAttestSecondResultStart {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {schema data attester available last ret len first : UInt256} {R : List UInt256}
     (v : EASImmutables) (kind : AttestCallKind) (hstack : R.length+8 ≤ 1024)
     (hlen : memLoad data mem = len) (hreg : kind = .many → memLoad (UInt256.ofNat 192) mem = data)
-    (rd : RD (deployedRuntime v) ee g s0 kind.firstReturn
+    (rd : RD fork (deployedRuntime v) ee g s0 kind.firstReturn
       (first::attestFirstSaved kind schema data attester available last ret R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨7214⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨7214⟩
       (kind.secondReturn::attestSecondSaved kind schema data attester available last ret len R) mem aw' rdata σ k' C' := by
   have hd : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 7214) = true := by rw [easPatchedValidJumps v]; jump_dest
   cases kind with
@@ -53,13 +55,13 @@ theorem easAttestResultAllocate {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hlo : 224 ≤ data.toNat) (hspan : data.toNat+32 ≤ heap.toNat) (hcovered : data.toNat+32 ≤ mem.size)
     (hh : heap.toNat ≤ 2^64-1) (hheap : memLoad (UInt256.ofNat 64) mem = heap)
     (hlen : memLoad data mem = len) (hreg : kind = .many → memLoad (UInt256.ofNat 192) mem = data)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨7214⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨7214⟩
       (kind.firstReturn::attestFirstSaved kind schema data attester available last ret R) mem aw rdata σ k C) :
     if allocateNext heap.toNat 128 ≤ 2^64-1 ∧ heap.toNat ≤ allocateNext heap.toNat 128 then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 kind.secondReturn
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 kind.secondReturn
         (UInt256.ofNat (allocateNext heap.toNat 64)::attestSecondSaved kind schema data attester available last ret len R)
         (attestResultsMemory mem heap) aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have h64 : allocateNext heap.toNat 64 = heap.toNat+64 := fixedAllocation_next .bytes64 hh
   have h128 := allocateNext_128 hh
   have hfirst := easDefaultResultAllocate v

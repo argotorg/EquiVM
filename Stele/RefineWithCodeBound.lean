@@ -2,64 +2,75 @@ import Stele.Refine
 
 namespace Stele
 
-/-- A copy of `typedConstructorRefinement` restricted to deployments whose complete initcode
+/-- A copy of `typedConstructorRefinementOn` restricted to deployments whose complete initcode
     (including encoded constructor arguments) fits in an EVM size word without wrapping.
     The deployment encoder and the execution/result relation are unchanged. -/
-def typedConstructorRefinementWithCodeBound (cfg : Config) (initcode : ByteArray)
-    (contract : ContractDecl) (runtimeCodeOf : Store → ByteArray) : Prop :=
-  ∀ (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
-    (I : Ethereum.ExecutionEnv) (args : List Value) (deployedInitcode : ByteArray),
+def typedConstructorRefinementWithCodeBoundOn (forks : ForkSet) (cfg : Config)
+    (initcode : ByteArray) (contract : ContractDecl) (runtimeCodeOf : Store → ByteArray) : Prop :=
+  ∀ (fork : Ethereum.Fork), forks fork → ∀ (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256)
+    (A : Ethereum.Substate) (I : Ethereum.ExecutionEnv) (args : List Value) (deployedInitcode : ByteArray),
     cfg.selfDeployment initcode args = .some deployedInitcode →
     I.code = deployedInitcode →
     I.calldata = .empty →
     I.perm = true →
     I.code.size < Ethereum.UInt256.size →
-    typedConstructorRefinementFor cfg contract args σ σ₀ g A I runtimeCodeOf
+    typedConstructorRefinementFor fork cfg contract args σ σ₀ g A I runtimeCodeOf
 
-/-- `contractRefinementWF` with the deployment domain of
-    `typedConstructorRefinementWithCodeBound`. The runtime storage and gas conditions are
+/-- `typedConstructorRefinementWithCodeBoundOn` at every supported fork. -/
+abbrev typedConstructorRefinementWithCodeBound (cfg : Config) (initcode : ByteArray)
+    (contract : ContractDecl) (runtimeCodeOf : Store → ByteArray) : Prop :=
+  typedConstructorRefinementWithCodeBoundOn supportedForks cfg initcode contract runtimeCodeOf
+
+/-- `contractRefinementWFOn` with the deployment domain of
+    `typedConstructorRefinementWithCodeBoundOn`. The runtime storage and gas conditions are
     unchanged; the additional bound applies only to complete initcode at deployment. -/
-inductive contractRefinementWFWithCodeBound (wf : StorageWF) (gasBound : GasBound)
-    (cfg : Config) (initcode : ByteArray) (contract : ContractDecl) : Prop where
+inductive contractRefinementWFWithCodeBoundOn (forks : ForkSet) (wf : StorageWF)
+    (gasBound : GasBound) (cfg : Config) (initcode : ByteArray) (contract : ContractDecl) :
+    Prop where
   | intro (runtimeCodeOf : Store → ByteArray) :
-    (∀ (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
-      (I : Ethereum.ExecutionEnv) (args : List Value) (deployedInitcode : ByteArray),
+    (∀ (fork : Ethereum.Fork), forks fork → ∀ (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256)
+      (A : Ethereum.Substate) (I : Ethereum.ExecutionEnv) (args : List Value) (deployedInitcode : ByteArray),
       cfg.selfDeployment initcode args = .some deployedInitcode →
       I.code = deployedInitcode →
       I.calldata = .empty →
       I.perm = true →
       I.code.size < Ethereum.UInt256.size →
-      deploymentRefinement wf gasBound cfg contract args σ σ₀ g A I runtimeCodeOf) →
-    contractRefinementWFWithCodeBound wf gasBound cfg initcode contract
+      deploymentRefinement forks fork wf gasBound cfg contract args σ σ₀ g A I runtimeCodeOf) →
+    contractRefinementWFWithCodeBoundOn forks wf gasBound cfg initcode contract
+
+/-- `contractRefinementWFWithCodeBoundOn` at every supported fork. -/
+abbrev contractRefinementWFWithCodeBound (wf : StorageWF) (gasBound : GasBound) (cfg : Config)
+    (initcode : ByteArray) (contract : ContractDecl) : Prop :=
+  contractRefinementWFWithCodeBoundOn supportedForks wf gasBound cfg initcode contract
 
 /-- An existing constructor proof also applies on the smaller deployment domain. -/
-theorem typedConstructorRefinement.withCodeBound {cfg : Config} {initcode : ByteArray}
-    {contract : ContractDecl} {runtimeCodeOf : Store → ByteArray}
-    (h : typedConstructorRefinement cfg initcode contract runtimeCodeOf) :
-    typedConstructorRefinementWithCodeBound cfg initcode contract runtimeCodeOf :=
-  fun σ σ₀ g A I args d hdeploy hcode hcalldata hperm _ =>
-    h σ σ₀ g A I args d hdeploy hcode hcalldata hperm
+theorem typedConstructorRefinement.withCodeBound {forks : ForkSet} {cfg : Config}
+    {initcode : ByteArray} {contract : ContractDecl} {runtimeCodeOf : Store → ByteArray}
+    (h : typedConstructorRefinementOn forks cfg initcode contract runtimeCodeOf) :
+    typedConstructorRefinementWithCodeBoundOn forks cfg initcode contract runtimeCodeOf :=
+  fun fork hfork σ σ₀ g A I args d hdeploy hcode hcalldata hperm _ =>
+    h fork hfork σ σ₀ g A I args d hdeploy hcode hcalldata hperm
 
 /-- An existing whole-contract proof also applies on the smaller deployment domain. -/
-theorem contractRefinementWF.withCodeBound {wf : StorageWF} {gasBound : GasBound}
-    {cfg : Config} {initcode : ByteArray} {contract : ContractDecl}
-    (h : contractRefinementWF wf gasBound cfg initcode contract) :
-    contractRefinementWFWithCodeBound wf gasBound cfg initcode contract := by
+theorem contractRefinementWF.withCodeBound {forks : ForkSet} {wf : StorageWF}
+    {gasBound : GasBound} {cfg : Config} {initcode : ByteArray} {contract : ContractDecl}
+    (h : contractRefinementWFOn forks wf gasBound cfg initcode contract) :
+    contractRefinementWFWithCodeBoundOn forks wf gasBound cfg initcode contract := by
   cases h with
   | intro runtimeCodeOf h =>
-    exact .intro runtimeCodeOf fun σ σ₀ g A I args d hdeploy hcode hcalldata hperm _ =>
-      h σ σ₀ g A I args d hdeploy hcode hcalldata hperm
+    exact .intro runtimeCodeOf fun fork hfork σ σ₀ g A I args d hdeploy hcode hcalldata hperm _ =>
+      h fork hfork σ σ₀ g A I args d hdeploy hcode hcalldata hperm
 
 /-- Assemble a constructor proof under the initcode-size bound and the usual runtime proof. -/
-theorem contractRefinementWFWithCodeBound.of_runtime {wf : StorageWF} {gasBound : GasBound}
-    {cfg : Config} {initcode : ByteArray} {contract : ContractDecl}
+theorem contractRefinementWFWithCodeBound.of_runtime {forks : ForkSet} {wf : StorageWF}
+    {gasBound : GasBound} {cfg : Config} {initcode : ByteArray} {contract : ContractDecl}
     {runtimeCodeOf : Store → ByteArray}
-    (hctor : typedConstructorRefinementWithCodeBound cfg initcode contract runtimeCodeOf)
+    (hctor : typedConstructorRefinementWithCodeBoundOn forks cfg initcode contract runtimeCodeOf)
     (hrt : ∀ imms, immutablesFit contract imms →
-      runtimeRefinementWithWF wf gasBound cfg (runtimeCodeOf imms) contract
+      runtimeRefinementWithWFOn forks wf gasBound cfg (runtimeCodeOf imms) contract
         (restrictImmutables contract imms)) :
-    contractRefinementWFWithCodeBound wf gasBound cfg initcode contract :=
-  .intro runtimeCodeOf fun σ σ₀ g A I args d hdeploy hcode hcalldata hperm hsize =>
-    (hctor σ σ₀ g A I args d hdeploy hcode hcalldata hperm hsize).toDeployment hrt
+    contractRefinementWFWithCodeBoundOn forks wf gasBound cfg initcode contract :=
+  .intro runtimeCodeOf fun fork hfork σ σ₀ g A I args d hdeploy hcode hcalldata hperm hsize =>
+    (hctor fork hfork σ σ₀ g A I args d hdeploy hcode hcalldata hperm hsize).toDeployment hrt
 
 end Stele

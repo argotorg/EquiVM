@@ -2,6 +2,8 @@ import Reasoning.SolcRoutines
 import Examples.UniswapV2Pair.TransferRoutines
 import Examples.UniswapV2Pair.ErrorStringCopyCore
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -53,12 +55,12 @@ theorem RD.solcErrorString40CopyReverts
     {code : ByteArray} {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {acc : AccountMap}
     {mem rdata : ByteArray} {pc source : UInt256} {R : List UInt256} {k C : ℕ}
-    (rd : RD code I g s0 pc R mem ⟨6⟩ rdata acc k C)
+    (rd : RD fork code I g s0 pc R mem ⟨6⟩ rdata acc k C)
     (hwf : SolcErrorString40CopyWf code pc source)
     (hsource : source.toNat + 40 ≤ code.size)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (hov : R.length + 10 ≤ 1024) : RDrev code g s0 := by
+    (hov : R.length + 10 ≤ 1024) : RDrev fork code g s0 := by
   have _ := And.intro hsource (And.intro hmem hmem64)
   apply RD.solcErrorStringCopyReverts rd (source := source) (len := ⟨40⟩) _ hov
   cases hwf

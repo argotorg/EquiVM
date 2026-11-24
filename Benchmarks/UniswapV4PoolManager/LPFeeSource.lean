@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.NarrowWords
 import Benchmarks.UniswapV4PoolManager.CallComposition
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -26,7 +28,7 @@ theorem evalNatLe {cfg : Config} {f : Frame} {evm : EVM.State} {e0 e1 : Expr} {a
 
 theorem lpFeeDynamicBody {f : Frame} {evm : EVM.State} {fee : UInt256}
     (hs : f.locals.get? "self" = some (.int (Int.ofNat fee.toNat))) :
-    ExecFuncBody config f evm lpFeeDynamicFunction.body
+    ExecFuncBody fork config f evm lpFeeDynamicFunction.body
       (.returned f evm (some [.bool (decide (fee.toNat = 8388608))])) := by
   apply ExecFuncBody.execBlockRet
   apply ABlock.start.returns
@@ -38,7 +40,7 @@ theorem lpFeeDynamicBody {f : Frame} {evm : EVM.State} {fee : UInt256}
 theorem lpFeeDynamicCall {f : Frame} {evm : EVM.State} {fee : UInt256} {e : Expr}
     (hf : f.contract = contract) (he : evalExpr? config f evm e = .ok (.int (Int.ofNat fee.toNat)))
     (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "LPFeeLibrary_isDynamicFee" [e] retVar)
+    ExecStmt fork config f evm (.internalCall "LPFeeLibrary_isDynamicFee" [e] retVar)
       (.ok {f with locals := f.locals.insert retVar (.bool (decide (fee.toNat = 8388608)))} evm) := by
   apply internalCallFunctionReturn (argVals := [.int (Int.ofNat fee.toNat)])
     (value := some [.bool (decide (fee.toNat = 8388608))])
@@ -47,7 +49,7 @@ theorem lpFeeDynamicCall {f : Frame} {evm : EVM.State} {fee : UInt256} {e : Expr
 
 theorem lpFeeValidBody {f : Frame} {evm : EVM.State} {fee : UInt256}
     (hs : f.locals.get? "self" = some (.int (Int.ofNat fee.toNat))) :
-    ExecFuncBody config f evm lpFeeValidFunction.body
+    ExecFuncBody fork config f evm lpFeeValidFunction.body
       (.returned f evm (some [.bool (decide (fee.toNat ≤ 1000000))])) := by
   apply ExecFuncBody.execBlockRet
   apply ABlock.start.returns
@@ -56,7 +58,7 @@ theorem lpFeeValidBody {f : Frame} {evm : EVM.State} {fee : UInt256}
 theorem lpFeeValidCall {f : Frame} {evm : EVM.State} {fee : UInt256} {e : Expr}
     (hf : f.contract = contract) (he : evalExpr? config f evm e = .ok (.int (Int.ofNat fee.toNat)))
     (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "LPFeeLibrary_isValid" [e] retVar)
+    ExecStmt fork config f evm (.internalCall "LPFeeLibrary_isValid" [e] retVar)
       (.ok {f with locals := f.locals.insert retVar (.bool (decide (fee.toNat ≤ 1000000)))} evm) := by
   apply internalCallFunctionReturn (argVals := [.int (Int.ofNat fee.toNat)])
     (value := some [.bool (decide (fee.toNat ≤ 1000000))])
@@ -65,10 +67,10 @@ theorem lpFeeValidCall {f : Frame} {evm : EVM.State} {fee : UInt256} {e : Expr}
 
 theorem lpFeeValidateBody {f : Frame} {evm : EVM.State} {fee : UInt256}
     (hf : f.contract = contract) (hs : f.locals.get? "self" = some (.int (Int.ofNat fee.toNat))) :
-    ExecFuncBody config f evm lpFeeValidateFunction.body
+    ExecFuncBody fork config f evm lpFeeValidateFunction.body
       (if fee.toNat ≤ 1000000 then
         .returned {f with locals := f.locals.insert "__c0" (.bool true)} evm none else .reverted) := by
-  have hc := lpFeeValidCall (evm := evm) hf (evalLocalValue hs) "__c0"
+  have hc := lpFeeValidCall (fork := fork) (evm := evm) hf (evalLocalValue hs) "__c0"
   by_cases hv : fee.toNat ≤ 1000000
   · rw [if_pos hv]
     simp only [hv, decide_true] at hc
@@ -84,11 +86,11 @@ theorem lpFeeValidateBody {f : Frame} {evm : EVM.State} {fee : UInt256}
 theorem lpFeeValidateCall {f : Frame} {evm : EVM.State} {fee : UInt256} {e : Expr}
     (hf : f.contract = contract) (he : evalExpr? config f evm e = .ok (.int (Int.ofNat fee.toNat)))
     (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "LPFeeLibrary_validate" [e] retVar)
+    ExecStmt fork config f evm (.internalCall "LPFeeLibrary_validate" [e] retVar)
       (if fee.toNat ≤ 1000000 then .ok {f with locals := f.locals.insert retVar .unit} evm else .reverted) := by
   have hl : lookupCallable? f.contract "LPFeeLibrary_validate" = some lpFeeValidateFunction.toCallable := by
     rw [hf]; exact lpFeeValidate_lookup
-  have hb := lpFeeValidateBody (f := {f with locals := (∅ : Store).insert "self" (.int (Int.ofNat fee.toNat))})
+  have hb := lpFeeValidateBody (fork := fork) (f := {f with locals := (∅ : Store).insert "self" (.int (Int.ofNat fee.toNat))})
     (evm := evm) hf (store_get_self _ _ _)
   by_cases hv : fee.toNat ≤ 1000000
   · rw [if_pos hv] at hb ⊢

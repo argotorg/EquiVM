@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.CollateralMappingMemory
 import Benchmarks.CompoundIII.Comet.CollateralStoreEvm
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_079
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -15,17 +17,17 @@ theorem cometAbsorbSeizeUser {v : CometWithExtendedAssetListImmutables}
     {aw delta assetPtr : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (account asset : AccountAddress) (hstack : R.length + 10 ≤ 1024)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨17630⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨17630⟩
       (userCollateralSlot account asset :: ⟨6⟩ :: EVM.word asset.val :: delta ::
         EVM.word account.val :: assetPtr :: R) mem aw rdata σ k C) :
-    internalMemoryRun (deployedRuntime v) ee g s0 (userCollateralMemory mem account asset)
+    internalMemoryRun fork (deployedRuntime v) ee g s0 (userCollateralMemory mem account asset)
       rdata ⟨17671⟩ (delta :: withdrawCollateralBalance evm account asset :: assetPtr :: R)
       (if evm.executionEnv.perm then .ok (absorbSeizeUserState evm account asset)
         else .staticViolation) := by
   obtain ⟨k1, C1, r1⟩ := cometWithExtendedAssetList_block_17630
     (immWords := wordsOf (immStore v)) (by change R.length + 1 + 8 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     (⟨6⟩ :: EVM.word account.val :: ⟨17650⟩ :: EVM.word asset.val :: delta ::
       UInt256.land (UInt256.ofNat (2^128-1))
         (solcSlotWord σ ee (userCollateralSlot account asset)) :: assetPtr :: R)

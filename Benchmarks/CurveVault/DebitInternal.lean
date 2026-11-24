@@ -1,6 +1,8 @@
 import Benchmarks.CurveVault.DebitTotalAssets
 import Benchmarks.CurveVault.RedeemAllowance
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -12,17 +14,17 @@ theorem vaultDebitRoutine (isWithdraw : Bool) {I : ExecutionEnv} {g : Sat256} {s
     (hmo : memLoad (UInt256.ofNat 608) mem = owner)
     (hrcanon : receiver.toNat < EVM.addressModulus) (hocanon : owner.toNat < EVM.addressModulus)
     (hperm : I.perm = true) (hstack : R.length + 14 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat (if isWithdraw then 4188 else 5090)) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat (if isWithdraw then 4188 else 5090)) R mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (locals' : Store) (value : UInt256),
-      ExecFuncBody config {contract := contract, locals := (vaultDebitLocals isWithdraw (AccountAddress.ofNat receiver.toNat)
+      ExecFuncBody fork config {contract := contract, locals := (vaultDebitLocals isWithdraw (AccountAddress.ofNat receiver.toNat)
         (AccountAddress.ofNat owner.toNat) (calldataWord I.calldata 4))}
         (vaultSetLock evm ⟨1⟩) (vaultDebitFunction isWithdraw).body
         (.returned {contract := contract, locals := locals'} evm' (some [.int (Int.ofNat value.toNat)])) ∧
       SourceState s0 I σ' evm' ∧
-      RDret vaultBytecode g s0 (tstoreAccountMap I.codeOwner σ' ⟨0⟩ ⟨0⟩) value.toByteArray) ∨
-    (ExecFuncBody config {contract := contract, locals := (vaultDebitLocals isWithdraw (AccountAddress.ofNat receiver.toNat)
+      RDret fork vaultBytecode g s0 (tstoreAccountMap I.codeOwner σ' ⟨0⟩ ⟨0⟩) value.toByteArray) ∨
+    (ExecFuncBody fork config {contract := contract, locals := (vaultDebitLocals isWithdraw (AccountAddress.ofNat receiver.toNat)
       (AccountAddress.ofNat owner.toNat) (calldataWord I.calldata 4))}
-      (vaultSetLock evm ⟨1⟩) (vaultDebitFunction isWithdraw).body .reverted ∧ RDrev vaultBytecode g s0) := by
+      (vaultSetLock evm ⟨1⟩) (vaultDebitFunction isWithdraw).body .reverted ∧ RDrev fork vaultBytecode g s0) := by
   let locals := vaultDebitLocals isWithdraw (AccountAddress.ofNat receiver.toNat)
     (AccountAddress.ofNat owner.toNat) (calldataWord I.calldata 4)
   have hr : locals.get? "_receiver" = some (.address (AccountAddress.ofNat receiver.toNat)) := by
@@ -36,16 +38,16 @@ theorem vaultDebitRoutine (isWithdraw : Bool) {I : ExecutionEnv} {g : Sat256} {s
       some (.int (Int.ofNat (calldataWord I.calldata 4).toNat)) := store_get_self _ _ _
   have hprep :
       (∃ (evm0 : State) (σ0 : AccountMap) (locals0 : Store) (mem0 : ByteArray) (aw0 : UInt256) (k0 C0 : Nat),
-        ExecBlock config {contract := contract, locals := locals} (vaultSetLock evm ⟨1⟩)
+        ExecBlock fork config {contract := contract, locals := locals} (vaultSetLock evm ⟨1⟩)
           ((vaultDebitFunction isWithdraw).body.take (if isWithdraw then 0 else 1))
           (.ok {contract := contract, locals := locals0} evm0) ∧
         SourceState s0 I σ0 evm0 ∧ WordMemoryRange mem mem0 192 640 ∧
         (∀ name, ("allowance_" == name) = false → ("__c0" == name) = false →
           locals0.get? name = locals.get? name) ∧
-        RD vaultBytecode I g s0 (UInt256.ofNat 6772)
+        RD fork vaultBytecode I g s0 (UInt256.ofNat 6772)
           (UInt256.ofNat 672 :: UInt256.ofNat (if isWithdraw then 4202 else 5232) :: R) mem0 aw0 rdata σ0 k0 C0) ∨
-      (ExecFuncBody config {contract := contract, locals := locals} (vaultSetLock evm ⟨1⟩)
-        (vaultDebitFunction isWithdraw).body .reverted ∧ RDrev vaultBytecode g s0) := by
+      (ExecFuncBody fork config {contract := contract, locals := locals} (vaultSetLock evm ⟨1⟩)
+        (vaultDebitFunction isWithdraw).body .reverted ∧ RDrev fork vaultBytecode g s0) := by
     cases isWithdraw
     · rcases vaultRedeemAllowance hs hsize ho hi hallow hmo hocanon hperm (by omega) h with
         ⟨evm0, σ0, locals0, mem0, aw0, k0, C0, hallowance, hs0, hframe, hget, rdNext⟩ | ⟨hallowance, hrev⟩

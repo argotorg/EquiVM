@@ -13,6 +13,8 @@ import Reasoning.SteleBody
 import Reasoning.Dispatch
 import Reasoning.JumpDest
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Ballot — constructor / creation-code equivalence
 
@@ -198,11 +200,11 @@ theorem ballotReachDecoder
 
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256} (argBytes : ByteArray)
     (hcode : I.code = ballotInitcode ++ argBytes) (hwv : I.weiValue = ⟨0⟩) :
-    ∃ k C, RD (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨210⟩
+    ∃ k C, RD fork (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨210⟩
       [⟨128⟩, ⟨128⟩ + ballotArgLen argBytes, ⟨46⟩]
       (ballotDecoderMem argBytes) (ballotDecoderAW argBytes) ByteArray.empty σ k C := by
   simp only [ballotDecoderMem, ballotDecoderAW, ballotArgLen]
-  have rd0 : RD (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨0⟩ []
+  have rd0 : RD fork (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨0⟩ []
       ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
   set code := ballotInitcode ++ argBytes with hcodeDef
@@ -510,10 +512,10 @@ theorem ballotDecoderValidations
     (hstruct : argBytes = (ABI.natBytes 32 ++ (ABI.natBytes n ++ elemBytes)).toByteArray)
     (hszH : (ballotInitcode ++ argBytes).size < UInt256.size) (h64 : 64 ≤ argBytes.size)
     (h255 : argBytes.size < 2 ^ 255 - 128) (hn : n < 2 ^ 64)
-    (rd210 : RD (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨210⟩
+    (rd210 : RD fork (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨210⟩
       [⟨128⟩, ⟨128⟩ + ballotArgLen argBytes, ⟨46⟩]
       (ballotDecoderMem argBytes) (ballotDecoderAW argBytes) ByteArray.empty σ k C) :
-    ∃ k' C', RD (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨288⟩
+    ∃ k' C', RD fork (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨288⟩
       [UInt256.ofNat n, ⟨128⟩ + UInt256.ofNat 32, ⟨0⟩, ⟨128⟩,
         ⟨128⟩ + ballotArgLen argBytes, ⟨46⟩]
       (ballotDecoderMem argBytes) (ballotDecoderAW argBytes) ByteArray.empty σ k' C' := by
@@ -697,11 +699,11 @@ theorem ballotDecoderAlloc
     (hszH : (ballotInitcode ++ argBytes).size < UInt256.size) (h64 : 64 ≤ argBytes.size)
     (hn64 : 64 * n + 224 < 2 ^ 64)
     (fp : UInt256) (hfp : fp = ⟨128⟩ + ballotArgLen argBytes)
-    (rd288 : RD (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨288⟩
+    (rd288 : RD fork (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨288⟩
       [UInt256.ofNat n, ⟨128⟩ + UInt256.ofNat 32, ⟨0⟩, ⟨128⟩,
         ⟨128⟩ + ballotArgLen argBytes, ⟨46⟩]
       (ballotDecoderMem argBytes) (ballotDecoderAW argBytes) ByteArray.empty σ k C) :
-    ∃ k' C', RD (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨370⟩
+    ∃ k' C', RD fork (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨370⟩
       [fp + ⟨32⟩, fp, UInt256.shiftLeft (UInt256.ofNat n) ⟨5⟩,
         ⟨32⟩ + (⟨128⟩ + UInt256.ofNat 32 + UInt256.shiftLeft (UInt256.ofNat n) ⟨5⟩),
         ⟨128⟩ + UInt256.ofNat 32 + ⟨32⟩, ⟨0⟩, ⟨128⟩, ⟨128⟩ + ballotArgLen argBytes, ⟨46⟩]
@@ -855,7 +857,7 @@ theorem ballotDecoderCopyLoop
     (hszH : (ballotInitcode ++ argBytes).size < UInt256.size) (h64 : 64 ≤ argBytes.size)
     (hn64 : 64 * n + 224 < 2 ^ 64)
     (fp : UInt256) (hfp : fp = ⟨128⟩ + ballotArgLen argBytes)
-    (h : RD (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨370⟩
+    (h : RD fork (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨370⟩
       [fp + ⟨32⟩, fp, UInt256.shiftLeft (UInt256.ofNat n) ⟨5⟩,
         ⟨32⟩ + (⟨128⟩ + UInt256.ofNat 32 + UInt256.shiftLeft (UInt256.ofNat n) ⟨5⟩),
         ⟨128⟩ + UInt256.ofNat 32 + ⟨32⟩, ⟨0⟩, ⟨128⟩, ⟨128⟩ + ballotArgLen argBytes, ⟨46⟩]
@@ -865,7 +867,7 @@ theorem ballotDecoderCopyLoop
       (∀ j, j < n → mem'.readWithPadding (224 + 32 * n + 32 * j) 32
         = UInt256.toByteArray (uInt256OfByteArray
             ((ballotAllocMem argBytes n fp).readWithPadding (192 + 32 * j) 32))) ∧
-      RD (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨398⟩
+      RD fork (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨398⟩
         [dst', fp, gg,
           ⟨32⟩ + (⟨128⟩ + UInt256.ofNat 32 + UInt256.shiftLeft (UInt256.ofNat n) ⟨5⟩),
           src', ⟨0⟩, ⟨128⟩, ⟨128⟩ + ballotArgLen argBytes, ⟨46⟩]
@@ -898,9 +900,9 @@ theorem ballotDecoderCopyLoop
     rw [hsrcEnd, uadd_toNat, e1, show ((⟨32⟩ : UInt256)).toNat = 32 from by decide,
       Nat.mod_eq_of_lt (by omega)]; omega
   have hexit : ∀ a, Inv 0 a → ∀ kk CC,
-      RD (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨370⟩
+      RD fork (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨370⟩
         (stk a) (stateMem a) (stateAw a) ByteArray.empty σ kk CC →
-      ∃ k' C', RD (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨398⟩
+      ∃ k' C', RD fork (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨398⟩
         (exitStk a) (stateMem a) (stateAw a) ByteArray.empty σ k' C' := by
     intro a hInv kk CC hh
     obtain ⟨hvar, hsrc, _, _, _, _⟩ := hInv
@@ -912,10 +914,10 @@ theorem ballotDecoderCopyLoop
       jumpiT (by rw [hltz]; decide) (by ctor_jd) ]
     exact ⟨_, _, res⟩
   have hbody : ∀ v a, Inv (v + 1) a → ∀ kk CC,
-      RD (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨370⟩
+      RD fork (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨370⟩
         (stk a) (stateMem a) (stateAw a) ByteArray.empty σ kk CC →
       ∃ a' k' C', Inv v a' ∧
-        RD (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨370⟩
+        RD fork (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨370⟩
           (stk a') (stateMem a') (stateAw a') ByteArray.empty σ k' C' := by
     intro v a hInv kk CC hh
     obtain ⟨hvar, hsrc, hdst, hsize, hsrcRead, hdstRead⟩ := hInv
@@ -995,7 +997,7 @@ theorem ballotDecoderCopyLoop
           have hs : (srcWords a.i).toByteArray.data.size = 32 := toByteArray_size (srcWords a.i)
           rw [Array.extract_eq_self_of_le (by rw [hs])]
     obtain ⟨k', C', res'⟩ :
-        ∃ k' C', RD (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨370⟩
+        ∃ k' C', RD fork (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨370⟩
           (stk a') (stateMem a') (stateAw a') ByteArray.empty σ k' C' :=
       ⟨_, _, by dsimp only [stk, stateMem, stateAw, a']; exact res⟩
     exact ⟨a', k', C', hInvA', res'⟩
@@ -1034,10 +1036,10 @@ theorem ballotDecoderCleanup
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     {k C : ℕ} (argBytes : ByteArray) (fp dst' src' gg srcEnd de : UInt256)
     (memv : ByteArray) (awv : UInt256)
-    (h : RD (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨398⟩
+    (h : RD fork (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨398⟩
       [dst', fp, gg, srcEnd, src', ⟨0⟩, ⟨128⟩, de, ⟨46⟩]
       memv awv ByteArray.empty σ k C) :
-    ∃ k' C', RD (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨46⟩
+    ∃ k' C', RD fork (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨46⟩
       [fp] memv awv ByteArray.empty σ k' C' := by
   have res := ctor_run h with [
     jumpdest, pop, swap7, swap6, pop, pop, pop, pop, pop, pop, jump (by ctor_jd) ]
@@ -1060,7 +1062,7 @@ theorem ballotReachConstructorBody
     ∃ (fp : UInt256) (mem : ByteArray) (aw : UInt256) (k C : ℕ),
       fp = ⟨128⟩ + ballotArgLen argBytes ∧
       mem.size = 224 + 32 * n + 32 * n ∧
-      RD (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨46⟩
+      RD fork (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨46⟩
         [fp] mem aw ByteArray.empty σ k C := by
   obtain ⟨k210, C210, rd210⟩ := ballotReachDecoder
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -1123,9 +1125,9 @@ theorem ballotConstructorPrelude
     (_hmemSize : mem.size = 224 + 32 * n + 32 * n)
     (hn64 : 64 * n + 224 < 2 ^ 64)
     (hperm : I.perm = true)
-    (h : RD (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨46⟩
+    (h : RD fork (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨46⟩
       [fp] mem (UInt256.ofNat (7 + n + n)) ByteArray.empty σ k C) :
-    ∃ k' C', RD (ballotInitcode ++ argBytes) I g
+    ∃ k' C', RD fork (ballotInitcode ++ argBytes) I g
       (initState σ σ₀ g A I) ⟨80⟩ [⟨0⟩, fp]
       (ballotCtorScratchMem I mem) (UInt256.ofNat (7 + n + n)) ByteArray.empty
       (ballotCtorPreludeMap σ I mem) k' C' := by

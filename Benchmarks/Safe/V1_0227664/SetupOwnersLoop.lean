@@ -1,6 +1,8 @@
 import Benchmarks.Safe.V1_0227664.SetupOwnersIteration
 import Benchmarks.Safe.V1_0227664.Blocks.Runtime_034
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V1_0227664.RuntimeBlocks
 
@@ -10,7 +12,7 @@ set_option maxRecDepth 100000
 
 theorem safeSetupOwnersLoop (fuel : Nat) (p : SetupOwnersInput) (evm : EVM.State)
     {locals i current ptr I g s0 k C aw mem rdata} {ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7892⟩
+    (h : RD fork safeBytecode I g s0 ⟨7892⟩
       (UInt256.ofNat i :: UInt256.ofNat p.owners.length :: current :: p.threshold ::
         UInt256.ofNat ptr :: ret :: R) mem aw rdata evm.accountMap k C)
     (hl : SetupOwnersLocals p locals i current) (hn : i + fuel = p.owners.length)
@@ -19,16 +21,16 @@ theorem safeSetupOwnersLoop (fuel : Nat) (p : SetupOwnersInput) (evm : EVM.State
     (hc : current.toNat < EVM.addressModulus)
     (ho : ∀ j (hj : j < p.owners.length), p.owners[j].toNat < EVM.addressModulus)
     (hperm : I.perm = true) (hov : R.length + 20 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧
-      ExecStmt config { contract := contract, locals := locals } evm
+    (RDrev fork safeBytecode g s0 ∧
+      ExecStmt fork config { contract := contract, locals := locals } evm
         (.while setupOwnersLoopCondition setupOwnersLoopBody) .reverted) ∨
     ∃ locals' evm' current' mem' aw' k' C',
-      ExecStmt config { contract := contract, locals := locals } evm
+      ExecStmt fork config { contract := contract, locals := locals } evm
         (.while setupOwnersLoopCondition setupOwnersLoopBody)
         (.ok { contract := contract, locals := locals' } evm') ∧
       SetupOwnersLocals p locals' p.owners.length current' ∧
       current'.toNat < EVM.addressModulus ∧ evm'.executionEnv = I ∧ evm'.σ₀ = evm.σ₀ ∧
-      RD safeBytecode I g s0 ⟨8034⟩
+      RD fork safeBytecode I g s0 ⟨8034⟩
         (UInt256.ofNat p.owners.length :: UInt256.ofNat p.owners.length :: current' ::
           p.threshold :: UInt256.ofNat ptr :: ret :: R) mem' aw' rdata evm'.accountMap k' C' ∧
       mem'.size = mem.size ∧

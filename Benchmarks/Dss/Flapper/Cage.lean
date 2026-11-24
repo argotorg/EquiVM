@@ -2,6 +2,8 @@ import Reasoning.ABIComposite
 import Benchmarks.Dss.Flapper.Deny
 import Benchmarks.Dss.Flopper.Dent.Part1
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -139,7 +141,7 @@ theorem flapperReachCageBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flapperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (flapperSelBytes 2)) :
-    ∃ k C, RD flapperBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork flapperBytecode I g (initState σ σ₀ g A I)
         ⟨700⟩ [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : flapperSelWord I = ⟨0xa2f91af2⟩ := by
@@ -175,10 +177,10 @@ theorem flapperReachCageBody {σ σ₀ A I} {g : Sat256}
 
 theorem flapperCageX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD flapperBytecode I g
+    (hreach : ∃ k C, RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨700⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD flapperBytecode I g (initState σ σ₀ g A I) ⟨3106⟩
+    ∃ k C, RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨3106⟩
       [cageRadWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
@@ -200,10 +202,10 @@ theorem flapperCageX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem flapperCageX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
-    (hreach : ∃ k C, RD flapperBytecode I g
+    (hreach : ∃ k C, RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨700⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flapperBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -221,10 +223,10 @@ theorem flapperCageX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 set_option maxHeartbeats 1000000 in
 theorem flapperCageX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : relyAuthWord σ I = ⟨1⟩)
-    (h : RD flapperBytecode I g s0 ⟨3106⟩
+    (h : RD fork flapperBytecode I g s0 ⟨3106⟩
       [cageRadWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flapperBytecode I g s0 ⟨3199⟩
+    ∃ k' C', RD fork flapperBytecode I g s0 ⟨3199⟩
       [cageRadWord I, ⟨360⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hauthSlot :
@@ -255,7 +257,7 @@ theorem flapperCageX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
     (by evm_ov)
   obtain ⟨k3123, C3123, rd3123raw⟩ := rd3122.sload (by native_decide) (by evm_ov)
-  have rd3123 : RD flapperBytecode I g s0 ⟨3123⟩
+  have rd3123 : RD fork flapperBytecode I g s0 ⟨3123⟩
       (relyAuthWord σ I :: cageRadWord I :: ⟨360⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k3123 C3123 := by
     simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using
@@ -272,10 +274,10 @@ theorem flapperCageX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 set_option maxHeartbeats 1000000 in
 theorem flapperCageX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : relyAuthWord σ I ≠ ⟨1⟩)
-    (h : RD flapperBytecode I g s0 ⟨3106⟩
+    (h : RD fork flapperBytecode I g s0 ⟨3106⟩
       [cageRadWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flapperBytecode g s0 := by
+    RDrev fork flapperBytecode g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
@@ -304,7 +306,7 @@ theorem flapperCageX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
     (by evm_ov)
   obtain ⟨k3123, C3123, rd3123raw⟩ := rd3122.sload (by native_decide) (by evm_ov)
-  have rd3123 : RD flapperBytecode I g s0 ⟨3123⟩
+  have rd3123 : RD fork flapperBytecode I g s0 ⟨3123⟩
       (relyAuthWord σ I :: cageRadWord I :: ⟨360⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k3123 C3123 := by
     simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using
@@ -338,15 +340,15 @@ theorem flapperCageX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 
 theorem flapperCageX_storeLiveSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
-    (h : RD flapperBytecode I g s0 ⟨3199⟩
+    (h : RD fork flapperBytecode I g s0 ⟨3199⟩
       [cageRadWord I, ⟨360⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     (I.perm = true ∧
-      ∃ k' C', RD flapperBytecode I g s0 ⟨3207⟩
+      ∃ k' C', RD fork flapperBytecode I g s0 ⟨3207⟩
         [⟨0⟩, cageRadWord I, ⟨360⟩, sel]
         (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
         (cageLivePostAccountMap I σ) k' C') ∨
-      (I.perm = false ∧ RDstatic flapperBytecode g s0) := by
+      (I.perm = false ∧ RDstatic fork flapperBytecode g s0) := by
   have rd3206pre := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
@@ -366,10 +368,10 @@ theorem flapperCageX_storeLiveSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 
 theorem flapperCageX_storeLive {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hperm : I.perm = true)
-    (h : RD flapperBytecode I g s0 ⟨3199⟩
+    (h : RD fork flapperBytecode I g s0 ⟨3199⟩
       [cageRadWord I, ⟨360⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flapperBytecode I g s0 ⟨3207⟩
+    ∃ k' C', RD fork flapperBytecode I g s0 ⟨3207⟩
       [⟨0⟩, cageRadWord I, ⟨360⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
       (cageLivePostAccountMap I σ) k' C' :=
@@ -378,12 +380,12 @@ theorem flapperCageX_storeLive {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 set_option maxHeartbeats 1000000 in
 theorem flapperCageX_toMoveExtcodesizeGuard
     {σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt256}
-    (h : RD flapperBytecode I g s0 ⟨3207⟩
+    (h : RD fork flapperBytecode I g s0 ⟨3207⟩
       [⟨0⟩, cageRadWord I, ⟨360⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
     let vat := cageVatWord σ I
-    ∃ k' C', RD flapperBytecode I g s0 ⟨3277⟩
+    ∃ k' C', RD fork flapperBytecode I g s0 ⟨3277⟩
       (vat :: vat :: cageMoveOutSize :: cageMoveOutPtr :: cageMoveInSize ::
         cageMoveOutPtr :: cageMoveOutSize :: cageMoveEndPtr :: cageMoveSelectorWord ::
         vat :: cageRadWord I :: ⟨360⟩ :: sel :: [])
@@ -426,7 +428,7 @@ theorem flapperCageX_toMoveExtcodesizeGuard
     raw push1 ⟨2⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k3210, C3210, rd3210raw⟩ :=
     rd3209pre.sload (by native_decide) (by evm_ov)
-  have rd3210 : RD flapperBytecode I g s0 ⟨3210⟩
+  have rd3210 : RD fork flapperBytecode I g s0 ⟨3210⟩
       (solcSlotWordAt ⟨2⟩ σ I :: ⟨0⟩ :: rad :: ⟨360⟩ :: sel :: [])
       mem0 (UInt256.ofNat 3) ByteArray.empty σ k3210 C3210 := by
     simpa [mem0, rad, solcSlotWordAt] using rd3210raw
@@ -536,12 +538,12 @@ theorem flapperCageX_toMoveExtcodesizeGuard
 theorem flapperCageX_moveNoCode
     {σStart σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
     (hnoCode : Reasoning.Theory.extCodeSizeWord σ (cageVatWord σ I) = ⟨0⟩)
-    (rd3207 : RD flapperBytecode I g
+    (rd3207 : RD fork flapperBytecode I g
       (initState σStart σ₀ g A I) ⟨3207⟩
       [⟨0⟩, cageRadWord I, ⟨360⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    RDrev flapperBytecode g (initState σStart σ₀ g A I) := by
+    RDrev fork flapperBytecode g (initState σStart σ₀ g A I) := by
   obtain ⟨_, _, rd3277⟩ := flapperCageX_toMoveExtcodesizeGuard rd3207
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨3277⟩) (okPc := ⟨3289⟩)
     rd3277 hnoCode
@@ -555,7 +557,7 @@ theorem flapperCageX_moveCall
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (cageVatWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
-    (rd3207 : RD flapperBytecode I g
+    (rd3207 : RD fork flapperBytecode I g
       (initState σStart σ₀ g A I) ⟨3207⟩
       [⟨0⟩, cageRadWord I, ⟨360⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
@@ -566,12 +568,12 @@ theorem flapperCageX_moveCall
     let vat := cageVatWord σ I
     ∃ (σ' : AccountMap) (z : Bool)
       (out : ByteArray) (A' : Substate) (k' C' : ℕ),
-      RD flapperBytecode I g (initState σStart σ₀ g A I) ⟨3293⟩
+      RD fork flapperBytecode I g (initState σStart σ₀ g A I) ⟨3293⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: cageMoveEndPtr :: cageMoveSelectorWord ::
           vat :: rad :: ⟨360⟩ :: sel :: [])
         (cageMoveCalldataMem src guy rad (relyAuthHashMem I)) (UInt256.ofNat 8)
         out σ' k' C'
-    ∧ typedCallViaEVM config
+    ∧ typedCallViaEVM fork config
         ({ initState σStart σ₀ g A I with accountMap := σ })
         (EVM.address (AccountAddress.ofNat vat.toNat)) "move" 0
         [.address I.codeOwner, .address I.source, .int (Int.ofNat rad.toNat)]
@@ -616,7 +618,7 @@ theorem flapperCageX_moveCall
     have hmin : (min cageMoveOutSize (UInt256.ofNat out.size)).toNat = 0 := by
       unfold cageMoveOutSize
       rfl
-    have rd3293 : RD flapperBytecode I g (initState σStart σ₀ g A I) ⟨3293⟩
+    have rd3293 : RD fork flapperBytecode I g (initState σStart σ₀ g A I) ⟨3293⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: cageMoveEndPtr :: cageMoveSelectorWord ::
           vat :: rad :: ⟨360⟩ :: sel :: [])
         (out.write 0 (cageMoveCalldataMem src guy rad (relyAuthHashMem I))
@@ -641,7 +643,7 @@ theorem flapperCageX_moveCallDepthLimit
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (cageVatWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
-    (rd3207 : RD flapperBytecode I g
+    (rd3207 : RD fork flapperBytecode I g
       (initState σStart σ₀ g A I) ⟨3207⟩
       [⟨0⟩, cageRadWord I, ⟨360⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
@@ -650,7 +652,7 @@ theorem flapperCageX_moveCallDepthLimit
     let guy := cageSenderWord I
     let rad := cageRadWord I
     let vat := cageVatWord σ I
-    ∃ k' C', RD flapperBytecode I g (initState σStart σ₀ g A I) ⟨3293⟩
+    ∃ k' C', RD fork flapperBytecode I g (initState σStart σ₀ g A I) ⟨3293⟩
       (⟨0⟩ :: cageMoveEndPtr :: cageMoveSelectorWord :: vat :: rad :: ⟨360⟩ :: sel :: [])
       (cageMoveCalldataMem src guy rad (relyAuthHashMem I)) (UInt256.ofNat 8)
       ByteArray.empty σ k' C' := by
@@ -682,12 +684,12 @@ theorem flapperCageX_moveCallFailure
     {σStart σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {σ' : AccountMap}
     {mem out : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd3293 : RD flapperBytecode I g (initState σStart σ₀ g A I) ⟨3293⟩
+    (rd3293 : RD fork flapperBytecode I g (initState σStart σ₀ g A I) ⟨3293⟩
       (⟨0⟩ :: cageMoveEndPtr :: cageMoveSelectorWord ::
         cageVatWord σ I :: cageRadWord I :: ⟨360⟩ :: sel :: [])
       mem aw out σ' k C)
     (houtSize : out.size < UInt256.size) :
-    RDrev flapperBytecode g (initState σStart σ₀ g A I) := by
+    RDrev fork flapperBytecode g (initState σStart σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨3293⟩) (okPc := ⟨3309⟩) rd3293
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -699,11 +701,11 @@ theorem flapperCageX_moveCallSuccess
     {σStart σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {σ' : AccountMap}
     {mem out : ByteArray} {k C : ℕ}
-    (rd3293 : RD flapperBytecode I g (initState σStart σ₀ g A I) ⟨3293⟩
+    (rd3293 : RD fork flapperBytecode I g (initState σStart σ₀ g A I) ⟨3293⟩
       (⟨1⟩ :: cageMoveEndPtr :: cageMoveSelectorWord ::
         cageVatWord σ I :: cageRadWord I :: ⟨360⟩ :: sel :: [])
       mem (UInt256.ofNat 8) out σ' k C) :
-    RDret flapperBytecode g (initState σStart σ₀ g A I)
+    RDret fork flapperBytecode g (initState σStart σ₀ g A I)
       σ' ByteArray.empty := by
   obtain ⟨k3311, C3311, rd3311raw⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨3293⟩) (okPc := ⟨3309⟩) rd3293
@@ -711,7 +713,7 @@ theorem flapperCageX_moveCallSuccess
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
       (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd3311 : RD flapperBytecode I g (initState σStart σ₀ g A I) ⟨3311⟩
+  have rd3311 : RD fork flapperBytecode I g (initState σStart σ₀ g A I) ⟨3311⟩
       (cageMoveEndPtr :: cageMoveSelectorWord :: cageVatWord σ I :: cageRadWord I ::
         ⟨360⟩ :: sel :: [])
       mem (UInt256.ofNat 8) out σ' k3311 C3311 := by
@@ -794,7 +796,7 @@ theorem flapperCageBodyReverts_unauthorized (evm : EVM.State) (I : ExecutionEnv)
     (hsrc : evm.executionEnv.source = I.source)
     (hauth :
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (relyAuthStorageSlot I) ≠ ⟨1⟩) :
-    ExecTransitionBody config contract evm (cageLocals I) cageTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (cageLocals I) cageTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   simpa [cageTransition, nonpayable, auth, checkedExternalCallStmts,
     List.cons_append, List.nil_append] using
@@ -819,9 +821,9 @@ theorem flapperCageBodyReverts_moveNoCodeSplit (evm : EVM.State) (I : ExecutionE
     (evm.executionEnv.perm = true → (Reasoning.Theory.extCodeSizeWord (cageLivePostState evm).accountMap
         (solcAddressSlotWord ⟨2⟩ (cageLivePostState evm).accountMap
           (cageLivePostState evm).executionEnv) = ⟨0⟩) →
-      ExecTransitionBody config contract evm (cageLocals I) cageTransition.body .reverted) ∧
+      ExecTransitionBody fork config contract evm (cageLocals I) cageTransition.body .reverted) ∧
       (evm.executionEnv.perm = false →
-        ExecTransitionBody config contract evm (cageLocals I)
+        ExecTransitionBody fork config contract evm (cageLocals I)
           cageTransition.body .staticViolation) := by
   have hguardAuth := evalExpr_auth_true_of_wards_none evm I (cageLocals I)
     (cageLocals_get_wards I) hsrc hauth
@@ -829,11 +831,11 @@ theorem flapperCageBodyReverts_moveNoCodeSplit (evm : EVM.State) (I : ExecutionE
       (.intLit 0) = .ok (.int 0) := by simp [evalExpr?, pure]
   have hassign := cageAssignLive evm I
   have hprefix {result : ExecResult}
-      (hwrite : ExecBlock config { contract := contract, locals := cageLocals I } evm
+      (hwrite : ExecBlock fork config { contract := contract, locals := cageLocals I } evm
         ([.assign .storage liveRef (.intLit 0)] ++
           checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
             [thisAddr, sender, .var "rad"] "_moveRet") result) :
-      ExecBlock config { contract := contract, locals := cageLocals I } evm
+      ExecBlock fork config { contract := contract, locals := cageLocals I } evm
         cageTransition.body result := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
     exact ExecBlock.consNormal (ExecStmt.requireTrue hguardAuth) hwrite
@@ -870,14 +872,14 @@ theorem flapperCageBodyReverts_moveNoCodeSplit (evm : EVM.State) (I : ExecutionE
           (.binary .gt (.extCodeSize (.storage vatRef)) (.intLit 0)) = .ok (.bool false) :=
       evalExpr_cage_extCodeGuard_false hvat hnoCodeLookup
     have hchecked :
-        ExecBlock config { contract := contract, locals := cageLocals I }
+        ExecBlock fork config { contract := contract, locals := cageLocals I }
           (cageLivePostState evm)
           (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
             [thisAddr, sender, .var "rad"] "_moveRet")
           .reverted := by
       exact checkedExternalCallNoCode hguard
     exact ExecFuncBody.execBlockRevert
-      (hprefix (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) hvalue hassign) hchecked))
+      (hprefix (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) hvalue hassign) hchecked))
   · intro hperm
     exact ExecFuncBody.execBlockStatic
       (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hvalue hassign hperm)))
@@ -892,7 +894,7 @@ theorem flapperCageBodyReverts_moveNoCode (evm : EVM.State) (I : ExecutionEnv)
         (solcAddressSlotWord ⟨2⟩ (cageLivePostState evm).accountMap
           (cageLivePostState evm).executionEnv) = ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (cageLocals I) cageTransition.body .reverted :=
+    ExecTransitionBody fork config contract evm (cageLocals I) cageTransition.body .reverted :=
   (flapperCageBodyReverts_moveNoCodeSplit evm I hwv hsrc hauth).1 hperm hnoCode
 
 theorem flapperCageBodyReverts_moveCallFailure
@@ -906,7 +908,7 @@ theorem flapperCageBodyReverts_moveCallFailure
         (solcAddressSlotWord ⟨2⟩ (cageLivePostState evm).accountMap
           (cageLivePostState evm).executionEnv) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config (cageLivePostState evm)
+      typedCallViaEVM fork config (cageLivePostState evm)
         (EVM.address (AccountAddress.ofNat
           (solcAddressSlotWord ⟨2⟩ (cageLivePostState evm).accountMap
             (cageLivePostState evm).executionEnv).toNat))
@@ -915,7 +917,7 @@ theorem flapperCageBodyReverts_moveCallFailure
           .address (cageLivePostState evm).executionEnv.source, cageRadValue I]
         (false, evm', out) true)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (cageLocals I) cageTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (cageLocals I) cageTransition.body .reverted := by
   have hvat :
       evalExpr? config { contract := contract, locals := cageLocals I }
           (cageLivePostState evm) (.storage vatRef) =
@@ -948,7 +950,7 @@ theorem flapperCageBodyReverts_moveCallFailure
     evalExpr_cage_extCodeGuard_true hvat hcodeLookup
   have hargs := evalExprs_cage_move_args (cageLivePostState evm) I
   have hchecked :
-      ExecBlock config { contract := contract, locals := cageLocals I }
+      ExecBlock fork config { contract := contract, locals := cageLocals I }
         (cageLivePostState evm)
         (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
           [thisAddr, sender, .var "rad"] "_moveRet")
@@ -963,7 +965,7 @@ theorem flapperCageBodyReverts_moveCallFailure
           (evalExpr_auth_true_of_wards_none evm I (cageLocals I)
             (cageLocals_get_wards I) hsrc hauth)) <|
       ExecBlock.consNormal
-        (ExecStmt.assign (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) (cageAssignLive evm I)) <|
+        (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) (cageAssignLive evm I)) <|
       hchecked)
 
 theorem flapperCageBodyReturns_moveCallSuccess
@@ -977,7 +979,7 @@ theorem flapperCageBodyReturns_moveCallSuccess
         (solcAddressSlotWord ⟨2⟩ (cageLivePostState evm).accountMap
           (cageLivePostState evm).executionEnv) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config (cageLivePostState evm)
+      typedCallViaEVM fork config (cageLivePostState evm)
         (EVM.address (AccountAddress.ofNat
           (solcAddressSlotWord ⟨2⟩ (cageLivePostState evm).accountMap
             (cageLivePostState evm).executionEnv).toNat))
@@ -986,7 +988,7 @@ theorem flapperCageBodyReturns_moveCallSuccess
           .address (cageLivePostState evm).executionEnv.source, cageRadValue I]
         (true, evm', out) true)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (cageLocals I) cageTransition.body
+    ExecTransitionBody fork config contract evm (cageLocals I) cageTransition.body
       (.returned { contract := contract, locals := cageMoveLocals I } evm' none) := by
   have hvat :
       evalExpr? config { contract := contract, locals := cageLocals I }
@@ -1022,7 +1024,7 @@ theorem flapperCageBodyReturns_moveCallSuccess
   have hdec : config.externalABI.decode? "move" out = some [] := by
     simp [config, externalABI, decodeVoid?]
   have hchecked :
-      ExecBlock config { contract := contract, locals := cageLocals I }
+      ExecBlock fork config { contract := contract, locals := cageLocals I }
         (cageLivePostState evm)
         (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
           [thisAddr, sender, .var "rad"] "_moveRet")
@@ -1038,7 +1040,7 @@ theorem flapperCageBodyReturns_moveCallSuccess
           (evalExpr_auth_true_of_wards_none evm I (cageLocals I)
             (cageLocals_get_wards I) hsrc hauth)) <|
       ExecBlock.consNormal
-        (ExecStmt.assign (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) (cageAssignLive evm I)) <|
+        (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) (cageAssignLive evm I)) <|
       hchecked)
 
 theorem flapperCageBodyCoreUnauthorized
@@ -1051,15 +1053,15 @@ theorem flapperCageBodyCoreUnauthorized
     (hdecode :
       config.externalABI.decodeCalldata? (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some (cageLocals I))
-    (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨700⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthSteleWord : relyAuthWord σ I ≠ ⟨1⟩ := by
     exact hauth
   have hbody :
-      ExecTransitionBody config contract evmStele (cageLocals I)
+      ExecTransitionBody fork config contract evmStele (cageLocals I)
         cageTransition.body .reverted := by
     simpa [evmStele, relyAuthWord, solcSlotWordAt, initState, Stele.EVM.storageLoad,
       State.lookupAccount] using
@@ -1085,10 +1087,10 @@ theorem flapperCageBodyCoreMoveNoCode
     (hdecode :
       config.externalABI.decodeCalldata? (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some (cageLocals I))
-    (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨700⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthSteleWord : relyAuthWord σ I = ⟨1⟩ := by
     exact hauth
@@ -1103,7 +1105,7 @@ theorem flapperCageBodyCoreMoveNoCode
     simpa [evmStele, cageLivePostState, cageLivePostAccountMap, initState,
       storageStore_accountMap, storageStore_executionEnv] using hnoCodeStele
   have hbody :
-      ExecTransitionBody config contract evmStele (cageLocals I)
+      ExecTransitionBody fork config contract evmStele (cageLocals I)
         cageTransition.body .reverted := by
     simpa [evmStele, relyAuthWord, solcSlotWordAt, initState, Stele.EVM.storageLoad,
       State.lookupAccount] using
@@ -1137,18 +1139,18 @@ theorem flapperCageBodyCoreMoveCallDepthLimit
     (hdecode :
       config.externalABI.decodeCalldata? (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some (cageLocals I))
-    (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨700⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmLiveStele := cageLivePostState evmStele
   let vat := solcAddressSlotWord ⟨2⟩ evmLiveStele.accountMap evmLiveStele.executionEnv
   let src := cageThisWord I
   let guy := cageSenderWord I
   let rad := cageRadWord I
-  let A_move := (evmLiveStele.addAccessedAccount
-    (EVM.address (AccountAddress.ofNat vat.toNat))).substate
+  let A_move := (Ethereum.EVM.callSubstate fork evmLiveStele.accountMap
+    (EVM.address (AccountAddress.ofNat vat.toNat)) evmLiveStele.substate)
   have hmem : (relyAuthHashMem I).size = 96 := relyAuthHashMem_size I
   have hsrcCanon : src.toNat < EVM.addressModulus := by
     have hsizeAddr : AccountAddress.size < UInt256.size := by decide
@@ -1167,7 +1169,7 @@ theorem flapperCageBodyCoreMoveCallDepthLimit
     simpa [evmLiveStele, evmStele, cageLivePostState, initState,
       storageStore_executionEnv] using hdepth
   have hcallStele :
-      typedCallViaEVM config evmLiveStele
+      typedCallViaEVM fork config evmLiveStele
         (EVM.address (AccountAddress.ofNat vat.toNat)) "move" 0
         [.address evmLiveStele.executionEnv.codeOwner,
           .address evmLiveStele.executionEnv.source, cageRadValue I]
@@ -1197,7 +1199,7 @@ theorem flapperCageBodyCoreMoveCallDepthLimit
     simpa [evmLiveStele, evmStele, cageLivePostState, cageLivePostAccountMap, initState,
       storageStore_accountMap, storageStore_executionEnv] using hcodeSizeSteleMap
   have hbody :
-      ExecTransitionBody config contract evmStele (cageLocals I)
+      ExecTransitionBody fork config contract evmStele (cageLocals I)
         cageTransition.body .reverted := by
     simpa [evmStele, evmLiveStele, relyAuthWord, solcSlotWordAt, initState,
       Stele.EVM.storageLoad, State.lookupAccount] using
@@ -1229,14 +1231,14 @@ theorem flapperCageBodyCoreMoveCallFailure
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord (cageLivePostAccountMap I σ)
         (cageVatWord (cageLivePostAccountMap I σ) I) ≠ ⟨0⟩)
-    (rd3293 : RD flapperBytecode I (Sat256.ofUInt256 g)
+    (rd3293 : RD fork flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3293⟩
       (⟨0⟩ :: cageMoveEndPtr :: cageMoveSelectorWord ::
         cageVatWord (cageLivePostAccountMap I σ) I :: cageRadWord I ::
         ⟨360⟩ :: sel :: [])
       mem (UInt256.ofNat 8) out σ' k C)
     (hcall :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         ({ initState σ σ₀ (Sat256.ofUInt256 g) A I with
             accountMap := cageLivePostAccountMap I σ })
         (EVM.address (AccountAddress.ofNat
@@ -1253,7 +1255,7 @@ theorem flapperCageBodyCoreMoveCallFailure
     (hdecode :
       config.externalABI.decodeCalldata? (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some (cageLocals I)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmEvm : EVM.State :=
     { initState σ σ₀ (Sat256.ofUInt256 g) A I with
       accountMap := cageLivePostAccountMap I σ }
@@ -1270,7 +1272,7 @@ theorem flapperCageBodyCoreMoveCallFailure
       cageLivePostAccountMap, initState, storageStore_accountMap,
       storageStore_executionEnv]
   have hcallStele :
-      typedCallViaEVM config evmLiveStele
+      typedCallViaEVM fork config evmLiveStele
         (EVM.address (AccountAddress.ofNat
           (solcAddressSlotWord ⟨2⟩ evmLiveStele.accountMap
             evmLiveStele.executionEnv).toNat))
@@ -1293,7 +1295,7 @@ theorem flapperCageBodyCoreMoveCallFailure
     simpa [evmLiveStele, evmStele, cageLivePostState, cageLivePostAccountMap, initState,
       storageStore_accountMap, storageStore_executionEnv] using hcodeSizeSteleMap
   have hbody :
-      ExecTransitionBody config contract evmStele (cageLocals I)
+      ExecTransitionBody fork config contract evmStele (cageLocals I)
         cageTransition.body .reverted := by
     simpa [evmStele, evmLiveStele, evmCallStele, relyAuthWord, solcSlotWordAt,
       initState, Stele.EVM.storageLoad, State.lookupAccount] using
@@ -1316,14 +1318,14 @@ theorem flapperCageBodyCoreMoveCallSuccess
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord (cageLivePostAccountMap I σ)
         (cageVatWord (cageLivePostAccountMap I σ) I) ≠ ⟨0⟩)
-    (rd3293 : RD flapperBytecode I (Sat256.ofUInt256 g)
+    (rd3293 : RD fork flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3293⟩
       (⟨1⟩ :: cageMoveEndPtr :: cageMoveSelectorWord ::
         cageVatWord (cageLivePostAccountMap I σ) I :: cageRadWord I ::
         ⟨360⟩ :: sel :: [])
       mem (UInt256.ofNat 8) out σ' k C)
     (hcall :
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         ({ initState σ σ₀ (Sat256.ofUInt256 g) A I with
             accountMap := cageLivePostAccountMap I σ })
         (EVM.address (AccountAddress.ofNat
@@ -1339,7 +1341,7 @@ theorem flapperCageBodyCoreMoveCallSuccess
     (hdecode :
       config.externalABI.decodeCalldata? (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some (cageLocals I)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmEvm : EVM.State :=
     { initState σ σ₀ (Sat256.ofUInt256 g) A I with
       accountMap := cageLivePostAccountMap I σ }
@@ -1356,7 +1358,7 @@ theorem flapperCageBodyCoreMoveCallSuccess
       cageLivePostAccountMap, initState, storageStore_accountMap,
       storageStore_executionEnv]
   have hcallStele :
-      typedCallViaEVM config evmLiveStele
+      typedCallViaEVM fork config evmLiveStele
         (EVM.address (AccountAddress.ofNat
           (solcAddressSlotWord ⟨2⟩ evmLiveStele.accountMap
             evmLiveStele.executionEnv).toNat))
@@ -1379,7 +1381,7 @@ theorem flapperCageBodyCoreMoveCallSuccess
     simpa [evmLiveStele, evmStele, cageLivePostState, cageLivePostAccountMap, initState,
       storageStore_accountMap, storageStore_executionEnv] using hcodeSizeSteleMap
   have hbody :
-      ExecTransitionBody config contract evmStele (cageLocals I)
+      ExecTransitionBody fork config contract evmStele (cageLocals I)
         cageTransition.body
         (.returned { contract := contract, locals := cageMoveLocals I } evmCallStele none) := by
     simpa [evmStele, evmLiveStele, evmCallStele, relyAuthWord, solcSlotWordAt,
@@ -1404,10 +1406,10 @@ theorem flapperCageBodyCoreDecodeFailed_short
     (hcode : I.code = flapperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
-    (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨700⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact (flapperCageX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch
       (flapperDecode_cage_none_short hsz4 hshort)
@@ -1417,12 +1419,12 @@ theorem flapperCageBodyCore {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flapperSelBytes 2)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flapperSelBytes 2) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some cageTransition :=
     flapperDispatchCage hsel
-  have hreach := flapperReachCageBody
+  have hreach := flapperReachCageBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
@@ -1435,7 +1437,7 @@ theorem flapperCageBodyCore {σ σ₀ A I} {g : UInt256}
           flapperCageX_decoded (g := Sat256.ofUInt256 g) hsz36 hsize hreach
         obtain ⟨_, _, rd3199⟩ := flapperCageX_authorized (I := I) hauth rd3106
         have hstatic := permSplit_false hp (flapperCageX_storeLiveSplit rd3199)
-        have hsource := (flapperCageBodyReverts_moveNoCodeSplit
+        have hsource := (flapperCageBodyReverts_moveNoCodeSplit (fork := fork)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) I hwv rfl
           (by simpa [relyAuthWord, solcSlotWordAt, initState, Stele.EVM.storageLoad,
             State.lookupAccount] using hauth)).2 hp
@@ -1470,7 +1472,7 @@ theorem flapperCageBodyCore {σ σ₀ A I} {g : UInt256}
             flapperCageX_moveCall (g := Sat256.ofUInt256 g) hperm hcodeSize
               hdepthLt rd3207
           by_cases hz : z = true
-          · have rd3293True : RD flapperBytecode I (Sat256.ofUInt256 g)
+          · have rd3293True : RD fork flapperBytecode I (Sat256.ofUInt256 g)
                 (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3293⟩
                 (⟨1⟩ :: cageMoveEndPtr :: cageMoveSelectorWord ::
                   cageVatWord (cageLivePostAccountMap I σ) I :: cageRadWord I ::
@@ -1480,7 +1482,7 @@ theorem flapperCageBodyCore {σ σ₀ A I} {g : UInt256}
                 (UInt256.ofNat 8) out σ' k3293 C3293 := by
               simpa [hz] using rd3293
             have hcallTrue :
-                typedCallViaEVM config
+                typedCallViaEVM fork config
                   ({ initState σ σ₀ (Sat256.ofUInt256 g) A I with
                       accountMap := cageLivePostAccountMap I σ })
                   (EVM.address (AccountAddress.ofNat
@@ -1498,7 +1500,7 @@ theorem flapperCageBodyCore {σ σ₀ A I} {g : UInt256}
               rd3293True hcallTrue hdispatch hdecode
           · have hzFalse : z = false := by
               cases z <;> simp at hz ⊢
-            have rd3293False : RD flapperBytecode I (Sat256.ofUInt256 g)
+            have rd3293False : RD fork flapperBytecode I (Sat256.ofUInt256 g)
                 (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3293⟩
                 (⟨0⟩ :: cageMoveEndPtr :: cageMoveSelectorWord ::
                   cageVatWord (cageLivePostAccountMap I σ) I :: cageRadWord I ::
@@ -1508,7 +1510,7 @@ theorem flapperCageBodyCore {σ σ₀ A I} {g : UInt256}
                 (UInt256.ofNat 8) out σ' k3293 C3293 := by
               simpa [hzFalse] using rd3293
             have hcallFalse :
-                typedCallViaEVM config
+                typedCallViaEVM fork config
                   ({ initState σ σ₀ (Sat256.ofUInt256 g) A I with
                       accountMap := cageLivePostAccountMap I σ })
                   (EVM.address (AccountAddress.ofNat

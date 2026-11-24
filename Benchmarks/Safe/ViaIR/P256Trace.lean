@@ -2,6 +2,8 @@ import Benchmarks.Safe.ViaIR.P256Memory
 import Benchmarks.Safe.ViaIR.RawStaticCall
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_040
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -23,12 +25,12 @@ theorem safeP256InputMemory {mem : ByteArray} {ptr : Nat} {p : P256Input}
 
 theorem safeP256Prepare {I g s0 σ k C aw mem rdata ptr} {p : P256Input}
     {scratch last owner src : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨8418⟩
+    (h : RD fork safeBytecode I g s0 ⟨8418⟩
       (p.s :: p.qx :: p.qy :: p.r :: scratch :: last :: owner :: src :: p.h :: R)
       mem aw rdata σ k C)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr) (hb : ptr + 160 < UInt256.size)
     (hov : R.length + 14 ≤ 1024) :
-    ∃ gasArg aw' k' C', RD safeBytecode I g s0 ⟨8460⟩
+    ∃ gasArg aw' k' C', RD fork safeBytecode I g s0 ⟨8460⟩
       (gasArg :: ⟨256⟩ :: UInt256.ofNat ptr :: ⟨160⟩ :: ⟨0⟩ :: ⟨32⟩ ::
         last :: owner :: src :: p.h :: R)
       (p256InputMemory mem ptr p) aw' rdata σ k' C' := by
@@ -76,17 +78,17 @@ theorem safeP256ResultStack {mem out : ByteArray} {ptr : Nat} {p : P256Input}
 
 theorem safeP256Trace {I g s0 σ k C aw mem rdata ptr} {p : P256Input}
     {scratch last owner src : UInt256} {R : List UInt256} (evm : EVM.State)
-    (h : RD safeBytecode I g s0 ⟨8418⟩
+    (h : RD fork safeBytecode I g s0 ⟨8418⟩
       (p.s :: p.qx :: p.qy :: p.r :: scratch :: last :: owner :: src :: p.h :: R)
       mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ) (hworld : evm.σ₀ = s0.σ₀)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr) (hb : ptr + 160 < UInt256.size)
     (hov : R.length + 14 ≤ 1024) :
     ∃ evm' σ' z out aw' k' C',
-      callViaEVM evm (AccountAddress.ofNat 256) 0 (wordBytes (p256Words p))
+      callViaEVM fork evm (AccountAddress.ofNat 256) 0 (wordBytes (p256Words p))
         (z, evm', out) false ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧ evm'.σ₀ = s0.σ₀ ∧
-      RD safeBytecode I g s0 ⟨8364⟩
+      RD fork safeBytecode I g s0 ⟨8364⟩
         (⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: (if p256Result z out then ⟨0⟩ else ⟨1⟩) ::
           last :: owner :: src :: p.h :: R)
         (p256OutputMemory mem ptr p out) aw' out σ' k' C' := by

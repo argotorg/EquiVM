@@ -4,6 +4,8 @@ import Benchmarks.Safe.V1_0227664.GetOwnersLoop
 import Benchmarks.Safe.V1_0227664.GetOwnersReturn
 import Benchmarks.Safe.V1_0227664.Blocks.Runtime_009
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V1_0227664.RuntimeBlocks
 
@@ -17,10 +19,10 @@ theorem safeGetownersBodyCore
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some getownersTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨hlong, hword⟩ := selectorDispatchFacts 0xa0 0xe6 0x7e 0x2b ⟨0xa0e67e2b⟩
     hdispatch getownersSelectorBytes (by decide)
-  obtain ⟨k, C, hentry⟩ := safeReachEntry (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, hentry⟩ := safeReachEntry (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) ⟨0xa0e67e2b⟩ 3 ⟨1154⟩ hcode hsize hlong hword
     (by native_decide)
   let evm := initState σ σ₀ (.ofUInt256 g) A I
@@ -53,13 +55,13 @@ theorem safeGetownersBodyCore
         (by simp [safeRuntime_block_1165_stack]) hmem hlocals (by rwa [hcount])
         (by omega) (solcAddrMask_result_canonical _) hwords (by jump_dest)
       rcases hloop with ⟨hsrc, hrev⟩ | ⟨ws, ls, ms, aw', k', C', j, hsrc, hls, hms, hws, hrd⟩
-      · have hbody : ExecTransitionBody config contract evm ∅ getownersTransition.body .reverted :=
+      · have hbody : ExecTransitionBody fork config contract evm ∅ getownersTransition.body .reverted :=
           .execBlockRevert (safeGetOwnersPrefix evm hvalue (by rwa [hcount]) (.consRevert hsrc))
         refine RDrev.reEquivElim hcode hrev fun _ _ hΞ ↦ ?_
         exact reEquivSelectorExecution hdispatch (decodeCalldata_empty_ok hlong) hbody
           (.revert hΞ rfl)
       · have hret := safeGetOwnersReturnTrace hrd (by simp) hms (by rwa [hcount]) hws
-        have hbody : ExecTransitionBody config contract evm ∅ getownersTransition.body
+        have hbody : ExecTransitionBody fork config contract evm ∅ getownersTransition.body
             (.returned { contract := contract, locals := ls } evm
               (some [.array (ws.map addressArrayValue)])) :=
           .execBlockRet (safeGetOwnersPrefix evm hvalue (by rwa [hcount])
@@ -68,7 +70,7 @@ theorem safeGetownersBodyCore
         exact reEquivSelectorExecution hdispatch (decodeCalldata_empty_ok hlong) hbody
           (.success hΞ rfl rfl (.abi (returnEquiv_of_encode (addressArrayReturnEncoding ws hws))))
     · have hrev := safeGetOwnersCountFail h₂ (by simp [safeRuntime_block_1165_stack]) hn
-      have hbody := safeGetOwnersCountRevert evm hvalue (by rwa [hcount])
+      have hbody := safeGetOwnersCountRevert (fork := fork) evm hvalue (by rwa [hcount])
       refine RDrev.reEquivElim hcode hrev fun _ _ hΞ ↦ ?_
       exact reEquivSelectorExecution hdispatch (decodeCalldata_empty_ok hlong) hbody
         (.revert hΞ rfl)
@@ -82,7 +84,7 @@ theorem safeGetownersRefines
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some getownersTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact safeGetownersBodyCore hcode hsize hdispatch
 
 end Benchmarks.Safe.V1_0227664

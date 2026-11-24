@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.Values
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 
@@ -14,8 +16,8 @@ theorem evalBoolIte {cfg : Config} {f : Frame} {evm : EVM.State} {cond yes no : 
 -- LIBRARY CANDIDATE: an early false return preceding a boolean-returning block.
 theorem falseReturnGuard {cfg : Config} {f : Frame} {evm : EVM.State} {cond : Expr} {rest : List Stmt} {c result : Bool}
     (hc : evalExpr? cfg f evm cond = .ok (.bool c))
-    (hr : ExecBlock cfg f evm rest (.returned f evm (some [.bool result]))) :
-    ExecBlock cfg f evm (.ite cond [.return [.boolLit false]] [] :: rest)
+    (hr : ExecBlock fork cfg f evm rest (.returned f evm (some [.bool result]))) :
+    ExecBlock fork cfg f evm (.ite cond [.return [.boolLit false]] [] :: rest)
       (.returned f evm (some [.bool (if c then false else result)])) := by
   cases c with
   | false => exact ExecBlock.consNormal (ExecStmt.iteFalse hc ExecBlock.nil) hr

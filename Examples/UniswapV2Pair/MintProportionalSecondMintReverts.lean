@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.MintInitialSecondMintReverts
 import Examples.UniswapV2Pair.MintProportionalFinish
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -46,7 +48,7 @@ theorem uniswapMintProportionalUpdateFirstBoundFromAfterFeeCase
               "balance0" (uniswapUint256Value balance0) }
         evm0S (.binary .gt (.extCodeSize (.storage token1Ref)) (.intLit 0)) =
           .ok (.bool true))
-    (hcall0 : typedCallViaEVM config
+    (hcall0 : typedCallViaEVM fork config
       (uniswapLockEnteredState
         (initState σ σ₀ (Sat256.ofUInt256 g) A I))
       (EVM.address
@@ -60,7 +62,7 @@ theorem uniswapMintProportionalUpdateFirstBoundFromAfterFeeCase
       (true, evm0S, out0) false)
     (hdec0 :
       config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
-    (hcall1 : typedCallViaEVM config evm0S
+    (hcall1 : typedCallViaEVM fork config evm0S
       (EVM.address (uniswapAddressAtSlot evm0S ⟨7⟩)) "balanceOf" 0
       [.address evm0S.executionEnv.codeOwner] (true, evm1S, out1) false)
     (hdec1 :
@@ -76,7 +78,7 @@ theorem uniswapMintProportionalUpdateFirstBoundFromAfterFeeCase
           (initState σ σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
           balance1.toNat)
     (hfee :
-      ExecStmt config
+      ExecStmt fork config
         { contract := contract,
           locals :=
             mintAmountStore
@@ -110,7 +112,7 @@ theorem uniswapMintProportionalUpdateFirstBoundFromAfterFeeCase
     (hfitSupply : mintFunctionTotalSupplyNewNat evmAfter liquidity < UInt256.size)
     (hfitBalanceSource : mintFunctionToBalanceNewNat evmAfter recipient liquidity < UInt256.size)
     (hperm : I.perm = true)
-    (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd3701 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
       [feeOn, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
         toWord, ⟨861⟩, sel]
@@ -127,7 +129,7 @@ theorem uniswapMintProportionalUpdateFirstBoundFromAfterFeeCase
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hpermAfter : evmAfter.executionEnv.perm = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let afterTotalSupplyLocals :=
     nextLocals.insert "_totalSupply"
@@ -193,7 +195,7 @@ theorem uniswapMintProportionalUpdateFirstBoundFromAfterFeeCase
     norm_num [maxUint112]
     exact_mod_cast hnat
   have hshort :
-      ExecBlock config { contract := contract, locals := afterTotalSupplyLocals } evmAfter
+      ExecBlock fork config { contract := contract, locals := afterTotalSupplyLocals } evmAfter
         ([mintLiquidityBranchStmt] ++
           [ .require (.binary .gt (.var "liquidity") (.intLit 0)),
             .internalCall "_mint" [.var "to", .var "liquidity"] "_mintResult" ] ++
@@ -219,7 +221,7 @@ theorem uniswapMintProportionalUpdateFirstBoundFromAfterFeeCase
         (by simpa [htotalEq] using hfitSupply)
         hfitBalanceSource hfail0Source
   have htail :
-      ExecBlock config { contract := contract, locals := afterTotalSupplyLocals } evmAfter
+      ExecBlock fork config { contract := contract, locals := afterTotalSupplyLocals } evmAfter
         ([mintLiquidityBranchStmt] ++ mintAfterLiquidityTailStmts) .reverted := by
     have hfull :=
       execBlock_append_term
@@ -234,7 +236,7 @@ theorem uniswapMintProportionalUpdateFirstBoundFromAfterFeeCase
     simpa [mintAfterLiquidityTailStmts, List.append_assoc] using hfull
   have hthrough := execBlock_append hprefix htail
   have hbody :
-      ExecTransitionBody config contract evmS (mintStore I) mintTransition.body .reverted := by
+      ExecTransitionBody fork config contract evmS (mintStore I) mintTransition.body .reverted := by
     exact ExecFuncBody.execBlockRevert (by
       simpa [mintTransition, mintLiquidityBranchStmt, mintInitialLiquidityBranchStmts,
         mintProportionalLiquidityBranchStmts, mintAfterLiquidityTailStmts,
@@ -283,7 +285,7 @@ theorem uniswapMintProportionalUpdateSecondBoundFromAfterFeeCase
               "balance0" (uniswapUint256Value balance0) }
         evm0S (.binary .gt (.extCodeSize (.storage token1Ref)) (.intLit 0)) =
           .ok (.bool true))
-    (hcall0 : typedCallViaEVM config
+    (hcall0 : typedCallViaEVM fork config
       (uniswapLockEnteredState
         (initState σ σ₀ (Sat256.ofUInt256 g) A I))
       (EVM.address
@@ -297,7 +299,7 @@ theorem uniswapMintProportionalUpdateSecondBoundFromAfterFeeCase
       (true, evm0S, out0) false)
     (hdec0 :
       config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
-    (hcall1 : typedCallViaEVM config evm0S
+    (hcall1 : typedCallViaEVM fork config evm0S
       (EVM.address (uniswapAddressAtSlot evm0S ⟨7⟩)) "balanceOf" 0
       [.address evm0S.executionEnv.codeOwner] (true, evm1S, out1) false)
     (hdec1 :
@@ -313,7 +315,7 @@ theorem uniswapMintProportionalUpdateSecondBoundFromAfterFeeCase
           (initState σ σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
           balance1.toNat)
     (hfee :
-      ExecStmt config
+      ExecStmt fork config
         { contract := contract,
           locals :=
             mintAmountStore
@@ -347,7 +349,7 @@ theorem uniswapMintProportionalUpdateSecondBoundFromAfterFeeCase
     (hfitSupply : mintFunctionTotalSupplyNewNat evmAfter liquidity < UInt256.size)
     (hfitBalanceSource : mintFunctionToBalanceNewNat evmAfter recipient liquidity < UInt256.size)
     (hperm : I.perm = true)
-    (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd3701 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
       [feeOn, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
         toWord, ⟨861⟩, sel]
@@ -365,7 +367,7 @@ theorem uniswapMintProportionalUpdateSecondBoundFromAfterFeeCase
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hpermAfter : evmAfter.executionEnv.perm = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let afterTotalSupplyLocals :=
     nextLocals.insert "_totalSupply"
@@ -436,7 +438,7 @@ theorem uniswapMintProportionalUpdateSecondBoundFromAfterFeeCase
     norm_num [maxUint112]
     exact_mod_cast hnat
   have hshort :
-      ExecBlock config { contract := contract, locals := afterTotalSupplyLocals } evmAfter
+      ExecBlock fork config { contract := contract, locals := afterTotalSupplyLocals } evmAfter
         ([mintLiquidityBranchStmt] ++
           [ .require (.binary .gt (.var "liquidity") (.intLit 0)),
             .internalCall "_mint" [.var "to", .var "liquidity"] "_mintResult" ] ++
@@ -462,7 +464,7 @@ theorem uniswapMintProportionalUpdateSecondBoundFromAfterFeeCase
         (by simpa [htotalEq] using hfitSupply)
         hfitBalanceSource hfit0Source hfail1Source
   have htail :
-      ExecBlock config { contract := contract, locals := afterTotalSupplyLocals } evmAfter
+      ExecBlock fork config { contract := contract, locals := afterTotalSupplyLocals } evmAfter
         ([mintLiquidityBranchStmt] ++ mintAfterLiquidityTailStmts) .reverted := by
     have hfull :=
       execBlock_append_term
@@ -477,7 +479,7 @@ theorem uniswapMintProportionalUpdateSecondBoundFromAfterFeeCase
     simpa [mintAfterLiquidityTailStmts, List.append_assoc] using hfull
   have hthrough := execBlock_append hprefix htail
   have hbody :
-      ExecTransitionBody config contract evmS (mintStore I) mintTransition.body .reverted := by
+      ExecTransitionBody fork config contract evmS (mintStore I) mintTransition.body .reverted := by
     exact ExecFuncBody.execBlockRevert (by
       simpa [mintTransition, mintLiquidityBranchStmt, mintInitialLiquidityBranchStmts,
         mintProportionalLiquidityBranchStmts, mintAfterLiquidityTailStmts,
@@ -527,7 +529,7 @@ theorem uniswapMintProportionalSecondMintTotalSupplyOverflowFromAfterFeeCase
               "balance0" (uniswapUint256Value balance0) }
         evm0S (.binary .gt (.extCodeSize (.storage token1Ref)) (.intLit 0)) =
           .ok (.bool true))
-    (hcall0 : typedCallViaEVM config
+    (hcall0 : typedCallViaEVM fork config
       (uniswapLockEnteredState
         (initState σ σ₀ (Sat256.ofUInt256 g) A I))
       (EVM.address
@@ -541,7 +543,7 @@ theorem uniswapMintProportionalSecondMintTotalSupplyOverflowFromAfterFeeCase
       (true, evm0S, out0) false)
     (hdec0 :
       config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
-    (hcall1 : typedCallViaEVM config evm0S
+    (hcall1 : typedCallViaEVM fork config evm0S
       (EVM.address (uniswapAddressAtSlot evm0S ⟨7⟩)) "balanceOf" 0
       [.address evm0S.executionEnv.codeOwner] (true, evm1S, out1) false)
     (hdec1 :
@@ -557,7 +559,7 @@ theorem uniswapMintProportionalSecondMintTotalSupplyOverflowFromAfterFeeCase
           (initState σ σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
           balance1.toNat)
     (hfee :
-      ExecStmt config
+      ExecStmt fork config
         { contract := contract,
           locals :=
             mintAmountStore
@@ -586,7 +588,7 @@ theorem uniswapMintProportionalSecondMintTotalSupplyOverflowFromAfterFeeCase
           (UInt256.div (UInt256.mul amount1 totalSupply) reserve1))
     (hliqNonzero : liquidity ≠ ⟨0⟩)
     (hsourceOverflow : UInt256.size ≤ mintFunctionTotalSupplyNewNat evmAfter liquidity)
-    (rd3762 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd3762 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3762⟩
       [totalSupply, feeOn, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
         toWord, ⟨861⟩, sel]
@@ -598,7 +600,7 @@ theorem uniswapMintProportionalSecondMintTotalSupplyOverflowFromAfterFeeCase
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hperm : I.perm = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let afterTotalSupplyLocals :=
     nextLocals.insert "_totalSupply"
@@ -658,13 +660,13 @@ theorem uniswapMintProportionalSecondMintTotalSupplyOverflowFromAfterFeeCase
         some (.int (Int.ofNat reserve1.toNat))
     rw [store_get_ne _ _ (by decide), hreserve1]
   have hbranchStmt :=
-    uniswapMintProportionalLiquidityBranchMin (locals := afterTotalSupplyLocals) evmAfter
+    uniswapMintProportionalLiquidityBranchMin (fork := fork) (locals := afterTotalSupplyLocals) evmAfter
       amount0 amount1 totalSupply reserve0 reserve1 htotalAfter htotalNonzero hamount0After
       hamount1After hreserve0After hreserve1After
       (by simpa [mintAmountProductNat] using hmulFit0)
       (by simpa [mintAmountProductNat] using hmulFit1) hreserve0Nonzero hreserve1Nonzero
   have hbranch :
-      ExecBlock config caller evmAfter [mintLiquidityBranchStmt] (.ok afterBranch evmAfter) := by
+      ExecBlock fork config caller evmAfter [mintLiquidityBranchStmt] (.ok afterBranch evmAfter) := by
     exact ExecBlock.consNormal
       (by
         simpa [caller, afterBranch, liquidity0, liquidity1, hliquidity] using hbranchStmt)
@@ -701,12 +703,12 @@ theorem uniswapMintProportionalSecondMintTotalSupplyOverflowFromAfterFeeCase
     rw [hliquidity]
     simp [minFunctionResultValue, liquidity0, liquidity1, hprop0, hprop1]
   have htail :
-      ExecBlock config afterBranch evmAfter mintAfterLiquidityTailStmts .reverted := by
+      ExecBlock fork config afterBranch evmAfter mintAfterLiquidityTailStmts .reverted := by
     exact uniswapMintAfterLiquidityMintTotalSupplyOverflowReverts evmAfter recipient liquidity
       htoAfter hliqAfter hliqNonzero hsourceOverflow
   have hthrough := execBlock_append hprefix (execBlock_append hbranch htail)
   have hbody :
-      ExecTransitionBody config contract evmS (mintStore I) mintTransition.body .reverted := by
+      ExecTransitionBody fork config contract evmS (mintStore I) mintTransition.body .reverted := by
     exact ExecFuncBody.execBlockRevert (by
       simpa [mintTransition, mintLiquidityBranchStmt, mintInitialLiquidityBranchStmts,
         mintProportionalLiquidityBranchStmts, mintAfterLiquidityTailStmts, caller,
@@ -717,7 +719,7 @@ theorem uniswapMintProportionalSecondMintTotalSupplyOverflowFromAfterFeeCase
   obtain ⟨_, _, rd8128⟩ :=
     uniswapMintRuntimeLiquidityMintEntry (by simpa [hliquidity] using rd3841) hliqNonzero
   have rdRev :
-      RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+      RDrev fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
     uniswapInternalMintRuntimeTotalSupplyOverflowReverts
       (value := liquidity) (recipient := toWord) (ret := ⟨3914⟩)
@@ -767,7 +769,7 @@ theorem uniswapMintProportionalSecondMintBalanceOverflowFromAfterFeeCase
               "balance0" (uniswapUint256Value balance0) }
         evm0S (.binary .gt (.extCodeSize (.storage token1Ref)) (.intLit 0)) =
           .ok (.bool true))
-    (hcall0 : typedCallViaEVM config
+    (hcall0 : typedCallViaEVM fork config
       (uniswapLockEnteredState
         (initState σ σ₀ (Sat256.ofUInt256 g) A I))
       (EVM.address
@@ -781,7 +783,7 @@ theorem uniswapMintProportionalSecondMintBalanceOverflowFromAfterFeeCase
       (true, evm0S, out0) false)
     (hdec0 :
       config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
-    (hcall1 : typedCallViaEVM config evm0S
+    (hcall1 : typedCallViaEVM fork config evm0S
       (EVM.address (uniswapAddressAtSlot evm0S ⟨7⟩)) "balanceOf" 0
       [.address evm0S.executionEnv.codeOwner] (true, evm1S, out1) false)
     (hdec1 :
@@ -797,7 +799,7 @@ theorem uniswapMintProportionalSecondMintBalanceOverflowFromAfterFeeCase
           (initState σ σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
           balance1.toNat)
     (hfee :
-      ExecStmt config
+      ExecStmt fork config
         { contract := contract,
           locals :=
             mintAmountStore
@@ -828,7 +830,7 @@ theorem uniswapMintProportionalSecondMintBalanceOverflowFromAfterFeeCase
     (hfitSupplySource : mintFunctionTotalSupplyNewNat evmAfter liquidity < UInt256.size)
     (hsourceOverflow :
       UInt256.size ≤ mintFunctionToBalanceNewNat evmAfter recipient liquidity)
-    (rd3762 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd3762 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3762⟩
       [totalSupply, feeOn, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
         toWord, ⟨861⟩, sel]
@@ -846,7 +848,7 @@ theorem uniswapMintProportionalSecondMintBalanceOverflowFromAfterFeeCase
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hpermAfter : evmAfter.executionEnv.perm = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let afterTotalSupplyLocals :=
     nextLocals.insert "_totalSupply"
@@ -906,13 +908,13 @@ theorem uniswapMintProportionalSecondMintBalanceOverflowFromAfterFeeCase
         some (.int (Int.ofNat reserve1.toNat))
     rw [store_get_ne _ _ (by decide), hreserve1]
   have hbranchStmt :=
-    uniswapMintProportionalLiquidityBranchMin (locals := afterTotalSupplyLocals) evmAfter
+    uniswapMintProportionalLiquidityBranchMin (fork := fork) (locals := afterTotalSupplyLocals) evmAfter
       amount0 amount1 totalSupply reserve0 reserve1 htotalAfter htotalNonzero hamount0After
       hamount1After hreserve0After hreserve1After
       (by simpa [mintAmountProductNat] using hmulFit0)
       (by simpa [mintAmountProductNat] using hmulFit1) hreserve0Nonzero hreserve1Nonzero
   have hbranch :
-      ExecBlock config caller evmAfter [mintLiquidityBranchStmt] (.ok afterBranch evmAfter) := by
+      ExecBlock fork config caller evmAfter [mintLiquidityBranchStmt] (.ok afterBranch evmAfter) := by
     exact ExecBlock.consNormal
       (by
         simpa [caller, afterBranch, liquidity0, liquidity1, hliquidity] using hbranchStmt)
@@ -949,12 +951,12 @@ theorem uniswapMintProportionalSecondMintBalanceOverflowFromAfterFeeCase
     rw [hliquidity]
     simp [minFunctionResultValue, liquidity0, liquidity1, hprop0, hprop1]
   have htail :
-      ExecBlock config afterBranch evmAfter mintAfterLiquidityTailStmts .reverted := by
+      ExecBlock fork config afterBranch evmAfter mintAfterLiquidityTailStmts .reverted := by
     exact uniswapMintAfterLiquidityMintBalanceOverflowReverts (hperm := by assumption) evmAfter recipient liquidity
       htoAfter hliqAfter hliqNonzero hfitSupplySource hsourceOverflow
   have hthrough := execBlock_append hprefix (execBlock_append hbranch htail)
   have hbody :
-      ExecTransitionBody config contract evmS (mintStore I) mintTransition.body .reverted := by
+      ExecTransitionBody fork config contract evmS (mintStore I) mintTransition.body .reverted := by
     exact ExecFuncBody.execBlockRevert (by
       simpa [mintTransition, mintLiquidityBranchStmt, mintInitialLiquidityBranchStmts,
         mintProportionalLiquidityBranchStmts, mintAfterLiquidityTailStmts, caller,
@@ -965,7 +967,7 @@ theorem uniswapMintProportionalSecondMintBalanceOverflowFromAfterFeeCase
   obtain ⟨_, _, rd8128⟩ :=
     uniswapMintRuntimeLiquidityMintEntry (by simpa [hliquidity] using rd3841) hliqNonzero
   have rdRev :
-      RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+      RDrev fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
     uniswapInternalMintRuntimeBalanceOverflowReverts
       (value := liquidity) (recipient := toWord) (ret := ⟨3914⟩)

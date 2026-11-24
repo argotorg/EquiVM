@@ -6,6 +6,8 @@ import Benchmarks.Safe.V0_cdb2eb5.CheckSignaturesTrace
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_006
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_013
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V0_cdb2eb5.RuntimeBlocks
 
@@ -20,10 +22,10 @@ theorem safeChecksignaturesAddressBytes32BytesBodyCore
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata =
       some checksignaturesAddressBytes32BytesTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨hlong, hword⟩ := selectorDispatchFacts 0xf8 0x55 0x43 0x8b ⟨0xf855438b⟩
     hdispatch checksignaturesAddressBytes32BytesSelectorBytes (by decide)
-  obtain ⟨k, C, hentry⟩ := safeReachEntry (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, hentry⟩ := safeReachEntry (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) ⟨0xf855438b⟩ 1 ⟨1626⟩ hcode hsize hlong hword (by native_decide)
   by_cases hvalue : I.weiValue = ⟨0⟩
   swap
@@ -37,7 +39,7 @@ theorem safeChecksignaturesAddressBytes32BytesBodyCore
   cases hdec : decodeCalldata (signatureAddressNames false) (signatureAddressTypes false)
       I.calldata with
   | none =>
-    have hr : RDrev safeBytecode (.ofUInt256 g) evm := by
+    have hr : RDrev fork safeBytecode (.ofUInt256 g) evm := by
       obtain hr | ⟨len, aw', k', C', hh, hs, hc, hoff, hw, hn, hin, hr⟩ :=
         safeDecodeSignatureAddressEvidence false hdecode hlong hsize (by simp) (by jump_dest)
       · exact hr
@@ -104,7 +106,7 @@ theorem safeChecksignaturesAddressBytes32BytesRefines
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata =
       some checksignaturesAddressBytes32BytesTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact safeChecksignaturesAddressBytes32BytesBodyCore hcode hsize hdispatch
 
 end Benchmarks.Safe.V0_cdb2eb5

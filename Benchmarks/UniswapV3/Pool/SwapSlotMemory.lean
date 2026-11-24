@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.BoundedActiveWords
 import Benchmarks.UniswapV3.Pool.Slot0Memory
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_011
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -40,10 +42,10 @@ theorem swapSlotTailMem_eq (mem : ByteArray) (p : UInt256)
 theorem swapSlotReadHeadBoundedX {limit : Nat} {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2358⟩ R mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2358⟩ R mem aw rdata σ k C)
     (hm : HeapMemory mem aw p) (ha : BoundedActiveWords aw limit)
     (hb : p.toNat + 224 ≤ limit) (hov : R.length + 6 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨2440⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨2440⟩
       (UInt256.ofNat 1 :: solcSlotWordAt ⟨0⟩ σ ee :: p :: UInt256.ofNat 65535 :: R)
       (swapSlotHeadMem mem p σ ee) aw' rdata σ k' C' ∧ BoundedActiveWords aw' limit := by
   have hsmall := ha.small
@@ -71,9 +73,9 @@ theorem swapSlotReadHeadBoundedX {limit : Nat} {σ : AccountMap} {ee : Execution
 theorem swapSlotReadHeadX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2358⟩ R mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2358⟩ R mem aw rdata σ k C)
     (hm : HeapMemory mem aw p) (hb : p.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 6 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨2440⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨2440⟩
       (UInt256.ofNat 1 :: solcSlotWordAt ⟨0⟩ σ ee :: p :: UInt256.ofNat 65535 :: R)
       (swapSlotHeadMem mem p σ ee) aw' rdata σ k' C' ∧ ActiveWords aw' := by
   obtain ⟨aw', k', C', rd', ha'⟩ := swapSlotReadHeadBoundedX (v := v)

@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.NewRecordSource
 import Benchmarks.EAS.EAS.ReadTimeBlock
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 
@@ -14,10 +16,10 @@ theorem newRecordSource {L imms : Store} {evm : EVM.State} {r : AttestationReque
     (hr : L.get? "request" = some r.struct) (hs : L.get? "schema" = some (wordBytes32Value schema))
     (ha : L.get? "attester" = some (.address attester)) (hh : L.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap))) :
     if allocateNext heap 320 ≤ 2^64-1 ∧ heap ≤ allocateNext heap 320 then
-      ExecBlock config {contract := contract,locals := L,immutables := imms} evm newRecordBody
+      ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm newRecordBody
         (.ok {contract := contract,locals := newRecordLocals L r schema (easTimeWord evm.executionEnv) attester heap,immutables := imms} evm)
-    else ExecBlock config {contract := contract,locals := L,immutables := imms} evm newRecordBody .reverted := by
-  have ht := readTimeBlock_source (cfg := config) (imms := imms) (evm := evm)
+    else ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm newRecordBody .reverted := by
+  have ht := readTimeBlock_source (fork := fork) (cfg := config) (imms := imms) (evm := evm)
     "__c2$allocation" "__c2" hh (by decide) (by decide) (by decide)
   have hh1 : (readTimeLocals L "__c2$allocation" "__c2" (easTimeWord evm.executionEnv) heap).get? "$EAS.freeMemory" =
       some (.int (Int.ofNat heap)) := heapResultLocals_heap _ _ _ _ _ _

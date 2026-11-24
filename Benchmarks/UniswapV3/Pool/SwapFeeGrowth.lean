@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.SwapIterationStepLoad
 import Benchmarks.UniswapV3.Pool.SwapAccountingFirstLoad
 import Benchmarks.UniswapV3.Pool.FullMathInternal
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -13,18 +15,18 @@ theorem swapFeeGrowthX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p q free : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (s : SwapStateData) (d : SwapIterationData) (frame : Frame) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3574⟩ (q :: p :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3574⟩ (q :: p :: R) mem aw rdata σ k C)
     (hf : frame.contract = contract) (hstate : frame.locals.get? "state" = some s.value)
     (hstep : frame.locals.get? "step" = some d.value)
     (hm : HeapMemory mem aw free) (hs : SwapStateMemory mem p s)
     (hd : SwapIterationMemory mem q d) (hfit : s.Fits) (hp : 96 ≤ p.toNat)
     (hdisj : p.toNat + 224 ≤ q.toNat) (hb : q.toNat + 224 ≤ 2 ^ 200)
     (hov : R.length + 18 ≤ 1024) :
-    (ExecStmt config frame evm swapLoopBody[15]! .reverted ∧ RDrev (deployedRuntime v) g s0) ∨
-    (ExecStmt config frame evm swapLoopBody[15]!
+    (ExecStmt fork config frame evm swapLoopBody[15]! .reverted ∧ RDrev fork (deployedRuntime v) g s0) ∨
+    (ExecStmt fork config frame evm swapLoopBody[15]!
         (.ok (swapFeeGrowthFrame frame s d) evm) ∧
       ∃ mem' aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-        RD (deployedRuntime v) ee g s0 ⟨3637⟩ (q :: p :: R) mem' aw' rdata σ k' C' ∧
+        RD fork (deployedRuntime v) ee g s0 ⟨3637⟩ (q :: p :: R) mem' aw' rdata σ k' C' ∧
         HeapMemory mem' aw' free ∧ SwapStateMemory mem' p (swapFeeGrowthState s d) ∧
         SwapIterationMemory mem' q d ∧ MemoryPrefix mem mem' p.toNat ∧
         aw.toNat ≤ aw'.toNat) := by

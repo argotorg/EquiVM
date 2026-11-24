@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.SwapStepRecalcGet
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -8,7 +10,7 @@ theorem swapStepRecalcCallReverts (locals imms : Store) (evm : EVM.State) (a : S
     (input : Bool) (hg : SwapStepCalcGet locals a) (ha : a.Fits) (hp : swapStepPriceValid a)
     (hv : ¬amountDeltaValid (swapStepDeltaOne a input)
       (swapStepDeltaArgs a (swapStepPrice a) input)) :
-    ExecStmt config (swapStepCalcFrame imms (swapStepRecalcZeroLocals locals a input)) evm
+    ExecStmt fork config (swapStepCalcFrame imms (swapStepRecalcZeroLocals locals a input)) evm
       (.internalCall (amountDeltaName (swapStepDeltaOne a input))
         (swapStepDeltaCallArgs a input "sqrtRatioNextX96") (swapStepRecalcCallName a input))
       .reverted := by
@@ -20,7 +22,7 @@ theorem swapStepRecalcCallReverts (locals imms : Store) (evm : EVM.State) (a : S
 theorem swapStepRecalcReverts (locals imms : Store) (evm : EVM.State) (a : SwapStepArgs)
     (input : Bool) (hg : SwapStepCalcGet locals a) (ha : a.Fits) (hp : swapStepPriceValid a)
     (hv : ¬swapStepRecalcValid a input) :
-    ExecBlock config (swapStepCalcFrame imms locals) evm (swapStepRecalcBlock a input)
+    ExecBlock fork config (swapStepCalcFrame imms locals) evm (swapStepRecalcBlock a input)
       .reverted := by
   have hk : swapStepKeep a input = false := by
     cases h : swapStepKeep a input

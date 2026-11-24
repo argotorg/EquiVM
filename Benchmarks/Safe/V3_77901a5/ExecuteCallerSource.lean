@@ -1,6 +1,8 @@
 import Benchmarks.Safe.V3_77901a5.ExecuteSource
 import Benchmarks.Safe.V3_77901a5.InternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V3_77901a5
@@ -15,9 +17,9 @@ theorem safeInternalExecute {caller : Frame} {evm : EVM.State}
     (hd : evalExpr? config caller evm dataExpr = .ok (.bytes payload))
     (ho : evalExpr? config caller evm operationExpr = .ok (uint256Value operation))
     (hg : evalExpr? config caller evm gasExpr = .ok (uint256Value txGas))
-    (hb : ExecFuncBody config (executeFrame target value payload operation txGas) evm
+    (hb : ExecFuncBody fork config (executeFrame target value payload operation txGas) evm
       executeFunction.body result) :
-    ExecStmt config caller evm
+    ExecStmt fork config caller evm
       (.internalCall "execute" [targetExpr, valueExpr, dataExpr, operationExpr, gasExpr] retVar)
       (internalCallResult caller retVar result) := by
   apply internalCallFunctionResult (callee := executeFunction)

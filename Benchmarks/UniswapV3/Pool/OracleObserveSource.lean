@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.OracleObservationStorage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -64,7 +66,7 @@ theorem evalOracleObserveTime (imms : Store) (evm : EVM.State) (time : UInt256) 
 theorem oracleObserveZeroTailReturns (imms : Store) (evm : EVM.State) (time : UInt256) (tick : Int)
     (index liquidity cardinality : UInt256) (last : OracleObservation)
     (htick : -(2 ^ 23 : Int) ≤ tick ∧ tick < 2 ^ 23) :
-    ∃ frame, ExecBlock config (oracleObserveZeroLastFrame imms time tick index liquidity cardinality last) evm
+    ∃ frame, ExecBlock fork config (oracleObserveZeroLastFrame imms time tick index liquidity cardinality last) evm
       oracleObserveZeroTail (.returned frame evm (some (oracleObserveZeroResult last time tick liquidity).cumulatives)) := by
   let frame := oracleObserveZeroLastFrame imms time tick index liquidity cardinality last
   let result := oracleTransformed last time tick liquidity
@@ -75,10 +77,10 @@ theorem oracleObserveZeroTailReturns (imms : Store) (evm : EVM.State) (time : UI
     simp [evalExprs?, evalExpr?, frame, oracleObserveZeroLastFrame, oracleObserveZeroReadyFrame,
       oracleObserveSingleFrame, oracleObserveSingleLocals, Std.HashMap.getElem_insert,
       EvalResult.ofOption, bind, EvalResult.bind, pure]
-  have hcall := internalCallFunctionReturn (cfg := config) (caller := frame) (evm := evm)
+  have hcall := internalCallFunctionReturn (fork := fork) (cfg := config) (caller := frame) (evm := evm)
     (retVar := "__c0") (callee := oracleTransformFunction)
     hargs oracleTransformLookup (oracleTransformBind last time tick liquidity)
-    (oracleTransformReturns imms evm last time tick liquidity htick)
+    (oracleTransformReturns (fork := fork) imms evm last time tick liquidity htick)
   by_cases heq : last.timestamp = time
   · refine ⟨frame, ?_⟩
     simp only [oracleObserveZeroResult, if_pos heq]
@@ -96,7 +98,7 @@ theorem oracleObserveZeroTailReturns (imms : Store) (evm : EVM.State) (time : UI
     refine ExecBlock.consNormal (stele' := final) (evm' := evm) (ExecStmt.iteTrue ?_ ?_) ?_
     · simpa only [ne_eq, heq, not_false_eq_true, decide_true] using evalOracleObserveTime imms evm time tick index liquidity cardinality last
     · refine ExecBlock.consNormal hcall ?_
-      refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inl rfl) (value := result.value) ?_ ?_) ExecBlock.nil
+      refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inl rfl) (value := result.value) ?_ ?_) ExecBlock.nil
       · exact evalExpr_var_get (by simp [resumeAfterInternalCall, collapseReturns, result])
       · apply assignLocalVarBase_frame (old := last.value)
         simp [resumeAfterInternalCall, collapseReturns, hget, Std.HashMap.getElem?_insert]
@@ -117,7 +119,7 @@ theorem evalOracleObserveZeroCondition (imms : Store) (evm : EVM.State) (time : 
 theorem oracleObserveSingleZeroReturns (imms : Store) (evm : EVM.State) (time : UInt256) (tick : Int)
     (index liquidity cardinality : UInt256) (hin : index.toNat < 65535)
     (htick : -(2 ^ 23 : Int) ≤ tick ∧ tick < 2 ^ 23) :
-    ∃ frame, ExecFuncBody config (oracleObserveSingleFrame imms time ⟨0⟩ tick index liquidity cardinality) evm
+    ∃ frame, ExecFuncBody fork config (oracleObserveSingleFrame imms time ⟨0⟩ tick index liquidity cardinality) evm
       oracleObserveSingleFunction.body (.returned frame evm
         (some (oracleObserveZeroResult (oracleStoredObservation index evm.accountMap evm.executionEnv)
           time tick liquidity).cumulatives)) := by
@@ -135,7 +137,7 @@ theorem oracleObserveSingleZeroReturns (imms : Store) (evm : EVM.State) (time : 
 
 theorem oracleObserveSingleZeroReverts (imms : Store) (evm : EVM.State) (time : UInt256) (tick : Int)
     (index liquidity cardinality : UInt256) (hin : ¬ index.toNat < 65535) :
-    ExecFuncBody config (oracleObserveSingleFrame imms time ⟨0⟩ tick index liquidity cardinality) evm
+    ExecFuncBody fork config (oracleObserveSingleFrame imms time ⟨0⟩ tick index liquidity cardinality) evm
       oracleObserveSingleFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   refine ExecBlock.consNormal (ExecStmt.letDecl (value := .int 0) (by simp only [evalExpr?, pure])) ?_

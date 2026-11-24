@@ -1,6 +1,8 @@
 import Benchmarks.CurveVault.Common
 import Benchmarks.CurveVault.CreationBlocks_001
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Vault constructor correctness
 
@@ -15,9 +17,9 @@ namespace Benchmarks.CurveVault
 theorem vaultConstructorCorrect :
     typedConstructorRefinement config vaultCreationBytecode contract (fun _ => vaultBytecode) := by
   apply emptyConstructorCorrect_of_RDret rfl rfl rfl
-  intro σ σ₀ A I g hcode
-  have hinit := RD.initState (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode
-  have hinit' : RD (vaultCreationBytecode ++ ByteArray.empty) I g
+  intro fork σ σ₀ A I g hcode
+  have hinit := RD.initState (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode
+  have hinit' : RD fork (vaultCreationBytecode ++ ByteArray.empty) I g
       (initState σ σ₀ g A I) (UInt256.ofNat 0) [] ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 := by
     simpa only [ByteArray.append_empty] using hinit
   have hret := vaultCreationBlocks.vaultCreation_block_0 (by simp) hinit'

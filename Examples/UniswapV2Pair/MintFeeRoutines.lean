@@ -1,6 +1,8 @@
 import Reasoning.ExternalCall
 import Examples.UniswapV2Pair.MintFeeRoutinesCore
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -13,7 +15,7 @@ theorem mintFeeSqrtPrefix
     (kLast : UInt256)
     (hfit : mintFeeReserveProductNat reserve0 reserve1 < UInt256.size) :
     ∃ rootK rootKLast,
-      ExecBlock config (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast) evm
+      ExecBlock fork config (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast) evm
         [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
             "rootK",
           .internalCall "sqrt" [.var "_kLast"] "rootKLast" ]
@@ -32,14 +34,14 @@ theorem mintFeeSqrtPrefix
       (evm := evm) (y := kLast) (args := [.var "_kLast"]) (retVar := "rootKLast") rfl
       (evalExprs_mintFee_kLastArg evm reserve0 reserve1 feeTo true kLast rootK)
   have hrootK' :
-      ExecStmt config (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast) evm
+      ExecStmt fork config (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast) evm
         (.internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
           "rootK")
         (.ok (mintFeeAfterRootKFrame reserve0 reserve1 feeTo true kLast rootK) evm) := by
     simpa [mintFeeAfterRootKFrame, mintFeeAfterRootKStore, resumeAfterInternalCall] using
       hrootK
   have hrootKLast' :
-      ExecStmt config (mintFeeAfterRootKFrame reserve0 reserve1 feeTo true kLast rootK) evm
+      ExecStmt fork config (mintFeeAfterRootKFrame reserve0 reserve1 feeTo true kLast rootK) evm
         (.internalCall "sqrt" [.var "_kLast"] "rootKLast")
         (.ok (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast)
           evm) := by
@@ -53,7 +55,7 @@ theorem mintFeeSqrtPrefixBounded
     (kLast : UInt256)
     (hfit : mintFeeReserveProductNat reserve0 reserve1 < UInt256.size) :
     ∃ rootK rootKLast,
-      ExecBlock config (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast) evm
+      ExecBlock fork config (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast) evm
         [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
             "rootK",
           .internalCall "sqrt" [.var "_kLast"] "rootKLast" ]
@@ -74,14 +76,14 @@ theorem mintFeeSqrtPrefixBounded
       (evm := evm) (y := kLast) (args := [.var "_kLast"]) (retVar := "rootKLast") rfl
       (evalExprs_mintFee_kLastArg evm reserve0 reserve1 feeTo true kLast rootK)
   have hrootK' :
-      ExecStmt config (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast) evm
+      ExecStmt fork config (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast) evm
         (.internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
           "rootK")
         (.ok (mintFeeAfterRootKFrame reserve0 reserve1 feeTo true kLast rootK) evm) := by
     simpa [mintFeeAfterRootKFrame, mintFeeAfterRootKStore, resumeAfterInternalCall] using
       hrootK
   have hrootKLast' :
-      ExecStmt config (mintFeeAfterRootKFrame reserve0 reserve1 feeTo true kLast rootK) evm
+      ExecStmt fork config (mintFeeAfterRootKFrame reserve0 reserve1 feeTo true kLast rootK) evm
         (.internalCall "sqrt" [.var "_kLast"] "rootKLast")
         (.ok (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast)
           evm) := by
@@ -98,7 +100,7 @@ theorem uniswapMintFeeAfterRoots_noMint
     (evm : EVM.State) (reserve0 reserve1 : UInt256) (feeTo : AccountAddress)
     (kLast : UInt256) (rootK rootKLast : Int)
     (hroot : ¬ rootK > rootKLast) :
-    ExecBlock config
+    ExecBlock fork config
       (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast) evm
       [mintFeeRootComparisonStmt]
       (.ok (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast)
@@ -114,14 +116,14 @@ theorem uniswapMintFeeAfterRoots_noMintReturn
     (evm : EVM.State) (reserve0 reserve1 : UInt256) (feeTo : AccountAddress)
     (kLast : UInt256) (rootK rootKLast : Int)
     (hroot : ¬ rootK > rootKLast) :
-    ExecBlock config
+    ExecBlock fork config
       (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast) evm
       [mintFeeRootComparisonStmt, .return [(.var "feeOn")]]
       (.returned
         (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast)
         evm (some [.bool true])) := by
   have hite :
-      ExecStmt config
+      ExecStmt fork config
         (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast) evm
         mintFeeRootComparisonStmt
         (.ok (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast)
@@ -147,13 +149,13 @@ theorem uniswapMintFeeAfterRoots_positiveNoLiquidity
     (hdenFit : mintFeeDenominatorNat rootK rootKLast < UInt256.size)
     (hdenom : (mintFeeDenominatorWord rootK rootKLast).toNat ≠ 0)
     (hliq : ¬ mintFeeLiquidityInt evm rootK rootKLast > 0) :
-    ExecBlock config
+    ExecBlock fork config
       (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast) evm
       [mintFeeRootComparisonStmt]
       (.ok (mintFeeAfterLiquidityFrame evm reserve0 reserve1 feeTo true kLast rootK rootKLast)
         evm) := by
   have hite :
-      ExecStmt config
+      ExecStmt fork config
         (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast) evm
         mintFeeRootComparisonStmt
         (.ok (mintFeeAfterLiquidityFrame evm reserve0 reserve1 feeTo true kLast rootK rootKLast)
@@ -176,14 +178,14 @@ theorem uniswapMintFeeAfterRoots_positiveNoLiquidityReturn
     (hdenFit : mintFeeDenominatorNat rootK rootKLast < UInt256.size)
     (hdenom : (mintFeeDenominatorWord rootK rootKLast).toNat ≠ 0)
     (hliq : ¬ mintFeeLiquidityInt evm rootK rootKLast > 0) :
-    ExecBlock config
+    ExecBlock fork config
       (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast) evm
       [mintFeeRootComparisonStmt, .return [(.var "feeOn")]]
       (.returned
         (mintFeeAfterLiquidityFrame evm reserve0 reserve1 feeTo true kLast rootK rootKLast)
         evm (some [.bool true])) := by
   have hite :
-      ExecStmt config
+      ExecStmt fork config
         (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast) evm
         mintFeeRootComparisonStmt
         (.ok (mintFeeAfterLiquidityFrame evm reserve0 reserve1 feeTo true kLast rootK rootKLast)
@@ -219,13 +221,13 @@ theorem uniswapMintFeeAfterRoots_positiveWithLiquidity
       mintFunctionToBalanceNewNat evm feeTo (mintFeeLiquidityWord evm rootK rootKLast) <
         UInt256.size)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config
+    ExecBlock fork config
       (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast) evm
       [mintFeeRootComparisonStmt]
       (.ok (mintFeeAfterFeeMintFrame evm reserve0 reserve1 feeTo kLast rootK rootKLast)
         (mintFunctionPostState evm feeTo (mintFeeLiquidityWord evm rootK rootKLast))) := by
   have hite :
-      ExecStmt config
+      ExecStmt fork config
         (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast) evm
         mintFeeRootComparisonStmt
         (.ok (mintFeeAfterFeeMintFrame evm reserve0 reserve1 feeTo kLast rootK rootKLast)
@@ -233,7 +235,7 @@ theorem uniswapMintFeeAfterRoots_positiveWithLiquidity
     exact ExecStmt.iteTrue
       (evalExpr_mintFee_rootK_gt_rootKLast_true evm reserve0 reserve1 feeTo true kLast rootK
         rootKLast hroot)
-      (uniswapMintFeePositiveRootBranch_withLiquidity (hperm := by assumption) evm reserve0 reserve1 feeTo kLast rootK
+      (uniswapMintFeePositiveRootBranch_withLiquidity (fork := fork) (hperm := by assumption) evm reserve0 reserve1 feeTo kLast rootK
         rootKLast hroot hrootKNonneg hrootKSize hrootKLastNonneg hnumFit hrootFiveFit
         hdenFit hdenom hliq hliqFit hfitSupply hfitBalance)
   exact ExecBlock.consNormal hite ExecBlock.nil
@@ -256,7 +258,7 @@ theorem uniswapMintFeeAfterRoots_positiveWithLiquidityReturn
       mintFunctionToBalanceNewNat evm feeTo (mintFeeLiquidityWord evm rootK rootKLast) <
         UInt256.size)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config
+    ExecBlock fork config
       (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast) evm
       [mintFeeRootComparisonStmt, .return [(.var "feeOn")]]
       (.returned
@@ -264,7 +266,7 @@ theorem uniswapMintFeeAfterRoots_positiveWithLiquidityReturn
         (mintFunctionPostState evm feeTo (mintFeeLiquidityWord evm rootK rootKLast))
         (some [.bool true])) := by
   have hite :
-      ExecStmt config
+      ExecStmt fork config
         (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast) evm
         mintFeeRootComparisonStmt
         (.ok (mintFeeAfterFeeMintFrame evm reserve0 reserve1 feeTo kLast rootK rootKLast)
@@ -272,7 +274,7 @@ theorem uniswapMintFeeAfterRoots_positiveWithLiquidityReturn
     exact ExecStmt.iteTrue
       (evalExpr_mintFee_rootK_gt_rootKLast_true evm reserve0 reserve1 feeTo true kLast rootK
         rootKLast hroot)
-      (uniswapMintFeePositiveRootBranch_withLiquidity (hperm := by assumption) evm reserve0 reserve1 feeTo kLast rootK
+      (uniswapMintFeePositiveRootBranch_withLiquidity (fork := fork) (hperm := by assumption) evm reserve0 reserve1 feeTo kLast rootK
         rootKLast hroot hrootKNonneg hrootKSize hrootKLastNonneg hnumFit hrootFiveFit
         hdenFit hdenom hliq hliqFit hfitSupply hfitBalance)
   exact ExecBlock.consNormal hite
@@ -289,13 +291,13 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_fromRootBlock
     (hguard :
       evalExpr? config (mintFeeCallFrame reserve0 reserve1) evm
         (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) = .ok (.bool true))
-    (hcall : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm ⟨5⟩))
+    (hcall : typedCallViaEVM fork config evm (EVM.address (uniswapAddressAtSlot evm ⟨5⟩))
       "feeTo" 0 [] (true, evmFee, out) false)
     (hdec : config.externalABI.decode? "feeTo" out = some [.address feeTo])
     (hfeeTo : feeTo ≠ AccountAddress.ofNat 0)
     (hkLast : (mintFeeKLastWord evmFee).toNat ≠ 0)
     (hrootBlock :
-      ExecBlock config
+      ExecBlock fork config
         (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true (mintFeeKLastWord evmFee))
         evmFee
         [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
@@ -317,12 +319,12 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_fromRootBlock
             [] ]
         (.ok finalFrame finalEvm))
     (hreturn : evalExpr? config finalFrame finalEvm (.var "feeOn") = .ok (.bool true)) :
-    ExecFuncBody config (mintFeeCallFrame reserve0 reserve1) evm mintFeeFunction.body
+    ExecFuncBody fork config (mintFeeCallFrame reserve0 reserve1) evm mintFeeFunction.body
       (.returned finalFrame finalEvm (some [.bool true])) := by
   have hchecked :=
     uniswapMintFeeCheckedCallSuccess evm evmFee reserve0 reserve1 feeTo hguard hcall hdec
   have htail :
-      ExecBlock config (mintFeeAfterFeeToFrame reserve0 reserve1 feeTo) evmFee
+      ExecBlock fork config (mintFeeAfterFeeToFrame reserve0 reserve1 feeTo) evmFee
         [ .letDecl "feeOn" (some boolTy) (.binary .ne (.var "feeTo") zeroAddr),
           .letDecl "_kLast" (some uint256) (.storage kLastRef),
           .ite (.var "feeOn")
@@ -357,7 +359,7 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_fromRootBlock
       (ExecStmt.letDecl (evalExpr_mintFee_afterFeeOn_kLast evmFee reserve0 reserve1 feeTo true))
       ?_
     have htrueBranch :
-        ExecBlock config
+        ExecBlock fork config
           (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true (mintFeeKLastWord evmFee))
           evmFee
           [ .ite (.binary .ne (.var "_kLast") (.intLit 0))
@@ -387,7 +389,7 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_fromRootBlock
           hrootBlock)
         ExecBlock.nil
     have houter :
-        ExecStmt config
+        ExecStmt fork config
           (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true (mintFeeKLastWord evmFee))
           evmFee
           (.ite (.var "feeOn")
@@ -430,13 +432,13 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_positiveNoLiquidity
     (hguard :
       evalExpr? config (mintFeeCallFrame reserve0 reserve1) evm
         (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) = .ok (.bool true))
-    (hcall : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm ⟨5⟩))
+    (hcall : typedCallViaEVM fork config evm (EVM.address (uniswapAddressAtSlot evm ⟨5⟩))
       "feeTo" 0 [] (true, evmFee, out) false)
     (hdec : config.externalABI.decode? "feeTo" out = some [.address feeTo])
     (hfeeTo : feeTo ≠ AccountAddress.ofNat 0)
     (hkLast : (mintFeeKLastWord evmFee).toNat ≠ 0)
     (hprefix :
-      ExecBlock config
+      ExecBlock fork config
         (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true (mintFeeKLastWord evmFee))
         evmFee
         [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
@@ -453,13 +455,13 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_positiveNoLiquidity
     (hdenFit : mintFeeDenominatorNat rootK rootKLast < UInt256.size)
     (hdenom : (mintFeeDenominatorWord rootK rootKLast).toNat ≠ 0)
     (hliq : ¬ mintFeeLiquidityInt evmFee rootK rootKLast > 0) :
-    ExecFuncBody config (mintFeeCallFrame reserve0 reserve1) evm mintFeeFunction.body
+    ExecFuncBody fork config (mintFeeCallFrame reserve0 reserve1) evm mintFeeFunction.body
       (.returned
         (mintFeeAfterLiquidityFrame evmFee reserve0 reserve1 feeTo true
           (mintFeeKLastWord evmFee) rootK rootKLast)
         evmFee (some [.bool true])) := by
   have hrootBlock :
-      ExecBlock config
+      ExecBlock fork config
         (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true (mintFeeKLastWord evmFee))
         evmFee
         [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
@@ -502,13 +504,13 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_positiveWithLiquidity
     (hguard :
       evalExpr? config (mintFeeCallFrame reserve0 reserve1) evm
         (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) = .ok (.bool true))
-    (hcall : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm ⟨5⟩))
+    (hcall : typedCallViaEVM fork config evm (EVM.address (uniswapAddressAtSlot evm ⟨5⟩))
       "feeTo" 0 [] (true, evmFee, out) false)
     (hdec : config.externalABI.decode? "feeTo" out = some [.address feeTo])
     (hfeeTo : feeTo ≠ AccountAddress.ofNat 0)
     (hkLast : (mintFeeKLastWord evmFee).toNat ≠ 0)
     (hprefix :
-      ExecBlock config
+      ExecBlock fork config
         (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true (mintFeeKLastWord evmFee))
         evmFee
         [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
@@ -533,14 +535,14 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_positiveWithLiquidity
       mintFunctionToBalanceNewNat evmFee feeTo (mintFeeLiquidityWord evmFee rootK rootKLast) <
         UInt256.size)
     (hperm : evm.executionEnv.perm = true) :
-    ExecFuncBody config (mintFeeCallFrame reserve0 reserve1) evm mintFeeFunction.body
+    ExecFuncBody fork config (mintFeeCallFrame reserve0 reserve1) evm mintFeeFunction.body
       (.returned
         (mintFeeAfterFeeMintFrame evmFee reserve0 reserve1 feeTo (mintFeeKLastWord evmFee)
           rootK rootKLast)
         (mintFunctionPostState evmFee feeTo (mintFeeLiquidityWord evmFee rootK rootKLast))
         (some [.bool true])) := by
   have hrootBlock :
-      ExecBlock config
+      ExecBlock fork config
         (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true (mintFeeKLastWord evmFee))
         evmFee
         [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
@@ -587,13 +589,13 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_noMint
     (hguard :
       evalExpr? config (mintFeeCallFrame reserve0 reserve1) evm
         (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) = .ok (.bool true))
-    (hcall : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm ⟨5⟩))
+    (hcall : typedCallViaEVM fork config evm (EVM.address (uniswapAddressAtSlot evm ⟨5⟩))
       "feeTo" 0 [] (true, evmFee, out) false)
     (hdec : config.externalABI.decode? "feeTo" out = some [.address feeTo])
     (hfeeTo : feeTo ≠ AccountAddress.ofNat 0)
     (hkLast : (mintFeeKLastWord evmFee).toNat ≠ 0)
     (hprefix :
-      ExecBlock config
+      ExecBlock fork config
         (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true (mintFeeKLastWord evmFee))
         evmFee
         [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
@@ -604,7 +606,7 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_noMint
             (mintFeeKLastWord evmFee) rootK rootKLast)
           evmFee))
     (hroot : ¬ rootK > rootKLast) :
-    ExecFuncBody config (mintFeeCallFrame reserve0 reserve1) evm mintFeeFunction.body
+    ExecFuncBody fork config (mintFeeCallFrame reserve0 reserve1) evm mintFeeFunction.body
       (.returned
         (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true (mintFeeKLastWord evmFee)
           rootK rootKLast)
@@ -612,7 +614,7 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_noMint
   have hchecked :=
     uniswapMintFeeCheckedCallSuccess evm evmFee reserve0 reserve1 feeTo hguard hcall hdec
   have hrootBlock :
-      ExecBlock config
+      ExecBlock fork config
         (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true (mintFeeKLastWord evmFee))
         evmFee
         [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
@@ -641,7 +643,7 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_noMint
         (uniswapMintFeeAfterRoots_noMint evmFee reserve0 reserve1 feeTo
           (mintFeeKLastWord evmFee) rootK rootKLast hroot)
   have htail :
-      ExecBlock config (mintFeeAfterFeeToFrame reserve0 reserve1 feeTo) evmFee
+      ExecBlock fork config (mintFeeAfterFeeToFrame reserve0 reserve1 feeTo) evmFee
         [ .letDecl "feeOn" (some boolTy) (.binary .ne (.var "feeTo") zeroAddr),
           .letDecl "_kLast" (some uint256) (.storage kLastRef),
           .ite (.var "feeOn")
@@ -679,7 +681,7 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_noMint
       (ExecStmt.letDecl (evalExpr_mintFee_afterFeeOn_kLast evmFee reserve0 reserve1 feeTo true))
       ?_
     have htrueBranch :
-        ExecBlock config
+        ExecBlock fork config
           (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true (mintFeeKLastWord evmFee))
           evmFee
           [ .ite (.binary .ne (.var "_kLast") (.intLit 0))
@@ -712,7 +714,7 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_noMint
           hrootBlock)
         ExecBlock.nil
     have houter :
-        ExecStmt config
+        ExecStmt fork config
           (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true (mintFeeKLastWord evmFee))
           evmFee
           (.ite (.var "feeOn")
@@ -779,19 +781,19 @@ theorem uniswapMintFeeFunctionBody_feeOff_kLastZero
     (hguard :
       evalExpr? config (mintFeeCallFrame reserve0 reserve1) evm
         (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) = .ok (.bool true))
-    (hcall : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm ⟨5⟩))
+    (hcall : typedCallViaEVM fork config evm (EVM.address (uniswapAddressAtSlot evm ⟨5⟩))
       "feeTo" 0 [] (true, evmFee, out) false)
     (hdec : config.externalABI.decode? "feeTo" out = some [.address feeTo])
     (hfeeTo : feeTo = AccountAddress.ofNat 0)
     (hkLast : (mintFeeKLastWord evmFee).toNat = 0) :
-    ExecFuncBody config (mintFeeCallFrame reserve0 reserve1) evm mintFeeFunction.body
+    ExecFuncBody fork config (mintFeeCallFrame reserve0 reserve1) evm mintFeeFunction.body
       (.returned
         (mintFeeAfterKLastFrame reserve0 reserve1 feeTo false (mintFeeKLastWord evmFee))
         evmFee (some [.bool false])) := by
   have hchecked :=
     uniswapMintFeeCheckedCallSuccess evm evmFee reserve0 reserve1 feeTo hguard hcall hdec
   have htail :
-      ExecBlock config (mintFeeAfterFeeToFrame reserve0 reserve1 feeTo) evmFee
+      ExecBlock fork config (mintFeeAfterFeeToFrame reserve0 reserve1 feeTo) evmFee
         [ .letDecl "feeOn" (some boolTy) (.binary .ne (.var "feeTo") zeroAddr),
           .letDecl "_kLast" (some uint256) (.storage kLastRef),
           .ite (.var "feeOn")
@@ -828,7 +830,7 @@ theorem uniswapMintFeeFunctionBody_feeOff_kLastZero
       (ExecStmt.letDecl (evalExpr_mintFee_afterFeeOn_kLast evmFee reserve0 reserve1 feeTo false))
       ?_
     have hfalseBranch :
-        ExecBlock config
+        ExecBlock fork config
           (mintFeeAfterKLastFrame reserve0 reserve1 feeTo false (mintFeeKLastWord evmFee))
           evmFee
           [ .ite (.binary .ne (.var "_kLast") (.intLit 0))
@@ -844,7 +846,7 @@ theorem uniswapMintFeeFunctionBody_feeOff_kLastZero
           ExecBlock.nil)
         ExecBlock.nil
     have houter :
-        ExecStmt config
+        ExecStmt fork config
           (mintFeeAfterKLastFrame reserve0 reserve1 feeTo false (mintFeeKLastWord evmFee))
           evmFee
           (.ite (.var "feeOn")
@@ -893,19 +895,19 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastZero
     (hguard :
       evalExpr? config (mintFeeCallFrame reserve0 reserve1) evm
         (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) = .ok (.bool true))
-    (hcall : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm ⟨5⟩))
+    (hcall : typedCallViaEVM fork config evm (EVM.address (uniswapAddressAtSlot evm ⟨5⟩))
       "feeTo" 0 [] (true, evmFee, out) false)
     (hdec : config.externalABI.decode? "feeTo" out = some [.address feeTo])
     (hfeeTo : feeTo ≠ AccountAddress.ofNat 0)
     (hkLast : (mintFeeKLastWord evmFee).toNat = 0) :
-    ExecFuncBody config (mintFeeCallFrame reserve0 reserve1) evm mintFeeFunction.body
+    ExecFuncBody fork config (mintFeeCallFrame reserve0 reserve1) evm mintFeeFunction.body
       (.returned
         (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true (mintFeeKLastWord evmFee))
         evmFee (some [.bool true])) := by
   have hchecked :=
     uniswapMintFeeCheckedCallSuccess evm evmFee reserve0 reserve1 feeTo hguard hcall hdec
   have htail :
-      ExecBlock config (mintFeeAfterFeeToFrame reserve0 reserve1 feeTo) evmFee
+      ExecBlock fork config (mintFeeAfterFeeToFrame reserve0 reserve1 feeTo) evmFee
         [ .letDecl "feeOn" (some boolTy) (.binary .ne (.var "feeTo") zeroAddr),
           .letDecl "_kLast" (some uint256) (.storage kLastRef),
           .ite (.var "feeOn")
@@ -942,7 +944,7 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastZero
       (ExecStmt.letDecl (evalExpr_mintFee_afterFeeOn_kLast evmFee reserve0 reserve1 feeTo true))
       ?_
     have htrueBranch :
-        ExecBlock config
+        ExecBlock fork config
           (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true (mintFeeKLastWord evmFee))
           evmFee
           [ .ite (.binary .ne (.var "_kLast") (.intLit 0))
@@ -974,7 +976,7 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastZero
           ExecBlock.nil)
         ExecBlock.nil
     have houter :
-        ExecStmt config
+        ExecStmt fork config
           (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true (mintFeeKLastWord evmFee))
           evmFee
           (.ite (.var "feeOn")
@@ -1023,20 +1025,20 @@ theorem uniswapMintFeeFunctionBody_feeOff_kLastNonzero
     (hguard :
       evalExpr? config (mintFeeCallFrame reserve0 reserve1) evm
         (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) = .ok (.bool true))
-    (hcall : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm ⟨5⟩))
+    (hcall : typedCallViaEVM fork config evm (EVM.address (uniswapAddressAtSlot evm ⟨5⟩))
       "feeTo" 0 [] (true, evmFee, out) false)
     (hdec : config.externalABI.decode? "feeTo" out = some [.address feeTo])
     (hfeeTo : feeTo = AccountAddress.ofNat 0)
     (hkLast : (mintFeeKLastWord evmFee).toNat ≠ 0)
     (hperm : evm.executionEnv.perm = true) :
-    ExecFuncBody config (mintFeeCallFrame reserve0 reserve1) evm mintFeeFunction.body
+    ExecFuncBody fork config (mintFeeCallFrame reserve0 reserve1) evm mintFeeFunction.body
       (.returned
         (mintFeeAfterKLastFrame reserve0 reserve1 feeTo false (mintFeeKLastWord evmFee))
         (mintFeeKLastClearedState evmFee) (some [.bool false])) := by
   have hchecked :=
     uniswapMintFeeCheckedCallSuccess evm evmFee reserve0 reserve1 feeTo hguard hcall hdec
   have htail :
-      ExecBlock config (mintFeeAfterFeeToFrame reserve0 reserve1 feeTo) evmFee
+      ExecBlock fork config (mintFeeAfterFeeToFrame reserve0 reserve1 feeTo) evmFee
         [ .letDecl "feeOn" (some boolTy) (.binary .ne (.var "feeTo") zeroAddr),
           .letDecl "_kLast" (some uint256) (.storage kLastRef),
           .ite (.var "feeOn")
@@ -1073,7 +1075,7 @@ theorem uniswapMintFeeFunctionBody_feeOff_kLastNonzero
       (ExecStmt.letDecl (evalExpr_mintFee_afterFeeOn_kLast evmFee reserve0 reserve1 feeTo false))
       ?_
     have hassign :
-        ExecBlock config
+        ExecBlock fork config
           (mintFeeAfterKLastFrame reserve0 reserve1 feeTo false (mintFeeKLastWord evmFee))
           evmFee
           [ .assign .storage kLastRef (.intLit 0) ]
@@ -1088,7 +1090,7 @@ theorem uniswapMintFeeFunctionBody_feeOff_kLastNonzero
             (mintFeeKLastWord evmFee)))
         ExecBlock.nil
     have hfalseBranch :
-        ExecBlock config
+        ExecBlock fork config
           (mintFeeAfterKLastFrame reserve0 reserve1 feeTo false (mintFeeKLastWord evmFee))
           evmFee
           [ .ite (.binary .ne (.var "_kLast") (.intLit 0))
@@ -1104,7 +1106,7 @@ theorem uniswapMintFeeFunctionBody_feeOff_kLastNonzero
           hassign)
         ExecBlock.nil
     have houter :
-        ExecStmt config
+        ExecStmt fork config
           (mintFeeAfterKLastFrame reserve0 reserve1 feeTo false (mintFeeKLastWord evmFee))
           evmFee
           (.ite (.var "feeOn")

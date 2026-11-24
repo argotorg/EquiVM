@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Flopper.Dent.Part9
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -15,14 +17,14 @@ theorem flopperDentBody
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flopperSelBytes 4)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let id := dentIdWord I
   let packedSlot := auctionPackedSlot id
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flopperSelBytes 4) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some dentTransition :=
     flopperDispatchDent hsel
-  have hreach := flopperReachDentBody
+  have hreach := flopperReachDentBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A)
     (I := I) (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel
   by_cases hsz100 : 100 ≤ I.calldata.size
@@ -165,7 +167,7 @@ theorem flopperDentBody
                                 (g := Sat256.ofUInt256 g) hcodeSize hdepthLt
                                 hmemCaller hread64Caller rd2439
                             by_cases hzMove : zMove = true
-                            · have rd2545True : RD flopperBytecode I
+                            · have rd2545True : RD fork flopperBytecode I
                                   (Sat256.ofUInt256 g)
                                   (initState σ σ₀ (Sat256.ofUInt256 g)
                                     A I) ⟨2545⟩
@@ -177,7 +179,7 @@ theorem flopperDentBody
                                   (UInt256.ofNat 8) outMove σ' k2545 C2545 := by
                                 simpa [hzMove, vat, id] using rd2545
                               have hcallMoveTrue :
-                                  typedCallViaEVM config
+                                  typedCallViaEVM fork config
                                     (initState σ σ₀ (Sat256.ofUInt256 g)
                                       A I)
                                     (EVM.address (AccountAddress.ofNat
@@ -238,7 +240,7 @@ theorem flopperDentBody
                                     have hval : I.depth.val = 1024 := congrArg Fin.val hbadI
                                     omega
                                   by_cases hzAsh : zAsh = true
-                                  · have rd2690True : RD flopperBytecode I
+                                  · have rd2690True : RD fork flopperBytecode I
                                         (Sat256.ofUInt256 g)
                                         (initState σ σ₀
                                           (Sat256.ofUInt256 g) A I) ⟨2690⟩
@@ -254,7 +256,7 @@ theorem flopperDentBody
                                         C2690 := by
                                       simpa [hzAsh, packedSlot, id] using rd2690
                                     have hashCallTrue :
-                                        typedCallViaEVM config
+                                        typedCallViaEVM fork config
                                           { initState σ σ₀
                                               (Sat256.ofUInt256 g) A I with
                                             accountMap := σ', substate := AinAsh }
@@ -272,7 +274,7 @@ theorem flopperDentBody
                                       typedCallViaEVM_zero_setSubstate hashCallTrue
                                         (by simpa [evmAshPre] using hdepthNeAsh) A'
                                     have hashCallTrueCore :
-                                        typedCallViaEVM config
+                                        typedCallViaEVM fork config
                                           { initState σ σ₀
                                               (Sat256.ofUInt256 g) A I with
                                             accountMap := σ', substate := A' }
@@ -351,7 +353,7 @@ theorem flopperDentBody
                                               simpa only [memAsh, memKissMap, memKiss,
                                                 packedSlot, id] using rd2817)
                                         by_cases hzKiss : zKiss = true
-                                        · have rd2833True : RD flopperBytecode I
+                                        · have rd2833True : RD fork flopperBytecode I
                                               (Sat256.ofUInt256 g)
                                               (initState σ σ₀
                                                 (Sat256.ofUInt256 g) A I) ⟨2833⟩
@@ -368,7 +370,7 @@ theorem flopperDentBody
                                             simpa only [hzKiss, memAsh, memKissMap, memKiss,
                                               packedSlot, id] using rd2833
                                           have hkissCallTrue :
-                                              typedCallViaEVM config
+                                              typedCallViaEVM fork config
                                                 { initState σ σ₀
                                                     (Sat256.ofUInt256 g) A I with
                                                   accountMap := σAsh, substate := AinKiss}
@@ -424,7 +426,7 @@ theorem flopperDentBody
                                                 houtAsh32 hkissCallTrue hdispatch hdecode
                                         · have hzKissFalse : zKiss = false := by
                                             cases zKiss <;> simp at hzKiss ⊢
-                                          have rd2833False : RD flopperBytecode I
+                                          have rd2833False : RD fork flopperBytecode I
                                               (Sat256.ofUInt256 g)
                                               (initState σ σ₀
                                                 (Sat256.ofUInt256 g) A I) ⟨2833⟩
@@ -441,7 +443,7 @@ theorem flopperDentBody
                                             simpa only [hzKissFalse, memAsh, memKissMap,
                                               memKiss, packedSlot, id] using rd2833
                                           have hkissCallFalse :
-                                              typedCallViaEVM config
+                                              typedCallViaEVM fork config
                                                 { initState σ σ₀
                                                     (Sat256.ofUInt256 g) A I with
                                                   accountMap := σAsh, substate := AinKiss}
@@ -489,7 +491,7 @@ theorem flopperDentBody
                                           hreadAsh64 hdispatch hdecode
                                   · have hzAshFalse : zAsh = false := by
                                       cases zAsh <;> simp at hzAsh ⊢
-                                    have rd2690False : RD flopperBytecode I
+                                    have rd2690False : RD fork flopperBytecode I
                                         (Sat256.ofUInt256 g)
                                         (initState σ σ₀
                                           (Sat256.ofUInt256 g) A I) ⟨2690⟩
@@ -505,7 +507,7 @@ theorem flopperDentBody
                                         C2690 := by
                                       simpa [hzAshFalse, packedSlot, id] using rd2690
                                     have hashCallFalse :
-                                        typedCallViaEVM config
+                                        typedCallViaEVM fork config
                                           { initState σ σ₀
                                               (Sat256.ofUInt256 g) A I with
                                             accountMap := σ', substate := AinAsh }
@@ -523,7 +525,7 @@ theorem flopperDentBody
                                       typedCallViaEVM_zero_setSubstate hashCallFalse
                                         (by simpa [evmAshPre] using hdepthNeAsh) A'
                                     have hashCallFalseCore :
-                                        typedCallViaEVM config
+                                        typedCallViaEVM fork config
                                           { initState σ σ₀
                                               (Sat256.ofUInt256 g) A I with
                                             accountMap := σ', substate := A' }
@@ -578,7 +580,7 @@ theorem flopperDentBody
                                     rd2545True hcallMoveTrue hdispatch hdecode
                             · have hzMoveFalse : zMove = false := by
                                 cases zMove <;> simp at hzMove ⊢
-                              have rd2545False : RD flopperBytecode I
+                              have rd2545False : RD fork flopperBytecode I
                                   (Sat256.ofUInt256 g)
                                   (initState σ σ₀ (Sat256.ofUInt256 g)
                                     A I) ⟨2545⟩
@@ -590,7 +592,7 @@ theorem flopperDentBody
                                   (UInt256.ofNat 8) outMove σ' k2545 C2545 := by
                                 simpa [hzMoveFalse, vat, id] using rd2545
                               have hcallMoveFalse :
-                                  typedCallViaEVM config
+                                  typedCallViaEVM fork config
                                     (initState σ σ₀ (Sat256.ofUInt256 g)
                                       A I)
                                     (EVM.address (AccountAddress.ofNat
@@ -771,7 +773,7 @@ theorem flopperDentBody
                                 exact dentMoveCalldataMem_read64 src guy (dentBidWord I)
                                   hmemMap hread64Map
                               by_cases hzMove : zMove = true
-                              · have rd2545True : RD flopperBytecode I
+                              · have rd2545True : RD fork flopperBytecode I
                                     (Sat256.ofUInt256 g)
                                     (initState σ σ₀
                                       (Sat256.ofUInt256 g) A I) ⟨2545⟩
@@ -783,7 +785,7 @@ theorem flopperDentBody
                                     (UInt256.ofNat 8) outMove σ' k2545 C2545 := by
                                   simpa [hzMove, vat, id] using rd2545
                                 have hcallMoveTrue :
-                                    typedCallViaEVM config
+                                    typedCallViaEVM fork config
                                       (initState σ σ₀
                                         (Sat256.ofUInt256 g) A I)
                                       (EVM.address (AccountAddress.ofNat
@@ -844,7 +846,7 @@ theorem flopperDentBody
                                       rd2545True hcallMoveTrue hdispatch hdecode
                               · have hzMoveFalse : zMove = false := by
                                   cases zMove <;> simp at hzMove ⊢
-                                have rd2545False : RD flopperBytecode I
+                                have rd2545False : RD fork flopperBytecode I
                                     (Sat256.ofUInt256 g)
                                     (initState σ σ₀
                                       (Sat256.ofUInt256 g) A I) ⟨2545⟩
@@ -856,7 +858,7 @@ theorem flopperDentBody
                                     (UInt256.ofNat 8) outMove σ' k2545 C2545 := by
                                   simpa [hzMoveFalse, vat, id] using rd2545
                                 have hcallMoveFalse :
-                                    typedCallViaEVM config
+                                    typedCallViaEVM fork config
                                       (initState σ σ₀
                                         (Sat256.ofUInt256 g) A I)
                                       (EVM.address (AccountAddress.ofNat

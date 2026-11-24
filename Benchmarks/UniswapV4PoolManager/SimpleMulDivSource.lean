@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.SimpleMulDivWords
 import Benchmarks.UniswapV4PoolManager.ValueLocals
 import Benchmarks.UniswapV4PoolManager.PoolCheckSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -30,7 +32,7 @@ theorem simpleMulDivBody {f : Frame} {evm : State} {a b denominator : UInt256}
     (ha : f.locals.get? "a" = some (.int (Int.ofNat a.toNat)))
     (hb : f.locals.get? "b" = some (.int (Int.ofNat b.toNat)))
     (hd : f.locals.get? "denominator" = some (.int (Int.ofNat denominator.toNat))) :
-    ∃ f', ExecFuncBody config f evm simpleMulDivFunction.body
+    ∃ f', ExecFuncBody fork config f evm simpleMulDivFunction.body
       (.returned f' evm (some [.int (Int.ofNat (simpleMulDiv a b denominator).toNat)])) := by
   let f1 := valueLocal f "result" (.int 0)
   let f2 := valueLocal f1 "result" (.int (Int.ofNat (simpleMulDiv a b denominator).toNat))
@@ -43,7 +45,7 @@ theorem simpleMulDivBody {f : Frame} {evm : State} {a b denominator : UInt256}
   have he := simpleMulDiv_eval (evalLocalValue (cfg := config) (evm := evm) ha1) (evalLocalValue hb1) (evalLocalValue hd1)
   refine ⟨f2, .execBlockRet ?_⟩
   exact ExecBlock.consNormal (ExecStmt.letDecl (by simp only [evalExpr?, pure]))
-    (ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) he (assignLocalValue (store_get_self _ _ _)))
+    (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) he (assignLocalValue (store_get_self _ _ _)))
       (ABlock.start.returns (evalLocalValue (store_get_self _ _ _))))
 
 theorem simpleMulDivCall {f : Frame} {evm : State} {a b denominator : UInt256} {ea eb ed : Expr}
@@ -51,7 +53,7 @@ theorem simpleMulDivCall {f : Frame} {evm : State} {a b denominator : UInt256} {
     (ha : evalExpr? config f evm ea = .ok (.int (Int.ofNat a.toNat)))
     (hb : evalExpr? config f evm eb = .ok (.int (Int.ofNat b.toNat)))
     (hd : evalExpr? config f evm ed = .ok (.int (Int.ofNat denominator.toNat))) (ret : Ident) :
-    ExecStmt config f evm (.internalCall "UnsafeMath_simpleMulDiv" [ea, eb, ed] ret)
+    ExecStmt fork config f evm (.internalCall "UnsafeMath_simpleMulDiv" [ea, eb, ed] ret)
       (.ok (valueLocal f ret (.int (Int.ofNat (simpleMulDiv a b denominator).toNat))) evm) := by
   let fc : Frame := {f with locals :=
     ((((∅ : Store).insert "denominator" (.int (Int.ofNat denominator.toNat))).insert

@@ -3,17 +3,19 @@ import Benchmarks.CompoundIII.Comet.WithdrawAssetSource
 import Benchmarks.CompoundIII.Comet.WithdrawAuthSource
 import Benchmarks.CompoundIII.Comet.ReentrancySource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
 namespace Benchmarks.CompoundIII.Comet
 
 theorem withdrawInternalAfter_source {v operator src recipient asset amount evm result}
-    (ht : WithdrawInternalAfter v operator src recipient asset amount evm result)
+    (ht : WithdrawInternalAfter fork v operator src recipient asset amount evm result)
     (frame : Frame) (hf : WithdrawAssetArgs frame v src recipient asset amount)
     (ho : frame.locals.get? "operator" = some (.address operator)) :
-    internalBlockResult config frame evm withdrawInternalTail result := by
-  have ha := withdrawAuth_source frame evm operator src hf.contract ho hf.src
+    internalBlockResult fork config frame evm withdrawInternalTail result := by
+  have ha := withdrawAuth_source (fork := fork) frame evm operator src hf.contract ho hf.src
   let ready := withdrawAuthFrame frame evm operator src
   have hready : WithdrawAssetArgs ready v src recipient asset amount := by
     constructor
@@ -43,22 +45,22 @@ theorem withdrawInternalAfter_source {v operator src recipient asset amount evm 
     let final := { withdrawAssetReady ready v evm src asset amount with
       locals := (withdrawAssetReady ready v evm src asset amount).locals.insert
         (withdrawAssetReturn v asset) .unit }
-    have hend := reentrancy_call final evm' false "__c7"
+    have hend := reentrancy_call (fork := fork) final evm' false "__c7"
       ((withdrawAssetReady_contract _ _ _ _ _ _).trans hf.contract)
     simp only [reentrancyOutcome, Bool.false_and, Bool.false_eq_true, if_false,
       reentrancyWriteOutcome, hp, if_true, internalStmtResult] at hend
-    exact (show internalBlockResult config ready evm
+    exact (show internalBlockResult fork config ready evm
       [withdrawAssetStmt, .internalCall "nonReentrantAfter" [] "__c7"]
         (.ok (reentrancyState evm' false)) from
       ⟨_, ExecBlock.consNormal hwork (execBlock_singleton hend)⟩).prependBlock ha
 
 theorem withdrawInternal_source {v operator src recipient asset amount evm result}
-    (ht : WithdrawInternalTrace v operator src recipient asset amount evm result) :
-    internalSourceResult config (withdrawInternalEntry (immStore v) operator src recipient asset amount)
+    (ht : WithdrawInternalTrace fork v operator src recipient asset amount evm result) :
+    internalSourceResult fork config (withdrawInternalEntry (immStore v) operator src recipient asset amount)
       evm withdrawInternalCallable.body result := by
   let frame := withdrawInternalEntry (immStore v) operator src recipient asset amount
   let ready := { frame with locals := frame.locals.insert "__c0" .unit }
-  have hb := reentrancy_call frame evm true "__c0" rfl
+  have hb := reentrancy_call (fork := fork) frame evm true "__c0" rfl
   apply internalBlockResult.toSource
   cases ht with
   | reverted he =>
@@ -77,7 +79,7 @@ theorem withdrawInternal_source {v operator src recipient asset amount evm resul
     exact (withdrawInternalAfter_source ht ready hf ho).prepend (internalStmtResult.cast hb he)
 
 theorem withdrawInternal_call {v operator src recipient asset amount evm result}
-    (ht : WithdrawInternalTrace v operator src recipient asset amount evm result) (frame : Frame)
+    (ht : WithdrawInternalTrace fork v operator src recipient asset amount evm result) (frame : Frame)
     (operatorExpr srcExpr toExpr assetExpr amountExpr : Expr) (ret : Ident)
     (hc : frame.contract = contract) (hi : frame.immutables = immStore v)
     (ho : evalExpr? config frame evm operatorExpr = .ok (.address operator))
@@ -85,7 +87,7 @@ theorem withdrawInternal_call {v operator src recipient asset amount evm result}
     (hto : evalExpr? config frame evm toExpr = .ok (.address recipient))
     (ha : evalExpr? config frame evm assetExpr = .ok (.address asset))
     (ham : evalExpr? config frame evm amountExpr = .ok (.int amount.toNat)) :
-    ExecStmt config frame evm
+    ExecStmt fork config frame evm
       (.internalCall "withdrawInternal" [operatorExpr, srcExpr, toExpr, assetExpr, amountExpr] ret)
       (internalStmtResult frame ret result) := by
   apply internalVoidCall (callee := withdrawInternalCallable)

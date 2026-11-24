@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.TokenBalanceResponse
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -13,9 +15,9 @@ theorem cometAllocatedWordDecode {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {ptr ret : UInt256} {R : List UInt256}
     (hstack : R.length + 9 ≤ 1024) (hptr : ptr.toNat + 32 < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨6982⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨6982⟩
       (ptr :: ⟨32⟩ :: ⟨9678⟩ :: ⟨32⟩ :: ptr :: ret :: R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret
       (memLoad ptr (writeWord mem 64 (ptr + ⟨32⟩)) :: R)
       (writeWord mem 64 (ptr + ⟨32⟩)) aw' out σ k' C' := by
   obtain ⟨aw1, k1, C1, r1⟩ := cometAllocateBounded (v := v) (bound := 1)
@@ -38,8 +40,8 @@ theorem cometShortWordDecode {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {ptr dummy : UInt256} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024) (hptr : ptr.toNat + 32 < 2^64)
     (hshort : out.size < 32)
-    (h : RD (deployedRuntime v) ee g s0 ⟨9693⟩ (dummy :: ptr :: R)
-      mem aw out σ k C) : RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨9693⟩ (dummy :: ptr :: R)
+      mem aw out σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   have hsize : out.size < UInt256.size := by change out.size < 2^256; omega
   have r1 := cometWithExtendedAssetList_block_9693 (immWords := wordsOf (immStore v))
     (by change R.length + 1 + 2 ≤ 1024; omega)

@@ -1,5 +1,7 @@
 import Benchmarks.Auction.InitializerBegin
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option synthInstance.maxSize 4096
@@ -51,12 +53,12 @@ theorem initializerTails : ∀ i : InitializerTailSite, initializerTailWf i := b
   native_decide
 
 theorem initializerTailSplit {I g s0 top ret R mem aw rdata σ k C} (i : InitializerTailSite)
-    (h : RD auctionBytecode I g s0 (initializerTailPc i)
+    (h : RD fork auctionBytecode I g s0 (initializerTailPc i)
       (top :: ret :: R) mem aw rdata σ k C)
     (hf : InitializerNestedFlag σ I top)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 6 ≤ 1024) :
-    (    ∃ k' C', RD auctionBytecode I g s0 ret R mem aw rdata σ k' C') ∨
-      (I.perm = false ∧ RDstatic auctionBytecode g s0) := by
+    (    ∃ k' C', RD fork auctionBytecode I g s0 ret R mem aw rdata σ k' C') ∨
+      (I.perm = false ∧ RDstatic fork auctionBytecode g s0) := by
   obtain ⟨h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13⟩ :=
     initializerTails i
   by_cases ht : top = ⟨0⟩
@@ -83,39 +85,39 @@ theorem initializerTailSplit {I g s0 top ret R mem aw rdata σ k C} (i : Initial
     exact ⟨_, _, evm_run rdPop with [raw pop h12 (by evm_ov), raw jump h13 hret (by evm_ov)]⟩
 
 theorem initializerTail {I g s0 top ret R mem aw rdata σ k C} (i : InitializerTailSite)
-    (h : RD auctionBytecode I g s0 (initializerTailPc i)
+    (h : RD fork auctionBytecode I g s0 (initializerTailPc i)
       (top :: ret :: R) mem aw rdata σ k C)
     (hf : InitializerNestedFlag σ I top) (hperm : I.perm = true)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret R mem aw rdata σ k' C' :=
+    ∃ k' C', RD fork auctionBytecode I g s0 ret R mem aw rdata σ k' C' :=
   (initializerTailSplit i h hf hret hov).resolve_right (by rintro ⟨hp, _⟩; simp [hperm] at hp)
 
 theorem initializerSharedTailSplit {I g s0 top ret R mem aw rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨3877⟩ (top :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨3877⟩ (top :: ret :: R) mem aw rdata σ k C)
     (hf : InitializerNestedFlag σ I top)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 6 ≤ 1024) :
-    (    ∃ k' C', RD auctionBytecode I g s0 ret R mem aw rdata σ k' C') ∨
-      (I.perm = false ∧ RDstatic auctionBytecode g s0) := by
+    (    ∃ k' C', RD fork auctionBytecode I g s0 ret R mem aw rdata σ k' C') ∨
+      (I.perm = false ∧ RDstatic fork auctionBytecode g s0) := by
   exact initializerTailSplit 0 (h.jumpdest (by native_decide) (by evm_ov)) hf hret hov
 
 theorem initializerSharedTail {I g s0 top ret R mem aw rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨3877⟩ (top :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨3877⟩ (top :: ret :: R) mem aw rdata σ k C)
     (hf : InitializerNestedFlag σ I top) (hperm : I.perm = true)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret R mem aw rdata σ k' C' :=
+    ∃ k' C', RD fork auctionBytecode I g s0 ret R mem aw rdata σ k' C' :=
   (initializerSharedTailSplit h hf hret hov).resolve_right (by rintro ⟨hp, _⟩; simp [hperm] at hp)
 
 theorem contextInitializerSplit {I g s0 ret R mem aw rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨4892⟩ (ret :: R) mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨4892⟩ (ret :: R) mem aw rdata σ k C)
     (hr : InitializerReady σ I)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 7 ≤ 1024) :
-    (    ∃ k' C', RD auctionBytecode I g s0 ret R mem aw rdata σ k' C') ∨
-      (I.perm = false ∧ RDstatic auctionBytecode g s0) := by
+    (    ∃ k' C', RD fork auctionBytecode I g s0 ret R mem aw rdata σ k' C') ∨
+      (I.perm = false ∧ RDstatic fork auctionBytecode g s0) := by
   obtain ⟨_, _, rd4943⟩ := initializerGuardReady 4 h hr (by evm_ov)
   have rd4945 := evm_run rd4943 with [jumpdest, push0]
   obtain ⟨_, _, rd4946⟩ := rd4945.sload (by native_decide) (by evm_ov)
   have rd4955 := evm_run rd4946 with [push2 ⟨256⟩, swap1, div, push1 ⟨255⟩, and, iszero]
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     (UInt256.isZero (UInt256.land ⟨255⟩ (UInt256.div (solcSlotWord σ I ⟨0⟩) ⟨256⟩)) :: ret :: R)
     _ _ _ _ _ _ at rd4955
   rw [u256_land_comm ⟨255⟩] at rd4955
@@ -142,10 +144,10 @@ theorem contextInitializerSplit {I g s0 ret R mem aw rdata σ k C}
     exact initializerSharedTailSplit rd3877 (initializerNestedFlag_of_ready hr) hret (by omega)
 
 theorem contextInitializer {I g s0 ret R mem aw rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨4892⟩ (ret :: R) mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨4892⟩ (ret :: R) mem aw rdata σ k C)
     (hr : InitializerReady σ I) (hperm : I.perm = true)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret R mem aw rdata σ k' C' :=
+    ∃ k' C', RD fork auctionBytecode I g s0 ret R mem aw rdata σ k' C' :=
   (contextInitializerSplit h hr hret hov).resolve_right (by rintro ⟨hp, _⟩; simp [hperm] at hp)
 
 end Auction

@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.ReservesStart
 import Benchmarks.CompoundIII.Comet.Signed256
 import Benchmarks.CompoundIII.Comet.SignedWord
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -75,7 +77,7 @@ def reservesFinalFrame (v : CometWithExtendedAssetListImmutables) (w0 w1 time ba
 
 theorem reservesPresent_result (v : CometWithExtendedAssetListImmutables)
     (w0 w1 time balance : UInt256) (evm : EVM.State) (hv : CurrentIndicesValid v w0 w1 time) :
-    ExecBlock config (reservesBalanceFrame v w0 w1 time balance) evm reservesPresentBlock
+    ExecBlock fork config (reservesBalanceFrame v w0 w1 time balance) evm reservesPresentBlock
       (.ok (reservesTotalsFrame v w0 w1 time balance) evm) := by
   apply ExecBlock.consNormal (presentValue_call _ evm false
     (currentIndex v w0 w1 time false) (totalsPrincipalWord w1 false) _ _ "totalSupply_"
@@ -101,7 +103,7 @@ theorem reservesPresent_result (v : CometWithExtendedAssetListImmutables)
 
 theorem reservesSigned_result (v : CometWithExtendedAssetListImmutables)
     (w0 w1 time balance : UInt256) (evm : EVM.State) (hv : CurrentIndicesValid v w0 w1 time) :
-    ExecBlock config (reservesTotalsFrame v w0 w1 time balance) evm reservesSignedBlock
+    ExecBlock fork config (reservesTotalsFrame v w0 w1 time balance) evm reservesSignedBlock
       (if ReservesMathValid v w0 w1 time balance then
         .returned (reservesFinalFrame v w0 w1 time balance) evm
           (some [.int (reservesValue v w0 w1 time balance)]) else .reverted) := by

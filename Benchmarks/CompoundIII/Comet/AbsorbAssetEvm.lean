@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.AbsorbAssetModel
 import Benchmarks.CompoundIII.Comet.AbsorbAfterAssetEvm
 import Benchmarks.CompoundIII.Comet.AssetMemoryPrefix
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -16,11 +18,11 @@ theorem cometAbsorbAsset {v : CometWithExtendedAssetListImmutables}
     (account : AccountAddress) (hstack : R.length + 27 ≤ 1024) (hi : i.toNat < 256)
     (hfree : memLoad ⟨64⟩ mem = free) (hlo : 96 ≤ free.toNat)
     (hbound : free.toNat + 1184 < 2^64) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨17578⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨17578⟩
       (i :: assets :: reserved :: old :: principal :: price :: EVM.word account.val :: delta ::
         basicPtr :: absorber :: R) mem aw rdata σ k C) :
-    ∃ result, AbsorbAssetTrace v account i delta evm result ∧
-      internalValuePreservingRun (deployedRuntime v) ee g s0 mem free 928 ⟨17567⟩
+    ∃ result, AbsorbAssetTrace fork v account i delta evm result ∧
+      internalValuePreservingRun fork (deployedRuntime v) ee g s0 mem free 928 ⟨17567⟩
         (fun d ↦ i :: assets :: reserved :: old :: principal :: price :: EVM.word account.val ::
           d.delta delta :: basicPtr :: absorber :: R) result := by
   have r1 := cometWithExtendedAssetList_block_17578 (immWords := wordsOf (immStore v))

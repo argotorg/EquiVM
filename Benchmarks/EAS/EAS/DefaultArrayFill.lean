@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.StructAllocate
 import Benchmarks.EAS.EAS.RuntimeBlocks_029
 import Benchmarks.EAS.Attester.StructAllocMemory
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -21,12 +23,12 @@ theorem easDefaultArrayFill {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hspace : base.toNat+32+32*(i+n) ≤ free)
     (hheap : memLoad (UInt256.ofNat 64) mem = UInt256.ofNat free)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨7615⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨7615⟩
       (UInt256.ofNat (32*i)::base::UInt256.ofNat (32*(i+n))::ret::base::R) mem aw rdata σ k C) :
     if free+320*n ≤ 2^64-1 then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (base::R)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (base::R)
         (structSlotsMemory mem free (base.toNat+32+32*i) defaultAttestationWords n) aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   induction n generalizing free i mem aw k C with
   | zero =>
     simp only [Nat.mul_zero,Nat.add_zero,if_pos hh,structSlotsMemory] at rd ⊢
@@ -58,7 +60,7 @@ theorem easDefaultArrayFill {ee : ExecutionEnv} {g : Sat256} {s0 : State}
       have hindex : UInt256.ofNat (32*i)+UInt256.ofNat 32 = UInt256.ofNat (32*(i+1)) := by
         simpa only [Nat.mul_add,Nat.mul_one] using ofNat_add_words (32*i) 32
       have hend : i+(n+1) = (i+1)+n := by omega
-      have rnext : RD (deployedRuntime v) ee g s0 ⟨7615⟩
+      have rnext : RD fork (deployedRuntime v) ee g s0 ⟨7615⟩
           (UInt256.ofNat (32*(i+1))::base::UInt256.ofNat (32*((i+1)+n))::ret::base::R)
           (structSlotMemory mem free (base.toNat+32+32*i) defaultAttestationWords) a4 rdata σ k4 C4 := by
         have hm := defaultAttestationSlotMemory_eq mem free (base.toNat+32+32*i) hh

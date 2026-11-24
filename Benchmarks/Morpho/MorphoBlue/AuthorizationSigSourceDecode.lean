@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.RawCalldataSource
 import Benchmarks.Morpho.MorphoBlue.AuthorizationABI
 import Benchmarks.Morpho.MorphoBlue.Fallback
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Morpho.MorphoBlue.Immutables
 namespace Benchmarks.Morpho.MorphoBlue
@@ -17,7 +19,7 @@ def authorizationDecodedFrame (cd : ByteArray) (v : MorphoImmutables) : Frame :=
 theorem morphoAuthorizationSigPrelude (evm : EVM.State) (v : MorphoImmutables)
     (hcv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsel : selIs evm.executionEnv (morphoSelBytes 27)) :
-    ABlock config evm (authorizationSigFrame evm.executionEnv.calldata v)
+    ABlock fork config evm (authorizationSigFrame evm.executionEnv.calldata v)
       setAuthorizationWithSigTransition.body (authorizationSigFrame evm.executionEnv.calldata v)
       (setAuthorizationWithSigTransition.body.drop 6) := by
   have hs := calldata_size_ge_of_selIs evm.executionEnv (morphoSelBytes 27) rfl hsel
@@ -26,7 +28,7 @@ theorem morphoAuthorizationSigPrelude (evm : EVM.State) (v : MorphoImmutables)
   have hb (i : Nat) (hi : i < 4) :
       evm.executionEnv.calldata[i] = (morphoSelBytes 27)[i]'(by decide +revert) :=
     selectorPrefix_get hi hs he
-  have p0 := (ABlock.start (cfg := config) (evm := evm)
+  have p0 := (ABlock.start (fork := fork) (cfg := config) (evm := evm)
     (stele := authorizationSigFrame evm.executionEnv.calldata v)
     (stmts := setAuthorizationWithSigTransition.body)).requireStep (evalCallvalueEq_true hcv)
   have p1 := p0.requireStep (by simpa only [hs, decide_true] using fallbackSize_eval evm v)
@@ -69,10 +71,10 @@ theorem morphoAuthorizationSigBoundsPrelude (evm : EVM.State) (v : MorphoImmutab
     (hsel : selIs evm.executionEnv (morphoSelBytes 27))
     (hh : evm.executionEnv.calldata.size < 2 ^ 255 + 4)
     (hl : 164 ≤ evm.executionEnv.calldata.size) :
-    ABlock config evm (authorizationSigFrame evm.executionEnv.calldata v)
+    ABlock fork config evm (authorizationSigFrame evm.executionEnv.calldata v)
       setAuthorizationWithSigTransition.body (authorizationSigFrame evm.executionEnv.calldata v)
       (setAuthorizationWithSigTransition.body.drop 8) := by
-  have p0 := morphoAuthorizationSigPrelude evm v hcv hsel
+  have p0 := morphoAuthorizationSigPrelude (fork := fork) evm v hcv hsel
   have p1 := p0.requireStep (by
     simpa only [hh, decide_true] using calldataGuard_eval
       (cfg := config) (stele := authorizationSigFrame evm.executionEnv.calldata v)
@@ -88,7 +90,7 @@ theorem morphoAuthorizationSigDecoded (evm : EVM.State) (v : MorphoImmutables)
     (hh : evm.executionEnv.calldata.size < 2 ^ 255 + 4)
     (hl : 164 ≤ evm.executionEnv.calldata.size)
     (hc : (authorizationFromCalldata evm.executionEnv.calldata).Canonical) :
-    ABlock config evm (authorizationSigFrame evm.executionEnv.calldata v)
+    ABlock fork config evm (authorizationSigFrame evm.executionEnv.calldata v)
       setAuthorizationWithSigTransition.body (authorizationDecodedFrame evm.executionEnv.calldata v)
       (setAuthorizationWithSigTransition.body.drop 9) := by
   exact (morphoAuthorizationSigBoundsPrelude evm v hcv hsel hh hl).letStep
@@ -107,7 +109,7 @@ theorem morphoAuthorizationSigSourceDecode (evm : EVM.State) (v : MorphoImmutabl
     (hcv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsel : selIs evm.executionEnv (morphoSelBytes 27))
     (hb : AuthorizationSigBounds evm.executionEnv.calldata) :
-    ABlock config evm (authorizationSigFrame evm.executionEnv.calldata v)
+    ABlock fork config evm (authorizationSigFrame evm.executionEnv.calldata v)
       setAuthorizationWithSigTransition.body (authorizationDecodedFrame evm.executionEnv.calldata v)
       (setAuthorizationWithSigTransition.body.drop 10) := by
   exact (morphoAuthorizationSigDecoded evm v hcv hsel hb.2.1 (by have := hb.1; omega)
@@ -120,10 +122,10 @@ theorem morphoAuthorizationSigSourceDecodeRevert (evm : EVM.State) (v : MorphoIm
     (hcv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsel : selIs evm.executionEnv (morphoSelBytes 27))
     (hb : ¬ AuthorizationSigBounds evm.executionEnv.calldata) :
-    ExecTransitionBody config contract evm (fallbackLocals evm.executionEnv.calldata)
+    ExecTransitionBody fork config contract evm (fallbackLocals evm.executionEnv.calldata)
       setAuthorizationWithSigTransition.body .reverted (immStore v) := by
   apply ExecFuncBody.execBlockRevert
-  have p0 := morphoAuthorizationSigPrelude evm v hcv hsel
+  have p0 := morphoAuthorizationSigPrelude (fork := fork) evm v hcv hsel
   have hg := calldataGuard_eval (cfg := config) (evm := evm)
     (stele := authorizationSigFrame evm.executionEnv.calldata v) (store_get_self _ _ _)
   by_cases hh : evm.executionEnv.calldata.size < 2 ^ 255 + 4

@@ -1,5 +1,7 @@
 import Examples.VyperERC20.TransferFromAllowanceStoreOuterPhase
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -11,7 +13,7 @@ namespace VyperERC20
 /-- The allowance `SSTORE` (the first forbidden opcode on the success path): with write
     permission the store happens; in static mode the run halts there. -/
 theorem erc20X_transferFromAfterAllowanceStore {σ σ₀ A I} {g : Sat256}
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨492⟩
+    (hreach : ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨492⟩
       [transferFromAllowanceSlotI I,
         transferFromAllowanceDebitWord (initState σ σ₀ g A I) I,
         transferFromSelectorWord]
@@ -20,7 +22,7 @@ theorem erc20X_transferFromAfterAllowanceStore {σ σ₀ A I} {g : Sat256}
         (transferFromCurrentAllowanceRaw σ I))
       (UInt256.ofNat 5) ByteArray.empty
       σ k C) :
-    (I.perm = true ∧ ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨493⟩
+    (I.perm = true ∧ ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨493⟩
       [transferFromSelectorWord]
       (transferFromAllowanceScratchMem
         (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I)
@@ -28,7 +30,7 @@ theorem erc20X_transferFromAfterAllowanceStore {σ σ₀ A I} {g : Sat256}
       (UInt256.ofNat 5) ByteArray.empty
       (sstoreAccountMap I.codeOwner σ (transferFromAllowanceSlotI I)
         (transferFromAllowanceDebitWord (initState σ σ₀ g A I) I)) k C)
-    ∨ (I.perm = false ∧ RDstatic vyperERC20Bytecode g (initState σ σ₀ g A I)) := by
+    ∨ (I.perm = false ∧ RDstatic fork vyperERC20Bytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨k, C, rd492⟩ := hreach
   by_cases hp : I.perm = true
   · obtain ⟨k1, C1, rdAfterStore⟩ := rd492.sstore hp

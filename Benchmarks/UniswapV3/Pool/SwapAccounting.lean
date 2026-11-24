@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapAccountingSecond
 import Benchmarks.UniswapV3.Pool.SwapAccountingMath
 import Benchmarks.UniswapV3.Pool.SwapAccountingCalculatedTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -12,7 +14,7 @@ theorem swapAccountingBranchX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (exactInput : Bool) (s : SwapStateData) (d : SwapIterationData)
     (frame : Frame) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 (if exactInput then ⟨3383⟩ else ⟨3445⟩)
+    (rd : RD fork (deployedRuntime v) ee g s0 (if exactInput then ⟨3383⟩ else ⟨3445⟩)
       (q :: p :: R) mem aw rdata σ k C)
     (hf : frame.contract = contract) (hstate : frame.locals.get? "state" = some s.value)
     (hstep : frame.locals.get? "step" = some d.value)
@@ -20,13 +22,13 @@ theorem swapAccountingBranchX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hd : SwapIterationMemory mem q d) (hfit : s.Fits) (hp : 96 ≤ p.toNat)
     (hdisj : p.toNat + 224 ≤ q.toNat) (hb : q.toNat + 224 ≤ 2 ^ 200)
     (hov : R.length + 9 ≤ 1024) :
-    (ExecBlock config frame evm (swapAccountingBody exactInput) .reverted ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    (ExecBlock config frame evm (swapAccountingBody exactInput)
+    (ExecBlock fork config frame evm (swapAccountingBody exactInput) .reverted ∧
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    (ExecBlock fork config frame evm (swapAccountingBody exactInput)
         (.ok (swapAccountingFrame frame exactInput s d) evm) ∧
       (swapAccountingState exactInput s d).Fits ∧
       ∃ mem' aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-        RD (deployedRuntime v) ee g s0 ⟨3504⟩ (q :: p :: R) mem' aw' rdata σ k' C' ∧
+        RD fork (deployedRuntime v) ee g s0 ⟨3504⟩ (q :: p :: R) mem' aw' rdata σ k' C' ∧
         HeapMemory mem' aw' free ∧ SwapStateMemory mem' p (swapAccountingState exactInput s d) ∧
         SwapIterationMemory mem' q d ∧ MemoryPrefix mem mem' p.toNat ∧ aw.toNat ≤ aw'.toNat) := by
   have hbody : swapAccountingBody exactInput = (swapAccountingBody exactInput).take 3 ++
@@ -47,7 +49,7 @@ theorem swapAccountingBranchX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     · refine Or.inl ⟨?_, hr⟩
       rw [hbody]
       exact execBlock_append_ok hex1 (ExecBlock.consRevert hex2)
-    · have hex3 := swapAccountingCalculatedSource (evm := evm) exactInput s1
+    · have hex3 := swapAccountingCalculatedSource (fork := fork) (evm := evm) exactInput s1
         (swapAccountingCalculated exactInput s d)
         (swapAccountingMathFrame_state frame exactInput s d)
         (swapAccountingMathFrame_result frame exactInput s d)
@@ -65,7 +67,7 @@ theorem swapAccountingX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (exactInput : Bool) (s : SwapStateData) (d : SwapIterationData)
     (frame : Frame) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 (if exactInput then ⟨3383⟩ else ⟨3445⟩)
+    (rd : RD fork (deployedRuntime v) ee g s0 (if exactInput then ⟨3383⟩ else ⟨3445⟩)
       (q :: p :: R) mem aw rdata σ k C)
     (hf : frame.contract = contract) (hstate : frame.locals.get? "state" = some s.value)
     (hstep : frame.locals.get? "step" = some d.value)
@@ -74,13 +76,13 @@ theorem swapAccountingX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hd : SwapIterationMemory mem q d) (hfit : s.Fits) (hp : 96 ≤ p.toNat)
     (hdisj : p.toNat + 224 ≤ q.toNat) (hb : q.toNat + 224 ≤ 2 ^ 200)
     (hov : R.length + 9 ≤ 1024) :
-    (ExecStmt config frame evm swapLoopBody[13]! .reverted ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    (ExecStmt config frame evm swapLoopBody[13]!
+    (ExecStmt fork config frame evm swapLoopBody[13]! .reverted ∧
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    (ExecStmt fork config frame evm swapLoopBody[13]!
         (.ok (swapAccountingFrame frame exactInput s d) evm) ∧
       (swapAccountingState exactInput s d).Fits ∧
       ∃ mem' aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-        RD (deployedRuntime v) ee g s0 ⟨3504⟩ (q :: p :: R) mem' aw' rdata σ k' C' ∧
+        RD fork (deployedRuntime v) ee g s0 ⟨3504⟩ (q :: p :: R) mem' aw' rdata σ k' C' ∧
         HeapMemory mem' aw' free ∧ SwapStateMemory mem' p (swapAccountingState exactInput s d) ∧
         SwapIterationMemory mem' q d ∧ MemoryPrefix mem mem' p.toNat ∧ aw.toNat ≤ aw'.toNat) := by
   have he := evalExpr_var_get (cfg := config) (evm := evm) hexact

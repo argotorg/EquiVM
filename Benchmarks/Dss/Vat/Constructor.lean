@@ -3,6 +3,8 @@ import Reasoning.Constructor
 import Reasoning.Initcode
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Vat constructor correctness stub
 
@@ -198,7 +200,7 @@ theorem vatCtorInitcodeSuccess
     (hcode : I.code = vatCreationBytecode)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) :
-    RDret vatCreationBytecode g
+    RDret fork vatCreationBytecode g
       (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ (solcMappingSlot ⟨0⟩ (vatCtorSourceWord I)) ⟨1⟩)
@@ -214,7 +216,7 @@ theorem vatCtorInitcodeSuccess
     simpa [memHash] using
       twoWordHashMem_solcMappingSlot ⟨0⟩ (vatCtorSourceWord I) solcFreePtrMem_size
   have rd0 :
-      RD vatCreationBytecode I g s0 ⟨0⟩ [] ByteArray.empty (UInt256.ofNat 0)
+      RD fork vatCreationBytecode I g s0 ⟨0⟩ [] ByteArray.empty (UInt256.ofNat 0)
         ByteArray.empty σ 0 0 := by
     rw [hs0]
     exact RD.initState hcode
@@ -284,10 +286,10 @@ theorem vatCtorInitcodeRevert_nonpayable
     {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatCreationBytecode)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev vatCreationBytecode g
+    RDrev fork vatCreationBytecode g
       (initState σ σ₀ g A I) := by
   have rd0 :
-      RD vatCreationBytecode I g
+      RD fork vatCreationBytecode I g
         (initState σ σ₀ g A I) ⟨0⟩ []
         ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
@@ -381,7 +383,7 @@ theorem vatCtorBodySuccess
       (Sat256.ofUInt256 g) A I
     let evm1 := vatCtorAfterWardsState evm0
     let evm2 := vatCtorAfterLiveState evm1
-    ExecBlock config { contract := contract, locals := locals } evm0 constructorDecl.body
+    ExecBlock fork config { contract := contract, locals := locals } evm0 constructorDecl.body
       (.ok { contract := contract, locals := locals } evm2) := by
   intro locals evm0 evm1 evm2
   have hassignWards :
@@ -399,8 +401,8 @@ theorem vatCtorBodySuccess
   simp only [constructorDecl, nonpayable, List.cons_append, List.nil_append]
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hassignWards) ?_
-  exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [evm1, vatCtorAfterWardsState, storageStore_executionEnv, evm0, initState] using hperm)) (by simp [evalExpr?, pure]) hassignLive)
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hassignWards) ?_
+  exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [evm1, vatCtorAfterWardsState, storageStore_executionEnv, evm0, initState] using hperm)) (by simp [evalExpr?, pure]) hassignLive)
     ExecBlock.nil
 
 theorem vatSteleCtorExecSuccess
@@ -408,7 +410,7 @@ theorem vatSteleCtorExecSuccess
     {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hperm : I.perm = true) :
-    steleCtorExec config contract [] σ σ₀ g A I
+    steleCtorExec fork config contract [] σ σ₀ g A I
       (.returned { contract := contract, locals := vatCtorLocals }
         (vatCtorAfterLiveState
           (vatCtorAfterWardsState
@@ -423,14 +425,14 @@ theorem vatSteleCtorExecSuccess
   · rfl
   · simpa [ExecTransitionBody, contract, constructorDecl] using
       ExecFuncBody.execBlockOK
-        (vatCtorBodySuccess (hperm := hperm)
+        (vatCtorBodySuccess (fork := fork) (hperm := hperm)
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv)
 
 theorem vatSteleCtorExecReverts_nonpayable
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256}
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    steleCtorExec config contract [] σ σ₀ g A I .reverted := by
+    steleCtorExec fork config contract [] σ σ₀ g A I .reverted := by
   refine steleCtorExec.intro
     (evmState := initState σ σ₀
       (Sat256.ofUInt256 g) A I)
@@ -446,7 +448,7 @@ theorem vatSteleCtorExecReverts_nonpayable
 
 theorem vatConstructorBodyCore :
     typedConstructorRefinement config vatCreationBytecode contract (fun _ => vatBytecode) := by
-  intro σ σ₀ g A I args deployedInitcode
+  intro fork _hfork σ σ₀ g A I args deployedInitcode
     hdeploy hcode _hcalldata hperm
   have hargsLen :
       args.length = contract.ctor.params.length :=
@@ -462,7 +464,7 @@ theorem vatConstructorBodyCore :
   cases args with
   | nil =>
       by_cases hwv : I.weiValue = ⟨0⟩
-      · have hrd := vatCtorInitcodeSuccess
+      · have hrd := vatCtorInitcodeSuccess (fork := fork)
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := Sat256.ofUInt256 g) hcode hperm hwv
         rcases hrd with hOOG | ⟨s, hX, hacc⟩
@@ -498,7 +500,7 @@ theorem vatConstructorBodyCore :
             ?_
           refine ctorResultEquiv.success rfl rfl ?_ rfl
           simpa [σLive, evm2s] using hAccountsLive
-      · have hrd := vatCtorInitcodeRevert_nonpayable
+      · have hrd := vatCtorInitcodeRevert_nonpayable (fork := fork)
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := Sat256.ofUInt256 g) hcode hwv
         rcases hrd.xiResult hcode with hOOG | ⟨g', out, hRev⟩

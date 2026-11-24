@@ -8,6 +8,8 @@ import Reasoning.SteleBody
 import Reasoning.Reach
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # CtorTruth — whole-contract equivalence smoke test
 
@@ -40,7 +42,7 @@ theorem ctorTruthDispatch_unique {cd : ByteArray} {t : TransitionDecl}
 /-- With zero call value, the Stele body returns `true`. -/
 theorem ctorTruthBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody ctorTruthConfig CtorTruth.contract evm locals
+    ExecTransitionBody fork ctorTruthConfig CtorTruth.contract evm locals
       CtorTruth.truthTransition.body
       (.returned { contract := CtorTruth.contract, locals := locals } evm (some [(.bool true)])) := by
   exact ExecFuncBody.execBlockRet <|
@@ -64,7 +66,7 @@ theorem ctorTruthReEquiv_callvalueZero
     {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = ctorTruthRuntimeBytecode) (hsize : I.calldata.size < Ethereum.UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) :
-    runtimeRefinementFor ctorTruthConfig CtorTruth.contract σ σ₀ g.toUInt256 A I := by
+    runtimeRefinementFor fork ctorTruthConfig CtorTruth.contract σ σ₀ g.toUInt256 A I := by
   have hcode' : I.code = truthBytecode := by
     rw [← ctorTruthRuntime_eq_truthBytecode]
     exact hcode
@@ -87,7 +89,7 @@ theorem ctorTruthReEquiv_callvalueZero
 /-- Runtime bytecode refines the Stele runtime specification. -/
 theorem ctorTruthRuntimeCorrect :
     runtimeRefinement ctorTruthConfig ctorTruthRuntimeBytecode CtorTruth.contract := by
-  refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
+  refine ⟨fun fork _hfork σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact ctorTruthReEquiv_callvalueZero (g := Sat256.ofUInt256 g) hcode hsize hwv
   · have hcode' : I.code = truthBytecode := by
@@ -139,12 +141,12 @@ theorem ctorTruthFinal_read :
 set_option maxHeartbeats 400000 in
 theorem ctorTruthInitcodeRun {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = ctorTruthInitcode) :
-    RDret ctorTruthInitcode g
+    RDret fork ctorTruthInitcode g
       (initState σ σ₀ g A I) σ
       ctorTruthRuntimeBytecode := by
   set s0 := initState σ σ₀ g A I with hs0
   have rd0 :
-      RD ctorTruthInitcode I g s0 ⟨0⟩ [] ByteArray.empty (UInt256.ofNat 0) ByteArray.empty
+      RD fork ctorTruthInitcode I g s0 ⟨0⟩ [] ByteArray.empty (UInt256.ofNat 0) ByteArray.empty
         σ 0 0 := by
     rw [hs0]; exact RD.initState hcode
   exact evm_run rd0 with [

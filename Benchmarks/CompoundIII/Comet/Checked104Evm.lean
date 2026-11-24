@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.NarrowArithmetic
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_057
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -19,9 +21,9 @@ theorem cometCheckedSub104 {v : CometWithExtendedAssetListImmutables}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} {x y ret : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024) (hx : x.toNat < 2^104) (hy : y.toNat < 2^104)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨12353⟩ (x :: y :: ret :: R) mem aw rdata σ k C) :
-    (y.toNat ≤ x.toNat ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ret (UInt256.sub x y :: R)
-      mem aw rdata σ k' C') ∨ (¬ y.toNat ≤ x.toNat ∧ RDrev (deployedRuntime v) g s0) := by
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨12353⟩ (x :: y :: ret :: R) mem aw rdata σ k C) :
+    (y.toNat ≤ x.toNat ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret (UInt256.sub x y :: R)
+      mem aw rdata σ k' C') ∨ (¬ y.toNat ≤ x.toNat ∧ RDrev fork (deployedRuntime v) g s0) := by
   by_cases hle : y.toNat ≤ x.toNat
   · have r1 := cometWithExtendedAssetList_block_12353_fallthrough
       (immWords := wordsOf (immStore v)) (by simpa only [List.length_cons] using hstack)
@@ -45,10 +47,10 @@ theorem cometCheckedAdd104 {v : CometWithExtendedAssetListImmutables}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} {x y ret : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024) (hx : x.toNat < 2^104) (hy : y.toNat < 2^104)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨12293⟩ (x :: y :: ret :: R) mem aw rdata σ k C) :
-    (x.toNat + y.toNat < 2^104 ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ret ((x + y) :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨12293⟩ (x :: y :: ret :: R) mem aw rdata σ k C) :
+    (x.toNat + y.toNat < 2^104 ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret ((x + y) :: R)
       mem aw rdata σ k' C') ∨
-    (¬ x.toNat + y.toNat < 2^104 ∧ RDrev (deployedRuntime v) g s0) := by
+    (¬ x.toNat + y.toNat < 2^104 ∧ RDrev fork (deployedRuntime v) g s0) := by
   let mask := UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 104))
     (UInt256.ofNat 1)
   have hs : (UInt256.sub mask y).toNat = 2^104 - 1 - y.toNat := by

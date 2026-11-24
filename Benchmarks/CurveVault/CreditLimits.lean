@@ -2,6 +2,8 @@ import Benchmarks.CurveVault.CreditLimitsEVM
 import Benchmarks.CurveVault.CreditSource
 import Benchmarks.CurveVault.Storage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -20,15 +22,15 @@ theorem vaultCreditLimits (isDeposit : Bool) {I : ExecutionEnv} {g : Sat256} {s0
     (hmt : memLoad (UInt256.ofNat 640) (vaultCreditLimitsMemory isDeposit mem) = total)
     (hma : vaultCreditLimitsAssets isDeposit I (vaultCreditLimitsMemory isDeposit mem) = assets)
     (hstack : R.length + 8 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat (vaultCreditLimitsEntry isDeposit)) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat (vaultCreditLimitsEntry isDeposit)) R mem aw rdata σ k C) :
     (∃ aw' k' C',
-      ExecBlock config {contract := contract, locals := locals} evm (vaultCreditLimitsBody isDeposit)
+      ExecBlock fork config {contract := contract, locals := locals} evm (vaultCreditLimitsBody isDeposit)
         (.ok {contract := contract, locals := (locals.insert "max_supply"
           (.int (Int.ofNat (codeOwnerStorageWord I σ ⟨5⟩).toNat)))} evm) ∧
-      RD vaultBytecode I g s0 (UInt256.ofNat (vaultCreditLimitsNext isDeposit)) R
+      RD fork vaultBytecode I g s0 (UInt256.ofNat (vaultCreditLimitsNext isDeposit)) R
         (vaultCreditLimitsMemory isDeposit mem) aw' rdata σ k' C') ∨
-    (ExecBlock config {contract := contract, locals := locals} evm (vaultCreditLimitsBody isDeposit)
-      .reverted ∧ RDrev vaultBytecode g s0) := by
+    (ExecBlock fork config {contract := contract, locals := locals} evm (vaultCreditLimitsBody isDeposit)
+      .reverted ∧ RDrev fork vaultBytecode g s0) := by
   let limit := codeOwnerStorageWord I σ ⟨5⟩
   let locals1 := locals.insert "max_supply" (.int (Int.ofNat limit.toNat))
   have htEval := evalExpr_varUInt256 (cfg := config) (contract := contract) (evm := evm) ht

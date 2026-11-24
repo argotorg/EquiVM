@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Vat.FrobLiveBase
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Vat
@@ -193,7 +195,7 @@ theorem execFrobGemDaiUpdatesOk {evm : EVM.State} {I : ExecutionEnv}
       (frobDaiWSourceSlot I) daiNew
     let localsGem := locals.insert "gemNew" (.int (Int.ofNat gemNew.toNat))
     let localsDai := localsGem.insert "daiNew" (.int (Int.ofNat daiNew.toNat))
-    ExecBlock config { contract := contract, locals := locals } evm
+    ExecBlock fork config { contract := contract, locals := locals } evm
       (checkedSubSignedInto "gemNew" (.storage (gemRef (.var "i") (.var "v")))
           (.var "dink") ++
         [ .assign .storage (gemRef (.var "i") (.var "v")) (.var "gemNew") ] ++
@@ -202,7 +204,7 @@ theorem execFrobGemDaiUpdatesOk {evm : EVM.State} {I : ExecutionEnv}
       (.ok { contract := contract, locals := localsDai } evmDai) := by
   intro evmGem evmDai localsGem localsDai
   have hgemBlock :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         (checkedSubSignedInto "gemNew" (.storage (gemRef (.var "i") (.var "v")))
             (.var "dink") ++
           [ .assign .storage (gemRef (.var "i") (.var "v")) (.var "gemNew") ])
@@ -225,7 +227,7 @@ theorem execFrobGemDaiUpdatesOk {evm : EVM.State} {I : ExecutionEnv}
     rw [store_get_ne _ _ (by decide)]
     exact hbaseDai
   have hdaiBlock :
-      ExecBlock config { contract := contract, locals := localsGem } evmGem
+      ExecBlock fork config { contract := contract, locals := localsGem } evmGem
         (checkedAddSignedInto "daiNew" (.storage (daiRef (.var "w"))) (.var "dtab") ++
           [ .assign .storage (daiRef (.var "w")) (.var "daiNew") ])
         (.ok { contract := contract, locals := localsDai } evmDai) := by
@@ -274,7 +276,7 @@ theorem execFrobFinalStorageAssignmentsOk {evmDai : EVM.State} {I : ExecutionEnv
       (frobIlkLineSourceSlot I) ilkLine
     let evmDust := Stele.EVM.storageStore evmLine evmLine.executionEnv.codeOwner
       (frobIlkDustSourceSlot I) ilkDust
-    ExecBlock config { contract := contract, locals := localsDai } evmDai
+    ExecBlock fork config { contract := contract, locals := localsDai } evmDai
       [ .assign .storage (urnsF (.var "i") (.var "u") "ink") (.var "urnInkNew"),
         .assign .storage (urnsF (.var "i") (.var "u") "art") (.var "urnArtNew"),
         .assign .storage (ilksF (.var "i") "Art") (.var "ilkArtNew"),
@@ -333,19 +335,19 @@ theorem execFrobFinalStorageAssignmentsOk {evmDai : EVM.State} {I : ExecutionEnv
       .ok ({ contract := contract, locals := localsDai }, evmDust) := by
     simpa [evmDust] using
       assignStorageRef_frob_ilk_dust evmLine I localsDai ilkDust hsz196 hi hbaseIlks
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by
     simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm)) (evalVarAfterDai hurnInkNew) hassignInk) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by
     simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm)) (evalVarAfterDai hurnArtNew) hassignArt) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by
     simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm)) (evalVarAfterDai hilkArtNew) hassignIlkArt) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by
     simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm)) (evalVarAfterDai hilkRate) hassignRate) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by
     simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm)) (evalVarAfterDai hilkSpot) hassignSpot) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by
     simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm)) (evalVarAfterDai hilkLine) hassignLine) ?_
-  exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by
+  exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by
     simpa (config := { zetaDelta := true }) only [storageStore_executionEnv] using hperm)) (evalVarAfterDai hilkDust) hassignDust)
     ExecBlock.nil
 
@@ -1018,7 +1020,7 @@ theorem vatFrobSourceBodySuccessFromDustBlock
         (localsDebt.insert "ceilingDebt"
           (.int (Int.ofNat ceilingDebt.toNat))).insert "inkSpot"
           (.int (Int.ofNat inkSpot.toNat))
-      ExecBlock config { contract := contract, locals := frobStore I } evm0
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm0
         ((nonpayable ++ requireLive ++
           [ .letDecl "urnInk" (some uint256)
               (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -1177,7 +1179,7 @@ theorem vatFrobSourceBodySuccessFromDustBlock
       (frobIlkLineSourceSlot I) ilkLine
     let evmDust := Stele.EVM.storageStore evmLine evmLine.executionEnv.codeOwner
       (frobIlkDustSourceSlot I) ilkDust
-    ExecTransitionBody config contract evm0 (frobStore I) frobTransition.body
+    ExecTransitionBody fork config contract evm0 (frobStore I) frobTransition.body
       (.returned { contract := contract, locals := finalLocals } evmDust none) := by
   intro urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust evm0 localsLoaded
     urnInkNew urnArtNew ilkArtNew localsIlk dtab localsDtab tab debtOld dtabWord
@@ -1228,7 +1230,7 @@ theorem vatFrobSourceBodySuccessFromDustBlock
         (frobIlkLineSourceSlot I) ilkLine
       let evmDust := Stele.EVM.storageStore evmLine evmLine.executionEnv.codeOwner
         (frobIlkDustSourceSlot I) ilkDust
-      ExecBlock config { contract := contract, locals := localsSafe } evmDebt
+      ExecBlock fork config { contract := contract, locals := localsSafe } evmDebt
         (checkedSubSignedInto "gemNew" (.storage (gemRef (.var "i") (.var "v")))
           (.var "dink") ++
           [ .assign .storage (gemRef (.var "i") (.var "v")) (.var "gemNew") ] ++
@@ -1334,7 +1336,7 @@ theorem vatFrobSourceBodySuccessFromDustBlock
       tab, debtOld, dtabWord, debtNew, localsDebt, evmDebt, ceilingDebt, inkSpot,
       localsSafe] using hsourceDust)
     (by simpa only [List.append_assoc] using htail)
-  change ExecFuncBody config { contract := contract, locals := frobStore I } evm0
+  change ExecFuncBody fork config { contract := contract, locals := frobStore I } evm0
     frobTransition.body
     (.returned { contract := contract, locals := finalLocals } evmDust none)
   exact ExecFuncBody.execBlockOK (by
@@ -1350,7 +1352,7 @@ theorem vatFrobLiveSuccessFinish
       config.externalABI.decodeCalldata? (frobTransition.params.map Param.name)
         (transitionSignature frobTransition).paramTypes I.calldata = some (frobStore I))
     (hsz196 : 196 ≤ I.calldata.size)
-    (hret : RDret vatBytecode (Sat256.ofUInt256 g)
+    (hret : RDret fork vatBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (frobAfterRuntimeFinal σ I) ByteArray.empty)
     (hsourceDust :
@@ -1389,7 +1391,7 @@ theorem vatFrobLiveSuccessFinish
         (localsDebt.insert "ceilingDebt"
           (.int (Int.ofNat ceilingDebt.toNat))).insert "inkSpot"
           (.int (Int.ofNat inkSpot.toNat))
-      ExecBlock config { contract := contract, locals := frobStore I } evm0
+      ExecBlock fork config { contract := contract, locals := frobStore I } evm0
         ((nonpayable ++ requireLive ++
           [ .letDecl "urnInk" (some uint256)
               (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -1463,7 +1465,7 @@ theorem vatFrobLiveSuccessFinish
         UInt256.lt (frobDaiNew σ I)
           (solcSlotWord (frobAfterGem σ I) I (frobDaiWSlot I)) = ⟨0⟩)
     (hperm : I.perm = true) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let urnInk := solcSlotWordAt (frobUrnInkSlot I) σ I
   let urnArt := solcSlotWordAt (frobUrnArtSlot I) σ I
   let ilkArt := solcSlotWordAt (frobIlkArtSlot I) σ I
@@ -1534,7 +1536,7 @@ theorem vatFrobLiveSuccessFinish
     Stele.EVM.storageStore evmLine evmLine.executionEnv.codeOwner
       (frobIlkDustSourceSlot I) ilkDust
   have hbody :
-      ExecTransitionBody config contract evm0 (frobStore I) frobTransition.body
+      ExecTransitionBody fork config contract evm0 (frobStore I) frobTransition.body
         (.returned { contract := contract, locals := finalLocals } evmDust none) := by
     exact vatFrobSourceBodySuccessFromDustBlock (hperm := hperm)
       (σ := σ) (σ₀ := σ₀)
@@ -1588,14 +1590,14 @@ theorem vatFrobBodyCoreLiveSuccessGuards
         (transitionSignature frobTransition).paramTypes I.calldata = some (frobStore I))
     (hdecoded :
       ∃ k C,
-        RD vatBytecode I (Sat256.ofUInt256 g)
+        RD fork vatBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2975⟩
           [frobDartWord I, frobDinkWord I, frobWMaskedWord I, frobVMaskedWord I,
             frobUMaskedWord I, frobIWord I, ⟨524⟩, vatSelWord I]
           solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hSuccess : frobLiveSuccessGuards σ I)
     (hlive : solcSlotWordAt ⟨10⟩ σ I = ⟨1⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨_, _, hafterLive⟩ := vatFrobLiveOk
     (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -1614,7 +1616,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
     have hbodyRaw :
         let locals := frobStore I
         let evm0' := initState σ σ₀ (Sat256.ofUInt256 g) A I
-        ExecTransitionBody config contract evm0' locals frobTransition.body
+        ExecTransitionBody fork config contract evm0' locals frobTransition.body
           .reverted := by
       exact vatFrobSourceBodyRateZero
           (σ := σ) (σ₀ := σ₀)
@@ -1649,7 +1651,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
               hrateWord]
             native_decide)
     have hbody :
-        ExecTransitionBody config contract evm0 (frobStore I) frobTransition.body
+        ExecTransitionBody fork config contract evm0 (frobStore I) frobTransition.body
           .reverted := by
       simpa [evm0] using hbodyRaw
     obtain ⟨_, _, hafterUrn⟩ := RD.vatFrobUrnLoads hafterLive
@@ -1678,7 +1680,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
     have hsourcePrefixRaw :
         let locals := frobStore I
         let evm0' := initState σ σ₀ (Sat256.ofUInt256 g) A I
-        ExecBlock config { contract := contract, locals := locals } evm0'
+        ExecBlock fork config { contract := contract, locals := locals } evm0'
           (nonpayable ++ requireLive ++
             [ .letDecl "urnInk" (some uint256)
                 (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -1725,7 +1727,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
               (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
           hratePos
     have hsourcePrefix :
-        ExecBlock config { contract := contract, locals := frobStore I } evm0
+        ExecBlock fork config { contract := contract, locals := frobStore I } evm0
           (nonpayable ++ requireLive ++
             [ .letDecl "urnInk" (some uint256)
                 (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -1772,7 +1774,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
             (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
             (solcSlotWord σ I (frobIlkArtSlot I)) = ⟨0⟩) →
         ∃ k' C',
-          RD vatBytecode I (Sat256.ofUInt256 g)
+          RD fork vatBytecode I (Sat256.ofUInt256 g)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3306⟩
             [frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I),
               ⟨416⟩, ⟨192⟩, frobDartWord I, frobDinkWord I,
@@ -1824,7 +1826,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
               (frobDartWord I))
             (solcSlotWord σ I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
         ∃ k' C',
-          RD vatBytecode I (Sat256.ofUInt256 g)
+          RD fork vatBytecode I (Sat256.ofUInt256 g)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3329⟩
             [UInt256.mul (frobDartWord I)
                 (solcSlotWord σ I (frobIlkRateSlot I)),
@@ -1883,7 +1885,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
               (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)))
             (solcSlotWord σ I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
         ∃ k' C',
-          RD vatBytecode I (Sat256.ofUInt256 g)
+          RD fork vatBytecode I (Sat256.ofUInt256 g)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3351⟩
             [UInt256.mul (solcSlotWord σ I (frobIlkRateSlot I))
                 (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)),
@@ -1943,7 +1945,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
         let urnInkNew := frobDinkWord I + urnInk
         let urnArtNew := frobDartWord I + urnArt
         let ilkArtNew := frobDartWord I + ilkArt
-        ExecBlock config { contract := contract, locals := frobStore I } evm0
+        ExecBlock fork config { contract := contract, locals := frobStore I } evm0
           ((nonpayable ++ requireLive ++
             [ .letDecl "urnInk" (some uint256)
                 (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -2044,7 +2046,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
           (((localsLoaded.insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).insert
               "urnArtNew" (.int (Int.ofNat urnArtNew.toNat))).insert "ilkArtNew"
             (.int (Int.ofNat ilkArtNew.toNat)))
-        ExecBlock config { contract := contract, locals := frobStore I } evm0
+        ExecBlock fork config { contract := contract, locals := frobStore I } evm0
           ((nonpayable ++ requireLive ++
             [ .letDecl "urnInk" (some uint256)
                 (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -2078,7 +2080,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
       have hsourceAdds :=
         hthreeAddsSource hInkNeg hInkPos hArtNeg hArtPos hIlkNeg hIlkPos
       have hdtabBlock :
-          ExecBlock config { contract := contract, locals := localsIlk } evm0
+          ExecBlock fork config { contract := contract, locals := localsIlk } evm0
             (checkedMulSignedInto "dtab" (.var "ilkRate") (.var "dart"))
             (.ok
               { contract := contract,
@@ -2309,7 +2311,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
             (.int (Int.ofNat ilkArtNew.toNat)))
         let localsDtab := localsIlk.insert "dtab" (.int dtab)
         let tab := UInt256.mul ilkRate urnArtNew
-        ExecBlock config { contract := contract, locals := frobStore I } evm0
+        ExecBlock fork config { contract := contract, locals := frobStore I } evm0
           ((nonpayable ++ requireLive ++
             [ .letDecl "urnInk" (some uint256)
                 (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -2381,7 +2383,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
         rw [store_get_ne _ _ (by decide)]
         rw [store_get_self]
       have htabBlock :
-          ExecBlock config { contract := contract, locals := localsDtab } evm0
+          ExecBlock fork config { contract := contract, locals := localsDtab } evm0
             (checkedMulUintInto "tab" (.var "ilkRate") (.var "urnArtNew"))
             (.ok
               { contract := contract,
@@ -2453,7 +2455,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
               solcSlotWord σ I foldDebtSlot)
             (solcSlotWord σ I foldDebtSlot) = ⟨0⟩) →
         ∃ k' C',
-          RD vatBytecode I (Sat256.ofUInt256 g)
+          RD fork vatBytecode I (Sat256.ofUInt256 g)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3369⟩
             [UInt256.mul (solcSlotWord σ I (frobIlkRateSlot I))
                 (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)),
@@ -2553,7 +2555,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
         let debtOld := solcSlotWordAt foldDebtSlot σ I
         let dtabWord := UInt256.mul (frobDartWord I) ilkRate
         let debtNew := dtabWord + debtOld
-        ExecBlock config { contract := contract, locals := frobStore I } evm0
+        ExecBlock fork config { contract := contract, locals := frobStore I } evm0
           ((nonpayable ++ requireLive ++
             [ .letDecl "urnInk" (some uint256)
                 (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -2625,7 +2627,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
             (σ₀ := σ₀) (A := A) (I := I)
             (g := Sat256.ofUInt256 g) foldDebtSlot)
       have hdebtBlock :
-          ExecBlock config { contract := contract, locals := localsTab } evm0
+          ExecBlock fork config { contract := contract, locals := localsTab } evm0
             (checkedAddSignedInto "debtNew" (.storage debtRef) (.var "dtab") ++
               [ .assign .storage debtRef (.var "debtNew") ])
             (.ok
@@ -2795,7 +2797,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
             debtNew
         let ceilingDebt := UInt256.mul ilkArtNew ilkRate
         let inkSpot := UInt256.mul urnInkNew ilkSpot
-        ExecBlock config { contract := contract, locals := frobStore I } evm0
+        ExecBlock fork config { contract := contract, locals := frobStore I } evm0
           ((nonpayable ++ requireLive ++
             [ .letDecl "urnInk" (some uint256)
                 (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -3084,7 +3086,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
         rw [store_get_ne _ _ (by decide)]
         simp [localsLoaded, frobStoreIlkDust, frobStore]
       have hsafeBlock :
-          ExecBlock config { contract := contract, locals := localsDebt } evmDebt
+          ExecBlock fork config { contract := contract, locals := localsDebt } evmDebt
             (checkedMulUintInto "ceilingDebt" (.var "ilkArtNew") (.var "ilkRate") ++
               checkedMulUintInto "inkSpot" (.var "urnInkNew") (.var "ilkSpot") ++
               [ .require
@@ -3332,7 +3334,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
           (localsDebt.insert "ceilingDebt"
             (.int (Int.ofNat ceilingDebt.toNat))).insert "inkSpot"
             (.int (Int.ofNat inkSpot.toNat))
-        ExecBlock config { contract := contract, locals := frobStore I } evm0
+        ExecBlock fork config { contract := contract, locals := frobStore I } evm0
           ((nonpayable ++ requireLive ++
             [ .letDecl "urnInk" (some uint256)
                 (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -3662,7 +3664,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
         rw [store_get_ne _ _ (by decide)]
         simp [localsLoaded, frobStoreIlkDust]
       have hauthBlock :
-          ExecBlock config { contract := contract, locals := localsSafe } evmDebt
+          ExecBlock fork config { contract := contract, locals := localsSafe } evmDebt
             [ .require
                 (eitherExpr
                   (bothExpr
@@ -3838,7 +3840,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
             (UInt256.isZero (UInt256.slt (frobDinkWord I) ⟨0⟩))
             (UInt256.isZero (UInt256.sgt (frobDartWord I) ⟨0⟩))) ≠ ⟨0⟩ →
         ∃ k' C',
-          RD vatBytecode I (Sat256.ofUInt256 g)
+          RD fork vatBytecode I (Sat256.ofUInt256 g)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3605⟩
             [UInt256.mul (solcSlotWord σ I (frobIlkRateSlot I))
                 (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)),
@@ -4018,7 +4020,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
           (UInt256.eq ⟨0⟩
             (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))) ≠ ⟨0⟩ →
         ∃ k' C',
-          RD vatBytecode I (Sat256.ofUInt256 g)
+          RD fork vatBytecode I (Sat256.ofUInt256 g)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3963⟩
             [UInt256.mul (solcSlotWord σ I (frobIlkRateSlot I))
                 (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)),
@@ -4062,7 +4064,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
     classical
     have hsourceRevertFromUrnInkAdd
         (hsrcPrefixRevert :
-          ExecBlock config { contract := contract, locals := frobStore I } evm0
+          ExecBlock fork config { contract := contract, locals := frobStore I } evm0
             ((nonpayable ++ requireLive ++
               [ .letDecl "urnInk" (some uint256)
                   (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -4076,7 +4078,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
                 .require (.binary .ne (.var "ilkRate") (.intLit 0)) ]) ++
               checkedAddSignedInto "urnInkNew" (.var "urnInk") (.var "dink"))
             .reverted) :
-        ExecTransitionBody config contract evm0 (frobStore I) frobTransition.body
+        ExecTransitionBody fork config contract evm0 (frobStore I) frobTransition.body
           .reverted := by
       have hblock := execBlock_append_term
         (s2 :=
@@ -4133,7 +4135,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
           using hblock)
     have hsourceRevertFromUrnArtAdd
         (hsrcPrefixRevert :
-          ExecBlock config { contract := contract, locals := frobStore I } evm0
+          ExecBlock fork config { contract := contract, locals := frobStore I } evm0
             ((nonpayable ++ requireLive ++
               [ .letDecl "urnInk" (some uint256)
                   (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -4148,7 +4150,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
               checkedAddSignedInto "urnInkNew" (.var "urnInk") (.var "dink") ++
               checkedAddSignedInto "urnArtNew" (.var "urnArt") (.var "dart"))
             .reverted) :
-        ExecTransitionBody config contract evm0 (frobStore I) frobTransition.body
+        ExecTransitionBody fork config contract evm0 (frobStore I) frobTransition.body
           .reverted := by
       have hblock := execBlock_append_term
         (s2 :=
@@ -4204,7 +4206,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
           using hblock)
     have hsourceRevertFromIlkArtAdd
         (hsrcPrefixRevert :
-          ExecBlock config { contract := contract, locals := frobStore I } evm0
+          ExecBlock fork config { contract := contract, locals := frobStore I } evm0
             ((nonpayable ++ requireLive ++
               [ .letDecl "urnInk" (some uint256)
                   (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -4220,7 +4222,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
               checkedAddSignedInto "urnArtNew" (.var "urnArt") (.var "dart") ++
               checkedAddSignedInto "ilkArtNew" (.var "ilkArt") (.var "dart"))
             .reverted) :
-        ExecTransitionBody config contract evm0 (frobStore I) frobTransition.body
+        ExecTransitionBody fork config contract evm0 (frobStore I) frobTransition.body
           .reverted := by
       have hblock := execBlock_append_term
         (s2 :=
@@ -4275,7 +4277,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
           using hblock)
     have hsourceRevertFromDtabMul
         (hsrcPrefixRevert :
-          ExecBlock config { contract := contract, locals := frobStore I } evm0
+          ExecBlock fork config { contract := contract, locals := frobStore I } evm0
             ((nonpayable ++ requireLive ++
               [ .letDecl "urnInk" (some uint256)
                   (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -4292,7 +4294,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
               checkedAddSignedInto "ilkArtNew" (.var "ilkArt") (.var "dart") ++
               checkedMulSignedInto "dtab" (.var "ilkRate") (.var "dart"))
             .reverted) :
-        ExecTransitionBody config contract evm0 (frobStore I) frobTransition.body
+        ExecTransitionBody fork config contract evm0 (frobStore I) frobTransition.body
           .reverted := by
       have hblock := execBlock_append_term
         (s2 :=
@@ -4346,7 +4348,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
           using hblock)
     have hsourceRevertFromTabMul
         (hsrcPrefixRevert :
-          ExecBlock config { contract := contract, locals := frobStore I } evm0
+          ExecBlock fork config { contract := contract, locals := frobStore I } evm0
             ((nonpayable ++ requireLive ++
               [ .letDecl "urnInk" (some uint256)
                   (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -4364,7 +4366,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
               checkedMulSignedInto "dtab" (.var "ilkRate") (.var "dart") ++
               checkedMulUintInto "tab" (.var "ilkRate") (.var "urnArtNew"))
             .reverted) :
-        ExecTransitionBody config contract evm0 (frobStore I) frobTransition.body
+        ExecTransitionBody fork config contract evm0 (frobStore I) frobTransition.body
           .reverted := by
       have hblock := execBlock_append_term
         (s2 :=
@@ -4417,7 +4419,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
           using hblock)
     have hsourceRevertFromDebtAdd
         (hsrcPrefixRevert :
-          ExecBlock config { contract := contract, locals := frobStore I } evm0
+          ExecBlock fork config { contract := contract, locals := frobStore I } evm0
             ((nonpayable ++ requireLive ++
               [ .letDecl "urnInk" (some uint256)
                   (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -4436,7 +4438,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
               checkedMulUintInto "tab" (.var "ilkRate") (.var "urnArtNew") ++
               checkedAddSignedInto "debtNew" (.storage debtRef) (.var "dtab"))
             .reverted) :
-        ExecTransitionBody config contract evm0 (frobStore I) frobTransition.body
+        ExecTransitionBody fork config contract evm0 (frobStore I) frobTransition.body
           .reverted := by
       have hblock := execBlock_append_term
         (s2 :=
@@ -4488,7 +4490,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
           using hblock)
     have hsourceRevertFromCeilingMul
         (hsrcPrefixRevert :
-          ExecBlock config { contract := contract, locals := frobStore I } evm0
+          ExecBlock fork config { contract := contract, locals := frobStore I } evm0
             ((nonpayable ++ requireLive ++
               [ .letDecl "urnInk" (some uint256)
                   (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -4509,7 +4511,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
               [ .assign .storage debtRef (.var "debtNew") ] ++
               checkedMulUintInto "ceilingDebt" (.var "ilkArtNew") (.var "ilkRate"))
             .reverted) :
-        ExecTransitionBody config contract evm0 (frobStore I) frobTransition.body
+        ExecTransitionBody fork config contract evm0 (frobStore I) frobTransition.body
           .reverted := by
       have hblock := execBlock_append_term
         (s2 :=
@@ -4559,7 +4561,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
           using hblock)
     have hsourceRevertFromInkSpotMul
         (hsrcPrefixRevert :
-          ExecBlock config { contract := contract, locals := frobStore I } evm0
+          ExecBlock fork config { contract := contract, locals := frobStore I } evm0
             ((nonpayable ++ requireLive ++
               [ .letDecl "urnInk" (some uint256)
                   (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -4581,7 +4583,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
               checkedMulUintInto "ceilingDebt" (.var "ilkArtNew") (.var "ilkRate") ++
               checkedMulUintInto "inkSpot" (.var "urnInkNew") (.var "ilkSpot"))
             .reverted) :
-        ExecTransitionBody config contract evm0 (frobStore I) frobTransition.body
+        ExecTransitionBody fork config contract evm0 (frobStore I) frobTransition.body
           .reverted := by
       have hblock := execBlock_append_term
         (s2 :=
@@ -4630,7 +4632,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
           using hblock)
     have hsourceRevertFromCeilingRequire
         (hsrcPrefixRevert :
-          ExecBlock config { contract := contract, locals := frobStore I } evm0
+          ExecBlock fork config { contract := contract, locals := frobStore I } evm0
             ((nonpayable ++ requireLive ++
               [ .letDecl "urnInk" (some uint256)
                   (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -4658,7 +4660,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
                       (.binary .le (.var "ceilingDebt") (.var "ilkLine"))
                       (.binary .le (.var "debtNew") (.storage LineRef)))) ])
             .reverted) :
-        ExecTransitionBody config contract evm0 (frobStore I) frobTransition.body
+        ExecTransitionBody fork config contract evm0 (frobStore I) frobTransition.body
           .reverted := by
       have hblock := execBlock_append_term
         (s2 :=
@@ -4701,7 +4703,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
           using hblock)
     have hsourceRevertFromSafetyRequire
         (hsrcPrefixRevert :
-          ExecBlock config { contract := contract, locals := frobStore I } evm0
+          ExecBlock fork config { contract := contract, locals := frobStore I } evm0
             ((nonpayable ++ requireLive ++
               [ .letDecl "urnInk" (some uint256)
                   (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -4735,7 +4737,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
                       (.binary .ge (.var "dink") (.intLit 0)))
                     (.binary .le (.var "tab") (.var "inkSpot"))) ])
             .reverted) :
-        ExecTransitionBody config contract evm0 (frobStore I) frobTransition.body
+        ExecTransitionBody fork config contract evm0 (frobStore I) frobTransition.body
           .reverted := by
       have hblock := execBlock_append_term
         (s2 :=
@@ -4772,7 +4774,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
           using hblock)
     have hsourceRevertFromAuthorizationDust
         (hsrcPrefixRevert :
-          ExecBlock config { contract := contract, locals := frobStore I } evm0
+          ExecBlock fork config { contract := contract, locals := frobStore I } evm0
             ((nonpayable ++ requireLive ++
               [ .letDecl "urnInk" (some uint256)
                   (.storage (urnsF (.var "i") (.var "u") "ink")),
@@ -4821,7 +4823,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
                   (eitherExpr (.binary .eq (.var "urnArtNew") (.intLit 0))
                     (.binary .ge (.var "tab") (.var "ilkDust"))) ])
             .reverted) :
-        ExecTransitionBody config contract evm0 (frobStore I) frobTransition.body
+        ExecTransitionBody fork config contract evm0 (frobStore I) frobTransition.body
           .reverted := by
       have hblock := execBlock_append_term
         (s2 :=
@@ -4887,7 +4889,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
       (localsSafe.insert "gemNew" (.int (Int.ofNat gemNew.toNat))).insert
         "daiNew" (.int (Int.ofNat daiNew.toNat))
     have hret :
-        RDret vatBytecode (Sat256.ofUInt256 g)
+        RDret fork vatBytecode (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (frobAfterRuntimeFinal σ I) ByteArray.empty := by
       exact RD.vatFrobStoreSuccess

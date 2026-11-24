@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.BuyCollateralCalldata
 import Benchmarks.CompoundIII.Comet.AbiRoutines
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_008
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -16,11 +18,11 @@ theorem cometDecodeBuyCollateral {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024) (hsz : 4 ≤ ee.calldata.size)
     (hsize : ee.calldata.size < UInt256.size)
-    (h : RD (deployedRuntime v) ee g s0 ⟨6359⟩ R mem aw rdata σ k C) :
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨6359⟩ R mem aw rdata σ k C) :
     if BuyCollateralCalldataValid ee then
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨6395⟩
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨6395⟩
         (calldataWord ee.calldata 4 :: calldataWord ee.calldata 100 :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   by_cases hlo : 132 ≤ ee.calldata.size
   · by_cases hhi : ee.calldata.size < 2^255 + 4
     · have r1 := cometWithExtendedAssetList_block_6359_fallthrough
@@ -28,7 +30,7 @@ theorem cometDecodeBuyCollateral {v : CometWithExtendedAssetListImmutables}
         (calldataLength_ok (by decide) hlo hhi hsize) h
       have r2 := cometWithExtendedAssetList_block_6371 (immWords := wordsOf (immStore v))
         (by omega) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r1
-      change RD _ _ _ _ _ (calldataWord ee.calldata 4 :: UInt256.ofNat 6382 ::
+      change RD fork _ _ _ _ _ (calldataWord ee.calldata 4 :: UInt256.ofNat 6382 ::
         calldataWord ee.calldata 4 :: R) _ _ _ _ _ _ at r2
       by_cases ha : (calldataWord ee.calldata 4).toNat < EVM.addressModulus
       · obtain ⟨k3, C3, r3⟩ := cometValidateAddress_ok (v := v)
@@ -36,7 +38,7 @@ theorem cometDecodeBuyCollateral {v : CometWithExtendedAssetListImmutables}
           (by rw [cometWithExtendedAssetListPatchedValidJumps v]; jump_dest) r2
         have r4 := cometWithExtendedAssetList_block_6382 (immWords := wordsOf (immStore v))
           (by omega) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r3
-        change RD _ _ _ _ _ (calldataWord ee.calldata 100 :: UInt256.ofNat 6395 ::
+        change RD fork _ _ _ _ _ (calldataWord ee.calldata 100 :: UInt256.ofNat 6395 ::
           calldataWord ee.calldata 4 :: calldataWord ee.calldata 100 :: R) _ _ _ _ _ _ at r4
         by_cases hr : (calldataWord ee.calldata 100).toNat < EVM.addressModulus
         · rw [if_pos ⟨hlo, hhi, ha, hr⟩]
@@ -57,21 +59,21 @@ theorem cometDecodeBuyCollateral {v : CometWithExtendedAssetListImmutables}
       (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
     exact cometRevert1410 (by omega) r1
 
-def BuyCollateralResult (v : CometWithExtendedAssetListImmutables) (I : ExecutionEnv)
+def BuyCollateralResult (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables) (I : ExecutionEnv)
     (g : Sat256) (s0 : EVM.State) : Prop :=
   if I.weiValue = ⟨0⟩ ∧ BuyCollateralCalldataValid I then
-    ∃ result, BuyCollateralTrace v
+    ∃ result, BuyCollateralTrace fork v
       (AccountAddress.ofNat (calldataWord I.calldata 4).toNat)
       (AccountAddress.ofNat (calldataWord I.calldata 100).toNat)
       (calldataWord I.calldata 36) (calldataWord I.calldata 68) s0 result ∧
-      returnOutcomeRun (deployedRuntime v) g s0 ByteArray.empty result
-  else RDrev (deployedRuntime v) g s0
+      returnOutcomeRun fork (deployedRuntime v) g s0 ByteArray.empty result
+  else RDrev fork (deployedRuntime v) g s0
 
 theorem buyCollateralX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 64)) :
-    BuyCollateralResult v I g (initState σ σ₀ g A I) := by
+    BuyCollateralResult fork v I g (initState σ σ₀ g A I) := by
   obtain ⟨k, C, rd⟩ := cometWithExtendedAssetListReachBuyCollateralBody
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) v hcode hsz hsize hsel
   have rd1 := cometWithExtendedAssetList_block_808 (immWords := wordsOf (immStore v))

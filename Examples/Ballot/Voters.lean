@@ -3,6 +3,8 @@ import Reasoning.WordArithmetic
 import Examples.Ballot.Common
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
@@ -85,7 +87,7 @@ theorem ballotVotersBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩)
     (howner : evm.executionEnv.codeOwner = I.codeOwner)
     (_hcanon : (votersArgWord I).toNat < EVM.addressModulus) :
-    ExecTransitionBody ballotConfig ballotContract evm (votersStore I) votersGetter.body
+    ExecTransitionBody fork ballotConfig ballotContract evm (votersStore I) votersGetter.body
       (.returned { contract := ballotContract, locals := votersStore I } evm
         (some  [
           .int (Int.ofNat (votersWeightWord evm.accountMap I).toNat),
@@ -580,12 +582,12 @@ set_option maxHeartbeats 500000 in
 theorem RD.ballotDecodeAddressOk1770 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD ballotBytecode ee g s0 ⟨1770⟩
+    (h : RD fork ballotBytecode ee g s0 ⟨1770⟩
         (⟨4⟩ :: UInt256.ofNat ee.calldata.size :: ret :: R) mem aw rdata acc k C)
     (hsltval : UInt256.slt (UInt256.sub (UInt256.ofNat ee.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨0⟩)
     (hcanon : (calldataWord ee.calldata 4).toNat < EVM.addressModulus)
     (hret : (D_J ballotBytecode 0).contains ret = true) (hov : R.length + 12 ≤ 1024) :
-    ∃ k' C', RD ballotBytecode ee g s0 ret (calldataWord ee.calldata 4 :: R)
+    ∃ k' C', RD fork ballotBytecode ee g s0 ret (calldataWord ee.calldata 4 :: R)
       mem aw rdata acc k' C' := by
   have hclean : UInt256.eq (calldataWord ee.calldata 4)
       (UInt256.land (calldataWord ee.calldata 4) solcAddrMask) = ⟨1⟩ :=
@@ -606,11 +608,11 @@ theorem RD.ballotDecodeAddressOk1770 {g : Sat256} {s0 : State} {ee : ExecutionEn
 theorem RD.ballotDecodeAddressLenRevert1770 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD ballotBytecode ee g s0 ⟨1770⟩
+    (h : RD fork ballotBytecode ee g s0 ⟨1770⟩
         (⟨4⟩ :: UInt256.ofNat ee.calldata.size :: ret :: R) mem aw rdata acc k C)
     (hsltval : UInt256.slt (UInt256.sub (UInt256.ofNat ee.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩)
     (hov : R.length + 10 ≤ 1024) :
-    RDrev ballotBytecode g s0 :=
+    RDrev fork ballotBytecode g s0 :=
   evm_run h with [
     jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt, iszero, push2 ⟨1786⟩,
     jumpiNT (by rw [hsltval]; decide),
@@ -623,13 +625,13 @@ set_option maxHeartbeats 300000 in
 theorem RD.ballotDecodeAddressNoncanonRevert1770 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD ballotBytecode ee g s0 ⟨1770⟩
+    (h : RD fork ballotBytecode ee g s0 ⟨1770⟩
         (⟨4⟩ :: UInt256.ofNat ee.calldata.size :: ret :: R) mem aw rdata acc k C)
     (hsltval : UInt256.slt (UInt256.sub (UInt256.ofNat ee.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨0⟩)
     (hnc : UInt256.eq (calldataWord ee.calldata 4)
         (UInt256.land (calldataWord ee.calldata 4) solcAddrMask) = ⟨0⟩)
     (hov : R.length + 12 ≤ 1024) :
-    RDrev ballotBytecode g s0 :=
+    RDrev fork ballotBytecode g s0 :=
   have hnc' : UInt256.eq
         (uInt256OfByteArray (ee.calldata.readBytes (⟨4⟩ : UInt256).toNat 32))
         (UInt256.land
@@ -650,9 +652,9 @@ namespace Ballot
 /-! ## EVM trace -/
 
 theorem ballotVotersX_toDecoder {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨305⟩ [sel]
+    (hreach : ∃ k C, RD fork ballotBytecode I g (initState σ σ₀ g A I) ⟨305⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1770⟩
+    ∃ k C, RD fork ballotBytecode I g (initState σ σ₀ g A I) ⟨1770⟩
       [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨319⟩, ⟨370⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd305⟩ := hreach
@@ -664,9 +666,9 @@ theorem ballotVotersX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanon : (votersArgWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨305⟩ [sel]
+    (hreach : ∃ k C, RD fork ballotBytecode I g (initState σ σ₀ g A I) ⟨305⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨319⟩
+    ∃ k C, RD fork ballotBytecode I g (initState σ σ₀ g A I) ⟨319⟩
       [votersArgWord I, ⟨370⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨0⟩ :=
@@ -680,9 +682,9 @@ theorem ballotVotersX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem ballotVotersX_decodeRevert_short {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
-    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨305⟩ [sel]
+    (hreach : ∃ k C, RD fork ballotBytecode I g (initState σ σ₀ g A I) ⟨305⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev ballotBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork ballotBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ :=
     solcDecodeLenCheckShort_4_32 hsz4 hshort hsize
   obtain ⟨_, _, rd1770⟩ := ballotVotersX_toDecoder
@@ -692,9 +694,9 @@ theorem ballotVotersX_decodeRevert_short {σ σ₀ A I} {g : Sat256} {sel : UInt
 
 theorem ballotVotersX_decodeRevert_huge {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsize : I.calldata.size < UInt256.size) (hbig : 2 ^ 255 + 4 ≤ I.calldata.size)
-    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨305⟩ [sel]
+    (hreach : ∃ k C, RD fork ballotBytecode I g (initState σ σ₀ g A I) ⟨305⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev ballotBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork ballotBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ :=
     solcDecodeLenCheckHuge_4_32 hbig hsize
   obtain ⟨_, _, rd1770⟩ := ballotVotersX_toDecoder
@@ -706,9 +708,9 @@ theorem ballotVotersX_decodeRevert_noncanon {σ σ₀ A I} {g : Sat256} {sel : U
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hnc : UInt256.eq (votersArgWord I) (UInt256.land (votersArgWord I) solcAddrMask) = ⟨0⟩)
-    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨305⟩ [sel]
+    (hreach : ∃ k C, RD fork ballotBytecode I g (initState σ σ₀ g A I) ⟨305⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev ballotBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork ballotBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨0⟩ :=
     solcDecodeLenCheckOk_4_32 hsz36 hszhi hsize
   obtain ⟨_, _, rd1770⟩ := ballotVotersX_toDecoder
@@ -721,9 +723,9 @@ theorem ballotX_voters_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanon : (votersArgWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨305⟩ [sel]
+    (hreach : ∃ k C, RD fork ballotBytecode I g (initState σ σ₀ g A I) ⟨305⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret ballotBytecode g (initState σ σ₀ g A I) σ
+    RDret fork ballotBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (votersWeightWord σ I) ++
         UInt256.toByteArray (votersBoolWord σ I) ++
         UInt256.toByteArray (votersDelegateWord σ I) ++
@@ -885,10 +887,10 @@ theorem ballotVotersBodyCore
     (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0xa3, 0xec, 0x13, 0x8d]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
-    (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨305⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor ballotConfig ballotContract
+    runtimeRefinementFor fork ballotConfig ballotContract
       σ σ₀ g A I := by
   have hsz4 := ballotVotersSelector_size hsel
   have hd := ballotDispatch_voters (cd := I.calldata) hsel
@@ -897,7 +899,7 @@ theorem ballotVotersBodyCore
     · by_cases hcanon : (votersArgWord I).toNat < EVM.addressModulus
       · have hdec := ballotDecode_voters_ok (I := I) hsz36 hbig hcanon
         have hbody :
-            ExecTransitionBody ballotConfig ballotContract
+            ExecTransitionBody fork ballotConfig ballotContract
               (initState σ σ₀ (Sat256.ofUInt256 g) A I) (votersStore I)
               votersGetter.body
               (.returned { contract := ballotContract, locals := votersStore I }

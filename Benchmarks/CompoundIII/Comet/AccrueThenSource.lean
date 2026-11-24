@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.AccrueRewardsSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -12,7 +14,7 @@ theorem accrueIndicesAssign (v : CometWithExtendedAssetListImmutables)
     let frame := accrueIndicesFrame v initial elapsed time
     let w0 := Stele.EVM.storageLoad initial initial.executionEnv.codeOwner ⟨0⟩
     let w1 := Stele.EVM.storageLoad initial initial.executionEnv.codeOwner ⟨1⟩
-    ExecStmt config frame evm
+    ExecStmt fork config frame evm
       (.assign .storage ⟨totalsIndexName borrow, []⟩
         (.tupleGet (.var "__c1") (if borrow then 1 else 0)))
       (if evm.executionEnv.perm then
@@ -32,7 +34,7 @@ theorem accrueIndicesAssign (v : CometWithExtendedAssetListImmutables)
 
 theorem accrueThen_source (v : CometWithExtendedAssetListImmutables)
     (evm : EVM.State) (elapsed time : UInt256) (ht : elapsed.toNat < 2^40) :
-    internalBlockResult config (accrueTimeFrame v elapsed time) evm accrueThenBlock
+    internalBlockResult fork config (accrueTimeFrame v elapsed time) evm accrueThenBlock
       (accrueThenOutcome v evm elapsed time) := by
   let f0 := accrueTimeFrame v elapsed time
   let f1 := accrueIndicesFrame v evm elapsed time
@@ -45,9 +47,9 @@ theorem accrueThen_source (v : CometWithExtendedAssetListImmutables)
       Std.HashMap.getElem?_insert, EvalResult.ofOption]
     rfl
   by_cases hv : AccrueIndicesValid v evm elapsed
-  · have hcall := accruedIndices_call_ok v f0 evm elapsed _ "__c1" rfl rfl he ht hv
-    have hb := accrueIndicesAssign v evm evm elapsed time true
-    have hs := accrueIndicesAssign v evm evmB elapsed time false
+  · have hcall := accruedIndices_call_ok (fork := fork) v f0 evm elapsed _ "__c1" rfl rfl he ht hv
+    have hb := accrueIndicesAssign (fork := fork) v evm evm elapsed time true
+    have hs := accrueIndicesAssign (fork := fork) v evm evmB elapsed time false
     apply internalBlockResult.prepend hcall
     by_cases hperm : evm.executionEnv.perm = true
     · simp only [accrueThenOutcome, if_pos hv, hperm, if_true]
@@ -63,7 +65,7 @@ theorem accrueThen_source (v : CometWithExtendedAssetListImmutables)
         simp only [evalExpr?, f1, accrueIndicesFrame, accrueTimeFrame,
           Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert, EvalResult.ofOption]
         rfl
-      have hr := accrueRewards_source (hperm := by
+      have hr := accrueRewards_source (fork := fork) (hperm := by
         simpa only [evmI, accrueIndicesState, storeTotalsIndex, storageStore_executionEnv]
           using hperm) v f1 evmI elapsed time rfl rfl het hen
         (by intro b; cases b <;>

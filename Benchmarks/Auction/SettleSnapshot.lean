@@ -1,14 +1,16 @@
 import Benchmarks.Auction.SnapshotMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
 theorem settleSnapshotPrefix {I g s0 ret R mem aw ptr rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨4086⟩ (ret :: R) mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨4086⟩ (ret :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 192 ≤ 2 ^ 200)
     (hov : R.length + 12 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨4162⟩
+    ∃ k' C', RD fork auctionBytecode I g s0 ⟨4162⟩
       (ptr :: (snapshotOf σ I).startTime :: ret :: R)
       ((snapshotOf σ I).mem mem ptr) (snapshotWords aw ptr) rdata σ k' C' := by
   have h32 : (ptr + ⟨32⟩).toNat = ptr.toNat + 32 :=

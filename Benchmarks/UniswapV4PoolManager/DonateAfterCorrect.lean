@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.SignedResultTrace
 import Benchmarks.UniswapV4PoolManager.SignedWordBounds
 import Benchmarks.UniswapV4PoolManager.ABIResultTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -24,13 +26,13 @@ theorem donateAfterCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hfit : free.toNat+len.toNat+448 < UInt256.size) (hsrc : src.toNat+len.toNat ≤ I.calldata.size)
     (hgas : g.toNat < 324518553658429321982441292826060) (hpaid : Cₘ aw ≤ C)
     (hfree : memLoad (UInt256.ofNat 64) mem = free)
-    (h : RD (deployedRuntime v) I g s0
+    (h : RD fork (deployedRuntime v) I g s0
       (if I.source = AccountAddress.ofNat key.hooks.toNat then ⟨10381⟩ else ⟨10391⟩)
       (key.hooks :: amount1 :: keyPtr :: src :: key.hooks :: amount0 :: len :: delta :: ⟨32⟩ :: junk :: R)
       mem aw rdata evm.accountMap k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
-    ∃ result, ExecBlock config f evm (donateTransition.body.drop 19) result ∧
-      abiResultTrace donateTransition.returnType (deployedRuntime v) g s0 result := by
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    ∃ result, ExecBlock fork config f evm (donateTransition.body.drop 19) result ∧
+      abiResultTrace fork donateTransition.returnType (deployedRuntime v) g s0 result := by
   let hook := AccountAddress.ofNat key.hooks.toNat
   have hw : accountWord hook = key.hooks :=
     (accountWord_fromId key.hooks).trans (solcAddrMask_clean hc.2.2.2.2)
@@ -47,9 +49,9 @@ theorem donateAfterCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
   cases result with
   | returned cf post values =>
     obtain ⟨rfl, hr⟩ := ht
-    change ExecStmt config f evm donateTransition.body[19]!
+    change ExecStmt fork config f evm donateTransition.body[19]!
       (.ok {f with locals := f.locals.insert "__c8" .unit} post) at hs
-    have hreturn : ExecStmt config {f with locals := f.locals.insert "__c8" .unit} post
+    have hreturn : ExecStmt fork config {f with locals := f.locals.insert "__c8" .unit} post
         donateTransition.body[20]!
         (.returned {f with locals := f.locals.insert "__c8" .unit} post (some [.int (EVM.signed delta)])) := by
       apply ExecStmt.return

@@ -5,6 +5,8 @@ import Benchmarks.CompoundIII.Comet.RuntimeBlocks_008
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_032
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_021
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -12,20 +14,20 @@ namespace Benchmarks.CompoundIII.Comet
 
 set_option maxRecDepth 2000
 
-def WithdrawReservesResult (v : CometWithExtendedAssetListImmutables) (I : ExecutionEnv)
+def WithdrawReservesResult (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables) (I : ExecutionEnv)
     (g : Sat256) (s0 : EVM.State) : Prop :=
   if I.weiValue = ⟨0⟩ ∧ 68 ≤ I.calldata.size ∧ I.calldata.size < 2^255 + 4 ∧
       (calldataWord I.calldata 4).toNat < EVM.addressModulus then
-    ∃ result, WithdrawReservesTrace v (AccountAddress.ofNat (calldataWord I.calldata 4).toNat)
-      (calldataWord I.calldata 36) s0 result ∧ WithdrawReservesRun v g s0 result
-  else RDrev (deployedRuntime v) g s0
+    ∃ result, WithdrawReservesTrace fork v (AccountAddress.ofNat (calldataWord I.calldata 4).toNat)
+      (calldataWord I.calldata 36) s0 result ∧ WithdrawReservesRun fork v g s0 result
+  else RDrev fork (deployedRuntime v) g s0
 
 theorem withdrawReservesX {σ σ₀ A I} {g : Sat256}
     (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 63)) :
-    WithdrawReservesResult v I g (initState σ σ₀ g A I) := by
+    WithdrawReservesResult fork v I g (initState σ σ₀ g A I) := by
   obtain ⟨k, C, rd⟩ := cometWithExtendedAssetListReachWithdrawReservesBody
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) v hcode hsz hsize hsel
   have rd1 := cometWithExtendedAssetList_block_817 (immWords := wordsOf (immStore v))
@@ -56,7 +58,7 @@ theorem withdrawReservesX {σ σ₀ A I} {g : Sat256}
           · have rd6 := cometWithExtendedAssetList_block_6147_fallthrough
               (immWords := wordsOf (immStore v)) (by decide)
               (by rw [hgov, ha]; exact u256_sub_self _) rd5
-            change RD _ _ _ _ _ [solcAddrMask, calldataWord I.calldata 4,
+            change RD fork _ _ _ _ _ [solcAddrMask, calldataWord I.calldata 4,
               calldataWord I.calldata 36] _ _ _ _ _ _ at rd6
             rw [← addressWord_eq_ofNat_address hc] at rd6
             exact cometWithdrawReservesQuery (v := v) (by change 38 ≤ 1024; decide)

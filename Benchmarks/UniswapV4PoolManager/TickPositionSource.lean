@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.TickPositionWords
 import Benchmarks.UniswapV4PoolManager.SignedShiftSource
 import Benchmarks.UniswapV4PoolManager.ValueLocals
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -19,7 +21,7 @@ theorem tickPosition_body_eq : tickPositionFunction.body =
 
 theorem tickPositionBody {f : Frame} {evm : EVM.State} {tick : UInt256}
     (ht : f.locals.get? "tick" = some (.int (EVM.signed tick))) :
-    ExecFuncBody config f evm tickPositionFunction.body (.returned f evm (some (tickPositionValues tick))) := by
+    ExecFuncBody fork config f evm tickPositionFunction.body (.returned f evm (some (tickPositionValues tick))) := by
   have hshift := evalSignedShr (n := 8) ⟨24, by decide⟩ (by decide)
     (evalLocalValue (cfg := config) (evm := evm) ht)
     (show evalExpr? config f evm (.intLit 8) = .ok (.int (Int.ofNat 8)) by simp only [evalExpr?, pure]; rfl)
@@ -38,7 +40,7 @@ theorem tickPositionBody {f : Frame} {evm : EVM.State} {tick : UInt256}
 
 theorem tickPositionCall {f : Frame} {evm : EVM.State} {e : Expr} {tick : UInt256}
     (hf : f.contract = contract) (ht : evalExpr? config f evm e = .ok (.int (EVM.signed tick))) (ret : Ident) :
-    ExecStmt config f evm (.internalCall "TickBitmap_position" [e] ret)
+    ExecStmt fork config f evm (.internalCall "TickBitmap_position" [e] ret)
       (.ok (valueLocal f ret (.tuple (tickPositionValues tick))) evm) := by
   apply internalCallFunctionReturn (argVals := [.int (EVM.signed tick)])
     (value := some (tickPositionValues tick)) (evalExprs?_singleton ht)

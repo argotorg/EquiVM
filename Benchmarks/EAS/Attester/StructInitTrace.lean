@@ -1,33 +1,35 @@
 import Benchmarks.EAS.Attester.Common
 import Benchmarks.EAS.Attester.StructAllocMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.EAS.Attester.Immutables attesterRuntimeBlocks
 
 namespace Benchmarks.EAS.Attester
 
-def StructInitStep (loop done stackSpace : Nat) (fields : List UInt256) : Prop :=
+def StructInitStep (fork : Ethereum.Fork) (loop done stackSpace : Nat) (fields : List UInt256) : Prop :=
   ∀ {words : String → UInt256} {I g s0 σ mem aw out k C R} {free slot n : Nat},
     memLoad (UInt256.ofNat 64) mem = UInt256.ofNat free →
     free + 32 * fields.length < UInt256.size → slot + 32 < UInt256.size →
     0 < n → n < UInt256.size → R.length + stackSpace ≤ 1024 →
-    RD (immutableLayout.runtime attesterBytecode words) I g s0 (UInt256.ofNat loop)
+    RD fork (immutableLayout.runtime attesterBytecode words) I g s0 (UInt256.ofNat loop)
       (UInt256.ofNat slot :: UInt256.ofNat n :: R) mem aw out σ k C →
-    ∃ aw' k' C', RD (immutableLayout.runtime attesterBytecode words) I g s0
+    ∃ aw' k' C', RD fork (immutableLayout.runtime attesterBytecode words) I g s0
       (UInt256.ofNat (if n = 1 then done else loop))
       (UInt256.ofNat (slot + 32) :: UInt256.ofNat (n - 1) :: R)
       (structSlotMemory mem free slot fields) aw' out σ k' C'
 
 theorem structInitRun {loop done stackSpace : Nat} {fields : List UInt256}
-    (hstep : StructInitStep loop done stackSpace fields) (hne : fields ≠ [])
+    (hstep : StructInitStep fork loop done stackSpace fields) (hne : fields ≠ [])
     {words : String → UInt256} {I g s0 σ mem aw out k C R} {free slot n : Nat}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 (UInt256.ofNat loop)
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 (UInt256.ofNat loop)
       (UInt256.ofNat slot :: UInt256.ofNat n :: R) mem aw out σ k C)
     (hstack : R.length + stackSpace ≤ 1024) (hfree : 96 ≤ free) (hslot : 96 ≤ slot)
     (hptr : memLoad (UInt256.ofNat 64) mem = UInt256.ofNat free)
     (hf : free + 32 * fields.length * n < UInt256.size)
     (hs : slot + 32 * n < UInt256.size) (hn : 0 < n) :
-    ∃ aw' k' C', RD (immutableLayout.runtime attesterBytecode words) I g s0 (UInt256.ofNat done)
+    ∃ aw' k' C', RD fork (immutableLayout.runtime attesterBytecode words) I g s0 (UInt256.ofNat done)
       (UInt256.ofNat (slot + 32 * n) :: UInt256.ofNat 0 :: R)
       (structSlotsMemory mem free slot fields n) aw' out σ k' C' := by
   have hlen : 0 < fields.length := List.length_pos_iff.mpr hne
@@ -50,7 +52,7 @@ theorem structInitRun {loop done stackSpace : Nat} {fields : List UInt256}
 
 def attestDefaultFields : List UInt256 := [⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨96⟩, ⟨0⟩]
 
-theorem structInitStep1278 : StructInitStep 1278 1371 8 attestDefaultFields := by
+theorem structInitStep1278 : StructInitStep fork 1278 1371 8 attestDefaultFields := by
   intro words I g s0 σ mem aw out k C R free slot n hptr hfree hslot hn hnfit hstack h
   change free + 192 < UInt256.size at hfree
   have hf : free < UInt256.size := by omega
@@ -100,12 +102,12 @@ theorem structInitStep1278 : StructInitStep 1278 1371 8 attestDefaultFields := b
 
 theorem structArrayAllocate1221 {words : String → UInt256} {I g s0 σ mem aw out k C R}
     {free n : Nat}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨1221⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨1221⟩
       (UInt256.ofNat n :: R) mem aw out σ k C)
     (hstack : R.length + 11 ≤ 1024) (hfree : 96 ≤ free)
     (hptr : memLoad (UInt256.ofNat 64) mem = UInt256.ofNat free)
     (hn : 0 < n) (hcap : n ≤ solcMaxU64) (hfit : free + 32 + 224 * n < UInt256.size) :
-    ∃ aw' k' C', RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨1379⟩
+    ∃ aw' k' C', RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨1379⟩
       (⟨0⟩ :: UInt256.ofNat free :: UInt256.ofNat n :: R)
       (structArrayMemory mem free n attestDefaultFields) aw' out σ k' C' := by
   have hnfit : n < UInt256.size := by omega
@@ -125,7 +127,7 @@ theorem structArrayAllocate1221 {words : String → UInt256} {I g s0 σ mem aw o
     ulit_toNat' _ hfreefit] at h''
   have h''' := attesterRuntime_block_1274 (by simp only [List.length_cons]; omega) h''
   simp only [attesterRuntime_block_1274_stack, ofNat_add_words] at h'''
-  have hmem : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨1278⟩
+  have hmem : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨1278⟩
       (UInt256.ofNat (free + 32) :: UInt256.ofNat n :: UInt256.ofNat free ::
         UInt256.ofNat 0 :: UInt256.ofNat n :: R)
       (arrayHeaderMemory mem free n) aw' out σ (k' + 3) (C' + 9) := by

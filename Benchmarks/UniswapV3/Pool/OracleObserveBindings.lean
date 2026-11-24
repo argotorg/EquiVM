@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.OracleObserveModel
 import Benchmarks.UniswapV3.Pool.OracleGrowSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 
@@ -50,7 +52,7 @@ theorem evalOracleObserveCondition {imms locals : Store} {evm : EVM.State} {time
 
 theorem oracleObserveIncrement (imms : Store) (evm : EVM.State) (locals : Store) (i : Nat)
     (hb : i + 1 < 2 ^ 256) (hi : locals.get? "i" = some (.int (Int.ofNat i))) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm
       oracleObservePost
       (.ok {contract := contract
             locals := locals.insert "i" (.int (Int.ofNat (i + 1)))
@@ -58,6 +60,6 @@ theorem oracleObserveIncrement (imms : Store) (evm : EVM.State) (locals : Store)
   have he := evalExpr_uint_increment (cfg := config) (evm := evm)
     (frame := {contract := contract, locals := locals, immutables := imms})
     ⟨256, by decide⟩ i (evalExpr_var_get hi) hb
-  exact ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) he (assignLocalVarBase_frame hi)) ExecBlock.nil
+  exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) he (assignLocalVarBase_frame hi)) ExecBlock.nil
 
 end Benchmarks.UniswapV3.Pool

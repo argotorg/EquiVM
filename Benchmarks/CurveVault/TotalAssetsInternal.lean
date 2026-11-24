@@ -1,6 +1,8 @@
 import Benchmarks.CurveVault.TotalAssetsCalls
 import Reasoning.SteleArithmetic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch Reasoning.VyperCalls
 namespace Benchmarks.CurveVault
 
@@ -25,18 +27,18 @@ theorem vaultTotalAssetsRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {k C : Nat} {dest returnPc : UInt256} {R : List UInt256}
     (hs : SourceState s0 I σ evm) (hstack : R.length + 10 ≤ 1024)
     (hvalid : (D_J vaultBytecode 0).contains returnPc = true)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 6772) (dest :: returnPc :: R) mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 6772) (dest :: returnPc :: R) mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (locals' : Store) (available debt fees : UInt256)
         (aw' : UInt256) (out : ByteArray) (k' C' : Nat),
-      ExecFuncBody config {contract := contract, locals := ∅} evm vaultTotalAssetsFunction.body
+      ExecFuncBody fork config {contract := contract, locals := ∅} evm vaultTotalAssetsFunction.body
         (.returned {contract := contract, locals := locals'} evm'
           (some [.int (Int.ofNat (UInt256.sub (available + debt) fees).toNat)])) ∧
       SourceState s0 I σ' evm' ∧
-      RD vaultBytecode I g s0 returnPc R
+      RD fork vaultBytecode I g s0 returnPc R
         ((UInt256.sub (available + debt) fees).toByteArray.write 0
           (vaultTotalAssetsScratch mem available debt fees) dest.toNat 32) aw' out σ' k' C') ∨
-    (ExecFuncBody config {contract := contract, locals := ∅} evm vaultTotalAssetsFunction.body .reverted ∧
-      RDrev vaultBytecode g s0) := by
+    (ExecFuncBody fork config {contract := contract, locals := ∅} evm vaultTotalAssetsFunction.body .reverted ∧
+      RDrev fork vaultBytecode g s0) := by
   rcases vaultTotalAssetsAvailableCall (locals := ∅) hs (by simp)
     (by simp only [List.length_cons]; omega) h with h0 | ⟨hsource, hrev⟩
   swap
@@ -63,7 +65,7 @@ theorem vaultTotalAssetsRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
   let b := retWord out1
   let mem1 := b.toByteArray.write 0 (vaultBlocks.vault_block_6815_memory (mem := mem0)) 128 32
   let locals1 := vaultControllerCallLocals locals0 evm0 "controller_total_debt" "__c1" (.int (Int.ofNat b.toNat))
-  change RD vaultBytecode I g s0 (UInt256.ofNat 6862)
+  change RD fork vaultBytecode I g s0 (UInt256.ofNat 6862)
     (codeOwnerStorageWord I σ0 ⟨3⟩ :: memLoad (UInt256.ofNat 64) mem0 :: dest :: returnPc :: R)
     mem1 aw1 out1 σ1 k1 C1 at rd1
   rw [hword0] at rd1
@@ -95,12 +97,12 @@ theorem vaultTotalAssetsRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
   have rd2 := vaultBlocks.vault_block_6862_fallthrough
     (by simp only [List.length_cons]; omega)
     (by rw [hword1]; exact ult_zero (by rw [uadd_toNat, Nat.mod_eq_of_lt hadd]; omega)) rd1
-  change RD vaultBytecode I g s0 (UInt256.ofNat 6877)
+  change RD fork vaultBytecode I g s0 (UInt256.ofNat 6877)
     ((a + memLoad (UInt256.ofNat 128) mem1) :: memLoad (UInt256.ofNat 128) mem1 :: a :: dest :: returnPc :: R)
     mem1 _ out1 σ1 _ _ at rd2
   rw [hword1] at rd2
   let locals2 := locals1.insert "subtotal" (.int (Int.ofNat (a + b).toNat))
-  have hlet : ExecStmt config {contract := contract, locals := locals1} evm1
+  have hlet : ExecStmt fork config {contract := contract, locals := locals1} evm1
       (.letDecl "subtotal" (some (.elem (.int (.uint ⟨256, by decide⟩))))
         (sourceAdd256 (.var "__c0") (.var "__c1")))
       (.ok {contract := contract, locals := locals2} evm1) :=
@@ -118,7 +120,7 @@ theorem vaultTotalAssetsRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
   let c := retWord out2
   let mem2 := c.toByteArray.write 0 (vaultBlocks.vault_block_6877_memory (mem := mem1)) 192 32
   let locals3 := vaultControllerCallLocals locals2 evm1 "controller_admin_fees" "__c2" (.int (Int.ofNat c.toNat))
-  change RD vaultBytecode I g s0 (UInt256.ofNat 6923)
+  change RD fork vaultBytecode I g s0 (UInt256.ofNat 6923)
     (codeOwnerStorageWord I σ1 ⟨3⟩ :: (a + b) :: dest :: returnPc :: R)
     mem2 aw2 out2 σ2 k2 C2 at rd3
   have hword2 : memLoad (UInt256.ofNat 192) mem2 = c :=
@@ -137,7 +139,7 @@ theorem vaultTotalAssetsRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
       (by rw [hword2]; exact ugt_zero (by rw [usub_toNat hsub]; omega)) rd3
     have rdRet := vaultBlocks.vault_block_6938
       (by omega) hvalid rd4
-    change RD vaultBytecode I g s0 returnPc R
+    change RD fork vaultBytecode I g s0 returnPc R
       ((UInt256.sub (a + b) (memLoad (UInt256.ofNat 192) mem2)).toByteArray.write 0 mem2 dest.toNat 32)
       _ out2 σ2 _ _ at rdRet
     rw [hword2] at rdRet

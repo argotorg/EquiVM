@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.AbsorbSeizeUserEvm
 import Benchmarks.CompoundIII.Comet.AbsorbSeizeTotalsEvm
 import Benchmarks.CompoundIII.Comet.AbsorbSeizeMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -15,12 +17,12 @@ theorem cometAbsorbSeize {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (account asset : AccountAddress) (hstack : R.length + 20 ≤ 1024)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨17630⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨17630⟩
       (userCollateralSlot account asset :: ⟨6⟩ :: EVM.word asset.val :: delta ::
         EVM.word account.val :: assetPtr :: absorber :: EVM.word account.val :: i :: assets ::
         reserved :: old :: oldPrincipal :: price :: EVM.word account.val :: EVM.word asset.val :: R)
       mem aw rdata σ k C) :
-    internalMemoryRun (deployedRuntime v) ee g s0 (absorbSeizeMemory mem account asset) rdata
+    internalMemoryRun fork (deployedRuntime v) ee g s0 (absorbSeizeMemory mem account asset) rdata
       ⟨17713⟩ (delta :: withdrawCollateralBalance evm account asset :: assetPtr :: absorber ::
         EVM.word account.val :: i :: assets :: reserved :: old :: oldPrincipal :: price ::
         EVM.word account.val :: EVM.word asset.val :: R) (absorbSeizeOutcome evm account asset) := by

@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.NextSqrt0ChoiceTrace
 import Benchmarks.UniswapV3.Pool.NextSqrt0FullTrace
 import Benchmarks.UniswapV3.Pool.NextSqrt0FallbackTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -10,15 +12,15 @@ theorem nextSqrt0X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret priceRaw liquidityRaw : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : NextSqrtArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨19939⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨19939⟩
       ((if a.add then ⟨1⟩ else ⟨0⟩) :: a.amount :: liquidityRaw :: priceRaw :: ret :: R)
       mem aw rdata σ k C)
     (hp : UInt256.land priceRaw (UInt256.ofNat (2 ^ 160 - 1)) = a.price)
     (hl : UInt256.land liquidityRaw (UInt256.ofNat (2 ^ 128 - 1)) = a.liquidity)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 31 ≤ 1024) :
     (¬nextSqrt0Valid a ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    (nextSqrt0Valid a ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    (nextSqrt0Valid a ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (nextSqrt0RawResult a priceRaw :: R) mem aw rdata σ k' C') := by
   rcases nextSqrt0PrefixX (v := v) a rd hl hret (by omega) with ⟨hz, hr⟩ | ⟨hn, kp, Cp, rp⟩
   · refine Or.inr ⟨by simp only [nextSqrt0Valid, if_pos hz], ?_⟩

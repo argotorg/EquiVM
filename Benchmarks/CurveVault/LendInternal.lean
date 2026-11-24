@@ -1,5 +1,7 @@
 import Benchmarks.CurveVault.LendTail
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch Reasoning.VyperCalls
 namespace Benchmarks.CurveVault
 
@@ -10,13 +12,13 @@ theorem vaultLendRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap}
     {k C : Nat} {R : List UInt256}
     (hs : SourceState s0 I σ evm) (hstack : R.length + 11 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 1117) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 1117) R mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (locals' : Store) (value : UInt256),
-      ExecFuncBody config {contract := contract, locals := ∅} evm vaultLendFunction.body
+      ExecFuncBody fork config {contract := contract, locals := ∅} evm vaultLendFunction.body
         (.returned {contract := contract, locals := locals'} evm' (some [.int (Int.ofNat value.toNat)])) ∧
-      SourceState s0 I σ' evm' ∧ RDret vaultBytecode g s0 σ' value.toByteArray) ∨
-    (ExecFuncBody config {contract := contract, locals := ∅} evm vaultLendFunction.body .reverted ∧
-      RDrev vaultBytecode g s0) := by
+      SourceState s0 I σ' evm' ∧ RDret fork vaultBytecode g s0 σ' value.toByteArray) ∨
+    (ExecFuncBody fork config {contract := contract, locals := ∅} evm vaultLendFunction.body .reverted ∧
+      RDrev fork vaultBytecode g s0) := by
   have hgap (d : Nat) (hd : d < 1024) (m : ByteArray) : d - m.size < USize.size :=
     lt_of_le_of_lt (Nat.sub_le _ _) (lt_usize d (by omega))
   rcases vaultLendDebtCall (locals := ∅) hs (by simp) (by omega) h with
@@ -41,7 +43,7 @@ theorem vaultLendRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     have rd1457 := vaultBlocks.vault_block_1180 (by simp only [vaultBlocks.vault_block_1162_fallthrough_stack]; omega)
       (by native_decide) rd1180
     have hret := vaultBlocks.vault_block_1457 (by simp only [vaultBlocks.vault_block_1162_fallthrough_stack]; omega) rd1457
-    change RDret vaultBytecode g s0 σ0
+    change RDret fork vaultBytecode g s0 σ0
       (((⟨0⟩ : UInt256).toByteArray.write 0 _ 288 32).readWithPadding 288 32) at hret
     rw [toByteArray_write_read_back_of_gap _ _ _ (hgap _ (by omega) _)] at hret
     refine Or.inl ⟨evm0, σ0, locals0, ⟨0⟩, ExecFuncBody.execBlockRet ?_, hs0, hret⟩
@@ -57,7 +59,7 @@ theorem vaultLendRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
   have rd1194 := vaultBlocks.vault_block_1162_taken (by omega)
     (by change memLoad (UInt256.ofNat 256) ((memLoad (UInt256.ofNat 288) mem0).toByteArray.write 0 mem0 256 32) ≠ _
         rw [hd0, hd1]; exact hz) (by native_decide) rd1162
-  change RD vaultBytecode I g s0 (UInt256.ofNat 1194) R
+  change RD fork vaultBytecode I g s0 (UInt256.ofNat 1194) R
     ((memLoad (UInt256.ofNat 288) mem0).toByteArray.write 0 mem0 256 32) _ out0 σ0 _ _ at rd1194
   rw [hd0] at rd1194
   rcases vaultLendRateCall (locals := locals0) hs0 (by simp [locals0, vaultControllerCallLocals]) (by omega) rd1194 with
@@ -86,9 +88,9 @@ theorem vaultLendRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
       (ExecBlock.consNormal hrateCall (ExecBlock.consRevert hnum)))
   let numerator := UInt256.mul (UInt256.mul rate (UInt256.ofNat 31536000)) debt
   let locals2 := locals1.insert "numerator" (.int (Int.ofNat numerator.toNat))
-  have hprefix : ExecBlock config {contract := contract, locals := ∅} evm (vaultLendFunction.body.take 5)
+  have hprefix : ExecBlock fork config {contract := contract, locals := ∅} evm (vaultLendFunction.body.take 5)
       (.ok {contract := contract, locals := locals2} evm1) := by
-    change ExecBlock _ _ _ (vaultControllerCall "controller_total_debt" "debt" "total_debt" ++
+    change ExecBlock fork _ _ _ (vaultControllerCall "controller_total_debt" "debt" "total_debt" ++
       (vaultLendFunction.body.drop 2).take 3) _
     exact execBlock_append hdebtCall (ExecBlock.consNormal (ExecStmt.iteFalse hfalse ExecBlock.nil)
       (ExecBlock.consNormal hrateCall (ExecBlock.consNormal hnum ExecBlock.nil)))

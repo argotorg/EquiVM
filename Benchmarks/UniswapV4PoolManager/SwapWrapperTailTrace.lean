@@ -4,17 +4,19 @@ import Benchmarks.UniswapV4PoolManager.SwapWrapperSource
 import Benchmarks.UniswapV4PoolManager.FunctionResultTrace
 import Benchmarks.UniswapV4PoolManager.ProtocolFeesUpdatePaidTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
 
-def swapWrapperTailReturn (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 evm : State)
+def swapWrapperTailReturn (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 evm : State)
     (mem rdata : ByteArray) (free delta fee amount params x8 x9 x10 x11 x12 x13 hookPtr junk : UInt256)
     (currency : AccountAddress) (r : PoolSwapResultWords) (R : List UInt256)
     (post : State) (values : Option (List Value)) : Prop :=
   post = swapWrapperFeePost evm currency amount ∧ values = some [.int (EVM.signed delta)] ∧
-    ∃ aw k C, Cₘ aw ≤ C ∧ RD (deployedRuntime v) I g s0 ⟨1930⟩
+    ∃ aw k C, Cₘ aw ≤ C ∧ RD fork (deployedRuntime v) I g s0 ⟨1930⟩
       ([memLoad hookPtr (swapWrapperTailMemory mem free delta fee amount currency r),
         UInt256.ofNat 1461501637330902918203684832716283019655932542975,
         x12, params, delta, x8, x9, x10, x11, x12, x13, hookPtr, UInt256.ofNat 32, junk]++R)
@@ -28,12 +30,12 @@ theorem swapWrapperTailTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f
     (hl : r.liquidity.toNat < 2^128) (ht : int24Canonical r.tick) (he : fee.toNat < 2^24)
     (hf : free.toNat+192 < UInt256.size) (hfree : memLoad (UInt256.ofNat 64) mem = free)
     (hstate : 96 ≤ state.toNat) (hpaid : Cₘ aw ≤ C)
-    (h : RD (deployedRuntime v) I g s0 ⟨1755⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨1755⟩
       ([state, fee, amount, delta, id, UInt256.ofNat 16777215, params, accountWord currency,
         x8, x9, x10, x11, x12, x13, hookPtr, UInt256.ofNat 32, junk]++R)
       mem aw rdata evm.accountMap k C) :
-    functionResultTrace (deployedRuntime v) g s0
-      (swapWrapperTailReturn v I g s0 evm mem rdata free delta fee amount params x8 x9 x10 x11 x12 x13 hookPtr junk currency r R)
+    functionResultTrace fork (deployedRuntime v) g s0
+      (swapWrapperTailReturn fork v I g s0 evm mem rdata free delta fee amount params x8 x9 x10 x11 x12 x13 hookPtr junk currency r R)
       (swapWrapperTailResult f evm currency delta amount) := by
   have hmem : 96 ≤ mem.size := by have hh := hr.inBounds; change state.toNat+96 ≤ mem.size at hh; omega
   by_cases hz : 0 < amount.toNat
@@ -43,7 +45,7 @@ theorem swapWrapperTailTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f
       omega
     have rd1 := poolManagerBlocks.poolManager_block_1755_taken (by change R.length+9+10 ≤ 1024; omega) hn
       (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) h
-    change RD _ _ _ _ ⟨2003⟩
+    change RD fork _ _ _ _ ⟨2003⟩
       ([accountWord currency, amount, fee, UInt256.ofNat 16777215, id, state, params, delta,
         x8, x9, x10, x11, x12, x13, hookPtr, UInt256.ofNat 32, junk]++R) mem aw rdata evm.accountMap _ _ at rd1
     by_cases hperm : evm.executionEnv.perm = false
@@ -62,7 +64,7 @@ theorem swapWrapperTailTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f
   · have ha0 : amount = UInt256.ofNat 0 := uint256_toNat_eq_zero (by omega)
     have rd1 := poolManagerBlocks.poolManager_block_1755_fallthrough
       (by change R.length+9+10 ≤ 1024; omega) ha0 h
-    change RD _ _ _ _ ⟨1766⟩
+    change RD fork _ _ _ _ ⟨1766⟩
       ([accountWord currency, amount, fee, UInt256.ofNat 16777215, id, state, params, delta,
         x8, x9, x10, x11, x12, x13, hookPtr, UInt256.ofNat 32, junk]++R) mem aw rdata evm.accountMap _ _ at rd1
     by_cases hperm : evm.executionEnv.perm = false

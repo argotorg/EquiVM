@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.SwapCallbackCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -32,7 +34,7 @@ theorem swapCallbackX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {aw p bal junk0 junk1 junk2 junk3 junk4 len start : UInt256} {amount0 amount1 : Int}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (zeroForOne : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (swapBalanceBeforeReturn zeroForOne)
+    (rd : RD fork (deployedRuntime v) ee g s0 (swapBalanceBeforeReturn zeroForOne)
       (bal :: junk0 :: junk1 :: junk2 :: junk3 :: junk4 :: EVM.wordOfInt amount1 ::
         EVM.wordOfInt amount0 :: len :: start :: R) mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hperm : ee.perm = true) (hm : HeapMemory mem aw p)
@@ -44,12 +46,12 @@ theorem swapCallbackX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (h1 : -(2 ^ 255 : Int) ≤ amount1 ∧ amount1 < 2 ^ 255)
     (hc : start.toNat + len.toNat ≤ ee.calldata.size) (hl : len.toNat ≤ 2 ^ 32)
     (hb : p.toNat + len.toNat + 164 ≤ 2 ^ 200) (hov : R.length + 23 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧
-      ExecBlock config frame evm (((swapPaymentBody zeroForOne).drop 2).take 3) .reverted) ∨
+    (RDrev fork (deployedRuntime v) g s0 ∧
+      ExecBlock fork config frame evm (((swapPaymentBody zeroForOne).drop 2).take 3) .reverted) ∨
     ∃ evm' σ' out aw' k' C', SourceState s0 ee σ' evm' ∧
-      ExecBlock config frame evm (((swapPaymentBody zeroForOne).drop 2).take 3)
+      ExecBlock fork config frame evm (((swapPaymentBody zeroForOne).drop 2).take 3)
         (.ok (swapCallbackDoneFrame frame zeroForOne ee.source) evm') ∧
-      RD (deployedRuntime v) ee g s0 (swapCallbackExit zeroForOne)
+      RD fork (deployedRuntime v) ee g s0 (swapCallbackExit zeroForOne)
         (⟨0⟩ :: ((p + ⟨132⟩) + UInt256.ofNat (paddedSize len.toNat)) ::
           ⟨4198899251⟩ :: EVM.word ee.source.val :: bal :: junk1 :: junk2 :: junk3 :: junk4 ::
           EVM.wordOfInt amount1 :: EVM.wordOfInt amount0 :: len :: start :: R)
@@ -59,7 +61,7 @@ theorem swapCallbackX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
         ee.calldata start len) aw' p ∧
       MemoryPrefix mem (swapCallbackMem mem p (EVM.wordOfInt amount0) (EVM.wordOfInt amount1)
         ee.calldata start len) p.toNat := by
-  have hlet : ExecStmt config frame evm (swapPaymentBody zeroForOne)[2]!
+  have hlet : ExecStmt fork config frame evm (swapPaymentBody zeroForOne)[2]!
       (.ok (swapCallbackFrame frame ee.source) evm) := by
     cases zeroForOne <;> apply ExecStmt.letDecl <;>
       simp only [evalExpr?, pure, envValue, hs.env]

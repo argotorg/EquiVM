@@ -3,6 +3,8 @@ import Benchmarks.Morpho.MorphoBlue.MarketWrites
 import Benchmarks.Morpho.MorphoBlue.TaylorSource
 import Benchmarks.Morpho.MorphoBlue.MarketStorageCommon
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
@@ -65,7 +67,7 @@ theorem accrue_eval_elapsed (p : MarketParamsWords) (imms : Store) (elapsed : UI
 theorem morphoAccrueSourceUnderflow (p : MarketParamsWords) (evm : EVM.State) (imms : Store)
     (hunder : (UInt256.ofNat evm.executionEnv.header.timestamp).toNat <
       (marketFieldWord evm.accountMap evm.executionEnv p.id 4).toNat) :
-    ExecFuncBody config (accrueStart p imms) evm accrueInterestFunction.body .reverted := by
+    ExecFuncBody fork config (accrueStart p imms) evm accrueInterestFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply ExecBlock.consRevert
   apply ExecStmt.letDeclRevert
@@ -75,7 +77,7 @@ theorem morphoAccrueSourceUnderflow (p : MarketParamsWords) (evm : EVM.State) (i
 theorem morphoAccrueSourceElapsed (p : MarketParamsWords) (evm : EVM.State) (imms : Store)
     (htime : (marketFieldWord evm.accountMap evm.executionEnv p.id 4).toNat ≤
       (UInt256.ofNat evm.executionEnv.header.timestamp).toNat) :
-    ABlock config evm (accrueStart p imms) accrueInterestFunction.body
+    ABlock fork config evm (accrueStart p imms) accrueInterestFunction.body
       (accrueAfterElapsed p imms (accrueElapsed evm.accountMap evm.executionEnv p))
       (accrueInterestFunction.body.drop 1) := by
   exact ABlock.start.letStep (evalExpr_uint256_sub (by simp only [evalExpr?, envValue, pure])
@@ -85,7 +87,7 @@ theorem morphoAccrueSourceZeroElapsed (p : MarketParamsWords) (evm : EVM.State) 
     (htime : (marketFieldWord evm.accountMap evm.executionEnv p.id 4).toNat ≤
       (UInt256.ofNat evm.executionEnv.header.timestamp).toNat)
     (hz : accrueElapsed evm.accountMap evm.executionEnv p = ⟨0⟩) :
-    ExecFuncBody config (accrueStart p imms) evm accrueInterestFunction.body
+    ExecFuncBody fork config (accrueStart p imms) evm accrueInterestFunction.body
       (.returned (accrueAfterElapsed p imms (accrueElapsed evm.accountMap evm.executionEnv p)) evm (some [])) := by
   apply ExecFuncBody.execBlockRet
   apply (morphoAccrueSourceElapsed p evm imms htime).run
@@ -97,7 +99,7 @@ theorem morphoAccrueSourceNonzeroElapsed (p : MarketParamsWords) (evm : EVM.Stat
     (htime : (marketFieldWord evm.accountMap evm.executionEnv p.id 4).toNat ≤
       (UInt256.ofNat evm.executionEnv.header.timestamp).toNat)
     (hn : accrueElapsed evm.accountMap evm.executionEnv p ≠ ⟨0⟩) :
-    ABlock config evm (accrueStart p imms) accrueInterestFunction.body
+    ABlock fork config evm (accrueStart p imms) accrueInterestFunction.body
       (accrueAfterElapsed p imms (accrueElapsed evm.accountMap evm.executionEnv p))
       (accrueInterestFunction.body.drop 2) := by
   apply advancePureBlock (morphoAccrueSourceElapsed p evm imms htime)
@@ -107,7 +109,7 @@ theorem morphoAccrueSourceNonzeroElapsed (p : MarketParamsWords) (evm : EVM.Stat
 
 theorem morphoAccrueTimestampAssign (p : MarketParamsWords) (locals imms : Store) (evm : EVM.State)
     (h : MarketLocals p locals) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm
       accrueInterestFunction.body[3]!
       (if evm.executionEnv.perm then .ok { contract := contract, locals := locals, immutables := imms }
         (storeMarketLastUpdate evm p.id (halfWord false (UInt256.ofNat evm.executionEnv.header.timestamp))) else .staticViolation) := by
@@ -119,7 +121,7 @@ theorem morphoAccrueSourceNoIrm (p : MarketParamsWords) (hc : p.Canonical) (evm 
       (UInt256.ofNat evm.executionEnv.header.timestamp).toNat)
     (hn : accrueElapsed evm.accountMap evm.executionEnv p ≠ ⟨0⟩) (hi0 : p.irm = ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecFuncBody config (accrueStart p imms) evm accrueInterestFunction.body
+    ExecFuncBody fork config (accrueStart p imms) evm accrueInterestFunction.body
       (.returned (accrueAfterElapsed p imms (accrueElapsed evm.accountMap evm.executionEnv p))
         (storeMarketLastUpdate evm p.id (halfWord false (UInt256.ofNat evm.executionEnv.header.timestamp))) none) := by
   apply ExecFuncBody.execBlockOK
@@ -136,7 +138,7 @@ theorem morphoAccrueSourceNoIrmStatic (p : MarketParamsWords) (hc : p.Canonical)
       (UInt256.ofNat evm.executionEnv.header.timestamp).toNat)
     (hn : accrueElapsed evm.accountMap evm.executionEnv p ≠ ⟨0⟩) (hi0 : p.irm = ⟨0⟩)
     (hp : evm.executionEnv.perm = false) :
-    ExecFuncBody config (accrueStart p imms) evm accrueInterestFunction.body .staticViolation := by
+    ExecFuncBody fork config (accrueStart p imms) evm accrueInterestFunction.body .staticViolation := by
   apply ExecFuncBody.execBlockStatic
   apply (morphoAccrueSourceNonzeroElapsed p evm imms htime hn).run
   apply ExecBlock.consNormal (ExecStmt.iteFalse ?_ ExecBlock.nil)

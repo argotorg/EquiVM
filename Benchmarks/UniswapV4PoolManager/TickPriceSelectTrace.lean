@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.TickPriceWords
 import Benchmarks.UniswapV4PoolManager.TickSqrtTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_052
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -14,10 +16,10 @@ theorem tickPriceSelectTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
     (hs : sqrtPrice.toNat < 2^160) (hh : UInt256.signextend (UInt256.ofNat 2) high = high)
     (hne : low ≠ high)
-    (h : RD (deployedRuntime v) I g s0 ⟨18577⟩ (sqrtPrice :: low :: high :: ret :: R) mem aw rdata σ k C) :
-    (tickPriceChoose sqrtPrice low high = none ∧ RDrev (deployedRuntime v) g s0) ∨
+    (h : RD fork (deployedRuntime v) I g s0 ⟨18577⟩ (sqrtPrice :: low :: high :: ret :: R) mem aw rdata σ k C) :
+    (tickPriceChoose sqrtPrice low high = none ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (∃ tick k' C', tickPriceChoose sqrtPrice low high = some tick ∧
-      RD (deployedRuntime v) I g s0 ret (tick :: R) mem aw rdata σ k' C') := by
+      RD fork (deployedRuntime v) I g s0 ret (tick :: R) mem aw rdata σ k' C') := by
   have hm : UInt256.land (UInt256.ofNat 1461501637330902918203684832716283019655932542975) sqrtPrice = sqrtPrice := by
     rw [u256_land_comm]
     exact u256LandMaskCleanOfToNat sqrtPrice _ rfl hs
@@ -30,7 +32,7 @@ theorem tickPriceSelectTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
   rcases hcall with ⟨hb, hr⟩ | ⟨hb, k2, C2, rd2⟩
   · exact .inl ⟨by simp only [tickPriceChoose, if_neg hne, if_neg (show ¬(EVM.signed high).natAbs ≤ 887272 by omega)], hr⟩
   · let priceHi := tickSqrtPrice (EVM.signed high)
-    change RD (deployedRuntime v) I g s0 ⟨18629⟩
+    change RD fork (deployedRuntime v) I g s0 ⟨18629⟩
       (priceHi :: UInt256.ofNat (2^160-1) :: sqrtPrice :: low :: high :: ret :: R) mem aw rdata σ k2 C2 at rd2
     have hmask : UInt256.land priceHi (UInt256.ofNat (2^160-1)) = priceHi :=
       u256LandMaskCleanOfToNat priceHi _ rfl (tickSqrtPrice_lt_160 hb)

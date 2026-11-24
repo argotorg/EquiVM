@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PoolModifyTickAssignments
 import Benchmarks.UniswapV4PoolManager.PoolUpdateTickResult
 import Benchmarks.UniswapV4PoolManager.CallContinuation
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -32,10 +34,10 @@ theorem poolModifyTick {f : Frame} {evm : State} {id : UInt256} {tick delta : In
     (ht : f.locals.get? (poolModifyTickName upper) = some (.int tick))
     (hd : f.locals.get? "liquidityDelta" = some (.int delta))
     (hstate : f.locals.get? "state" = some (poolModifyStateValue fl gl fu gu)) :
-    ExecBlock config f evm (poolModifyTickBlock upper)
+    ExecBlock fork config f evm (poolModifyTickBlock upper)
       (poolModifyTickResult f evm id tick delta upper fl gl fu gu) := by
   let fa := poolModifyTickAliasFrame f id upper
-  have ha : ExecStmt config f evm (.letStorage (poolModifyTickAlias upper) {base := "self"}) (.ok fa evm) :=
+  have ha : ExecStmt fork config f evm (.letStorage (poolModifyTickAlias upper) {base := "self"}) (.ok fa evm) :=
     ExecStmt.letStorage (resolveStorageAlias hs)
   have hat : fa.locals.get? (poolModifyTickName upper) = some (.int tick) :=
     (store_get_ne _ _ (by cases upper <;> decide : (poolModifyTickAlias upper == poolModifyTickName upper) = false)).trans ht
@@ -43,7 +45,7 @@ theorem poolModifyTick {f : Frame} {evm : State} {id : UInt256} {tick delta : In
     (store_get_ne _ _ (by cases upper <;> decide : (poolModifyTickAlias upper == "liquidityDelta") = false)).trans hd
   have has : fa.locals.get? "state" = some (poolModifyStateValue fl gl fu gu) :=
     (store_get_ne _ _ (by cases upper <;> decide : (poolModifyTickAlias upper == "state") = false)).trans hstate
-  have hc := poolUpdateTickCall (f := fa) (evm := evm) hf (evalLocalValue (store_get_self _ _ _))
+  have hc := poolUpdateTickCall (fork := fork) (f := fa) (evm := evm) hf (evalLocalValue (store_get_self _ _ _))
     (evalLocalValue hat) (evalLocalValue had)
     (show evalExpr? config fa evm (.boolLit upper) = .ok (.bool upper) by simp only [evalExpr?, pure])
     (poolModifyTickRet upper)

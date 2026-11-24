@@ -1,5 +1,7 @@
 import Benchmarks.Safe.ViaIR.Common
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.ViaIR
@@ -41,11 +43,11 @@ theorem selectorMissWord {c : ContractDecl} {t : TransitionDecl} {I : ExecutionE
 theorem skipSelectorArms {code : ByteArray} {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {word : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {R : List UInt256} (n : Nat) {start : UInt256} {k C : Nat}
-    (h : RD code I g s0 start (word :: R) mem aw rdata σ k C)
+    (h : RD fork code I g s0 start (word :: R) mem aw rdata σ k C)
     (hwf : ∀ j, j < n → armWellFormed code (nthArmPc code start j))
     (hmiss : ∀ j, j < n → UInt256.eq (armSelNat code (nthArmPc code start j)) word = ⟨0⟩)
     (hov : R.length + 3 ≤ 1024) :
-    ∃ k' C', RD code I g s0 (nthArmPc code start n) (word :: R) mem aw rdata σ k' C' := by
+    ∃ k' C', RD fork code I g s0 (nthArmPc code start n) (word :: R) mem aw rdata σ k' C' := by
   induction n generalizing start k C with
   | zero => exact ⟨k, C, h⟩
   | succ n ih =>

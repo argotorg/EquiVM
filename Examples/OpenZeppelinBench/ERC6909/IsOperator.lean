@@ -2,6 +2,8 @@ import Examples.OpenZeppelinBench.ERC6909.Storage
 import Examples.OpenZeppelinBench.Pausable.Storage
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -153,7 +155,7 @@ theorem evalExpr_isOperator_storage (evm : EVM.State) (I : ExecutionEnv) :
 
 theorem erc6909IsOperatorBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract evm (isOperatorStore I) isOperatorTransition.body
+    ExecTransitionBody fork config contract evm (isOperatorStore I) isOperatorTransition.body
       (.returned { contract := contract, locals := isOperatorStore I } evm
         (some [(wordToElem .bool
           (UInt256.land
@@ -446,10 +448,10 @@ theorem isOperatorReturnMem_read128 (owner spender val : UInt256) :
 
 
 theorem erc6909IsOperatorX_toDecoder {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨329⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1905⟩
+    ∃ k C, RD fork erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1905⟩
         [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨343⟩, ⟨193⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨k, C, rd⟩ := hreach
@@ -460,10 +462,10 @@ theorem erc6909IsOperatorX_toDecoder {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem erc6909IsOperatorX_dec1629_owner {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨329⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1629⟩
+    ∃ k C, RD fork erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1629⟩
         [⟨4⟩, ⟨1931⟩, ⟨0⟩, ⟨0⟩, ⟨4⟩, UInt256.ofNat I.calldata.size, ⟨343⟩,
           ⟨193⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -480,10 +482,10 @@ theorem erc6909IsOperatorX_dec1931 {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonOwner : (isOperatorOwnerWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨329⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1931⟩
+    ∃ k C, RD fork erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1931⟩
         [isOperatorOwnerWord I, ⟨0⟩, ⟨0⟩, ⟨4⟩, UInt256.ofNat I.calldata.size,
           ⟨343⟩, ⟨193⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -496,10 +498,10 @@ theorem erc6909IsOperatorX_dec1629_spender {σ σ₀ A I} {g : Sat256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonOwner : (isOperatorOwnerWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨329⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1629⟩
+    ∃ k C, RD fork erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1629⟩
         [⟨4⟩ + ⟨32⟩, ⟨1945⟩, ⟨0⟩, isOperatorOwnerWord I, ⟨4⟩,
           UInt256.ofNat I.calldata.size, ⟨343⟩, ⟨193⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -515,10 +517,10 @@ theorem erc6909IsOperatorX_dec1945 {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonOwner : (isOperatorOwnerWord I).toNat < EVM.addressModulus)
     (hcanonSpender : (isOperatorSpenderWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨329⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1945⟩
+    ∃ k C, RD fork erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1945⟩
         [isOperatorSpenderWord I, ⟨0⟩, isOperatorOwnerWord I, ⟨4⟩,
           UInt256.ofNat I.calldata.size, ⟨343⟩, ⟨193⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -532,10 +534,10 @@ theorem erc6909IsOperatorX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonOwner : (isOperatorOwnerWord I).toNat < EVM.addressModulus)
     (hcanonSpender : (isOperatorSpenderWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨329⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨343⟩
+    ∃ k C, RD fork erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨343⟩
         [isOperatorSpenderWord I, isOperatorOwnerWord I, ⟨193⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨k, C, rd⟩ := erc6909IsOperatorX_dec1945
@@ -549,10 +551,10 @@ theorem erc6909X_isOperator {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonOwner : (isOperatorOwnerWord I).toNat < EVM.addressModulus)
     (hcanonSpender : (isOperatorSpenderWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨329⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret erc6909BenchBytecode g (initState σ σ₀ g A I) σ
+    RDret fork erc6909BenchBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (isOperatorReturnWord σ I)) := by
   obtain ⟨_, _, rd343⟩ := erc6909IsOperatorX_decoded
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
@@ -643,10 +645,10 @@ theorem erc6909X_isOperator {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem erc6909IsOperatorX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨329⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ =
       ⟨1⟩ :=
     solcDecodeLenCheckShort_4_64 hsz4 hshort hsize
@@ -659,10 +661,10 @@ theorem erc6909IsOperatorX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 
 theorem erc6909IsOperatorX_hugearg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsize : I.calldata.size < UInt256.size) (hbig : 2 ^ 255 + 4 ≤ I.calldata.size)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨329⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ =
       ⟨1⟩ :=
     solcDecodeLenCheckHuge_4_64 hbig hsize
@@ -679,10 +681,10 @@ theorem erc6909IsOperatorX_noncanon_owner {σ σ₀ A I} {g : Sat256}
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hnc : UInt256.eq (isOperatorOwnerWord I)
       (UInt256.land (isOperatorOwnerWord I) solcAddrMask) = ⟨0⟩)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨329⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨k, C, rd⟩ := erc6909IsOperatorX_dec1629_owner
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz68 hsize hszhi hreach
@@ -695,10 +697,10 @@ theorem erc6909IsOperatorX_noncanon_spender {σ σ₀ A I} {g : Sat256}
     (hcanonOwner : (isOperatorOwnerWord I).toNat < EVM.addressModulus)
     (hnc : UInt256.eq (isOperatorSpenderWord I)
       (UInt256.land (isOperatorSpenderWord I) solcAddrMask) = ⟨0⟩)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨329⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨k, C, rd⟩ := erc6909IsOperatorX_dec1629_spender
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz68 hsize hszhi hcanonOwner hreach
@@ -736,10 +738,10 @@ theorem erc6909IsOperatorBodyCore
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0xb6, 0x36, 0x3c, 0xf2]⟩ : ByteArray) == I.calldata.extract 0 4) =
       true)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨329⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract
+    runtimeRefinementFor fork config contract
       σ σ₀ g A I := by
   have hsz4 := erc6909IsOperatorSelector_size hsel
   have hd := erc6909Dispatch_isOperator (cd := I.calldata) hsel
@@ -751,7 +753,7 @@ theorem erc6909IsOperatorBodyCore
             hcanonOwner hcanonSpender
           have hword : isOperatorStorageWord σ I = isOperatorStorageWord σ I := rfl
           have hbody :
-              ExecTransitionBody config contract
+              ExecTransitionBody fork config contract
                 (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 (isOperatorStore I)
                 isOperatorTransition.body

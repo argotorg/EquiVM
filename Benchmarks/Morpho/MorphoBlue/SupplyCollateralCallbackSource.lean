@@ -3,6 +3,8 @@ import Benchmarks.Morpho.MorphoBlue.LocalBytesGuard
 import Benchmarks.Morpho.MorphoBlue.CallerCallbackSource
 import Benchmarks.Morpho.MorphoBlue.SupplyCollateralCallbackABI
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
@@ -27,24 +29,24 @@ theorem supplyCollateralCallback_args {p assets account data locals}
 
 theorem supplyCollateralCallback_noCode (frame : Frame) (evm : EVM.State)
     (hc : extCodeSizeWord evm.accountMap (UInt256.ofNat evm.executionEnv.source.val) = UInt256.ofNat 0) :
-    ExecBlock config frame evm supplyCollateralCallbackBody .reverted := by
+    ExecBlock fork config frame evm supplyCollateralCallbackBody .reverted := by
   exact callerCallbackSourceNoCode config frame evm "onMorphoSupplyCollateral" [.var "assets", .var "data"] "__c2" [] hc
 
 theorem supplyCollateralCallback_failure {p assets account data locals}
     (hl : SupplyCollateralLocals p assets account data locals) (imms : Store) (evm evm' : EVM.State) (out : ByteArray)
     (hc : extCodeSizeWord evm.accountMap (UInt256.ofNat evm.executionEnv.source.val) ≠ UInt256.ofNat 0)
-    (hcall : typedCallViaEVM config evm evm.executionEnv.source "onMorphoSupplyCollateral" 0
+    (hcall : typedCallViaEVM fork config evm evm.executionEnv.source "onMorphoSupplyCollateral" 0
       [.int (Int.ofNat assets.toNat), .bytes data] (false, evm', out)) :
-    ExecBlock config { contract := contract, locals := locals, immutables := imms } evm supplyCollateralCallbackBody .reverted := by
+    ExecBlock fork config { contract := contract, locals := locals, immutables := imms } evm supplyCollateralCallbackBody .reverted := by
   exact callerCallbackSourceFailure config _ evm evm' "onMorphoSupplyCollateral" [.var "assets", .var "data"] "__c2"
     [] _ out hc (supplyCollateralCallback_args hl imms evm) hcall
 
 theorem supplyCollateralCallback_success {p assets account data locals}
     (hl : SupplyCollateralLocals p assets account data locals) (imms : Store) (evm evm' : EVM.State) (out : ByteArray)
     (hc : extCodeSizeWord evm.accountMap (UInt256.ofNat evm.executionEnv.source.val) ≠ UInt256.ofNat 0)
-    (hcall : typedCallViaEVM config evm evm.executionEnv.source "onMorphoSupplyCollateral" 0
+    (hcall : typedCallViaEVM fork config evm evm.executionEnv.source "onMorphoSupplyCollateral" 0
       [.int (Int.ofNat assets.toNat), .bytes data] (true, evm', out)) :
-    ExecBlock config { contract := contract, locals := locals, immutables := imms } evm supplyCollateralCallbackBody
+    ExecBlock fork config { contract := contract, locals := locals, immutables := imms } evm supplyCollateralCallbackBody
       (.ok (callerCallbackCalledFrame { contract := contract, locals := locals, immutables := imms }
         evm.executionEnv.source "__c2") evm') := by
   exact callerCallbackSourceSuccess config _ evm evm' "onMorphoSupplyCollateral" [.var "assets", .var "data"] "__c2"

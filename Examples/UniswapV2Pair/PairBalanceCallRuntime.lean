@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.BalanceDynamicReturnMemory
 import Examples.UniswapV2Pair.DynamicReturnDecodeRoutines
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -20,7 +22,7 @@ theorem RD.uniswapPairBalanceCallMade
     {g : Sat256} {s0 : State} {I : ExecutionEnv} {site : PairBalanceCallSite}
     {σ : AccountMap}
     {base rdata : ByteArray} {aw ptr target : UInt256} {R : List UInt256} {k C : Nat}
-    (rd4697 : RD uniswapV2PairBytecode I g s0 (site.pc)
+    (rd4697 : RD fork uniswapV2PairBytecode I g s0 (site.pc)
       (target :: target :: ptr :: ⟨36⟩ :: ptr :: ⟨32⟩ :: (ptr + ⟨36⟩) :: balanceOfSelectorWord :: target :: R)
       (balanceDynamicCalldataMem base ptr (UInt256.ofNat I.codeOwner.val)) (balanceDynamicCalldataWords aw ptr) rdata σ k C)
     (hcode : extCodeSizeWord σ target ≠ ⟨0⟩) (hdepth : I.depth.val < 1024)
@@ -30,13 +32,13 @@ theorem RD.uniswapPairBalanceCallMade
       (A_in : Substate) (callGas : UInt256) (k' C' : Nat),
       (∃ (g'' : UInt256) (A' : Substate),
         (σ', g'', A', z, out) = Ethereum.EVM.Θ
-          σ s0.σ₀ A_in
+          fork σ s0.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
-          (AccountAddress.ofUInt256 target) (toExecute σ (AccountAddress.ofUInt256 target))
+          (AccountAddress.ofUInt256 target) (toExecute fork σ (AccountAddress.ofUInt256 target))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)).readWithPadding 128 36)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false) ∧
-      RD uniswapV2PairBytecode I g s0 (site.pc + ⟨16⟩)
+      RD fork uniswapV2PairBytecode I g s0 (site.pc + ⟨16⟩)
         ((if z then ⟨1⟩ else ⟨0⟩) :: (ptr + ⟨36⟩) :: balanceOfSelectorWord :: target :: R)
         (balanceDynamicReturnMem base ptr (UInt256.ofNat I.codeOwner.val) out)
         (balanceDynamicCalldataWords aw ptr) out σ' k' C' ∧ out.size < UInt256.size := by
@@ -62,7 +64,7 @@ theorem RD.uniswapPairBalanceCallResultCases
     {g : Sat256} {s0 : State} {I : ExecutionEnv} {site : PairBalanceCallSite}
     {acc : AccountMap}
     {base out : ByteArray} {aw ptr target : UInt256} {z : Bool} {R : List UInt256} {k C : Nat}
-    (rd4713 : RD uniswapV2PairBytecode I g s0 (site.pc + ⟨16⟩)
+    (rd4713 : RD fork uniswapV2PairBytecode I g s0 (site.pc + ⟨16⟩)
       ((if z then ⟨1⟩ else ⟨0⟩) :: (ptr + ⟨36⟩) :: balanceOfSelectorWord :: target :: R)
       (balanceDynamicReturnMem base ptr (UInt256.ofNat I.codeOwner.val) out)
       (balanceDynamicCalldataWords aw ptr) out acc k C)
@@ -70,8 +72,8 @@ theorem RD.uniswapPairBalanceCallResultCases
     (haw : aw.toNat * 32 < UInt256.size) (hfit : ptr.toNat + 67 < UInt256.size)
     (hread : base.readWithPadding 64 32 = ptr.toByteArray) (hout : out.size < UInt256.size)
     (hov : R.length + 8 ≤ 1024) :
-    ((z = false ∨ out.size < 32) ∧ RDrev uniswapV2PairBytecode g s0) ∨
-      (z = true ∧ 32 ≤ out.size ∧ ∃ k' C', RD uniswapV2PairBytecode I g s0 (site.pc + ⟨57⟩)
+    ((z = false ∨ out.size < 32) ∧ RDrev fork uniswapV2PairBytecode g s0) ∨
+      (z = true ∧ 32 ≤ out.size ∧ ∃ k' C', RD fork uniswapV2PairBytecode I g s0 (site.pc + ⟨57⟩)
         (UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32)) :: R)
         (balanceDynamicReturnMem base ptr (UInt256.ofNat I.codeOwner.val) out)
         (balanceDynamicCalldataWords aw ptr) out acc k' C') := by
@@ -112,9 +114,9 @@ theorem RD.uniswapPairBalanceNoCodeReverts
     {g : Sat256} {s0 : State} {I : ExecutionEnv} {site : PairBalanceCallSite}
     {σ : AccountMap}
     {mem rdata : ByteArray} {aw target : UInt256} {R : List UInt256} {k C : Nat}
-    (rd : RD uniswapV2PairBytecode I g s0 (site.pc)
+    (rd : RD fork uniswapV2PairBytecode I g s0 (site.pc)
       (target :: target :: R) mem aw rdata σ k C)
-    (hcode : extCodeSizeWord σ target = ⟨0⟩) (hov : R.length + 4 ≤ 1024) : RDrev uniswapV2PairBytecode g s0 := by
+    (hcode : extCodeSizeWord σ target = ⟨0⟩) (hov : R.length + 4 ≤ 1024) : RDrev fork uniswapV2PairBytecode g s0 := by
   exact RD.solcExtcodesizeGuardMissing (okPc := site.pc + ⟨12⟩) rd hcode
     (by cases site <;> native_decide) (by cases site <;> native_decide)
     (by cases site <;> native_decide) (by cases site <;> native_decide)

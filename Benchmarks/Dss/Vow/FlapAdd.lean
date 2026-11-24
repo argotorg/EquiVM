@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Vow.Flap
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -12,17 +14,17 @@ theorem RD.vowFlapSurplus0AddOverflow
     {σ σ₀ A I} {g sel vatSin : UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨978⟩
       (vatSin :: ⟨985⟩ :: ⟨993⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
     (hover : UInt256.size ≤ vatSin.toNat + (solcSlotWordAt ⟨10⟩ acc I).toNat) :
-    RDrev vowBytecode (Sat256.ofUInt256 g)
+    RDrev fork vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   let BumpVal := solcSlotWordAt ⟨10⟩ acc I
   have rd980 := rd.push1 ⟨10⟩ (by native_decide) (by evm_ov)
   obtain ⟨k981, C981, rd981Raw⟩ := rd980.sload (by native_decide) (by evm_ov)
-  have rd981 : RD vowBytecode I (Sat256.ofUInt256 g)
+  have rd981 : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨981⟩
       (BumpVal :: vatSin :: ⟨985⟩ :: ⟨993⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k981 C981 := by
@@ -43,19 +45,19 @@ theorem RD.vowFlapSurplus0AddSuccess
     {σ σ₀ A I} {g sel vatSin : UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨978⟩
       (vatSin :: ⟨985⟩ :: ⟨993⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
     (hfit : vatSin.toNat + (solcSlotWordAt ⟨10⟩ acc I).toNat < UInt256.size) :
-    ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨985⟩
       ((vatSin + solcSlotWordAt ⟨10⟩ acc I) :: ⟨993⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k' C' := by
   let BumpVal := solcSlotWordAt ⟨10⟩ acc I
   have rd980 := rd.push1 ⟨10⟩ (by native_decide) (by evm_ov)
   obtain ⟨k981, C981, rd981Raw⟩ := rd980.sload (by native_decide) (by evm_ov)
-  have rd981 : RD vowBytecode I (Sat256.ofUInt256 g)
+  have rd981 : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨981⟩
       (BumpVal :: vatSin :: ⟨985⟩ :: ⟨993⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k981 C981 := by
@@ -78,18 +80,18 @@ theorem RD.vowFlapSurplusNeedAddOverflow
     {σ σ₀ A I} {g sel surplus0 : UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨985⟩
       (surplus0 :: ⟨993⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
     (hover : UInt256.size ≤ surplus0.toNat + (solcSlotWordAt ⟨11⟩ acc I).toNat) :
-    RDrev vowBytecode (Sat256.ofUInt256 g)
+    RDrev fork vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   let HumpVal := solcSlotWordAt ⟨11⟩ acc I
   have rd986 := rd.jumpdest (by native_decide) (by evm_ov)
   have rd988 := rd986.push1 ⟨11⟩ (by native_decide) (by evm_ov)
   obtain ⟨k989, C989, rd989Raw⟩ := rd988.sload (by native_decide) (by evm_ov)
-  have rd989 : RD vowBytecode I (Sat256.ofUInt256 g)
+  have rd989 : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨989⟩
       (HumpVal :: surplus0 :: ⟨993⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k989 C989 := by
@@ -110,12 +112,12 @@ theorem RD.vowFlapSurplusNeedAddSuccess
     {σ σ₀ A I} {g sel surplus0 : UInt256}
     {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
-    (rd : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨985⟩
       (surplus0 :: ⟨993⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
     (hfit : surplus0.toNat + (solcSlotWordAt ⟨11⟩ acc I).toNat < UInt256.size) :
-    ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨993⟩
       ((surplus0 + solcSlotWordAt ⟨11⟩ acc I) :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k' C' := by
@@ -123,7 +125,7 @@ theorem RD.vowFlapSurplusNeedAddSuccess
   have rd986 := rd.jumpdest (by native_decide) (by evm_ov)
   have rd988 := rd986.push1 ⟨11⟩ (by native_decide) (by evm_ov)
   obtain ⟨k989, C989, rd989Raw⟩ := rd988.sload (by native_decide) (by evm_ov)
-  have rd989 : RD vowBytecode I (Sat256.ofUInt256 g)
+  have rd989 : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨989⟩
       (HumpVal :: surplus0 :: ⟨993⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k989 C989 := by

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.Amount1TailSource
 import Benchmarks.UniswapV4PoolManager.AbsDiffSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -11,7 +13,7 @@ theorem amount1Body {f : Frame} {evm : EVM.State} {a b liquidity : UInt256} {rou
     (hb : f.locals.get? "sqrtPriceBX96" = some (.int (Int.ofNat b.toNat)))
     (hl : f.locals.get? "liquidity" = some (.int (Int.ofNat liquidity.toNat)))
     (hr : f.locals.get? "roundUp" = some (.bool roundUp)) :
-    ∃ f', ExecFuncBody config f evm amount1Function.body
+    ∃ f', ExecFuncBody fork config f evm amount1Function.body
       (if amount1Fits a b liquidity then
         .returned f' evm (some [.int (Int.ofNat (amount1Word a b liquidity roundUp).toNat)])
        else .reverted) := by
@@ -19,29 +21,29 @@ theorem amount1Body {f : Frame} {evm : EVM.State} {a b liquidity : UInt256} {rou
   let f1 := wordLocal f0 "numerator" (absDiffWord a b)
   let f2 := wordLocal f1 "denominator" fullMathQ96
   let f3 := wordLocal f2 "_liquidity" liquidity
-  have h0 : ExecStmt config f evm amount1Function.body[0]! (.ok f0 evm) :=
+  have h0 : ExecStmt fork config f evm amount1Function.body[0]! (.ok f0 evm) :=
     ExecStmt.letDecl (by simp only [evalExpr?, pure]; rfl)
   have ha0 : f0.locals.get? "sqrtPriceAX96" = some (.int (Int.ofNat a.toNat)) := by
     simp only [f0, wordLocal_get, beq_iff_eq, String.reduceEq, ↓reduceIte, ha]
   have hb0 : f0.locals.get? "sqrtPriceBX96" = some (.int (Int.ofNat b.toNat)) := by
     simp only [f0, wordLocal_get, beq_iff_eq, String.reduceEq, ↓reduceIte, hb]
-  have h1 : ExecStmt config f0 evm amount1Function.body[1]! (.ok f1 evm) :=
+  have h1 : ExecStmt fork config f0 evm amount1Function.body[1]! (.ok f1 evm) :=
     absDiffCall (f := f0) hf (evalLocalValue ha0) (evalLocalValue hb0) _
-  have h2 : ExecStmt config f1 evm amount1Function.body[2]! (.ok f2 evm) :=
+  have h2 : ExecStmt fork config f1 evm amount1Function.body[2]! (.ok f2 evm) :=
     ExecStmt.letDecl (by simp only [evalExpr?, pure]; rfl)
   have hl2 : f2.locals.get? "liquidity" = some (.int (Int.ofNat liquidity.toNat)) := by
     simp only [f2, f1, f0, wordLocal_get, beq_iff_eq, String.reduceEq, ↓reduceIte, hl]
   have hcast := evalExpr_cast_int (intType := .uint ⟨256, by decide⟩)
     (evalLocalValue (cfg := config) (f := f2) (evm := evm) hl2)
   rw [normalizeInt_uint256_word] at hcast
-  have h3 : ExecStmt config f2 evm amount1Function.body[3]! (.ok f3 evm) := ExecStmt.letDecl hcast
+  have h3 : ExecStmt fork config f2 evm amount1Function.body[3]! (.ok f3 evm) := ExecStmt.letDecl hcast
   have hn3 : f3.locals.get? "numerator" = some (.int (Int.ofNat (absDiffWord a b).toNat)) := by
     simp only [f3, f2, f1, wordLocal_get, beq_iff_eq, String.reduceEq, ↓reduceIte]
   have hd3 : f3.locals.get? "denominator" = some (.int (Int.ofNat fullMathQ96.toNat)) := by
     simp only [f3, f2, wordLocal_get, beq_iff_eq, String.reduceEq, ↓reduceIte]
-  have h4 := fullMathCall (f := f3) (evm := evm) hf wordLocal_eval
+  have h4 := fullMathCall (fork := fork) (f := f3) (evm := evm) hf wordLocal_eval
     (evalLocalValue hn3) (evalLocalValue hd3) "__c1"
-  have hpre : ExecBlock config f evm (amount1Function.body.take 4) (.ok f3 evm) :=
+  have hpre : ExecBlock fork config f evm (amount1Function.body.take 4) (.ok f3 evm) :=
     ExecBlock.consNormal h0 (ExecBlock.consNormal h1 (ExecBlock.consNormal h2 (execBlock_singleton h3)))
   by_cases hfit : amount1Fits a b liquidity
   · rw [if_pos hfit] at h4
@@ -50,9 +52,9 @@ theorem amount1Body {f : Frame} {evm : EVM.State} {a b liquidity : UInt256} {rou
     let f5 := wordLocal f4 "amount1" (fullMathWord liquidity (absDiffWord a b) fullMathQ96)
     have ha4 : f4.locals.get? "amount1" = some (.int 0) := by
       simp only [f4, f3, f2, f1, f0, wordLocal_get, beq_iff_eq, String.reduceEq, ↓reduceIte]; rfl
-    have h5 : ExecStmt config f4 evm amount1Function.body[5]! (.ok f5 evm) :=
+    have h5 : ExecStmt fork config f4 evm amount1Function.body[5]! (.ok f5 evm) :=
       ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) wordLocal_eval (assignLocalValue ha4)
-    have ht := amount1Tail (f := f5) (evm := evm) (a := a) (b := b) (liquidity := liquidity) (roundUp := roundUp)
+    have ht := amount1Tail (fork := fork) (f := f5) (evm := evm) (a := a) (b := b) (liquidity := liquidity) (roundUp := roundUp)
       (by simp only [f5, f4, f3, wordLocal_get, beq_iff_eq, String.reduceEq, ↓reduceIte])
       (by simp only [f5, f4, f3, f2, f1, wordLocal_get, beq_iff_eq, String.reduceEq, ↓reduceIte])
       (by simp only [f5, f4, f3, f2, wordLocal_get, beq_iff_eq, String.reduceEq, ↓reduceIte])
@@ -70,7 +72,7 @@ theorem amount1Call {f : Frame} {evm : EVM.State} {a b liquidity : UInt256} {rou
     (hb : evalExpr? config f evm eb = .ok (.int (Int.ofNat b.toNat)))
     (hl : evalExpr? config f evm el = .ok (.int (Int.ofNat liquidity.toNat)))
     (hr : evalExpr? config f evm er = .ok (.bool roundUp)) (ret : Ident) :
-    ExecStmt config f evm
+    ExecStmt fork config f evm
       (.internalCall "SqrtPriceMath_getAmount1Delta_uint160_uint160_uint128_bool" [ea, eb, el, er] ret)
       (if amount1Fits a b liquidity then .ok (wordLocal f ret (amount1Word a b liquidity roundUp)) evm
        else .reverted) := by

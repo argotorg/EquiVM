@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.PackedLockStatic
 import Benchmarks.UniswapV3.Pool.Slot0Storage
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_031
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -17,8 +19,8 @@ local macro "pool_burn_decode" "(" v:term "," pc:term "," byte:term ","
 theorem burnLockStaticX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨9648⟩ R mem aw rdata σ k C)
-    (hperm : ee.perm = false) (hov : R.length + 4 ≤ 1024) : RDstatic (deployedRuntime v) g s0 := by
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨9648⟩ R mem aw rdata σ k C)
+    (hperm : ee.perm = false) (hov : R.length + 4 ≤ 1024) : RDstatic fork (deployedRuntime v) g s0 := by
   exact packedLockStaticX (pc := ⟨9648⟩) ⟨0⟩ ⟨255⟩ ⟨240⟩ true
     (by pool_burn_decode(v, 9648, 91, .JUMPDEST, none))
     (by pool_burn_decode(v, 9649, 96, .Push .PUSH1, some (⟨0⟩, 1)))
@@ -35,10 +37,10 @@ theorem burnLockStaticX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem burnReadLockX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨9577⟩ R mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨9577⟩ R mem aw rdata σ k C)
     (hov : R.length + 7 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧ slot0FieldWord 30 1 σ ee = ⟨0⟩) ∨
-      (slot0FieldWord 30 1 σ ee ≠ ⟨0⟩ ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨9648⟩
+    (RDrev fork (deployedRuntime v) g s0 ∧ slot0FieldWord 30 1 σ ee = ⟨0⟩) ∨
+      (slot0FieldWord 30 1 σ ee ≠ ⟨0⟩ ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨9648⟩
         (⟨0⟩ :: ⟨0⟩ :: R) mem aw rdata σ k' C') := by
   have hfield : UInt256.land (UInt256.ofNat 255)
       (UInt256.div (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256)

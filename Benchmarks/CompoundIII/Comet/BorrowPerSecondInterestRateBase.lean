@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.GetterCommon
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_009
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_023
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # CometWithExtendedAssetList `borrowPerSecondInterestRateBase()`
 
@@ -24,7 +26,7 @@ theorem borrowPerSecondInterestRateBaseX {σ σ₀ A I} {g : Sat256} (v : CometW
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 31)) :
-    GetterResult (deployedRuntime v) I g (initState σ σ₀ g A I) σ
+    GetterResult fork (deployedRuntime v) I g (initState σ σ₀ g A I) σ
       v.borrowPerSecondInterestRateBase.toByteArray := by
   obtain ⟨k, C, rd⟩ := cometWithExtendedAssetListReachBorrowPerSecondInterestRateBaseBody
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) v hcode hsz hsize hsel
@@ -56,7 +58,7 @@ theorem borrowPerSecondInterestRateBaseX {σ σ₀ A I} {g : Sat256} (v : CometW
 theorem cometWithExtendedAssetListBorrowPerSecondInterestRateBaseBody {σ σ₀ A I} {g : UInt256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 31)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (cometWithExtendedAssetListSelBytes 31) rfl hsel
   exact immutableGetter_refines (t := borrowPerSecondInterestRateBaseTransition) hcode hsz (cometDecode_empty hsz)

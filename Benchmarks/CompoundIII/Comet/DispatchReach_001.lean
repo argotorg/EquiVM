@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.RuntimeBlocks_001
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_002
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_003
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables
@@ -15,14 +17,14 @@ set_option maxRecDepth 2000000
 theorem cometWithExtendedAssetListReachIsLiquidatableBody {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 0)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1384)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1384)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (UInt256.ofNat 0).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 128).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨70124239⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x04 0x2e 0x02 0xcf ⟨70124239⟩ (by native_decide)
       (by simpa [cometWithExtendedAssetListSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_taken (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨70124239⟩ (solcSelectorWord I)) ≠ ⟨0⟩ by rw [hword]; native_decide)) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) rd1
   exact ⟨_, _, by simpa [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory, cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_taken_stack, deployedRuntime] using rd2⟩
@@ -31,14 +33,14 @@ theorem cometWithExtendedAssetListReachIsLiquidatableBody {σ σ₀ A I} {g : Sa
 theorem cometWithExtendedAssetListReachGetReservesBody {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 1)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1375)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1375)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (UInt256.ofNat 0).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 128).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨151187884⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x09 0x02 0xf1 0xac ⟨151187884⟩ (by native_decide)
       (by simpa [cometWithExtendedAssetListSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨70124239⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_42_taken (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory, cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨151187884⟩ (solcSelectorWord I)) ≠ ⟨0⟩ by rw [hword]; native_decide)) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) rd2
@@ -48,14 +50,14 @@ theorem cometWithExtendedAssetListReachGetReservesBody {σ σ₀ A I} {g : Sat25
 theorem cometWithExtendedAssetListReachIsSupplyPausedBody {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 2)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1366)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1366)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (UInt256.ofNat 0).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 128).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨197425873⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x0b 0xc4 0x7a 0xd1 ⟨197425873⟩ (by native_decide)
       (by simpa [cometWithExtendedAssetListSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨70124239⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_42_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory, cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨151187884⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -66,14 +68,14 @@ theorem cometWithExtendedAssetListReachIsSupplyPausedBody {σ σ₀ A I} {g : Sa
 theorem cometWithExtendedAssetListReachGovernorBody {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 3)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1357)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1357)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (UInt256.ofNat 0).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 128).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨204737060⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x0c 0x34 0x0a 0x24 ⟨204737060⟩ (by native_decide)
       (by simpa [cometWithExtendedAssetListSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨70124239⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_42_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory, cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨151187884⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -85,14 +87,14 @@ theorem cometWithExtendedAssetListReachGovernorBody {σ σ₀ A I} {g : Sat256} 
 theorem cometWithExtendedAssetListReachTotalSupplyBody {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 4)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1348)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1348)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (UInt256.ofNat 0).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 128).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨404098525⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x18 0x16 0x0d 0xdd ⟨404098525⟩ (by native_decide)
       (by simpa [cometWithExtendedAssetListSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨70124239⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_42_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory, cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨151187884⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -105,14 +107,14 @@ theorem cometWithExtendedAssetListReachTotalSupplyBody {σ σ₀ A I} {g : Sat25
 theorem cometWithExtendedAssetListReachBaseTrackingSupplySpeedBody {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 5)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1339)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1339)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (UInt256.ofNat 0).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 128).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨412857073⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x18 0x9b 0xb2 0xf1 ⟨412857073⟩ (by native_decide)
       (by simpa [cometWithExtendedAssetListSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨70124239⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_42_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory, cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨151187884⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -126,14 +128,14 @@ theorem cometWithExtendedAssetListReachBaseTrackingSupplySpeedBody {σ σ₀ A I
 theorem cometWithExtendedAssetListReachInitializeStorageBody {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 6)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1330)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1330)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (UInt256.ofNat 0).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 128).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨480214969⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x1c 0x9f 0x7f 0xb9 ⟨480214969⟩ (by native_decide)
       (by simpa [cometWithExtendedAssetListSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨70124239⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_42_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory, cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨151187884⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -148,14 +150,14 @@ theorem cometWithExtendedAssetListReachInitializeStorageBody {σ σ₀ A I} {g :
 theorem cometWithExtendedAssetListReachStoreFrontPriceFactorBody {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 7)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1321)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1321)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (UInt256.ofNat 0).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 128).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨525948093⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x1f 0x59 0x54 0xbd ⟨525948093⟩ (by native_decide)
       (by simpa [cometWithExtendedAssetListSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨70124239⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_42_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory, cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨151187884⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -171,14 +173,14 @@ theorem cometWithExtendedAssetListReachStoreFrontPriceFactorBody {σ σ₀ A I} 
 theorem cometWithExtendedAssetListReachTransferFromBody {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 8)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1312)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1312)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (UInt256.ofNat 0).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 128).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨599290589⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x23 0xb8 0x72 0xdd ⟨599290589⟩ (by native_decide)
       (by simpa [cometWithExtendedAssetListSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨70124239⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_42_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory, cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨151187884⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -195,14 +197,14 @@ theorem cometWithExtendedAssetListReachTransferFromBody {σ σ₀ A I} {g : Sat2
 theorem cometWithExtendedAssetListReachPauseGuardianBody {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 9)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1303)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1303)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (UInt256.ofNat 0).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 128).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨614716962⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x24 0xa3 0xd6 0x22 ⟨614716962⟩ (by native_decide)
       (by simpa [cometWithExtendedAssetListSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨70124239⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_42_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory, cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨151187884⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -220,14 +222,14 @@ theorem cometWithExtendedAssetListReachPauseGuardianBody {σ σ₀ A I} {g : Sat
 theorem cometWithExtendedAssetListReachWithdrawFromBody {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 10)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1294)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1294)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (UInt256.ofNat 0).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 128).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨641995544⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x26 0x44 0x13 0x18 ⟨641995544⟩ (by native_decide)
       (by simpa [cometWithExtendedAssetListSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨70124239⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_42_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory, cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨151187884⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -246,14 +248,14 @@ theorem cometWithExtendedAssetListReachWithdrawFromBody {σ σ₀ A I} {g : Sat2
 theorem cometWithExtendedAssetListReachBorrowPerSecondInterestRateSlopeHighBody {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 11)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1285)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1285)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (UInt256.ofNat 0).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 128).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨709414674⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x2a 0x48 0xcf 0x12 ⟨709414674⟩ (by native_decide)
       (by simpa [cometWithExtendedAssetListSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨70124239⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_42_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory, cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨151187884⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -273,14 +275,14 @@ theorem cometWithExtendedAssetListReachBorrowPerSecondInterestRateSlopeHighBody 
 theorem cometWithExtendedAssetListReachUserCollateralBody {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 12)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1276)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1276)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (UInt256.ofNat 0).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 128).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨731029629⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x2b 0x92 0xa0 0x7d ⟨731029629⟩ (by native_decide)
       (by simpa [cometWithExtendedAssetListSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨70124239⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_42_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory, cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨151187884⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -301,14 +303,14 @@ theorem cometWithExtendedAssetListReachUserCollateralBody {σ σ₀ A I} {g : Sa
 theorem cometWithExtendedAssetListReachBorrowPerSecondInterestRateSlopeLowBody {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 13)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1267)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1267)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (UInt256.ofNat 0).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 128).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨755328779⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x2d 0x05 0x67 0x0b ⟨755328779⟩ (by native_decide)
       (by simpa [cometWithExtendedAssetListSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨70124239⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_42_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory, cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨151187884⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -330,14 +332,14 @@ theorem cometWithExtendedAssetListReachBorrowPerSecondInterestRateSlopeLowBody {
 theorem cometWithExtendedAssetListReachUserNonceBody {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 14)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1258)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1258)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (UInt256.ofNat 0).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 128).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨772061415⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x2e 0x04 0xb8 0xe7 ⟨772061415⟩ (by native_decide)
       (by simpa [cometWithExtendedAssetListSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨70124239⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_42_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory, cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨151187884⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -360,14 +362,14 @@ theorem cometWithExtendedAssetListReachUserNonceBody {σ σ₀ A I} {g : Sat256}
 theorem cometWithExtendedAssetListReachBaseBorrowMinBody {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 15)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1249)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1249)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (UInt256.ofNat 0).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 128).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨806251499⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x30 0x0e 0x6b 0xeb ⟨806251499⟩ (by native_decide)
       (by simpa [cometWithExtendedAssetListSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨70124239⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_42_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory, cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨151187884⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -391,14 +393,14 @@ theorem cometWithExtendedAssetListReachBaseBorrowMinBody {σ σ₀ A I} {g : Sat
 theorem cometWithExtendedAssetListReachDecimalsBody {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 16)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1240)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1240)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (UInt256.ofNat 0).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 128).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨826074471⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x31 0x3c 0xe5 0x67 ⟨826074471⟩ (by native_decide)
       (by simpa [cometWithExtendedAssetListSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨70124239⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_42_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory, cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨151187884⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -423,14 +425,14 @@ theorem cometWithExtendedAssetListReachDecimalsBody {σ σ₀ A I} {g : Sat256} 
 theorem cometWithExtendedAssetListReachTargetReservesBody {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 17)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1231)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1231)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (UInt256.ofNat 0).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 128).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨840395849⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x32 0x17 0x6c 0x49 ⟨840395849⟩ (by native_decide)
       (by simpa [cometWithExtendedAssetListSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨70124239⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_42_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory, cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨151187884⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -456,14 +458,14 @@ theorem cometWithExtendedAssetListReachTargetReservesBody {σ σ₀ A I} {g : Sa
 theorem cometWithExtendedAssetListReachBorrowBalanceOfBody {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 18)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1222)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1222)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (UInt256.ofNat 0).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 128).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨927746484⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x37 0x4c 0x49 0xb4 ⟨927746484⟩ (by native_decide)
       (by simpa [cometWithExtendedAssetListSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨70124239⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_42_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory, cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨151187884⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -490,14 +492,14 @@ theorem cometWithExtendedAssetListReachBorrowBalanceOfBody {σ σ₀ A I} {g : S
 theorem cometWithExtendedAssetListReachIsBorrowCollateralizedBody {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 19)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1213)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1213)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (UInt256.ofNat 0).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 128).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨950698303⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x38 0xaa 0x81 0x3f ⟨950698303⟩ (by native_decide)
       (by simpa [cometWithExtendedAssetListSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨70124239⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_42_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory, cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨151187884⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -525,14 +527,14 @@ theorem cometWithExtendedAssetListReachIsBorrowCollateralizedBody {σ σ₀ A I}
 theorem cometWithExtendedAssetListReachGetAssetInfoByAddressBody {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 20)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1204)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1204)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (UInt256.ofNat 0).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 128).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨993782830⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x3b 0x3b 0xec 0x2e ⟨993782830⟩ (by native_decide)
       (by simpa [cometWithExtendedAssetListSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨70124239⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_42_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory, cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨151187884⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -561,14 +563,14 @@ theorem cometWithExtendedAssetListReachGetAssetInfoByAddressBody {σ σ₀ A I} 
 theorem cometWithExtendedAssetListReachGetPriceBody {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 21)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1195)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1195)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (UInt256.ofNat 0).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 128).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨1100443145⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x41 0x97 0x6e 0x09 ⟨1100443145⟩ (by native_decide)
       (by simpa [cometWithExtendedAssetListSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨70124239⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_42_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory, cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨151187884⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -598,14 +600,14 @@ theorem cometWithExtendedAssetListReachGetPriceBody {σ σ₀ A I} {g : Sat256} 
 theorem cometWithExtendedAssetListReachSupplyToBody {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 22)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1186)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1186)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (UInt256.ofNat 0).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 128).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨1110625635⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x42 0x32 0xcd 0x63 ⟨1110625635⟩ (by native_decide)
       (by simpa [cometWithExtendedAssetListSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨70124239⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_42_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory, cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨151187884⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -636,14 +638,14 @@ theorem cometWithExtendedAssetListReachSupplyToBody {σ σ₀ A I} {g : Sat256} 
 theorem cometWithExtendedAssetListReachTransferAssetBody {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 23)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1177)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1177)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (UInt256.ofNat 0).toNat 32)) (UInt256.ofNat 224))]
       ((UInt256.ofNat 128).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
       (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨1134440005⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x43 0x9e 0x2e 0x45 ⟨1134440005⟩ (by native_decide)
       (by simpa [cometWithExtendedAssetListSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken (immWords := wordsOf (immStore v)) (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) rd0
   have rd2 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨70124239⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_42_fallthrough (immWords := wordsOf (immStore v)) (by simp [cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory, cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_24_fallthrough_stack]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨151187884⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2

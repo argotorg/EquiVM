@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.ArithmeticSource
 import Benchmarks.CompoundIII.Comet.CheckedDivEvm
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_052
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -34,9 +36,9 @@ theorem divBaseWei_body (v : CometWithExtendedAssetListImmutables)
     let frame : Frame :=
       { contract := contract, locals := divBaseWeiLocals n baseWei, immutables := immStore v }
     if DivBaseWeiValid v n baseWei then
-      ExecFuncBody config frame evm divBaseWeiCallable.body
+      ExecFuncBody fork config frame evm divBaseWeiCallable.body
         (.returned frame evm (some [.int (divBaseWeiWord v n baseWei).toNat]))
-    else ExecFuncBody config frame evm divBaseWeiCallable.body .reverted := by
+    else ExecFuncBody fork config frame evm divBaseWeiCallable.body .reverted := by
   dsimp only
   let frame : Frame :=
     { contract := contract, locals := divBaseWeiLocals n baseWei, immutables := immStore v }
@@ -77,12 +79,12 @@ theorem divBaseWei_call (v : CometWithExtendedAssetListImmutables)
     (hi : frame.immutables = immStore v)
     (hn : evalExpr? config frame evm nExpr = .ok (.int n.toNat))
     (hb : evalExpr? config frame evm baseWeiExpr = .ok (.int baseWei.toNat)) :
-    ExecStmt config frame evm (.internalCall "divBaseWei" [nExpr, baseWeiExpr] ret)
+    ExecStmt fork config frame evm (.internalCall "divBaseWei" [nExpr, baseWeiExpr] ret)
       (if DivBaseWeiValid v n baseWei then
         .ok { frame with locals :=
           frame.locals.insert ret (.int (divBaseWeiWord v n baseWei).toNat) } evm
       else .reverted) := by
-  have hbody := divBaseWei_body v evm n baseWei
+  have hbody := divBaseWei_body (fork := fork) v evm n baseWei
   split_ifs with hv
   · rw [if_pos hv] at hbody
     exact ExecStmt.internalCallReturn (callee := divBaseWeiCallable)
@@ -102,12 +104,12 @@ theorem cometDivBaseWei {v : CometWithExtendedAssetListImmutables}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} {n baseWei ret : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨11151⟩ (n :: baseWei :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨11151⟩ (n :: baseWei :: ret :: R)
       mem aw rdata σ k C) :
     if DivBaseWeiValid v n baseWei then
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ret (divBaseWeiWord v n baseWei :: R)
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret (divBaseWeiWord v n baseWei :: R)
         mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have r1 := cometWithExtendedAssetList_block_11151 (immWords := wordsOf (immStore v))
     (by change R.length + 2 + 4 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h

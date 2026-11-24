@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.Dispatch
 import Benchmarks.UniswapV3.Pool.Routines
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # UniswapV3Pool `maxLiquidityPerTick()`
 
@@ -19,7 +21,7 @@ set_option maxRecDepth 2000000
 
 theorem uniswapV3PoolMaxLiquidityPerTickReturns (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (locals : Store) (hwv : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract evm locals maxLiquidityPerTickTransition.body
+    ExecTransitionBody fork config contract evm locals maxLiquidityPerTickTransition.body
       (.returned { contract := contract, locals := locals, immutables := immStore v } evm
         (some [.int (normalizeInt (.uint ⟨128, by decide⟩)
           (Int.ofNat v.maxLiquidityPerTick.toNat))])) (immStore v) := by
@@ -32,7 +34,7 @@ theorem uniswapV3PoolMaxLiquidityPerTickX {σ σ₀ A I} {g : Sat256} (v : Unisw
     (hcode : I.code = deployedRuntime v) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (uniswapV3PoolSelBytes 13)) :
-    RDret (deployedRuntime v) g (initState σ σ₀ g A I) σ
+    RDret fork (deployedRuntime v) g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (UInt256.land v.maxLiquidityPerTick (UInt256.ofNat (2 ^ 128 - 1)))) := by
   obtain ⟨k, C, rdEntry⟩ := uniswapV3PoolReachMaxLiquidityPerTickBody (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hwv hsz hsize hsel
@@ -51,7 +53,7 @@ theorem uniswapV3PoolMaxLiquidityPerTickBody {σ σ₀ A I} {g : UInt256} (v : U
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (uniswapV3PoolSelBytes 13)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (uniswapV3PoolSelBytes 13) rfl hsel
   have hd : dispatchMsg contract I.calldata = some maxLiquidityPerTickTransition := by
     apply uniswapV3PoolDispatch_maxLiquidityPerTick <;>

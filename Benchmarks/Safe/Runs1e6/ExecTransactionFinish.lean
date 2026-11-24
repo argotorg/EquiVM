@@ -2,6 +2,8 @@ import Benchmarks.Safe.Runs1e6.ExecTransactionEvent
 import Benchmarks.Safe.Runs1e6.ExecAfterGuardTrace
 import Benchmarks.Safe.Runs1e6.BoolReturnMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Runs1e6.RuntimeBlocks
 
@@ -11,7 +13,7 @@ set_option maxRecDepth 100000 in
 theorem safeExecTransactionFinish (p : ExecTransactionInput) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata src} {sigPtr guard hash used paid ptr : UInt256}
     {z : Bool} {R : List UInt256} {frame : Frame}
-    (h : RD safeBytecode I g s0 ⟨4699⟩
+    (h : RD fork safeBytecode I g s0 ⟨4699⟩
       (paid :: used :: execResultSaved p src sigPtr guard hash z (⟨759⟩ :: R))
       mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ) (hworld : evm.σ₀ = s0.σ₀)
@@ -21,15 +23,15 @@ theorem safeExecTransactionFinish (p : ExecTransactionInput) (evm : EVM.State)
     (hpaid : frame.locals["payment"]? = some (uint256Value paid))
     (hf : memLoad ⟨64⟩ mem = ptr) (hm : 96 ≤ mem.size) (hp : 96 ≤ ptr.toNat)
     (hb : ptr.toNat + 68 < UInt256.size) (hov : R.length + 36 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧ ExecBlock config frame evm
+    (RDrev fork safeBytecode g s0 ∧ ExecBlock fork config frame evm
       (exectransactionTransition.body.drop 18) .reverted) ∨
-    (RDstatic safeBytecode g s0 ∧ ExecBlock config frame evm
+    (RDstatic fork safeBytecode g s0 ∧ ExecBlock fork config frame evm
       (exectransactionTransition.body.drop 18) .staticViolation) ∨
     ∃ frame' evm' σ',
-      ExecBlock config frame evm (exectransactionTransition.body.drop 18)
+      ExecBlock fork config frame evm (exectransactionTransition.body.drop 18)
         (.returned frame' evm' (some [.bool z])) ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧ evm'.σ₀ = s0.σ₀ ∧
-      RDret safeBytecode g s0 σ' z.toUInt256.toByteArray := by
+      RDret fork safeBytecode g s0 σ' z.toUInt256.toByteArray := by
   obtain ⟨aw₁, k₁, C₁, h₁⟩ := safeExecEventPrepare p h (by simp; omega)
   cases hperm : I.perm with
   | false =>
@@ -49,7 +51,7 @@ theorem safeExecTransactionFinish (p : ExecTransactionInput) (evm : EVM.State)
     obtain ⟨hr, hs⟩ | ⟨frame', evm', σ', mem', aw', out, k', C', hs, hz', he', ha', hw',
         h₃, hmem⟩ := safeExecAfterGuardTrace z evm h₂ hee hacc hworld hg hh hz hf₂ hm₂ hp hb
           (by simp [execResultSaved]; omega)
-    · exact .inl ⟨hr, .consNormal (safeExecEventSource (hperm := by simpa only [hee] using hperm) hz hh hpaid) (.consRevert hs)⟩
+    · exact .inl ⟨hr, .consNormal (safeExecEventSource (fork := fork) (hperm := by simpa only [hee] using hperm) hz hh hpaid) (.consRevert hs)⟩
     have h₄ := safeRuntime_block_4989 (by simp; omega) (by jump_dest) h₃
     have hf' : memLoad ⟨64⟩ mem' = ptr := by
       rcases hmem with rfl | rfl
@@ -60,10 +62,10 @@ theorem safeExecTransactionFinish (p : ExecTransactionInput) (evm : EVM.State)
       · exact hm₂
       · rw [execAfterGuardMemory, selectorWordPairMemory_size]; omega
     have hr := safeReturnBoolFromMemory h₄ (by omega) hf' hm' hp
-    have hret : ExecBlock config frame' evm' [.return [.var "success"]]
+    have hret : ExecBlock fork config frame' evm' [.return [.var "success"]]
         (.returned frame' evm' (some [.bool z])) :=
       .consReturn (.return (evalExprs?_singleton (evalLocalValue hz')))
-    exact .inr (.inr ⟨frame', evm', σ', .consNormal (safeExecEventSource (hperm := by simpa only [hee] using hperm) hz hh hpaid)
+    exact .inr (.inr ⟨frame', evm', σ', .consNormal (safeExecEventSource (fork := fork) (hperm := by simpa only [hee] using hperm) hz hh hpaid)
       (.consNormal hs hret), he', ha', hw', hr⟩)
 
 end Benchmarks.Safe.Runs1e6

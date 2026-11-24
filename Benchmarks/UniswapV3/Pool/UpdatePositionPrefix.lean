@@ -1,12 +1,14 @@
 import Benchmarks.UniswapV3.Pool.UpdatePositionModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
 
 theorem updatePositionGetSource (imms : Store) (evm : EVM.State) (a : UpdatePositionArgs)
     (hfit : a.Fits) :
-    ExecStmt config (updatePositionZeroFrame imms a) evm updatePositionFunction.body[1]!
+    ExecStmt fork config (updatePositionZeroFrame imms a) evm updatePositionFunction.body[1]!
       (.ok (updatePositionGetFrame imms a) evm) := by
   have hl := positionTick_wordOfInt a.lower hfit.1.1 hfit.1.2
   have hu := positionTick_wordOfInt a.upper hfit.2.1.1 hfit.2.1.2
@@ -27,17 +29,17 @@ theorem updatePositionGetSource (imms : Store) (evm : EVM.State) (a : UpdatePosi
 
 theorem updatePositionKeySource (imms : Store) (evm : EVM.State) (a : UpdatePositionArgs)
     (hfit : a.Fits) :
-    ExecBlock config (updatePositionFrame imms a) evm (updatePositionFunction.body.take 3)
+    ExecBlock fork config (updatePositionFrame imms a) evm (updatePositionFunction.body.take 3)
       (.ok (updatePositionKeyFrame imms a) evm) := by
   refine ExecBlock.consNormal (stele' := updatePositionZeroFrame imms a) (evm' := evm)
     (ExecStmt.letDecl (by simp only [evalExpr?, pure]; rfl)) ?_
   refine ExecBlock.consNormal (updatePositionGetSource imms evm a hfit) ?_
-  exact ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+  exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
     (evalExpr_var_get (by update_position_prefix_get))
     (assignLocalVarBase_frame (by update_position_prefix_get))) ExecBlock.nil
 
 theorem updatePositionGlobalsSource (imms : Store) (evm : EVM.State) (a : UpdatePositionArgs) :
-    ExecBlock config (updatePositionKeyFrame imms a) evm
+    ExecBlock fork config (updatePositionKeyFrame imms a) evm
       [updatePositionFunction.body[3]!, updatePositionFunction.body[4]!,
         updatePositionFunction.body[5]!, updatePositionFunction.body[6]!]
       (.ok (updatePositionReadyFrame imms a evm) evm) := by
@@ -50,9 +52,9 @@ theorem updatePositionGlobalsSource (imms : Store) (evm : EVM.State) (a : Update
 
 theorem updatePositionPrefixSource (imms : Store) (evm : EVM.State) (a : UpdatePositionArgs)
     (hfit : a.Fits) :
-    ExecBlock config (updatePositionFrame imms a) evm (updatePositionFunction.body.take 7)
+    ExecBlock fork config (updatePositionFrame imms a) evm (updatePositionFunction.body.take 7)
       (.ok (updatePositionReadyFrame imms a evm) evm) := by
-  change ExecBlock config _ evm (updatePositionFunction.body.take 3 ++
+  change ExecBlock fork config _ evm (updatePositionFunction.body.take 3 ++
     [updatePositionFunction.body[3]!, updatePositionFunction.body[4]!,
       updatePositionFunction.body[5]!, updatePositionFunction.body[6]!]) _
   exact execBlock_append_ok (updatePositionKeySource imms evm a hfit)

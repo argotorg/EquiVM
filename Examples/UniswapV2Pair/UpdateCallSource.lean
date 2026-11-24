@@ -1,4 +1,6 @@
 import Examples.UniswapV2Pair.UpdateCouplingHelpers
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -8,7 +10,7 @@ theorem uniswapUpdateCallRevertsFirstBound
     (hargs : evalExprs? config { contract := contract, locals := locals } evm args =
       .ok (syncUpdateCallArgValsWith balance0 balance1 reserve0 reserve1))
     (hbound : maxUint112 < Int.ofNat balance0.toNat) :
-    ExecStmt config { contract := contract, locals := locals } evm
+    ExecStmt fork config { contract := contract, locals := locals } evm
       (.internalCall "_update"
         args
         retVar) .reverted := by
@@ -28,7 +30,7 @@ theorem uniswapUpdateCallRevertsSecondBound
       .ok (syncUpdateCallArgValsWith balance0 balance1 reserve0 reserve1))
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : maxUint112 < Int.ofNat balance1.toNat) :
-    ExecStmt config { contract := contract, locals := locals } evm
+    ExecStmt fork config { contract := contract, locals := locals } evm
       (.internalCall "_update"
         args
         retVar) .reverted := by
@@ -52,7 +54,7 @@ theorem uniswapUpdateCallReturnsConditionTrue
     (hreserve0Ne : Int.ofNat reserve0.toNat ≠ 0)
     (hreserve1Ne : Int.ofNat reserve1.toNat ≠ 0)
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config { contract := contract, locals := locals } evm
+    ExecStmt fork config { contract := contract, locals := locals } evm
       (.internalCall "_update"
         args
         retVar)
@@ -61,7 +63,7 @@ theorem uniswapUpdateCallReturnsConditionTrue
           retVar none)
         (syncUpdateCumulativePackedReserveStateWith evm balance0 balance1 reserve0 reserve1)) := by
   have hbody :=
-    uniswapUpdateFunctionReturns_conditionTrue_packed_with (hperm := by assumption) evm balance0 balance1 reserve0
+    uniswapUpdateFunctionReturns_conditionTrue_packed_with (fork := fork) (hperm := by assumption) evm balance0 balance1 reserve0
       reserve1 hbound0 hbound1 helapsed hreserve0Ne hreserve1Ne
   exact internalCallFunctionReturn
     (cfg := config)
@@ -92,7 +94,7 @@ theorem uniswapUpdateCallReturnsConditionFalse
     (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112)
     (hskip : syncTimeElapsedInt evm = 0 ∨ reserve0 = ⟨0⟩ ∨ reserve1 = ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config { contract := contract, locals := locals } evm
+    ExecStmt fork config { contract := contract, locals := locals } evm
       (.internalCall "_update"
         args
         retVar)
@@ -101,7 +103,7 @@ theorem uniswapUpdateCallReturnsConditionFalse
           retVar none)
         (syncUpdatePackedReserveState evm balance0 balance1)) := by
   have hbody :=
-    uniswapUpdateFunctionReturns_conditionFalse_packed_with (hperm := by assumption) evm balance0 balance1 reserve0
+    uniswapUpdateFunctionReturns_conditionFalse_packed_with (fork := fork) (hperm := by assumption) evm balance0 balance1 reserve0
       reserve1
       hbound0 hbound1
       (evalExpr_sync_update_condition_false_with evm balance0 balance1 reserve0

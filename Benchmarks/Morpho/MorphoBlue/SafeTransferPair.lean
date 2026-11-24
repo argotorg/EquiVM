@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.ReturnBlockRefines
 import Benchmarks.Morpho.MorphoBlue.SafeTransferInternal
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -31,10 +33,10 @@ theorem morphoSafeTransferPairAt {v : MorphoImmutables} {ee : ExecutionEnv} {g :
     (hs : SourceState s0 ee σ evm) (hm : MorphoHeap mem ptr 0)
     (hsize : 128 ≤ mem.size) (hptr : 128 ≤ ptr.toNat)
     (hzero : memLoad (UInt256.ofNat 96) mem = UInt256.ofNat 0)
-    (h : RD (deployedRuntime v) ee g s0 (safeTransferEntryPC isFrom)
+    (h : RD fork (deployedRuntime v) ee g s0 (safeTransferEntryPC isFrom)
       (safeTransferEVMArgs isFrom token sender recipient assets ++
         (transferPairReturnPC mode :: transferPairReturnTail mode assets shares)) mem aw out σ k C) :
-    ReturnBlockRefines config (deployedRuntime v) ee g s0
+    ReturnBlockRefines fork config (deployedRuntime v) ee g s0
       { contract := contract, locals := locals, immutables := imms } evm
       [.internalCall (if isFrom then "SafeTransferLib_safeTransferFrom" else "SafeTransferLib_safeTransfer") args retVar,
        .return [.var "assets", .var "shares"]] [abiUInt256, abiUInt256] := by
@@ -49,7 +51,7 @@ theorem morphoSafeTransferPairAt {v : MorphoImmutables} {ee : ExecutionEnv} {g :
   | @ok frame' evm' σ' mem' ptr' aw' rdata' k' C' hb hs' hm' hpref hsize' hlower' hzero' rd =>
     have he' := morphoSafeTransferInternalOk isFrom token sender recipient assets ptr.toNat
       locals imms evm evm' frame' _ _ retVar he hb
-    have hret : ExecBlock config
+    have hret : ExecBlock fork config
         { contract := contract, locals := locals.insert retVar (.int (Int.ofNat ptr'.toNat)), immutables := imms }
         evm' [.return [.var "assets", .var "shares"]]
         (.returned { contract := contract, locals := locals.insert retVar (.int (Int.ofNat ptr'.toNat)), immutables := imms }
@@ -57,7 +59,7 @@ theorem morphoSafeTransferPairAt {v : MorphoImmutables} {ee : ExecutionEnv} {g :
       apply ExecBlock.consReturn (ExecStmt.return ?_)
       simp only [evalExprs?, evalExpr?, store_get_ne _ _ ha, store_get_ne _ _ hbVar,
         haGet, hsGet, EvalResult.ofOption, pure, bind, EvalResult.bind]
-    have hr : RDret (deployedRuntime v) g s0 σ'
+    have hr : RDret fork (deployedRuntime v) g s0 σ'
         ((shares.toByteArray.write 0 (assets.toByteArray.write 0 mem' (memLoad (UInt256.ofNat 64) mem').toNat 32)
           (memLoad (UInt256.ofNat 64) mem' + UInt256.ofNat 32).toNat 32).readWithPadding
           (memLoad (UInt256.ofNat 64) mem').toNat 64) := by
@@ -69,8 +71,8 @@ theorem morphoSafeTransferPairAt {v : MorphoImmutables} {ee : ExecutionEnv} {g :
     have hadd : (ptr' + UInt256.ofNat 32).toNat = ptr'.toNat + 32 :=
       uadd_word_ofNat_toNat _ _ (by have hh := hm'.space; change _ < 2 ^ 256; omega)
     rw [hadd] at hr
-    have hr' : RDret (deployedRuntime v) g s0 σ' (returnWordBytes [assets, shares]) := by
-      change RDret _ _ _ _ ((writeCascade mem' (returnWordWrites ptr'.toNat [assets, shares])).readWithPadding
+    have hr' : RDret fork (deployedRuntime v) g s0 σ' (returnWordBytes [assets, shares]) := by
+      change RDret fork _ _ _ _ ((writeCascade mem' (returnWordWrites ptr'.toNat [assets, shares])).readWithPadding
         ptr'.toNat (32 * [assets, shares].length)) at hr
       rw [readReturnWords _ _ _ (by have hh := hm'.gap; omega)] at hr
       exact hr
@@ -88,11 +90,11 @@ theorem morphoSafeTransferPair {v : MorphoImmutables} {ee : ExecutionEnv} {g : S
     (hs : SourceState s0 ee σ evm) (hm : MorphoHeap mem ptr 0)
     (hsize : 128 ≤ mem.size) (hptr : 128 ≤ ptr.toNat)
     (hzero : memLoad (UInt256.ofNat 96) mem = UInt256.ofNat 0)
-    (h : RD (deployedRuntime v) ee g s0 (safeTransferEntryPC isFrom)
+    (h : RD fork (deployedRuntime v) ee g s0 (safeTransferEntryPC isFrom)
       (safeTransferEVMArgs isFrom token sender recipient assets ++
         (if isFrom then [UInt256.ofNat 4208, UInt256.ofNat 32, shares, assets, UInt256.ofNat 64]
          else [UInt256.ofNat 2752, shares, assets, UInt256.ofNat 64])) mem aw out σ k C) :
-    ReturnBlockRefines config (deployedRuntime v) ee g s0
+    ReturnBlockRefines fork config (deployedRuntime v) ee g s0
       { contract := contract, locals := locals, immutables := imms } evm
       [.internalCall (if isFrom then "SafeTransferLib_safeTransferFrom" else "SafeTransferLib_safeTransfer") args retVar,
        .return [.var "assets", .var "shares"]] [abiUInt256, abiUInt256] := by

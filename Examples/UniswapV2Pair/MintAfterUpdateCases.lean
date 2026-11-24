@@ -2,6 +2,8 @@ import Examples.UniswapV2Pair.MintRuntimeAfterFee
 import Examples.UniswapV2Pair.MintSourceReturns
 import Examples.UniswapV2Pair.MintReserveProductFits
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace UniswapV2Pair
@@ -13,7 +15,7 @@ theorem uniswapMintAfterUpdateRuntimeReturns
     {mem rdata : ByteArray} {k C : ℕ}
     {totalSupply feeOn amount0 amount1 balance0 balance1 reserve0 reserve1 liquidity toWord sel :
       UInt256} {locals : Store} (evm : EVM.State) (fee : Bool)
-    (rd3926 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (rd3926 : RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3926⟩
       [totalSupply, feeOn, amount1, amount0, balance1, balance0, reserve1, reserve0,
         liquidity, toWord, ⟨861⟩, sel]
@@ -31,7 +33,7 @@ theorem uniswapMintAfterUpdateRuntimeReturns
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hperm : I.perm = true) :
     ∃ evm' σ',
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         ([.ite (.var "feeOn")
           [.assign .storage kLastRef
             (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref)))] []] ++
@@ -39,7 +41,7 @@ theorem uniswapMintAfterUpdateRuntimeReturns
         (.returned { contract := contract, locals := locals } evm'
           (some [uniswapUint256Value liquidity])) ∧
       σ' = evm'.accountMap ∧
-      RDret uniswapV2PairBytecode (Sat256.ofUInt256 g)
+      RDret fork uniswapV2PairBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         σ' (UInt256.toByteArray liquidity) := by
   cases fee with

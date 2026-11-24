@@ -2,37 +2,39 @@ import Benchmarks.CompoundIII.Comet.WithdrawAssetModel
 import Benchmarks.CompoundIII.Comet.WithdrawAuthModel
 import Benchmarks.CompoundIII.Comet.ReentrancyModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
 namespace Benchmarks.CompoundIII.Comet
 
-inductive WithdrawInternalAfter (v : CometWithExtendedAssetListImmutables)
+inductive WithdrawInternalAfter (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables)
     (operator src recipient asset : AccountAddress) (amount : UInt256) (evm : EVM.State) :
     InternalOutcome → Prop where
   | unauthorized (ha : ¬ WithdrawAuthValid evm operator src) :
-      WithdrawInternalAfter v operator src recipient asset amount evm .reverted
+      WithdrawInternalAfter fork v operator src recipient asset amount evm .reverted
   | reverted (ha : WithdrawAuthValid evm operator src)
-      (ht : WithdrawAssetTrace v src recipient asset amount evm .reverted) :
-      WithdrawInternalAfter v operator src recipient asset amount evm .reverted
+      (ht : WithdrawAssetTrace fork v src recipient asset amount evm .reverted) :
+      WithdrawInternalAfter fork v operator src recipient asset amount evm .reverted
   | staticViolation (ha : WithdrawAuthValid evm operator src)
-      (ht : WithdrawAssetTrace v src recipient asset amount evm .staticViolation) :
-      WithdrawInternalAfter v operator src recipient asset amount evm .staticViolation
+      (ht : WithdrawAssetTrace fork v src recipient asset amount evm .staticViolation) :
+      WithdrawInternalAfter fork v operator src recipient asset amount evm .staticViolation
   | done {evm'} (ha : WithdrawAuthValid evm operator src)
-      (ht : WithdrawAssetTrace v src recipient asset amount evm (.ok evm'))
+      (ht : WithdrawAssetTrace fork v src recipient asset amount evm (.ok evm'))
       (hp : evm'.executionEnv.perm = true) :
-      WithdrawInternalAfter v operator src recipient asset amount evm (.ok (reentrancyState evm' false))
+      WithdrawInternalAfter fork v operator src recipient asset amount evm (.ok (reentrancyState evm' false))
 
-inductive WithdrawInternalTrace (v : CometWithExtendedAssetListImmutables)
+inductive WithdrawInternalTrace (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables)
     (operator src recipient asset : AccountAddress) (amount : UInt256) (evm : EVM.State) :
     InternalOutcome → Prop where
   | reverted (he : reentrancyOutcome evm true = .reverted) :
-      WithdrawInternalTrace v operator src recipient asset amount evm .reverted
+      WithdrawInternalTrace fork v operator src recipient asset amount evm .reverted
   | staticViolation (he : reentrancyOutcome evm true = .staticViolation) :
-      WithdrawInternalTrace v operator src recipient asset amount evm .staticViolation
+      WithdrawInternalTrace fork v operator src recipient asset amount evm .staticViolation
   | done {evm' result} (he : reentrancyOutcome evm true = .ok evm')
-      (ht : WithdrawInternalAfter v operator src recipient asset amount evm' result) :
-      WithdrawInternalTrace v operator src recipient asset amount evm result
+      (ht : WithdrawInternalAfter fork v operator src recipient asset amount evm' result) :
+      WithdrawInternalTrace fork v operator src recipient asset amount evm result
 
 def withdrawInternalTail : List Stmt :=
   withdrawAuthBlock ++ [withdrawAssetStmt, .internalCall "nonReentrantAfter" [] "__c7"]

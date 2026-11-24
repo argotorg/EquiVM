@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.UpdatePositionObserveEntryTrace
 import Benchmarks.UniswapV3.Pool.UpdatePositionObserve
 import Benchmarks.UniswapV3.Pool.OracleObserveZeroBoundedTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -24,12 +26,12 @@ theorem updatePositionOracleFree_bound (p : UInt256) (σ : AccountMap) (ee : Exe
 theorem updatePositionObserveX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨19190⟩ R mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨19190⟩ R mem aw rdata σ k C)
     (hm : HeapMemory mem aw p) (hb : p.toNat + 384 ≤ 2 ^ 200)
     (hov : R.length + 33 ≤ 1024) :
-    (¬(slot0FieldWord 23 2 σ ee).toNat < 65535 ∧ RDinvalid (deployedRuntime v) g s0) ∨
+    (¬(slot0FieldWord 23 2 σ ee).toNat < 65535 ∧ RDinvalid fork (deployedRuntime v) g s0) ∨
     ((slot0FieldWord 23 2 σ ee).toNat < 65535 ∧ ∃ aw' k' C',
-      RD (deployedRuntime v) ee g s0 ⟨19273⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨19273⟩
         ((snapshotCurrent σ ee).secondsPerLiquidity ::
           EVM.wordOfInt (snapshotCurrent σ ee).tickCumulative ::
           ⟨0⟩ :: ⟨0⟩ :: UInt256.ofNat ee.header.timestamp :: R)

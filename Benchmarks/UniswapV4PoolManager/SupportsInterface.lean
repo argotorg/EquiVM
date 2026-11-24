@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.EntryTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_031
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_032
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # PoolManager `supportsInterface(bytes4)`
 
@@ -29,7 +31,7 @@ theorem supportsInterfaceBodyReturns (evm : EVM.State) (locals imms : Store)
     (hhi : evm.executionEnv.calldata.size < calldataLimit)
     (hget : locals.get? "interfaceId" =
       some (.fixedBytes abiBytes4Width (calldataBytes4Arg evm.executionEnv.calldata))) :
-    ExecTransitionBody config contract evm locals supportsInterfaceTransition.body
+    ExecTransitionBody fork config contract evm locals supportsInterfaceTransition.body
       (.returned (calldataFrame contract locals imms evm) evm
         (some [.bool (interfaceResult evm.executionEnv.calldata)])) imms := by
   have hid := evalLocalValue (cfg := config) (evm := evm) (f := calldataFrame contract locals imms evm)
@@ -51,10 +53,10 @@ theorem supportsInterfaceTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {selector : UInt256} {R : List UInt256} (v : PoolManagerImmutables)
     (hlen : 36 ≤ I.calldata.size) (hstack : R.length + 6 ≤ 1024)
-    (h : RD (deployedRuntime v) I g s0 ⟨11379⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨11379⟩
       (UInt256.land (calldataWord I.calldata 4) bytes4Mask :: selector :: R)
       entryMemory aw rdata σ k C) :
-    RDret (deployedRuntime v) g s0 σ (interfaceResult I.calldata).toUInt256.toByteArray := by
+    RDret fork (deployedRuntime v) g s0 σ (interfaceResult I.calldata).toUInt256.toByteArray := by
   have heq165 := maskedBytes4_eq (cd := I.calldata) (bytes := [0x01,0xff,0xc9,0xa7])
     (word := UInt256.ofNat 904250603428552709895185118199468575982109441609966099573332780532423983104)
     hlen rfl (by decide +kernel)
@@ -85,15 +87,15 @@ theorem supportsInterfaceTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
 theorem poolManagerSupportsInterfaceBodyCore {σ σ₀ A I} {g : UInt256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 1)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (poolManagerSelBytes 1) rfl hsel
   have hd : dispatchMsg contract I.calldata = some supportsInterfaceTransition := by
     apply poolManagerDispatch_supportsInterface <;> first
     | exact hsel
     | exact selectorNe_of_selIs hsel (by decide +kernel)
-  obtain ⟨k, C, rdEntry⟩ := poolManagerReachSupportsInterfaceBody (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, rdEntry⟩ := poolManagerReachSupportsInterfaceBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
-  change RD (deployedRuntime v) I (Sat256.ofUInt256 g)
+  change RD fork (deployedRuntime v) I (Sat256.ofUInt256 g)
     (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨11286⟩ [solcSelectorWord I]
     entryMemory ⟨3⟩ .empty σ k C at rdEntry
   have hjump : (D_J (immutableLayout.runtime poolManagerBytecode (wordsOf (immStore v))) 0).contains
@@ -128,7 +130,7 @@ theorem poolManagerSupportsInterfaceBodyCore {σ σ₀ A I} {g : UInt256} (v : P
               (transitionSignature supportsInterfaceTransition).paramTypes I.calldata =
               some ((∅ : Store).insert "interfaceId" (.fixedBytes abiBytes4Width (calldataBytes4Arg I.calldata))) :=
             decodeCalldata_bytes4_ok hlen hhi hpad
-          have hbody := supportsInterfaceBodyReturns (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          have hbody := supportsInterfaceBodyReturns (fork := fork) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             ((∅ : Store).insert "interfaceId" (.fixedBytes abiBytes4Width (calldataBytes4Arg I.calldata)))
             (immStore v) hwv hhi (store_get_self _ _ _)
           exact hret.reEquivExecution hcode hd hdec hbody (returnEquiv_of_encode (boolReturnEncoding _))
@@ -152,7 +154,7 @@ theorem poolManagerSupportsInterfaceBody {σ σ₀ A I} {g : UInt256} (v : PoolM
     (_hWF : Syntax.poolManagerWF σ I)
     (_hGas : Syntax.poolManagerGasBound g)
     (hsel : selIs I (poolManagerSelBytes 1)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) :=
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) :=
   poolManagerSupportsInterfaceBodyCore v hcode hsize hsel
 
 end Benchmarks.UniswapV4PoolManager

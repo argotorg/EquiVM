@@ -2,6 +2,8 @@ import Reasoning.ABIComposite
 import Benchmarks.Dss.Flopper.Dispatch
 import Reasoning.MemCascade
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -80,7 +82,7 @@ theorem flopperBidsBodyReturns {I : ExecutionEnv}
     (evm : EVM.State) (locals : Store)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocals : locals = (∅ : Store).insert "arg0" (bidsArgValue I)) :
-    ExecTransitionBody config contract evm locals bidsTransition.body
+    ExecTransitionBody fork config contract evm locals bidsTransition.body
       (.returned { contract := contract, locals := locals } evm
         (some [(.int (Int.ofNat
           (solcSlotWordAt (bidsBidSlotFor I) evm.accountMap evm.executionEnv).toNat)),
@@ -363,12 +365,12 @@ set_option maxHeartbeats 1000000 in
 theorem RD.flopperBidsStructGetter {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 pc (key :: ret :: R)
+    (h : RD fork code ee g s0 pc (key :: ret :: R)
         solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : flopperBidsStructGetterWf code pc)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 12 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret
+    ∃ k' C', RD fork code ee g s0 ret
       (UInt256.land
         (UInt256.div (solcSlotWord σ ee (solcMappingSlot ⟨1⟩ key + ⟨2⟩))
           (UInt256.ofNat (256 ^ 26)))
@@ -782,13 +784,13 @@ theorem RD.flopperBidsReturnFromMem {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc bid lot guy tic endw ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD code ee g s0 pc (endw :: tic :: guy :: lot :: bid :: ret :: R)
+    (h : RD fork code ee g s0 pc (endw :: tic :: guy :: lot :: bid :: ret :: R)
         mem (UInt256.ofNat 3) rdata acc k C)
     (hwf : flopperBidsReturnFromMemWf code pc)
     (hscratch : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 20 ≤ 1024) :
-    RDret code g s0 acc (flopperBidsReturnBytes bid lot guy tic endw) := by
+    RDret fork code g s0 acc (flopperBidsReturnBytes bid lot guy tic endw) := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd4, hd5, hd6, hd7, hd8, hd10, hd11, hd12, hd13, hd14,
       hd15, hd16, hd18, hd20, hd22, hd23, hd24, hd25, hd26, hd27, hd28, hd29,
@@ -906,7 +908,7 @@ theorem flopperReachBidsBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flopperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (flopperSelBytes 1)) :
-    ∃ k C, RD flopperBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork flopperBytecode I g (initState σ σ₀ g A I)
         ⟨407⟩ [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : flopperSelWord I = ⟨0x4423c5f1⟩ := by
@@ -950,10 +952,10 @@ theorem flopperBidsBodyCoreOk
       config.externalABI.decodeCalldata? (bidsTransition.params.map Param.name)
         (transitionSignature bidsTransition).paramTypes I.calldata =
           some ((∅ : Store).insert "arg0" (bidsArgValue I)))
-    (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨407⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let key := bidsArgWord I
   let baseSlot := solcMappingSlot ⟨1⟩ key
   let bidSlot := baseSlot
@@ -972,7 +974,7 @@ theorem flopperBidsBodyCoreOk
   have hpackedSlot : bidsPackedSlotFor I = packedSlot := by
     simpa only [packedSlot, baseSlot, key] using bidsPackedSlotFor_eq I
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals bidsTransition.body
         (.returned { contract := contract, locals := locals }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -999,7 +1001,7 @@ theorem flopperBidsBodyCoreOk
     (by jump_dest)
     (by
       exact solcDecodeLenCheckOkUnsigned (by simpa using hsz36) hsize)
-  have htoRoutine : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+  have htoRoutine : ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1552⟩
       (bidsArgWord I :: ⟨436⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -1019,7 +1021,7 @@ theorem flopperBidsBodyCoreOk
       repeat' first | apply And.intro | native_decide)
     (by jump_dest) (by simp)
   have hret :
-      RDret flopperBytecode (Sat256.ofUInt256 g)
+      RDret fork flopperBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (flopperBidsReturnBytes bidWord lotWord packedWord ticRaw endRaw) := by
     have hret' := RD.flopperBidsReturnFromMem
@@ -1090,10 +1092,10 @@ theorem flopperBidsBodyCoreDecodeFailed_short
     (hcode : I.code = flopperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some bidsTransition)
-    (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨407⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -1115,12 +1117,12 @@ theorem flopperBidsBody {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flopperSelBytes 1)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flopperSelBytes 1) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some bidsTransition :=
     flopperDispatchBids hsel
-  have hreach := flopperReachBidsBody (σ := σ)
+  have hreach := flopperReachBidsBody (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size

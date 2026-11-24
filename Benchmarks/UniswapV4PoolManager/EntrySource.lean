@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.Common
 
+variable {fork : Ethereum.Fork}
+
 /-! Shared calldata guards for the PoolManager entry points. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -65,7 +67,7 @@ theorem guardedReturnBody {cfg : Config} {C : ContractDecl} {locals imms : Store
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit)
     (heval : evalExpr? cfg (calldataFrame C locals imms evm) evm expr = .ok value) :
-    ExecTransitionBody cfg C evm locals (nonpayableCalldataPrefix ++ [.return [expr]])
+    ExecTransitionBody fork cfg C evm locals (nonpayableCalldataPrefix ++ [.return [expr]])
       (.returned (calldataFrame C locals imms evm) evm (some [value])) imms := by
   apply ExecFuncBody.execBlockRet
   refine (ABlock.start.requireStep (evalCallvalueEq_true hwv)
@@ -78,7 +80,7 @@ theorem calldataSizeBodyReverts {cfg : Config} {C : ContractDecl} {locals imms :
     {evm : EVM.State} {rest : List Stmt}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : ¬ evm.executionEnv.calldata.size < calldataLimit) :
-    ExecTransitionBody cfg C evm locals (nonpayableCalldataPrefix ++ rest) .reverted imms := by
+    ExecTransitionBody fork cfg C evm locals (nonpayableCalldataPrefix ++ rest) .reverted imms := by
   apply ExecFuncBody.execBlockRevert
   refine (ABlock.start.requireStep (evalCallvalueEq_true hwv)
     |>.letStep (value := .bytes evm.executionEnv.calldata)
@@ -107,8 +109,8 @@ theorem nonpayableCalldataBlock {cfg : Config} {C : ContractDecl} {locals imms :
     {evm : EVM.State} {rest : List Stmt} {result : ExecResult}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit)
-    (hrest : ExecBlock cfg (calldataFrame C locals imms evm) evm rest result) :
-    ExecBlock cfg {contract := C, locals := locals, immutables := imms} evm
+    (hrest : ExecBlock fork cfg (calldataFrame C locals imms evm) evm rest result) :
+    ExecBlock fork cfg {contract := C, locals := locals, immutables := imms} evm
       (nonpayableCalldataPrefix ++ rest) result := by
   apply (ABlock.start.requireStep (evalCallvalueEq_true hwv)
     |>.letStep (value := .bytes evm.executionEnv.calldata)

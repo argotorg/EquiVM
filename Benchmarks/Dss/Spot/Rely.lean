@@ -2,6 +2,8 @@ import Reasoning.Solc
 import Reasoning.WordArithmetic
 import Benchmarks.Dss.Spot.Dispatch
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -277,7 +279,7 @@ theorem spotRelyBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (hauth :
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (relyAuthStorageSlot I) = ⟨1⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (relyStore I) relyTransition.body
+    ExecTransitionBody fork config contract evm (relyStore I) relyTransition.body
       (.returned { contract := contract, locals := relyStore I } (relyPostState evm I) none) := by
   refine ExecFuncBody.execBlockOK ?_
   simpa [relyTransition, nonpayable, auth] using
@@ -301,7 +303,7 @@ theorem spotRelyBodyStatic (evm : EVM.State) (I : ExecutionEnv)
     (hauth :
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (relyAuthStorageSlot I) = ⟨1⟩)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (relyStore I) relyTransition.body
+    ExecTransitionBody fork config contract evm (relyStore I) relyTransition.body
       .staticViolation := by
   refine ExecFuncBody.execBlockStatic ?_
   simpa [relyTransition, nonpayable, auth] using
@@ -325,7 +327,7 @@ theorem spotRelyBodyReverts (evm : EVM.State) (I : ExecutionEnv)
     (hsrc : evm.executionEnv.source = I.source)
     (hauth :
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (relyAuthStorageSlot I) ≠ ⟨1⟩) :
-    ExecTransitionBody config contract evm (relyStore I) relyTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (relyStore I) relyTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   simpa [relyTransition, nonpayable, auth] using
     nonpayableSecondRequireReverts
@@ -565,13 +567,13 @@ theorem RD.spotCodecopyAuthRevertTail {g : Sat256} {s0 : State}
     {stk : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
     (offset len : UInt256)
-    (h : RD spotBytecode ee g s0 pc stk mem (UInt256.ofNat 3) rdata acc k C)
+    (h : RD fork spotBytecode ee g s0 pc stk mem (UInt256.ofNat 3) rdata acc k C)
     (hwf : spotCodecopyAuthRevertTailWf pc offset len)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hsrc : offset.toNat + 32 ≤ spotBytecode.size)
     (hov : stk.length + 7 ≤ 1024) :
-    RDrev spotBytecode g s0 := by
+    RDrev fork spotBytecode g s0 := by
   rcases hwf with
     ⟨hd0, hd2, hd3, hd4, hd8, hd10, hd11, hd12, hd13, hd15, hd17, hd18,
       hd19, hd20, hd22, hd24, hd25, hd26, hd27, hd29, hd30, hd31, hd33,
@@ -672,7 +674,7 @@ theorem spotReachRelyBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = spotBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (spotSelBytes 9)) :
-    ∃ k C, RD spotBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork spotBytecode I g (initState σ σ₀ g A I)
         ⟨354⟩ [spotSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : spotSelWord I = ⟨0x65fae35e⟩ :=
@@ -696,10 +698,10 @@ theorem spotReachRelyBody {σ σ₀ A I} {g : Sat256}
 
 theorem spotRelyX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD spotBytecode I g
+    (hreach : ∃ k C, RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨354⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD spotBytecode I g (initState σ σ₀ g A I) ⟨1468⟩
+    ∃ k C, RD fork spotBytecode I g (initState σ σ₀ g A I) ⟨1468⟩
         [relyGuyMaskedWord I, ⟨214⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
@@ -720,10 +722,10 @@ theorem spotRelyX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem spotRelyX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
-    (hreach : ∃ k C, RD spotBytecode I g
+    (hreach : ∃ k C, RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨354⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev spotBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork spotBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -741,10 +743,10 @@ theorem spotRelyX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 set_option maxHeartbeats 1000000 in
 theorem spotRelyX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : relyAuthWord σ I = ⟨1⟩)
-    (h : RD spotBytecode I g s0 ⟨1468⟩
+    (h : RD fork spotBytecode I g s0 ⟨1468⟩
       [relyGuyMaskedWord I, ⟨214⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD spotBytecode I g s0 ⟨1550⟩
+    ∃ k' C', RD fork spotBytecode I g s0 ⟨1550⟩
       [relyGuyMaskedWord I, ⟨214⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hauthSlot :
@@ -775,7 +777,7 @@ theorem spotRelyX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
     (by evm_ov)
   obtain ⟨k1485, C1485, rd1485raw⟩ := rd1484.sload (by native_decide) (by evm_ov)
-  have rd1485 : RD spotBytecode I g s0 ⟨1485⟩
+  have rd1485 : RD fork spotBytecode I g s0 ⟨1485⟩
       (relyAuthWord σ I :: relyGuyMaskedWord I :: ⟨214⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1485 C1485 := by
     simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1485raw
@@ -791,10 +793,10 @@ theorem spotRelyX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 set_option maxHeartbeats 1000000 in
 theorem spotRelyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : relyAuthWord σ I ≠ ⟨1⟩)
-    (h : RD spotBytecode I g s0 ⟨1468⟩
+    (h : RD fork spotBytecode I g s0 ⟨1468⟩
       [relyGuyMaskedWord I, ⟨214⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev spotBytecode g s0 := by
+    RDrev fork spotBytecode g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
@@ -823,7 +825,7 @@ theorem spotRelyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
     (by evm_ov)
   obtain ⟨k1485, C1485, rd1485raw⟩ := rd1484.sload (by native_decide) (by evm_ov)
-  have rd1485 : RD spotBytecode I g s0 ⟨1485⟩
+  have rd1485 : RD fork spotBytecode I g s0 ⟨1485⟩
       (relyAuthWord σ I :: relyGuyMaskedWord I :: ⟨214⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1485 C1485 := by
     simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1485raw
@@ -848,14 +850,14 @@ theorem spotRelyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 set_option maxHeartbeats 1000000 in
 theorem spotRelyX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
-    (h : RD spotBytecode I g s0 ⟨1550⟩
+    (h : RD fork spotBytecode I g s0 ⟨1550⟩
       [relyGuyMaskedWord I, ⟨214⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     (I.perm = true ∧
-      RDret spotBytecode g s0
+      RDret fork spotBytecode g s0
         (sstoreAccountMap I.codeOwner σ (relyGuyStorageSlot I) ⟨1⟩)
         ByteArray.empty) ∨
-      (I.perm = false ∧ RDstatic spotBytecode g s0) := by
+      (I.perm = false ∧ RDstatic fork spotBytecode g s0) := by
   have hstoreSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((relyStoreHashMem I).readWithPadding 0 64))) =
@@ -922,14 +924,14 @@ theorem spotRelyX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C : �
 theorem spotX_rely_okSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hauth : relyAuthWord σ I = ⟨1⟩)
-    (hreach : ∃ k C, RD spotBytecode I g
+    (hreach : ∃ k C, RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨354⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     (I.perm = true ∧
-      RDret spotBytecode g (initState σ σ₀ g A I)
+      RDret fork spotBytecode g (initState σ σ₀ g A I)
         (sstoreAccountMap I.codeOwner σ (relyGuyStorageSlot I) ⟨1⟩)
         ByteArray.empty) ∨
-      (I.perm = false ∧ RDstatic spotBytecode g (initState σ σ₀ g A I)) := by
+      (I.perm = false ∧ RDstatic fork spotBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd1468⟩ := spotRelyX_decoded (g := g) hsz36 hsize hreach
   obtain ⟨_, _, rd1550⟩ := spotRelyX_authorized (I := I) hauth rd1468
   exact spotRelyX_storeAuthorizedSplit rd1550
@@ -937,10 +939,10 @@ theorem spotX_rely_okSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem spotX_rely_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hauth : relyAuthWord σ I = ⟨1⟩)
-    (hreach : ∃ k C, RD spotBytecode I g
+    (hreach : ∃ k C, RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨354⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret spotBytecode g (initState σ σ₀ g A I)
+    RDret fork spotBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ (relyGuyStorageSlot I) ⟨1⟩)
       ByteArray.empty :=
   permSplit_true hperm (spotX_rely_okSplit hsz36 hsize hauth hreach)
@@ -948,10 +950,10 @@ theorem spotX_rely_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem spotX_rely_unauthorized {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hauth : relyAuthWord σ I ≠ ⟨1⟩)
-    (hreach : ∃ k C, RD spotBytecode I g
+    (hreach : ∃ k C, RD fork spotBytecode I g
       (initState σ σ₀ g A I) ⟨354⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev spotBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork spotBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd1468⟩ := spotRelyX_decoded (g := g) hsz36 hsize hreach
   exact spotRelyX_unauthorized (I := I) hauth rd1468
 
@@ -965,13 +967,13 @@ theorem spotRelyBodyCoreOk
     (hdecode :
       config.externalABI.decodeCalldata? (relyTransition.params.map Param.name)
         (transitionSignature relyTransition).paramTypes I.calldata = some (relyStore I))
-    (hreach : ∃ k C, RD spotBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork spotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨354⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
-      ExecTransitionBody config contract evmStele (relyStore I)
+      ExecTransitionBody fork config contract evmStele (relyStore I)
         relyTransition.body
         (.returned { contract := contract, locals := relyStore I }
           (relyPostState evmStele I) none) := by
@@ -1001,13 +1003,13 @@ theorem spotRelyBodyCoreStatic
     (hdecode :
       config.externalABI.decodeCalldata? (relyTransition.params.map Param.name)
         (transitionSignature relyTransition).paramTypes I.calldata = some (relyStore I))
-    (hreach : ∃ k C, RD spotBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork spotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨354⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
-      ExecTransitionBody config contract evmStele (relyStore I)
+      ExecTransitionBody fork config contract evmStele (relyStore I)
         relyTransition.body
         .staticViolation := by
     simpa [evmStele, relyAuthWord, solcSlotWordAt, initState, Stele.EVM.storageLoad,
@@ -1031,13 +1033,13 @@ theorem spotRelyBodyCoreUnauthorized
     (hdecode :
       config.externalABI.decodeCalldata? (relyTransition.params.map Param.name)
         (transitionSignature relyTransition).paramTypes I.calldata = some (relyStore I))
-    (hreach : ∃ k C, RD spotBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork spotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨354⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
-      ExecTransitionBody config contract evmStele (relyStore I)
+      ExecTransitionBody fork config contract evmStele (relyStore I)
         relyTransition.body .reverted := by
     simpa [evmStele, relyAuthWord, solcSlotWordAt, initState, Stele.EVM.storageLoad,
       State.lookupAccount] using
@@ -1053,10 +1055,10 @@ theorem spotRelyBodyCoreDecodeFailed_short
     (hcode : I.code = spotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some relyTransition)
-    (hreach : ∃ k C, RD spotBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork spotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨354⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact (spotRelyX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch (spotDecode_rely_none_short hsz4 hshort)
 
@@ -1066,12 +1068,12 @@ theorem spotRelyBodyCore {σ σ₀ A I} {g : UInt256}
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (spotSelBytes 9)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (spotSelBytes 9) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some relyTransition :=
     spotDispatchRely hsel
-  have hreach := spotReachRelyBody
+  have hreach := spotReachRelyBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
@@ -1088,7 +1090,7 @@ theorem spotRelyBodyCoreAnyPerm {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (spotSelBytes 9)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hperm : I.perm = true
   · exact spotRelyBodyCore hcode hsize hperm hwv hsel
   have hstatic : I.perm = false := by simpa using hperm
@@ -1096,7 +1098,7 @@ theorem spotRelyBodyCoreAnyPerm {σ σ₀ A I} {g : UInt256}
     calldata_size_ge_of_selIs I (spotSelBytes 9) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some relyTransition :=
     spotDispatchRely hsel
-  have hreach := spotReachRelyBody
+  have hreach := spotReachRelyBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size

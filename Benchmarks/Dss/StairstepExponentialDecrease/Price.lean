@@ -1,6 +1,8 @@
 import Reasoning.ABIComposite
 import Benchmarks.Dss.StairstepExponentialDecrease.PriceSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -29,7 +31,7 @@ theorem stairstepReachPriceBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = stairstepExponentialDecreaseBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (stairstepSelBytes 3)) :
-    ∃ k C, RD stairstepExponentialDecreaseBytecode I g
+    ∃ k C, RD fork stairstepExponentialDecreaseBytecode I g
         (initState σ σ₀ g A I)
         stairstepPriceEntryPc [stairstepSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
@@ -62,10 +64,10 @@ theorem stairstepReachPriceBody {σ σ₀ A I} {g : Sat256}
 
 theorem RD.stairstepPriceDecodeToRoutine {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel de : UInt256}
-    (h : RD stairstepExponentialDecreaseBytecode I g s0 ⟨189⟩
+    (h : RD fork stairstepExponentialDecreaseBytecode I g s0 ⟨189⟩
       (de :: ⟨4⟩ :: ⟨202⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD stairstepExponentialDecreaseBytecode I g s0 ⟨665⟩
+    ∃ k' C', RD fork stairstepExponentialDecreaseBytecode I g s0 ⟨665⟩
       [priceDur I, priceTop I, ⟨202⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd665 := evm_run h with [
@@ -83,10 +85,10 @@ theorem RD.stairstepPriceDecodeToRoutine {σ I} {g : Sat256} {s0 : State}
 
 theorem stairstepPriceX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD stairstepExponentialDecreaseBytecode I g
+    (hreach : ∃ k C, RD fork stairstepExponentialDecreaseBytecode I g
       (initState σ σ₀ g A I) stairstepPriceEntryPc [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD stairstepExponentialDecreaseBytecode I g
+    ∃ k C, RD fork stairstepExponentialDecreaseBytecode I g
         (initState σ σ₀ g A I) ⟨665⟩
         [priceDur I, priceTop I, ⟨202⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -102,10 +104,10 @@ theorem stairstepPriceX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem stairstepPriceX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
-    (hreach : ∃ k C, RD stairstepExponentialDecreaseBytecode I g
+    (hreach : ∃ k C, RD fork stairstepExponentialDecreaseBytecode I g
       (initState σ σ₀ g A I) stairstepPriceEntryPc [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev stairstepExponentialDecreaseBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork stairstepExponentialDecreaseBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
     apply ult_one
@@ -125,11 +127,11 @@ set_option maxHeartbeats 1000000 in
 theorem stairstepPriceX_stepZero_invalid {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hstep : priceStepWord σ I = ⟨0⟩)
-    (h : RD stairstepExponentialDecreaseBytecode I g s0 ⟨665⟩
+    (h : RD fork stairstepExponentialDecreaseBytecode I g s0 ⟨665⟩
       [priceDur I, priceTop I, ⟨202⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    X (g.toNat + 1) (D_J stairstepExponentialDecreaseBytecode 0) s0 = .error .OutOfGass ∨
-      X (g.toNat + 1) (D_J stairstepExponentialDecreaseBytecode 0) s0 =
+    X fork (g.toNat + 1) (D_J stairstepExponentialDecreaseBytecode 0) s0 = .error .OutOfGass ∨
+      X fork (g.toNat + 1) (D_J stairstepExponentialDecreaseBytecode 0) s0 =
         .error .InvalidInstruction := by
   have rd677 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -139,7 +141,7 @@ theorem stairstepPriceX_stepZero_invalid {σ I} {g : Sat256} {s0 : State}
     raw push2 ⟨707⟩ (by native_decide) (by evm_ov),
     raw push1 ⟨2⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k678, C678, rd678raw⟩ := rd677.sload (by native_decide) (by evm_ov)
-  have rd678 : RD stairstepExponentialDecreaseBytecode I g s0 ⟨678⟩
+  have rd678 : RD fork stairstepExponentialDecreaseBytecode I g s0 ⟨678⟩
       (priceCutWord σ I :: ⟨707⟩ :: priceTop I :: ⟨712⟩ :: ⟨0⟩ ::
         priceDur I :: priceTop I :: ⟨202⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k678 C678 := by
@@ -147,7 +149,7 @@ theorem stairstepPriceX_stepZero_invalid {σ I} {g : Sat256} {s0 : State}
   have rd680 := evm_run rd678 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k681, C681, rd681raw⟩ := rd680.sload (by native_decide) (by evm_ov)
-  have rd681 : RD stairstepExponentialDecreaseBytecode I g s0 ⟨681⟩
+  have rd681 : RD fork stairstepExponentialDecreaseBytecode I g s0 ⟨681⟩
       (priceStepWord σ I :: priceCutWord σ I :: ⟨707⟩ :: priceTop I ::
         ⟨712⟩ :: ⟨0⟩ :: priceDur I :: priceTop I :: ⟨202⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k681 C681 := by
@@ -164,10 +166,10 @@ set_option maxHeartbeats 1000000 in
 theorem stairstepPriceX_stepNonzero_toRpow {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hstep : priceStepWord σ I ≠ ⟨0⟩)
-    (h : RD stairstepExponentialDecreaseBytecode I g s0 ⟨665⟩
+    (h : RD fork stairstepExponentialDecreaseBytecode I g s0 ⟨665⟩
       [priceDur I, priceTop I, ⟨202⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD stairstepExponentialDecreaseBytecode I g s0 ⟨1042⟩
+    ∃ k' C', RD fork stairstepExponentialDecreaseBytecode I g s0 ⟨1042⟩
       (stairstepRay :: priceN σ I :: priceCutWord σ I :: ⟨707⟩ :: priceTop I ::
         ⟨712⟩ :: ⟨0⟩ :: priceDur I :: priceTop I :: ⟨202⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -179,7 +181,7 @@ theorem stairstepPriceX_stepNonzero_toRpow {σ I} {g : Sat256} {s0 : State}
     raw push2 ⟨707⟩ (by native_decide) (by evm_ov),
     raw push1 ⟨2⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k678, C678, rd678raw⟩ := rd677.sload (by native_decide) (by evm_ov)
-  have rd678 : RD stairstepExponentialDecreaseBytecode I g s0 ⟨678⟩
+  have rd678 : RD fork stairstepExponentialDecreaseBytecode I g s0 ⟨678⟩
       (priceCutWord σ I :: ⟨707⟩ :: priceTop I :: ⟨712⟩ :: ⟨0⟩ ::
         priceDur I :: priceTop I :: ⟨202⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k678 C678 := by
@@ -187,7 +189,7 @@ theorem stairstepPriceX_stepNonzero_toRpow {σ I} {g : Sat256} {s0 : State}
   have rd680 := evm_run rd678 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k681, C681, rd681raw⟩ := rd680.sload (by native_decide) (by evm_ov)
-  have rd681 : RD stairstepExponentialDecreaseBytecode I g s0 ⟨681⟩
+  have rd681 : RD fork stairstepExponentialDecreaseBytecode I g s0 ⟨681⟩
       (priceStepWord σ I :: priceCutWord σ I :: ⟨707⟩ :: priceTop I ::
         ⟨712⟩ :: ⟨0⟩ :: priceDur I :: priceTop I :: ⟨202⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k681 C681 := by
@@ -210,11 +212,11 @@ theorem stairstepPriceX_stepNonzero_toRpow {σ I} {g : Sat256} {s0 : State}
 set_option maxHeartbeats 1000000 in
 theorem stairstepPriceRpowNZero_toRmul {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
-    (h : RD stairstepExponentialDecreaseBytecode I g s0 ⟨1042⟩
+    (h : RD fork stairstepExponentialDecreaseBytecode I g s0 ⟨1042⟩
       (stairstepRay :: ⟨0⟩ :: priceCutWord σ I :: ⟨707⟩ :: priceTop I ::
         ⟨712⟩ :: ⟨0⟩ :: priceDur I :: priceTop I :: ⟨202⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD stairstepExponentialDecreaseBytecode I g s0 ⟨707⟩
+    ∃ k' C', RD fork stairstepExponentialDecreaseBytecode I g s0 ⟨707⟩
       (stairstepRay :: priceTop I :: ⟨712⟩ :: ⟨0⟩ :: priceDur I ::
         priceTop I :: ⟨202⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -246,11 +248,11 @@ theorem stairstepPriceRpowXZeroNNonzero_toRmul {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hn : priceN σ I ≠ ⟨0⟩)
     (hcut : priceCutWord σ I = ⟨0⟩)
-    (h : RD stairstepExponentialDecreaseBytecode I g s0 ⟨1042⟩
+    (h : RD fork stairstepExponentialDecreaseBytecode I g s0 ⟨1042⟩
       (stairstepRay :: priceN σ I :: priceCutWord σ I :: ⟨707⟩ :: priceTop I ::
         ⟨712⟩ :: ⟨0⟩ :: priceDur I :: priceTop I :: ⟨202⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD stairstepExponentialDecreaseBytecode I g s0 ⟨707⟩
+    ∃ k' C', RD fork stairstepExponentialDecreaseBytecode I g s0 ⟨707⟩
       (⟨0⟩ :: priceTop I :: ⟨712⟩ :: ⟨0⟩ :: priceDur I ::
         priceTop I :: ⟨202⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -261,11 +263,11 @@ theorem stairstepPriceRpowXZeroNNonzero_toRmul {σ I} {g : Sat256} {s0 : State}
 set_option maxHeartbeats 1000000 in
 theorem stairstepPriceRpowReturnToRmul {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel pow : UInt256}
-    (h : RD stairstepExponentialDecreaseBytecode I g s0 ⟨707⟩
+    (h : RD fork stairstepExponentialDecreaseBytecode I g s0 ⟨707⟩
       (pow :: priceTop I :: ⟨712⟩ :: ⟨0⟩ :: priceDur I ::
         priceTop I :: ⟨202⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD stairstepExponentialDecreaseBytecode I g s0 ⟨1232⟩
+    ∃ k' C', RD fork stairstepExponentialDecreaseBytecode I g s0 ⟨1232⟩
       (pow :: priceTop I :: ⟨712⟩ :: ⟨0⟩ :: priceDur I ::
         priceTop I :: ⟨202⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -278,11 +280,11 @@ set_option maxHeartbeats 1000000 in
 theorem stairstepPriceRmulRayReturns {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hfit : stairstepRay.toNat * (priceTop I).toNat < UInt256.size)
-    (h : RD stairstepExponentialDecreaseBytecode I g s0 ⟨1232⟩
+    (h : RD fork stairstepExponentialDecreaseBytecode I g s0 ⟨1232⟩
       (stairstepRay :: priceTop I :: ⟨712⟩ :: ⟨0⟩ :: priceDur I ::
         priceTop I :: ⟨202⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD stairstepExponentialDecreaseBytecode I g s0 ⟨712⟩
+    ∃ k' C', RD fork stairstepExponentialDecreaseBytecode I g s0 ⟨712⟩
       (priceTop I :: ⟨0⟩ :: priceDur I :: priceTop I :: ⟨202⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   let prod := stairstepRay * priceTop I
@@ -339,11 +341,11 @@ set_option maxHeartbeats 1000000 in
 theorem stairstepPriceRmulRayOverflowReverts {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hover : UInt256.size ≤ stairstepRay.toNat * (priceTop I).toNat)
-    (h : RD stairstepExponentialDecreaseBytecode I g s0 ⟨1232⟩
+    (h : RD fork stairstepExponentialDecreaseBytecode I g s0 ⟨1232⟩
       (stairstepRay :: priceTop I :: ⟨712⟩ :: ⟨0⟩ :: priceDur I ::
         priceTop I :: ⟨202⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev stairstepExponentialDecreaseBytecode g s0 := by
+    RDrev fork stairstepExponentialDecreaseBytecode g s0 := by
   have rd1242pre := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw dup2 (by native_decide) (by evm_ov),
@@ -386,11 +388,11 @@ set_option maxHeartbeats 1000000 in
 theorem stairstepPriceRmulReturns {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel pow : UInt256}
     (hfit : pow.toNat * (priceTop I).toNat < UInt256.size)
-    (h : RD stairstepExponentialDecreaseBytecode I g s0 ⟨1232⟩
+    (h : RD fork stairstepExponentialDecreaseBytecode I g s0 ⟨1232⟩
       (pow :: priceTop I :: ⟨712⟩ :: ⟨0⟩ :: priceDur I ::
         priceTop I :: ⟨202⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD stairstepExponentialDecreaseBytecode I g s0 ⟨712⟩
+    ∃ k' C', RD fork stairstepExponentialDecreaseBytecode I g s0 ⟨712⟩
       (UInt256.div (pow * priceTop I) stairstepRay :: ⟨0⟩ :: priceDur I ::
         priceTop I :: ⟨202⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -476,11 +478,11 @@ set_option maxHeartbeats 1000000 in
 theorem stairstepPriceRmulOverflowReverts {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel pow : UInt256}
     (hover : UInt256.size ≤ pow.toNat * (priceTop I).toNat)
-    (h : RD stairstepExponentialDecreaseBytecode I g s0 ⟨1232⟩
+    (h : RD fork stairstepExponentialDecreaseBytecode I g s0 ⟨1232⟩
       (pow :: priceTop I :: ⟨712⟩ :: ⟨0⟩ :: priceDur I ::
         priceTop I :: ⟨202⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev stairstepExponentialDecreaseBytecode g s0 := by
+    RDrev fork stairstepExponentialDecreaseBytecode g s0 := by
   have hpowNe : pow ≠ ⟨0⟩ := by
     intro hzero
     have hprod0 : pow.toNat * (priceTop I).toNat = 0 := by simp [hzero]
@@ -527,10 +529,10 @@ theorem stairstepPriceRmulOverflowReverts {σ I} {g : Sat256} {s0 : State}
 set_option maxHeartbeats 1000000 in
 theorem stairstepPriceFinishReturn {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel out : UInt256}
-    (h : RD stairstepExponentialDecreaseBytecode I g s0 ⟨712⟩
+    (h : RD fork stairstepExponentialDecreaseBytecode I g s0 ⟨712⟩
       (out :: ⟨0⟩ :: priceDur I :: priceTop I :: ⟨202⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret stairstepExponentialDecreaseBytecode g s0 σ (UInt256.toByteArray out) := by
+    RDret fork stairstepExponentialDecreaseBytecode g s0 σ (UInt256.toByteArray out) := by
   have rd718pre := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw swap4 (by native_decide) (by evm_ov),
@@ -564,17 +566,17 @@ theorem stairstepPriceBodyCoreStepZero
     (hdecode :
       config.externalABI.decodeCalldata? (priceTransition.params.map Param.name)
         (transitionSignature priceTransition).paramTypes I.calldata = some (priceLocals I))
-    (hreach : ∃ k C, RD stairstepExponentialDecreaseBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork stairstepExponentialDecreaseBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) stairstepPriceEntryPc [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hloadStele :
       Stele.EVM.storageLoad evmStele evmStele.executionEnv.codeOwner ⟨1⟩ = ⟨0⟩ := by
     simpa [evmStele, priceStepWord, solcSlotWordAt, initState, Stele.EVM.storageLoad,
       State.lookupAccount] using hstep
   have hbody :
-      ExecTransitionBody config contract evmStele (priceLocals I)
+      ExecTransitionBody fork config contract evmStele (priceLocals I)
         priceTransition.body .reverted :=
     stairstepPriceSourceStepZeroReverts
       (evm := evmStele) (I := I) (by simp only [evmStele, initState]; exact hwv) hloadStele
@@ -586,7 +588,7 @@ theorem stairstepPriceBodyCoreStepZero
       rw [← hcode] at hoog
       simpa [initState, Sat256.ofUInt256] using hoog))
   · have hxi :
-        Ξ σ σ₀ g A I = .error .InvalidInstruction :=
+        Ξ fork σ σ₀ g A I = .error .InvalidInstruction :=
       Xi_error_of_X (g := g) (by
         rw [← hcode] at hinvalid
         simpa [initState, Sat256.ofUInt256] using hinvalid)
@@ -599,12 +601,12 @@ theorem stairstepPriceBody {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (stairstepSelBytes 3)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (stairstepSelBytes 3) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some priceTransition :=
     stairstepDispatchPrice hsel
-  have hreach := stairstepReachPriceBody
+  have hreach := stairstepReachPriceBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz68 : 68 ≤ I.calldata.size
@@ -632,7 +634,7 @@ theorem stairstepPriceBody {σ σ₀ A I} {g : UInt256}
         obtain ⟨_, _, rd1232⟩ := stairstepPriceRpowReturnToRmul rd707
         by_cases hfit : stairstepRay.toNat * (priceTop I).toNat < UInt256.size
         · have hbody :
-              ExecTransitionBody config contract evmStele (priceLocals I)
+              ExecTransitionBody fork config contract evmStele (priceLocals I)
                 priceTransition.body
                 (.returned
                   { contract := contract,
@@ -655,7 +657,7 @@ theorem stairstepPriceBody {σ σ₀ A I} {g : UInt256}
         · have hover : UInt256.size ≤ stairstepRay.toNat * (priceTop I).toNat := by
             omega
           have hbody :
-              ExecTransitionBody config contract evmStele (priceLocals I)
+              ExecTransitionBody fork config contract evmStele (priceLocals I)
                 priceTransition.body .reverted :=
             stairstepPriceSourceNZeroRmulOverflowReverts
               (evm := evmStele) (σ := σ) (I := I)
@@ -681,7 +683,7 @@ theorem stairstepPriceBody {σ σ₀ A I} {g : UInt256}
           (g := Sat256.ofUInt256 g) hstep rd665
         by_cases hcut : priceCutWord σ I = ⟨0⟩
         · have hbody :
-              ExecTransitionBody config contract evmStele (priceLocals I)
+              ExecTransitionBody fork config contract evmStele (priceLocals I)
                 priceTransition.body
                 (.returned
                   { contract := contract, locals := priceLocalsOut σ I ⟨0⟩ ⟨0⟩ }
@@ -700,7 +702,7 @@ theorem stairstepPriceBody {σ σ₀ A I} {g : UInt256}
               UInt256.div ((⟨0⟩ : UInt256) * priceTop I) stairstepRay =
                 (⟨0⟩ : UInt256) := by
             rw [uint256_zero_mul, uint256_div_zero_num]
-          have hret : RDret stairstepExponentialDecreaseBytecode (Sat256.ofUInt256 g)
+          have hret : RDret fork stairstepExponentialDecreaseBytecode (Sat256.ofUInt256 g)
               (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
               (UInt256.toByteArray (⟨0⟩ : UInt256)) := by
             simpa [hzeroOut] using stairstepPriceFinishReturn rd712
@@ -733,7 +735,7 @@ theorem stairstepPriceBody {σ σ₀ A I} {g : UInt256}
           | inr hrev =>
               rcases hrev with ⟨hrpowBody, hrdRev⟩
               have hbody :
-                  ExecTransitionBody config contract evmStele (priceLocals I)
+                  ExecTransitionBody fork config contract evmStele (priceLocals I)
                     priceTransition.body .reverted :=
                 stairstepPriceSourceRpowReverts
                   (evm := evmStele) (σ := σ) (I := I)
@@ -747,7 +749,7 @@ theorem stairstepPriceBody {σ σ₀ A I} {g : UInt256}
               obtain ⟨_, _, rd1232⟩ := stairstepPriceRpowReturnToRmul rd707
               by_cases hfit : pow.toNat * (priceTop I).toNat < UInt256.size
               · have hbody :
-                    ExecTransitionBody config contract evmStele (priceLocals I)
+                    ExecTransitionBody fork config contract evmStele (priceLocals I)
                       priceTransition.body
                       (.returned
                         { contract := contract,
@@ -784,7 +786,7 @@ theorem stairstepPriceBody {σ σ₀ A I} {g : UInt256}
               · have hover : UInt256.size ≤ pow.toNat * (priceTop I).toNat := by
                   omega
                 have hbody :
-                    ExecTransitionBody config contract evmStele (priceLocals I)
+                    ExecTransitionBody fork config contract evmStele (priceLocals I)
                       priceTransition.body .reverted :=
                   stairstepPriceSourceRpowReturnsRmulOverflowReverts
                     (evm := evmStele) (σ := σ) (I := I)

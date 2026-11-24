@@ -1,6 +1,8 @@
 import Reasoning.WordArithmetic
 import Benchmarks.Dss.Clipper.ListStorage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -415,7 +417,7 @@ theorem clipperListReturnCopyLoopFrom {code : ByteArray} {g : Sat256}
     ∀ m k,
       (solcSlotWord σ ee ⟨11⟩).toNat = k + m →
       (∀ k₀ C₀,
-        RD code ee g s0 (⟨548⟩ : UInt256)
+        RD fork code ee g s0 (⟨548⟩ : UInt256)
           (clipperListReturnCopyIndex k ::
             ((⟨32⟩ : UInt256) + clipperListArrayBasePtr) ::
             (clipperListArrayFreePtr (solcSlotWord σ ee ⟨11⟩) + (⟨64⟩ : UInt256)) ::
@@ -428,7 +430,7 @@ theorem clipperListReturnCopyLoopFrom {code : ByteArray} {g : Sat256}
             clipperListArrayBasePtr :: R)
           (clipperListReturnCopiedMem σ ee k)
           (clipperListReturnCopiedAw σ ee k) rdata σ k₀ C₀ →
-        RDret code g s0 σ
+        RDret fork code g s0 σ
           (clipperActiveArrayReturnBytes (initState σ σ₀ g A ee))) := by
   intro m
   induction m with
@@ -506,7 +508,7 @@ theorem clipperListReturnCopyLoopFrom {code : ByteArray} {g : Sat256}
       have hmem := clipperListReturnCopyStepMem_eq_copied hwfStorage (k := k) hkLe
       have hnNext : (solcSlotWord σ ee ⟨11⟩).toNat = (k + 1) + m := by omega
       have rdnext :
-          RD code ee g s0 (⟨548⟩ : UInt256)
+          RD fork code ee g s0 (⟨548⟩ : UInt256)
             (clipperListReturnCopyIndex (k + 1) ::
               ((⟨32⟩ : UInt256) + clipperListArrayBasePtr) ::
               (clipperListArrayFreePtr (solcSlotWord σ ee ⟨11⟩) + (⟨64⟩ : UInt256)) ::

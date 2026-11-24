@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.GetterSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -31,9 +33,9 @@ theorem mulFactorCallable_lookup :
 theorem mulFactorCallable_result (evm : EVM.State) (imms : Store) (n factor : UInt256) :
     let frame : Frame := { contract := contract, locals := mulFactorLocals n factor, immutables := imms }
     if n.toNat * factor.toNat < UInt256.size then
-      ExecFuncBody config frame evm mulFactorCallable.body
+      ExecFuncBody fork config frame evm mulFactorCallable.body
         (.returned frame evm (some [.int (mulFactorWord n factor).toNat]))
-    else ExecFuncBody config frame evm mulFactorCallable.body .reverted := by
+    else ExecFuncBody fork config frame evm mulFactorCallable.body .reverted := by
   dsimp only
   let frame : Frame :=
     { contract := contract, locals := mulFactorLocals n factor, immutables := imms }
@@ -62,9 +64,9 @@ theorem mulFactor_call_ok (frame : Frame) (evm : EVM.State) (n factor : UInt256)
     (hn : evalExpr? config frame evm nExpr = .ok (.int n.toNat))
     (hf : evalExpr? config frame evm factorExpr = .ok (.int factor.toNat))
     (hfit : n.toNat * factor.toNat < UInt256.size) :
-    ExecStmt config frame evm (.internalCall "mulFactor" [nExpr, factorExpr] ret)
+    ExecStmt fork config frame evm (.internalCall "mulFactor" [nExpr, factorExpr] ret)
       (.ok { frame with locals := frame.locals.insert ret (.int (mulFactorWord n factor).toNat) } evm) := by
-  have hb := mulFactorCallable_result evm frame.immutables n factor
+  have hb := mulFactorCallable_result (fork := fork) evm frame.immutables n factor
   rw [if_pos hfit] at hb
   exact ExecStmt.internalCallReturn (callee := mulFactorCallable) (locals := mulFactorLocals n factor)
     (cfg := config) (stele := frame) (evm := evm)
@@ -77,8 +79,8 @@ theorem mulFactor_call_revert (frame : Frame) (evm : EVM.State) (n factor : UInt
     (hn : evalExpr? config frame evm nExpr = .ok (.int n.toNat))
     (hf : evalExpr? config frame evm factorExpr = .ok (.int factor.toNat))
     (hfit : ¬ n.toNat * factor.toNat < UInt256.size) :
-    ExecStmt config frame evm (.internalCall "mulFactor" [nExpr, factorExpr] ret) .reverted := by
-  have hb := mulFactorCallable_result evm frame.immutables n factor
+    ExecStmt fork config frame evm (.internalCall "mulFactor" [nExpr, factorExpr] ret) .reverted := by
+  have hb := mulFactorCallable_result (fork := fork) evm frame.immutables n factor
   rw [if_neg hfit] at hb
   exact ExecStmt.internalCallRevert (callee := mulFactorCallable) (locals := mulFactorLocals n factor)
     (cfg := config) (stele := frame) (evm := evm)
@@ -99,9 +101,9 @@ theorem safe64Callable_result (evm : EVM.State) (imms : Store) (n : UInt256) :
     let frame : Frame :=
       { contract := contract, locals := (∅ : Store).insert "n" (.int n.toNat), immutables := imms }
     if n.toNat < 2^64 then
-      ExecFuncBody config frame evm safe64Callable.body
+      ExecFuncBody fork config frame evm safe64Callable.body
         (.returned frame evm (some [.int n.toNat]))
-    else ExecFuncBody config frame evm safe64Callable.body .reverted := by
+    else ExecFuncBody fork config frame evm safe64Callable.body .reverted := by
   dsimp only
   let frame : Frame :=
     { contract := contract, locals := (∅ : Store).insert "n" (.int n.toNat), immutables := imms }
@@ -131,9 +133,9 @@ theorem safe64Callable_result (evm : EVM.State) (imms : Store) (n : UInt256) :
 theorem safe64_call_ok (frame : Frame) (evm : EVM.State) (n : UInt256)
     (expr : Expr) (ret : Ident) (hc : frame.contract = contract)
     (hn : evalExpr? config frame evm expr = .ok (.int n.toNat)) (hfit : n.toNat < 2^64) :
-    ExecStmt config frame evm (.internalCall "safe64" [expr] ret)
+    ExecStmt fork config frame evm (.internalCall "safe64" [expr] ret)
       (.ok { frame with locals := frame.locals.insert ret (.int n.toNat) } evm) := by
-  have hb := safe64Callable_result evm frame.immutables n
+  have hb := safe64Callable_result (fork := fork) evm frame.immutables n
   rw [if_pos hfit] at hb
   exact ExecStmt.internalCallReturn (callee := safe64Callable)
     (cfg := config) (stele := frame) (evm := evm) (args := [expr]) (argVals := [.int n.toNat])
@@ -143,8 +145,8 @@ theorem safe64_call_ok (frame : Frame) (evm : EVM.State) (n : UInt256)
 theorem safe64_call_revert (frame : Frame) (evm : EVM.State) (n : UInt256)
     (expr : Expr) (ret : Ident) (hc : frame.contract = contract)
     (hn : evalExpr? config frame evm expr = .ok (.int n.toNat)) (hfit : ¬ n.toNat < 2^64) :
-    ExecStmt config frame evm (.internalCall "safe64" [expr] ret) .reverted := by
-  have hb := safe64Callable_result evm frame.immutables n
+    ExecStmt fork config frame evm (.internalCall "safe64" [expr] ret) .reverted := by
+  have hb := safe64Callable_result (fork := fork) evm frame.immutables n
   rw [if_neg hfit] at hb
   exact ExecStmt.internalCallRevert (callee := safe64Callable)
     (cfg := config) (stele := frame) (evm := evm) (args := [expr]) (argVals := [.int n.toNat])

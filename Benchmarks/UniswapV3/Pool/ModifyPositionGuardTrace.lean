@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.ModifyPositionMemory
 import Benchmarks.UniswapV3.Pool.SignedWordZero
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_053
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,11 +13,11 @@ set_option maxRecDepth 10000
 theorem modifyPositionNonzeroX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p q free key : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : ModifyPositionArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨16428⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨16428⟩
       (key :: p :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: q :: R) mem aw rdata σ k C)
     (ha : a.Fits) (hm : HeapMemory mem aw free) (hq : ModifyPositionParamsMemory mem q a)
     (hb : q.toNat + 128 ≤ 2 ^ 200) (hov : R.length + 7 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (if a.delta = 0 then ⟨16801⟩ else ⟨16446⟩)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (if a.delta = 0 then ⟨16801⟩ else ⟨16446⟩)
       (p :: ⟨0⟩ :: ⟨0⟩ :: key :: q :: R) mem aw' rdata σ k' C' ∧
       HeapMemory mem aw' free := by
   have hqw : q.toNat + 128 < UInt256.size := by change _ < 2 ^ 256; omega
@@ -49,13 +51,13 @@ theorem modifyPositionRangeX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p q free key amount0 amount1 : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : ModifyPositionArgs) (evm : EVM.State) (upper : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (if upper then ⟨16513⟩ else ⟨16446⟩)
+    (rd : RD fork (deployedRuntime v) ee g s0 (if upper then ⟨16513⟩ else ⟨16446⟩)
       (p :: amount1 :: amount0 :: key :: q :: R) mem aw rdata σ k C)
     (ha : a.Fits) (hm : HeapMemory mem aw free) (hq : ModifyPositionParamsMemory mem q a)
     (hp : Slot0Memory mem p evm.accountMap evm.executionEnv)
     (hbp : p.toNat + 224 ≤ 2 ^ 200) (hbq : q.toNat + 128 ≤ 2 ^ 200)
     (hov : R.length + 8 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0
       (if slot0TickValue evm.accountMap evm.executionEnv < (if upper then a.upper else a.lower)
         then (if upper then ⟨16536⟩ else ⟨16468⟩) else (if upper then ⟨16759⟩ else ⟨16513⟩))
       (p :: amount1 :: amount0 :: key :: q :: R) mem aw' rdata σ k' C' ∧
@@ -119,10 +121,10 @@ theorem modifyPositionRangeX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem modifyPositionReturnX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p q key amount0 amount1 ret : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨16801⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨16801⟩
       (p :: amount1 :: amount0 :: key :: q :: ret :: R) mem aw rdata σ k C)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 6 ≤ 1024) :
-    RD (deployedRuntime v) ee g s0 ret (amount1 :: amount0 :: key :: R)
+    RD fork (deployedRuntime v) ee g s0 ret (amount1 :: amount0 :: key :: R)
       mem aw rdata σ (k + 8) (C + 25) :=
   uniswapV3Pool_block_16801 (immWords := wordsOf (immStore v)) hov hret rd
 

@@ -1,18 +1,20 @@
 import Benchmarks.UniswapV3.Pool.SignedAmountDeltaCalls
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
 
 theorem signedAmountDeltaChoiceSource (imms : Store) (evm : EVM.State) (second : Bool)
     (a : SignedAmountDeltaArgs) (hfit : a.Fits) (hv : signedAmountDeltaValid second a) :
-    ExecStmt config (signedAmountDeltaReadyFrame imms second a) evm
+    ExecStmt fork config (signedAmountDeltaReadyFrame imms second a) evm
       (signedAmountDeltaFunction second).body[2]!
       (.ok (signedAmountDeltaReturnFrame imms second a) evm) := by
   have hg := evalSignedAmountDeltaGuard imms evm second a
-  have hc := signedAmountDeltaCallSource imms evm second a hfit hv
-  have hs := signedAmountDeltaCastSource imms evm second a hfit hv
-  have ha := signedAmountDeltaAssignSource imms evm second a hfit hv
+  have hc := signedAmountDeltaCallSource (fork := fork) imms evm second a hfit hv
+  have hs := signedAmountDeltaCastSource (fork := fork) imms evm second a hfit hv
+  have ha := signedAmountDeltaAssignSource (fork := fork) imms evm second a hfit hv
   have hb := ExecBlock.consNormal hc (ExecBlock.consNormal hs (ExecBlock.consNormal ha ExecBlock.nil))
   by_cases hn : a.liquidity < 0
   · have hp : ¬0 ≤ a.liquidity := by omega
@@ -32,7 +34,7 @@ theorem signedAmountDeltaChoiceSource (imms : Store) (evm : EVM.State) (second :
 
 theorem signedAmountDeltaReturns (imms : Store) (evm : EVM.State) (second : Bool)
     (a : SignedAmountDeltaArgs) (hfit : a.Fits) (hv : signedAmountDeltaValid second a) :
-    ExecFuncBody config (signedAmountDeltaFrame imms a) evm (signedAmountDeltaFunction second).body
+    ExecFuncBody fork config (signedAmountDeltaFrame imms a) evm (signedAmountDeltaFunction second).body
       (.returned (signedAmountDeltaReturnFrame imms second a) evm
         (some [.int (signedAmountDeltaResult second a)])) := by
   have ht : (signedAmountDeltaFunction second).body.drop 2 =
@@ -49,7 +51,7 @@ theorem signedAmountDeltaReturns (imms : Store) (evm : EVM.State) (second : Bool
 
 theorem signedAmountDeltaReverts (imms : Store) (evm : EVM.State) (second : Bool)
     (a : SignedAmountDeltaArgs) (hfit : a.Fits) (hv : ¬signedAmountDeltaValid second a) :
-    ExecFuncBody config (signedAmountDeltaFrame imms a) evm
+    ExecFuncBody fork config (signedAmountDeltaFrame imms a) evm
       (signedAmountDeltaFunction second).body .reverted := by
   have ht : (signedAmountDeltaFunction second).body.drop 2 =
       [(signedAmountDeltaFunction second).body[2]!, .return [.var "__cond4"]] := by
@@ -59,7 +61,7 @@ theorem signedAmountDeltaReverts (imms : Store) (evm : EVM.State) (second : Bool
   apply execBlock_append_ok (signedAmountDeltaPrefixSource imms evm second a)
   apply ExecBlock.consRevert
   have hg := evalSignedAmountDeltaGuard imms evm second a
-  have hc := signedAmountDeltaCallReverts imms evm second a hfit hv
+  have hc := signedAmountDeltaCallReverts (fork := fork) imms evm second a hfit hv
   by_cases hn : a.liquidity < 0
   · have hp : ¬0 ≤ a.liquidity := by omega
     rw [decide_eq_true hn] at hg

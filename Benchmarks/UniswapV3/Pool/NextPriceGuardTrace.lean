@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.NextPriceModel
 import Benchmarks.UniswapV3.Pool.AmountDeltaSortTrace
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_061
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -18,14 +20,14 @@ theorem nextPricePriceGuardX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret priceRaw liquidityRaw : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (input : Bool) (a : NextPriceArgs)
-    (rd : RD (deployedRuntime v) ee g s0 (nextPriceEntry input)
+    (rd : RD fork (deployedRuntime v) ee g s0 (nextPriceEntry input)
       ((if a.zeroForOne then ⟨1⟩ else ⟨0⟩) :: a.amount :: liquidityRaw ::
         priceRaw :: ret :: R)
       mem aw rdata σ k C)
     (hp : UInt256.land priceRaw (UInt256.ofNat (2 ^ 160 - 1)) = a.price)
     (hov : R.length + 11 ≤ 1024) :
-    (¬0 < a.price.toNat ∧ RDrev (deployedRuntime v) g s0) ∨
-    (0 < a.price.toNat ∧ ∃ k' C', RD (deployedRuntime v) ee g s0
+    (¬0 < a.price.toNat ∧ RDrev fork (deployedRuntime v) g s0) ∨
+    (0 < a.price.toNat ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0
       (nextPriceLiquidityPC input)
       (⟨0⟩ :: (if a.zeroForOne then ⟨1⟩ else ⟨0⟩) :: a.amount ::
         liquidityRaw :: priceRaw :: ret :: R) mem aw rdata σ k' C') := by
@@ -56,13 +58,13 @@ theorem nextPriceLiquidityGuardX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat2
     {s0 : EVM.State} {k C : Nat} {aw ret priceRaw liquidityRaw : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (input : Bool) (a : NextPriceArgs)
-    (rd : RD (deployedRuntime v) ee g s0 (nextPriceLiquidityPC input)
+    (rd : RD fork (deployedRuntime v) ee g s0 (nextPriceLiquidityPC input)
       (⟨0⟩ :: (if a.zeroForOne then ⟨1⟩ else ⟨0⟩) :: a.amount ::
         liquidityRaw :: priceRaw :: ret :: R) mem aw rdata σ k C)
     (hl : UInt256.land liquidityRaw (UInt256.ofNat (2 ^ 128 - 1)) = a.liquidity)
     (hov : R.length + 11 ≤ 1024) :
-    (¬0 < a.liquidity.toNat ∧ RDrev (deployedRuntime v) g s0) ∨
-    (0 < a.liquidity.toNat ∧ ∃ k' C', RD (deployedRuntime v) ee g s0
+    (¬0 < a.liquidity.toNat ∧ RDrev fork (deployedRuntime v) g s0) ∨
+    (0 < a.liquidity.toNat ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0
       (nextPriceDirectionPC input)
       (⟨0⟩ :: (if a.zeroForOne then ⟨1⟩ else ⟨0⟩) :: a.amount ::
         liquidityRaw :: priceRaw :: ret :: R) mem aw rdata σ k' C') := by
@@ -91,15 +93,15 @@ theorem nextPriceGuardX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret priceRaw liquidityRaw : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (input : Bool) (a : NextPriceArgs)
-    (rd : RD (deployedRuntime v) ee g s0 (nextPriceEntry input)
+    (rd : RD fork (deployedRuntime v) ee g s0 (nextPriceEntry input)
       ((if a.zeroForOne then ⟨1⟩ else ⟨0⟩) :: a.amount :: liquidityRaw ::
         priceRaw :: ret :: R)
       mem aw rdata σ k C)
     (hp : UInt256.land priceRaw (UInt256.ofNat (2 ^ 160 - 1)) = a.price)
     (hl : UInt256.land liquidityRaw (UInt256.ofNat (2 ^ 128 - 1)) = a.liquidity)
     (hov : R.length + 11 ≤ 1024) :
-    (¬nextPriceGuard a ∧ RDrev (deployedRuntime v) g s0) ∨
-    (nextPriceGuard a ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 (nextPriceDirectionPC input)
+    (¬nextPriceGuard a ∧ RDrev fork (deployedRuntime v) g s0) ∨
+    (nextPriceGuard a ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 (nextPriceDirectionPC input)
       (⟨0⟩ :: (if a.zeroForOne then ⟨1⟩ else ⟨0⟩) :: a.amount ::
         liquidityRaw :: priceRaw :: ret :: R) mem aw rdata σ k' C') := by
   rcases nextPricePriceGuardX (v := v) input a rd hp hov with ⟨hb, hr⟩ | ⟨hp, kp, Cp, rp⟩

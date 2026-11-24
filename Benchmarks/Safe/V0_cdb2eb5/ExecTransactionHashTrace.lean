@@ -3,6 +3,8 @@ import Benchmarks.Safe.V0_cdb2eb5.TransactionHashPreserved
 import Benchmarks.Safe.V0_cdb2eb5.Authorization
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_019
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V0_cdb2eb5.RuntimeBlocks
 
@@ -16,13 +18,13 @@ def execSignatureSaved (cd : ByteArray) (len : Nat) (ptr hash : UInt256)
 
 theorem safeExecHashTrace (evm : EVM.State)
     {I g s0 σ k C aw mem rdata ptr dataLen sigLen} {sigPtr : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨5217⟩
+    (h : RD fork safeBytecode I g s0 ⟨5217⟩
       (execHashStack I.calldata dataLen sigPtr (execNonce evm) R) mem aw rdata σ k C)
     (hee : evm.executionEnv = I)
     (hb : ExecTransactionCalldataBounds I.calldata dataLen sigLen)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr) (hm : 96 ≤ mem.size) (hp : 96 ≤ ptr)
     (hptr : ptr + 352 < UInt256.size) (hov : R.length + 36 ≤ 1024) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨3481⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨3481⟩
       (execTransactionHash (execTransactionCalldataInput I.calldata dataLen sigLen) evm ::
         execHashSaved I.calldata dataLen sigPtr R)
       (transactionHashMemory mem ptr I (UInt256.ofNat (execTransactionDataStart I.calldata))
@@ -44,7 +46,7 @@ theorem safeExecHashTrace (evm : EVM.State)
     have := hb.dataEnd
     have := lt_size_of_lt_sign hb.small
     omega
-  have hcall : RD safeBytecode I g s0 ⟨5217⟩
+  have hcall : RD fork safeBytecode I g s0 ⟨5217⟩
       (tx.nonce :: UInt256.ofNat tx.refundReceiver.val :: UInt256.ofNat tx.gasToken.val ::
         tx.gasPrice :: tx.baseGas :: tx.safeTxGas :: tx.operation ::
         UInt256.ofNat tx.payload.size ::
@@ -66,10 +68,10 @@ theorem safeExecHashTrace (evm : EVM.State)
 
 theorem safeExecSignatureStart {I g s0 σ k C aw mem rdata len} {ptr hash : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3481⟩ (hash :: execHashSaved I.calldata len ptr R)
+    (h : RD fork safeBytecode I g s0 ⟨3481⟩ (hash :: execHashSaved I.calldata len ptr R)
       mem aw rdata σ k C)
     (hov : R.length + 24 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨6638⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨6638⟩
       (ptr :: hash :: UInt256.ofNat I.source.val :: ⟨3494⟩ ::
         execSignatureSaved I.calldata len ptr hash R) mem aw rdata σ k' C' := by
   have h₁ := safeRuntime_block_3481 (by simp; omega) (by jump_dest) h

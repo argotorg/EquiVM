@@ -2,6 +2,8 @@ import Benchmarks.Safe.V2_0e91d99.SafeAddSource
 import Benchmarks.Safe.V2_0e91d99.SignatureValues
 import Benchmarks.Safe.V2_0e91d99.ContractSignatureSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V2_0e91d99
@@ -54,12 +56,12 @@ open ContractSignatureInput
 
 theorem safeCheckContractStart (p : ContractSignatureInput) (evm : EVM.State)
     (hf : p.start < UInt256.size) :
-    ExecStmt config p.frame evm
+    ExecStmt fork config p.frame evm
       (.internalCall "_add" [.var "offset", .intLit 32] "signatureDataStart")
       (.ok p.startFrame evm) := by
   have he : (p.offset + (⟨32⟩ : UInt256)).toNat = p.start :=
     addWord_toNat _ _ hf
-  have h := safeInternalAdd (caller := p.frame) (evm := evm) (a := p.offset) (b := ⟨32⟩) rfl
+  have h := safeInternalAdd (fork := fork) (caller := p.frame) (evm := evm) (a := p.offset) (b := ⟨32⟩) rfl
     (lhs := .var "offset") (rhs := .intLit 32) (retVar := "signatureDataStart")
     (by simp [evalExpr?, frame, args, EvalResult.ofOption, Std.HashMap.getElem_insert])
     (by simp [evalExpr?]; rfl) hf
@@ -85,7 +87,7 @@ theorem safeCheckContractLength (p : ContractSignatureInput) (evm : EVM.State)
 
 theorem safeCheckContractEnd (p : ContractSignatureInput) (evm : EVM.State)
     (hf : p.finish < UInt256.size) :
-    ExecStmt config p.lengthFrame evm
+    ExecStmt fork config p.lengthFrame evm
       (.internalCall "_add" [.var "signatureDataStart", .var "contractSignatureLen"]
         "signatureDataEnd") (.ok p.endFrame evm) := by
   have hs : p.start < UInt256.size := by dsimp [finish] at hf; omega
@@ -93,7 +95,7 @@ theorem safeCheckContractEnd (p : ContractSignatureInput) (evm : EVM.State)
   have he : (UInt256.ofNat p.start + p.len).toNat = p.finish := by
     have hh := addWord_toNat (UInt256.ofNat p.start) p.len (by rw [ha]; exact hf)
     simpa only [ha] using hh
-  have h := safeInternalAdd (caller := p.lengthFrame) (evm := evm) (a := UInt256.ofNat p.start)
+  have h := safeInternalAdd (fork := fork) (caller := p.lengthFrame) (evm := evm) (a := UInt256.ofNat p.start)
     (b := p.len) rfl (lhs := .var "signatureDataStart") (rhs := .var "contractSignatureLen")
     (retVar := "signatureDataEnd")
     (by simp only [uint256Value, ha]
@@ -127,9 +129,9 @@ theorem safeCheckContractSlice (p : ContractSignatureInput) (evm : EVM.State)
 
 theorem safeCheckContractCall (p : ContractSignatureInput) {evm evm' : EVM.State}
     {z : Bool} {out : ByteArray} (hb : out.size < 2 ^ 255)
-    (hc : callViaEVM evm (EVM.address p.owner) 0 (contractSignatureCallBytes p.hash p.signature)
+    (hc : callViaEVM fork evm (EVM.address p.owner) 0 (contractSignatureCallBytes p.hash p.signature)
       (z, evm', out) false) :
-    ExecStmt config p.sliceFrame evm
+    ExecStmt fork config p.sliceFrame evm
       (.internalCall "validateContractSignature"
         [.var "owner", .var "dataHash", .var "contractSignature"] "valid")
       (if contractSignatureDecoded z out then
@@ -158,11 +160,11 @@ theorem safeCheckContractCall (p : ContractSignatureInput) {evm evm' : EVM.State
 theorem safeCheckContractSourcePrefix (p : ContractSignatureInput) (evm : EVM.State)
     (hs : p.start ≤ p.signatures.size) (he : p.finish ≤ p.signatures.size)
     (hb : p.signatures.size < UInt256.size) {result : ExecResult}
-    (ht : ExecBlock config p.sliceFrame evm
+    (ht : ExecBlock fork config p.sliceFrame evm
       [.internalCall "validateContractSignature"
         [.var "owner", .var "dataHash", .var "contractSignature"] "valid",
         .require (.var "valid")] result) :
-    ExecBlock config p.frame evm checkContractSignatureFunction.body result := by
+    ExecBlock fork config p.frame evm checkContractSignatureFunction.body result := by
   refine .consNormal (safeCheckContractStart p evm (by omega))
     (.consNormal (.requireTrue ?_) (.consNormal (.letDecl (safeCheckContractLength p evm hs))
       (.consNormal (safeCheckContractEnd p evm (by omega))
@@ -175,9 +177,9 @@ theorem safeCheckContractSource (p : ContractSignatureInput) {evm evm' : EVM.Sta
     {z : Bool} {out : ByteArray} (hs : p.start ≤ p.signatures.size)
     (he : p.finish ≤ p.signatures.size) (hb : p.signatures.size < UInt256.size)
     (hout : out.size < 2 ^ 255)
-    (hc : callViaEVM evm (EVM.address p.owner) 0 (contractSignatureCallBytes p.hash p.signature)
+    (hc : callViaEVM fork evm (EVM.address p.owner) 0 (contractSignatureCallBytes p.hash p.signature)
       (z, evm', out) false) :
-    ExecFuncBody config p.frame evm checkContractSignatureFunction.body
+    ExecFuncBody fork config p.frame evm checkContractSignatureFunction.body
       (if contractSignatureResult z out then
         .returned (p.finalFrame true) evm' none else .reverted) := by
   have hcall := safeCheckContractCall p hout hc
@@ -204,7 +206,7 @@ theorem safeCheckContractSource (p : ContractSignatureInput) {evm evm' : EVM.Sta
 
 theorem safeCheckContractBoundsFailed (p : ContractSignatureInput) (evm : EVM.State)
     (hbad : ¬(p.start ≤ p.signatures.size ∧ p.finish ≤ p.signatures.size)) :
-    ExecFuncBody config p.frame evm checkContractSignatureFunction.body .reverted := by
+    ExecFuncBody fork config p.frame evm checkContractSignatureFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   by_cases hsfit : p.start < UInt256.size
   swap

@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.TimeArray
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -17,7 +19,7 @@ theorem timeArrayPrefixSource {evm : EVM.State} {locals imms : Store} {words : L
     (hv : evm.executionEnv.weiValue = ⟨0⟩) (hsz : 4 ≤ evm.executionEnv.calldata.size)
     (hsize : evm.executionEnv.calldata.size < UInt256.size) (hs : evm.executionEnv.calldata.size - 4 < 2^255)
     (hd : locals.get? "data" = some (.array (words.map wordBytes32Value))) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm timeArrayPrefix
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm timeArrayPrefix
       (.ok {contract := contract, locals := timeArrayLocals locals evm.executionEnv words, immutables := imms} evm) := by
   apply execBlock_append (timeEntrySource hv hsz hsize hs)
   have hd' : (timeEntryLocals locals evm.executionEnv).get? "data" = some (.array (words.map wordBytes32Value)) := by

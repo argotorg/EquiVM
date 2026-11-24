@@ -1,6 +1,8 @@
 import Examples.VyperERC20.TransferFromAllowanceStoreOuterPrefix
 import Examples.VyperERC20.TransferFromAllowanceStoreOuterFinish
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -13,14 +15,14 @@ theorem erc20X_transferFromBeforeAllowanceStore {σ σ₀ A I} {g : Sat256}
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hallowance : (transferFromValueWord I).toNat ≤
       (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨445⟩
+    (hreach : ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨445⟩
       [transferFromSelectorWord]
       (transferFromFromBalanceHashMem
         (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I)
         (transferFromCurrentAllowanceRaw σ I))
       (UInt256.ofNat 5) ByteArray.empty
       σ k C) :
-    ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨492⟩
+    ∃ k C, RD fork vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨492⟩
       [transferFromAllowanceSlotI I,
         transferFromAllowanceDebitI σ σ₀ A I g,
         transferFromSelectorWord]

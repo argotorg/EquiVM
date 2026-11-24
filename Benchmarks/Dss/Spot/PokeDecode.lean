@@ -1,6 +1,8 @@
 import Reasoning.EVMWord
 import Benchmarks.Dss.Spot.PokeBase
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Spot
@@ -543,7 +545,7 @@ theorem evalExprs_pokeVatFileArgs_ofLocals
 
 theorem execSpotMulFunctionReturn (evm : EVM.State) {x y prod : UInt256}
     (hprod : prod = x * y) (hfit : x.toNat * y.toNat < UInt256.size) :
-    ExecFuncBody config { contract := contract, locals := spotUintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := spotUintBinaryLocals x y } evm
       mulFunction.body
       (.returned { contract := contract, locals := spotUintBinaryLocalsZ x y prod } evm
         (some [.int (Int.ofNat prod.toNat)])) := by
@@ -632,7 +634,7 @@ theorem execSpotMulFunctionReturn (evm : EVM.State) {x y prod : UInt256}
       evalExpr? config { contract := contract, locals := localsZ } evm (.var "z") =
         .ok (.int (Int.ofNat prod.toNat)) := hzZ
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm mulFunction.body
+      ExecBlock fork config { contract := contract, locals := locals } evm mulFunction.body
         (.returned { contract := contract, locals := localsZ } evm
           (some [.int (Int.ofNat prod.toNat)])) := by
     simp only [mulFunction, checkedMulUintInto, List.cons_append, List.nil_append]
@@ -643,7 +645,7 @@ theorem execSpotMulFunctionReturn (evm : EVM.State) {x y prod : UInt256}
 
 theorem execSpotMulFunctionRevert (evm : EVM.State) {x y : UInt256}
     (hover : UInt256.size ≤ x.toNat * y.toNat) :
-    ExecFuncBody config { contract := contract, locals := spotUintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := spotUintBinaryLocals x y } evm
       mulFunction.body .reverted := by
   let locals := spotUintBinaryLocals x y
   have hx :
@@ -661,7 +663,7 @@ theorem execSpotMulFunctionRevert (evm : EVM.State) {x y : UInt256}
         (mul256 (.var "x") (.var "y")) = .revert :=
     evalExpr_spot_mul256_revert hx hy hover
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm mulFunction.body
+      ExecBlock fork config { contract := contract, locals := locals } evm mulFunction.body
         .reverted := by
     simp only [mulFunction, checkedMulUintInto, List.cons_append, List.nil_append]
     exact ExecBlock.consRevert (ExecStmt.letDeclRevert hMulRev)
@@ -670,7 +672,7 @@ theorem execSpotMulFunctionRevert (evm : EVM.State) {x y : UInt256}
 theorem execSpotRdivFunctionReturn (evm : EVM.State) {x y prod q : UInt256}
     (hprod : prod = x * pokeRay) (hfit : x.toNat * pokeRay.toNat < UInt256.size)
     (hy : y ≠ ⟨0⟩) (hq : q = UInt256.div prod y) :
-    ExecFuncBody config { contract := contract, locals := spotUintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := spotUintBinaryLocals x y } evm
       rdivFunction.body
       (.returned { contract := contract, locals := spotUintBinaryLocalsZAssigned x y prod q }
         evm (some [.int (Int.ofNat q.toNat)])) := by
@@ -700,17 +702,17 @@ theorem execSpotRdivFunctionReturn (evm : EVM.State) {x y prod q : UInt256}
     simp [mulFunction, uint256, bindParams?, spotUintBinaryLocals,
       one_eq_pokeRay_toNat]
   have hmulStmt :
-      ExecStmt config { contract := contract, locals := locals } evm
+      ExecStmt fork config { contract := contract, locals := locals } evm
         (.internalCall "mul" [.var "x", .intLit one] "z")
         (.ok { contract := contract, locals := localsZ } evm) := by
-    have h := internalCallFunctionReturn
+    have h := internalCallFunctionReturn (fork := fork)
       (cfg := config) (caller := { contract := contract, locals := locals })
       (evm := evm) (name := "mul") (retVar := "z")
       (args := [.var "x", .intLit one])
       (argVals := [.int (Int.ofNat x.toNat), .int (Int.ofNat pokeRay.toNat)])
       (callee := mulFunction) (locals := spotUintBinaryLocals x pokeRay)
       hmulArgs hlookupMul hbindMul
-      (execSpotMulFunctionReturn evm (x := x) (y := pokeRay) (prod := prod)
+      (execSpotMulFunctionReturn (fork := fork) evm (x := x) (y := pokeRay) (prod := prod)
         hprod hfit)
     simpa [resumeAfterInternalCall, locals, localsZ, spotUintBinaryLocalsZ] using h
   have hzZ :
@@ -742,18 +744,18 @@ theorem execSpotRdivFunctionReturn (evm : EVM.State) {x y prod q : UInt256}
       (locals := localsQ) (name := "z") (value := q)
       (spotUintBinaryLocalsZAssigned_get_z x y prod q)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm rdivFunction.body
+      ExecBlock fork config { contract := contract, locals := locals } evm rdivFunction.body
         (.returned { contract := contract, locals := localsQ } evm
           (some [.int (Int.ofNat q.toNat)])) := by
     simp only [rdivFunction, List.cons_append, List.nil_append]
     refine ExecBlock.consNormal hmulStmt ?_
-    refine ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hDiv hAssign) ?_
+    refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hDiv hAssign) ?_
     exact ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton hzQ))
   simpa [locals, localsQ] using ExecFuncBody.execBlockRet hblock
 
 theorem execSpotRdivFunctionRevertMul (evm : EVM.State) {x y : UInt256}
     (hover : UInt256.size ≤ x.toNat * pokeRay.toNat) :
-    ExecFuncBody config { contract := contract, locals := spotUintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := spotUintBinaryLocals x y } evm
       rdivFunction.body .reverted := by
   let locals := spotUintBinaryLocals x y
   have hx :
@@ -779,7 +781,7 @@ theorem execSpotRdivFunctionRevertMul (evm : EVM.State) {x y : UInt256}
     simp [mulFunction, uint256, bindParams?, spotUintBinaryLocals,
       one_eq_pokeRay_toNat]
   have hmulStmt :
-      ExecStmt config { contract := contract, locals := locals } evm
+      ExecStmt fork config { contract := contract, locals := locals } evm
         (.internalCall "mul" [.var "x", .intLit one] "z") .reverted :=
     internalCallFunctionRevert
       (cfg := config) (caller := { contract := contract, locals := locals })
@@ -790,7 +792,7 @@ theorem execSpotRdivFunctionRevertMul (evm : EVM.State) {x y : UInt256}
       hmulArgs hlookupMul hbindMul
       (execSpotMulFunctionRevert evm (x := x) (y := pokeRay) hover)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm rdivFunction.body
+      ExecBlock fork config { contract := contract, locals := locals } evm rdivFunction.body
         .reverted := by
     simp only [rdivFunction, List.cons_append, List.nil_append]
     exact ExecBlock.consRevert hmulStmt
@@ -799,7 +801,7 @@ theorem execSpotRdivFunctionRevertMul (evm : EVM.State) {x y : UInt256}
 theorem execSpotRdivFunctionRevertDivZero (evm : EVM.State) {x y prod : UInt256}
     (hprod : prod = x * pokeRay) (hfit : x.toNat * pokeRay.toNat < UInt256.size)
     (hyZero : y = ⟨0⟩) :
-    ExecFuncBody config { contract := contract, locals := spotUintBinaryLocals x y } evm
+    ExecFuncBody fork config { contract := contract, locals := spotUintBinaryLocals x y } evm
       rdivFunction.body .reverted := by
   let locals := spotUintBinaryLocals x y
   let localsZ := spotUintBinaryLocalsZ x y prod
@@ -826,17 +828,17 @@ theorem execSpotRdivFunctionRevertDivZero (evm : EVM.State) {x y prod : UInt256}
     simp [mulFunction, uint256, bindParams?, spotUintBinaryLocals,
       one_eq_pokeRay_toNat]
   have hmulStmt :
-      ExecStmt config { contract := contract, locals := locals } evm
+      ExecStmt fork config { contract := contract, locals := locals } evm
         (.internalCall "mul" [.var "x", .intLit one] "z")
         (.ok { contract := contract, locals := localsZ } evm) := by
-    have h := internalCallFunctionReturn
+    have h := internalCallFunctionReturn (fork := fork)
       (cfg := config) (caller := { contract := contract, locals := locals })
       (evm := evm) (name := "mul") (retVar := "z")
       (args := [.var "x", .intLit one])
       (argVals := [.int (Int.ofNat x.toNat), .int (Int.ofNat pokeRay.toNat)])
       (callee := mulFunction) (locals := spotUintBinaryLocals x pokeRay)
       hmulArgs hlookupMul hbindMul
-      (execSpotMulFunctionReturn evm (x := x) (y := pokeRay) (prod := prod)
+      (execSpotMulFunctionReturn (fork := fork) evm (x := x) (y := pokeRay) (prod := prod)
         hprod hfit)
     simpa [resumeAfterInternalCall, locals, localsZ, spotUintBinaryLocalsZ] using h
   have hzZ :
@@ -860,7 +862,7 @@ theorem execSpotRdivFunctionRevertDivZero (evm : EVM.State) {x y prod : UInt256}
         (.binary .div (.var "z") (.var "y")) = .revert :=
     evalExpr_spot_div_uint256_revert hzZ hyZ
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm rdivFunction.body
+      ExecBlock fork config { contract := contract, locals := locals } evm rdivFunction.body
         .reverted := by
     simp only [rdivFunction, List.cons_append, List.nil_append]
     refine ExecBlock.consNormal hmulStmt ?_

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.MostSignificantBit
 import Benchmarks.UniswapV4PoolManager.WordByteSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -18,7 +20,7 @@ theorem msbStageStmtExec {f : Frame} {evm : EVM.State} {x r : UInt256}
     (limit : UInt256) (bit : Nat) (hb : bit < 256)
     (hx : f.locals.get? "x" = some (.int (Int.ofNat x.toNat)))
     (hr : f.locals.get? "r" = some (.int (Int.ofNat r.toNat))) :
-    ExecStmt config f evm (msbStageStmt limit bit)
+    ExecStmt fork config f evm (msbStageStmt limit bit)
       (.ok {f with locals := f.locals.insert "r" (.int (Int.ofNat (msbStage x r limit bit).toNat))} evm) := by
   have hs := evalWordShrWord (evalLocalValue (cfg := config) (evm := evm) hx) (evalLocalValue hr)
   have hp := evalComparisonPower (limit := limit) (b := .intLit (Int.ofNat limit.toNat)) hb hs
@@ -44,7 +46,7 @@ theorem mostSignificantBit_guard {f : Frame} {evm : EVM.State} {x : UInt256}
 
 theorem mostSignificantBit_zero {f : Frame} {evm : EVM.State}
     (hx : f.locals.get? "x" = some (.int 0)) :
-    ExecFuncBody config f evm mostSignificantBitFunction.body .reverted := by
+    ExecFuncBody fork config f evm mostSignificantBitFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply ExecBlock.consRevert
   apply ExecStmt.requireFalse
@@ -54,7 +56,7 @@ theorem mostSignificantBit_zero {f : Frame} {evm : EVM.State}
 theorem mostSignificantBit_body {f : Frame} {evm : EVM.State} {x : UInt256}
     (hf : f.contract = contract) (hx : f.locals.get? "x" = some (.int (Int.ofNat x.toNat)))
     (hn : x ≠ ⟨0⟩) :
-    ∃ f', ExecFuncBody config f evm mostSignificantBitFunction.body
+    ∃ f', ExecFuncBody fork config f evm mostSignificantBitFunction.body
       (.returned f' evm (some [.int (Int.ofNat (mostSignificantBit x).toNat)])) := by
   let f1 : Frame := {f with locals := f.locals.insert "r" (.int (Int.ofNat (msbInitial x).toNat))}
   let f2 : Frame := {f1 with locals := f1.locals.insert "r" (.int (Int.ofNat (msb64 x).toNat))}
@@ -63,12 +65,12 @@ theorem mostSignificantBit_body {f : Frame} {evm : EVM.State} {x : UInt256}
   let f5 : Frame := {f4 with locals := f4.locals.insert "r" (.int (Int.ofNat (msbHigh x).toNat))}
   let f6 : Frame := {f5 with locals := f5.locals.insert "index" (.int (Int.ofNat (msbIndex x).toNat))}
   let f7 : Frame := {f6 with locals := f6.locals.insert "low" (.int (Int.ofNat (UInt256.byteAt (msbIndex x) msbTable).toNat))}
-  have hguard : ExecStmt config f evm mostSignificantBitFunction.body[0]! (.ok f evm) :=
+  have hguard : ExecStmt fork config f evm mostSignificantBitFunction.body[0]! (.ok f evm) :=
     ExecStmt.requireTrue (by rw [mostSignificantBit_guard (x := x) hx, decide_eq_true hn])
   have hi := evalComparisonPower (limit := UInt256.ofNat (2^128-1)) (bit := 7)
     (b := .intLit 340282366920938463463374607431768211455) (by decide)
     (evalLocalValue (cfg := config) (evm := evm) hx) (by simp only [evalExpr?, pure]; rfl)
-  have hinit : ExecStmt config f evm mostSignificantBitFunction.body[1]! (.ok f1 evm) := ExecStmt.letDecl hi
+  have hinit : ExecStmt fork config f evm mostSignificantBitFunction.body[1]! (.ok f1 evm) := ExecStmt.letDecl hi
   have hx1 : f1.locals.get? "x" = some (.int (Int.ofNat x.toNat)) :=
     (store_get_ne _ _ (by decide : ("r" == "x") = false)).trans hx
   have hx2 : f2.locals.get? "x" = some (.int (Int.ofNat x.toNat)) :=
@@ -88,8 +90,8 @@ theorem mostSignificantBit_body {f : Frame} {evm : EVM.State} {x : UInt256}
     (show evalExpr? config f5 evm (.intLit 31) = .ok (.int (Int.ofNat (UInt256.ofNat 31).toNat)) by
       simp only [evalExpr?, pure]; rfl)
   rw [u256_land_comm] at hindex
-  have hindexstmt : ExecStmt config f5 evm mostSignificantBitFunction.body[6]! (.ok f6 evm) := ExecStmt.letDecl hindex
-  have hbyte := wordByteCall (f := f6) (evm := evm) (word := msbTable) hf
+  have hindexstmt : ExecStmt fork config f5 evm mostSignificantBitFunction.body[6]! (.ok f6 evm) := ExecStmt.letDecl hindex
+  have hbyte := wordByteCall (fork := fork) (f := f6) (evm := evm) (word := msbTable) hf
     (show evalExpr? config f6 evm (.intLit 3176832568382053640854229765616608417700587278678501850580078522814972297216) =
       .ok (.int (Int.ofNat msbTable.toNat)) by simp only [evalExpr?, pure]; rfl)
     (evalLocalValue (store_get_self _ _ _)) "low"
@@ -116,7 +118,7 @@ theorem mostSignificantBit_body {f : Frame} {evm : EVM.State} {x : UInt256}
 theorem mostSignificantBitCall {f : Frame} {evm : EVM.State} {e : Expr} {x : UInt256}
     (hf : f.contract = contract) (he : evalExpr? config f evm e = .ok (.int (Int.ofNat x.toNat)))
     (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "BitMath_mostSignificantBit" [e] retVar)
+    ExecStmt fork config f evm (.internalCall "BitMath_mostSignificantBit" [e] retVar)
       (if x = ⟨0⟩ then .reverted else
         .ok {f with locals := f.locals.insert retVar (.int (Int.ofNat (mostSignificantBit x).toNat))} evm) := by
   have hl : lookupCallable? f.contract "BitMath_mostSignificantBit" =

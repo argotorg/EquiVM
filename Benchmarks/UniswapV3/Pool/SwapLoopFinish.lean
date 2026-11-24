@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapLoop
 import Benchmarks.UniswapV3.Pool.SwapPostLoop
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -13,7 +15,7 @@ theorem swapLoopFinishX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {old0 old1 : Value}
     (a : SwapArgs) (c : SwapCacheData) (s : SwapStateData)
     (initial : EVM.State) (frame : Frame) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2991⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2991⟩
       (swapLoopWords a p (swapExactInput a).toUInt256 cache snap start len ⟨621⟩ R)
       mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hf : frame.contract = contract)
@@ -46,15 +48,15 @@ theorem swapLoopFinishX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hcd : start.toNat + len.toNat ≤ ee.calldata.size) (hl : len.toNat ≤ 2 ^ 32)
     (hbudget : MemoryGasBound aw C allowance) (hallowance : allowance ≤ 2 ^ 200)
     (hcover : free.toNat ≤ aw.toNat * 32 + 32) (hov : R.length + 67 ≤ 1024) :
-    (X (g.toNat + 1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass) ∨
-    (ExecBlock config frame evm (swapTransition.body.drop 13) .reverted ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    (ExecBlock config frame evm (swapTransition.body.drop 13) .staticViolation ∧
-      RDstatic (deployedRuntime v) g s0) ∨
+    (X fork (g.toNat + 1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass) ∨
+    (ExecBlock fork config frame evm (swapTransition.body.drop 13) .reverted ∧
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    (ExecBlock fork config frame evm (swapTransition.body.drop 13) .staticViolation ∧
+      RDstatic fork (deployedRuntime v) g s0) ∨
     ∃ (finalFrame : Frame) (finalState : EVM.State) (amount0 amount1 : Int),
-      ExecBlock config frame evm (swapTransition.body.drop 13)
+      ExecBlock fork config frame evm (swapTransition.body.drop 13)
         (.returned finalFrame finalState (some [.int amount0, .int amount1])) ∧
-      RDret (deployedRuntime v) g s0 finalState.accountMap
+      RDret fork (deployedRuntime v) g s0 finalState.accountMap
         ((EVM.wordOfInt amount0).toByteArray ++ (EVM.wordOfInt amount1).toByteArray) ∧
       (-(2 ^ 255 : Int) ≤ amount0 ∧ amount0 < 2 ^ 255) ∧
       (-(2 ^ 255 : Int) ≤ amount1 ∧ amount1 < 2 ^ 255) := by

@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.AbsorbReadSource
 import Benchmarks.CompoundIII.Comet.AbsorbBasePriceSource
 import Benchmarks.CompoundIII.Comet.CollateralCheckSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -20,8 +22,8 @@ theorem absorbInternalInitial_frame (v : CometWithExtendedAssetListImmutables)
 
 theorem absorbReadTail_source {v : CometWithExtendedAssetListImmutables}
     {account : AccountAddress} {evm : State} {result : InternalOutcome}
-    (ht : AbsorbReadTrace v account evm result) (absorber : AccountAddress) :
-    internalBlockResult config (absorbInternalCheckedFrame v absorber account) evm
+    (ht : AbsorbReadTrace fork v account evm result) (absorber : AccountAddress) :
+    internalBlockResult fork config (absorbInternalCheckedFrame v absorber account) evm
       absorbReadTailBlock result := by
   let frame := absorbInternalCheckedFrame v absorber account
   have ha : frame.locals.get? "account" = some (.address account) := by
@@ -30,8 +32,8 @@ theorem absorbReadTail_source {v : CometWithExtendedAssetListImmutables}
   have hu : frame.locals.get? "userBasic" = none := by
     simp only [frame, absorbInternalCheckedFrame, absorbInternalEntry,
       Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert, Std.HashMap.getElem?_empty]; rfl
-  have hr := absorbRead_source frame evm account rfl ha hu
-  have hp := absorbPresent_source frame evm account rfl
+  have hr := absorbRead_source (fork := fork) frame evm account rfl ha hu
+  have hp := absorbPresent_source (fork := fork) frame evm account rfl
   cases ht with
   | minimum hm =>
       rw [if_neg hm] at hp
@@ -44,8 +46,8 @@ theorem absorbReadTail_source {v : CometWithExtendedAssetListImmutables}
 
 theorem absorbInternal_source {v : CometWithExtendedAssetListImmutables}
     {account : AccountAddress} {evm : State} {result : InternalOutcome}
-    (ht : AbsorbInternalTrace v account evm result) (absorber : AccountAddress) :
-    internalSourceResult config (absorbInternalEntry v absorber account) evm
+    (ht : AbsorbInternalTrace fork v account evm result) (absorber : AccountAddress) :
+    internalSourceResult fork config (absorbInternalEntry v absorber account) evm
       absorbInternalCallable.body result := by
   apply internalBlockResult.toSource
   let frame := absorbInternalEntry v absorber account
@@ -70,12 +72,12 @@ theorem absorbInternal_source {v : CometWithExtendedAssetListImmutables}
 
 theorem absorbInternal_call {v : CometWithExtendedAssetListImmutables}
     {account : AccountAddress} {evm : State} {result : InternalOutcome}
-    (ht : AbsorbInternalTrace v account evm result) (frame : Frame) (absorber : AccountAddress)
+    (ht : AbsorbInternalTrace fork v account evm result) (frame : Frame) (absorber : AccountAddress)
     (absorberExpr accountExpr : Expr) (ret : Ident)
     (hc : frame.contract = contract) (hi : frame.immutables = immStore v)
     (ha : evalExpr? config frame evm absorberExpr = .ok (.address absorber))
     (hb : evalExpr? config frame evm accountExpr = .ok (.address account)) :
-    ExecStmt config frame evm (.internalCall "absorbInternal" [absorberExpr, accountExpr] ret)
+    ExecStmt fork config frame evm (.internalCall "absorbInternal" [absorberExpr, accountExpr] ret)
       (internalStmtResult frame ret result) := by
   apply internalVoidCall (callee := absorbInternalCallable)
     (locals := (absorbInternalEntry v absorber account).locals)

@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.MintAfterUpdateCases
 import Examples.UniswapV2Pair.BurnUpdateSource
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -14,7 +16,7 @@ theorem uniswapKLastIfFeeSource {locals : Store} (evm : EVM.State) (fee : Bool)
     (hr0 : locals.get? "reserve0" = none) (hr1 : locals.get? "reserve1" = none)
     (hk : locals.get? "kLast" = none)
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config { contract := contract, locals := locals } evm uniswapKLastIfFeeStmt
+    ExecStmt fork config { contract := contract, locals := locals } evm uniswapKLastIfFeeStmt
       (.ok { contract := contract, locals := locals } (uniswapKLastIfFeeState evm fee)) := by
   have heval : evalExpr? config { contract := contract, locals := locals } evm (.var "feeOn") = .ok (.bool fee) := by
     simp only [evalExpr?, EvalResult.ofOption, hfee]
@@ -36,15 +38,15 @@ theorem uniswapBurnAfterUpdateSourceReturns {locals : Store} (evm : EVM.State) (
     (hr0 : locals.get? "reserve0" = none) (hr1 : locals.get? "reserve1" = none)
     (hk : locals.get? "kLast" = none) (hu : locals.get? "unlocked" = none)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := locals } evm burnAfterUpdateTail
+    ExecBlock fork config { contract := contract, locals := locals } evm burnAfterUpdateTail
       (.returned { contract := contract, locals := locals }
         (uniswapLockExitedState (uniswapKLastIfFeeState evm fee))
         (some [uniswapUint256Value amount0, uniswapUint256Value amount1])) := by
-  have hkStep := uniswapKLastIfFeeSource (hperm := by assumption) evm fee hfee hr0 hr1 hk
-  have hlock := uniswapLockExitSuffix
+  have hkStep := uniswapKLastIfFeeSource (fork := fork) (hperm := by assumption) evm fee hfee hr0 hr1 hk
+  have hlock := uniswapLockExitSuffix (fork := fork)
     (hperm := by cases fee <;> simpa [uniswapKLastIfFeeState, mintKLastUpdatedState] using hperm)
     (uniswapKLastIfFeeState evm fee) locals hu
-  have hreturn : ExecBlock config { contract := contract, locals := locals }
+  have hreturn : ExecBlock fork config { contract := contract, locals := locals }
       (uniswapLockExitedState (uniswapKLastIfFeeState evm fee)) [.return [.var "amount0", .var "amount1"]]
       (.returned { contract := contract, locals := locals }
         (uniswapLockExitedState (uniswapKLastIfFeeState evm fee))
@@ -66,16 +68,16 @@ theorem burnAfterUpdateStore_bases (reserveEvm callEvm feeEvm : EVM.State) (I : 
   all_goals simp only [Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_empty]
 
 theorem uniswapBurnBodyReturns_afterUpdate (evm evmU evmR : EVM.State) (I : ExecutionEnv) (locals : Store) (amount0 amount1 : UInt256)
-    (hprefix : ExecBlock config { contract := contract, locals := burnStore I } evm burnBeforeUpdatePrefix
+    (hprefix : ExecBlock fork config { contract := contract, locals := burnStore I } evm burnBeforeUpdatePrefix
       (.ok { contract := contract, locals := locals } evmU))
-    (hupdate : ExecStmt config { contract := contract, locals := locals } evmU
+    (hupdate : ExecStmt fork config { contract := contract, locals := locals } evmU
       (.internalCall "_update" [.var "newBalance0", .var "newBalance1", .var "_reserve0", .var "_reserve1"] "_updateResult")
       (.ok (resumeAfterInternalCall { contract := contract, locals := locals } "_updateResult" none) evmR))
     {evmFinal : EVM.State}
-    (htail : ExecBlock config (resumeAfterInternalCall { contract := contract, locals := locals } "_updateResult" none) evmR
+    (htail : ExecBlock fork config (resumeAfterInternalCall { contract := contract, locals := locals } "_updateResult" none) evmR
       burnAfterUpdateTail (.returned (resumeAfterInternalCall { contract := contract, locals := locals } "_updateResult" none)
         evmFinal (some [uniswapUint256Value amount0, uniswapUint256Value amount1]))) :
-    ExecTransitionBody config contract evm (burnStore I) burnTransition.body
+    ExecTransitionBody fork config contract evm (burnStore I) burnTransition.body
       (.returned (resumeAfterInternalCall { contract := contract, locals := locals } "_updateResult" none)
         evmFinal (some [uniswapUint256Value amount0, uniswapUint256Value amount1])) := by
   apply ExecFuncBody.execBlockRet

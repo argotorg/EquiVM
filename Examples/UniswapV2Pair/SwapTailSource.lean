@@ -1,4 +1,6 @@
 import Examples.UniswapV2Pair.SwapUpdateSource
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000
@@ -20,18 +22,18 @@ theorem swapBeforeUpdateFrame_unlocked (evm : EVM.State) (I : ExecutionEnv)
 
 theorem uniswapSwapBodyReturns_afterUpdate (evm evmU evmR : EVM.State) (I : ExecutionEnv)
     (locals : Store)
-    (hprefix : ExecBlock config { contract := contract, locals := swapStore I } evm swapInvariantPrefix
+    (hprefix : ExecBlock fork config { contract := contract, locals := swapStore I } evm swapInvariantPrefix
       (.ok { contract := contract, locals := locals } evmU))
-    (hupdate : ExecStmt config { contract := contract, locals := locals } evmU
+    (hupdate : ExecStmt fork config { contract := contract, locals := locals } evmU
       (.internalCall "_update" [.var "balance0", .var "balance1", .var "_reserve0", .var "_reserve1"]
         "_updateResult")
       (.ok (resumeAfterInternalCall { contract := contract, locals := locals } "_updateResult" none) evmR))
     (hu : locals.get? "unlocked" = none)
     (hperm : evmR.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (swapStore I) swapTransition.body
+    ExecTransitionBody fork config contract evm (swapStore I) swapTransition.body
       (.returned (resumeAfterInternalCall { contract := contract, locals := locals } "_updateResult" none)
         (uniswapLockExitedState evmR) none) := by
-  have htail := uniswapLockExitSuffix (hperm := by assumption) evmR (locals.insert "_updateResult" .unit)
+  have htail := uniswapLockExitSuffix (fork := fork) (hperm := by assumption) evmR (locals.insert "_updateResult" .unit)
     (by rw [store_get_ne _ _ (by decide)]; exact hu)
   apply ExecFuncBody.execBlockOK
   simpa only [swapTransition, swapInvariantPrefix, swapAdjustmentPrefix, swapInputGuardPrefix,

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.PoolSwapDeltaWords
 import Benchmarks.UniswapV4PoolManager.ValueLocals
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -37,7 +39,7 @@ theorem poolSwapDeltaBranchSource {f : Frame} {evm : State} {p : PoolSwapParamsW
     (hr : f.locals.get? "amountSpecifiedRemaining" = some (.int (EVM.signed remaining)))
     (hc : f.locals.get? "amountCalculated" = some (.int (EVM.signed calculated)))
     (hd : f.locals.get? "swapDelta" = some old) :
-    ExecBlock config f evm (poolSwapDeltaBranch cf)
+    ExecBlock fork config f evm (poolSwapDeltaBranch cf)
       (if poolSwapDeltaFits cf p.amountSpecified remaining calculated then
         .ok (poolSwapDeltaFrame f cf p.amountSpecified remaining calculated) evm else .reverted) := by
   let a := poolSwapDeltaArg cf p.amountSpecified remaining calculated
@@ -45,7 +47,7 @@ theorem poolSwapDeltaBranchSource {f : Frame} {evm : State} {p : PoolSwapParamsW
   let f1 := valueLocal f (poolSwapDeltaName0 cf) (.int (EVM.signed a))
   let f2 := valueLocal f1 (poolSwapDeltaName1 cf) (.int (EVM.signed b))
   let f3 := valueLocal f2 (poolSwapDeltaName2 cf) (.int (EVM.signed (balanceDeltaWord a b)))
-  have hfirst := signedToInt128Call hf (poolSwapDeltaExpr_eval (evm := evm) hp hr hc cf) (poolSwapDeltaName0 cf)
+  have hfirst := signedToInt128Call (fork := fork) hf (poolSwapDeltaExpr_eval (evm := evm) hp hr hc cf) (poolSwapDeltaName0 cf)
   by_cases ha : signedFits ⟨128, by decide⟩ (EVM.signed a)
   · rw [if_pos ha] at hfirst
     have hp1 : f1.locals.get? "params" = some (poolSwapParamsValue p) :=
@@ -54,11 +56,11 @@ theorem poolSwapDeltaBranchSource {f : Frame} {evm : State} {p : PoolSwapParamsW
       (store_get_ne _ _ (by cases cf <;> decide : (poolSwapDeltaName0 cf == "amountSpecifiedRemaining") = false)).trans hr
     have hc1 : f1.locals.get? "amountCalculated" = some (.int (EVM.signed calculated)) :=
       (store_get_ne _ _ (by cases cf <;> decide : (poolSwapDeltaName0 cf == "amountCalculated") = false)).trans hc
-    have hsecond := signedToInt128Call (f := f1) hf (poolSwapDeltaExpr_eval (evm := evm) hp1 hr1 hc1 (!cf)) (poolSwapDeltaName1 cf)
+    have hsecond := signedToInt128Call (fork := fork) (f := f1) hf (poolSwapDeltaExpr_eval (evm := evm) hp1 hr1 hc1 (!cf)) (poolSwapDeltaName1 cf)
     by_cases hb : signedFits ⟨128, by decide⟩ (EVM.signed b)
     · rw [if_pos hb] at hsecond
       rw [if_pos (show poolSwapDeltaFits cf p.amountSpecified remaining calculated from ⟨ha, hb⟩)]
-      have hpack : ExecStmt config f2 evm
+      have hpack : ExecStmt fork config f2 evm
           (.internalCall "toBalanceDelta" [.var (poolSwapDeltaName0 cf), .var (poolSwapDeltaName1 cf)] (poolSwapDeltaName2 cf))
           (.ok f3 evm) :=
         balanceDeltaCall (f := f2) hf
@@ -69,7 +71,7 @@ theorem poolSwapDeltaBranchSource {f : Frame} {evm : State} {p : PoolSwapParamsW
           (by cases cf <;> decide : (poolSwapDeltaName1 cf == "swapDelta") = false)
           (by cases cf <;> decide : (poolSwapDeltaName2 cf == "swapDelta") = false)).trans hd
       exact ExecBlock.consNormal hfirst (ExecBlock.consNormal hsecond (ExecBlock.consNormal hpack
-        (execBlock_singleton (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalLocalValue (store_get_self _ _ _)) (assignLocalValue hd3)))))
+        (execBlock_singleton (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalLocalValue (store_get_self _ _ _)) (assignLocalValue hd3)))))
     · rw [if_neg (show ¬poolSwapDeltaFits cf p.amountSpecified remaining calculated from fun hh => hb hh.2)]
       rw [if_neg hb] at hsecond
       exact ExecBlock.consNormal hfirst (ExecBlock.consRevert hsecond)
@@ -96,11 +98,11 @@ theorem poolSwapDeltaSource {f : Frame} {evm : State} {p : PoolSwapParamsWords} 
     (hz : f.locals.get? "zeroForOne" = some (.bool p.zeroForOne))
     (hd : f.locals.get? "swapDelta" = some old) :
     let cf := poolSwapCalculatedFirst p.zeroForOne p.amountSpecified
-    ExecStmt config f evm poolSwapFunction.body[34]!
+    ExecStmt fork config f evm poolSwapFunction.body[34]!
       (if poolSwapDeltaFits cf p.amountSpecified remaining calculated then
         .ok (poolSwapDeltaFrame f cf p.amountSpecified remaining calculated) evm else .reverted) := by
   have hg := poolSwapDeltaCondition_eval (evm := evm) hp hz
-  have hb := poolSwapDeltaBranchSource (evm := evm) (poolSwapCalculatedFirst p.zeroForOne p.amountSpecified) hf hp hr hc hd
+  have hb := poolSwapDeltaBranchSource (fork := fork) (evm := evm) (poolSwapCalculatedFirst p.zeroForOne p.amountSpecified) hf hp hr hc hd
   rw [poolSwapFunction_delta]
   cases he : poolSwapCalculatedFirst p.zeroForOne p.amountSpecified
   · simp only [he] at hg hb ⊢

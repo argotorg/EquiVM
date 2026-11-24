@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PoolSwapFeeWords
 import Benchmarks.UniswapV4PoolManager.SimpleMulDivTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_056
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -23,9 +25,9 @@ theorem poolSwapGrowthTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hl : memLoad (state+UInt256.ofNat 64) mem = liquidity)
     (hf : memLoad (step+UInt256.ofNat 192) mem = s.feeAmount)
     (hg : memLoad (step+UInt256.ofNat 224) mem = s.feeGrowthGlobal)
-    (h : RD (deployedRuntime v) I g s0 ⟨19804⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨19804⟩
       ([tag, x1, params, remaining, calculated, fee, protocol, amount, dir, step, pool, state] ++ R) mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨19833⟩
+    ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨19833⟩
       ([⟨0⟩, tag, x1, params, remaining, calculated, fee, protocol, amount, dir, step, pool, state] ++ R)
       (poolSwapGrowthMemory mem step s liquidity) (poolSwapGrowthAW aw step state liquidity) rdata σ k' C' := by
   have hm : UInt256.land liquidity (UInt256.ofNat 340282366920938463463374607431768211455) = liquidity :=

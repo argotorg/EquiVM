@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.AbsorbAccountsModel
 import Benchmarks.CompoundIII.Comet.AbsorbInternalSource
 import Benchmarks.CompoundIII.Comet.AssetSearch
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -61,7 +63,7 @@ theorem absorbAccountsCond_eval {v absorber accounts startGas i frame}
 
 theorem absorbAccountsIncrement_exec {frame : Frame} {evm : State} {i : Nat}
     (hi : frame.locals.get? "i" = some (.int i)) (hb : i + 1 < UInt256.size) :
-    ExecStmt config frame evm absorbAccountsIncrement (.ok (absorbAccountsNextFrame frame i) evm) := by
+    ExecStmt fork config frame evm absorbAccountsIncrement (.ok (absorbAccountsNextFrame frame i) evm) := by
   apply ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (i + 1))
   · simp only [evalExpr?, hi, EvalResult.ofOption, bind, EvalResult.bind, pure,
       evalBinaryOp_add_int_ok, castValue?]
@@ -84,7 +86,7 @@ theorem absorbAccountsIndex_eval {v absorber accounts startGas i frame cd endOff
 
 theorem absorbAccounts_source {v : CometWithExtendedAssetListImmutables} {cd : ByteArray}
     {i : Nat} {evm : State} {result : InternalOutcome}
-    (ht : AbsorbAccountsTrace v cd i evm result)
+    (ht : AbsorbAccountsTrace fork v cd i evm result)
     {accounts : List Value} {endOffset : Nat} {absorber : AccountAddress} {startGas : UInt256}
     (hread : Solc0815.decodeAddressArrayElems? (absorbArrayLength cd) (cd.toList.drop 4)
       (absorbArrayOffset cd + 32) = some (accounts, endOffset))
@@ -92,10 +94,10 @@ theorem absorbAccounts_source {v : CometWithExtendedAssetListImmutables} {cd : B
     (frame : Frame) (hf : AbsorbAccountsFrame v absorber accounts startGas i frame)
     (hib : i ≤ absorbArrayLength cd) :
     match result with
-    | .ok evm' => ∃ final, ExecBlock config frame evm absorbAccountsBlock (.ok final evm') ∧
+    | .ok evm' => ∃ final, ExecBlock fork config frame evm absorbAccountsBlock (.ok final evm') ∧
         AbsorbAccountsFrame v absorber accounts startGas (absorbArrayLength cd) final
-    | .reverted => ExecBlock config frame evm absorbAccountsBlock .reverted
-    | .staticViolation => ExecBlock config frame evm absorbAccountsBlock .staticViolation := by
+    | .reverted => ExecBlock fork config frame evm absorbAccountsBlock .reverted
+    | .staticViolation => ExecBlock fork config frame evm absorbAccountsBlock .staticViolation := by
   induction ht generalizing frame with
   | @exhausted i evm hi =>
       have heq : i = absorbArrayLength cd := by omega
@@ -129,9 +131,9 @@ theorem absorbAccounts_source {v : CometWithExtendedAssetListImmutables} {cd : B
         (.index (.var "accounts") (.var "i")) "__c2" hf.contract hf.immutables
         (by simp only [evalExpr?, hf.absorber, EvalResult.ofOption])
         (by rw [absorbAccountsIndex_eval hf evm hread hlen hi, if_pos hc])
-      have hinc := absorbAccountsIncrement_exec (evm := evm') hf.called.index
+      have hinc := absorbAccountsIncrement_exec (fork := fork) (evm := evm') hf.called.index
         (by change i + 1 < 2^256; omega)
-      have hbody : ExecBlock config frame evm absorbAccountsBody
+      have hbody : ExecBlock fork config frame evm absorbAccountsBody
           (.ok (absorbAccountsNextFrame (absorbAccountsCallFrame frame) i) evm') :=
         ExecBlock.consNormal hcall (ExecBlock.consNormal hinc .nil)
       have hcond : evalExpr? config frame evm absorbAccountsCond = .ok (.bool true) := by

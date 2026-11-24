@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.PrincipalBorrowEvm
 import Benchmarks.CompoundIII.Comet.SignedNegation
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -15,10 +17,10 @@ theorem cometPrincipalValue {v : CometWithExtendedAssetListImmutables}
     {aw present ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 12 ≤ 1024)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨12742⟩ (present :: ret :: R) mem aw rdata σ k C) :
-    (PrincipalValueFits evm present ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨12742⟩ (present :: ret :: R) mem aw rdata σ k C) :
+    (PrincipalValueFits evm present ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (principalValueWord evm present :: R) mem aw rdata σ k' C') ∨
-    (¬ PrincipalValueFits evm present ∧ RDrev (deployedRuntime v) g s0) := by
+    (¬ PrincipalValueFits evm present ∧ RDrev fork (deployedRuntime v) g s0) := by
   have hw0 : solcSlotWordAt (UInt256.ofNat 0) σ ee =
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩ := by
     simpa only [hs.env] using (hs.storageRead ⟨0⟩).symm
@@ -42,10 +44,10 @@ theorem cometPrincipalValue {v : CometWithExtendedAssetListImmutables}
     obtain ⟨k2, C2, r2⟩ := cometWithExtendedAssetList_block_12751
       (immWords := wordsOf (immStore v)) (by change R.length + 1 + 7 ≤ 1024; omega)
       (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r1
-    change RD _ _ _ _ _ (UInt256.land _ (solcSlotWordAt (UInt256.ofNat 0) σ ee) ::
+    change RD fork _ _ _ _ _ (UInt256.land _ (solcSlotWordAt (UInt256.ofNat 0) σ ee) ::
       present :: ⟨12775⟩ :: ⟨2425⟩ :: ret :: R) _ _ _ _ _ _ at r2
     rw [hw0, u256_land_comm, ← hiS] at r2
-    change RD _ _ _ _ _ (principalValueIndex evm false :: present :: ⟨12775⟩ ::
+    change RD fork _ _ _ _ _ (principalValueIndex evm false :: present :: ⟨12775⟩ ::
       ⟨2425⟩ :: ret :: R) _ _ _ _ _ _ at r2
     rcases cometPrincipalSupply (v := v) (by change R.length + 2 + 8 ≤ 1024; omega)
         (totalsIndexWord_lt _ false)
@@ -77,11 +79,11 @@ theorem cometPrincipalValue {v : CometWithExtendedAssetListImmutables}
     obtain ⟨k2, C2, r2⟩ := cometWithExtendedAssetList_block_12780
       (immWords := wordsOf (immStore v)) (by change R.length + 1 + 8 ≤ 1024; omega)
       (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r1
-    change RD _ _ _ _ _ (present :: ⟨12813⟩ :: UInt256.land
+    change RD fork _ _ _ _ _ (present :: ⟨12813⟩ :: UInt256.land
       (UInt256.shiftRight (solcSlotWordAt (UInt256.ofNat 0) σ ee) (UInt256.ofNat 64)) _ ::
       ⟨12775⟩ :: ⟨12873⟩ :: ⟨2425⟩ :: ret :: R) _ _ _ _ _ _ at r2
     rw [hw0, ← hiB] at r2
-    change RD _ _ _ _ _ (present :: ⟨12813⟩ :: principalValueIndex evm true ::
+    change RD fork _ _ _ _ _ (present :: ⟨12813⟩ :: principalValueIndex evm true ::
       ⟨12775⟩ :: ⟨12873⟩ :: ⟨2425⟩ :: ret :: R) _ _ _ _ _ _ at r2
     rcases cometNegate256 (v := v) (by change R.length + 5 + 4 ≤ 1024; omega)
         (by rw [cometWithExtendedAssetListPatchedValidJumps v]; jump_dest) r2 with

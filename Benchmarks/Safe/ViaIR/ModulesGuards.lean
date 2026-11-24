@@ -5,6 +5,8 @@ import Benchmarks.Safe.ViaIR.Blocks.Runtime_013
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_014
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_015
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -13,10 +15,10 @@ namespace Benchmarks.Safe.ViaIR
 set_option maxRecDepth 2000
 
 theorem safeModulesStartCheck {I g s0 σ k C aw mem rdata start} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨2556⟩ (start :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨2556⟩ (start :: R) mem aw rdata σ k C)
     (hov : R.length + 10 ≤ 1024) (hc : start.toNat < EVM.addressModulus)
     (hm : mem.size = 96) (hread : mem.readWithPadding 64 32 = (⟨128⟩ : UInt256).toByteArray) :
-    ∃ mem' aw' k' C' dummy, RD safeBytecode I g s0 ⟨2583⟩
+    ∃ mem' aw' k' C' dummy, RD fork safeBytecode I g s0 ⟨2583⟩
         (dummy :: (decide (¬(start = ⟨1⟩ ∨ moduleLinkAt σ I start ≠ ⟨0⟩))).toUInt256 ::
           calldataWord I.calldata 36 :: start :: R) mem' aw' rdata σ k' C' ∧
       mem'.size = 96 ∧ mem'.readWithPadding 64 32 = (⟨128⟩ : UInt256).toByteArray := by
@@ -42,29 +44,29 @@ theorem safeModulesStartCheck {I g s0 σ k C aw mem rdata start} {R : List UInt2
       simpa [safeRuntime_block_2966_stack, addressMembership, hs, hz, UInt256.isZero] using h2583
 
 theorem safeModulesInvalidStart {I g s0 σ k C aw mem rdata dummy} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨2583⟩ (dummy :: ⟨1⟩ :: R) mem aw rdata σ k C)
-    (hov : R.length + 4 ≤ 1024) : RDrev safeBytecode g s0 := by
+    (h : RD fork safeBytecode I g s0 ⟨2583⟩ (dummy :: ⟨1⟩ :: R) mem aw rdata σ k C)
+    (hov : R.length + 4 ≤ 1024) : RDrev fork safeBytecode g s0 := by
   have h2911 := safeRuntime_block_2583_taken (by omega) (by decide) (by jump_dest) h
   exact safeRuntime_block_2911
     (by simp only [safeRuntime_block_2583_taken_stack]; omega) h2911
 
 theorem safeModulesZeroSize {I g s0 σ k C aw mem rdata} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨2589⟩ (⟨0⟩ :: R) mem aw rdata σ k C)
-    (hov : R.length + 5 ≤ 1024) : RDrev safeBytecode g s0 := by
+    (h : RD fork safeBytecode I g s0 ⟨2589⟩ (⟨0⟩ :: R) mem aw rdata σ k C)
+    (hov : R.length + 5 ≤ 1024) : RDrev fork safeBytecode g s0 := by
   have h2866 := safeRuntime_block_2589_taken (by omega) (by decide) (by jump_dest) h
   exact safeRuntime_block_2866 (by simp; omega) h2866
 
 theorem safeModulesSizeCheck {I g s0 σ k C aw mem rdata pageSize} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨2589⟩ (pageSize :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨2589⟩ (pageSize :: R) mem aw rdata σ k C)
     (hov : R.length + 3 ≤ 1024) (hz : pageSize ≠ ⟨0⟩) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨2595⟩ (pageSize :: R) mem aw rdata σ k' C' := by
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨2595⟩ (pageSize :: R) mem aw rdata σ k' C' := by
   exact ⟨_, _, safeRuntime_block_2589_fallthrough hov (isZero_eq_zero_of_ne hz) h⟩
 
 theorem safeModulesLargeSize {I g s0 σ k C aw mem rdata pageSize} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨2595⟩ (pageSize :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨2595⟩ (pageSize :: R) mem aw rdata σ k C)
     (hov : R.length + 12 ≤ 1024) (hn : ¬pageSize.toNat ≤ 2 ^ 59 - 6)
     (hread : mem.readWithPadding 64 32 = (⟨128⟩ : UInt256).toByteArray) :
-    RDrev safeBytecode g s0 := by
+    RDrev fork safeBytecode g s0 := by
   have h8950 := safeRuntime_block_2595 (by omega) (by jump_dest) h
   simp only [safeRuntime_block_2595_stack] at h8950
   have h8927 := safeRuntime_block_8950 (by simp; omega) (by jump_dest) h8950

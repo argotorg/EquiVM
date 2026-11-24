@@ -4,6 +4,8 @@ import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_018
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_019
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_030
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V0_cdb2eb5.RuntimeBlocks
 
@@ -64,7 +66,7 @@ theorem safeThresholdSource (evm : EVM.State) (value : UInt256)
     (hle : value.toNat ≤ (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨3⟩).toNat)
     (hnz : value ≠ ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecFuncBody config (thresholdFrame value) evm changeThresholdBodyFunction.body
+    ExecFuncBody fork config (thresholdFrame value) evm changeThresholdBodyFunction.body
       (.returned (thresholdFrame value)
         (Stele.EVM.storageStore evm evm.executionEnv.codeOwner ⟨4⟩ value) none) := by
   have hn : value.toNat ≠ 0 := fun h ↦ hnz (uint256_toNat_eq_zero h)
@@ -76,7 +78,7 @@ theorem safeThresholdSource (evm : EVM.State) (value : UInt256)
 theorem safeThresholdSourceStatic (evm : EVM.State) (value : UInt256)
     (hle : value.toNat ≤ (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨3⟩).toNat)
     (hnz : value ≠ ⟨0⟩) (hperm : evm.executionEnv.perm = false) :
-    ExecFuncBody config (thresholdFrame value) evm changeThresholdBodyFunction.body
+    ExecFuncBody fork config (thresholdFrame value) evm changeThresholdBodyFunction.body
       .staticViolation := by
   have hn : value.toNat ≠ 0 := fun h ↦ hnz (uint256_toNat_eq_zero h)
   exact .execBlockStatic
@@ -87,21 +89,21 @@ theorem safeThresholdSourceStatic (evm : EVM.State) (value : UInt256)
 
 theorem safeThresholdSourceTooLarge (evm : EVM.State) (value : UInt256)
     (hle : ¬ value.toNat ≤ (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨3⟩).toNat) :
-    ExecFuncBody config (thresholdFrame value) evm changeThresholdBodyFunction.body .reverted :=
+    ExecFuncBody fork config (thresholdFrame value) evm changeThresholdBodyFunction.body .reverted :=
   .execBlockRevert (.consRevert (.requireFalse (by simpa [hle] using safeThresholdBound evm value)))
 
 theorem safeThresholdSourceZero (evm : EVM.State) :
-    ExecFuncBody config (thresholdFrame ⟨0⟩) evm changeThresholdBodyFunction.body .reverted := by
+    ExecFuncBody fork config (thresholdFrame ⟨0⟩) evm changeThresholdBodyFunction.body .reverted := by
   exact .execBlockRevert (.consNormal (.requireTrue
     (by simpa only [show (⟨0⟩ : UInt256).toNat = 0 by rfl, Nat.zero_le, decide_true]
       using safeThresholdBound evm ⟨0⟩))
     (.consRevert (.requireFalse (by simpa using safeThresholdNonzero evm ⟨0⟩))))
 
 theorem safeThresholdReach {I g s0 σ k C aw mem rdata} {value : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3329⟩ (value :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨3329⟩ (value :: R) mem aw rdata σ k C)
     (hov : R.length + 3 ≤ 1024)
     (hle : value.toNat ≤ (solcSlotWordAt ⟨3⟩ σ I).toNat) (hnz : value ≠ ⟨0⟩) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨3380⟩ (value :: R) mem aw rdata σ k' C' := by
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨3380⟩ (value :: R) mem aw rdata σ k' C' := by
   obtain ⟨_, _, h3450⟩ := safeRuntime_block_3329_taken hov
     (by
       change UInt256.isZero (UInt256.gt value (solcSlotWordAt ⟨3⟩ σ I)) ≠ ⟨0⟩
@@ -109,25 +111,25 @@ theorem safeThresholdReach {I g s0 σ k C aw mem rdata} {value : UInt256} {R : L
   exact ⟨_, _, safeRuntime_block_3356_taken hov (u256_zero_sub_ne_zero hnz) (by jump_dest) h3450⟩
 
 theorem safeThresholdTrace {I g s0 σ k C aw mem rdata} {value ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3380⟩ (value :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨3380⟩ (value :: ret :: R) mem aw rdata σ k C)
     (hov : R.length + 6 ≤ 1024) (hperm : I.perm = true)
     (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ mem' aw' k' C', RD safeBytecode I g s0 ret R mem' aw' rdata
+    ∃ mem' aw' k' C', RD fork safeBytecode I g s0 ret R mem' aw' rdata
       (sstoreAccountMap I.codeOwner σ ⟨4⟩ value) k' C' := by
   obtain ⟨_, _, hout⟩ := safeRuntime_block_3380 hov hperm hret h
   exact ⟨_, _, _, _, hout⟩
 
 theorem safeThresholdTraceStatic {I g s0 σ k C aw mem rdata} {value : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3380⟩ (value :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨3380⟩ (value :: R) mem aw rdata σ k C)
     (hov : R.length + 3 ≤ 1024) (hperm : I.perm = false) :
-    RDstatic safeBytecode g s0 := by
+    RDstatic fork safeBytecode g s0 := by
   have hstore := evm_run h with [jumpdest, push1 ⟨4⟩, dup2, swap1]
   exact hstore.sstoreStatic hperm (by native_decide) (by simp; omega)
 
 theorem safeThresholdTraceTooLarge {I g s0 σ k C aw mem rdata} {value : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3329⟩ (value :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨3329⟩ (value :: R) mem aw rdata σ k C)
     (hov : R.length + 7 ≤ 1024)
-    (hle : ¬ value.toNat ≤ (solcSlotWordAt ⟨3⟩ σ I).toNat) : RDrev safeBytecode g s0 := by
+    (hle : ¬ value.toNat ≤ (solcSlotWordAt ⟨3⟩ σ I).toNat) : RDrev fork safeBytecode g s0 := by
   obtain ⟨_, _, h3434⟩ := safeRuntime_block_3329_fallthrough (by omega)
     (by
       change UInt256.isZero (UInt256.gt value (solcSlotWordAt ⟨3⟩ σ I)) = ⟨0⟩
@@ -136,8 +138,8 @@ theorem safeThresholdTraceTooLarge {I g s0 σ k C aw mem rdata} {value : UInt256
   exact safeRuntime_block_6990 (by simp; omega) h6898
 
 theorem safeThresholdTraceZero {I g s0 σ k C aw mem rdata} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3329⟩ (⟨0⟩ :: R) mem aw rdata σ k C)
-    (hov : R.length + 7 ≤ 1024) : RDrev safeBytecode g s0 := by
+    (h : RD fork safeBytecode I g s0 ⟨3329⟩ (⟨0⟩ :: R) mem aw rdata σ k C)
+    (hov : R.length + 7 ≤ 1024) : RDrev fork safeBytecode g s0 := by
   obtain ⟨_, _, h3450⟩ := safeRuntime_block_3329_taken (by omega)
     (by
       change UInt256.isZero (UInt256.gt ⟨0⟩ (solcSlotWordAt ⟨3⟩ σ I)) ≠ ⟨0⟩

@@ -3,6 +3,8 @@ import Benchmarks.Safe.ViaIR.ExecTransactionPaymentTrace
 import Benchmarks.Safe.ViaIR.ExecTransactionSuccessCheck
 import Benchmarks.Safe.ViaIR.ExecTransactionGasCheck
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.ViaIR
@@ -12,7 +14,7 @@ set_option maxHeartbeats 800000 in
 theorem safeExecTransactionAfterGuard (p : ExecTransactionInput) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata src ptr locals} {sigPtr guard hash : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4584⟩
+    (h : RD fork safeBytecode I g s0 ⟨4584⟩
       (execGuardSaved p src sigPtr guard hash (⟨0⟩ :: R)) mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ) (hworld : evm.σ₀ = s0.σ₀)
     (hcFields : ExecTransactionCalldataFields I.calldata p)
@@ -26,15 +28,15 @@ theorem safeExecTransactionAfterGuard (p : ExecTransactionInput) (evm : EVM.Stat
     (hdata : I.calldata.extract src (src + p.tx.payload.size) = p.tx.payload)
     (hn : p.tx.payload.size < 2 ^ 64)
     (hov : R.length + 48 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧ ExecBlock config { contract := contract, locals := locals }
+    (RDrev fork safeBytecode g s0 ∧ ExecBlock fork config { contract := contract, locals := locals }
       evm (exectransactionTransition.body.drop 8) .reverted) ∨
-    (RDstatic safeBytecode g s0 ∧ ExecBlock config { contract := contract, locals := locals }
+    (RDstatic fork safeBytecode g s0 ∧ ExecBlock fork config { contract := contract, locals := locals }
       evm (exectransactionTransition.body.drop 8) .staticViolation) ∨
     ∃ frame' evm' σ' z,
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         (exectransactionTransition.body.drop 8) (.returned frame' evm' (some [.bool z])) ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧ evm'.σ₀ = s0.σ₀ ∧
-      RDret safeBytecode g s0 σ' z.toUInt256.toByteArray := by
+      RDret fork safeBytecode g s0 σ' z.toUInt256.toByteArray := by
   obtain ⟨hr, hs⟩ | ⟨gasCheck, k₁, C₁, prefix₁, h₁⟩ :=
     safeExecGasCheck p evm h hcFields hl (by simp; omega)
   · exact .inl ⟨hr, hs⟩

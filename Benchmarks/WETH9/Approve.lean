@@ -1,5 +1,7 @@
 import Benchmarks.WETH9.Routines
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # WETH9 `approve(address,uint256)` refinement
 
@@ -155,17 +157,17 @@ theorem approveAssign (evm : EVM.State) (I : ExecutionEnv)
 theorem weth9ApproveBodyReturnsSplit (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩)
     (hsrc : evm.executionEnv.source = I.source) :
-    (evm.executionEnv.perm = true → ExecTransitionBody config contract evm (approveStore I) approveTransition.body
+    (evm.executionEnv.perm = true → ExecTransitionBody fork config contract evm (approveStore I) approveTransition.body
       (.returned { contract := contract, locals := approveStore I }
         (approvePostState evm I) (some [.bool true]))) ∧
-      (evm.executionEnv.perm = false → ExecTransitionBody config contract evm
+      (evm.executionEnv.perm = false → ExecTransitionBody fork config contract evm
         (approveStore I) approveTransition.body .staticViolation) := by
   have hvalue := evalExpr_approve_wad evm I
   have hassign := approveAssign evm I hsrc
   have hprefix {result : ExecResult}
-      (htail : ExecBlock config { contract := contract, locals := approveStore I } evm
+      (htail : ExecBlock fork config { contract := contract, locals := approveStore I } evm
         (approveTransition.body.drop 1) result) :
-      ExecBlock config { contract := contract, locals := approveStore I } evm
+      ExecBlock fork config { contract := contract, locals := approveStore I } evm
         approveTransition.body result :=
     ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true h)) htail
   constructor
@@ -183,7 +185,7 @@ theorem weth9ApproveBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩)
     (hsrc : evm.executionEnv.source = I.source)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (approveStore I) approveTransition.body
+    ExecTransitionBody fork config contract evm (approveStore I) approveTransition.body
       (.returned { contract := contract, locals := approveStore I }
         (approvePostState evm I) (some [.bool true])) :=
   (weth9ApproveBodyReturnsSplit evm I h hsrc).1 hperm
@@ -296,10 +298,10 @@ theorem weth9ApproveReachDecode {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 1)) :
-    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨981⟩
+    ∃ k C, RD fork weth9Bytecode I g (initState σ σ₀ g A I) ⟨981⟩
       [approveWadWord I, approveGuyMaskedWord I, ⟨361⟩, weth9SelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
-  obtain ⟨_, _, h304⟩ := weth9ReachApprove (σ := σ)
+  obtain ⟨_, _, h304⟩ := weth9ReachApprove (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode (by omega) hsize hsel
   obtain ⟨_, _, h318⟩ := solcFunctionGuardPeelOk (gt := ⟨316⟩) h304 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -330,14 +332,14 @@ theorem weth9ApproveReachDecode {σ σ₀ A I} {g : Sat256}
     reaching the bool-return encoder at pc 361 with the constant `1` on the stack. -/
 theorem weth9ApproveStoreLogSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
-    (h : RD weth9Bytecode I g s0 ⟨981⟩
+    (h : RD fork weth9Bytecode I g s0 ⟨981⟩
       [approveWadWord I, approveGuyMaskedWord I, ⟨361⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     (I.perm = true ∧
-      ∃ k' C', RD weth9Bytecode I g s0 ⟨361⟩ [⟨1⟩, sel]
+      ∃ k' C', RD fork weth9Bytecode I g s0 ⟨361⟩ [⟨1⟩, sel]
         (approveLogMem I) (UInt256.ofNat 5) ByteArray.empty
         (sstoreAccountMap I.codeOwner σ (approveStorageSlot I) (approveWadWord I)) k' C') ∨
-      (I.perm = false ∧ RDstatic weth9Bytecode g s0) := by
+      (I.perm = false ∧ RDstatic fork weth9Bytecode g s0) := by
   have hinnerSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((approveInnerMem I).readWithPadding 0 64))) =
@@ -462,10 +464,10 @@ theorem weth9ApproveX_okSplit {σ σ₀ A I} {g : Sat256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 1)) :
     (I.perm = true ∧
-      RDret weth9Bytecode g (initState σ σ₀ g A I)
+      RDret fork weth9Bytecode g (initState σ σ₀ g A I)
         (sstoreAccountMap I.codeOwner σ (approveStorageSlot I) (approveWadWord I))
         (UInt256.toByteArray ⟨1⟩)) ∨
-      (I.perm = false ∧ RDstatic weth9Bytecode g (initState σ σ₀ g A I)) := by
+      (I.perm = false ∧ RDstatic fork weth9Bytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, h981⟩ := weth9ApproveReachDecode (g := g) hcode hwv hsz68 hsize hsel
   rcases weth9ApproveStoreLogSplit (I := I) h981 with
     ⟨hperm, _, _, h361⟩ | ⟨hperm, hstatic⟩
@@ -485,7 +487,7 @@ theorem weth9ApproveX_ok {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩) (hperm : I.perm = true)
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 1)) :
-    RDret weth9Bytecode g (initState σ σ₀ g A I)
+    RDret fork weth9Bytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ (approveStorageSlot I) (approveWadWord I))
       (UInt256.toByteArray ⟨1⟩) :=
   permSplit_true hperm (weth9ApproveX_okSplit hcode hwv hsz68 hsize hsel)
@@ -497,9 +499,9 @@ theorem weth9ApproveBodyCoreOk {σ σ₀ A I} {g : UInt256}
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
     (hsel : selIs I (weth9SelBytes 1)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (approveStore I)
         approveTransition.body
         (.returned { contract := contract, locals := approveStore I }
@@ -518,11 +520,11 @@ theorem weth9ApproveBodyCoreStaticOk {σ σ₀ A I} {g : UInt256}
     (hperm : I.perm = false) (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
     (hsel : selIs I (weth9SelBytes 1)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hstatic := permSplit_false hperm
-    (weth9ApproveX_okSplit (σ := σ) (σ₀ := σ₀) (A := A)
+    (weth9ApproveX_okSplit (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
       (g := Sat256.ofUInt256 g) hcode hwv hsz68 hsize hsel)
-  have hbody := (weth9ApproveBodyReturnsSplit
+  have hbody := (weth9ApproveBodyReturnsSplit (fork := fork)
     (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
     (by simpa [initState] using hwv) (by simp [initState])).2 hperm
   exact weth9ReEquivExecStatic hcode hstatic
@@ -532,8 +534,8 @@ theorem weth9ApproveBodyCoreDecodeFailed_short {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68)
     (hsel : selIs I (weth9SelBytes 1)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
-  obtain ⟨_, _, h304⟩ := weth9ReachApprove (σ := σ)
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
+  obtain ⟨_, _, h304⟩ := weth9ReachApprove (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsz4 hsize hsel
   obtain ⟨_, _, h318⟩ := solcFunctionGuardPeelOk (gt := ⟨316⟩) h304 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -544,7 +546,7 @@ theorem weth9ApproveBodyCoreDecodeFailed_short {σ σ₀ A I} {g : UInt256}
       hsize]
     simp only [show (⟨64⟩ : UInt256).toNat = 64 from rfl,
       show (⟨4⟩ : UInt256).toNat = 4 from rfl]; omega
-  have hrev : RDrev weth9Bytecode (Sat256.ofUInt256 g)
+  have hrev : RDrev fork weth9Bytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
     h318.push2 ⟨361⟩ (by native_decide) (by simp)
       |>.push1 ⟨4⟩ (by native_decide) (by simp)
@@ -565,7 +567,7 @@ theorem weth9ApproveBodyCoreDecodeFailed_short {σ σ₀ A I} {g : UInt256}
 theorem weth9ApproveBodyCoreAnyPerm {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 1)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (weth9SelBytes 1) (by native_decide) hsel
   by_cases hwv : I.weiValue = ⟨0⟩
@@ -574,7 +576,7 @@ theorem weth9ApproveBodyCoreAnyPerm {σ σ₀ A I} {g : UInt256}
       · exact weth9ApproveBodyCoreOk hcode hsize hperm hwv hsz68 hsel
       · exact weth9ApproveBodyCoreStaticOk hcode hsize (by simpa using hperm) hwv hsz68 hsel
     · exact weth9ApproveBodyCoreDecodeFailed_short hcode hsize hwv hsz4 (by omega) hsel
-  · obtain ⟨_, _, h304⟩ := weth9ReachApprove (σ := σ)
+  · obtain ⟨_, _, h304⟩ := weth9ReachApprove (fork := fork) (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsz4 hsize hsel
     have hrev := solcFunctionGuardPeelRev (gt := ⟨316⟩) h304 hwv
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)

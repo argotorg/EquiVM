@@ -2,6 +2,8 @@ import Benchmarks.Safe.V0_cdb2eb5.RawStaticCall
 import Benchmarks.Safe.V0_cdb2eb5.Memory
 import Reasoning.WordArithmetic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V0_cdb2eb5
@@ -44,24 +46,27 @@ theorem precompileEcrecoverOutput (σ : AccountMap) (g : UInt256) (A : Substate)
       · exact ecrecoverHashOutput _
       · exact Or.inl rfl
 
-theorem thetaEcrecoverOutput (σ σ₀ : AccountMap) (A : Substate)
+theorem thetaEcrecoverOutput {fork : Ethereum.Fork} (σ σ₀ : AccountMap) (A : Substate)
     (s o r : AccountAddress) (g p v v' : UInt256) (d : ByteArray) (e : Fin 1025)
     (H : BlockHeader) (blob : List ByteArray) (blocks : ProcessedBlocks) (w : Bool) :
-    EcrecoverOutput (Θ σ σ₀ A s o r (.Precompiled 1) g p v v' d e H blob blocks w).2.2.2.2 := by
+    EcrecoverOutput (Θ fork σ σ₀ A s o r (.Precompiled 1) g p v v' d e H blob blocks w).2.2.2.2 :=
+      by
   unfold Θ
   dsimp only
   exact precompileEcrecoverOutput _ _ _ _
 
 theorem callEcrecoverOutput {evm evm' : EVM.State} {d out : ByteArray} {z perm : Bool}
-    (hc : callViaEVM evm (AccountAddress.ofNat 1) 0 d (z, evm', out) perm) :
+    (hc : callViaEVM fork evm (AccountAddress.ofNat 1) 0 d (z, evm', out) perm) :
     EcrecoverOutput out := by
   cases hc with
   | callNotMade => exact Or.inl rfl
   | callMade hvalue hcall hevm hbal hdepth =>
       obtain ⟨gas, A, hΘ⟩ := hcall
-      have hto : toExecute evm.accountMap (AccountAddress.ofNat 1) = .Precompiled 1 := rfl
+      have hto : toExecute fork evm.accountMap (AccountAddress.ofNat 1) =
+          .Precompiled 1 := toExecute_ecrecover_precompile evm.accountMap
       rw [hto, hvalue] at hΘ
-      have hs := thetaEcrecoverOutput evm.accountMap evm.σ₀ A evm.executionEnv.codeOwner
+      have hs := thetaEcrecoverOutput (fork := fork) evm.accountMap evm.σ₀ A
+        evm.executionEnv.codeOwner
         evm.executionEnv.sender (AccountAddress.ofNat 1) gas (.ofNat evm.executionEnv.gasPrice)
         (EVM.wordOfInt 0) (EVM.wordOfInt 0) d (evm.executionEnv.depth + 1) evm.executionEnv.header
         evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks (perm && evm.executionEnv.perm)

@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.ModifyPositionMiddleTrace
 import Benchmarks.UniswapV3.Pool.ModifyPositionMiddleChoice
 import Benchmarks.UniswapV3.Pool.ModifyPositionMemoryPrefix
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -14,16 +16,16 @@ theorem modifyPositionX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p q ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : ModifyPositionArgs) (evm : EVM.State)
     (hs : SourceState s0 ee σ evm)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨16233⟩ (q :: ret :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨16233⟩ (q :: ret :: R) mem aw rdata σ k C)
     (ha : a.Fits) (hm : HeapMemory mem aw p) (hq : ModifyPositionParamsMemory mem q a)
     (hqlo : 96 ≤ q.toNat) (hqp : q.toNat + 128 ≤ p.toNat)
     (hb : p.toNat + 1210 ≤ 2 ^ 200) (hperm : ee.perm = true)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 50 ≤ 1024) :
-    (ExecFuncBody config (modifyPositionFrame (immStore v) a) evm modifyPositionFunction.body .reverted ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    (ExecFuncBody config (modifyPositionFrame (immStore v) a) evm modifyPositionFunction.body .staticViolation ∧
-      RDstatic (deployedRuntime v) g s0) ∨
-    ModifyPositionSuccess v a evm s0 ee g ret R mem p rdata := by
+    (ExecFuncBody fork config (modifyPositionFrame (immStore v) a) evm modifyPositionFunction.body .reverted ∧
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    (ExecFuncBody fork config (modifyPositionFrame (immStore v) a) evm modifyPositionFunction.body .staticViolation ∧
+      RDstatic fork (deployedRuntime v) g s0) ∨
+    ModifyPositionSuccess fork v a evm s0 ee g ret R mem p rdata := by
   rcases modifyPositionPrefixX (v := v) a evm hs rd ha hm hq hqlo hqp (by omega) hov with
     hbad | hstatic | ⟨ht, hprefix, σ1, aw1, k1, C1, hs1, r1, hm1, hq1, hp1⟩
   · exact Or.inl hbad

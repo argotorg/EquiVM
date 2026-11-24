@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.PauseSource
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_021
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -31,10 +33,10 @@ theorem cometPauseAuthorize {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray} {aw : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 ⟨3431⟩ R mem aw rdata σ k C) :
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨3431⟩ R mem aw rdata σ k C) :
     if PauseAuthorized v ee then
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨3489⟩ R mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨3489⟩ R mem aw rdata σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hgov : UInt256.isZero (UInt256.eq (UInt256.ofNat ee.source.val)
       (UInt256.land (wordsOf (immStore v) "governor")
         (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160))

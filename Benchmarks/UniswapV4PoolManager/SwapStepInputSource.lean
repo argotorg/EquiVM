@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.SwapStepSelectFrame
 import Benchmarks.UniswapV4PoolManager.SwapStepDeltaSource
 import Benchmarks.UniswapV4PoolManager.SwapStepWords
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -30,7 +32,7 @@ theorem swapStepInputSource {f : Frame} {evm : EVM.State}
     (hn : f.locals.get? "sqrtPriceNextX96" = some oldNext)
     (hi : f.locals.get? "amountIn" = some oldIn) (ho : f.locals.get? "amountOut" = some oldOut)
     (hfa : f.locals.get? "feeAmount" = some oldFee) :
-    ExecBlock config f evm swapStepInputStmts
+    ExecBlock fork config f evm swapStepInputStmts
       (if swapStepInputFits price target liquidity remaining fee zeroForOne then
         .ok (swapStepInputFrame f price target liquidity remaining fee zeroForOne) evm else .reverted) := by
   let available := swapStepAvailableWord remaining fee
@@ -44,10 +46,10 @@ theorem swapStepInputSource {f : Frame} {evm : EVM.State}
       (hd : ("amount" == name) = false) (hi : ("amountIn" == name) = false) :
       f2.locals.get? name = f.locals.get? name :=
     (amountDeltaFrame_get _ _ _ _ hi hd).trans (hget1 name ha)
-  have h0 := swapStepAvailableSource (evm := evm) hc hr hfee
+  have h0 := swapStepAvailableSource (fork := fork) (evm := evm) hc hr hfee
   by_cases h0fit : swapStepAvailableFits remaining fee
   · rw [if_pos h0fit] at h0
-    have h1 := swapStepDeltaSource (f := f1) (evm := evm) "sqrtPriceTargetX96" "amountIn" true zeroForOne hc hp ht
+    have h1 := swapStepDeltaSource (fork := fork) (f := f1) (evm := evm) "sqrtPriceTargetX96" "amountIn" true zeroForOne hc hp ht
       ((hget1 _ (by decide)).trans hs) ((hget1 _ (by decide)).trans htr)
       ((hget1 _ (by decide)).trans hl) ((hget1 _ (by decide)).trans hb)
       ((hget1 _ (by decide)).trans hi) (by decide)
@@ -55,7 +57,7 @@ theorem swapStepInputSource {f : Frame} {evm : EVM.State}
     · rw [if_pos h1fit] at h1
       have havi : f2.locals.get? "amountRemainingLessFee" = some (.int (Int.ofNat available.toNat)) :=
         (amountDeltaFrame_get _ _ _ _ (by decide) (by decide)).trans (store_get_self _ _ _)
-      have h2 := swapStepInputSelectSource (f := f2) (evm := evm) zeroForOne hc hp
+      have h2 := swapStepInputSelectSource (fork := fork) (f := f2) (evm := evm) zeroForOne hc hp
         ((hget2 _ (by decide) (by decide) (by decide)).trans hs)
         ((hget2 _ (by decide) (by decide) (by decide)).trans htr)
         ((hget2 _ (by decide) (by decide) (by decide)).trans hl)
@@ -76,7 +78,7 @@ theorem swapStepInputSource {f : Frame} {evm : EVM.State}
             f3.locals.get? name = f.locals.get? name :=
           (swapStepInputSelectFrame_get _ _ _ _ _ _ _ _ _ _ hn hi hf hcf hp).trans (hget2 name ha hd hi)
         have hc3 : f3.contract = contract := (swapStepInputSelectFrame_contract _ _ _ _ _ _ _ _ _).trans hc
-        have h3 := swapStepDeltaSource (f := f3) (evm := evm) "sqrtPriceNextX96" "amountOut" false zeroForOne hc3 hp hnc
+        have h3 := swapStepDeltaSource (fork := fork) (f := f3) (evm := evm) "sqrtPriceNextX96" "amountOut" false zeroForOne hc3 hp hnc
           ((hget3 _ (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)).trans hs)
           (swapStepInputSelectFrame_next _ _ _ _ _ _ _ _ _)
           ((hget3 _ (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)).trans hl)

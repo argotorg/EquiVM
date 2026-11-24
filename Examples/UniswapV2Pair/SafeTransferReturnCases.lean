@@ -2,6 +2,8 @@ import Examples.UniswapV2Pair.SafeTransferRuntime
 import Examples.UniswapV2Pair.SafeTransfer
 import Examples.UniswapV2Pair.RawCallSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -21,7 +23,7 @@ theorem uniswapSafeTransferReturnCases
     {base out data : ByteArray} {value toWord tokenWord ret : UInt256} {R : List UInt256} {k C : ℕ}
     {caller : Frame} {tokenExpr toExpr valueExpr : Expr} {retVar : Ident} {z : Bool}
     (evm evm' : EVM.State) (token recipient : AccountAddress)
-    (rd6595 : RD uniswapV2PairBytecode I g s0 ⟨6595⟩
+    (rd6595 : RD fork uniswapV2PairBytecode I g s0 ⟨6595⟩
       ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨360⟩ :: UInt256.land tokenWord solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: tokenWord :: ret :: R)
       (safeTransferRuntimeCallMem2 base toWord value) (UInt256.ofNat 13) out σ k C)
@@ -29,18 +31,18 @@ theorem uniswapSafeTransferReturnCases
     (hargs : evalExprs? config caller evm [tokenExpr, toExpr, valueExpr] =
       .ok (safeTransferArgs token recipient value))
     (hdata : transferCalldata? recipient value = some data)
-    (hcall : callViaEVM evm (EVM.address token) 0 data (z, evm', out))
+    (hcall : callViaEVM fork evm (EVM.address token) 0 data (z, evm', out))
     (hbase : base.size = 164)
     (hbase96 : base.readWithPadding 96 32 = UInt256.toByteArray ⟨0⟩)
     (houtSize : out.size < UInt256.size)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 16 ≤ 1024)
     (himm : caller.immutables = ∅ := by first | rfl | assumption) :
-    (ExecStmt config caller evm (.internalCall "_safeTransfer" [tokenExpr, toExpr, valueExpr] retVar)
-        .reverted ∧ RDrev uniswapV2PairBytecode g s0) ∨
-    (ExecStmt config caller evm (.internalCall "_safeTransfer" [tokenExpr, toExpr, valueExpr] retVar)
+    (ExecStmt fork config caller evm (.internalCall "_safeTransfer" [tokenExpr, toExpr, valueExpr] retVar)
+        .reverted ∧ RDrev fork uniswapV2PairBytecode g s0) ∨
+    (ExecStmt fork config caller evm (.internalCall "_safeTransfer" [tokenExpr, toExpr, valueExpr] retVar)
         (.ok (resumeAfterInternalCall caller retVar none) evm') ∧
-      out.size < 2 ^ 255 ∧ ∃ k' C', RD uniswapV2PairBytecode I g s0 ret R
+      out.size < 2 ^ 255 ∧ ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ret R
         (safeTransferRuntimeFinalMem base toWord value out) (safeTransferRuntimeFinalActiveWords out)
         out σ k' C') := by
   cases z with

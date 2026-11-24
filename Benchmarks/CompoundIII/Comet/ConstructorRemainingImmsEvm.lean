@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.ConstructorRemainingImmsMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open cometWithExtendedAssetListCreationBlocks
 
@@ -82,9 +84,9 @@ theorem cometConstructorRemainingImms {tail : ByteArray} {ee : ExecutionEnv} {g 
     (hptr : memLoad (UInt256.ofNat 64) mem = ptr)
     (hsize : 22161 + 224 * c.assetConfigs.length < UInt256.size)
     (hn : c.assetConfigs.length ≤ 24)
-    (h : RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1024⟩
+    (h : RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1024⟩
       (UInt256.ofNat (constructorRecordBase c) :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1291⟩
+    ∃ aw' k' C', RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1291⟩
       ((g.subNat C').toUInt256 :: constructorRecordWord c 4 :: ptr :: UInt256.ofNat 4 :: ptr ::
         UInt256.ofNat 32 :: UInt256.ofNat (constructorRecordBase c) :: ptr :: R)
       (constructorFactoryCallMemory c w ptr mem) aw' rdata σ k' C' := by

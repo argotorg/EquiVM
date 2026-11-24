@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.AfterLiquidityCall
 import Benchmarks.UniswapV4PoolManager.TupleLocals
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 
@@ -18,7 +20,7 @@ theorem modifyLiquidityAfterAssignSource {f : Frame} {evm : State} {caller hookD
     {oldCaller oldHook : Value}
     (hc : f.locals.get? "callerDelta" = some oldCaller)
     (hh : f.locals.get? "hookDelta" = some oldHook) :
-    ExecBlock config (modifyLiquidityAfterCallFrame f caller hookDelta) evm
+    ExecBlock fork config (modifyLiquidityAfterCallFrame f caller hookDelta) evm
       ((modifyLiquidityTransition.body.drop 27).take 2)
       (.ok (modifyLiquidityAfterHookFrame f caller hookDelta) evm) :=
   assignTuplePair (store_get_self _ _ _)

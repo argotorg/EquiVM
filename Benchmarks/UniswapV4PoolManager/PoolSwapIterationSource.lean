@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.PoolSwapScanComputeSource
 import Benchmarks.UniswapV4PoolManager.PoolSwapAccountingSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -33,7 +35,7 @@ theorem poolSwapIterationSource {f : Frame} {evm : State} {id : UInt256}
     (hfee : f.locals.get? "swapFee" = some (.int (Int.ofNat fee.toNat)))
     (hprot : f.locals.get? "protocolFee" = some (.int (Int.ofNat protocol.toNat)))
     (ha : f.locals.get? "amountToProtocol" = some (.int (Int.ofNat amount.toNat))) :
-    ExecBlock config f evm poolSwapLoopBody
+    ExecBlock fork config f evm poolSwapLoopBody
       (poolSwapIterationResult f evm id s r p remaining calculated fee protocol amount) := by
   let scan := poolSwapScanStep s evm id r p
   let next := tickSqrtPrice (EVM.signed (tickClampWord scan.tickNext))
@@ -41,9 +43,9 @@ theorem poolSwapIterationSource {f : Frame} {evm : State} {id : UInt256}
   let w := swapStepWord r.price (swapTargetWord p.zeroForOne next p.priceLimit) r.liquidity remaining fee
   let f0 := tickClampPriceFrame (poolSwapScanFrame f s evm id r p) scan
   let f1 := poolSwapComputeFrame f0 clamped r p next remaining fee
-  have hpre := poolSwapScanComputeSource (evm := evm) hf htick hrc hlc hs hr hp hself hz hrem hfee
+  have hpre := poolSwapScanComputeSource (fork := fork) (evm := evm) hf htick hrc hlc hs hr hp hself hz hrem hfee
   dsimp only at hpre
-  change ExecBlock config f evm _ (if swapStepFits r.price (swapTargetWord p.zeroForOne next p.priceLimit)
+  change ExecBlock fork config f evm _ (if swapStepFits r.price (swapTargetWord p.zeroForOne next p.priceLimit)
     r.liquidity remaining fee then poolSwapAccountingResult f1 evm id (poolSwapComputeStep clamped next w)
       {r with price := w.next} p remaining calculated fee protocol amount else .reverted)
   by_cases hfit : swapStepFits r.price (swapTargetWord p.zeroForOne next p.priceLimit) r.liquidity remaining fee
@@ -57,7 +59,7 @@ theorem poolSwapIterationSource {f : Frame} {evm : State} {id : UInt256}
         (halias : (poolSwapBitmapAlias == key) = false) : f1.locals.get? key = f.locals.get? key :=
       (poolSwapComputeFrame_get f0 clamped r p next remaining fee key hstep hresult h14 h15).trans
         (poolSwapScanPriceFrame_get f s evm id r p key hstep halias h12 h13)
-    have htail := poolSwapAccountingSource (evm := evm) (s := poolSwapComputeStep clamped next w)
+    have htail := poolSwapAccountingSource (fork := fork) (evm := evm) (s := poolSwapComputeStep clamped next w)
       (r := {r with price := w.next}) hf1 (poolSwapComputeFrame_step ..) (poolSwapComputeFrame_result ..)
       ((hget "params" (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)).trans hp)
       ((hget "self" (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)).trans hself)

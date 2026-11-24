@@ -2,6 +2,8 @@ import Examples.SimpleAuction.Storage
 import Reasoning.SteleBody
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -1505,10 +1507,10 @@ theorem simpleAuctionDecode_withdraw {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.
 
 theorem simpleAuctionX_withdraw_nonpayable {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue ≠ ⟨0⟩)
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g
+    (hreach : ∃ k C, RD fork simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨203⟩ [simpleAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev simpleAuctionBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork simpleAuctionBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd203⟩ := hreach
   exact evm_run rd203 with [
     jumpdest, callvalue, dup1, iszero, push2 ⟨214⟩,
@@ -1517,10 +1519,10 @@ theorem simpleAuctionX_withdraw_nonpayable {σ σ₀ A I} {g : Sat256}
 
 theorem simpleAuctionX_withdraw_entry {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g
+    (hreach : ∃ k C, RD fork simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨203⟩ [simpleAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD simpleAuctionBytecode I g
+    ∃ k C, RD fork simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨809⟩ [⟨223⟩, simpleAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd203⟩ := hreach
@@ -1531,10 +1533,10 @@ theorem simpleAuctionX_withdraw_entry {σ σ₀ A I} {g : Sat256}
 
 theorem simpleAuctionX_withdraw_loadAmount {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g
+    (hreach : ∃ k C, RD fork simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨203⟩ [simpleAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD simpleAuctionBytecode I g
+    ∃ k C, RD fork simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨825⟩
       [withdrawAmountWord σ I, ⟨0⟩, ⟨223⟩, simpleAuctionSelWord I]
       (withdrawPendingHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -1565,18 +1567,18 @@ theorem simpleAuctionX_withdraw_loadAmount {σ σ₀ A I} {g : Sat256}
 set_option maxHeartbeats 1000000 in
 theorem simpleAuctionX_withdraw_toCall {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g
+    (hreach : ∃ k C, RD fork simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨203⟩ [simpleAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hpos : withdrawAmountWord σ I ≠ ⟨0⟩) :
-    (I.perm = true ∧ ∃ gasArg k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨862⟩
+    (I.perm = true ∧ ∃ gasArg k C, RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨862⟩
       [gasArg, withdrawSenderWord I, withdrawAmountWord σ I,
         ⟨128⟩, ⟨0⟩, ⟨128⟩, ⟨0⟩, ⟨128⟩,
         withdrawAmountWord σ I, withdrawSenderWord I, ⟨0⟩,
         withdrawAmountWord σ I, ⟨0⟩, ⟨223⟩, simpleAuctionSelWord I]
       (withdrawRehashMem I) (UInt256.ofNat 3) ByteArray.empty
       (withdrawZeroMap σ I) k C)
-    ∨ (I.perm = false ∧ RDstatic simpleAuctionBytecode g (initState σ σ₀ g A I)) := by
+    ∨ (I.perm = false ∧ RDstatic fork simpleAuctionBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd825⟩ := simpleAuctionX_withdraw_loadAmount
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hreach
   have hnez : UInt256.isZero (withdrawAmountWord σ I) = ⟨0⟩ :=
@@ -1613,7 +1615,7 @@ theorem simpleAuctionX_withdraw_toCall {σ σ₀ A I} {g : Sat256}
 set_option maxHeartbeats 1000000 in
 theorem simpleAuctionX_withdraw_callMade {σ σ₀ A I} {g : Sat256}
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g
+    (hreach : ∃ k C, RD fork simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨203⟩ [simpleAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hpos : withdrawAmountWord σ I ≠ ⟨0⟩)
@@ -1623,16 +1625,16 @@ theorem simpleAuctionX_withdraw_callMade {σ σ₀ A I} {g : Sat256}
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ
-          (withdrawZeroMap σ I) (initState σ σ₀ g A I).σ₀ A_in
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ fork (withdrawZeroMap σ I) (initState σ σ₀ g A I).σ₀
+          A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (withdrawSenderWord I))
-          (toExecute (withdrawZeroMap σ I) (AccountAddress.ofUInt256 (withdrawSenderWord I)))
+          (toExecute fork (withdrawZeroMap σ I) (AccountAddress.ofUInt256 (withdrawSenderWord I)))
           callGas (UInt256.ofNat I.gasPrice)
           (withdrawAmountWord σ I) (withdrawAmountWord σ I)
           ByteArray.empty (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
       ∧ o.size < UInt256.size
-      ∧ RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨863⟩
+      ∧ RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨863⟩
           [(if z then ⟨1⟩ else ⟨0⟩), ⟨128⟩,
             withdrawAmountWord σ I, withdrawSenderWord I, ⟨0⟩,
             withdrawAmountWord σ I, ⟨0⟩, ⟨223⟩, simpleAuctionSelWord I]
@@ -1651,11 +1653,11 @@ theorem simpleAuctionX_withdraw_callMade {σ σ₀ A I} {g : Sat256}
       (⟨0⟩ : UInt256).toNat = ByteArray.empty := by
     exact byteArray_readWithPadding_zero _ _
   have hΘ' : ∃ (g'' : UInt256) (A' : Substate),
-      (σ', g'', A', z, o) = Ethereum.EVM.Θ
-        (withdrawZeroMap σ I) (initState σ σ₀ g A I).σ₀ A_in
+      (σ', g'', A', z, o) = Ethereum.EVM.Θ fork (withdrawZeroMap σ I) (initState σ σ₀ g A I).σ₀
+        A_in
         (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
         (AccountAddress.ofUInt256 (withdrawSenderWord I))
-        (toExecute (withdrawZeroMap σ I) (AccountAddress.ofUInt256 (withdrawSenderWord I)))
+        (toExecute fork (withdrawZeroMap σ I) (AccountAddress.ofUInt256 (withdrawSenderWord I)))
         callGas (UInt256.ofNat I.gasPrice)
         (withdrawAmountWord σ I) (withdrawAmountWord σ I)
         ByteArray.empty (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm := by
@@ -1675,12 +1677,12 @@ theorem simpleAuctionX_withdraw_callMade {σ σ₀ A I} {g : Sat256}
 set_option maxHeartbeats 1000000 in
 theorem simpleAuctionX_withdraw_callDepth {σ σ₀ A I} {g : Sat256}
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g
+    (hreach : ∃ k C, RD fork simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨203⟩ [simpleAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hpos : withdrawAmountWord σ I ≠ ⟨0⟩)
     (hdepth : I.depth = 1024) :
-    ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨863⟩
+    ∃ k C, RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨863⟩
       [⟨0⟩, ⟨128⟩, withdrawAmountWord σ I, withdrawSenderWord I, ⟨0⟩,
         withdrawAmountWord σ I, ⟨0⟩, ⟨223⟩, simpleAuctionSelWord I]
       (withdrawRehashMem I) (UInt256.ofNat 3) ByteArray.empty
@@ -1702,14 +1704,14 @@ theorem simpleAuctionX_withdraw_callDepth {σ σ₀ A I} {g : Sat256}
 set_option maxHeartbeats 1000000 in
 theorem simpleAuctionX_withdraw_callInsufficient {σ σ₀ A I} {g : Sat256}
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g
+    (hreach : ∃ k C, RD fork simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨203⟩ [simpleAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hpos : withdrawAmountWord σ I ≠ ⟨0⟩)
     (hbalance : ¬ withdrawAmountWord σ I ≤
       (withdrawZeroMap σ I |>.get? I.codeOwner |>.elim ⟨0⟩ (·.balance)))
     (hdepth : I.depth.val < 1024) :
-    ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨863⟩
+    ∃ k C, RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨863⟩
       [⟨0⟩, ⟨128⟩, withdrawAmountWord σ I, withdrawSenderWord I, ⟨0⟩,
         withdrawAmountWord σ I, ⟨0⟩, ⟨223⟩, simpleAuctionSelWord I]
       (withdrawRehashMem I) (UInt256.ofNat 3) ByteArray.empty
@@ -1732,10 +1734,10 @@ theorem simpleAuctionX_withdraw_callInsufficient {σ σ₀ A I} {g : Sat256}
 theorem simpleAuctionX_withdraw_postCallEmpty_toBranch {σ σ₀ A I} {g : Sat256}
     {acc : AccountMap}
     {mem : ByteArray} {aw : UInt256} {k C : ℕ} {z amount sender : UInt256}
-    (rd : RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨863⟩
+    (rd : RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨863⟩
       [z, ⟨128⟩, amount, sender, ⟨0⟩, amount, ⟨0⟩, ⟨223⟩, simpleAuctionSelWord I]
       mem aw ByteArray.empty acc k C) :
-    ∃ k' C', RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨918⟩
+    ∃ k' C', RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨918⟩
       [z, amount, ⟨0⟩, ⟨223⟩, simpleAuctionSelWord I]
       mem aw ByteArray.empty acc k' C' := by
   refine ⟨_, _, evm_run rd with [
@@ -1749,11 +1751,11 @@ set_option maxHeartbeats 1000000 in
 theorem simpleAuctionX_withdraw_postCallNonempty_toBranch {σ σ₀ A I}
     {g : Sat256} {acc : AccountMap}
     {k C : ℕ} {z amount sender : UInt256} {o : ByteArray}
-    (rd : RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨863⟩
+    (rd : RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨863⟩
       [z, ⟨128⟩, amount, sender, ⟨0⟩, amount, ⟨0⟩, ⟨223⟩, simpleAuctionSelWord I]
       (withdrawRehashMem I) (UInt256.ofNat 3) o acc k C)
     (ho0 : o.size ≠ 0) (hosz : o.size < 2 ^ 255) :
-    ∃ k' C', RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨918⟩
+    ∃ k' C', RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨918⟩
       [z, amount, ⟨0⟩, ⟨223⟩, simpleAuctionSelWord I]
       (withdrawReturnDataMem I o) (withdrawReturnDataActiveWords o) o acc k' C' := by
   let rdsz : UInt256 := UInt256.ofNat o.size
@@ -1835,11 +1837,11 @@ set_option maxHeartbeats 1000000 in
 theorem simpleAuctionX_withdraw_postCallNonempty_huge_oog {σ σ₀ A I}
     {g : Sat256} {acc : AccountMap}
     {k C : ℕ} {z amount sender : UInt256} {o : ByteArray}
-    (rd : RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨863⟩
+    (rd : RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨863⟩
       [z, ⟨128⟩, amount, sender, ⟨0⟩, amount, ⟨0⟩, ⟨223⟩, simpleAuctionSelWord I]
       (withdrawRehashMem I) (UInt256.ofNat 3) o acc k C)
     (hhi : 2 ^ 255 ≤ o.size) (hosz : o.size < UInt256.size) :
-    X (g.toNat + 1) (D_J simpleAuctionBytecode 0)
+    X fork (g.toNat + 1) (D_J simpleAuctionBytecode 0)
         (initState σ σ₀ g A I) = .error .OutOfGass := by
   let rdsz : UInt256 := UInt256.ofNat o.size
   have hrdsz_toNat : rdsz.toNat = o.size := by
@@ -1895,10 +1897,10 @@ theorem simpleAuctionX_withdraw_postCallNonempty_huge_oog {σ σ₀ A I}
 
 theorem simpleAuctionX_withdraw_successEmpty_return {σ σ₀ A I} {g : Sat256}
     {acc : AccountMap} {k C : ℕ} {amount : UInt256}
-    (rd : RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨918⟩
+    (rd : RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨918⟩
       [⟨1⟩, amount, ⟨0⟩, ⟨223⟩, simpleAuctionSelWord I]
       (withdrawRehashMem I) (UInt256.ofNat 3) ByteArray.empty acc k C) :
-    RDret simpleAuctionBytecode g (initState σ σ₀ g A I) acc
+    RDret fork simpleAuctionBytecode g (initState σ σ₀ g A I) acc
       (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
   have rd223 := evm_run rd with [
     dup1, push2 ⟨946⟩, jumpiT (by decide) (by jump_dest),
@@ -1932,10 +1934,10 @@ theorem simpleAuctionX_withdraw_successNonempty_return {σ σ₀ A I} {g : Sat25
     {acc : AccountMap} {k C : ℕ}
     {amount : UInt256} {o : ByteArray}
     (ho0 : o.size ≠ 0) (hosz : o.size < 2 ^ 255)
-    (rd : RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨918⟩
+    (rd : RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨918⟩
       [⟨1⟩, amount, ⟨0⟩, ⟨223⟩, simpleAuctionSelWord I]
       (withdrawReturnDataMem I o) (withdrawReturnDataActiveWords o) o acc k C) :
-    RDret simpleAuctionBytecode g (initState σ σ₀ g A I) acc
+    RDret fork simpleAuctionBytecode g (initState σ σ₀ g A I) acc
       (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
   have rd223 := evm_run rd with [
     dup1, push2 ⟨946⟩, jumpiT (by decide) (by jump_dest),
@@ -1991,10 +1993,10 @@ theorem simpleAuctionX_withdraw_failureEmpty_return {σ σ₀ A I} {g : Sat256}
     {σx : AccountMap} {k C : ℕ}
     {amount : UInt256}
     (hperm : I.perm = true)
-    (rd : RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨918⟩
+    (rd : RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨918⟩
       [⟨0⟩, amount, ⟨0⟩, ⟨223⟩, simpleAuctionSelWord I]
       (withdrawRehashMem I) (UInt256.ofNat 3) ByteArray.empty σx k C) :
-    RDret simpleAuctionBytecode g (initState σ σ₀ g A I)
+    RDret fork simpleAuctionBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σx (withdrawPendingSlot I) amount)
       (UInt256.toByteArray (⟨0⟩ : UInt256)) := by
   have rd941₀ := evm_run rd with [
@@ -2040,10 +2042,10 @@ theorem simpleAuctionX_withdraw_failureNonempty_return {σ σ₀ A I} {g : Sat25
     {σx : AccountMap} {k C : ℕ}
     {amount : UInt256} {o : ByteArray}
     (hperm : I.perm = true) (ho0 : o.size ≠ 0) (hosz : o.size < 2 ^ 255)
-    (rd : RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨918⟩
+    (rd : RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨918⟩
       [⟨0⟩, amount, ⟨0⟩, ⟨223⟩, simpleAuctionSelWord I]
       (withdrawReturnDataMem I o) (withdrawReturnDataActiveWords o) o σx k C) :
-    RDret simpleAuctionBytecode g (initState σ σ₀ g A I)
+    RDret fork simpleAuctionBytecode g (initState σ σ₀ g A I)
         (sstoreAccountMap I.codeOwner σx (withdrawPendingSlot I) amount)
         (UInt256.toByteArray (⟨0⟩ : UInt256)) := by
   have rdBeforeStoreKey := evm_run rd with [
@@ -2142,12 +2144,12 @@ theorem simpleAuctionX_withdraw_failureNonempty_return {σ σ₀ A I} {g : Sat25
 
 theorem simpleAuctionX_withdraw_callDepth_returnFalse {σ σ₀ A I} {g : Sat256}
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g
+    (hreach : ∃ k C, RD fork simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨203⟩ [simpleAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hpos : withdrawAmountWord σ I ≠ ⟨0⟩)
     (hdepth : I.depth = 1024) :
-    RDret simpleAuctionBytecode g (initState σ σ₀ g A I)
+    RDret fork simpleAuctionBytecode g (initState σ σ₀ g A I)
       (withdrawRestoreMap σ I) (UInt256.toByteArray (⟨0⟩ : UInt256)) := by
   obtain ⟨_, _, rd863⟩ := simpleAuctionX_withdraw_callDepth (g := g) hperm hwv hreach
     hpos hdepth
@@ -2157,14 +2159,14 @@ theorem simpleAuctionX_withdraw_callDepth_returnFalse {σ σ₀ A I} {g : Sat256
 
 theorem simpleAuctionX_withdraw_callInsufficient_returnFalse {σ σ₀ A I} {g : Sat256}
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g
+    (hreach : ∃ k C, RD fork simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨203⟩ [simpleAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hpos : withdrawAmountWord σ I ≠ ⟨0⟩)
     (hbalance : ¬ withdrawAmountWord σ I ≤
       (withdrawZeroMap σ I |>.get? I.codeOwner |>.elim ⟨0⟩ (·.balance)))
     (hdepth : I.depth.val < 1024) :
-    RDret simpleAuctionBytecode g (initState σ σ₀ g A I)
+    RDret fork simpleAuctionBytecode g (initState σ σ₀ g A I)
       (withdrawRestoreMap σ I) (UInt256.toByteArray (⟨0⟩ : UInt256)) := by
   obtain ⟨_, _, rd863⟩ := simpleAuctionX_withdraw_callInsufficient (g := g) hperm hwv
     hreach hpos hbalance hdepth
@@ -2174,11 +2176,11 @@ theorem simpleAuctionX_withdraw_callInsufficient_returnFalse {σ σ₀ A I} {g :
 
 theorem simpleAuctionX_withdraw_zero {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g
+    (hreach : ∃ k C, RD fork simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨203⟩ [simpleAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hzero : withdrawAmountWord σ I = ⟨0⟩) :
-    RDret simpleAuctionBytecode g (initState σ σ₀ g A I) σ
+    RDret fork simpleAuctionBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
   obtain ⟨_, _, rd825⟩ := simpleAuctionX_withdraw_loadAmount
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hreach
@@ -2213,7 +2215,7 @@ theorem simpleAuctionX_withdraw_zero {σ σ₀ A I} {g : Sat256}
 
 theorem simpleAuctionWithdrawBodyReverts_nonpayable {evm : EVM.State} {locals : Store}
     (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecTransitionBody simpleAuctionConfig simpleAuctionContract evm locals
+    ExecTransitionBody fork simpleAuctionConfig simpleAuctionContract evm locals
       withdrawTransition.body .reverted := by
   dsimp [withdrawTransition]
   exact bodyReverts_nonPayable h
@@ -2226,10 +2228,10 @@ theorem simpleAuctionWithdrawBodyReturns_callSuccess
         amount)
     (hpos : amount ≠ ⟨0⟩)
     (hcall :
-      callViaEVM (withdrawZeroState evm) (EVM.address (withdrawZeroState evm).executionEnv.source)
+      callViaEVM fork (withdrawZeroState evm) (EVM.address (withdrawZeroState evm).executionEnv.source)
         (Int.ofNat amount.toNat) ByteArray.empty (true, evm', out))
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody simpleAuctionConfig simpleAuctionContract evm ∅ withdrawTransition.body
+    ExecTransitionBody fork simpleAuctionConfig simpleAuctionContract evm ∅ withdrawTransition.body
       (.returned { contract := simpleAuctionContract, locals := withdrawCallStore amount true out }
         evm' (some [(.bool true)])) := by
   refine ExecFuncBody.execBlockRet ?_
@@ -2246,7 +2248,7 @@ theorem simpleAuctionWithdrawBodyReturns_callSuccess
       (result := .ok
         { contract := simpleAuctionContract, locals := withdrawCallStore amount true out } evm')
       (evalExpr_withdraw_amount_gt_true evm amount hpos) ?_) ?_
-  · show ExecBlock simpleAuctionConfig
+  · show ExecBlock fork simpleAuctionConfig
       { contract := simpleAuctionContract, locals := withdrawAmountStore amount } evm
       [ .assign .storage (pendingReturnsRef sender) (.intLit 0),
         .lowLevelCall sender (.var "amount") (.newBytes (.intLit 0)) "success" "_data",
@@ -2279,10 +2281,10 @@ theorem simpleAuctionWithdrawBodyReturns_callFailure
         amount)
     (hpos : amount ≠ ⟨0⟩)
     (hcall :
-      callViaEVM (withdrawZeroState evm) (EVM.address (withdrawZeroState evm).executionEnv.source)
+      callViaEVM fork (withdrawZeroState evm) (EVM.address (withdrawZeroState evm).executionEnv.source)
         (Int.ofNat amount.toNat) ByteArray.empty (false, evm', out))
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody simpleAuctionConfig simpleAuctionContract evm ∅ withdrawTransition.body
+    ExecTransitionBody fork simpleAuctionConfig simpleAuctionContract evm ∅ withdrawTransition.body
       (.returned { contract := simpleAuctionContract, locals := withdrawCallStore amount false out }
         (withdrawRestoreState evm' amount) (some [(.bool false)])) := by
   refine ExecFuncBody.execBlockRet ?_
@@ -2300,7 +2302,7 @@ theorem simpleAuctionWithdrawBodyReturns_callFailure
         { contract := simpleAuctionContract, locals := withdrawCallStore amount false out }
         (withdrawRestoreState evm' amount) (some [(.bool false)]))
       (evalExpr_withdraw_amount_gt_true evm amount hpos) ?_)
-  show ExecBlock simpleAuctionConfig
+  show ExecBlock fork simpleAuctionConfig
     { contract := simpleAuctionContract, locals := withdrawAmountStore amount } evm
     [ .assign .storage (pendingReturnsRef sender) (.intLit 0),
       .lowLevelCall sender (.var "amount") (.newBytes (.intLit 0)) "success" "_data",
@@ -2332,7 +2334,7 @@ theorem simpleAuctionWithdrawBodyReturns_callFailure
       (hperm := Or.inr (by simpa [callViaEVM_executionEnv_eq hcall, withdrawZeroState] using hperm))
       (evalExpr_withdraw_amount_callStore evm' amount false out)
       (withdrawAssignRestore evm' amount out)) ?_
-  show ExecBlock simpleAuctionConfig
+  show ExecBlock fork simpleAuctionConfig
     { contract := simpleAuctionContract, locals := withdrawCallStore amount false out }
     (withdrawRestoreState evm' amount) [.return [(.boolLit false)]]
     (.returned { contract := simpleAuctionContract, locals := withdrawCallStore amount false out }
@@ -2348,7 +2350,7 @@ theorem simpleAuctionWithdrawBodyStatic
         amount)
     (hpos : amount ≠ ⟨0⟩)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody simpleAuctionConfig simpleAuctionContract evm ∅ withdrawTransition.body
+    ExecTransitionBody fork simpleAuctionConfig simpleAuctionContract evm ∅ withdrawTransition.body
       .staticViolation := by
   refine ExecFuncBody.execBlockStatic ?_
   unfold withdrawTransition
@@ -2361,7 +2363,7 @@ theorem simpleAuctionWithdrawBodyStatic
   refine ExecBlock.consNormal (ExecStmt.letDecl hamountEval) ?_
   refine ExecBlock.consStatic
     (ExecStmt.iteTrue (evalExpr_withdraw_amount_gt_true evm amount hpos) ?_)
-  show ExecBlock simpleAuctionConfig
+  show ExecBlock fork simpleAuctionConfig
     { contract := simpleAuctionContract, locals := withdrawAmountStore amount } evm
     [ .assign .storage (pendingReturnsRef sender) (.intLit 0),
       .lowLevelCall sender (.var "amount") (.newBytes (.intLit 0)) "success" "_data",
@@ -2376,12 +2378,12 @@ theorem simpleAuctionWithdrawBodyStatic
 theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = simpleAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x3c, 0xcf, 0xd6, 0x0b]⟩)
-    (hreach : ∃ k C, RD simpleAuctionBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork simpleAuctionBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨203⟩
       [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C)
  :
-    runtimeRefinementFor simpleAuctionConfig simpleAuctionContract
+    runtimeRefinementFor fork simpleAuctionConfig simpleAuctionContract
       σ σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
 
@@ -2394,7 +2396,7 @@ theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
       have hzeroS : withdrawAmountWord σ I = ⟨0⟩ := by
         rw [← hword, hzero]
       let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
-      have hbody : ExecTransitionBody simpleAuctionConfig simpleAuctionContract
+      have hbody : ExecTransitionBody fork simpleAuctionConfig simpleAuctionContract
           evmS ∅
           withdrawTransition.body
           (.returned
@@ -2438,7 +2440,7 @@ theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
       swap
       · -- static mode: both sides halt at the `pendingReturns` reset
         have hpf : I.perm = false := by simpa using hperm
-        have hbody := simpleAuctionWithdrawBodyStatic evmS (withdrawAmountWord σ I)
+        have hbody := simpleAuctionWithdrawBodyStatic (fork := fork) evmS (withdrawAmountWord σ I)
           (by simpa [evmS, initState] using hwv) hamountS hposS
           (by simp only [evmS, initState]; exact hpf)
         exact (permSplit_false hpf (simpleAuctionX_withdraw_toCall (g := Sat256.ofUInt256 g)
@@ -2447,10 +2449,10 @@ theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
       by_cases hdepthEq : I.depth = 1024
       · let evmSFail : EVM.State :=
           { evmSZero with
-            substate := (evmSZero.addAccessedAccount
-              (EVM.address evmSZero.executionEnv.source)).substate }
+            substate := (Ethereum.EVM.callSubstate fork evmSZero.accountMap
+              (EVM.address evmSZero.executionEnv.source) evmSZero.substate) }
         have hcall :
-            callViaEVM evmSZero (EVM.address evmSZero.executionEnv.source)
+            callViaEVM fork evmSZero (EVM.address evmSZero.executionEnv.source)
               (Int.ofNat (withdrawAmountWord σ I).toNat) ByteArray.empty
               (false, evmSFail, ByteArray.empty) := by
           apply callViaEVM.callNotMade
@@ -2461,7 +2463,7 @@ theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
               simpa [evmSZero, withdrawZeroState, evmS, initState,
                 storageStore_executionEnv] using hdepthEq)
         have hbody :
-            ExecTransitionBody simpleAuctionConfig simpleAuctionContract evmS ∅
+            ExecTransitionBody fork simpleAuctionConfig simpleAuctionContract evmS ∅
               withdrawTransition.body
               (.returned
                 { contract := simpleAuctionContract
@@ -2500,7 +2502,7 @@ theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
           let targetE : EVM.Address := AccountAddress.ofUInt256 (withdrawSenderWord I)
           let valueE : ℤ := Int.ofNat (withdrawAmountWord σ I).toNat
           have hcallE :
-              callViaEVM evmEZero targetE valueE ByteArray.empty (z, evmECall, out) := by
+              callViaEVM fork evmEZero targetE valueE ByteArray.empty (z, evmECall, out) := by
             refine callViaEVM.callMade
               (valueWord := withdrawAmountWord σ I)
               (σ' := σ') (g' := g'') (A' := A')
@@ -2543,7 +2545,7 @@ theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
           let evmSCall : EVM.State :=
             { evmSZero with accountMap := σ', substate := A' }
           have hcallS :
-              callViaEVM evmSZero (EVM.address evmSZero.executionEnv.source)
+              callViaEVM fork evmSZero (EVM.address evmSZero.executionEnv.source)
                 (Int.ofNat (withdrawAmountWord σ I).toNat) ByteArray.empty
                 (z, evmSCall, out) := by
             simpa [evmSCall, hTargetEq, hValueEq, ← hZeroState, evmECall] using hcallE
@@ -2554,7 +2556,7 @@ theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
             obtain ⟨_, _, rd918⟩ := simpleAuctionX_withdraw_postCallEmpty_toBranch rd863
             cases z
             · have hbody :
-                  ExecTransitionBody simpleAuctionConfig simpleAuctionContract evmS ∅
+                  ExecTransitionBody fork simpleAuctionConfig simpleAuctionContract evmS ∅
                     withdrawTransition.body
                     (.returned
                       { contract := simpleAuctionContract
@@ -2566,7 +2568,7 @@ theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
                   (withdrawAmountWord σ I) ByteArray.empty
                   (by simpa [evmS, initState] using hwv) hamountS hposS
                   (by simpa [evmSZero] using hcallS)
-              have hret : RDret simpleAuctionBytecode (Sat256.ofUInt256 g)
+              have hret : RDret fork simpleAuctionBytecode (Sat256.ofUInt256 g)
                   (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                   (sstoreAccountMap I.codeOwner σ' (withdrawPendingSlot I)
                       (withdrawAmountWord σ I))
@@ -2578,7 +2580,7 @@ theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
                   initState, storageStore_accountMap, storageStore_executionEnv])
                 (returnEquiv_of_encode (by simpa [boolTy] using boolFalseReturnEncoding))
             · have hbody :
-                  ExecTransitionBody simpleAuctionConfig simpleAuctionContract evmS ∅
+                  ExecTransitionBody fork simpleAuctionConfig simpleAuctionContract evmS ∅
                     withdrawTransition.body
                     (.returned
                       { contract := simpleAuctionContract
@@ -2589,7 +2591,7 @@ theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
                   (withdrawAmountWord σ I) ByteArray.empty
                   (by simpa [evmS, initState] using hwv) hamountS hposS
                   (by simpa [evmSZero] using hcallS)
-              have hret : RDret simpleAuctionBytecode (Sat256.ofUInt256 g)
+              have hret : RDret fork simpleAuctionBytecode (Sat256.ofUInt256 g)
                   (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                   σ' (UInt256.toByteArray (⟨1⟩ : UInt256)) :=
                 simpleAuctionX_withdraw_successEmpty_return (g := Sat256.ofUInt256 g)
@@ -2603,7 +2605,7 @@ theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
                   rd863 hout0 hout255
               cases z
               · have hbody :
-                    ExecTransitionBody simpleAuctionConfig simpleAuctionContract evmS ∅
+                    ExecTransitionBody fork simpleAuctionConfig simpleAuctionContract evmS ∅
                       withdrawTransition.body
                       (.returned
                         { contract := simpleAuctionContract
@@ -2614,7 +2616,7 @@ theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
                     (withdrawAmountWord σ I) out
                     (by simpa [evmS, initState] using hwv) hamountS hposS
                     (by simpa [evmSZero] using hcallS)
-                have hret : RDret simpleAuctionBytecode (Sat256.ofUInt256 g)
+                have hret : RDret fork simpleAuctionBytecode (Sat256.ofUInt256 g)
                     (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                     (sstoreAccountMap I.codeOwner σ' (withdrawPendingSlot I)
                         (withdrawAmountWord σ I))
@@ -2627,7 +2629,7 @@ theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
                     storageStore_executionEnv])
                   (returnEquiv_of_encode (by simpa [boolTy] using boolFalseReturnEncoding))
               · have hbody :
-                    ExecTransitionBody simpleAuctionConfig simpleAuctionContract evmS ∅
+                    ExecTransitionBody fork simpleAuctionConfig simpleAuctionContract evmS ∅
                       withdrawTransition.body
                       (.returned
                         { contract := simpleAuctionContract
@@ -2637,7 +2639,7 @@ theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
                     (withdrawAmountWord σ I) out
                     (by simpa [evmS, initState] using hwv) hamountS hposS
                     (by simpa [evmSZero] using hcallS)
-                have hret : RDret simpleAuctionBytecode (Sat256.ofUInt256 g)
+                have hret : RDret fork simpleAuctionBytecode (Sat256.ofUInt256 g)
                     (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                     σ' (UInt256.toByteArray (⟨1⟩ : UInt256)) :=
                   simpleAuctionX_withdraw_successNonempty_return (g := Sat256.ofUInt256 g)
@@ -2646,7 +2648,7 @@ theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
                   (by simp [evmSCall])
                   (returnEquiv_of_encode (by simpa [boolTy] using boolTrueReturnEncoding))
             · have hhuge : 2 ^ 255 ≤ out.size := by omega
-              have hoog : X ((Sat256.ofUInt256 g).toNat + 1) (D_J simpleAuctionBytecode 0)
+              have hoog : X fork ((Sat256.ofUInt256 g).toNat + 1) (D_J simpleAuctionBytecode 0)
                   (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                     = .error .OutOfGass :=
                 simpleAuctionX_withdraw_postCallNonempty_huge_oog
@@ -2658,14 +2660,14 @@ theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
                   simpa [Sat256.ofUInt256] using hoog))
         · let evmSFail : EVM.State :=
             { evmSZero with
-              substate := (evmSZero.addAccessedAccount
-                (EVM.address evmSZero.executionEnv.source)).substate }
+              substate := (Ethereum.EVM.callSubstate fork evmSZero.accountMap
+                (EVM.address evmSZero.executionEnv.source) evmSZero.substate) }
           have hBalEq :
               (withdrawZeroMap σ I |>.get? I.codeOwner |>.elim ⟨0⟩ (·.balance)) =
                 (withdrawZeroMap σ I |>.get? I.codeOwner |>.elim ⟨0⟩ (·.balance)) :=
             accountMap_balance_eq_of_eq hZeroMap I.codeOwner
           have hcall :
-              callViaEVM evmSZero (EVM.address evmSZero.executionEnv.source)
+              callViaEVM fork evmSZero (EVM.address evmSZero.executionEnv.source)
                 (Int.ofNat (withdrawAmountWord σ I).toNat) ByteArray.empty
                 (false, evmSFail, ByteArray.empty) := by
             apply callViaEVM.callNotMade
@@ -2686,7 +2688,7 @@ theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
                 simpa [hword, hBalEq] using hvalueBalS
               exact hbalance hvalueBalE
           have hbody :
-              ExecTransitionBody simpleAuctionConfig simpleAuctionContract evmS ∅
+              ExecTransitionBody fork simpleAuctionConfig simpleAuctionContract evmS ∅
                 withdrawTransition.body
                 (.returned
                   { contract := simpleAuctionContract
@@ -2705,7 +2707,7 @@ theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
                 storageStore_executionEnv])
               (returnEquiv_of_encode (by simpa [boolTy] using boolFalseReturnEncoding))
   · have hrev := simpleAuctionX_withdraw_nonpayable (g := Sat256.ofUInt256 g) hwv hreach
-    have hbody : ExecTransitionBody simpleAuctionConfig simpleAuctionContract
+    have hbody : ExecTransitionBody fork simpleAuctionConfig simpleAuctionContract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         withdrawTransition.body .reverted := by
       exact simpleAuctionWithdrawBodyReverts_nonpayable

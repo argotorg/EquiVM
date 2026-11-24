@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.Negate104Evm
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -13,10 +15,10 @@ theorem cometNegate104Packed {v : CometWithExtendedAssetListImmutables}
     {aw ret basic : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024) (hp : signed104 basic ≤ 0)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨10633⟩ (basic :: ret :: R) mem aw rdata σ k C) :
-    (-(2^103 : Int) < signed104 basic ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨10633⟩ (basic :: ret :: R) mem aw rdata σ k C) :
+    (-(2^103 : Int) < signed104 basic ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (negativePrincipal basic :: R) mem aw rdata σ k' C') ∨
-    (¬ -(2^103 : Int) < signed104 basic ∧ RDrev (deployedRuntime v) g s0) := by
+    (¬ -(2^103 : Int) < signed104 basic ∧ RDrev fork (deployedRuntime v) g s0) := by
   by_cases hmin : -(2^103 : Int) < signed104 basic
   · have hne : UInt256.signextend (UInt256.ofNat 12) basic ≠ int104MinWord := by
       intro he; have := (signextend104_eq_min_iff basic).mp he; omega
@@ -25,7 +27,7 @@ theorem cometNegate104Packed {v : CometWithExtendedAssetListImmutables}
       (uInt256_eq_zero_of_ne (fun he ↦ hne (uInt256_eq_one_eq he))) h
     have r2 := cometWithExtendedAssetList_block_10652
       (immWords := wordsOf (immStore v)) (by omega) hret r1
-    change RD _ _ _ _ _ (UInt256.sub (UInt256.ofNat 0)
+    change RD fork _ _ _ _ _ (UInt256.sub (UInt256.ofNat 0)
       (UInt256.signextend (UInt256.ofNat 12) basic) :: R) _ _ _ _ _ _ at r2
     rw [negativePrincipal_sub hp] at r2
     exact Or.inl ⟨hmin, _, _, r2⟩

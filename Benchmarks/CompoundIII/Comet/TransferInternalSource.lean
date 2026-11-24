@@ -3,17 +3,19 @@ import Benchmarks.CompoundIII.Comet.TransferAssetSource
 import Benchmarks.CompoundIII.Comet.AuthorizationSource
 import Benchmarks.CompoundIII.Comet.ReentrancySource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
 namespace Benchmarks.CompoundIII.Comet
 
 theorem transferInternalAfter_source {v operator src dst asset amount evm result}
-    (ht : TransferInternalAfter v operator src dst asset amount evm result)
+    (ht : TransferInternalAfter fork v operator src dst asset amount evm result)
     (frame : Frame) (hf : TransferAssetArgs frame v src dst asset amount)
     (ho : frame.locals.get? "operator" = some (.address operator)) :
-    internalBlockResult config frame evm transferInternalTail result := by
-  have ha := authorization_source frame evm ⟨1, by decide⟩ "src" operator src (by decide)
+    internalBlockResult fork config frame evm transferInternalTail result := by
+  have ha := authorization_source (fork := fork) frame evm ⟨1, by decide⟩ "src" operator src (by decide)
     hf.contract ho hf.src
   let ready := authorizationFrame frame evm ⟨1, by decide⟩ operator src
   have hready : TransferAssetArgs ready v src dst asset amount := by
@@ -56,11 +58,11 @@ theorem transferInternalAfter_source {v operator src dst asset amount evm result
     let final := { transferAssetReady ready v evm src asset amount with
       locals := (transferAssetReady ready v evm src asset amount).locals.insert
         (transferAssetReturn v asset) .unit }
-    have hend := reentrancy_call final evm' false "__c7"
+    have hend := reentrancy_call (fork := fork) final evm' false "__c7"
       ((transferAssetReady_contract _ _ _ _ _ _).trans hf.contract)
     simp only [reentrancyOutcome, Bool.false_and, Bool.false_eq_true, if_false,
       reentrancyWriteOutcome, hp, if_true, internalStmtResult] at hend
-    exact (show internalBlockResult config ready evm
+    exact (show internalBlockResult fork config ready evm
       [.require (.binary .ne (.var "src") (.var "dst")), transferAssetStmt,
         .internalCall "nonReentrantAfter" [] "__c7"]
         (.ok (reentrancyState evm' false)) from
@@ -68,12 +70,12 @@ theorem transferInternalAfter_source {v operator src dst asset amount evm result
         (ExecBlock.consNormal hwork (execBlock_singleton hend))⟩).prependBlock ha
 
 theorem transferInternal_source {v operator src dst asset amount evm result}
-    (ht : TransferInternalTrace v operator src dst asset amount evm result) :
-    internalSourceResult config (transferInternalEntry (immStore v) operator src dst asset amount)
+    (ht : TransferInternalTrace fork v operator src dst asset amount evm result) :
+    internalSourceResult fork config (transferInternalEntry (immStore v) operator src dst asset amount)
       evm transferInternalCallable.body result := by
   let frame := transferInternalEntry (immStore v) operator src dst asset amount
   let ready := { frame with locals := frame.locals.insert "__c0" .unit }
-  have hb := reentrancy_call frame evm true "__c0" rfl
+  have hb := reentrancy_call (fork := fork) frame evm true "__c0" rfl
   apply internalBlockResult.toSource
   cases ht with
   | reverted he =>
@@ -92,7 +94,7 @@ theorem transferInternal_source {v operator src dst asset amount evm result}
     exact (transferInternalAfter_source ht ready hf ho).prepend (internalStmtResult.cast hb he)
 
 theorem transferInternal_call {v operator src dst asset amount evm result}
-    (ht : TransferInternalTrace v operator src dst asset amount evm result) (frame : Frame)
+    (ht : TransferInternalTrace fork v operator src dst asset amount evm result) (frame : Frame)
     (operatorExpr srcExpr toExpr assetExpr amountExpr : Expr) (ret : Ident)
     (hc : frame.contract = contract) (hi : frame.immutables = immStore v)
     (ho : evalExpr? config frame evm operatorExpr = .ok (.address operator))
@@ -100,7 +102,7 @@ theorem transferInternal_call {v operator src dst asset amount evm result}
     (hto : evalExpr? config frame evm toExpr = .ok (.address dst))
     (ha : evalExpr? config frame evm assetExpr = .ok (.address asset))
     (ham : evalExpr? config frame evm amountExpr = .ok (.int amount.toNat)) :
-    ExecStmt config frame evm
+    ExecStmt fork config frame evm
       (.internalCall "transferInternal" [operatorExpr, srcExpr, toExpr, assetExpr, amountExpr] ret)
       (internalStmtResult frame ret result) := by
   apply internalVoidCall (callee := transferInternalCallable)

@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.ConstructorModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -16,7 +18,7 @@ theorem evalConstructorParameter (imms : Store) (original : AccountAddress) (evm
 
 theorem constructorDecodeSource (original : AccountAddress) (evm : EVM.State)
     (out : ByteArray) (hlen : 160 ≤ out.size) :
-    ExecStmt config (constructorCallFrame original true out) evm (contract.ctor.body[6]!)
+    ExecStmt fork config (constructorCallFrame original true out) evm (contract.ctor.body[6]!)
       (.ok (constructorDecodedFrame original out) evm) := by
   apply ExecStmt.letDecl
   simp only [evalExpr?, evalConstructorData, bind, EvalResult.bind]
@@ -26,7 +28,7 @@ theorem constructorDecodeSource (original : AccountAddress) (evm : EVM.State)
   rfl
 
 theorem constructorFieldsSource (original : AccountAddress) (evm : EVM.State) (out : ByteArray) :
-    ExecBlock config (constructorDecodedFrame original out) evm ((contract.ctor.body.drop 7).take 4)
+    ExecBlock fork config (constructorDecodedFrame original out) evm ((contract.ctor.body.drop 7).take 4)
       (.ok (constructorFieldsFrame original out) evm) := by
   refine ExecBlock.consNormal (ExecStmt.setImmutable (ty := .address)
     (evalConstructorParameter _ original evm out 0 _ rfl) rfl rfl) ?_
@@ -42,13 +44,13 @@ theorem constructorFieldsSource (original : AccountAddress) (evm : EVM.State) (o
   exact ⟨hf.1, by omega⟩
 
 theorem constructorSpacingSource (original : AccountAddress) (evm : EVM.State) (out : ByteArray) :
-    ExecBlock config (constructorFieldsFrame original out) evm ((contract.ctor.body.drop 11).take 2)
+    ExecBlock fork config (constructorFieldsFrame original out) evm ((contract.ctor.body.drop 11).take 2)
       (.ok (constructorSpacingFrame original out) evm) := by
   have hget : (constructorFieldsFrame original out).locals.get? "_tickSpacing" = some (.int 0) := by
     simp only [constructorFieldsFrame, constructorDecodedFrame, constructorCallFrame,
       constructorReadyFrame, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert]
     rfl
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
     (evalConstructorParameter _ original evm out 4 _ rfl) (assignLocalVarBase_frame hget)) ?_
   refine ExecBlock.consNormal (ExecStmt.setImmutable (value := .int (constructorUnsignedSpacing out))
     (ty := .int (.uint ⟨256, by decide⟩)) ?_ rfl ?_) ExecBlock.nil
@@ -72,23 +74,23 @@ theorem constructorSpacingSource (original : AccountAddress) (evm : EVM.State) (
 theorem constructorBeforeSpacingSource (evm evm' : EVM.State) (out : ByteArray)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hcode : extCodeSizeWord evm.accountMap (EVM.word evm.executionEnv.source.val) ≠ ⟨0⟩)
-    (hcall : callViaEVM evm evm.executionEnv.source 0 constructorParameterCalldata
+    (hcall : callViaEVM fork evm evm.executionEnv.source 0 constructorParameterCalldata
       (true, evm', out) false) (hlen : 160 ≤ out.size) :
-    ExecBlock config constructorInitialFrame evm (contract.ctor.body.take 13)
+    ExecBlock fork config constructorInitialFrame evm (contract.ctor.body.take 13)
       (.ok (constructorSpacingFrame evm.executionEnv.codeOwner out) evm') := by
-  change ExecBlock _ _ _ (contract.ctor.body.take 6 ++ (contract.ctor.body.drop 6).take 7) _
+  change ExecBlock fork _ _ _ (contract.ctor.body.take 6 ++ (contract.ctor.body.drop 6).take 7) _
   apply execBlock_append_ok (constructorAfterCallSource evm evm' out hwv hcode hcall)
   apply ExecBlock.consNormal (constructorDecodeSource _ evm' out hlen)
-  change ExecBlock config (constructorDecodedFrame evm.executionEnv.codeOwner out) evm'
+  change ExecBlock fork config (constructorDecodedFrame evm.executionEnv.codeOwner out) evm'
     ((contract.ctor.body.drop 7).take 4 ++ (contract.ctor.body.drop 11).take 2) _
   exact execBlock_append_ok (constructorFieldsSource _ evm' out) (constructorSpacingSource _ evm' out)
 
 theorem constructorRevertsShort (evm evm' : EVM.State) (out : ByteArray)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hcode : extCodeSizeWord evm.accountMap (EVM.word evm.executionEnv.source.val) ≠ ⟨0⟩)
-    (hcall : callViaEVM evm evm.executionEnv.source 0 constructorParameterCalldata
+    (hcall : callViaEVM fork evm evm.executionEnv.source 0 constructorParameterCalldata
       (true, evm', out) false) (hshort : out.size < 160) :
-    ExecFuncBody config constructorInitialFrame evm contract.ctor.body .reverted := by
+    ExecFuncBody fork config constructorInitialFrame evm contract.ctor.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 6 contract.ctor.body]
   apply execBlock_append_ok (constructorAfterCallSource evm evm' out hwv hcode hcall)

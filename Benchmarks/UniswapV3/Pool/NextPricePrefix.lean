@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.NextPriceModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -18,7 +20,7 @@ macro "next_price_prefix_get" : tactic =>
     Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert])
 
 theorem nextPriceZeroSource (imms : Store) (evm : EVM.State) (input : Bool) (a : NextPriceArgs) :
-    ExecStmt config (nextPriceFrame imms input a) evm (nextPriceFunction input).body[0]!
+    ExecStmt fork config (nextPriceFrame imms input a) evm (nextPriceFunction input).body[0]!
       (.ok (nextPriceZeroFrame imms input a) evm) := by
   cases input <;> exact ExecStmt.letDecl (by simp only [evalExpr?, pure])
 
@@ -44,9 +46,9 @@ theorem evalNextPriceLiquidityGuard (imms : Store) (evm : EVM.State) (input : Bo
 
 theorem nextPricePrefixSource (imms : Store) (evm : EVM.State) (input : Bool)
     (a : NextPriceArgs) (hg : nextPriceGuard a) :
-    ExecBlock config (nextPriceFrame imms input a) evm ((nextPriceFunction input).body.take 4)
+    ExecBlock fork config (nextPriceFrame imms input a) evm ((nextPriceFunction input).body.take 4)
       (.ok (nextPriceReadyFrame imms input a) evm) := by
-  have hz := nextPriceZeroSource imms evm input a
+  have hz := nextPriceZeroSource (fork := fork) imms evm input a
   have hp := evalNextPricePriceGuard imms evm input a
   have hl := evalNextPriceLiquidityGuard imms evm input a
   cases input
@@ -58,9 +60,9 @@ theorem nextPricePrefixSource (imms : Store) (evm : EVM.State) (input : Bool)
 
 theorem nextPriceGuardReverts (imms : Store) (evm : EVM.State) (input : Bool)
     (a : NextPriceArgs) (hg : ¬nextPriceGuard a) :
-    ExecFuncBody config (nextPriceFrame imms input a) evm (nextPriceFunction input).body
+    ExecFuncBody fork config (nextPriceFrame imms input a) evm (nextPriceFunction input).body
       .reverted := by
-  have hz := nextPriceZeroSource imms evm input a
+  have hz := nextPriceZeroSource (fork := fork) imms evm input a
   have hp := evalNextPricePriceGuard imms evm input a
   have hl := evalNextPriceLiquidityGuard imms evm input a
   apply ExecFuncBody.execBlockRevert

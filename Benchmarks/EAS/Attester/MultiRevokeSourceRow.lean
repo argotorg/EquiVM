@@ -1,5 +1,7 @@
 import Benchmarks.EAS.Attester.MultiRevokeSourceInner
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory
 
 namespace Benchmarks.EAS.Attester
@@ -26,7 +28,7 @@ theorem revokeSourceRowEmpty {cfg : Config} {C : ContractDecl} {imms : Store} {e
     (hi : locals.get? "i" = some (.int (Int.ofNat i)))
     (hr : locals.get? "schemaUids" = some (.array rows))
     (hrow : rows[i]? = some (.array [])) :
-    ExecBlock cfg ⟨C, locals, imms⟩ evm revokeOuterBody .reverted := by
+    ExecBlock fork cfg ⟨C, locals, imms⟩ evm revokeOuterBody .reverted := by
   refine ExecBlock.consNormal
     (ExecStmt.letDecl (evalLocalArrayIndex hr hi hrow rfl)) ?_
   refine ExecBlock.consNormal (ExecStmt.letDecl (evalLocalArrayLength (values := []) ?_)) ?_
@@ -52,7 +54,7 @@ theorem revokeSourceRow {cfg : Config} {C : ContractDecl} {imms : Store} {evm : 
     (hindex : i < requests.length) (hn : 0 < uids.length) (hfit : uids.length < UInt256.size)
     (hsnorm : normalizeRawBoolWord? schema = .ok schema)
     (hnorm : ∀ v ∈ uids, normalizeRawBoolWord? v = .ok v) :
-    ∃ result, ExecBlock cfg ⟨C, locals, imms⟩ evm revokeOuterBody
+    ∃ result, ExecBlock fork cfg ⟨C, locals, imms⟩ evm revokeOuterBody
       (.ok ⟨C, result, imms⟩ evm) ∧
       result.get? "multiRequests" =
         some (.array (requests.set i (.tuple [schema, .array (revokePairValues uids)]))) ∧
@@ -62,20 +64,20 @@ theorem revokeSourceRow {cfg : Config} {C : ContractDecl} {imms : Store} {evm : 
   let l0 := locals.insert "uids" (.array uids)
   let l1 := l0.insert "uidLength" (.int (Int.ofNat uids.length))
   let l2 := l1.insert "data" (.array (List.replicate uids.length emptyPair))
-  have h0 : ExecStmt cfg ⟨C, locals, imms⟩ evm
+  have h0 : ExecStmt fork cfg ⟨C, locals, imms⟩ evm
       (.letDecl "uids" (some bytes32Array) (.index (.var "schemaUids") (.var "i")))
       (.ok ⟨C, l0, imms⟩ evm) :=
     ExecStmt.letDecl (evalLocalArrayIndex hr hi hrow rfl)
   have hu0 : l0.get? "uids" = some (.array uids) := by simp [l0]
-  have h1 : ExecStmt cfg ⟨C, l0, imms⟩ evm
+  have h1 : ExecStmt fork cfg ⟨C, l0, imms⟩ evm
       (.letDecl "uidLength" (some uint256) (.arrayLength .localVar ⟨"uids", []⟩))
       (.ok ⟨C, l1, imms⟩ evm) := ExecStmt.letDecl (evalLocalArrayLength hu0)
   have hn1 : l1.get? "uidLength" = some (.int (Int.ofNat uids.length)) := by simp [l1]
-  have h2 : ExecStmt cfg ⟨C, l1, imms⟩ evm
+  have h2 : ExecStmt fork cfg ⟨C, l1, imms⟩ evm
       (.require (.binary .ne (.var "uidLength") (.intLit 0))) (.ok ⟨C, l1, imms⟩ evm) :=
     ExecStmt.requireTrue (by simpa only [decide_eq_true (by omega : uids.length ≠ 0)] using
       (evalLocalNatNeZero (cfg := cfg) (stele := ⟨C, l1, imms⟩) (evm := evm) hn1))
-  have h3 : ExecStmt cfg ⟨C, l1, imms⟩ evm
+  have h3 : ExecStmt fork cfg ⟨C, l1, imms⟩ evm
       (.letDecl "data" (some (.dynamicArray revocationRequestDataTy))
         (.newArray revocationRequestDataSt (.var "uidLength"))) (.ok ⟨C, l2, imms⟩ evm) :=
     ExecStmt.letDecl (evalLocalNewArray hn1 hdefault)
@@ -105,7 +107,7 @@ theorem revokeSourceRow {cfg : Config} {C : ContractDecl} {imms : Store} {evm : 
     (.array (requests.set i (.tuple [schema, .array (revokePairValues uids)]))), ?_, by simp, ?_⟩
   · exact ExecBlock.consNormal h0 (ExecBlock.consNormal h1 (ExecBlock.consNormal h2
       (ExecBlock.consNormal h3 (ExecBlock.consNormal hinner (ExecBlock.consNormal
-        (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hvalue (assignLocalArrayIndex hq3 hi3 hindex)) ExecBlock.nil)))))
+        (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hvalue (assignLocalArrayIndex hq3 hi3 hindex)) ExecBlock.nil)))))
   · intro name hname
     rcases hname with ⟨hu, hn, hd, hj, hq⟩
     simp only [Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert,

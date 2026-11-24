@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.SupplyCollateralTotalEvm
 import Benchmarks.CompoundIII.Comet.SupplyCollateralAfterTotalEvm
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -15,10 +17,10 @@ theorem cometSupplyCollateralAfterAsset {v : CometWithExtendedAssetListImmutable
     (ha : amount.toNat < 2^128) (hv : AssetValid out)
     (hm : AssetMemory mem ptr free out) (hb : free.toNat + 64 < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨13861⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨13861⟩
       (ptr :: EVM.word asset.val :: ⟨2^128-1⟩ :: amount :: EVM.word sender.val ::
         EVM.word dst.val :: ret :: R) mem aw out σ k C) :
-    internalDynamicRun (deployedRuntime v) ee g s0 ret R
+    internalDynamicRun fork (deployedRuntime v) ee g s0 ret R
       (supplyCollateralOutcome evm dst asset amount out) := by
   obtain ⟨aw1, k1, C1, htotal, hasset, r1⟩ := cometSupplyCollateralRead (v := v) asset
     (by omega) hm hb hs h

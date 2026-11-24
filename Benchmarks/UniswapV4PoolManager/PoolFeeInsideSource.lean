@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.PoolFeeInsidePrelude
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -24,7 +26,7 @@ theorem poolFeeInsideBranch {f : Frame} {evm : EVM.State} {id : UInt256} {lower 
     (hc : f.locals.get? "tickCurrent" = some (.int (poolCurrentTick evm id)))
     (h0 : f.locals.get? "feeGrowthInside0X128" = some old0)
     (h1 : f.locals.get? "feeGrowthInside1X128" = some old1) :
-    ExecStmt config f evm poolFeeInsideFunction.body[5]!
+    ExecStmt fork config f evm poolFeeInsideFunction.body[5]!
       (.ok (poolFeeInsideRegionFrame f evm id lower upper (poolFeeInsideRegion evm id lower upper)) evm) := by
   have hlt : evalExpr? config f evm (.binary .lt (.var "tickCurrent") (.var "tickLower")) =
       .ok (.bool (decide (poolCurrentTick evm id < lower))) := by
@@ -53,10 +55,10 @@ theorem poolFeeInsideBody {f : Frame} {evm : EVM.State} {id : UInt256} {lower up
     (hf : f.contract = contract) (hs : f.locals.get? "self" = some (poolRefValue id))
     (hl : f.locals.get? "tickLower" = some (.int lower))
     (hu : f.locals.get? "tickUpper" = some (.int upper)) :
-    ∃ f', ExecFuncBody config f evm poolFeeInsideFunction.body
+    ∃ f', ExecFuncBody fork config f evm poolFeeInsideFunction.body
       (.returned f' evm (some (poolFeeInsideValues evm id lower upper))) := by
   let f1 := poolFeeInsidePreludeFrame f evm id lower upper
-  have hpre := poolFeeInsidePrelude (evm := evm) hf hs hl hu
+  have hpre := poolFeeInsidePrelude (fork := fork) (evm := evm) hf hs hl hu
   have hs1 : f1.locals.get? "self" = some (poolRefValue id) :=
     (poolFeeInsidePreludeFrame_get (by decide) (by decide) (by decide) (by decide) (by decide)).trans hs
   have htl : f1.locals.get? "tickLower" = some (.int lower) :=
@@ -78,7 +80,7 @@ theorem poolFeeInsideBody {f : Frame} {evm : EVM.State} {id : UInt256} {lower up
     (store_get_ne3 _ _ _ _ (by decide : ("lower" == "feeGrowthInside1X128") = false)
       (by decide : ("upper" == "feeGrowthInside1X128") = false)
       (by decide : ("tickCurrent" == "feeGrowthInside1X128") = false)).trans (store_get_self _ _ _)
-  have hbranch := poolFeeInsideBranch hs1 hl1 hu1 htl htu hc1 h0 h1
+  have hbranch := poolFeeInsideBranch (fork := fork) hs1 hl1 hu1 htl htu hc1 h0 h1
   let f2 := poolFeeInsideRegionFrame f1 evm id lower upper (poolFeeInsideRegion evm id lower upper)
   refine ⟨f2, execFuncBody_prepend hpre ?_⟩
   refine ExecFuncBody.execBlockRet (ExecBlock.consNormal hbranch (ExecBlock.consReturn (ExecStmt.return ?_)))
@@ -97,7 +99,7 @@ theorem poolFeeInsideCall {f : Frame} {evm : EVM.State} {id : UInt256} {lower up
     (hs : evalExpr? config f evm es = .ok (poolRefValue id))
     (hl : evalExpr? config f evm el = .ok (.int lower))
     (hu : evalExpr? config f evm eu = .ok (.int upper)) (ret : Ident) :
-    ExecStmt config f evm (.internalCall "Pool_getFeeGrowthInside" [es, el, eu] ret)
+    ExecStmt fork config f evm (.internalCall "Pool_getFeeGrowthInside" [es, el, eu] ret)
       (.ok {f with locals := f.locals.insert ret (.tuple (poolFeeInsideValues evm id lower upper))} evm) := by
   obtain ⟨f', hbody⟩ := poolFeeInsideBody
     (f := {f with locals := ((((∅ : Store).insert "tickUpper" (.int upper)).insert "tickLower" (.int lower)).insert

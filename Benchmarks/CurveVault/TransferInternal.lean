@@ -1,5 +1,7 @@
 import Benchmarks.CurveVault.TransferTail
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -13,15 +15,15 @@ theorem vaultTransferRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hcanon0 : sender.toNat < EVM.addressModulus) (hcanon1 : recipient.toNat < EVM.addressModulus)
     (hperm : I.perm = true) (hstack : R.length + 7 ≤ 1024)
     (hvalid : (D_J vaultBytecode 0).contains returnPc = true)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 8133) (returnPc :: R) mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 8133) (returnPc :: R) mem aw rdata σ k C) :
     let locals := vaultTransferLocals (AccountAddress.ofNat sender.toNat) (AccountAddress.ofNat recipient.toNat) value
     (∃ (evm' : State) (σ' : AccountMap) (aw' : UInt256) (k' C' : Nat),
-      ExecFuncBody config {contract := contract, locals := locals} evm vaultTransferFunction.body
+      ExecFuncBody fork config {contract := contract, locals := locals} evm vaultTransferFunction.body
         (.returned {contract := contract, locals := locals} evm' none) ∧
       SourceState s0 I σ' evm' ∧
-      RD vaultBytecode I g s0 returnPc R (vaultTransferMemory mem sender recipient value) aw' rdata σ' k' C') ∨
-    (ExecFuncBody config {contract := contract, locals := locals} evm vaultTransferFunction.body .reverted ∧
-      RDrev vaultBytecode g s0) := by
+      RD fork vaultBytecode I g s0 returnPc R (vaultTransferMemory mem sender recipient value) aw' rdata σ' k' C') ∨
+    (ExecFuncBody fork config {contract := contract, locals := locals} evm vaultTransferFunction.body .reverted ∧
+      RDrev fork vaultBytecode g s0) := by
   let locals := vaultTransferLocals (AccountAddress.ofNat sender.toNat) (AccountAddress.ofNat recipient.toNat) value
   have hb : locals.get? "balanceOf" = none := by simp [locals, vaultTransferLocals]
   have hf : locals.get? "_from" = some (.address (AccountAddress.ofNat sender.toNat)) := by

@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapLiquidityLoad
 import Benchmarks.UniswapV3.Pool.SwapLiquidityStore
 import Benchmarks.UniswapV3.Pool.LiquidityDeltaRawCost
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -13,7 +15,7 @@ theorem swapLiquidityX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : SwapArgs) (s : SwapStateData) (d : SwapIterationData) (net : Int)
     (frame : Frame) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3851⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3851⟩
       ([EVM.wordOfInt net, ⟨0⟩, q] ++
         swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
       mem aw rdata σ k C)
@@ -26,18 +28,18 @@ theorem swapLiquidityX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hnetfit : -(2 ^ 127 : Int) ≤ net ∧ net < 2 ^ 127)
     (hp : 96 ≤ p.toNat) (hdisj : p.toNat + 224 ≤ q.toNat)
     (hb : p.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 24 ≤ 1024) :
-    (ExecBlock config frame evm (swapInitializedBody.drop 2) .reverted ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    (ExecBlock config frame evm (swapInitializedBody.drop 2)
+    (ExecBlock fork config frame evm (swapInitializedBody.drop 2) .reverted ∧
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    (ExecBlock fork config frame evm (swapInitializedBody.drop 2)
         (.ok (swapLiquidityFrame frame s a.zeroForOne net) evm) ∧
       ∃ mem' aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-        RD (deployedRuntime v) ee g s0 ⟨3893⟩
+        RD fork (deployedRuntime v) ee g s0 ⟨3893⟩
           (q :: swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
           mem' aw' rdata σ k' C' ∧ HeapMemory mem' aw' free ∧
         SwapStateMemory mem' p (swapLiquidityState s a.zeroForOne net) ∧
         SwapIterationMemory mem' q d ∧ MemoryPrefix mem mem' p.toNat ∧
         aw.toNat ≤ aw'.toNat) := by
-  have hex1 := swapLiquidityNegSource (evm := evm) a.zeroForOne net hz hnet
+  have hex1 := swapLiquidityNegSource (fork := fork) (evm := evm) a.zeroForOne net hz hnet
   have hsget := (swapLiquidityNegFrame_get frame a.zeroForOne net "state" (by decide)).trans
     hstate
   have hnget := swapLiquidityNegFrame_net frame a.zeroForOne net hnet

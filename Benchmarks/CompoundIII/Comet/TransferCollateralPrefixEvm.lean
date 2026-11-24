@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.TransferCollateralRead
 import Benchmarks.CompoundIII.Comet.TransferCollateralMathEvm
 import Benchmarks.CompoundIII.Comet.TransferCollateralWrite
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -24,10 +26,10 @@ theorem cometTransferCollateralPrefix {v : CometWithExtendedAssetListImmutables}
     {aw amount ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (src dst asset : AccountAddress) (hstack : R.length + 22 ≤ 1024)
     (ha : amount.toNat < 2^128) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨15329⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨15329⟩
       (EVM.word src.val :: EVM.word dst.val :: EVM.word asset.val :: amount :: ret :: R)
       mem aw rdata σ k C) :
-    internalMemoryRun (deployedRuntime v) ee g s0 (transferCollateralPrefixMemory mem src dst asset)
+    internalMemoryRun fork (deployedRuntime v) ee g s0 (transferCollateralPrefixMemory mem src dst asset)
       rdata ⟨15502⟩ (transferCollateralReadyStack src dst asset amount
         (withdrawCollateralBalance evm src asset) (transferCollateralSrcNext evm src asset amount)
         (withdrawCollateralBalance evm dst asset) (transferCollateralDstNext evm dst asset amount)

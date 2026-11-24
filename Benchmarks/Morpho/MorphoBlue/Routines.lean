@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.Dispatch
 import Benchmarks.Morpho.MorphoBlue.BodyCommon
 
+variable {fork : Ethereum.Fork}
+
 /-! Shared Morpho bytecode routines. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,9 +18,9 @@ theorem morphoDecodeAddress4Ok {v : MorphoImmutables} {ee : ExecutionEnv} {g : S
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
     (hcanon : (calldataWord ee.calldata 4).toNat < EVM.addressModulus)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 11354)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 11354)
       (ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (calldataWord ee.calldata 4 :: R) mem aw rdata σ k' C' := by
   have rd := morphoBlocks.morpho_block_11354_fallthrough
     (immWords := wordsOf (immStore v)) hstack (by
@@ -34,9 +36,9 @@ theorem morphoDecodeAddress4Revert {v : MorphoImmutables} {ee : ExecutionEnv} {g
     {σ : AccountMap} {k C : Nat} {ret : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hnc : ¬ (calldataWord ee.calldata 4).toNat < EVM.addressModulus)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 11354)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 11354)
       (ret :: R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    RDrev fork (deployedRuntime v) g s0 := by
   have rd := morphoBlocks.morpho_block_11354_taken
     (immWords := wordsOf (immStore v)) hstack (addressMaskSub_nonzero hnc)
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
@@ -50,9 +52,9 @@ theorem morphoDecodeAddress36Ok {v : MorphoImmutables} {ee : ExecutionEnv} {g : 
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
     (hcanon : (calldataWord ee.calldata 36).toNat < EVM.addressModulus)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 11424)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 11424)
       (ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (calldataWord ee.calldata 36 :: R) mem aw rdata σ k' C' := by
   have rd := morphoBlocks.morpho_block_11424_fallthrough
     (immWords := wordsOf (immStore v)) hstack (by
@@ -68,9 +70,9 @@ theorem morphoDecodeAddress36Revert {v : MorphoImmutables} {ee : ExecutionEnv} {
     {σ : AccountMap} {k C : Nat} {ret : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hnc : ¬ (calldataWord ee.calldata 36).toNat < EVM.addressModulus)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 11424)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 11424)
       (ret :: R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    RDrev fork (deployedRuntime v) g s0 := by
   have rd := morphoBlocks.morpho_block_11424_taken
     (immWords := wordsOf (immStore v)) hstack (addressMaskSub_nonzero hnc)
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h

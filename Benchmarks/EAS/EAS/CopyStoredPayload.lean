@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.CopyStoredSource
 import Benchmarks.EAS.EAS.StoredWords
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -25,10 +27,10 @@ theorem easCopyStored_payload_cursor {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap}
     {k C : Nat} {bytesPtr ptr : UInt256} {R : List UInt256} (v : EASImmutables)
     (n : Nat) (hstack : R.length + 7 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨6709⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨6709⟩
       (⟨6727⟩ :: bytesPtr :: (UInt256.ofNat 32 + (bytesPtr + UInt256.ofNat (32*n))) :: bytesPtr :: ptr :: bytesPtr :: R)
       mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨4883⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨4883⟩
       (bytesPtr :: UInt256.ofNat (32 + 32*n) :: ⟨6727⟩ :: ptr :: ⟨288⟩ :: bytesPtr :: R) mem aw' rdata σ k' C' := by
   obtain ⟨aw', k', C', rd1⟩ := easBlocks.eas_block_6709_packed (immWords := wordsOf (immStore v)) hstack
     (by rw [easPatchedValidJumpsRuntime v]; jump_dest) rd
@@ -40,9 +42,9 @@ theorem easCopyStored_payload_short {ee : ExecutionEnv} {g : Sat256} {s0 : State
     (hstack : R.length + 11 ≤ 1024)
     (hbound : bytesPtr.toNat + 32 < UInt256.size)
     (hf : UInt256.land header ⟨1⟩ = ⟨0⟩) (hv : storedBytesValid header)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨6685⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨6685⟩
       (storedBytesLengthWord header :: slot :: header :: ⟨0⟩ :: bytesPtr :: ptr :: bytesPtr :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨4883⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨4883⟩
       (bytesPtr :: UInt256.ofNat (bytesAllocation (storedBytesLengthWord header).toNat) :: ⟨6727⟩ :: ptr :: ⟨288⟩ :: bytesPtr :: R)
       (copyStoredPayloadMemory mem bytesPtr slot header σ ee) aw' rdata σ k' C' := by
   obtain ⟨aw1, k1, C1, rd1⟩ := easBlocks.eas_block_6685_taken_packed (immWords := wordsOf (immStore v))
@@ -67,9 +69,9 @@ theorem easCopyStored_payload_long {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length + 11 ≤ 1024)
     (hbound : bytesPtr.toNat + (storedBytesLengthWord header).toNat + 64 < UInt256.size)
     (hf : UInt256.land header ⟨1⟩ ≠ ⟨0⟩)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨6685⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨6685⟩
       (storedBytesLengthWord header :: slot :: header :: ⟨0⟩ :: bytesPtr :: ptr :: bytesPtr :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨4883⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨4883⟩
       (bytesPtr :: UInt256.ofNat (bytesAllocation (storedBytesLengthWord header).toNat) :: ⟨6727⟩ :: ptr :: ⟨288⟩ :: bytesPtr :: R)
       (copyStoredPayloadMemory mem bytesPtr slot header σ ee) aw' rdata σ k' C' := by
   obtain ⟨aw1, k1, C1, rd1⟩ := easBlocks.eas_block_6685_fallthrough_packed (immWords := wordsOf (immStore v))
@@ -80,7 +82,7 @@ theorem easCopyStored_payload_long {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (by rw [easPatchedValidJumpsRuntime v]; jump_dest) rd1
   obtain ⟨aw3, k3, C3, rd3⟩ := easBlocks.eas_block_6731_packed (immWords := wordsOf (immStore v))
     (by simp only [List.length_cons]; omega) rd2
-  change RD (deployedRuntime v) ee g s0 ⟨6744⟩
+  change RD fork (deployedRuntime v) ee g s0 ⟨6744⟩
     (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 32)
         (Reasoning.Theory.writeWord (Reasoning.Theory.writeWord mem bytesPtr.toNat (storedBytesLengthWord header)) 0 slot) ::
       storedBytesLengthWord header :: ⟨0⟩ :: bytesPtr :: ptr :: bytesPtr :: R)
@@ -102,9 +104,9 @@ theorem easCopyStored_payload {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length + 11 ≤ 1024)
     (hbound : bytesPtr.toNat + (storedBytesLengthWord header).toNat + 64 < UInt256.size)
     (hv : storedBytesValid header)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨6685⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨6685⟩
       (storedBytesLengthWord header :: slot :: header :: ⟨0⟩ :: bytesPtr :: ptr :: bytesPtr :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨4883⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨4883⟩
       (bytesPtr :: UInt256.ofNat (bytesAllocation (storedBytesLengthWord header).toNat) :: ⟨6727⟩ :: ptr :: ⟨288⟩ :: bytesPtr :: R)
       (copyStoredPayloadMemory mem bytesPtr slot header σ ee) aw' rdata σ k' C' := by
   by_cases hf : UInt256.land header ⟨1⟩ = ⟨0⟩

@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.RequestTimeControl
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -16,9 +18,9 @@ theorem easRequestRevocableRequire {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {bad : UInt256} {R : List UInt256} (v : EASImmutables) (site : UIDSite)
     (hstack : R.length+2 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 (requestRevocableRequirePC site) (bad::R) mem aw rdata σ k C) :
-    if bad = ⟨0⟩ then ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (recordPreparePC site) R mem aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    (rd : RD fork (deployedRuntime v) ee g s0 (requestRevocableRequirePC site) (bad::R) mem aw rdata σ k C) :
+    if bad = ⟨0⟩ then ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (recordPreparePC site) R mem aw' rdata σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   cases site with
   | single _ _ _ _ _ _ _ _ =>
     by_cases hz : bad = ⟨0⟩
@@ -44,9 +46,9 @@ theorem easRequestRevocableCheck {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : EASImmutables) (site : UIDSite) (hstack : R.length+16 ≤ 1024)
     (hs : memLoad (requestSchemaPtr site+UInt256.ofNat 64) mem = UInt256.fromBool schemaRev)
     (hr : UInt256.isZero (UInt256.isZero (memLoad (refUIDPtr site t3+UInt256.ofNat 64) mem)) = requestRev.toUInt256)
-    (rd : RD (deployedRuntime v) ee g s0 (requestRevocablePC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (requestRevocablePC site)
       (uidSaved site (refUIDPtr site t3+UInt256.ofNat 32) (schema::idx::t3::t4::R)) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (requestRevocableRequirePC site)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (requestRevocableRequirePC site)
       ((!schemaRev && requestRev).toUInt256::uidSaved site (refUIDPtr site t3+UInt256.ofNat 32) (schema::idx::t3::t4::R))
       mem aw' rdata σ k' C' := by
   cases schemaRev with

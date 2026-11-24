@@ -1,5 +1,7 @@
 import Benchmarks.Dss.DaiJoin.ConstructorTraceArgs
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS DaiJoin constructor wards storage trace
 -/
@@ -16,12 +18,12 @@ theorem daiJoinCtorWardsStoreReach
     (vat dai : AccountAddress) {k C : Nat}
     (hperm : I.perm = true)
     (rd61 :
-      RD (daiJoinCtorCode vat dai) I g
+      RD fork (daiJoinCtorCode vat dai) I g
         (initState σ σ₀ g A I) ⟨61⟩
         [EVM.word dai.val, EVM.word vat.val, ⟨32⟩]
         (daiJoinCtorArgFreeMem vat dai) (UInt256.ofNat 6) ByteArray.empty
         σ k C) :
-    ∃ k' C', RD (daiJoinCtorCode vat dai) I g
+    ∃ k' C', RD fork (daiJoinCtorCode vat dai) I g
       (initState σ σ₀ g A I) ⟨82⟩
       [⟨1⟩, EVM.word vat.val, EVM.word dai.val]
       (daiJoinCtorWardsHashMem I vat dai) (UInt256.ofNat 6) ByteArray.empty

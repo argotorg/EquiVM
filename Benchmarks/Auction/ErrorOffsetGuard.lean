@@ -1,5 +1,7 @@
 import Benchmarks.Auction.ErrorDecodePrefix
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -42,25 +44,25 @@ theorem errorOffsetCondition_fail {out : ByteArray} (ho : out.size < UInt256.siz
     · rw [ugt_zero (by rw [hn]; omega)]; decide
 
 theorem errorOffsetDenied {I g s0 ret R mem aw ptr out acc k C}
-    (h : RD auctionBytecode I g s0 ⟨5978⟩
+    (h : RD fork auctionBytecode I g s0 ⟨5978⟩
       (⟨5986⟩ :: errorOffsetCondition out :: ⟨2 ^ 64 - 1⟩ :: UInt256.ofNat out.size ::
         errorOffset out :: UInt256.lnot ⟨3⟩ :: ptr :: ⟨0⟩ :: ret :: R)
       mem aw out acc k C)
     (ho : out.size < UInt256.size) (hv : ¬ ErrorOffsetValid out)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 9 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret (⟨0⟩ :: R) mem aw out acc k' C' := by
+    ∃ k' C', RD fork auctionBytecode I g s0 ret (⟨0⟩ :: R) mem aw out acc k' C' := by
   exact ⟨_, _, evm_run h with [jumpiNT (errorOffsetCondition_fail ho hv),
     pop, pop, pop, pop, pop, swap1, jump hret]⟩
 
 theorem errorOffsetAllowed {I g s0 ret R mem aw ptr out acc k C}
-    (h : RD auctionBytecode I g s0 ⟨5978⟩
+    (h : RD fork auctionBytecode I g s0 ⟨5978⟩
       (⟨5986⟩ :: errorOffsetCondition out :: ⟨2 ^ 64 - 1⟩ :: UInt256.ofNat out.size ::
         errorOffset out :: UInt256.lnot ⟨3⟩ :: ptr :: ⟨0⟩ :: ret :: R)
       (errorPayloadMem mem out ptr) (errorPayloadWords aw ptr out) out acc k C)
     (hm : HeapMemory mem aw ptr) (hin : ptr.toNat ≤ mem.size) (hl : 68 ≤ out.size)
     (hb : ptr.toNat + out.size ≤ 2 ^ 200) (hv : ErrorOffsetValid out)
     (hov : R.length + 12 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨6001⟩
+    ∃ k' C', RD fork auctionBytecode I g s0 ⟨6001⟩
       (⟨6010⟩ :: UInt256.isZero (UInt256.gt (errorLength out) ⟨2 ^ 64 - 1⟩) ::
         errorLength out :: ⟨2 ^ 64 - 1⟩ :: (ptr + errorOffset out) :: errorOffset out ::
         UInt256.lnot ⟨3⟩ :: ptr :: ⟨0⟩ :: ret :: R)

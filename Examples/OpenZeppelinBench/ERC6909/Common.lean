@@ -6,6 +6,12 @@ import Reasoning.Solc
 import Reasoning.Storage
 import Mathlib.Tactic.IntervalCases
 
+variable {fork : Ethereum.Fork}
+
+-- Concrete decoder facts must reduce the empty padding of a complete PUSH operand.
+set_option allowUnsafeReducibility true in
+attribute [local semireducible] ByteArray.zeroes
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -197,12 +203,12 @@ theorem erc6909PivotNotTaken {I : ExecutionEnv} (i : ℕ) (hi : i < 4)
 theorem erc6909ReachSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = erc6909BenchBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) erc6909SplitPc
+    ∃ k C, RD fork erc6909BenchBytecode I g (initState σ σ₀ g A I) erc6909SplitPc
         [erc6909SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hprefix : solcDispatchPrefixWellFormed erc6909BenchBytecode erc6909SplitPc := by
     solc_dispatch_prefix
   simpa [erc6909SelWord, solcSelectorWord] using
-    (solcDispatchReachSelector (σ := σ) (σ₀ := σ₀)
+    (solcDispatchReachSelector (fork := fork) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hprefix (by jump_dest))
 
 /-- Reach a body in ERC6909's high selector half. -/
@@ -223,7 +229,7 @@ theorem erc6909ReachHighBody {σ σ₀ A I} {g : Sat256}
     (hjd : (D_J erc6909BenchBytecode 0).contains bodyPC = true)
     (hbody : armTgt erc6909BenchBytecode
         (nthArmPc erc6909BenchBytecode erc6909HighFirstArmPc i) = bodyPC) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) bodyPC
+    ∃ k C, RD fork erc6909BenchBytecode I g (initState σ σ₀ g A I) bodyPC
         [erc6909SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hprefix : solcDispatchPrefixWellFormed erc6909BenchBytecode erc6909SplitPc := by
     solc_dispatch_prefix
@@ -258,9 +264,9 @@ theorem erc6909ReachBalanceBody {σ σ₀ A I} {g : Sat256}
         (erc6909SelWord I) ≠ ⟨0⟩)
     (htake : UInt256.eq (armSelNatW erc6909BenchBytecode erc6909LowFirstArmPc)
         (erc6909SelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨136⟩
+    ∃ k C, RD fork erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨136⟩
         [erc6909SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
-  obtain ⟨k0, C0, hsplit⟩ := erc6909ReachSplit
+  obtain ⟨k0, C0, hsplit⟩ := erc6909ReachSplit (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
   have h88 := hsplit.selectorSplitTakenAuto erc6909SplitWellFormed hpivot (by jump_dest) (by simp)
   have h89 := h88.jumpdest (by decide) (by simp)
@@ -292,9 +298,9 @@ theorem erc6909ReachLowRestBody {σ σ₀ A I} {g : Sat256}
     (hjd : (D_J erc6909BenchBytecode 0).contains bodyPC = true)
     (hbody : armTgt erc6909BenchBytecode
         (nthArmPc erc6909BenchBytecode erc6909LowRestFirstArmPc i) = bodyPC) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) bodyPC
+    ∃ k C, RD fork erc6909BenchBytecode I g (initState σ σ₀ g A I) bodyPC
         [erc6909SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
-  obtain ⟨k0, C0, hsplit⟩ := erc6909ReachSplit
+  obtain ⟨k0, C0, hsplit⟩ := erc6909ReachSplit (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
   have h88 := hsplit.selectorSplitTakenAuto erc6909SplitWellFormed hpivot (by jump_dest) (by simp)
   have h89 := h88.jumpdest (by decide) (by simp)
@@ -317,12 +323,12 @@ set_option maxHeartbeats 400000 in
 theorem erc6909DecodeAddrOk {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {off ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD erc6909BenchBytecode ee g s0 ⟨1629⟩ (off :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork erc6909BenchBytecode ee g s0 ⟨1629⟩ (off :: ret :: R) mem aw rdata acc k C)
     (hcanon : (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32)).toNat
         < EVM.addressModulus)
     (hret : (D_J erc6909BenchBytecode 0).contains ret = true)
     (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD erc6909BenchBytecode ee g s0 ret
+    ∃ k' C', RD fork erc6909BenchBytecode ee g s0 ret
       (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32) :: R) mem aw rdata acc k' C' := by
   exact RD.solcInlinedDecodeAddrOk h hcanon hret
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -336,12 +342,12 @@ set_option maxHeartbeats 400000 in
 theorem erc6909DecodeAddrRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {off ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD erc6909BenchBytecode ee g s0 ⟨1629⟩ (off :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork erc6909BenchBytecode ee g s0 ⟨1629⟩ (off :: ret :: R) mem aw rdata acc k C)
     (hnc : UInt256.eq (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
       (UInt256.land (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32)) solcAddrMask) =
         ⟨0⟩)
     (hov : R.length + 6 ≤ 1024) :
-    RDrev erc6909BenchBytecode g s0 := by
+    RDrev fork erc6909BenchBytecode g s0 := by
   exact RD.solcInlinedDecodeAddrRevert h hnc
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)

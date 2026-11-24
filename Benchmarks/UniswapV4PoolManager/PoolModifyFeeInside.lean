@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.PoolFeeInsideSource
 import Benchmarks.UniswapV4PoolManager.WordLocals
 import Benchmarks.UniswapV4PoolManager.TupleLocals
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -19,17 +21,17 @@ def poolModifyFeeInsideFrame (f : Frame) (evm : State) (id : UInt256) (p : PoolM
 
 theorem poolModifyFeeInside {f : Frame} {evm : State} {id : UInt256} {p : PoolModifyParams}
     (hc : PoolModifyContext f id p) :
-    ExecBlock config f evm ((poolModifyFunction.body.drop 8).take 4)
+    ExecBlock fork config f evm ((poolModifyFunction.body.drop 8).take 4)
       (.ok (poolModifyFeeInsideFrame f evm id p) evm) := by
   let fa := {f with locals := f.locals.insert poolModifyFeeInsideAlias (poolRefValue id)}
   let fc := {fa with locals := fa.locals.insert "__c6" (.tuple (poolFeeInsideValues evm id
     (EVM.signed p.lower) (EVM.signed p.upper)))}
-  have ha : ExecStmt config f evm poolModifyFunction.body[8]! (.ok fa evm) :=
+  have ha : ExecStmt fork config f evm poolModifyFunction.body[8]! (.ok fa evm) :=
     ExecStmt.letStorage (resolveStorageAlias hc.self)
   have hca : PoolModifyContext fa id p := hc.insert poolModifyFeeInsideAlias _ (by decide)
-  have hcall := poolFeeInsideCall (f := fa) (evm := evm) hca.contract
+  have hcall := poolFeeInsideCall (fork := fork) (f := fa) (evm := evm) hca.contract
     (evalLocalValue (store_get_self _ _ _)) (evalLocalValue hca.lower) (evalLocalValue hca.upper) "__c6"
-  have hpair := letTuplePair (cfg := config) (f := fc) (evm := evm) (source := "__c6")
+  have hpair := letTuplePair (fork := fork) (cfg := config) (f := fc) (evm := evm) (source := "__c6")
     (name0 := "feeGrowthInside0X128") (name1 := "feeGrowthInside1X128")
     (ty0 := some abiUInt256) (ty1 := some abiUInt256) (store_get_self _ _ _) (by decide)
   exact ExecBlock.consNormal ha (ExecBlock.consNormal hcall hpair)

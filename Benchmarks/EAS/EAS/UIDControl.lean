@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.UIDSites
 import Benchmarks.EAS.EAS.ZeroBranch
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -56,11 +58,11 @@ theorem easUIDAvailable {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {word : UInt256} {R : List UInt256} (v : EASImmutables) (site : UIDSite)
     (hstack : R.length+3 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 (uidDonePC site) (word::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 (uidDonePC site) (word::R) mem aw rdata σ k C) :
     if solcSlotWord σ ee (dbSlot word) = ⟨0⟩ then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (uidAvailablePC site) (word::R)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (uidAvailablePC site) (word::R)
         (twoWordHashMem word ⟨1⟩ mem) aw' rdata σ k' C'
-    else ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (uidAgainPC site) (word::R)
+    else ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (uidAgainPC site) (word::R)
       (twoWordHashMem word ⟨1⟩ mem) aw' rdata σ k' C' := by
   obtain ⟨aw',k',C',hr⟩ := mappingWordLoad hstack (uidLookup_wf v site) rd
   obtain ⟨hd0,hd1,hd4⟩ := uidBranch_decode v site
@@ -86,8 +88,8 @@ theorem easUIDAgain {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {word bump : UInt256} {R : List UInt256} (v : EASImmutables) (site : UIDSite)
     (hstack : R.length+2 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 (uidAgainPC site) (word::bump::R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (uidStartPC site) (nextUIDBump bump::R) mem aw' rdata σ k' C' := by
+    (rd : RD fork (deployedRuntime v) ee g s0 (uidAgainPC site) (word::bump::R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (uidStartPC site) (nextUIDBump bump::R) mem aw' rdata σ k' C' := by
   cases site with
   | single s1 s2 s3 s4 s5 s6 s7 s8 =>
     obtain ⟨aw',k',C',hr⟩ := easBlocks.eas_block_8497_packed (immWords := wordsOf (immStore v)) hstack

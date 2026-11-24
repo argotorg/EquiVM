@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.PresentValue
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -46,7 +48,7 @@ theorem utilizationCallable_lookup :
     lookupCallable? contract "getUtilization_body" = some utilizationCallable := rfl
 
 theorem utilizationCallable_returns (evm : EVM.State) (imms : Store) :
-    ∃ frame, ExecFuncBody config { contract := contract, locals := ∅, immutables := imms }
+    ∃ frame, ExecFuncBody fork config { contract := contract, locals := ∅, immutables := imms }
       evm utilizationCallable.body (.returned frame evm (some [.int (utilizationAt evm).toNat])) := by
   let w0 := Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩
   let w1 := Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩
@@ -111,7 +113,7 @@ theorem utilizationCallable_returns (evm : EVM.State) (imms : Store) :
 
 theorem utilization_call (frame : Frame) (evm : EVM.State) (ret : Ident)
     (hc : frame.contract = contract) :
-    ExecStmt config frame evm (.internalCall "getUtilization_body" [] ret)
+    ExecStmt fork config frame evm (.internalCall "getUtilization_body" [] ret)
       (.ok { frame with locals := frame.locals.insert ret (.int (utilizationAt evm).toNat) } evm) := by
   obtain ⟨calleeFrame, hb⟩ := utilizationCallable_returns evm frame.immutables
   exact ExecStmt.internalCallReturn (callee := utilizationCallable) (locals := ∅)

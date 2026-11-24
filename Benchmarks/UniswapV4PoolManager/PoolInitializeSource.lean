@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PoolCheckSource
 import Benchmarks.UniswapV4PoolManager.Slot0InitializeSource
 import Benchmarks.UniswapV4PoolManager.TickPriceSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -29,7 +31,7 @@ theorem poolInitializeTail {f : Frame} {evm : EVM.State} {id price tick fee : UI
     (he : f.locals.get? "lpFee" = some (.int (Int.ofNat fee.toNat)))
     (ht : f.locals.get? "__c1" = some (.int (EVM.signed tick)))
     (ho : f.locals.get? "tick" = some old) (hpc : price.toNat < 2^160) (hec : fee.toNat < 2^24) :
-    ∃ f', ExecFuncBody config f evm (poolInitializeFunction.body.drop 4)
+    ∃ f', ExecFuncBody fork config f evm (poolInitializeFunction.body.drop 4)
       (poolInitializeTailResult f' evm id price tick fee) := by
   let f1 : Frame := {f with locals := f.locals.insert "tick" (.int (EVM.signed tick))}
   let f2 : Frame := {f1 with locals := f1.locals.insert "__c2" (wordBytes32Value ⟨0⟩)}
@@ -50,8 +52,8 @@ theorem poolInitializeTail {f : Frame} {evm : EVM.State} {id price tick fee : UI
     (store_get_ne4 _ _ _ _ _ (by decide : ("tick" == "lpFee") = false)
       (by decide : ("__c2" == "lpFee") = false) (by decide : ("__c3" == "lpFee") = false)
       (by decide : ("__c4" == "lpFee") = false)).trans he
-  have hpre : ExecBlock config f evm ((poolInitializeFunction.body.drop 4).take 5) (.ok f5 evm) :=
-    ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inl rfl) (evalLocalValue ht) (assignLocalValue ho))
+  have hpre : ExecBlock fork config f evm ((poolInitializeFunction.body.drop 4).take 5) (.ok f5 evm) :=
+    ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inl rfl) (evalLocalValue ht) (assignLocalValue ho))
       (ExecBlock.consNormal (ExecStmt.letDecl hzero)
       (ExecBlock.consNormal (slot0SetSqrtCall (f := f2) hf hpc (evalLocalValue (store_get_self _ _ _)) (evalLocalValue hp2) "__c3")
       (ExecBlock.consNormal (slot0SetTickCall (f := f3) hf (evalLocalValue (store_get_self _ _ _)) (evalLocalValue ht3) "__c4")
@@ -72,7 +74,7 @@ theorem poolInitializeTail {f : Frame} {evm : EVM.State} {id price tick fee : UI
   · simp only [if_pos hperm]
     exact .execBlockStatic (ExecBlock.consStatic (ExecStmt.assignStatic hval hwrite hperm))
   · simp only [if_neg hperm]
-    exact .execBlockRet (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (Bool.eq_true_of_not_eq_false hperm)) hval hwrite)
+    exact .execBlockRet (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (Bool.eq_true_of_not_eq_false hperm)) hval hwrite)
       (ABlock.start.returns (evalLocalValue ht5)))
 
 theorem poolInitializeBody {f : Frame} {evm : EVM.State} {id price fee : UInt256}
@@ -80,14 +82,14 @@ theorem poolInitializeBody {f : Frame} {evm : EVM.State} {id price fee : UInt256
     (hp : f.locals.get? "sqrtPriceX96" = some (.int (Int.ofNat price.toNat)))
     (he : f.locals.get? "lpFee" = some (.int (Int.ofNat fee.toNat)))
     (hpc : price.toNat < 2^160) (hec : fee.toNat < 2^24) :
-    ∃ f', ExecFuncBody config f evm poolInitializeFunction.body (poolInitializeResult f' evm id price fee) := by
+    ∃ f', ExecFuncBody fork config f evm poolInitializeFunction.body (poolInitializeResult f' evm id price fee) := by
   let f1 : Frame := {f with locals := f.locals.insert "tick" (.int 0)}
   let f2 : Frame := {f1 with locals := f1.locals.insert "__c0" (.int (Int.ofNat (poolSqrtPriceWord evm id).toNat))}
-  have hinit : ExecStmt config f evm poolInitializeFunction.body[0]! (.ok f1 evm) :=
+  have hinit : ExecStmt fork config f evm poolInitializeFunction.body[0]! (.ok f1 evm) :=
     ExecStmt.letDecl (by simp only [evalExpr?, pure])
   have hs1 : f1.locals.get? "self" = some (poolRefValue id) :=
     (store_get_ne _ _ (by decide : ("tick" == "self") = false)).trans hs
-  have hget := slot0SqrtCall (f := f1) (evm := evm) hf (poolSlot0_read hs1) "__c0"
+  have hget := slot0SqrtCall (fork := fork) (f := f1) (evm := evm) hf (poolSlot0_read hs1) "__c0"
   have hguard := evalNeWords (evalLocalValue (cfg := config) (f := f2) (evm := evm) (store_get_self _ _ _))
     (show evalExpr? config f2 evm (.intLit 0) = .ok (.int (Int.ofNat (⟨0⟩ : UInt256).toNat)) by
       simp only [evalExpr?, pure]; rfl)
@@ -99,10 +101,10 @@ theorem poolInitializeBody {f : Frame} {evm : EVM.State} {id price fee : UInt256
   · have hp2 : f2.locals.get? "sqrtPriceX96" = some (.int (Int.ofNat price.toNat)) :=
       (store_get_ne2 _ _ _ (by decide : ("tick" == "sqrtPriceX96") = false)
         (by decide : ("__c0" == "sqrtPriceX96") = false)).trans hp
-    have hprefix : ExecBlock config f evm (poolInitializeFunction.body.take 3) (.ok f2 evm) :=
+    have hprefix : ExecBlock fork config f evm (poolInitializeFunction.body.take 3) (.ok f2 evm) :=
       ExecBlock.consNormal hinit (ExecBlock.consNormal hget (ExecBlock.consNormal
         (ExecStmt.iteFalse (by simpa only [decide_eq_false hz] using hguard) ExecBlock.nil) ExecBlock.nil))
-    have hcall := tickPriceCall (f := f2) (evm := evm) hf (evalLocalValue hp2) "__c1"
+    have hcall := tickPriceCall (fork := fork) (f := f2) (evm := evm) hf (evalLocalValue hp2) "__c1"
     cases hr : tickPriceResult price with
     | none =>
       simp only [hr] at hcall
@@ -136,7 +138,7 @@ theorem poolInitializeCall {f : Frame} {evm : EVM.State} {es ep ef : Expr} {id p
     (hs : evalExpr? config f evm es = .ok (poolRefValue id))
     (hp : evalExpr? config f evm ep = .ok (.int (Int.ofNat price.toNat)))
     (he : evalExpr? config f evm ef = .ok (.int (Int.ofNat fee.toNat))) (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "Pool_initialize" [es, ep, ef] retVar)
+    ExecStmt fork config f evm (.internalCall "Pool_initialize" [es, ep, ef] retVar)
       (poolInitializeCallResult f evm id price fee retVar) := by
   obtain ⟨f', hb⟩ := poolInitializeBody
     (f := {f with locals := (((∅ : Store).insert "lpFee" (.int (Int.ofNat fee.toNat))).insert

@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.BorrowBalanceSource
 import Benchmarks.CompoundIII.Comet.AddressGetter
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -15,7 +17,7 @@ theorem getBorrowBalance_returns {σ σ₀ A I} {g : Sat256}
     (hvalid : BorrowBalanceValid v (solcSlotWordAt ⟨0⟩ σ I)
       (solcSlotWordAt ⟨1⟩ σ I) (timestampWord I)
       (userBasicWord σ I (AccountAddress.ofNat (calldataWord I.calldata 4).toNat))) :
-    ∃ frame, ExecTransitionBody config contract (initState σ σ₀ g A I)
+    ∃ frame, ExecTransitionBody fork config contract (initState σ σ₀ g A I)
       (addressGetterArgs "account" I) borrowBalanceOfTransition.body
       (.returned frame (initState σ σ₀ g A I)
         (some [.int (borrowBalanceWord v (solcSlotWordAt ⟨0⟩ σ I) (solcSlotWordAt ⟨1⟩ σ I)
@@ -31,7 +33,7 @@ theorem getBorrowBalance_returns {σ σ₀ A I} {g : Sat256}
     simp only [evalExpr?, frame, calldataLocalFrame, addressGetterArgs,
       Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert, EvalResult.ofOption]
     rfl
-  have hs := borrowBalance_call_ok v frame (initState σ σ₀ g A I) addr _ "result" rfl rfl he
+  have hs := borrowBalance_call_ok (fork := fork) v frame (initState σ σ₀ g A I) addr _ "result" rfl rfl he
     (by simpa only [storageLoad_initState_solcSlotWord, userBasicWord, solcSlotWordAt] using hvalid)
   dsimp only at hs
   simp only [storageLoad_initState_solcSlotWord] at hs
@@ -52,7 +54,7 @@ theorem getBorrowBalance_reverts {σ σ₀ A I} {g : Sat256}
     (hvalid : ¬ BorrowBalanceValid v (solcSlotWordAt ⟨0⟩ σ I)
       (solcSlotWordAt ⟨1⟩ σ I) (timestampWord I)
       (userBasicWord σ I (AccountAddress.ofNat (calldataWord I.calldata 4).toNat))) :
-    ExecTransitionBody config contract (initState σ σ₀ g A I)
+    ExecTransitionBody fork config contract (initState σ σ₀ g A I)
       (addressGetterArgs "account" I) borrowBalanceOfTransition.body .reverted (immStore v) := by
   let addr := AccountAddress.ofNat (calldataWord I.calldata 4).toNat
   let frame := calldataLocalFrame

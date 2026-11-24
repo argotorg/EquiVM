@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.AfterSwapPackTrace
 import Benchmarks.UniswapV4PoolManager.AfterSwapFinishSource
 import Benchmarks.UniswapV4PoolManager.BalanceDeltaSubCostTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -17,14 +19,14 @@ theorem afterSwapFinishActiveTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : Sta
     (hp : MemorySlice mem ptr.toNat (wordBytes (swapParamsWordList p)))
     (hfit : ptr.toNat+96 < UInt256.size) (hn : unspecified ≠ 0 ∨ specified ≠ 0)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨15832⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨15832⟩
       (ptr :: EVM.wordOfInt unspecified :: EVM.wordOfInt specified :: delta :: ret :: old :: R)
       mem aw rdata evm.accountMap k C) :
-    functionResultTrace (deployedRuntime v) g s0 (fun post values => post = evm ∧
+    functionResultTrace fork (deployedRuntime v) g s0 (fun post values => post = evm ∧
       values = some [.int (EVM.signed (balanceDeltaCombineWord true delta
         (afterSwapPackWord (afterSwapSpecifiedFirst p) specified unspecified))),
         .int (EVM.signed (afterSwapPackWord (afterSwapSpecifiedFirst p) specified unspecified))] ∧
-      ∃ aw' k' C', C+Cₘ aw' ≤ C'+Cₘ aw ∧ RD (deployedRuntime v) I g s0 ret
+      ∃ aw' k' C', C+Cₘ aw' ≤ C'+Cₘ aw ∧ RD fork (deployedRuntime v) I g s0 ret
         (afterSwapPackWord (afterSwapSpecifiedFirst p) specified unspecified ::
           balanceDeltaCombineWord true delta (afterSwapPackWord (afterSwapSpecifiedFirst p) specified unspecified) :: R)
         mem aw' rdata post.accountMap k' C')

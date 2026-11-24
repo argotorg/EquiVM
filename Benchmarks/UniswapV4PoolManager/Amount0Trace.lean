@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.Amount0CoreTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -11,10 +13,10 @@ theorem amount0UpTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : PoolManagerImmutables) (hstack : R.length+16 ≤ 1024)
     (ha : a.toNat < 2^160) (hb : b.toNat < 2^160) (hl : liquidity.toNat < 2^128)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨23165⟩ (a :: b :: liquidity :: ret :: R) mem aw rdata σ k C) :
-    if amount0Fits a b liquidity true then ∃ k' C', RD (deployedRuntime v) I g s0 ret
+    (h : RD fork (deployedRuntime v) I g s0 ⟨23165⟩ (a :: b :: liquidity :: ret :: R) mem aw rdata σ k C) :
+    if amount0Fits a b liquidity true then ∃ k' C', RD fork (deployedRuntime v) I g s0 ret
       (amount0Word a b liquidity true :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hca := u256LandMaskCleanOfToNat a (UInt256.ofNat 1461501637330902918203684832716283019655932542975) rfl ha
   have hcb := u256LandMaskCleanOfToNat b (UInt256.ofNat 1461501637330902918203684832716283019655932542975) rfl hb
   by_cases ho : b.toNat < a.toNat
@@ -37,10 +39,10 @@ theorem amount0DownTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : PoolManagerImmutables) (hstack : R.length+13 ≤ 1024)
     (ha : a.toNat < 2^160) (hb : b.toNat < 2^160) (hl : liquidity.toNat < 2^128)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨23348⟩ (a :: b :: liquidity :: ret :: R) mem aw rdata σ k C) :
-    if amount0Fits a b liquidity false then ∃ k' C', RD (deployedRuntime v) I g s0 ret
+    (h : RD fork (deployedRuntime v) I g s0 ⟨23348⟩ (a :: b :: liquidity :: ret :: R) mem aw rdata σ k C) :
+    if amount0Fits a b liquidity false then ∃ k' C', RD fork (deployedRuntime v) I g s0 ret
       (amount0Word a b liquidity false :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hca := u256LandMaskCleanOfToNat a (UInt256.ofNat 1461501637330902918203684832716283019655932542975) rfl ha
   have hcb := u256LandMaskCleanOfToNat b (UInt256.ofNat 1461501637330902918203684832716283019655932542975) rfl hb
   by_cases ho : b.toNat < a.toNat

@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.WithdrawMathRefine
 import Benchmarks.Morpho.MorphoBlue.SupplyPositionRefine
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -11,9 +13,9 @@ theorem morphoWithdrawPositionReachSub {v : MorphoImmutables} {ee : ExecutionEnv
     {s0 : State} {aw id assets shares account receiver : UInt256} {out mem : ByteArray}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 32 ≤ 1024)
     (hc : account.toNat < EVM.addressModulus)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 7737)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 7737)
       (withdrawUpdateTail id assets shares account receiver R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12833)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12833)
       ([solcSlotWordAt (positionSlot id account) σ ee, shares, UInt256.ofNat 7774, positionSlot id account] ++
         withdrawUpdateTail id assets shares account receiver R)
       (supplyPositionMem id account mem) aw' out σ k' C' := by
@@ -29,7 +31,7 @@ theorem morphoWithdrawPositionReachSub {v : MorphoImmutables} {ee : ExecutionEnv
   have hm2 : m2 = supplyPositionMem id account mem := by dsimp only [m2]; rw [hh1]; rfl
   have hh2 : keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) (supplyPositionMem id account mem) =
       positionSlot id account := twoWordHashMem_solcMappingSlot_any _ _ _
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     ([solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) m2) σ ee, shares,
       UInt256.ofNat 7774, keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) m2] ++
       withdrawUpdateTail id assets shares account receiver R) m2 _ _ _ _ _ at rd1
@@ -40,8 +42,8 @@ theorem morphoWithdrawPositionStatic {v : MorphoImmutables} {ee : ExecutionEnv} 
     {s0 : State} {aw slot value : UInt256} {out mem : ByteArray}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 3 ≤ 1024)
     (hp : ee.perm = false)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 7774) (value :: slot :: R) mem aw out σ k C) :
-    RDstatic (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 7774) (value :: slot :: R) mem aw out σ k C) :
+    RDstatic fork (deployedRuntime v) g s0 := by
   have r1 := h.jumpdest (by
     immutable_decode(immutableLayout, morphoBytecode, wordsOf (immStore v),
       (⟨7774⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none,
@@ -64,32 +66,32 @@ theorem MarketTransferLocals.evalPositionShares {p assets shares account receive
   evalMorphoPositionField evm locals imms _ _ p.id account 0 hl.position
     (hl.evalId imms evm) (hl.evalAccount imms evm) hc
 
-inductive WithdrawPositionRefines (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
+inductive WithdrawPositionRefines (fork : Ethereum.Fork) (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     (p : MarketParamsWords) (assets shares account receiver : UInt256)
     (locals imms : Store) (evm : EVM.State) (mem : ByteArray) (R : List UInt256) : Prop where
-  | reverted : ExecBlock config { contract := contract, locals := locals, immutables := imms }
-      evm (withdrawTransition.body.drop 14) .reverted → RDrev (deployedRuntime v) g s0 →
-      WithdrawPositionRefines v ee g s0 p assets shares account receiver locals imms evm mem R
-  | static : ExecBlock config { contract := contract, locals := locals, immutables := imms }
-      evm (withdrawTransition.body.drop 14) .staticViolation → RDstatic (deployedRuntime v) g s0 →
-      WithdrawPositionRefines v ee g s0 p assets shares account receiver locals imms evm mem R
+  | reverted : ExecBlock fork config { contract := contract, locals := locals, immutables := imms }
+      evm (withdrawTransition.body.drop 14) .reverted → RDrev fork (deployedRuntime v) g s0 →
+      WithdrawPositionRefines fork v ee g s0 p assets shares account receiver locals imms evm mem R
+  | static : ExecBlock fork config { contract := contract, locals := locals, immutables := imms }
+      evm (withdrawTransition.body.drop 14) .staticViolation → RDstatic fork (deployedRuntime v) g s0 →
+      WithdrawPositionRefines fork v ee g s0 p assets shares account receiver locals imms evm mem R
   | ok {evm' σ' aw' out' k' C'} :
-      StateBlock config { contract := contract, locals := locals, immutables := imms }
+      StateBlock fork config { contract := contract, locals := locals, immutables := imms }
         evm (withdrawTransition.body.drop 14) { contract := contract, locals := locals, immutables := imms }
         evm' (withdrawTransition.body.drop 15) → SourceState s0 ee σ' evm' → ee.perm = true →
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat 15480)
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 15480)
         ([shares, UInt256.ofNat 7788, UInt256.ofNat 7813] ++ withdrawUpdateTail p.id assets shares account receiver R)
         (supplyPositionMem p.id account mem) aw' out' σ' k' C' →
-      WithdrawPositionRefines v ee g s0 p assets shares account receiver locals imms evm mem R
+      WithdrawPositionRefines fork v ee g s0 p assets shares account receiver locals imms evm mem R
 
 theorem morphoWithdrawPositionRefine {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : State} {aw assets shares account receiver : UInt256} {out mem : ByteArray}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (p : MarketParamsWords)
     (locals imms : Store) (hstack : R.length + 32 ≤ 1024) (hc : account.toNat < EVM.addressModulus)
     (hl : MarketTransferLocals p assets shares account receiver locals) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 7737)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 7737)
       (withdrawUpdateTail p.id assets shares account receiver R) mem aw out σ k C) :
-    WithdrawPositionRefines v ee g s0 p assets shares account receiver locals imms evm mem R := by
+    WithdrawPositionRefines fork v ee g s0 p assets shares account receiver locals imms evm mem R := by
   obtain ⟨a1, k1, C1, rd1⟩ := morphoWithdrawPositionReachSub (v := v) hstack hc h
   have hp := hl.evalPositionShares imms evm hc
   have hsh := hl.evalShares imms evm
@@ -103,7 +105,7 @@ theorem morphoWithdrawPositionRefine {v : MorphoImmutables} {ee : ExecutionEnv} 
     (by rw [morphoPatchedValidJumps v]; jump_dest) hf rd1
   have hf' : shares.toNat ≤ (solcSlotWordAt (positionSlot p.id account) evm.accountMap evm.executionEnv).toNat := by
     simpa only [hs.env, ← hs.accounts] using hf
-  have hass : ExecStmt config { contract := contract, locals := locals, immutables := imms }
+  have hass : ExecStmt fork config { contract := contract, locals := locals, immutables := imms }
       evm withdrawTransition.body[14]!
       (if evm.executionEnv.perm then .ok { contract := contract, locals := locals, immutables := imms }
         (storePositionSupplyShares evm p.id account

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.DonateHookActiveTrace
 import Benchmarks.UniswapV4PoolManager.FunctionResultTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -10,11 +12,11 @@ set_option maxRecDepth 5000
 theorem donateWordReturnTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw x0 x1 x2 x3 x4 x5 x6 delta : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (v : PoolManagerImmutables) (hstack : R.length+13 ≤ 1024)
-    (h : RD (deployedRuntime v) I g s0 ⟨10381⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨10381⟩
       (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: delta :: ⟨32⟩ :: R) mem aw rdata σ k C) :
-    RDret (deployedRuntime v) g s0 σ delta.toByteArray := by
+    RDret fork (deployedRuntime v) g s0 σ delta.toByteArray := by
   have hr := poolManagerBlocks.poolManager_block_10381 hstack h
-  change RDret _ _ _ _ (writeWord mem (memLoad (UInt256.ofNat 64) mem).toNat delta
+  change RDret fork _ _ _ _ (writeWord mem (memLoad (UInt256.ofNat 64) mem).toNat delta
     |>.readWithPadding (memLoad (UInt256.ofNat 64) mem).toNat 32) at hr
   rwa [writeWord_sparse_read_back] at hr
 
@@ -28,16 +30,16 @@ theorem afterDonateHookTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hf : free.toNat+len.toNat+448 < UInt256.size) (hsrc : src.toNat+len.toNat ≤ I.calldata.size)
     (hgas : g.toNat < 324518553658429321982441292826060) (hpaid : Cₘ aw ≤ C)
     (hfree : memLoad (UInt256.ofNat 64) mem = free)
-    (h : RD (deployedRuntime v) I g s0 (if I.source = hook then ⟨10381⟩ else ⟨10391⟩)
+    (h : RD fork (deployedRuntime v) I g s0 (if I.source = hook then ⟨10381⟩ else ⟨10391⟩)
       (accountWord hook :: amount1 :: keyPtr :: src :: accountWord hook :: amount0 :: len :: delta :: ⟨32⟩ :: junk :: R)
       mem aw rdata evm.accountMap k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
     ∃ post z out,
-      (hookEnabled I.source hook ⟨16⟩ → callViaEVM evm hook 0
+      (hookEnabled I.source hook ⟨16⟩ → callViaEVM fork evm hook 0
         (donateHookPayload true I.source key amount0 amount1 (I.calldata.extract src.toNat (src.toNat+len.toNat)))
         (z, post, out)) ∧
-      functionResultTrace (deployedRuntime v) g s0
-        (fun post values => values = none ∧ RDret (deployedRuntime v) g s0 post.accountMap delta.toByteArray)
+      functionResultTrace fork (deployedRuntime v) g s0
+        (fun post values => values = none ∧ RDret fork (deployedRuntime v) g s0 post.accountMap delta.toByteArray)
         (hookInvocationResult f evm post (hookEnabled I.source hook ⟨16⟩) z
           (donateHookPayload true I.source key amount0 amount1 (I.calldata.extract src.toNat (src.toNat+len.toNat))) out) := by
   by_cases hself : I.source = hook

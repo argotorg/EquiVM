@@ -1,6 +1,8 @@
 import Benchmarks.CurveVault.ConvertAssetsInternal
 import Benchmarks.CurveVault.ConversionArguments
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -18,18 +20,18 @@ theorem vaultConversionForward (toShares isFloor : Bool) {I : ExecutionEnv} {g :
     (hargs : evalExprs? config {contract := contract, locals := locals} evm args =
       .ok [.int (Int.ofNat input.toNat), .bool isFloor, .int (Int.ofNat total.toNat)])
     (hstack : R.length + 14 ≤ 1024) (hvalid : (D_J vaultBytecode 0).contains returnPc = true)
-    (h : RD vaultBytecode I g s0 (if toShares then UInt256.ofNat 7108 else UInt256.ofNat 7332)
+    (h : RD fork vaultBytecode I g s0 (if toShares then UInt256.ofNat 7108 else UInt256.ofNat 7332)
       (dest :: returnPc :: R) mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (scratch : ByteArray) (value aw' : UInt256)
         (out : ByteArray) (k' C' : Nat),
-      ExecStmt config {contract := contract, locals := locals} evm
+      ExecStmt fork config {contract := contract, locals := locals} evm
         (.internalCall (vaultConversionFunction toShares).name args retVar)
         (.ok {contract := contract, locals := locals.insert retVar (.int (Int.ofNat value.toNat))} evm') ∧
       SourceState s0 I σ' evm' ∧ WordMemoryRange mem scratch 576 UInt256.size ∧
-      RD vaultBytecode I g s0 returnPc R (value.toByteArray.write 0 scratch dest.toNat 32) aw' out σ' k' C') ∨
-    (ExecStmt config {contract := contract, locals := locals} evm
-      (.internalCall (vaultConversionFunction toShares).name args retVar) .reverted ∧ RDrev vaultBytecode g s0) := by
-  have hcallee : vaultConversionRoutineOutcome s0 evm I g (vaultConversionFunction toShares)
+      RD fork vaultBytecode I g s0 returnPc R (value.toByteArray.write 0 scratch dest.toNat 32) aw' out σ' k' C') ∨
+    (ExecStmt fork config {contract := contract, locals := locals} evm
+      (.internalCall (vaultConversionFunction toShares).name args retVar) .reverted ∧ RDrev fork vaultBytecode g s0) := by
+  have hcallee : vaultConversionRoutineOutcome fork s0 evm I g (vaultConversionFunction toShares)
       (vaultConversionLocals (if toShares then "_assets" else "_shares") input isFloor total) mem dest returnPc R := by
     cases toShares
     · exact vaultConvertAssetsRoutine hs hsize hmi hmf hmt hstack hvalid h

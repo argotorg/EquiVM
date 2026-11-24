@@ -1,5 +1,7 @@
 import Benchmarks.Safe.V2_0e91d99.LocalArrays
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V2_0e91d99
@@ -12,7 +14,7 @@ def arithmeticFrame (caller : Frame) (a b : UInt256) : Frame :=
 
 theorem safeAddSource {cfg : Config} (caller : Frame) (evm : EVM.State) (a b : UInt256)
     (hfit : a.toNat + b.toNat < UInt256.size) :
-    ExecFuncBody cfg (arithmeticFrame caller a b) evm addFunction.body
+    ExecFuncBody fork cfg (arithmeticFrame caller a b) evm addFunction.body
       (.returned (arithmeticFrame caller a b) evm (some [uint256Value (a + b)])) := by
   apply ExecFuncBody.execBlockRet
   apply ExecBlock.consReturn
@@ -24,7 +26,7 @@ theorem safeAddSource {cfg : Config} (caller : Frame) (evm : EVM.State) (a b : U
 
 theorem safeAddSourceOverflow {cfg : Config} (caller : Frame) (evm : EVM.State)
     (a b : UInt256) (hover : UInt256.size ≤ a.toNat + b.toNat) :
-    ExecFuncBody cfg (arithmeticFrame caller a b) evm addFunction.body .reverted := by
+    ExecFuncBody fork cfg (arithmeticFrame caller a b) evm addFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply ExecBlock.consRevert
   apply ExecStmt.returnRevert
@@ -40,7 +42,7 @@ theorem safeInternalAdd {caller : Frame} {evm : EVM.State} {lhs rhs : Expr}
     (ha : evalExpr? config caller evm lhs = .ok (uint256Value a))
     (hb : evalExpr? config caller evm rhs = .ok (uint256Value b))
     (hfit : a.toNat + b.toNat < UInt256.size) :
-    ExecStmt config caller evm (.internalCall "_add" [lhs, rhs] retVar)
+    ExecStmt fork config caller evm (.internalCall "_add" [lhs, rhs] retVar)
       (.ok { caller with locals := caller.locals.insert retVar (uint256Value (a + b)) } evm) := by
   apply internalCallFunctionReturn (callee := addFunction)
     (argVals := [uint256Value a, uint256Value b]) (locals := arithmeticArgs a b)
@@ -56,7 +58,7 @@ theorem safeInternalAddOverflow {caller : Frame} {evm : EVM.State} {lhs rhs : Ex
     (ha : evalExpr? config caller evm lhs = .ok (uint256Value a))
     (hb : evalExpr? config caller evm rhs = .ok (uint256Value b))
     (hover : UInt256.size ≤ a.toNat + b.toNat) :
-    ExecStmt config caller evm (.internalCall "_add" [lhs, rhs] retVar) .reverted := by
+    ExecStmt fork config caller evm (.internalCall "_add" [lhs, rhs] retVar) .reverted := by
   apply internalCallFunctionRevert (callee := addFunction)
     (argVals := [uint256Value a, uint256Value b]) (locals := arithmeticArgs a b)
   · simp [evalExprs?, ha, hb, bind, EvalResult.bind, pure]

@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.SourceWordArithmetic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -72,7 +74,7 @@ theorem evalFullMathGuard (imms : Store) (evm : EVM.State) (a b denominator : UI
 
 theorem fullMathReturns (imms : Store) (evm : EVM.State) (a b denominator : UInt256)
     (h : fullMathValid a b denominator) :
-    ExecFuncBody config (fullMathFrame imms a b denominator) evm fullMathFunction.body
+    ExecFuncBody fork config (fullMathFrame imms a b denominator) evm fullMathFunction.body
       (.returned (fullMathProductFrame imms a b denominator) evm
         (some [.int (Int.ofNat (fullMathResult a b denominator).toNat)])) := by
   apply ExecFuncBody.execBlockRet
@@ -89,7 +91,7 @@ theorem fullMathReturns (imms : Store) (evm : EVM.State) (a b denominator : UInt
 
 theorem fullMathReverts (imms : Store) (evm : EVM.State) (a b denominator : UInt256)
     (h : ¬ fullMathValid a b denominator) :
-    ExecFuncBody config (fullMathFrame imms a b denominator) evm fullMathFunction.body
+    ExecFuncBody fork config (fullMathFrame imms a b denominator) evm fullMathFunction.body
       .reverted := by
   apply ExecFuncBody.execBlockRevert
   refine ExecBlock.consNormal (stele' := fullMathProductFrame imms a b denominator)

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.WordOperationsSource
 import Benchmarks.UniswapV4PoolManager.WordArrayLoop
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 
@@ -10,7 +12,7 @@ theorem wordByte_lookup : lookupCallable? contract "wordByte" = some wordByteFun
 theorem wordByteBody {f : Frame} {evm : EVM.State} {word index : UInt256}
     (hw : f.locals.get? "word" = some (.int (Int.ofNat word.toNat)))
     (hi : f.locals.get? "index" = some (.int (Int.ofNat index.toNat))) :
-    ExecFuncBody config f evm wordByteFunction.body
+    ExecFuncBody fork config f evm wordByteFunction.body
       (.returned f evm (some [.int (Int.ofNat (UInt256.byteAt index word).toNat)])) := by
   have hcond := evalNatLt (evalLocalValue (cfg := config) (evm := evm) hi)
     (show evalExpr? config f evm (.intLit 32) = .ok (.int (Int.ofNat 32)) by simp only [evalExpr?, pure]; rfl)
@@ -47,7 +49,7 @@ theorem wordByteCall {f : Frame} {evm : EVM.State} {ew ei : Expr} {word index : 
     (hf : f.contract = contract)
     (hw : evalExpr? config f evm ew = .ok (.int (Int.ofNat word.toNat)))
     (hi : evalExpr? config f evm ei = .ok (.int (Int.ofNat index.toNat))) (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "wordByte" [ew, ei] retVar)
+    ExecStmt fork config f evm (.internalCall "wordByte" [ew, ei] retVar)
       (.ok {f with locals := f.locals.insert retVar (.int (Int.ofNat (UInt256.byteAt index word).toNat))} evm) := by
   apply internalCallFunctionReturn (argVals := [.int (Int.ofNat word.toNat), .int (Int.ofNat index.toNat)])
     (value := some [.int (Int.ofNat (UInt256.byteAt index word).toNat)])

@@ -3,6 +3,8 @@ import Benchmarks.Morpho.MorphoBlue.SafeTransferBoolRoute
 import Benchmarks.Morpho.MorphoBlue.SafeTransferSourceTail
 import Benchmarks.Morpho.MorphoBlue.ReturnBoolView
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -48,14 +50,14 @@ theorem morphoTransferPostGuards {v : MorphoImmutables} {ee : ExecutionEnv} {g :
     (hcursor : ptr.toNat = n + safeTransferReturnAlloc out.size)
     (hv : ReturnBoolView mem data out ptr.toNat)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 (safeTransferStatusPC isFrom)
+    (h : RD fork (deployedRuntime v) ee g s0 (safeTransferStatusPC isFrom)
       (data :: safeTransferBoolPC isFrom :: (if success then ⟨1⟩ else ⟨0⟩) ::
         UInt256.ofNat 15005 :: ret :: R) mem aw out σ k C) :
-    (ExecBlock config frame evm safeTransferTail .reverted ∧ RDrev (deployedRuntime v) g s0) ∨
+    (ExecBlock fork config frame evm safeTransferTail .reverted ∧ RDrev fork (deployedRuntime v) g s0) ∨
     ∃ frame' aw' k' C',
-      ExecBlock config frame evm safeTransferTail (.returned frame' evm
+      ExecBlock fork config frame evm safeTransferTail (.returned frame' evm
         (some [.int (Int.ofNat (n + safeTransferReturnAlloc out.size + 128))])) ∧
-      RD (deployedRuntime v) ee g s0 ret R (safeTransferPostMem isFrom mem) aw' out σ k' C' ∧
+      RD fork (deployedRuntime v) ee g s0 ret R (safeTransferPostMem isFrom mem) aw' out σ k' C' ∧
       MorphoHeap (safeTransferPostMem isFrom mem) (ptr + UInt256.ofNat 64 + UInt256.ofNat 64) 0 ∧
       MemoryPrefix mem (safeTransferPostMem isFrom mem) ptr.toNat ∧
       (ptr + UInt256.ofNat 64 + UInt256.ofNat 64).toNat =
@@ -84,7 +86,7 @@ theorem morphoTransferPostGuards {v : MorphoImmutables} {ee : ExecutionEnv} {g :
           hv1.header hv1.word (by change R.length + 2 + 6 ≤ 1024; omega) rd1
         obtain ⟨a3, k3, C3, rd3⟩ := morphoTransferResultPrepare isFrom
           (by change R.length + 2 + 5 ≤ 1024; omega) rd2
-        change RD _ _ _ _ _
+        change RD fork _ _ _ _ _
           (memLoad (UInt256.ofNat 64) mem1 :: safeTransferMessagePC isFrom true ::
             safeTransferBoolStatus out :: memLoad (UInt256.ofNat 64) mem1 ::
             UInt256.ofNat 15005 :: ret :: R) mem1 _ _ _ _ _ at rd3

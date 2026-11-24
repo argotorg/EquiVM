@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.MintInitialProductOverflow
 import Examples.UniswapV2Pair.MintFeeArithmeticBridge
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 set_option maxRecDepth 2000000
 namespace UniswapV2Pair
@@ -13,7 +15,7 @@ theorem uniswapMintFeeRuntimePositiveNumeratorOverflowRevertsOfTail
     {mem rdata : ByteArray} {k C : ℕ}
     {rootK rootKLast : Int}
     {kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
-    (rd7899 : RD uniswapV2PairBytecode I g
+    (rd7899 : RD fork uniswapV2PairBytecode I g
       s0 ⟨7899⟩
       (UInt256.ofNat rootKLast.toNat :: ⟨0⟩ :: UInt256.ofNat rootK.toNat :: kLast :: feeTo :: ⟨1⟩ ::
         reserve1 :: reserve0 :: ret :: R)
@@ -25,7 +27,7 @@ theorem uniswapMintFeeRuntimePositiveNumeratorOverflowRevertsOfTail
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 32 ≤ 1024) :
-    RDrev uniswapV2PairBytecode g
+    RDrev fork uniswapV2PairBytecode g
       s0 := by
   have hrootGt :=
     wordOfInt_toNat_lt_of_int_lt rootK rootKLast hroot hrootKSize hrootKLastNonneg
@@ -58,7 +60,7 @@ theorem uniswapMintFeeRuntimePositiveRootTimesFiveOverflowRevertsOfTail
     {mem rdata : ByteArray} {k C : ℕ}
     {rootK rootKLast : Int}
     {kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
-    (rd7899 : RD uniswapV2PairBytecode I g
+    (rd7899 : RD fork uniswapV2PairBytecode I g
       s0 ⟨7899⟩
       (UInt256.ofNat rootKLast.toNat :: ⟨0⟩ :: UInt256.ofNat rootK.toNat :: kLast :: feeTo :: ⟨1⟩ ::
         reserve1 :: reserve0 :: ret :: R)
@@ -71,7 +73,7 @@ theorem uniswapMintFeeRuntimePositiveRootTimesFiveOverflowRevertsOfTail
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 32 ≤ 1024) :
-    RDrev uniswapV2PairBytecode g
+    RDrev fork uniswapV2PairBytecode g
       s0 := by
   have hrootGt :=
     wordOfInt_toNat_lt_of_int_lt rootK rootKLast hroot hrootKSize hrootKLastNonneg
@@ -106,7 +108,7 @@ theorem uniswapMintFeeRuntimePositiveDenominatorOverflowRevertsOfTail
     {mem rdata : ByteArray} {k C : ℕ}
     {rootK rootKLast : Int}
     {kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
-    (rd7899 : RD uniswapV2PairBytecode I g
+    (rd7899 : RD fork uniswapV2PairBytecode I g
       s0 ⟨7899⟩
       (UInt256.ofNat rootKLast.toNat :: ⟨0⟩ :: UInt256.ofNat rootK.toNat :: kLast :: feeTo :: ⟨1⟩ ::
         reserve1 :: reserve0 :: ret :: R)
@@ -121,7 +123,7 @@ theorem uniswapMintFeeRuntimePositiveDenominatorOverflowRevertsOfTail
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 32 ≤ 1024) :
-    RDrev uniswapV2PairBytecode g
+    RDrev fork uniswapV2PairBytecode g
       s0 := by
   have hrootGt :=
     wordOfInt_toNat_lt_of_int_lt rootK rootKLast hroot hrootKSize hrootKLastNonneg

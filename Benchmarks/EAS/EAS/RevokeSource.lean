@@ -2,6 +2,8 @@ import Benchmarks.EAS.EAS.RevocationRequest
 import Benchmarks.EAS.EAS.RevokeGuards
 import Benchmarks.EAS.EAS.AttestSchemaSource
 import Benchmarks.EAS.EAS.ArrayLoopSource
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 
@@ -46,7 +48,7 @@ theorem revokeReadRequest_source {L imms : Store} {evm : EVM.State} {rs : List R
     (hd : L.get? "data" = some (.array (rs.map RevocationRequestRecord.tuple)))
     (hi : L.get? "i" = some (.int (Int.ofNat i))) (hb : i < rs.length)
     (hh : L.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap))) :
-    ExecBlock config {contract := contract,locals := L,immutables := imms} evm revokeReadRequest
+    ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm revokeReadRequest
       (.ok {contract := contract,locals := revokeRequestLocals L rs[i] heap,immutables := imms} evm) := by
   apply heapResultBlock_ok (decodeRevocationDataCall (r := rs[i]) (heap := heap) ?_) hh (by decide) (by decide) (by decide)
   have he : evalExpr? config {contract := contract,locals := L,immutables := imms} evm
@@ -59,21 +61,21 @@ theorem revokeReadRequest_source {L imms : Store} {evm : EVM.State} {rs : List R
 
 theorem revokeBindAlias_source {L imms : Store} {evm : EVM.State} {r : RevocationRequestRecord}
     (hd : L.get? "_db" = none) (hr : L.get? "request" = some r.struct) :
-    ExecStmt config {contract := contract,locals := L,immutables := imms} evm revokeBindAlias
+    ExecStmt fork config {contract := contract,locals := L,immutables := imms} evm revokeBindAlias
       (.ok {contract := contract,locals := revokeAliasLocals L r.uid,immutables := imms} evm) :=
   ExecStmt.letStorage (attestationRoot_resolve hd (revokeRequestField_eval hr "uid" _ rfl))
 
 theorem revokeWriteTime_source {L imms : Store} {evm : EVM.State} {word time : UInt256}
     (ha : L.get? "attestation" = some (.storageRef (attestationER word) attestationType))
     (ht : L.get? "__c1" = some (.int (Int.ofNat time.toNat))) :
-    ExecStmt config {contract := contract,locals := L,immutables := imms} evm revokeWriteTime
+    ExecStmt fork config {contract := contract,locals := L,immutables := imms} evm revokeWriteTime
       (if evm.executionEnv.perm then .ok {contract := contract,locals := L,immutables := imms} ((revokeTimeField word time).apply evm) else .staticViolation) :=
   execStmt_assign_storage (evalLocalValue ht) (attestationAlias_writeTime ha)
 
 theorem revokeWriteTime_static {L imms : Store} {evm : EVM.State} {word time : UInt256}
     (ha : L.get? "attestation" = some (.storageRef (attestationER word) attestationType))
     (ht : L.get? "__c1" = some (.int (Int.ofNat time.toNat))) (hp : evm.executionEnv.perm = false) :
-    ExecStmt config {contract := contract,locals := L,immutables := imms} evm revokeWriteTime .staticViolation :=
+    ExecStmt fork config {contract := contract,locals := L,immutables := imms} evm revokeWriteTime .staticViolation :=
   execStmt_assign_static (revokeWriteTime_source ha ht) hp
 
 end Benchmarks.EAS.EAS

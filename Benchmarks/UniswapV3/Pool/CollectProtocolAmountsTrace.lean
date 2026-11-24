@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.CollectProtocolPaymentTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -9,9 +11,9 @@ set_option maxRecDepth 10000
 theorem collectProtocolMin0X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw old0 old1 req0 req1 : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨8963⟩ (old1 :: old0 :: req1 :: req0 :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨8963⟩ (old1 :: old0 :: req1 :: req0 :: R) mem aw rdata σ k C)
     (hfit : req0.toNat < 2 ^ 128) (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨9004⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨9004⟩
       (minWord req0 (protocolFeesWord false σ ee) :: old1 :: old0 :: req1 :: req0 :: R)
       mem aw rdata σ k' C' := by
   have hc : UInt256.land req0 (UInt256.ofNat (2 ^ 128 - 1)) = req0 := by
@@ -38,9 +40,9 @@ theorem collectProtocolMin0X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem collectProtocolMin1X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw amount0 old0 old1 requested : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨9004⟩ (amount0 :: old1 :: old0 :: requested :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨9004⟩ (amount0 :: old1 :: old0 :: requested :: R) mem aw rdata σ k C)
     (hfit : requested.toNat < 2 ^ 128) (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨9062⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨9062⟩
       (minWord requested (protocolFeesWord true σ ee) :: old1 :: amount0 :: requested :: R)
       mem aw rdata σ k' C' := by
   have hc : UInt256.land requested (UInt256.ofNat (2 ^ 128 - 1)) = requested := by
@@ -71,9 +73,9 @@ theorem collectProtocolMin1X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem collectProtocolAmountsX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw old0 old1 req0 req1 : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨8963⟩ (old1 :: old0 :: req1 :: req0 :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨8963⟩ (old1 :: old0 :: req1 :: req0 :: R) mem aw rdata σ k C)
     (hfit0 : req0.toNat < 2 ^ 128) (hfit1 : req1.toNat < 2 ^ 128) (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨9062⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨9062⟩
       (minWord req1 (protocolFeesWord true σ ee) :: old1 ::
         minWord req0 (protocolFeesWord false σ ee) :: req1 :: req0 :: R)
       mem aw rdata σ k' C' := by

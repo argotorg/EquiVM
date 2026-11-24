@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.Slot0MemoryFields
 import Benchmarks.UniswapV3.Pool.OracleWriteEntryTrace
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_053
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -13,11 +15,11 @@ theorem modifyPositionMiddleEntryX {σ : AccountMap} {ee : ExecutionEnv} {g : Sa
     {s0 : EVM.State} {k C : Nat} {aw p q free key : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : ModifyPositionArgs) (evm : EVM.State)
     (hs : SourceState s0 ee σ (modifyPositionUpdatedState v a evm))
-    (rd : RD (deployedRuntime v) ee g s0 ⟨16536⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨16536⟩
       (p :: ⟨0⟩ :: ⟨0⟩ :: key :: q :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hp : Slot0Memory mem p evm.accountMap evm.executionEnv)
     (hb : p.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 15 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨14801⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨14801⟩
       (oracleWriteEntryWords {modifyPositionMiddleOracleArgs v a evm with
         time := UInt256.ofNat ee.header.timestamp} ++
         ⟨16595⟩ :: modifyPositionMiddleLiquidity v a evm :: p :: ⟨0⟩ :: ⟨0⟩ :: key :: q :: R)

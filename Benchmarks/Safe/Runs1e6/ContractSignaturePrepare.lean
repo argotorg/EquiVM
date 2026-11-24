@@ -2,6 +2,8 @@ import Benchmarks.Safe.Runs1e6.ContractSignatureEncode
 import Benchmarks.Safe.Runs1e6.Blocks.Runtime_037
 import Benchmarks.Safe.Runs1e6.Blocks.Runtime_051
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Runs1e6.RuntimeBlocks
 
@@ -10,7 +12,7 @@ namespace Benchmarks.Safe.Runs1e6
 set_option maxRecDepth 100000 in
 theorem safeContractSignatureCopy {I g s0 σ k C aw mem rdata ptr src len}
     {hash owner ret : UInt256} {words : List UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨14798⟩
+    (h : RD fork safeBytecode I g s0 ⟨14798⟩
       (UInt256.ofNat (contractSignatureCallEnd ptr len) :: UInt256.ofNat ptr :: ⟨11173⟩ ::
         UInt256.land solcAddrMask owner :: ⟨0⟩ :: ⟨0⟩ :: UInt256.ofNat ptr :: ⟨0⟩ ::
         UInt256.ofNat src :: hash :: owner :: ret :: R)
@@ -18,7 +20,7 @@ theorem safeContractSignatureCopy {I g s0 σ k C aw mem rdata ptr src len}
     (hp : 96 ≤ ptr) (hn : words.length = (len + 31) / 32)
     (hb : contractSignatureCallEnd ptr len + contractSignatureCallLength len + 64 < UInt256.size)
     (hov : R.length + 26 ≤ 1024) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨11173⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨11173⟩
       (UInt256.ofNat (contractSignatureCallEnd ptr len + contractSignatureCallLength len) ::
         UInt256.land solcAddrMask owner :: ⟨0⟩ :: ⟨0⟩ :: UInt256.ofNat ptr :: ⟨0⟩ ::
         UInt256.ofNat src :: hash :: owner :: ret :: R)
@@ -57,7 +59,7 @@ theorem safeContractSignatureCopy {I g s0 σ k C aw mem rdata ptr src len}
 set_option maxRecDepth 100000 in
 theorem safeContractSignaturePrepare (words : List UInt256)
     {I g s0 σ k C aw mem rdata ptr src len} {hash owner ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨11010⟩
+    (h : RD fork safeBytecode I g s0 ⟨11010⟩
       (UInt256.ofNat src :: hash :: owner :: ret :: R) mem aw rdata σ k C)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr)
     (hl : memLoad (UInt256.ofNat src) mem = UInt256.ofNat len)
@@ -67,7 +69,7 @@ theorem safeContractSignaturePrepare (words : List UInt256)
     (ha : src + 32 + 32 * words.length ≤ ptr + 36)
     (hb : contractSignatureCallEnd ptr len + contractSignatureCallLength len + 64 < UInt256.size)
     (hov : R.length + 26 ≤ 1024) :
-    ∃ gasArg aw' k' C', RD safeBytecode I g s0 ⟨11184⟩
+    ∃ gasArg aw' k' C', RD fork safeBytecode I g s0 ⟨11184⟩
       (gasArg :: UInt256.land solcAddrMask owner ::
         UInt256.ofNat (contractSignatureCallEnd ptr len) ::
         UInt256.ofNat (contractSignatureCallLength len) ::

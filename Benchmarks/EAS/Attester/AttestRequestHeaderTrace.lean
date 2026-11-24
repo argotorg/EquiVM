@@ -1,6 +1,8 @@
 import Benchmarks.EAS.Attester.AttestArrayEncodeTrace
 import Benchmarks.EAS.Attester.AttestRequestsEncodeMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.EAS.Attester.Immutables attesterRuntimeBlocks
 
@@ -9,7 +11,7 @@ namespace Benchmarks.EAS.Attester
 theorem attestRequestHeader3353 {words : String → UInt256} {I g s0 σ mem aw out k C R}
     {x0 x2 x5 schema : UInt256} {limit slot ptr origin table dst n : Nat}
     {values : Nat → UInt256}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3353⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3353⟩
       ([x0, UInt256.ofNat slot, x2, UInt256.ofNat table, UInt256.ofNat dst, x5,
         UInt256.ofNat origin] ++ R) mem aw out σ k C)
     (hstack : R.length + 12 ≤ 1024) (hslotlo : 96 ≤ slot) (hslotend : slot + 32 ≤ limit)
@@ -19,7 +21,7 @@ theorem attestRequestHeader3353 {words : String → UInt256} {I g s0 σ mem aw o
     (htable : table + 32 ≤ dst) (horigin : origin + 64 ≤ dst)
     (hfit : dst + 96 + 32 * n < UInt256.size) :
     ∃ base, AttestArrayAt mem 96 limit base n values ∧ ∃ aw' k' C',
-      RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3441⟩
+      RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3441⟩
         ([UInt256.ofNat 0, UInt256.ofNat n, UInt256.ofNat (dst + 96),
           UInt256.ofNat (dst + 96 + 32 * n), UInt256.ofNat (base + 32),
           x0, UInt256.ofNat slot, x2, UInt256.ofNat table, UInt256.ofNat dst, x5,

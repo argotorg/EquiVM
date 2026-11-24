@@ -2,6 +2,8 @@ import Benchmarks.Safe.V3_77901a5.Blocks.Runtime_037
 import Benchmarks.Safe.V3_77901a5.Blocks.Runtime_038
 import Benchmarks.Safe.V3_77901a5.ContractSignatureEncode
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V3_77901a5.RuntimeBlocks
 
@@ -63,7 +65,7 @@ theorem safeContractSignatureBufferMemory {mem : ByteArray} {ptr len : Nat}
 theorem safeContractSignaturePrepare (words : List UInt256)
     {I g s0 σ k C aw mem rdata ptr src subptr len} {hash offset owner ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7036⟩
+    (h : RD fork safeBytecode I g s0 ⟨7036⟩
       (UInt256.ofNat len :: offset :: UInt256.ofNat src :: hash :: owner :: ret :: R)
       mem aw rdata σ k C)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr)
@@ -74,7 +76,7 @@ theorem safeContractSignaturePrepare (words : List UInt256)
     (hin : subptr + 32 ≤ mem.size) (ha : subptr + 32 ≤ ptr)
     (hsrc : subptr + 32 + 32 * words.length ≤ ptr + 100)
     (hb : ptr + 512 + 64 * words.length < UInt256.size) (hov : R.length + 33 ≤ 1024) :
-    ∃ gasArg aw' k' C', RD safeBytecode I g s0 ⟨8796⟩
+    ∃ gasArg aw' k' C', RD fork safeBytecode I g s0 ⟨8796⟩
       (gasArg :: UInt256.land owner solcAddrMask :: UInt256.ofNat (contractSignatureCallEnd ptr len) ::
         UInt256.ofNat (contractSignatureCallLength len) :: UInt256.ofNat (contractSignatureCallEnd ptr len) :: ⟨0⟩ ::
         UInt256.ofNat (contractSignatureCallEnd ptr len + contractSignatureCallLength len) ::
@@ -107,7 +109,7 @@ theorem safeContractSignaturePrepare (words : List UInt256)
   have he : contractSignatureCallEnd ptr len + 32 * (3 + (len + 31) / 32) + 4 =
       contractSignatureCallEnd ptr len + contractSignatureCallLength len := by rw [hlen]; omega
   rw [he] at h₃
-  change RD safeBytecode I g s0 ⟨8785⟩ _
+  change RD fork safeBytecode I g s0 ⟨8785⟩ _
     (contractSignatureCallMemory mem ptr len hash words) _ rdata σ _ _ at h₃
   have hfree' := contractSignatureCallMemory_free mem ptr len hash words hn hm hp
   change memLoad (UInt256.ofNat 64) _ = _ at hfree'

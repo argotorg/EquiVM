@@ -3,14 +3,16 @@ import Benchmarks.UniswapV4PoolManager.UnlockCallTrace
 import Benchmarks.UniswapV4PoolManager.UnlockAllocationFailureGas
 import Benchmarks.UniswapV4PoolManager.BytesResultTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
 
 theorem unlockCallbackResult_trace {code : ByteArray} {g : Sat256} {s0 evm : State}
-    {f : Frame} {out : ByteArray} (h : unlockReturnResultTrace code g s0 evm out) :
-    bytesResultTrace code g s0 (unlockCallbackResult f evm true out) := by
+    {f : Frame} {out : ByteArray} (h : unlockReturnResultTrace fork code g s0 evm out) :
+    bytesResultTrace fork code g s0 (unlockCallbackResult f evm true out) := by
   unfold unlockReturnResultTrace at h
   unfold unlockCallbackResult
   by_cases hb : BytesReturnBounds out
@@ -35,11 +37,11 @@ theorem unlockFinishTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f : 
     (hrequest : mem.readWithPadding 160 (UInt256.sub ending ⟨160⟩).toNat =
       unlockCallbackSelector++bytesReturnEncoding data)
     (hsmall : (mem.readWithPadding 160 (UInt256.sub ending ⟨160⟩).toNat).size ≤ maxReturnDataSizeByGas)
-    (h : RD (deployedRuntime v) I g s0 ⟨9029⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨9029⟩
       (ending :: ⟨160⟩ :: ⟨160⟩ :: ⟨0⟩ :: ⟨160⟩ :: saved :: R) mem aw rdata evm.accountMap k C) :
-    (X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass) ∨
-      ∃ result, ExecFuncBody config f evm (unlockTransition.body.drop 8) result ∧
-        bytesResultTrace (deployedRuntime v) g s0 result := by
+    (X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass) ∨
+      ∃ result, ExecFuncBody fork config f evm (unlockTransition.body.drop 8) result ∧
+        bytesResultTrace fork (deployedRuntime v) g s0 result := by
   have hencode : config.externalABI.encode? "unlockCallback" [.bytes data] =
       some (mem.readWithPadding 160 (UInt256.sub ending ⟨160⟩).toNat) := by
     rw [hrequest]
@@ -55,7 +57,7 @@ theorem unlockFinishTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f : 
   | true =>
     obtain ⟨w, k', C', hcost, rd⟩ := ht
     rcases unlockReturnTrace v hstack hI' hp hout hmem rd with hfail | hret
-    · let w' : ZeroCallGasEvidence evm I.source (unlockCallbackSelector++bytesReturnEncoding data)
+    · let w' : ZeroCallGasEvidence fork evm I.source (unlockCallbackSelector++bytesReturnEncoding data)
           evm' true out := ⟨w.inputGas, w.returnedGas, w.inputSubstate, by rw [← hrequest]; exact w.theta⟩
       exact .inl (unlockAllocationFailure_outOfGas v w' hgas hout (by
         change 1094+_+w.spent ≤ C'

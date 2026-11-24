@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PoolSwapComputeWindow
 import Benchmarks.UniswapV4PoolManager.PoolSwapScanPriceTrace
 import Benchmarks.UniswapV4PoolManager.PoolSwapScanSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -14,12 +16,12 @@ theorem poolSwapScanMemoryTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (v : PoolManagerImmutables) (hstack : R.length+33 ≤ 1024) (hI : evm.executionEnv = I)
     (hm : PoolSwapMemoryView mem step state params s r p)
     (htc : int24Canonical r.tick) (hspacing : int24Canonical p.tickSpacing) (hprice : r.price.toNat < 2^160)
-    (h : RD (deployedRuntime v) I g s0 ⟨19169⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨19169⟩
       ([remaining, x1, params, calculated, tag, fee, protocol, amount, UInt256.fromBool (!p.zeroForOne),
         step, poolSlot id, state] ++ R) mem aw rdata evm.accountMap k C) :
     let scan := poolSwapScanStep s evm id r p
     let next := tickSqrtPrice (EVM.signed (tickClampWord scan.tickNext))
-    ∃ mem' k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨19479⟩
+    ∃ mem' k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨19479⟩
       ([next, solcAddrMask, step, ⟨96⟩, ⟨1⟩, ⟨64⟩,
         UInt256.ofNat (2^128-1), state, fee, UInt256.fromBool (!p.zeroForOne),
         remaining, x1, params, calculated, tag, fee, protocol, amount, UInt256.fromBool (!p.zeroForOne),

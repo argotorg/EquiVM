@@ -7,6 +7,8 @@ import Benchmarks.UniswapV4PoolManager.WordWrappingSource
 import Benchmarks.UniswapV4PoolManager.PoolCheckSource
 import Benchmarks.UniswapV4PoolManager.ValueLocals
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -24,7 +26,7 @@ theorem poolSwapProtocolSource {f : Frame} {evm : State}
     (hf : f.locals.get? "swapFee" = some (.int (Int.ofNat fee.toNat)))
     (hp : f.locals.get? "protocolFee" = some (.int (Int.ofNat protocol.toNat)))
     (ha : f.locals.get? "amountToProtocol" = some (.int (Int.ofNat amount.toNat))) :
-    ExecStmt config f evm poolSwapLoopBody[16]! (.ok (poolSwapProtocolFrame f s fee protocol amount) evm) := by
+    ExecStmt fork config f evm poolSwapLoopBody[16]! (.ok (poolSwapProtocolFrame f s fee protocol amount) evm) := by
   have hg : evalExpr? config f evm (.binary .gt (.var "protocolFee") (.intLit 0)) =
       .ok (.bool (decide (protocol ≠ ⟨0⟩))) := by
     simpa only [show (⟨0⟩ : UInt256).toNat = 0 from rfl, wordPositive_iff] using evalWordGt (evalLocalValue hp)
@@ -46,7 +48,7 @@ theorem poolSwapProtocolSource {f : Frame} {evm : State}
           simp only [evalExpr?, pure]; rfl) (by decide))
     have hs1 : f1.locals.get? "step" = some (poolSwapStepValue s) :=
       (store_get_ne _ _ (by decide : ("delta" == "step") = false)).trans hs
-    have hfee : ExecStmt config f1 evm
+    have hfee : ExecStmt fork config f1 evm
         (.assign .localVar {base := "step", steps := [.field "feeAmount"]}
           (.cast (.binary .sub (.field (.var "step") "feeAmount") (.var "delta")) (.elem (.int (.uint ⟨256, by decide⟩)))))
         (.ok f2 evm) := by
@@ -58,7 +60,7 @@ theorem poolSwapProtocolSource {f : Frame} {evm : State}
         (by decide : ("step" == "amountToProtocol") = false)).trans ha
     have hd2 : f2.locals.get? "delta" = some (.int (Int.ofNat delta.toNat)) :=
       (store_get_ne _ _ (by decide : ("step" == "delta") = false)).trans (store_get_self _ _ _)
-    have hamount : ExecStmt config f2 evm
+    have hamount : ExecStmt fork config f2 evm
         (.assign .localVar {base := "amountToProtocol"}
           (.cast (.binary .add (.var "amountToProtocol") (.var "delta")) (.elem (.int (.uint ⟨256, by decide⟩)))))
         (.ok (wordLocal f2 "amountToProtocol" (poolSwapProtocolAmount s fee protocol amount)) evm) := by

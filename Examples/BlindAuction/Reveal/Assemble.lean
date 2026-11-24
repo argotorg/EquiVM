@@ -1,5 +1,7 @@
 import Examples.BlindAuction.Reveal.Cases
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -17,13 +19,13 @@ theorem scratch_revealLoopAdvance_secretStore_continue {I} {g : Sat256}
     {evm : EVM.State} {fake : Bool}
     (hInv : RevealLoopInv loopLen values fakes secrets I σ₀ A (v + 1) a L evm)
     (hbodyCont :
-      ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
+      ExecBlock fork blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
         scratch_revealLoopBodyStmts
         (.continue
           { contract := blindAuctionContract,
             locals := scratch_revealSecretStoreOf L evm a.idx value secret fake }
           evm))
-    (rdNext : RD blindAuctionBytecode I g s0 ⟨1014⟩
+    (rdNext : RD fork blindAuctionBytecode I g s0 ⟨1014⟩
       (scratch_revealEvmLoopStack (a.idx + ⟨1⟩) a.refund loopLen revealEnd biddingEnd
         secretsLen secretsEnd fakesLen fakesEnd valuesLen valuesEnd sel)
       memNext awNext ByteArray.empty a.acc k C)
@@ -41,17 +43,17 @@ theorem scratch_revealLoopAdvance_secretStore_continue {I} {g : Sat256}
     (hgapNext : newFree.toNat + 32 - memNext.size < USize.size)
     (hnextFpNat : newFree.toNat = a.fp.toNat + 97) :
     ∃ a' L1 evm1 L2 evm2 k' C',
-      (ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
+      (ExecBlock fork blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
           scratch_revealLoopBodyStmts
           (.ok { contract := blindAuctionContract, locals := L1 } evm1) ∨
-        ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
+        ExecBlock fork blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
           scratch_revealLoopBodyStmts
           (.continue { contract := blindAuctionContract, locals := L1 } evm1)) ∧
-      ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L1 } evm1
+      ExecBlock fork blindAuctionConfig { contract := blindAuctionContract, locals := L1 } evm1
         scratch_revealLoopPostStmts
         (.ok { contract := blindAuctionContract, locals := L2 } evm2) ∧
       RevealLoopInv loopLen values fakes secrets I σ₀ A v a' L2 evm2 ∧
-      RD blindAuctionBytecode I g s0 ⟨1014⟩
+      RD fork blindAuctionBytecode I g s0 ⟨1014⟩
         (scratch_revealEvmLoopStack a'.idx a'.refund loopLen revealEnd biddingEnd
           secretsLen secretsEnd fakesLen fakesEnd valuesLen valuesEnd sel)
         a'.mem a'.aw ByteArray.empty a'.acc k' C' := by
@@ -67,7 +69,7 @@ theorem scratch_revealLoopAdvance_secretStore_continue {I} {g : Sat256}
   have hiL1 : L1.get? "i" = some (.int (Int.ofNat a.idx.toNat)) := by
     simpa [L1] using scratch_revealSecretStoreOf_i_get L evm a.idx value secret fake hiL
   have hpost :
-      ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L1 } evm
+      ExecBlock fork blindAuctionConfig { contract := blindAuctionContract, locals := L1 } evm
         scratch_revealLoopPostStmts
         (.ok { contract := blindAuctionContract, locals := L2 } evm) := by
     simpa [L2, nextIdx] using scratch_revealLoopPostStep evm L1 a.idx hiL1 hidxFit
@@ -146,7 +148,7 @@ theorem scratch_revealLoopBody_fakeTrue_fromLoopStart {I} {g : Sat256}
     {values fakes secrets : List Value} {a : RevealLoopCursor} {L : Store}
     {evm : EVM.State}
     (hInv : RevealLoopInv loopLen values fakes secrets I σ₀ A (v + 1) a L evm)
-    (rd1023 : RD blindAuctionBytecode I g s0 ⟨1023⟩
+    (rd1023 : RD fork blindAuctionBytecode I g s0 ⟨1023⟩
       (scratch_revealEvmLoopStack a.idx a.refund loopLen revealEnd biddingEnd
         secretsLen secretsEnd fakesLen fakesEnd valuesLen valuesEnd sel)
       a.mem a.aw ByteArray.empty a.acc k C)
@@ -207,24 +209,24 @@ theorem scratch_revealLoopBody_fakeTrue_fromLoopStart {I} {g : Sat256}
     (hsecretLookup :
       lookupNth? secrets a.idx.toNat =
         some (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE secret))) :
-    (ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
+    (ExecBlock fork blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
         scratch_revealLoopBodyStmts .reverted ∧
-      RDrev blindAuctionBytecode g s0) ∨
-    (ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
+      RDrev fork blindAuctionBytecode g s0) ∨
+    (ExecBlock fork blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
         scratch_revealLoopBodyStmts .staticViolation ∧
-      RDstatic blindAuctionBytecode g s0) ∨
+      RDstatic fork blindAuctionBytecode g s0) ∨
     ∃ a' L1 evm1 L2 evm2 k' C',
-      (ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
+      (ExecBlock fork blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
           scratch_revealLoopBodyStmts
           (.ok { contract := blindAuctionContract, locals := L1 } evm1) ∨
-        ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
+        ExecBlock fork blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
           scratch_revealLoopBodyStmts
           (.continue { contract := blindAuctionContract, locals := L1 } evm1)) ∧
-      ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L1 } evm1
+      ExecBlock fork blindAuctionConfig { contract := blindAuctionContract, locals := L1 } evm1
         scratch_revealLoopPostStmts
         (.ok { contract := blindAuctionContract, locals := L2 } evm2) ∧
       RevealLoopInv loopLen values fakes secrets I σ₀ A v a' L2 evm2 ∧
-      RD blindAuctionBytecode I g s0 ⟨1014⟩
+      RD fork blindAuctionBytecode I g s0 ⟨1014⟩
         (scratch_revealEvmLoopStack a'.idx a'.refund loopLen revealEnd biddingEnd
           secretsLen secretsEnd fakesLen fakesEnd valuesLen valuesEnd sel)
         a'.mem a'.aw ByteArray.empty a'.acc k' C' := by
@@ -337,7 +339,7 @@ theorem scratch_revealLoopBody_fakeTrue_fromLoopStart {I} {g : Sat256}
     have hhashEval :=
       scratch_evalExpr_revealPackedHash_of_secretStoreOf evm L a.idx value secret true
     have hbodyCont :
-        ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
+        ExecBlock fork blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
           scratch_revealLoopBodyStmts
           (.continue
             { contract := blindAuctionContract,
@@ -510,7 +512,7 @@ theorem scratch_revealLoopBody_fakeInvalid_fromLoopStart {I} {g : Sat256}
     {fakeRaw : Value}
     {values fakes secrets : List Value} {a : RevealLoopCursor} {L : Store}
     {evm : EVM.State}
-    (rd1023 : RD blindAuctionBytecode I g s0 ⟨1023⟩
+    (rd1023 : RD fork blindAuctionBytecode I g s0 ⟨1023⟩
       (scratch_revealEvmLoopStack a.idx a.refund loopLen revealEnd biddingEnd
         secretsLen secretsEnd fakesLen fakesEnd valuesLen valuesEnd sel)
       a.mem a.aw ByteArray.empty a.acc k C)
@@ -560,9 +562,9 @@ theorem scratch_revealLoopBody_fakeInvalid_fromLoopStart {I} {g : Sat256}
       lookupNth? values a.idx.toNat = some (.int (Int.ofNat value.toNat)))
     (hfakeLookup : lookupNth? fakes a.idx.toNat = some fakeRaw)
     (hfakeNorm : normalizeRawBoolWord? fakeRaw = .revert) :
-    ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
+    ExecBlock fork blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
         scratch_revealLoopBodyStmts .reverted ∧
-      RDrev blindAuctionBytecode g s0 := by
+      RDrev fork blindAuctionBytecode g s0 := by
   exact
     scratch_revealLoopBody_fakeInvalid_pair
       (I := I) (g := g) (s0 := s0) (k := k) (C := C)
@@ -584,7 +586,7 @@ theorem scratch_revealLoopBody_bounds_fromLoopStart {I} {g : Sat256} {s0 : State
     {loopLen curLen revealEnd biddingEnd secretsLen secretsEnd fakesLen fakesEnd valuesLen
       valuesEnd sel : UInt256}
     {a : RevealLoopCursor} {L : Store} {evm : EVM.State}
-    (rd1023 : RD blindAuctionBytecode I g s0 ⟨1023⟩
+    (rd1023 : RD fork blindAuctionBytecode I g s0 ⟨1023⟩
       (scratch_revealEvmLoopStack a.idx a.refund loopLen revealEnd biddingEnd
         secretsLen secretsEnd fakesLen fakesEnd valuesLen valuesEnd sel)
       a.mem a.aw ByteArray.empty a.acc k C)
@@ -604,9 +606,9 @@ theorem scratch_revealLoopBody_bounds_fromLoopStart {I} {g : Sat256} {s0 : State
     (hlenSrc :
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner
         (bidsBase (.address evm.executionEnv.source)) = curLen) :
-    ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
+    ExecBlock fork blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
         scratch_revealLoopBodyStmts .reverted ∧
-      RDrev blindAuctionBytecode g s0 := by
+      RDrev fork blindAuctionBytecode g s0 := by
   exact
     scratch_revealLoopBody_bounds_pair
       (I := I) (g := g) (s0 := s0) (k := k) (C := C)
@@ -630,7 +632,7 @@ theorem scratch_revealLoopAdvance_refundPlaced_zeroBlinded_placeBidNonzero_pendi
     {evm : EVM.State}
     (hInv : RevealLoopInv loopLen values fakes secrets I σ₀ A (v + 1) a L evm)
     (hbodyOk :
-      ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
+      ExecBlock fork blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
         scratch_revealLoopBodyStmts
         (.ok
           { contract := blindAuctionContract,
@@ -646,7 +648,7 @@ theorem scratch_revealLoopAdvance_refundPlaced_zeroBlinded_placeBidNonzero_pendi
       let awPB1 := UInt256.ofNat (MachineState.M awNext.toNat (⟨0⟩ : UInt256).toNat 32)
       let awPB2 := UInt256.ofNat (MachineState.M awPB1.toNat (⟨32⟩ : UInt256).toNat 32)
       let awPB3 := UInt256.ofNat (MachineState.M awPB2.toNat (⟨0⟩ : UInt256).toNat 64)
-      RD blindAuctionBytecode I g s0 ⟨1014⟩
+      RD fork blindAuctionBytecode I g s0 ⟨1014⟩
         (scratch_revealEvmLoopStack (a.idx + ⟨1⟩)
           (UInt256.sub (deposit + a.refund) value) loopLen revealEnd biddingEnd
           secretsLen secretsEnd fakesLen fakesEnd valuesLen valuesEnd sel)
@@ -674,17 +676,17 @@ theorem scratch_revealLoopAdvance_refundPlaced_zeroBlinded_placeBidNonzero_pendi
     (hgapNext : newFree.toNat + 32 - memNext.size < USize.size)
     (hnextFpNat : newFree.toNat = a.fp.toNat + 97) :
     ∃ a' L1 evm1 L2 evm2 k' C',
-      (ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
+      (ExecBlock fork blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
           scratch_revealLoopBodyStmts
           (.ok { contract := blindAuctionContract, locals := L1 } evm1) ∨
-        ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
+        ExecBlock fork blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
           scratch_revealLoopBodyStmts
           (.continue { contract := blindAuctionContract, locals := L1 } evm1)) ∧
-      ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L1 } evm1
+      ExecBlock fork blindAuctionConfig { contract := blindAuctionContract, locals := L1 } evm1
         scratch_revealLoopPostStmts
         (.ok { contract := blindAuctionContract, locals := L2 } evm2) ∧
       RevealLoopInv loopLen values fakes secrets I σ₀ A v a' L2 evm2 ∧
-      RD blindAuctionBytecode I g s0 ⟨1014⟩
+      RD fork blindAuctionBytecode I g s0 ⟨1014⟩
         (scratch_revealEvmLoopStack a'.idx a'.refund loopLen revealEnd biddingEnd
           secretsLen secretsEnd fakesLen fakesEnd valuesLen valuesEnd sel)
         a'.mem a'.aw ByteArray.empty a'.acc k' C' := by
@@ -769,11 +771,11 @@ theorem scratch_blindAuctionPlaceBidBodyReverts_true_nonzero_pendingOverflow
     (hlt : high.toNat < value.toNat)
     (hnonzero : UInt256.land old solcAddrMask ≠ ⟨0⟩)
     (hover : UInt256.size ≤ pending.toNat + high.toNat) :
-    ExecTransitionBody blindAuctionConfig blindAuctionContract evm
+    ExecTransitionBody fork blindAuctionConfig blindAuctionContract evm
       (scratch_placeBidStore bidder value) placeBidFn.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   unfold placeBidFn
-  change ExecBlock blindAuctionConfig
+  change ExecBlock fork blindAuctionConfig
     { contract := blindAuctionContract, locals := scratch_placeBidStore bidder value } evm
     [ .ite (.binary .le (.var "value") (.storage highestBidRef))
         [ .return [(.boolLit false)] ] [],
@@ -840,9 +842,9 @@ theorem scratch_revealLoopBody_revert_placeBid_pendingOverflow_of_get (evm : EVM
     (hfit : refund.toNat + deposit.toNat < UInt256.size)
     (hdepositGe : value.toNat ≤ deposit.toNat)
     (hplaceBody :
-      ExecTransitionBody blindAuctionConfig blindAuctionContract evm
+      ExecTransitionBody fork blindAuctionConfig blindAuctionContract evm
         (scratch_placeBidStore evm.executionEnv.source value) placeBidFn.body .reverted) :
-    ExecBlock blindAuctionConfig
+    ExecBlock fork blindAuctionConfig
       { contract := blindAuctionContract, locals := locals }
       evm scratch_revealLoopBodyStmts .reverted := by
   let L4 := scratch_revealSecretStoreOf locals evm i value secret false
@@ -898,7 +900,7 @@ theorem scratch_revealLoopBody_revert_placeBid_pendingOverflow_of_get (evm : EVM
     scratch_evalExpr_reveal_placeBid_cond_true evm L5 i value deposit hbidL5 hfakeL5
       hvalueL5 hdeposit hdepositGe
   have hcall :
-      ExecStmt blindAuctionConfig { contract := blindAuctionContract, locals := L5 } evm
+      ExecStmt fork blindAuctionConfig { contract := blindAuctionContract, locals := L5 } evm
         (.internalCall "placeBid" [sender, .var "value"] "ok") .reverted := by
     let calleeFrame : Frame :=
       { contract := blindAuctionContract,
@@ -919,7 +921,7 @@ theorem scratch_revealLoopBody_revert_placeBid_pendingOverflow_of_get (evm : EVM
           scratch_placeBid_bind evm.executionEnv.source value)
         (by simpa [ExecTransitionBody, FunctionDecl.toCallable, calleeFrame] using hplaceBody)
   have hplaceThen :
-      ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L5 } evm
+      ExecBlock fork blindAuctionConfig { contract := blindAuctionContract, locals := L5 } evm
         [ .internalCall "placeBid" [sender, .var "value"] "ok",
           .ite (.var "ok")
             [ .assign .localVar { base := "refund" }
@@ -927,7 +929,7 @@ theorem scratch_revealLoopBody_revert_placeBid_pendingOverflow_of_get (evm : EVM
         .reverted :=
     ExecBlock.consRevert hcall
   have hplaceIte :
-      ExecStmt blindAuctionConfig { contract := blindAuctionContract, locals := L5 } evm
+      ExecStmt fork blindAuctionConfig { contract := blindAuctionContract, locals := L5 } evm
         (.ite
           (.binary .and (.unary .not (.var "fake"))
             (.binary .ge (.storage (aliasF "bidToCheck" "deposit")) (.var "value")))
@@ -938,10 +940,10 @@ theorem scratch_revealLoopBody_revert_placeBid_pendingOverflow_of_get (evm : EVM
         .reverted :=
     ExecStmt.iteTrue hcondTrue hplaceThen
   have htail :
-      ExecBlock blindAuctionConfig
+      ExecBlock fork blindAuctionConfig
         { contract := blindAuctionContract, locals := L4 } evm
         (List.drop 4 scratch_revealLoopBodyStmts) .reverted := by
-    change ExecBlock blindAuctionConfig
+    change ExecBlock fork blindAuctionConfig
       { contract := blindAuctionContract, locals := L4 } evm
       [ .ite
           (.binary .ne (.storage (aliasF "bidToCheck" "blindedBid"))
@@ -975,7 +977,7 @@ theorem scratch_RD_placeBid_true_nonzero_overflow_anyMem {g : Sat256} {s0 : Stat
     {σ : AccountMap}
     {k C : Nat} {value bidder ret : UInt256} {R : List UInt256}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    (rd : RD blindAuctionBytecode I g s0 ⟨1534⟩ (value :: bidder :: ret :: R)
+    (rd : RD fork blindAuctionBytecode I g s0 ⟨1534⟩ (value :: bidder :: ret :: R)
       mem aw rdata σ k C)
     (hlt : (scratch_placeBidHighestBidWord σ I).toNat < value.toNat)
     (hnonzero : UInt256.land (scratch_placeBidHighestBidderWord σ I) solcAddrMask ≠ ⟨0⟩)
@@ -985,7 +987,7 @@ theorem scratch_RD_placeBid_true_nonzero_overflow_anyMem {g : Sat256} {s0 : Stat
           (scratch_placeBidHighestBidWord σ I).toNat)
     (haw : 3 ≤ aw.toNat)
     (hov : R.length + 16 ≤ 1024) :
-    RDrev blindAuctionBytecode g s0 := by
+    RDrev fork blindAuctionBytecode g s0 := by
   let key := UInt256.land (scratch_placeBidHighestBidderWord σ I) solcAddrMask
   let memKey := scratch_placeBidPendingKeyMem mem key
   let memHash := scratch_placeBidPendingHashMem mem key
@@ -1006,7 +1008,7 @@ theorem scratch_RD_placeBid_true_nonzero_overflow_anyMem {g : Sat256} {s0 : Stat
         (len := (⟨64⟩ : UInt256)) haw2
   have rd1538 := evm_run rd with [jumpdest, push0, push1 ⟨6⟩]
   obtain ⟨_, _, rd1539₀⟩ := rd1538.sload (by decide) (by evm_ov)
-  obtain ⟨_, _, rd1539⟩ : ∃ k' C', RD blindAuctionBytecode I g s0 ⟨1539⟩
+  obtain ⟨_, _, rd1539⟩ : ∃ k' C', RD fork blindAuctionBytecode I g s0 ⟨1539⟩
       (scratch_placeBidHighestBidWord σ I :: ⟨0⟩ :: value :: bidder :: ret :: R)
       mem aw rdata σ k' C' := by
     exact ⟨_, _, by simpa [scratch_placeBidHighestBidWord] using rd1539₀⟩
@@ -1017,7 +1019,7 @@ theorem scratch_RD_placeBid_true_nonzero_overflow_anyMem {g : Sat256} {s0 : Stat
   have rd1554 := evm_run rd1540 with [push2 ⟨1551⟩, jumpiT one_ne_zero_uint (by jump_dest),
     jumpdest, push1 ⟨5⟩]
   obtain ⟨_, _, rd1555₀⟩ := rd1554.sload (by decide) (by evm_ov)
-  obtain ⟨_, _, rd1555⟩ : ∃ k' C', RD blindAuctionBytecode I g s0 ⟨1555⟩
+  obtain ⟨_, _, rd1555⟩ : ∃ k' C', RD fork blindAuctionBytecode I g s0 ⟨1555⟩
       (scratch_placeBidHighestBidderWord σ I :: ⟨0⟩ :: value :: bidder :: ret :: R)
       mem aw rdata σ k' C' := by
     exact ⟨_, _, by simpa [scratch_placeBidHighestBidderWord] using rd1555₀⟩
@@ -1035,13 +1037,13 @@ theorem scratch_RD_placeBid_true_nonzero_overflow_anyMem {g : Sat256} {s0 : Stat
   rw [isZero_eq_zero_of_ne hmaskNonzero] at rd1565
   have rd1571 := evm_run rd1565 with [push2 ⟨1618⟩, jumpiNT (by decide), push1 ⟨6⟩]
   obtain ⟨_, _, rd1572₀⟩ := rd1571.sload (by decide) (by evm_ov)
-  obtain ⟨_, _, rd1572⟩ : ∃ k' C', RD blindAuctionBytecode I g s0 ⟨1572⟩
+  obtain ⟨_, _, rd1572⟩ : ∃ k' C', RD fork blindAuctionBytecode I g s0 ⟨1572⟩
       (scratch_placeBidHighestBidWord σ I :: ⟨0⟩ :: value :: bidder :: ret :: R)
       mem aw rdata σ k' C' := by
     exact ⟨_, _, by simpa [scratch_placeBidHighestBidWord] using rd1572₀⟩
   have rd1574 := evm_run rd1572 with [push1 ⟨5⟩]
   obtain ⟨_, _, rd1575₀⟩ := rd1574.sload (by decide) (by evm_ov)
-  obtain ⟨_, _, rd1575⟩ : ∃ k' C', RD blindAuctionBytecode I g s0 ⟨1575⟩
+  obtain ⟨_, _, rd1575⟩ : ∃ k' C', RD fork blindAuctionBytecode I g s0 ⟨1575⟩
       (scratch_placeBidHighestBidderWord σ I :: scratch_placeBidHighestBidWord σ I ::
         ⟨0⟩ :: value :: bidder :: ret :: R)
       mem aw rdata σ k' C' := by
@@ -1084,7 +1086,7 @@ theorem scratch_RD_placeBid_true_nonzero_overflow_anyMem {g : Sat256} {s0 : Stat
       (by simpa [memHash, key, scratch_placeBidPendingSlot] using hslot) (by rfl) (by evm_ov),
     dup1]
   obtain ⟨_, _, rd1598₀⟩ := rd1597.sload (by decide) (by evm_ov)
-  obtain ⟨_, _, rd1599⟩ : ∃ k' C', RD blindAuctionBytecode I g s0 ⟨1599⟩
+  obtain ⟨_, _, rd1599⟩ : ∃ k' C', RD fork blindAuctionBytecode I g s0 ⟨1599⟩
       (scratch_placeBidPendingWord σ I :: scratch_placeBidPendingSlot σ I ::
         ⟨0⟩ :: scratch_placeBidHighestBidWord σ I :: ⟨0⟩ :: value :: bidder :: ret :: R)
       memHash aw3 rdata σ k' C' := by
@@ -1101,7 +1103,7 @@ theorem scratch_blindAuctionRevealX_placeCond_placeBid_true_nonzero_overflow_rev
     {σ : AccountMap}
     {secret value slot i refund len revealEnd biddingEnd secretsLen secretsEnd fakesLen
       fakesEnd valuesLen valuesEnd sel deposit : UInt256}
-    (rd : RD blindAuctionBytecode I g s0 ⟨1265⟩
+    (rd : RD fork blindAuctionBytecode I g s0 ⟨1265⟩
       [secret, ⟨0⟩, value, slot, i, refund, len, revealEnd, biddingEnd, secretsLen,
         secretsEnd, fakesLen, fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
       mem aw rdata σ k C)
@@ -1117,7 +1119,7 @@ theorem scratch_blindAuctionRevealX_placeCond_placeBid_true_nonzero_overflow_rev
         (scratch_placeBidPendingWord σ I).toNat +
           (scratch_placeBidHighestBidWord σ I).toNat)
     (haw : 3 ≤ aw.toNat) :
-    RDrev blindAuctionBytecode g s0 := by
+    RDrev fork blindAuctionBytecode g s0 := by
   obtain ⟨_, _, rd1534⟩ :=
     scratch_blindAuctionRevealX_placeCond_place_toRoutine rd hdeposit hdepositGe
   exact

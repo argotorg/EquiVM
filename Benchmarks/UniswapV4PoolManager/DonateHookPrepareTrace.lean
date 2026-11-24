@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.DonateHookEncodeTrace
 import Benchmarks.UniswapV4PoolManager.WordBytesCallAllocationGas
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_015
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -18,11 +20,11 @@ theorem donateHookPrepareTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hb : keyPtr.toNat+160 ≤ free.toNat) (hf : free.toNat+len.toNat+448 < UInt256.size)
     (hgas : g.toNat < 324518553658429321982441292826060) (hpaid : Cₘ aw ≤ C)
     (hfree : memLoad (UInt256.ofNat 64) mem = free)
-    (h : RD (deployedRuntime v) I g s0 (donateHookEncodePc after)
+    (h : RD fork (deployedRuntime v) I g s0 (donateHookEncodePc after)
       (donateHookEncodeStack after hook hookPtr keyPtr src amount0 amount1 len delta R) mem aw rdata σ k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
     (AllocationBounds free (donateHookAllocationSize len) ∧
-      ∃ aw' k' C', Cₘ aw' ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨16165⟩
+      ∃ aw' k' C', Cₘ aw' ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨16165⟩
         (hook :: free :: donateHookCallRet after :: donateHookSavedStack after hookPtr keyPtr src amount0 amount1 len delta R)
         (donateHookMemory after I.calldata mem src.toNat free len I.source key amount0 amount1) aw' rdata σ k' C') := by
   have hsaved : (donateHookSavedStack after hookPtr keyPtr src amount0 amount1 len delta R).length ≤ R.length+6 := by

@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.AbsorbPointsCountsSource
 import Benchmarks.CompoundIII.Comet.AbsorbPointsSpendSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -26,7 +28,7 @@ theorem absorbPoints_source (frame : Frame) (evm : State) (addr : AccountAddress
     (hg : frame.locals.get? "gasUsed" = some (.int gasUsed.toNat))
     (hp : frame.locals.get? "liquidatorPoints" = none)
     (hlen : accounts.length = n.toNat) (hn : n.toNat < 2^64) :
-    internalBlockResult config frame evm absorbPointsBlock
+    internalBlockResult fork config frame evm absorbPointsBlock
       (absorbPointsOutcome evm addr n gasUsed) := by
   let p := absorbPointsLoaded evm addr
   let fee := UInt256.ofNat evm.executionEnv.header.baseFeePerGas
@@ -35,15 +37,15 @@ theorem absorbPoints_source (frame : Frame) (evm : State) (addr : AccountAddress
   let f3 := absorbPointsSpendFrame f2 (absorbPointsCounts p n) gasUsed fee
   have hea : evalExpr? config frame evm (.var "absorber") = .ok (.address addr) := by
     simp only [evalExpr?, ha, EvalResult.ofOption]
-  have hload : ExecStmt config frame evm absorbPointsLoad (.ok f1 evm) :=
+  have hload : ExecStmt fork config frame evm absorbPointsLoad (.ok f1 evm) :=
     ExecStmt.letDecl (evalLiquidatorPoints frame evm addr _ hc hp hea)
   have hp1 : f1.locals.get? "points" = some (liquidatorPointsValue p) := by
     simp only [f1, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert]
     rfl
   have hac1 : f1.locals.get? "accounts" = some (.array accounts) := by
     simpa only [f1, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert] using hac
-  have hcounts := absorbPointsCounts_source f1 evm p n accounts hc hp1 hac1 hlen hn
-  change internalBlockResult _ _ _ _
+  have hcounts := absorbPointsCounts_source (fork := fork) f1 evm p n accounts hc hp1 hac1 hlen hn
+  change internalBlockResult fork _ _ _ _
     (if AbsorbPointsValid p n gasUsed fee then
       if evm.executionEnv.perm then .ok (storeLiquidatorPoints evm addr
         (absorbPointsSpend (absorbPointsCounts p n) gasUsed fee)) else .staticViolation
@@ -56,8 +58,8 @@ theorem absorbPoints_source (frame : Frame) (evm : State) (addr : AccountAddress
     have hg2 : f2.locals.get? "gasUsed" = some (.int gasUsed.toNat) := by
       simpa only [f2, absorbPointsCountsFrame, f1, Std.HashMap.get?_eq_getElem?,
         Std.HashMap.getElem?_insert] using hg
-    have hspend := absorbPointsSpend_source f2 evm (absorbPointsCounts p n) gasUsed hc hp2 hg2
-    change ExecBlock _ _ _ _ (if AbsorbPointsSpendValid p gasUsed fee then _ else _) at hspend
+    have hspend := absorbPointsSpend_source (fork := fork) f2 evm (absorbPointsCounts p n) gasUsed hc hp2 hg2
+    change ExecBlock fork _ _ _ _ (if AbsorbPointsSpendValid p gasUsed fee then _ else _) at hspend
     by_cases hspvalid : AbsorbPointsSpendValid p gasUsed fee
     · rw [if_pos hspvalid] at hspend
       rw [if_pos (show AbsorbPointsValid p n gasUsed fee from ⟨hcvalid, hspvalid⟩)]
@@ -86,7 +88,7 @@ theorem absorbPoints_source (frame : Frame) (evm : State) (addr : AccountAddress
           (execBlock_append hspend (ExecBlock.consStatic (ExecStmt.assignStatic he3 hw hperm))))
       · simp only [if_true, internalBlockResult]
         exact ⟨f3, ExecBlock.consNormal hload (execBlock_append hcounts
-          (execBlock_append hspend (execBlock_singleton (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) he3 hw))))⟩
+          (execBlock_append hspend (execBlock_singleton (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) he3 hw))))⟩
     · rw [if_neg hspvalid] at hspend
       rw [if_neg (show ¬ AbsorbPointsValid p n gasUsed fee from fun hh ↦ hspvalid hh.2)]
       exact ExecBlock.consNormal hload (execBlock_append hcounts

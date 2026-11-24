@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.BalanceDeltaAssign
 import Benchmarks.UniswapV4PoolManager.TickSqrtSource
 import Benchmarks.UniswapV4PoolManager.BlockContinuation
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -45,7 +47,7 @@ theorem poolModifyOutsidePack {f : Frame} {evm : State} {w : UInt256} {one : Boo
     (hf : f.contract = contract)
     (hw : f.locals.get? (poolModifyOutsideCastRet one) = some (.int (EVM.signed w)))
     (hd : f.locals.get? "delta" = some old) :
-    ExecBlock config f evm (poolModifyOutsidePackBlock one)
+    ExecBlock fork config f evm (poolModifyOutsidePackBlock one)
       (.ok (balanceDeltaAssignFrame f (poolModifyOutsidePackRet one) "delta"
         (if one then ⟨0⟩ else w) (if one then w else ⟨0⟩)) evm) := by
   have hz : evalExpr? config f evm (.intLit 0) = .ok (.int (EVM.signed (⟨0⟩ : UInt256))) := by
@@ -56,14 +58,14 @@ theorem poolModifyOutsidePack {f : Frame} {evm : State} {w : UInt256} {one : Boo
 
 theorem poolModifyOutsidePrices {f : Frame} {evm : State} {id : UInt256} {p : PoolModifyParams}
     (hc : PoolModifyContext f id p) (ht : poolTicksValid p.lower p.upper) (one : Bool) :
-    ExecBlock config f evm (poolModifyOutsidePricesBlock one) (.ok (poolModifyOutsidePricesFrame f one p) evm) := by
+    ExecBlock fork config f evm (poolModifyOutsidePricesBlock one) (.ok (poolModifyOutsidePricesFrame f one p) evm) := by
   let f0 := wordLocal f (poolModifyOutsideLowerRet one) (tickSqrtPrice (EVM.signed p.lower))
   have hticks := poolTicksValid_bounds ht
-  have hlo := tickSqrtCall (f := f) (evm := evm) hc.contract (evalLocalValue hc.lower)
+  have hlo := tickSqrtCall (fork := fork) (f := f) (evm := evm) hc.contract (evalLocalValue hc.lower)
     (by omega : (EVM.signed p.lower).natAbs < 2^256) (poolModifyOutsideLowerRet one)
   rw [if_pos hticks.1] at hlo
   have hc0 : PoolModifyContext f0 id p := hc.insert (poolModifyOutsideLowerRet one) _ (by exact Bool.rec (by decide) (by decide) one)
-  have hup := tickSqrtCall (f := f0) (evm := evm) hc0.contract (evalLocalValue hc0.upper)
+  have hup := tickSqrtCall (fork := fork) (f := f0) (evm := evm) hc0.contract (evalLocalValue hc0.upper)
     (by omega : (EVM.signed p.upper).natAbs < 2^256) (poolModifyOutsideUpperRet one)
   rw [if_pos hticks.2] at hup
   exact ExecBlock.consNormal hlo (execBlock_singleton hup)
@@ -73,9 +75,9 @@ theorem poolModifyOutsideTail {f : Frame} {evm : State} {id : UInt256} {p : Pool
     (ha : f.locals.get? (poolModifyOutsideLowerRet one) = some (.int (Int.ofNat (tickSqrtPrice (EVM.signed p.lower)).toNat)))
     (hb : f.locals.get? (poolModifyOutsideUpperRet one) = some (.int (Int.ofNat (tickSqrtPrice (EVM.signed p.upper)).toNat)))
     (hdlo : -(2^127 : Int) ≤ p.delta) (hdhi : p.delta < 2^127) (hd : f.locals.get? "delta" = some old) :
-    ExecBlock config f evm (poolModifyOutsideTailBlock one) (poolModifyOutsideTailResult f evm one p) := by
+    ExecBlock fork config f evm (poolModifyOutsideTailBlock one) (poolModifyOutsideTailResult f evm one p) := by
   have hticks := poolTicksValid_bounds ht
-  have hchecked := checkedSignedAmount (f := f) (evm := evm) hc.contract
+  have hchecked := checkedSignedAmount (fork := fork) (f := f) (evm := evm) hc.contract
     (tickSqrtPrice_lt_160 hticks.1) (tickSqrtPrice_lt_160 hticks.2) hdlo hdhi
     (evalLocalValue ha) (evalLocalValue hb) (evalLocalValue hc.liquidityDelta)
     one (poolModifyOutsideAmountRet one) (poolModifyOutsideCastRet one)
@@ -99,9 +101,9 @@ theorem poolModifyOutside {f : Frame} {evm : State} {id : UInt256} {p : PoolModi
     (hc : PoolModifyContext f id p) (ht : poolTicksValid p.lower p.upper)
     (hdlo : -(2^127 : Int) ≤ p.delta) (hdhi : p.delta < 2^127)
     (hd : f.locals.get? "delta" = some old) (one : Bool) :
-    ExecBlock config f evm (poolModifyOutsideBlock one) (poolModifyOutsideResult f evm one p) := by
-  have hpre := poolModifyOutsidePrices (evm := evm) hc ht one
-  have htail := poolModifyOutsideTail (evm := evm) (one := one) (poolModifyOutsidePricesFrame_context hc one) ht
+    ExecBlock fork config f evm (poolModifyOutsideBlock one) (poolModifyOutsideResult f evm one p) := by
+  have hpre := poolModifyOutsidePrices (fork := fork) (evm := evm) hc ht one
+  have htail := poolModifyOutsideTail (fork := fork) (evm := evm) (one := one) (poolModifyOutsidePricesFrame_context hc one) ht
     ((store_get_ne _ _ (by cases one <;> decide : (poolModifyOutsideUpperRet one == poolModifyOutsideLowerRet one) = false)).trans
       (store_get_self _ _ _)) (store_get_self _ _ _) hdlo hdhi
     ((store_get_ne2 _ _ _ (by cases one <;> decide : (poolModifyOutsideLowerRet one == "delta") = false)

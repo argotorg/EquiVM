@@ -5,6 +5,8 @@ import Benchmarks.Safe.ViaIR.Blocks.Runtime_021
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_022
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_026
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -19,11 +21,11 @@ def execGasSaved (p : ExecTransactionInput) (src : Nat) (guard hash : UInt256)
 set_option maxRecDepth 100000 in
 theorem safeExecRequiredGasTrace (p : ExecTransactionInput)
     {I g s0 σ k C aw mem rdata src} {sigPtr guard hash : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4584⟩
+    (h : RD fork safeBytecode I g s0 ⟨4584⟩
       (execGuardSaved p src sigPtr guard hash (⟨0⟩ :: R)) mem aw rdata σ k C)
     (hc : ExecTransactionCalldataFields I.calldata p) (hov : R.length + 32 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧ ¬ ExecGasFits p.tx.safeTxGas) ∨
-    ∃ gas k' C', ExecGasFits p.tx.safeTxGas ∧ RD safeBytecode I g s0 ⟨4634⟩
+    (RDrev fork safeBytecode g s0 ∧ ¬ ExecGasFits p.tx.safeTxGas) ∨
+    ∃ gas k' C', ExecGasFits p.tx.safeTxGas ∧ RD fork safeBytecode I g s0 ⟨4634⟩
       (gas :: execRequiredGas p.tx.safeTxGas :: execGasSaved p src guard hash (⟨0⟩ :: R))
       mem aw rdata σ k' C' := by
   have hword : uInt256OfByteArray (I.calldata.readBytes (UInt256.ofNat 132).toNat 32) =
@@ -47,10 +49,10 @@ theorem safeExecRequiredGasTrace (p : ExecTransactionInput)
     (by rw [hword]; exact hgt) h
   let gas := (g.subNat (C + 3 + 2)).toUInt256
   simp only [safeRuntime_block_4584_fallthrough_stack, hword] at h₁
-  change RD safeBytecode I g s0 ⟨4612⟩
+  change RD fork safeBytecode I g s0 ⟨4612⟩
     ((p.tx.safeTxGas + ⟨2500⟩) :: execGasScaled p.tx.safeTxGas :: gas ::
       execGasSaved p src guard hash (⟨0⟩ :: R)) mem aw rdata σ _ _ at h₁
-  have hmax : ∃ k' C', RD safeBytecode I g s0 ⟨4621⟩
+  have hmax : ∃ k' C', RD fork safeBytecode I g s0 ⟨4621⟩
       (gas :: execGasMaximum p.tx.safeTxGas :: execGasSaved p src guard hash (⟨0⟩ :: R))
       mem aw rdata σ k' C' := by
     by_cases hlt : (execGasScaled p.tx.safeTxGas).toNat < (p.tx.safeTxGas + ⟨2500⟩).toNat

@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.AbsorbDebtSource
 import Benchmarks.CompoundIII.Comet.AbsorbEventsSource
 import Benchmarks.CompoundIII.Comet.InternalOutcome
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -22,9 +24,9 @@ theorem absorbDebtTail_source (frame : Frame) (evm : State)
     (hindex : frame.locals.get? "baseSupplyIndex" = none)
     (hnext : next.toNat < 2^255) (hbound : principal.toNat < 2^104)
     (hperm : evm.executionEnv.perm = true) :
-    internalBlockResult config frame evm (absorbDebtArithmeticBlock ++ absorbEventsBlock)
+    internalBlockResult fork config frame evm (absorbDebtArithmeticBlock ++ absorbEventsBlock)
       (if AbsorbDebtValid v old next price then .ok evm else .reverted) := by
-  have hm := absorbDebtArithmetic_source frame evm v old next price hc hi ho hn hp hnext
+  have hm := absorbDebtArithmetic_source (fork := fork) frame evm v old next price hc hi ho hn hp hnext
   by_cases hv : AbsorbDebtValid v old next price
   · rw [if_pos hv] at hm ⊢
     let final := absorbDebtFrame frame v old next price

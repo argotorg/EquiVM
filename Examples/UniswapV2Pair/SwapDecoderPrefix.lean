@@ -1,4 +1,6 @@
 import Examples.UniswapV2Pair.SwapABI
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -19,9 +21,9 @@ theorem uniswapSwapDecodeToPayloadGuard {s0 : State} {I : ExecutionEnv} {σ : Ac
     (hsize : I.calldata.size < UInt256.size) (hsz132 : 132 ≤ I.calldata.size)
     (hoffMax : ¬ solcLegacyMaxU32 < swapDataOffset I)
     (hlenWord : 4 + swapDataOffset I + 32 ≤ I.calldata.size)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g s0 ⟨430⟩ [sel]
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g s0 ⟨430⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨541⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨541⟩
       (swapPayloadGuardStack I sel) solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨128⟩ = ⟨0⟩ := by

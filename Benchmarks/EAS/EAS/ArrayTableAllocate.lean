@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.WordArrayAllocationView
 import Benchmarks.EAS.EAS.WordSequence
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -14,9 +16,9 @@ theorem easArrayTableFill {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {base ret : UInt256} {R : List UInt256} (v : EASImmutables) (hstack : R.length+10 ≤ 1024)
     (i n : Nat) (hspace : base.toNat+32+32*(i+n) < UInt256.size)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5167⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5167⟩
       (UInt256.ofNat (32*i)::base::UInt256.ofNat (32*(i+n))::ret::base::R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (base::R)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (base::R)
       (writeWordSequence mem (base.toNat+32+32*i) (List.replicate n (UInt256.ofNat 96))) aw' rdata σ k' C' := by
   induction n generalizing i mem aw k C with
   | zero =>
@@ -40,7 +42,7 @@ theorem easArrayTableFill {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     have hindex : UInt256.ofNat (32*i)+UInt256.ofNat 32 = UInt256.ofNat (32*(i+1)) := by
       simpa only [Nat.mul_add,Nat.mul_one] using (u256_add_comm (UInt256.ofNat (32*i)) (⟨32⟩ : UInt256)).trans (u256_32_add_ofNat (32*i))
     have hend : i+(n+1) = (i+1)+n := by omega
-    have rnext : RD (deployedRuntime v) ee g s0 ⟨5167⟩
+    have rnext : RD fork (deployedRuntime v) ee g s0 ⟨5167⟩
         (UInt256.ofNat (32*(i+1))::base::UInt256.ofNat (32*((i+1)+n))::ret::base::R)
         (Reasoning.Theory.writeWord mem (base.toNat+32+32*i) (UInt256.ofNat 96)) a2 rdata σ k2 C2 := by
       simpa only [easBlocks.eas_block_5179_stack,easBlocks.eas_block_5179_memory,
@@ -54,13 +56,13 @@ theorem easArrayTableAllocate {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {heap len ret : UInt256} {R : List UInt256} (v : EASImmutables) (hstack : R.length+10 ≤ 1024)
     (hh : heap.toNat ≤ 2^64-1) (hheap : memLoad (UInt256.ofNat 64) mem = heap)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5093⟩ (len::ret::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5093⟩ (len::ret::R) mem aw rdata σ k C) :
     if len.toNat ≤ 2^64-1 then
       if allocateNext heap.toNat (32+32*len.toNat) ≤ 2^64-1 ∧ heap.toNat ≤ allocateNext heap.toNat (32+32*len.toNat) then
-        ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (heap::R)
+        ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (heap::R)
           (arrayTableAllocationMemory mem heap len.toNat) aw' rdata σ k' C'
-      else RDrev (deployedRuntime v) g s0
-    else RDrev (deployedRuntime v) g s0 := by
+      else RDrev fork (deployedRuntime v) g s0
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hhead := easArrayAllocationHead v .arrays hstack hheap rd
   by_cases hl : len.toNat ≤ 2^64-1
   · rw [if_pos hl] at hhead ⊢

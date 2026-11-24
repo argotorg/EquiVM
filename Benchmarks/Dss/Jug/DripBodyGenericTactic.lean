@@ -5,6 +5,8 @@ import Benchmarks.Dss.Jug.RpowGeneric
 import Mathlib.Util.ParseCommand
 import Lean.Elab.Tactic
 
+variable {fork : Ethereum.Fork}
+
 open Lean Elab Tactic
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
@@ -43,12 +45,12 @@ have hvatCodeStele :
 rcases hΘ with ⟨g'', A', hΘ'⟩
 have hΘE :
     (σ', g'', A', true, out) =
-      Ethereum.EVM.Θ evm.accountMap evm.σ₀ Ain
+      Ethereum.EVM.Θ fork evm.accountMap evm.σ₀ Ain
         (AccountAddress.ofUInt256
           (UInt256.ofNat evm.executionEnv.codeOwner))
         evm.executionEnv.sender
         (AccountAddress.ofUInt256 (dripVatTargetWord σ I))
-        (toExecute evm.accountMap
+        (toExecute fork evm.accountMap
           (AccountAddress.ofUInt256 (dripVatTargetWord σ I)))
         callGas (UInt256.ofNat evm.executionEnv.gasPrice)
         ⟨0⟩ ⟨0⟩
@@ -61,7 +63,7 @@ have hΘE :
 let σ'_stele := σ'
 let A'_stele := A'
 have hcallStele :
-    typedCallViaEVM config evm (EVM.address (dripVatAddress σ I)) "ilks" 0
+    typedCallViaEVM fork config evm (EVM.address (dripVatAddress σ I)) "ilks" 0
       [.fixedBytes bytes32Width (fileDutyIlkBytes I)]
       (true, { evm with accountMap := σ', substate := A' }, out) true := by
   simpa [evm] using
@@ -142,7 +144,7 @@ cases hrpowCoupled with
     by_cases hRmulOverflow :
         UInt256.size ≤ pow.toNat * (dripVatIlksPrevWord out).toNat
     · have hbody :
-          ExecTransitionBody config contract evm locals
+          ExecTransitionBody fork config contract evm locals
             dripTransition.body .reverted := by
         simpa [evm, locals, initState, solcSlotWordAt] using
           (jugDripSourceBodyVatIlksRmulOverflowRevertsGeneric
@@ -191,7 +193,7 @@ cases hrpowCoupled with
                 (addr := dripVatAddress σ'_stele I)
                 (dripVatAddress_eq_target σ'_stele I) hfoldCodeStele
             have hbody :
-                ExecTransitionBody config contract evm locals
+                ExecTransitionBody fork config contract evm locals
                   dripTransition.body .reverted := by
               simpa [evm, locals, initState, solcSlotWordAt] using
                 (jugDripSourceBodyVatFoldNoCodeRevertsGeneric
@@ -378,13 +380,13 @@ cases hrpowCoupled with
             · rcases hΘFold with ⟨gFold'', AFold', hΘFold'⟩
               have hΘFoldE :
                   (σ'', gFold'', AFold', false, foldOut) =
-                    Ethereum.EVM.Θ evmVatE.accountMap evmVatE.σ₀ AinFold
+                    Ethereum.EVM.Θ fork evmVatE.accountMap evmVatE.σ₀ AinFold
                       (AccountAddress.ofUInt256
                         (UInt256.ofNat evmVatE.executionEnv.codeOwner))
                       evmVatE.executionEnv.sender
                       (AccountAddress.ofUInt256
                         (dripVatTargetWord σ' I))
-                      (toExecute evmVatE.accountMap
+                      (toExecute fork evmVatE.accountMap
                         (AccountAddress.ofUInt256
                           (dripVatTargetWord σ' I)))
                       callGasFold
@@ -411,7 +413,7 @@ cases hrpowCoupled with
                 rw [hfoldTargetAddr]
                 exact address_of_val _
               have hfoldCallStele :
-                  typedCallViaEVM config evmVatS
+                  typedCallViaEVM fork config evmVatS
                     (EVM.address (dripVatAddress σ'_stele I)) "fold" 0
                     [.fixedBytes bytes32Width (fileDutyIlkBytes I),
                       .address (AccountAddress.ofUInt256 (dripVowTargetWord σ'_stele I)),
@@ -423,7 +425,7 @@ cases hrpowCoupled with
                     hfoldTarget
                     hfoldEncode hΘFoldE
               have hbody :
-                  ExecTransitionBody config contract evm locals
+                  ExecTransitionBody fork config contract evm locals
                     dripTransition.body .reverted := by
                 simpa [evm, evmVatS, locals, initState, solcSlotWordAt,
                   rate] using
@@ -463,13 +465,13 @@ cases hrpowCoupled with
             · rcases hΘFold with ⟨gFold'', AFold', hΘFold'⟩
               have hΘFoldE :
                   (σ'', gFold'', AFold', true, foldOut) =
-                    Ethereum.EVM.Θ evmVatE.accountMap evmVatE.σ₀ AinFold
+                    Ethereum.EVM.Θ fork evmVatE.accountMap evmVatE.σ₀ AinFold
                       (AccountAddress.ofUInt256
                         (UInt256.ofNat evmVatE.executionEnv.codeOwner))
                       evmVatE.executionEnv.sender
                       (AccountAddress.ofUInt256
                         (dripVatTargetWord σ' I))
-                      (toExecute evmVatE.accountMap
+                      (toExecute fork evmVatE.accountMap
                         (AccountAddress.ofUInt256
                           (dripVatTargetWord σ' I)))
                       callGasFold
@@ -496,7 +498,7 @@ cases hrpowCoupled with
                 rw [hfoldTargetAddr]
                 exact address_of_val _
               have hfoldCallStele :
-                  typedCallViaEVM config evmVatS
+                  typedCallViaEVM fork config evmVatS
                     (EVM.address (dripVatAddress σ'_stele I)) "fold" 0
                     [.fixedBytes bytes32Width (fileDutyIlkBytes I),
                       .address (AccountAddress.ofUInt256 (dripVowTargetWord σ'_stele I)),
@@ -566,7 +568,7 @@ cases hrpowCoupled with
                   (UInt256.sub rate (dripVatIlksPrevWord out))
                   hfoldBaseSize hfoldBaseRead64
               have hbody (hpt : I.perm = true) :
-                  ExecTransitionBody config contract evm locals
+                  ExecTransitionBody fork config contract evm locals
                     dripTransition.body
                     (.returned
                       { contract := contract, locals := finalLocals }
@@ -595,7 +597,7 @@ cases hrpowCoupled with
               · exact hstatic.reEquivStaticHalt hcode hdispatch (jugDecode_drip_ok hsz36)
                   (hboth.2 hpf)
         · have hbody :
-              ExecTransitionBody config contract evm locals
+              ExecTransitionBody fork config contract evm locals
                 dripTransition.body .reverted := by
             simpa [evm, locals, initState, solcSlotWordAt] using
               (jugDripSourceBodyVatIlksDiffYBoundRevertsGeneric
@@ -634,7 +636,7 @@ cases hrpowCoupled with
           exact hrev.reEquivExecutionRevert hcode hdispatch
             (jugDecode_drip_ok hsz36) hbody
       · have hbody :
-            ExecTransitionBody config contract evm locals
+            ExecTransitionBody fork config contract evm locals
               dripTransition.body .reverted := by
           simpa [evm, locals, initState, solcSlotWordAt] using
             (jugDripSourceBodyVatIlksDiffXBoundRevertsGeneric
@@ -674,7 +676,7 @@ cases hrpowCoupled with
 | inr hrev =>
     rcases hrev with ⟨hrpowBody, hrdRev⟩
     have hbody :
-        ExecTransitionBody config contract evm locals
+        ExecTransitionBody fork config contract evm locals
           dripTransition.body .reverted := by
       simpa [evm, locals, initState, solcSlotWordAt] using
         (jugDripSourceBodyVatIlksRpowReverts

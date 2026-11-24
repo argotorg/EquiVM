@@ -1,6 +1,8 @@
 import Benchmarks.Auction.ShortError
 import Benchmarks.Auction.SettleGuards
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -28,8 +30,8 @@ theorem pausableErrorWfs : ∀ i : Fin 4,
   native_decide
 
 theorem pausableError {I g s0 R mem aw rdata acc k C} (i : Fin 4)
-    (h : RD auctionBytecode I g s0 (pausableErrorPc i) R mem aw rdata acc k C)
-    (hov : R.length + 6 ≤ 1024) : RDrev auctionBytecode g s0 := by
+    (h : RD fork auctionBytecode I g s0 (pausableErrorPc i) R mem aw rdata acc k C)
+    (hov : R.length + 6 ≤ 1024) : RDrev fork auctionBytecode g s0 := by
   obtain ⟨_, _, _, _, _, hr⟩ := shortError h (pausableErrorWfs i)
     (by unfold pausableErrorOp; split <;> decide) hov
   exact auctionErrorRevert hr (by omega)

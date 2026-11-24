@@ -1,6 +1,8 @@
 import Examples.OpenZeppelinBench.AccessControl.Storage
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -49,7 +51,7 @@ theorem accessControlDecode_defaultAdminRole {I : ExecutionEnv} (hsz : 4 ≤ I.c
 
 theorem accessControlDefaultAdminRoleBodyReturns (evm : EVM.State)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract evm ∅ defaultAdminRoleTransition.body
+    ExecTransitionBody fork config contract evm ∅ defaultAdminRoleTransition.body
       (.returned { contract := contract, locals := ∅ } evm (some [defaultAdminRoleValue])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
@@ -64,10 +66,10 @@ theorem accessControlDefaultAdminRoleSubRet32_toNat :
   decide
 
 theorem accessControlX_defaultAdminRole {σ σ₀ A I} {g : Sat256}
-    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+    (hreach : ∃ k C, RD fork accessControlBenchBytecode I g
       (initState σ σ₀ g A I) ⟨273⟩ [accessControlSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret accessControlBenchBytecode g (initState σ σ₀ g A I) σ
+    RDret fork accessControlBenchBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray defaultAdminRoleWord) := by
   obtain ⟨_, _, rd273⟩ := hreach
   have rd200 := evm_run rd273 with [
@@ -104,11 +106,11 @@ theorem accessControlDefaultAdminRoleBody {σ σ₀ A I}
     (hcode : I.code = accessControlBenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xa2, 0x17, 0xfd, 0xdf]⟩)
-    (hreach : ∃ k C, RD accessControlBenchBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork accessControlBenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨273⟩
       [accessControlSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeRefinementFor config contract
+    runtimeRefinementFor fork config contract
       σ σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
   have hsz := accessControlDefaultAdminRoleSelector_size hsel
@@ -116,7 +118,7 @@ theorem accessControlDefaultAdminRoleBody {σ σ₀ A I}
     simpa [selIs] using hsel)
   have hdec := accessControlDecode_defaultAdminRole (I := I) hsz
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         defaultAdminRoleTransition.body
         (.returned { contract := contract, locals := ∅ }

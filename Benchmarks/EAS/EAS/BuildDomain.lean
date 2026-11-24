@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.Allocate
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -70,18 +72,18 @@ theorem buildDomainSource_ok {cfg : Config} {locals imms : Store} {evm : EVM.Sta
     (hv : locals.get? "versionHash" = some (wordBytes32Value versionHash))
     (hh : locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)))
     (hguard : allocateNext heap 192 ≤ 2^64-1 ∧ heap ≤ allocateNext heap 192) :
-    ExecFuncBody cfg {contract := contract, locals := locals, immutables := imms} evm buildDomainFunction.body
+    ExecFuncBody fork cfg {contract := contract, locals := locals, immutables := imms} evm buildDomainFunction.body
       (.returned {contract := contract, locals := buildDomainLocals locals heap, immutables := imms}
         evm (some [wordBytes32Value (builtDomainWord typeHash nameHash versionHash evm.executionEnv.codeOwner),
           .int (Int.ofNat (allocateNext heap 192))])) := by
   rw [buildDomain_body]
   apply ExecFuncBody.execBlockRet
-  have hcall := allocateCall_ok (retVar := "allocation$allocation")
+  have hcall := allocateCall_ok (fork := fork) (retVar := "allocation$allocation")
     (show evalExpr? cfg {contract := contract, locals := locals, immutables := imms} evm (.intLit 192) =
       .ok (.int (Int.ofNat (192 : Nat))) by simp only [evalExpr?, pure]; rfl)
     (show evalExpr? cfg {contract := contract, locals := locals, immutables := imms} evm (.var "$EAS.freeMemory") =
       .ok (.int (Int.ofNat heap)) by simp only [evalExpr?, hh, EvalResult.ofOption]) hguard
-  have hunpack := unpackHeapResult (cfg := cfg) (evm := evm)
+  have hunpack := unpackHeapResult (fork := fork) (cfg := cfg) (evm := evm)
     (frame := {
       contract := contract
       locals := locals.insert "allocation$allocation" (.tuple [.tuple [], .int (Int.ofNat (allocateNext heap 192))]),
@@ -113,7 +115,7 @@ theorem buildDomainSource_ok {cfg : Config} {locals imms : Store} {evm : EVM.Sta
 theorem buildDomainSource_revert {cfg : Config} {locals imms : Store} {evm : EVM.State}
     {heap : Nat} (hh : locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)))
     (hguard : ¬ (allocateNext heap 192 ≤ 2^64-1 ∧ heap ≤ allocateNext heap 192)) :
-    ExecFuncBody cfg {contract := contract, locals := locals, immutables := imms} evm buildDomainFunction.body
+    ExecFuncBody fork cfg {contract := contract, locals := locals, immutables := imms} evm buildDomainFunction.body
       .reverted := by
   rw [buildDomain_body]
   apply ExecFuncBody.execBlockRevert

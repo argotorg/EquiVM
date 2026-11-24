@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.CollectPaymentsSource
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_026
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -26,10 +28,10 @@ theorem positionOwedWord_evm1 (key : UInt256) (σ : AccountMap) (ee : ExecutionE
 theorem collectMin0X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw key junk old0 old1 req0 req1 : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨7652⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨7652⟩
       (solcMappingSlot ⟨7⟩ key :: junk :: old1 :: old0 :: req1 :: req0 :: R) mem aw rdata σ k C)
     (hfit : req0.toNat < 2 ^ 128) (hov : R.length + 9 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨7700⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨7700⟩
       (minWord req0 (positionOwedWord key false σ ee) :: solcMappingSlot ⟨7⟩ key ::
         old1 :: old0 :: req1 :: req0 :: R) mem aw rdata σ k' C' := by
   have hc : UInt256.land req0 (UInt256.ofNat (2 ^ 128 - 1)) = req0 := by
@@ -56,10 +58,10 @@ theorem collectMin0X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem collectMin1X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw key amount0 old0 old1 requested : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨7700⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨7700⟩
       (amount0 :: solcMappingSlot ⟨7⟩ key :: old1 :: old0 :: requested :: R) mem aw rdata σ k C)
     (hfit : requested.toNat < 2 ^ 128) (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨7762⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨7762⟩
       (minWord requested (positionOwedWord key true σ ee) :: solcMappingSlot ⟨7⟩ key ::
         old1 :: amount0 :: requested :: R) mem aw rdata σ k' C' := by
   have hc : UInt256.land requested (UInt256.ofNat (2 ^ 128 - 1)) = requested := by
@@ -86,10 +88,10 @@ theorem collectMin1X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem collectAmountsX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw key junk old0 old1 req0 req1 : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨7652⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨7652⟩
       (solcMappingSlot ⟨7⟩ key :: junk :: old1 :: old0 :: req1 :: req0 :: R) mem aw rdata σ k C)
     (hfit0 : req0.toNat < 2 ^ 128) (hfit1 : req1.toNat < 2 ^ 128) (hov : R.length + 9 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨7762⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨7762⟩
       (minWord req1 (positionOwedWord key true σ ee) :: solcMappingSlot ⟨7⟩ key ::
         old1 :: minWord req0 (positionOwedWord key false σ ee) :: req1 :: req0 :: R)
       mem aw rdata σ k' C' := by

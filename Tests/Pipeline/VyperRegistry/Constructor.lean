@@ -2,6 +2,8 @@ import Tests.Pipeline.VyperRegistry.Helpers
 import Tests.Pipeline.VyperRegistry.CreationBlocks_001
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Registry constructor correctness
 
@@ -38,7 +40,7 @@ theorem ctorOutput :
 
 theorem registryConstructorCorrect :
     typedConstructorRefinement config registryCreationBytecode contract (fun _ => registryBytecode) := by
-  intro σ σ₀ g A I args deployedInitcode hdeploy hcode hcalldata hperm
+  intro fork _hfork σ σ₀ g A I args deployedInitcode hdeploy hcode hcalldata hperm
   have hlen : args.length = contract.ctor.params.length :=
     emptyCtorDeployment_args_length (hself := rfl) (hparams := rfl) hdeploy
   have hargs : args = [] := List.eq_nil_of_length_eq_zero hlen
@@ -49,7 +51,7 @@ theorem registryConstructorCorrect :
   have hcode' : I.code = registryCreationBytecode ++ ByteArray.empty := by
     rw [hcodeC, ByteArray.append_empty]
   have rd0 := RD.normalizePC (pc' := UInt256.ofNat 0)
-    (RD.initState (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) hcode') rfl
+    (RD.initState (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) hcode') rfl
   by_cases hwv : I.weiValue = ⟨0⟩
   · have rd1 := registryCreationBlocks.registryCreation_block_0_fallthrough (by simp) (by rw [hwv]; rfl) rd0
     have rd2 := registryCreationBlocks.registryCreation_block_5 (by simp) (by native_decide) rd1
@@ -86,7 +88,7 @@ theorem registryConstructorCorrect :
         (hbase := hb) (her := by simp [evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
         (hty := by rw [hF]; rfl) (hloc := rfl)
       erw [storageLocStore_uint256, hs1.env]
-    have hbody : ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ contract.ctor.body
+    have hbody : ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ contract.ctor.body
         (.returned { contract := contract, locals := (∅ : Store).insert "__c0" .unit, immutables := initialImmutables contract }
           (Stele.EVM.storageStore evm1 I.codeOwner (UInt256.ofNat 19) (UInt256.ofNat 1)) none) (initialImmutables contract) := by
       rw [ctorBody_eq]

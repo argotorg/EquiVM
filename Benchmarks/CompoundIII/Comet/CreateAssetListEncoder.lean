@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.ConstructorAssetReads
 import Benchmarks.CompoundIII.Comet.CreationBlocks_005
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open cometWithExtendedAssetListCreationBlocks
 
@@ -17,10 +19,10 @@ theorem cometCreateAssetListEncodeAsset {tail : ByteArray} {ee : ExecutionEnv} {
     (hbound : dest.toNat + 224 < UInt256.size)
     (hentry : memLoad entry mem = src)
     (hread : ∀ j, j < 7 → memLoad (src + UInt256.ofNat (32 * j)) mem = a.word j)
-    (h : RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨2075⟩
+    (h : RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨2075⟩
       (index :: count :: entry :: dest :: start :: factory :: start :: R)
       mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1358⟩
+    ∃ aw' k' C', RD fork (cometWithExtendedAssetListCreationBytecode ++ tail) ee g s0 ⟨1358⟩
       ((UInt256.ofNat 1 + index) :: count :: (entry + UInt256.ofNat 32) ::
         (dest + UInt256.ofNat 224) :: start :: factory :: start :: R)
       (constructorAssetFieldMemory mem dest.toNat a 7) aw' rdata σ k' C' := by
@@ -79,7 +81,7 @@ theorem cometCreateAssetListEncodeAsset {tail : ByteArray} {ee : ExecutionEnv} {
     cometWithExtendedAssetListCreation_block_2075_memory, hentry,
     u256_add_comm (UInt256.ofNat 32) src, hwrite, hadd, hw0, hm0, hw1, hm1,
     hw2, hm2, hw3, hm64, hw4] at r1
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 64)) (UInt256.ofNat 1) ::
       a.word 4 :: UInt256.ofNat 128 ::
       UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 64)) (UInt256.ofNat 1) ::

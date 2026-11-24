@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.CheckTicksSource
 import Benchmarks.UniswapV3.Pool.SignedComparison
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_056
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,12 +13,12 @@ set_option maxRecDepth 10000
 theorem checkTicksX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret lower upper : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨17313⟩ (upper :: lower :: ret :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨17313⟩ (upper :: lower :: ret :: R) mem aw rdata σ k C)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 8 ≤ 1024) :
     let lo := normalizeInt (.sint ⟨24, by decide⟩) (Int.ofNat lower.toNat)
     let hi := normalizeInt (.sint ⟨24, by decide⟩) (Int.ofNat upper.toNat)
-    (RDrev (deployedRuntime v) g s0 ∧ ¬ validTicks lo hi) ∨
-      (validTicks lo hi ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ret R mem aw rdata σ k' C') := by
+    (RDrev fork (deployedRuntime v) g s0 ∧ ¬ validTicks lo hi) ∨
+      (validTicks lo hi ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret R mem aw rdata σ k' C') := by
   dsimp only
   let lo := normalizeInt (.sint ⟨24, by decide⟩) (Int.ofNat lower.toNat)
   let hi := normalizeInt (.sint ⟨24, by decide⟩) (Int.ofNat upper.toNat)

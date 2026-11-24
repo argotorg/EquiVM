@@ -4,6 +4,8 @@ import Reasoning.Initcode
 import Reasoning.ExternalCall
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS DaiJoin constructor Stele source semantics
 -/
@@ -221,7 +223,7 @@ theorem daiJoinCtorBodySuccess
     let evm2 := daiJoinCtorAfterLiveState evm1
     let evm3 := daiJoinCtorAfterVatState evm2 vat
     let evm4 := daiJoinCtorAfterDaiState evm3 dai
-    ExecBlock config { contract := contract, locals := locals } evm0 constructorDecl.body
+    ExecBlock fork config { contract := contract, locals := locals } evm0 constructorDecl.body
       (.ok { contract := contract, locals := locals } evm4) := by
   intro locals evm0 evm1 evm2 evm3 evm4
   have hassignWards :
@@ -251,11 +253,11 @@ theorem daiJoinCtorBodySuccess
   simp only [constructorDecl, nonpayable, List.cons_append, List.nil_append]
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hassignWards) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa [evm1, daiJoinCtorAfterWardsState, evm0, initState] using hperm)) (by rw [evalExpr?]; rfl) hassignLive) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa [evm2, daiJoinCtorAfterLiveState, evm1, daiJoinCtorAfterWardsState, evm0, initState] using hperm)) ?_ hassignVat) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hassignWards) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [evm1, daiJoinCtorAfterWardsState, evm0, initState] using hperm)) (by rw [evalExpr?]; rfl) hassignLive) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [evm2, daiJoinCtorAfterLiveState, evm1, daiJoinCtorAfterWardsState, evm0, initState] using hperm)) ?_ hassignVat) ?_
   · simpa [locals] using evalExpr_daiJoinCtorLocalVat (evm := evm2) vat dai
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa [evm3, daiJoinCtorAfterVatState, evm2, daiJoinCtorAfterLiveState, evm1, daiJoinCtorAfterWardsState, evm0, initState] using hperm)) ?_ hassignDai) ExecBlock.nil
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [evm3, daiJoinCtorAfterVatState, evm2, daiJoinCtorAfterLiveState, evm1, daiJoinCtorAfterWardsState, evm0, initState] using hperm)) ?_ hassignDai) ExecBlock.nil
   · simpa [locals] using evalExpr_daiJoinCtorLocalDai (evm := evm3) vat dai
 
 theorem daiJoinSteleCtorExecSuccess
@@ -263,7 +265,7 @@ theorem daiJoinSteleCtorExecSuccess
     {g : UInt256} (vat dai : AccountAddress)
     (hwv : I.weiValue = ⟨0⟩)
     (hperm : I.perm = true) :
-    steleCtorExec config contract [.address vat, .address dai] σ σ₀ g A I
+    steleCtorExec fork config contract [.address vat, .address dai] σ σ₀ g A I
       (.returned { contract := contract, locals := daiJoinCtorLocals vat dai }
         (daiJoinCtorAfterDaiState
           (daiJoinCtorAfterVatState
@@ -282,14 +284,14 @@ theorem daiJoinSteleCtorExecSuccess
   · rfl
   · simpa [ExecTransitionBody, contract, constructorDecl] using
       ExecFuncBody.execBlockOK
-        (daiJoinCtorBodySuccess (hperm := by assumption)
+        (daiJoinCtorBodySuccess (fork := fork) (hperm := by assumption)
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) vat dai hwv)
 
 theorem daiJoinSteleCtorExecReverts_nonpayable
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (vat dai : AccountAddress)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    steleCtorExec config contract [.address vat, .address dai] σ σ₀ g A I .reverted := by
+    steleCtorExec fork config contract [.address vat, .address dai] σ σ₀ g A I .reverted := by
   refine steleCtorExec.intro
     (evmState := initState σ σ₀
       (Sat256.ofUInt256 g) A I)

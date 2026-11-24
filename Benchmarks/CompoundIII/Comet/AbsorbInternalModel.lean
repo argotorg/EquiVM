@@ -2,27 +2,29 @@ import Benchmarks.CompoundIII.Comet.AbsorbReadModel
 import Benchmarks.CompoundIII.Comet.AbsorbBasePriceModel
 import Benchmarks.CompoundIII.Comet.CollateralCheckModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
 namespace Benchmarks.CompoundIII.Comet
 
-inductive AbsorbReadTrace (v : CometWithExtendedAssetListImmutables) (account : AccountAddress)
+inductive AbsorbReadTrace (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables) (account : AccountAddress)
     (evm : State) : InternalOutcome → Prop where
   | minimum (hm : ¬ -(2^103 : Int) < signed104 (absorbBasic evm account).principal) :
-      AbsorbReadTrace v account evm .reverted
+      AbsorbReadTrace fork v account evm .reverted
   | present {result} (hm : -(2^103 : Int) < signed104 (absorbBasic evm account).principal)
-      (ht : AbsorbBasePriceTrace v account (absorbBasic evm account) (absorbOldBalance evm account)
-        evm result) : AbsorbReadTrace v account evm result
+      (ht : AbsorbBasePriceTrace fork v account (absorbBasic evm account) (absorbOldBalance evm account)
+        evm result) : AbsorbReadTrace fork v account evm result
 
-inductive AbsorbInternalTrace (v : CometWithExtendedAssetListImmutables) (account : AccountAddress)
+inductive AbsorbInternalTrace (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables) (account : AccountAddress)
     (evm : State) : InternalOutcome → Prop where
-  | checkReverted (ht : CollateralCheckTrace v false account evm none) :
-      AbsorbInternalTrace v account evm .reverted
-  | notLiquidatable {evm'} (ht : CollateralCheckTrace v false account evm (some (evm', false))) :
-      AbsorbInternalTrace v account evm .reverted
-  | liquidatable {evm' result} (hc : CollateralCheckTrace v false account evm (some (evm', true)))
-      (ht : AbsorbReadTrace v account evm' result) : AbsorbInternalTrace v account evm result
+  | checkReverted (ht : CollateralCheckTrace fork v false account evm none) :
+      AbsorbInternalTrace fork v account evm .reverted
+  | notLiquidatable {evm'} (ht : CollateralCheckTrace fork v false account evm (some (evm', false))) :
+      AbsorbInternalTrace fork v account evm .reverted
+  | liquidatable {evm' result} (hc : CollateralCheckTrace fork v false account evm (some (evm', true)))
+      (ht : AbsorbReadTrace fork v account evm' result) : AbsorbInternalTrace fork v account evm result
 
 def absorbReadTailBlock : List Stmt := absorbReadBlock ++
   (.internalCall "presentValue" [.var "oldPrincipal"] "oldBalance" ::

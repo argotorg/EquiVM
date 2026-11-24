@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.WithdrawReservesChecks
 import Benchmarks.CompoundIII.Comet.TransferOutSource
 import Benchmarks.CompoundIII.Comet.GetterSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -43,34 +45,34 @@ theorem withdrawReservesTransition_body : withdrawReservesTransition.body = call
     ([.require withdrawReservesAuth, .internalCall "getReserves_body" [] "reserves"] ++
       withdrawReservesTail) := rfl
 
-inductive WithdrawReservesAfter (v : CometWithExtendedAssetListImmutables)
+inductive WithdrawReservesAfter (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables)
     (recipient : AccountAddress) (amount reserves : UInt256) (evm : EVM.State) :
     Option EVM.State → Prop where
   | checksFailed (hv : ¬ WithdrawReservesAllowed reserves amount) :
-      WithdrawReservesAfter v recipient amount reserves evm none
+      WithdrawReservesAfter fork v recipient amount reserves evm none
   | transfer {result : Option EVM.State} (hv : WithdrawReservesAllowed reserves amount)
-      (ht : TransferOutTrace v.baseToken recipient amount evm result) :
-      WithdrawReservesAfter v recipient amount reserves evm result
+      (ht : TransferOutTrace fork v.baseToken recipient amount evm result) :
+      WithdrawReservesAfter fork v recipient amount reserves evm result
 
-inductive WithdrawReservesTrace (v : CometWithExtendedAssetListImmutables)
+inductive WithdrawReservesTrace (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables)
     (recipient : AccountAddress) (amount : UInt256) (evm : EVM.State) :
     Option EVM.State → Prop where
   | unauthorized (ha : evm.executionEnv.source ≠ v.governor) :
-      WithdrawReservesTrace v recipient amount evm none
-  | reservesFailed (ha : evm.executionEnv.source = v.governor) (ht : ReservesTrace v evm none) :
-      WithdrawReservesTrace v recipient amount evm none
+      WithdrawReservesTrace fork v recipient amount evm none
+  | reservesFailed (ha : evm.executionEnv.source = v.governor) (ht : ReservesTrace fork v evm none) :
+      WithdrawReservesTrace fork v recipient amount evm none
   | reservesOk {evm' : EVM.State} {reserves : UInt256} {result : Option EVM.State}
-      (ha : evm.executionEnv.source = v.governor) (ht : ReservesTrace v evm (some (evm', reserves)))
-      (ht' : WithdrawReservesAfter v recipient amount reserves evm' result) :
-      WithdrawReservesTrace v recipient amount evm result
+      (ha : evm.executionEnv.source = v.governor) (ht : ReservesTrace fork v evm (some (evm', reserves)))
+      (ht' : WithdrawReservesAfter fork v recipient amount reserves evm' result) :
+      WithdrawReservesTrace fork v recipient amount evm result
 
-def WithdrawReservesBlockResult (frame : Frame) (evm : EVM.State) (body : List Stmt)
+def WithdrawReservesBlockResult (fork : Ethereum.Fork) (frame : Frame) (evm : EVM.State) (body : List Stmt)
     (result : Option EVM.State) : Prop :=
   match result with
-  | none => ExecBlock config frame evm body .reverted
+  | none => ExecBlock fork config frame evm body .reverted
   | some evm' => if evm'.executionEnv.perm = true then
-      ∃ final, ExecBlock config frame evm body (.ok final evm')
-    else ExecBlock config frame evm body .staticViolation
+      ∃ final, ExecBlock fork config frame evm body (.ok final evm')
+    else ExecBlock fork config frame evm body .staticViolation
 
 theorem withdrawReservesAuth_eval (v : CometWithExtendedAssetListImmutables)
     (evm : EVM.State) (locals : Store) :

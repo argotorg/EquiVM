@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.SwapAfterSource
 import Benchmarks.UniswapV4PoolManager.PoolSwapValues
 import Benchmarks.UniswapV4PoolManager.PoolStorage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -61,12 +63,12 @@ def swapPoolDeltaFrame (f : Frame) (delta : UInt256) : Frame :=
 
 theorem swapPoolAliasSource {f : Frame} {evm : State} {id : UInt256}
     (hp : f.locals.get? "pool" = some (poolRefValue id)) :
-    ExecStmt config f evm swapTransition.body[22]! (.ok (swapPoolAliasFrame f id) evm) :=
+    ExecStmt fork config f evm swapTransition.body[22]! (.ok (swapPoolAliasFrame f id) evm) :=
   ExecStmt.letStorage (resolveStorageAlias hp)
 
 theorem swapPoolDeltaSource {f : Frame} {evm : State} {delta : UInt256} {old : Value}
     (hd : f.locals.get? "swapDelta" = some old) :
-    ExecStmt config (swapPoolCallFrame f delta) evm swapTransition.body[24]!
+    ExecStmt fork config (swapPoolCallFrame f delta) evm swapTransition.body[24]!
       (.ok (swapPoolDeltaFrame f delta) evm) :=
   ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalLocalValue (store_get_self _ _ _))
     (assignLocalValue ((store_get_ne _ _ (by decide : ("__c6" == "swapDelta") = false)).trans hd))

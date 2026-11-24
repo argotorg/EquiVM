@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.MemorySteps
 import Examples.UniswapV2Pair.SkimSafeTransferReturn
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -10,10 +12,10 @@ theorem RD.uniswapSafeTransferCopyWord
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {σ : AccountMap}
     {mem rdata : ByteArray} {src dst len aw word : UInt256} {R : List UInt256} {k C : Nat}
-    (rd6512 : RD uniswapV2PairBytecode I g s0 ⟨6512⟩ (src :: dst :: len :: R) mem aw rdata σ k C)
+    (rd6512 : RD fork uniswapV2PairBytecode I g s0 ⟨6512⟩ (src :: dst :: len :: R) mem aw rdata σ k C)
     (hlen : UInt256.lt len ⟨32⟩ = ⟨0⟩) (hload : memoryWordLoad mem src = word)
     (haw : memoryWordActiveWords aw src = aw) (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨6512⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨6512⟩
       ((⟨32⟩ + src) :: (⟨32⟩ + dst) :: (len + UInt256.lnot ⟨31⟩) :: R)
       (word.toByteArray.write 0 mem dst.toNat 32) (memoryWordActiveWords aw dst) rdata σ k' C' := by
   have rd6521 := evm_run rd6512 with [jumpdest, push1 ⟨32⟩, dup4, lt, push2 ⟨6543⟩, jumpiNT hlen]
@@ -32,13 +34,13 @@ theorem RD.uniswapSafeTransferCopyTail4
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {σ : AccountMap}
     {mem rdata : ByteArray} {src dst aw sourceWord : UInt256} {R : List UInt256} {k C : Nat}
-    (rd6512 : RD uniswapV2PairBytecode I g s0 ⟨6512⟩ (src :: dst :: ⟨4⟩ :: R) mem aw rdata σ k C)
+    (rd6512 : RD fork uniswapV2PairBytecode I g s0 ⟨6512⟩ (src :: dst :: ⟨4⟩ :: R) mem aw rdata σ k C)
     (hloadSrc : memoryWordLoad mem src = sourceWord)
     (hawSrc : memoryWordActiveWords aw src = aw)
     (hloadDst : memoryWordLoad mem dst = ⟨0⟩)
     (hawDst : memoryWordActiveWords (memoryWordActiveWords aw dst) dst = memoryWordActiveWords aw dst)
     (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨6575⟩ R
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨6575⟩ R
       ((UInt256.lor (UInt256.land sourceWord (UInt256.lnot skimSafeTransferTailMask))
         (UInt256.land ⟨0⟩ skimSafeTransferTailMask)).toByteArray.write 0 mem dst.toNat 32)
       (memoryWordActiveWords aw dst) rdata σ k' C' := by

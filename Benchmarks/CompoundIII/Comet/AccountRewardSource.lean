@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.AccountMagnitude
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -14,7 +16,7 @@ theorem accountReward_source (v : CometWithExtendedAssetListImmutables) (borrow 
     (hp : frame.locals.get? "principal" = some (.int (signed104 principal)))
     (hx : frame.locals.get? (trackingIndexName borrow) = none)
     (hsign : if borrow then signed104 principal < 0 else 0 ≤ signed104 principal) :
-    ExecBlock config frame evm (accountRewardBlock borrow)
+    ExecBlock fork config frame evm (accountRewardBlock borrow)
       (if AccountRewardValid v evm basic principal borrow then
         .ok (accountRewardFrame frame v evm basic principal borrow) evm else .reverted) := by
   let delta := accountRewardDelta evm basic borrow
@@ -45,7 +47,7 @@ theorem accountReward_source (v : CometWithExtendedAssetListImmutables) (borrow 
         simp only [evalExpr?, f1, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert,
           EvalResult.ofOption]
         rfl
-      have hr := baseReward_call v f1 evm (accountMagnitude principal borrow) delta _ _
+      have hr := baseReward_call (fork := fork) v f1 evm (accountMagnitude principal borrow) delta _ _
         (accountRewardName borrow) hc hi hem hedelta (accountMagnitude_lt borrow hmin) hdt
       by_cases hv : BaseRewardValid v (accountMagnitude principal borrow) delta
       · rw [if_pos hv] at hr
@@ -67,7 +69,7 @@ theorem accountReward_source (v : CometWithExtendedAssetListImmutables) (borrow 
             change (UInt256.add basic.accrued reward).toNat < 2^64
             rw [addWord_toNat _ _ (lt_trans hadd (by decide))]
             exact hadd
-          exact ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+          exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
             (checkedNarrowAddSourceOk ⟨64, by decide⟩ (by decide) (evalBasicAccrued heb2) her hadd)
             (assignBasicAccrued (basic.accrued + reward) hsum hb2)) ExecBlock.nil
         · rw [if_neg (show ¬ AccountRewardValid v evm basic principal borrow from

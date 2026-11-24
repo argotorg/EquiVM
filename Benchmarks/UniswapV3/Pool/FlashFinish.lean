@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.FlashGrowthTrace
 import Benchmarks.UniswapV3.Pool.FlashPrefix
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_006
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -17,27 +19,27 @@ theorem flashFinishSource (locals imms : Store) (evm : EVM.State)
     (hp1 : locals.get? "paid1" = some (.int (Int.ofNat paid1.toNat)))
     (hslot : locals.get? "slot0" = none)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm
       (flashTransition.body.drop 25)
       (.ok {contract := contract, locals := locals, immutables := imms} (storeSlot0Unlocked evm true)) := by
-  refine ExecBlock.consNormal (ExecStmt.emit (hperm := hperm) (vals := [.address evm.executionEnv.source,
+  refine ExecBlock.consNormal (ExecStmt.emit (fork := fork) (hperm := hperm) (vals := [.address evm.executionEnv.source,
     .address recipient, .int (Int.ofNat amount0.toNat), .int (Int.ofNat amount1.toNat),
     .int (Int.ofNat paid0.toNat), .int (Int.ofNat paid1.toNat)]) ?_) ?_
   · simp only [evalExprs?, evalExpr?, hr, ha0, ha1, hp0, hp1, EvalResult.ofOption,
       envValue, bind, EvalResult.bind, pure]
   refine ExecBlock.consNormal
-    (ExecStmt.assign (hperm := Or.inr hperm) (by simp only [evalExpr?, pure]) (assignSlot0Unlocked evm locals imms true hslot))
+    (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (by simp only [evalExpr?, pure]) (assignSlot0Unlocked evm locals imms true hslot))
     ExecBlock.nil
 
 theorem flashFinishX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : EVM.State} {k C : Nat}
     {aw paid1 paid0 after1 after0 before1 before0 fee1 fee0 liquidity len start amount1 amount0 recipient : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨7421⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨7421⟩
       (flashUpdateRest paid1 paid0 after1 after0 before1 before0 fee1 fee0 liquidity
         (len :: start :: amount1 :: amount0 :: recipient :: ⟨857⟩ :: R)) mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hperm : ee.perm = true) (hov : R.length + 26 ≤ 1024) :
-    RDret (deployedRuntime v) g s0 (storeSlot0Unlocked evm true).accountMap ByteArray.empty := by
+    RDret fork (deployedRuntime v) g s0 (storeSlot0Unlocked evm true).accountMap ByteArray.empty := by
   obtain ⟨_, _, rdEvent⟩ := uniswapV3Pool_block_7421 (immWords := wordsOf (immStore v))
     (by evm_ov) hperm rd
   simp only [uniswapV3Pool_block_7421_stack] at rdEvent

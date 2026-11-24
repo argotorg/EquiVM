@@ -2,7 +2,6 @@
 """Run the repository differential CLI with only the local Vault target registered."""
 from pathlib import Path
 import json
-import os
 import subprocess
 import sys
 
@@ -28,16 +27,4 @@ manifest["packagesDir"] = str(repo / ".lake/packages")
 manifest["packages"].append(dict(type="path", name="EquiVM", dir=str(repo),
     manifestFile="lake-manifest.json", configFile="lakefile.toml", inherited=False))
 (runner / "lake-manifest.json").write_text(json.dumps(manifest))
-corpus = runner / "EthereumTests"
-if not corpus.exists():
-    corpus.symlink_to(repo / ".lake/packages/evmlean/EthereumTests", target_is_directory=True)
-ethereum = runner / "Ethereum"
-if not ethereum.exists():
-    ethereum.symlink_to(repo / ".lake/packages/evmlean/Ethereum", target_is_directory=True)
-env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
-venv_bin = runner / ".venv" / "bin"
-if (venv_bin / "python3").exists():
-    env["PATH"] = str(venv_bin) + os.pathsep + env.get("PATH", "")
-subprocess.run(["python3", "-c", "import Crypto.Hash.RIPEMD160, eth_typing.bls, py_ecc.bls"],
-               env=env, check=True)
-raise SystemExit(subprocess.call(["lake", "exe", "stele-difftest", *sys.argv[1:]], cwd=runner, env=env))
+raise SystemExit(subprocess.call(["lake", "exe", "stele-difftest", *sys.argv[1:]], cwd=runner))

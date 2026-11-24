@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.FlashProtocolSource
 import Benchmarks.UniswapV3.Pool.FullMathSource
 import Benchmarks.UniswapV3.Pool.FeeGrowthStorage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -50,18 +52,18 @@ theorem flashGrowthReturns (locals imms : Store) (evm : EVM.State) (second : Boo
     (hbase : locals.get? (feeGrowthName second) = none)
     (hv : fullMathValid (UInt256.sub paid fees) (UInt256.ofNat (2 ^ 128)) liquidity)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm
       (flashGrowthStmts second) (.ok (flashGrowthFrame locals imms second paid fees liquidity)
         (addFeeGrowth evm second (flashGrowthResult paid fees liquidity))) := by
-  have hcall := internalCallFunctionReturn (callee := fullMathFunction)
+  have hcall := internalCallFunctionReturn (fork := fork) (callee := fullMathFunction)
     (locals := fullMathLocals (UInt256.sub paid fees) (UInt256.ofNat (2 ^ 128)) liquidity)
     (calleeStele := fullMathProductFrame imms (UInt256.sub paid fees)
       (UInt256.ofNat (2 ^ 128)) liquidity)
     (value := some [.int (Int.ofNat (flashGrowthResult paid fees liquidity).toNat)])
     (retVar := flashGrowthCallName second)
     (evalFlashGrowthArgs locals imms evm second paid fees liquidity hp hf hl) fullMathLookup
-    (fullMathBind _ _ _) (fullMathReturns imms evm _ _ _ hv)
-  change ExecStmt _ _ _ _ (.ok (flashGrowthFrame locals imms second paid fees liquidity) evm)
+    (fullMathBind _ _ _) (fullMathReturns (fork := fork) imms evm _ _ _ hv)
+  change ExecStmt fork _ _ _ _ (.ok (flashGrowthFrame locals imms second paid fees liquidity) evm)
     at hcall
   refine ExecBlock.consNormal hcall (ExecBlock.consNormal ?_ ExecBlock.nil)
   have hbase' : (flashGrowthFrame locals imms second paid fees liquidity).locals.get?
@@ -80,7 +82,7 @@ theorem flashGrowthReverts (locals imms : Store) (evm : EVM.State) (second : Boo
     (hf : locals.get? (flashProtocolFeesName second) = some (.int (Int.ofNat fees.toNat)))
     (hl : locals.get? "_liquidity" = some (.int (Int.ofNat liquidity.toNat)))
     (hv : ¬ fullMathValid (UInt256.sub paid fees) (UInt256.ofNat (2 ^ 128)) liquidity) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm
       (flashGrowthStmts second) .reverted := by
   apply ExecBlock.consRevert
   exact internalCallFunctionRevert (callee := fullMathFunction)

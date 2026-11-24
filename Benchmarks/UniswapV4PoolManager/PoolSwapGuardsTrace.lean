@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PoolSwapModeTrace
 import Benchmarks.UniswapV4PoolManager.PoolSwapZeroTrace
 import Benchmarks.UniswapV4PoolManager.PoolSwapLimitTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -17,19 +19,19 @@ theorem poolSwapGuardsTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hf : fee.toNat < 2^24) (hl : p.priceLimit.toNat < 2^160)
     (hs : memLoad params mem = p.amountSpecified) (hm : memLoad (params+UInt256.ofNat 96) mem = p.priceLimit)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨18951⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨18951⟩
       ([fee, slot0SqrtPriceWord packed, ret, params, p.amountSpecified, ⟨0⟩, state, protocol, ⟨0⟩,
         UInt256.fromBool (!p.zeroForOne), packed, pool, state]++R) mem aw rdata σ k C) :
     if poolSwapModeValid fee p.amountSpecified then
       if p.amountSpecified = ⟨0⟩ then
-        ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ret ([state, fee, ⟨0⟩, ⟨0⟩]++R)
+        ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ret ([state, fee, ⟨0⟩, ⟨0⟩]++R)
           mem (poolSwapZeroAW aw fee params) rdata σ k' C'
       else if poolSwapLimitValid packed p.priceLimit p.zeroForOne then
-        ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨19061⟩
+        ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨19061⟩
           ([ret, params, p.amountSpecified, ⟨0⟩, fee, protocol, ⟨0⟩, UInt256.fromBool (!p.zeroForOne),
             packed, pool, state]++R) mem (poolSwapGuardsAW aw fee params) rdata σ k' C'
-      else RDrev (deployedRuntime v) g s0
-    else RDrev (deployedRuntime v) g s0 := by
+      else RDrev fork (deployedRuntime v) g s0
+    else RDrev fork (deployedRuntime v) g s0 := by
   have ht0 := poolSwapModeTrace v (by change R.length+6+11 ≤ 1024; omega) hf hs h
   by_cases hmode : poolSwapModeValid fee p.amountSpecified
   · rw [if_pos hmode] at ht0 ⊢

@@ -1,6 +1,8 @@
 import Benchmarks.Safe.Runs1e6.Membership
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.Runs1e6
@@ -37,7 +39,7 @@ theorem evalAddressValueNonzero {cfg : Config} {frame : Frame} {evm : EVM.State}
 theorem optionalCheckedCallZero {cfg : Config} {frame : Frame} {evm : EVM.State}
     {receiver : Expr} {name retVar : Ident} {args : List Expr}
     (he : evalExpr? cfg frame evm receiver = .ok (.address 0)) :
-    ExecStmt cfg frame evm (optionalCheckedCall receiver name args retVar) (.ok frame evm) :=
+    ExecStmt fork cfg frame evm (optionalCheckedCall receiver name args retVar) (.ok frame evm) :=
   .iteFalse (by simpa using evalAddressValueNonzero he) .nil
 
 theorem optionalCheckedCallNoCode {cfg : Config} {frame : Frame} {evm : EVM.State}
@@ -45,7 +47,7 @@ theorem optionalCheckedCallNoCode {cfg : Config} {frame : Frame} {evm : EVM.Stat
     {word : UInt256} (he : evalExpr? cfg frame evm receiver = .ok (.address target))
     (hz : target ≠ 0) (ht : target = AccountAddress.ofUInt256 word)
     (hc : extCodeSizeWord evm.accountMap word = ⟨0⟩) :
-    ExecStmt cfg frame evm (optionalCheckedCall receiver name args retVar) .reverted := by
+    ExecStmt fork cfg frame evm (optionalCheckedCall receiver name args retVar) .reverted := by
   apply ExecStmt.iteTrue (by simpa [hz] using evalAddressValueNonzero he)
   apply checkedExternalCallNoCode
   simpa only [hc, show (⟨0⟩ : UInt256).toNat = 0 from rfl, Nat.lt_irrefl, decide_false] using
@@ -58,8 +60,8 @@ theorem optionalCheckedCallFailure {cfg : Config} {frame : Frame} {evm evm' : EV
     (hz : target ≠ 0) (ht : target = AccountAddress.ofUInt256 word)
     (hc : extCodeSizeWord evm.accountMap word ≠ ⟨0⟩)
     (ha : evalExprs? cfg frame evm args = .ok argVals)
-    (hcall : typedCallViaEVM cfg evm (EVM.address target) name 0 argVals (false, evm', out)) :
-    ExecStmt cfg frame evm (optionalCheckedCall receiver name args retVar) .reverted := by
+    (hcall : typedCallViaEVM fork cfg evm (EVM.address target) name 0 argVals (false, evm', out)) :
+    ExecStmt fork cfg frame evm (optionalCheckedCall receiver name args retVar) .reverted := by
   apply ExecStmt.iteTrue (by simpa [hz] using evalAddressValueNonzero he)
   apply checkedExternalCallFailure (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) _ he ha hcall
   have hp : 0 < (extCodeSizeWord evm.accountMap word).toNat :=
@@ -73,9 +75,9 @@ theorem optionalCheckedCallSuccess {cfg : Config} {frame : Frame} {evm evm' : EV
     (hz : target ≠ 0) (ht : target = AccountAddress.ofUInt256 word)
     (hc : extCodeSizeWord evm.accountMap word ≠ ⟨0⟩)
     (ha : evalExprs? cfg frame evm args = .ok argVals)
-    (hcall : typedCallViaEVM cfg evm (EVM.address target) name 0 argVals (true, evm', out))
+    (hcall : typedCallViaEVM fork cfg evm (EVM.address target) name 0 argVals (true, evm', out))
     (hd : cfg.externalABI.decode? name out = some values) :
-    ExecStmt cfg frame evm (optionalCheckedCall receiver name args retVar)
+    ExecStmt fork cfg frame evm (optionalCheckedCall receiver name args retVar)
       (.ok { frame with locals := frame.locals.insert retVar (collapseReturns values) } evm') :=
     by
   apply ExecStmt.iteTrue (by simpa [hz] using evalAddressValueNonzero he)

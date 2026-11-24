@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Jug.ConstructorTraceArgs
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Jug constructor wards storage trace
 -/
@@ -16,11 +18,11 @@ theorem jugCtorWardsStoreReach
     (vat : AccountAddress) {k C : ℕ}
     (hperm : I.perm = true)
     (rd54 :
-      RD (jugCtorCode vat) I g
+      RD fork (jugCtorCode vat) I g
         (initState σ σ₀ g A I) ⟨54⟩
         [EVM.word vat.val] (jugCtorArgFreeMem vat) (UInt256.ofNat 5) ByteArray.empty
         σ k C) :
-    ∃ k' C', RD (jugCtorCode vat) I g
+    ∃ k' C', RD fork (jugCtorCode vat) I g
       (initState σ σ₀ g A I) ⟨73⟩
       [EVM.word vat.val] (jugCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
       (sstoreAccountMap I.codeOwner σ (jugCtorCallerWardsSlot I) ⟨1⟩)

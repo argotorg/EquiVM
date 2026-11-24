@@ -2,6 +2,8 @@ import Stele.Refine
 import Reasoning.Reach
 import Reasoning.Storage
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Dispatch — generic Stele `dispatchMsg` facts
 
@@ -277,12 +279,12 @@ theorem RDrev.reEquivNonPayable {cfg : Config} {contract : ContractDecl} {transi
     (hcode : I.code = code)
     (hfallback : contract.fallback = none := by rfl)
     (htr : contract.transitions = [transition])
-    (h : RDrev code g (initState σ σ₀ g A I))
-    (hbody : ∀ callargs, ExecTransitionBody cfg contract
+    (h : RDrev fork code g (initState σ σ₀ g A I))
+    (hbody : ∀ callargs, ExecTransitionBody fork cfg contract
               (initState σ σ₀ g A I)
               callargs transition.body .reverted immutables)
     (hreceive : contract.receive = none := by rfl) :
-    runtimeRefinementFor cfg contract σ σ₀
+    runtimeRefinementFor fork cfg contract σ σ₀
       g.toUInt256 A I immutables :=
   h.reEquivElim hcode fun _ _ hrev => by
     by_cases hdisp : dispatchMsg contract I.calldata = none
@@ -305,18 +307,18 @@ theorem RDret.reEquivExecutionGen {cfg : Config} {contract : ContractDecl}
     {code o : ByteArray} {callargs cs retVal}
     {acc : AccountMap} {evm'' : EVM.State}
     (hcode : I.code = code)
-    (h : RDret code g (initState σ σ₀ g A I) acc o)
+    (h : RDret fork code g (initState σ σ₀ g A I) acc o)
     (hd : dispatchMsg contract I.calldata = some t)
     (hdec : cfg.externalABI.decodeCalldata? (t.params.map Param.name)
               (transitionSignature t).paramTypes I.calldata = some callargs)
-    (hbody : ExecTransitionBody cfg contract
+    (hbody : ExecTransitionBody fork cfg contract
               (initState σ σ₀ g A I) callargs t.body
               (.returned cs evm'' retVal) immutables)
     (hAccounts : acc = evm''.accountMap)
     (henc : returnEquiv o retVal t.returnType)
     (hfallback : contract.fallback = none := by rfl)
     (hreceive : contract.receive = none := by rfl) :
-    runtimeRefinementFor cfg contract σ σ₀
+    runtimeRefinementFor fork cfg contract σ σ₀
       g.toUInt256 A I immutables := by
   rcases h with hoog | ⟨s, hX, hsacc⟩
   · exact reEquiv_outOfGas (Xi_error_of_X (g := g.toUInt256) (by
@@ -326,7 +328,7 @@ theorem RDret.reEquivExecutionGen {cfg : Config} {contract : ContractDecl}
       rw [← hcode] at hX
       simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hX)
     have hbody' :
-        ExecTransitionBody cfg contract
+        ExecTransitionBody fork cfg contract
           (initState σ σ₀ (Sat256.ofUInt256 g.toUInt256) A I)
           callargs t.body (.returned cs evm'' retVal) immutables := by
       simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hbody
@@ -345,17 +347,17 @@ theorem RDret.reEquivExecution {cfg : Config} {contract : ContractDecl} {t : Tra
     {σ σ₀ A I} {g : Sat256}
     {code o : ByteArray} {callargs cs retVal}
     (hcode : I.code = code)
-    (h : RDret code g (initState σ σ₀ g A I) σ o)
+    (h : RDret fork code g (initState σ σ₀ g A I) σ o)
     (hd : dispatchMsg contract I.calldata = some t)
     (hdec : cfg.externalABI.decodeCalldata? (t.params.map Param.name)
               (transitionSignature t).paramTypes I.calldata = some callargs)
-    (hbody : ExecTransitionBody cfg contract
+    (hbody : ExecTransitionBody fork cfg contract
               (initState σ σ₀ g A I) callargs t.body
               (.returned cs (initState σ σ₀ g A I) retVal) immutables)
     (henc : returnEquiv o retVal t.returnType)
     (hfallback : contract.fallback = none := by rfl)
     (hreceive : contract.receive = none := by rfl) :
-    runtimeRefinementFor cfg contract σ σ₀
+    runtimeRefinementFor fork cfg contract σ σ₀
       g.toUInt256 A I immutables :=
   h.reEquivExecutionGen hcode hd hdec hbody
     (by simp [initState]) henc hfallback hreceive
@@ -369,18 +371,18 @@ theorem RDret.reEquivExecutionTransport {cfg : Config} {contract : ContractDecl}
     {σ σ₀ A I} {g : Sat256}
     {code o : ByteArray} {callargs cs rvStele rvEvm}
     (hcode : I.code = code)
-    (h : RDret code g (initState σ σ₀ g A I) σ o)
+    (h : RDret fork code g (initState σ σ₀ g A I) σ o)
     (hd : dispatchMsg contract I.calldata = some t)
     (hdec : cfg.externalABI.decodeCalldata? (t.params.map Param.name)
               (transitionSignature t).paramTypes I.calldata = some callargs)
-    (hbody : ExecTransitionBody cfg contract
+    (hbody : ExecTransitionBody fork cfg contract
               (initState σ σ₀ g A I) callargs t.body
               (.returned cs (initState σ σ₀ g A I) rvStele) immutables)
     (hval : rvStele = rvEvm)
     (henc : returnEquiv o rvEvm t.returnType)
     (hfallback : contract.fallback = none := by rfl)
     (hreceive : contract.receive = none := by rfl) :
-    runtimeRefinementFor cfg contract σ σ₀
+    runtimeRefinementFor fork cfg contract σ σ₀
       g.toUInt256 A I immutables := by
   subst rvEvm
   exact h.reEquivExecution hcode hd hdec hbody henc hfallback hreceive
@@ -391,15 +393,15 @@ theorem RDrev.reEquivExecutionRevert {cfg : Config} {contract : ContractDecl} {t
     {σ σ₀ A I} {g : Sat256} {code : ByteArray}
     {callargs}
     (hcode : I.code = code)
-    (h : RDrev code g (initState σ σ₀ g A I))
+    (h : RDrev fork code g (initState σ σ₀ g A I))
     (hd : dispatchMsg contract I.calldata = some t)
     (hdec : cfg.externalABI.decodeCalldata? (t.params.map Param.name)
               (transitionSignature t).paramTypes I.calldata = some callargs)
-    (hbody : ExecTransitionBody cfg contract
+    (hbody : ExecTransitionBody fork cfg contract
               (initState σ σ₀ g A I) callargs t.body .reverted immutables)
     (hfallback : contract.fallback = none := by rfl)
     (hreceive : contract.receive = none := by rfl) :
-    runtimeRefinementFor cfg contract σ σ₀
+    runtimeRefinementFor fork cfg contract σ σ₀
       g.toUInt256 A I immutables :=
   h.reEquivElim hcode fun _ _ hrev => by
     refine reEquiv_execution hd hdec hbody ?_ hfallback hreceive
@@ -409,20 +411,20 @@ theorem RDinvalid.reEquivExecutionInvalid {immutables : Store} {cfg : Config} {c
     {t : TransitionDecl} {σ σ₀ A I} {g : UInt256}
     {code : ByteArray} {callargs}
     (hcode : I.code = code)
-    (h : RDinvalid code (Sat256.ofUInt256 g)
+    (h : RDinvalid fork code (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I))
     (hd : dispatchMsg contract I.calldata = some t)
     (hdec : cfg.externalABI.decodeCalldata? (t.params.map Param.name)
       (transitionSignature t).paramTypes I.calldata = some callargs)
-    (hbody : ExecTransitionBody cfg contract
+    (hbody : ExecTransitionBody fork cfg contract
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) callargs t.body .reverted immutables)
     (hfallback : contract.fallback = none := by rfl)
     (hreceive : contract.receive = none := by rfl) :
-    runtimeRefinementFor cfg contract σ σ₀ g A I immutables := by
+    runtimeRefinementFor fork cfg contract σ σ₀ g A I immutables := by
   rcases h with hoog | hinvalid
   · exact reEquiv_outOfGas (Xi_error_of_X (g := g) (by rwa [← hcode] at hoog))
   · refine reEquiv_execution hd hdec hbody ?_ hfallback hreceive
-    have hXi : Ξ σ σ₀ g A I = .error .InvalidInstruction :=
+    have hXi : Ξ fork σ σ₀ g A I = .error .InvalidInstruction :=
       Xi_error_of_X (g := g) (by rwa [← hcode] at hinvalid)
     rw [hXi]
     exact execResultsEquiv.invalidHalt rfl rfl

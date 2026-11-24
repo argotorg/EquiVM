@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.FlashRepaymentTrace
 import Benchmarks.UniswapV3.Pool.SwapBalanceBefore
 import Benchmarks.UniswapV3.Pool.SwapBalanceAfter
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -41,7 +43,7 @@ theorem swapRepayAddReturns (v : UniswapV3PoolImmutables) (locals : Store) (evm 
     (hb : locals.get? (swapBalanceBeforeName second) = some (.int (Int.ofNat before.toNat)))
     (hf : locals.get? (poolAmountName (!second)) = some (.int fee))
     (hv : before.toNat ≤ (before + EVM.wordOfInt fee).toNat) :
-    ExecStmt config {contract := contract, locals := locals, immutables := immStore v} evm
+    ExecStmt fork config {contract := contract, locals := locals, immutables := immStore v} evm
       (swapRepayTailStmts second)[0]! (.ok (swapRepayFrame v locals second before fee) evm) := by
   exact internalCallFunctionReturn (callee := safeAddFunction) (locals := safeAddLocals before
     (EVM.wordOfInt fee))
@@ -69,7 +71,7 @@ theorem swapRepayReturns (v : UniswapV3PoolImmutables) (locals : Store) (evm : E
     (hf : locals.get? (poolAmountName (!second)) = some (.int fee))
     (ha : locals.get? (swapBalanceAfterName second) = some (.int (Int.ofNat after.toNat)))
     (hv : flashRepayValid before (EVM.wordOfInt fee) after) :
-    ExecBlock config {contract := contract, locals := locals, immutables := immStore v} evm
+    ExecBlock fork config {contract := contract, locals := locals, immutables := immStore v} evm
       (swapRepayTailStmts second) (.ok (swapRepayFrame v locals second before fee) evm) := by
   refine ExecBlock.consNormal (swapRepayAddReturns v locals evm second before fee hb hf hv.1)
     (ExecBlock.consNormal (ExecStmt.requireTrue ?_) ExecBlock.nil)
@@ -81,7 +83,7 @@ theorem swapRepayReverts (v : UniswapV3PoolImmutables) (locals : Store) (evm : E
     (hf : locals.get? (poolAmountName (!second)) = some (.int fee))
     (ha : locals.get? (swapBalanceAfterName second) = some (.int (Int.ofNat after.toNat)))
     (hv : ¬ flashRepayValid before (EVM.wordOfInt fee) after) :
-    ExecBlock config {contract := contract, locals := locals, immutables := immStore v} evm
+    ExecBlock fork config {contract := contract, locals := locals, immutables := immStore v} evm
       (swapRepayTailStmts second) .reverted := by
   by_cases hadd : before.toNat ≤ (before + EVM.wordOfInt fee).toNat
   · refine ExecBlock.consNormal (swapRepayAddReturns v locals evm second before fee hb hf hadd)

@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.PoolSwapDeltaTrace
 import Benchmarks.UniswapV4PoolManager.FunctionResultTrace
 import Benchmarks.UniswapV4PoolManager.PoolSwapOriginalAccounts
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -19,13 +21,13 @@ theorem poolSwapFinishTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State} (f 
     (hI : evm.executionEnv = I) (hm : PoolSwapMemoryView mem step state params s r p)
     (hp : r.price.toNat < 2^160) (hl : r.liquidity.toNat < 2^128)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨21536⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨21536⟩
       ([remaining, ret, params, calculated, packed, fee, protocol, amount,
         UInt256.fromBool (!p.zeroForOne), step, poolSlot id, state]++R) mem aw rdata evm.accountMap k C) :
     let delta := poolSwapDeltaWord (poolSwapCalculatedFirst p.zeroForOne p.amountSpecified) p.amountSpecified remaining calculated
-    functionResultTrace (deployedRuntime v) g s0 (fun post values =>
+    functionResultTrace fork (deployedRuntime v) g s0 (fun post values =>
       post.executionEnv = I ∧ post.σ₀ = evm.σ₀ ∧ values = some (poolSwapReturnValues delta fee amount r) ∧
-      ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ret ([state, fee, amount, delta]++R)
+      ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ret ([state, fee, amount, delta]++R)
         mem (poolSwapFinishAW aw state step params p) rdata post.accountMap k' C')
       (poolSwapFinishResult f evm id packed s r p remaining calculated fee amount) := by
   have hs := poolSwapStoreTrace v hstack hI hm hp hl h

@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PoolSwapModeSource
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_053
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_063
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -15,13 +17,13 @@ theorem poolSwapModeTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+11 ≤ 1024)
     (hf : fee.toNat < 2^24) (hm : memLoad params mem = specified)
-    (h : RD (deployedRuntime v) I g s0 ⟨18951⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨18951⟩
       (fee :: x1 :: x2 :: params :: x4 :: x5 :: x6 :: R) mem aw rdata σ k C) :
     if poolSwapModeValid fee specified then
-      ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨18970⟩
+      ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨18970⟩
         (x6 :: fee :: x1 :: x2 :: params :: x4 :: x5 :: fee :: R)
         mem (poolSwapModeAW aw fee params) rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hclean : UInt256.land fee (UInt256.ofNat 16777215) = fee :=
     u256LandMaskCleanOfToNat _ _ rfl hf
   by_cases hg : 1000000 ≤ fee.toNat

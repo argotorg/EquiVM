@@ -3,6 +3,8 @@ import Benchmarks.Safe.Main.CalldataBufferMemory
 import Benchmarks.Safe.Main.CalldataLengthRounding
 import Benchmarks.Safe.Main.Blocks.Runtime_021
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Main.RuntimeBlocks
 
@@ -18,12 +20,12 @@ def execAllocatedStack (p : ExecTransactionInput) (src ptr : Nat)
 set_option maxRecDepth 100000 in
 theorem safeExecAllocate (p : ExecTransactionInput)
     {I g s0 σ k C aw mem rdata src ptr} {sigPtr guard hash : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3830⟩ (execGuardSaved p src sigPtr guard hash R)
+    (h : RD fork safeBytecode I g s0 ⟨3830⟩ (execGuardSaved p src sigPtr guard hash R)
       mem aw rdata σ k C)
     (hf : memLoad (UInt256.ofNat 64) mem = UInt256.ofNat ptr)
     (hp : ptr + 64 + p.tx.payload.size < UInt256.size) (hs : src < UInt256.size)
     (hov : R.length + 28 ≤ 1024) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨3904⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨3904⟩
       (execAllocatedStack p src ptr (g.subNat (C + 3 + 2)).toUInt256 sigPtr guard hash R)
       (calldataBufferMemory I.calldata mem src ptr p.tx.payload.size p.tx.payload.size
         (ptr + 32 + ABI.paddedSize p.tx.payload.size)) aw' rdata σ k' C' := by

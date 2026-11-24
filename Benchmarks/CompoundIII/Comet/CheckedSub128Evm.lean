@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.NarrowArithmetic
 import Benchmarks.CompoundIII.Comet.PackedGetter
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_071
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -14,10 +16,10 @@ theorem cometCheckedSub128 {v : CometWithExtendedAssetListImmutables}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} {x y ret : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024) (hx : x.toNat < 2^128) (hy : y.toNat < 2^128)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨15305⟩ (x :: y :: ret :: R) mem aw rdata σ k C) :
-    (y.toNat ≤ x.toNat ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ret (UInt256.sub x y :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨15305⟩ (x :: y :: ret :: R) mem aw rdata σ k C) :
+    (y.toNat ≤ x.toNat ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret (UInt256.sub x y :: R)
         mem aw rdata σ k' C') ∨
-    (¬ y.toNat ≤ x.toNat ∧ RDrev (deployedRuntime v) g s0) := by
+    (¬ y.toNat ≤ x.toNat ∧ RDrev fork (deployedRuntime v) g s0) := by
   by_cases hle : y.toNat ≤ x.toNat
   · have r1 := cometWithExtendedAssetList_block_15305_fallthrough
       (immWords := wordsOf (immStore v)) (by simpa only [List.length_cons] using hstack)

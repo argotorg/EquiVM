@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.Dispatch
 import Benchmarks.CompoundIII.Comet.AccrueAccountEvm
 import Benchmarks.CompoundIII.Comet.AccrueAccountSource
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # CometWithExtendedAssetList `accrueAccount(address)`
 
@@ -22,7 +24,7 @@ set_option maxRecDepth 2000
 theorem cometWithExtendedAssetListAccrueAccountBody {σ σ₀ A I} {g : UInt256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 52)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (cometWithExtendedAssetListSelBytes 52) rfl hsel
   have hd : selectorDispatchMsg contract I.calldata = some accrueAccountTransition :=
     cometSelectorDispatch ⟨52, by decide⟩ hsel
@@ -31,7 +33,7 @@ theorem cometWithExtendedAssetListAccrueAccountBody {σ σ₀ A I} {g : UInt256}
       (transitionSignature accrueAccountTransition).paramTypes I.calldata =
       decodeCalldata ["account"] [.elem .address] I.calldata := by
     exact solc0815_decodeCalldata_scalar_eq (by decide)
-  have hX := accrueAccountX (σ := σ) (σ₀ := σ₀) (A := A)
+  have hX := accrueAccountX (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
   by_cases hlo : 36 ≤ I.calldata.size
   · by_cases hhi : I.calldata.size < 2^255 + 4
@@ -40,7 +42,7 @@ theorem cometWithExtendedAssetListAccrueAccountBody {σ σ₀ A I} {g : UInt256}
         by_cases hv : I.weiValue = ⟨0⟩
         · unfold AccrueAccountResult at hX
           rw [if_pos ⟨hv, hlo, hhi, hc⟩] at hX
-          have hb := accrueAccount_source v (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          have hb := accrueAccount_source (fork := fork) v (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (AccountAddress.ofNat (calldataWord I.calldata 4).toNat) hv hhi
           cases hr : accrueAccountOutcome v (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               (AccountAddress.ofNat (calldataWord I.calldata 4).toNat) with

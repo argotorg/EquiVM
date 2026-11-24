@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.Signature
 import Benchmarks.EAS.EAS.RuntimeBlocks_042
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -28,9 +30,9 @@ theorem verifySignerRun {L imms : Store} {field : Ident} {req : Value} {a b : Ac
     (hstack : R.length+5 ≤ 1024) (hs : SourceState s0 ee σ evm)
     (hh : memLoad (UInt256.ofNat 64) mem = UInt256.ofNat heap) (hheap : heap ≤ 2^64-1)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13753⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13753⟩
       (ownerPtr::solcAddrMask::solcAddrMask::UInt256.ofNat b.val::ret::R) mem aw rdata σ k C) :
-    HeapReturnRun config (deployedRuntime v) ee g s0 {contract := contract,locals := L,immutables := imms}
+    HeapReturnRun fork config (deployedRuntime v) ee g s0 {contract := contract,locals := L,immutables := imms}
       evm (verifySignerBody field) (.tuple []) ret R mem heap := by
   have he : evalExpr? config {contract := contract,locals := L,immutables := imms} evm
       (.binary .eq (.var "__c0") (.field (.var "request") field)) = .ok (.bool (decide (b=a))) := evalAddressEq (by simp only [evalExpr?,hb,EvalResult.ofOption])

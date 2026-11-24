@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.TransientSource
 import Benchmarks.UniswapV4PoolManager.SignedWords
 
+variable {fork : Ethereum.Fork}
+
 /-! The nonzero transient delta counter, including wrapping updates. -/
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
@@ -13,8 +15,8 @@ theorem internalCallFunctionStatic {cfg : Config} {caller : Frame} {evm : EVM.St
     (hargs : evalExprs? cfg caller evm args = .ok argVals)
     (hlookup : lookupCallable? caller.contract name = some callee.toCallable)
     (hbind : bindParams? callee.params argVals = some locals)
-    (hbody : ExecFuncBody cfg {caller with locals := locals} evm callee.body .staticViolation) :
-    ExecStmt cfg caller evm (.internalCall name args retVar) .staticViolation :=
+    (hbody : ExecFuncBody fork cfg {caller with locals := locals} evm callee.body .staticViolation) :
+    ExecStmt fork cfg caller evm (.internalCall name args retVar) .staticViolation :=
   ExecStmt.internalCallStatic hargs hlookup hbind hbody
 
 def deltaCountFunction (increment : Bool) : FunctionDecl :=
@@ -44,7 +46,7 @@ theorem deltaCountFunction_lookup (increment : Bool) :
 
 theorem deltaCountBodyExec {f : Frame} {evm : EVM.State}
     (hf : f.contract = contract) (increment : Bool) :
-    ExecFuncBody config f evm (deltaCountFunction increment).body
+    ExecFuncBody fork config f evm (deltaCountFunction increment).body
       (if evm.executionEnv.perm = false then .staticViolation
        else .returned f (deltaCountPost evm increment) none) := by
   let old := transientWord evm deltaCountSlot
@@ -67,14 +69,14 @@ theorem deltaCountBodyExec {f : Frame} {evm : EVM.State}
   · rw [if_pos hp]
     exact ExecFuncBody.execBlockStatic (ExecBlock.consStatic (ExecStmt.assignTransientStatic he hs hp))
   · rw [if_neg hp]
-    exact ExecFuncBody.execBlockOK (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (Bool.eq_true_of_not_eq_false hp)) he hs) ExecBlock.nil)
+    exact ExecFuncBody.execBlockOK (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (Bool.eq_true_of_not_eq_false hp)) he hs) ExecBlock.nil)
 
 theorem deltaCountCall {f : Frame} {evm : EVM.State}
     (hf : f.contract = contract) (increment : Bool) (retVar : Ident) :
-    ExecStmt config f evm (.internalCall (deltaCountFunction increment).name [] retVar)
+    ExecStmt fork config f evm (.internalCall (deltaCountFunction increment).name [] retVar)
       (if evm.executionEnv.perm = false then .staticViolation
        else .ok {f with locals := f.locals.insert retVar .unit} (deltaCountPost evm increment)) := by
-  have hbody := deltaCountBodyExec (f := {f with locals := ∅}) (evm := evm) hf increment
+  have hbody := deltaCountBodyExec (fork := fork) (f := {f with locals := ∅}) (evm := evm) hf increment
   have hl : lookupCallable? f.contract (deltaCountFunction increment).name = some (deltaCountFunction increment).toCallable := by
     rw [hf]; exact deltaCountFunction_lookup increment
   have hb : bindParams? (deltaCountFunction increment).params [] = some ∅ := by

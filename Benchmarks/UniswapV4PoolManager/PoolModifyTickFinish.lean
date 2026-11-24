@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.PoolModifyLimits
 import Benchmarks.UniswapV4PoolManager.PoolModifyBitmaps
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 
@@ -13,9 +15,9 @@ theorem poolModifyTickFinish {f : Frame} {evm : State} {id : UInt256} {p : PoolM
     {fl fu : Bool} {gl gu : UInt256} (hc : PoolModifyContext f id p)
     (hs : f.locals.get? "state" = some (poolModifyStateValue fl gl fu gu))
     (ht : poolTicksValid p.lower p.upper) :
-    ExecBlock config f evm [poolModifyLimitsStmt, poolModifyFlipStmt false, poolModifyFlipStmt true]
+    ExecBlock fork config f evm [poolModifyLimitsStmt, poolModifyFlipStmt false, poolModifyFlipStmt true]
       (poolModifyTickFinishResult f evm id p fl gl fu gu) := by
-  have hl := poolModifyLimits (evm := evm) hc.contract hc.params hc.liquidityDelta hs
+  have hl := poolModifyLimits (fork := fork) (evm := evm) hc.contract hc.params hc.liquidityDelta hs
   apply execBlock_continue (execBlock_singleton hl)
   intro f1 post hpost
   exact poolModifyBitmaps (evm := post) (poolModifyLimitsResult_context hc hpost)

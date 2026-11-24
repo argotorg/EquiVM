@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.SwapStepTargetFeeTrace
 import Benchmarks.UniswapV4PoolManager.SwapStepRemainingTrace
 import Benchmarks.UniswapV4PoolManager.NextPriceInputTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -14,16 +16,16 @@ theorem swapStepInputSelectTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (zeroForOne : Bool) (hstack : R.length+34 ≤ 1024)
     (hp : price.toNat < 2^160) (hl : liquidity.toNat < 2^128) (hf : fee.toNat < 2^24)
-    (h : RD (deployedRuntime v) I g s0 ⟨19635⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨19635⟩
       ([available, target, swapStepFeeComplement fee, price, j, if zeroForOne then ⟨1⟩ else ⟨0⟩,
         desired, fee, liquidity, remaining, x1, x2, x3, x4, x5, x6, x7, x8, j] ++ R) mem aw rdata σ k C) :
     (swapStepInputSelectFits price liquidity available desired fee zeroForOne → ∃ k' C', C ≤ C' ∧
-      RD (deployedRuntime v) I g s0 ⟨19697⟩
+      RD fork (deployedRuntime v) I g s0 ⟨19697⟩
         ([if zeroForOne then ⟨1⟩ else ⟨0⟩, swapStepSelectedPrice price target liquidity available desired true zeroForOne,
           liquidity, price, j, ⟨160⟩, swapStepSelectedFee remaining available desired fee,
           swapStepSelectedAmount available desired, swapStepSelectedPrice price target liquidity available desired true zeroForOne,
           solcAddrMask, remaining, x1, x2, x3, x4, x5, x6, x7, x8, j] ++ R) mem aw rdata σ k' C') ∧
-    (¬swapStepInputSelectFits price liquidity available desired fee zeroForOne → RDrev (deployedRuntime v) g s0) := by
+    (¬swapStepInputSelectFits price liquidity available desired fee zeroForOne → RDrev fork (deployedRuntime v) g s0) := by
   by_cases ht : swapStepReachesTarget available desired
   · have rd1 := poolManagerBlocks.poolManager_block_19635_fallthrough
       (by change R.length+21 ≤ 1024; omega) (ult_zero ht) h

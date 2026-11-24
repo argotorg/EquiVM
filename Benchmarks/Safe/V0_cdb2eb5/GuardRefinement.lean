@@ -1,5 +1,7 @@
 import Benchmarks.Safe.V0_cdb2eb5.GuardSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V0_cdb2eb5
@@ -18,21 +20,21 @@ theorem guardFinish {kind : GuardKind} {σ σ₀ σ' : AccountMap} {g : UInt256}
     (hg : locals[guardName kind]? = some (.address (AccountAddress.ofNat guard.toNat)))
     (hb : locals.get? (guardField kind) = none) (hee : evm'.executionEnv = I)
     (hacc : evm'.accountMap = σ')
-    (hcheck : ExecStmt config (guardFrame kind guard) (initState σ σ₀ (.ofUInt256 g) A I)
+    (hcheck : ExecStmt fork config (guardFrame kind guard) (initState σ σ₀ (.ofUInt256 g) A I)
       (guardCheck kind) (.ok { contract := contract, locals := locals } evm'))
-    (hstatic : I.perm = false → RDstatic safeBytecode (.ofUInt256 g)
+    (hstatic : I.perm = false → RDstatic fork safeBytecode (.ofUInt256 g)
       (initState σ σ₀ (.ofUInt256 g) A I))
-    (hret : I.perm = true → RDret safeBytecode (.ofUInt256 g)
+    (hret : I.perm = true → RDret fork safeBytecode (.ofUInt256 g)
       (initState σ σ₀ (.ofUInt256 g) A I)
       (sstoreAccountMap I.codeOwner σ' (guardStorageSlot kind) guard) ByteArray.empty) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   cases hp : I.perm with
   | false =>
       have hbody := safeGuardSourceStatic hc hv ha hg hb (by rw [hee]; exact hp) hcheck
       exact RDstatic.reEquivElim hcode (hstatic hp) fun hΞ ↦
         reEquivSelectorExecution hd hdec hbody (.staticHalt hΞ rfl)
   | true =>
-      have hbody := safeGuardSourceSuccess (hperm := by simpa only [hee] using hp) hc hv ha hg hb hcheck
+      have hbody := safeGuardSourceSuccess (fork := fork) (hperm := by simpa only [hee] using hp) hc hv ha hg hb hcheck
       refine reEquivReturnElim hcode (hret hp) fun _ _ hsuccess ↦ ?_
       refine reEquivSelectorExecution hd hdec hbody
         (.success hsuccess rfl (by simp only [storageStore_accountMap, hee, hacc]) ?_)

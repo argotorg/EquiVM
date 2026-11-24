@@ -1,6 +1,8 @@
 import Benchmarks.EAS.Attester.Dispatch
 import Benchmarks.EAS.Attester.Decode
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.EAS.Attester.Immutables attesterRuntimeBlocks
 
@@ -19,7 +21,7 @@ theorem attesterRevokeReachDecode {words : String → UInt256} {σ σ₀ A I} {g
     (hcode : I.code = immutableLayout.runtime attesterBytecode words)
     (hvalue : I.weiValue = ⟨0⟩) (hsize : I.calldata.size < UInt256.size)
     (hsel : (attesterRevokeSelBytes == I.calldata.extract 0 4) = true) :
-    ∃ k C, RD (immutableLayout.runtime attesterBytecode words) I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork (immutableLayout.runtime attesterBytecode words) I g (initState σ σ₀ g A I)
       ⟨2662⟩ [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨190⟩, ⟨100⟩, solcSelectorWord I]
       solcFreePtrMem ⟨3⟩ ByteArray.empty σ k C := by
   have hsz := calldata_size_ge_of_selIs I attesterRevokeSelBytes rfl hsel
@@ -36,12 +38,12 @@ theorem attesterRevokeReachDecode {words : String → UInt256} {σ σ₀ A I} {g
 
 theorem attesterRevokeReachBody {words : String → UInt256} {σ σ₀ A I} {g : Sat256}
     {k C : Nat}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g (initState σ σ₀ g A I)
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g (initState σ σ₀ g A I)
       ⟨2662⟩ [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨190⟩, ⟨100⟩, solcSelectorWord I]
       solcFreePtrMem ⟨3⟩ ByteArray.empty σ k C)
     (hlen : 68 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hsize : I.calldata.size < UInt256.size) :
-    ∃ k' C', RD (immutableLayout.runtime attesterBytecode words) I g (initState σ σ₀ g A I)
+    ∃ k' C', RD fork (immutableLayout.runtime attesterBytecode words) I g (initState σ σ₀ g A I)
       ⟨2187⟩ [calldataWord I.calldata 36, calldataWord I.calldata 4, ⟨100⟩, solcSelectorWord I]
       solcFreePtrMem ⟨3⟩ ByteArray.empty σ k' C' := by
   obtain ⟨k', C', rd190⟩ := attesterDecodeTwoWords h (by simp)

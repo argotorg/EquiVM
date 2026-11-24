@@ -1,6 +1,8 @@
 import Reasoning.Memory
 import Benchmarks.Dss.Flapper.Kick
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -529,7 +531,7 @@ theorem flapperReachTendBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flapperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (flapperSelBytes 14)) :
-    ∃ k C, RD flapperBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork flapperBytecode I g (initState σ σ₀ g A I)
         ⟨524⟩ [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : flapperSelWord I = ⟨0x4b43ed12⟩ := by
@@ -565,10 +567,10 @@ theorem flapperReachTendBody {σ σ₀ A I} {g : Sat256}
 
 theorem flapperTendX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD flapperBytecode I g
+    (hreach : ∃ k C, RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨524⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD flapperBytecode I g (initState σ σ₀ g A I) ⟨1630⟩
+    ∃ k C, RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨1630⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
@@ -604,10 +606,10 @@ theorem flapperTendX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem flapperTendX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 100)
-    (hreach : ∃ k C, RD flapperBytecode I g
+    (hreach : ∃ k C, RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨524⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flapperBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨1⟩ := by
     apply ult_one
@@ -1995,7 +1997,7 @@ theorem flapperTendPaySuccessTailSplit
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord evm.accountMap (tendGemWord evm) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config evm
+      typedCallViaEVM fork config evm
         (EVM.address (AccountAddress.ofNat (tendGemWord evm).toNat)) "move" 0
         [.address evm.executionEnv.source, .address evm.executionEnv.codeOwner,
           .int (Int.ofNat (UInt256.sub (tendBidWord I) (tendBidStoredWord evm I)).toNat)]
@@ -2003,7 +2005,7 @@ theorem flapperTendPaySuccessTailSplit
     (evm.executionEnv.perm = true →
      ((tendNow48Word evmPay).toNat + (tendTtlWord (tendAfterBidStore evmPay I)).toNat <
         2 ^ 48) →
-      ExecBlock config { contract := contract, locals := baseLocals } evm
+      ExecBlock fork config { contract := contract, locals := baseLocals } evm
       ((checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
           [sender, thisAddr,
             wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
@@ -2014,7 +2016,7 @@ theorem flapperTendPaySuccessTailSplit
       (.ok { contract := contract, locals := tendTicLocals baseLocals evmPay I }
         (tendPostState evmPay I))) ∧
       (evm.executionEnv.perm = false →
-        ExecBlock config { contract := contract, locals := baseLocals } evm
+        ExecBlock fork config { contract := contract, locals := baseLocals } evm
         ((checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
             [sender, thisAddr,
               wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
@@ -2040,7 +2042,7 @@ theorem flapperTendPaySuccessTailSplit
     evalExpr_cage_extCodeGuard_true hgemEval hcodeLookup
   have hargs := evalExprs_tend_pay_args evm I hid hbid hbids
   have hpayChecked :
-      ExecBlock config { contract := contract, locals := baseLocals } evm
+      ExecBlock fork config { contract := contract, locals := baseLocals } evm
         (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
           [sender, thisAddr,
             wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
@@ -2072,16 +2074,16 @@ theorem flapperTendPaySuccessTailSplit
       rw [typedCallViaEVM_executionEnv_eq hcall]
       exact hperm
     have hbidAssign :
-        ExecBlock config { contract := contract, locals := tendPayRetLocals baseLocals }
+        ExecBlock fork config { contract := contract, locals := tendPayRetLocals baseLocals }
             evmPay
           [.assign .storage (bidsF (.var "id") "bid") (.var "bid")]
           (.ok { contract := contract, locals := tendPayRetLocals baseLocals }
             (tendAfterBidStore evmPay I)) := by
       exact ExecBlock.consNormal
-        (ExecStmt.assign (hperm := Or.inr hpPay) hbidExpr hassign)
+        (ExecStmt.assign (fork := fork) (hperm := Or.inr hpPay) hbidExpr hassign)
         ExecBlock.nil
     have hpayBidTail :
-        ExecBlock config { contract := contract, locals := baseLocals } evm
+        ExecBlock fork config { contract := contract, locals := baseLocals } evm
           (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
             [sender, thisAddr,
               wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
@@ -2097,7 +2099,7 @@ theorem flapperTendPaySuccessTailSplit
       evalExpr_tend_var_of_get (tendAfterBidStore evmPay I)
         (tendTicLocals_get_tic baseLocals evmPay I)
     have htick :
-        ExecBlock config { contract := contract, locals := tendPayRetLocals baseLocals }
+        ExecBlock fork config { contract := contract, locals := tendPayRetLocals baseLocals }
             (tendAfterBidStore evmPay I)
           (checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
             [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])
@@ -2113,7 +2115,7 @@ theorem flapperTendPaySuccessTailSplit
               (evalExpr_tend_tic_guard_true_of_locals evmPay I
                 (baseLocals := baseLocals) haddFit)) <|
           ExecBlock.consNormal
-            (ExecStmt.assign (hperm := Or.inr (by
+            (ExecStmt.assign (fork := fork) (hperm := Or.inr (by
               simpa only [tendAfterBidStore_executionEnv] using hpPay)) hticExpr
               (assign_tendTicStorage_value_of_locals evmPay I
                 (tendTicLocals_get_id evmPay I hid)
@@ -2125,7 +2127,7 @@ theorem flapperTendPaySuccessTailSplit
       rw [typedCallViaEVM_executionEnv_eq hcall]
       exact hperm
     have hwrite :
-        ExecBlock config { contract := contract, locals := tendPayRetLocals baseLocals }
+        ExecBlock fork config { contract := contract, locals := tendPayRetLocals baseLocals }
           evmPay [.assign .storage (bidsF (.var "id") "bid") (.var "bid")]
           .staticViolation :=
       ExecBlock.consStatic (ExecStmt.assignStatic hbidExpr hassign hp)
@@ -2143,7 +2145,7 @@ theorem flapperTendPaySuccessTail
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord evm.accountMap (tendGemWord evm) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config evm
+      typedCallViaEVM fork config evm
         (EVM.address (AccountAddress.ofNat (tendGemWord evm).toNat)) "move" 0
         [.address evm.executionEnv.source, .address evm.executionEnv.codeOwner,
           .int (Int.ofNat (UInt256.sub (tendBidWord I) (tendBidStoredWord evm I)).toNat)]
@@ -2152,7 +2154,7 @@ theorem flapperTendPaySuccessTail
       (tendNow48Word evmPay).toNat + (tendTtlWord (tendAfterBidStore evmPay I)).toNat <
         2 ^ 48)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := baseLocals } evm
+    ExecBlock fork config { contract := contract, locals := baseLocals } evm
       ((checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
           [sender, thisAddr,
             wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
@@ -2184,7 +2186,7 @@ theorem flapperTendBodyReturns_success_callerEq
     (hpayCodeSize :
       Reasoning.Theory.extCodeSizeWord evm.accountMap (tendGemWord evm) ≠ ⟨0⟩)
     (hpayCall :
-      typedCallViaEVM config evm
+      typedCallViaEVM fork config evm
         (EVM.address (AccountAddress.ofNat (tendGemWord evm).toNat)) "move" 0
         [.address evm.executionEnv.source, .address evm.executionEnv.codeOwner,
           .int (Int.ofNat (UInt256.sub (tendBidWord I) (tendBidStoredWord evm I)).toNat)]
@@ -2193,7 +2195,7 @@ theorem flapperTendBodyReturns_success_callerEq
       (tendNow48Word evmPay).toNat + (tendTtlWord (tendAfterBidStore evmPay I)).toNat <
         2 ^ 48)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (tendLocals I) tendTransition.body
+    ExecTransitionBody fork config contract evm (tendLocals I) tendTransition.body
       (.returned { contract := contract, locals := tendTicLocals (tendBegBidLocals evm I) evmPay I }
         (tendPostState evmPay I) none) := by
   have hticGuard :
@@ -2208,7 +2210,7 @@ theorem flapperTendBodyReturns_success_callerEq
   have hcallerCond :=
     evalExpr_tend_sender_ne_guy_false_begBidLocals evm I hcaller
   have hskipRefund :
-      ExecBlock config { contract := contract, locals := tendBegBidLocals evm I } evm
+      ExecBlock fork config { contract := contract, locals := tendBegBidLocals evm I } evm
         [.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
           (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
               [sender, .storage (bidsF (.var "id") "guy"),
@@ -2223,7 +2225,7 @@ theorem flapperTendBodyReturns_success_callerEq
       (tendBegBidLocals_get_bids evm I) (tendBegBidLocals_get_gem evm I)
       (tendBegBidLocals_get_ttl evm I) hpayCodeSize hpayCall haddFit
   have htail :
-      ExecBlock config { contract := contract, locals := tendBegBidLocals evm I } evm
+      ExecBlock fork config { contract := contract, locals := tendBegBidLocals evm I } evm
         ([.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
           (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
               [sender, .storage (bidsF (.var "id") "guy"),
@@ -2274,14 +2276,14 @@ theorem flapperTendRefundSuccessPrefixSplit
     (hrefundCodeSize :
       Reasoning.Theory.extCodeSizeWord evm.accountMap (tendGemWord evm) ≠ ⟨0⟩)
     (hrefundCall :
-      typedCallViaEVM config evm
+      typedCallViaEVM fork config evm
         (EVM.address (AccountAddress.ofNat (tendGemWord evm).toNat)) "move" 0
         [.address evm.executionEnv.source,
           .address (AccountAddress.ofNat (tendGuyWord evm I).toNat),
           .int (Int.ofNat (tendBidStoredWord evm I).toNat)]
         (true, evmRefund, outRefund) true) :
     (evm.executionEnv.perm = true →
-      ExecBlock config { contract := contract, locals := tendBegBidLocals evm I } evm
+      ExecBlock fork config { contract := contract, locals := tendBegBidLocals evm I } evm
       [.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
         (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
             [sender, .storage (bidsF (.var "id") "guy"),
@@ -2291,7 +2293,7 @@ theorem flapperTendRefundSuccessPrefixSplit
       (.ok { contract := contract, locals := tendRefundRetLocals evm I }
         (tendAfterGuyStore evmRefund I))) ∧
       (evm.executionEnv.perm = false →
-        ExecBlock config { contract := contract, locals := tendBegBidLocals evm I } evm
+        ExecBlock fork config { contract := contract, locals := tendBegBidLocals evm I } evm
         [.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
           (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
               [sender, .storage (bidsF (.var "id") "guy"),
@@ -2320,7 +2322,7 @@ theorem flapperTendRefundSuccessPrefixSplit
     evalExpr_cage_extCodeGuard_true hgemEval hcodeLookup
   have hargs := evalExprs_tend_refund_args evm I
   have hrefundChecked :
-      ExecBlock config { contract := contract, locals := tendBegBidLocals evm I } evm
+      ExecBlock fork config { contract := contract, locals := tendBegBidLocals evm I } evm
         (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
           [sender, .storage (bidsF (.var "id") "guy"),
             .storage (bidsF (.var "id") "bid")] "_refundRet")
@@ -2340,13 +2342,13 @@ theorem flapperTendRefundSuccessPrefixSplit
       rw [typedCallViaEVM_executionEnv_eq hrefundCall]
       exact hperm
     have hbranch := execBlock_append hrefundChecked
-      (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hpRefund) hsender hassign) ExecBlock.nil)
+      (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hpRefund) hsender hassign) ExecBlock.nil)
     exact ExecBlock.consNormal (ExecStmt.iteTrue hcallerCond hbranch) ExecBlock.nil
   · intro hperm
     have hp : evmRefund.executionEnv.perm = false := by
       rw [typedCallViaEVM_executionEnv_eq hrefundCall]
       exact hperm
-    have hwrite : ExecBlock config { contract := contract, locals := tendRefundRetLocals evm I }
+    have hwrite : ExecBlock fork config { contract := contract, locals := tendRefundRetLocals evm I }
         evmRefund [.assign .storage (bidsF (.var "id") "guy") sender]
         .staticViolation :=
       ExecBlock.consStatic (ExecStmt.assignStatic hsender hassign hp)
@@ -2359,14 +2361,14 @@ theorem flapperTendRefundSuccessPrefix
     (hrefundCodeSize :
       Reasoning.Theory.extCodeSizeWord evm.accountMap (tendGemWord evm) ≠ ⟨0⟩)
     (hrefundCall :
-      typedCallViaEVM config evm
+      typedCallViaEVM fork config evm
         (EVM.address (AccountAddress.ofNat (tendGemWord evm).toNat)) "move" 0
         [.address evm.executionEnv.source,
           .address (AccountAddress.ofNat (tendGuyWord evm I).toNat),
           .int (Int.ofNat (tendBidStoredWord evm I).toNat)]
         (true, evmRefund, outRefund) true)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := tendBegBidLocals evm I } evm
+    ExecBlock fork config { contract := contract, locals := tendBegBidLocals evm I } evm
       [.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
         (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
             [sender, .storage (bidsF (.var "id") "guy"),
@@ -2398,7 +2400,7 @@ theorem flapperTendBodyReturns_success_callerNe
     (hrefundCodeSize :
       Reasoning.Theory.extCodeSizeWord evm.accountMap (tendGemWord evm) ≠ ⟨0⟩)
     (hrefundCall :
-      typedCallViaEVM config evm
+      typedCallViaEVM fork config evm
         (EVM.address (AccountAddress.ofNat (tendGemWord evm).toNat)) "move" 0
         [.address evm.executionEnv.source,
           .address (AccountAddress.ofNat (tendGuyWord evm I).toNat),
@@ -2408,7 +2410,7 @@ theorem flapperTendBodyReturns_success_callerNe
       Reasoning.Theory.extCodeSizeWord (tendAfterGuyStore evmRefund I).accountMap
         (tendGemWord (tendAfterGuyStore evmRefund I)) ≠ ⟨0⟩)
     (hpayCall :
-      typedCallViaEVM config (tendAfterGuyStore evmRefund I)
+      typedCallViaEVM fork config (tendAfterGuyStore evmRefund I)
         (EVM.address (AccountAddress.ofNat (tendGemWord (tendAfterGuyStore evmRefund I)).toNat))
         "move" 0
         [.address (tendAfterGuyStore evmRefund I).executionEnv.source,
@@ -2421,7 +2423,7 @@ theorem flapperTendBodyReturns_success_callerNe
       (tendNow48Word evmPay).toNat + (tendTtlWord (tendAfterBidStore evmPay I)).toNat <
         2 ^ 48)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (tendLocals I) tendTransition.body
+    ExecTransitionBody fork config contract evm (tendLocals I) tendTransition.body
       (.returned { contract := contract, locals := tendTicLocals (tendRefundRetLocals evm I) evmPay I }
         (tendPostState evmPay I) none) := by
   let evmGuy := tendAfterGuyStore evmRefund I
@@ -2438,7 +2440,7 @@ theorem flapperTendBodyReturns_success_callerNe
     flapperTendRefundSuccessPrefix (hperm := by assumption) evm evmRefund I outRefund hcaller hrefundCodeSize
       hrefundCall
   have hpayTail :
-      ExecBlock config { contract := contract, locals := tendRefundRetLocals evm I } evmGuy
+      ExecBlock fork config { contract := contract, locals := tendRefundRetLocals evm I } evmGuy
         ((checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
             [sender, thisAddr,
               wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
@@ -2456,7 +2458,7 @@ theorem flapperTendBodyReturns_success_callerNe
         (tendRefundRetLocals_get_bids evm I) (tendRefundRetLocals_get_gem evm I)
         (tendRefundRetLocals_get_ttl evm I) hpayCodeSize hpayCall haddFit
   have htail :
-      ExecBlock config { contract := contract, locals := tendBegBidLocals evm I } evm
+      ExecBlock fork config { contract := contract, locals := tendBegBidLocals evm I } evm
         ([.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
           (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
               [sender, .storage (bidsF (.var "id") "guy"),
@@ -2505,7 +2507,7 @@ theorem flapperTendRefundNoCodeTail
     (hcaller : UInt256.ofNat evm.executionEnv.source.val ≠ tendGuyWord evm I)
     (hnoCode :
       Reasoning.Theory.extCodeSizeWord evm.accountMap (tendGemWord evm) = ⟨0⟩) :
-    ExecBlock config { contract := contract, locals := tendBegBidLocals evm I } evm
+    ExecBlock fork config { contract := contract, locals := tendBegBidLocals evm I } evm
       ([.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
         (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
             [sender, .storage (bidsF (.var "id") "guy"),
@@ -2541,14 +2543,14 @@ theorem flapperTendRefundNoCodeTail
         (.binary .gt (.extCodeSize (.storage gemRef)) (.intLit 0)) = .ok (.bool false) :=
     evalExpr_cage_extCodeGuard_false hgemEval hnoCodeLookup
   have hrefundChecked :
-      ExecBlock config { contract := contract, locals := tendBegBidLocals evm I } evm
+      ExecBlock fork config { contract := contract, locals := tendBegBidLocals evm I } evm
         (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
           [sender, .storage (bidsF (.var "id") "guy"),
             .storage (bidsF (.var "id") "bid")] "_refundRet")
         .reverted := by
     simpa [checkedExternalCallStmts] using checkedExternalCallNoCode hguard
   have hthen :
-      ExecBlock config { contract := contract, locals := tendBegBidLocals evm I } evm
+      ExecBlock fork config { contract := contract, locals := tendBegBidLocals evm I } evm
         (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
             [sender, .storage (bidsF (.var "id") "guy"),
               .storage (bidsF (.var "id") "bid")] "_refundRet" ++
@@ -2556,7 +2558,7 @@ theorem flapperTendRefundNoCodeTail
         .reverted :=
    execBlock_append_term hrefundChecked (by intro f e h; cases h)
   have hite :
-      ExecBlock config { contract := contract, locals := tendBegBidLocals evm I } evm
+      ExecBlock fork config { contract := contract, locals := tendBegBidLocals evm I } evm
         [.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
           (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
               [sender, .storage (bidsF (.var "id") "guy"),
@@ -2573,13 +2575,13 @@ theorem flapperTendRefundCallFailureTail
     (hrefundCodeSize :
       Reasoning.Theory.extCodeSizeWord evm.accountMap (tendGemWord evm) ≠ ⟨0⟩)
     (hrefundCall :
-      typedCallViaEVM config evm
+      typedCallViaEVM fork config evm
         (EVM.address (AccountAddress.ofNat (tendGemWord evm).toNat)) "move" 0
         [.address evm.executionEnv.source,
           .address (AccountAddress.ofNat (tendGuyWord evm I).toNat),
           .int (Int.ofNat (tendBidStoredWord evm I).toNat)]
         (false, evmRefund, outRefund) true) :
-    ExecBlock config { contract := contract, locals := tendBegBidLocals evm I } evm
+    ExecBlock fork config { contract := contract, locals := tendBegBidLocals evm I } evm
       ([.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
         (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
             [sender, .storage (bidsF (.var "id") "guy"),
@@ -2616,7 +2618,7 @@ theorem flapperTendRefundCallFailureTail
     evalExpr_cage_extCodeGuard_true hgemEval hcodeLookup
   have hargs := evalExprs_tend_refund_args evm I
   have hrefundChecked :
-      ExecBlock config { contract := contract, locals := tendBegBidLocals evm I } evm
+      ExecBlock fork config { contract := contract, locals := tendBegBidLocals evm I } evm
         (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
           [sender, .storage (bidsF (.var "id") "guy"),
             .storage (bidsF (.var "id") "bid")] "_refundRet")
@@ -2624,7 +2626,7 @@ theorem flapperTendRefundCallFailureTail
     simpa [checkedExternalCallStmts] using
       checkedExternalCallFailure (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hguard hgemEval hargs hrefundCall
   have hthen :
-      ExecBlock config { contract := contract, locals := tendBegBidLocals evm I } evm
+      ExecBlock fork config { contract := contract, locals := tendBegBidLocals evm I } evm
         (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
             [sender, .storage (bidsF (.var "id") "guy"),
               .storage (bidsF (.var "id") "bid")] "_refundRet" ++
@@ -2632,7 +2634,7 @@ theorem flapperTendRefundCallFailureTail
         .reverted :=
    execBlock_append_term hrefundChecked (by intro f e h; cases h)
   have hite :
-      ExecBlock config { contract := contract, locals := tendBegBidLocals evm I } evm
+      ExecBlock fork config { contract := contract, locals := tendBegBidLocals evm I } evm
         [.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
           (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
               [sender, .storage (bidsF (.var "id") "guy"),
@@ -2648,7 +2650,7 @@ theorem flapperTendPayNoCodeTail
     (hgem : baseLocals.get? "gem" = none)
     (hnoCode :
       Reasoning.Theory.extCodeSizeWord evm.accountMap (tendGemWord evm) = ⟨0⟩) :
-    ExecBlock config { contract := contract, locals := baseLocals } evm
+    ExecBlock fork config { contract := contract, locals := baseLocals } evm
       ((checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
           [sender, thisAddr,
             wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
@@ -2674,7 +2676,7 @@ theorem flapperTendPayNoCodeTail
         (.binary .gt (.extCodeSize (.storage gemRef)) (.intLit 0)) = .ok (.bool false) :=
     evalExpr_cage_extCodeGuard_false hgemEval hnoCodeLookup
   have hchecked :
-      ExecBlock config { contract := contract, locals := baseLocals } evm
+      ExecBlock fork config { contract := contract, locals := baseLocals } evm
         (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
           [sender, thisAddr,
             wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
@@ -2682,7 +2684,7 @@ theorem flapperTendPayNoCodeTail
         .reverted := by
     simpa [checkedExternalCallStmts] using checkedExternalCallNoCode hguard
   have hpayBidTail :
-      ExecBlock config { contract := contract, locals := baseLocals } evm
+      ExecBlock fork config { contract := contract, locals := baseLocals } evm
         (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
           [sender, thisAddr,
             wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
@@ -2704,12 +2706,12 @@ theorem flapperTendPayCallFailureTail
     (hpayCodeSize :
       Reasoning.Theory.extCodeSizeWord evm.accountMap (tendGemWord evm) ≠ ⟨0⟩)
     (hpayCall :
-      typedCallViaEVM config evm
+      typedCallViaEVM fork config evm
         (EVM.address (AccountAddress.ofNat (tendGemWord evm).toNat)) "move" 0
         [.address evm.executionEnv.source, .address evm.executionEnv.codeOwner,
           .int (Int.ofNat (UInt256.sub (tendBidWord I) (tendBidStoredWord evm I)).toNat)]
         (false, evmPay, outPay) true) :
-    ExecBlock config { contract := contract, locals := baseLocals } evm
+    ExecBlock fork config { contract := contract, locals := baseLocals } evm
       ((checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
           [sender, thisAddr,
             wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
@@ -2736,7 +2738,7 @@ theorem flapperTendPayCallFailureTail
     evalExpr_cage_extCodeGuard_true hgemEval hcodeLookup
   have hargs := evalExprs_tend_pay_args evm I hid hbid hbids
   have hchecked :
-      ExecBlock config { contract := contract, locals := baseLocals } evm
+      ExecBlock fork config { contract := contract, locals := baseLocals } evm
         (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
           [sender, thisAddr,
             wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
@@ -2745,7 +2747,7 @@ theorem flapperTendPayCallFailureTail
     simpa [checkedExternalCallStmts] using
       checkedExternalCallFailure (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hguard hgemEval hargs hpayCall
   have hpayBidTail :
-      ExecBlock config { contract := contract, locals := baseLocals } evm
+      ExecBlock fork config { contract := contract, locals := baseLocals } evm
         (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
           [sender, thisAddr,
             wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
@@ -2768,7 +2770,7 @@ theorem flapperTendPayAddOverflowTail
     (hpayCodeSize :
       Reasoning.Theory.extCodeSizeWord evm.accountMap (tendGemWord evm) ≠ ⟨0⟩)
     (hpayCall :
-      typedCallViaEVM config evm
+      typedCallViaEVM fork config evm
         (EVM.address (AccountAddress.ofNat (tendGemWord evm).toNat)) "move" 0
         [.address evm.executionEnv.source, .address evm.executionEnv.codeOwner,
           .int (Int.ofNat (UInt256.sub (tendBidWord I) (tendBidStoredWord evm I)).toNat)]
@@ -2778,7 +2780,7 @@ theorem flapperTendPayAddOverflowTail
         (tendNow48Word evmPay).toNat +
           (tendTtlWord (tendAfterBidStore evmPay I)).toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := baseLocals } evm
+    ExecBlock fork config { contract := contract, locals := baseLocals } evm
       ((checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
           [sender, thisAddr,
             wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
@@ -2808,7 +2810,7 @@ theorem flapperTendPayAddOverflowTail
     evalExpr_cage_extCodeGuard_true hgemEval hcodeLookup
   have hargs := evalExprs_tend_pay_args evm I hid hbid hbids
   have hpayChecked :
-      ExecBlock config { contract := contract, locals := baseLocals } evm
+      ExecBlock fork config { contract := contract, locals := baseLocals } evm
         (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
           [sender, thisAddr,
             wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
@@ -2834,16 +2836,16 @@ theorem flapperTendPayAddOverflowTail
         .ok (tendBidValue I) :=
     evalExpr_tend_var_of_get evmPay hpayBid
   have hbidAssign :
-      ExecBlock config { contract := contract, locals := tendPayRetLocals baseLocals }
+      ExecBlock fork config { contract := contract, locals := tendPayRetLocals baseLocals }
           evmPay
         [.assign .storage (bidsF (.var "id") "bid") (.var "bid")]
         (.ok { contract := contract, locals := tendPayRetLocals baseLocals }
           (tendAfterBidStore evmPay I)) := by
     exact ExecBlock.consNormal
-      (ExecStmt.assign (hperm := Or.inr hpPay) hbidExpr (assign_tendBidStorage_of_locals evmPay I hpayId hpayBids))
+      (ExecStmt.assign (fork := fork) (hperm := Or.inr hpPay) hbidExpr (assign_tendBidStorage_of_locals evmPay I hpayId hpayBids))
       ExecBlock.nil
   have hpayBidTail :
-      ExecBlock config { contract := contract, locals := baseLocals } evm
+      ExecBlock fork config { contract := contract, locals := baseLocals } evm
         (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
           [sender, thisAddr,
             wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
@@ -2853,7 +2855,7 @@ theorem flapperTendPayAddOverflowTail
           (tendAfterBidStore evmPay I)) :=
    execBlock_append hpayChecked hbidAssign
   have htickChecked :
-      ExecBlock config { contract := contract, locals := tendPayRetLocals baseLocals }
+      ExecBlock fork config { contract := contract, locals := tendPayRetLocals baseLocals }
           (tendAfterBidStore evmPay I)
         (checkedAdd48Into "tic_" now48 (.storage ttlRef)) .reverted := by
     simpa [checkedAdd48Into] using
@@ -2866,7 +2868,7 @@ theorem flapperTendPayAddOverflowTail
             (evalExpr_tend_tic_guard_false_wrapped_of_locals evmPay I
               (baseLocals := baseLocals) haddOverflow)))
   have htickTail :
-      ExecBlock config { contract := contract, locals := tendPayRetLocals baseLocals }
+      ExecBlock fork config { contract := contract, locals := tendPayRetLocals baseLocals }
           (tendAfterBidStore evmPay I)
         (checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
           [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])
@@ -2890,7 +2892,7 @@ theorem flapperTendBodyBlock_afterIncrease {result : ExecResult}
     (hbegBidFit : (tendBegWord evm).toNat * (tendBidStoredWord evm I).toNat < UInt256.size)
     (hsuff : (tendBegBidWord evm I).toNat ≤ (tendBidOneWord I).toNat)
     (htail :
-      ExecBlock config { contract := contract, locals := tendBegBidLocals evm I } evm
+      ExecBlock fork config { contract := contract, locals := tendBegBidLocals evm I } evm
         ([.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
           (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
               [sender, .storage (bidsF (.var "id") "guy"),
@@ -2905,7 +2907,7 @@ theorem flapperTendBodyBlock_afterIncrease {result : ExecResult}
             (checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
               [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])))
         result) :
-    ExecBlock config { contract := contract, locals := tendLocals I } evm
+    ExecBlock fork config { contract := contract, locals := tendLocals I } evm
       tendTransition.body result := by
   have hticGuard :
       evalExpr? config { contract := contract, locals := tendLocals I } evm
@@ -2957,7 +2959,7 @@ theorem flapperTendBodyReverts_afterIncrease
     (hbegBidFit : (tendBegWord evm).toNat * (tendBidStoredWord evm I).toNat < UInt256.size)
     (hsuff : (tendBegBidWord evm I).toNat ≤ (tendBidOneWord I).toNat)
     (htail :
-      ExecBlock config { contract := contract, locals := tendBegBidLocals evm I } evm
+      ExecBlock fork config { contract := contract, locals := tendBegBidLocals evm I } evm
         ([.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
           (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
               [sender, .storage (bidsF (.var "id") "guy"),
@@ -2972,7 +2974,7 @@ theorem flapperTendBodyReverts_afterIncrease
             (checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
               [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])))
         .reverted) :
-    ExecTransitionBody config contract evm (tendLocals I) tendTransition.body .reverted :=
+    ExecTransitionBody fork config contract evm (tendLocals I) tendTransition.body .reverted :=
   ExecFuncBody.execBlockRevert
     (flapperTendBodyBlock_afterIncrease evm I hwv hlive hguy hticOk hendGt hlot hbidGt
       hbidOneFit hbegBidFit hsuff htail)
@@ -2980,7 +2982,7 @@ theorem flapperTendBodyReverts_afterIncrease
 theorem flapperTendBodyReverts_notLive (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hlive : tendLiveWord evm ≠ ⟨1⟩) :
-    ExecTransitionBody config contract evm (tendLocals I) tendTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (tendLocals I) tendTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   simpa [tendTransition, nonpayable] using
     nonpayableSecondRequireReverts
@@ -3021,7 +3023,7 @@ theorem flapperTendBodyReverts_guyNotSet (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hlive : tendLiveWord evm = ⟨1⟩)
     (hguy : tendGuyWord evm I = ⟨0⟩) :
-    ExecTransitionBody config contract evm (tendLocals I) tendTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (tendLocals I) tendTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   simpa [tendTransition, nonpayable] using
     (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
@@ -3036,7 +3038,7 @@ theorem flapperTendBodyReverts_ticFinished (evm : EVM.State) (I : ExecutionEnv)
     (hguy : tendGuyWord evm I ≠ ⟨0⟩)
     (hticNe : tendTicWord evm I ≠ ⟨0⟩)
     (hticLe : (tendTicWord evm I).toNat ≤ (tendTimestampWord evm).toNat) :
-    ExecTransitionBody config contract evm (tendLocals I) tendTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (tendLocals I) tendTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   simpa [tendTransition, nonpayable] using
     (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
@@ -3055,7 +3057,7 @@ theorem flapperTendBodyReverts_endFinished (evm : EVM.State) (I : ExecutionEnv)
       (tendTimestampWord evm).toNat < (tendTicWord evm I).toNat ∨
         tendTicWord evm I = ⟨0⟩)
     (hendLe : (tendEndWord evm I).toNat ≤ (tendTimestampWord evm).toNat) :
-    ExecTransitionBody config contract evm (tendLocals I) tendTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (tendLocals I) tendTransition.body .reverted := by
   have hticGuard :
       evalExpr? config { contract := contract, locals := tendLocals I } evm
         (.binary .or
@@ -3086,7 +3088,7 @@ theorem flapperTendBodyReverts_lotMismatch (evm : EVM.State) (I : ExecutionEnv)
         tendTicWord evm I = ⟨0⟩)
     (hendGt : (tendTimestampWord evm).toNat < (tendEndWord evm I).toNat)
     (hlot : tendLotWord I ≠ tendLotStoredWord evm I) :
-    ExecTransitionBody config contract evm (tendLocals I) tendTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (tendLocals I) tendTransition.body .reverted := by
   have hticGuard :
       evalExpr? config { contract := contract, locals := tendLocals I } evm
         (.binary .or
@@ -3119,7 +3121,7 @@ theorem flapperTendBodyReverts_bidNotHigher (evm : EVM.State) (I : ExecutionEnv)
     (hendGt : (tendTimestampWord evm).toNat < (tendEndWord evm I).toNat)
     (hlot : tendLotWord I = tendLotStoredWord evm I)
     (hbidLe : (tendBidWord I).toNat ≤ (tendBidStoredWord evm I).toNat) :
-    ExecTransitionBody config contract evm (tendLocals I) tendTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (tendLocals I) tendTransition.body .reverted := by
   have hticGuard :
       evalExpr? config { contract := contract, locals := tendLocals I } evm
         (.binary .or
@@ -3155,7 +3157,7 @@ theorem flapperTendBodyReverts_bidOneOverflow (evm : EVM.State) (I : ExecutionEn
     (hlot : tendLotWord I = tendLotStoredWord evm I)
     (hbidGt : (tendBidStoredWord evm I).toNat < (tendBidWord I).toNat)
     (hoverflow : UInt256.size ≤ (tendBidWord I).toNat * tendOneWord.toNat) :
-    ExecTransitionBody config contract evm (tendLocals I) tendTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (tendLocals I) tendTransition.body .reverted := by
   have hticGuard :
       evalExpr? config { contract := contract, locals := tendLocals I } evm
         (.binary .or
@@ -3196,7 +3198,7 @@ theorem flapperTendBodyReverts_begBidOverflow (evm : EVM.State) (I : ExecutionEn
     (hbidOneFit : (tendBidWord I).toNat * tendOneWord.toNat < UInt256.size)
     (hoverflow : UInt256.size ≤
       (tendBegWord evm).toNat * (tendBidStoredWord evm I).toNat) :
-    ExecTransitionBody config contract evm (tendLocals I) tendTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (tendLocals I) tendTransition.body .reverted := by
   have hticGuard :
       evalExpr? config { contract := contract, locals := tendLocals I } evm
         (.binary .or
@@ -3241,7 +3243,7 @@ theorem flapperTendBodyReverts_insufficientIncrease (evm : EVM.State) (I : Execu
     (hbidOneFit : (tendBidWord I).toNat * tendOneWord.toNat < UInt256.size)
     (hbegBidFit : (tendBegWord evm).toNat * (tendBidStoredWord evm I).toNat < UInt256.size)
     (hinsuff : (tendBidOneWord I).toNat < (tendBegBidWord evm I).toNat) :
-    ExecTransitionBody config contract evm (tendLocals I) tendTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (tendLocals I) tendTransition.body .reverted := by
   have hticGuard :
       evalExpr? config { contract := contract, locals := tendLocals I } evm
         (.binary .or
@@ -3280,17 +3282,17 @@ theorem flapperTendBodyReverts_insufficientIncrease (evm : EVM.State) (I : Execu
 set_option maxHeartbeats 1000000 in
 theorem flapperTendX_notLive {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hlive : solcSlotWordAt ⟨7⟩ σ I ≠ ⟨1⟩)
-    (h : ∃ k C, RD flapperBytecode I g
+    (h : ∃ k C, RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨1630⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flapperBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd1630⟩ := h
   have rd1633 := evm_run rd1630 with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨7⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k1634, C1634, rd1634raw⟩ := rd1633.sload (by native_decide) (by evm_ov)
-  have rd1634 : RD flapperBytecode I g
+  have rd1634 : RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨1634⟩
       (solcSlotWordAt ⟨7⟩ σ I :: tendBidWord I :: tendLotWord I :: tendIdWord I ::
         ⟨360⟩ :: [sel])
@@ -3325,11 +3327,11 @@ theorem flapperTendX_notLive {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 
 theorem flapperTendX_liveOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hlive : solcSlotWordAt ⟨7⟩ σ I = ⟨1⟩)
-    (h : ∃ k C, RD flapperBytecode I g
+    (h : ∃ k C, RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨1630⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD flapperBytecode I g (initState σ σ₀ g A I) ⟨1704⟩
+    ∃ k C, RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨1704⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd1630⟩ := h
@@ -3337,7 +3339,7 @@ theorem flapperTendX_liveOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨7⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k1634, C1634, rd1634raw⟩ := rd1633.sload (by native_decide) (by evm_ov)
-  have rd1634 : RD flapperBytecode I g
+  have rd1634 : RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨1634⟩
       (solcSlotWordAt ⟨7⟩ σ I :: tendBidWord I :: tendLotWord I :: tendIdWord I ::
         ⟨360⟩ :: [sel])
@@ -3355,12 +3357,12 @@ theorem flapperTendX_liveOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 set_option maxHeartbeats 1000000 in
 theorem flapperTendX_toGuyGuard
     {σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
-    (rd1704 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨1704⟩
+    (rd1704 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨1704⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     let id := tendIdWord I
     let memMap := twoWordHashMem id ⟨1⟩ solcFreePtrMem
-    ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨1732⟩
+    ∃ k' C', RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨1732⟩
       [solcAddressSlotWord (auctionPackedSlot id) σ I, tendBidWord I,
         tendLotWord I, id, ⟨360⟩, sel]
       memMap (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -3414,7 +3416,7 @@ theorem flapperTendX_toGuyGuard
     simp [base, auctionPackedSlot_eq, id]
   rw [hpacked] at rd1722pre
   obtain ⟨k1723, C1723, rd1723raw⟩ := rd1722pre.sload (by native_decide) (by evm_ov)
-  have rd1723 : RD flapperBytecode I g
+  have rd1723 : RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨1723⟩
       [solcSlotWordAt (auctionPackedSlot id) σ I, tendBidWord I, tendLotWord I,
         id, ⟨360⟩, sel]
@@ -3441,11 +3443,11 @@ set_option maxHeartbeats 1000000 in
 theorem flapperTendX_guyNotSet {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hlive : solcSlotWordAt ⟨7⟩ σ I = ⟨1⟩)
     (hguy : solcAddressSlotWord (auctionPackedSlot (tendIdWord I)) σ I = ⟨0⟩)
-    (h : ∃ k C, RD flapperBytecode I g
+    (h : ∃ k C, RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨1630⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flapperBytecode g (initState σ σ₀ g A I) := by
   let id := tendIdWord I
   let memMap := twoWordHashMem id ⟨1⟩ solcFreePtrMem
   obtain ⟨_, _, rd1704⟩ := flapperTendX_liveOk (g := g) hlive h
@@ -3479,11 +3481,11 @@ set_option maxHeartbeats 1000000 in
 theorem flapperTendX_guyOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hlive : solcSlotWordAt ⟨7⟩ σ I = ⟨1⟩)
     (hguy : solcAddressSlotWord (auctionPackedSlot (tendIdWord I)) σ I ≠ ⟨0⟩)
-    (h : ∃ k C, RD flapperBytecode I g
+    (h : ∃ k C, RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨1630⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD flapperBytecode I g (initState σ σ₀ g A I) ⟨1802⟩
+    ∃ k C, RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨1802⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       (twoWordHashMem (tendIdWord I) ⟨1⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -3495,14 +3497,14 @@ theorem flapperTendX_guyOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 set_option maxHeartbeats 1000000 in
 theorem flapperTendX_toTicGtGuard
     {σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
-    (rd1802 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨1802⟩
+    (rd1802 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨1802⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       (twoWordHashMem (tendIdWord I) ⟨1⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty σ k C) :
     let id := tendIdWord I
     let memGuy := twoWordHashMem id ⟨1⟩ solcFreePtrMem
     let memTic := twoWordHashMem id ⟨1⟩ memGuy
-    ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨1839⟩
+    ∃ k' C', RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨1839⟩
       [UInt256.gt (uint48Offset20Word (auctionPackedSlot id) σ I)
         (UInt256.ofNat I.header.timestamp), tendBidWord I, tendLotWord I, id, ⟨360⟩, sel]
       memTic (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -3556,7 +3558,7 @@ theorem flapperTendX_toTicGtGuard
     simp [base, auctionPackedSlot_eq, id]
   rw [hpacked] at rd1820pre
   obtain ⟨k1821, C1821, rd1821raw⟩ := rd1820pre.sload (by native_decide) (by evm_ov)
-  have rd1821 : RD flapperBytecode I g
+  have rd1821 : RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨1821⟩
       [solcSlotWordAt (auctionPackedSlot id) σ I, tendBidWord I, tendLotWord I,
         id, ⟨360⟩, sel]
@@ -3590,11 +3592,11 @@ theorem flapperTendX_ticFinished {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hticLe :
       (uint48Offset20Word (auctionPackedSlot (tendIdWord I)) σ I).toNat ≤
         (UInt256.ofNat I.header.timestamp).toNat)
-    (h : ∃ k C, RD flapperBytecode I g
+    (h : ∃ k C, RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨1630⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flapperBytecode g (initState σ σ₀ g A I) := by
   let id := tendIdWord I
   let memGuy := twoWordHashMem id ⟨1⟩ solcFreePtrMem
   let memTic := twoWordHashMem id ⟨1⟩ memGuy
@@ -3660,7 +3662,7 @@ theorem flapperTendX_ticFinished {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     simp [base, auctionPackedSlot_eq, id]
   rw [hpacked] at rd1862pre
   obtain ⟨k1863, C1863, rd1863raw⟩ := rd1862pre.sload (by native_decide) (by evm_ov)
-  have rd1863 : RD flapperBytecode I g
+  have rd1863 : RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨1863⟩
       [solcSlotWordAt (auctionPackedSlot id) σ I, tendBidWord I, tendLotWord I,
         id, ⟨360⟩, sel]
@@ -3695,7 +3697,7 @@ theorem flapperTendX_ticFinished {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     rw [show UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩ = UInt256.ofNat (256 ^ 20)
       from by native_decide]
     rfl
-  have rd1879 : RD flapperBytecode I g
+  have rd1879 : RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨1879⟩
       [UInt256.isZero (uint48Offset20Word (auctionPackedSlot id) σ I),
         tendBidWord I, tendLotWord I, id, ⟨360⟩, sel]
@@ -3744,11 +3746,11 @@ theorem flapperTendX_ticGtOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hticGt :
       (UInt256.ofNat I.header.timestamp).toNat <
         (uint48Offset20Word (auctionPackedSlot (tendIdWord I)) σ I).toNat)
-    (h : ∃ k C, RD flapperBytecode I g
+    (h : ∃ k C, RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨1630⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD flapperBytecode I g (initState σ σ₀ g A I) ⟨1960⟩
+    ∃ k C, RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨1960⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       (twoWordHashMem (tendIdWord I) ⟨1⟩
         (twoWordHashMem (tendIdWord I) ⟨1⟩ solcFreePtrMem))
@@ -3780,11 +3782,11 @@ theorem flapperTendX_ticZeroOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hlive : solcSlotWordAt ⟨7⟩ σ I = ⟨1⟩)
     (hguy : solcAddressSlotWord (auctionPackedSlot (tendIdWord I)) σ I ≠ ⟨0⟩)
     (htic : uint48Offset20Word (auctionPackedSlot (tendIdWord I)) σ I = ⟨0⟩)
-    (h : ∃ k C, RD flapperBytecode I g
+    (h : ∃ k C, RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨1630⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD flapperBytecode I g (initState σ σ₀ g A I) ⟨1960⟩
+    ∃ k C, RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨1960⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       (twoWordHashMem (tendIdWord I) ⟨1⟩
         (twoWordHashMem (tendIdWord I) ⟨1⟩
@@ -3860,7 +3862,7 @@ theorem flapperTendX_ticZeroOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     simp [base, auctionPackedSlot_eq, id]
   rw [hpacked] at rd1862pre
   obtain ⟨k1863, C1863, rd1863raw⟩ := rd1862pre.sload (by native_decide) (by evm_ov)
-  have rd1863 : RD flapperBytecode I g
+  have rd1863 : RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨1863⟩
       [solcSlotWordAt (auctionPackedSlot id) σ I, tendBidWord I, tendLotWord I,
         id, ⟨360⟩, sel]
@@ -3892,7 +3894,7 @@ theorem flapperTendX_ticZeroOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     rw [show UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩ = UInt256.ofNat (256 ^ 20)
       from by native_decide]
     rfl
-  have rd1879 : RD flapperBytecode I g
+  have rd1879 : RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨1879⟩
       [UInt256.isZero (uint48Offset20Word (auctionPackedSlot id) σ I),
         tendBidWord I, tendLotWord I, id, ⟨360⟩, sel]
@@ -3915,12 +3917,12 @@ set_option maxHeartbeats 1000000 in
 theorem flapperTendX_toEndGtGuard
     {σ σ₀ A I} {g : Sat256} {sel : UInt256} {memStart : ByteArray}
     {k C : ℕ}
-    (rd1960 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨1960⟩
+    (rd1960 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨1960⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memStart (UInt256.ofNat 3) ByteArray.empty σ k C) :
     let id := tendIdWord I
     let memEnd := twoWordHashMem id ⟨1⟩ memStart
-    ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨1997⟩
+    ∃ k' C', RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨1997⟩
       [UInt256.gt (uint48Offset26Word (auctionPackedSlot id) σ I)
         (UInt256.ofNat I.header.timestamp), tendBidWord I, tendLotWord I, id, ⟨360⟩, sel]
       memEnd (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -3974,7 +3976,7 @@ theorem flapperTendX_toEndGtGuard
     simp [base, auctionPackedSlot_eq, id]
   rw [hpacked] at rd1978pre
   obtain ⟨k1979, C1979, rd1979raw⟩ := rd1978pre.sload (by native_decide) (by evm_ov)
-  have rd1979 : RD flapperBytecode I g
+  have rd1979 : RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨1979⟩
       [solcSlotWordAt (auctionPackedSlot id) σ I, tendBidWord I, tendLotWord I,
         id, ⟨360⟩, sel]
@@ -4007,12 +4009,12 @@ theorem flapperTendX_endFinishedFromGuard {σ σ₀ A I}
         (UInt256.ofNat I.header.timestamp).toNat)
     (hmemSize : memEnd.size = 96)
     (hread64 : memEnd.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (rd1997 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨1997⟩
+    (rd1997 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨1997⟩
       [UInt256.gt (uint48Offset26Word (auctionPackedSlot (tendIdWord I)) σ I)
         (UInt256.ofNat I.header.timestamp),
         tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memEnd (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flapperBytecode g (initState σ σ₀ g A I) := by
   have hgt :
       UInt256.gt (uint48Offset26Word (auctionPackedSlot (tendIdWord I)) σ I)
           (UInt256.ofNat I.header.timestamp) =
@@ -4039,12 +4041,12 @@ theorem flapperTendX_endOkFromGuard {σ σ₀ A I}
     (hendGt :
       (UInt256.ofNat I.header.timestamp).toNat <
         (uint48Offset26Word (auctionPackedSlot (tendIdWord I)) σ I).toNat)
-    (rd1997 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨1997⟩
+    (rd1997 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨1997⟩
       [UInt256.gt (uint48Offset26Word (auctionPackedSlot (tendIdWord I)) σ I)
         (UInt256.ofNat I.header.timestamp),
         tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memEnd (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2077⟩
+    ∃ k' C', RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2077⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memEnd (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hgt :
@@ -4063,12 +4065,12 @@ set_option maxHeartbeats 1000000 in
 theorem flapperTendX_toLotEqGuard
     {σ σ₀ A I} {g : Sat256} {sel : UInt256} {memStart : ByteArray}
     {k C : ℕ}
-    (rd2077 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2077⟩
+    (rd2077 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2077⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memStart (UInt256.ofNat 3) ByteArray.empty σ k C) :
     let id := tendIdWord I
     let memLot := twoWordHashMem id ⟨1⟩ memStart
-    ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2099⟩
+    ∃ k' C', RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2099⟩
       [UInt256.eq (tendLotWord I) (solcSlotWordAt (auctionLotSlot id) σ I),
         tendBidWord I, tendLotWord I, id, ⟨360⟩, sel]
       memLot (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -4122,7 +4124,7 @@ theorem flapperTendX_toLotEqGuard
     simp [base, auctionLotSlot_eq, id]
   rw [hlotSlot] at rd2096pre
   obtain ⟨k2097, C2097, rd2097raw⟩ := rd2096pre.sload (by native_decide) (by evm_ov)
-  have rd2097 : RD flapperBytecode I g
+  have rd2097 : RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨2097⟩
       [solcSlotWordAt (auctionLotSlot id) σ I, tendBidWord I, tendLotWord I, id,
         ⟨360⟩, sel]
@@ -4138,11 +4140,11 @@ theorem flapperTendX_lotMismatchFromGuard {σ σ₀ A I}
     (hlot : tendLotWord I ≠ solcSlotWordAt (auctionLotSlot (tendIdWord I)) σ I)
     (hmemSize : memLot.size = 96)
     (hread64 : memLot.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (rd2099 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2099⟩
+    (rd2099 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2099⟩
       [UInt256.eq (tendLotWord I) (solcSlotWordAt (auctionLotSlot (tendIdWord I)) σ I),
         tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memLot (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flapperBytecode g (initState σ σ₀ g A I) := by
   have heq :
       UInt256.eq (tendLotWord I) (solcSlotWordAt (auctionLotSlot (tendIdWord I)) σ I) =
         ⟨0⟩ := by
@@ -4165,11 +4167,11 @@ theorem flapperTendX_lotMismatchFromGuard {σ σ₀ A I}
 theorem flapperTendX_lotOkFromGuard {σ σ₀ A I}
     {g : Sat256} {sel : UInt256} {memLot : ByteArray} {k C : ℕ}
     (hlot : tendLotWord I = solcSlotWordAt (auctionLotSlot (tendIdWord I)) σ I)
-    (rd2099 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2099⟩
+    (rd2099 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2099⟩
       [UInt256.eq (tendLotWord I) (solcSlotWordAt (auctionLotSlot (tendIdWord I)) σ I),
         tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memLot (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2179⟩
+    ∃ k' C', RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2179⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memLot (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have heq :
@@ -4184,12 +4186,12 @@ set_option maxHeartbeats 1000000 in
 theorem flapperTendX_toBidGtGuard
     {σ σ₀ A I} {g : Sat256} {sel : UInt256} {memStart : ByteArray}
     {k C : ℕ}
-    (rd2179 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2179⟩
+    (rd2179 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2179⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memStart (UInt256.ofNat 3) ByteArray.empty σ k C) :
     let id := tendIdWord I
     let memBid := twoWordHashMem id ⟨1⟩ memStart
-    ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2197⟩
+    ∃ k' C', RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2197⟩
       [UInt256.gt (tendBidWord I) (solcSlotWordAt (auctionBidSlot id) σ I),
         tendBidWord I, tendLotWord I, id, ⟨360⟩, sel]
       memBid (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -4239,7 +4241,7 @@ theorem flapperTendX_toBidGtGuard
     simp [base, auctionBidSlot, auctionBaseSlot_eq, id]
   rw [hbidSlot] at rd2194pre
   obtain ⟨k2195, C2195, rd2195raw⟩ := rd2194pre.sload (by native_decide) (by evm_ov)
-  have rd2195 : RD flapperBytecode I g
+  have rd2195 : RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨2195⟩
       [solcSlotWordAt (auctionBidSlot id) σ I, tendBidWord I, tendLotWord I, id,
         ⟨360⟩, sel]
@@ -4256,11 +4258,11 @@ theorem flapperTendX_bidNotHigherFromGuard {σ σ₀ A I}
       (tendBidWord I).toNat ≤ (solcSlotWordAt (auctionBidSlot (tendIdWord I)) σ I).toNat)
     (hmemSize : memBid.size = 96)
     (hread64 : memBid.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (rd2197 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2197⟩
+    (rd2197 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2197⟩
       [UInt256.gt (tendBidWord I) (solcSlotWordAt (auctionBidSlot (tendIdWord I)) σ I),
         tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memBid (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flapperBytecode g (initState σ σ₀ g A I) := by
   have hgt :
       UInt256.gt (tendBidWord I) (solcSlotWordAt (auctionBidSlot (tendIdWord I)) σ I) =
         ⟨0⟩ := by
@@ -4290,11 +4292,11 @@ theorem flapperTendX_bidHigherOkFromGuard {σ σ₀ A I}
     {g : Sat256} {sel : UInt256} {memBid : ByteArray} {k C : ℕ}
     (hbidGt :
       (solcSlotWordAt (auctionBidSlot (tendIdWord I)) σ I).toNat < (tendBidWord I).toNat)
-    (rd2197 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2197⟩
+    (rd2197 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2197⟩
       [UInt256.gt (tendBidWord I) (solcSlotWordAt (auctionBidSlot (tendIdWord I)) σ I),
         tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memBid (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2270⟩
+    ∃ k' C', RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2270⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memBid (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hgt :
@@ -4313,9 +4315,9 @@ theorem RD.flapperCheckedMulReturns
     (hRlen : R.length ≤ 1010)
     (hret : (D_J flapperBytecode 0).contains ret = true)
     (hfit : x.toNat * y.toNat < UInt256.size)
-    (rd4894 : RD flapperBytecode I g s0 ⟨4894⟩ (y :: x :: ret :: R)
+    (rd4894 : RD fork flapperBytecode I g s0 ⟨4894⟩ (y :: x :: ret :: R)
       mem aw rdata acc k C) :
-    ∃ k' C', RD flapperBytecode I g s0 ret (x * y :: R) mem aw rdata acc k' C' := by
+    ∃ k' C', RD fork flapperBytecode I g s0 ret (x * y :: R) mem aw rdata acc k' C' := by
   have rd4921prep := evm_run rd4894 with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
@@ -4394,9 +4396,9 @@ theorem RD.flapperCheckedMulOverflowReverts
     {aw : UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1010)
     (hover : UInt256.size ≤ x.toNat * y.toNat)
-    (rd4894 : RD flapperBytecode I g s0 ⟨4894⟩ (y :: x :: ret :: R)
+    (rd4894 : RD fork flapperBytecode I g s0 ⟨4894⟩ (y :: x :: ret :: R)
       mem aw rdata acc k C) :
-    RDrev flapperBytecode g s0 := by
+    RDrev fork flapperBytecode g s0 := by
   have hyNe : y ≠ ⟨0⟩ := by
     intro hzero
     have hprod0 : x.toNat * y.toNat = 0 := by simp [hzero]
@@ -4448,12 +4450,12 @@ set_option maxHeartbeats 1000000 in
 theorem flapperTendX_toBegBidMulStart
     {σ σ₀ A I} {g : Sat256} {sel : UInt256} {memStart : ByteArray}
     {k C : ℕ}
-    (rd2270 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2270⟩
+    (rd2270 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2270⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memStart (UInt256.ofNat 3) ByteArray.empty σ k C) :
     let id := tendIdWord I
     let memBegBid := twoWordHashMem id ⟨1⟩ memStart
-    ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨4894⟩
+    ∃ k' C', RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨4894⟩
       [solcSlotWordAt (auctionBidSlot id) σ I, solcSlotWordAt ⟨4⟩ σ I, ⟨2298⟩,
         tendBidWord I, tendLotWord I, id, ⟨360⟩, sel]
       memBegBid (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -4464,7 +4466,7 @@ theorem flapperTendX_toBegBidMulStart
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨4⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k2274, C2274, rd2274raw⟩ := rd2274pre.sload (by native_decide) (by evm_ov)
-  have rd2274 : RD flapperBytecode I g
+  have rd2274 : RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨2274⟩
       [solcSlotWordAt ⟨4⟩ σ I, tendBidWord I, tendLotWord I, id, ⟨360⟩, sel]
       memStart (UInt256.ofNat 3) ByteArray.empty σ k2274 C2274 := by
@@ -4511,7 +4513,7 @@ theorem flapperTendX_toBegBidMulStart
     simp [base, auctionBidSlot, auctionBaseSlot_eq, id]
   rw [hbidSlot] at rd2288pre
   obtain ⟨k2289, C2289, rd2289raw⟩ := rd2288pre.sload (by native_decide) (by evm_ov)
-  have rd2289 : RD flapperBytecode I g
+  have rd2289 : RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨2289⟩
       [solcSlotWordAt (auctionBidSlot id) σ I, solcSlotWordAt ⟨4⟩ σ I,
         tendBidWord I, tendLotWord I, id, ⟨360⟩, sel]
@@ -4529,10 +4531,10 @@ theorem flapperTendX_begBidOverflow {σ σ₀ A I}
     (hover :
       UInt256.size ≤ (solcSlotWordAt ⟨4⟩ σ I).toNat *
         (solcSlotWordAt (auctionBidSlot (tendIdWord I)) σ I).toNat)
-    (rd2270 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2270⟩
+    (rd2270 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2270⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memStart (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flapperBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd4894⟩ := flapperTendX_toBegBidMulStart rd2270
   exact RD.flapperCheckedMulOverflowReverts
     (R := [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel])
@@ -4545,12 +4547,12 @@ theorem flapperTendX_begBidOk {σ σ₀ A I}
     (hfit :
       (solcSlotWordAt ⟨4⟩ σ I).toNat *
         (solcSlotWordAt (auctionBidSlot (tendIdWord I)) σ I).toNat < UInt256.size)
-    (rd2270 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2270⟩
+    (rd2270 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2270⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memStart (UInt256.ofNat 3) ByteArray.empty σ k C) :
     let id := tendIdWord I
     let memBegBid := twoWordHashMem id ⟨1⟩ memStart
-    ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2298⟩
+    ∃ k' C', RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2298⟩
       [tendBegBidWord (initState σ σ₀ g A I) I,
         tendBidWord I, tendLotWord I, id, ⟨360⟩, sel]
       memBegBid (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -4569,11 +4571,11 @@ theorem flapperTendX_begBidOk {σ σ₀ A I}
 theorem flapperTendX_toBidOneMulStart
     {σ σ₀ A I} {g : Sat256} {sel : UInt256} {memBegBid : ByteArray}
     {k C : ℕ}
-    (rd2298 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2298⟩
+    (rd2298 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2298⟩
       [tendBegBidWord (initState σ σ₀ g A I) I,
         tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memBegBid (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨4894⟩
+    ∃ k' C', RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨4894⟩
       [tendOneWord, tendBidWord I, ⟨2316⟩,
         tendBegBidWord (initState σ σ₀ g A I) I,
         tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
@@ -4592,11 +4594,11 @@ theorem flapperTendX_toBidOneMulStart
 theorem flapperTendX_bidOneOverflow {σ σ₀ A I}
     {g : Sat256} {sel : UInt256} {memBegBid : ByteArray} {k C : ℕ}
     (hover : UInt256.size ≤ (tendBidWord I).toNat * tendOneWord.toNat)
-    (rd2298 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2298⟩
+    (rd2298 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2298⟩
       [tendBegBidWord (initState σ σ₀ g A I) I,
         tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memBegBid (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flapperBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd4894⟩ := flapperTendX_toBidOneMulStart rd2298
   exact RD.flapperCheckedMulOverflowReverts
     (R := [tendBegBidWord (initState σ σ₀ g A I) I,
@@ -4608,11 +4610,11 @@ theorem flapperTendX_bidOneOverflow {σ σ₀ A I}
 theorem flapperTendX_bidOneOk {σ σ₀ A I}
     {g : Sat256} {sel : UInt256} {memBegBid : ByteArray} {k C : ℕ}
     (hfit : (tendBidWord I).toNat * tendOneWord.toNat < UInt256.size)
-    (rd2298 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2298⟩
+    (rd2298 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2298⟩
       [tendBegBidWord (initState σ σ₀ g A I) I,
         tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memBegBid (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2316⟩
+    ∃ k' C', RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2316⟩
       [tendBidOneWord I, tendBegBidWord (initState σ σ₀ g A I) I,
         tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memBegBid (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -4634,11 +4636,11 @@ theorem flapperTendX_insufficientIncreaseFromGuard {σ σ₀ A I}
         (tendBegBidWord (initState σ σ₀ g A I) I).toNat)
     (hmemSize : memBegBid.size = 96)
     (hread64 : memBegBid.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (rd2316 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2316⟩
+    (rd2316 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2316⟩
       [tendBidOneWord I, tendBegBidWord (initState σ σ₀ g A I) I,
         tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memBegBid (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flapperBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (tendBidOneWord I)
           (tendBegBidWord (initState σ σ₀ g A I) I) =
@@ -4675,11 +4677,11 @@ theorem flapperTendX_sufficientIncreaseOkFromGuard {σ σ₀ A I}
     (hsuff :
       (tendBegBidWord (initState σ σ₀ g A I) I).toNat ≤
         (tendBidOneWord I).toNat)
-    (rd2316 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2316⟩
+    (rd2316 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2316⟩
       [tendBidOneWord I, tendBegBidWord (initState σ σ₀ g A I) I,
         tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memBegBid (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2399⟩
+    ∃ k' C', RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2399⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memBegBid (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hlt :
@@ -4706,12 +4708,12 @@ set_option maxHeartbeats 1000000 in
 theorem flapperTendX_toCallerEqGuard
     {σ σ₀ A I} {g : Sat256} {sel : UInt256} {memStart : ByteArray}
     {k C : ℕ}
-    (rd2399 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2399⟩
+    (rd2399 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2399⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memStart (UInt256.ofNat 3) ByteArray.empty σ k C) :
     let id := tendIdWord I
     let memCaller := twoWordHashMem id ⟨1⟩ memStart
-    ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2429⟩
+    ∃ k' C', RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2429⟩
       [UInt256.eq (UInt256.ofNat I.source.val)
         (solcAddressSlotWord (auctionPackedSlot id) σ I),
         tendBidWord I, tendLotWord I, id, ⟨360⟩, sel]
@@ -4766,7 +4768,7 @@ theorem flapperTendX_toCallerEqGuard
     simp [base, auctionPackedSlot_eq, id]
   rw [hpacked] at rd2417pre
   obtain ⟨k2418, C2418, rd2418raw⟩ := rd2417pre.sload (by native_decide) (by evm_ov)
-  have rd2418 : RD flapperBytecode I g
+  have rd2418 : RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨2418⟩
       [solcSlotWordAt (auctionPackedSlot id) σ I, tendBidWord I, tendLotWord I, id,
         ⟨360⟩, sel]
@@ -4796,12 +4798,12 @@ theorem flapperTendX_callerEqOkFromGuard {σ σ₀ A I}
     (hcaller :
       UInt256.ofNat I.source.val =
         solcAddressSlotWord (auctionPackedSlot (tendIdWord I)) σ I)
-    (rd2429 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2429⟩
+    (rd2429 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2429⟩
       [UInt256.eq (UInt256.ofNat I.source.val)
         (solcAddressSlotWord (auctionPackedSlot (tendIdWord I)) σ I),
         tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memCaller (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2598⟩
+    ∃ k' C', RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2598⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memCaller (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have heq :
@@ -4818,12 +4820,12 @@ theorem flapperTendX_callerNeToRefund {σ σ₀ A I}
     (hcaller :
       UInt256.ofNat I.source.val ≠
         solcAddressSlotWord (auctionPackedSlot (tendIdWord I)) σ I)
-    (rd2429 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2429⟩
+    (rd2429 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2429⟩
       [UInt256.eq (UInt256.ofNat I.source.val)
         (solcAddressSlotWord (auctionPackedSlot (tendIdWord I)) σ I),
         tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memCaller (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2433⟩
+    ∃ k' C', RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2433⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memCaller (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have heq :
@@ -4841,7 +4843,7 @@ theorem flapperTendX_toRefundExtcodesizeGuard
     {k C : ℕ}
     (hmemCaller : memCaller.size = 96)
     (hread64Caller : memCaller.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (rd2433 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2433⟩
+    (rd2433 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2433⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memCaller (UInt256.ofNat 3) ByteArray.empty σ k C) :
     let id := tendIdWord I
@@ -4850,7 +4852,7 @@ theorem flapperTendX_toRefundExtcodesizeGuard
     let gem := solcAddressSlotWord ⟨3⟩ σ I
     let oldGuy := solcAddressSlotWord (auctionPackedSlot id) σ I
     let oldBid := solcSlotWordAt (auctionBidSlot id) σ I
-    ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2528⟩
+    ∃ k' C', RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2528⟩
       (gem :: gem :: yankMoveOutSize :: yankMoveOutPtr :: yankMoveInSize ::
         yankMoveOutPtr :: yankMoveOutSize :: yankMoveEndPtr :: yankMoveSelectorWord ::
         gem :: tendBidWord I :: tendLotWord I :: id :: ⟨360⟩ :: sel :: [])
@@ -4888,7 +4890,7 @@ theorem flapperTendX_toRefundExtcodesizeGuard
     mloadFreePtrValue (by rw [hcallMem]; decide) hcallRead64
   have rd2435 := rd2433.push1 ⟨3⟩ (by native_decide) (by evm_ov)
   obtain ⟨k2436, C2436, rd2436raw⟩ := rd2435.sload (by native_decide) (by evm_ov)
-  have rd2436 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2436⟩
+  have rd2436 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2436⟩
       [gemSlot, tendBidWord I, tendLotWord I, id, ⟨360⟩, sel]
       memCaller (UInt256.ofNat 3) ByteArray.empty σ k2436 C2436 := by
     simpa [gemSlot, solcSlotWordAt, id] using rd2436raw
@@ -4939,7 +4941,7 @@ theorem flapperTendX_toRefundExtcodesizeGuard
     simp [base, auctionPackedSlot_eq, id]
   rw [hpacked] at rd2455pre
   obtain ⟨k2456, C2456, rd2456raw⟩ := rd2455pre.sload (by native_decide) (by evm_ov)
-  have rd2456 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2456⟩
+  have rd2456 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2456⟩
       [oldPacked, base, ⟨64⟩, ⟨0⟩, gemSlot, tendBidWord I, tendLotWord I, id, ⟨360⟩,
         sel]
       memMap (UInt256.ofNat 3) ByteArray.empty σ k2456 C2456 := by
@@ -4949,7 +4951,7 @@ theorem flapperTendX_toRefundExtcodesizeGuard
     simp [base, auctionBidSlot, auctionBaseSlot_eq, id]
   rw [hbidSlot] at rd2457pre
   obtain ⟨k2458, C2458, rd2458raw⟩ := rd2457pre.sload (by native_decide) (by evm_ov)
-  have rd2458 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2458⟩
+  have rd2458 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2458⟩
       [oldBid, oldPacked, ⟨64⟩, ⟨0⟩, gemSlot, tendBidWord I, tendLotWord I, id, ⟨360⟩,
         sel]
       memMap (UInt256.ofNat 3) ByteArray.empty σ k2458 C2458 := by
@@ -5062,10 +5064,10 @@ theorem flapperTendX_refundNoCode
         ⟨0⟩)
     (hmemCaller : memCaller.size = 96)
     (hread64Caller : memCaller.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (rd2433 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2433⟩
+    (rd2433 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2433⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memCaller (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flapperBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd2528⟩ :=
     flapperTendX_toRefundExtcodesizeGuard hmemCaller hread64Caller rd2433
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨2528⟩) (okPc := ⟨2540⟩)
@@ -5084,7 +5086,7 @@ theorem flapperTendX_refundCall
     (hdepth : I.depth.val < 1024)
     (hmemCaller : memCaller.size = 96)
     (hread64Caller : memCaller.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (rd2433 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2433⟩
+    (rd2433 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2433⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memCaller (UInt256.ofNat 3) ByteArray.empty σ k C) :
     let id := tendIdWord I
@@ -5095,12 +5097,12 @@ theorem flapperTendX_refundCall
     let oldBid := solcSlotWordAt (auctionBidSlot id) σ I
     ∃ (σ' : AccountMap) (z : Bool)
       (out : ByteArray) (A' : Substate) (k' C' : ℕ),
-      RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2544⟩
+      RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2544⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: yankMoveEndPtr :: yankMoveSelectorWord ::
           gem :: tendBidWord I :: tendLotWord I :: id :: ⟨360⟩ :: sel :: [])
         (yankMoveCalldataMem src oldGuy oldBid memMap) (UInt256.ofNat 8) out
         σ' k' C'
-    ∧ typedCallViaEVM config (initState σ σ₀ g A I)
+    ∧ typedCallViaEVM fork config (initState σ σ₀ g A I)
         (EVM.address (AccountAddress.ofNat gem.toNat)) "move" 0
         [.address (AccountAddress.ofNat src.toNat),
           .address (AccountAddress.ofNat oldGuy.toNat),
@@ -5138,7 +5140,7 @@ theorem flapperTendX_refundCall
     have hmin : (min yankMoveOutSize (UInt256.ofNat out.size)).toNat = 0 := by
       unfold yankMoveOutSize
       rfl
-    have rd2544 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2544⟩
+    have rd2544 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2544⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: yankMoveEndPtr :: yankMoveSelectorWord ::
           gem :: tendBidWord I :: tendLotWord I :: id :: ⟨360⟩ :: sel :: [])
         (out.write 0 (yankMoveCalldataMem src oldGuy oldBid memMap) yankMoveOutPtr.toNat
@@ -5166,7 +5168,7 @@ theorem flapperTendX_refundCallDepthLimit
     (hdepth : I.depth = 1024)
     (hmemCaller : memCaller.size = 96)
     (hread64Caller : memCaller.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (rd2433 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2433⟩
+    (rd2433 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2433⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memCaller (UInt256.ofNat 3) ByteArray.empty σ k C) :
     let id := tendIdWord I
@@ -5175,7 +5177,7 @@ theorem flapperTendX_refundCallDepthLimit
     let gem := solcAddressSlotWord ⟨3⟩ σ I
     let oldGuy := solcAddressSlotWord (auctionPackedSlot id) σ I
     let oldBid := solcSlotWordAt (auctionBidSlot id) σ I
-    ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2544⟩
+    ∃ k' C', RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2544⟩
       (⟨0⟩ :: yankMoveEndPtr :: yankMoveSelectorWord ::
         gem :: tendBidWord I :: tendLotWord I :: id :: ⟨360⟩ :: sel :: [])
       (yankMoveCalldataMem src oldGuy oldBid memMap) (UInt256.ofNat 8)
@@ -5208,12 +5210,12 @@ theorem flapperTendX_refundCallDepthLimit
 theorem flapperTendX_refundCallFailure
     {σ τ σ₀ A I} {g : Sat256} {sel gem : UInt256}
     {mem out : ByteArray} {k C : ℕ}
-    (rd2544 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2544⟩
+    (rd2544 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2544⟩
       (⟨0⟩ :: yankMoveEndPtr :: yankMoveSelectorWord ::
         gem :: tendBidWord I :: tendLotWord I :: tendIdWord I :: ⟨360⟩ :: sel :: [])
       mem (UInt256.ofNat 8) out τ k C)
     (houtSize : out.size < UInt256.size) :
-    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flapperBytecode g (initState σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨2544⟩) (okPc := ⟨2560⟩) rd2544
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -5225,7 +5227,7 @@ set_option maxHeartbeats 1000000 in
 theorem flapperTendX_refundCallSuccessToPayStartSplit
     {σ τ σ₀ A I} {g : Sat256} {sel gem : UInt256}
     {mem out : ByteArray} {k C : ℕ}
-    (rd2544 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2544⟩
+    (rd2544 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2544⟩
       (⟨1⟩ :: yankMoveEndPtr :: yankMoveSelectorWord ::
         gem :: tendBidWord I :: tendLotWord I :: tendIdWord I :: ⟨360⟩ :: sel :: [])
       mem (UInt256.ofNat 8) out τ k C) :
@@ -5233,10 +5235,10 @@ theorem flapperTendX_refundCallSuccessToPayStartSplit
     let memGuy := twoWordHashMem id ⟨1⟩ mem
     let σGuy := tendRuntimeAfterGuyMap I.codeOwner τ I
     (I.perm = true ∧
-      ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2598⟩
+      ∃ k' C', RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2598⟩
         [tendBidWord I, tendLotWord I, id, ⟨360⟩, sel]
         memGuy (UInt256.ofNat 8) out σGuy k' C') ∨
-      (I.perm = false ∧ RDstatic flapperBytecode g (initState σ σ₀ g A I)) := by
+      (I.perm = false ∧ RDstatic fork flapperBytecode g (initState σ σ₀ g A I)) := by
   intro id memGuy σGuy
   let memKey := wordAt0Mem id mem
   let base := solcMappingSlot ⟨1⟩ id
@@ -5249,7 +5251,7 @@ theorem flapperTendX_refundCallSuccessToPayStartSplit
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
       (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd2562 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2562⟩
+  have rd2562 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2562⟩
       (yankMoveEndPtr :: yankMoveSelectorWord ::
         gem :: tendBidWord I :: tendLotWord I :: id :: ⟨360⟩ :: sel :: [])
       mem (UInt256.ofNat 8) out τ k2562 C2562 := by
@@ -5304,7 +5306,7 @@ theorem flapperTendX_refundCallSuccessToPayStartSplit
   rw [hpacked] at rd2581pre
   have rd2582pre := rd2581pre.dup1 (by native_decide) (by evm_ov)
   obtain ⟨k2583, C2583, rd2583raw⟩ := rd2582pre.sload (by native_decide) (by evm_ov)
-  have rd2583 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2583⟩
+  have rd2583 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2583⟩
       [oldPacked, packedSlot, gem, tendBidWord I, tendLotWord I, id, ⟨360⟩, sel]
       memGuy (UInt256.ofNat 8) out τ k2583 C2583 := by
     simpa [oldPacked, packedSlot, solcSlotWord] using rd2583raw
@@ -5347,7 +5349,7 @@ theorem flapperTendX_refundCallSuccessToPayStartSplit
             (UInt256.land src solcAddrMask) := by
             rw [hsrcClean]
       _ = setAddressOffset0Word oldPacked src := rfl
-  have rd2597 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2597⟩
+  have rd2597 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2597⟩
       [gem, tendBidWord I, tendLotWord I, id, ⟨360⟩, sel]
       memGuy (UInt256.ofNat 8) out σGuy k2597 C2597 := by
     simpa [σGuy, tendRuntimeAfterGuyMap, oldPacked, packedSlot, src, hmask, hstored]
@@ -5359,7 +5361,7 @@ set_option maxHeartbeats 1000000 in
 theorem flapperTendX_toCheckedAddStartFromTailAw8Split
     {σ τ σ₀ A I} {g : Sat256} {sel gem : UInt256}
     {memStart retData : ByteArray} {k C : ℕ}
-    (rd2721 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2721⟩
+    (rd2721 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2721⟩
       [yankMoveEndPtr, yankMoveSelectorWord, gem, tendBidWord I, tendLotWord I,
         tendIdWord I, ⟨360⟩, sel]
       memStart (UInt256.ofNat 8) retData τ k C) :
@@ -5367,11 +5369,11 @@ theorem flapperTendX_toCheckedAddStartFromTailAw8Split
     let memBidStore := twoWordHashMem id ⟨1⟩ memStart
     let σBid := tendRuntimeAfterBidMap I.codeOwner τ I
     (I.perm = true ∧
-      ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨4936⟩
+      ∃ k' C', RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨4936⟩
         [tendRuntimeTtlWord I.codeOwner τ I, UInt256.ofNat I.header.timestamp, ⟨2762⟩,
           tendBidWord I, tendLotWord I, id, ⟨360⟩, sel]
         memBidStore (UInt256.ofNat 8) retData σBid k' C') ∨
-      (I.perm = false ∧ RDstatic flapperBytecode g (initState σ σ₀ g A I)) := by
+      (I.perm = false ∧ RDstatic fork flapperBytecode g (initState σ σ₀ g A I)) := by
   intro id memBidStore σBid
   let memKey := wordAt0Mem id memStart
   let base := solcMappingSlot ⟨1⟩ id
@@ -5429,7 +5431,7 @@ theorem flapperTendX_toCheckedAddStartFromTailAw8Split
   refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨k2740, C2740, rd2740raw⟩ := rd2739pre.sstore hperm
     hstoreDec (by evm_ov)
-  have rd2740 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2740⟩
+  have rd2740 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2740⟩
       [gem, tendBidWord I, tendLotWord I, id, ⟨360⟩, sel]
       memBidStore (UInt256.ofNat 8) retData σBid k2740 C2740 := by
     simpa [σBid, tendRuntimeAfterBidMap, id] using rd2740raw
@@ -5437,7 +5439,7 @@ theorem flapperTendX_toCheckedAddStartFromTailAw8Split
     raw pop (by native_decide) (by evm_ov),
     raw push1 ⟨5⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k2744, C2744, rd2744raw⟩ := rd2743.sload (by native_decide) (by evm_ov)
-  have rd2744 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2744⟩
+  have rd2744 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2744⟩
       [solcSlotWordAt ⟨5⟩ σBid I, tendBidWord I, tendLotWord I, id, ⟨360⟩, sel]
       memBidStore (UInt256.ofNat 8) retData σBid k2744 C2744 := by
     simpa [solcSlotWordAt] using rd2744raw
@@ -5467,14 +5469,14 @@ theorem flapperTendX_toCheckedAddStartFromTailAw8
     {σ τ σ₀ A I} {g : Sat256} {sel gem : UInt256}
     {memStart retData : ByteArray} {k C : ℕ}
     (hperm : I.perm = true)
-    (rd2721 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2721⟩
+    (rd2721 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2721⟩
       [yankMoveEndPtr, yankMoveSelectorWord, gem, tendBidWord I, tendLotWord I,
         tendIdWord I, ⟨360⟩, sel]
       memStart (UInt256.ofNat 8) retData τ k C) :
     let id := tendIdWord I
     let memBidStore := twoWordHashMem id ⟨1⟩ memStart
     let σBid := tendRuntimeAfterBidMap I.codeOwner τ I
-    ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨4936⟩
+    ∃ k' C', RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨4936⟩
       [tendRuntimeTtlWord I.codeOwner τ I, UInt256.ofNat I.header.timestamp, ⟨2762⟩,
         tendBidWord I, tendLotWord I, id, ⟨360⟩, sel]
       memBidStore (UInt256.ofNat 8) retData σBid k' C' :=
@@ -5487,12 +5489,12 @@ theorem flapperTendX_addOverflowFromCheckedAddAw8
     (haddOverflow :
       2 ^ 48 ≤ (UInt256.land (UInt256.ofNat I.header.timestamp) uint48Mask).toNat +
         (tendRuntimeTtlWord I.codeOwner τ I).toNat)
-    (rd4936 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨4936⟩
+    (rd4936 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨4936⟩
       [tendRuntimeTtlWord I.codeOwner τ I, UInt256.ofNat I.header.timestamp, ⟨2762⟩,
         tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memStart (UInt256.ofNat 8) retData
       (tendRuntimeAfterBidMap I.codeOwner τ I) k C) :
-    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flapperBytecode g (initState σ σ₀ g A I) := by
   let ttl := tendRuntimeTtlWord I.codeOwner τ I
   let timestamp := UInt256.ofNat I.header.timestamp
   have rd4940 := evm_run rd4936 with [
@@ -5539,12 +5541,12 @@ theorem flapperTendX_addOkFromCheckedAddAw8
     (haddFit :
       (UInt256.land (UInt256.ofNat I.header.timestamp) uint48Mask).toNat +
         (tendRuntimeTtlWord I.codeOwner τ I).toNat < 2 ^ 48)
-    (rd4936 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨4936⟩
+    (rd4936 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨4936⟩
       [tendRuntimeTtlWord I.codeOwner τ I, UInt256.ofNat I.header.timestamp, ⟨2762⟩,
         tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memStart (UInt256.ofNat 8) retData
       (tendRuntimeAfterBidMap I.codeOwner τ I) k C) :
-    ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2762⟩
+    ∃ k' C', RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2762⟩
       [tendRuntimeTicAddWord I.codeOwner τ I,
         tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memStart (UInt256.ofNat 8) retData
@@ -5597,12 +5599,12 @@ theorem flapperTendX_successFromAddOkAw8
     {σ τ σ₀ A I} {g : Sat256} {sel : UInt256}
     {memStart retData : ByteArray} {k C : ℕ}
     (hperm : I.perm = true)
-    (rd2762 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2762⟩
+    (rd2762 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2762⟩
       [tendRuntimeTicAddWord I.codeOwner τ I,
         tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memStart (UInt256.ofNat 8) retData
       (tendRuntimeAfterBidMap I.codeOwner τ I) k C) :
-    RDret flapperBytecode g (initState σ σ₀ g A I)
+    RDret fork flapperBytecode g (initState σ σ₀ g A I)
       (tendRuntimeTailSuccessAccountMap I.codeOwner τ I) ByteArray.empty := by
   let id := tendIdWord I
   let σBid := tendRuntimeAfterBidMap I.codeOwner τ I
@@ -5662,7 +5664,7 @@ theorem flapperTendX_successFromAddOkAw8
   rw [hpackedSlot] at rd2781pre
   have rd2782pre := rd2781pre.dup1 (by native_decide) (by evm_ov)
   obtain ⟨k2783, C2783, rd2783raw⟩ := rd2782pre.sload (by native_decide) (by evm_ov)
-  have rd2783 : RD flapperBytecode I g
+  have rd2783 : RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨2783⟩
       [oldPacked, packedSlot, tendBidWord I, tendLotWord I, addWord, ⟨360⟩, sel]
       memStore (UInt256.ofNat 8) retData σBid k2783 C2783 := by
@@ -5710,7 +5712,7 @@ theorem flapperTendX_successFromAddOkAw8
       Reasoning.Theory.setUint48Offset20RawWord_eq_setUint48Offset20Word
         oldPacked addWord
   rw [hstoredRaw] at rd2821raw
-  have rd2821 : RD flapperBytecode I g
+  have rd2821 : RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨2821⟩
       [tendLotWord I, tendBidWord I, ⟨360⟩, sel]
       memStore (UInt256.ofNat 8) retData σSuccess k2821 C2821 := by
@@ -5730,11 +5732,11 @@ theorem flapperTendX_addOverflowFromTailAw8
     (haddOverflow :
       2 ^ 48 ≤ (UInt256.land (UInt256.ofNat I.header.timestamp) uint48Mask).toNat +
         (tendRuntimeTtlWord I.codeOwner τ I).toNat)
-    (rd2721 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2721⟩
+    (rd2721 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2721⟩
       [yankMoveEndPtr, yankMoveSelectorWord, gem, tendBidWord I, tendLotWord I,
         tendIdWord I, ⟨360⟩, sel]
       memStart (UInt256.ofNat 8) retData τ k C) :
-    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flapperBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd4936⟩ := flapperTendX_toCheckedAddStartFromTailAw8 hperm rd2721
   exact flapperTendX_addOverflowFromCheckedAddAw8 haddOverflow rd4936
 
@@ -5745,11 +5747,11 @@ theorem flapperTendX_successFromTailAw8
     (haddFit :
       (UInt256.land (UInt256.ofNat I.header.timestamp) uint48Mask).toNat +
         (tendRuntimeTtlWord I.codeOwner τ I).toNat < 2 ^ 48)
-    (rd2721 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2721⟩
+    (rd2721 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2721⟩
       [yankMoveEndPtr, yankMoveSelectorWord, gem, tendBidWord I, tendLotWord I,
         tendIdWord I, ⟨360⟩, sel]
       memStart (UInt256.ofNat 8) retData τ k C) :
-    RDret flapperBytecode g (initState σ σ₀ g A I)
+    RDret fork flapperBytecode g (initState σ σ₀ g A I)
       (tendRuntimeTailSuccessAccountMap I.codeOwner τ I) ByteArray.empty := by
   obtain ⟨_, _, rd4936⟩ := flapperTendX_toCheckedAddStartFromTailAw8 hperm rd2721
   obtain ⟨_, _, rd2762⟩ := flapperTendX_addOkFromCheckedAddAw8 haddFit rd4936
@@ -5940,7 +5942,7 @@ theorem flapperTendX_toPayExtcodesizeGuardAw8Mem228
     {memCaller retData : ByteArray} {k C : ℕ}
     (hmemCaller : memCaller.size = 228)
     (hread64Caller : memCaller.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (rd2598 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2598⟩
+    (rd2598 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2598⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memCaller (UInt256.ofNat 8) retData τ k C) :
     let id := tendIdWord I
@@ -5950,7 +5952,7 @@ theorem flapperTendX_toPayExtcodesizeGuardAw8Mem228
     let gem := solcAddressSlotWord ⟨3⟩ τ I
     let oldBid := solcSlotWordAt (auctionBidSlot id) τ I
     let amt := UInt256.sub (tendBidWord I) oldBid
-    ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2687⟩
+    ∃ k' C', RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2687⟩
       (gem :: gem :: yankMoveOutSize :: yankMoveOutPtr :: yankMoveInSize ::
         yankMoveOutPtr :: yankMoveOutSize :: yankMoveEndPtr :: yankMoveSelectorWord ::
         gem :: tendBidWord I :: tendLotWord I :: id :: ⟨360⟩ :: sel :: [])
@@ -5996,7 +5998,7 @@ theorem flapperTendX_toPayExtcodesizeGuardAw8Mem228
     raw push1 ⟨3⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k2602, C2602, rd2602raw⟩ := rd2601pre.sload
     (by native_decide) (by evm_ov)
-  have rd2602 : RD flapperBytecode I g
+  have rd2602 : RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨2602⟩
       [gemSlot, tendBidWord I, tendLotWord I, id, ⟨360⟩, sel]
       memCaller (UInt256.ofNat 8) retData τ k2602 C2602 := by
@@ -6045,7 +6047,7 @@ theorem flapperTendX_toPayExtcodesizeGuardAw8Mem228
   rw [hbidSlot] at rd2617pre
   obtain ⟨k2618, C2618, rd2618raw⟩ := rd2617pre.sload
     (by native_decide) (by evm_ov)
-  have rd2618 : RD flapperBytecode I g
+  have rd2618 : RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨2618⟩
       [oldBid, ⟨64⟩, ⟨0⟩, gemSlot, tendBidWord I, tendLotWord I, id, ⟨360⟩, sel]
       memMap (UInt256.ofNat 8) retData τ k2618 C2618 := by
@@ -6166,10 +6168,10 @@ theorem flapperTendX_payNoCodeAw8Mem228
         ⟨0⟩)
     (hmemCaller : memCaller.size = 228)
     (hread64Caller : memCaller.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (rd2598 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2598⟩
+    (rd2598 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2598⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memCaller (UInt256.ofNat 8) retData τ k C) :
-    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flapperBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd2687⟩ :=
     flapperTendX_toPayExtcodesizeGuardAw8Mem228 hmemCaller hread64Caller rd2598
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨2687⟩) (okPc := ⟨2699⟩)
@@ -6188,7 +6190,7 @@ theorem flapperTendX_payCallAw8Mem228
     (hdepth : I.depth.val < 1024)
     (hmemCaller : memCaller.size = 228)
     (hread64Caller : memCaller.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (rd2598 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2598⟩
+    (rd2598 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2598⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memCaller (UInt256.ofNat 8) retData τ k C) :
     let id := tendIdWord I
@@ -6200,12 +6202,12 @@ theorem flapperTendX_payCallAw8Mem228
     let amt := UInt256.sub (tendBidWord I) oldBid
     ∃ (σ' : AccountMap) (z : Bool)
       (out : ByteArray) (A' : Substate) (k' C' : ℕ),
-      RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2703⟩
+      RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2703⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: yankMoveEndPtr :: yankMoveSelectorWord ::
           gem :: tendBidWord I :: tendLotWord I :: id :: ⟨360⟩ :: sel :: [])
         (yankMoveCalldataMem src this amt memMap) (UInt256.ofNat 8) out
         σ' k' C'
-    ∧ typedCallViaEVM config
+    ∧ typedCallViaEVM fork config
         ({ initState σ σ₀ g A I with
             accountMap := τ, substate := A1 })
         (EVM.address (AccountAddress.ofNat gem.toNat)) "move" 0
@@ -6255,7 +6257,7 @@ theorem flapperTendX_payCallAw8Mem228
     have hmin : (min yankMoveOutSize (UInt256.ofNat out.size)).toNat = 0 := by
       unfold yankMoveOutSize
       rfl
-    have rd2703 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2703⟩
+    have rd2703 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2703⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: yankMoveEndPtr :: yankMoveSelectorWord ::
           gem :: tendBidWord I :: tendLotWord I :: id :: ⟨360⟩ :: sel :: [])
         (out.write 0 (yankMoveCalldataMem src this amt memMap) yankMoveOutPtr.toNat
@@ -6280,7 +6282,7 @@ theorem flapperTendX_toPayExtcodesizeGuard
     {memCaller retData : ByteArray} {k C : ℕ}
     (hmemCaller : memCaller.size = 96)
     (hread64Caller : memCaller.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (rd2598 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2598⟩
+    (rd2598 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2598⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memCaller (UInt256.ofNat 3) retData τ k C) :
     let id := tendIdWord I
@@ -6290,7 +6292,7 @@ theorem flapperTendX_toPayExtcodesizeGuard
     let gem := solcAddressSlotWord ⟨3⟩ τ I
     let oldBid := solcSlotWordAt (auctionBidSlot id) τ I
     let amt := UInt256.sub (tendBidWord I) oldBid
-    ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2687⟩
+    ∃ k' C', RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2687⟩
       (gem :: gem :: yankMoveOutSize :: yankMoveOutPtr :: yankMoveInSize ::
         yankMoveOutPtr :: yankMoveOutSize :: yankMoveEndPtr :: yankMoveSelectorWord ::
         gem :: tendBidWord I :: tendLotWord I :: id :: ⟨360⟩ :: sel :: [])
@@ -6331,7 +6333,7 @@ theorem flapperTendX_toPayExtcodesizeGuard
     raw push1 ⟨3⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k2602, C2602, rd2602raw⟩ := rd2601pre.sload
     (by native_decide) (by evm_ov)
-  have rd2602 : RD flapperBytecode I g
+  have rd2602 : RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨2602⟩
       [gemSlot, tendBidWord I, tendLotWord I, id, ⟨360⟩, sel]
       memCaller (UInt256.ofNat 3) retData τ k2602 C2602 := by
@@ -6380,7 +6382,7 @@ theorem flapperTendX_toPayExtcodesizeGuard
   rw [hbidSlot] at rd2617pre
   obtain ⟨k2618, C2618, rd2618raw⟩ := rd2617pre.sload
     (by native_decide) (by evm_ov)
-  have rd2618 : RD flapperBytecode I g
+  have rd2618 : RD fork flapperBytecode I g
       (initState σ σ₀ g A I) ⟨2618⟩
       [oldBid, ⟨64⟩, ⟨0⟩, gemSlot, tendBidWord I, tendLotWord I, id, ⟨360⟩, sel]
       memMap (UInt256.ofNat 3) retData τ k2618 C2618 := by
@@ -6501,10 +6503,10 @@ theorem flapperTendX_payNoCode
         ⟨0⟩)
     (hmemCaller : memCaller.size = 96)
     (hread64Caller : memCaller.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (rd2598 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2598⟩
+    (rd2598 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2598⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memCaller (UInt256.ofNat 3) retData τ k C) :
-    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flapperBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd2687⟩ :=
     flapperTendX_toPayExtcodesizeGuard hmemCaller hread64Caller rd2598
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨2687⟩) (okPc := ⟨2699⟩)
@@ -6523,7 +6525,7 @@ theorem flapperTendX_payCall
     (hdepth : I.depth.val < 1024)
     (hmemCaller : memCaller.size = 96)
     (hread64Caller : memCaller.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (rd2598 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2598⟩
+    (rd2598 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2598⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memCaller (UInt256.ofNat 3) retData τ k C) :
     let id := tendIdWord I
@@ -6535,12 +6537,12 @@ theorem flapperTendX_payCall
     let amt := UInt256.sub (tendBidWord I) oldBid
     ∃ (σ' : AccountMap) (z : Bool)
       (out : ByteArray) (A' : Substate) (k' C' : ℕ),
-      RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2703⟩
+      RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2703⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: yankMoveEndPtr :: yankMoveSelectorWord ::
           gem :: tendBidWord I :: tendLotWord I :: id :: ⟨360⟩ :: sel :: [])
         (yankMoveCalldataMem src this amt memMap) (UInt256.ofNat 8) out
         σ' k' C'
-    ∧ typedCallViaEVM config
+    ∧ typedCallViaEVM fork config
         ({ initState σ σ₀ g A I with
             accountMap := τ, substate := A1 })
         (EVM.address (AccountAddress.ofNat gem.toNat)) "move" 0
@@ -6586,7 +6588,7 @@ theorem flapperTendX_payCall
     have hmin : (min yankMoveOutSize (UInt256.ofNat out.size)).toNat = 0 := by
       unfold yankMoveOutSize
       rfl
-    have rd2703 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2703⟩
+    have rd2703 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2703⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: yankMoveEndPtr :: yankMoveSelectorWord ::
           gem :: tendBidWord I :: tendLotWord I :: id :: ⟨360⟩ :: sel :: [])
         (out.write 0 (yankMoveCalldataMem src this amt memMap) yankMoveOutPtr.toNat
@@ -6614,7 +6616,7 @@ theorem flapperTendX_payCallDepthLimit
     (hdepth : I.depth = 1024)
     (hmemCaller : memCaller.size = 96)
     (hread64Caller : memCaller.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (rd2598 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2598⟩
+    (rd2598 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2598⟩
       [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       memCaller (UInt256.ofNat 3) retData τ k C) :
     let id := tendIdWord I
@@ -6624,7 +6626,7 @@ theorem flapperTendX_payCallDepthLimit
     let gem := solcAddressSlotWord ⟨3⟩ τ I
     let oldBid := solcSlotWordAt (auctionBidSlot id) τ I
     let amt := UInt256.sub (tendBidWord I) oldBid
-    ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2703⟩
+    ∃ k' C', RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2703⟩
       (⟨0⟩ :: yankMoveEndPtr :: yankMoveSelectorWord ::
         gem :: tendBidWord I :: tendLotWord I :: id :: ⟨360⟩ :: sel :: [])
       (yankMoveCalldataMem src this amt memMap) (UInt256.ofNat 8)
@@ -6657,12 +6659,12 @@ theorem flapperTendX_payCallDepthLimit
 theorem flapperTendX_payCallFailure
     {σ τ σ₀ A I} {g : Sat256} {sel gem : UInt256}
     {mem out : ByteArray} {k C : ℕ}
-    (rd2703 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2703⟩
+    (rd2703 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2703⟩
       (⟨0⟩ :: yankMoveEndPtr :: yankMoveSelectorWord ::
         gem :: tendBidWord I :: tendLotWord I :: tendIdWord I :: ⟨360⟩ :: sel :: [])
       mem (UInt256.ofNat 8) out τ k C)
     (houtSize : out.size < UInt256.size) :
-    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flapperBytecode g (initState σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨2703⟩) (okPc := ⟨2719⟩) rd2703
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -6674,11 +6676,11 @@ theorem flapperTendX_payCallSuccessToTail
     {σ τ σ₀ A I} {g : Sat256} {sel status gem : UInt256}
     {mem out : ByteArray} {k C : ℕ}
     (hstatus : status ≠ ⟨0⟩)
-    (rd2703 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2703⟩
+    (rd2703 : RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2703⟩
       (status :: yankMoveEndPtr :: yankMoveSelectorWord ::
         gem :: tendBidWord I :: tendLotWord I :: tendIdWord I :: ⟨360⟩ :: sel :: [])
       mem (UInt256.ofNat 8) out τ k C) :
-    ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2721⟩
+    ∃ k' C', RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2721⟩
       (yankMoveEndPtr :: yankMoveSelectorWord ::
         gem :: tendBidWord I :: tendLotWord I :: tendIdWord I :: ⟨360⟩ :: sel :: [])
       mem (UInt256.ofNat 8) out τ k' C' := by
@@ -6701,14 +6703,14 @@ theorem flapperTendBodyCoreNotLive
     (hdecode :
       config.externalABI.decodeCalldata? (tendTransition.params.map Param.name)
         (transitionSignature tendTransition).paramTypes I.calldata = some (tendLocals I))
-    (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨524⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hliveSteleWord : solcSlotWordAt ⟨7⟩ σ I ≠ ⟨1⟩ := hlive
   have hbody :
-      ExecTransitionBody config contract evmStele (tendLocals I)
+      ExecTransitionBody fork config contract evmStele (tendLocals I)
         tendTransition.body .reverted := by
     simpa [evmStele, tendLiveWord, solcSlotWordAt, initState, Stele.EVM.storageLoad,
       State.lookupAccount] using
@@ -6730,16 +6732,16 @@ theorem flapperTendBodyCoreGuyNotSet
     (hdecode :
       config.externalABI.decodeCalldata? (tendTransition.params.map Param.name)
         (transitionSignature tendTransition).paramTypes I.calldata = some (tendLocals I))
-    (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨524⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hliveSteleWord : solcSlotWordAt ⟨7⟩ σ I = ⟨1⟩ := hlive
   have hguySteleWord :
       solcAddressSlotWord (auctionPackedSlot (tendIdWord I)) σ I = ⟨0⟩ := hguy
   have hbody :
-      ExecTransitionBody config contract evmStele (tendLocals I)
+      ExecTransitionBody fork config contract evmStele (tendLocals I)
         tendTransition.body .reverted := by
     simpa [evmStele, tendLiveWord, tendGuyWord, solcSlotWordAt, solcAddressSlotWord,
       initState, Stele.EVM.storageLoad, State.lookupAccount] using
@@ -6766,10 +6768,10 @@ theorem flapperTendBodyCoreTicFinished
     (hdecode :
       config.externalABI.decodeCalldata? (tendTransition.params.map Param.name)
         (transitionSignature tendTransition).paramTypes I.calldata = some (tendLocals I))
-    (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨524⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hliveSteleWord : solcSlotWordAt ⟨7⟩ σ I = ⟨1⟩ := hlive
   have hguySteleWord :
@@ -6780,7 +6782,7 @@ theorem flapperTendBodyCoreTicFinished
       (uint48Offset20Word (auctionPackedSlot (tendIdWord I)) σ I).toNat ≤
         (UInt256.ofNat I.header.timestamp).toNat := hticLe
   have hbody :
-      ExecTransitionBody config contract evmStele (tendLocals I)
+      ExecTransitionBody fork config contract evmStele (tendLocals I)
         tendTransition.body .reverted := by
     simpa [evmStele, tendLiveWord, tendGuyWord, tendTicWord, tendTimestampWord,
       solcSlotWordAt, solcAddressSlotWord, initState, Stele.EVM.storageLoad,
@@ -6814,10 +6816,10 @@ theorem flapperTendBodyCoreEndFinished
     (hdecode :
       config.externalABI.decodeCalldata? (tendTransition.params.map Param.name)
         (transitionSignature tendTransition).paramTypes I.calldata = some (tendLocals I))
-    (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨524⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let id := tendIdWord I
   let packedSlot := auctionPackedSlot id
@@ -6841,14 +6843,14 @@ theorem flapperTendBodyCoreEndFinished
   have hendLeStele : (tendEndWord evmStele I).toNat ≤ (tendTimestampWord evmStele).toNat := by
     simpa [evmStele, tendEndWord, tendTimestampWord, initState] using hendLe
   have hbody :
-      ExecTransitionBody config contract evmStele (tendLocals I)
+      ExecTransitionBody fork config contract evmStele (tendLocals I)
         tendTransition.body .reverted := by
     exact flapperTendBodyReverts_endFinished evmStele I
       (by simpa [evmStele, initState] using hwv) hliveStele hguyStele
       hticOkStele hendLeStele
   have hdecoded :=
     flapperTendX_decoded (g := Sat256.ofUInt256 g) hsz100 hsize hreach
-  have hrev : RDrev flapperBytecode (Sat256.ofUInt256 g)
+  have hrev : RDrev fork flapperBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
     cases hticOk with
     | inl hticGt =>
@@ -6934,10 +6936,10 @@ theorem flapperTendBodyCoreLotMismatch
     (hdecode :
       config.externalABI.decodeCalldata? (tendTransition.params.map Param.name)
         (transitionSignature tendTransition).paramTypes I.calldata = some (tendLocals I))
-    (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨524⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let id := tendIdWord I
   let packedSlot := auctionPackedSlot id
@@ -6964,14 +6966,14 @@ theorem flapperTendBodyCoreLotMismatch
     apply hlot
     simpa [evmStele, tendLotStoredWord, initState] using hlotEq
   have hbody :
-      ExecTransitionBody config contract evmStele (tendLocals I)
+      ExecTransitionBody fork config contract evmStele (tendLocals I)
         tendTransition.body .reverted := by
     exact flapperTendBodyReverts_lotMismatch evmStele I
       (by simpa [evmStele, initState] using hwv) hliveStele hguyStele
       hticOkStele hendGtStele hlotStele
   have hdecoded :=
     flapperTendX_decoded (g := Sat256.ofUInt256 g) hsz100 hsize hreach
-  have hrev : RDrev flapperBytecode (Sat256.ofUInt256 g)
+  have hrev : RDrev fork flapperBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
     cases hticOk with
     | inl hticGt =>
@@ -7078,10 +7080,10 @@ theorem flapperTendBodyCoreBidNotHigher
     (hdecode :
       config.externalABI.decodeCalldata? (tendTransition.params.map Param.name)
         (transitionSignature tendTransition).paramTypes I.calldata = some (tendLocals I))
-    (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨524⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let id := tendIdWord I
   let packedSlot := auctionPackedSlot id
@@ -7109,14 +7111,14 @@ theorem flapperTendBodyCoreBidNotHigher
       (tendBidWord I).toNat ≤ (tendBidStoredWord evmStele I).toNat := by
     simpa [evmStele, tendBidStoredWord, initState] using hbidLe
   have hbody :
-      ExecTransitionBody config contract evmStele (tendLocals I)
+      ExecTransitionBody fork config contract evmStele (tendLocals I)
         tendTransition.body .reverted := by
     exact flapperTendBodyReverts_bidNotHigher evmStele I
       (by simpa [evmStele, initState] using hwv) hliveStele hguyStele
       hticOkStele hendGtStele hlotStele hbidLeStele
   have hdecoded :=
     flapperTendX_decoded (g := Sat256.ofUInt256 g) hsz100 hsize hreach
-  have hrev : RDrev flapperBytecode (Sat256.ofUInt256 g)
+  have hrev : RDrev fork flapperBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
     cases hticOk with
     | inl hticGt =>
@@ -7248,10 +7250,10 @@ theorem flapperTendBodyCoreInsufficientIncrease
     (hdecode :
       config.externalABI.decodeCalldata? (tendTransition.params.map Param.name)
         (transitionSignature tendTransition).paramTypes I.calldata = some (tendLocals I))
-    (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨524⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmEvm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let id := tendIdWord I
@@ -7288,14 +7290,14 @@ theorem flapperTendBodyCoreInsufficientIncrease
     simpa [evmEvm, evmStele, tendBegBidWord, tendBegWord, tendBidStoredWord,
       initState] using hinsuff
   have hbody :
-      ExecTransitionBody config contract evmStele (tendLocals I)
+      ExecTransitionBody fork config contract evmStele (tendLocals I)
         tendTransition.body .reverted := by
     exact flapperTendBodyReverts_insufficientIncrease evmStele I
       (by simpa [evmStele, initState] using hwv) hliveStele hguyStele
       hticOkStele hendGtStele hlotStele hbidGtStele hbidOneFit hbegBidFitStele hinsuffStele
   have hdecoded :=
     flapperTendX_decoded (g := Sat256.ofUInt256 g) hsz100 hsize hreach
-  have hrev : RDrev flapperBytecode (Sat256.ofUInt256 g)
+  have hrev : RDrev fork flapperBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
     cases hticOk with
     | inl hticGt =>
@@ -7442,10 +7444,10 @@ theorem flapperTendBodyCoreBidOneOverflow
     (hdecode :
       config.externalABI.decodeCalldata? (tendTransition.params.map Param.name)
         (transitionSignature tendTransition).paramTypes I.calldata = some (tendLocals I))
-    (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨524⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let id := tendIdWord I
   let packedSlot := auctionPackedSlot id
@@ -7473,14 +7475,14 @@ theorem flapperTendBodyCoreBidOneOverflow
       (tendBidStoredWord evmStele I).toNat < (tendBidWord I).toNat := by
     simpa [evmStele, tendBidStoredWord, initState] using hbidGt
   have hbody :
-      ExecTransitionBody config contract evmStele (tendLocals I)
+      ExecTransitionBody fork config contract evmStele (tendLocals I)
         tendTransition.body .reverted := by
     exact flapperTendBodyReverts_bidOneOverflow evmStele I
       (by simpa [evmStele, initState] using hwv) hliveStele hguyStele
       hticOkStele hendGtStele hlotStele hbidGtStele hoverflow
   have hdecoded :=
     flapperTendX_decoded (g := Sat256.ofUInt256 g) hsz100 hsize hreach
-  have hrev : RDrev flapperBytecode (Sat256.ofUInt256 g)
+  have hrev : RDrev fork flapperBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
     cases hticOk with
     | inl hticGt =>
@@ -7533,10 +7535,10 @@ theorem flapperTendBodyCoreBegBidOverflow
     (hdecode :
       config.externalABI.decodeCalldata? (tendTransition.params.map Param.name)
         (transitionSignature tendTransition).paramTypes I.calldata = some (tendLocals I))
-    (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨524⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let id := tendIdWord I
   let packedSlot := auctionPackedSlot id
@@ -7567,7 +7569,7 @@ theorem flapperTendBodyCoreBegBidOverflow
       UInt256.size ≤ (tendBegWord evmStele).toNat * (tendBidStoredWord evmStele I).toNat := by
     simpa [evmStele, tendBegWord, tendBidStoredWord, initState] using hoverflow
   have hbody :
-      ExecTransitionBody config contract evmStele (tendLocals I)
+      ExecTransitionBody fork config contract evmStele (tendLocals I)
         tendTransition.body .reverted := by
     by_cases hbidOneFit : (tendBidWord I).toNat * tendOneWord.toNat < UInt256.size
     · exact flapperTendBodyReverts_begBidOverflow evmStele I
@@ -7578,7 +7580,7 @@ theorem flapperTendBodyCoreBegBidOverflow
         hticOkStele hendGtStele hlotStele hbidGtStele (Nat.le_of_not_gt hbidOneFit)
   have hdecoded :=
     flapperTendX_decoded (g := Sat256.ofUInt256 g) hsz100 hsize hreach
-  have hrev : RDrev flapperBytecode (Sat256.ofUInt256 g)
+  have hrev : RDrev fork flapperBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
     cases hticOk with
     | inl hticGt =>
@@ -7645,13 +7647,13 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
     ∀ {memCaller : ByteArray} {k C : ℕ},
       memCaller.size = 96 →
       memCaller.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ →
-      RD flapperBytecode I (Sat256.ofUInt256 g)
+      RD fork flapperBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2429⟩
         [UInt256.eq (UInt256.ofNat I.source.val)
           (solcAddressSlotWord (auctionPackedSlot (tendIdWord I)) σ I),
           tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
         memCaller (UInt256.ofNat 3) ByteArray.empty σ k C →
-      runtimeRefinementFor config contract σ σ₀ g A I := by
+      runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmEvm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let id := tendIdWord I
@@ -7698,7 +7700,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
         (σ := σ) (sel := sel) (by simpa [packedSlot, id] using hcallerEq)
         (by simpa [evmEvm] using rd2429)
     have hskipRefund :
-        ExecBlock config { contract := contract, locals := tendBegBidLocals evmStele I }
+        ExecBlock fork config { contract := contract, locals := tendBegBidLocals evmStele I }
           evmStele
           [.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
             (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
@@ -7714,11 +7716,11 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
         Reasoning.Theory.extCodeSizeWord σ
           (solcAddressSlotWord ⟨3⟩ σ I) = ⟨0⟩
     · have hpayTail :=
-        flapperTendPayNoCodeTail evmStele I (tendBegBidLocals evmStele I)
+        flapperTendPayNoCodeTail (fork := fork) evmStele I (tendBegBidLocals evmStele I)
           (tendBegBidLocals_get_gem evmStele I)
           (by simpa [evmStele, tendGemWord, initState] using hpayNoCode)
       have htail :
-          ExecBlock config { contract := contract, locals := tendBegBidLocals evmStele I }
+          ExecBlock fork config { contract := contract, locals := tendBegBidLocals evmStele I }
             evmStele
             ([.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
               (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
@@ -7738,12 +7740,12 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
         simpa [List.append_assoc] using
          execBlock_append hskipRefund hpayTail
       have hbody :
-          ExecTransitionBody config contract evmStele (tendLocals I) tendTransition.body
+          ExecTransitionBody fork config contract evmStele (tendLocals I) tendTransition.body
             .reverted := by
         exact flapperTendBodyReverts_afterIncrease evmStele I
           (by simpa [evmStele, initState] using hwv) hliveStele hguyStele hticOkStele
           hendGtStele hlotStele hbidGtStele hbidOneFit hbegBidFitStele hsuffStele htail
-      exact (flapperTendX_payNoCode (σ := σ) (τ := σ) (sel := sel)
+      exact (flapperTendX_payNoCode (fork := fork) (σ := σ) (τ := σ) (sel := sel)
           hpayNoCode hmemCaller hread64Caller
           (by simpa [evmEvm, id] using rd2598))
         |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
@@ -7758,7 +7760,8 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
         let amt := UInt256.sub (tendBidWord I) oldBid
         let encMem := twoWordHashMem id ⟨1⟩ memCaller
         let evmPayStele : EVM.State :=
-          { evmStele with substate := (evmStele.addAccessedAccount target).substate }
+          { evmStele with substate := (Ethereum.EVM.callSubstate fork
+            evmStele.accountMap target evmStele.substate) }
         have hencMem : encMem.size = 96 := by
           simpa [encMem, id] using twoWordHashMem_size_96 id ⟨1⟩ hmemCaller
         have hcd :
@@ -7771,7 +7774,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
             (by simpa [src] using hsrcCanon) (by simpa [this] using hthisCanon)
           simpa [evmStele, initState, src, this, hsrcAddr, hthisAddr] using hraw
         have hpayCall :
-            typedCallViaEVM config evmStele target "move" 0
+            typedCallViaEVM fork config evmStele target "move" 0
               [.address evmStele.executionEnv.source, .address evmStele.executionEnv.codeOwner,
                 .int (Int.ofNat (UInt256.sub (tendBidWord I)
                   (tendBidStoredWord evmStele I)).toNat)]
@@ -7792,7 +7795,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
             (by simpa [evmStele, tendGemWord, initState] using hpayCodeSize)
             hpayCall
         have htail :
-            ExecBlock config { contract := contract, locals := tendBegBidLocals evmStele I }
+            ExecBlock fork config { contract := contract, locals := tendBegBidLocals evmStele I }
               evmStele
               ([.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
                 (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
@@ -7812,7 +7815,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
           simpa [List.append_assoc] using
            execBlock_append hskipRefund hpayTail
         have hbody :
-            ExecTransitionBody config contract evmStele (tendLocals I) tendTransition.body
+            ExecTransitionBody fork config contract evmStele (tendLocals I) tendTransition.body
               .reverted := by
           exact flapperTendBodyReverts_afterIncrease evmStele I
             (by simpa [evmStele, initState] using hwv) hliveStele hguyStele hticOkStele
@@ -7835,7 +7838,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
               accountMap := σPay
               substate := APay }
         have hpayCallStele :
-            typedCallViaEVM config evmStele
+            typedCallViaEVM fork config evmStele
               (EVM.address (AccountAddress.ofNat (tendGemWord evmStele).toNat)) "move" 0
               [.address evmStele.executionEnv.source, .address evmStele.executionEnv.codeOwner,
                 .int (Int.ofNat (UInt256.sub (tendBidWord I)
@@ -7846,7 +7849,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
         have hpayEnv : evmPayStele.executionEnv = I := by
           simp [evmPayStele, evmStele, initState]
         by_cases hzPay : zPay = true
-        · have rd2703True : RD flapperBytecode I (Sat256.ofUInt256 g)
+        · have rd2703True : RD fork flapperBytecode I (Sat256.ofUInt256 g)
               (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2703⟩
               (⟨1⟩ :: yankMoveEndPtr :: yankMoveSelectorWord ::
                 solcAddressSlotWord ⟨3⟩ σ I :: tendBidWord I :: tendLotWord I ::
@@ -7859,7 +7862,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
               (UInt256.ofNat 8) outPay σPay k2703 C2703 := by
             simpa [evmEvm, hzPay, id] using rd2703
           have hpayCallTrue :
-              typedCallViaEVM config evmStele
+              typedCallViaEVM fork config evmStele
                 (EVM.address (AccountAddress.ofNat (tendGemWord evmStele).toNat)) "move" 0
                 [.address evmStele.executionEnv.source, .address evmStele.executionEnv.codeOwner,
                   .int (Int.ofNat (UInt256.sub (tendBidWord I)
@@ -7896,7 +7899,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                     (tendTtlWord (tendAfterBidStore evmPayStele I)).toNat < 2 ^ 48 := by
               simpa [tendNow48Word, tendTimestampWord, hpayEnv, httl] using haddFit
             have hbody :
-                ExecTransitionBody config contract evmStele (tendLocals I) tendTransition.body
+                ExecTransitionBody fork config contract evmStele (tendLocals I) tendTransition.body
                   (.returned
                     { contract := contract,
                       locals := tendTicLocals (tendBegBidLocals evmStele I) evmPayStele I }
@@ -7936,7 +7939,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                 (by simpa [evmStele, tendGemWord, initState] using hpayCodeSize)
                 hpayCallTrue haddOverflowStele
             have htail :
-                ExecBlock config { contract := contract, locals := tendBegBidLocals evmStele I }
+                ExecBlock fork config { contract := contract, locals := tendBegBidLocals evmStele I }
                   evmStele
                   ([.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
                     (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
@@ -7956,7 +7959,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
               simpa [List.append_assoc] using
                execBlock_append hskipRefund hpayTail
             have hbody :
-                ExecTransitionBody config contract evmStele (tendLocals I) tendTransition.body
+                ExecTransitionBody fork config contract evmStele (tendLocals I) tendTransition.body
                   .reverted := by
               exact flapperTendBodyReverts_afterIncrease evmStele I
                 (by simpa [evmStele, initState] using hwv) hliveStele hguyStele hticOkStele
@@ -7964,7 +7967,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
             exact (flapperTendX_addOverflowFromTailAw8
                 (g := Sat256.ofUInt256 g) hperm haddOverflow rd2721)
               |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
-        · have rd2703False : RD flapperBytecode I (Sat256.ofUInt256 g)
+        · have rd2703False : RD fork flapperBytecode I (Sat256.ofUInt256 g)
               (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2703⟩
               (⟨0⟩ :: yankMoveEndPtr :: yankMoveSelectorWord ::
                 solcAddressSlotWord ⟨3⟩ σ I :: tendBidWord I :: tendLotWord I ::
@@ -7977,7 +7980,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
               (UInt256.ofNat 8) outPay σPay k2703 C2703 := by
             simpa [evmEvm, hzPay, id] using rd2703
           have hpayCallFalse :
-              typedCallViaEVM config evmStele
+              typedCallViaEVM fork config evmStele
                 (EVM.address (AccountAddress.ofNat (tendGemWord evmStele).toNat)) "move" 0
                 [.address evmStele.executionEnv.source, .address evmStele.executionEnv.codeOwner,
                   .int (Int.ofNat (UInt256.sub (tendBidWord I)
@@ -7992,7 +7995,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
               (by simpa [evmStele, tendGemWord, initState] using hpayCodeSize)
               hpayCallFalse
           have htail :
-              ExecBlock config { contract := contract, locals := tendBegBidLocals evmStele I }
+              ExecBlock fork config { contract := contract, locals := tendBegBidLocals evmStele I }
                 evmStele
                 ([.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
                   (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
@@ -8012,7 +8015,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
             simpa [List.append_assoc] using
              execBlock_append hskipRefund hpayTail
           have hbody :
-              ExecTransitionBody config contract evmStele (tendLocals I) tendTransition.body
+              ExecTransitionBody fork config contract evmStele (tendLocals I) tendTransition.body
                 .reverted := by
             exact flapperTendBodyReverts_afterIncrease evmStele I
               (by simpa [evmStele, initState] using hwv) hliveStele hguyStele hticOkStele
@@ -8036,10 +8039,10 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
         Reasoning.Theory.extCodeSizeWord σ
           (solcAddressSlotWord ⟨3⟩ σ I) = ⟨0⟩
     · have htail :=
-        flapperTendRefundNoCodeTail evmStele I hcallerNeStele
+        flapperTendRefundNoCodeTail (fork := fork) evmStele I hcallerNeStele
           (by simpa [evmStele, tendGemWord, initState] using hrefundNoCode)
       have hbody :
-          ExecTransitionBody config contract evmStele (tendLocals I) tendTransition.body
+          ExecTransitionBody fork config contract evmStele (tendLocals I) tendTransition.body
             .reverted := by
         exact flapperTendBodyReverts_afterIncrease evmStele I
           (by simpa [evmStele, initState] using hwv) hliveStele hguyStele hticOkStele
@@ -8057,7 +8060,8 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
         let oldBid := tendBidStoredWord evmStele I
         let encMem := twoWordHashMem id ⟨1⟩ memCaller
         let evmRefundFail : EVM.State :=
-          { evmStele with substate := (evmStele.addAccessedAccount target).substate }
+          { evmStele with substate := (Ethereum.EVM.callSubstate fork
+            evmStele.accountMap target evmStele.substate) }
         have hencMem : encMem.size = 96 := by
           simpa [encMem, id] using twoWordHashMem_size_96 id ⟨1⟩ hmemCaller
         have hguyCanon : guy.toNat < EVM.addressModulus := by
@@ -8074,7 +8078,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
             (by simpa [src] using hsrcCanon) hguyCanon
           simpa [evmStele, initState, src, hsrcAddr] using hraw
         have hrefundCall :
-            typedCallViaEVM config evmStele target "move" 0
+            typedCallViaEVM fork config evmStele target "move" 0
               [.address evmStele.executionEnv.source,
                 .address (AccountAddress.ofNat (tendGuyWord evmStele I).toNat),
                 .int (Int.ofNat (tendBidStoredWord evmStele I).toNat)]
@@ -8093,7 +8097,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
             (by simpa [evmStele, tendGemWord, initState] using hrefundCodeSize)
             hrefundCall
         have hbody :
-            ExecTransitionBody config contract evmStele (tendLocals I) tendTransition.body
+            ExecTransitionBody fork config contract evmStele (tendLocals I) tendTransition.body
               .reverted := by
           exact flapperTendBodyReverts_afterIncrease evmStele I
             (by simpa [evmStele, initState] using hwv) hliveStele hguyStele hticOkStele
@@ -8115,7 +8119,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
               accountMap := σRefund
               substate := ARefund }
         have hrefundCallStele :
-            typedCallViaEVM config evmStele
+            typedCallViaEVM fork config evmStele
               (EVM.address (AccountAddress.ofNat (tendGemWord evmStele).toNat)) "move" 0
               [.address evmStele.executionEnv.source,
                 .address (AccountAddress.ofNat (tendGuyWord evmStele I).toNat),
@@ -8125,7 +8129,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
             tendBidStoredWord, hsrcAddr, packedSlot, id]
             using hrefundCallSteleRaw
         by_cases hzRefund : zRefund = true
-        · have rd2544True : RD flapperBytecode I (Sat256.ofUInt256 g)
+        · have rd2544True : RD fork flapperBytecode I (Sat256.ofUInt256 g)
               (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2544⟩
               (⟨1⟩ :: yankMoveEndPtr :: yankMoveSelectorWord ::
                 solcAddressSlotWord ⟨3⟩ σ I :: tendBidWord I :: tendLotWord I ::
@@ -8137,7 +8141,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
               (UInt256.ofNat 8) outRefund σRefund k2544 C2544 := by
             simpa [evmEvm, hzRefund, packedSlot, id] using rd2544
           have hrefundCallTrue :
-              typedCallViaEVM config evmStele
+              typedCallViaEVM fork config evmStele
                 (EVM.address (AccountAddress.ofNat (tendGemWord evmStele).toNat)) "move" 0
                 [.address evmStele.executionEnv.source,
                   .address (AccountAddress.ofNat (tendGuyWord evmStele I).toNat),
@@ -8219,11 +8223,11 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                   (solcAddressSlotWord ⟨3⟩ evmGuyStele.accountMap I) = ⟨0⟩ := by
               simpa only [← hpostGuyAccounts] using hpayNoCode
             have hpayTail :=
-              flapperTendPayNoCodeTail evmGuyStele I (tendRefundRetLocals evmStele I)
+              flapperTendPayNoCodeTail (fork := fork) evmGuyStele I (tendRefundRetLocals evmStele I)
                 (tendRefundRetLocals_get_gem evmStele I)
                 (by simpa [evmGuyStele, tendGemWord, hguyEnv] using hpayNoCodeStele)
             have htail :
-                ExecBlock config { contract := contract, locals := tendBegBidLocals evmStele I }
+                ExecBlock fork config { contract := contract, locals := tendBegBidLocals evmStele I }
                   evmStele
                   ([.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
                     (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
@@ -8243,12 +8247,12 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
               simpa [evmGuyStele] using
                execBlock_append hprefix hpayTail
             have hbody :
-                ExecTransitionBody config contract evmStele (tendLocals I) tendTransition.body
+                ExecTransitionBody fork config contract evmStele (tendLocals I) tendTransition.body
                   .reverted := by
               exact flapperTendBodyReverts_afterIncrease evmStele I
                 (by simpa [evmStele, initState] using hwv) hliveStele hguyStele hticOkStele
                 hendGtStele hlotStele hbidGtStele hbidOneFit hbegBidFitStele hsuffStele htail
-            exact (flapperTendX_payNoCodeAw8Mem228 (σ := σ) (τ := σGuy)
+            exact (flapperTendX_payNoCodeAw8Mem228 (fork := fork) (σ := σ) (τ := σGuy)
                 (sel := sel) hpayNoCode hpayStartMemSize hpayStartMemRead64
                 (by simpa [evmEvm, id, σGuy, payStartMem, refundCallMem, refundMemMap,
                   packedSlot] using rd2598Guy))
@@ -8273,7 +8277,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                   accountMap := σGuy
                   substate := ARefund }
             have hpayCallTransport :
-                typedCallViaEVM config evmGuyEvmForPay
+                typedCallViaEVM fork config evmGuyEvmForPay
                   (EVM.address (AccountAddress.ofNat
                     (solcAddressSlotWord ⟨3⟩ σGuy I).toNat)) "move" 0
                   [.address (AccountAddress.ofNat (UInt256.ofNat I.source.val).toNat),
@@ -8303,7 +8307,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                   accountMap := σPay
                   substate := APay }
             have hpayCallSteleRaw :
-                typedCallViaEVM config evmGuyStele
+                typedCallViaEVM fork config evmGuyStele
                   (EVM.address (AccountAddress.ofNat
                     (solcAddressSlotWord ⟨3⟩ σGuy I).toNat)) "move" 0
                   [.address (AccountAddress.ofNat (UInt256.ofNat I.source.val).toNat),
@@ -8318,7 +8322,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
               (fun accounts => solcSlotWordAt (auctionBidSlot id) accounts I)
               hpostGuyAccounts
             have hpayCallStele :
-                typedCallViaEVM config evmGuyStele
+                typedCallViaEVM fork config evmGuyStele
                   (EVM.address (AccountAddress.ofNat (tendGemWord evmGuyStele).toNat))
                   "move" 0
                   [.address evmGuyStele.executionEnv.source,
@@ -8336,7 +8340,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
             · have rd2703True := by
                 simpa [hzPay] using rd2703
               have hpayCallTrue :
-                  typedCallViaEVM config evmGuyStele
+                  typedCallViaEVM fork config evmGuyStele
                     (EVM.address (AccountAddress.ofNat (tendGemWord evmGuyStele).toNat))
                     "move" 0
                     [.address evmGuyStele.executionEnv.source,
@@ -8358,7 +8362,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                         (tendTtlWord (tendAfterBidStore evmPayStele I)).toNat < 2 ^ 48 := by
                   simpa [tendNow48Word, tendTimestampWord, hpayEnv, httl] using haddFit
                 have hbody :
-                    ExecTransitionBody config contract evmStele (tendLocals I)
+                    ExecTransitionBody fork config contract evmStele (tendLocals I)
                       tendTransition.body
                       (.returned
                         { contract := contract,
@@ -8406,7 +8410,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                     (by simpa [evmGuyStele, tendGemWord, hguyEnv] using hpayCodeSizeStele)
                     hpayCallTrue haddOverflowStele
                 have htail :
-                    ExecBlock config
+                    ExecBlock fork config
                       { contract := contract, locals := tendBegBidLocals evmStele I }
                       evmStele
                       ([.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
@@ -8427,7 +8431,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                   simpa [evmGuyStele] using
                    execBlock_append hprefix hpayTail
                 have hbody :
-                    ExecTransitionBody config contract evmStele (tendLocals I)
+                    ExecTransitionBody fork config contract evmStele (tendLocals I)
                       tendTransition.body .reverted := by
                   exact flapperTendBodyReverts_afterIncrease evmStele I
                     (by simpa [evmStele, initState] using hwv) hliveStele hguyStele hticOkStele
@@ -8438,7 +8442,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
             · have rd2703False := by
                 simpa [hzPay] using rd2703
               have hpayCallFalse :
-                  typedCallViaEVM config evmGuyStele
+                  typedCallViaEVM fork config evmGuyStele
                     (EVM.address (AccountAddress.ofNat (tendGemWord evmGuyStele).toNat))
                     "move" 0
                     [.address evmGuyStele.executionEnv.source,
@@ -8457,7 +8461,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                   (by simpa [evmGuyStele, tendGemWord, hguyEnv] using hpayCodeSizeStele)
                   hpayCallFalse
               have htail :
-                  ExecBlock config
+                  ExecBlock fork config
                     { contract := contract, locals := tendBegBidLocals evmStele I }
                     evmStele
                     ([.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
@@ -8478,14 +8482,14 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                 simpa [evmGuyStele] using
                  execBlock_append hprefix hpayTail
               have hbody :
-                  ExecTransitionBody config contract evmStele (tendLocals I)
+                  ExecTransitionBody fork config contract evmStele (tendLocals I)
                     tendTransition.body .reverted := by
                 exact flapperTendBodyReverts_afterIncrease evmStele I
                   (by simpa [evmStele, initState] using hwv) hliveStele hguyStele hticOkStele
                   hendGtStele hlotStele hbidGtStele hbidOneFit hbegBidFitStele hsuffStele htail
               exact (flapperTendX_payCallFailure rd2703False houtPaySize)
                 |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
-        · have rd2544False : RD flapperBytecode I (Sat256.ofUInt256 g)
+        · have rd2544False : RD fork flapperBytecode I (Sat256.ofUInt256 g)
               (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2544⟩
               (⟨0⟩ :: yankMoveEndPtr :: yankMoveSelectorWord ::
                 solcAddressSlotWord ⟨3⟩ σ I :: tendBidWord I :: tendLotWord I ::
@@ -8497,7 +8501,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
               (UInt256.ofNat 8) outRefund σRefund k2544 C2544 := by
             simpa [evmEvm, hzRefund, packedSlot, id] using rd2544
           have hrefundCallFalse :
-              typedCallViaEVM config evmStele
+              typedCallViaEVM fork config evmStele
                 (EVM.address (AccountAddress.ofNat (tendGemWord evmStele).toNat)) "move" 0
                 [.address evmStele.executionEnv.source,
                   .address (AccountAddress.ofNat (tendGuyWord evmStele I).toNat),
@@ -8510,7 +8514,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
               (by simpa [evmStele, tendGemWord, initState] using hrefundCodeSize)
               hrefundCallFalse
           have hbody :
-              ExecTransitionBody config contract evmStele (tendLocals I) tendTransition.body
+              ExecTransitionBody fork config contract evmStele (tendLocals I) tendTransition.body
                 .reverted := by
             exact flapperTendBodyReverts_afterIncrease evmStele I
               (by simpa [evmStele, initState] using hwv) hliveStele hguyStele hticOkStele
@@ -8727,10 +8731,10 @@ theorem flapperTendX_toCallerEqGuard_ticGtPrefixRD
     (hsuff :
       (tendBegBidWord (initState σ σ₀ g A I) I).toNat ≤
         (tendBidOneWord I).toNat)
-    (hdecoded : ∃ k C, RD flapperBytecode I g (initState σ σ₀ g A I)
+    (hdecoded : ∃ k C, RD fork flapperBytecode I g (initState σ σ₀ g A I)
       ⟨1630⟩ [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2429⟩
+    ∃ k C, RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2429⟩
       [UInt256.eq (UInt256.ofNat I.source.val)
         (solcAddressSlotWord (auctionPackedSlot (tendIdWord I)) σ I),
         tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
@@ -8780,10 +8784,10 @@ theorem flapperTendX_toCallerEqGuard_ticZeroPrefixRD
     (hsuff :
       (tendBegBidWord (initState σ σ₀ g A I) I).toNat ≤
         (tendBidOneWord I).toNat)
-    (hdecoded : ∃ k C, RD flapperBytecode I g (initState σ σ₀ g A I)
+    (hdecoded : ∃ k C, RD fork flapperBytecode I g (initState σ σ₀ g A I)
       ⟨1630⟩ [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2429⟩
+    ∃ k C, RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2429⟩
       [UInt256.eq (UInt256.ofNat I.source.val)
         (solcAddressSlotWord (auctionPackedSlot (tendIdWord I)) σ I),
         tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
@@ -8835,13 +8839,13 @@ theorem flapperTendX_toCallerEqGuard_ticGtPrefix
     (hsuff :
       (tendBegBidWord (initState σ σ₀ g A I) I).toNat ≤
         (tendBidOneWord I).toNat)
-    (hdecoded : ∃ k C, RD flapperBytecode I g (initState σ σ₀ g A I)
+    (hdecoded : ∃ k C, RD fork flapperBytecode I g (initState σ σ₀ g A I)
       ⟨1630⟩ [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ (memCaller : ByteArray) (k C : ℕ),
       memCaller.size = 96 ∧
       memCaller.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ ∧
-      RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2429⟩
+      RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2429⟩
         [UInt256.eq (UInt256.ofNat I.source.val)
           (solcAddressSlotWord (auctionPackedSlot (tendIdWord I)) σ I),
           tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
@@ -8871,13 +8875,13 @@ theorem flapperTendX_toCallerEqGuard_ticZeroPrefix
     (hsuff :
       (tendBegBidWord (initState σ σ₀ g A I) I).toNat ≤
         (tendBidOneWord I).toNat)
-    (hdecoded : ∃ k C, RD flapperBytecode I g (initState σ σ₀ g A I)
+    (hdecoded : ∃ k C, RD fork flapperBytecode I g (initState σ σ₀ g A I)
       ⟨1630⟩ [tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ (memCaller : ByteArray) (k C : ℕ),
       memCaller.size = 96 ∧
       memCaller.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ ∧
-      RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2429⟩
+      RD fork flapperBytecode I g (initState σ σ₀ g A I) ⟨2429⟩
         [UInt256.eq (UInt256.ofNat I.source.val)
           (solcAddressSlotWord (auctionPackedSlot (tendIdWord I)) σ I),
           tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
@@ -8918,10 +8922,10 @@ theorem flapperTendBodyCoreIncreaseSufficient
     (hdecode :
       config.externalABI.decodeCalldata? (tendTransition.params.map Param.name)
         (transitionSignature tendTransition).paramTypes I.calldata = some (tendLocals I))
-    (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨524⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmEvm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let id := tendIdWord I
@@ -8981,13 +8985,13 @@ theorem flapperTendBodyCoreIncreaseSufficient
       ∀ {memCaller : ByteArray} {k C : ℕ},
         memCaller.size = 96 →
         memCaller.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ →
-        RD flapperBytecode I (Sat256.ofUInt256 g)
+        RD fork flapperBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2429⟩
           [UInt256.eq (UInt256.ofNat I.source.val)
             (solcAddressSlotWord (auctionPackedSlot (tendIdWord I)) σ I),
             tendBidWord I, tendLotWord I, tendIdWord I, ⟨360⟩, sel]
           memCaller (UInt256.ofNat 3) ByteArray.empty σ k C →
-        runtimeRefinementFor config contract σ σ₀ g A I := by
+        runtimeRefinementFor fork config contract σ σ₀ g A I := by
     intro memCaller k C hmemCaller hread64Caller rd2429
     exact flapperTendBodyCoreIncreaseSufficient_finishFromGuard
       (σ := σ)
@@ -9016,10 +9020,10 @@ theorem flapperTendBodyCoreDecodeFailed_short
     (hcode : I.code = flapperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 100)
     (hdispatch : dispatchMsg contract I.calldata = some tendTransition)
-    (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨524⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact (flapperTendX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch (flapperDecode_tend_none_short hsz4 hshort)
 
@@ -9028,12 +9032,12 @@ theorem flapperTendBodyCore {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flapperSelBytes 14)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flapperSelBytes 14) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some tendTransition :=
     flapperDispatchTend hsel
-  have hreach := flapperReachTendBody
+  have hreach := flapperReachTendBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz100 : 100 ≤ I.calldata.size

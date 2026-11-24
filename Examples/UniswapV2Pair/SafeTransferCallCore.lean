@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.SafeTransferReturnCore
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -11,7 +13,7 @@ theorem uniswapSafeTransferDynamicCallRuntimeCases_of_zeroSlot
     {mem rdata : ByteArray} {ptr aw value toWord tokenWord ret : UInt256} {R : List UInt256} {k C : Nat}
     {caller : Frame} {tokenExpr toExpr valueExpr : Expr} {retVar : Ident}
     (evm : EVM.State) (token recipient : AccountAddress)
-    (rd6370 : RD uniswapV2PairBytecode I g s0 ⟨6370⟩
+    (rd6370 : RD fork uniswapV2PairBytecode I g s0 ⟨6370⟩
       (value :: toWord :: tokenWord :: ret :: R) mem aw rdata σ k C)
     (hAccounts : σ = evm.accountMap) (henv : evm.executionEnv = I)
     (hσ0 : evm.σ₀ = s0.σ₀)
@@ -26,13 +28,13 @@ theorem uniswapSafeTransferDynamicCallRuntimeCases_of_zeroSlot
     (h64 : mem.readWithPadding 64 32 = ptr.toByteArray) (h96 : (safeTransferDynamicCallMem2 mem ptr toWord value).readWithPadding 96 32 = (⟨0⟩ : UInt256).toByteArray)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true) (hov : R.length + 20 ≤ 1024)
     (himm : caller.immutables = ∅ := by first | rfl | assumption) :
-    (ExecStmt config caller evm (.internalCall "_safeTransfer" [tokenExpr, toExpr, valueExpr] retVar)
-      .reverted ∧ RDrev uniswapV2PairBytecode g s0) ∨
+    (ExecStmt fork config caller evm (.internalCall "_safeTransfer" [tokenExpr, toExpr, valueExpr] retVar)
+      .reverted ∧ RDrev fork uniswapV2PairBytecode g s0) ∨
     (∃ evm' σ' out k' C',
-      ExecStmt config caller evm (.internalCall "_safeTransfer" [tokenExpr, toExpr, valueExpr] retVar)
+      ExecStmt fork config caller evm (.internalCall "_safeTransfer" [tokenExpr, toExpr, valueExpr] retVar)
         (.ok (resumeAfterInternalCall caller retVar none) evm') ∧
       σ' = evm'.accountMap ∧ evm'.σ₀ = s0.σ₀ ∧ evm'.executionEnv = I ∧
-      out.size < 2 ^ 138 ∧ RD uniswapV2PairBytecode I g s0 ret R
+      out.size < 2 ^ 138 ∧ RD fork uniswapV2PairBytecode I g s0 ret R
         (safeTransferDynamicFinalMem mem ptr toWord value out) (safeTransferDynamicFinalWords aw ptr out) out σ' k' C') := by
   have hnumeric : 2 ^ 255 + 1024 + 2 ^ 138 + 355 < UInt256.size := by native_decide
   have hc64 : (⟨64⟩ : UInt256).toNat + 32 ≤ aw.toNat * 32 := by change 64 + 32 ≤ _; omega
@@ -43,7 +45,7 @@ theorem uniswapSafeTransferDynamicCallRuntimeCases_of_zeroSlot
     RD.uniswapSafeTransferDynamicEntryToCallMadeBounded rd6370 hmload haw64 (by omega) hgap (by omega) hbase haw (by omega) hdepth hov
   obtain ⟨evm', hcallRaw, hpost, hs, he⟩ := rawZeroCall_source_of_theta
     hAccounts henv hσ0 hdepth hperm hΘ
-  have hcall : callViaEVM evm (EVM.address token) 0
+  have hcall : callViaEVM fork evm (EVM.address token) 0
       ((transferCalldataMem (UInt256.land solcAddrMask toWord) value).readWithPadding 128 68) (z, evm', out) := by
     simpa only [htoken] using hcallRaw
   have hdata : transferCalldata? recipient value =

@@ -1,6 +1,8 @@
 import Benchmarks.Safe.Runs1e6.EcrecoverMemory
 import Benchmarks.Safe.Runs1e6.Blocks.Runtime_016
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Runs1e6.RuntimeBlocks
 
@@ -44,11 +46,11 @@ theorem ecrecoverPointerArithmetic {ptr : Nat} (hb : ptr + 160 < UInt256.size) :
 
 theorem safeEcrecoverEthSignPrepare {I g s0 σ k C aw mem rdata ptr} {p : EcrecoverInput}
     {x : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨2763⟩
+    (h : RD fork safeBytecode I g s0 ⟨2763⟩
       (p.v :: p.digest :: ⟨1⟩ :: x :: p.s :: p.r :: R) mem aw rdata σ k C)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr) (hp : 96 ≤ ptr)
     (hb : ptr + 160 < UInt256.size) (hv : p.v.toNat < 256) (hov : R.length + 11 ≤ 1024) :
-    ∃ gasArg aw' k' C', RD safeBytecode I g s0 ⟨2824⟩
+    ∃ gasArg aw' k' C', RD fork safeBytecode I g s0 ⟨2824⟩
       (gasArg :: ⟨1⟩ :: UInt256.ofNat (ptr + 32) :: ⟨128⟩ :: UInt256.ofNat ptr :: ⟨32⟩ ::
         UInt256.ofNat (ptr + 160) :: ⟨1⟩ :: x :: p.s :: p.r :: R)
       (ecrecoverInputMemory mem ptr p) aw' rdata σ k' C' := by
@@ -65,11 +67,11 @@ theorem safeEcrecoverEthSignPrepare {I g s0 σ k C aw mem rdata ptr} {p : Ecreco
 
 theorem safeEcrecoverPlainPrepare {I g s0 σ k C aw mem rdata ptr} {p : EcrecoverInput}
     {x y a b c : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨2856⟩
+    (h : RD fork safeBytecode I g s0 ⟨2856⟩
       (x :: p.s :: p.r :: p.v :: y :: a :: b :: c :: p.digest :: R) mem aw rdata σ k C)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr) (hp : 96 ≤ ptr)
     (hb : ptr + 160 < UInt256.size) (hv : p.v.toNat < 256) (hov : R.length + 17 ≤ 1024) :
-    ∃ gasArg aw' k' C', RD safeBytecode I g s0 ⟨2921⟩
+    ∃ gasArg aw' k' C', RD fork safeBytecode I g s0 ⟨2921⟩
       (gasArg :: ⟨1⟩ :: UInt256.ofNat (ptr + 32) :: ⟨128⟩ :: UInt256.ofNat ptr :: ⟨32⟩ ::
         UInt256.ofNat (ptr + 160) :: ⟨1⟩ :: x :: p.s :: p.r :: p.v :: y :: a :: b :: c ::
         p.digest :: R) (ecrecoverInputMemory mem ptr p) aw' rdata σ k' C' := by

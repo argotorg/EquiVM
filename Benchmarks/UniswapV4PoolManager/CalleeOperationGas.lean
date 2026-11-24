@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.RecursiveOperationPotential
 import Benchmarks.UniswapV4PoolManager.CalleeMemoryGas
 
+variable {fork : Ethereum.Fork}
+
 open Ethereum Ethereum.EVM Reasoning.Theory
 namespace Benchmarks.UniswapV4PoolManager
 
@@ -11,21 +13,21 @@ noncomputable def executionPotential (s : State) : Nat :=
 theorem step_operationPotentialGas_return {gasCost : Nat} {w : Operation}
     {arg : Option (UInt256 × Nat)} {s s' : State}
     (hle : gasCost ≤ s.machineState.gasAvailable.toNat)
-    (hcost : gasCost = C' s w) (h : step gasCost (w, arg) s = .ok s') :
+    (hcost : gasCost = C' fork s w) (h : step fork gasCost (w, arg) s = .ok s') :
     operationPotential s'+s'.machineState.gasAvailable.toNat+(if w = .RETURN then 4 else 0) ≤
       operationPotential s+s.machineState.gasAvailable.toNat := by
   by_cases hw : w = .RETURN
   · subst w
     rw [if_pos rfl]
     have hp := (step_return_potential h).1
-    have hg := step_gas_le h
+    have hg := step_gas_le (fork := fork) h
     omega
   · rw [if_neg hw, Nat.add_zero]
     exact step_operationPotentialGas_le hle hcost h
 
 theorem Xstep_executionPotential_return {validJumps : Array UInt256} {s s' : State}
     {result : Option (HaltCause × ByteArray)}
-    (h : Xstep validJumps s = .ok (s', result)) :
+    (h : Xstep fork validJumps s = .ok (s', result)) :
     executionPotential s'+
         (if ((decode s.executionEnv.code s.machineState.pc).getD (.STOP, none)).1 = .RETURN then 4 else 0) ≤
       executionPotential s := by
@@ -33,10 +35,10 @@ theorem Xstep_executionPotential_return {validJumps : Array UInt256} {s s' : Sta
   cases hinstr : (decode s.executionEnv.code s.machineState.pc).getD (.STOP, none) with
   | mk w arg =>
     simp [hinstr, bind, Except.bind] at h
-    cases hZ : Z validJumps w s <;> simp [hZ] at h
+    cases hZ : Z fork validJumps w s <;> simp [hZ] at h
     rename_i z
     rcases z with ⟨stateZ, cost⟩
-    cases hstep : step cost (w, arg) {stateZ with executionEnv.depth := s.executionEnv.depth} <;>
+    cases hstep : step fork cost (w, arg) {stateZ with executionEnv.depth := s.executionEnv.depth} <;>
       simp [hstep] at h
     rename_i stateStep
     have hm := memoryCostGas_after_Z_le (by simpa using hZ)
@@ -45,16 +47,16 @@ theorem Xstep_executionPotential_return {validJumps : Array UInt256} {s s' : Sta
         operationPotential s := by simp only [operationPotential, heq.1, heq.2.2]
     have he : memoryExpansionWords {stateZ with executionEnv.depth := s.executionEnv.depth} w =
         memoryExpansionWords s w := memoryExpansionWords_congr w heq.1 heq.2.1
-    have ha := step_activeWords_le_memoryExpansionWords hstep
+    have ha := step_activeWords_le_memoryExpansionWords (fork := fork) hstep
     rw [he] at ha
     have hcm : Cₘ stateStep.machineState.activeWords ≤ Cₘ (.ofNat (memoryExpansionWords s w)) := by
       rw [← u256_ofNat_toNat stateStep.machineState.activeWords]
       exact Cₘ_monotone_of_lt ha (memoryExpansionWords_lt_uint256_size s w)
-    have hc : cost = C' {stateZ with executionEnv.depth := s.executionEnv.depth} w := by
+    have hc : cost = C' fork {stateZ with executionEnv.depth := s.executionEnv.depth} w := by
       rw [C'_set_depth]
       exact Z_cost_eq_C' (by simpa using hZ)
     have hpaid := Z_cost_le (evmState' := stateZ) (by simpa using hZ)
-    have hp := step_operationPotentialGas_return
+    have hp := step_operationPotentialGas_return (fork := fork)
       (s := {stateZ with executionEnv.depth := s.executionEnv.depth}) hpaid hc hstep
     rw [hop] at hp
     have htotal : executionPotential stateStep+(if w = .RETURN then 4 else 0) ≤ executionPotential s := by
@@ -68,7 +70,7 @@ theorem Xstep_executionPotential_return {validJumps : Array UInt256} {s s' : Sta
 
 theorem Xstep_executionPotential_le {validJumps : Array UInt256} {s s' : State}
     {result : Option (HaltCause × ByteArray)}
-    (h : Xstep validJumps s = .ok (s', result)) : executionPotential s' ≤ executionPotential s := by
+    (h : Xstep fork validJumps s = .ok (s', result)) : executionPotential s' ≤ executionPotential s := by
   have := Xstep_executionPotential_return h
   omega
 

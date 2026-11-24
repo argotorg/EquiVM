@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.TickLogTrace
 import Benchmarks.UniswapV4PoolManager.TickPriceFinishTrace
 import Benchmarks.UniswapV4PoolManager.MostSignificantBitTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -14,10 +16,10 @@ theorem tickPriceTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw ret sqrtPrice : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length + 22 ≤ 1024)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : sqrtPrice.toNat < 2^160)
-    (h : RD (deployedRuntime v) I g s0 ⟨17916⟩ (sqrtPrice :: ret :: R) mem aw rdata σ k C) :
-    (tickPriceResult sqrtPrice = none ∧ RDrev (deployedRuntime v) g s0) ∨
+    (h : RD fork (deployedRuntime v) I g s0 ⟨17916⟩ (sqrtPrice :: ret :: R) mem aw rdata σ k C) :
+    (tickPriceResult sqrtPrice = none ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (∃ tick k' C', tickPriceResult sqrtPrice = some tick ∧
-      RD (deployedRuntime v) I g s0 ret (tick :: R) mem aw rdata σ k' C') := by
+      RD fork (deployedRuntime v) I g s0 ret (tick :: R) mem aw rdata σ k' C') := by
   by_cases hout : tickPriceOutside sqrtPrice
   · have hc : UInt256.gt (tickPriceGuardWord sqrtPrice)
         (UInt256.ofNat 1461446703485210103287273052203988822374428841602) ≠ UInt256.ofNat 0 := by

@@ -1,12 +1,14 @@
 import Benchmarks.EAS.EAS.ResolveManyLocals
 import Benchmarks.EAS.EAS.RecordFieldExpr
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
 
 theorem resolveManyLengthSource {cfg : Config} {locals imms : Store} {evm : EVM.State} {ats : List AttestationRecord}
     (ha : locals.get? "attestations" = some (.array (ats.map AttestationRecord.value))) :
-    ExecBlock cfg {contract := contract, locals := locals, immutables := imms} evm [resolveManyLength]
+    ExecBlock fork cfg {contract := contract, locals := locals, immutables := imms} evm [resolveManyLength]
       (.ok {contract := contract, locals := locals.insert "length" (.int (Int.ofNat ats.length)), immutables := imms} evm) := by
   apply ExecBlock.consNormal (ExecStmt.letDecl ?_) ExecBlock.nil
   simp only [evalExpr?,readLocalPath?,ha,List.length_map,EvalResult.ofOption,EvalResult.bind,bind,pure,Int.ofNat_eq_natCast]
@@ -63,10 +65,10 @@ theorem resolveManyHeadSource {imms : Store} {evm : EVM.State}
     (record : Value) (ats : List AttestationRecord) (words : List UInt256) (target : AccountAddress)
     (rev : Bool) (available : UInt256) (last : Bool) (heap : Nat)
     (hfield : lookupField? record "resolver" = some (.address target)) (hn : ats.length ≠ 1) :
-    ExecBlock config {contract := contract, locals := resolveManyArgs record ats words rev available last heap, immutables := imms}
+    ExecBlock fork config {contract := contract, locals := resolveManyArgs record ats words rev available last heap, immutables := imms}
       evm [resolveManyLength,resolveManySingle,resolveManyResolverInit]
       (.ok {contract := contract, locals := resolveManyHeadLocals record ats words target rev available last heap, immutables := imms} evm) := by
-  have hl := resolveManyLengthSource (ats := ats) (cfg := config) (imms := imms) (evm := evm)
+  have hl := resolveManyLengthSource (fork := fork) (ats := ats) (cfg := config) (imms := imms) (evm := evm)
     (locals := resolveManyArgs record ats words rev available last heap)
     (by simp (disch := decide) only [resolveManyArgs,store_get_ne,store_get_self])
   apply execBlock_append hl

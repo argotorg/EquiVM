@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.OracleInitializeStorage
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_056
 import Benchmarks.UniswapV3.Pool.Calls
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -46,12 +48,12 @@ def oracleInitializeMemory (mem : ByteArray) (time : UInt256) : ByteArray :=
 theorem oracleInitializeX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : EVM.State} {k C : Nat} {aw time ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨17514⟩ (time :: ⟨8⟩ :: ret :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨17514⟩ (time :: ⟨8⟩ :: ret :: R) mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hperm : ee.perm = true)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 9 ≤ 1024) :
     ∃ k' C' aw', SourceState s0 ee (oracleInitializeState evm (oracleInitializeTime time)).accountMap
         (oracleInitializeState evm (oracleInitializeTime time)) ∧
-      RD (deployedRuntime v) ee g s0 ret (⟨1⟩ :: ⟨1⟩ :: R) (oracleInitializeMemory mem time) aw' rdata
+      RD fork (deployedRuntime v) ee g s0 ret (⟨1⟩ :: ⟨1⟩ :: R) (oracleInitializeMemory mem time) aw' rdata
         (oracleInitializeState evm (oracleInitializeTime time)).accountMap k' C' := by
   obtain ⟨k', C', rout⟩ := uniswapV3Pool_block_17514 (immWords := wordsOf (immStore v))
     hov hperm hret rd

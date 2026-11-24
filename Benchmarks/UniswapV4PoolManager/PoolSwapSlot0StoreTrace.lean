@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.PoolSwapSlot0Packing
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_062
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -13,9 +15,9 @@ theorem poolSwapLiquidityStoreTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : St
     {mem rdata : ByteArray} {aw id liquidity step : UInt256} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+6 ≤ 1024)
     (hI : evm.executionEnv = I) (hperm : I.perm = true) (hl : liquidity.toNat < 2^128)
-    (h : RD (deployedRuntime v) I g s0 ⟨21813⟩ (liquidity :: step :: poolSlot id :: R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨21813⟩ (liquidity :: step :: poolSlot id :: R)
       mem aw rdata evm.accountMap k C) :
-    ∃ k' C', RD (deployedRuntime v) I g s0 ⟨21698⟩ (⟨0⟩ :: step :: poolSlot id :: R)
+    ∃ k' C', RD fork (deployedRuntime v) I g s0 ⟨21698⟩ (⟨0⟩ :: step :: poolSlot id :: R)
       mem aw rdata (poolLiquidityStore evm id liquidity).accountMap k' C' := by
   obtain ⟨k1, C1, rd1⟩ := poolManagerBlocks.poolManager_block_21813 hstack hperm
     (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) h
@@ -41,10 +43,10 @@ theorem poolSwapSlot0StoreTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hmprice : memLoad state mem = r.price)
     (hmtick : memLoad (state+UInt256.ofNat 32) mem = r.tick)
     (hmliq : memLoad (state+UInt256.ofNat 64) mem = r.liquidity)
-    (h : RD (deployedRuntime v) I g s0 ⟨21536⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨21536⟩
       ([remaining, ret, params, calculated, packed, fee, protocol, amount, inv, step, poolSlot id, state]++R)
       mem aw rdata evm.accountMap k C) :
-    ∃ dummy k' C', RD (deployedRuntime v) I g s0 ⟨21698⟩
+    ∃ dummy k' C', RD fork (deployedRuntime v) I g s0 ⟨21698⟩
       ([dummy, step, poolSlot id, inv, remaining, params, calculated, state, fee, amount, ret]++R)
       mem (poolSwapSlot0AW aw state) rdata
       (poolSwapLiquidityPost (poolSwapSlot0Post evm id packed r) id r.liquidity).accountMap k' C' := by

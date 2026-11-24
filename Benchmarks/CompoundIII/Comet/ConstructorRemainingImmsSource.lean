@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.ConstructorScaleSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -61,11 +63,11 @@ def constructorSourceRemainingImms (c : ConstructorConfig) (w feed : UInt256) : 
 
 theorem constructorSourceRemainingImms_exec {c : ConstructorConfig} {w feed : UInt256}
     {evm evm' : EVM.State} (hw : w.toNat ≤ 18) (hn : c.assetConfigs.length ≤ 24)
-    (hp : ExecBlock config (constructorSourceEntry c) evm (contract.ctor.body.take 19)
+    (hp : ExecBlock fork config (constructorSourceEntry c) evm (contract.ctor.body.take 19)
       (.ok (constructorSourceScale c w feed) evm')) :
-    ExecBlock config (constructorSourceEntry c) evm (contract.ctor.body.take 34)
+    ExecBlock fork config (constructorSourceEntry c) evm (contract.ctor.body.take 34)
       (.ok (constructorSourceRemainingImms c w feed) evm') := by
-  change ExecBlock config _ _ (contract.ctor.body.take 19 ++
+  change ExecBlock fork config _ _ (contract.ctor.body.take 19 ++
     [.setImmutable "accrualDescaleFactor" (.binary .div (.immutable "baseScale") (.intLit 1000000)),
       .setImmutable "baseMinForRewards" (.field (.var "config") "baseMinForRewards"),
       .setImmutable "baseTrackingSupplySpeed" (.field (.var "config") "baseTrackingSupplySpeed"),
@@ -192,11 +194,11 @@ def constructorSourceDelegate (c : ConstructorConfig) (w feed : UInt256) : Frame
 
 theorem constructorSourceDelegate_exec {c : ConstructorConfig} {w feed : UInt256}
     {evm evm' : EVM.State}
-    (hp : ExecBlock config (constructorSourceEntry c) evm (contract.ctor.body.take 34)
+    (hp : ExecBlock fork config (constructorSourceEntry c) evm (contract.ctor.body.take 34)
       (.ok (constructorSourceRemainingImms c w feed) evm')) :
-    ExecBlock config (constructorSourceEntry c) evm (contract.ctor.body.take 35)
+    ExecBlock fork config (constructorSourceEntry c) evm (contract.ctor.body.take 35)
       (.ok (constructorSourceDelegate c w feed) evm') := by
-  change ExecBlock config _ _ (contract.ctor.body.take 34 ++
+  change ExecBlock fork config _ _ (contract.ctor.body.take 34 ++
     [.letDecl "delegate" (some (.elem .address)) (.immutable "extensionDelegate")]) _
   apply execBlockAppendOk hp
   refine .consNormal (.letDecl ?_) .nil

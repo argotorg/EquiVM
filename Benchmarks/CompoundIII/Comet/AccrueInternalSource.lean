@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.AccrueThenSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -8,7 +10,7 @@ namespace Benchmarks.CompoundIII.Comet
 set_option maxRecDepth 2000
 
 theorem accrue_block (v : CometWithExtendedAssetListImmutables) (evm : EVM.State) :
-    internalBlockResult config (accrueEntry v) evm accrueCallable.body (accrueOutcome v evm) := by
+    internalBlockResult fork config (accrueEntry v) evm accrueCallable.body (accrueOutcome v evm) := by
   let time := timestampWord evm.executionEnv
   let last := lastAccrualWord (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩)
   let elapsed := accrueElapsed evm
@@ -63,13 +65,13 @@ theorem accrue_block (v : CometWithExtendedAssetListImmutables) (evm : EVM.State
     exact ExecBlock.consRevert (now_call_revert f0 evm "now_" rfl ht)
 
 theorem accrue_source (v : CometWithExtendedAssetListImmutables) (evm : EVM.State) :
-    internalSourceResult config (accrueEntry v) evm accrueCallable.body (accrueOutcome v evm) :=
+    internalSourceResult fork config (accrueEntry v) evm accrueCallable.body (accrueOutcome v evm) :=
   (accrue_block v evm).toSource
 
 theorem accrue_call (v : CometWithExtendedAssetListImmutables)
     (frame : Frame) (evm : EVM.State) (ret : Ident)
     (hc : frame.contract = contract) (hi : frame.immutables = immStore v) :
-    ExecStmt config frame evm (.internalCall "accrueInternal" [] ret)
+    ExecStmt fork config frame evm (.internalCall "accrueInternal" [] ret)
       (internalStmtResult frame ret (accrueOutcome v evm)) := by
   apply internalVoidCall (callee := accrueCallable) (locals := ∅) (argVals := [])
     rfl (by rw [hc]; exact accrueCallable_lookup) rfl

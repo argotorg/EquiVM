@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.MintBeforeBalance0Trace
 import Benchmarks.UniswapV3.Pool.MintBeforeBalance1Trace
 import Benchmarks.UniswapV3.Pool.MintCallValues
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -11,20 +13,20 @@ theorem mintBeforeBalancesX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : EVM.State} {k C : Nat} {aw p amount0 amount1 key : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : MintArgs) (locals : Store) (hs : SourceState s0 ee σ evm)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5915⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5915⟩
       (amount1 :: amount0 :: key :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: R) mem aw rdata σ k C)
     (hv : MintCallValues locals a amount0 amount1 ⟨0⟩ ⟨0⟩)
     (hm : HeapMemory mem aw p) (hsize : 128 ≤ mem.size)
     (hzero : memLoad (UInt256.ofNat 96) mem = ⟨0⟩)
     (hb : p.toNat + 2 ^ 140 ≤ 2 ^ 200) (hov : R.length + 24 ≤ 1024) :
-    (ExecBlock config {contract := contract, locals := locals, immutables := immStore v} evm
-        (mintTransition.body.drop 14 |>.take 2) .reverted ∧ RDrev (deployedRuntime v) g s0) ∨
+    (ExecBlock fork config {contract := contract, locals := locals, immutables := immStore v} evm
+        (mintTransition.body.drop 14 |>.take 2) .reverted ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (∃ evm' σ' out mem' aw' free locals' balance0 balance1 k' C', SourceState s0 ee σ' evm' ∧
-      ExecBlock config {contract := contract, locals := locals, immutables := immStore v} evm
+      ExecBlock fork config {contract := contract, locals := locals, immutables := immStore v} evm
         (mintTransition.body.drop 14 |>.take 2)
         (.ok {contract := contract, locals := locals', immutables := immStore v} evm') ∧
       MintCallValues locals' a amount0 amount1 balance0 balance1 ∧
-      RD (deployedRuntime v) ee g s0 ⟨5966⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨5966⟩
         (balance1 :: balance0 :: amount1 :: amount0 :: amount1 :: amount0 :: R)
         mem' aw' out σ' k' C' ∧ HeapMemory mem' aw' free ∧ 128 ≤ mem'.size ∧
       memLoad (UInt256.ofNat 96) mem' = ⟨0⟩ ∧ free.toNat ≤ p.toNat + 2 ^ 139 + 262) := by

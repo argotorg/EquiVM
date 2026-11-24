@@ -6,6 +6,8 @@ import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_048
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_049
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_050
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V0_cdb2eb5.RuntimeBlocks
 
@@ -15,10 +17,10 @@ set_option maxRecDepth 100000
 
 theorem safeCheckedMulTrace {I g s0 σ k C aw mem rdata} {a b ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨11553⟩ (b :: a :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨11553⟩ (b :: a :: ret :: R) mem aw rdata σ k C)
     (hfit : a.toNat * b.toNat < UInt256.size) (hov : R.length + 7 ≤ 1024)
     (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ k' C', RD safeBytecode I g s0 ret (UInt256.mul a b :: R) mem aw rdata σ k' C' := by
+    ∃ k' C', RD fork safeBytecode I g s0 ret (UInt256.mul a b :: R) mem aw rdata σ k' C' := by
   have hg : UInt256.lor (UInt256.eq a (UInt256.div (UInt256.mul a b) b))
       (UInt256.isZero b) ≠ UInt256.ofNat 0 := by
     by_cases hb : b = ⟨0⟩
@@ -33,9 +35,9 @@ theorem safeCheckedMulTrace {I g s0 σ k C aw mem rdata} {a b ret : UInt256}
 
 theorem safeCheckedMulOverflow {I g s0 σ k C aw mem rdata} {a b : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨11553⟩ (b :: a :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨11553⟩ (b :: a :: R) mem aw rdata σ k C)
     (hover : UInt256.size ≤ a.toNat * b.toNat) (hov : R.length + 7 ≤ 1024) :
-    RDrev safeBytecode g s0 := by
+    RDrev fork safeBytecode g s0 := by
   have hb : b ≠ ⟨0⟩ := by
     intro hz
     rw [hz] at hover
@@ -55,10 +57,10 @@ theorem safeCheckedMulOverflow {I g s0 σ k C aw mem rdata} {a b : UInt256}
 
 theorem safeMulTrace {I g s0 σ k C aw mem rdata} {a b ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7027⟩ (b :: a :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨7027⟩ (b :: a :: ret :: R) mem aw rdata σ k C)
     (hfit : a.toNat * b.toNat < UInt256.size) (hov : R.length + 12 ≤ 1024)
     (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ k' C', RD safeBytecode I g s0 ret (UInt256.mul a b :: R) mem aw rdata σ k' C' := by
+    ∃ k' C', RD fork safeBytecode I g s0 ret (UInt256.mul a b :: R) mem aw rdata σ k' C' := by
   by_cases ha : a = ⟨0⟩
   · subst a
     have h₁ := safeRuntime_block_7027_fallthrough (by simp; omega) (by decide) h
@@ -82,9 +84,9 @@ theorem safeMulTrace {I g s0 σ k C aw mem rdata} {a b ret : UInt256}
 
 theorem safeMulOverflow {I g s0 σ k C aw mem rdata} {a b : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7027⟩ (b :: a :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨7027⟩ (b :: a :: R) mem aw rdata σ k C)
     (hover : UInt256.size ≤ a.toNat * b.toNat) (hov : R.length + 12 ≤ 1024) :
-    RDrev safeBytecode g s0 := by
+    RDrev fork safeBytecode g s0 := by
   have ha : a ≠ ⟨0⟩ := by
     intro hz
     rw [hz] at hover

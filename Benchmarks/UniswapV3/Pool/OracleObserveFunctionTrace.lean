@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.OracleObserveAllocationTrace
 import Benchmarks.UniswapV3.Pool.OracleObserveLoopTrace
 import Benchmarks.UniswapV3.Pool.OracleObserveResult
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -12,7 +14,7 @@ theorem oracleObserveX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C allowance : Nat} {aw p agoPtr card liquidity index : UInt256}
     {tickRaw timeRaw ret time : UInt256} {tick : Int} {mem rdata : ByteArray}
     {rawAgos : List UInt256} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨16967⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨16967⟩
       (card :: liquidity :: index :: tickRaw :: agoPtr :: timeRaw :: ⟨8⟩ :: ret :: R) mem aw rdata σ k C)
     (hi : index.toNat < 2 ^ 16) (hc : card.toNat < 2 ^ 16)
     (htime : UInt256.land (UInt256.ofNat 4294967295) timeRaw = time)
@@ -23,7 +25,7 @@ theorem oracleObserveX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hbudget : MemoryGasBound aw C allowance) (hallowance : allowance ≤ 2 ^ 200)
     (hcover : p.toNat ≤ aw.toNat * 32 + 32) (hdata : ee.calldata.size < UInt256.size)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 64 ≤ 1024) :
-    OracleObserveOutcome v ee g s0 σ rdata ret R time rawAgos tick index liquidity card agoPtr mem aw p C := by
+    OracleObserveOutcome fork v ee g s0 σ rdata ret R time rawAgos tick index liquidity card agoPtr mem aw p C := by
   by_cases hz : card.toNat = 0
   · have hzero : card = (⟨0⟩ : UInt256) := u256_inj hz
     have r1 := uniswapV3Pool_block_16967_fallthrough (immWords := wordsOf (immStore v))

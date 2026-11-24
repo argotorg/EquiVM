@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.BalanceDeltaSubTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_040
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -11,12 +13,12 @@ theorem afterLiquidityFinishTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
     {mem rdata : ByteArray} {aw delta hookDelta ret : UInt256} {k C : Nat} {R : List UInt256}
     (f : Frame) (v : PoolManagerImmutables) (hstack : R.length+11 ≤ 1024)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨14631⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨14631⟩
       (hookDelta :: UInt256.ofNat 14638 :: delta :: ret :: R) mem aw rdata evm.accountMap k C) :
     if balanceDeltaCombineFits true delta hookDelta then
-      ∃ k' C', RD (deployedRuntime v) I g s0 ret
+      ∃ k' C', RD fork (deployedRuntime v) I g s0 ret
         (hookDelta :: balanceDeltaCombineWord true delta hookDelta :: R) mem aw rdata evm.accountMap k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have rd1 := poolManager_block_14631 (by simp only [List.length_cons]; omega)
     (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) h
   have hr := balanceDeltaSubTrace (R := hookDelta :: ret :: R) f v

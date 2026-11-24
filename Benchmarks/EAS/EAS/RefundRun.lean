@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.RefundEVM
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -14,15 +16,15 @@ theorem refundRun {cfg : Config} {locals imms : Store} {args : List Expr} {retVa
     (he : evalExprs? cfg {contract := contract, locals := locals, immutables := imms} evm args =
       .ok [.int (Int.ofNat value.toNat),.int (Int.ofNat ptr.toNat)])
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨16342⟩ (value::ret::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨16342⟩ (value::ret::R) mem aw rdata σ k C) :
     (∃ (evm' : EVM.State) (σ' : AccountMap) (mem' out : ByteArray) (aw' : UInt256) (k' C' heap' : Nat),
       SourceState s0 ee σ' evm' ∧ ptr.toNat ≤ heap' ∧ heap' ≤ 2^64-1 ∧
       MemoryPrefix mem mem' ptr.toNat ∧ memLoad (UInt256.ofNat 64) mem' = UInt256.ofNat heap' ∧
-      ExecStmt cfg {contract := contract, locals := locals, immutables := imms} evm (.internalCall "_refund" args retVar)
+      ExecStmt fork cfg {contract := contract, locals := locals, immutables := imms} evm (.internalCall "_refund" args retVar)
         (.ok {contract := contract, locals := locals.insert retVar (.tuple [.tuple [],.int (Int.ofNat heap')]), immutables := imms} evm') ∧
-      RD (deployedRuntime v) ee g s0 ret R mem' aw' out σ' k' C') ∨
-    (ExecStmt cfg {contract := contract, locals := locals, immutables := imms} evm (.internalCall "_refund" args retVar) .reverted ∧
-      RDrev (deployedRuntime v) g s0) := by
+      RD fork (deployedRuntime v) ee g s0 ret R mem' aw' out σ' k' C') ∨
+    (ExecStmt fork cfg {contract := contract, locals := locals, immutables := imms} evm (.internalCall "_refund" args retVar) .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) := by
   by_cases hz : value = ⟨0⟩
   · subst value
     obtain ⟨aw1,k1,C1,rd1⟩ := refundEVM_zero v (by omega) hret rd

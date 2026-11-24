@@ -2,6 +2,8 @@ import Reasoning.Reach
 import Reasoning.Initcode
 import Tests.Pipeline.VyperVault.Bytecode
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM
 open Reasoning.Theory Reasoning.Reach
 
@@ -14,8 +16,8 @@ private abbrev j := Reasoning.Theory.D_J_contains_append_left Tests.Pipeline.Vyp
 theorem vyperVaultCreation_block_1247_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.xor x0 (UInt256.ofNat 669136355)) = (UInt256.ofNat 0))
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1247) (x0 :: R) mem aw rdata σ k C)
-    : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1259) (x0 :: R) mem aw rdata σ (k + 6) (C + ((23))) := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1247) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1259) (x0 :: R) mem aw rdata σ (k + 6) (C + ((23))) := by
   let r0 := h
   have hcreationCodeSize : Tests.Pipeline.VyperVault.vyperVaultCreationBytecode.size = 1465 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -31,8 +33,8 @@ theorem vyperVaultCreation_block_1247_fallthrough {tail : ByteArray} {ee : Execu
 theorem vyperVaultCreation_block_1247_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.xor x0 (UInt256.ofNat 669136355)) = (UInt256.ofNat 0))
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1247) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1259) (x0 :: R) mem aw' rdata σ k' C' := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1247) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1259) (x0 :: R) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (vyperVaultCreation_block_1247_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -41,8 +43,8 @@ theorem vyperVaultCreation_block_1259_taken {tail : ByteArray} {ee : ExecutionEn
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.lor ee.weiValue (UInt256.lt (UInt256.ofNat ee.calldata.size) (UInt256.ofNat 36))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Tests.Pipeline.VyperVault.vyperVaultCreationBytecode 0).contains (UInt256.ofNat 1403) = true)
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1259) R mem aw rdata σ k C)
-    : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1403) R mem aw rdata σ (k + 7) (C + ((26))) := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1259) R mem aw rdata σ k C)
+    : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1403) R mem aw rdata σ (k + 7) (C + ((26))) := by
   let r0 := h
   have hcreationCodeSize : Tests.Pipeline.VyperVault.vyperVaultCreationBytecode.size = 1465 := by native_decide
   have r1 := r0.push1 (UInt256.ofNat 36) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -60,8 +62,8 @@ theorem vyperVaultCreation_block_1259_taken_packed {tail : ByteArray} {ee : Exec
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.lor ee.weiValue (UInt256.lt (UInt256.ofNat ee.calldata.size) (UInt256.ofNat 36))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Tests.Pipeline.VyperVault.vyperVaultCreationBytecode 0).contains (UInt256.ofNat 1403) = true)
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1259) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1403) R mem aw' rdata σ k' C' := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1259) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1403) R mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (vyperVaultCreation_block_1259_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -69,8 +71,8 @@ theorem vyperVaultCreation_block_1259_taken_packed {tail : ByteArray} {ee : Exec
 theorem vyperVaultCreation_block_1259_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.lor ee.weiValue (UInt256.lt (UInt256.ofNat ee.calldata.size) (UInt256.ofNat 36))) = (UInt256.ofNat 0))
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1259) R mem aw rdata σ k C)
-    : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1269) R mem aw rdata σ (k + 7) (C + ((26))) := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1259) R mem aw rdata σ k C)
+    : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1269) R mem aw rdata σ (k + 7) (C + ((26))) := by
   let r0 := h
   have hcreationCodeSize : Tests.Pipeline.VyperVault.vyperVaultCreationBytecode.size = 1465 := by native_decide
   have r1 := r0.push1 (UInt256.ofNat 36) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -87,8 +89,8 @@ theorem vyperVaultCreation_block_1259_fallthrough {tail : ByteArray} {ee : Execu
 theorem vyperVaultCreation_block_1259_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.lor ee.weiValue (UInt256.lt (UInt256.ofNat ee.calldata.size) (UInt256.ofNat 36))) = (UInt256.ofNat 0))
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1259) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1269) R mem aw' rdata σ k' C' := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1259) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1269) R mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (vyperVaultCreation_block_1259_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -101,8 +103,8 @@ theorem vyperVaultCreation_block_1269_taken {tail : ByteArray} {ee : ExecutionEn
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.shiftRight (uInt256OfByteArray (ee.calldata.readBytes (UInt256.ofNat 4).toNat 32)) (UInt256.ofNat 160)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Tests.Pipeline.VyperVault.vyperVaultCreationBytecode 0).contains (UInt256.ofNat 1403) = true)
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1269) R mem aw rdata σ k C)
-    : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1403) (vyperVaultCreation_block_1269_taken_stack (ee := ee) (R := R)) mem aw rdata σ (k + 7) (C + ((28))) := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1269) R mem aw rdata σ k C)
+    : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1403) (vyperVaultCreation_block_1269_taken_stack (ee := ee) (R := R)) mem aw rdata σ (k + 7) (C + ((28))) := by
   let r0 := h
   have hcreationCodeSize : Tests.Pipeline.VyperVault.vyperVaultCreationBytecode.size = 1465 := by native_decide
   have r1 := r0.push1 (UInt256.ofNat 4) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -120,8 +122,8 @@ theorem vyperVaultCreation_block_1269_taken_packed {tail : ByteArray} {ee : Exec
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.shiftRight (uInt256OfByteArray (ee.calldata.readBytes (UInt256.ofNat 4).toNat 32)) (UInt256.ofNat 160)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Tests.Pipeline.VyperVault.vyperVaultCreationBytecode 0).contains (UInt256.ofNat 1403) = true)
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1269) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1403) (vyperVaultCreation_block_1269_taken_stack (ee := ee) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1269) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1403) (vyperVaultCreation_block_1269_taken_stack (ee := ee) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (vyperVaultCreation_block_1269_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -133,8 +135,8 @@ def vyperVaultCreation_block_1269_fallthrough_stack {ee : ExecutionEnv} {R : Lis
 theorem vyperVaultCreation_block_1269_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.shiftRight (uInt256OfByteArray (ee.calldata.readBytes (UInt256.ofNat 4).toNat 32)) (UInt256.ofNat 160)) = (UInt256.ofNat 0))
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1269) R mem aw rdata σ k C)
-    : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1280) (vyperVaultCreation_block_1269_fallthrough_stack (ee := ee) (R := R)) mem aw rdata σ (k + 7) (C + ((28))) := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1269) R mem aw rdata σ k C)
+    : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1280) (vyperVaultCreation_block_1269_fallthrough_stack (ee := ee) (R := R)) mem aw rdata σ (k + 7) (C + ((28))) := by
   let r0 := h
   have hcreationCodeSize : Tests.Pipeline.VyperVault.vyperVaultCreationBytecode.size = 1465 := by native_decide
   have r1 := r0.push1 (UInt256.ofNat 4) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -151,16 +153,16 @@ theorem vyperVaultCreation_block_1269_fallthrough {tail : ByteArray} {ee : Execu
 theorem vyperVaultCreation_block_1269_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.shiftRight (uInt256OfByteArray (ee.calldata.readBytes (UInt256.ofNat 4).toNat 32)) (UInt256.ofNat 160)) = (UInt256.ofNat 0))
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1269) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1280) (vyperVaultCreation_block_1269_fallthrough_stack (ee := ee) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1269) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1280) (vyperVaultCreation_block_1269_fallthrough_stack (ee := ee) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (vyperVaultCreation_block_1269_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
 /-- Automatically generated RD summary for bytecode block at pc 1280. -/
 theorem vyperVaultCreation_block_1280 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1280) (x0 :: R) mem aw rdata σ k C)
-    : RDret (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) g s0 σ (((σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (keccakWord (⟨0⟩ : UInt256) (UInt256.ofNat 64) ((UInt256.ofNat 1).toByteArray.write 0 ((memLoad (UInt256.ofNat 64) (x0.toByteArray.write 0 mem (UInt256.ofNat 64).toNat 32)).toByteArray.write 0 (x0.toByteArray.write 0 mem (UInt256.ofNat 64).toNat 32) (UInt256.ofNat 32).toNat 32) (⟨0⟩ : UInt256).toNat 32)) (⟨0⟩ : UInt256))).toByteArray.write 0 ((UInt256.ofNat 1).toByteArray.write 0 ((memLoad (UInt256.ofNat 64) (x0.toByteArray.write 0 mem (UInt256.ofNat 64).toNat 32)).toByteArray.write 0 (x0.toByteArray.write 0 mem (UInt256.ofNat 64).toNat 32) (UInt256.ofNat 32).toNat 32) (⟨0⟩ : UInt256).toNat 32) (UInt256.ofNat 96).toNat 32).readWithPadding (UInt256.ofNat 96).toNat (UInt256.ofNat 32).toNat) := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1280) (x0 :: R) mem aw rdata σ k C)
+    : RDret fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) g s0 σ (((σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (keccakWord (⟨0⟩ : UInt256) (UInt256.ofNat 64) ((UInt256.ofNat 1).toByteArray.write 0 ((memLoad (UInt256.ofNat 64) (x0.toByteArray.write 0 mem (UInt256.ofNat 64).toNat 32)).toByteArray.write 0 (x0.toByteArray.write 0 mem (UInt256.ofNat 64).toNat 32) (UInt256.ofNat 32).toNat 32) (⟨0⟩ : UInt256).toNat 32)) (⟨0⟩ : UInt256))).toByteArray.write 0 ((UInt256.ofNat 1).toByteArray.write 0 ((memLoad (UInt256.ofNat 64) (x0.toByteArray.write 0 mem (UInt256.ofNat 64).toNat 32)).toByteArray.write 0 (x0.toByteArray.write 0 mem (UInt256.ofNat 64).toNat 32) (UInt256.ofNat 32).toNat 32) (⟨0⟩ : UInt256).toNat 32) (UInt256.ofNat 96).toNat 32).readWithPadding (UInt256.ofNat 96).toNat (UInt256.ofNat 32).toNat) := by
   let r0 := h
   have hcreationCodeSize : Tests.Pipeline.VyperVault.vyperVaultCreationBytecode.size = 1465 := by native_decide
   have r1 := r0.push1 (UInt256.ofNat 64) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -187,8 +189,8 @@ theorem vyperVaultCreation_block_1306_taken {tail : ByteArray} {ee : ExecutionEn
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.xor x0 (UInt256.ofNat 269060821)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Tests.Pipeline.VyperVault.vyperVaultCreationBytecode 0).contains (UInt256.ofNat 1399) = true)
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1306) (x0 :: R) mem aw rdata σ k C)
-    : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1399) (x0 :: R) mem aw rdata σ (k + 6) (C + ((23))) := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1306) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1399) (x0 :: R) mem aw rdata σ (k + 6) (C + ((23))) := by
   let r0 := h
   have hcreationCodeSize : Tests.Pipeline.VyperVault.vyperVaultCreationBytecode.size = 1465 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -205,8 +207,8 @@ theorem vyperVaultCreation_block_1306_taken_packed {tail : ByteArray} {ee : Exec
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.xor x0 (UInt256.ofNat 269060821)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Tests.Pipeline.VyperVault.vyperVaultCreationBytecode 0).contains (UInt256.ofNat 1399) = true)
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1306) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1399) (x0 :: R) mem aw' rdata σ k' C' := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1306) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1399) (x0 :: R) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (vyperVaultCreation_block_1306_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -214,8 +216,8 @@ theorem vyperVaultCreation_block_1306_taken_packed {tail : ByteArray} {ee : Exec
 theorem vyperVaultCreation_block_1306_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.xor x0 (UInt256.ofNat 269060821)) = (UInt256.ofNat 0))
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1306) (x0 :: R) mem aw rdata σ k C)
-    : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1318) (x0 :: R) mem aw rdata σ (k + 6) (C + ((23))) := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1306) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1318) (x0 :: R) mem aw rdata σ (k + 6) (C + ((23))) := by
   let r0 := h
   have hcreationCodeSize : Tests.Pipeline.VyperVault.vyperVaultCreationBytecode.size = 1465 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -231,8 +233,8 @@ theorem vyperVaultCreation_block_1306_fallthrough {tail : ByteArray} {ee : Execu
 theorem vyperVaultCreation_block_1306_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.xor x0 (UInt256.ofNat 269060821)) = (UInt256.ofNat 0))
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1306) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1318) (x0 :: R) mem aw' rdata σ k' C' := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1306) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1318) (x0 :: R) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (vyperVaultCreation_block_1306_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -241,8 +243,8 @@ theorem vyperVaultCreation_block_1318_taken {tail : ByteArray} {ee : ExecutionEn
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.lor ee.weiValue (UInt256.lt (UInt256.ofNat ee.calldata.size) (UInt256.ofNat 36))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Tests.Pipeline.VyperVault.vyperVaultCreationBytecode 0).contains (UInt256.ofNat 1403) = true)
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1318) R mem aw rdata σ k C)
-    : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1403) R mem aw rdata σ (k + 7) (C + ((26))) := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1318) R mem aw rdata σ k C)
+    : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1403) R mem aw rdata σ (k + 7) (C + ((26))) := by
   let r0 := h
   have hcreationCodeSize : Tests.Pipeline.VyperVault.vyperVaultCreationBytecode.size = 1465 := by native_decide
   have r1 := r0.push1 (UInt256.ofNat 36) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -260,8 +262,8 @@ theorem vyperVaultCreation_block_1318_taken_packed {tail : ByteArray} {ee : Exec
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.lor ee.weiValue (UInt256.lt (UInt256.ofNat ee.calldata.size) (UInt256.ofNat 36))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Tests.Pipeline.VyperVault.vyperVaultCreationBytecode 0).contains (UInt256.ofNat 1403) = true)
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1318) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1403) R mem aw' rdata σ k' C' := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1318) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1403) R mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (vyperVaultCreation_block_1318_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -269,8 +271,8 @@ theorem vyperVaultCreation_block_1318_taken_packed {tail : ByteArray} {ee : Exec
 theorem vyperVaultCreation_block_1318_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.lor ee.weiValue (UInt256.lt (UInt256.ofNat ee.calldata.size) (UInt256.ofNat 36))) = (UInt256.ofNat 0))
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1318) R mem aw rdata σ k C)
-    : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1328) R mem aw rdata σ (k + 7) (C + ((26))) := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1318) R mem aw rdata σ k C)
+    : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1328) R mem aw rdata σ (k + 7) (C + ((26))) := by
   let r0 := h
   have hcreationCodeSize : Tests.Pipeline.VyperVault.vyperVaultCreationBytecode.size = 1465 := by native_decide
   have r1 := r0.push1 (UInt256.ofNat 36) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -287,8 +289,8 @@ theorem vyperVaultCreation_block_1318_fallthrough {tail : ByteArray} {ee : Execu
 theorem vyperVaultCreation_block_1318_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : (UInt256.lor ee.weiValue (UInt256.lt (UInt256.ofNat ee.calldata.size) (UInt256.ofNat 36))) = (UInt256.ofNat 0))
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1318) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1328) R mem aw' rdata σ k' C' := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1318) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1328) R mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (vyperVaultCreation_block_1318_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -301,8 +303,8 @@ theorem vyperVaultCreation_block_1328_taken {tail : ByteArray} {ee : ExecutionEn
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.shiftRight (uInt256OfByteArray (ee.calldata.readBytes (UInt256.ofNat 4).toNat 32)) (UInt256.ofNat 160)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Tests.Pipeline.VyperVault.vyperVaultCreationBytecode 0).contains (UInt256.ofNat 1403) = true)
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1328) R mem aw rdata σ k C)
-    : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1403) (vyperVaultCreation_block_1328_taken_stack (ee := ee) (R := R)) mem aw rdata σ (k + 7) (C + ((28))) := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1328) R mem aw rdata σ k C)
+    : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1403) (vyperVaultCreation_block_1328_taken_stack (ee := ee) (R := R)) mem aw rdata σ (k + 7) (C + ((28))) := by
   let r0 := h
   have hcreationCodeSize : Tests.Pipeline.VyperVault.vyperVaultCreationBytecode.size = 1465 := by native_decide
   have r1 := r0.push1 (UInt256.ofNat 4) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -320,8 +322,8 @@ theorem vyperVaultCreation_block_1328_taken_packed {tail : ByteArray} {ee : Exec
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.shiftRight (uInt256OfByteArray (ee.calldata.readBytes (UInt256.ofNat 4).toNat 32)) (UInt256.ofNat 160)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Tests.Pipeline.VyperVault.vyperVaultCreationBytecode 0).contains (UInt256.ofNat 1403) = true)
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1328) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1403) (vyperVaultCreation_block_1328_taken_stack (ee := ee) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1328) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1403) (vyperVaultCreation_block_1328_taken_stack (ee := ee) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (vyperVaultCreation_block_1328_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -333,8 +335,8 @@ def vyperVaultCreation_block_1328_fallthrough_stack {ee : ExecutionEnv} {R : Lis
 theorem vyperVaultCreation_block_1328_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.shiftRight (uInt256OfByteArray (ee.calldata.readBytes (UInt256.ofNat 4).toNat 32)) (UInt256.ofNat 160)) = (UInt256.ofNat 0))
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1328) R mem aw rdata σ k C)
-    : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1339) (vyperVaultCreation_block_1328_fallthrough_stack (ee := ee) (R := R)) mem aw rdata σ (k + 7) (C + ((28))) := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1328) R mem aw rdata σ k C)
+    : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1339) (vyperVaultCreation_block_1328_fallthrough_stack (ee := ee) (R := R)) mem aw rdata σ (k + 7) (C + ((28))) := by
   let r0 := h
   have hcreationCodeSize : Tests.Pipeline.VyperVault.vyperVaultCreationBytecode.size = 1465 := by native_decide
   have r1 := r0.push1 (UInt256.ofNat 4) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -351,8 +353,8 @@ theorem vyperVaultCreation_block_1328_fallthrough {tail : ByteArray} {ee : Execu
 theorem vyperVaultCreation_block_1328_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.shiftRight (uInt256OfByteArray (ee.calldata.readBytes (UInt256.ofNat 4).toNat 32)) (UInt256.ofNat 160)) = (UInt256.ofNat 0))
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1328) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1339) (vyperVaultCreation_block_1328_fallthrough_stack (ee := ee) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1328) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1339) (vyperVaultCreation_block_1328_fallthrough_stack (ee := ee) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (vyperVaultCreation_block_1328_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -367,8 +369,8 @@ def vyperVaultCreation_block_1339_memory {mem : ByteArray} {x0 : UInt256} : Byte
 /-- Automatically generated RD summary for bytecode block at pc 1339. -/
 theorem vyperVaultCreation_block_1339 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1339) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1357) (vyperVaultCreation_block_1339_stack (ee := ee) (mem := mem) (σ := σ) (x0 := x0) (R := R)) (vyperVaultCreation_block_1339_memory (mem := mem) (x0 := x0)) (M (M (M (M (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ : UInt256)) (⟨0⟩ : UInt256) (⟨32⟩ : UInt256)) (⟨0⟩ : UInt256) (UInt256.ofNat 64)) rdata σ k' C' := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1339) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (k' C' : ℕ), RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1357) (vyperVaultCreation_block_1339_stack (ee := ee) (mem := mem) (σ := σ) (x0 := x0) (R := R)) (vyperVaultCreation_block_1339_memory (mem := mem) (x0 := x0)) (M (M (M (M (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ : UInt256)) (⟨0⟩ : UInt256) (⟨32⟩ : UInt256)) (⟨0⟩ : UInt256) (UInt256.ofNat 64)) rdata σ k' C' := by
   let r0 := h
   have hcreationCodeSize : Tests.Pipeline.VyperVault.vyperVaultCreationBytecode.size = 1465 := by native_decide
   have r1 := r0.push1 (UInt256.ofNat 64) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -390,8 +392,8 @@ theorem vyperVaultCreation_block_1339 {tail : ByteArray} {ee : ExecutionEnv} {g 
 /-- Packed RD summary for bytecode block with abstract final counters and active words. -/
 theorem vyperVaultCreation_block_1339_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1339) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1357) (vyperVaultCreation_block_1339_stack (ee := ee) (mem := mem) (σ := σ) (x0 := x0) (R := R)) (vyperVaultCreation_block_1339_memory (mem := mem) (x0 := x0)) aw' rdata σ k' C' := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1339) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1357) (vyperVaultCreation_block_1339_stack (ee := ee) (mem := mem) (σ := σ) (x0 := x0) (R := R)) (vyperVaultCreation_block_1339_memory (mem := mem) (x0 := x0)) aw' rdata σ k' C' := by
   obtain ⟨k0, C0, h0⟩ := vyperVaultCreation_block_1339 hstack h
   obtain ⟨k', C', h'⟩ := RD.pack h0
   exact ⟨_, k', C', h'⟩
@@ -401,8 +403,8 @@ theorem vyperVaultCreation_block_1339_packed {tail : ByteArray} {ee : ExecutionE
 /-- Automatically generated RD summary for bytecode block at pc 1358. -/
 theorem vyperVaultCreation_block_1358 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024)
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1358) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : RDret (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) g s0 σ (((UInt256.xor (UInt256.mul (UInt256.lt x1 x0) (UInt256.xor x0 x1)) x0).toByteArray.write 0 mem (UInt256.ofNat 96).toNat 32).readWithPadding (UInt256.ofNat 96).toNat (UInt256.ofNat 32).toNat) := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1358) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : RDret fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) g s0 σ (((UInt256.xor (UInt256.mul (UInt256.lt x1 x0) (UInt256.xor x0 x1)) x0).toByteArray.write 0 mem (UInt256.ofNat 96).toNat 32).readWithPadding (UInt256.ofNat 96).toNat (UInt256.ofNat 32).toNat) := by
   let r0 := h
   have hcreationCodeSize : Tests.Pipeline.VyperVault.vyperVaultCreationBytecode.size = 1465 := by native_decide
   have r1 := r0.dup1 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -429,8 +431,8 @@ theorem vyperVaultCreation_block_1379_taken {tail : ByteArray} {ee : ExecutionEn
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.xor x0 (UInt256.ofNat 2106073239)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Tests.Pipeline.VyperVault.vyperVaultCreationBytecode 0).contains (UInt256.ofNat 1399) = true)
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1379) (x0 :: R) mem aw rdata σ k C)
-    : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1399) (x0 :: R) mem aw rdata σ (k + 6) (C + ((23))) := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1379) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1399) (x0 :: R) mem aw rdata σ (k + 6) (C + ((23))) := by
   let r0 := h
   have hcreationCodeSize : Tests.Pipeline.VyperVault.vyperVaultCreationBytecode.size = 1465 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -447,8 +449,8 @@ theorem vyperVaultCreation_block_1379_taken_packed {tail : ByteArray} {ee : Exec
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.xor x0 (UInt256.ofNat 2106073239)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Tests.Pipeline.VyperVault.vyperVaultCreationBytecode 0).contains (UInt256.ofNat 1399) = true)
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1379) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1399) (x0 :: R) mem aw' rdata σ k' C' := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1379) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1399) (x0 :: R) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (vyperVaultCreation_block_1379_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -456,8 +458,8 @@ theorem vyperVaultCreation_block_1379_taken_packed {tail : ByteArray} {ee : Exec
 theorem vyperVaultCreation_block_1379_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.xor x0 (UInt256.ofNat 2106073239)) = (UInt256.ofNat 0))
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1379) (x0 :: R) mem aw rdata σ k C)
-    : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1391) (x0 :: R) mem aw rdata σ (k + 6) (C + ((23))) := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1379) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1391) (x0 :: R) mem aw rdata σ (k + 6) (C + ((23))) := by
   let r0 := h
   have hcreationCodeSize : Tests.Pipeline.VyperVault.vyperVaultCreationBytecode.size = 1465 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -473,8 +475,8 @@ theorem vyperVaultCreation_block_1379_fallthrough {tail : ByteArray} {ee : Execu
 theorem vyperVaultCreation_block_1379_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.xor x0 (UInt256.ofNat 2106073239)) = (UInt256.ofNat 0))
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1379) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1391) (x0 :: R) mem aw' rdata σ k' C' := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1379) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1391) (x0 :: R) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (vyperVaultCreation_block_1379_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -483,8 +485,8 @@ theorem vyperVaultCreation_block_1391_taken {tail : ByteArray} {ee : ExecutionEn
     (hstack : R.length + 2 ≤ 1024)
     (hcond : ee.weiValue ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Tests.Pipeline.VyperVault.vyperVaultCreationBytecode 0).contains (UInt256.ofNat 1403) = true)
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1391) R mem aw rdata σ k C)
-    : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1403) R mem aw rdata σ (k + 3) (C + ((15))) := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1391) R mem aw rdata σ k C)
+    : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1403) R mem aw rdata σ (k + 3) (C + ((15))) := by
   let r0 := h
   have hcreationCodeSize : Tests.Pipeline.VyperVault.vyperVaultCreationBytecode.size = 1465 := by native_decide
   have r1 := r0.callvalue (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -498,8 +500,8 @@ theorem vyperVaultCreation_block_1391_taken_packed {tail : ByteArray} {ee : Exec
     (hstack : R.length + 2 ≤ 1024)
     (hcond : ee.weiValue ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Tests.Pipeline.VyperVault.vyperVaultCreationBytecode 0).contains (UInt256.ofNat 1403) = true)
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1391) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1403) R mem aw' rdata σ k' C' := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1391) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1403) R mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (vyperVaultCreation_block_1391_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -507,8 +509,8 @@ theorem vyperVaultCreation_block_1391_taken_packed {tail : ByteArray} {ee : Exec
 theorem vyperVaultCreation_block_1391_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : ee.weiValue = (UInt256.ofNat 0))
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1391) R mem aw rdata σ k C)
-    : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1396) R mem aw rdata σ (k + 3) (C + ((15))) := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1391) R mem aw rdata σ k C)
+    : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1396) R mem aw rdata σ (k + 3) (C + ((15))) := by
   let r0 := h
   have hcreationCodeSize : Tests.Pipeline.VyperVault.vyperVaultCreationBytecode.size = 1465 := by native_decide
   have r1 := r0.callvalue (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -521,16 +523,16 @@ theorem vyperVaultCreation_block_1391_fallthrough {tail : ByteArray} {ee : Execu
 theorem vyperVaultCreation_block_1391_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hcond : ee.weiValue = (UInt256.ofNat 0))
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1391) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1396) R mem aw' rdata σ k' C' := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1391) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1396) R mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (vyperVaultCreation_block_1391_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
 /-- Automatically generated RD summary for bytecode block at pc 1396. -/
 theorem vyperVaultCreation_block_1396 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1396) R mem aw rdata σ k C)
-    : RDret (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) g s0 σ (((σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (UInt256.ofNat 2) (⟨0⟩ : UInt256))).toByteArray.write 0 mem (UInt256.ofNat 64).toNat 32).readWithPadding (UInt256.ofNat 64).toNat (UInt256.ofNat 32).toNat) := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1396) R mem aw rdata σ k C)
+    : RDret fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) g s0 σ (((σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (UInt256.ofNat 2) (⟨0⟩ : UInt256))).toByteArray.write 0 mem (UInt256.ofNat 64).toNat 32).readWithPadding (UInt256.ofNat 64).toNat (UInt256.ofNat 32).toNat) := by
   let r0 := h
   have hcreationCodeSize : Tests.Pipeline.VyperVault.vyperVaultCreationBytecode.size = 1465 := by native_decide
   have r1 := r0.push1 (UInt256.ofNat 2) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -546,8 +548,8 @@ theorem vyperVaultCreation_block_1407_taken {tail : ByteArray} {ee : ExecutionEn
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.xor x0 (UInt256.ofNat 4033993562)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Tests.Pipeline.VyperVault.vyperVaultCreationBytecode 0).contains (UInt256.ofNat 1399) = true)
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1407) (x0 :: R) mem aw rdata σ k C)
-    : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1399) (x0 :: R) mem aw rdata σ (k + 6) (C + ((23))) := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1407) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1399) (x0 :: R) mem aw rdata σ (k + 6) (C + ((23))) := by
   let r0 := h
   have hcreationCodeSize : Tests.Pipeline.VyperVault.vyperVaultCreationBytecode.size = 1465 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -564,8 +566,8 @@ theorem vyperVaultCreation_block_1407_taken_packed {tail : ByteArray} {ee : Exec
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.xor x0 (UInt256.ofNat 4033993562)) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Tests.Pipeline.VyperVault.vyperVaultCreationBytecode 0).contains (UInt256.ofNat 1399) = true)
-    (h : RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1407) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1399) (x0 :: R) mem aw' rdata σ k' C' := by
+    (h : RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1407) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Tests.Pipeline.VyperVault.vyperVaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 1399) (x0 :: R) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (vyperVaultCreation_block_1407_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 

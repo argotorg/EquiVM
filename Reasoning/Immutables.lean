@@ -129,7 +129,7 @@ private theorem decode_eq_of_get?_arg_eq (a b : ByteArray) (pc : UInt256)
           by_cases hn : argOnNBytesOfInstr instr = 0
           · simp [hn]
           · simp [hn]
-            rw [harg byte instr hb hi]
+            rw [Reasoning.Theory.readWithPadding_eq_of_extract'_eq (harg byte instr hb hi)]
 
 /-- A fixed-width suffix of a word, as used by PUSH20 and PUSH32 payloads. -/
 def Layout.siteBytes (width : Nat) (word : UInt256) : ByteArray :=
@@ -494,20 +494,6 @@ theorem Layout.decodeSite20 {layout : Layout} {template : ByteArray}
   rw [hpc]
   have hsite := Layout.runtimeN_read_site (words := words) off 20 key before after hsplit
     hbound hafter (by norm_num : 20 < 2 ^ 64)
-  unfold ByteArray.extract'
-  have hguard : (decide (off < 2 ^ 64) && decide (off + 20 < 2 ^ 64)) = true := by
-    have hs : (off, 20, key) ∈ layout.sites := by rw [hsplit]; simp
-    have hb := decide_eq_true_eq.mp (List.all_eq_true.mp hbound (off, 20, key) hs)
-    have hb' : off + 20 ≤ template.size := by simpa using hb.2.2
-    rw [decide_eq_true (by omega), decide_eq_true (by omega)]
-    rfl
-  rw [if_pos hguard]
-  rw [← Reasoning.Theory.readWithPadding_eq_extract'
-    (layout.runtimeN template words) off 20 (by norm_num) (by norm_num)
-    (by rw [Layout.runtimeN_size_of_bounds hbound]
-        have hs : (off, 20, key) ∈ layout.sites := by rw [hsplit]; simp
-        have hb := decide_eq_true_eq.mp (List.all_eq_true.mp hbound (off, 20, key) hs)
-        exact hb.2.2)]
   exact congrArg uInt256OfByteArray hsite
 
 /-- Decode a PUSH32 in a layout that may also contain PUSH20 sites. -/
@@ -533,20 +519,6 @@ theorem Layout.decodeSite32N {layout : Layout} {template : ByteArray}
   rw [hpc]
   have hsite := Layout.runtimeN_read_site (words := words) off 32 key before after hsplit
     hbound hafter (by norm_num : 32 < 2 ^ 64)
-  unfold ByteArray.extract'
-  have hguard : (decide (off < 2 ^ 64) && decide (off + 32 < 2 ^ 64)) = true := by
-    have hs : (off, 32, key) ∈ layout.sites := by rw [hsplit]; simp
-    have hb := decide_eq_true_eq.mp (List.all_eq_true.mp hbound (off, 32, key) hs)
-    have hb' : off + 32 ≤ template.size := by simpa using hb.2.2
-    rw [decide_eq_true (by omega), decide_eq_true (by omega)]
-    rfl
-  rw [if_pos hguard]
-  rw [← Reasoning.Theory.readWithPadding_eq_extract'
-    (layout.runtimeN template words) off 32 (by norm_num) (by norm_num)
-    (by rw [Layout.runtimeN_size_of_bounds hbound]
-        have hs : (off, 32, key) ∈ layout.sites := by rw [hsplit]; simp
-        have hb := decide_eq_true_eq.mp (List.all_eq_true.mp hbound (off, 32, key) hs)
-        exact hb.2.2)]
   exact congrArg uInt256OfByteArray hsite
 
 private theorem Layout.siteBytes32 (word : UInt256) :
@@ -794,7 +766,9 @@ theorem Layout.decodeSite {layout : Layout} {template : ByteArray}
   rw [Layout.getUnchanged pc.toNat hsize hgetwin (by omega), hopcode]
   simp [parseInstr, argOnNBytesOfInstr]
   rw [hpc]
-  rw [Layout.readSiteWord off key before after hsplit hbefore hafter hsize hsize64 hbound]
+  rw [Reasoning.Theory.readWithPadding_eq_extract _ _ (by omega),
+    ← Reasoning.Theory.byteArray_extract'_eq_extract,
+    Layout.readSiteWord off key before after hsplit hbefore hafter hsize hsize64 hbound]
   rw [word_from_bytes]
 
 /-! ## Immutable words from Stele immutables

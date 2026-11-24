@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.HookDeltaReplyTrace
 import Benchmarks.UniswapV4PoolManager.HookCallTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -15,13 +17,13 @@ theorem hookDeltaTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hlo : 96 ≤ ptr.toNat+32) (hbefore : ptr.toNat+32+data.size ≤ free.toNat)
     (hfit : free.toNat+64 < UInt256.size) (hfree : memLoad (UInt256.ofNat 64) mem = free)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨17823⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨17823⟩
       (accountWord hook :: ptr :: UInt256.fromBool parse :: ret :: R) mem aw rdata evm.accountMap k C) :
-    ∃ evm' z out, callViaEVM evm hook 0 data (z, evm', out) ∧
+    ∃ evm' z out, callViaEVM fork evm hook 0 data (z, evm', out) ∧
       evm'.executionEnv = I ∧ evm'.σ₀ = s0.σ₀ ∧ out.size < 2^138 ∧
-      functionResultTrace (deployedRuntime v) g s0 (fun post values => post = evm' ∧
+      functionResultTrace fork (deployedRuntime v) g s0 (fun post values => post = evm' ∧
         values = some [.int (EVM.signed (hookDeltaWord out parse))] ∧ ∃ aw' k' C',
-          RD (deployedRuntime v) I g s0 ret (hookDeltaWord out parse :: R)
+          RD fork (deployedRuntime v) I g s0 ret (hookDeltaWord out parse :: R)
             (solcReturnDataMem mem free out) aw' out post.accountMap k' C')
         (hookDeltaResult f evm' z data out parse) := by
   have rd0 := poolManagerBlocks.poolManager_block_17823 (by simp only [List.length_cons]; omega)

@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.UtilizationSource
 import Benchmarks.CompoundIII.Comet.ArithmeticRoutines
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_044
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables
@@ -16,8 +18,8 @@ theorem cometUtilization {v : CometWithExtendedAssetListImmutables}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} {ret : UInt256} {R : List UInt256}
     (hstack : R.length + 13 ≤ 1024)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨9196⟩ (ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨9196⟩ (ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (utilizationWord (solcSlotWordAt ⟨0⟩ σ ee) (solcSlotWordAt ⟨1⟩ σ ee) :: R)
       mem aw rdata σ k' C' := by
   let w0 := solcSlotWordAt ⟨0⟩ σ ee
@@ -36,7 +38,7 @@ theorem cometUtilization {v : CometWithExtendedAssetListImmutables}
   obtain ⟨k1, C1, r1⟩ := cometWithExtendedAssetList_block_9196
     (immWords := wordsOf (immStore v)) (by simp only [List.length_cons]; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
-  change RD _ _ _ _ _ (UInt256.land w1 mask104 :: UInt256.land w0 mask64 ::
+  change RD fork _ _ _ _ _ (UInt256.land w1 mask104 :: UInt256.land w0 mask64 ::
     UInt256.ofNat 9246 :: UInt256.ofNat 1000000000000000 :: mask64 :: mask104 :: w1 ::
     UInt256.ofNat 9262 :: UInt256.ofNat 1000000000000000 :: w0 :: ret :: R) _ _ _ _ _ _ at r1
   rw [← hiS, ← hpS] at r1
@@ -49,7 +51,7 @@ theorem cometUtilization {v : CometWithExtendedAssetListImmutables}
   have r3 := cometWithExtendedAssetList_block_9246
     (immWords := wordsOf (immStore v)) (by simp only [List.length_cons]; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r2
-  change RD _ _ _ _ _ (UInt256.land (UInt256.shiftRight w1 (UInt256.ofNat 104)) mask104 ::
+  change RD fork _ _ _ _ _ (UInt256.land (UInt256.shiftRight w1 (UInt256.ofNat 104)) mask104 ::
     UInt256.land (UInt256.shiftRight w0 (UInt256.ofNat 64)) mask64 ::
     UInt256.ofNat 9262 :: UInt256.ofNat 1000000000000000 ::
     totalPresentValue w0 w1 false :: ret :: R) _ _ _ _ _ _ at r3
@@ -63,7 +65,7 @@ theorem cometUtilization {v : CometWithExtendedAssetListImmutables}
     have r6 := cometWithExtendedAssetList_block_9269
       (immWords := wordsOf (immStore v)) (by omega) hvalid r5
     refine ⟨k4 + 5 + 5, C4 + 22 + 18, ?_⟩
-    change RD _ _ _ _ _ (utilizationWord w0 w1 :: R) _ _ _ _ _ _
+    change RD fork _ _ _ _ _ (utilizationWord w0 w1 :: R) _ _ _ _ _ _
     rw [utilizationWord, if_pos hz]
     exact r6
   · have r5 := cometWithExtendedAssetList_block_9262_taken
@@ -75,7 +77,7 @@ theorem cometUtilization {v : CometWithExtendedAssetListImmutables}
     have r7 := cometWithExtendedAssetList_block_9301
       (immWords := wordsOf (immStore v)) (by omega) hvalid r6
     refine ⟨k4 + 5 + 15 + 4, C4 + 22 + 52 + 21, ?_⟩
-    change RD _ _ _ _ _ (utilizationWord w0 w1 :: R) _ _ _ _ _ _
+    change RD fork _ _ _ _ _ (utilizationWord w0 w1 :: R) _ _ _ _ _ _
     rw [utilizationWord, if_neg hz]
     exact r7
 

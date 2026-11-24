@@ -1,6 +1,8 @@
 import Reasoning.Reach
 import Examples.Ballot.DelegateChain
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -23,12 +25,12 @@ theorem ballotDelegateX_loopContinueFrom972CurrentCost {σ σ₀ A I}
     (hcanon : w.toNat < EVM.addressModulus)
     (hnext : delegateVoterDelegateWord σ I w ≠ ⟨0⟩)
     (hnotSender : delegateVoterDelegateWord σ I w ≠ delegateSourceWord I)
-    (hreach : RD ballotBytecode I g (initState σ σ₀ g A I) ⟨972⟩
+    (hreach : RD fork ballotBytecode I g (initState σ σ₀ g A I) ⟨972⟩
       [delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateCurrentLoopMem I old) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C',
       C + 1 ≤ C' ∧
-        RD ballotBytecode I g (initState σ σ₀ g A I) ⟨972⟩
+        RD fork ballotBytecode I g (initState σ σ₀ g A I) ⟨972⟩
           [delegateSenderSlot I, delegateVoterDelegateWord σ I w, ⟨156⟩, sel]
           (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd973 := evm_run hreach with [jumpdest]
@@ -58,7 +60,7 @@ theorem ballotDelegateX_loopContinueFrom972CurrentCost {σ σ₀ A I}
     rd995.sloadMono (by decide) (by evm_ov)
   obtain ⟨k1002, C1002, hC1002, rd1002⟩ : ∃ k' C',
       C + 1 ≤ C' ∧
-        RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1002⟩
+        RD fork ballotBytecode I g (initState σ σ₀ g A I) ⟨1002⟩
           [delegateVoterPackedWord σ I w, solcAddrMask, delegateSenderSlot I, w, ⟨156⟩, sel]
           (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
     refine ⟨k1002₀, C1002₀, ?_, ?_⟩
@@ -108,7 +110,7 @@ theorem ballotDelegateX_loopContinueFrom972CurrentCost {σ σ₀ A I}
     rd1041.sloadMono (by decide) (by evm_ov)
   obtain ⟨k1042, C1042, hC1042, rd1042⟩ : ∃ k' C',
       C + 1 ≤ C' ∧
-        RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1042⟩
+        RD fork ballotBytecode I g (initState σ σ₀ g A I) ⟨1042⟩
           [delegateVoterPackedWord σ I w, delegateSenderSlot I, solcAddrMask, ⟨156⟩, sel]
           (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
     refine ⟨k1042₀, C1042₀, ?_, ?_⟩
@@ -139,12 +141,12 @@ theorem ballotDelegateX_loopContinueFrom972CurrentCost {σ σ₀ A I}
 theorem ballotDelegateChainReachHeaderStepsFromFirstCost {σ σ₀ A I}
     {g : Sat256} {sel : UInt256} {k C : ℕ} (n : Nat)
     (hcontinue : ∀ i, 1 ≤ i → i < 1 + n → delegateChainContinuesAt σ I i)
-    (hreach : RD ballotBytecode I g (initState σ σ₀ g A I) ⟨972⟩
+    (hreach : RD fork ballotBytecode I g (initState σ σ₀ g A I) ⟨972⟩
       (delegateChainStack σ I sel 1) (delegateChainHeaderMem σ I 1)
       (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C',
       C + n ≤ C' ∧
-        RD ballotBytecode I g (initState σ σ₀ g A I) ⟨972⟩
+        RD fork ballotBytecode I g (initState σ σ₀ g A I) ⟨972⟩
           (delegateChainStack σ I sel (1 + n)) (delegateChainHeaderMem σ I (1 + n))
           (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   induction n generalizing k C with
@@ -175,10 +177,10 @@ theorem ballotDelegateChainReachHeaderStepsFromFirstCost {σ σ₀ A I}
 theorem ballotDelegateChainOOGFrom972First {σ σ₀ A I}
     {g : Sat256} {sel : UInt256}
     (hcontinue : ∀ i, 1 ≤ i → i ≤ g.toNat + 1 → delegateChainContinuesAt σ I i)
-    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨972⟩
+    (hreach : ∃ k C, RD fork ballotBytecode I g (initState σ σ₀ g A I) ⟨972⟩
       (delegateChainStack σ I sel 1) (delegateChainHeaderMem σ I 1)
       (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    X (g.toNat + 1) (D_J ballotBytecode 0) (initState σ σ₀ g A I) =
+    X fork (g.toNat + 1) (D_J ballotBytecode 0) (initState σ σ₀ g A I) =
       .error .OutOfGass := by
   obtain ⟨k0, C0, hrd0⟩ := hreach
   obtain ⟨k', C', hC', hrd'⟩ :=
@@ -202,9 +204,9 @@ theorem ballotDelegateChainOOGFrom245 {σ σ₀ A I} {g : Sat256}
     (hnext0 : delegateVoterDelegateWord σ I (delegateToWord I) ≠ ⟨0⟩)
     (hcycle0 : delegateVoterDelegateWord σ I (delegateToWord I) ≠ delegateSourceWord I)
     (hcontinue : ∀ i, 1 ≤ i → i ≤ g.toNat + 1 → delegateChainContinuesAt σ I i)
-    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨245⟩ [sel]
+    (hreach : ∃ k C, RD fork ballotBytecode I g (initState σ σ₀ g A I) ⟨245⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    X (g.toNat + 1) (D_J ballotBytecode 0) (initState σ σ₀ g A I) =
+    X fork (g.toNat + 1) (D_J ballotBytecode 0) (initState σ σ₀ g A I) =
       .error .OutOfGass := by
   have hfirst := ballotDelegateChainReachFirstFrom245
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel)

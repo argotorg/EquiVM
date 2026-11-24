@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.OracleSearchStep
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -36,7 +38,7 @@ theorem oracleSearchLoopOfRun (imms : Store) (evm : EVM.State)
     (hrun : OracleSearchRun time target cardinality evm.accountMap evm.executionEnv
       left right beforeOrAt atOrAfter) :
     ∀ locals, OracleSearchBindings locals time target cardinality left right →
-      ∃ locals', ExecStmt config {contract := contract, locals := locals, immutables := imms} evm
+      ∃ locals', ExecStmt fork config {contract := contract, locals := locals, immutables := imms} evm
         (.while (.boolLit true) oracleSearchBody)
         (.ok {contract := contract, locals := locals', immutables := imms} evm) ∧
         locals'.get? "beforeOrAt" = some beforeOrAt.value ∧
@@ -44,7 +46,7 @@ theorem oracleSearchLoopOfRun (imms : Store) (evm : EVM.State)
   induction hrun with
   | @found left right hinit hfound =>
       intro locals h
-      have hs := oracleSearchFound locals imms evm time target cardinality left right h hn hc ht hinit hfound
+      have hs := oracleSearchFound (fork := fork) locals imms evm time target cardinality left right h hn hc ht hinit hfound
       have hg := oracleSearchCompareGets locals imms evm time target cardinality left right
       exact ⟨_, ExecStmt.whileBreak (by simp only [evalExpr?, pure]) hs, hg.2.2.2⟩
   | @uninitialized left right beforeOrAt atOrAfter hinit hrun ih =>
@@ -66,7 +68,7 @@ theorem oracleSearchReturns (imms : Store) (evm : EVM.State)
     (ht : target.toNat < 2 ^ 32)
     (hrun : OracleSearchRun time target cardinality evm.accountMap evm.executionEnv
       (oracleSearchLeft index cardinality) (oracleSearchRight index cardinality) beforeOrAt atOrAfter) :
-    ∃ frame, ExecFuncBody config (oracleSearchFrame imms time target index cardinality) evm
+    ∃ frame, ExecFuncBody fork config (oracleSearchFrame imms time target index cardinality) evm
       oracleSearchFunction.body (.returned frame evm (some [beforeOrAt.value, atOrAfter.value])) := by
   obtain ⟨locals, hloop, hb, ha⟩ := oracleSearchLoopOfRun imms evm time target cardinality
     _ _ beforeOrAt atOrAfter hn hc ht hrun _ (oracleSearchReadyBindings imms time target index cardinality)

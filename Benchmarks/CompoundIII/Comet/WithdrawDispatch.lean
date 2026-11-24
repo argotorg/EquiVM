@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.DispatchLast
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -12,7 +14,7 @@ theorem cometWithExtendedAssetListReachWithdrawBody {σ σ₀ A I} {g : Sat256}
     (v : CometWithExtendedAssetListImmutables) (hcode : I.code = deployedRuntime v)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 67)) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨778⟩ []
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨778⟩ []
       solcFreePtrMem (M ⟨0⟩ ⟨64⟩ ⟨32⟩) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨4093572003⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xf3 0xfe 0xf3 0xa3 ⟨4093572003⟩ (by decide +kernel)

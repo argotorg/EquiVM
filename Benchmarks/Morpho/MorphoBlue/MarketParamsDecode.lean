@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.MarketParamsCommon
 import Benchmarks.Morpho.MorphoBlue.ErrorRoutines
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -20,9 +22,9 @@ theorem morphoDecodeMarketParamsPrefix {v : MorphoImmutables} {ee : ExecutionEnv
         (UInt256.ofNat 18446744073709551615))
       (UInt256.lt (memLoad (UInt256.ofNat 64) mem + UInt256.ofNat 160)
         (memLoad (UInt256.ofNat 64) mem)) = UInt256.ofNat 0)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 11600)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 11600)
       (UInt256.ofNat ee.calldata.size :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 11655)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 11655)
       (ret :: memLoad (UInt256.ofNat 64) mem :: R) (marketParamsAllocatedMem mem) aw' rdata σ k' C' := by
   have hcond := solcCalldataStaticLenCheckOk (words := 5) hlen hbound hsize
   have rdGuard := morphoBlocks.morpho_block_11600_fallthrough
@@ -44,9 +46,9 @@ theorem morphoDecodeMarketParamsOk {v : MorphoImmutables} {ee : ExecutionEnv} {g
     (hstack : R.length + 7 ≤ 1024)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
     (hc : (marketParamsFromCalldata ee.calldata).Canonical)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 11655)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 11655)
       (ret :: ptr :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (ptr :: R)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (ptr :: R)
       (marketParamsMem (marketParamsFromCalldata ee.calldata) ptr mem) aw' rdata σ k' C' := by
   dsimp only [MarketParamsWords.Canonical, marketParamsFromCalldata] at hc
   have rd0 := morphoBlocks.morpho_block_11655_fallthrough
@@ -74,8 +76,8 @@ theorem morphoDecodeMarketParamsNoncanonical {v : MorphoImmutables} {ee : Execut
     {σ : AccountMap} {k C : Nat} {ret ptr : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024)
     (hnc : ¬ (marketParamsFromCalldata ee.calldata).Canonical)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 11655)
-      (ret :: ptr :: R) mem aw rdata σ k C) : RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 11655)
+      (ret :: ptr :: R) mem aw rdata σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   dsimp only [MarketParamsWords.Canonical, marketParamsFromCalldata] at hnc
   have hvalid : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 712) = true := by
     rw [morphoPatchedValidJumps v]; jump_dest

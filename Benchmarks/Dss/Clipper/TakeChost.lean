@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Clipper.TakePostStatus
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -54,7 +56,7 @@ theorem RD.clipperTakeOweLtTabSliceLtLotChostGeToJoin {code : ByteArray}
     {σ : AccountMap}
     {price slice tab lot tic packed stopped dataLen dataStart who max amt id : UInt256}
     {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {k C : ℕ}
-    (h : RD code ee g s0 ⟨4057⟩
+    (h : RD fork code ee g s0 ⟨4057⟩
       (UInt256.mul price slice :: slice :: ⟨0⟩ :: tab :: lot ::
         price :: tic :: packed :: stopped :: dataLen :: dataStart :: who ::
         max :: amt :: id :: R)
@@ -65,7 +67,7 @@ theorem RD.clipperTakeOweLtTabSliceLtLotChostGeToJoin {code : ByteArray}
     (hchostLe : (solcSlotWord σ ee ⟨9⟩).toNat ≤
       (UInt256.sub tab (UInt256.mul price slice)).toNat)
     (hov : R.length + 30 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨4223⟩
+    ∃ k' C', RD fork code ee g s0 ⟨4223⟩
       (slice :: UInt256.mul price slice :: tab :: lot ::
         price :: tic :: packed :: stopped :: dataLen :: dataStart :: who ::
         max :: amt :: id :: R)
@@ -152,7 +154,7 @@ theorem RD.clipperTakeOweLtTabSliceLtLotChostAdjustToJoin {code : ByteArray}
     {σ : AccountMap}
     {price slice tab lot tic packed stopped dataLen dataStart who max amt id : UInt256}
     {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {k C : ℕ}
-    (h : RD code ee g s0 ⟨4057⟩
+    (h : RD fork code ee g s0 ⟨4057⟩
       (UInt256.mul price slice :: slice :: ⟨0⟩ :: tab :: lot ::
         price :: tic :: packed :: stopped :: dataLen :: dataStart :: who ::
         max :: amt :: id :: R)
@@ -165,7 +167,7 @@ theorem RD.clipperTakeOweLtTabSliceLtLotChostAdjustToJoin {code : ByteArray}
     (htabChost : (solcSlotWord σ ee ⟨9⟩).toNat < tab.toNat)
     (hprice : price ≠ ⟨0⟩)
     (hov : R.length + 30 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨4223⟩
+    ∃ k' C', RD fork code ee g s0 ⟨4223⟩
       (UInt256.div (UInt256.sub tab (solcSlotWord σ ee ⟨9⟩)) price ::
         UInt256.sub tab (solcSlotWord σ ee ⟨9⟩) :: tab :: lot ::
         price :: tic :: packed :: stopped :: dataLen :: dataStart :: who ::

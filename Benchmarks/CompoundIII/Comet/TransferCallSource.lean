@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.TransferReturnSource
 import Benchmarks.CompoundIII.Comet.TransferPayload
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -14,14 +16,14 @@ def transferCallFrame (frame : Frame) (out : ByteArray) : Frame :=
   { frame with locals := ((frame.locals.insert "ok" (.bool true)).insert "data"
     (.bytes out)).insert "checked" .unit }
 
-inductive TransferCallTrace (asset : AccountAddress) (payload : ByteArray) (evm : EVM.State) :
+inductive TransferCallTrace (fork : Ethereum.Fork) (asset : AccountAddress) (payload : ByteArray) (evm : EVM.State) :
     Option (EVM.State × ByteArray) → Prop where
   | codeMissing (hc : extCodeSizeWord evm.accountMap (EVM.word asset.val) = ⟨0⟩) :
-      TransferCallTrace asset payload evm none
+      TransferCallTrace fork asset payload evm none
   | callResult {evm' : EVM.State} {z : Bool} {out : ByteArray}
       (hne : extCodeSizeWord evm.accountMap (EVM.word asset.val) ≠ ⟨0⟩)
-      (hc : callViaEVM evm asset 0 payload (z, evm', out)) (hh : out.size < 2^255) :
-      TransferCallTrace asset payload evm
+      (hc : callViaEVM fork evm asset 0 payload (z, evm', out)) (hh : out.size < 2^255) :
+      TransferCallTrace fork asset payload evm
         (if z = true ∧ TransferReturnValid out then some (evm', out) else none)
 
 def transferCallResult (frame : Frame) (result : Option (EVM.State × ByteArray)) : ExecResult :=
@@ -31,11 +33,11 @@ def transferCallResult (frame : Frame) (result : Option (EVM.State × ByteArray)
 
 theorem transferCall_source {asset : AccountAddress} {payload : ByteArray}
     {evm : EVM.State} {result : Option (EVM.State × ByteArray)}
-    (ht : TransferCallTrace asset payload evm result) (frame : Frame)
+    (ht : TransferCallTrace fork asset payload evm result) (frame : Frame)
     (assetExpr payloadExpr : Expr) (hf : frame.contract = contract)
     (ha : evalExpr? config frame evm assetExpr = .ok (.address asset))
     (hd : evalExpr? config frame evm payloadExpr = .ok (.bytes payload)) :
-    ExecBlock config frame evm (transferCallBlock assetExpr payloadExpr)
+    ExecBlock fork config frame evm (transferCallBlock assetExpr payloadExpr)
       (transferCallResult frame result) := by
   have haddr : AccountAddress.ofUInt256 (EVM.word asset.val) = asset :=
     accountAddress_roundtrip asset
@@ -55,11 +57,11 @@ theorem transferCall_source {asset : AccountAddress} {payload : ByteArray}
       have hn := intOfNat_toNat_ne_zero_of_u256_ne_zero _ hne
       simp only [Int.ofNat_eq_natCast] at hn ⊢
       omega
-    have hcall := lowLevelCallSource (hperm := Or.inl rfl) (eth := .intLit 0) (frame := frame) ha
+    have hcall := lowLevelCallSource (fork := fork) (hperm := Or.inl rfl) (eth := .intLit 0) (frame := frame) ha
       (by simp only [evalExpr?, pure]) (success := "ok") (data := "data") hd hc
     let callFrame : Frame := { frame with locals :=
       (frame.locals.insert "ok" (.bool true)).insert "data" (.bytes out) }
-    have hcheck := transferReturn_call callFrame evm' (.var "data") "checked" out hf
+    have hcheck := transferReturn_call (fork := fork) callFrame evm' (.var "data") "checked" out hf
       (by simp [evalExpr?, callFrame, EvalResult.ofOption]) hh
     cases z with
     | false =>

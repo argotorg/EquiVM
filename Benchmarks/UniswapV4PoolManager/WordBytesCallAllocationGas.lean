@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.WordBytesCallAllocation
 import Benchmarks.UniswapV4PoolManager.MemoryGas
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -12,8 +14,8 @@ theorem wordBytesCallAllocationGas {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hf : ptr.toNat+130+32*words.length+len.toNat < UInt256.size)
     (hbad : ¬AllocationBounds ptr (wordBytesCallAllocationSize words len))
     (hpaid : Cₘ aw ≤ C) (hspan : (ptr.toNat+131+32*words.length+len.toNat)/32 ≤ aw.toNat)
-    (h : RD (deployedRuntime v) I g s0 pc R mem aw rdata σ k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass := by
+    (h : RD fork (deployedRuntime v) I g s0 pc R mem aw rdata σ k C) :
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass := by
   have he := wordBytesCallAllocation_end_toNat ptr len words hf
   have hl : 2^64 ≤ ptr.toNat+96+32*words.length+paddedSize len.toNat := by
     by_contra hn

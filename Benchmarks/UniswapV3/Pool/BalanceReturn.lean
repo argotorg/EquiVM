@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SafeTransferCall
 import Benchmarks.UniswapV3.Pool.BalanceSource
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_051
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,7 +13,7 @@ set_option maxRecDepth 10000
 -- LIBRARY CANDIDATE: bound the output of a source call with either permission bit.
 theorem callViaEVM_output_size {evm evm' : EVM.State} {target : AccountAddress} {value : Int}
     {calldata out : ByteArray} {ok perm : Bool}
-    (hc : callViaEVM evm target value calldata (ok, evm', out) perm)
+    (hc : callViaEVM fork evm target value calldata (ok, evm', out) perm)
     (hsmall : calldata.size ≤ Ethereum.EVM.maxReturnDataSizeByGas) : out.size < 2 ^ 138 := by
   cases hc with
   | callMade _ hex _ _ _ =>
@@ -22,13 +24,13 @@ theorem callViaEVM_output_size {evm evm' : EVM.State} {target : AccountAddress} 
 theorem balanceReturndataGrowingX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ptr status junk1 junk2 : UInt256} {mem out : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨15775⟩ (status :: junk1 :: junk2 :: R) mem aw out σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨15775⟩ (status :: junk1 :: junk2 :: R) mem aw out σ k C)
     (hm : HeapMemory mem aw ptr) (hptr : ptr.toNat + 32 ≤ mem.size)
     (hzero : memLoad (UInt256.ofNat 96) mem = ⟨0⟩)
     (hbound : ptr.toNat + out.size + 95 ≤ 2 ^ 200)
     (hout : out.size < UInt256.size) (hov : R.length + 7 ≤ 1024) :
     ∃ dataPtr next mem' aw' k' C',
-      RD (deployedRuntime v) ee g s0 ⟨15826⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨15826⟩
         (UInt256.ofNat out.size :: dataPtr :: status :: R) mem' aw' out σ k' C' ∧
       HeapMemory mem' aw' next ∧ MemoryPrefix mem mem' ptr.toNat ∧
       ptr.toNat ≤ next.toNat ∧
@@ -73,7 +75,7 @@ theorem balanceReturndataGrowingX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat
         rw [ulit_toNat' _ hout]
         rfl
     rw [hmem] at rdDone
-    change RD (deployedRuntime v) ee g s0 ⟨15826⟩
+    change RD fork (deployedRuntime v) ee g s0 ⟨15826⟩
       (UInt256.ofNat out.size :: ptr :: status :: R) (solcReturnDataMem mem ptr out)
       (bytesAllocWords aw ptr out.size) out σ _ _ at rdDone
     have hmemEq := solcReturnDataMem_eq_bytesAllocMem mem ptr out hfit
@@ -100,13 +102,13 @@ theorem balanceReturndataGrowingX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat
 theorem balanceReturndataX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ptr status junk1 junk2 : UInt256} {mem out : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨15775⟩ (status :: junk1 :: junk2 :: R) mem aw out σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨15775⟩ (status :: junk1 :: junk2 :: R) mem aw out σ k C)
     (hm : HeapMemory mem aw ptr) (hptr : ptr.toNat + 32 ≤ mem.size)
     (hzero : memLoad (UInt256.ofNat 96) mem = ⟨0⟩)
     (hbound : ptr.toNat + out.size + 95 ≤ 2 ^ 200)
     (hout : out.size < UInt256.size) (hov : R.length + 7 ≤ 1024) :
     ∃ dataPtr next mem' aw' k' C',
-      RD (deployedRuntime v) ee g s0 ⟨15826⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨15826⟩
         (UInt256.ofNat out.size :: dataPtr :: status :: R) mem' aw' out σ k' C' ∧
       HeapMemory mem' aw' next ∧ MemoryPrefix mem mem' ptr.toNat ∧
       next.toNat ≤ ptr.toNat + out.size + 63 ∧ dataPtr.toNat + 64 ≤ 2 ^ 200 ∧
@@ -119,7 +121,7 @@ theorem balanceReturndataX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem balanceFinishX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw dataPtr junk0 junk1 junk2 ret : UInt256}
     {mem out : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables} (ok : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨15826⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨15826⟩
       (UInt256.ofNat out.size :: dataPtr :: ok.toUInt256 :: junk0 :: junk1 :: junk2 :: ret :: R)
       mem aw out σ k C)
     (hlen : memLoad dataPtr mem = UInt256.ofNat out.size)
@@ -127,9 +129,9 @@ theorem balanceFinishX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hout : out.size < UInt256.size) (ha : ActiveWords aw)
     (hp : dataPtr.toNat + 64 ≤ 2 ^ 200)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 9 ≤ 1024) :
-    ((ok && decide (32 ≤ out.size)) = false ∧ RDrev (deployedRuntime v) g s0) ∨
+    ((ok && decide (32 ≤ out.size)) = false ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (ok = true ∧ 32 ≤ out.size ∧ ∃ aw' k' C',
-      RD (deployedRuntime v) ee g s0 ret (balanceValue out :: R) mem aw' out σ k' C' ∧
+      RD fork (deployedRuntime v) ee g s0 ret (balanceValue out :: R) mem aw' out σ k' C' ∧
       ActiveWords aw') := by
   cases ok with
   | false =>

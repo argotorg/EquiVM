@@ -3,6 +3,8 @@ import Benchmarks.Auction.PaymentInternal
 import Benchmarks.Auction.SnapshotMemory
 import Benchmarks.Auction.AddressSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -16,29 +18,29 @@ def bidRefundStmts : List Stmt :=
   [.letDecl "lastBidder" (some addr) (auctionMemField "bidder"), bidRefundStmt]
 
 theorem bidRefundRoutine {I g s0 s noun ret R mem aw rdata σ k C evm locals}
-    (h : RD auctionBytecode I g s0 ⟨1681⟩ (⟨128⟩ :: noun :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨1681⟩ (⟨128⟩ :: noun :: ret :: R)
       mem aw rdata σ k C)
     (hs : SourceState s0 I σ evm) (hperm : I.perm = true)
     (hm : HeapMemory mem aw ⟨320⟩) (hsm : SnapshotMemory s mem aw ⟨128⟩)
     (hv : BidValues locals s noun) (hov : R.length + 28 ≤ 1024) :
     (∃ (evm' : EVM.State) (σ' : AccountMap)
         (locals' : Store) (mem' : ByteArray) (aw' ptr' : UInt256) (out : ByteArray) (k' C' : Nat),
-      ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
+      ExecBlock fork auctionConfig { contract := auctionContract, locals := locals } evm
         bidRefundStmts (.ok { contract := auctionContract, locals := locals' } evm') ∧
       BidValues locals' s noun ∧ SourceState s0 I σ' evm' ∧
-      RD auctionBytecode I g s0 ⟨1715⟩ (s.bidderWord :: ⟨128⟩ :: noun :: ret :: R)
+      RD fork auctionBytecode I g s0 ⟨1715⟩ (s.bidderWord :: ⟨128⟩ :: noun :: ret :: R)
         mem' aw' out σ' k' C' ∧
       MemoryCursor mem' aw' ptr' ∧ SnapshotMemory s mem' aw' ⟨128⟩ ∧
       320 ≤ ptr'.toNat ∧ ptr'.toNat ≤ 320 + 2 ^ 140) ∨
-    (ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
-      bidRefundStmts .reverted ∧ RDrev auctionBytecode g s0) := by
+    (ExecBlock fork auctionConfig { contract := auctionContract, locals := locals } evm
+      bidRefundStmts .reverted ∧ RDrev fork auctionBytecode g s0) := by
   let locals1 := locals.insert "lastBidder" (.address (AccountAddress.ofNat s.bidderWord.toNat))
   have hv1 : BidValues locals1 s noun :=
     hv.insertOther _ (by decide) (by decide) (by decide)
   have hb : evalExpr? auctionConfig { contract := auctionContract, locals := locals1 } evm
       (.var "lastBidder") = .ok (.address (AccountAddress.ofNat s.bidderWord.toNat)) := by
     simp only [evalExpr?, locals1, store_get_self, EvalResult.ofOption]
-  have hlet := ExecStmt.letDecl (ty := some addr) (name := "lastBidder")
+  have hlet := ExecStmt.letDecl (fork := fork) (ty := some addr) (name := "lastBidder")
     (snapshotBidderSource (evm := evm) hv.snapshot)
   have hl : loadedWord mem (⟨128⟩ + ⟨128⟩) = s.bidderWord := hsm.load ⟨4, by decide⟩
   have ha : expandedWords aw (⟨128⟩ + ⟨128⟩) ⟨32⟩ = aw := hsm.expand_eq ⟨4, by decide⟩
@@ -49,7 +51,7 @@ theorem bidRefundRoutine {I g s0 s noun ret R mem aw rdata σ k C evm locals}
     dup2, and, iszero, push2 ⟨1715⟩]
   have hmask : UInt256.sub (UInt256.shiftLeft ⟨1⟩ ⟨160⟩) ⟨1⟩ = solcAddrMask := by decide
   rw [hmask, Snapshot.bidderWord, maskTwice] at rd1701
-  change RD _ _ _ _ ⟨1701⟩
+  change RD fork _ _ _ _ ⟨1701⟩
     (⟨1715⟩ :: UInt256.isZero s.bidderWord :: s.bidderWord :: ⟨128⟩ :: noun :: ret :: R)
     mem aw rdata σ _ _ at rd1701
   by_cases hz : s.bidderWord = ⟨0⟩

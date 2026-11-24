@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.TickLogPrefix
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_046
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_047
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -17,18 +19,18 @@ theorem tickLogPrice_lt (price : UInt256) : (tickLogPrice price).toNat < 2 ^ 160
 theorem tickLogStartX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw price : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13989⟩ (price :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13989⟩ (price :: R) mem aw rdata σ k C)
     (hov : R.length + 7 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧ ¬ tickLogValid (tickLogPrice price)) ∨
-      (tickLogValid (tickLogPrice price) ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨14102⟩
+    (RDrev fork (deployedRuntime v) g s0 ∧ ¬ tickLogValid (tickLogPrice price)) ∨
+      (tickLogValid (tickLogPrice price) ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨14102⟩
         (⟨0⟩ :: price :: R) mem aw rdata σ k' C') := by
   have hmask : UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160))
       (UInt256.ofNat 1) = UInt256.ofNat (2 ^ 160 - 1) := by decide
   have hprice : UInt256.land price (UInt256.ofNat (2 ^ 160 - 1)) = tickLogPrice price := rfl
   have hfail {k' C' : Nat}
-      (r : RD (deployedRuntime v) ee g s0 ⟨14049⟩
+      (r : RD fork (deployedRuntime v) ee g s0 ⟨14049⟩
         (⟨0⟩ :: ⟨0⟩ :: price :: R) mem aw rdata σ k' C') :
-      RDrev (deployedRuntime v) g s0 := by
+      RDrev fork (deployedRuntime v) g s0 := by
     have rf := uniswapV3Pool_block_14049_fallthrough (immWords := wordsOf (immStore v))
       (by evm_ov) rfl r
     exact uniswapV3Pool_block_14054 (immWords := wordsOf (immStore v))
@@ -44,7 +46,7 @@ theorem tickLogStartX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     · have hlt' : UInt256.lt (tickLogPrice price)
           (UInt256.ofNat 1461446703485210103287273052203988822378723970342) = ⟨1⟩ :=
         ult_one hhi
-      have rguard : RD (deployedRuntime v) ee g s0 ⟨14049⟩
+      have rguard : RD fork (deployedRuntime v) ee g s0 ⟨14049⟩
           (⟨1⟩ :: ⟨0⟩ :: price :: R) mem aw rdata σ (k + 16 + 10) (C + 53 + 29) := by
         simpa only [uniswapV3Pool_block_14016_stack,
           uniswapV3Pool_block_13989_fallthrough_stack, hmask, hprice, hlt'] using rhi
@@ -55,7 +57,7 @@ theorem tickLogStartX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     · have hlt' : UInt256.lt (tickLogPrice price)
           (UInt256.ofNat 1461446703485210103287273052203988822378723970342) = ⟨0⟩ :=
         ult_zero (Nat.le_of_not_gt hhi)
-      have rguard : RD (deployedRuntime v) ee g s0 ⟨14049⟩
+      have rguard : RD fork (deployedRuntime v) ee g s0 ⟨14049⟩
           (⟨0⟩ :: ⟨0⟩ :: price :: R) mem aw rdata σ (k + 16 + 10) (C + 53 + 29) := by
         simpa only [uniswapV3Pool_block_14016_stack,
           uniswapV3Pool_block_13989_fallthrough_stack, hmask, hprice, hlt'] using rhi
@@ -65,7 +67,7 @@ theorem tickLogStartX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     have rlo := uniswapV3Pool_block_13989_taken (immWords := wordsOf (immStore v))
       (by evm_ov) (by rw [hmask]; change UInt256.lt (tickLogPrice price) _ ≠ _; rw [hlt]; decide)
       (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; jump_dest) rd
-    have rguard : RD (deployedRuntime v) ee g s0 ⟨14049⟩
+    have rguard : RD fork (deployedRuntime v) ee g s0 ⟨14049⟩
         (⟨0⟩ :: ⟨0⟩ :: price :: R) mem aw rdata σ (k + 16) (C + 53) := by
       simpa only [uniswapV3Pool_block_13989_taken_stack, hmask, hprice, hlt,
         show UInt256.isZero ⟨1⟩ = ⟨0⟩ from rfl] using rlo

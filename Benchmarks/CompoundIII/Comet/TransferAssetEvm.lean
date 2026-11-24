@@ -6,6 +6,8 @@ import Benchmarks.CompoundIII.Comet.BalanceEvm
 import Benchmarks.CompoundIII.Comet.DynamicReturnEvm
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_067
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -20,12 +22,12 @@ theorem cometTransferAsset {v : CometWithExtendedAssetListImmutables}
     (hfree : memLoad ⟨64⟩ mem = free) (hlo : 96 ≤ free.toNat) (hmem : 96 ≤ mem.size)
     (hbound : free.toNat + 736 + 1696 * v.numAssets.toNat < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨14550⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨14550⟩
       (solcAddrMask :: EVM.word asset.val :: EVM.word dst.val :: amount ::
         EVM.word src.val :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ result, TransferAssetTrace v src dst asset amount evm result ∧
-      internalDynamicRun (deployedRuntime v) ee g s0 ret R result := by
+    ∃ result, TransferAssetTrace fork v src dst asset amount evm result ∧
+      internalDynamicRun fork (deployedRuntime v) ee g s0 ret R result := by
   have hbase : UInt256.land (wordsOf (immStore v) "baseToken") solcAddrMask = EVM.word v.baseToken.val := by
     rw [wordsOf_immStore_baseToken]
     exact solcAddrMask_clean (addressWord_val_canonical _)
@@ -60,7 +62,7 @@ theorem cometTransferAsset {v : CometWithExtendedAssetListImmutables}
         have r5 := cometWithExtendedAssetList_block_14620
           (immWords := wordsOf (immStore v)) (by change R.length + 2 + 4 ≤ 1024; omega)
           (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r4
-        change RD _ _ _ _ _ (EVM.word src.val :: EVM.word dst.val ::
+        change RD fork _ _ _ _ _ (EVM.word src.val :: EVM.word dst.val ::
           balanceWord v _ _ _ _ :: UInt256.ofNat 3121 :: ret :: R) _ _ _ _ _ _ at r5
         rw [← hword] at r5
         obtain ⟨result, ht, hr⟩ := cometTransferBase (v := v) src dst

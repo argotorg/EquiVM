@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Jug.ConstructorTraceVatMaskHigh
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Jug constructor vat mask trace
 -/
@@ -14,13 +16,13 @@ theorem jugCtorVatMaskJoinReach
     {σ σWards σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat : AccountAddress) {k C : ℕ}
     (rd100 :
-      RD (jugCtorCode vat) I g
+      RD fork (jugCtorCode vat) I g
         (initState σ σ₀ g A I) ⟨100⟩
         [UInt256.land (solcSlotWord σWards I ⟨2⟩) (UInt256.lnot solcAddrMask), ⟨2⟩,
           UInt256.land (EVM.word vat.val) solcAddrMask]
         (jugCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
         σWards k C) :
-    ∃ k' C', RD (jugCtorCode vat) I g
+    ∃ k' C', RD fork (jugCtorCode vat) I g
       (initState σ σ₀ g A I) ⟨105⟩
       [⟨2⟩, jugCtorVatStored σWards I vat]
       (jugCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
@@ -38,11 +40,11 @@ theorem jugCtorVatBeforeStoreReach
     {σ σWards σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat : AccountAddress) {k C : ℕ}
     (rd73 :
-      RD (jugCtorCode vat) I g
+      RD fork (jugCtorCode vat) I g
         (initState σ σ₀ g A I) ⟨73⟩
         [EVM.word vat.val] (jugCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
         σWards k C) :
-    ∃ k' C', RD (jugCtorCode vat) I g
+    ∃ k' C', RD fork (jugCtorCode vat) I g
       (initState σ σ₀ g A I) ⟨105⟩
       [⟨2⟩, jugCtorVatStored σWards I vat]
       (jugCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty

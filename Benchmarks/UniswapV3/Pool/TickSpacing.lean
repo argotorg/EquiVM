@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.Dispatch
 import Benchmarks.UniswapV3.Pool.Routines
 import Benchmarks.UniswapV3.Pool.SignedWords
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # UniswapV3Pool `tickSpacing()`
 
@@ -20,7 +22,7 @@ set_option maxRecDepth 2000000
 
 theorem uniswapV3PoolTickSpacingReturns (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (locals : Store) (hwv : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract evm locals tickSpacingTransition.body
+    ExecTransitionBody fork config contract evm locals tickSpacingTransition.body
       (.returned { contract := contract, locals := locals, immutables := immStore v } evm
         (some [.int (normalizeInt (.sint ⟨24, by decide⟩)
           (Int.ofNat v.tickSpacing.toNat))])) (immStore v) := by
@@ -33,7 +35,7 @@ theorem uniswapV3PoolTickSpacingX {σ σ₀ A I} {g : Sat256} (v : UniswapV3Pool
     (hcode : I.code = deployedRuntime v) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (uniswapV3PoolSelBytes 20)) :
-    RDret (deployedRuntime v) g (initState σ σ₀ g A I) σ
+    RDret fork (deployedRuntime v) g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (UInt256.signextend (UInt256.ofNat 2) v.tickSpacing)) := by
   obtain ⟨k, C, rdEntry⟩ := uniswapV3PoolReachTickSpacingBody (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hwv hsz hsize hsel
@@ -54,7 +56,7 @@ theorem uniswapV3PoolTickSpacingBody {σ σ₀ A I} {g : UInt256} (v : UniswapV3
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (uniswapV3PoolSelBytes 20)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (uniswapV3PoolSelBytes 20) rfl hsel
   have hd : dispatchMsg contract I.calldata = some tickSpacingTransition := by
     apply uniswapV3PoolDispatch_tickSpacing <;>

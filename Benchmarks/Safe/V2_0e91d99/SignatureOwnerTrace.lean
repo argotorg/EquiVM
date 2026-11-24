@@ -3,6 +3,8 @@ import Benchmarks.Safe.V2_0e91d99.Blocks.Runtime_016
 import Benchmarks.Safe.V2_0e91d99.Blocks.Runtime_017
 import Benchmarks.Safe.V2_0e91d99.Blocks.Runtime_030
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V2_0e91d99.RuntimeBlocks
 
@@ -11,8 +13,8 @@ namespace Benchmarks.Safe.V2_0e91d99
 set_option maxRecDepth 100000
 
 theorem safeSignatureOwnerReject {I g s0 σ k C aw mem rdata} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨2755⟩ (⟨1⟩ :: R) mem aw rdata σ k C)
-    (hov : R.length + 6 ≤ 1024) : RDrev safeBytecode g s0 := by
+    (h : RD fork safeBytecode I g s0 ⟨2755⟩ (⟨1⟩ :: R) mem aw rdata σ k C)
+    (hov : R.length + 6 ≤ 1024) : RDrev fork safeBytecode g s0 := by
   have h₁ := safeRuntime_block_2755_fallthrough (by omega) (by decide) h
   have h₂ := safeRuntime_block_2761 (by
     simp only [safeRuntime_block_2755_fallthrough_stack]; omega) (by jump_dest) h₁
@@ -22,12 +24,12 @@ theorem safeSignatureOwnerReject {I g s0 σ k C aw mem rdata} {R : List UInt256}
 
 theorem safeSignatureOwnerTrace {I g s0 σ k C aw mem rdata i}
     {s r v current last : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨2679⟩
+    (h : RD fork safeBytecode I g s0 ⟨2679⟩
       (UInt256.ofNat i :: s :: r :: v :: current :: last :: R) mem aw rdata σ k C)
     (hm : 64 ≤ mem.size) (hi : i + 1 < UInt256.size) (hov : R.length + 13 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧ ¬signatureOwnerValid σ I current last) ∨
+    (RDrev fork safeBytecode g s0 ∧ ¬signatureOwnerValid σ I current last) ∨
     ∃ aw' k' C', signatureOwnerValid σ I current last ∧
-      RD safeBytecode I g s0 ⟨2002⟩
+      RD fork safeBytecode I g s0 ⟨2002⟩
         (UInt256.ofNat (i + 1) :: s :: r :: v :: current :: current :: R)
         (twoWordHashMem (UInt256.land solcAddrMask current) ⟨2⟩ mem) aw' rdata σ k' C' := by
   by_cases hgt : (UInt256.land solcAddrMask last).toNat <
@@ -55,7 +57,7 @@ theorem safeSignatureOwnerTrace {I g s0 σ k C aw mem rdata i}
     twoWordHashMem_mapSlot_of_ge64 _ _ hm
   simp only [safeRuntime_block_2707_stack] at h₂
   rw [← safeRuntime_block_2707_memory, hmem, hslot, safeAddressMask] at h₂
-  change RD safeBytecode I g s0 ⟨2735⟩
+  change RD fork safeBytecode I g s0 ⟨2735⟩
     (UInt256.isZero (ownerLinkAt σ I (UInt256.land solcAddrMask current)) ::
       UInt256.ofNat i :: s :: r :: v :: current :: last :: R)
     (twoWordHashMem (UInt256.land solcAddrMask current) ⟨2⟩ mem) aw₂ rdata σ k₂ C₂ at h₂

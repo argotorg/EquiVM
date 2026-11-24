@@ -1,13 +1,15 @@
 import Benchmarks.Safe.ViaIR.SetupFallbackTrace
 import Benchmarks.Safe.ViaIR.SetupModulesCallTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.ViaIR
 
 theorem safeSetupAfterOwners (evm : EVM.State)
     {I g s0 σ k C aw mem rdata n len locals} {R : List UInt256}
-    (h : RD safeBytecode I g s0
+    (h : RD fork safeBytecode I g s0
       (if calldataWord I.calldata 132 = ⟨0⟩ then ⟨3401⟩ else ⟨3671⟩)
       (calldataWord I.calldata 132 :: UInt256.ofNat len ::
         UInt256.ofNat (setupDataStart I.calldata) :: ⟨3409⟩ ::
@@ -19,7 +21,7 @@ theorem safeSetupAfterOwners (evm : EVM.State)
     (hb : SetupCalldataBounds I.calldata n len)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat (160 + 32 * n))
     (hm : 128 ≤ mem.size) (hperm : I.perm = true) (hov : R.length + 36 ≤ 1024) :
-    SetupTailOutcome (setupCalldataInput I.calldata n len)
+    SetupTailOutcome fork (setupCalldataInput I.calldata n len)
       { contract := contract, locals := locals } evm (setupTransition.body.drop 4) g s0 := by
   let p := setupCalldataInput I.calldata n len
   obtain ⟨hrev, hs⟩ | ⟨locals', evm', k', C', hs, hl', hee', hw', h₁⟩ :=

@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.SwapStepFeeSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -31,7 +33,7 @@ theorem swapStepResultGet (imms : Store) (a : SwapStepArgs) :
 
 theorem swapStepReturns (imms : Store) (evm : EVM.State) (a : SwapStepArgs)
     (ha : a.Fits) (hv : swapStepValid a) :
-    ExecFuncBody config (swapStepFrame imms a) evm swapStepFunction.body
+    ExecFuncBody fork config (swapStepFrame imms a) evm swapStepFunction.body
       (.returned (swapStepResultFrame imms a) evm (some (swapStepResults a))) := by
   apply ExecFuncBody.execBlockRet
   rw [← List.take_append_drop 10 swapStepFunction.body]
@@ -47,7 +49,7 @@ theorem swapStepReturns (imms : Store) (evm : EVM.State) (a : SwapStepArgs)
 
 theorem swapStepReverts (imms : Store) (evm : EVM.State) (a : SwapStepArgs)
     (ha : a.Fits) (hv : ¬swapStepValid a) :
-    ExecFuncBody config (swapStepFrame imms a) evm swapStepFunction.body .reverted := by
+    ExecFuncBody fork config (swapStepFrame imms a) evm swapStepFunction.body .reverted := by
   classical
   by_cases hm : swapStepAmountsValid a
   · apply ExecFuncBody.execBlockRevert

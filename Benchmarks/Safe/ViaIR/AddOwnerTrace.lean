@@ -4,6 +4,8 @@ import Benchmarks.Safe.ViaIR.Blocks.Runtime_032
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_033
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_006
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -43,10 +45,10 @@ theorem safeAddOwnerCountEnv (evm : EVM.State) :
 
 theorem safeAddOwnerLinksTrace {I g s0 σ k C aw mem rdata} {key threshold : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6724⟩ (key :: threshold :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨6724⟩ (key :: threshold :: R) mem aw rdata σ k C)
     (hov : R.length + 11 ≤ 1024) (hm : mem.size = 96)
     (hc : key.toNat < EVM.addressModulus) (hperm : I.perm = true) :
-    ∃ mem' aw' k' C', RD safeBytecode I g s0 ⟨7497⟩
+    ∃ mem' aw' k' C', RD fork safeBytecode I g s0 ⟨7497⟩
       (solcSlotWordAt ⟨3⟩ (addOwnerLinkAccounts σ I key) I :: ⟨6831⟩ :: key ::
         threshold :: R) mem' aw' rdata (addOwnerLinkAccounts σ I key) k' C' := by
   obtain ⟨aw', k', C', h'⟩ := safeRuntime_block_6724_packed (by simp; omega) hperm (by jump_dest) h
@@ -71,9 +73,9 @@ theorem safeAddOwnerLinksTrace {I g s0 σ k C aw mem rdata} {key threshold : UIn
 
 theorem safeAddOwnerTraceStatic {I g s0 σ k C aw mem rdata} {key threshold : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6724⟩ (key :: threshold :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨6724⟩ (key :: threshold :: R) mem aw rdata σ k C)
     (hov : R.length + 11 ≤ 1024) (hperm : I.perm = false) :
-    RDstatic safeBytecode g s0 := by
+    RDstatic fork safeBytecode g s0 := by
   have hslot := evm_run h with [jumpdest, push1 ⟨2⟩, push1 ⟨32⟩, genMstore]
   have hsent := hslot.pushConst
     (UInt256.ofNat 105409183525425523237923285454331214386340807945685310246717412709691342439136)
@@ -89,22 +91,22 @@ theorem safeAddOwnerTraceStatic {I g s0 σ k C aw mem rdata} {key threshold : UI
 
 theorem safeAddOwnerCountUnchanged {I g s0 σ k C aw mem rdata} {key threshold : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6831⟩
+    (h : RD fork safeBytecode I g s0 ⟨6831⟩
       ((solcSlotWordAt ⟨3⟩ σ I + ⟨1⟩) :: key :: threshold :: R) mem aw rdata σ k C)
     (hov : R.length + 7 ≤ 1024) (hperm : I.perm = true)
     (ht : solcSlotWordAt ⟨4⟩ (addOwnerCountAccounts σ I) I = threshold) :
-    RDret safeBytecode g s0 (addOwnerCountAccounts σ I) ByteArray.empty := by
+    RDret fork safeBytecode g s0 (addOwnerCountAccounts σ I) ByteArray.empty := by
   obtain ⟨_, _, h₁⟩ := safeRuntime_block_6831_fallthrough (by omega) hperm
     (u256_sub_eq_zero_iff_eq.mpr ht) h
   exact safeRuntime_block_6882 (by simp [safeRuntime_block_6831_fallthrough_stack]; omega) h₁
 
 theorem safeAddOwnerCountChanged {I g s0 σ k C aw mem rdata} {key threshold : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6831⟩
+    (h : RD fork safeBytecode I g s0 ⟨6831⟩
       ((solcSlotWordAt ⟨3⟩ σ I + ⟨1⟩) :: key :: threshold :: R) mem aw rdata σ k C)
     (hov : R.length + 7 ≤ 1024) (hperm : I.perm = true)
     (ht : solcSlotWordAt ⟨4⟩ (addOwnerCountAccounts σ I) I ≠ threshold) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨6883⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨6883⟩
       ((solcSlotWordAt ⟨3⟩ σ I + ⟨1⟩) :: threshold :: R) mem aw' rdata
       (addOwnerCountAccounts σ I) k' C' := by
   exact safeRuntime_block_6831_taken_packed (by omega) hperm
@@ -127,19 +129,19 @@ theorem safeAddOwnerCountValue (evm : EVM.State)
 
 theorem safeAddOwnerThresholdTrace {I g s0 σ k C aw mem rdata} {count value : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6891⟩ (count :: value :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨6891⟩ (count :: value :: R) mem aw rdata σ k C)
     (hov : R.length + 7 ≤ 1024) (hperm : I.perm = true)
     (hle : value.toNat ≤ count.toNat) (hnz : value ≠ ⟨0⟩) :
-    RDret safeBytecode g s0 (sstoreAccountMap I.codeOwner σ ⟨4⟩ value) ByteArray.empty := by
+    RDret fork safeBytecode g s0 (sstoreAccountMap I.codeOwner σ ⟨4⟩ value) ByteArray.empty := by
   have h₁ := safeRuntime_block_6891_fallthrough (by omega) (ugt_zero hle) h
   have h₂ := safeRuntime_block_6898_fallthrough (by omega) (isZero_eq_zero_of_ne hnz) h₁
   exact safeRuntime_block_6904 (by omega) hperm h₂
 
 theorem safeAddOwnerThresholdTooLarge {I g s0 σ k C aw mem rdata} {count value : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6891⟩ (count :: value :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨6891⟩ (count :: value :: R) mem aw rdata σ k C)
     (hov : R.length + 7 ≤ 1024) (hle : ¬value.toNat ≤ count.toNat) :
-    RDrev safeBytecode g s0 := by
+    RDrev fork safeBytecode g s0 := by
   have h₁ := safeRuntime_block_6891_taken (by omega)
     (by rw [ugt_one (by omega)]; decide) (by jump_dest) h
   have h₂ := safeRuntime_block_874 (by simp [safeRuntime_block_6891_taken_stack]; omega)
@@ -148,8 +150,8 @@ theorem safeAddOwnerThresholdTooLarge {I g s0 σ k C aw mem rdata} {count value 
 
 theorem safeAddOwnerThresholdZero {I g s0 σ k C aw mem rdata} {count : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6891⟩ (count :: ⟨0⟩ :: R) mem aw rdata σ k C)
-    (hov : R.length + 7 ≤ 1024) : RDrev safeBytecode g s0 := by
+    (h : RD fork safeBytecode I g s0 ⟨6891⟩ (count :: ⟨0⟩ :: R) mem aw rdata σ k C)
+    (hov : R.length + 7 ≤ 1024) : RDrev fork safeBytecode g s0 := by
   have h₁ := safeRuntime_block_6891_fallthrough (by omega)
     (ugt_zero (show (⟨0⟩ : UInt256).toNat ≤ count.toNat from Nat.zero_le _)) h
   have h₂ := safeRuntime_block_6898_taken (by omega) (by decide) (by jump_dest) h₁

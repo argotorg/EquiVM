@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Cure.Rely
 import Reasoning.ABIComposite
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxHeartbeats 0
@@ -121,7 +123,7 @@ theorem cureReachFileBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cureSelBytes 4)) :
-    ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) ⟨449⟩
+    ∃ k C, RD fork cureBytecode I g (initState σ σ₀ g A I) ⟨449⟩
       [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hsw : cureSelWord I = ⟨0x29ae8114⟩ :=
     cureSelWord_eq_of_beq I hsz 0x29 0xae 0x81 0x14 ⟨0x29ae8114⟩
@@ -137,11 +139,11 @@ theorem RD.cureFileDecodeToRoutine {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret de sel : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
     {acc : AccountMap}
-    (h : RD code ee g s0 ⟨471⟩ (de :: ⟨4⟩ :: ret :: sel :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 ⟨471⟩ (de :: ⟨4⟩ :: ret :: sel :: R) mem aw rdata acc k C)
     (hwf : code = cureBytecode)
     (hroutine : (D_J code 0).contains ⟨1027⟩ = true)
     (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨1027⟩
+    ∃ k' C', RD fork code ee g s0 ⟨1027⟩
       (calldataWord ee.calldata 36 :: calldataWord ee.calldata 4 :: ret :: sel :: R)
       mem aw rdata acc k' C' := by
   subst hwf
@@ -161,10 +163,10 @@ theorem RD.cureFileDecodeToRoutine {code : ByteArray} {g : Sat256} {s0 : State}
 
 theorem cureFileX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD cureBytecode I g
+    (hreach : ∃ k C, RD fork cureBytecode I g
       (initState σ σ₀ g A I) ⟨449⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) ⟨1027⟩
+    ∃ k C, RD fork cureBytecode I g (initState σ σ₀ g A I) ⟨1027⟩
         [fileData I, calldataWord I.calldata 4, ⟨484⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
@@ -184,10 +186,10 @@ theorem cureFileX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem cureFileX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
-    (hreach : ∃ k C, RD cureBytecode I g
+    (hreach : ∃ k C, RD fork cureBytecode I g
       (initState σ σ₀ g A I) ⟨449⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev cureBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork cureBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
     apply ult_one
@@ -206,10 +208,10 @@ theorem cureFileX_afterLive {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (hauth : solcSlotWordAt (cureCallerWardsSlot I) σ I = ⟨1⟩)
     (hlive : solcSlotWordAt ⟨1⟩ σ I = ⟨1⟩)
-    (h : RD cureBytecode I g s0 ⟨1027⟩
+    (h : RD fork cureBytecode I g s0 ⟨1027⟩
       [fileData I, calldataWord I.calldata 4, ⟨484⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD cureBytecode I g s0 ⟨1188⟩
+    ∃ k' C', RD fork cureBytecode I g s0 ⟨1188⟩
       [fileData I, calldataWord I.calldata 4, ⟨484⟩, sel]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -244,14 +246,14 @@ theorem RD.cureFileWaitStorePrefixSplit {σ I} {g : Sat256} {s0 : State} {k C : 
     {data what ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
     (hmatch : what = ABI.bytesToWord fileWaitBytes)
-    (h : RD cureBytecode I g s0 ⟨1188⟩
+    (h : RD fork cureBytecode I g s0 ⟨1188⟩
       (data :: what :: ret :: R) mem aw rdata σ k C)
     (hov : R.length + 6 ≤ 1024) :
     (I.perm = true ∧
-      ∃ k' C', RD cureBytecode I g s0 ⟨1290⟩
+      ∃ k' C', RD fork cureBytecode I g s0 ⟨1290⟩
         (data :: what :: ret :: R) mem aw rdata
         (sstoreAccountMap I.codeOwner σ ⟨3⟩ data) k' C') ∨
-      (I.perm = false ∧ RDstatic cureBytecode g s0) := by
+      (I.perm = false ∧ RDstatic fork cureBytecode g s0) := by
   have rd1189 := h.jumpdest (by native_decide) (by evm_ov)
   have rd1190 := rd1189.dup2 (by native_decide) (by evm_ov)
   have rd1195 := rd1190.pushConst (⟨500718173⟩ : UInt256)
@@ -288,17 +290,17 @@ theorem RD.cureFileWaitStorePrefixSplit {σ I} {g : Sat256} {s0 : State} {k C : 
 theorem cureFileX_storeWaitPrefixSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileWaitBytes)
-    (h : RD cureBytecode I g s0 ⟨1188⟩
+    (h : RD fork cureBytecode I g s0 ⟨1188⟩
       [fileData I, calldataWord I.calldata 4, ⟨484⟩, sel]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty σ k C) :
     (I.perm = true ∧
-      ∃ k' C', RD cureBytecode I g s0 ⟨1290⟩
+      ∃ k' C', RD fork cureBytecode I g s0 ⟨1290⟩
         [fileData I, calldataWord I.calldata 4, ⟨484⟩, sel]
         (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
         (UInt256.ofNat 3) ByteArray.empty
         (sstoreAccountMap I.codeOwner σ ⟨3⟩ (fileData I)) k' C') ∨
-      (I.perm = false ∧ RDstatic cureBytecode g s0) := by
+      (I.perm = false ∧ RDstatic fork cureBytecode g s0) := by
   exact RD.cureFileWaitStorePrefixSplit hmatch h (by simp)
 
 abbrev cureFileEventTopic : UInt256 :=
@@ -308,13 +310,13 @@ abbrev cureFileEventTopic : UInt256 :=
 theorem RD.cureFileEventTail {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {data what : UInt256} {R : List UInt256}
     {mem rdata : ByteArray}
-    (h : RD cureBytecode I g s0 ⟨1290⟩ (data :: what :: ⟨484⟩ :: R)
+    (h : RD fork cureBytecode I g s0 ⟨1290⟩ (data :: what :: ⟨484⟩ :: R)
       mem (UInt256.ofNat 3) rdata σ k C)
     (hperm : I.perm = true)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 8 ≤ 1024) :
-    RDret cureBytecode g s0 σ ByteArray.empty := by
+    RDret fork cureBytecode g s0 σ ByteArray.empty := by
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
@@ -380,14 +382,14 @@ theorem RD.cureFileEventTail {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 theorem cureFileX_storeWaitSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileWaitBytes)
-    (h : RD cureBytecode I g s0 ⟨1188⟩
+    (h : RD fork cureBytecode I g s0 ⟨1188⟩
       [fileData I, calldataWord I.calldata 4, ⟨484⟩, sel]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty σ k C) :
     (I.perm = true ∧
-      RDret cureBytecode g s0
+      RDret fork cureBytecode g s0
         (sstoreAccountMap I.codeOwner σ ⟨3⟩ (fileData I)) ByteArray.empty) ∨
-      (I.perm = false ∧ RDstatic cureBytecode g s0) := by
+      (I.perm = false ∧ RDstatic fork cureBytecode g s0) := by
   refine permSplit_bind (cureFileX_storeWaitPrefixSplit hmatch h) ?_
   intro hperm hreach
   obtain ⟨_, _, h1290⟩ := hreach
@@ -407,11 +409,11 @@ abbrev cureFileUnrecognizedRawWord : UInt256 :=
 theorem RD.cureFileUnrecognizedRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {stk : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD cureBytecode ee g s0 ⟨1213⟩ stk mem (UInt256.ofNat 3) rdata acc k C)
+    (h : RD fork cureBytecode ee g s0 ⟨1213⟩ stk mem (UInt256.ofNat 3) rdata acc k C)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : stk.length + 5 ≤ 1024) :
-    RDrev cureBytecode g s0 := by
+    RDrev fork cureBytecode g s0 := by
   have rdMload := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
@@ -467,11 +469,11 @@ theorem RD.cureFileUnrecognizedRevert {g : Sat256} {s0 : State} {ee : ExecutionE
 theorem cureFileX_unrecognized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (hneq : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileWaitBytes)
-    (h : RD cureBytecode I g s0 ⟨1188⟩
+    (h : RD fork cureBytecode I g s0 ⟨1188⟩
       [fileData I, calldataWord I.calldata 4, ⟨484⟩, sel]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev cureBytecode g s0 := by
+    RDrev fork cureBytecode g s0 := by
   have rd1189 := h.jumpdest (by native_decide) (by evm_ov)
   have rd1190 := rd1189.dup2 (by native_decide) (by evm_ov)
   have rd1195 := rd1190.pushConst (⟨500718173⟩ : UInt256)
@@ -595,10 +597,10 @@ theorem cureFileSourceBodyOkSplit {σ σ₀ A I} {g : UInt256}
     let locals := fileLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Stele.EVM.storageStore evm0 I.codeOwner ⟨3⟩ (fileData I)
-    (I.perm = true → ExecTransitionBody config contract evm0 locals fileTransition.body
+    (I.perm = true → ExecTransitionBody fork config contract evm0 locals fileTransition.body
       (.returned { contract := contract, locals := locals } evm1 none)) ∧
     (I.perm = false →
-      ExecTransitionBody config contract evm0 locals
+      ExecTransitionBody fork config contract evm0 locals
         fileTransition.body .staticViolation) := by
   intro locals evm0 evm1
   have hguardAuth := cureAuthGuardEval_true
@@ -626,9 +628,9 @@ theorem cureFileSourceBodyOkSplit {σ σ₀ A I} {g : UInt256}
           .ok ({ contract := contract, locals := locals }, evm1) := by
     simpa [locals, evm1] using assign_fileWaitStorage evm0 I
   have hprefix {result : ExecResult}
-      (hrest : ExecBlock config { contract := contract, locals := locals } evm0
+      (hrest : ExecBlock fork config { contract := contract, locals := locals } evm0
         (fileTransition.body.drop 3) result) :
-      ExecBlock config { contract := contract, locals := locals } evm0
+      ExecBlock fork config { contract := contract, locals := locals } evm0
         fileTransition.body result := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -639,7 +641,7 @@ theorem cureFileSourceBodyOkSplit {σ σ₀ A I} {g : UInt256}
   · intro hperm
     exact ExecFuncBody.execBlockOK (hprefix (ExecBlock.consNormal
       (ExecStmt.iteTrue hcond
-        (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) hdata hassign) ExecBlock.nil)) ExecBlock.nil))
+        (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) hdata hassign) ExecBlock.nil)) ExecBlock.nil))
   · intro hperm
     exact ExecFuncBody.execBlockStatic (hprefix (ExecBlock.consStatic
       (ExecStmt.iteTrue hcond (ExecBlock.consStatic
@@ -650,13 +652,13 @@ theorem cureFileSourceBodyAuthReverts {σ σ₀ A I} {g : UInt256}
     (hauth : solcSlotWordAt (cureCallerWardsSlot I) σ I ≠ ⟨1⟩) :
     let locals := fileLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals fileTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals fileTransition.body .reverted := by
   intro locals evm0
   have hguard := cureAuthGuardEval_false
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := Sat256.ofUInt256 g) (locals := locals)
     (by simpa [locals] using fileLocals_get_wards I) hauth
-  have hblock := nonpayableSecondRequireReverts
+  have hblock := nonpayableSecondRequireReverts (fork := fork)
     (cfg := config) (stele := { contract := contract, locals := locals })
     (evm := evm0)
     (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
@@ -675,7 +677,7 @@ theorem cureFileSourceBodyLiveReverts {σ σ₀ A I} {g : UInt256}
     (hlive : solcSlotWordAt ⟨1⟩ σ I ≠ ⟨1⟩) :
     let locals := fileLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals fileTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals fileTransition.body .reverted := by
   intro locals evm0
   have hguardAuth := cureAuthGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -686,7 +688,7 @@ theorem cureFileSourceBodyLiveReverts {σ σ₀ A I} {g : UInt256}
     (g := Sat256.ofUInt256 g) (locals := locals)
     (by simpa [locals] using fileLocals_get_live I) hlive
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 fileTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 fileTransition.body
         .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -701,7 +703,7 @@ theorem cureFileSourceBodyUnrecognized {σ σ₀ A I} {g : UInt256}
     (hwhat : fileWhat I ≠ fileWaitBytes) :
     let locals := fileLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals fileTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm0 locals fileTransition.body .reverted := by
   intro locals evm0
   have hguardAuth := cureAuthGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -722,11 +724,11 @@ theorem cureFileSourceBodyUnrecognized {σ σ₀ A I} {g : UInt256}
         .ok (.bool false) := by
     simp [evalExpr?, pure]
   have helse :
-      ExecBlock config { contract := contract, locals := locals } evm0
+      ExecBlock fork config { contract := contract, locals := locals } evm0
         [.require (.boolLit false)] .reverted :=
     ExecBlock.consRevert (ExecStmt.requireFalse hreqFalse)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 fileTransition.body
+      ExecBlock fork config { contract := contract, locals := locals } evm0 fileTransition.body
         .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -740,7 +742,7 @@ theorem cureFileBodyCore {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (cureSelBytes 4)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let sel := cureSelWord I
   let callerSlot := cureCallerWardsSlot I
   let locals := fileLocals I
@@ -748,7 +750,7 @@ theorem cureFileBodyCore {σ σ₀ A I} {g : UInt256}
     calldata_size_ge_of_selIs I (cureSelBytes 4) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some fileTransition :=
     cureDispatchFile hsel
-  have hreach := cureReachFileBody
+  have hreach := cureReachFileBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz68 : 68 ≤ I.calldata.size
@@ -791,10 +793,10 @@ theorem cureFileBodyCore {σ σ₀ A I} {g : UInt256}
         · let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
           let evm1 := Stele.EVM.storageStore evm0 I.codeOwner ⟨3⟩ (fileData I)
           have hbodySplit :
-              (I.perm = true → ExecTransitionBody config contract evm0 locals fileTransition.body
+              (I.perm = true → ExecTransitionBody fork config contract evm0 locals fileTransition.body
                 (.returned { contract := contract, locals := locals } evm1 none)) ∧
               (I.perm = false →
-                ExecTransitionBody config contract evm0 locals fileTransition.body
+                ExecTransitionBody fork config contract evm0 locals fileTransition.body
                   .staticViolation) := by
             simpa [evm0, evm1, locals] using
               (cureFileSourceBodyOkSplit
@@ -817,7 +819,7 @@ theorem cureFileBodyCore {σ σ₀ A I} {g : UInt256}
             haccounts henc
         · let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
           have hbody :
-              ExecTransitionBody config contract evm0 locals fileTransition.body .reverted := by
+              ExecTransitionBody fork config contract evm0 locals fileTransition.body .reverted := by
             simpa [evm0, locals] using
               (cureFileSourceBodyUnrecognized
                 (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -831,7 +833,7 @@ theorem cureFileBodyCore {σ σ₀ A I} {g : UInt256}
           exact hliveEvm (by rw [hliveWord, hstele])
         let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
         have hbody :
-            ExecTransitionBody config contract evm0 locals fileTransition.body .reverted := by
+            ExecTransitionBody fork config contract evm0 locals fileTransition.body .reverted := by
           simpa [evm0, locals] using
             (cureFileSourceBodyLiveReverts
               (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -861,7 +863,7 @@ theorem cureFileBodyCore {σ σ₀ A I} {g : UInt256}
         exact hauthEvm (by rw [hcallerWord, hstele])
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       have hbody :
-          ExecTransitionBody config contract evm0 locals fileTransition.body .reverted := by
+          ExecTransitionBody fork config contract evm0 locals fileTransition.body .reverted := by
         simpa [evm0, locals] using
           (cureFileSourceBodyAuthReverts
             (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)

@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.SignedSubNonnegLeftEvm
 import Benchmarks.CompoundIII.Comet.Unsigned256Revert
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_078
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -14,13 +16,13 @@ theorem cometAbsorbDebtArithmetic {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray}
     {aw old next price account : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 10 ≤ 1024) (hn : next.toNat < 2^255)
-    (h : RD (deployedRuntime v) ee g s0 ⟨17381⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨17381⟩
       (old :: next :: price :: account :: collateralBaseScale v :: R) mem aw rdata σ k C) :
     if AbsorbDebtValid v old next price then
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨17410⟩
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨17410⟩
         (absorbDebtValue v old next price :: account :: absorbPaidWord old next :: R)
         mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have r1 := cometWithExtendedAssetList_block_17381 (immWords := wordsOf (immStore v))
     (by change R.length + 3 + 4 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h

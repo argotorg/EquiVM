@@ -4,6 +4,8 @@ import Benchmarks.Safe.V2_0e91d99.EcrecoverTrace
 import Benchmarks.Safe.V2_0e91d99.SignatureRecoveryMemory
 import Benchmarks.Safe.V2_0e91d99.MemoryPreserves
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V2_0e91d99
@@ -11,7 +13,7 @@ namespace Benchmarks.Safe.V2_0e91d99
 theorem safeSignatureEthTrace (p : SignatureInput) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata ptr src} {i s r v current last : UInt256}
     {R : List UInt256} {f : Frame} {old : Value}
-    (h : RD safeBytecode I g s0 ⟨2405⟩
+    (h : RD fork safeBytecode I g s0 ⟨2405⟩
       (i :: s :: r :: v :: current :: last :: p.required :: UInt256.ofNat src :: p.hash :: R)
       mem aw rdata σ k C)
     (hc : SignatureCore p f) (hr : f.locals["r"]? = some (wordBytes32Value r))
@@ -22,12 +24,12 @@ theorem safeSignatureEthTrace (p : SignatureInput) (evm : EVM.State)
     (hz : memLoad ⟨96⟩ mem = ⟨0⟩) (hsrc : 128 ≤ src)
     (ha : src + 32 + p.signatures.size ≤ ptr) (hp : ptr < 2 ^ 224)
     (hvl : 4 ≤ v.toNat) (hv8 : v.toNat < 256) (hov : R.length + 17 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧ ExecBlock config f evm signatureEthBody .reverted) ∨
+    (RDrev fork safeBytecode g s0 ∧ ExecBlock fork config f evm signatureEthBody .reverted) ∨
     ∃ evm' σ' mem' ptr' aw' out owner k' C',
-      ExecBlock config f evm signatureEthBody
+      ExecBlock fork config f evm signatureEthBody
         (.ok (signatureRecoveredFrame (signatureEthFrame f p.hash) owner) evm') ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧ evm'.σ₀ = s0.σ₀ ∧
-      RD safeBytecode I g s0 ⟨2679⟩
+      RD fork safeBytecode I g s0 ⟨2679⟩
         (i :: s :: r :: v :: owner :: last :: p.required :: UInt256.ofNat src :: p.hash :: R)
         mem' aw' out σ' k' C' ∧
       BytesMemory mem' src p.signatures ∧ memLoad ⟨64⟩ mem' = UInt256.ofNat ptr' ∧

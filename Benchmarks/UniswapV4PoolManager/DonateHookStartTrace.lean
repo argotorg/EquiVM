@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.DonateHookMemory
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_029
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -22,10 +24,10 @@ theorem donateHookStartTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw free hook hookPtr keyPtr src amount0 amount1 len delta : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (v : PoolManagerImmutables)
     (after : Bool) (hstack : R.length+20 ≤ 1024) (hfree : memLoad (UInt256.ofNat 64) mem = free)
-    (h : RD (deployedRuntime v) I g s0 (donateHookEncodePc after)
+    (h : RD fork (deployedRuntime v) I g s0 (donateHookEncodePc after)
       (donateHookEncodeStack after hook hookPtr keyPtr src amount0 amount1 len delta R) mem aw rdata σ k C) :
     ∃ aw' k' C', C+71+Cₘ aw' ≤ C'+Cₘ aw ∧
-      RD (deployedRuntime v) I g s0 ⟨13756⟩
+      RD fork (deployedRuntime v) I g s0 ⟨13756⟩
         ((free+UInt256.ofNat 36) :: accountWord I.source :: keyPtr :: amount0 :: amount1 :: src :: len ::
           UInt256.ofNat 7990 :: free :: UInt256.ofNat 4778 :: hook :: free :: donateHookCallRet after ::
           donateHookSavedStack after hookPtr keyPtr src amount0 amount1 len delta R)

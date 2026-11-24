@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapPrefixSource
 import Benchmarks.UniswapV3.Pool.SignedWordZero
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_011
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -15,12 +17,12 @@ def swapWords (a : SwapArgs) (dataStart dataLength : UInt256) : List UInt256 :=
 theorem swapEntryX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256} {s0 : EVM.State}
     {mem rdata : ByteArray} {aw ret dataStart dataLength : UInt256} {k C : Nat}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : SwapArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2292⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2292⟩
       (swapWords a dataStart dataLength ++ ret :: R) mem aw rdata σ k C)
     (ha : a.Fits) (hov : R.length + 14 ≤ 1024) :
-    ((ee.codeOwner ≠ v.original ∨ a.amountSpecified = 0) ∧ RDrev (deployedRuntime v) g s0) ∨
+    ((ee.codeOwner ≠ v.original ∨ a.amountSpecified = 0) ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (ee.codeOwner = v.original ∧ a.amountSpecified ≠ 0 ∧ ∃ k' C',
-      RD (deployedRuntime v) ee g s0 ⟨2358⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨2358⟩
         (⟨0⟩ :: ⟨0⟩ :: swapWords a dataStart dataLength ++ ret :: R) mem aw rdata σ k' C') := by
   have r0 := uniswapV3Pool_block_2292 (immWords := wordsOf (immStore v))
     (by change R.length + 7 + 4 ≤ 1024; omega)

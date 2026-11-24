@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.WordArrayABI
 import Benchmarks.Morpho.MorphoBlue.Storage
 import Benchmarks.EAS.Attester.LocalArray
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
@@ -65,7 +67,7 @@ theorem extSloadsLoopStep (evm : EVM.State) (locals imms : Store) (slots res : L
     (hl : ExtSloadsLocals slots res i locals) (hi : i < slots.length)
     (hres : res.length = slots.length) (hfit : i + 1 < UInt256.size)
     (hd : WordArrayDecoded evm.executionEnv.calldata slots) :
-    ∃ locals', ExecBlock config { contract := contract, locals := locals, immutables := imms }
+    ∃ locals', ExecBlock fork config { contract := contract, locals := locals, immutables := imms }
       evm extSloadsLoopBody (.ok { contract := contract, locals := locals', immutables := imms } evm) ∧
       ExtSloadsLocals slots (res.set i (wordBytes32Value (extSloadsValue evm i))) (i + 1) locals' := by
   let l1 := locals.insert "slot" (wordBytes32Value (extSloadsSlot evm.executionEnv i))
@@ -91,11 +93,11 @@ theorem extSloadsLoopStep (evm : EVM.State) (locals imms : Store) (slots res : L
   · refine ExecBlock.consNormal (ExecStmt.letDecl
       (evalLocalArrayIndex hl.slots_eq hl.index_eq hlookup rfl)) ?_
     refine ExecBlock.consNormal (ExecStmt.letDecl (evalLocalValue hi1)) ?_
-    refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inl rfl)
+    refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inl rfl)
       (uint256RangeSourceOk (naturalAddSource (evalLocalValue hsi)
         (by simp only [evalExpr?, pure, Int.ofNat_eq_natCast, Nat.cast_one])) hfit)
       (assignLocalValue hsi)) ?_
-    exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inl rfl) (evalMorphoRawSlot hraw (evalLocalValue hs3))
+    exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inl rfl) (evalMorphoRawSlot hraw (evalLocalValue hs3))
       (assignLocalArrayIndex hrr hi3 (by omega))) ExecBlock.nil
   · constructor
     · simpa [l4, l3, l2, l1, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert] using hl.slots_eq

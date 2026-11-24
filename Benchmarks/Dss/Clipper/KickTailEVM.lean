@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Clipper.KickFeedPricePar
 import Benchmarks.Dss.Clipper.RedoSuckEVM
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -87,12 +89,12 @@ theorem RD.clipperKickGetFeedPriceToRmul {code : ByteArray}
     {acc : AccountMap}
     {feedPrice id kpr usr lot tab sel : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨6061⟩
+    (rd : RD fork code ee g s0 ⟨6061⟩
       (feedPrice :: ⟨6069⟩ :: ⟨0⟩ :: ⟨1⟩ :: id :: kpr :: usr :: lot :: tab ::
         ⟨476⟩ :: sel :: R)
       mem aw o acc k C)
     (hov : R.length + 30 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨9233⟩
+    ∃ k' C', RD fork code ee g s0 ⟨9233⟩
       (solcSlotWord acc ee ⟨5⟩ :: feedPrice :: ⟨6069⟩ :: ⟨0⟩ :: ⟨1⟩ ::
         id :: kpr :: usr :: lot :: tab :: ⟨476⟩ :: sel :: R)
       mem aw o acc k' C' := by
@@ -117,11 +119,11 @@ theorem RD.clipperKickRmulOverflowReverts {code : ByteArray}
     {acc : AccountMap}
     {buf feedPrice keep : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨9233⟩
+    (rd : RD fork code ee g s0 ⟨9233⟩
       (buf :: feedPrice :: ⟨6069⟩ :: keep :: R) mem aw o acc k C)
     (hover : UInt256.size ≤ buf.toNat * feedPrice.toNat)
     (hov : R.length + 20 ≤ 1024) :
-    RDrev code g s0 :=
+    RDrev fork code g s0 :=
   _root_.Benchmarks.Dss.Clipper.Reasoning.Reach.RD.clipperRmulRoutineRevert
     v hpatch rd hover (by omega)
 
@@ -132,11 +134,11 @@ theorem RD.clipperKickRmulSuccess {code : ByteArray}
     {acc : AccountMap}
     {buf feedPrice keep : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨9233⟩
+    (rd : RD fork code ee g s0 ⟨9233⟩
       (buf :: feedPrice :: ⟨6069⟩ :: keep :: R) mem aw o acc k C)
     (hmul : buf.toNat * feedPrice.toNat < UInt256.size)
     (hov : R.length + 20 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨6069⟩
+    ∃ k' C', RD fork code ee g s0 ⟨6069⟩
       (UInt256.div (UInt256.mul buf feedPrice) clipperRayWord :: keep :: R)
       mem aw o acc k' C' :=
   _root_.Benchmarks.Dss.Clipper.Reasoning.Reach.RD.clipperRmulRoutine
@@ -149,13 +151,13 @@ theorem RD.clipperKickTopZeroReverts {code : ByteArray}
     {acc : AccountMap}
     {top id kpr usr lot tab sel : UInt256} {R : List UInt256}
     {mem o : ByteArray} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨6069⟩
+    (rd : RD fork code ee g s0 ⟨6069⟩
       (top :: ⟨0⟩ :: ⟨1⟩ :: id :: kpr :: usr :: lot :: tab :: ⟨476⟩ :: sel :: R)
       mem (UInt256.ofNat 6) o acc k C)
     (hzero : top = ⟨0⟩)
     (hmem : mem.size = 192)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (hov : R.length + 30 ≤ 1024) : RDrev code g s0 := by
+    (hov : R.length + 30 ≤ 1024) : RDrev fork code g s0 := by
   have hgt : UInt256.gt top ⟨0⟩ = ⟨0⟩ := by subst top; native_decide
   have rdGuard := evm_run rd with [
     raw jumpdest (by clipper_runtime_decode) (by evm_ov),
@@ -234,13 +236,13 @@ theorem RD.clipperKickTopPositiveToIncentive {code : ByteArray}
     {σ : AccountMap}
     {top id kpr usr lot tab sel : UInt256} {R : List UInt256}
     {mem o : ByteArray} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨6069⟩
+    (rd : RD fork code ee g s0 ⟨6069⟩
       (top :: ⟨0⟩ :: ⟨1⟩ :: id :: kpr :: usr :: lot :: tab :: ⟨476⟩ :: sel :: R)
       mem (UInt256.ofNat 6) o σ k C)
     (htop : 0 < top.toNat) (hperm : ee.perm = true)
     (hmem : mem.size = 192) (hov : R.length + 50 ≤ 1024) :
     let σTop := clipperKickTopMap σ ee id top
-    ∃ k' C', RD code ee g s0 ⟨6203⟩
+    ∃ k' C', RD fork code ee g s0 ⟨6203⟩
       (⟨0⟩ :: clipperKickChipWord σTop ee :: clipperKickTipWord σTop ee :: top ::
         ⟨1⟩ :: id :: kpr :: usr :: lot :: tab :: ⟨476⟩ :: sel :: R)
       (twoWordHashMem id ⟨12⟩ mem) (UInt256.ofNat 6) o σTop k' C' := by

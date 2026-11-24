@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.SwapWrapperReturn
 import Benchmarks.UniswapV4PoolManager.PoolSwapCallCorrect
 import Benchmarks.UniswapV4PoolManager.PoolSwapReturnView
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -21,16 +23,16 @@ theorem swapWrapperBodyCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State} 
     (hfree : memLoad (UInt256.ofNat 64) mem = state) (hspacing : int24Canonical p.tickSpacing)
     (hlimit : p.priceLimit.toNat < 2^160) (hoverride : p.lpFeeOverride.toNat < 2^24)
     (hpaid : Cₘ aw ≤ C)
-    (h : RD (deployedRuntime v) I g s0 ⟨18777⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨18777⟩
       ([poolSlot id, params, ⟨1755⟩, id, UInt256.ofNat 16777215, callerParams, accountWord currency,
         x8, x9, x10, x11, x12, x13, hookPtr, UInt256.ofNat 32, junk]++R)
       mem aw rdata evm.accountMap k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
-    ∃ result, ExecFuncBody config f evm swapWrapperFunction.body result ∧
-      functionResultTrace (deployedRuntime v) g s0
-        (swapWrapperReturn v I g s0 mem rdata state callerParams x8 x9 x10 x11 x12 x13 hookPtr junk R) result := by
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    ∃ result, ExecFuncBody fork config f evm swapWrapperFunction.body result ∧
+      functionResultTrace fork (deployedRuntime v) g s0
+        (swapWrapperReturn fork v I g s0 mem rdata state callerParams x8 x9 x10 x11 x12 x13 hookPtr junk R) result := by
   let f1 := valueLocal f swapWrapperAlias (poolRefValue id)
-  have halias : ExecStmt config f evm swapWrapperFunction.body[0]! (.ok f1 evm) :=
+  have halias : ExecStmt fork config f evm swapWrapperFunction.body[0]! (.ok f1 evm) :=
     ExecStmt.letStorage (resolveStorageAlias hs)
   have hparams1 : f1.locals.get? "params" = some (poolSwapParamsValue p) :=
     (store_get_ne _ _ (by decide : (swapWrapperAlias == "params") = false)).trans hp
@@ -52,7 +54,7 @@ theorem swapWrapperBodyCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State} 
     let fee := poolSwapInitialFee evm id p
     let f2 := valueLocal f1 "__c0" (.tuple (poolSwapReturnValues delta fee amount r))
     let f3 := swapWrapperUnpackFrame f2 delta fee amount r
-    have hu := swapWrapperUnpackSource (f := f2) (evm := post) (store_get_self _ _ _)
+    have hu := swapWrapperUnpackSource (fork := fork) (f := f2) (evm := post) (store_get_self _ _ _)
     have hget (name : Ident) (hc0 : ("__c0" == name) = false) (ha : (swapWrapperAlias == name) = false)
         (hd : name ≠ "delta") (hp : name ≠ "amountToProtocol") (he : name ≠ "swapFee") (hr : name ≠ "result") :
         f3.locals.get? name = f.locals.get? name :=
@@ -63,7 +65,7 @@ theorem swapWrapperBodyCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State} 
         f3.locals.get? "result" = some (poolSwapResultValue r) := by
       simp only [f3, swapWrapperUnpackFrame, valueLocal_get, wordLocal_get, beq_iff_eq, String.reduceEq, if_true, if_false]
       exact ⟨True.intro, True.intro, True.intro, True.intro⟩
-    have hsTail := swapWrapperTailSource (f := f3) (evm := post)
+    have hsTail := swapWrapperTailSource (fork := fork) (f := f3) (evm := post)
       ((swapWrapperUnpack_contract ..).trans hf)
       ((hget "id" (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)).trans hi)
       hfields.1 hfields.2.1 hfields.2.2.1 hfields.2.2.2

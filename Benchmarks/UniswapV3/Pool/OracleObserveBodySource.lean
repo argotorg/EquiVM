@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.OracleObserveLoopSource
 import Benchmarks.UniswapV3.Pool.OracleObserveAllocationSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -24,11 +26,11 @@ theorem oracleObserveInitialGets (imms : Store) (time : UInt256) (secondsAgos : 
 
 theorem oracleObserveForExec (imms : Store) (evm : EVM.State) (time : UInt256)
     (secondsAgos : List UInt256) (tick : Int) (index liquidity card : UInt256) (result : ExecResult)
-    (hloop : ExecForLoop config
+    (hloop : ExecForLoop fork config
       {contract := contract
        locals := oracleObserveInitialLocals imms time secondsAgos tick index liquidity card
        immutables := imms} evm oracleObserveCondition oracleObservePost oracleObserveLoopBody result) :
-    ExecStmt config (oracleObserveAllocatedFrame imms time secondsAgos tick index liquidity card) evm
+    ExecStmt fork config (oracleObserveAllocatedFrame imms time secondsAgos tick index liquidity card) evm
       oracleObserveFunction.body[7]! result := by
   rw [oracleObserveFor]
   apply ExecStmt.for _ hloop
@@ -42,7 +44,7 @@ theorem oracleObserveReturns (imms : Store) (evm : EVM.State) (time : UInt256)
     (hrun : OracleObserveLoopRun time secondsAgos tick index liquidity card evm.accountMap evm.executionEnv
       0 (List.replicate secondsAgos.length (.int 0)) (List.replicate secondsAgos.length (.int 0))
       ticks seconds) :
-    ∃ frame, ExecFuncBody config (oracleObserveFrame imms time secondsAgos tick index liquidity card)
+    ∃ frame, ExecFuncBody fork config (oracleObserveFrame imms time secondsAgos tick index liquidity card)
       evm oracleObserveFunction.body (.returned frame evm (some [.array ticks, .array seconds])) := by
   obtain ⟨hbase, hi, ht, hs⟩ := oracleObserveInitialGets imms time secondsAgos tick index liquidity card
   obtain ⟨locals, hloop, ht', hs'⟩ := oracleObserveLoopOfRun imms evm time secondsAgos tick
@@ -66,10 +68,10 @@ theorem oracleObserveLoopReverts (imms : Store) (evm : EVM.State) (time : UInt25
     (htick : -(2 ^ 23 : Int) ≤ tick ∧ tick < 2 ^ 23) (hb : secondsAgos.length ≤ 2 ^ 64 - 1)
     (hfail : OracleObserveLoopFailure time secondsAgos tick index liquidity card evm.accountMap evm.executionEnv
       0 (List.replicate secondsAgos.length (.int 0)) (List.replicate secondsAgos.length (.int 0))) :
-    ExecFuncBody config (oracleObserveFrame imms time secondsAgos tick index liquidity card)
+    ExecFuncBody fork config (oracleObserveFrame imms time secondsAgos tick index liquidity card)
       evm oracleObserveFunction.body .reverted := by
   obtain ⟨hbase, hi, ht, hs⟩ := oracleObserveInitialGets imms time secondsAgos tick index liquidity card
-  have hloop := oracleObserveLoopOfFailure imms evm time secondsAgos tick index liquidity card
+  have hloop := oracleObserveLoopOfFailure (fork := fork) imms evm time secondsAgos tick index liquidity card
     0 _ _ hc htick (by omega) hfail _ hbase hi ht hs (by simp) (by simp)
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 7 oracleObserveFunction.body]

@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.SwapStepInitialModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -7,7 +9,7 @@ set_option maxRecDepth 1000
 theorem swapStepInitialPrefix (imms : Store) (evm : EVM.State) (a : SwapStepArgs) (input : Bool)
     (hv : if input then fullMathValid (EVM.wordOfInt a.remaining) (swapStepComplement a)
       (UInt256.ofNat 1000000) else True) :
-    ExecBlock config (swapStepReadyFrame imms a) evm
+    ExecBlock fork config (swapStepReadyFrame imms a) evm
       ((swapStepPriceBranch input).take (if input then 2 else 1))
       (.ok (swapStepInitialZeroFrame imms a input) evm) := by
   cases input
@@ -18,7 +20,7 @@ theorem swapStepInitialPrefix (imms : Store) (evm : EVM.State) (a : SwapStepArgs
 theorem swapStepInitialCallSource (imms : Store) (evm : EVM.State) (a : SwapStepArgs)
     (input : Bool) (ha : a.Fits)
     (hv : amountDeltaValid (swapStepDeltaOne a input) (swapStepDeltaArgs a a.target input)) :
-    ExecStmt config (swapStepInitialZeroFrame imms a input) evm
+    ExecStmt fork config (swapStepInitialZeroFrame imms a input) evm
       (.internalCall (amountDeltaName (swapStepDeltaOne a input))
         (swapStepDeltaCallArgs a input "sqrtRatioTargetX96") (swapStepInitialCallName a input))
       (.ok (swapStepInitialCallFrame imms a input) evm) := by
@@ -29,7 +31,7 @@ theorem swapStepInitialCallSource (imms : Store) (evm : EVM.State) (a : SwapStep
 
 theorem swapStepInitialChosenSource (imms : Store) (evm : EVM.State) (a : SwapStepArgs)
     (input : Bool) :
-    ExecStmt config (swapStepInitialCallFrame imms a input) evm
+    ExecStmt fork config (swapStepInitialCallFrame imms a input) evm
       (.assign .localVar ⟨swapStepInitialCondName input, []⟩
         (.var (swapStepInitialCallName a input)))
       (.ok (swapStepInitialChosenFrame imms a input) evm) := by
@@ -46,13 +48,13 @@ theorem swapStepInitialChosenSource (imms : Store) (evm : EVM.State) (a : SwapSt
 theorem swapStepInitialChoiceSource (imms : Store) (evm : EVM.State) (a : SwapStepArgs)
     (input : Bool) (ha : a.Fits)
     (hv : amountDeltaValid (swapStepDeltaOne a input) (swapStepDeltaArgs a a.target input)) :
-    ExecStmt config (swapStepInitialZeroFrame imms a input) evm
+    ExecStmt fork config (swapStepInitialZeroFrame imms a input) evm
       ((swapStepPriceBranch input)[if input then 2 else 1]!)
       (.ok (swapStepInitialChosenFrame imms a input) evm) := by
   have he := evalExpr_var_get (cfg := config) (evm := evm)
     (swapStepInitialZeroGet imms a input).2.2.2.1
-  have hc := swapStepInitialCallSource imms evm a input ha hv
-  have hs := swapStepInitialChosenSource imms evm a input
+  have hc := swapStepInitialCallSource (fork := fork) imms evm a input ha hv
+  have hs := swapStepInitialChosenSource (fork := fork) imms evm a input
   cases hz : swapStepZeroForOne a
   · cases input <;> apply ExecStmt.iteFalse (by simpa only [hz] using he)
     all_goals
@@ -73,7 +75,7 @@ theorem swapStepInitialChoiceSource (imms : Store) (evm : EVM.State) (a : SwapSt
 
 theorem swapStepInitialAssignSource (imms : Store) (evm : EVM.State) (a : SwapStepArgs)
     (input : Bool) :
-    ExecStmt config (swapStepInitialChosenFrame imms a input) evm
+    ExecStmt fork config (swapStepInitialChosenFrame imms a input) evm
       (.assign .localVar ⟨swapStepAmountName input, []⟩ (.var (swapStepInitialCondName input)))
       (.ok (swapStepInitialFrame imms a input) evm) := by
   have hg : (swapStepInitialChosenFrame imms a input).locals.get?
@@ -92,12 +94,12 @@ theorem swapStepInitialSource (imms : Store) (evm : EVM.State) (a : SwapStepArgs
     (hb : if input then fullMathValid (EVM.wordOfInt a.remaining) (swapStepComplement a)
       (UInt256.ofNat 1000000) else True)
     (hv : amountDeltaValid (swapStepDeltaOne a input) (swapStepDeltaArgs a a.target input)) :
-    ExecBlock config (swapStepReadyFrame imms a) evm
+    ExecBlock fork config (swapStepReadyFrame imms a) evm
       ((swapStepPriceBranch input).take (if input then 4 else 3))
       (.ok (swapStepInitialFrame imms a input) evm) := by
-  have hp := swapStepInitialPrefix imms evm a input hb
-  have hc := swapStepInitialChoiceSource imms evm a input ha hv
-  have hs := swapStepInitialAssignSource imms evm a input
+  have hp := swapStepInitialPrefix (fork := fork) imms evm a input hb
+  have hc := swapStepInitialChoiceSource (fork := fork) imms evm a input ha hv
+  have hs := swapStepInitialAssignSource (fork := fork) imms evm a input
   cases input
   all_goals
     exact execBlock_append_ok hp (ExecBlock.consNormal hc (ExecBlock.consNormal hs ExecBlock.nil))

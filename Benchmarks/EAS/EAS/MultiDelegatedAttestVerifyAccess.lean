@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.DelegatedAttestBuildRun
 import Benchmarks.EAS.EAS.DelegatedAttestationFacts
 import Benchmarks.EAS.EAS.RuntimeBlocks_011
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -20,14 +22,14 @@ theorem easMultiDelegatedAttestVerifyAccess {ee : ExecutionEnv} {g : Sat256} {s0
     (hj : j<len.toNat) (hslot : offset.toNat+32*j<UInt256.size)
     (hs : signatureArrayReferenceAccessValid ee.calldata root)
     (hjs : j<(calldataWord ee.calldata (delegatedBatchArray ee.calldata root 64).toNat).toNat)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2874⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2874⟩
       (multiDelegatedAttestVerifyStack ee.calldata j root offset base n len available groups total i last R) mem aw rdata σ k C) :
     if requestReferenceValid ee.calldata offset (UInt256.ofNat (offset.toNat+32*j)) then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨6240⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨6240⟩
         (delegatedAttestBuildStack (calldataWord ee.calldata root.toNat) (requestArrayElement ee.calldata offset j)
           (delegatedBatchArray ee.calldata root 64+UInt256.ofNat 32) (root+UInt256.ofNat 96) ⟨3025⟩ (UInt256.ofNat j)
           (multiDelegatedAttestVerifyTail ee.calldata root offset base n len available groups total i last R)) mem aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   simp only [multiDelegatedAttestVerifyStack,multiDelegatedAttestVerifyTail,List.cons_append,List.nil_append] at rd
   have hjb : j<UInt256.size := by have := len.val.isLt;omega
   have hshift : offset+UInt256.shiftLeft (UInt256.ofNat j) (UInt256.ofNat 5)=UInt256.ofNat (offset.toNat+32*j) := by

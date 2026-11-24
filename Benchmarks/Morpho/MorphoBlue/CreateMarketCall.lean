@@ -3,6 +3,8 @@ import Benchmarks.Morpho.MorphoBlue.BorrowRateABI
 import Benchmarks.Morpho.MorphoBlue.RuntimeBlocks_015
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -13,10 +15,10 @@ theorem morphoCreateMarketDecodeResume {v : MorphoImmutables} {ee : ExecutionEnv
     {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : Nat} {ptr : UInt256} (n : Nat) (hn : n ≤ 32)
     (hfit : ptr.toNat + 63 ≤ 2 ^ 64 - 1)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5348)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5348)
       [UInt256.ofNat n, ptr, UInt256.ofNat 32, UInt256.ofNat 0] mem aw rdata σ k C) :
-    if n = 32 then RDret (deployedRuntime v) g s0 σ ByteArray.empty
-    else RDrev (deployedRuntime v) g s0 := by
+    if n = 32 then RDret fork (deployedRuntime v) g s0 σ ByteArray.empty
+    else RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨aw1, k1, C1, rd1⟩ := morphoBlocks.morpho_block_5348_packed
     (immWords := wordsOf (immStore v)) (by simp)
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
@@ -47,9 +49,9 @@ theorem morphoCreateMarketCallFalse {v : MorphoImmutables} {ee : ExecutionEnv} {
     {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : Nat} {ptr : UInt256}
     (hsize : rdata.size < UInt256.size)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5323)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5323)
       [UInt256.ofNat 0, ptr, UInt256.ofNat 32, UInt256.ofNat 0] mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    RDrev fork (deployedRuntime v) g s0 := by
   have rd1 := morphoBlocks.morpho_block_5323_taken
     (immWords := wordsOf (immStore v)) (by simp) (by decide)
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
@@ -60,10 +62,10 @@ theorem morphoCreateMarketCallTrue {v : MorphoImmutables} {ee : ExecutionEnv} {g
     {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : Nat} {ptr : UInt256}
     (hsize : rdata.size < UInt256.size) (hfit : ptr.toNat + 63 ≤ 2 ^ 64 - 1)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5323)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5323)
       [UInt256.ofNat 1, ptr, UInt256.ofNat 32, UInt256.ofNat 0] mem aw rdata σ k C) :
-    if 32 ≤ rdata.size then RDret (deployedRuntime v) g s0 σ ByteArray.empty
-    else RDrev (deployedRuntime v) g s0 := by
+    if 32 ≤ rdata.size then RDret fork (deployedRuntime v) g s0 σ ByteArray.empty
+    else RDrev fork (deployedRuntime v) g s0 := by
   have rd1 := morphoBlocks.morpho_block_5323_fallthrough
     (immWords := wordsOf (immStore v)) (by simp) (by decide) h
   have rd2 := morphoBlocks.morpho_block_5329_taken
@@ -92,23 +94,23 @@ theorem morphoCreateMarketCall {v : MorphoImmutables} {ee : ExecutionEnv} {g : S
     (p : MarketParamsWords) (hc : p.Canonical) (hs : SourceState s0 ee σ evm)
     (hperm : ee.perm = true) (hfit : ptr.toNat + 63 ≤ 2 ^ 64 - 1)
     (hcd : mem.readWithPadding ptr.toNat 356 = borrowRateCalldata p σ ee id)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5322)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5322)
       [gasArg, p.irm, UInt256.ofNat 0, ptr, UInt256.ofNat 356,
        ptr, UInt256.ofNat 32, ptr, UInt256.ofNat 32, UInt256.ofNat 0] mem aw rdata σ k C) :
     ∃ evm' z out,
-      typedCallViaEVM config evm (AccountAddress.ofNat p.irm.toNat) "borrowRate" 0
+      typedCallViaEVM fork config evm (AccountAddress.ofNat p.irm.toNat) "borrowRate" 0
         [p.value, marketStateValue σ ee id] (z, evm', out) ∧
       SourceState s0 ee evm'.accountMap evm' ∧ out.size < 2 ^ 138 ∧
       (if z = true ∧ 32 ≤ out.size then
-        RDret (deployedRuntime v) g s0 evm'.accountMap ByteArray.empty
-       else RDrev (deployedRuntime v) g s0) := by
+        RDret fork (deployedRuntime v) g s0 evm'.accountMap ByteArray.empty
+       else RDrev fork (deployedRuntime v) g s0) := by
   obtain ⟨evm', σ', z, out, k', C', hcall, hs', rd, hout⟩ :=
     callBridge h hs hperm
       (by immutable_decode(immutableLayout, morphoBytecode, wordsOf (immStore v),
         (⟨5322⟩ : UInt256), UInt8.ofNat 241, .CALL, none,
         morphoBlocks.immutableLayout_inBounds, morphoBlocks.immutableTemplate_size64)) hcd
       (by rw [borrowRateCalldata_size]; decide) (by simp)
-  have htyped : typedCallViaEVM config evm (AccountAddress.ofNat p.irm.toNat) "borrowRate" 0
+  have htyped : typedCallViaEVM fork config evm (AccountAddress.ofNat p.irm.toNat) "borrowRate" 0
       [p.value, marketStateValue σ ee id] (z, evm', out) := by
     refine ⟨borrowRateCalldata p σ ee id, encodeBorrowRate p hc σ ee id, ?_⟩
     simpa only [accountAddress_ofUInt256_eq_ofNat_toNat,

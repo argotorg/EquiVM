@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.EntryTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_064
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_065
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -13,10 +15,10 @@ theorem fullMathTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw a b d ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+10 ≤ 1024)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨22851⟩ (a :: b :: d :: ret :: R) mem aw rdata σ k C) :
-    if fullMathFits a b d then ∃ k' C', RD (deployedRuntime v) I g s0 ret
+    (h : RD fork (deployedRuntime v) I g s0 ⟨22851⟩ (a :: b :: d :: ret :: R) mem aw rdata σ k C) :
+    if fullMathFits a b d then ∃ k' C', RD fork (deployedRuntime v) I g s0 ret
       (fullMathWord a b d :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   by_cases hfit : fullMathFits a b d
   · rw [if_pos hfit]
     have hgt : UInt256.gt d (fullMathHigh a b) = ⟨1⟩ :=

@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.PriceResponseEvm
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -15,15 +17,15 @@ theorem cometPriceInternal {v : CometWithExtendedAssetListImmutables}
     (hgap : ptr.toNat ≤ mem.size + 32) (hptr : ptr.toNat + 160 < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨9375⟩ (EVM.word addr.val :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨9375⟩ (EVM.word addr.val :: ret :: R)
       mem aw rdata σ k C) :
     ∃ (evm' : EVM.State) (σ' : AccountMap) (z : Bool) (out : ByteArray),
-      callViaEVM evm addr 0 pricePayload (z, evm', out) false ∧
+      callViaEVM fork evm addr 0 pricePayload (z, evm', out) false ∧
       SourceState s0 ee σ' evm' ∧ out.size < 2^138 ∧
       if z = true ∧ PriceValid out then
-        ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (calldataWord out 32 :: R)
+        ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (calldataWord out 32 :: R)
           (priceReturnMemory mem ptr out) aw' out σ' k' C'
-      else RDrev (deployedRuntime v) g s0 := by
+      else RDrev fork (deployedRuntime v) g s0 := by
   have r1 := cometWithExtendedAssetList_block_9375
     (immWords := wordsOf (immStore v)) (by change R.length + 1 + 9 ≤ 1024; omega) h
   have hm : UInt256.land
@@ -39,7 +41,7 @@ theorem cometPriceInternal {v : CometWithExtendedAssetListImmutables}
       immutableLayout_inBounds, immutableTemplate_size64))
     (priceInputMemory_payload hgap) (by decide)
     (by change R.length + 2 + 1 ≤ 1024; omega)
-  have hc' : callViaEVM evm addr 0 pricePayload (z, evm', out) false := by
+  have hc' : callViaEVM fork evm addr 0 pricePayload (z, evm', out) false := by
     have ht : AccountAddress.ofUInt256 (EVM.word addr.val) = addr := accountAddress_roundtrip addr
     simpa only [ht] using hc
   refine ⟨evm', σ', z, out, hc', hs', hsize, ?_⟩

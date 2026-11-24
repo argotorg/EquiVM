@@ -1,6 +1,8 @@
 import Reasoning.Reach
 import Benchmarks.Dss.Clipper.Dispatch
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Clipper fallback and global-revert scaffolds
 -/
@@ -23,9 +25,9 @@ theorem clipperFallbackRevertAt {code : ByteArray} {ee : ExecutionEnv} {g : Sat2
     {rdata : ByteArray} {acc : AccountMap}
     {k C : ℕ} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (h : RD code ee g s0 (⟨463⟩ : UInt256) stk mem aw rdata acc k C)
+    (h : RD fork code ee g s0 (⟨463⟩ : UInt256) stk mem aw rdata acc k C)
     (hov : stk.length + 2 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   have h464 := h.jumpdest
     (by
         change decode code (⟨463⟩ : UInt256) = some (.JUMPDEST, .none)
@@ -51,11 +53,11 @@ theorem clipperJumpFallbackRevert {code : ByteArray} {ee : ExecutionEnv} {g : Sa
     {rdata : ByteArray} {acc : AccountMap}
     {k C : ℕ} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C)
     (hpush : decode code pc = some (.Push .PUSH2, some (⟨463⟩, 2)))
     (hjump : decode code (pc + UInt256.ofNat 3) = some (.JUMP, .none))
     (hov : stk.length + 2 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   have h463 := h.push2 ⟨463⟩ hpush (by omega)
     |>.jump hjump
       (clipperJumpDestBeforeFirstPatch v hpatch (⟨463⟩ : UInt256) (by native_decide))
@@ -65,7 +67,7 @@ theorem clipperJumpFallbackRevert {code : ByteArray} {ee : ExecutionEnv} {g : Sa
 theorem clipperBodyReverts_nonPayable (v : ClipperImmutables) (t : TransitionDecl)
     (ht : t ∈ contract.transitions) (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecTransitionBody config contract evm locals t.body .reverted (immStore v) := by
+    ExecTransitionBody fork config contract evm locals t.body .reverted (immStore v) := by
   simp [contract, transitions] at ht
   rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
     | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
@@ -75,8 +77,8 @@ theorem clipperBodyReverts_nonPayable (v : ClipperImmutables) (t : TransitionDec
 theorem clipperX_callvalue_ne {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     {code : ByteArray} (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev code g (initState σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (σ := σ)
+    RDrev fork code g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (g := g) hcode
     (by rw [clipperDecodeBeforeFirstPatch v hpatch (⟨0⟩ : UInt256) (by native_decide)];
         native_decide)
@@ -120,8 +122,8 @@ theorem clipperX_callvalue_ne {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables
 theorem clipperX_short {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     {code : ByteArray} (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    RDrev code g (initState σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (σ := σ)
+    RDrev fork code g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (g := g) hcode
     (by rw [clipperDecodeBeforeFirstPatch v hpatch (⟨0⟩ : UInt256) (by native_decide)];
         native_decide)
@@ -223,10 +225,10 @@ theorem clipperReachRoot {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     {code : ByteArray} (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨32⟩ : UInt256)
+    ∃ k C, RD fork code I g (initState σ σ₀ g A I) (⟨32⟩ : UInt256)
       [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   simpa [clipperSelWord, solcSelectorWord] using
-    (solcLegacyDispatchReachSelector (σ := σ) (σ₀ := σ₀)
+    (solcLegacyDispatchReachSelector (fork := fork) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) (code := code)
       (bodyPc := (⟨18⟩ : UInt256)) (loadPc := (⟨26⟩ : UInt256))
       (firstPc := (⟨32⟩ : UInt256)) (guardTgt := (⟨16⟩ : UInt256))
@@ -298,8 +300,8 @@ theorem clipperNoMatchGroupARevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {acc : AccountMap} {k C : ℕ}
     (v : ClipperImmutables) (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hzero : ∀ i, i < 29 → UInt256.eq (clipperSelNat i) (clipperSelWord ee) = ⟨0⟩)
-    (h65 : RD code ee g s0 (⟨65⟩ : UInt256) [clipperSelWord ee] mem aw rdata acc k C) :
-    RDrev code g s0 := by
+    (h65 : RD fork code ee g s0 (⟨65⟩ : UInt256) [clipperSelWord ee] mem aw rdata acc k C) :
+    RDrev fork code g s0 := by
   have h76 := RD.selectorArmNotTakenPush2 (pc := (⟨65⟩ : UInt256)) (next := (⟨76⟩ : UInt256))
     (sel := clipperSelNat 12) (tgt := (⟨1349⟩ : UInt256)) h65
     (by
@@ -398,8 +400,8 @@ theorem clipperNoMatchGroupBRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {acc : AccountMap} {k C : ℕ}
     (v : ClipperImmutables) (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hzero : ∀ i, i < 29 → UInt256.eq (clipperSelNat i) (clipperSelWord ee) = ⟨0⟩)
-    (h114 : RD code ee g s0 (⟨114⟩ : UInt256) [clipperSelWord ee] mem aw rdata acc k C) :
-    RDrev code g s0 := by
+    (h114 : RD fork code ee g s0 (⟨114⟩ : UInt256) [clipperSelWord ee] mem aw rdata acc k C) :
+    RDrev fork code g s0 := by
   have h125 := RD.selectorArmNotTakenPush2 (pc := (⟨114⟩ : UInt256)) (next := (⟨125⟩ : UInt256))
     (sel := clipperSelNat 3) (tgt := (⟨1258⟩ : UInt256)) h114
     (by
@@ -498,8 +500,8 @@ theorem clipperNoMatchGroupCRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {acc : AccountMap} {k C : ℕ}
     (v : ClipperImmutables) (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hzero : ∀ i, i < 29 → UInt256.eq (clipperSelNat i) (clipperSelWord ee) = ⟨0⟩)
-    (h174 : RD code ee g s0 (⟨174⟩ : UInt256) [clipperSelWord ee] mem aw rdata acc k C) :
-    RDrev code g s0 := by
+    (h174 : RD fork code ee g s0 (⟨174⟩ : UInt256) [clipperSelWord ee] mem aw rdata acc k C) :
+    RDrev fork code g s0 := by
   have h185 := RD.selectorArmNotTakenPush2 (pc := (⟨174⟩ : UInt256)) (next := (⟨185⟩ : UInt256))
     (sel := clipperSelNat 13) (tgt := (⟨1057⟩ : UInt256)) h174
     (by
@@ -598,8 +600,8 @@ theorem clipperNoMatchGroupDRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {acc : AccountMap} {k C : ℕ}
     (v : ClipperImmutables) (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hzero : ∀ i, i < 29 → UInt256.eq (clipperSelNat i) (clipperSelWord ee) = ⟨0⟩)
-    (h223 : RD code ee g s0 (⟨223⟩ : UInt256) [clipperSelWord ee] mem aw rdata acc k C) :
-    RDrev code g s0 := by
+    (h223 : RD fork code ee g s0 (⟨223⟩ : UInt256) [clipperSelWord ee] mem aw rdata acc k C) :
+    RDrev fork code g s0 := by
   have h234 := RD.selectorArmNotTakenPush2 (pc := (⟨223⟩ : UInt256)) (next := (⟨234⟩ : UInt256))
     (sel := clipperSelNat 20) (tgt := (⟨875⟩ : UInt256)) h223
     (by
@@ -677,8 +679,8 @@ theorem clipperNoMatchGroupERevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {acc : AccountMap} {k C : ℕ}
     (v : ClipperImmutables) (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hzero : ∀ i, i < 29 → UInt256.eq (clipperSelNat i) (clipperSelWord ee) = ⟨0⟩)
-    (h283 : RD code ee g s0 (⟨283⟩ : UInt256) [clipperSelWord ee] mem aw rdata acc k C) :
-    RDrev code g s0 := by
+    (h283 : RD fork code ee g s0 (⟨283⟩ : UInt256) [clipperSelWord ee] mem aw rdata acc k C) :
+    RDrev fork code g s0 := by
   have h294 := RD.selectorArmNotTakenPush2 (pc := (⟨283⟩ : UInt256)) (next := (⟨294⟩ : UInt256))
     (sel := clipperSelNat 6) (tgt := (⟨752⟩ : UInt256)) h283
     (by
@@ -777,8 +779,8 @@ theorem clipperNoMatchGroupFRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {acc : AccountMap} {k C : ℕ}
     (v : ClipperImmutables) (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hzero : ∀ i, i < 29 → UInt256.eq (clipperSelNat i) (clipperSelWord ee) = ⟨0⟩)
-    (h332 : RD code ee g s0 (⟨332⟩ : UInt256) [clipperSelWord ee] mem aw rdata acc k C) :
-    RDrev code g s0 := by
+    (h332 : RD fork code ee g s0 (⟨332⟩ : UInt256) [clipperSelWord ee] mem aw rdata acc k C) :
+    RDrev fork code g s0 := by
   have h343 := RD.selectorArmNotTakenPush2 (pc := (⟨332⟩ : UInt256)) (next := (⟨343⟩ : UInt256))
     (sel := clipperSelNat 9) (tgt := (⟨673⟩ : UInt256)) h332
     (by
@@ -856,8 +858,8 @@ theorem clipperNoMatchGroupGRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {acc : AccountMap} {k C : ℕ}
     (v : ClipperImmutables) (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hzero : ∀ i, i < 29 → UInt256.eq (clipperSelNat i) (clipperSelWord ee) = ⟨0⟩)
-    (h381 : RD code ee g s0 (⟨381⟩ : UInt256) [clipperSelWord ee] mem aw rdata acc k C) :
-    RDrev code g s0 := by
+    (h381 : RD fork code ee g s0 (⟨381⟩ : UInt256) [clipperSelWord ee] mem aw rdata acc k C) :
+    RDrev fork code g s0 := by
   have h392 := RD.selectorArmNotTakenPush2 (pc := (⟨381⟩ : UInt256)) (next := (⟨392⟩ : UInt256))
     (sel := clipperSelNat 21) (tgt := (⟨592⟩ : UInt256)) h381
     (by
@@ -956,8 +958,8 @@ theorem clipperNoMatchGroupHRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {acc : AccountMap} {k C : ℕ}
     (v : ClipperImmutables) (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hzero : ∀ i, i < 29 → UInt256.eq (clipperSelNat i) (clipperSelWord ee) = ⟨0⟩)
-    (h430 : RD code ee g s0 (⟨430⟩ : UInt256) [clipperSelWord ee] mem aw rdata acc k C) :
-    RDrev code g s0 := by
+    (h430 : RD fork code ee g s0 (⟨430⟩ : UInt256) [clipperSelWord ee] mem aw rdata acc k C) :
+    RDrev fork code g s0 := by
   have h441 := RD.selectorArmNotTakenPush2 (pc := (⟨430⟩ : UInt256)) (next := (⟨441⟩ : UInt256))
     (sel := clipperSelNat 5) (tgt := (⟨468⟩ : UInt256)) h430
     (by
@@ -1028,7 +1030,7 @@ theorem clipperNonPayable (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   exact (clipperX_callvalue_ne (g := Sat256.ofUInt256 g) v hpatch hcode hwv).reEquivElim
     hcode fun _ _ hrev => by
       by_cases hdisp : dispatchMsg contract I.calldata = none
@@ -1054,14 +1056,14 @@ theorem clipperNoDispatch (v : ClipperImmutables) {code : ByteArray}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 29 → (clipperSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   by_cases hsz : 4 ≤ I.calldata.size
   · have hzero : ∀ i, i < 29 →
         UInt256.eq (clipperSelNat i) (clipperSelWord I) = ⟨0⟩ := by
       intro i hi
       rw [clipperSelectorEq I hsz i hi, hnm i hi]
       rfl
-    have hrev : RDrev code (Sat256.ofUInt256 g)
+    have hrev : RDrev fork code (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
       obtain ⟨_, _, h32⟩ := clipperReachRoot
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)

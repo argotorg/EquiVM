@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.SetFeeProtocolTrace
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # UniswapV3Pool `setFeeProtocol(uint8,uint8)`
 
@@ -34,7 +36,7 @@ theorem uniswapV3PoolSetFeeProtocolBody {σ σ₀ A I} {g : UInt256} (v : Uniswa
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (uniswapV3PoolSelBytes 14)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (uniswapV3PoolSelBytes 14) rfl hsel
   have hd : dispatchMsg contract I.calldata = some setFeeProtocolTransition := by
     apply uniswapV3PoolDispatch_setFeeProtocol <;>
@@ -59,26 +61,26 @@ theorem uniswapV3PoolSetFeeProtocolBody {σ σ₀ A I} {g : UInt256} (v : Uniswa
           rcases setFeeProtocolOwnerX (v := v) (evm := evm) rdLock rfl hperm (by simp) with
             ⟨rdRevert, hfactory⟩ | ⟨out, σ', A', aw', k'', C'', hout, houtsize, hfactory, rdOwner⟩
           · exact rdRevert.reEquivExecutionRevert hcode hd hdec
-              (setFeeProtocolFactoryReverts (hperm := by assumption) v evm fp0 fp1 hwv hunlocked hfactory)
+              (setFeeProtocolFactoryReverts (fork := fork) (hperm := by assumption) v evm fp0 fp1 hwv hunlocked hfactory)
           · let evm' : EVM.State := { (storeSlot0Unlocked evm false) with accountMap := σ', substate := A' }
             have henv' : evm'.executionEnv = I := storeSlot0Unlocked_executionEnv evm false
             rcases setFeeProtocolOwnerGuardX (v := v) rdOwner hout houtsize (by simp) with
               ⟨rdRevert, howner⟩ | ⟨howner, aw'', kAuth, CAuth, rdAuthorized⟩
             · exact rdRevert.reEquivExecutionRevert hcode hd hdec
-                (setFeeProtocolRevertsOwner (hperm := by assumption) v evm evm' fp0 fp1 _ _ hwv hunlocked hfactory
+                (setFeeProtocolRevertsOwner (fork := fork) (hperm := by assumption) v evm evm' fp0 fp1 _ _ hwv hunlocked hfactory
                   (by simpa only [henv'] using howner))
             · rcases setFeeProtocolValidX (v := v) rdAuthorized
                 (maskTwice _ _) (maskTwice _ _) (by simp) with
                 ⟨rdRevert, hinvalid⟩ | ⟨hvalid, kValid, CValid, rdValid⟩
               · exact rdRevert.reEquivExecutionRevert hcode hd hdec
-                  (setFeeProtocolRevertsInvalid (hperm := by assumption) v evm evm' fp0 fp1 _ _ hwv hunlocked hfactory
+                  (setFeeProtocolRevertsInvalid (fork := fork) (hperm := by assumption) v evm evm' fp0 fp1 _ _ hwv hunlocked hfactory
                     (by simpa only [henv'] using howner) hinvalid)
               · have hvalids := Bool.and_eq_true_iff.mp hvalid
                 have rdFinal := setFeeProtocolStoreX (v := v) (evm := evm')
                   (by simpa only [henv'] using rdValid) (by simpa only [henv'] using hperm)
                   (feeProtocolValid_le fp0 hvalids.1) (feeProtocolValid_le fp1 hvalids.2) (by simp)
                 exact rdFinal.reEquivExecutionGen hcode hd hdec
-                  (setFeeProtocolReturns (hperm := hperm)
+                  (setFeeProtocolReturns (fork := fork) (hperm := hperm)
                     (hperm' := (congrArg ExecutionEnv.perm henv').trans hperm) v evm evm' fp0 fp1 _ _ hwv hunlocked hfactory
                     (by simpa only [henv'] using howner) hvalid) rfl
                   (returnEquiv.fallthrough (dvs := []) rfl rfl (by native_decide))

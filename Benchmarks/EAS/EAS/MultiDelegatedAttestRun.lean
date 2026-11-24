@@ -3,6 +3,8 @@ import Benchmarks.EAS.EAS.MultiDelegatedAttestHead
 import Benchmarks.EAS.EAS.WhileInvariant
 import Benchmarks.EAS.EAS.MergeUIDCall
 import Benchmarks.EAS.EAS.WordArrayReturn
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -16,16 +18,16 @@ theorem multiDelegatedAttestLoopRun {L : Store} {evm : EVM.State} {ee : Executio
     (v : EASImmutables) (hstack : R.length+50 ≤ 1024)
     (hsize : ee.calldata.size < 2^255) (hbase : base.toNat+32*n < UInt256.size)
     (hbaseEq : base=checkAttestationCopyBase ee.calldata)
-    (h : MultiDelegatedAttestAt v ee g s0 n base table R 0 L evm) :
-    (∃ L' evm', ExecStmt config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedAttestLoop
+    (h : MultiDelegatedAttestAt fork v ee g s0 n base table R 0 L evm) :
+    (∃ L' evm', ExecStmt fork config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedAttestLoop
       (.ok {contract := contract,locals := L',immutables := immStore v} evm') ∧
-      MultiDelegatedAttestAt v ee g s0 n base table R n L' evm') ∨
-    (ExecStmt config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedAttestLoop .reverted ∧
-      RDrev (deployedRuntime v) g s0) ∨
-    (ExecStmt config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedAttestLoop .staticViolation ∧
-      RDstatic (deployedRuntime v) g s0) := by
-  apply execWhile_invariant (MultiDelegatedAttestAt v ee g s0 n base table R)
-    (MultiDelegatedAttestAt v ee g s0 n base table R n) (RDrev (deployedRuntime v) g s0) (RDstatic (deployedRuntime v) g s0)
+      MultiDelegatedAttestAt fork v ee g s0 n base table R n L' evm') ∨
+    (ExecStmt fork config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedAttestLoop .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) ∨
+    (ExecStmt fork config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedAttestLoop .staticViolation ∧
+      RDstatic fork (deployedRuntime v) g s0) := by
+  apply execWhile_invariant (MultiDelegatedAttestAt fork v ee g s0 n base table R)
+    (MultiDelegatedAttestAt fork v ee g s0 n base table R n) (RDrev fork (deployedRuntime v) g s0) (RDstatic fork (deployedRuntime v) g s0)
     ?_ (fun _ _ h => h) ?_ n 0 L evm (by omega) h
   · rintro i L1 e1 _ ⟨σ,mem,out,aw,k,C,heap,available,groups,_,_,_,hf,_,_⟩
     simpa only [delegatedBatchValues_length] using evalLocalArrayGuard
@@ -36,14 +38,14 @@ theorem multiDelegatedAttestLoopRun {L : Store} {evm : EVM.State} {ee : Executio
 theorem multiDelegatedAttestFinishRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {n : Nat} {base table : UInt256} {R : List UInt256}
     (v : EASImmutables) (hstack : R.length+26 ≤ 1024) (hsize : ee.calldata.size < UInt256.size)
-    (h : MultiDelegatedAttestAt v ee g s0 n base table R n L evm) :
+    (h : MultiDelegatedAttestAt fork v ee g s0 n base table R n L evm) :
     (∃ (L' : Store) (σ' : AccountMap) (words : List UInt256),
-      ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedAttestFinish
+      ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedAttestFinish
         (.returned {contract := contract,locals := L',immutables := immStore v} evm (some [wordListValue words])) ∧
       SourceState s0 ee σ' evm ∧
-      RDret (deployedRuntime v) g s0 σ' (wordBytes ([UInt256.ofNat 32,UInt256.ofNat words.length]++words))) ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedAttestFinish .reverted ∧
-      RDrev (deployedRuntime v) g s0) := by
+      RDret fork (deployedRuntime v) g s0 σ' (wordBytes ([UInt256.ofNat 32,UInt256.ofNat words.length]++words))) ∨
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedAttestFinish .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) := by
   obtain ⟨σ,mem,out,aw,k,C,heap,available,groups,hstate,hh,hg,hf,hm,rd⟩ := h
   have hv : WordArrayArrayMemoryView mem table groups heap.toNat := by
     have hview := hm.view
@@ -79,16 +81,16 @@ theorem multiDelegatedAttestRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv
     (v : EASImmutables) (hstack : R.length+50 ≤ 1024)
     (hsize : ee.calldata.size < 2^255) (hbase : base.toNat+32*n < UInt256.size)
     (hbaseEq : base=checkAttestationCopyBase ee.calldata)
-    (h : MultiDelegatedAttestAt v ee g s0 n base table R 0 L evm) :
+    (h : MultiDelegatedAttestAt fork v ee g s0 n base table R 0 L evm) :
     (∃ (L' : Store) (evm' : EVM.State) (σ' : AccountMap) (words : List UInt256),
-      ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedAttestTail
+      ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedAttestTail
         (.returned {contract := contract,locals := L',immutables := immStore v} evm' (some [wordListValue words])) ∧
       SourceState s0 ee σ' evm' ∧
-      RDret (deployedRuntime v) g s0 σ' (wordBytes ([UInt256.ofNat 32,UInt256.ofNat words.length]++words))) ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedAttestTail .reverted ∧
-      RDrev (deployedRuntime v) g s0) ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedAttestTail .staticViolation ∧
-      RDstatic (deployedRuntime v) g s0) := by
+      RDret fork (deployedRuntime v) g s0 σ' (wordBytes ([UInt256.ofNat 32,UInt256.ofNat words.length]++words))) ∨
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedAttestTail .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) ∨
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedAttestTail .staticViolation ∧
+      RDstatic fork (deployedRuntime v) g s0) := by
   rcases multiDelegatedAttestLoopRun v hstack hsize hbase hbaseEq h with ⟨L1,e1,hsol1,h1⟩ | ⟨hsol1,hrev⟩ | ⟨hsol1,hstatic⟩
   · rcases multiDelegatedAttestFinishRun v (by omega) (by change ee.calldata.size < 2^256; omega) h1 with
       ⟨L2,σ2,words,hsol2,hs2,hret⟩ | ⟨hsol2,hrev⟩

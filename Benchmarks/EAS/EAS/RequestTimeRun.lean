@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.RequestTimeDispatch
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -8,11 +10,11 @@ theorem easRequestTimeRun {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {cell schema idx t3 t4 expire : UInt256} {R : List UInt256} (v : EASImmutables) (site : UIDSite)
     (hstack : R.length+17 ≤ 1024) (hp : memLoad cell mem = refUIDPtr site t3)
     (he : UInt256.land (memLoad (refUIDPtr site t3+UInt256.ofNat 32) mem) easUint64Mask = expire)
-    (rd : RD (deployedRuntime v) ee g s0 (requestTimePC site) (requestTimeStack site cell schema idx t3 t4 R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 (requestTimePC site) (requestTimeStack site cell schema idx t3 t4 R) mem aw rdata σ k C) :
     if expire.toNat = 0 ∨ (easTimeWord ee).toNat < expire.toNat then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (requestRevocablePC site)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (requestRevocablePC site)
         (uidSaved site (refUIDPtr site t3+UInt256.ofNat 32) (schema::idx::t3::t4::R)) mem aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨aw1,k1,C1,h1⟩ := easRequestTimeDispatch v site hstack hp he rd
   have hb : (uidSaved site (refUIDPtr site t3+UInt256.ofNat 32) (schema::idx::t3::t4::R)).length+3 ≤ 1024 := by
     cases site <;> simp only [uidSaved,List.length_cons] <;> omega

@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Clipper.KickInitEVM
 import Benchmarks.Dss.Clipper.GetFeedPriceSuccessEVM
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -112,12 +114,12 @@ theorem RD.clipperKickGetFeedPriceToSpotterIlksExtcodesizeGuard {code : ByteArra
     {sigma : AccountMap}
     {ret scratch lot tab : UInt256} {R : List UInt256} {mem rdata : ByteArray}
     {k C : Nat}
-    (h : RD code ee g s0 ⟨8728⟩ (ret :: scratch :: lot :: tab :: R)
+    (h : RD fork code ee g s0 ⟨8728⟩ (ret :: scratch :: lot :: tab :: R)
       mem (UInt256.ofNat 3) rdata sigma k C)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 60 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨8824⟩
+    ∃ k' C', RD fork code ee g s0 ⟨8824⟩
       (clipperSpotterTarget sigma ee :: clipperSpotterTarget sigma ee ::
         ⟨0⟩ :: ⟨128⟩ :: ⟨36⟩ :: ⟨128⟩ :: ⟨64⟩ :: ⟨164⟩ ::
         clipperSpotterIlksSelectorWord :: clipperSpotterTarget sigma ee ::
@@ -225,13 +227,13 @@ theorem RD.clipperKickGetFeedPriceSpotterIlksNoCode {code : ByteArray}
     {sigma : AccountMap}
     {ret scratch lot tab : UInt256} {R : List UInt256} {mem rdata : ByteArray}
     {k C : Nat}
-    (h : RD code ee g s0 ⟨8728⟩ (ret :: scratch :: lot :: tab :: R)
+    (h : RD fork code ee g s0 ⟨8728⟩ (ret :: scratch :: lot :: tab :: R)
       mem (UInt256.ofNat 3) rdata sigma k C)
     (hcodeSize : extCodeSizeWord sigma (clipperSpotterTarget sigma ee) = ⟨0⟩)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 60 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   obtain ⟨_, _, rd8824⟩ :=
     RD.clipperKickGetFeedPriceToSpotterIlksExtcodesizeGuard v hpatch h hmem hread64 hov
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨8824⟩) (okPc := ⟨8836⟩)
@@ -249,7 +251,7 @@ theorem RD.clipperKickGetFeedPriceSpotterIlksPostCall {code : ByteArray}
     {s0 : State} {sigma I} {g : UInt256}
     {ret scratch lot tab : UInt256} {R : List UInt256} {mem rdata : ByteArray}
     {k C : Nat}
-    (h : RD code I (Sat256.ofUInt256 g) s0 ⟨8728⟩
+    (h : RD fork code I (Sat256.ofUInt256 g) s0 ⟨8728⟩
       (ret :: scratch :: lot :: tab :: R)
       mem (UInt256.ofNat 3) rdata sigma k C)
     (hcodeSize : extCodeSizeWord sigma (clipperSpotterTarget sigma I) ≠ ⟨0⟩)
@@ -259,12 +261,12 @@ theorem RD.clipperKickGetFeedPriceSpotterIlksPostCall {code : ByteArray}
     (hov : R.length + 80 ≤ 1024) :
     ∃ (sigma' : AccountMap) (z : Bool)
       (o : ByteArray) (A' : Substate) (k' C' : Nat),
-      RD code I (Sat256.ofUInt256 g) s0 ⟨8840⟩
+      RD fork code I (Sat256.ofUInt256 g) s0 ⟨8840⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨164⟩ :: clipperSpotterIlksSelectorWord ::
           clipperSpotterTarget sigma I :: ⟨0⟩ :: ⟨0⟩ :: ret :: scratch :: lot :: tab :: R)
         (clipperSpotterIlksPostCallMem v mem o) (UInt256.ofNat 6) o
         sigma' k' C'
-    ∧ typedCallViaEVM config
+    ∧ typedCallViaEVM fork config
         {s0 with accountMap := sigma, executionEnv := I}
         (EVM.address (AccountAddress.ofUInt256 (clipperSpotterTarget sigma I)))
         "spotterIlks" 0 [v.ilk]

@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Jug.ConstructorTraceVatMask
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Jug constructor vat storage trace
 -/
@@ -15,11 +17,11 @@ theorem jugCtorVatStoreReach
     (vat : AccountAddress) {k C : ℕ}
     (hperm : I.perm = true)
     (rd73 :
-      RD (jugCtorCode vat) I g
+      RD fork (jugCtorCode vat) I g
         (initState σ σ₀ g A I) ⟨73⟩
         [EVM.word vat.val] (jugCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
         σWards k C) :
-    ∃ k' C', RD (jugCtorCode vat) I g
+    ∃ k' C', RD fork (jugCtorCode vat) I g
       (initState σ σ₀ g A I) ⟨106⟩
       [] (jugCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
       (sstoreAccountMap I.codeOwner σWards ⟨2⟩ (jugCtorVatStored σWards I vat)) k' C' := by

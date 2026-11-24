@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.SupplyUpdates
 import Benchmarks.Morpho.MorphoBlue.SupplyAccrueRefine
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -15,9 +17,9 @@ theorem morphoSupplyRefine {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat25
     (hac : locals.get? "__accrued" = some (.bool (accrueActive p evm)))
     (hlen : len.toNat ≤ solcMaxU64) (hsrc : srcOff.toNat + len.toNat ≤ ee.calldata.size)
     (hdata : ee.calldata.readWithPadding srcOff.toNat len.toNat = data) (hdataSize : data.size = len.toNat)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 3938)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 3938)
       (supplyAccrueTail p.id assets shares account srcOff len []) (supplyGuardMem p) aw out σ k C) :
-    ReturnBlockRefines config (deployedRuntime v) ee g s0
+    ReturnBlockRefines fork config (deployedRuntime v) ee g s0
       { contract := contract, locals := locals, immutables := imms } evm
       (supplyTransition.body.drop 9) supplyTransition.returnType := by
   have hf := morphoSupplyAccrueRefine p data locals imms (by decide) hc hl hac hs h

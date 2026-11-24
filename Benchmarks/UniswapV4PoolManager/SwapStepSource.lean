@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.SwapStepPreludeSource
 import Benchmarks.UniswapV4PoolManager.SwapStepResultSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -15,13 +17,13 @@ theorem swapStepBody {f : Frame} {evm : EVM.State} {price target liquidity remai
     (hl : f.locals.get? "liquidity" = some (.int (Int.ofNat liquidity.toNat)))
     (hr : f.locals.get? "amountRemaining" = some (.int (EVM.signed remaining)))
     (hf : f.locals.get? "feePips" = some (.int (Int.ofNat fee.toNat))) :
-    ∃ f', ExecFuncBody config f evm swapStepFunction.body
+    ∃ f', ExecFuncBody fork config f evm swapStepFunction.body
       (if swapStepFits price target liquidity remaining fee then
         .returned f' evm (some (swapStepReturnValues (swapStepWord price target liquidity remaining fee))) else .reverted) := by
   rw [swapStep_body_eq]
   let f0 := swapStepPreludeFrame f price target remaining fee
   let dir := swapStepDirection price target
-  have hpre := swapStepPreludeSource (evm := evm) hs htr hr hf
+  have hpre := swapStepPreludeSource (fork := fork) (evm := evm) hs htr hr hf
   have hc0 : f0.contract = contract := (swapStepPreludeFrame_contract _ _ _ _ _).trans hc
   have hs0 : f0.locals.get? "sqrtPriceCurrentX96" = some (.int (Int.ofNat price.toNat)) := by
     simp only [f0, swapStepPreludeFrame_get, swapStepPreludeWordsFrame, wordLocal_get,
@@ -59,7 +61,7 @@ theorem swapStepBody {f : Frame} {evm : EVM.State} {price target liquidity remai
     let f1 := swapStepOutputFrame f0 price target liquidity remaining fee dir
     refine ⟨f1, ?_⟩
     simp only [swapStepFits, swapStepWord, he, Bool.false_eq_true, if_false]
-    have hbranch := swapStepOutputSource (f := f0) (evm := evm) dir hc0 hp ht hs0 ht0 hl0 hr0 hf0 hb0 hn0 hi0 ho0 hfa0
+    have hbranch := swapStepOutputSource (fork := fork) (f := f0) (evm := evm) dir hc0 hp ht hs0 ht0 hl0 hr0 hf0 hb0 hn0 hi0 ho0 hfa0
     have hg : evalExpr? config f0 evm (.var "exactIn") = .ok (.bool false) := by simpa only [he] using hexact
     by_cases hfit : swapStepOutputFits price target liquidity remaining fee dir
     · rw [if_pos hfit] at hbranch ⊢
@@ -72,7 +74,7 @@ theorem swapStepBody {f : Frame} {evm : EVM.State} {price target liquidity remai
     let f1 := swapStepInputFrame f0 price target liquidity remaining fee dir
     refine ⟨f1, ?_⟩
     simp only [swapStepFits, swapStepWord, he, if_true]
-    have hbranch := swapStepInputSource (f := f0) (evm := evm) dir hc0 hp ht hs0 ht0 hl0 hr0 hf0 hb0 hn0 hi0 ho0 hfa0
+    have hbranch := swapStepInputSource (fork := fork) (f := f0) (evm := evm) dir hc0 hp ht hs0 ht0 hl0 hr0 hf0 hb0 hn0 hi0 ho0 hfa0
     have hg : evalExpr? config f0 evm (.var "exactIn") = .ok (.bool true) := by simpa only [he] using hexact
     by_cases hfit : swapStepInputFits price target liquidity remaining fee dir
     · rw [if_pos hfit] at hbranch ⊢
@@ -92,7 +94,7 @@ theorem swapStepCall {f : Frame} {evm : EVM.State} {price target liquidity remai
     (hel : evalExpr? config f evm el = .ok (.int (Int.ofNat liquidity.toNat)))
     (her : evalExpr? config f evm er = .ok (.int (EVM.signed remaining)))
     (hef : evalExpr? config f evm ef = .ok (.int (Int.ofNat fee.toNat))) (ret : Ident) :
-    ExecStmt config f evm (.internalCall "SwapMath_computeSwapStep" [ep, et, el, er, ef] ret)
+    ExecStmt fork config f evm (.internalCall "SwapMath_computeSwapStep" [ep, et, el, er, ef] ret)
       (if swapStepFits price target liquidity remaining fee then
         .ok (swapStepCallFrame f ret (swapStepWord price target liquidity remaining fee)) evm else .reverted) := by
   let fc : Frame := {f with locals := ((((((∅ : Store).insert "feePips" (.int (Int.ofNat fee.toNat))).insert

@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.ReservesSource
 import Benchmarks.CompoundIII.Comet.CheckedGetter
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -15,7 +17,7 @@ theorem getReserves_early_revert {σ σ₀ A I} {g : Sat256}
     (hhi : I.calldata.size < 2^255 + 4)
     (hvalid : ¬ CurrentIndicesValid v (solcSlotWordAt ⟨0⟩ σ I) (solcSlotWordAt ⟨1⟩ σ I)
       (timestampWord I)) :
-    ExecTransitionBody config contract (initState σ σ₀ g A I) ∅
+    ExecTransitionBody fork config contract (initState σ σ₀ g A I) ∅
       getReservesTransition.body .reverted (immStore v) := by
   let frame := calldataLocalFrame { contract := contract, locals := ∅, immutables := immStore v }
     (initState σ σ₀ g A I)
@@ -31,11 +33,11 @@ theorem getReserves_returns {σ σ₀ A I} {g : Sat256}
     (hv : I.weiValue = ⟨0⟩) (hhi : I.calldata.size < 2^255 + 4)
     (hindices : CurrentIndicesValid v (solcSlotWordAt ⟨0⟩ σ I) (solcSlotWordAt ⟨1⟩ σ I)
       (timestampWord I))
-    (hc : callViaEVM (initState σ σ₀ g A I) v.baseToken 0 (tokenBalancePayload I.codeOwner)
+    (hc : callViaEVM fork (initState σ σ₀ g A I) v.baseToken 0 (tokenBalancePayload I.codeOwner)
       (z, evm', out) false) (hsize : out.size < 2^255)
     (hvalid : ReservesReplyValid v (solcSlotWordAt ⟨0⟩ σ I) (solcSlotWordAt ⟨1⟩ σ I)
       (timestampWord I) z out) :
-    ∃ frame, ExecTransitionBody config contract (initState σ σ₀ g A I) ∅
+    ∃ frame, ExecTransitionBody fork config contract (initState σ σ₀ g A I) ∅
       getReservesTransition.body (.returned frame evm'
         (some [.int (reservesValue v (solcSlotWordAt ⟨0⟩ σ I) (solcSlotWordAt ⟨1⟩ σ I)
           (timestampWord I) (calldataWord out 0))])) (immStore v) := by
@@ -64,11 +66,11 @@ theorem getReserves_reverts {σ σ₀ A I} {g : Sat256}
     (hv : I.weiValue = ⟨0⟩) (hhi : I.calldata.size < 2^255 + 4)
     (hindices : CurrentIndicesValid v (solcSlotWordAt ⟨0⟩ σ I) (solcSlotWordAt ⟨1⟩ σ I)
       (timestampWord I))
-    (hc : callViaEVM (initState σ σ₀ g A I) v.baseToken 0 (tokenBalancePayload I.codeOwner)
+    (hc : callViaEVM fork (initState σ σ₀ g A I) v.baseToken 0 (tokenBalancePayload I.codeOwner)
       (z, evm', out) false) (hsize : out.size < 2^255)
     (hvalid : ¬ ReservesReplyValid v (solcSlotWordAt ⟨0⟩ σ I) (solcSlotWordAt ⟨1⟩ σ I)
       (timestampWord I) z out) :
-    ExecTransitionBody config contract (initState σ σ₀ g A I) ∅
+    ExecTransitionBody fork config contract (initState σ σ₀ g A I) ∅
       getReservesTransition.body .reverted (immStore v) := by
   let frame := calldataLocalFrame { contract := contract, locals := ∅, immutables := immStore v }
     (initState σ σ₀ g A I)

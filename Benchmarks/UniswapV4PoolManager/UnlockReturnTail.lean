@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.UnlockReturnPrefix
 import Benchmarks.UniswapV4PoolManager.BytesObjectCopyTrace
 import Benchmarks.UniswapV4PoolManager.UnlockCloseTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -20,22 +22,22 @@ theorem unlockReturnTail {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hout : out.size < 2^138) (hmem : 160 ≤ mem.size)
     (hraw : AllocationBounds ⟨160⟩ (UInt256.ofNat out.size))
     (hhead : BytesReturnHeadBounds out)
-    (h : RD (deployedRuntime v) I g s0 ⟨11822⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨11822⟩
       (unlockRawEnd out :: bytesAllocationSize (unlockReturnLength out) :: ⟨9374⟩ ::
         (⟨160⟩+UInt256.ofNat out.size) :: (⟨160⟩+calldataWord out 0) ::
         unlockReturnLength out :: unlockRawEnd out :: saved :: R)
       (copiedReturnMemory out mem 160 (unlockRawEnd out)) aw out evm.accountMap k C) :
     (¬AllocationBounds (unlockRawEnd out) (bytesAllocationSize (unlockReturnLength out)) ∧
-      RD (deployedRuntime v) I g s0 ⟨7857⟩
+      RD fork (deployedRuntime v) I g s0 ⟨7857⟩
         (unlockDecodedEnd out :: ⟨9374⟩ :: (⟨160⟩+UInt256.ofNat out.size) ::
           (⟨160⟩+calldataWord out 0) :: unlockReturnLength out :: unlockRawEnd out :: saved :: R)
         (copiedReturnMemory out mem 160 (unlockRawEnd out)) aw out evm.accountMap (k+18) (C+59)) ∨
-    (¬BytesReturnBounds out ∧ RDrev (deployedRuntime v) g s0) ∨
+    (¬BytesReturnBounds out ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (BytesReturnBounds out ∧
       if transientWord evm deltaCountSlot = ⟨0⟩ then
-        RDret (deployedRuntime v) g s0 (lockSetPost evm false).accountMap
+        RDret fork (deployedRuntime v) g s0 (lockSetPost evm false).accountMap
           (bytesReturnEncoding (bytesReturnPayload out))
-      else RDrev (deployedRuntime v) g s0) := by
+      else RDrev fork (deployedRuntime v) g s0) := by
   rcases allocateCheckedTrace v (by simp only [List.length_cons]; omega)
       (by rw [deployedRuntime_jumps]; jump_dest) h with ⟨hbad, hr⟩ | ⟨hb, rd1⟩
   · exact .inl ⟨hbad, hr⟩
@@ -67,7 +69,7 @@ theorem unlockReturnTail {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
       rw [uadd_toNat, hsrc, Nat.mod_eq_of_lt (by change _ < 2^256; omega)]
     have hend : (src+len+UInt256.ofNat 32).toNat = 160+off.toNat+len.toNat+32 := by
       rw [uadd_word_ofNat_toNat _ 32 (by rw [hslen]; change _ < 2^256; omega), hslen]
-    change RD _ _ _ _ ⟨9374⟩
+    change RD fork _ _ _ _ ⟨9374⟩
       (((⟨160⟩ : UInt256)+UInt256.ofNat out.size) :: src :: len :: ptr :: saved :: R)
       m1 _ _ _ _ _ at rd1
     by_cases hpayload : off.toNat+32+len.toNat ≤ out.size

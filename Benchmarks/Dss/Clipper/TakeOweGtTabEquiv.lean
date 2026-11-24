@@ -2,6 +2,8 @@ import Benchmarks.Dss.Clipper.TakeFromFluxDataEmptyEquiv
 import Benchmarks.Dss.Clipper.TakeTabZeroContinuationEquiv
 import Benchmarks.Dss.Clipper.TakeVatFluxSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -29,7 +31,7 @@ theorem clipperTakeOweGtTabEquiv
       (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ⟨14⟩).toNat < 3)
     (husr : clipperTakeSalesUsrWord
       (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ≠ ⟨0⟩)
-    (rd8686 : RD code I (Sat256.ofUInt256 g)
+    (rd8686 : RD fork code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8686⟩
       (price ::
         clipperMinWord (clipperTakeAmtWord I)
@@ -93,13 +95,13 @@ theorem clipperTakeOweGtTabEquiv
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := Stele.EVM.storageStore evm0 evm0.executionEnv.codeOwner
         ⟨13⟩ ⟨1⟩
-      ExecStmt config (Frame.mk contract (clipperTakeLocalsTic evmLock I) (immStore v))
+      ExecStmt fork config (Frame.mk contract (clipperTakeLocalsTic evmLock I) (immStore v))
         evmLock
         (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
         (.ok (Frame.mk contract (clipperTakeLocalsSt evmLock I false price) (immStore v))
           evmPrice))
     (hdepth : I.depth.val < 1024) (hperm : I.perm = true) :
-    runtimeRefinementFor config contract
+    runtimeRefinementFor fork config contract
       σ σ₀ g A I (immStore v) := by
   let σLockEvm := sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -456,10 +458,10 @@ theorem clipperTakeOweGtTabEquiv
   have hsourceVatNoCode :
       (UInt256.ofNat ((evmPrice.lookupAccount v.vat).option 0
         (fun acc => acc.code.size))).toNat = 0 →
-      ExecTransitionBody config contract evm0 (clipperTakeStore I)
+      ExecTransitionBody fork config contract evm0 (clipperTakeStore I)
         takeTransition.body .reverted (immStore v) := by
     intro hnoCode
-    change ExecTransitionBody config contract
+    change ExecTransitionBody fork config contract
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (clipperTakeStore I) takeTransition.body .reverted (immStore v)
     exact clipperTakeOweGtTabVatFluxNoCodeSourceReverts (hperm := hperm)
@@ -469,15 +471,15 @@ theorem clipperTakeOweGtTabEquiv
   have hsourceVatFailure : ∀ {evmVat : EVM.State} {outVat : ByteArray},
       0 < (UInt256.ofNat ((evmPrice.lookupAccount v.vat).option 0
         (fun acc => acc.code.size))).toNat →
-      typedCallViaEVM config evmPrice (EVM.address v.vat) "flux" 0
+      typedCallViaEVM fork config evmPrice (EVM.address v.vat) "flux" 0
         [v.ilk, .address evmPrice.executionEnv.codeOwner,
           .address (AccountAddress.ofNat who.toNat), .int (Int.ofNat slice.toNat)]
         (false, evmVat, outVat) true →
-      ExecTransitionBody config contract evm0 (clipperTakeStore I)
+      ExecTransitionBody fork config contract evm0 (clipperTakeStore I)
         takeTransition.body .reverted (immStore v) := by
     intro evmVat outVat hvatCode hcallVat
     have hcallVat' :
-        typedCallViaEVM config evmPrice (EVM.address v.vat) "flux" 0
+        typedCallViaEVM fork config evmPrice (EVM.address v.vat) "flux" 0
           [v.ilk, .address evmPrice.executionEnv.codeOwner,
             .address (AccountAddress.ofNat
               (UInt256.land (clipperTakeWhoWord I) solcAddrMask).toNat),
@@ -485,7 +487,7 @@ theorem clipperTakeOweGtTabEquiv
               (UInt256.div (clipperTakeSalesTabEVMWord evmPrice I) price).toNat)]
           (false, evmVat, outVat) true := by
       simpa only [who, slice, htab] using hcallVat
-    change ExecTransitionBody config contract
+    change ExecTransitionBody fork config contract
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (clipperTakeStore I) takeTransition.body .reverted (immStore v)
     exact clipperTakeOweGtTabVatFluxCallFailureSourceReverts (hperm := hperm)
@@ -495,18 +497,18 @@ theorem clipperTakeOweGtTabEquiv
   have hsourceFluxSuccess : ∀ {evmVat : EVM.State} {outVat : ByteArray},
       0 < (UInt256.ofNat ((evmPrice.lookupAccount v.vat).option 0
         (fun acc => acc.code.size))).toNat →
-      typedCallViaEVM config evmPrice (EVM.address v.vat) "flux" 0
+      typedCallViaEVM fork config evmPrice (EVM.address v.vat) "flux" 0
         [v.ilk, .address evmPrice.executionEnv.codeOwner,
           .address (AccountAddress.ofNat who.toNat), .int (Int.ofNat slice.toNat)]
         (true, evmVat, outVat) true →
-      ExecBlock config (Frame.mk contract sliceLocals (immStore v)) evmPrice
+      ExecBlock fork config (Frame.mk contract sliceLocals (immStore v)) evmPrice
         (checkedMulUintInto "owe0" (.var "slice") (.var "price") ++
           [ .letDecl "owe" (some uint256) (.var "owe0"),
             clipperTakeOweAdjustmentStmt ] ++ clipperTakePostOweFluxStmts)
         (.ok (Frame.mk contract fluxLocals (immStore v)) evmVat) := by
     intro evmVat outVat hvatCode hcallVat
     have hcallVat' :
-        typedCallViaEVM config evmPrice (EVM.address v.vat) "flux" 0
+        typedCallViaEVM fork config evmPrice (EVM.address v.vat) "flux" 0
           [v.ilk, .address evmPrice.executionEnv.codeOwner,
             .address (AccountAddress.ofNat
               (UInt256.land (clipperTakeWhoWord I) solcAddrMask).toNat),
@@ -519,19 +521,19 @@ theorem clipperTakeOweGtTabEquiv
       clipperTakeOweGtTabVatFluxCallSuccessTailBlock v evmLock evmPrice
         evmVat I price initialSlice hsrcMul hsrcGt hsliceLot hvatCode hcallVat'
   have hsourceCloseReverted :
-      ExecBlock config (Frame.mk contract sliceLocals (immStore v)) evmPrice
+      ExecBlock fork config (Frame.mk contract sliceLocals (immStore v)) evmPrice
         (clipperTakeAfterSliceStmts) .reverted →
-      ExecTransitionBody config contract evm0 (clipperTakeStore I)
+      ExecTransitionBody fork config contract evm0 (clipperTakeStore I)
         takeTransition.body .reverted (immStore v) := by
     intro htail
     have htail' :
-        ExecBlock config
+        ExecBlock fork config
           (Frame.mk contract (clipperTakeLocalsSlice evmLock evmPrice I false price
               (clipperMinWord (clipperTakeSalesLotEVMWord evmPrice I)
                 (clipperTakeAmtWord I))) (immStore v))
           evmPrice (clipperTakeAfterSliceStmts) .reverted := by
       simpa only [sliceLocals, initialSlice, hlot, clipperMinWord_comm] using htail
-    change ExecTransitionBody config contract
+    change ExecTransitionBody fork config contract
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (clipperTakeStore I) takeTransition.body .reverted (immStore v)
     exact clipperTakeSourceRevertsOfAfterSlice (hperm := hperm)
@@ -539,19 +541,19 @@ theorem clipperTakeOweGtTabEquiv
       (A := A) (I := I) (g := g) (evmPrice := evmPrice)
       v price hwv hlocked hstopped husr hmax hstatus htail'
   have hsourceCloseReturned : ∀ {finalFrame : Frame} {finalEvm : EVM.State},
-      ExecBlock config (Frame.mk contract sliceLocals (immStore v)) evmPrice
+      ExecBlock fork config (Frame.mk contract sliceLocals (immStore v)) evmPrice
         (clipperTakeAfterSliceStmts) (.ok finalFrame finalEvm) →
-      ExecTransitionBody config contract evm0 (clipperTakeStore I)
+      ExecTransitionBody fork config contract evm0 (clipperTakeStore I)
         takeTransition.body (.returned finalFrame finalEvm none) (immStore v) := by
     intro finalFrame finalEvm htail
     have htail' :
-        ExecBlock config
+        ExecBlock fork config
           (Frame.mk contract (clipperTakeLocalsSlice evmLock evmPrice I false price
               (clipperMinWord (clipperTakeSalesLotEVMWord evmPrice I)
                 (clipperTakeAmtWord I))) (immStore v))
           evmPrice (clipperTakeAfterSliceStmts) (.ok finalFrame finalEvm) := by
       simpa only [sliceLocals, initialSlice, hlot, clipperMinWord_comm] using htail
-    change ExecTransitionBody config contract
+    change ExecTransitionBody fork config contract
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (clipperTakeStore I) takeTransition.body
       (.returned finalFrame finalEvm none) (immStore v)
@@ -559,7 +561,7 @@ theorem clipperTakeOweGtTabEquiv
       (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) (evmPrice := evmPrice)
       v price hwv hlocked hstopped husr hmax hstatus htail'
-  have hcontinue : ClipperTakeStoreContinuationEquiv v code σ
+  have hcontinue : ClipperTakeStoreContinuationEquiv fork v code σ
       σ₀ A I g slice owe tabNew lotNew price
       (clipperTakeSalesTicStackWord σLockEvm I) packed ⟨3⟩ dataLen dataStart
       who (clipperTakeMaxWord I) (clipperTakeAmtWord I) (clipperTakeIdWord I)

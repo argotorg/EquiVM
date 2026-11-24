@@ -2,6 +2,8 @@ import Benchmarks.EAS.EAS.MultiAttestIteration
 import Benchmarks.EAS.EAS.WhileInvariant
 import Benchmarks.EAS.EAS.MergeUIDCall
 import Benchmarks.EAS.EAS.WordArrayReturn
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -14,16 +16,16 @@ theorem multiAttestLoopRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g 
     {n : Nat} {base table : UInt256} {R : List UInt256}
     (v : EASImmutables) (hstack : R.length+48 ≤ 1024)
     (hsize : ee.calldata.size < 2^255) (hbase : base.toNat+32*n < UInt256.size)
-    (h : MultiAttestAt v ee g s0 n base table R 0 L evm) :
-    (∃ L' evm', ExecStmt config {contract := contract,locals := L,immutables := immStore v} evm multiAttestLoop
+    (h : MultiAttestAt fork v ee g s0 n base table R 0 L evm) :
+    (∃ L' evm', ExecStmt fork config {contract := contract,locals := L,immutables := immStore v} evm multiAttestLoop
       (.ok {contract := contract,locals := L',immutables := immStore v} evm') ∧
-      MultiAttestAt v ee g s0 n base table R n L' evm') ∨
-    (ExecStmt config {contract := contract,locals := L,immutables := immStore v} evm multiAttestLoop .reverted ∧
-      RDrev (deployedRuntime v) g s0) ∨
-    (ExecStmt config {contract := contract,locals := L,immutables := immStore v} evm multiAttestLoop .staticViolation ∧
-      RDstatic (deployedRuntime v) g s0) := by
-  apply execWhile_invariant (MultiAttestAt v ee g s0 n base table R)
-    (MultiAttestAt v ee g s0 n base table R n) (RDrev (deployedRuntime v) g s0) (RDstatic (deployedRuntime v) g s0)
+      MultiAttestAt fork v ee g s0 n base table R n L' evm') ∨
+    (ExecStmt fork config {contract := contract,locals := L,immutables := immStore v} evm multiAttestLoop .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) ∨
+    (ExecStmt fork config {contract := contract,locals := L,immutables := immStore v} evm multiAttestLoop .staticViolation ∧
+      RDstatic fork (deployedRuntime v) g s0) := by
+  apply execWhile_invariant (MultiAttestAt fork v ee g s0 n base table R)
+    (MultiAttestAt fork v ee g s0 n base table R n) (RDrev fork (deployedRuntime v) g s0) (RDstatic fork (deployedRuntime v) g s0)
     ?_ (fun _ _ h => h) ?_ n 0 L evm (by omega) h
   · rintro i L1 e1 _ ⟨σ,mem,out,aw,k,C,heap,available,groups,_,_,_,hf,_,_⟩
     simpa only [multiRequestValues_length] using evalLocalArrayGuard
@@ -34,14 +36,14 @@ theorem multiAttestLoopRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g 
 theorem multiAttestFinishRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {n : Nat} {base table : UInt256} {R : List UInt256}
     (v : EASImmutables) (hstack : R.length+26 ≤ 1024) (hsize : ee.calldata.size < UInt256.size)
-    (h : MultiAttestAt v ee g s0 n base table R n L evm) :
+    (h : MultiAttestAt fork v ee g s0 n base table R n L evm) :
     (∃ (L' : Store) (σ' : AccountMap) (words : List UInt256),
-      ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm multiAttestFinish
+      ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm multiAttestFinish
         (.returned {contract := contract,locals := L',immutables := immStore v} evm (some [wordListValue words])) ∧
       SourceState s0 ee σ' evm ∧
-      RDret (deployedRuntime v) g s0 σ' (wordBytes ([UInt256.ofNat 32,UInt256.ofNat words.length]++words))) ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm multiAttestFinish .reverted ∧
-      RDrev (deployedRuntime v) g s0) := by
+      RDret fork (deployedRuntime v) g s0 σ' (wordBytes ([UInt256.ofNat 32,UInt256.ofNat words.length]++words))) ∨
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm multiAttestFinish .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) := by
   obtain ⟨σ,mem,out,aw,k,C,heap,available,groups,hstate,hh,hg,hf,hm,rd⟩ := h
   have hv : WordArrayArrayMemoryView mem table groups heap.toNat := by
     have hview := hm.view
@@ -76,16 +78,16 @@ theorem multiAttestRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g : Sa
     {n : Nat} {base table : UInt256} {R : List UInt256}
     (v : EASImmutables) (hstack : R.length+48 ≤ 1024)
     (hsize : ee.calldata.size < 2^255) (hbase : base.toNat+32*n < UInt256.size)
-    (h : MultiAttestAt v ee g s0 n base table R 0 L evm) :
+    (h : MultiAttestAt fork v ee g s0 n base table R 0 L evm) :
     (∃ (L' : Store) (evm' : EVM.State) (σ' : AccountMap) (words : List UInt256),
-      ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm multiAttestTail
+      ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm multiAttestTail
         (.returned {contract := contract,locals := L',immutables := immStore v} evm' (some [wordListValue words])) ∧
       SourceState s0 ee σ' evm' ∧
-      RDret (deployedRuntime v) g s0 σ' (wordBytes ([UInt256.ofNat 32,UInt256.ofNat words.length]++words))) ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm multiAttestTail .reverted ∧
-      RDrev (deployedRuntime v) g s0) ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm multiAttestTail .staticViolation ∧
-      RDstatic (deployedRuntime v) g s0) := by
+      RDret fork (deployedRuntime v) g s0 σ' (wordBytes ([UInt256.ofNat 32,UInt256.ofNat words.length]++words))) ∨
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm multiAttestTail .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) ∨
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm multiAttestTail .staticViolation ∧
+      RDstatic fork (deployedRuntime v) g s0) := by
   rcases multiAttestLoopRun v hstack hsize hbase h with ⟨L1,e1,hsol1,h1⟩ | ⟨hsol1,hrev⟩ | ⟨hsol1,hstatic⟩
   · rcases multiAttestFinishRun v (by omega) (by change ee.calldata.size < 2^256; omega) h1 with
       ⟨L2,σ2,words,hsol2,hs2,hret⟩ | ⟨hsol2,hrev⟩

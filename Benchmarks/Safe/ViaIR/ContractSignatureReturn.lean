@@ -5,6 +5,8 @@ import Benchmarks.Safe.ViaIR.Blocks.Runtime_037
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_038
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_046
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -20,11 +22,11 @@ set_option maxRecDepth 2000
 
 theorem safeContractSignatureReturnBuffer {I g s0 σ k C aw mem ptr}
     {out : ByteArray} {z : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7777⟩ (z :: R) mem aw out σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨7777⟩ (z :: R) mem aw out σ k C)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr)
     (hb : ptr + out.size + 64 < UInt256.size) (hov : R.length + 12 ≤ 1024) :
-    RDrev safeBytecode g s0 ∨
-      ∃ aw' k' C', RD safeBytecode I g s0 ⟨7784⟩
+    RDrev fork safeBytecode g s0 ∨
+      ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨7784⟩
         (signatureReturnDataPtr ptr out :: z :: R)
         (signatureReturnMemory mem ptr out) aw' out σ k' C' ∧
         (ptr < 2 ^ 64 → (if out.size = 0 then ptr else
@@ -36,11 +38,11 @@ theorem safeContractSignatureReturnBuffer {I g s0 σ k C aw mem ptr}
 
 private theorem safeContractSignatureRequire {I g s0 σ k C aw mem out}
     {scratch : UInt256} {valid : Bool} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7796⟩
+    (h : RD fork safeBytecode I g s0 ⟨7796⟩
       (scratch :: (if valid then ⟨1⟩ else ⟨0⟩) :: R) mem aw out σ k C)
     (hov : R.length + 6 ≤ 1024) :
-    if valid then ∃ aw' k' C', RD safeBytecode I g s0 ⟨7803⟩ R mem aw' out σ k' C'
-    else RDrev safeBytecode g s0 := by
+    if valid then ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨7803⟩ R mem aw' out σ k' C'
+    else RDrev fork safeBytecode g s0 := by
   cases valid with
   | false =>
     have h₁ := safeRuntime_block_7796_taken (by simp; omega) (by decide) (by jump_dest) h
@@ -50,14 +52,14 @@ private theorem safeContractSignatureRequire {I g s0 σ k C aw mem out}
 
 theorem safeContractSignatureFinish {I g s0 σ k C aw mem} {out : ByteArray}
     {buf : UInt256} {z : Bool} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7784⟩
+    (h : RD fork safeBytecode I g s0 ⟨7784⟩
       (buf :: (if z then ⟨1⟩ else ⟨0⟩) :: R) mem aw out σ k C)
     (hl : memLoad buf mem = UInt256.ofNat out.size)
     (hw : out.size = 32 → memLoad (buf + UInt256.ofNat 32) mem = calldataWord out 0)
     (hb : out.size < UInt256.size) (hov : R.length + 8 ≤ 1024) :
     if contractSignatureResult z out then
-      ∃ aw' k' C', RD safeBytecode I g s0 ⟨7803⟩ R mem aw' out σ k' C'
-    else RDrev safeBytecode g s0 := by
+      ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨7803⟩ R mem aw' out σ k' C'
+    else RDrev fork safeBytecode g s0 := by
   cases z with
   | false =>
     have h₁ := safeRuntime_block_7784_fallthrough (by simp; omega) (by rfl) h

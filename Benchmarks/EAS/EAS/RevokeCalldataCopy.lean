@@ -2,6 +2,8 @@ import Benchmarks.EAS.EAS.ReferenceTail
 import Benchmarks.EAS.EAS.FixedAllocate
 import Benchmarks.EAS.EAS.RevocationCopyMemory
 import Benchmarks.EAS.EAS.RuntimeBlocks_023
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -14,11 +16,11 @@ theorem easRevokeCalldataCopy {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hbig : ee.calldata.size < 2^255+4) (hh : heap.toNat ≤ 2^64-1)
     (hheap : memLoad (UInt256.ofNat 64) mem = heap)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5854⟩ (UInt256.ofNat ee.calldata.size::ret::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5854⟩ (UInt256.ofNat ee.calldata.size::ret::R) mem aw rdata σ k C) :
     if heap.toNat+64 ≤ 2^64-1 then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (heap::R)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (heap::R)
         (revocationRecordMemory mem heap (revocationDataRecord ee.calldata 36)) aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hsub : UInt256.ofNat ee.calldata.size+UInt256.ofNat 115792089237316195423570985008687907853269984665640564039457584007913129639900 =
       UInt256.sub (UInt256.ofNat ee.calldata.size) ⟨36⟩ := by
     change _ = UInt256.ofNat ee.calldata.size-⟨36⟩

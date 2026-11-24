@@ -2,15 +2,17 @@ import Reasoning.WordArithmetic
 import Benchmarks.Auction.ErrorPayloadMemory
 import Benchmarks.Auction.ReturnDataCopy
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
 theorem errorDecodeShort {I g s0 ret R mem aw out acc k C}
-    (h : RD auctionBytecode I g s0 ⟨5925⟩ (ret :: R) mem aw out acc k C)
+    (h : RD fork auctionBytecode I g s0 ⟨5925⟩ (ret :: R) mem aw out acc k C)
     (hl : out.size < 68) (hret : (D_J auctionBytecode 0).contains ret = true)
     (hov : R.length + 5 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret (⟨0⟩ :: R) mem aw out acc k' C' := by
+    ∃ k' C', RD fork auctionBytecode I g s0 ret (⟨0⟩ :: R) mem aw out acc k' C' := by
   have hn : (UInt256.ofNat out.size).toNat = out.size :=
     ulit_toNat' _ (by change out.size < 2 ^ 256; omega)
   have hlt : UInt256.lt (UInt256.ofNat out.size) ⟨68⟩ = ⟨1⟩ :=
@@ -21,10 +23,10 @@ theorem errorDecodeShort {I g s0 ret R mem aw out acc k C}
 
 
 theorem errorDecodeLongPrefix {I g s0 ret R mem aw ptr out acc k C}
-    (h : RD auctionBytecode I g s0 ⟨5925⟩ (ret :: R) mem aw out acc k C)
+    (h : RD fork auctionBytecode I g s0 ⟨5925⟩ (ret :: R) mem aw out acc k C)
     (hm : HeapMemory mem aw ptr) (hin : ptr.toNat ≤ mem.size) (hl : 68 ≤ out.size)
     (hb : ptr.toNat + out.size ≤ 2 ^ 200) (hov : R.length + 13 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨5978⟩
+    ∃ k' C', RD fork auctionBytecode I g s0 ⟨5978⟩
       (⟨5986⟩ :: UInt256.isZero
         (UInt256.lor (UInt256.gt (errorOffset out) ⟨2 ^ 64 - 1⟩)
           (UInt256.gt (errorOffset out + ⟨36⟩) (UInt256.ofNat out.size))) ::
@@ -55,7 +57,7 @@ theorem errorDecodeLongPrefix {I g s0 ret R mem aw ptr out acc k C}
   rw [u256_add_comm ptr ⟨0⟩, u256_zero_add] at hr he
   change loadedWord (errorPayloadMem mem out ptr) ptr =
     errorOffset out at hr
-  change RD _ _ _ _ ⟨5954⟩
+  change RD fork _ _ _ _ ⟨5954⟩
     (loadedWord (errorPayloadMem mem out ptr) ptr ::
       UInt256.lnot ⟨3⟩ :: ptr :: ⟨0⟩ :: ret :: R)
     (errorPayloadMem mem out ptr) (expandedWords (errorPayloadWords aw ptr out) ptr ⟨32⟩)

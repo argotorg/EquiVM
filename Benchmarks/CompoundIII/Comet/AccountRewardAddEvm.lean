@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.RuntimeBlocks_018
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_041
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_055
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -20,14 +22,14 @@ theorem cometAccountRewardAdd {v : CometWithExtendedAssetListImmutables}
     {basic : UserBasicData} {R : List UInt256}
     (hstack : R.length + 15 ≤ 1024) (hm : UserBasicMemory mem ptr basic)
     (hr : reward.toNat < 2^64) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨11900⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨11900⟩
       (reward :: ret :: a :: b :: c :: d :: e :: ptr :: R) mem aw rdata σ k C) :
     if basic.accrued.toNat + reward.toNat < 2^64 then
       ∃ aw' k' C', UserBasicMemory (accountAccruedMemory mem ptr (basic.accrued + reward)) ptr
           (userBasicWithAccrued basic (basic.accrued + reward)) ∧
-        RD (deployedRuntime v) ee g s0 ret (a :: b :: c :: d :: e :: ptr :: R)
+        RD fork (deployedRuntime v) ee g s0 ret (a :: b :: c :: d :: e :: ptr :: R)
           (accountAccruedMemory mem ptr (basic.accrued + reward)) aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have r1 := cometWithExtendedAssetList_block_11900 (immWords := wordsOf (immStore v))
     (by omega) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
   dsimp only [cometWithExtendedAssetList_block_11900_stack] at r1

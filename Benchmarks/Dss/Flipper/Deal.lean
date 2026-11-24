@@ -2,6 +2,8 @@ import Reasoning.ExternalCall
 import Benchmarks.Dss.Flipper.DealTicEVM
 import Benchmarks.Dss.Flipper.Dispatch
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Flipper
@@ -27,7 +29,7 @@ theorem flipperReachDealBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flipperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (flipperSelBytes 3)) :
-    ∃ k C, RD flipperBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork flipperBytecode I g (initState σ σ₀ g A I)
         ⟨841⟩ [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : flipperSelWord I = ⟨0xc959c42b⟩ :=
@@ -62,12 +64,12 @@ theorem flipperDealBodyCoreShort {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flipperSelBytes 3))
     (hshort : I.calldata.size < 36) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flipperSelBytes 3) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some dealTransition :=
     flipperDispatchDeal hsel
-  have hreach := flipperReachDealBody
+  have hreach := flipperReachDealBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   exact (flipperDealX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
@@ -80,12 +82,12 @@ theorem flipperDealBodyCoreTicZero {σ σ₀ A I} {g : UInt256}
     (hsel : selIs I (flipperSelBytes 3))
     (hsz36 : 36 ≤ I.calldata.size)
     (hticEvm : bidTicWord (dealId I) σ I = ⟨0⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flipperSelBytes 3) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some dealTransition :=
     flipperDispatchDeal hsel
-  have hreach := flipperReachDealBody
+  have hreach := flipperReachDealBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   have hdecode := flipperDecode_deal_ok (I := I) hsz36
@@ -94,7 +96,7 @@ theorem flipperDealBodyCoreTicZero {σ σ₀ A I} {g : UInt256}
   let locals := dealLocals I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
-      ExecTransitionBody config contract evm0 locals dealTransition.body .reverted := by
+      ExecTransitionBody fork config contract evm0 locals dealTransition.body .reverted := by
     simpa [evm0, locals] using
       (flipperDealSourceBodyTicZero
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hticEvm)
@@ -112,12 +114,12 @@ theorem flipperDealBodyCoreNotFinished {σ σ₀ A I} {g : UInt256}
       (UInt256.ofNat I.header.timestamp).toNat ≤ (bidTicWord (dealId I) σ I).toNat)
     (hendGeEvm :
       (UInt256.ofNat I.header.timestamp).toNat ≤ (bidEndWord (dealId I) σ I).toNat) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flipperSelBytes 3) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some dealTransition :=
     flipperDispatchDeal hsel
-  have hreach := flipperReachDealBody
+  have hreach := flipperReachDealBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   have hdecode := flipperDecode_deal_ok (I := I) hsz36
@@ -126,7 +128,7 @@ theorem flipperDealBodyCoreNotFinished {σ σ₀ A I} {g : UInt256}
   let locals := dealLocals I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
-      ExecTransitionBody config contract evm0 locals dealTransition.body .reverted := by
+      ExecTransitionBody fork config contract evm0 locals dealTransition.body .reverted := by
     simpa [evm0, locals] using
       (flipperDealSourceBodyNotFinished
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -148,12 +150,12 @@ theorem flipperDealBodyCoreCatNoCodeEndExpired {σ σ₀ A I}
       (bidEndWord (dealId I) σ I).toNat < (UInt256.ofNat I.header.timestamp).toNat)
     (hcatZero :
       Reasoning.Theory.extCodeSizeWord σ (flipperCatTargetWord σ I) = ⟨0⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flipperSelBytes 3) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some dealTransition :=
     flipperDispatchDeal hsel
-  have hreach := flipperReachDealBody
+  have hreach := flipperReachDealBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   have hdecode := flipperDecode_deal_ok (I := I) hsz36
@@ -174,7 +176,7 @@ theorem flipperDealBodyCoreCatNoCodeEndExpired {σ σ₀ A I}
     flipperCatCode_zero_of_codeSize_zero
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcatZero
   have hbody :
-      ExecTransitionBody config contract evm0 locals dealTransition.body .reverted := by
+      ExecTransitionBody fork config contract evm0 locals dealTransition.body .reverted := by
     simpa [evm0, locals] using
       (flipperDealSourceBodyCatNoCode
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -194,12 +196,12 @@ theorem flipperDealBodyCoreCatNoCodeTicExpired {σ σ₀ A I}
       (bidTicWord (dealId I) σ I).toNat < (UInt256.ofNat I.header.timestamp).toNat)
     (hcatZero :
       Reasoning.Theory.extCodeSizeWord σ (flipperCatTargetWord σ I) = ⟨0⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flipperSelBytes 3) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some dealTransition :=
     flipperDispatchDeal hsel
-  have hreach := flipperReachDealBody
+  have hreach := flipperReachDealBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   have hdecode := flipperDecode_deal_ok (I := I) hsz36
@@ -220,7 +222,7 @@ theorem flipperDealBodyCoreCatNoCodeTicExpired {σ σ₀ A I}
     flipperCatCode_zero_of_codeSize_zero
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcatZero
   have hbody :
-      ExecTransitionBody config contract evm0 locals dealTransition.body .reverted := by
+      ExecTransitionBody fork config contract evm0 locals dealTransition.body .reverted := by
     simpa [evm0, locals] using
       (flipperDealSourceBodyCatNoCode
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -247,19 +249,19 @@ theorem flipperDealBodyCoreCatCallDepthLimit {σ σ₀ A I}
     (hcatNe :
       Reasoning.Theory.extCodeSizeWord σ (flipperCatTargetWord σ I) ≠ ⟨0⟩)
     (hdepthEq : I.depth = 1024) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flipperSelBytes 3) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some dealTransition :=
     flipperDispatchDeal hsel
-  have hreach := flipperReachDealBody
+  have hreach := flipperReachDealBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   have hdecode := flipperDecode_deal_ok (I := I) hsz36
   obtain ⟨_, _, hdecoded⟩ := flipperDealX_decoded (g := Sat256.ofUInt256 g)
     hsz36 hsize hreach
   obtain ⟨_, _, rd5558⟩ :
-      ∃ k' C', RD flipperBytecode I (Sat256.ofUInt256 g)
+      ∃ k' C', RD fork flipperBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5558⟩
         [dealId I, ⟨323⟩, flipperSelWord I]
         (dealHashMem2 I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -287,14 +289,14 @@ theorem flipperDealBodyCoreCatCallDepthLimit {σ σ₀ A I}
       solcSlotWord, Stele.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
       bidTabWord, bidSlotOfWord, bidBaseOfWord] using dealCatCallMem_encode σ I
   have hcallCat :=
-    Reasoning.Theory.callNotMade_depthLimit (cfg := config)
+    Reasoning.Theory.callNotMade_depthLimit (fork := fork) (cfg := config)
       (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (tgt := EVM.address (flipperCatAddress σ I)) (name := "claw")
       (args := dealClawArgVals (initState σ σ₀ (Sat256.ofUInt256 g) A I))
       (calldata := (dealCatCallMem σ I).readWithPadding 128 36)
       (callPerm := true) hcatEncode (by simpa [initState] using hdepthEq)
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (dealLocals I)
         dealTransition.body .reverted := by
     simpa using
@@ -323,19 +325,19 @@ theorem flipperDealBodyCoreCatPostCall {σ σ₀ A I}
     (hcatNe :
       Reasoning.Theory.extCodeSizeWord σ (flipperCatTargetWord σ I) ≠ ⟨0⟩)
     (hdepthNe : I.depth ≠ 1024) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flipperSelBytes 3) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some dealTransition :=
     flipperDispatchDeal hsel
-  have hreach := flipperReachDealBody
+  have hreach := flipperReachDealBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   have hdecode := flipperDecode_deal_ok (I := I) hsz36
   obtain ⟨_, _, hdecoded⟩ := flipperDealX_decoded (g := Sat256.ofUInt256 g)
     hsz36 hsize hreach
   obtain ⟨_, _, rd5558⟩ :
-      ∃ k' C', RD flipperBytecode I (Sat256.ofUInt256 g)
+      ∃ k' C', RD fork flipperBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5558⟩
         [dealId I, ⟨323⟩, flipperSelWord I]
         (dealHashMem2 I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -375,19 +377,19 @@ theorem flipperDealBodyCoreCatPostCall {σ σ₀ A I}
       (rfl : [Value.int (Int.ofNat (bidTabWord (dealId I) σ I).toNat)] =
         [Value.int (Int.ofNat (bidTabWord (dealId I) σ I).toNat)])
   have hcallCat :
-      typedCallViaEVM config evm0
+      typedCallViaEVM fork config evm0
         (EVM.address (flipperCatAddress σ I)) "claw" 0
         (dealClawArgVals evm0) (zCat, evmCat, outCat) true := by
     rw [← hcatArgsEq]
     simpa [evm0, evmCat] using hcallCatRaw
   cases zCat
   · have hcallCatFalse :
-        typedCallViaEVM config evm0
+        typedCallViaEVM fork config evm0
           (EVM.address (flipperCatAddress σ I)) "claw" 0
           (dealClawArgVals evm0) (false, evmCat, outCat) true := by
       simpa using hcallCat
     have hbody :
-        ExecTransitionBody config contract evm0 (dealLocals I) dealTransition.body
+        ExecTransitionBody fork config contract evm0 (dealLocals I) dealTransition.body
           .reverted := by
       simpa [evm0] using
         (flipperDealSourceBodyCatCallFailure
@@ -395,7 +397,7 @@ theorem flipperDealBodyCoreCatPostCall {σ σ₀ A I}
           hwv hfinishedStele hcatCode hcallCatFalse)
     exact (flipperDealX_catCallFailure (by simpa using rd5654) houtCat)
       |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
-  · have rd5654True : RD flipperBytecode I (Sat256.ofUInt256 g)
+  · have rd5654True : RD fork flipperBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5654⟩
         (⟨1⟩ :: ⟨164⟩ :: ⟨3865913243⟩ :: flipperCatTargetWord σ I ::
           dealId I :: ⟨323⟩ :: flipperSelWord I :: [])
@@ -403,7 +405,7 @@ theorem flipperDealBodyCoreCatPostCall {σ σ₀ A I}
         k5654 C5654 := by
       simpa using rd5654
     have hcallCatTrue :
-        typedCallViaEVM config evm0
+        typedCallViaEVM fork config evm0
           (EVM.address (flipperCatAddress σ I)) "claw" 0
           (dealClawArgVals evm0) (true, evmCat, outCat) true := by
       simpa using hcallCat
@@ -421,7 +423,7 @@ theorem flipperDealBodyCoreCatPostCall {σ σ₀ A I}
             (addr := flipperVatAddress σ_cat I)
             (flipperVatAddress_eq_target σ_cat I) hvatZero
       have hbody :
-          ExecTransitionBody config contract evm0 (dealLocals I) dealTransition.body
+          ExecTransitionBody fork config contract evm0 (dealLocals I) dealTransition.body
             .reverted := by
         simpa [evm0] using
           (flipperDealSourceBodyVatNoCode
@@ -447,13 +449,13 @@ theorem flipperDealBodyCoreCatPostCall {σ σ₀ A I}
       let evmVat : EVM.State :=
         { evmCat with accountMap := σ_vat, substate := A_vat }
       have hcallVat :
-          typedCallViaEVM config evmCat
+          typedCallViaEVM fork config evmCat
             (EVM.address (flipperVatAddress evmCat.accountMap evmCat.executionEnv))
             "flux" 0 (dealFluxArgValsOf evmCat (dealId I))
             (zVat, evmVat, outVat) true := by
         simpa [evmCat, evm0, evmVat, initState] using hcallVatRaw
       cases zVat
-      · have rd1615False : RD flipperBytecode I (Sat256.ofUInt256 g)
+      · have rd1615False : RD fork flipperBytecode I (Sat256.ofUInt256 g)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1615⟩
             (⟨0⟩ :: ⟨260⟩ :: ⟨1628552750⟩ :: flipperVatTargetWord σ_cat I ::
               dealId I :: ⟨323⟩ :: flipperSelWord I :: [])
@@ -461,13 +463,13 @@ theorem flipperDealBodyCoreCatPostCall {σ σ₀ A I}
             σ_vat k1615 C1615 := by
           simpa using rd1615
         have hcallVatFalse :
-            typedCallViaEVM config evmCat
+            typedCallViaEVM fork config evmCat
               (EVM.address (flipperVatAddress evmCat.accountMap evmCat.executionEnv))
               "flux" 0 (dealFluxArgValsOf evmCat (dealId I))
               (false, evmVat, outVat) true := by
           simpa using hcallVat
         have hbody :
-            ExecTransitionBody config contract evm0 (dealLocals I) dealTransition.body
+            ExecTransitionBody fork config contract evm0 (dealLocals I) dealTransition.body
               .reverted := by
           simpa [evm0] using
             (flipperDealSourceBodyVatCallFailure
@@ -478,7 +480,7 @@ theorem flipperDealBodyCoreCatPostCall {σ σ₀ A I}
               hcallVatFalse)
         exact (flipperDealX_vatCallFailure rd1615False houtVat)
           |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
-      · have rd1615True : RD flipperBytecode I (Sat256.ofUInt256 g)
+      · have rd1615True : RD fork flipperBytecode I (Sat256.ofUInt256 g)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1615⟩
             (⟨1⟩ :: ⟨260⟩ :: ⟨1628552750⟩ :: flipperVatTargetWord σ_cat I ::
               dealId I :: ⟨323⟩ :: flipperSelWord I :: [])
@@ -494,7 +496,7 @@ theorem flipperDealBodyCoreCatPostCall {σ σ₀ A I}
             (k := k1633) (C := C1633) (out := outVat)
             rd1633
         have hcallVatTrue :
-            typedCallViaEVM config evmCat
+            typedCallViaEVM fork config evmCat
               (EVM.address (flipperVatAddress evmCat.accountMap evmCat.executionEnv))
               "flux" 0 (dealFluxArgValsOf evmCat (dealId I))
               (true, evmVat, outVat) true := by
@@ -503,10 +505,10 @@ theorem flipperDealBodyCoreCatPostCall {σ σ₀ A I}
           ((dealLocals I).insert "_clawRet" (collapseReturns [])).insert "_fluxRet"
             (collapseReturns [])
         have hbodySplit :
-            (I.perm = true → ExecTransitionBody config contract evm0 (dealLocals I) dealTransition.body
+            (I.perm = true → ExecTransitionBody fork config contract evm0 (dealLocals I) dealTransition.body
               (.returned { contract := contract, locals := locals2 }
                 (bidDeletedEVM evmVat (dealId I)) none)) ∧
-            (I.perm = false → ExecTransitionBody config contract evm0
+            (I.perm = false → ExecTransitionBody fork config contract evm0
               (dealLocals I) dealTransition.body .staticViolation) := by
           simpa [evm0, locals2] using
             (flipperDealSourceBodySuccessSplit
@@ -533,7 +535,7 @@ theorem flipperDealBodyCore {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flipperSelBytes 3)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hsz36 : 36 ≤ I.calldata.size
   · have hfinished :
         (bidTicWord (dealId I) σ I ≠ ⟨0⟩ ∧
@@ -546,7 +548,7 @@ theorem flipperDealBodyCore {σ σ₀ A I} {g : UInt256}
               (UInt256.ofNat I.header.timestamp).toNat) →
           Reasoning.Theory.extCodeSizeWord σ
               (flipperCatTargetWord σ I) ≠ ⟨0⟩ →
-        runtimeRefinementFor config contract σ σ₀ g A I := by
+        runtimeRefinementFor fork config contract σ σ₀ g A I := by
       intro hfinishedEvm hcatNe
       by_cases hdepthEq : I.depth = 1024
       · exact flipperDealBodyCoreCatCallDepthLimit hcode hsize hwv hsel hsz36

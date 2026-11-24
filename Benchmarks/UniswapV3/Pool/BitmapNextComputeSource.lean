@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.BitmapNextReadSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -33,7 +35,7 @@ def bitmapNextResultExpr (lte hit : Bool) : Expr :=
 
 theorem bitmapNextScanSource (imms locals : Store) (evm : EVM.State) (lte : Bool) (masked : UInt256)
     (hm : locals.get? "masked" = some (.int (Int.ofNat masked.toNat))) (hn : masked ≠ ⟨0⟩) :
-    ExecStmt config {contract := contract, locals := locals, immutables := imms} evm
+    ExecStmt fork config {contract := contract, locals := locals, immutables := imms} evm
       (bitmapNextComputeBranch lte true)[0]!
       (.ok (bitmapNextScanFrame imms locals lte masked) evm) := by
   have hx : 0 < masked.toNat := by
@@ -99,7 +101,7 @@ theorem bitmapNextComputeSource (imms locals : Store) (evm : EVM.State)
     (hm : locals.get? "masked" = some (.int (Int.ofNat masked.toNat)))
     (hi : locals.get? "initialized" = some (.bool (decide (masked ≠ ⟨0⟩))))
     (hh : locals.get? (bitmapNextCondName lte) = some (.int 0)) :
-    ExecStmt config {contract := contract, locals := locals, immutables := imms} evm
+    ExecStmt fork config {contract := contract, locals := locals, immutables := imms} evm
       (bitmapNextBranch lte)[7]!
       (.ok (bitmapNextComputedFrame imms locals compressed spacing lte masked) evm) := by
   let frame : Frame := {contract := contract, locals := locals, immutables := imms}
@@ -110,7 +112,7 @@ theorem bitmapNextComputeSource (imms locals : Store) (evm : EVM.State)
     have hfalse : decide (masked ≠ ⟨0⟩) = false := by
       simp only [hz, ne_eq, not_true_eq_false, decide_false]
     rw [hfalse] at he eg
-    have ha : ExecStmt config frame evm
+    have ha : ExecStmt fork config frame evm
         (.assign .localVar ⟨bitmapNextCondName lte, []⟩ (bitmapNextResultExpr lte false))
         (.ok (bitmapNextComputedFrame imms locals compressed spacing lte masked) evm) := by
       simp only [bitmapNextComputedFrame, if_pos hz]
@@ -126,12 +128,12 @@ theorem bitmapNextComputeSource (imms locals : Store) (evm : EVM.State)
       (by cases lte <;> decide)).trans hh
     have htrue : decide (masked ≠ ⟨0⟩) = true := decide_eq_true hz
     rw [htrue] at he eg
-    have ha : ExecStmt config (bitmapNextScanFrame imms locals lte masked) evm
+    have ha : ExecStmt fork config (bitmapNextScanFrame imms locals lte masked) evm
         (.assign .localVar ⟨bitmapNextCondName lte, []⟩ (bitmapNextResultExpr lte true))
         (.ok (bitmapNextComputedFrame imms locals compressed spacing lte masked) evm) := by
       simp only [bitmapNextComputedFrame, if_neg hz]
       exact ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) he (assignLocalVarBase_frame hh')
-    have hscan := bitmapNextScanSource imms locals evm lte masked hm hz
+    have hscan := bitmapNextScanSource (fork := fork) imms locals evm lte masked hm hz
     cases lte <;> exact ExecStmt.iteTrue eg
       (ExecBlock.consNormal hscan (ExecBlock.consNormal ha ExecBlock.nil))
 

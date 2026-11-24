@@ -1,5 +1,7 @@
 import Stele.Interp
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Soundness of the executable semantics
 
@@ -14,13 +16,13 @@ namespace Stele.Interp
 open ABI Ethereum Ethereum.EVM
 
 /-- An oracle whose witnesses are the relation's existentials. -/
-structure Oracle.Sound (o : Oracle Ω) : Prop where
+structure Oracle.Sound (fork : Ethereum.Fork) (o : Oracle Ω) : Prop where
   call : ∀ ω req evm res ω', o.call ω req evm = .ok (res, ω') →
-    ∃ gas A_in, res = thetaCall gas A_in req evm
+    ∃ gas A_in, res = thetaCall fork gas A_in req evm
   create : ∀ ω req evm res ω', o.create ω req evm = .ok (res, ω') →
-    ∃ gas A_in, res = lambdaCreate gas A_in req evm
+    ∃ gas A_in, res = lambdaCreate fork gas A_in req evm
 
-theorem thetaOracle_sound (gas : UInt256) : (thetaOracle gas).Sound where
+theorem thetaOracle_sound (gas : UInt256) : (thetaOracle fork gas).Sound fork where
   call := fun _ _ evm _ _ h => by
     simp only [thetaOracle, Except.ok.injEq, Prod.mk.injEq] at h
     exact ⟨gas, evm.substate, h.1.symm⟩
@@ -35,9 +37,10 @@ theorem thetaCall_call (gas : UInt256) (A_in : Substate) (kind : CallKind)
     (hk : kind ≠ .delegatecall) (target : EVM.Address) (value : Int) (calldata : ByteArray)
     (calleePerm : Bool) (evm : EVM.State) :
     ∃ σ' g' A' z o,
-      thetaCall gas A_in ⟨kind, target, value, calldata, calleePerm⟩ evm = ⟨z, σ', A', o⟩ ∧
-      (σ', g', A', z, o) = Θ evm.accountMap evm.σ₀ A_in evm.executionEnv.codeOwner
-        evm.executionEnv.sender target (toExecute evm.accountMap target) gas
+      thetaCall fork gas A_in ⟨kind, target, value, calldata, calleePerm⟩ evm = ⟨z, σ', A', o⟩ ∧
+      (σ', g', A', z, o) = Θ fork evm.accountMap evm.σ₀ A_in
+        evm.executionEnv.codeOwner evm.executionEnv.sender target
+        (toExecute fork evm.accountMap target) gas
         (.ofNat evm.executionEnv.gasPrice) (EVM.wordOfInt value) (EVM.wordOfInt value) calldata
         (evm.executionEnv.depth + 1) evm.executionEnv.header evm.executionEnv.blobVersionedHashes
         evm.executionEnv.blocks calleePerm := by
@@ -52,9 +55,10 @@ theorem thetaCall_call (gas : UInt256) (A_in : Substate) (kind : CallKind)
 theorem thetaCall_delegatecall (gas : UInt256) (A_in : Substate) (target : EVM.Address)
     (calldata : ByteArray) (calleePerm : Bool) (evm : EVM.State) :
     ∃ σ' g' A' z o,
-      thetaCall gas A_in ⟨.delegatecall, target, 0, calldata, calleePerm⟩ evm = ⟨z, σ', A', o⟩ ∧
-      (σ', g', A', z, o) = Θ evm.accountMap evm.σ₀ A_in evm.executionEnv.source
-        evm.executionEnv.sender evm.executionEnv.codeOwner (toExecute evm.accountMap target) gas
+      thetaCall fork gas A_in ⟨.delegatecall, target, 0, calldata, calleePerm⟩ evm = ⟨z, σ', A', o⟩ ∧
+      (σ', g', A', z, o) = Θ fork evm.accountMap evm.σ₀ A_in
+        evm.executionEnv.source evm.executionEnv.sender evm.executionEnv.codeOwner
+        (toExecute fork evm.accountMap target) gas
         (.ofNat evm.executionEnv.gasPrice) ⟨0⟩ evm.executionEnv.weiValue calldata
         (evm.executionEnv.depth + 1) evm.executionEnv.header evm.executionEnv.blobVersionedHashes
         evm.executionEnv.blocks evm.executionEnv.perm := by
@@ -66,8 +70,8 @@ theorem thetaCall_delegatecall (gas : UInt256) (A_in : Substate) (target : EVM.A
 theorem lambdaCreate_spec (gas : UInt256) (A_in : Substate) (value : Int) (initCode : ByteArray)
     (salt : Option ByteArray) (evm : EVM.State) :
     ∃ addr σ' g' A' z o,
-      lambdaCreate gas A_in ⟨value, initCode, salt⟩ evm = ⟨addr, σ', A', z⟩ ∧
-      (addr, σ', g', A', z, o) = Lambda
+      lambdaCreate fork gas A_in ⟨value, initCode, salt⟩ evm = ⟨addr, σ', A', z⟩ ∧
+      (addr, σ', g', A', z, o) = Lambda fork
         (evm.accountMap.insert evm.executionEnv.codeOwner
           { (evm.accountMap.get? evm.executionEnv.codeOwner |>.getD default) with
               nonce := (evm.accountMap.get? evm.executionEnv.codeOwner |>.getD default).nonce + ⟨1⟩ })
@@ -83,11 +87,11 @@ theorem newCanCreateB_iff (evm : EVM.State) (value : Int) (initCode : ByteArray)
     newCanCreateB evm value initCode = true ↔ newCanCreate evm value initCode := by
   simp only [newCanCreateB, newCanCreate, Bool.and_eq_true, decide_eq_true_eq, and_assoc]
 
-theorem callViaEVMRun_sound {o : Oracle Ω} (hs : o.Sound) {ω ω' : Ω} {evm : EVM.State}
+theorem callViaEVMRun_sound {o : Oracle Ω} (hs : o.Sound fork) {ω ω' : Ω} {evm : EVM.State}
     {target : EVM.Address} {value : Int} {calldata : ByteArray} {perm z : Bool} {evm' : EVM.State}
     {out : ByteArray}
-    (h : callViaEVMRun o ω evm target value calldata perm = .ok ((z, evm', out), ω')) :
-    callViaEVM evm target value calldata (z, evm', out) perm := by
+    (h : callViaEVMRun fork o ω evm target value calldata perm = .ok ((z, evm', out), ω')) :
+    callViaEVM fork evm target value calldata (z, evm', out) perm := by
   unfold callViaEVMRun at h
   dsimp only at h
   split at h
@@ -113,10 +117,10 @@ theorem callViaEVMRun_sound {o : Oracle Ω} (hs : o.Sound) {ω ω' : Ω} {evm : 
     subst hz hevm hout
     exact callViaEVM.callNotMade rfl rfl hg
 
-theorem delegateCallViaEVMRun_sound {o : Oracle Ω} (hs : o.Sound) {ω ω' : Ω} {evm : EVM.State}
+theorem delegateCallViaEVMRun_sound {o : Oracle Ω} (hs : o.Sound fork) {ω ω' : Ω} {evm : EVM.State}
     {target : EVM.Address} {calldata : ByteArray} {z : Bool} {evm' : EVM.State} {out : ByteArray}
-    (h : delegateCallViaEVMRun o ω evm target calldata = .ok ((z, evm', out), ω')) :
-    delegateCallViaEVM evm target calldata (z, evm', out) := by
+    (h : delegateCallViaEVMRun fork o ω evm target calldata = .ok ((z, evm', out), ω')) :
+    delegateCallViaEVM fork evm target calldata (z, evm', out) := by
   unfold delegateCallViaEVMRun at h
   dsimp only at h
   split at h
@@ -139,21 +143,21 @@ theorem delegateCallViaEVMRun_sound {o : Oracle Ω} (hs : o.Sound) {ω ω' : Ω}
     subst hz hevm hout
     exact delegateCallViaEVM.callNotMade rfl rfl (not_ne_iff.1 hd)
 
-theorem typedCallViaEVMRun_sound {o : Oracle Ω} (hs : o.Sound) {ω ω' : Ω} {cfg : Config}
+theorem typedCallViaEVMRun_sound {o : Oracle Ω} (hs : o.Sound fork) {ω ω' : Ω} {cfg : Config}
     {evm : EVM.State} {target : EVM.Address} {name : Ident} {value : Int} {args : List Value}
     {perm z : Bool} {evm' : EVM.State} {out : ByteArray}
-    (h : typedCallViaEVMRun o ω cfg evm target name value args perm = .ok ((z, evm', out), ω')) :
-    typedCallViaEVM cfg evm target name value args (z, evm', out) perm := by
+    (h : typedCallViaEVMRun fork o ω cfg evm target name value args perm = .ok ((z, evm', out), ω')) :
+    typedCallViaEVM fork cfg evm target name value args (z, evm', out) perm := by
   unfold typedCallViaEVMRun at h
   split at h
   · cases h
   · next calldata henc => exact ⟨calldata, henc, callViaEVMRun_sound hs h⟩
 
-theorem newViaEVMRun_sound {o : Oracle Ω} (hs : o.Sound) {ω ω' : Ω} {cfg : Config}
+theorem newViaEVMRun_sound {o : Oracle Ω} (hs : o.Sound fork) {ω ω' : Ω} {cfg : Config}
     {evm : EVM.State} {name : Ident} {value : Int} {args : List Value} {salt : Option ByteArray}
     {addr : EVM.Address} {evm' : EVM.State} {z : Bool}
     (h : newViaEVMRun o ω cfg evm name value args salt = .ok ((addr, evm', z), ω')) :
-    newViaEVM cfg evm name value args salt (addr, evm', z) := by
+    newViaEVM fork cfg evm name value args salt (addr, evm', z) := by
   unfold newViaEVMRun at h
   split at h
   · cases h
@@ -172,7 +176,7 @@ theorem newViaEVMRun_sound {o : Oracle Ω} (hs : o.Sound) {ω ω' : Ω} {cfg : C
           lambdaCreate_spec gas A_in value initCode salt evm
         rw [hr]
         -- the rule's discarded gas and output are functions of the existential witnesses
-        exact @newViaEVM.created cfg evm name value args salt (fun _ _ => g') (fun _ _ => o') initCode
+        exact @newViaEVM.created fork cfg evm name value args salt (fun _ _ => g') (fun _ _ => o') initCode
           _ addr' σ' A' z' _ hcode ((newCanCreateB_iff _ _ _).1 hg) rfl ⟨gas, A_in, hΛ⟩ rfl
       · cases h
     · next hg =>
@@ -188,20 +192,20 @@ theorem no_stuckEval {what : String} {e : EvalError} {ω ω' : Ω} {r : ExecResu
   cases e <;> simp [stuckEval] at h
 
 /-- Soundness of the four statement-level interpreters, by induction on the fuel. -/
-theorem exec_sound {o : Oracle Ω} (hs : o.Sound) (fuel : Nat) :
+theorem exec_sound {o : Oracle Ω} (hs : o.Sound fork) (fuel : Nat) :
     (∀ {ω ω' : Ω} {cfg : Config} {stele : Frame} {evm : EVM.State} {stmt : Stmt} {r : ExecResult},
-      execStmt fuel o ω cfg stele evm stmt = (.result r, ω') → ExecStmt cfg stele evm stmt r) ∧
+      execStmt fork fuel o ω cfg stele evm stmt = (.result r, ω') → ExecStmt fork cfg stele evm stmt r) ∧
     (∀ {ω ω' : Ω} {cfg : Config} {stele : Frame} {evm : EVM.State} {cond : Expr}
       {post body : List Stmt} {r : ExecResult},
-      execForLoop fuel o ω cfg stele evm cond post body = (.result r, ω') →
-      ExecForLoop cfg stele evm cond post body r) ∧
+      execForLoop fork fuel o ω cfg stele evm cond post body = (.result r, ω') →
+      ExecForLoop fork cfg stele evm cond post body r) ∧
     (∀ {ω ω' : Ω} {cfg : Config} {stele : Frame} {evm : EVM.State} {stmts : List Stmt}
       {r : ExecResult},
-      execBlock fuel o ω cfg stele evm stmts = (.result r, ω') → ExecBlock cfg stele evm stmts r) ∧
+      execBlock fork fuel o ω cfg stele evm stmts = (.result r, ω') → ExecBlock fork cfg stele evm stmts r) ∧
     (∀ {ω ω' : Ω} {cfg : Config} {stele : Frame} {evm : EVM.State} {body : List Stmt}
       {r : ExecResult},
-      execFuncBody fuel o ω cfg stele evm body = (.result r, ω') →
-      ExecFuncBody cfg stele evm body r) := by
+      execFuncBody fork fuel o ω cfg stele evm body = (.result r, ω') →
+      ExecFuncBody fork cfg stele evm body r) := by
   induction fuel with
   | zero =>
     refine ⟨?_, ?_, ?_, ?_⟩
@@ -261,7 +265,7 @@ theorem exec_sound {o : Oracle Ω} (hs : o.Sound) (fuel : Nat) :
         · next hc => cases h; exact ExecStmt.whileFalse hc
         · next hc => cases h; exact ExecStmt.whileCondRevert hc
         · next hc =>
-          generalize hb : execBlock fuel o ω cfg stele evm body = p at h
+          generalize hb : execBlock fork fuel o ω cfg stele evm body = p at h
           obtain ⟨oc, ω''⟩ := p
           rcases oc with (⟨s, e, v⟩ | ⟨s, e⟩ | ⟨s, e⟩ | ⟨s, e⟩ | _ | _ | _ | _) | _ | _ | _ <;> dsimp only at h
           · cases h; exact ExecStmt.whileReturn hc (ihB hb)
@@ -278,7 +282,7 @@ theorem exec_sound {o : Oracle Ω} (hs : o.Sound) (fuel : Nat) :
         · cases h
         · exact (no_stuckEval h).elim
       case «for» init cond post body =>
-        generalize hb : execBlock fuel o ω cfg stele evm init = p at h
+        generalize hb : execBlock fork fuel o ω cfg stele evm init = p at h
         obtain ⟨oc, ω''⟩ := p
         rcases oc with (⟨s, e, v⟩ | ⟨s, e⟩ | ⟨s, e⟩ | ⟨s, e⟩ | _ | _ | _ | _) | _ | _ | _ <;> dsimp only at h
         · cases h; exact ExecStmt.forInitReturn (ihB hb)
@@ -311,7 +315,7 @@ theorem exec_sound {o : Oracle Ω} (hs : o.Sound) (fuel : Nat) :
             · cases h
             · next locals hbind =>
               generalize hbody :
-                execFuncBody fuel o ω cfg { stele with locals := locals } evm callee.body = p at h
+                execFuncBody fork fuel o ω cfg { stele with locals := locals } evm callee.body = p at h
               obtain ⟨oc, ω''⟩ := p
               rcases oc with (⟨s, e, v⟩ | ⟨s, e⟩ | ⟨s, e⟩ | ⟨s, e⟩ | _ | _ | _ | _) | _ | _ | _ <;> dsimp only at h
               · cases h; exact ExecStmt.internalCallReturn hargs hcallee hbind (ihF hbody)
@@ -545,11 +549,11 @@ theorem exec_sound {o : Oracle Ω} (hs : o.Sound) (fuel : Nat) :
       · next hc => cases h; exact ExecForLoop.falseDone hc
       · next hc => cases h; exact ExecForLoop.condRevert hc
       · next hc =>
-        generalize hb : execBlock fuel o ω cfg stele evm body = p at h
+        generalize hb : execBlock fork fuel o ω cfg stele evm body = p at h
         obtain ⟨oc, ω''⟩ := p
         rcases oc with (⟨s, e, v⟩ | ⟨s, e⟩ | ⟨s, e⟩ | ⟨s, e⟩ | _ | _ | _ | _) | _ | _ | _ <;> dsimp only at h
         · cases h; exact ExecForLoop.bodyReturn hc (ihB hb)
-        · generalize hp : execBlock fuel o ω'' cfg s e post = q at h
+        · generalize hp : execBlock fork fuel o ω'' cfg s e post = q at h
           obtain ⟨oc, ω₃⟩ := q
           rcases oc with (⟨s₂, e₂, v₂⟩ | ⟨s₂, e₂⟩ | ⟨s₂, e₂⟩ | ⟨s₂, e₂⟩ | _ | _ | _ | _) | _ | _ | _ <;> dsimp only at h
           · cases h
@@ -564,7 +568,7 @@ theorem exec_sound {o : Oracle Ω} (hs : o.Sound) (fuel : Nat) :
           · cases h
           · cases h
         · cases h; exact ExecForLoop.bodyBreak hc (ihB hb)
-        · generalize hp : execBlock fuel o ω'' cfg s e post = q at h
+        · generalize hp : execBlock fork fuel o ω'' cfg s e post = q at h
           obtain ⟨oc, ω₃⟩ := q
           rcases oc with (⟨s₂, e₂, v₂⟩ | ⟨s₂, e₂⟩ | ⟨s₂, e₂⟩ | ⟨s₂, e₂⟩ | _ | _ | _ | _) | _ | _ | _ <;> dsimp only at h
           · cases h
@@ -593,7 +597,7 @@ theorem exec_sound {o : Oracle Ω} (hs : o.Sound) (fuel : Nat) :
       | nil => rw [execBlock] at h; cases h; exact ExecBlock.nil
       | cons stmt rest =>
         rw [execBlock] at h
-        generalize hst : execStmt fuel o ω cfg stele evm stmt = p at h
+        generalize hst : execStmt fork fuel o ω cfg stele evm stmt = p at h
         obtain ⟨oc, ω''⟩ := p
         rcases oc with (⟨s, e, v⟩ | ⟨s, e⟩ | ⟨s, e⟩ | ⟨s, e⟩ | _ | _ | _ | _) | _ | _ | _ <;> dsimp only at h
         · cases h; exact ExecBlock.consReturn (ihS hst)
@@ -610,7 +614,7 @@ theorem exec_sound {o : Oracle Ω} (hs : o.Sound) (fuel : Nat) :
     · -- `ExecFuncBody`
       intro ω ω' cfg stele evm body r h
       rw [execFuncBody] at h
-      generalize hb : execBlock fuel o ω cfg stele evm body = p at h
+      generalize hb : execBlock fork fuel o ω cfg stele evm body = p at h
       obtain ⟨oc, ω''⟩ := p
       rcases oc with (⟨s, e, v⟩ | ⟨s, e⟩ | ⟨s, e⟩ | ⟨s, e⟩ | _ | _ | _ | _) | _ | _ | _ <;> dsimp only at h
       · cases h; exact ExecFuncBody.execBlockRet (ihB hb)
@@ -625,42 +629,42 @@ theorem exec_sound {o : Oracle Ω} (hs : o.Sound) (fuel : Nat) :
       · cases h
       · cases h
 
-theorem execStmt_sound {o : Oracle Ω} (hs : o.Sound) {fuel : Nat} {ω ω' : Ω} {cfg : Config}
+theorem execStmt_sound {o : Oracle Ω} (hs : o.Sound fork) {fuel : Nat} {ω ω' : Ω} {cfg : Config}
     {stele : Frame} {evm : EVM.State} {stmt : Stmt} {r : ExecResult}
-    (h : execStmt fuel o ω cfg stele evm stmt = (.result r, ω')) : ExecStmt cfg stele evm stmt r :=
+    (h : execStmt fork fuel o ω cfg stele evm stmt = (.result r, ω')) : ExecStmt fork cfg stele evm stmt r :=
   (exec_sound hs fuel).1 h
 
-theorem execForLoop_sound {o : Oracle Ω} (hs : o.Sound) {fuel : Nat} {ω ω' : Ω} {cfg : Config}
+theorem execForLoop_sound {o : Oracle Ω} (hs : o.Sound fork) {fuel : Nat} {ω ω' : Ω} {cfg : Config}
     {stele : Frame} {evm : EVM.State} {cond : Expr} {post body : List Stmt} {r : ExecResult}
-    (h : execForLoop fuel o ω cfg stele evm cond post body = (.result r, ω')) :
-    ExecForLoop cfg stele evm cond post body r :=
+    (h : execForLoop fork fuel o ω cfg stele evm cond post body = (.result r, ω')) :
+    ExecForLoop fork cfg stele evm cond post body r :=
   (exec_sound hs fuel).2.1 h
 
-theorem execBlock_sound {o : Oracle Ω} (hs : o.Sound) {fuel : Nat} {ω ω' : Ω} {cfg : Config}
+theorem execBlock_sound {o : Oracle Ω} (hs : o.Sound fork) {fuel : Nat} {ω ω' : Ω} {cfg : Config}
     {stele : Frame} {evm : EVM.State} {stmts : List Stmt} {r : ExecResult}
-    (h : execBlock fuel o ω cfg stele evm stmts = (.result r, ω')) : ExecBlock cfg stele evm stmts r :=
+    (h : execBlock fork fuel o ω cfg stele evm stmts = (.result r, ω')) : ExecBlock fork cfg stele evm stmts r :=
   (exec_sound hs fuel).2.2.1 h
 
-theorem execFuncBody_sound {o : Oracle Ω} (hs : o.Sound) {fuel : Nat} {ω ω' : Ω} {cfg : Config}
+theorem execFuncBody_sound {o : Oracle Ω} (hs : o.Sound fork) {fuel : Nat} {ω ω' : Ω} {cfg : Config}
     {stele : Frame} {evm : EVM.State} {body : List Stmt} {r : ExecResult}
-    (h : execFuncBody fuel o ω cfg stele evm body = (.result r, ω')) :
-    ExecFuncBody cfg stele evm body r :=
+    (h : execFuncBody fork fuel o ω cfg stele evm body = (.result r, ω')) :
+    ExecFuncBody fork cfg stele evm body r :=
   (exec_sound hs fuel).2.2.2 h
 
 /-! ## Messages -/
 
-theorem steleExecRun_sound {o : Oracle Ω} (hs : o.Sound) {fuel : Nat} {ω ω' : Ω} {cfg : Config}
+theorem steleExecRun_sound {o : Oracle Ω} (hs : o.Sound fork) {fuel : Nat} {ω ω' : Ω} {cfg : Config}
     {contract : ContractDecl} {immutables : Store} {σ σ₀ : AccountMap} {g : UInt256}
     {A : Substate} {I : ExecutionEnv} {r : ExecResult} {rc : ReturnConvention}
-    (h : steleExecRun fuel o ω cfg contract immutables σ σ₀ g A I = (.ran (.result r) rc, ω')) :
-    steleExec cfg contract immutables σ σ₀ g A I r rc := by
+    (h : steleExecRun fork fuel o ω cfg contract immutables σ σ₀ g A I = (.ran (.result r) rc, ω')) :
+    steleExec fork cfg contract immutables σ σ₀ g A I r rc := by
   unfold steleExecRun at h
   dsimp only at h
   split at h
   · next transition hsel =>
     split at h
     · next callargs hdec =>
-      generalize hbody : execTransitionBody fuel o ω cfg contract (initialState σ σ₀ g A I)
+      generalize hbody : execTransitionBody fork fuel o ω cfg contract (initialState σ σ₀ g A I)
         callargs transition.body immutables = p at h
       obtain ⟨oc, ω₀⟩ := p
       cases h
@@ -673,7 +677,7 @@ theorem steleExecRun_sound {o : Oracle Ω} (hs : o.Sound) {fuel : Nat} {ω ω' :
     · next transition hrecv =>
       split at h
       · next hshape =>
-        generalize hbody : execTransitionBody fuel o ω cfg contract (initialState σ σ₀ g A I)
+        generalize hbody : execTransitionBody fork fuel o ω cfg contract (initialState σ σ₀ g A I)
           ∅ transition.body immutables = p at h
         obtain ⟨oc, ω₀⟩ := p
         cases h
@@ -685,7 +689,7 @@ theorem steleExecRun_sound {o : Oracle Ω} (hs : o.Sound) {fuel : Nat} {ω ω' :
       · next transition hfb =>
         split at h
         · next callargs rc₀ hargs hrc =>
-          generalize hbody : execTransitionBody fuel o ω cfg contract (initialState σ σ₀ g A I)
+          generalize hbody : execTransitionBody fork fuel o ω cfg contract (initialState σ σ₀ g A I)
             callargs transition.body immutables = p at h
           obtain ⟨oc, ω₀⟩ := p
           cases h
@@ -695,11 +699,11 @@ theorem steleExecRun_sound {o : Oracle Ω} (hs : o.Sound) {fuel : Nat} {ω ω' :
         cases h
         exact steleExec.noMatch (by simp [dispatchMsg, hsel, hrecv, hfb])
 
-theorem steleCtorExecRun_sound {o : Oracle Ω} (hs : o.Sound) {fuel : Nat} {ω ω' : Ω}
+theorem steleCtorExecRun_sound {o : Oracle Ω} (hs : o.Sound fork) {fuel : Nat} {ω ω' : Ω}
     {cfg : Config} {contract : ContractDecl} {args : List Value} {σ σ₀ : AccountMap}
     {g : UInt256} {A : Substate} {I : ExecutionEnv} {r : ExecResult}
-    (h : steleCtorExecRun fuel o ω cfg contract args σ σ₀ g A I = some (.result r, ω')) :
-    steleCtorExec cfg contract args σ σ₀ g A I r := by
+    (h : steleCtorExecRun fork fuel o ω cfg contract args σ σ₀ g A I = some (.result r, ω')) :
+    steleCtorExec fork cfg contract args σ σ₀ g A I r := by
   unfold steleCtorExecRun at h
   split at h
   · next hlen =>

@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.SwapStepRecalcModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -51,7 +53,7 @@ theorem swapStepPriceAmountGet (imms : Store) (a : SwapStepArgs) (input : Bool) 
     exact swapStepInitialOtherAmountGet imms a (swapStepExactIn a)
 
 theorem swapStepMaxSource (imms : Store) (evm : EVM.State) (a : SwapStepArgs) :
-    ExecStmt config (swapStepPriceFrame imms a (swapStepExactIn a)) evm
+    ExecStmt fork config (swapStepPriceFrame imms a (swapStepExactIn a)) evm
       swapStepFunction.body[7]! (.ok (swapStepMaxFrame imms a) evm) := by
   have ht : (swapStepPriceFrame imms a (swapStepExactIn a)).locals.get? "sqrtRatioTargetX96" =
       some (.int (Int.ofNat a.target.toNat)) := by
@@ -98,7 +100,7 @@ theorem swapStepMaxAmountGet (imms : Store) (a : SwapStepArgs) (input : Bool) :
 
 theorem swapStepMaxPrefixSource (imms : Store) (evm : EVM.State) (a : SwapStepArgs)
     (ha : a.Fits) (hv : swapStepPriceValid a) :
-    ExecBlock config (swapStepFrame imms a) evm (swapStepFunction.body.take 8)
+    ExecBlock fork config (swapStepFrame imms a) evm (swapStepFunction.body.take 8)
       (.ok (swapStepMaxFrame imms a) evm) :=
   execBlock_append_ok (swapStepPriceSource imms evm a ha hv)
     (ExecBlock.consNormal (swapStepMaxSource imms evm a) ExecBlock.nil)

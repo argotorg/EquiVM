@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.TotalsCollateralStorage
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_039
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_046
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -14,13 +16,13 @@ theorem cometCollateralSubtract {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {dummy balance ret : UInt256} {R : List UInt256}
     (asset : AccountAddress) (hstack : R.length + 10 ≤ 1024)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨9615⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨9615⟩
       (dummy :: EVM.word asset.val :: balance :: ret :: R) mem aw rdata σ k C) :
     if (low128 (totalsCollateralWord σ ee asset)).toNat ≤ balance.toNat then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret
         (UInt256.sub balance (low128 (totalsCollateralWord σ ee asset)) :: R)
         (twoWordHashMem (EVM.word asset.val) ⟨2⟩ mem) aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hh : keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64)
       (twoWordHashMem (EVM.word asset.val) ⟨2⟩ mem) = totalsCollateralSlot asset := by
     exact twoWordHashMem_solcMappingSlot_any ⟨2⟩ (EVM.word asset.val) mem
@@ -38,7 +40,7 @@ theorem cometCollateralSubtract {v : CometWithExtendedAssetListImmutables}
           (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64)
             (twoWordHashMem (EVM.word asset.val) ⟨2⟩ mem)) σ ee)) = ⟨0⟩
           rw [hl]; exact ult_zero hle) h
-    change RD _ _ _ _ _ (balance :: UInt256.land _ (solcSlotWordAt
+    change RD fork _ _ _ _ _ (balance :: UInt256.land _ (solcSlotWordAt
           (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64)
             (twoWordHashMem (EVM.word asset.val) ⟨2⟩ mem)) σ ee) :: ret :: R)
       (twoWordHashMem (EVM.word asset.val) ⟨2⟩ mem) _ _ _ _ _ at r1

@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.AbsorbInternalBodyEvm
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_008
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_029
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -11,19 +13,19 @@ namespace Benchmarks.CompoundIII.Comet
 
 set_option maxRecDepth 2000
 
-def AbsorbResult (v : CometWithExtendedAssetListImmutables) (I : ExecutionEnv)
+def AbsorbResult (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables) (I : ExecutionEnv)
     (g : Sat256) (s0 : State) : Prop :=
   if I.weiValue = ⟨0⟩ ∧ AbsorbCalldataValid I.calldata then
-    X (g.toNat + 1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
-      ∃ result, AbsorbTrace v I.calldata (AccountAddress.ofNat (calldataWord I.calldata 4).toNat)
-        s0 result ∧ returnOutcomeRun (deployedRuntime v) g s0 ByteArray.empty result
-  else RDrev (deployedRuntime v) g s0
+    X fork (g.toNat + 1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+      ∃ result, AbsorbTrace fork v I.calldata (AccountAddress.ofNat (calldataWord I.calldata 4).toNat)
+        s0 result ∧ returnOutcomeRun fork (deployedRuntime v) g s0 ByteArray.empty result
+  else RDrev fork (deployedRuntime v) g s0
 
 theorem absorbX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 38)) (hgas : cometGasBound g.toUInt256) :
-    AbsorbResult v I g (initState σ σ₀ g A I) := by
+    AbsorbResult fork v I g (initState σ σ₀ g A I) := by
   obtain ⟨k, C, rd⟩ := cometWithExtendedAssetListReachAbsorbBody
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) v hcode hsz hsize hsel
   have rd1 := cometWithExtendedAssetList_block_898 (immWords := wordsOf (immStore v))

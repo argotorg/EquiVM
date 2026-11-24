@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.Entry
 
+variable {fork : Ethereum.Fork}
+
 /-! # EAS memory allocator: source execution and compiled routine -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -72,7 +74,7 @@ theorem allocatePrefix_exec {cfg : Config} {frame : Frame} {evm : EVM.State}
     {heap size : Nat}
     (hs : frame.locals.get? "size" = some (.int (Int.ofNat size)))
     (hp : frame.locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap))) :
-    ExecBlock cfg frame evm allocatePrefix
+    ExecBlock fork cfg frame evm allocatePrefix
       (.ok {frame with locals := allocatePrefixLocals frame.locals heap size} evm) := by
   have hsEval : evalExpr? cfg frame evm (.var "size") = .ok (.int (Int.ofNat size)) := by
     simp only [evalExpr?, hs, EvalResult.ofOption]
@@ -82,7 +84,7 @@ theorem allocatePrefix_exec {cfg : Config} {frame : Frame} {evm : EVM.State}
   have hr : evalExpr? cfg {frame with locals := frame.locals.insert "rounded" (.int (Int.ofNat ((size + 31) % UInt256.size)))}
       evm (.var "rounded") = .ok (.int (Int.ofNat ((size + 31) % UInt256.size))) := by
     simp only [evalExpr?, store_get_self, EvalResult.ofOption]
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalFloor32 hr) (assignLocalBase_ok (store_get_self _ _ _))) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalFloor32 hr) (assignLocalBase_ok (store_get_self _ _ _))) ?_
   refine ExecBlock.consNormal (ExecStmt.letDecl (value := .int (Int.ofNat (allocateNext heap size))) ?_) ExecBlock.nil
   apply evalCastUint256Add
   · simp only [evalExpr?, store_get_ne _ _ (by decide : ("rounded" == "$EAS.freeMemory") = false), hp, EvalResult.ofOption]
@@ -115,7 +117,7 @@ theorem allocateSource_ok {cfg : Config} {frame : Frame} {evm : EVM.State}
     (hs : frame.locals.get? "size" = some (.int (Int.ofNat size)))
     (hp : frame.locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)))
     (hguard : allocateNext heap size ≤ 2^64-1 ∧ heap ≤ allocateNext heap size) :
-    ExecFuncBody cfg frame evm allocateFunction.body
+    ExecFuncBody fork cfg frame evm allocateFunction.body
       (.returned {frame with locals := allocateFinalLocals frame.locals heap size}
         evm (some [.tuple [], .int (Int.ofNat (allocateNext heap size))])) := by
   rw [allocate_body]
@@ -127,7 +129,7 @@ theorem allocateSource_ok {cfg : Config} {frame : Frame} {evm : EVM.State}
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · simpa only [hguard, decide_true] using evalAllocateGuard (evm := evm) (cfg := cfg)
       (frame := {frame with locals := allocatePrefixLocals frame.locals heap size}) hn hp'
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat (allocateNext heap size)))
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat (allocateNext heap size)))
     ?_ (assignLocalBase_ok hp')) ?_
   · simp only [evalExpr?, hn, EvalResult.ofOption]
   apply ExecBlock.consReturn
@@ -139,7 +141,7 @@ theorem allocateSource_revert {cfg : Config} {frame : Frame} {evm : EVM.State}
     (hs : frame.locals.get? "size" = some (.int (Int.ofNat size)))
     (hp : frame.locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)))
     (hguard : ¬ (allocateNext heap size ≤ 2^64-1 ∧ heap ≤ allocateNext heap size)) :
-    ExecFuncBody cfg frame evm allocateFunction.body .reverted := by
+    ExecFuncBody fork cfg frame evm allocateFunction.body .reverted := by
   rw [allocate_body]
   apply ExecFuncBody.execBlockRevert
   apply execBlock_append (allocatePrefix_exec hs hp)
@@ -189,8 +191,8 @@ theorem easAllocate_ok {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length + 5 ≤ 1024)
     (hguard : allocateNext heap.toNat size.toNat ≤ 2^64-1 ∧ heap.toNat ≤ allocateNext heap.toNat size.toNat)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨4883⟩ (heap :: size :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret R
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨4883⟩ (heap :: size :: ret :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret R
       (Reasoning.Theory.writeWord mem 64 (UInt256.ofNat (allocateNext heap.toNat size.toNat))) aw' rdata σ k' C' := by
   have rd1 := easBlocks.eas_block_4883_fallthrough (immWords := wordsOf (immStore v))
     (by simp only [List.length_cons]; omega) (allocateCheck_ok heap size hguard) rd
@@ -207,8 +209,8 @@ theorem easAllocate_revert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {k C : Nat} {heap size : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length + 4 ≤ 1024)
     (hguard : ¬ (allocateNext heap.toNat size.toNat ≤ 2^64-1 ∧ heap.toNat ≤ allocateNext heap.toNat size.toNat))
-    (rd : RD (deployedRuntime v) ee g s0 ⟨4883⟩ (heap :: size :: R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨4883⟩ (heap :: size :: R) mem aw rdata σ k C) :
+    RDrev fork (deployedRuntime v) g s0 := by
   have rd1 := easBlocks.eas_block_4883_taken (immWords := wordsOf (immStore v))
     hstack (allocateCheck_revert heap size hguard)
     (by rw [easPatchedValidJumpsRuntime v]; jump_dest) rd
@@ -234,7 +236,7 @@ theorem allocateCall_ok {cfg : Config} {locals imms : Store} {evm : EVM.State}
     (hp : evalExpr? cfg {contract := contract, locals := locals, immutables := imms} evm heapExpr =
       .ok (.int (Int.ofNat heap)))
     (hguard : allocateNext heap size ≤ 2^64-1 ∧ heap ≤ allocateNext heap size) :
-    ExecStmt cfg {contract := contract, locals := locals, immutables := imms} evm
+    ExecStmt fork cfg {contract := contract, locals := locals, immutables := imms} evm
       (.internalCall "_allocate" [sizeExpr, heapExpr] retVar)
       (.ok {
         contract := contract
@@ -254,7 +256,7 @@ theorem allocateCall_revert {cfg : Config} {locals imms : Store} {evm : EVM.Stat
     (hp : evalExpr? cfg {contract := contract, locals := locals, immutables := imms} evm heapExpr =
       .ok (.int (Int.ofNat heap)))
     (hguard : ¬ (allocateNext heap size ≤ 2^64-1 ∧ heap ≤ allocateNext heap size)) :
-    ExecStmt cfg {contract := contract, locals := locals, immutables := imms} evm
+    ExecStmt fork cfg {contract := contract, locals := locals, immutables := imms} evm
       (.internalCall "_allocate" [sizeExpr, heapExpr] retVar) .reverted := by
   exact internalCallFunctionRevert
     (by simp only [evalExprs?, hs, hp, bind, EvalResult.bind, pure])
@@ -272,14 +274,14 @@ theorem unpackHeapResult {cfg : Config} {frame : Frame} {evm : EVM.State}
     (hret : frame.locals.get? tmp = some (.tuple [value, .int (Int.ofNat heap)]))
     (hheap : frame.locals.get? cursor = some old)
     (hrt : (result == tmp) = false) (hrc : (result == cursor) = false) :
-    ExecBlock cfg frame evm
+    ExecBlock fork cfg frame evm
       [.letDecl result none (.tupleGet (.var tmp) 0),
        .assign .localVar {base := cursor} (.tupleGet (.var tmp) 1)]
       (.ok {frame with locals := unpackHeapLocals frame.locals result cursor value heap} evm) := by
   refine ExecBlock.consNormal (ExecStmt.letDecl (value := value) ?_) ?_
   · simp only [evalExpr?, hret, EvalResult.ofOption, EvalResult.bind, bind]
     rfl
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat heap)) ?_
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat heap)) ?_
     (assignLocalBase_ok (by simpa only [store_get_ne _ _ hrc] using hheap))) ExecBlock.nil
   simp only [evalExpr?, store_get_ne _ _ hrt, hret, EvalResult.ofOption, EvalResult.bind, bind]
   rfl

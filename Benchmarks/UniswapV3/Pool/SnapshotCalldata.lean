@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.Calldata
 import Benchmarks.UniswapV3.Pool.Dispatch
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_010
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -39,7 +41,7 @@ theorem uniswapV3PoolSnapshotDecodedX {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (uniswapV3PoolSelBytes 18))
     (hlen : 68 ≤ I.calldata.size) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨9952⟩
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨9952⟩
       [snapshotDecodedWord I.calldata 36, snapshotDecodedWord I.calldata 4,
        UInt256.ofNat 1952, solcSelectorWord I] solcFreePtrMem ⟨3⟩ ByteArray.empty σ k C := by
   obtain ⟨_, _, rdEntry⟩ := uniswapV3PoolReachSnapshotCumulativesInsideBody
@@ -56,7 +58,7 @@ theorem uniswapV3PoolSnapshotShortX {σ σ₀ A I} {g : Sat256}
     (v : UniswapV3PoolImmutables) (hcode : I.code = deployedRuntime v)
     (hwv : I.weiValue = ⟨0⟩) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (uniswapV3PoolSelBytes 18))
-    (hshort : I.calldata.size < 68) : RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
+    (hshort : I.calldata.size < 68) : RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rdEntry⟩ := uniswapV3PoolReachSnapshotCumulativesInsideBody
     (g := g) (σ := σ) (σ₀ := σ₀) (A := A) v hcode hwv hsz hsize hsel
   have rdShort := uniswapV3Pool_block_1910_fallthrough (immWords := wordsOf (immStore v))

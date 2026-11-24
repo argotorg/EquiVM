@@ -1,6 +1,8 @@
 import Benchmarks.Safe.V3_77901a5.GasMemory
 import Benchmarks.Safe.V3_77901a5.Blocks.Runtime_005
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V3_77901a5.RuntimeBlocks
 
@@ -8,11 +10,11 @@ namespace Benchmarks.Safe.V3_77901a5
 
 theorem safeFallbackHugeOOG {I g s0 σ k C rdata}
     {handler : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨588⟩ (handler :: R)
+    (h : RD fork safeBytecode I g s0 ⟨588⟩ (handler :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hov : R.length + 9 ≤ 1024) (hsize : I.calldata.size < UInt256.size)
     (hhuge : 2 ^ 138 ≤ I.calldata.size) :
-    X (g.toNat + 1) (D_J safeBytecode 0) s0 = .error .OutOfGass := by
+    X fork (g.toNat + 1) (D_J safeBytecode 0) s0 = .error .OutOfGass := by
   have hr := safeRuntime_block_588 hov h
   have hc := memExpansionCost_huge (UInt256.ofNat 3) ⟨128⟩
     (UInt256.ofNat I.calldata.size) (by decide)

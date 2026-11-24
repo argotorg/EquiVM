@@ -8,6 +8,8 @@ import Benchmarks.Safe.ViaIR.PreModuleReject
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_029
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_030
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -17,27 +19,27 @@ set_option maxRecDepth 100000 in
 set_option maxHeartbeats 1000000 in
 theorem safeModuleReturnDataTrace (evm : EVM.State) (payload : ByteArray)
     {I g s0 σ k C aw rdata} {target value operation : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6237⟩
+    (h : RD fork safeBytecode I g s0 ⟨6237⟩
       (operation :: ⟨128⟩ :: value :: target :: ⟨6263⟩ :: ⟨6293⟩ :: R)
       (memoryBytesDecoded payload) aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ) (hworld : evm.σ₀ = s0.σ₀)
     (hv : evm.executionEnv.weiValue = ⟨0⟩) (hn : payload.size ≤ 2 ^ 64 - 192)
     (ho : operation.toNat < 2) (hov : R.length + 39 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧
-      ExecTransitionBody config contract evm
+    (RDrev fork safeBytecode g s0 ∧
+      ExecTransitionBody fork config contract evm
         (moduleArgs (AccountAddress.ofUInt256 target) value payload operation)
         exectransactionfrommodulereturndataTransition.body .reverted) ∨
-    (RDstatic safeBytecode g s0 ∧
-      ExecTransitionBody config contract evm
+    (RDstatic fork safeBytecode g s0 ∧
+      ExecTransitionBody fork config contract evm
         (moduleArgs (AccountAddress.ofUInt256 target) value payload operation)
         exectransactionfrommodulereturndataTransition.body .staticViolation) ∨
     ∃ frame evm' σ' z out,
-      ExecTransitionBody config contract evm
+      ExecTransitionBody fork config contract evm
         (moduleArgs (AccountAddress.ofUInt256 target) value payload operation)
         exectransactionfrommodulereturndataTransition.body
         (.returned frame evm' (some [.bool z, .bytes out])) ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧ evm'.σ₀ = s0.σ₀ ∧
-      RDret safeBytecode g s0 σ' (boolBytesReturnBytes z out) := by
+      RDret fork safeBytecode g s0 σ' (boolBytesReturnBytes z out) := by
   have h₁ := safeRuntime_block_6237 (by simp; omega) (by jump_dest) h
   rcases safeModulePreDecodedTrace evm payload h₁ hee hacc hworld hn ho
     (by simp; omega) (by jump_dest) with
@@ -62,7 +64,7 @@ theorem safeModuleReturnDataTrace (evm : EVM.State) (payload : ByteArray)
       (.consNormal (safeModulePreCall hpre) (.consStatic
         (safeExecuteCallStatementStatic (safeModuleExecuteLocals _ _ _ _ _ _)
           hne hperm hvalue))))⟩)
-  have hexe := safeExecuteCallStatement (hperm := hcallPerm) (cfg := config)
+  have hexe := safeExecuteCallStatement (fork := fork) (hperm := hcallPerm) (cfg := config)
     (safeModuleExecuteLocals _ (AccountAddress.ofUInt256 (preModuleGuardWord evm))
       _ _ hash _) hcall
   have hsmall : out₂.size < 2 ^ 138 := houtBound (by

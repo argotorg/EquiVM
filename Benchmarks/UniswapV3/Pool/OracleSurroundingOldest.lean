@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.OracleSurroundingModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -37,7 +39,7 @@ theorem oracleSurroundingCandidatePrefix (imms : Store) (evm : EVM.State) (time 
     (ht : target.toNat < 2 ^ 32) (hn : cardinality.toNat ≠ 0)
     (hc : cardinality.toNat < 2 ^ 16)
     (hf : oracleSurroundingFirst time target index evm.accountMap evm.executionEnv = false) :
-    ExecBlock config (oracleSurroundingFrame imms time target tick index liquidity cardinality) evm
+    ExecBlock fork config (oracleSurroundingFrame imms time target tick index liquidity cardinality) evm
       (oracleSurroundingFunction.body.take 6)
       (.ok (oracleSurroundingCandidateFrame imms evm time target tick index liquidity cardinality)
         evm) := by
@@ -55,12 +57,12 @@ theorem oracleSurroundingCandidatePrefix (imms : Store) (evm : EVM.State) (time 
   have hbound : (oracleSearchLeft index cardinality).toNat < 65535 :=
     oracleSearchRemainder_lt _ cardinality hn hc
   have hread := evalOracleObservationExpr f.locals imms evm _ _ hbase hindex hbound
-  have htail : ExecBlock config f evm (oracleSurroundingFunction.body.drop 4 |>.take 2)
+  have htail : ExecBlock fork config f evm (oracleSurroundingFunction.body.drop 4 |>.take 2)
       (.ok (oracleSurroundingCandidateFrame imms evm time target tick index liquidity cardinality)
         evm) := by
     refine ExecBlock.consNormal (ExecStmt.iteFalse ?_ ExecBlock.nil) ?_
     · exact evalExpr_var_get (by simp [f, oracleSurroundingFirstFrame, hf])
-    · refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inl rfl) hread ?_) ExecBlock.nil
+    · refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inl rfl) hread ?_) ExecBlock.nil
       exact assignLocalVarBase_frame
         (old := (oracleStoredObservation index evm.accountMap evm.executionEnv).value)
         (by simp [f, oracleSurroundingFirstFrame, oracleSurroundingReadFrame,
@@ -70,7 +72,7 @@ theorem oracleSurroundingCandidatePrefix (imms : Store) (evm : EVM.State) (time 
 
 theorem oracleSurroundingOldestFallback (imms : Store) (evm : EVM.State) (time target : UInt256)
     (tick : Int) (index liquidity cardinality : UInt256) :
-    ExecStmt config
+    ExecStmt fork config
       (oracleSurroundingCandidateFrame imms evm time target tick index liquidity cardinality) evm
       oracleSurroundingFunction.body[6]!
       (.ok (oracleSurroundingOldestFrame imms evm time target tick index liquidity cardinality)
@@ -100,7 +102,7 @@ theorem oracleSurroundingOldestFallback (imms : Store) (evm : EVM.State) (time t
     rw [hh]
     refine ExecStmt.iteTrue (by simpa only [candidate, hz, Bool.not_false] using he) ?_
     refine ExecBlock.consNormal
-      (ExecStmt.assign (hperm := Or.inl rfl)
+      (ExecStmt.assign (fork := fork) (hperm := Or.inl rfl)
         (value := (oracleStoredObservation ⟨0⟩ evm.accountMap evm.executionEnv).value)
         ?_ ?_) ExecBlock.nil
     · exact evalOracleObservationExpr f.locals imms evm (.intLit 0) ⟨0⟩

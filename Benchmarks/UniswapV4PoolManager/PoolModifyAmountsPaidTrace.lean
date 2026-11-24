@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.PoolModifyAmountsTrace
 import Benchmarks.UniswapV4PoolManager.ResultTraceCostExists
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -14,12 +16,12 @@ theorem poolModifyAmountsPaidTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : Sta
     (hl : int24Canonical p.lower) (hu : int24Canonical p.upper) (ht : poolTicksValid p.lower p.upper)
     (hd : signedFits ⟨128, by decide⟩ p.delta)
     (h5 : 5 ≤ aw.toNat) (hpaid : Cₘ aw ≤ C)
-    (h : RD (deployedRuntime v) I g s0 ⟨6036⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨6036⟩
       (junk :: p.lower :: p.upper :: EVM.wordOfInt p.delta :: ⟨0⟩ :: poolModifyAmountRest fees x1 x2 x4 x5 x9 extra R)
       mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0
+    blockResultTrace fork (deployedRuntime v) g s0
       (fun _ post => post.executionEnv = I ∧ post.σ₀ = evm.σ₀ ∧ ∃ j0 j1 j2 kr Cr, Cₘ aw ≤ Cr ∧
-        RD (deployedRuntime v) I g s0 ⟨6046⟩
+        RD fork (deployedRuntime v) I g s0 ⟨6046⟩
           (j0 :: j1 :: j2 :: poolModifyAmountsDeltaWord evm id p :: poolModifyAmountRest fees x1 x2 x4 x5 x9 extra R)
           mem aw rdata post.accountMap kr Cr)
       (fun _ _ => False) (poolModifyAmountsResult f evm id p) := by

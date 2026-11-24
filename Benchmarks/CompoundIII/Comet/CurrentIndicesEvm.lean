@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.AccrualTimeEvm
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_013
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_024
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables
@@ -22,22 +24,22 @@ theorem cometCurrentIndicesAfterLoad {v : CometWithExtendedAssetListImmutables}
     (hstack : R.length + 32 ≤ 1024)
     (ht : (timestampWord ee).toNat < 2^40)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7753⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7753⟩
       (timestampWord ee :: lastAccrualWord (solcSlotWordAt ⟨1⟩ σ ee) ::
         ⟨1707⟩ :: ⟨1099511627775⟩ :: ret :: R) mem aw rdata σ k C) :
     let w0 := solcSlotWordAt ⟨0⟩ σ ee
     let w1 := solcSlotWordAt ⟨1⟩ σ ee
     if CurrentIndicesValid v w0 w1 (timestampWord ee) then
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
         (currentIndex v w0 w1 (timestampWord ee) true ::
           currentIndex v w0 w1 (timestampWord ee) false :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   dsimp only
   let w0 := solcSlotWordAt ⟨0⟩ σ ee
   let w1 := solcSlotWordAt ⟨1⟩ σ ee
   let time := timestampWord ee
   change if CurrentIndicesValid v w0 w1 time then
-    ∃ k' C', RD _ _ _ _ ret
+    ∃ k' C', RD fork _ _ _ _ ret
       (currentIndex v w0 w1 time true :: currentIndex v w0 w1 time false :: R)
       mem aw rdata σ k' C' else _
   by_cases hle : (lastAccrualWord w1).toNat ≤ time.toNat
@@ -48,7 +50,7 @@ theorem cometCurrentIndicesAfterLoad {v : CometWithExtendedAssetListImmutables}
     have r4 := cometWithExtendedAssetList_block_1707
       (immWords := wordsOf (immStore v)) (by simp only [List.length_cons]; omega)
       (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r3
-    change RD _ _ _ _ _
+    change RD fork _ _ _ _ _
       (UInt256.land (currentElapsed time w1) (UInt256.ofNat 1099511627775) ::
         ret :: R) _ _ _ _ _ _ at r4
     rw [u256LandMaskCleanOfToNat _ _ (bits := 40) rfl hd] at r4
@@ -56,7 +58,7 @@ theorem cometCurrentIndicesAfterLoad {v : CometWithExtendedAssetListImmutables}
       hstack hd hret r4
     dsimp only at ha
     change if AccruedIndicesValid v w0 w1 (currentElapsed time w1) then
-      ∃ k' C', RD _ _ _ _ ret
+      ∃ k' C', RD fork _ _ _ _ ret
         (currentIndex v w0 w1 time true :: currentIndex v w0 w1 time false :: R)
         mem aw rdata σ k' C' else _ at ha
     by_cases hv : AccruedIndicesValid v w0 w1 (currentElapsed time w1)
@@ -74,27 +76,27 @@ theorem cometCurrentIndices {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray}
     {aw : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256} (borrow : Bool)
     (hstack : R.length + 33 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 ⟨7614⟩ (totalTimeReturnPc borrow :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨7614⟩ (totalTimeReturnPc borrow :: R)
       mem aw rdata σ k C) :
     let w0 := solcSlotWordAt ⟨0⟩ σ ee
     let w1 := solcSlotWordAt ⟨1⟩ σ ee
     if CurrentIndicesValid v w0 w1 (timestampWord ee) then
-      ∃ k' C', RD (deployedRuntime v) ee g s0 (totalIndicesReturnPc borrow)
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 (totalIndicesReturnPc borrow)
         (currentIndex v w0 w1 (timestampWord ee) true ::
           currentIndex v w0 w1 (timestampWord ee) false :: w1 :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   dsimp only
   let w0 := solcSlotWordAt ⟨0⟩ σ ee
   let w1 := solcSlotWordAt ⟨1⟩ σ ee
   let time := timestampWord ee
   change if CurrentIndicesValid v w0 w1 time then
-    ∃ k' C', RD _ _ _ _ (totalIndicesReturnPc borrow)
+    ∃ k' C', RD fork _ _ _ _ (totalIndicesReturnPc borrow)
       (currentIndex v w0 w1 time true :: currentIndex v w0 w1 time false :: w1 :: R)
       mem aw rdata σ k' C' else _
   by_cases ht : time.toNat < 2^40
   · obtain ⟨k1, C1, r1⟩ := cometNow (v := v) (by omega) ht
       (by cases borrow <;> rw [cometWithExtendedAssetListPatchedValidJumps v] <;> jump_dest) h
-    have hload : ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨7753⟩
+    have hload : ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨7753⟩
         (time :: UInt256.land (UInt256.shiftRight w1 ⟨208⟩) ⟨1099511627775⟩ :: ⟨1707⟩ ::
           ⟨1099511627775⟩ :: totalIndicesReturnPc borrow :: w1 :: R) mem aw rdata σ k' C' := by
       cases borrow

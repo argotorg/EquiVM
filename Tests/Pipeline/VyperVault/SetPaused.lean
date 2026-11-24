@@ -1,5 +1,7 @@
 import Tests.Pipeline.VyperVault.Helpers
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # VyperVault `setPaused(bool)`
 
@@ -97,7 +99,7 @@ theorem vyperVaultSetPausedBody {σ σ₀ A I} {g : UInt256} (imms : Store) (hfi
     (hwf : storageWF σ I)
     (hcode : I.code = immutableLayout.deployed vyperVaultBytecode imms) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vyperVaultSelBytes 1)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (restrictImmutables contract imms) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (restrictImmutables contract imms) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (vyperVaultSelBytes 1) rfl hsel
   have hcode' : I.code = vyperVaultBytecode ++ immutableLayout.suffixWords (wordsOf imms) := by
     rw [hcode, deployed_of_fit hfit]
@@ -182,7 +184,7 @@ theorem vyperVaultSetPausedBody {σ σ₀ A I} {g : UInt256} (imms : Store) (hfi
   by_cases hperm : I.perm = true
   · have rd4 := vyperVaultBlocks.vyperVault_block_1145 (by simp) hperm rd3
     rw [hmem] at rd4
-    have hbody : ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) (setPausedStore I)
+    have hbody : ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) (setPausedStore I)
         setPausedTransition.body
         (.returned (frame imms (setPausedStore I))
           (Stele.EVM.storageStore (initState σ σ₀ (Sat256.ofUInt256 g) A I)

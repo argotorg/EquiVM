@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.SignedMulPriceSource
 import Benchmarks.CompoundIII.Comet.UserBasicRead
 import Benchmarks.CompoundIII.Comet.UintCastWord
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -96,42 +98,42 @@ def collateralInitialFrame (v : CometWithExtendedAssetListImmutables)
   let f := collateralLiquidityFrame v account basic magnitude price
   { f with locals := f.locals.insert "i" (.int 0) }
 
-inductive CollateralDebtTrace (v : CometWithExtendedAssetListImmutables) (borrow : Bool)
+inductive CollateralDebtTrace (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables) (borrow : Bool)
     (account : AccountAddress) (basic magnitude : UInt256) :
     EVM.State → Option (EVM.State × Bool) → Prop where
   | priceFailed {evm evm' z out}
-      (hc : callViaEVM evm v.baseTokenPriceFeed 0 pricePayload (z, evm', out) false)
+      (hc : callViaEVM fork evm v.baseTokenPriceFeed 0 pricePayload (z, evm', out) false)
       (hh : out.size < 2^255) (hv : ¬ (z = true ∧ PriceValid out)) :
-      CollateralDebtTrace v borrow account basic magnitude evm none
+      CollateralDebtTrace fork v borrow account basic magnitude evm none
   | mathFailed {evm evm' out}
-      (hc : callViaEVM evm v.baseTokenPriceFeed 0 pricePayload (true, evm', out) false)
+      (hc : callViaEVM fork evm v.baseTokenPriceFeed 0 pricePayload (true, evm', out) false)
       (hh : out.size < 2^255) (hv : PriceValid out)
       (hm : ¬ signedDebtPriceValid magnitude (calldataWord out 32) (collateralBaseScale v)) :
-      CollateralDebtTrace v borrow account basic magnitude evm none
+      CollateralDebtTrace fork v borrow account basic magnitude evm none
   | loop {evm evm' out result}
-      (hc : callViaEVM evm v.baseTokenPriceFeed 0 pricePayload (true, evm', out) false)
+      (hc : callViaEVM fork evm v.baseTokenPriceFeed 0 pricePayload (true, evm', out) false)
       (hh : out.size < 2^255) (hv : PriceValid out)
       (hm : signedDebtPriceValid magnitude (calldataWord out 32) (collateralBaseScale v))
-      (ht : CollateralLoopTrace v borrow account (userBasicFieldWord basic 2)
+      (ht : CollateralLoopTrace fork v borrow account (userBasicFieldWord basic 2)
         (userBasicFieldWord basic 3) 0
         (signedDebtPriceWord magnitude (calldataWord out 32) (collateralBaseScale v)) evm' result) :
-      CollateralDebtTrace v borrow account basic magnitude evm result
+      CollateralDebtTrace fork v borrow account basic magnitude evm result
 
-inductive CollateralCheckTrace (v : CometWithExtendedAssetListImmutables) (borrow : Bool)
+inductive CollateralCheckTrace (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables) (borrow : Bool)
     (account : AccountAddress) : EVM.State → Option (EVM.State × Bool) → Prop where
   | solvent {evm} (hp : 0 ≤ signed104 (collateralBasicWord evm account)) :
-      CollateralCheckTrace v borrow account evm (some (evm, borrow))
+      CollateralCheckTrace fork v borrow account evm (some (evm, borrow))
   | minimum {evm} (hp : signed104 (collateralBasicWord evm account) < 0)
       (hm : ¬ -(2^103 : Int) < signed104 (collateralBasicWord evm account)) :
-      CollateralCheckTrace v borrow account evm none
+      CollateralCheckTrace fork v borrow account evm none
   | debt {evm result} (hp : signed104 (collateralBasicWord evm account) < 0)
       (hm : -(2^103 : Int) < signed104 (collateralBasicWord evm account))
-      (ht : CollateralDebtTrace v borrow account (collateralBasicWord evm account)
+      (ht : CollateralDebtTrace fork v borrow account (collateralBasicWord evm account)
         (signedPresentMagnitude evm (collateralBasicWord evm account) true) evm result) :
-      CollateralCheckTrace v borrow account evm result
+      CollateralCheckTrace fork v borrow account evm result
 
 theorem CollateralDebtTrace.executionEnv_eq {v borrow account basic magnitude evm result}
-    (ht : CollateralDebtTrace v borrow account basic magnitude evm result) :
+    (ht : CollateralDebtTrace fork v borrow account basic magnitude evm result) :
     ∀ evm' b, result = some (evm', b) → evm'.executionEnv = evm.executionEnv := by
   cases ht with
   | priceFailed _ _ _ => intro evm' b he; cases he
@@ -141,7 +143,7 @@ theorem CollateralDebtTrace.executionEnv_eq {v borrow account basic magnitude ev
     exact (ht.executionEnv_eq evm' b he).trans (callViaEVM_executionEnv_eq hc)
 
 theorem CollateralCheckTrace.executionEnv_eq {v borrow account evm result}
-    (ht : CollateralCheckTrace v borrow account evm result) :
+    (ht : CollateralCheckTrace fork v borrow account evm result) :
     ∀ evm' b, result = some (evm', b) → evm'.executionEnv = evm.executionEnv := by
   cases ht with
   | solvent _ => intro evm' b he; cases he; rfl

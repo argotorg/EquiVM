@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.WordReturnTrace
 import Benchmarks.UniswapV4PoolManager.Uint256ResultTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_037
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -15,10 +17,10 @@ theorem settlePaidTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f : Fr
     {k C : Nat} {R : List UInt256} (v : PoolManagerImmutables)
     (hstack : R.length+12 ≤ 1024) (hI : evm.executionEnv = I)
     (hc : UInt256.land currencyWord solcAddrMask = accountWord currency) (hm : WordReturnMemory mem)
-    (h : RD (deployedRuntime v) I g s0 ⟨13427⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨13427⟩
       (currencyWord :: accountWord recipient :: ⟨12705⟩ :: ⟨1954⟩ :: paid :: ⟨32⟩ :: R)
       mem aw rdata evm.accountMap k C) :
-    uint256ResultTrace (deployedRuntime v) g s0 (settlePaidResult f evm recipient currency paid) := by
+    uint256ResultTrace fork (deployedRuntime v) g s0 (settlePaidResult f evm recipient currency paid) := by
   rw [settlePaidResult, hI]
   have rdCast := poolManagerBlocks.poolManager_block_13427 (by change R.length+1+8 ≤ 1024; omega)
     (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) h
@@ -28,12 +30,12 @@ theorem settlePaidTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f : Fr
       (by rw [deployedRuntime_jumps]; jump_dest) rdCast
     have rdDelta := poolManagerBlocks.poolManager_block_13436 (by change R.length+5+3 ≤ 1024; omega)
       (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rdAccount
-    change RD _ _ _ _ ⟨12528⟩
+    change RD fork _ _ _ _ ⟨12528⟩
       (currencyWord :: paid :: accountWord recipient :: ⟨12705⟩ :: ⟨1954⟩ :: paid :: ⟨32⟩ :: R)
       _ _ _ _ _ _ at rdDelta
     have hlo : -(2^127 : Int) ≤ Int.ofNat paid.toNat := by simp only [Int.ofNat_eq_natCast]; omega
     have hhi : Int.ofNat paid.toNat < (2^127 : Int) := by simp only [Int.ofNat_eq_natCast]; omega
-    have rdDelta' : RD (deployedRuntime v) I g s0 ⟨12528⟩
+    have rdDelta' : RD fork (deployedRuntime v) I g s0 ⟨12528⟩
       (currencyWord :: EVM.wordOfInt (Int.ofNat paid.toNat) :: accountWord recipient :: ⟨12705⟩ :: ⟨1954⟩ :: paid :: ⟨32⟩ :: R)
       mem aw rdata evm.accountMap (k1+4) (C1+15) := by simpa only [wordOfInt_ofNat_toNat] using rdDelta
     have ht := accountDeltaWordTrace v (by change R.length+3+9 ≤ 1024; omega) hI hc hlo hhi

@@ -2,6 +2,8 @@ import Benchmarks.EAS.EAS.BytesCleanDispatch
 import Benchmarks.EAS.EAS.BytesClearLoop
 import Benchmarks.EAS.EAS.BytesWriteArithmetic
 import Benchmarks.EAS.EAS.BytesDataHash
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -16,9 +18,9 @@ theorem easBytesClearPrepare {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {src dataPtr slot word len old t1 t2 t3 t4 : UInt256} {R : List UInt256}
     (v : EASImmutables) (site : UIDSite) (hstack : R.length+24 ≤ 1024) (hb : len.toNat+31 < UInt256.size)
-    (rd : RD (deployedRuntime v) ee g s0 (bytesClearSetupPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (bytesClearSetupPC site)
       (old::dataPtr::len::slot::bytesClearSetupSaved site word src t1 t2 t3 t4 R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (bytesClearPC site)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (bytesClearPC site)
       (⟨0⟩::solidityBytesDataBaseSlot (slot+⟨6⟩)::UInt256.ofNat (bytesFirstClear len.toNat)::old::dataPtr::len::slot::
         bytesClearLoopSaved site word src t1 t2 t3 t4 R)
       (Reasoning.Theory.writeWord mem 0 (slot+⟨6⟩)) aw' rdata σ k' C' := by
@@ -85,9 +87,9 @@ theorem easBytesClearFinish {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {src dataPtr slot word len old base first idx t1 t2 t3 t4 : UInt256} {R : List UInt256}
     (v : EASImmutables) (site : UIDSite) (hstack : R.length+24 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 (bytesClearEndPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (bytesClearEndPC site)
       (idx::base::first::old::dataPtr::len::slot::bytesClearLoopSaved site word src t1 t2 t3 t4 R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (recordBytesCleanPC site)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (recordBytesCleanPC site)
       (old::dataPtr::len::slot::recordBytesSaved site word src t1 t2 t3 t4 R) mem aw' rdata σ k' C' := by
   cases site with
   | single s1 s2 s3 s4 s5 s6 s7 s8 =>

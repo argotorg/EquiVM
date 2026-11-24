@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.OracleInterpolationSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -13,15 +15,15 @@ theorem oracleObserveNonzeroInterpolationReturns (imms : Store) (evm : EVM.State
     (hnb : oracleDelta time secondsAgo ≠ before.timestamp)
     (hna : oracleDelta time secondsAgo ≠ after.timestamp)
     (hd : (oracleDelta after.timestamp before.timestamp).toNat ≠ 0) :
-    ∃ frame, ExecFuncBody config
+    ∃ frame, ExecFuncBody fork config
       (oracleObserveSingleFrame imms time secondsAgo tick index liquidity cardinality)
       evm oracleObserveSingleFunction.body (.returned frame evm
         (some (oracleInterpolatedValues before after (oracleDelta time secondsAgo)))) := by
   let f := oracleObservePairFrame imms time secondsAgo tick index liquidity cardinality before after
   obtain ⟨ht, hb, ha⟩ := oracleObservePairGets imms time secondsAgo tick index liquidity cardinality
     before after
-  have hstmt := oracleObserveInterpolationBranchStep (evm := evm) (oracleDelta time secondsAgo) before after
-    ht hb ha hnb hna (oracleInterpolationReturns before after (oracleDelta time secondsAgo) ht hb ha hd)
+  have hstmt := oracleObserveInterpolationBranchStep (fork := fork) (evm := evm) (oracleDelta time secondsAgo) before after
+    ht hb ha hnb hna (oracleInterpolationReturns (fork := fork) before after (oracleDelta time secondsAgo) ht hb ha hd)
   refine ⟨oracleInterpolationFrame f before after (oracleDelta time secondsAgo),
     ExecFuncBody.execBlockRet ?_⟩
   rw [← List.take_append_drop 7 oracleObserveSingleFunction.body]
@@ -39,13 +41,13 @@ theorem oracleObserveNonzeroInterpolationReverts (imms : Store) (evm : EVM.State
     (hnb : oracleDelta time secondsAgo ≠ before.timestamp)
     (hna : oracleDelta time secondsAgo ≠ after.timestamp)
     (hd : (oracleDelta after.timestamp before.timestamp).toNat = 0) :
-    ExecFuncBody config
+    ExecFuncBody fork config
       (oracleObserveSingleFrame imms time secondsAgo tick index liquidity cardinality)
       evm oracleObserveSingleFunction.body .reverted := by
   obtain ⟨ht, hb, ha⟩ := oracleObservePairGets imms time secondsAgo tick index liquidity cardinality
     before after
-  have hstmt := oracleObserveInterpolationBranchStep (evm := evm) (oracleDelta time secondsAgo) before after
-    ht hb ha hnb hna (oracleInterpolationReverts before after (oracleDelta time secondsAgo) ht hb ha hd)
+  have hstmt := oracleObserveInterpolationBranchStep (fork := fork) (evm := evm) (oracleDelta time secondsAgo) before after
+    ht hb ha hnb hna (oracleInterpolationReverts (fork := fork) before after (oracleDelta time secondsAgo) ht hb ha hd)
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 7 oracleObserveSingleFunction.body]
   apply execBlock_append_ok

@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.SnapshotBranches
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -48,7 +50,7 @@ def snapshotInsideBody : List Stmt :=
        (.elem (.int (.uint ⟨32, by decide⟩)))]]
 
 theorem snapshotTimestampCall (v : UniswapV3PoolImmutables) (evm : EVM.State) (lower upper : Int) :
-    ExecStmt config (snapshotReadyFrame v lower upper evm.accountMap evm.executionEnv) evm
+    ExecStmt fork config (snapshotReadyFrame v lower upper evm.accountMap evm.executionEnv) evm
       (.internalCall "_blockTimestamp" [] "time")
       (.ok (snapshotTimeFrame v lower upper evm.accountMap evm.executionEnv) evm) := by
   exact internalCallFunctionReturn (callee := blockTimestampFunction) (argVals := []) (locals := ∅)
@@ -83,7 +85,7 @@ theorem slot0TickValue_bounds (σ : AccountMap) (I : ExecutionEnv) :
 
 theorem snapshotObserveCall (v : UniswapV3PoolImmutables) (evm : EVM.State) (lower upper : Int)
     (hin : (slot0FieldWord 23 2 evm.accountMap evm.executionEnv).toNat < 65535) :
-    ExecStmt config (snapshotTimeFrame v lower upper evm.accountMap evm.executionEnv) evm
+    ExecStmt fork config (snapshotTimeFrame v lower upper evm.accountMap evm.executionEnv) evm
       (.internalCall "Oracle_observeSingle" snapshotObserveArgs "__c11")
       (.ok (snapshotObservedFrame v lower upper evm.accountMap evm.executionEnv) evm) := by
   obtain ⟨frame, hbody⟩ := oracleObserveSingleZeroReturns (immStore v) evm
@@ -100,7 +102,7 @@ theorem snapshotObserveCall (v : UniswapV3PoolImmutables) (evm : EVM.State) (low
 
 theorem snapshotInsideReturns (v : UniswapV3PoolImmutables) (evm : EVM.State) (lower upper : Int)
     (hin : (slot0FieldWord 23 2 evm.accountMap evm.executionEnv).toNat < 65535) :
-    ExecBlock config (snapshotReadyFrame v lower upper evm.accountMap evm.executionEnv) evm
+    ExecBlock fork config (snapshotReadyFrame v lower upper evm.accountMap evm.executionEnv) evm
       snapshotInsideBody (.returned (snapshotInsideFrame v lower upper evm.accountMap evm.executionEnv) evm
         (some (snapshotInside (snapshotCurrent evm.accountMap evm.executionEnv)
           (blockTimestampWord evm.executionEnv) (tickOutside lower evm.accountMap evm.executionEnv)
@@ -122,7 +124,7 @@ theorem snapshotInsideReturns (v : UniswapV3PoolImmutables) (evm : EVM.State) (l
 
 theorem snapshotInsideReverts (v : UniswapV3PoolImmutables) (evm : EVM.State) (lower upper : Int)
     (hin : ¬ (slot0FieldWord 23 2 evm.accountMap evm.executionEnv).toNat < 65535) :
-    ExecBlock config (snapshotReadyFrame v lower upper evm.accountMap evm.executionEnv) evm
+    ExecBlock fork config (snapshotReadyFrame v lower upper evm.accountMap evm.executionEnv) evm
       snapshotInsideBody .reverted := by
   refine ExecBlock.consNormal (snapshotTimestampCall v evm lower upper) ?_
   apply ExecBlock.consRevert

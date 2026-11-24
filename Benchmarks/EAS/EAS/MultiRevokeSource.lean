@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.MultiRequestRead
 import Benchmarks.EAS.EAS.MultiRevocationDecode
 import Benchmarks.EAS.EAS.RevokeRun
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -33,7 +35,7 @@ def multiRevokeInitialLocals (L : Store) (available : UInt256) : Store :=
 theorem multiRevokeInitialSource {L imms : Store} {evm : EVM.State} {requests : List Value} {heap : Nat}
     (hd : L.get? "multiRequests" = some (.array requests))
     (hh : L.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap))) :
-    ExecBlock config {contract := contract,locals := L,immutables := imms} evm multiRevokeInitial
+    ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm multiRevokeInitial
       (.ok {contract := contract,locals := multiRevokeInitialLocals L evm.executionEnv.weiValue,immutables := imms} evm) ∧
     MultiRevokeLocals (multiRevokeInitialLocals L evm.executionEnv.weiValue) requests evm.executionEnv.weiValue heap 0 := by
   constructor
@@ -60,11 +62,11 @@ theorem multiRevokeAllocateSource {L imms : Store} {evm : EVM.State} {schema : U
     (hf : L.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)))
     (hlen : rs.length ≤ 2^64-1) (hh : heap ≤ 2^64-1) :
     if heap+32+96*rs.length ≤ 2^64-1 then
-      ExecBlock config {contract := contract,locals := L,immutables := imms} evm multiRevokeAllocate
+      ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm multiRevokeAllocate
         (.ok {contract := contract,locals := multiRevokeAllocatedLocals L rs (heap+32+96*rs.length),immutables := imms} evm)
-    else ExecBlock config {contract := contract,locals := L,immutables := imms} evm multiRevokeAllocate .reverted := by
+    else ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm multiRevokeAllocate .reverted := by
   let L1 := L.insert "data" (.array (rs.map RevocationRequestRecord.tuple))
-  have hd : ExecStmt config {contract := contract,locals := L,immutables := imms} evm
+  have hd : ExecStmt fork config {contract := contract,locals := L,immutables := imms} evm
       (.letDecl "data" (some (.dynamicArray revocationDataABI)) (.tupleGet (.var "multiRequest") 1))
       (.ok {contract := contract,locals := L1,immutables := imms} evm) := by
     apply ExecStmt.letDecl
@@ -72,7 +74,7 @@ theorem multiRevokeAllocateSource {L imms : Store} {evm : EVM.State} {schema : U
     rfl
   have hh1 : L1.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)) := by
     simpa (disch := decide) only [L1,store_get_ne] using hf
-  have ha := arrayAllocateExprSource (cfg := config) (imms := imms) (evm := evm)
+  have ha := arrayAllocateExprSource (fork := fork) (cfg := config) (imms := imms) (evm := evm)
     (evalLocalArrayLength (store_get_self L "data" (.array (rs.map RevocationRequestRecord.tuple)))) hh1 96
   have hn : allocateNext heap (32+96*rs.length) = heap+32+96*rs.length := by
     rw [allocateNext_small hh (by omega)]

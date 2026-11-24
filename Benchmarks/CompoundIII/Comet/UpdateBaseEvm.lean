@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.AccountBorrowRewardEvm
 import Benchmarks.CompoundIII.Comet.UpdateBaseFinishEvm
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_054
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -31,9 +33,9 @@ theorem cometUpdateBasePrincipal {v : CometWithExtendedAssetListImmutables}
     (hstack : R.length + 25 ≤ 1024) (hm : UserBasicMemory mem ptr basic)
     (hptr : 96 ≤ ptr.toNat) (hs : SourceState s0 ee σ evm)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨11701⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨11701⟩
       (EVM.word addr.val :: ptr :: principal :: ret :: R) mem aw rdata σ k C) :
-    internalMemoryRun (deployedRuntime v) ee g s0
+    internalMemoryRun fork (deployedRuntime v) ee g s0
       (updateBaseMemory mem ptr v evm addr basic principal) rdata ret R
       (updateBaseOutcome v evm addr basic principal) := by
   have r1 := cometWithExtendedAssetList_block_11701 (immWords := wordsOf (immStore v))

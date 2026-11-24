@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Clipper.TakeCallbackTailSource
 import Benchmarks.Dss.Clipper.TakeOweVatMoveSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -22,7 +24,7 @@ theorem clipperTakeOweGtTabCallbackTailSource
       0 < (UInt256.ofNat
         ((evmRead.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
     (hcallVat :
-      typedCallViaEVM config evmRead (EVM.address v.vat) "flux" 0
+      typedCallViaEVM fork config evmRead (EVM.address v.vat) "flux" 0
         [v.ilk, .address evmRead.executionEnv.codeOwner,
           .address (AccountAddress.ofNat
             (UInt256.land (clipperTakeWhoWord I) solcAddrMask).toNat),
@@ -35,7 +37,7 @@ theorem clipperTakeOweGtTabCallbackTailSource
       let tabNew := UInt256.sub (clipperTakeSalesTabEVMWord evmRead I)
         (clipperTakeSalesTabEVMWord evmRead I)
       let lotNew := UInt256.sub (clipperTakeSalesLotEVMWord evmRead I) slice'
-      ExecStmt config
+      ExecStmt fork config
         (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe0
             slice' tabNew lotNew) (immStore v))
         evmVat
@@ -49,11 +51,11 @@ theorem clipperTakeOweGtTabCallbackTailSource
             [sender, .var "owe", .var "slice", .var "data"] "_clipperCallRet")
           [])
         (.ok callbackFrame evmCb))
-    (htail : ExecBlock config callbackFrame evmCb
+    (htail : ExecBlock fork config callbackFrame evmCb
       (checkedExternalCallStmts vatExpr "move" (.intLit 0)
           [sender, .storage vowRef, .var "owe"] "_moveRet" ++
         clipperTakeAfterMoveStmts) result) :
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeLocalsSlice evmLoc evmRead I false price slice) (immStore v))
       evmRead (clipperTakeAfterSliceStmts) result := by
   let owe0 := UInt256.mul slice price
@@ -66,7 +68,7 @@ theorem clipperTakeOweGtTabCallbackTailSource
       tabNew lotNew) (immStore v)
   let dogFrame := Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe0 slice'
       tabNew lotNew) (immStore v)
-  have hflux : ExecBlock config sliceFrame evmRead
+  have hflux : ExecBlock fork config sliceFrame evmRead
       (checkedMulUintInto "owe0" (.var "slice") (.var "price") ++
         [ .letDecl "owe" (some uint256) (.var "owe0"),
           clipperTakeOweAdjustmentStmt ] ++
@@ -75,7 +77,7 @@ theorem clipperTakeOweGtTabCallbackTailSource
     simpa [sliceFrame, fluxFrame, owe0, slice', tabNew, lotNew] using
       clipperTakeOweGtTabVatFluxCallSuccessTailBlock v evmLoc evmRead evmVat I
         price slice hmul hgt hsliceLot hvatCode hcallVat
-  have hletDog : ExecStmt config fluxFrame evmVat
+  have hletDog : ExecStmt fork config fluxFrame evmVat
       (.letDecl "dog_" (some addr) (.storage dogRef))
       (.ok dogFrame evmVat) := by
     simpa [fluxFrame, dogFrame, clipperTakeLocalsDogLoaded] using
@@ -99,7 +101,7 @@ theorem clipperTakeOweGtTabCallbackTailSource
                   clipperTakeLocalsPrice, clipperTakeLocalsDone,
                   clipperTakeLocalsSt, clipperTakeLocalsTic,
                   clipperTakeLocalsUsr, clipperTakeStore])))
-  have hcallback' : ExecStmt config dogFrame evmVat
+  have hcallback' : ExecStmt fork config dogFrame evmVat
       (.ite
         (.binary .and
           (.binary .gt (bytesLength "data") (.intLit 0))
@@ -110,7 +112,7 @@ theorem clipperTakeOweGtTabCallbackTailSource
           [sender, .var "owe", .var "slice", .var "data"] "_clipperCallRet") [])
       (.ok callbackFrame evmCb) := by
     simpa [dogFrame, owe0, slice', tabNew, lotNew] using hcallback
-  have hrest : ExecBlock config fluxFrame evmVat
+  have hrest : ExecBlock fork config fluxFrame evmVat
       (clipperTakeAfterFluxStmts ++ clipperTakeAfterMoveStmts) result := by
     simpa [clipperTakeAfterFluxStmts, List.append_assoc] using
       ExecBlock.consNormal hletDog

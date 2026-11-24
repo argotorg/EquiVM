@@ -2,6 +2,8 @@ import Benchmarks.EAS.Attester.MultiRevokeSource
 import Benchmarks.EAS.Attester.MultiRevokeCallTrace
 import Benchmarks.EAS.Attester.MultiRevokeStartTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.EAS.Attester.Immutables attesterRuntimeBlocks
 
@@ -15,14 +17,14 @@ theorem multiRevokeExternalCorrect (imms : Store) (hfit : immutablesFit contract
     (hd : decodeArrays? bytes32 I.calldata = some (.array schemas, .array rows))
     (hshape : BatchShape I.calldata) (hrows : BatchRowsValid I.calldata)
     (heas : imms.get? "_eas" = some (.address eas))
-    (hp : ExecBlock config
+    (hp : ExecBlock fork config
       ⟨contract, multiRevokeLocals schemas rows, restrictImmutables contract imms⟩
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (multiRevokeTransition.body.take 6)
       (.ok ⟨contract, locals, restrictImmutables contract imms⟩
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)))
     (hlocalEas : locals.get? "eas" = some (.address eas))
     (hrequest : locals.get? "multiRequests" = some (multiRevokeRequests I.calldata))
-    (rd : RD (immutableLayout.runtime attesterBytecode (wordsOf imms)) I (Sat256.ofUInt256 g)
+    (rd : RD fork (immutableLayout.runtime attesterBytecode (wordsOf imms)) I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨877⟩
       [UInt256.ofNat (multiRevokeEncodedEnd I.calldata), ⟨1287121381⟩,
         UInt256.land (wordsOf imms "_eas") solcAddrMask, ⟨128⟩,
@@ -30,7 +32,7 @@ theorem multiRevokeExternalCorrect (imms : Store) (hfit : immutablesFit contract
         UInt256.ofNat (arrayDataNat I.calldata 36), UInt256.ofNat (arrayCount I.calldata 4),
         UInt256.ofNat (arrayDataNat I.calldata 4), ⟨100⟩, solcSelectorWord I]
       (multiRevokeEncodedMemory I.calldata) aw ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I (restrictImmutables contract imms) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (restrictImmutables contract imms) := by
   have hc := decodeArrays_some_checks hd
   have hdispatch := attesterMultiRevokeDispatch hselector
   have hdec := multiRevokeDecode_some hd
@@ -48,7 +50,7 @@ theorem multiRevokeExternalCorrect (imms : Store) (hfit : immutablesFit contract
   have hguard := evalExpr_codeGuard_of_accounts_eq (σ := σ)
     (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I) rfl ht hrecv
   by_cases hzero : extCodeSizeWord σ (UInt256.land (wordsOf imms "_eas") solcAddrMask) = ⟨0⟩
-  · have hsource : ExecTransitionBody config contract
+  · have hsource : ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (multiRevokeLocals schemas rows)
         multiRevokeTransition.body .reverted (restrictImmutables contract imms) := by
       apply ExecFuncBody.execBlockRevert
@@ -73,9 +75,9 @@ theorem multiRevokeExternalCorrect (imms : Store) (hfit : immutablesFit contract
       ulit_toNat' _ (by omega : multiRevokeEncodedEnd I.calldata - multiRevokeBuiltFree I.calldata <
         UInt256.size)] using multiRevokeRequests_encoding hc hshape hrows
   have hfailure {evm' : State} {out : ByteArray}
-      (hcall : typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I) eas
+      (hcall : typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I) eas
         "multiRevoke" 0 [multiRevokeRequests I.calldata] (false, evm', out)) :
-      ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (multiRevokeLocals schemas rows) multiRevokeTransition.body .reverted
         (restrictImmutables contract imms) := by
     apply ExecFuncBody.execBlockRevert
@@ -102,7 +104,7 @@ theorem multiRevokeExternalCorrect (imms : Store) (hfit : immutablesFit contract
         hcode hdispatch hdec (hfailure hcall)
   | true =>
       have hsource := ExecFuncBody.execBlockOK
-        (multiRevokeSourceSuffix hp (checkedExternalCallVarSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hguard hlocalEas hargs
+        (multiRevokeSourceSuffix hp (checkedExternalCallVarSuccess (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hguard hlocalEas hargs
           (by simpa only [address_of_val] using hcall) (by rfl)))
       exact (multiRevokeAfterCallSuccess rd').reEquivExecutionGen hcode hdispatch hdec hsource rfl
         (.fallthrough rfl rfl (by native_decide))

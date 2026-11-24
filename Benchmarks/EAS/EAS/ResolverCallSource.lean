@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.ResolverResultSource
 import Benchmarks.EAS.EAS.ReturnDecode
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -23,11 +25,11 @@ theorem resolverCallResultSource {locals imms : Store} {evm : EVM.State}
     (hh : locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)))
     (hout : out.size < 2^255) :
     if resolverCallValid heap success out then
-      ExecFuncBody config {contract := contract, locals := locals, immutables := imms} evm
+      ExecFuncBody fork config {contract := contract, locals := locals, immutables := imms} evm
         (.require (.var "ok") :: resolverResultTail)
         (.returned {contract := contract, locals := resolverResultFinalLocals locals out heap, immutables := imms}
           evm (some [.bool (decide (calldataWord out 0 ≠ ⟨0⟩)), .int (Int.ofNat (allocateNext heap (min out.size 32)))]))
-    else ExecFuncBody config {contract := contract, locals := locals, immutables := imms} evm
+    else ExecFuncBody fork config {contract := contract, locals := locals, immutables := imms} evm
       (.require (.var "ok") :: resolverResultTail) .reverted := by
   have heok : evalExpr? config {contract := contract, locals := locals, immutables := imms}
       evm (.var "ok") = .ok (.bool success) := by simp only [evalExpr?, hok, EvalResult.ofOption]

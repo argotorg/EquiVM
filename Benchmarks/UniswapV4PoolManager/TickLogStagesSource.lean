@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.TickLogSource
 import Benchmarks.UniswapV4PoolManager.TransientSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -38,7 +40,7 @@ theorem tickLogStageExec {f : Frame} {evm : EVM.State} {r log2 : UInt256}
     (hf : f.contract = contract)
     (hr : f.locals.get? "r" = some (.int (Int.ofNat r.toNat)))
     (hl : f.locals.get? "log_2" = some (.int (EVM.signed log2))) :
-    ∃ f', ExecBlock config f evm stage.statements (.ok f' evm) ∧
+    ∃ f', ExecBlock fork config f evm stage.statements (.ok f' evm) ∧
       f'.locals.get? "r" = some (.int (Int.ofNat (tickLogNext r stage.normalize).toNat)) ∧
       f'.locals.get? "log_2" = some (.int (EVM.signed (tickLogWord r log2 stage.bit))) ∧
       f'.contract = f.contract ∧
@@ -49,7 +51,7 @@ theorem tickLogStageExec {f : Frame} {evm : EVM.State} {r log2 : UInt256}
   let f1 : Frame := {f with locals := f.locals.insert stage.name (.tuple result)}
   let f2 : Frame := {f1 with locals := f1.locals.insert "r" (.int (Int.ofNat (tickLogNext r stage.normalize).toNat))}
   let f3 : Frame := {f2 with locals := f2.locals.insert "log_2" (.int (EVM.signed (tickLogWord r log2 stage.bit)))}
-  have hc := tickLogCall (evm := evm) hf hb (evalLocalValue hr) (evalLocalValue hl)
+  have hc := tickLogCall (fork := fork) (evm := evm) hf hb (evalLocalValue hr) (evalLocalValue hl)
     (show evalExpr? config f evm (.intLit (Int.ofNat stage.bit)) = .ok (.int (Int.ofNat stage.bit)) by
       simp only [evalExpr?, pure])
     (show evalExpr? config f evm (.boolLit stage.normalize) = .ok (.bool stage.normalize) by
@@ -62,8 +64,8 @@ theorem tickLogStageExec {f : Frame} {evm : EVM.State} {r log2 : UInt256}
   have htuple2 : f2.locals.get? stage.name = some (.tuple result) :=
     (store_get_ne _ _ (beq_eq_false_iff_ne.mpr (Ne.symm hnr))).trans htuple1
   refine ⟨f3, ExecBlock.consNormal hc (ExecBlock.consNormal
-    (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalTupleProjection (evalLocalValue htuple1) rfl) (assignLocalValue hr1))
-    (ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalTupleProjection (evalLocalValue htuple2) rfl)
+    (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalTupleProjection (evalLocalValue htuple1) rfl) (assignLocalValue hr1))
+    (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalTupleProjection (evalLocalValue htuple2) rfl)
       (assignLocalValue hl2)) ExecBlock.nil)), ?_, store_get_self _ _ _, rfl, ?_⟩
   · exact (store_get_ne _ _ (by decide : ("log_2" == "r") = false)).trans (store_get_self _ _ _)
   · intro name hrn hln hsn
@@ -76,7 +78,7 @@ theorem tickLogStagesExec {f : Frame} {evm : EVM.State} {r log2 : UInt256}
     (hf : f.contract = contract)
     (hr : f.locals.get? "r" = some (.int (Int.ofNat r.toNat)))
     (hl : f.locals.get? "log_2" = some (.int (EVM.signed log2))) :
-    ∃ f', ExecBlock config f evm (stages.flatMap TickLogStage.statements) (.ok f' evm) ∧
+    ∃ f', ExecBlock fork config f evm (stages.flatMap TickLogStage.statements) (.ok f' evm) ∧
       f'.locals.get? "r" = some (.int (Int.ofNat (tickLogStages r log2 stages).1.toNat)) ∧
       f'.locals.get? "log_2" = some (.int (EVM.signed (tickLogStages r log2 stages).2)) ∧
       f'.contract = f.contract ∧

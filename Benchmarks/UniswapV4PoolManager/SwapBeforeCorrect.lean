@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.SwapBeforeSource
 import Benchmarks.UniswapV4PoolManager.SwapPoolCorrect
 import Benchmarks.UniswapV4PoolManager.BeforeSwapCallCorrect
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -26,19 +28,19 @@ theorem swapBeforeCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f : 
     (hroom : free.toNat+4000 ≤ solcMaxU64) (hsrc : src.toNat+len.toNat ≤ I.calldata.size)
     (hcd : I.calldata.size < 2^255) (hgas : g.toNat < 324518553658429321982441292826060)
     (hpaid : Cₘ aw ≤ C+120) (hfree : memLoad (UInt256.ofNat 64) mem = free)
-    (h : RD (deployedRuntime v) I g s0 ⟨1571⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨1571⟩
       ([len, poolSlot id, paramsPtr+UInt256.ofNat 64, keyPtr, id, src, paramsPtr, junk]++R)
       mem aw rdata evm.accountMap k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
-    ∃ result, ExecBlock config f evm (swapTransition.body.drop 15) result ∧
-      abiResultTrace swapTransition.returnType (deployedRuntime v) g s0 result := by
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    ∃ result, ExecBlock fork config f evm (swapTransition.body.drop 15) result ∧
+      abiResultTrace fork swapTransition.returnType (deployedRuntime v) g s0 result := by
   have hfit : free.toNat+len.toNat+480 < UInt256.size := by
     change _ ≤ 2^64-1 at hroom
     change _ < 2^256
     omega
   let f0 := swapBeforeStartFrame f
   let hook := AccountAddress.ofNat key.hooks.toNat
-  have hstart := swapBeforeStartSource f evm
+  have hstart := swapBeforeStartSource (fork := fork) f evm
   have hc0 : f0.contract = contract := by dsimp only [f0, swapBeforeStartFrame]; exact hc
   have hk0 : f0.locals.get? "key" = some (poolKeyValue key) :=
     (store_get_ne3 _ _ _ _ (by decide : ("beforeSwapDelta" == "key") = false)
@@ -89,9 +91,9 @@ theorem swapBeforeCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f : 
     obtain ⟨amount, before, fee, rawFee, out, data, nextFree, aw1, k1, C1,
       hIp, hσp, hv, hfeeBound, hclean, hpaid1, rd1, hm⟩ := ht
     subst values
-    change ExecStmt config f0 evm swapTransition.body[18]!
+    change ExecStmt fork config f0 evm swapTransition.body[18]!
       (.ok (swapBeforeCallFrame f0 amount before fee) post) at hcall
-    have hassign := swapBeforeAssignSource (evm := post) (amount := amount) (before := before) (fee := fee)
+    have hassign := swapBeforeAssignSource (fork := fork) (evm := post) (amount := amount) (before := before) (fee := fee)
       ha0 hbefore0 hfee0
     let ff := swapBeforeHookFrame f0 amount before fee
     have hcff : ff.contract = contract := by

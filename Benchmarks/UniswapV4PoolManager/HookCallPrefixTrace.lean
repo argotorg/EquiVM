@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.RawCallBridge
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_045
 import Benchmarks.UniswapV4PoolManager.BytesObjectMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -18,14 +20,14 @@ theorem hookCallPrefixTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hstack : R.length+11 ≤ 1024) (hI : evm.executionEnv = I) (hσ0 : evm.σ₀ = s0.σ₀)
     (hdata : BytesObjectView mem ptr data) (hsmall : data.size ≤ Ethereum.EVM.maxReturnDataSizeByGas)
     (hfit : ptr.toNat+32 < UInt256.size)
-    (h : RD (deployedRuntime v) I g s0 ⟨16165⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨16165⟩
       (accountWord hook :: ptr :: ret :: R) mem aw rdata evm.accountMap k C) :
-    ∃ evm' z out k' C', callViaEVM evm hook 0 data (z, evm', out) ∧
+    ∃ evm' z out k' C', callViaEVM fork evm hook 0 data (z, evm', out) ∧
       evm'.executionEnv = I ∧ evm'.σ₀ = s0.σ₀ ∧ out.size < 2^138 ∧
-      (if z = true then RD (deployedRuntime v) I g s0 ⟨16189⟩
+      (if z = true then RD fork (deployedRuntime v) I g s0 ⟨16189⟩
         (ptr :: accountWord hook :: ret :: (ptr+⟨32⟩) :: R)
         mem (hookCallActiveWords aw ptr data) out evm'.accountMap k' C'
-      else RDrev (deployedRuntime v) g s0) := by
+      else RDrev fork (deployedRuntime v) g s0) := by
   have hsize : data.size < UInt256.size := lt_of_le_of_lt hsmall (by decide)
   have hptr : (ptr+⟨32⟩).toNat = ptr.toNat+32 := uadd_word_ofNat_toNat ptr 32 hfit
   have hinput : mem.readWithPadding (ptr+⟨32⟩).toNat (memLoad ptr mem).toNat = data := by
@@ -38,7 +40,7 @@ theorem hookCallPrefixTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
       UInt8.ofNat 241, .CALL, none, poolManagerBlocks.immutableLayout_inBounds,
       poolManagerBlocks.immutableTemplate_size64)) hinput hsmall
     (by simp only [List.length_cons]; omega)
-  have hc' : callViaEVM evm hook 0 data (z, evm', out) := by
+  have hc' : callViaEVM fork evm hook 0 data (z, evm', out) := by
     simpa only [accountWord, accountAddress_roundtrip] using hc
   simp only [callOutputMem_zero, hdata.lengthWord] at rd2
   cases z with

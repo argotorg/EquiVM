@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.BalanceCopyMemory
 import Benchmarks.UniswapV3.Pool.BalanceBuild
 import Benchmarks.UniswapV3.Pool.SafeTransferCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,11 +13,11 @@ set_option maxRecDepth 10000
 theorem balanceCopyWordsX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (second : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (balanceBuildExit second)
+    (rd : RD fork (deployedRuntime v) ee g s0 (balanceBuildExit second)
       (⟨36⟩ :: (p + ⟨68⟩) :: p :: (p + ⟨32⟩) :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw (p + ⟨68⟩)) (hb : p.toNat + 132 ≤ 2 ^ 200)
     (hov : R.length + 10 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨15725⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨15725⟩
       ((p + ⟨64⟩) :: (p + ⟨100⟩) :: ⟨4⟩ :: ⟨36⟩ :: (p + ⟨32⟩) ::
         (p + ⟨68⟩) :: (p + ⟨68⟩) :: p :: R) (balanceCopyMem1 mem p) aw' rdata σ k' C' ∧
       HeapMemory (balanceCopyMem1 mem p) aw' (p + ⟨68⟩) := by
@@ -57,11 +59,11 @@ theorem balanceCopyWordsX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem balanceCopyX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p token : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (second : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (balanceBuildExit second)
+    (rd : RD fork (deployedRuntime v) ee g s0 (balanceBuildExit second)
       (⟨36⟩ :: (p + ⟨68⟩) :: p :: (p + ⟨32⟩) :: token :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw (p + ⟨68⟩)) (hb : p.toNat + 132 ≤ 2 ^ 200)
     (hov : R.length + 14 ≤ 1024) :
-    ∃ gasArg aw' k' C', RD (deployedRuntime v) ee g s0 ⟨15774⟩
+    ∃ gasArg aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨15774⟩
       (gasArg :: token :: (p + ⟨68⟩) :: ⟨36⟩ :: (p + ⟨68⟩) :: ⟨0⟩ ::
         (UInt256.ofNat 36 + (p + ⟨68⟩)) :: token :: R)
       (balanceCopyMem2 mem p) aw' rdata σ k' C' ∧

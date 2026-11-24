@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SourceExpressions
 import Benchmarks.UniswapV3.Pool.PackedBytes
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -86,7 +88,7 @@ theorem evalPositionPackedArgs (imms : Store) (evm : EVM.State)
 
 theorem positionGetReturns (imms : Store) (evm : EVM.State)
     (owner : AccountAddress) (lower upper : UInt256) :
-    ExecFuncBody config (positionGetFrame imms owner lower upper) evm positionGetFunction.body
+    ExecFuncBody fork config (positionGetFrame imms owner lower upper) evm positionGetFunction.body
       (.returned (positionGetFrame imms owner lower upper) evm
         (some [.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE (positionKey owner lower upper))])) := by
   apply ExecFuncBody.execBlockRet

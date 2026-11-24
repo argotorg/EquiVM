@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.FullMathTrace
 import Benchmarks.UniswapV4PoolManager.FullMathRoundWords
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_066
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -12,10 +14,10 @@ theorem fullMathRoundTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw a b d ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+14 ≤ 1024)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨23656⟩ (a :: b :: d :: ret :: R) mem aw rdata σ k C) :
-    if fullMathRoundFits a b d then ∃ k' C', RD (deployedRuntime v) I g s0 ret
+    (h : RD fork (deployedRuntime v) I g s0 ⟨23656⟩ (a :: b :: d :: ret :: R) mem aw rdata σ k C) :
+    if fullMathRoundFits a b d then ∃ k' C', RD fork (deployedRuntime v) I g s0 ret
       (fullMathRoundWord a b d :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have rd1 := poolManagerBlocks.poolManager_block_23656
     (by change R.length+9 ≤ 1024; omega)
     (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) h

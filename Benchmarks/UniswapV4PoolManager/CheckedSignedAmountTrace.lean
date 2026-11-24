@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.SignedWordBounds
 import Benchmarks.UniswapV4PoolManager.SafeCast128Trace
 import Benchmarks.UniswapV4PoolManager.BlockResultTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -18,12 +20,12 @@ theorem checkedSignedAmountTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State
     (hamt : (D_J (deployedRuntime v) 0).contains amountPC = true)
     (hcast : (D_J (deployedRuntime v) 0).contains castPC = true)
     (hbridge : ∀ {word : UInt256} {k C : Nat},
-      RD (deployedRuntime v) I g s0 amountPC (word :: castPC :: R) mem aw rdata evm.accountMap k C →
-      ∃ k' C', RD (deployedRuntime v) I g s0 ⟨14213⟩ (word :: castPC :: R) mem aw rdata evm.accountMap k' C')
-    (h : RD (deployedRuntime v) I g s0 (if one then ⟨17610⟩ else ⟨17703⟩)
+      RD fork (deployedRuntime v) I g s0 amountPC (word :: castPC :: R) mem aw rdata evm.accountMap k C →
+      ∃ k' C', RD fork (deployedRuntime v) I g s0 ⟨14213⟩ (word :: castPC :: R) mem aw rdata evm.accountMap k' C')
+    (h : RD fork (deployedRuntime v) I g s0 (if one then ⟨17610⟩ else ⟨17703⟩)
       (a :: b :: EVM.wordOfInt delta :: amountPC :: castPC :: R) mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0 (fun _ post => post = evm ∧ ∃ k' C',
-      RD (deployedRuntime v) I g s0 castPC (signedAmountWord one a b delta :: R)
+    blockResultTrace fork (deployedRuntime v) g s0 (fun _ post => post = evm ∧ ∃ k' C',
+      RD fork (deployedRuntime v) I g s0 castPC (signedAmountWord one a b delta :: R)
         mem aw rdata post.accountMap k' C') (fun _ _ => False)
       (checkedSignedAmountResult f evm one a b delta amountRet castRet) := by
   have hr := signedAmountTrace one v (by simp only [List.length_cons]; omega) ha hb hdlo hdhi hamt h

@@ -14,6 +14,8 @@ import Reasoning.Initcode
 import Reasoning.SteleArithmetic
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # BlindAuction — top-level correctness proof
 
@@ -34,7 +36,7 @@ namespace BlindAuction
 /-- The deployed BlindAuction runtime bytecode refines the Stele specification. -/
 theorem blindAuctionCorrect :
     runtimeRefinement blindAuctionConfig blindAuctionBytecode blindAuctionContract := by
-  refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
+  refine ⟨fun fork _hfork σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hsz : 4 ≤ I.calldata.size
   · by_cases h0 : selIs I ⟨#[0x95, 0x7b, 0xb1, 0xe0]⟩
     · exact blindAuctionBidBodyCore hcode hsize h0
@@ -45,7 +47,7 @@ theorem blindAuctionCorrect :
             (by simpa [selIs, blindAuctionHighSelBytes] using h0)).1
           (blindAuctionHighMatches 3 (by omega) hsz
             (by simpa [selIs, blindAuctionHighSelBytes] using h0)).2
-          (by jump_dest) (by decide))
+          (by jump_dest) (by decide +kernel))
     · by_cases h1 : selIs I ⟨#[0x90, 0x0f, 0x08, 0x0a]⟩
       · exact blindAuctionRevealBodyCore hcode hsize h1
           (blindAuctionReachHighBody 1 (by omega) ⟨387⟩ hcode hsz hsize
@@ -55,7 +57,7 @@ theorem blindAuctionCorrect :
               (by simpa [selIs, blindAuctionHighSelBytes] using h1)).1
             (blindAuctionHighMatches 1 (by omega) hsz
               (by simpa [selIs, blindAuctionHighSelBytes] using h1)).2
-            (by jump_dest) (by decide))
+            (by jump_dest) (by decide +kernel))
       · by_cases h2 : selIs I ⟨#[0x3c, 0xcf, 0xd6, 0x0b]⟩
         · exact blindAuctionWithdrawBodyCore hcode hsize h2
             (blindAuctionReachLowBody 4 (by omega) ⟨332⟩ hcode hsz hsize
@@ -65,7 +67,7 @@ theorem blindAuctionCorrect :
                 (by simpa [selIs, blindAuctionLowSelBytes] using h2)).1
               (blindAuctionLowMatches 4 (by omega) hsz
                 (by simpa [selIs, blindAuctionLowSelBytes] using h2)).2
-              (by jump_dest) (by decide))
+              (by jump_dest) (by decide +kernel))
         · by_cases h3 : selIs I ⟨#[0x2a, 0x24, 0xf4, 0x6c]⟩
           · exact blindAuctionAuctionEndBodyCore hcode hsize h3
               (blindAuctionReachLowBody 2 (by omega) ⟨256⟩ hcode hsz hsize
@@ -75,7 +77,7 @@ theorem blindAuctionCorrect :
                   (by simpa [selIs, blindAuctionLowSelBytes] using h3)).1
                 (blindAuctionLowMatches 2 (by omega) hsz
                   (by simpa [selIs, blindAuctionLowSelBytes] using h3)).2
-                (by jump_dest) (by decide))
+                (by jump_dest) (by decide +kernel))
           · by_cases h4 : selIs I ⟨#[0x38, 0xaf, 0x3e, 0xed]⟩
             · exact blindAuctionBeneficiaryBodyCore hcode hsize h4
                 (blindAuctionReachLowBody 3 (by omega) ⟨278⟩ hcode hsz hsize
@@ -85,7 +87,7 @@ theorem blindAuctionCorrect :
                     (by simpa [selIs, blindAuctionLowSelBytes] using h4)).1
                   (blindAuctionLowMatches 3 (by omega) hsz
                     (by simpa [selIs, blindAuctionLowSelBytes] using h4)).2
-                  (by jump_dest) (by decide))
+                  (by jump_dest) (by decide +kernel))
             · by_cases h5 : selIs I ⟨#[0x42, 0x3b, 0x21, 0x7f]⟩
               · exact blindAuctionBiddingEndBodyCore hcode hsize h5
                   (blindAuctionReachHighBody 0 (by omega) ⟨352⟩ hcode hsz hsize
@@ -95,7 +97,7 @@ theorem blindAuctionCorrect :
                       (by simpa [selIs, blindAuctionHighSelBytes] using h5)).1
                     (blindAuctionHighMatches 0 (by omega) hsz
                       (by simpa [selIs, blindAuctionHighSelBytes] using h5)).2
-                    (by jump_dest) (by decide))
+                    (by jump_dest) (by decide +kernel))
               · by_cases h6 : selIs I ⟨#[0xa6, 0xe6, 0x64, 0x77]⟩
                 · exact blindAuctionRevealEndBodyCore hcode hsize h6
                     (blindAuctionReachHighBody 4 (by omega) ⟨468⟩ hcode hsz hsize
@@ -105,7 +107,7 @@ theorem blindAuctionCorrect :
                         (by simpa [selIs, blindAuctionHighSelBytes] using h6)).1
                       (blindAuctionHighMatches 4 (by omega) hsz
                         (by simpa [selIs, blindAuctionHighSelBytes] using h6)).2
-                      (by jump_dest) (by decide))
+                      (by jump_dest) (by decide +kernel))
                 · by_cases h7 : selIs I ⟨#[0x12, 0xfa, 0x6f, 0xeb]⟩
                   · exact blindAuctionEndedBodyCore hcode hsize h7
                       (blindAuctionReachLowBody 1 (by omega) ⟨215⟩ hcode hsz hsize
@@ -115,7 +117,7 @@ theorem blindAuctionCorrect :
                           (by simpa [selIs, blindAuctionLowSelBytes] using h7)).1
                         (blindAuctionLowMatches 1 (by omega) hsz
                           (by simpa [selIs, blindAuctionLowSelBytes] using h7)).2
-                        (by jump_dest) (by decide))
+                        (by jump_dest) (by decide +kernel))
                   · by_cases h8 : selIs I ⟨#[0x91, 0xf9, 0x01, 0x57]⟩
                     · exact blindAuctionHighestBidderBodyCore hcode hsize h8
                         (blindAuctionReachHighBody 2 (by omega) ⟨418⟩ hcode hsz hsize
@@ -125,7 +127,7 @@ theorem blindAuctionCorrect :
                             (by simpa [selIs, blindAuctionHighSelBytes] using h8)).1
                           (blindAuctionHighMatches 2 (by omega) hsz
                             (by simpa [selIs, blindAuctionHighSelBytes] using h8)).2
-                          (by jump_dest) (by decide))
+                          (by jump_dest) (by decide +kernel))
                     · by_cases h9 : selIs I ⟨#[0xd5, 0x7b, 0xde, 0x79]⟩
                       · exact blindAuctionHighestBidBodyCore hcode hsize h9
                           (blindAuctionReachHighBody 5 (by omega) ⟨489⟩ hcode hsz hsize
@@ -135,7 +137,7 @@ theorem blindAuctionCorrect :
                               (by simpa [selIs, blindAuctionHighSelBytes] using h9)).1
                             (blindAuctionHighMatches 5 (by omega) hsz
                               (by simpa [selIs, blindAuctionHighSelBytes] using h9)).2
-                            (by jump_dest) (by decide))
+                            (by jump_dest) (by decide +kernel))
                       · by_cases h10 : selIs I ⟨#[0x01, 0x49, 0x5c, 0x1c]⟩
                         · exact blindAuctionBidsBodyCore hcode hsize h10
                             (blindAuctionReachLowBody 0 (by omega) ⟨158⟩ hcode hsz hsize
@@ -145,7 +147,7 @@ theorem blindAuctionCorrect :
                                 (by simpa [selIs, blindAuctionLowSelBytes] using h10)).1
                               (blindAuctionLowMatches 0 (by omega) hsz
                                 (by simpa [selIs, blindAuctionLowSelBytes] using h10)).2
-                              (by jump_dest) (by decide))
+                              (by jump_dest) (by decide +kernel))
                         · refine blindAuctionNoDispatch hcode hsize ?_
                           intro i hi
                           interval_cases i
@@ -582,10 +584,10 @@ theorem blindAuctionInitcodeNonpayableRevert
     (tail : ByteArray)
     (hcode : I.code = blindAuctionInitcode ++ tail)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev (blindAuctionInitcode ++ tail) g
+    RDrev fork (blindAuctionInitcode ++ tail) g
       (initState σ σ₀ g A I) := by
   have rd0 :
-      RD (blindAuctionInitcode ++ tail) I g
+      RD fork (blindAuctionInitcode ++ tail) I g
         (initState σ σ₀ g A I) ⟨0⟩ []
         ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
@@ -606,10 +608,10 @@ theorem blindAuctionInitcodeBiddingOverflowRevert
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hover : UInt256.size ≤ (UInt256.ofNat I.header.timestamp).toNat + biddingTime.toNat) :
-    RDrev (blindAuctionCtorCode biddingTime revealTime beneficiaryAddress) g
+    RDrev fork (blindAuctionCtorCode biddingTime revealTime beneficiaryAddress) g
       (initState σ σ₀ g A I) := by
   have rd0 :
-      RD (blindAuctionCtorCode biddingTime revealTime beneficiaryAddress) I g
+      RD fork (blindAuctionCtorCode biddingTime revealTime beneficiaryAddress) I g
         (initState σ σ₀ g A I) ⟨0⟩ []
         ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
@@ -685,10 +687,10 @@ theorem blindAuctionInitcodeRevealOverflowRevert
     (hoverReveal : UInt256.size ≤
       (blindAuctionCtorBiddingEndWord σ I biddingTime beneficiaryAddress).toNat
         + revealTime.toNat) :
-    RDrev (blindAuctionCtorCode biddingTime revealTime beneficiaryAddress) g
+    RDrev fork (blindAuctionCtorCode biddingTime revealTime beneficiaryAddress) g
       (initState σ σ₀ g A I) := by
   have rd0 :
-      RD (blindAuctionCtorCode biddingTime revealTime beneficiaryAddress) I g
+      RD fork (blindAuctionCtorCode biddingTime revealTime beneficiaryAddress) I g
         (initState σ σ₀ g A I) ⟨0⟩ []
         ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
@@ -779,7 +781,7 @@ theorem blindAuctionInitcodeRevealOverflowRevert
       (sstoreAccountMap I.codeOwner σ ⟨0⟩ beneficiaryStoreWord)
       ⟨1⟩ (UInt256.ofNat I.header.timestamp + biddingTime)).get? I.codeOwner).option
         ⟨0⟩ (fun ac => ac.storage.getD ⟨1⟩ ⟨0⟩)
-  change RD (blindAuctionCtorCode biddingTime revealTime beneficiaryAddress) I g
+  change RD fork (blindAuctionCtorCode biddingTime revealTime beneficiaryAddress) I g
     (initState σ σ₀ g A I) _
     [biddingEndWord, revealTime]
     (blindAuctionRevealMem biddingTime revealTime beneficiaryAddress) (UInt256.ofNat 1)
@@ -815,7 +817,7 @@ theorem blindAuctionInitcodeSuccess
     (hnoReveal : ¬ UInt256.size ≤
       (blindAuctionCtorBiddingEndWord σ I biddingTime beneficiaryAddress).toNat
         + revealTime.toNat) :
-    RDret (blindAuctionCtorCode biddingTime revealTime beneficiaryAddress) g
+    RDret fork (blindAuctionCtorCode biddingTime revealTime beneficiaryAddress) g
       (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner
@@ -827,7 +829,7 @@ theorem blindAuctionInitcodeSuccess
           ⟨2⟩ (revealTime + blindAuctionCtorBiddingEndWord σ I biddingTime beneficiaryAddress))
       blindAuctionBytecode := by
   have rd0 :
-      RD (blindAuctionCtorCode biddingTime revealTime beneficiaryAddress) I g
+      RD fork (blindAuctionCtorCode biddingTime revealTime beneficiaryAddress) I g
         (initState σ σ₀ g A I) ⟨0⟩ []
         ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
@@ -918,7 +920,7 @@ theorem blindAuctionInitcodeSuccess
       (sstoreAccountMap I.codeOwner σ ⟨0⟩ beneficiaryStoreWord)
       ⟨1⟩ (UInt256.ofNat I.header.timestamp + biddingTime)).get? I.codeOwner).option
         ⟨0⟩ (fun ac => ac.storage.getD ⟨1⟩ ⟨0⟩)
-  change RD (blindAuctionCtorCode biddingTime revealTime beneficiaryAddress) I g
+  change RD fork (blindAuctionCtorCode biddingTime revealTime beneficiaryAddress) I g
     (initState σ σ₀ g A I) _
     [biddingEndWord, revealTime]
     (blindAuctionRevealMem biddingTime revealTime beneficiaryAddress) (UInt256.ofNat 1)
@@ -1378,7 +1380,7 @@ theorem blindAuctionSteleCtorExecReverts_nonpayable
     (biddingTime revealTime : Int)
     (beneficiaryAddress : AccountAddress)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    steleCtorExec blindAuctionConfig blindAuctionContract
+    steleCtorExec fork blindAuctionConfig blindAuctionContract
       [.int biddingTime, .int revealTime, .address beneficiaryAddress]
       σ σ₀ g A I .reverted := by
   refine steleCtorExec.intro
@@ -1405,7 +1407,7 @@ theorem blindAuctionSteleCtorExecReverts_biddingOverflow
     (hoverBid : UInt256.size ≤
       (UInt256.ofNat I.header.timestamp).toNat + (EVM.word biddingTime.toNat).toNat)
     (hperm : I.perm = true) :
-    steleCtorExec blindAuctionConfig blindAuctionContract
+    steleCtorExec fork blindAuctionConfig blindAuctionContract
       [.int biddingTime, .int revealTime, .address beneficiaryAddress]
       σ σ₀ g A I .reverted := by
   refine steleCtorExec.intro
@@ -1468,7 +1470,7 @@ theorem blindAuctionSteleCtorExecReverts_revealOverflow
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         biddingTime beneficiaryAddress).toNat + (EVM.word revealTime.toNat).toNat)
     (hperm : I.perm = true) :
-    steleCtorExec blindAuctionConfig blindAuctionContract
+    steleCtorExec fork blindAuctionConfig blindAuctionContract
       [.int biddingTime, .int revealTime, .address beneficiaryAddress]
       σ σ₀ g A I .reverted := by
   refine steleCtorExec.intro
@@ -1561,7 +1563,7 @@ theorem blindAuctionSteleCtorExecSuccess
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         biddingTime beneficiaryAddress).toNat + (EVM.word revealTime.toNat).toNat)
     (hperm : I.perm = true) :
-    steleCtorExec blindAuctionConfig blindAuctionContract
+    steleCtorExec fork blindAuctionConfig blindAuctionContract
       [.int biddingTime, .int revealTime, .address beneficiaryAddress]
       σ σ₀ g A I
       (.returned
@@ -1735,7 +1737,7 @@ theorem blindAuctionCtorRevealBaseWord_equiv
 theorem blindAuctionConstructorCorrect :
     typedConstructorRefinement blindAuctionConfig blindAuctionInitcode blindAuctionContract
       (fun _ => blindAuctionBytecode) := by
-  intro σ σ₀ g A I
+  intro fork _hfork σ σ₀ g A I
       args deployedInitcode hdeploy hcode hcalldata hperm
   rcases blindAuctionDeployment_shape hdeploy with
     ⟨biddingTime, revealTime, beneficiaryAddress, hargs, h0Bid, hltBid, h0Reveal, hltReveal,
@@ -1750,14 +1752,14 @@ theorem blindAuctionConstructorCorrect :
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hoverBid : UInt256.size ≤
         (UInt256.ofNat I.header.timestamp).toNat + bidWord.toNat
-    · have hrd := blindAuctionInitcodeBiddingOverflowRevert
+    · have hrd := blindAuctionInitcodeBiddingOverflowRevert (fork := fork)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) bidWord revealWord beneficiaryAddress hcodeCtor
         hperm hwv hoverBid
       rcases hrd.xiResult hcodeCtor with hOOG | ⟨g', o, hrev⟩
       · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
       · refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hrev)
-          (blindAuctionSteleCtorExecReverts_biddingOverflow (hperm := by assumption)
+          (blindAuctionSteleCtorExecReverts_biddingOverflow (fork := fork) (hperm := by assumption)
             (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
             biddingTime revealTime beneficiaryAddress h0Bid hltBid hwv (by
               simpa [bidWord] using hoverBid)) ?_
@@ -1770,14 +1772,14 @@ theorem blindAuctionConstructorCorrect :
       by_cases hoverReveal : UInt256.size ≤
           (blindAuctionCtorBiddingEndWord σ I bidWord beneficiaryAddress).toNat
             + revealWord.toNat
-      · have hrd := blindAuctionInitcodeRevealOverflowRevert
+      · have hrd := blindAuctionInitcodeRevealOverflowRevert (fork := fork)
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := Sat256.ofUInt256 g) bidWord revealWord beneficiaryAddress hcodeCtor
           hperm hwv (by simpa [bidWord] using hoverBid) hoverReveal
         rcases hrd.xiResult hcodeCtor with hOOG | ⟨g', o, hrev⟩
         · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
         · refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hrev)
-            (blindAuctionSteleCtorExecReverts_revealOverflow (hperm := by assumption)
+            (blindAuctionSteleCtorExecReverts_revealOverflow (fork := fork) (hperm := by assumption)
               (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
               biddingTime revealTime beneficiaryAddress h0Bid hltBid h0Reveal hltReveal hwv
               (by simpa [bidWord] using hoverBid)
@@ -1785,7 +1787,7 @@ theorem blindAuctionConstructorCorrect :
                 rw [← hRevealBase]
                 simpa [revealWord] using hoverReveal)) ?_
           exact ctorResultEquiv.revert rfl rfl
-      · have hrd := blindAuctionInitcodeSuccess
+      · have hrd := blindAuctionInitcodeSuccess (fork := fork)
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := Sat256.ofUInt256 g) bidWord revealWord beneficiaryAddress hcodeCtor
           hperm hwv (by simpa [bidWord] using hoverBid) hoverReveal
@@ -1829,7 +1831,7 @@ theorem blindAuctionConstructorCorrect :
               bidWord] using hacc
           rw [hσFinal] at hsuccess
           refine typedConstructorRefinementFor.execution hsuccess
-            (blindAuctionSteleCtorExecSuccess (hperm := by assumption)
+            (blindAuctionSteleCtorExecSuccess (fork := fork) (hperm := by assumption)
               (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
               biddingTime revealTime beneficiaryAddress h0Bid hltBid h0Reveal hltReveal hwv
               (by simpa [bidWord] using hoverBid)
@@ -1884,7 +1886,7 @@ theorem blindAuctionConstructorCorrect :
       rw [hcode, hdeployed]
       simp only [tail, bidWordBytes, revealWordBytes, beneficiaryWordBytes, bidWord, revealWord]
       simp [ByteArray.append_assoc]
-    have hrd := blindAuctionInitcodeNonpayableRevert
+    have hrd := blindAuctionInitcodeNonpayableRevert (fork := fork)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) tail hcodeTail hwv
     rcases hrd.xiResult hcodeTail with hOOG | ⟨g', o, hrev⟩

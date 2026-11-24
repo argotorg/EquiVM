@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.InitializePrefix
 import Benchmarks.UniswapV3.Pool.OracleInitializeSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -29,7 +31,7 @@ theorem evalInitializeOracleArgs (v : UniswapV3PoolImmutables) (evm : EVM.State)
 theorem initializeOracleCall (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (price : UInt256) (tick : Int)
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config (initializeTimeFrame v price tick evm.executionEnv) evm
+    ExecStmt fork config (initializeTimeFrame v price tick evm.executionEnv) evm
       (.internalCall "Oracle_initialize" [.var "__c1"] "__c2")
       (.ok (initializeOracleFrame v price tick evm.executionEnv)
         (oracleInitializeState evm (blockTimestampWord evm.executionEnv))) :=
@@ -38,11 +40,11 @@ theorem initializeOracleCall (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (calleeStele := oracleInitializeReadyFrame (immStore v) (blockTimestampWord evm.executionEnv))
     (value := some [.int 1, .int 1])
     (evalInitializeOracleArgs v evm price tick) oracleInitializeLookup (oracleInitializeBind _)
-    (oracleInitializeReturns (hperm := by assumption) (immStore v) evm _ (blockTimestampWord_lt _))
+    (oracleInitializeReturns (fork := fork) (hperm := by assumption) (immStore v) evm _ (blockTimestampWord_lt _))
 
 theorem initializeOracleStatic (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (price : UInt256) (tick : Int) (hperm : evm.executionEnv.perm = false) :
-    ExecStmt config (initializeTimeFrame v price tick evm.executionEnv) evm
+    ExecStmt fork config (initializeTimeFrame v price tick evm.executionEnv) evm
       (.internalCall "Oracle_initialize" [.var "__c1"] "__c2") .staticViolation :=
   ExecStmt.internalCallStatic (callee := oracleInitializeFunction.toCallable)
     (evalInitializeOracleArgs v evm price tick) oracleInitializeLookup (oracleInitializeBind _)
@@ -53,13 +55,13 @@ theorem initializeReadySource (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (hzero : slot0FieldWord 0 20 evm.accountMap evm.executionEnv = ⟨0⟩)
     (hp : price.toNat < 2 ^ 160) (hv : tickLogValid price) (hs : tickLogSafe (tickLogResult price))
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config (initializeFrame v price) evm (initializeTransition.body.take 7)
+    ExecBlock fork config (initializeFrame v price) evm (initializeTransition.body.take 7)
       (.ok (initializeReadyFrame v price (tickLogChoice (tickLogResult price) price) evm.executionEnv)
         (oracleInitializeState evm (blockTimestampWord evm.executionEnv))) := by
-  change ExecBlock _ _ _ (initializeTransition.body.take 4 ++
+  change ExecBlock fork _ _ _ (initializeTransition.body.take 4 ++
     (initializeTransition.body.drop 4).take 3) _
   apply execBlock_append_ok (initializeBeforeOracleSource v evm price hwv hzero hp hv hs)
-  refine ExecBlock.consNormal (initializeOracleCall (hperm := by assumption) v evm price _) ?_
+  refine ExecBlock.consNormal (initializeOracleCall (fork := fork) (hperm := by assumption) v evm price _) ?_
   refine ExecBlock.consNormal (ExecStmt.letDecl (value := .int 1) ?_) ?_
   · simp [evalExpr?, initializeOracleFrame, EvalResult.ofOption, tupleGetValue?,
       bind, EvalResult.bind]
@@ -72,7 +74,7 @@ theorem initializeStatic (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (hzero : slot0FieldWord 0 20 evm.accountMap evm.executionEnv = ⟨0⟩)
     (hp : price.toNat < 2 ^ 160) (hv : tickLogValid price) (hs : tickLogSafe (tickLogResult price))
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (initializeLocals price)
+    ExecTransitionBody fork config contract evm (initializeLocals price)
       initializeTransition.body .staticViolation (immStore v) := by
   apply ExecFuncBody.execBlockStatic
   rw [← List.take_append_drop 4 initializeTransition.body]

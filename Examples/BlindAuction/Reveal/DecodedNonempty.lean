@@ -1,5 +1,7 @@
 import Examples.BlindAuction.Reveal.DecodedNonemptyRun
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -39,14 +41,14 @@ theorem scratch_blindAuctionReveal_decoded_nonempty_bids
     (hvaluesEq : revealScratchBidsLengthWord σ I = valuesLenWord)
     (hfakesEq : revealScratchBidsLengthWord σ I = fakesLenWord)
     (hsecretsEq : revealScratchBidsLengthWord σ I = secretsLenWord)
-    (h963 : ∃ k C, RD blindAuctionBytecode I (Sat256.ofUInt256 g)
+    (h963 : ∃ k C, RD fork blindAuctionBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨963⟩
       [revealScratchRevealEndWord σ I, revealScratchBiddingEndWord σ I, secretsLenWord,
         ⟨4⟩ + revealSecretsOffsetWord I + ⟨32⟩, fakesLenWord,
         ⟨4⟩ + revealFakesOffsetWord I + ⟨32⟩, valuesLenWord,
         ⟨4⟩ + revealValuesOffsetWord I + ⟨32⟩, ⟨276⟩, blindAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor blindAuctionConfig blindAuctionContract
+    runtimeRefinementFor fork blindAuctionConfig blindAuctionContract
       σ σ₀ g A I := by
   obtain ⟨_, _, rd963⟩ := h963
   let evmStele : EVM.State :=
@@ -144,7 +146,7 @@ theorem scratch_blindAuctionReveal_decoded_nonempty_bids
         fakes.length = fakesLenWord.toNat →
         secrets.length = secretsLenWord.toNat →
         UInt256.gt valuesLenWord revealMaxU64 = ⟨0⟩ →
-        RevealLoopRunFromStart I (Sat256.ofUInt256 g)
+        RevealLoopRunFromStart fork I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ₀ A loopLen
           revealEnd biddingEnd secretsLenWord secretsEnd fakesLenWord fakesEnd
           valuesLenWord valuesEnd sel values fakes secrets := by

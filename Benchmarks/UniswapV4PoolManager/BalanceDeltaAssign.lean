@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.BalanceDeltaSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 
@@ -12,11 +14,11 @@ theorem balanceDeltaAssign {f : Frame} {evm : State} {a b : UInt256} {ea eb : Ex
     (ha : evalExpr? config f evm ea = .ok (.int (EVM.signed a)))
     (hb : evalExpr? config f evm eb = .ok (.int (EVM.signed b)))
     (hd : f.locals.get? dest = some old) (hn : (ret == dest) = false) :
-    ExecBlock config f evm
+    ExecBlock fork config f evm
       [.internalCall "toBalanceDelta" [ea, eb] ret, .assign .localVar {base := dest} (.var ret)]
       (.ok (balanceDeltaAssignFrame f ret dest a b) evm) :=
   ExecBlock.consNormal (balanceDeltaCall hf ha hb ret)
-    (execBlock_singleton (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalLocalValue (store_get_self _ _ _))
+    (execBlock_singleton (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalLocalValue (store_get_self _ _ _))
       (assignLocalValue ((store_get_ne _ _ hn).trans hd))))
 
 end Benchmarks.UniswapV4PoolManager

@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.AddressWordBytesABI
 import Benchmarks.Morpho.MorphoBlue.CalldataBytesDecode
 import Benchmarks.Morpho.MorphoBlue.Routines
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -18,13 +20,13 @@ theorem morphoFlashLoanDecode {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sa
     {k C : Nat} {R : List UInt256}
     (hstack : R.length + 16 ≤ 1024) (hs : 4 ≤ ee.calldata.size)
     (hsize : ee.calldata.size < UInt256.size)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 927) (UInt256.ofNat 0 :: R) mem aw out σ k C) :
-    (¬ AddressWordBytesBounds ee.calldata ∧ RDrev (deployedRuntime v) g s0) ∨
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 927) (UInt256.ofNat 0 :: R) mem aw out σ k C) :
+    (¬ AddressWordBytesBounds ee.calldata ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (AddressWordBytesBounds ee.calldata ∧ ∃ k' C',
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat 1033)
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 1033)
         (flashLoanDecodeStack ee.calldata R) mem aw out σ k' C') := by
   have hbad (hc : UInt256.slt (UInt256.sub (UInt256.ofNat ee.calldata.size) ⟨4⟩)
-      (UInt256.ofNat 96) = ⟨1⟩) : RDrev (deployedRuntime v) g s0 := by
+      (UInt256.ofNat 96) = ⟨1⟩) : RDrev fork (deployedRuntime v) g s0 := by
     have rd := morphoBlocks.morpho_block_927_taken (immWords := wordsOf (immStore v))
       (by simp only [List.length_cons]; omega)
       (by rw [wordAddNegFour, hc]; decide)
@@ -49,7 +51,7 @@ theorem morphoFlashLoanDecode {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sa
   obtain ⟨k2, C2, rd2⟩ := morphoDecodeAddress4Ok (v := v)
     (by change R.length + 1 + 4 ≤ 1024; omega)
     (by rw [morphoPatchedValidJumps v]; jump_dest) ha rd1
-  change RD _ _ _ _ (UInt256.ofNat 976) (calldataWord ee.calldata 4 :: UInt256.ofNat 0 :: R)
+  change RD fork _ _ _ _ (UInt256.ofNat 976) (calldataWord ee.calldata 4 :: UInt256.ofNat 0 :: R)
     _ _ _ _ _ _ at rd2
   let off := calldataWord ee.calldata 68
   by_cases ho : off.toNat ≤ solcMaxU64

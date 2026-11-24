@@ -1,5 +1,8 @@
 import Benchmarks.EAS.EAS.DiffTarget
 
+/-- The fork these executable checks run the bytecode and the specification under. -/
+private def fork : Ethereum.Fork := .cancun
+
 /-!
 Successful ECDSA delegation, nonce consumption, and the post-verification copy guard.
 Run with the EVM interpreter's coincurve/pycryptodome/typing-extensions available
@@ -21,8 +24,8 @@ private def check (accounts : AccountMap) (name : String) (args : List Value)
   let accounts := transferValue accounts caller t.selfAddress value
   let env := t.env t.runtime caller value input true 1000 16756728
   let gas : UInt256 := .ofNat t.gas
-  let trace := runTrace (initialState accounts accounts gas default env) (t.gas + 1)
-  let (spec, replay) := steleExecRun t.fuel replayOracle (Replay.ofTrace trace) t.config t.contract
+  let trace := runTrace fork (initialState accounts accounts gas default env) (t.gas + 1)
+  let (spec, replay) := steleExecRun fork t.fuel replayOracle (Replay.ofTrace trace) t.config t.contract
     t.immutables accounts accounts gas default env
   let verdict := compareRuntime trace.xiResult spec
   unless verdict.isSuccess && replay.mismatches.isEmpty && replay.boundaries.isEmpty do
@@ -81,8 +84,8 @@ private def checkRejected (accounts : AccountMap) (input : ByteArray) (calls : N
   let t := Benchmarks.EAS.EAS.fixtureTarget
   let env := t.env t.runtime (EVM.address 0x6004) 0 input true 1000 16756728
   let gas := UInt256.ofNat t.gas
-  let trace := runTrace (initialState accounts accounts gas default env) (t.gas + 1)
-  let (spec, replay) := steleExecRun t.fuel replayOracle (Replay.ofTrace trace) t.config t.contract
+  let trace := runTrace fork (initialState accounts accounts gas default env) (t.gas + 1)
+  let (spec, replay) := steleExecRun fork t.fuel replayOracle (Replay.ofTrace trace) t.config t.contract
     t.immutables accounts accounts gas default env
   let verdict := compareRuntime trace.xiResult spec
   unless verdict.isAgree && !verdict.isSuccess && replay.boundaries.isEmpty &&

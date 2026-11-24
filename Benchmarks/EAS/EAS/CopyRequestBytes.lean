@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.CopyRequestFields
 import Benchmarks.EAS.EAS.BytesAllocationEVM
 import Benchmarks.EAS.EAS.RuntimeBlocks_022
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -41,11 +43,11 @@ theorem easCopyRequestBytes {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : EASImmutables) (hstack : R.length+13 ≤ 1024)
     (hfree : memLoad (UInt256.ofNat 64) mem = heap)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5459⟩ (off::src::stop::record::ret::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5459⟩ (off::src::stop::record::ret::R) mem aw rdata σ k C) :
     if requestCopyBytesValid ee.calldata src off stop heap then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret R
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret R
         (requestCopyBytesMemory mem ee.calldata src off heap record) aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   let tail := src+off
   let len := calldataWord ee.calldata tail.toNat
   by_cases hh : UInt256.isZero (UInt256.slt (tail+⟨31⟩) stop) = ⟨0⟩
@@ -61,7 +63,7 @@ theorem easCopyRequestBytes {ee : ExecutionEnv} {g : Sat256} {s0 : State}
       obtain ⟨a4,k4,C4,r4⟩ := easBlocks.eas_block_5484_packed (immWords := wordsOf (immStore v))
         (by simp only [List.length_cons]; omega) (by rw [easPatchedValidJumpsRuntime v]; jump_dest) r3
       simp only [easBlocks.eas_block_5484_stack,hfree] at r4
-      change RD (deployedRuntime v) ee g s0 ⟨4883⟩
+      change RD fork (deployedRuntime v) ee g s0 ⟨4883⟩
         (heap::UInt256.ofNat (bytesAllocation len.toNat)::⟨5498⟩::stop::heap::src::tail::len::record::ret::R)
         mem a4 rdata σ k4 C4 at r4
       have hsz : (UInt256.ofNat (bytesAllocation len.toNat)).toNat = bytesAllocation len.toNat := by

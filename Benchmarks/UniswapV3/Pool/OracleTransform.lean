@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.OracleTransformCompute
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -15,7 +17,7 @@ theorem oracleTransformMonoX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret p lastPtr time timeRaw tickRaw liquidity : UInt256}
     {last : OracleObservation} {tick : Int} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨18466⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨18466⟩
       (liquidity :: tickRaw :: timeRaw :: lastPtr :: ret :: R) mem aw rdata σ k C)
     (hh : HeapMemory mem aw p) (hm : ObservationMemory mem lastPtr last)
     (hp : 96 ≤ lastPtr.toNat) (hl : lastPtr.toNat + 128 ≤ p.toNat)
@@ -24,7 +26,7 @@ theorem oracleTransformMonoX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (htick : UInt256.signextend (UInt256.ofNat 2) tickRaw = EVM.wordOfInt tick)
     (hliq : liquidity.toNat < 2 ^ 128)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 16 ≤ 1024) :
-    ∃ aw' k' C', C + (Cₘ aw' - Cₘ aw) ≤ C' ∧ RD (deployedRuntime v) ee g s0 ret ((p + ⟨128⟩) :: R)
+    ∃ aw' k' C', C + (Cₘ aw' - Cₘ aw) ≤ C' ∧ RD fork (deployedRuntime v) ee g s0 ret ((p + ⟨128⟩) :: R)
       (oracleTransformMem mem p last time tick liquidity) aw' rdata σ k' C' ∧
       HeapMemory (oracleTransformMem mem p last time tick liquidity) aw' (p + ⟨256⟩) ∧
       ObservationMemory (oracleTransformMem mem p last time tick liquidity)
@@ -61,7 +63,7 @@ theorem oracleTransformX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret p lastPtr time timeRaw tickRaw liquidity : UInt256}
     {last : OracleObservation} {tick : Int} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨18466⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨18466⟩
       (liquidity :: tickRaw :: timeRaw :: lastPtr :: ret :: R) mem aw rdata σ k C)
     (hh : HeapMemory mem aw p) (hm : ObservationMemory mem lastPtr last)
     (hp : 96 ≤ lastPtr.toNat) (hl : lastPtr.toNat + 128 ≤ p.toNat)
@@ -70,7 +72,7 @@ theorem oracleTransformX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (htick : UInt256.signextend (UInt256.ofNat 2) tickRaw = EVM.wordOfInt tick)
     (hliq : liquidity.toNat < 2 ^ 128)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 16 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret ((p + ⟨128⟩) :: R)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret ((p + ⟨128⟩) :: R)
       (oracleTransformMem mem p last time tick liquidity) aw' rdata σ k' C' ∧
       HeapMemory (oracleTransformMem mem p last time tick liquidity) aw' (p + ⟨256⟩) ∧
       ObservationMemory (oracleTransformMem mem p last time tick liquidity)

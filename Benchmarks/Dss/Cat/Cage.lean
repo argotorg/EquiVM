@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Cat.Storage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -47,7 +49,7 @@ theorem catReachCageBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x69, 0x24, 0x50, 0x09]⟩) :
-    ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork catBytecode I g (initState σ σ₀ g A I)
         ⟨483⟩ [catSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : catSelWord I = ⟨1763987465⟩ :=
@@ -81,10 +83,10 @@ theorem catCageBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD catBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨483⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let callerSlot := catCallerWardsSlot I
   let locals : Store := ∅
   have hcallerWord : solcSlotWordAt callerSlot σ I = solcSlotWordAt callerSlot σ I :=
@@ -92,7 +94,7 @@ theorem catCageBodyCore
   -- Entry ⟨483⟩ jumps straight to the auth-check ⟨2833⟩ with stack `[302, sel]`.
   obtain ⟨_, _, hentry⟩ := hreach
   have hauthReach :
-      RD catBytecode I (Sat256.ofUInt256 g)
+      RD fork catBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2833⟩ (⟨302⟩ :: [sel])
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ _ _ :=
     (((hentry.jumpdest (by native_decide) (by evm_ov)).push2 ⟨302⟩ (by native_decide) (by evm_ov)).push2
@@ -104,10 +106,10 @@ theorem catCageBodyCore
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Stele.EVM.storageStore evm0 I.codeOwner ⟨2⟩ ⟨0⟩
     have hbodySplit :
-        (I.perm = true → ExecTransitionBody config contract evm0 locals cageTransition.body
+        (I.perm = true → ExecTransitionBody fork config contract evm0 locals cageTransition.body
           (.returned { contract := contract, locals := locals } evm1 none)) ∧
         (I.perm = false →
-          ExecTransitionBody config contract evm0 locals cageTransition.body
+          ExecTransitionBody fork config contract evm0 locals cageTransition.body
             .staticViolation) := by
       have hguard := catAuthGuardEval_true
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -134,7 +136,7 @@ theorem catCageBodyCore
           (hstore := hstore)
       constructor
       · intro hperm
-        have hblock := nonpayableRequireAssignStorageBlock (hperm := hperm)
+        have hblock := nonpayableRequireAssignStorageBlock (fork := fork) (hperm := hperm)
           (cfg := config) (stele := { contract := contract, locals := locals })
           (evm := evm0) (evm' := evm1)
           (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
@@ -144,7 +146,7 @@ theorem catCageBodyCore
         simpa [ExecTransitionBody, cageTransition, nonpayable, auth, evm0, evm1] using
           ExecFuncBody.execBlockOK hblock
       · intro hperm
-        have hblock := nonpayableRequireAssignStorageBlockStatic
+        have hblock := nonpayableRequireAssignStorageBlockStatic (fork := fork)
           (cfg := config) (stele := { contract := contract, locals := locals })
           (evm := evm0)
           (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
@@ -176,7 +178,7 @@ theorem catCageBodyCore
     · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode (hbodySplit.2 hperm)
     have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
     have hret :
-        RDret catBytecode (Sat256.ofUInt256 g)
+        RDret fork catBytecode (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (sstoreAccountMap I.codeOwner σ ⟨2⟩ ⟨0⟩) ByteArray.empty :=
       RD.stop hretPc' (by native_decide) (by simp)
@@ -191,12 +193,12 @@ theorem catCageBodyCore
   · have hauthStele : solcSlotWordAt callerSlot σ I ≠ ⟨1⟩ := by
       exact hauthEvm
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    have hbody : ExecTransitionBody config contract evm0 locals cageTransition.body .reverted := by
+    have hbody : ExecTransitionBody fork config contract evm0 locals cageTransition.body .reverted := by
       have hguard := catAuthGuardEval_false
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) (locals := locals)
         (by simp [locals]) hauthStele
-      have hblock := nonpayableSecondRequireReverts
+      have hblock := nonpayableSecondRequireReverts (fork := fork)
         (cfg := config) (stele := { contract := contract, locals := locals })
         (evm := evm0)
         (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
@@ -225,7 +227,7 @@ theorem catCageBody {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x69, 0x24, 0x50, 0x09]⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x69, 0x24, 0x50, 0x09]⟩ (by native_decide) hsel
   exact catCageBodyCore hcode hwv (catDispatch_cage hsel)

@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.InternalDynamicOutcome
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_018
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -9,8 +11,8 @@ namespace Benchmarks.CompoundIII.Comet
 theorem cometDynamicReturn {v : CometWithExtendedAssetListImmutables}
     {ee g s0 ret R result} (hstack : R.length + 1 ≤ 1024)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : internalDynamicRun (deployedRuntime v) ee g s0 ⟨3121⟩ (ret :: R) result) :
-    internalDynamicRun (deployedRuntime v) ee g s0 ret R result := by
+    (h : internalDynamicRun fork (deployedRuntime v) ee g s0 ⟨3121⟩ (ret :: R) result) :
+    internalDynamicRun fork (deployedRuntime v) ee g s0 ret R result := by
   cases result with
   | reverted => exact h
   | staticViolation => exact h

@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.CollectAmountsTrace
 import Benchmarks.UniswapV3.Pool.SafeTransfer
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_027
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -27,12 +29,12 @@ theorem collectStoreX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw key amount0 amount1 x3 x4 x5 x6 : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (second : Bool) (recipient : AccountAddress)
-    (rd : RD (deployedRuntime v) ee g s0 (if second then ⟨7879⟩ else ⟨7780⟩)
+    (rd : RD fork (deployedRuntime v) ee g s0 (if second then ⟨7879⟩ else ⟨7780⟩)
       (solcMappingSlot ⟨7⟩ key :: amount1 :: amount0 :: x3 :: x4 :: x5 :: x6 :: EVM.word recipient.val :: R)
       mem aw rdata σ k C)
     (hfit : (if second then amount1 else amount0).toNat < 2 ^ 128)
     (hperm : ee.perm = true) (hov : R.length + 14 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨15238⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨15238⟩
       ((if second then amount1 else amount0) :: EVM.word recipient.val ::
         EVM.word (poolToken v second).val :: (if second then ⟨7965⟩ else ⟨7863⟩) ::
         solcMappingSlot ⟨7⟩ key :: amount1 :: amount0 :: x3 :: x4 :: x5 :: x6 :: EVM.word recipient.val :: R)
@@ -76,7 +78,7 @@ theorem collectTransferX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : EVM.State} {k C : Nat} {aw p key amount0 amount1 x3 x4 x5 x6 : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (second : Bool) (recipient : AccountAddress)
-    (rd : RD (deployedRuntime v) ee g s0 (if second then ⟨7879⟩ else ⟨7780⟩)
+    (rd : RD fork (deployedRuntime v) ee g s0 (if second then ⟨7879⟩ else ⟨7780⟩)
       (solcMappingSlot ⟨7⟩ key :: amount1 :: amount0 :: x3 :: x4 :: x5 :: x6 :: EVM.word recipient.val :: R)
       mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hperm : ee.perm = true)
@@ -85,14 +87,14 @@ theorem collectTransferX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hzero : memLoad (UInt256.ofNat 96) mem = ⟨0⟩)
     (hb : p.toNat + 2 ^ 138 + 195 ≤ 2 ^ 200) (hov : R.length + 28 ≤ 1024) :
     let amount := if second then amount1 else amount0
-    (RDrev (deployedRuntime v) g s0 ∧
-      ExecFuncBody config (safeTransferFrame (immStore v) (poolToken v second) recipient amount)
+    (RDrev fork (deployedRuntime v) g s0 ∧
+      ExecFuncBody fork config (safeTransferFrame (immStore v) (poolToken v second) recipient amount)
         (collectPaymentState evm key second amount) safeTransferFunction.body .reverted) ∨
     ∃ evm' σ' out mem' aw' next k' C', SourceState s0 ee σ' evm' ∧
-      ExecFuncBody config (safeTransferFrame (immStore v) (poolToken v second) recipient amount)
+      ExecFuncBody fork config (safeTransferFrame (immStore v) (poolToken v second) recipient amount)
         (collectPaymentState evm key second amount) safeTransferFunction.body
         (.returned (safeTransferCallFrame (immStore v) (poolToken v second) recipient amount true out) evm' none) ∧
-      RD (deployedRuntime v) ee g s0 (if second then ⟨7965⟩ else ⟨7863⟩)
+      RD fork (deployedRuntime v) ee g s0 (if second then ⟨7965⟩ else ⟨7863⟩)
         (solcMappingSlot ⟨7⟩ key :: amount1 :: amount0 :: x3 :: x4 :: x5 :: x6 :: EVM.word recipient.val :: R)
         mem' aw' out σ' k' C' ∧
       HeapMemory mem' aw' next ∧ 128 ≤ mem'.size ∧ memLoad (UInt256.ofNat 96) mem' = ⟨0⟩ ∧
@@ -118,7 +120,7 @@ theorem collectPaymentX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : EVM.State} {k C : Nat} {aw p key lower upper amount0 amount1 junk x3 x4 x5 x6 : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (second : Bool) (recipient : AccountAddress) (locals : Store)
-    (rd : RD (deployedRuntime v) ee g s0 (if second then ⟨7863⟩ else ⟨7762⟩)
+    (rd : RD fork (deployedRuntime v) ee g s0 (if second then ⟨7863⟩ else ⟨7762⟩)
       (collectGuardStack second key amount0 amount1 junk (x3 :: x4 :: x5 :: x6 :: EVM.word recipient.val :: R))
       mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hperm : ee.perm = true)
@@ -127,14 +129,14 @@ theorem collectPaymentX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hm : HeapMemory mem aw p) (hmem : 128 ≤ mem.size)
     (hzero : memLoad (UInt256.ofNat 96) mem = ⟨0⟩)
     (hb : p.toNat + 2 ^ 138 + 195 ≤ 2 ^ 200) (hov : R.length + 28 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧
-      ExecStmt config {contract := contract, locals := locals, immutables := immStore v} evm
+    (RDrev fork (deployedRuntime v) g s0 ∧
+      ExecStmt fork config {contract := contract, locals := locals, immutables := immStore v} evm
         (collectTokenStmt second) .reverted) ∨
     ∃ evm' σ' locals' out mem' aw' next k' C', SourceState s0 ee σ' evm' ∧
-      ExecStmt config {contract := contract, locals := locals, immutables := immStore v} evm
+      ExecStmt fork config {contract := contract, locals := locals, immutables := immStore v} evm
         (collectTokenStmt second) (.ok {contract := contract, locals := locals', immutables := immStore v} evm') ∧
       CollectValues locals' recipient lower upper key amount0 amount1 ∧
-      RD (deployedRuntime v) ee g s0 (if second then ⟨7965⟩ else ⟨7863⟩)
+      RD fork (deployedRuntime v) ee g s0 (if second then ⟨7965⟩ else ⟨7863⟩)
         (solcMappingSlot ⟨7⟩ key :: amount1 :: amount0 :: x3 :: x4 :: x5 :: x6 :: EVM.word recipient.val :: R)
         mem' aw' out σ' k' C' ∧
       HeapMemory mem' aw' next ∧ 128 ≤ mem'.size ∧ memLoad (UInt256.ofNat 96) mem' = ⟨0⟩ ∧
@@ -148,7 +150,7 @@ theorem collectPaymentX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     rw [u256_land_comm]; exact uint128Word_clean hfit
   have hget := CollectValues.amount hvalues second
   by_cases hz : (if second then amount1 else amount0) = ⟨0⟩
-  · have hskip : ∃ k' C', RD (deployedRuntime v) ee g s0 (if second then ⟨7965⟩ else ⟨7863⟩)
+  · have hskip : ∃ k' C', RD fork (deployedRuntime v) ee g s0 (if second then ⟨7965⟩ else ⟨7863⟩)
         (solcMappingSlot ⟨7⟩ key :: amount1 :: amount0 :: x3 :: x4 :: x5 :: x6 :: EVM.word recipient.val :: R)
         mem aw rdata σ k' C' := by
       cases second <;> simp only [Bool.false_eq_true, ↓reduceIte] at hc hz
@@ -169,7 +171,7 @@ theorem collectPaymentX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
   · have hpos : 0 < (if second then amount1 else amount0).toNat := by
       by_contra hn
       exact hz (uint256_toNat_eq_zero (by omega))
-    have hready : ∃ k' C', RD (deployedRuntime v) ee g s0 (if second then ⟨7879⟩ else ⟨7780⟩)
+    have hready : ∃ k' C', RD fork (deployedRuntime v) ee g s0 (if second then ⟨7879⟩ else ⟨7780⟩)
         (solcMappingSlot ⟨7⟩ key :: amount1 :: amount0 :: x3 :: x4 :: x5 :: x6 :: EVM.word recipient.val :: R)
         mem aw rdata σ k' C' := by
       cases second <;> simp only [Bool.false_eq_true, ↓reduceIte] at hc hz

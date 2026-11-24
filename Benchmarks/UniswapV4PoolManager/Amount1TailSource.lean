@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.Amount1Words
 import Benchmarks.UniswapV4PoolManager.FullMathSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -15,7 +17,7 @@ theorem amount1Tail {f : Frame} {evm : EVM.State} {a b liquidity : UInt256} {rou
     (hd : f.locals.get? "denominator" = some (.int (Int.ofNat fullMathQ96.toNat)))
     (ha : f.locals.get? "amount1" = some (.int (Int.ofNat (fullMathWord liquidity (absDiffWord a b) fullMathQ96).toNat)))
     (hr : f.locals.get? "roundUp" = some (.bool roundUp)) :
-    ExecFuncBody config f evm (amount1Function.body.drop 6)
+    ExecFuncBody fork config f evm (amount1Function.body.drop 6)
       (.returned (wordLocal f "amount1" (amount1Word a b liquidity roundUp)) evm
         (some [.int (Int.ofNat (amount1Word a b liquidity roundUp).toNat)])) := by
   have hrem := evalWordMulMod (evalLocalValue (cfg := config) (f := f) (evm := evm) hl)
@@ -26,7 +28,7 @@ theorem amount1Tail {f : Frame} {evm : EVM.State} {a b liquidity : UInt256} {rou
   have he := evalWordAdd
     (evalLocalValue (cfg := config) (f := f) (evm := evm) ha)
     (evalBoolWord (evalAndBool (evalLocalValue hr) hgt))
-  exact ExecFuncBody.execBlockRet (ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) he (assignLocalValue ha))
+  exact ExecFuncBody.execBlockRet (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) he (assignLocalValue ha))
     (ABlock.start.returns wordLocal_eval))
 
 end Benchmarks.UniswapV4PoolManager

@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.Calls
 import Reasoning.ABIComposite
 import Reasoning.HeapMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 
@@ -42,7 +44,7 @@ theorem evalFactoryOwnerCodeGuard (v : UniswapV3PoolImmutables) (evm : EVM.State
 
 theorem factoryOwnerPrefix (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (hcode : extCodeSizeWord evm.accountMap (EVM.word v.factory.val) ≠ ⟨0⟩) :
-    ABlock config evm { contract := contract, locals := ∅, immutables := immStore v }
+    ABlock fork config evm { contract := contract, locals := ∅, immutables := immStore v }
       factoryOwnerFunction.body (factoryOwnerFrame v)
       [.lowLevelCall (.var "currentFactory") (.intLit 0) (.bytesLit factoryOwnerCalldata)
         "ownerSuccess" "ownerData" false,
@@ -56,8 +58,8 @@ theorem factoryOwnerPrefix (v : UniswapV3PoolImmutables) (evm : EVM.State)
 
 theorem factoryOwnerCall (v : UniswapV3PoolImmutables) (evm evm' : EVM.State)
     (ok : Bool) (out : ByteArray)
-    (hcall : callViaEVM evm v.factory 0 factoryOwnerCalldata (ok, evm', out) false) :
-    ExecStmt config (factoryOwnerFrame v) evm
+    (hcall : callViaEVM fork evm v.factory 0 factoryOwnerCalldata (ok, evm', out) false) :
+    ExecStmt fork config (factoryOwnerFrame v) evm
       (.lowLevelCall (.var "currentFactory") (.intLit 0) (.bytesLit factoryOwnerCalldata)
         "ownerSuccess" "ownerData" false)
       (.ok (factoryOwnerCallFrame v ok out) evm') :=
@@ -81,9 +83,9 @@ theorem evalFactoryOwnerData (v : UniswapV3PoolImmutables) (evm : EVM.State)
 theorem factoryOwnerReturns (v : UniswapV3PoolImmutables) (evm evm' : EVM.State)
     (out : ByteArray)
     (hcode : extCodeSizeWord evm.accountMap (EVM.word v.factory.val) ≠ ⟨0⟩)
-    (hcall : callViaEVM evm v.factory 0 factoryOwnerCalldata (true, evm', out) false)
+    (hcall : callViaEVM fork evm v.factory 0 factoryOwnerCalldata (true, evm', out) false)
     (hout : 32 ≤ out.size) :
-    ExecFuncBody config { contract := contract, locals := ∅, immutables := immStore v } evm
+    ExecFuncBody fork config { contract := contract, locals := ∅, immutables := immStore v } evm
       factoryOwnerFunction.body
       (.returned (factoryOwnerCallFrame v true out) evm'
         (some [.address (AccountAddress.ofNat (fromByteArrayBigEndian (out.extract 0 32)))])) := by
@@ -98,7 +100,7 @@ theorem factoryOwnerReturns (v : UniswapV3PoolImmutables) (evm evm' : EVM.State)
 
 theorem factoryOwnerRevertsNoCode (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (hcode : extCodeSizeWord evm.accountMap (EVM.word v.factory.val) = ⟨0⟩) :
-    ExecFuncBody config { contract := contract, locals := ∅, immutables := immStore v } evm
+    ExecFuncBody fork config { contract := contract, locals := ∅, immutables := immStore v } evm
       factoryOwnerFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply (ABlock.start.letStep (evalImmutable_factory config contract ∅ evm v)).requireRevert
@@ -107,8 +109,8 @@ theorem factoryOwnerRevertsNoCode (v : UniswapV3PoolImmutables) (evm : EVM.State
 theorem factoryOwnerRevertsCall (v : UniswapV3PoolImmutables) (evm evm' : EVM.State)
     (out : ByteArray)
     (hcode : extCodeSizeWord evm.accountMap (EVM.word v.factory.val) ≠ ⟨0⟩)
-    (hcall : callViaEVM evm v.factory 0 factoryOwnerCalldata (false, evm', out) false) :
-    ExecFuncBody config { contract := contract, locals := ∅, immutables := immStore v } evm
+    (hcall : callViaEVM fork evm v.factory 0 factoryOwnerCalldata (false, evm', out) false) :
+    ExecFuncBody fork config { contract := contract, locals := ∅, immutables := immStore v } evm
       factoryOwnerFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply (factoryOwnerPrefix v evm hcode).run
@@ -118,9 +120,9 @@ theorem factoryOwnerRevertsCall (v : UniswapV3PoolImmutables) (evm evm' : EVM.St
 theorem factoryOwnerRevertsShort (v : UniswapV3PoolImmutables) (evm evm' : EVM.State)
     (out : ByteArray)
     (hcode : extCodeSizeWord evm.accountMap (EVM.word v.factory.val) ≠ ⟨0⟩)
-    (hcall : callViaEVM evm v.factory 0 factoryOwnerCalldata (true, evm', out) false)
+    (hcall : callViaEVM fork evm v.factory 0 factoryOwnerCalldata (true, evm', out) false)
     (hout : out.size < 32) :
-    ExecFuncBody config { contract := contract, locals := ∅, immutables := immStore v } evm
+    ExecFuncBody fork config { contract := contract, locals := ∅, immutables := immStore v } evm
       factoryOwnerFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply (factoryOwnerPrefix v evm hcode).run

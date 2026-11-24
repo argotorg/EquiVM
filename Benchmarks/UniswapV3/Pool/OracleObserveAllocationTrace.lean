@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.OracleObserveArrayTrace
 import Benchmarks.UniswapV3.Pool.OracleObserveAllocationMemory
 import Benchmarks.UniswapV3.Pool.OracleObserveLoopControl
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,7 +13,7 @@ set_option maxRecDepth 10000
 theorem oracleObserveAllocateX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p agoPtr card liquidity index tickRaw timeRaw ret : UInt256}
     {mem rdata : ByteArray} {rawAgos : List UInt256} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨16967⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨16967⟩
       (card :: liquidity :: index :: tickRaw :: agoPtr :: timeRaw :: ⟨8⟩ :: ret :: R) mem aw rdata σ k C)
     (hc : card.toNat < 2 ^ 16) (hcn : card.toNat ≠ 0)
     (hn : rawAgos.length ≤ 2 ^ 64 - 1) (hm : MemoryCursor mem aw p)
@@ -20,7 +22,7 @@ theorem oracleObserveAllocateX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256
     (hb : p.toNat + 64 * (rawAgos.length + 1) ≤ 2 ^ 200)
     (hdata : ee.calldata.size < UInt256.size) (hov : R.length + 20 ≤ 1024) :
     ∃ k' C', C + (Cₘ (oracleObserveOutputAw aw p rawAgos.length) - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 ⟨17172⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨17172⟩
         (oracleObserveStack 0 (wordArrayElement p rawAgos.length) p card liquidity index tickRaw
           agoPtr timeRaw ret R)
         (oracleObserveOutputMem ee.calldata mem p rawAgos.length)

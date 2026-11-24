@@ -2,6 +2,8 @@ import Benchmarks.Auction.BidStorage
 import Benchmarks.Auction.CheckedDivSub
 import Benchmarks.Auction.SnapshotMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -37,12 +39,12 @@ theorem bidExtendedSource {s0 I σ evm locals s noun}
     bind, EvalResult.bind, evalBinaryOp?, Int.ofNat_eq_natCast, Int.ofNat_lt]
 
 theorem bidExtensionPrefix {I g s0 s bidder snap noun ret R mem aw rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨1738⟩ (bidder :: snap :: noun :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨1738⟩ (bidder :: snap :: noun :: ret :: R)
       mem aw rdata σ k C)
     (hm : SnapshotMemory s mem aw snap)
     (ht : (UInt256.ofNat I.header.timestamp).toNat ≤ s.endTime.toNat)
     (hov : R.length + 13 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨1768⟩
+    ∃ k' C', RD fork auctionBytecode I g s0 ⟨1768⟩
       (⟨1792⟩ :: UInt256.isZero (UInt256.lt
           (UInt256.sub s.endTime (UInt256.ofNat I.header.timestamp)) (solcSlotWord σ I ⟨203⟩)) ::
         UInt256.lt (UInt256.sub s.endTime (UInt256.ofNat I.header.timestamp))
@@ -61,7 +63,7 @@ theorem bidExtensionPrefix {I g s0 s bidder snap noun ret R mem aw rdata σ k C}
   exact ⟨_, _, evm_run rd1759 with [jumpdest, lt, swap1, pop, dup1, iszero, push2 ⟨1792⟩]⟩
 
 theorem bidExtensionRoutine {I g s0 s bidder snap noun ret R mem aw rdata σ k C evm locals}
-    (h : RD auctionBytecode I g s0 ⟨1738⟩ (bidder :: snap :: noun :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨1738⟩ (bidder :: snap :: noun :: ret :: R)
       mem aw rdata σ k C)
     (hs : SourceState s0 I σ evm) (hperm : I.perm = true)
     (hm : SnapshotMemory s mem aw snap) (hv : BidValues locals s noun)
@@ -69,13 +71,13 @@ theorem bidExtensionRoutine {I g s0 s bidder snap noun ret R mem aw rdata σ k C
     (hov : R.length + 13 ≤ 1024) :
     (∃ (evm' : EVM.State) (σ' : AccountMap) (locals' : Store) (extended : UInt256)
         (mem' : ByteArray) (aw' : UInt256) (k' C' : Nat),
-      ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
+      ExecBlock fork auctionConfig { contract := auctionContract, locals := locals } evm
         bidExtendStmts (.ok { contract := auctionContract, locals := locals' } evm') ∧
       BidValues locals' s noun ∧ SourceState s0 I σ' evm' ∧
-      RD auctionBytecode I g s0 ⟨1792⟩ (extended :: bidder :: snap :: noun :: ret :: R)
+      RD fork auctionBytecode I g s0 ⟨1792⟩ (extended :: bidder :: snap :: noun :: ret :: R)
         mem' aw' rdata σ' k' C') ∨
-    (ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
-      bidExtendStmts .reverted ∧ RDrev auctionBytecode g s0) := by
+    (ExecBlock fork auctionConfig { contract := auctionContract, locals := locals } evm
+      bidExtendStmts .reverted ∧ RDrev fork auctionBytecode g s0) := by
   obtain ⟨_, _, rd1768⟩ := bidExtensionPrefix h hm (by omega) hov
   have he := bidExtendedSource hs hv (by omega)
   by_cases hex : (UInt256.sub s.endTime (UInt256.ofNat I.header.timestamp)).toNat <
@@ -85,7 +87,7 @@ theorem bidExtensionRoutine {I g s0 s bidder snap noun ret R mem aw rdata σ k C
     have rd1769 := evm_run rd1768 with [jumpiNT (by decide)]
     have rd1771 := evm_run rd1769 with [push1 ⟨203⟩]
     obtain ⟨_, _, rd1772⟩ := rd1771.sload (by native_decide) (by evm_ov)
-    change RD _ _ _ _ ⟨1772⟩
+    change RD fork _ _ _ _ ⟨1772⟩
       (solcSlotWord σ I ⟨203⟩ :: ⟨1⟩ :: bidder :: snap :: noun :: ret :: R)
       mem aw rdata σ _ _ at rd1772
     have rd5704 := evm_run rd1772 with [push2 ⟨1781⟩, swap1, timestamp,
@@ -113,7 +115,7 @@ theorem bidExtensionRoutine {I g s0 s bidder snap noun ret R mem aw rdata σ k C
       refine Or.inl ⟨evm', _, locals1, ⟨1⟩, _, _, _, _, ?_, hv1, hs', rd1792⟩
       apply ExecBlock.consNormal (ExecStmt.letDecl he)
       refine ExecBlock.consNormal (ExecStmt.iteTrue hvar ?_) ExecBlock.nil
-      exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by rw [hs.env]; exact hperm)) ha
+      exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by rw [hs.env]; exact hperm)) ha
         (auctionFieldWrite evm evm' locals1 "endTime" (.elem (.int uint256Int))
           (auctionUint256Loc ⟨210⟩) _ (hv1.storage _ (by decide)) (by native_decide) rfl
           (by exact Or.inl ⟨_, rfl⟩) (storageLocStore_uint256 evm ⟨210⟩ finish))) ExecBlock.nil

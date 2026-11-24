@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.NextPriceWords
 import Benchmarks.UniswapV4PoolManager.NextAmount0Source
 import Benchmarks.UniswapV4PoolManager.NextAmount1Source
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -16,7 +18,7 @@ theorem nextPriceCalcCall {f : Frame} {evm : EVM.State} {price liquidity amount 
     (hs : evalExpr? config f evm es = .ok (.int (Int.ofNat price.toNat)))
     (hl : evalExpr? config f evm el = .ok (.int (Int.ofNat liquidity.toNat)))
     (ha : evalExpr? config f evm ea = .ok (.int (Int.ofNat amount.toNat))) (ret : Ident) :
-    ExecStmt config f evm (.internalCall (nextPriceCalcName use0) [es, el, ea, .boolLit add] ret)
+    ExecStmt fork config f evm (.internalCall (nextPriceCalcName use0) [es, el, ea, .boolLit add] ret)
       (if nextPriceCalcFits price liquidity amount use0 add then
         .ok (wordLocal f ret (nextPriceCalcWord price liquidity amount use0 add)) evm else .reverted) := by
   cases use0 with
@@ -34,12 +36,12 @@ theorem nextPriceReturnSource {f : Frame} {evm : EVM.State} {price liquidity amo
     (hs : f.locals.get? "sqrtPX96" = some (.int (Int.ofNat price.toNat)))
     (hl : f.locals.get? "liquidity" = some (.int (Int.ofNat liquidity.toNat)))
     (ha : f.locals.get? amountName = some (.int (Int.ofNat amount.toNat))) :
-    ExecBlock config f evm (nextPriceReturnStmts amountName use0 add)
+    ExecBlock fork config f evm (nextPriceReturnStmts amountName use0 add)
       (if nextPriceCalcFits price liquidity amount use0 add then
         .returned (wordLocal f "result" (nextPriceCalcWord price liquidity amount use0 add)) evm
           (some [.int (Int.ofNat (nextPriceCalcWord price liquidity amount use0 add).toNat)])
        else .reverted) := by
-  have hc := nextPriceCalcCall (f := f) (evm := evm) use0 add hf hp hn (evalLocalValue hs) (evalLocalValue hl)
+  have hc := nextPriceCalcCall (fork := fork) (f := f) (evm := evm) use0 add hf hp hn (evalLocalValue hs) (evalLocalValue hl)
     (evalLocalValue ha) "result"
   by_cases hfit : nextPriceCalcFits price liquidity amount use0 add
   · rw [if_pos hfit] at hc ⊢

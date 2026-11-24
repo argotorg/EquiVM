@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.TickLogPrefix
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 
@@ -41,7 +43,7 @@ theorem tickLogMsbStepSource {frame : Frame} {evm : EVM.State}
     (hm : frame.locals.get? "msb" = some (.int (Int.ofNat state.1)))
     (hr : frame.locals.get? "r" = some (.int (Int.ofNat state.2.toNat)))
     (hb : bits < 256) :
-    ∃ frame', ExecStmt config frame evm (tickLogMsbStmt bits) (.ok frame' evm) ∧
+    ∃ frame', ExecStmt fork config frame evm (tickLogMsbStmt bits) (.ok frame' evm) ∧
       frame'.locals.get? "msb" = some (.int (Int.ofNat (tickLogMsbStep state bits).1)) ∧
       frame'.locals.get? "r" = some (.int (Int.ofNat (tickLogMsbStep state bits).2.toNat)) ∧
       (∀ name, name ≠ "msb" → name ≠ "r" →
@@ -59,13 +61,13 @@ theorem tickLogMsbStepSource {frame : Frame} {evm : EVM.State}
     refine ⟨out, ?_, ?_, ?_, ?_⟩
     · refine ExecStmt.iteTrue (by simpa only [h, decide_true] using he) ?_
       refine ExecBlock.consNormal (stele' := mid) (evm' := evm)
-        (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat (state.1 + bits))) ?_ ?_) ?_
+        (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int (Int.ofNat (state.1 + bits))) ?_ ?_) ?_
       · have hm' := evalExpr_var_get (cfg := config) (evm := evm) hm
         simp only [evalExpr?, hm', evalBinaryOp?, bind, EvalResult.bind, pure]
         rfl
       · exact assignLocalVarBase_frame hm
       refine ExecBlock.consNormal (stele' := out)
-        (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int
+        (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int
           (Int.ofNat (UInt256.shiftRight state.2 (UInt256.ofNat bits)).toNat)) ?_ ?_) ExecBlock.nil
       · exact evalExpr_word_shr bits hb (evalExpr_var_get hr')
       · exact assignLocalVarBase_frame hr'
@@ -83,7 +85,7 @@ theorem tickLogMsbFoldSource {frame : Frame} {evm : EVM.State}
     (hm : frame.locals.get? "msb" = some (.int (Int.ofNat state.1)))
     (hr : frame.locals.get? "r" = some (.int (Int.ofNat state.2.toNat)))
     (hb : ∀ b ∈ bits, b < 256) :
-    ∃ frame', ExecBlock config frame evm (bits.map tickLogMsbStmt) (.ok frame' evm) ∧
+    ∃ frame', ExecBlock fork config frame evm (bits.map tickLogMsbStmt) (.ok frame' evm) ∧
       frame'.locals.get? "msb" = some (.int (Int.ofNat (bits.foldl tickLogMsbStep state).1)) ∧
       frame'.locals.get? "r" = some (.int (Int.ofNat (bits.foldl tickLogMsbStep state).2.toNat)) ∧
       (∀ name, name ≠ "msb" → name ≠ "r" →
@@ -100,7 +102,7 @@ theorem tickLogMsbFoldSource {frame : Frame} {evm : EVM.State}
 
 theorem tickLogMsbSource (imms : Store) (evm : EVM.State) (price : UInt256)
     (hp : price.toNat < 2 ^ 160) (hv : tickLogValid price) :
-    ∃ frame, ExecBlock config (tickLogFrame imms price) evm (tickLogFunction.body.take 13)
+    ∃ frame, ExecBlock fork config (tickLogFrame imms price) evm (tickLogFunction.body.take 13)
         (.ok frame evm) ∧
       frame.locals.get? "msb" = some (.int (Int.ofNat (tickLogMsb price).1)) ∧
       frame.locals.get? "r" = some (.int (Int.ofNat (tickLogMsb price).2.toNat)) ∧
@@ -117,7 +119,7 @@ theorem tickLogMsbSource (imms : Store) (evm : EVM.State) (price : UInt256)
       simp only [tickLogReadyFrame, Std.HashMap.getElem?_insert, show ("msb" == "r") = false from rfl,
         show ("r" == "r") = true from rfl, Bool.false_eq_true, ↓reduceIte]) (by decide)
   refine ⟨frame, ?_, hm, hr, ?_, ?_, ?_⟩
-  · change ExecBlock _ _ _ (tickLogFunction.body.take 5 ++
+  · change ExecBlock fork _ _ _ (tickLogFunction.body.take 5 ++
       tickLogMsbBits.map tickLogMsbStmt) _
     exact execBlock_append_ok (tickLogReadySource imms evm price hp hv) hs
   · rw [hpres "ratio" (by decide) (by decide)]

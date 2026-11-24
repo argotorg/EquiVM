@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.PositionStruct
 import Benchmarks.UniswapV3.Pool.WordArrayMemory
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_072
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -60,10 +62,10 @@ theorem positionSnapshotMemory_eq {mem : ByteArray} {aw p : UInt256} (key : UInt
 theorem positionSnapshotX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p key growth1 growth0 delta ret : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨21559⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨21559⟩
       (growth1 :: growth0 :: delta :: solcMappingSlot ⟨7⟩ key :: ret :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw p) (hb : p.toNat + 160 ≤ 2 ^ 200) (hov : R.length + 11 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨21637⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨21637⟩
       (⟨0⟩ :: p :: growth1 :: growth0 :: delta :: solcMappingSlot ⟨7⟩ key :: ret :: R)
       (wordArrayAllocMem mem p (positionSnapshotWords key σ ee)) aw' rdata σ k' C' ∧
       HeapMemory (wordArrayAllocMem mem p (positionSnapshotWords key σ ee)) aw' (p + ⟨160⟩) ∧

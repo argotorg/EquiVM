@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.AccountPoolSource
 import Benchmarks.UniswapV4PoolManager.AccountDeltaCallTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_038
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -25,15 +27,15 @@ theorem accountPoolCostTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hptr : 64 ≤ (ptr+UInt256.ofNat 32).toNat)
     (hmem : (ptr+UInt256.ofNat 32).toNat+32 ≤ mem.size)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨13906⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨13906⟩
       (ptr :: delta :: accountWord target :: ret :: R) mem aw rdata evm.accountMap k C) :
-    functionResultTrace (deployedRuntime v) g s0 (fun post values =>
+    functionResultTrace fork (deployedRuntime v) g s0 (fun post values =>
       post = accountPoolPost evm key delta target ∧ values = none ∧ ∃ aw' k' C',
-        C+Cₘ aw' ≤ C'+Cₘ aw ∧ RD (deployedRuntime v) I g s0 ret R (accountPoolMemory mem key delta target)
+        C+Cₘ aw' ≤ C'+Cₘ aw ∧ RD fork (deployedRuntime v) I g s0 ret R (accountPoolMemory mem key delta target)
           aw' rdata post.accountMap k' C') (accountPoolResult f evm key delta target) := by
   have rd0 := poolManagerBlocks.poolManager_block_13906 (by simp only [List.length_cons]; omega)
     (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) h
-  change RD (deployedRuntime v) I g s0 ⟨12528⟩
+  change RD fork (deployedRuntime v) I g s0 ⟨12528⟩
     (UInt256.land (memLoad ptr mem) solcAddrMask :: UInt256.sar (UInt256.ofNat 128) delta ::
       accountWord target :: ⟨13953⟩ :: ptr :: ⟨32⟩ :: solcAddrMask :: delta ::
       accountWord target :: ⟨12705⟩ :: ret :: R) mem _ rdata evm.accountMap _ _ at rd0
@@ -46,9 +48,9 @@ theorem accountPoolCostTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (balanceDeltaComponent_fits false delta) (by rw [deployedRuntime_jumps]; jump_dest)
     (by simpa only [balanceDeltaComponent, Bool.false_eq_true, if_false, balanceDeltaAmount0,
       wordOfInt_signed] using rd0)
-  have hsteps : blockResultTrace (deployedRuntime v) g s0 (fun _ post =>
+  have hsteps : blockResultTrace fork (deployedRuntime v) g s0 (fun _ post =>
       post = accountPoolPost evm key delta target ∧ ∃ aw' k' C',
-        C+Cₘ aw' ≤ C'+Cₘ aw ∧ RD (deployedRuntime v) I g s0 ret R (accountPoolMemory mem key delta target)
+        C+Cₘ aw' ≤ C'+Cₘ aw ∧ RD fork (deployedRuntime v) I g s0 ret R (accountPoolMemory mem key delta target)
           aw' rdata post.accountMap k' C') (fun _ _ => False)
       (accountPoolBlockResult f evm key delta target) := by
     apply blockResultTrace_continueBlock hr0
@@ -56,7 +58,7 @@ theorem accountPoolCostTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     obtain ⟨rfl, aw1, k1, C1, hc0, rd1⟩ := hh
     have rd2 := poolManagerBlocks.poolManager_block_13953 (by simp only [List.length_cons]; omega)
       (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd1
-    change RD (deployedRuntime v) I g s0 ⟨12528⟩
+    change RD fork (deployedRuntime v) I g s0 ⟨12528⟩
       (UInt256.land (memLoad (ptr+UInt256.ofNat 32)
           (accountDeltaMemory mem target (accountPoolCurrency key false) (balanceDeltaComponent false delta))) solcAddrMask ::
         UInt256.signextend (UInt256.ofNat 15) delta :: accountWord target :: ⟨12705⟩ :: ret :: R)
@@ -89,11 +91,11 @@ theorem accountPoolTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hptr : 64 ≤ (ptr+UInt256.ofNat 32).toNat)
     (hmem : (ptr+UInt256.ofNat 32).toNat+32 ≤ mem.size)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨13906⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨13906⟩
       (ptr :: delta :: accountWord target :: ret :: R) mem aw rdata evm.accountMap k C) :
-    functionResultTrace (deployedRuntime v) g s0 (fun post values =>
+    functionResultTrace fork (deployedRuntime v) g s0 (fun post values =>
       post = accountPoolPost evm key delta target ∧ values = none ∧ ∃ aw' k' C',
-        RD (deployedRuntime v) I g s0 ret R (accountPoolMemory mem key delta target)
+        RD fork (deployedRuntime v) I g s0 ret R (accountPoolMemory mem key delta target)
           aw' rdata post.accountMap k' C') (accountPoolResult f evm key delta target) := by
   have hr := accountPoolCostTrace f v hstack hI hkey0 hkey1 hptr hmem hret h
   apply functionResultTrace_mono hr

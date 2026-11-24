@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.CopyRequestMemory
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -13,11 +15,11 @@ theorem easCopyRequest_branches {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : EASImmutables) (hstack : R.length+14 ≤ 1024) (hlo : 96 ≤ heap.toNat)
     (hh : heap.toNat ≤ 2^64-1) (hfree : memLoad (UInt256.ofNat 64) mem = heap)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5344⟩ (src::stop::ret::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5344⟩ (src::stop::ret::R) mem aw rdata σ k C) :
     (requestCopyRunValid ee.calldata src stop heap →
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (heap::R)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (heap::R)
         (requestCopyMemory mem ee.calldata src heap) aw' rdata σ k' C') ∧
-    (¬ requestCopyRunValid ee.calldata src stop heap → RDrev (deployedRuntime v) g s0) := by
+    (¬ requestCopyRunValid ee.calldata src stop heap → RDrev fork (deployedRuntime v) g s0) := by
   have h := easCopyRequest v hstack hlo hh hfree hret rd
   constructor
   · intro hv
@@ -31,12 +33,12 @@ theorem copyRequestCall_branches {locals imms : Store} {args : List Expr} {retVa
     {evm : EVM.State} {r : AttestationRequestRecord} {heap : Nat}
     (he : evalExprs? config {contract := contract,locals := locals,immutables := imms} evm args = .ok [r.tuple,.int (Int.ofNat heap)]) :
     (copyRequestValid heap r.data.size →
-      ExecStmt config {contract := contract,locals := locals,immutables := imms} evm (.internalCall "_copyAttestationData" args retVar)
+      ExecStmt fork config {contract := contract,locals := locals,immutables := imms} evm (.internalCall "_copyAttestationData" args retVar)
         (.ok (resumeAfterInternalCall {contract := contract,locals := locals,immutables := imms} retVar
           (some [.tuple [],.int (Int.ofNat (copyRequestNext heap r.data.size))])) evm)) ∧
     (¬ copyRequestValid heap r.data.size →
-      ExecStmt config {contract := contract,locals := locals,immutables := imms} evm (.internalCall "_copyAttestationData" args retVar) .reverted) := by
-  have h := copyRequestCall (retVar := retVar) he
+      ExecStmt fork config {contract := contract,locals := locals,immutables := imms} evm (.internalCall "_copyAttestationData" args retVar) .reverted) := by
+  have h := copyRequestCall (fork := fork) (retVar := retVar) he
   constructor
   · intro hv
     rw [if_pos hv] at h
@@ -54,11 +56,11 @@ theorem copyRequestCallRun {locals : Store} {args : List Expr} {retVar : Ident}
     (hstack : R.length+14 ≤ 1024) (hlo : 96 ≤ heap.toNat) (hh : heap.toNat ≤ 2^64-1)
     (hfree : memLoad (UInt256.ofNat 64) mem = heap) (hsize : ee.calldata.size < 2^255+4)
     (hd : requestDataValid ee.calldata src) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5344⟩ (src::UInt256.ofNat ee.calldata.size::ret::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5344⟩ (src::UInt256.ofNat ee.calldata.size::ret::R) mem aw rdata σ k C) :
     let next := UInt256.ofNat (allocateNext heap.toNat 192)
     let final := requestCopyMemory mem ee.calldata src heap
     let finalHeap := copyRequestNext heap.toNat (requestDataRecord ee.calldata src).data.size
-    (ExecStmt config {contract := contract,locals := locals,immutables := immStore v} evm
+    (ExecStmt fork config {contract := contract,locals := locals,immutables := immStore v} evm
       (.internalCall "_copyAttestationData" args retVar)
       (.ok (resumeAfterInternalCall {contract := contract,locals := locals,immutables := immStore v} retVar
         (some [.tuple [],.int (Int.ofNat finalHeap)])) evm) ∧
@@ -67,10 +69,10 @@ theorem copyRequestCallRun {locals : Store} {args : List Expr} {retVar : Ident}
       memLoad (UInt256.ofNat 64) final = UInt256.ofNat finalHeap ∧ heap.toNat+192 ≤ finalHeap ∧
       next.toNat+32+32*(((requestDataRecord ee.calldata src).data.size+31)/32) = finalHeap ∧
       finalHeap ≤ final.size ∧
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (heap::R) final aw' rdata σ k' C') ∨
-    (ExecStmt config {contract := contract,locals := locals,immutables := immStore v} evm
-      (.internalCall "_copyAttestationData" args retVar) .reverted ∧ RDrev (deployedRuntime v) g s0) := by
-  have hsrc := copyRequestCall_branches (retVar := retVar) he
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (heap::R) final aw' rdata σ k' C') ∨
+    (ExecStmt fork config {contract := contract,locals := locals,immutables := immStore v} evm
+      (.internalCall "_copyAttestationData" args retVar) .reverted ∧ RDrev fork (deployedRuntime v) g s0) := by
+  have hsrc := copyRequestCall_branches (fork := fork) (retVar := retVar) he
   have hrun := easCopyRequest_branches v hstack hlo hh hfree hret rd
   have hguard := requestCopyRunValid_iff (heap := heap) hd
   by_cases hv : copyRequestValid heap.toNat (requestDataRecord ee.calldata src).data.size

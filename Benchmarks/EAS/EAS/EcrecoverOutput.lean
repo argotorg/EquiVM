@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.StaticCallBridge
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 
@@ -46,11 +48,11 @@ theorem ecrecoverOutput_precompile (σ : AccountMap) (gas : UInt256) (A : Substa
       · exact Or.inl rfl
 
 -- GENERALIZES Reasoning.ExternalCall.staticcallTheta_ecrecover_output_size with canonical addresses.
-theorem ecrecoverOutput_theta
+theorem ecrecoverOutput_theta {fork : Ethereum.Fork}
     {blobVersionedHashes blocks σ σ₀ A_in r s gas p value value' data depth H perm σ' gas' A' z out}
     (hΘ : (σ',gas',A',z,out) =
-      Θ σ σ₀ A_in r s (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
-        (toExecute σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
+      Θ fork σ σ₀ A_in r s (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
+        (toExecute fork σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
         gas p value value' data depth H blobVersionedHashes blocks perm) :
     EcrecoverOutput out := by
   have hout := congrArg (fun x => x.2.2.2.2) hΘ
@@ -63,7 +65,7 @@ theorem ecrecoverOutput_theta
 
 -- LIBRARY CANDIDATE: retain precompile output facts through the source call relation's same Θ witness.
 theorem ecrecoverOutput_call {evm evm' : EVM.State} {data out : ByteArray} {z perm : Bool} {value : Int}
-    (hc : callViaEVM evm (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) value data (z,evm',out) perm) :
+    (hc : callViaEVM fork evm (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) value data (z,evm',out) perm) :
     EcrecoverOutput out := by
   cases hc with
   | callMade hv hΘ he hbal hd =>

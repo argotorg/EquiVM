@@ -3,6 +3,8 @@ import Benchmarks.Safe.V1_0227664.ExternalCode
 import Benchmarks.Safe.V1_0227664.ByteCopy
 import Benchmarks.Safe.V1_0227664.Blocks.Runtime_037
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V1_0227664.RuntimeBlocks
 
@@ -27,22 +29,22 @@ theorem safeEvalDelegatedAccount (evm : EVM.State) (frame : Frame) :
 
 theorem safeDelegatedAccountTrace {I g s0 σ k C aw mem rdata} {ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨8678⟩ (ret :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨8678⟩ (ret :: R) mem aw rdata σ k C)
     (hov : R.length + 6 ≤ 1024) (hm : 32 ≤ mem.size)
     (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ret
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ret
       ((if delegatedAccount σ I then ⟨1⟩ else ⟨0⟩) :: R)
       ((externalCode σ (UInt256.ofNat I.codeOwner.val)).write 0 mem 0 3)
       aw' rdata σ k' C' := by
   have h₁ := safeRuntime_block_8678 (by simp; omega) h
   simp only [safeRuntime_block_8678_stack] at h₁
   obtain ⟨k₂, C₂, h₂⟩ := rdExtcodecopy h₁ (by native_decide) (by simp; omega)
-  change RD safeBytecode I g s0 ⟨8686⟩ (⟨0⟩ :: ret :: R)
+  change RD fork safeBytecode I g s0 ⟨8686⟩ (⟨0⟩ :: ret :: R)
     ((externalCode σ (UInt256.ofNat I.codeOwner.val)).write 0 mem 0 3)
     (M aw ⟨0⟩ ⟨3⟩) rdata σ k₂ C₂ at h₂
   obtain ⟨aw₃, k₃, C₃, h₃⟩ := safeRuntime_block_8686_packed (by simp; omega) hret h₂
   simp only [safeRuntime_block_8686_stack] at h₃
-  change RD safeBytecode I g s0 ret
+  change RD fork safeBytecode I g s0 ret
     ((UInt256.eq ⟨15663360⟩ (UInt256.shiftRight
       (memLoad ⟨0⟩ ((externalCode σ (UInt256.ofNat I.codeOwner.val)).write 0 mem 0 3))
       ⟨232⟩)) :: R) _ aw₃ rdata σ k₃ C₃ at h₃

@@ -13,6 +13,8 @@ import Reasoning.Stepping
 import Reasoning.Storage
 import Mathlib.Tactic.IntervalCases
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Vat shared proof foundation
 
@@ -63,23 +65,23 @@ def vatSelBytes : ℕ → ByteArray
   | _ => ⟨#[0xbf, 0x35, 0x3d, 0xbb]⟩ -- wards(address)
 
 /-- The common top-level shape of a routed Vat runtime body proof. -/
-abbrev VatBodyTheorem (i : ℕ) : Prop :=
+abbrev VatBodyTheorem (fork : Ethereum.Fork) (i : ℕ) : Prop :=
   ∀ {σ σ₀ A I} {g : UInt256},
     I.code = vatBytecode →
     I.calldata.size < UInt256.size →
     I.perm = true →
     I.weiValue = ⟨0⟩ →
     selIs I (vatSelBytes i) →
-    runtimeRefinementFor config contract σ σ₀ g A I
+    runtimeRefinementFor fork config contract σ σ₀ g A I
 
 /-- `VatBodyTheorem` for any call permission. -/
-abbrev VatBodyTheoremAnyPerm (i : ℕ) : Prop :=
+abbrev VatBodyTheoremAnyPerm (fork : Ethereum.Fork) (i : ℕ) : Prop :=
   ∀ {σ σ₀ A I} {g : UInt256},
     I.code = vatBytecode →
     I.calldata.size < UInt256.size →
     I.weiValue = ⟨0⟩ →
     selIs I (vatSelBytes i) →
-    runtimeRefinementFor config contract σ σ₀ g A I
+    runtimeRefinementFor fork config contract σ σ₀ g A I
 
 
 @[reducible] def solcSixWordThreeAddressExternalLoadAndJumpWf
@@ -169,11 +171,11 @@ theorem RD.solcSixWordThreeAddressExternalLoadAndJump {code : ByteArray} {g : Sa
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {decoded ret routine de : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
     {acc : AccountMap}
-    (h : RD code ee g s0 decoded (de :: ⟨4⟩ :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 decoded (de :: ⟨4⟩ :: ret :: R) mem aw rdata acc k C)
     (hwf : solcSixWordThreeAddressExternalLoadAndJumpWf code decoded routine)
     (hroutine : (D_J code 0).contains routine = true)
     (hov : R.length + 10 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 routine
+    ∃ k' C', RD fork code ee g s0 routine
       (calldataWord ee.calldata 164 ::
         calldataWord ee.calldata 132 ::
         UInt256.land solcAddrMask (calldataWord ee.calldata 100) ::
@@ -243,7 +245,7 @@ theorem vatUint256GetterBodyReturns (evm : EVM.State) (locals : Store)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem (.int uint256Int)))
     (hloc : config.storageBackend.locate? er = some (.leaf (wordLoc slot))) :
-    ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
+    ExecTransitionBody fork config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract, locals := locals } evm
         (some [(.int (Int.ofNat
           (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat))])) := by
@@ -260,7 +262,7 @@ theorem vatUint256GetterBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf vatBytecode entry returnPc routine)
@@ -270,12 +272,12 @@ theorem vatUint256GetterBodyCore
     (hretmem : solcReturnWordFromMemWf vatBytecode returnPc)
     (hreturn : transition.returnType = [uint256])
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))]))) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have henc :
       returnEquiv (UInt256.toByteArray (solcSlotWordAt slot σ I))
         (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))])
@@ -287,7 +289,7 @@ theorem vatUint256GetterBodyCore
     (returnPc := returnPc) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine hreturnJd hretmem
   have hret' :
-      RDret vatBytecode (Sat256.ofUInt256 g)
+      RDret fork vatBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (UInt256.toByteArray (solcSlotWordAt slot σ I)) := by
     simpa [solcSlotWordAt] using hret
@@ -408,7 +410,7 @@ theorem solcScratchReturn2Mem_read128_64 {scratch : ByteArray} (first second : U
 theorem RD.solcTwoWordReturnFromMem {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc first second ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {acc : AccountMap}
-    (h : RD code ee g s0 pc (second :: first :: ret :: R)
+    (h : RD fork code ee g s0 pc (second :: first :: ret :: R)
         mem (UInt256.ofNat 3) rdata acc k C)
     (hwf : solcTwoWordReturnFromMemWf code pc)
     (hmload64 :
@@ -419,7 +421,7 @@ theorem RD.solcTwoWordReturnFromMem {code : ByteArray} {g : Sat256} {s0 : State}
     (hscratch : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 6 ≤ 1024) :
-    RDret code g s0 acc (UInt256.toByteArray first ++ UInt256.toByteArray second) := by
+    RDret fork code g s0 acc (UInt256.toByteArray first ++ UInt256.toByteArray second) := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd4, hd5, hd6, hd7, hd8, hd10, hd11, hd12, hd13, hd14,
       hd15, hd16, hd17, hd18, hd19, hd20, hd21, hd22, hd23, hd24⟩
@@ -463,13 +465,13 @@ theorem RD.vatSignedMulOk {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {x y ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {activeWords : UInt256}
     {acc : AccountMap}
-    (h : RD vatBytecode ee g s0 ⟨6706⟩ (y :: x :: ret :: R) mem
+    (h : RD fork vatBytecode ee g s0 ⟨6706⟩ (y :: x :: ret :: R) mem
       activeWords rdata acc k C)
     (hmax : UInt256.slt x ⟨0⟩ = ⟨0⟩)
     (hmul : y = ⟨0⟩ ∨ UInt256.eq (UInt256.sdiv (UInt256.mul y x) y) x ≠ ⟨0⟩)
     (hret : (D_J vatBytecode 0).contains ret = true)
     (hov : R.length + 9 ≤ 1024) :
-    ∃ k' C', RD vatBytecode ee g s0 ret ((UInt256.mul y x) :: R) mem
+    ∃ k' C', RD fork vatBytecode ee g s0 ret ((UInt256.mul y x) :: R) mem
       activeWords rdata acc k' C' := by
   let prod := UInt256.mul y x
   have rd6707 := h.jumpdest (by native_decide) (by evm_ov)
@@ -540,14 +542,14 @@ theorem RD.vatSignedMulRevert {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {x y ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {activeWords : UInt256}
     {acc : AccountMap}
-    (h : RD vatBytecode ee g s0 ⟨6706⟩ (y :: x :: ret :: R) mem
+    (h : RD fork vatBytecode ee g s0 ⟨6706⟩ (y :: x :: ret :: R) mem
       activeWords rdata acc k C)
     (hfail :
       ¬ UInt256.slt x ⟨0⟩ = ⟨0⟩ ∨
       UInt256.slt x ⟨0⟩ = ⟨0⟩ ∧
         ¬ (y = ⟨0⟩ ∨ UInt256.eq (UInt256.sdiv (UInt256.mul y x) y) x ≠ ⟨0⟩))
     (hov : R.length + 9 ≤ 1024) :
-    RDrev vatBytecode g s0 := by
+    RDrev fork vatBytecode g s0 := by
   let prod := UInt256.mul y x
   have rd6707 := h.jumpdest (by native_decide) (by evm_ov)
   have rd6708 := rd6707.dup2 (by native_decide) (by evm_ov)
@@ -617,13 +619,13 @@ theorem RD.vatSignedSubOk {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {x y ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {activeWords : UInt256}
     {acc : AccountMap}
-    (h : RD vatBytecode ee g s0 ⟨6795⟩ (y :: x :: ret :: R) mem
+    (h : RD fork vatBytecode ee g s0 ⟨6795⟩ (y :: x :: ret :: R) mem
       activeWords rdata acc k C)
     (hpos : UInt256.sgt y ⟨0⟩ = ⟨0⟩ ∨ UInt256.gt (UInt256.sub x y) x = ⟨0⟩)
     (hneg : UInt256.slt y ⟨0⟩ = ⟨0⟩ ∨ UInt256.lt (UInt256.sub x y) x = ⟨0⟩)
     (hret : (D_J vatBytecode 0).contains ret = true)
     (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD vatBytecode ee g s0 ret ((UInt256.sub x y) :: R) mem
+    ∃ k' C', RD fork vatBytecode ee g s0 ret ((UInt256.sub x y) :: R) mem
       activeWords rdata acc k' C' := by
   let diff := UInt256.sub x y
   have rd6796 := h.jumpdest (by native_decide) (by evm_ov)
@@ -637,7 +639,7 @@ theorem RD.vatSignedSubOk {g : Sat256} {s0 : State}
   have rd6805 := rd6804.dup1 (by native_decide) (by evm_ov)
   have rd6808 := rd6805.push2 ⟨6814⟩ (by native_decide) (by evm_ov)
   have hrd6814 :
-      ∃ k' C', RD vatBytecode ee g s0 ⟨6814⟩ (⟨1⟩ :: diff :: y :: x :: ret :: R)
+      ∃ k' C', RD fork vatBytecode ee g s0 ⟨6814⟩ (⟨1⟩ :: diff :: y :: x :: ret :: R)
         mem activeWords rdata acc k' C' := by
     by_cases hypos0 : UInt256.sgt y ⟨0⟩ = ⟨0⟩
     · rw [hypos0, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd6808
@@ -716,14 +718,14 @@ theorem RD.vatSignedSubRevert {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {x y ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {activeWords : UInt256}
     {acc : AccountMap}
-    (h : RD vatBytecode ee g s0 ⟨6795⟩ (y :: x :: ret :: R) mem
+    (h : RD fork vatBytecode ee g s0 ⟨6795⟩ (y :: x :: ret :: R) mem
       activeWords rdata acc k C)
     (hfail :
       ¬ (UInt256.sgt y ⟨0⟩ = ⟨0⟩ ∨ UInt256.gt (UInt256.sub x y) x = ⟨0⟩) ∨
       (UInt256.sgt y ⟨0⟩ = ⟨0⟩ ∨ UInt256.gt (UInt256.sub x y) x = ⟨0⟩) ∧
         ¬ (UInt256.slt y ⟨0⟩ = ⟨0⟩ ∨ UInt256.lt (UInt256.sub x y) x = ⟨0⟩))
     (hov : R.length + 7 ≤ 1024) :
-    RDrev vatBytecode g s0 := by
+    RDrev fork vatBytecode g s0 := by
   let diff := UInt256.sub x y
   have rd6796 := h.jumpdest (by native_decide) (by evm_ov)
   have rd6797 := rd6796.dup1 (by native_decide) (by evm_ov)
@@ -764,7 +766,7 @@ theorem RD.vatSignedSubRevert {g : Sat256} {s0 : State}
       (by native_decide) (by native_decide) (by native_decide)
       (by simp only [List.length_cons]; omega)
   · have hrd6814 :
-        ∃ k' C', RD vatBytecode ee g s0 ⟨6814⟩ (⟨1⟩ :: diff :: y :: x :: ret :: R)
+        ∃ k' C', RD fork vatBytecode ee g s0 ⟨6814⟩ (⟨1⟩ :: diff :: y :: x :: ret :: R)
           mem activeWords rdata acc k' C' := by
       by_cases hypos0 : UInt256.sgt y ⟨0⟩ = ⟨0⟩
       · rw [hypos0, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd6808

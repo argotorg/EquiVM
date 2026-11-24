@@ -1,13 +1,15 @@
 import Benchmarks.Safe.ViaIR.SignatureLoop
 import Benchmarks.Safe.ViaIR.SignatureBoundsTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.ViaIR
 
 theorem safeCheckNSignaturesTrace (p : SignatureInput) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata ptr src} {executor ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7531⟩
+    (h : RD fork safeBytecode I g s0 ⟨7531⟩
       (executor :: p.hash :: UInt256.ofNat src :: p.required :: ret :: R) mem aw rdata σ k C)
     (he : p.executor = AccountAddress.ofUInt256 executor)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ) (hworld : evm.σ₀ = s0.σ₀)
@@ -16,13 +18,13 @@ theorem safeCheckNSignaturesTrace (p : SignatureInput) (evm : EVM.State)
     (ha : src + 32 + p.signatures.size ≤ ptr) (hp : ptr < 2 ^ 220)
     (hn : p.signatures.size < 2 ^ 64) (hov : R.length + 44 ≤ 1024)
     (hret : (D_J safeBytecode 0).contains ret = true) :
-    (RDrev safeBytecode g s0 ∧
-      ExecFuncBody config p.frame evm checkNSignaturesImplFunction.body .reverted) ∨
+    (RDrev fork safeBytecode g s0 ∧
+      ExecFuncBody fork config p.frame evm checkNSignaturesImplFunction.body .reverted) ∨
     ∃ f' evm' σ' mem' ptr' aw' out k' C',
-      ExecFuncBody config p.frame evm checkNSignaturesImplFunction.body
+      ExecFuncBody fork config p.frame evm checkNSignaturesImplFunction.body
         (.returned f' evm' none) ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧ evm'.σ₀ = s0.σ₀ ∧
-      RD safeBytecode I g s0 ret R mem' aw' out σ' k' C' ∧
+      RD fork safeBytecode I g s0 ret R mem' aw' out σ' k' C' ∧
       BytesMemory mem' src p.signatures ∧ memLoad ⟨64⟩ mem' = UInt256.ofNat ptr' ∧
       memLoad ⟨96⟩ mem' = ⟨0⟩ ∧ ptr ≤ ptr' ∧ ptr' ≤ ptr + 2 ^ 204 ∧
       mem'.size ≤ max mem.size (ptr + 2 ^ 204) ∧ MemoryPreserves mem mem' 96 ptr ∧ (ptr < 2 ^ 64 → ptr' < 2 ^ 64) := by

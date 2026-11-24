@@ -1,5 +1,7 @@
 import Tests.Pipeline.VyperVault.Withdraw
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # VyperVault `collectFees()`
 
@@ -78,7 +80,7 @@ theorem vyperVaultCollectFeesBody {σ σ₀ A I} {g : UInt256} (imms : Store) (h
     (hwf : storageWF σ I)
     (hcode : I.code = immutableLayout.deployed vyperVaultBytecode imms) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vyperVaultSelBytes 7)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (restrictImmutables contract imms) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (restrictImmutables contract imms) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (vyperVaultSelBytes 7) rfl hsel
   have hcode' : I.code = vyperVaultBytecode ++ immutableLayout.suffixWords (wordsOf imms) := by
     rw [hcode, deployed_of_fit hfit]
@@ -228,7 +230,7 @@ theorem vyperVaultCollectFeesBody {σ σ₀ A I} {g : UInt256} (imms : Store) (h
   have hamt : ∀ evm, evalExpr? config (frame imms (cfLocals σ I a)) evm (.var "amount") =
       .ok (uint256Value (fcL σ I)) := fun evm =>
     evalVar imms _ _ "amount" _ (by rw [store_get_ne _ _ (by decide), store_get_self])
-  have hcallStmt : ExecStmt config (frame imms (cfLocals σ I a)) (evmF σ σ₀ (Sat256.ofUInt256 g) A I)
+  have hcallStmt : ExecStmt fork config (frame imms (cfLocals σ I a)) (evmF σ σ₀ (Sat256.ofUInt256 g) A I)
       (.lowLevelCall (.var "__a0") (.var "amount") (.newBytes (.intLit 0)) "__ok1" "__data1" true)
       (.ok { frame imms (cfLocals σ I a) with locals := cfLocals' σ I a z out } evm') :=
     lowLevelCallSource (hperm := Or.inr (by simpa only [hs.env] using hperm))
@@ -279,7 +281,7 @@ theorem vyperVaultCollectFeesBody {σ σ₀ A I} {g : UInt256} (imms : Store) (h
         (hbase := by simp) (her := by simp [evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
         (hty := by show storageTypeAt? contract.storage _ = _; decide) (hloc := rfl)
       erw [storageLocStore_uint256, hs'.env]
-    have hbody : ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+    have hbody : ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         collectFeesTransition.body
         (.returned (frame imms ((∅ : Store).insert "__r" (uint256Value (fcL σ I))))
           (Stele.EVM.storageStore evm' I.codeOwner ⟨0⟩ (UInt256.ofNat 3)) (some [uint256Value (fcL σ I)]))

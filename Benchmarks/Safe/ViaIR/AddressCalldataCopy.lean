@@ -1,6 +1,8 @@
 import Benchmarks.Safe.ViaIR.AddressCalldataCopyStep
 import Benchmarks.Safe.ViaIR.WordWrites
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -10,7 +12,7 @@ set_option maxRecDepth 2000 in
 theorem safeAddressCalldataCopyLoop (count : Nat)
     {I g s0 σ k C aw mem rdata i n src dst}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3187⟩
+    (h : RD fork safeBytecode I g s0 ⟨3187⟩
       (UInt256.ofNat i :: UInt256.ofNat n :: UInt256.ofNat src :: UInt256.ofNat dst :: R)
       mem aw rdata σ k C)
     (hi : i + count = n) (hn : n < UInt256.size)
@@ -18,7 +20,7 @@ theorem safeAddressCalldataCopyLoop (count : Nat)
     (hm : mem.size = dst)
     (hc : ∀ w ∈ calldataWords I.calldata src count, w.toNat < EVM.addressModulus)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨3195⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨3195⟩
       (UInt256.ofNat n :: UInt256.ofNat n :: UInt256.ofNat (src + 32 * count) ::
         UInt256.ofNat (dst + 32 * count) :: R)
       (mem ++ wordBytes (calldataWords I.calldata src count)) aw' rdata σ k' C' := by
@@ -29,7 +31,7 @@ theorem safeAddressCalldataCopyLoop (count : Nat)
       have h₁ := safeRuntime_block_3187_fallthrough (by simp; omega)
         (ult_zero (Nat.le_refl _)) h
       simpa only [Nat.mul_zero, Nat.add_zero, calldataWords, wordBytes, ByteArray.append_empty]
-        using (show ∃ aw' k' C', RD safeBytecode I g s0 ⟨3195⟩
+        using (show ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨3195⟩
           (UInt256.ofNat n :: UInt256.ofNat n :: UInt256.ofNat src :: UInt256.ofNat dst :: R)
           mem aw' rdata σ k' C' from ⟨_, _, _, h₁⟩)
   | succ count ih =>
@@ -53,13 +55,13 @@ set_option maxRecDepth 2000 in
 theorem safeAddressCalldataCopyLoopRevert (count : Nat)
     {I g s0 σ k C aw mem rdata i n src dst}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3187⟩
+    (h : RD fork safeBytecode I g s0 ⟨3187⟩
       (UInt256.ofNat i :: UInt256.ofNat n :: UInt256.ofNat src :: UInt256.ofNat dst :: R)
       mem aw rdata σ k C)
     (hi : i + count = n) (hn : n < UInt256.size)
     (hsrc : src + 32 * count < UInt256.size) (hdst : dst + 32 * count < UInt256.size)
     (hc : ¬∀ w ∈ calldataWords I.calldata src count, w.toNat < EVM.addressModulus)
-    (hov : R.length + 16 ≤ 1024) : RDrev safeBytecode g s0 := by
+    (hov : R.length + 16 ≤ 1024) : RDrev fork safeBytecode g s0 := by
   induction count generalizing i src dst mem aw k C with
   | zero => exact (hc (by simp [calldataWords])).elim
   | succ count ih =>
@@ -73,14 +75,14 @@ theorem safeAddressCalldataCopyLoopRevert (count : Nat)
 set_option maxRecDepth 2000 in
 theorem safeSetupOwnersCopyLoop (count : Nat)
     {I g s0 σ k C aw mem rdata src dst finish} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3294⟩
+    (h : RD fork safeBytecode I g s0 ⟨3294⟩
       (UInt256.ofNat dst :: UInt256.ofNat src :: UInt256.ofNat finish :: R)
       mem aw rdata σ k C)
     (hi : src + 32 * count = finish) (hs : finish < UInt256.size)
     (hd : dst + 32 * count < UInt256.size)
     (hc : ∀ w ∈ calldataWords I.calldata src count, w.toNat < EVM.addressModulus)
     (hov : R.length + 14 ≤ 1024) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨3302⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨3302⟩
       (UInt256.ofNat (dst + 32 * count) :: UInt256.ofNat finish ::
         UInt256.ofNat finish :: R)
       (writeWords mem dst (calldataWords I.calldata src count)) aw' rdata σ k' C' := by
@@ -90,7 +92,7 @@ theorem safeSetupOwnersCopyLoop (count : Nat)
       subst src
       have h₁ := safeRuntime_block_3294_fallthrough (by omega) (ult_zero (Nat.le_refl _)) h
       simpa only [Nat.mul_zero, Nat.add_zero, calldataWords, writeWords] using
-        (show ∃ aw' k' C', RD safeBytecode I g s0 ⟨3302⟩
+        (show ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨3302⟩
           (UInt256.ofNat dst :: UInt256.ofNat finish :: UInt256.ofNat finish :: R)
           mem aw' rdata σ k' C' from ⟨_, _, _, h₁⟩)
   | succ count ih =>

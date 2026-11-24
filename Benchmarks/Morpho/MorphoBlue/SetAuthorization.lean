@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.ErrorRoutines
 import Benchmarks.Morpho.MorphoBlue.AdminCommon
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Morpho `setAuthorization(address,bool)`
 
@@ -63,7 +65,7 @@ theorem morphoSetAuthorizationBodySplit (v : MorphoImmutables) (evm : EVM.State)
     (hcanon : (calldataWord evm.executionEnv.calldata 4).toNat < EVM.addressModulus)
     (hne : UInt256.isZero (UInt256.isZero (calldataWord evm.executionEnv.calldata 36)) ≠
       setAuthorizationOld evm.accountMap evm.executionEnv) :
-    (evm.executionEnv.perm = true → ExecTransitionBody config contract evm (setAuthorizationArgs evm.executionEnv.calldata)
+    (evm.executionEnv.perm = true → ExecTransitionBody fork config contract evm (setAuthorizationArgs evm.executionEnv.calldata)
       setAuthorizationTransition.body
       (.returned (setAuthorizationFrame v evm.executionEnv.calldata)
         (Stele.EVM.storageStore evm evm.executionEnv.codeOwner
@@ -72,9 +74,9 @@ theorem morphoSetAuthorizationBodySplit (v : MorphoImmutables) (evm : EVM.State)
             (authorizationSlot (solcSourceWord evm.executionEnv) (calldataWord evm.executionEnv.calldata 4))
             evm.accountMap evm.executionEnv) (calldataWord evm.executionEnv.calldata 36))) none) (immStore v)) ∧
     (evm.executionEnv.perm = false →
-      ExecTransitionBody config contract evm (setAuthorizationArgs evm.executionEnv.calldata)
+      ExecTransitionBody fork config contract evm (setAuthorizationArgs evm.executionEnv.calldata)
         setAuthorizationTransition.body .staticViolation (immStore v)) := by
-  have hprefix : ABlock config evm
+  have hprefix : ABlock fork config evm
       { contract := contract, locals := setAuthorizationArgs evm.executionEnv.calldata, immutables := immStore v }
       setAuthorizationTransition.body (setAuthorizationFrame v evm.executionEnv.calldata)
       (setAuthorizationTransition.body.drop 4) :=
@@ -89,7 +91,7 @@ theorem morphoSetAuthorizationBodySplit (v : MorphoImmutables) (evm : EVM.State)
   · intro hperm
     apply ExecFuncBody.execBlockOK
     apply hprefix.run
-    apply ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) (setAuthorizationBool_eval v _ evm) hassign)
+    apply ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (setAuthorizationBool_eval v _ evm) hassign)
     apply ExecBlock.consNormal
     · apply ExecStmt.emit (hperm := by simpa only [storageStore_executionEnv] using hperm) (vals := [.address evm.executionEnv.source, .address evm.executionEnv.source,
         .address (AccountAddress.ofNat (calldataWord evm.executionEnv.calldata 4).toNat),
@@ -108,7 +110,7 @@ theorem morphoSetAuthorizationBodyRejects (v : MorphoImmutables) (evm : EVM.Stat
     (hcanon : (calldataWord evm.executionEnv.calldata 4).toNat < EVM.addressModulus)
     (heq : UInt256.isZero (UInt256.isZero (calldataWord evm.executionEnv.calldata 36)) =
       setAuthorizationOld evm.accountMap evm.executionEnv) :
-    ExecTransitionBody config contract evm (setAuthorizationArgs evm.executionEnv.calldata)
+    ExecTransitionBody fork config contract evm (setAuthorizationArgs evm.executionEnv.calldata)
       setAuthorizationTransition.body .reverted (immStore v) := by
   apply ExecFuncBody.execBlockRevert
   exact (calldataPrelude_ok hcv hsize).requireRevert
@@ -119,7 +121,7 @@ theorem morphoSetAuthorizationReachDecode {σ σ₀ A I} {g : Sat256} (v : Morph
     (hsel : selIs I (morphoSelBytes 25))
     (hcv : I.weiValue = ⟨0⟩) (hlen : 68 ≤ I.calldata.size)
     (hbound : I.calldata.size < 2 ^ 255 + 4) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 11354)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 11354)
       [UInt256.ofNat 499, ⟨0⟩]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨k, C, rd⟩ := morphoReachSetAuthorizationBody (g := g) (σ := σ) (σ₀ := σ₀)
@@ -161,7 +163,7 @@ theorem morphoSetAuthorizationReachCheck {σ σ₀ A I} {g : Sat256} (v : Morpho
     (hbound : I.calldata.size < 2 ^ 255 + 4)
     (hcanon : (calldataWord I.calldata 4).toNat < EVM.addressModulus)
     (hbool : calldataWord I.calldata 36 = ⟨0⟩ ∨ calldataWord I.calldata 36 = ⟨1⟩) :
-    ∃ aw k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 12097)
+    ∃ aw k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 12097)
       [UInt256.isZero (UInt256.eq (UInt256.isZero (UInt256.isZero (calldataWord I.calldata 36)))
         (setAuthorizationOld σ I)), UInt256.ofNat 128, UInt256.ofNat 591,
        calldataWord I.calldata 36, UInt256.ofNat 663,
@@ -178,7 +180,7 @@ theorem morphoSetAuthorizationReachCheck {σ σ₀ A I} {g : Sat256} (v : Morpho
   obtain ⟨kb, Cb, rdMessage⟩ := morphoBlocks.morpho_block_514
     (immWords := wordsOf (immStore v)) (by simp)
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) rdBody
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     [UInt256.ofNat 585, UInt256.isZero (UInt256.eq (UInt256.isZero (UInt256.isZero (calldataWord I.calldata 36)))
       (UInt256.isZero (UInt256.isZero (UInt256.land (solcSlotWordAt
         (keccakWord ⟨0⟩ (UInt256.ofNat 64) (nestedMappingMem ⟨6⟩ (solcSourceWord I)
@@ -211,7 +213,7 @@ theorem morphoSetAuthorizationXRejects {σ σ₀ A I} {g : Sat256} (v : MorphoIm
     (hcanon : (calldataWord I.calldata 4).toNat < EVM.addressModulus)
     (hbool : calldataWord I.calldata 36 = ⟨0⟩ ∨ calldataWord I.calldata 36 = ⟨1⟩)
     (heq : UInt256.isZero (UInt256.isZero (calldataWord I.calldata 36)) = setAuthorizationOld σ I) :
-    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
   obtain ⟨aw, k, C, rd⟩ := morphoSetAuthorizationReachCheck (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hsize hsel hcv hlen hbound hcanon hbool
   exact morphoRequireFalseShort (v := v) (by simp)
@@ -223,9 +225,9 @@ theorem morphoSetAuthorizationStoreStatic {v : MorphoImmutables} {ee : Execution
     {s0 : EVM.State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : Nat} {value ret norm key zero : UInt256} {R : List UInt256}
     (hstack : R.length + 9 ≤ 1024) (hperm : ee.perm = false)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 591)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 591)
       (value :: ret :: norm :: key :: zero :: R) mem aw rdata σ k C) :
-    RDstatic (deployedRuntime v) g s0 := by
+    RDstatic fork (deployedRuntime v) g s0 := by
   let r0 := h
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.Morpho.MorphoBlue.immutableLayout, Benchmarks.Morpho.MorphoBlue.morphoBytecode, wordsOf (immStore v), (⟨591⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, morphoBlocks.immutableLayout_inBounds, morphoBlocks.immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.caller (by immutable_decode(Benchmarks.Morpho.MorphoBlue.immutableLayout, Benchmarks.Morpho.MorphoBlue.morphoBytecode, wordsOf (immStore v), (⟨592⟩ : UInt256), UInt8.ofNat 51, .CALLER, none, morphoBlocks.immutableLayout_inBounds, morphoBlocks.immutableTemplate_size64)) (by evm_ov)
@@ -267,11 +269,11 @@ theorem morphoSetAuthorizationXSplit {σ σ₀ A I} {g : Sat256} (v : MorphoImmu
     (hcanon : (calldataWord I.calldata 4).toNat < EVM.addressModulus)
     (hbool : calldataWord I.calldata 36 = ⟨0⟩ ∨ calldataWord I.calldata 36 = ⟨1⟩)
     (hne : UInt256.isZero (UInt256.isZero (calldataWord I.calldata 36)) ≠ setAuthorizationOld σ I) :
-    (I.perm = true ∧ RDret (deployedRuntime v) g (initState σ σ₀ g A I)
+    (I.perm = true ∧ RDret fork (deployedRuntime v) g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ (authorizationSlot (solcSourceWord I) (calldataWord I.calldata 4))
         (setBoolOffset0Word (solcSlotWordAt (authorizationSlot (solcSourceWord I)
           (calldataWord I.calldata 4)) σ I) (calldataWord I.calldata 36))) ByteArray.empty) ∨
-    (I.perm = false ∧ RDstatic (deployedRuntime v) g (initState σ σ₀ g A I)) := by
+    (I.perm = false ∧ RDstatic fork (deployedRuntime v) g (initState σ σ₀ g A I)) := by
   obtain ⟨aw, k, C, rd⟩ := morphoSetAuthorizationReachCheck (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hsize hsel hcv hlen hbound hcanon hbool
   obtain ⟨kt, Ct, rdStore⟩ := morphoRequireTrue (v := v) (by simp)
@@ -284,7 +286,7 @@ theorem morphoSetAuthorizationXSplit {σ σ₀ A I} {g : Sat256} (v : MorphoImmu
     have ret := morphoBlocks.morpho_block_663 (immWords := wordsOf (immStore v)) (by decide) hperm rdEvent
     let mem := nestedMappingMem ⟨6⟩ (solcSourceWord I) (calldataWord I.calldata 4)
       (morphoAlreadySetMem (setAuthorizationCheckMem I))
-    change RDret _ _ _ (sstoreAccountMap I.codeOwner σ (keccakWord ⟨0⟩ (UInt256.ofNat 64) mem)
+    change RDret fork _ _ _ (sstoreAccountMap I.codeOwner σ (keccakWord ⟨0⟩ (UInt256.ofNat 64) mem)
       (UInt256.lor (UInt256.land (UInt256.isZero (UInt256.isZero (calldataWord I.calldata 36))) ⟨255⟩)
         (UInt256.land (solcSlotWordAt (keccakWord ⟨0⟩ (UInt256.ofNat 64) mem) σ I)
           (UInt256.ofNat 115792089237316195423570985008687907853269984665640564039457584007913129639680))))
@@ -304,7 +306,7 @@ theorem morphoSetAuthorizationXReverts {σ σ₀ A I} {g : Sat256} (v : MorphoIm
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 25))
     (hbad : I.weiValue ≠ ⟨0⟩ ∨ I.calldata.size < 68 ∨ 2 ^ 255 + 4 ≤ I.calldata.size) :
-    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 25) rfl hsel
   obtain ⟨k, C, rd⟩ := morphoReachSetAuthorizationBody (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hsz hsize hsel
@@ -333,7 +335,7 @@ theorem morphoSetAuthorizationXNoncanonical {σ σ₀ A I} {g : Sat256} (v : Mor
     (hbound : I.calldata.size < 2 ^ 255 + 4)
     (hnc : ¬ ((calldataWord I.calldata 4).toNat < EVM.addressModulus ∧
       (calldataWord I.calldata 36 = ⟨0⟩ ∨ calldataWord I.calldata 36 = ⟨1⟩))) :
-    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
   by_cases hcv : I.weiValue = ⟨0⟩
   · obtain ⟨k, C, rd⟩ := morphoSetAuthorizationReachDecode (g := g) (σ := σ) (σ₀ := σ₀)
       (A := A) v hcode hsize hsel hcv hlen hbound
@@ -354,7 +356,7 @@ theorem morphoSetAuthorizationXNoncanonical {σ σ₀ A I} {g : Sat256} (v : Mor
 theorem morphoSetAuthorizationBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 25)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 25) rfl hsel
   have hd : selectorDispatchMsg contract I.calldata = some setAuthorizationTransition :=
     morphoSelectorDispatch_of_selIs (by decide) hsel
@@ -368,7 +370,7 @@ theorem morphoSetAuthorizationBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmut
             some (setAuthorizationArgs I.calldata) := decodeCalldata_addr_bool_ok hlen hbound hcanon.1 hcanon.2
         by_cases hcv : I.weiValue = ⟨0⟩
         · by_cases hne : UInt256.isZero (UInt256.isZero (calldataWord I.calldata 36)) ≠ setAuthorizationOld σ I
-          · have hbody := morphoSetAuthorizationBodySplit v (initState σ σ₀ (.ofUInt256 g) A I)
+          · have hbody := morphoSetAuthorizationBodySplit (fork := fork) v (initState σ σ₀ (.ofUInt256 g) A I)
               hcv hbound hcanon.1 hne
             rcases morphoSetAuthorizationXSplit (g := .ofUInt256 g) (σ₀ := σ₀) (A := A)
               v hcode hsize hsel hcv hlen hbound hcanon.1 hcanon.2 hne with ⟨hp, hx⟩ | ⟨hp, hx⟩

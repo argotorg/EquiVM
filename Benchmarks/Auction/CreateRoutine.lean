@@ -3,12 +3,14 @@ import Benchmarks.Auction.CreateCatch
 import Benchmarks.Auction.MintRoutine
 import Benchmarks.Auction.NounSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
 theorem createRoutine {I g s0 ret R mem aw ptr rdata σ k C evm locals}
-    (h : RD auctionBytecode I g s0 ⟨3000⟩ (ret :: R) mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨3000⟩ (ret :: R) mem aw rdata σ k C)
     (hs : SourceState s0 I σ evm) (hperm : I.perm = true)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 2 ^ 140 ≤ 2 ^ 200)
     (hp : locals.get? "_freePtr" = some (.int (Int.ofNat ptr.toNat)))
@@ -17,13 +19,13 @@ theorem createRoutine {I g s0 ret R mem aw ptr rdata σ k C evm locals}
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 19 ≤ 1024) :
     (∃ (evm' : EVM.State) (σ' : AccountMap)
         (locals' : Store) (mem' : ByteArray) (aw' : UInt256) (out : ByteArray) (k' C' : Nat),
-      ExecFuncBody auctionConfig { contract := auctionContract, locals := locals } evm
+      ExecFuncBody fork auctionConfig { contract := auctionContract, locals := locals } evm
         createAuctionFn.body (.returned { contract := auctionContract, locals := locals' } evm'
           none) ∧
       SourceState s0 I σ' evm' ∧
-      RD auctionBytecode I g s0 ret R mem' aw' out σ' k' C') ∨
-    (ExecFuncBody auctionConfig { contract := auctionContract, locals := locals } evm
-      createAuctionFn.body .reverted ∧ RDrev auctionBytecode g s0) := by
+      RD fork auctionBytecode I g s0 ret R mem' aw' out σ' k' C') ∨
+    (ExecFuncBody fork auctionConfig { contract := auctionContract, locals := locals } evm
+      createAuctionFn.body .reverted ∧ RDrev fork auctionBytecode g s0) := by
   obtain ⟨evmM, σM, z, out, hc, hsM, ho, hmint⟩ :=
     mintRoutine h hs hperm hm (by omega) (by omega)
   have hr := nounsSourceRead (locals := locals) hs hnouns
@@ -31,7 +33,7 @@ theorem createRoutine {I g s0 ret R mem aw ptr rdata σ k C evm locals}
       (.intLit 0) = .ok (.int 0) := by simp only [evalExpr?, pure]
   have hargs : evalExprs? auctionConfig { contract := auctionContract, locals := locals } evm [] =
       .ok [] := by simp only [evalExprs?, pure]
-  have ht : typedCallViaEVM auctionConfig evm
+  have ht : typedCallViaEVM fork auctionConfig evm
       (EVM.address (AccountAddress.ofUInt256 (nounsWord σ I))) "mint" 0 [] (z, evmM, out) := by
     rw [addressOfAddress]
     exact ⟨mintSelector, rfl, hc⟩
@@ -48,15 +50,15 @@ theorem createRoutine {I g s0 ret R mem aw ptr rdata σ k C evm locals}
       ⟨evm', σ', locals', mem', aw', _, _, hsrc, hs', hrd⟩ | ⟨hsrc, hrd⟩
     · refine Or.inl ⟨evm', σ', locals', mem', aw', out, _, _, ?_, hs', hrd⟩
       exact ExecFuncBody.execBlockOK (ExecBlock.consNormal
-        (ExecStmt.checkedCallSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hr hv hargs ht hdecode hsrc) ExecBlock.nil)
+        (ExecStmt.checkedCallSuccess (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hr hv hargs ht hdecode hsrc) ExecBlock.nil)
     · exact Or.inr ⟨ExecFuncBody.execBlockRevert (ExecBlock.consRevert
-        (ExecStmt.checkedCallSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hr hv hargs ht hdecode hsrc)), hrd⟩
+        (ExecStmt.checkedCallSuccess (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hr hv hargs ht hdecode hsrc)), hrd⟩
   · subst z
     have hdecode : auctionConfig.externalABI.decode? "mint" out = none := by
       change (ABI.decodeReturnValue? uint256 out).map (fun value ↦ [value]) = _
       simp only [uint256, uint256Int, decodeReturnUint_short hl, Option.map_none]
     exact Or.inr ⟨ExecFuncBody.execBlockRevert (ExecBlock.consRevert
-      (ExecStmt.checkedCallReturnDecodeRevert (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hr hv hargs ht hdecode)), hrev⟩
+      (ExecStmt.checkedCallReturnDecodeRevert (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hr hv hargs ht hdecode)), hrev⟩
   · subst z
     have hin : ptr.toNat ≤ (mintCallMem mem out ptr).size := by
       rw [mintCallMem_size hm out (by change out.size < 2 ^ 256; omega)]
@@ -67,8 +69,8 @@ theorem createRoutine {I g s0 ret R mem aw ptr rdata σ k C evm locals}
       ⟨evm', σ', locals', mem', aw', _, _, hsrc, hs', hrd⟩ | ⟨hsrc, hrd⟩
     · refine Or.inl ⟨evm', σ', locals', mem', aw', out, _, _, ?_, hs', hrd⟩
       exact ExecFuncBody.execBlockOK (ExecBlock.consNormal
-        (ExecStmt.checkedCallFail (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hr hv hargs ht hsrc) ExecBlock.nil)
+        (ExecStmt.checkedCallFail (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hr hv hargs ht hsrc) ExecBlock.nil)
     · exact Or.inr ⟨ExecFuncBody.execBlockRevert (ExecBlock.consRevert
-        (ExecStmt.checkedCallFail (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hr hv hargs ht hsrc)), hrd⟩
+        (ExecStmt.checkedCallFail (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hr hv hargs ht hsrc)), hrd⟩
 
 end Auction

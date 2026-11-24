@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.ObserveInputTrace
 import Benchmarks.UniswapV3.Pool.OracleObserveFunctionTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -9,11 +11,11 @@ set_option maxRecDepth 10000
 
 theorem observePrefixX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256} {s0 : EVM.State}
     {rdata : ByteArray} {k C n start : Nat} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨9436⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨9436⟩
       (UInt256.ofNat n :: UInt256.ofNat start :: R) solcFreePtrMem ⟨3⟩ rdata σ k C)
     (hn : n ≤ 2 ^ 32) (hstart : start < UInt256.size) (hov : R.length + 16 ≤ 1024) :
-    (ee.codeOwner ≠ v.original ∧ RDrev (deployedRuntime v) g s0) ∨
-    (ee.codeOwner = v.original ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨16967⟩
+    (ee.codeOwner ≠ v.original ∧ RDrev fork (deployedRuntime v) g s0) ∨
+    (ee.codeOwner = v.original ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨16967⟩
       (slot0FieldWord 25 2 σ ee :: poolLiquidityWord σ ee :: slot0FieldWord 23 2 σ ee ::
         EVM.wordOfInt (slot0TickValue σ ee) :: ⟨128⟩ :: UInt256.ofNat ee.header.timestamp ::
         ⟨8⟩ :: ⟨9566⟩ :: ⟨96⟩ :: ⟨96⟩ :: UInt256.ofNat n :: UInt256.ofNat start :: R)
@@ -37,7 +39,7 @@ theorem observePrefixX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256} {s0 : 
 
 theorem observeOracleX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256} {s0 : EVM.State}
     {rdata : ByteArray} {k C : Nat} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨16967⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨16967⟩
       (slot0FieldWord 25 2 σ ee :: poolLiquidityWord σ ee :: slot0FieldWord 23 2 σ ee ::
         EVM.wordOfInt (slot0TickValue σ ee) :: ⟨128⟩ :: UInt256.ofNat ee.header.timestamp ::
         ⟨8⟩ :: ⟨9566⟩ :: ⟨96⟩ :: ⟨96⟩ :: UInt256.ofNat (observeCount ee.calldata) ::
@@ -46,7 +48,7 @@ theorem observeOracleX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256} {s0 : 
       (observeInputAw (observeCount ee.calldata)) rdata σ k C)
     (hc : ObserveCalldataValid ee.calldata) (hsize : ee.calldata.size < UInt256.size)
     (hov : R.length + 68 ≤ 1024) :
-    OracleObserveOutcome v ee g s0 σ rdata ⟨9566⟩
+    OracleObserveOutcome fork v ee g s0 σ rdata ⟨9566⟩
       (⟨96⟩ :: ⟨96⟩ :: UInt256.ofNat (observeCount ee.calldata) ::
         UInt256.ofNat (observeDataStart ee.calldata) :: R)
       (blockTimestampWord ee) (observeRawAgos ee.calldata) (slot0TickValue σ ee)

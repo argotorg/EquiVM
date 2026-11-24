@@ -2,6 +2,8 @@ import Benchmarks.CurveVault.CreditMemory
 import Reasoning.ExternalCall
 import Reasoning.SteleArithmetic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -34,7 +36,7 @@ theorem vaultCreditReturnSource (isDeposit : Bool) {s0 evm : State} {I : Executi
     (ha : locals.get? (vaultCreditAssetsName isDeposit) = some (.int (Int.ofNat assets.toNat)))
     (hv : locals.get? (vaultCreditSharesName isDeposit) = some (.int (Int.ofNat shares.toNat)))
     (hperm : I.perm = true) :
-    ExecBlock config {contract := contract, locals := locals} evm (vaultCreditReturnBody isDeposit)
+    ExecBlock fork config {contract := contract, locals := locals} evm (vaultCreditReturnBody isDeposit)
       (.returned {contract := contract, locals := locals} evm
         (some [.int (Int.ofNat (vaultCreditResult isDeposit assets shares).toNat)])) := by
   have hresult : locals.get? (vaultCreditResultName isDeposit) =
@@ -42,7 +44,7 @@ theorem vaultCreditReturnSource (isDeposit : Bool) {s0 evm : State} {I : Executi
     cases isDeposit
     · exact ha
     · exact hv
-  exact ExecBlock.consNormal (ExecStmt.emit (hperm := by simpa only [hs.env] using hperm) (by
+  exact ExecBlock.consNormal (ExecStmt.emit (fork := fork) (hperm := by simpa only [hs.env] using hperm) (by
     simp only [evalExprs?, evalExpr?, envValue, hs.env, hr, ha, hv, EvalResult.ofOption,
       EvalResult.bind, bind, pure]
     rfl)) (ExecBlock.consReturn (ExecStmt.return (by

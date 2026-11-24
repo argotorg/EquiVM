@@ -1,39 +1,41 @@
 import Benchmarks.Morpho.MorphoBlue.AuthorizationSigNonceStore
 import Benchmarks.Morpho.MorphoBlue.WordComparisons
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
 
-inductive AuthorizationNonceRefines (v : MorphoImmutables) (ee : ExecutionEnv)
+inductive AuthorizationNonceRefines (fork : Ethereum.Fork) (v : MorphoImmutables) (ee : ExecutionEnv)
     (g : Sat256) (s0 : State) (a : AuthorizationWords) (cd : ByteArray)
     (locals imms : Store) (evm : State) (R : List UInt256) : Prop where
-  | reverted : ExecBlock config { contract := contract, locals := locals, immutables := imms }
+  | reverted : ExecBlock fork config { contract := contract, locals := locals, immutables := imms }
       evm (setAuthorizationWithSigTransition.body.drop 10) .reverted →
-      RDrev (deployedRuntime v) g s0 → AuthorizationNonceRefines v ee g s0 a cd locals imms evm R
-  | static : ExecBlock config { contract := contract, locals := locals, immutables := imms }
+      RDrev fork (deployedRuntime v) g s0 → AuthorizationNonceRefines fork v ee g s0 a cd locals imms evm R
+  | static : ExecBlock fork config { contract := contract, locals := locals, immutables := imms }
       evm (setAuthorizationWithSigTransition.body.drop 10) .staticViolation →
-      RDstatic (deployedRuntime v) g s0 → AuthorizationNonceRefines v ee g s0 a cd locals imms evm R
+      RDstatic fork (deployedRuntime v) g s0 → AuthorizationNonceRefines fork v ee g s0 a cd locals imms evm R
   | ok {locals' evm' σ' aw' out' k' C'} :
-      StateBlock config { contract := contract, locals := locals, immutables := imms }
+      StateBlock fork config { contract := contract, locals := locals, immutables := imms }
         evm (setAuthorizationWithSigTransition.body.drop 10)
         { contract := contract, locals := locals', immutables := imms } evm'
         (setAuthorizationWithSigTransition.body.drop 14) →
       AuthorizationLocals a cd locals' → SourceState s0 ee σ' evm' → ee.perm = true →
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat 6120) (authorizationHashTail R)
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 6120) (authorizationHashTail R)
         (authorizationCheckedMem a) aw' out' σ' k' C' →
-      AuthorizationNonceRefines v ee g s0 a cd locals imms evm R
+      AuthorizationNonceRefines fork v ee g s0 a cd locals imms evm R
 
 theorem morphoAuthorizationNonceRefine {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : State} {out : ByteArray} {aw : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (a : AuthorizationWords) (cd : ByteArray)
     (locals imms : Store) (hc : a.Canonical) (hl : AuthorizationLocals a cd locals)
     (hs : SourceState s0 ee σ evm) (hstack : R.length + 24 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5940)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5940)
       (authorizationDecodedStack a R) (authorizationDecodedMem a) aw out σ k C) :
-    AuthorizationNonceRefines v ee g s0 a cd locals imms evm R := by
+    AuthorizationNonceRefines fork v ee g s0 a cd locals imms evm R := by
   have ht := hl.evalTimestamp imms evm
   rw [hs.env] at ht
   by_cases htime : (UInt256.ofNat ee.header.timestamp).toNat ≤ a.deadline.toNat
@@ -42,7 +44,7 @@ theorem morphoAuthorizationNonceRefine {v : MorphoImmutables} {ee : ExecutionEnv
       (by simpa only [htime, decide_false] using ht)))
       (morphoAuthorizationTimestampRevert (v := v) a (by omega) htime h)
   obtain ⟨a1, k1, C1, rd1⟩ := morphoAuthorizationTimestampOk (v := v) a (by omega) htime h
-  have pref : ABlock config evm { contract := contract, locals := locals, immutables := imms }
+  have pref : ABlock fork config evm { contract := contract, locals := locals, immutables := imms }
       (setAuthorizationWithSigTransition.body.drop 10)
       { contract := contract, locals := locals, immutables := imms }
       (setAuthorizationWithSigTransition.body.drop 11) :=
@@ -60,7 +62,7 @@ theorem morphoAuthorizationNonceRefine {v : MorphoImmutables} {ee : ExecutionEnv
   obtain ⟨a2, k2, C2, rd2⟩ := morphoAuthorizationNonceIncrement (v := v) a hc hstack hfit rd1
   have hl1 := hl.insert "usedNonce" (.int (Int.ofNat n.toNat)) (by decide)
   let evm1 := storeAuthorizationNonce evm a (n + UInt256.ofNat 1)
-  have hass : ExecStmt config
+  have hass : ExecStmt fork config
       (authorizationUsedFrame { contract := contract, locals := locals, immutables := imms } n)
       evm setAuthorizationWithSigTransition.body[12]!
       (if evm.executionEnv.perm then .ok (authorizationUsedFrame { contract := contract, locals := locals, immutables := imms } n) evm1 else .staticViolation) :=

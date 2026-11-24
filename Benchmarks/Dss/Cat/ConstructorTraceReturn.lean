@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Cat.ConstructorTraceWards
 import Benchmarks.Dss.Cat.ConstructorTraceVat
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Cat constructor scalar-store + return trace
 
@@ -21,9 +23,9 @@ theorem catCtorReturnTrace
     {I : ExecutionEnv} {g : Sat256} {s0 : State} {rdata : ByteArray}
     {σVat : AccountMap} {k C : Nat}
     (vat : AccountAddress) (hperm : I.perm = true)
-    (h : RD (catCtorCode vat) I g s0 ⟨109⟩ [⟨1⟩]
+    (h : RD fork (catCtorCode vat) I g s0 ⟨109⟩ [⟨1⟩]
       (catCtorWardsHashMem I vat) (UInt256.ofNat 5) rdata σVat k C) :
-    RDret (catCtorCode vat) g s0
+    RDret fork (catCtorCode vat) g s0
       (sstoreAccountMap I.codeOwner σVat ⟨2⟩ ⟨1⟩)
       catBytecode := by
   have hcopy : (catCtorCode vat).write 126 (catCtorWardsHashMem I vat) 0 3873 =
@@ -47,7 +49,7 @@ theorem catInitcodeSuccess
     (hcode : I.code = catCtorCode vat)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) :
-    RDret (catCtorCode vat) g
+    RDret fork (catCtorCode vat) g
       (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner

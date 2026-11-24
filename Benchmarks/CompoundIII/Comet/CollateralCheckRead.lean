@@ -5,6 +5,8 @@ import Benchmarks.CompoundIII.Comet.RuntimeBlocks_050
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_051
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_052
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -34,13 +36,13 @@ theorem cometCollateralPrincipalRead {v : CometWithExtendedAssetListImmutables}
     {aw ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (borrow : Bool) (account : AccountAddress) (hstack : R.length + 9 ≤ 1024)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 (collateralCheckPc borrow)
+    (h : RD fork (deployedRuntime v) ee g s0 (collateralCheckPc borrow)
       (EVM.word account.val :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (collateralPrincipalPc borrow)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (collateralPrincipalPc borrow)
       (UInt256.signextend (UInt256.ofNat 12) (collateralBasicWord evm account) ::
         EVM.word account.val :: ret :: R)
       (collateralBasicMemory mem account) aw' rdata σ k' C' := by
-  have hstep : ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨2428⟩
+  have hstep : ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨2428⟩
       (⟨5⟩ :: EVM.word account.val :: ⟨10178⟩ :: collateralPrincipalPc borrow ::
         EVM.word account.val :: ret :: R) mem aw rdata σ k' C' := by
     cases borrow
@@ -59,7 +61,7 @@ theorem cometCollateralPrincipalRead {v : CometWithExtendedAssetListImmutables}
     (by cases borrow <;>
       rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v] <;> jump_dest) r2
   dsimp only [cometWithExtendedAssetList_block_10178_stack] at r3
-  change RD _ _ _ _ _ (UInt256.signextend _ (solcSlotWord σ ee (userBasicSlot account)) :: _)
+  change RD fork _ _ _ _ _ (UInt256.signextend _ (solcSlotWord σ ee (userBasicSlot account)) :: _)
     _ _ _ _ _ _ at r3
   rw [← hs.storageRead] at r3
   exact ⟨_, _, _, r3⟩
@@ -69,10 +71,10 @@ theorem cometCollateralPrincipalSolvent {v : CometWithExtendedAssetListImmutable
     {aw basic account ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (borrow : Bool) (hstack : R.length + 7 ≤ 1024) (hp : 0 ≤ signed104 basic)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 (collateralPrincipalPc borrow)
+    (h : RD fork (deployedRuntime v) ee g s0 (collateralPrincipalPc borrow)
       (UInt256.signextend (UInt256.ofNat 12) basic :: account :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret (boolWord borrow :: R)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret (boolWord borrow :: R)
       mem aw rdata σ k' C' := by
   have hcond : UInt256.isZero (UInt256.slt (UInt256.signextend (UInt256.ofNat 12)
       (UInt256.signextend (UInt256.ofNat 12) basic)) (UInt256.ofNat 0)) ≠ UInt256.ofNat 0 := by

@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.WordBytesCallMemory
 import Benchmarks.EAS.Attester.WordHelpers
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -13,10 +15,10 @@ theorem morphoWordBytesEncode {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sa
     (hstack : R.length + 11 ≤ 1024) (hptr : ptr.toNat < 2 ^ 64)
     (hlen : len.toNat ≤ solcMaxU64)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12700)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12700)
       ((ptr + UInt256.ofNat 4) :: value :: srcOff :: len :: ret :: R)
       (writeWord mem ptr.toNat selector) aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret
       ((ptr + UInt256.ofNat (100 + paddedSize len.toNat)) :: R)
       (wordBytesCallMem selector value ee.calldata mem srcOff.toNat ptr.toNat len.toNat) aw' out σ k' C' := by
   obtain ⟨a1, k1, C1, rd1⟩ := morphoBlocks.morpho_block_12700_packed

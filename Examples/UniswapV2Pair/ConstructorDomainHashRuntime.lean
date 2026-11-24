@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.ConstructorDomainDataRuntime
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace UniswapV2Pair
@@ -14,12 +16,12 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapConstructorDomainHash {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {R : List UInt256} {k C : Nat}
     {acc : AccountMap}
-    (rd200 : RD uniswapV2PairInitcode I g s0 ⟨200⟩
+    (rd200 : RD fork uniswapV2PairInitcode I g s0 ⟨200⟩
       (⟨160⟩ :: ⟨64⟩ :: ⟨32⟩ :: ⟨128⟩ :: ⟨256⟩ :: R)
       (constructorDomainDataMem constructorTypeHashWord (UInt256.ofNat I.codeOwner.val))
       ⟨14⟩ ByteArray.empty acc k C)
     (hov : R.length + 9 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairInitcode I g s0 ⟨225⟩
+    ∃ k' C', RD fork uniswapV2PairInitcode I g s0 ⟨225⟩
       (constructorDomainHashWord (UInt256.ofNat I.codeOwner.val) :: ⟨128⟩ :: R)
       (constructorDomainMem constructorTypeHashWord (UInt256.ofNat I.codeOwner.val))
       ⟨14⟩ ByteArray.empty acc k' C' := by

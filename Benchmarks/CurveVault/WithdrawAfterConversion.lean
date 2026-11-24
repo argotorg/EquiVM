@@ -1,6 +1,8 @@
 import Benchmarks.CurveVault.DebitAllowance
 import Benchmarks.CurveVault.DebitBurn
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -19,14 +21,14 @@ theorem vaultWithdrawAfterConversion {I : ExecutionEnv} {g : Sat256} {s0 evm : S
     (hmv : memLoad (UInt256.ofNat 704) mem = shares)
     (hrcanon : receiver.toNat < EVM.addressModulus) (hocanon : owner.toNat < EVM.addressModulus)
     (hperm : I.perm = true) (hstack : R.length + 9 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 4412) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 4412) R mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (locals' : Store),
-      ExecBlock config {contract := contract, locals := locals} evm ((vaultDebitFunction true).body.drop 3)
+      ExecBlock fork config {contract := contract, locals := locals} evm ((vaultDebitFunction true).body.drop 3)
         (.returned {contract := contract, locals := locals'} evm' (some [.int (Int.ofNat shares.toNat)])) ∧
       SourceState s0 I σ' evm' ∧
-      RDret vaultBytecode g s0 (tstoreAccountMap I.codeOwner σ' ⟨0⟩ ⟨0⟩) shares.toByteArray) ∨
-    (ExecBlock config {contract := contract, locals := locals} evm ((vaultDebitFunction true).body.drop 3)
-      .reverted ∧ RDrev vaultBytecode g s0) := by
+      RDret fork vaultBytecode g s0 (tstoreAccountMap I.codeOwner σ' ⟨0⟩ ⟨0⟩) shares.toByteArray) ∨
+    (ExecBlock fork config {contract := contract, locals := locals} evm ((vaultDebitFunction true).body.drop 3)
+      .reverted ∧ RDrev fork vaultBytecode g s0) := by
   let prepared := shares.toByteArray.write 0 mem 672 32
   have hgap : 672 - mem.size < USize.size :=
     lt_of_le_of_lt (Nat.sub_le _ _) (lt_usize 672 (by omega))
@@ -44,20 +46,20 @@ theorem vaultWithdrawAfterConversion {I : ExecutionEnv} {g : Sat256} {s0 evm : S
       .ok (.address I.source) by simp only [evalExpr?, envValue, hs.env, pure])
   have hprefix :
       (∃ (evm1 : State) (σ1 : AccountMap) (locals1 : Store) (mem1 : ByteArray) (aw1 : UInt256) (k1 C1 : Nat),
-        ExecStmt config {contract := contract, locals := locals} evm ((vaultDebitFunction true).body[3]!)
+        ExecStmt fork config {contract := contract, locals := locals} evm ((vaultDebitFunction true).body[3]!)
           (.ok {contract := contract, locals := locals1} evm1) ∧
         SourceState s0 I σ1 evm1 ∧ WordMemoryRange prepared mem1 192 704 ∧
         (∀ name, ("allowance_" == name) = false → ("__c2" == name) = false →
           locals1.get? name = locals.get? name) ∧
-        RD vaultBytecode I g s0 (UInt256.ofNat 4549) R mem1 aw1 rdata σ1 k1 C1) ∨
-      (ExecBlock config {contract := contract, locals := locals} evm ((vaultDebitFunction true).body.drop 3)
-        .reverted ∧ RDrev vaultBytecode g s0) := by
+        RD fork vaultBytecode I g s0 (UInt256.ofNat 4549) R mem1 aw1 rdata σ1 k1 C1) ∨
+      (ExecBlock fork config {contract := contract, locals := locals} evm ((vaultDebitFunction true).body.drop 3)
+        .reverted ∧ RDrev fork vaultBytecode g s0) := by
     by_cases heq : owner = UInt256.ofNat I.source.val
     · obtain ⟨aw0, k0, C0, rdBurn⟩ := vaultBlocks.vault_block_4412_taken_packed (by omega)
         (by
           change UInt256.eq (memLoad (UInt256.ofNat 608) ((memLoad (UInt256.ofNat 704) mem).toByteArray.write 0 mem 672 32)) _ ≠ _
           rw [hmv, ho0, heq, u256_eq_refl]; decide +kernel) (by native_decide) h
-      change RD vaultBytecode I g s0 (UInt256.ofNat 4549) R
+      change RD fork vaultBytecode I g s0 (UInt256.ofNat 4549) R
         ((memLoad (UInt256.ofNat 704) mem).toByteArray.write 0 mem 672 32) aw0 rdata σ k0 C0 at rdBurn
       rw [hmv] at rdBurn
       exact Or.inl ⟨evm, σ, locals, prepared, aw0, k0, C0,
@@ -67,7 +69,7 @@ theorem vaultWithdrawAfterConversion {I : ExecutionEnv} {g : Sat256} {s0 evm : S
       (by
         change UInt256.eq (memLoad (UInt256.ofNat 608) ((memLoad (UInt256.ofNat 704) mem).toByteArray.write 0 mem 672 32)) _ = _
         rw [hmv, ho0]; exact u256_eq_of_ne heq) h
-    change RD vaultBytecode I g s0 (UInt256.ofNat 4431) R
+    change RD fork vaultBytecode I g s0 (UInt256.ofNat 4431) R
       ((memLoad (UInt256.ofNat 704) mem).toByteArray.write 0 mem 672 32) aw0 rdata σ k0 C0 at rdAllowance
     rw [hmv] at rdAllowance
     have hcondTrue : evalExpr? config {contract := contract, locals := locals} evm

@@ -1,5 +1,7 @@
 import Benchmarks.Dss.GemJoin.Rely
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -46,7 +48,7 @@ theorem gemJoinDenyBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (hauth :
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (relyAuthStorageSlot I) = ⟨1⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (relyStore I) denyTransition.body
+    ExecTransitionBody fork config contract evm (relyStore I) denyTransition.body
       (.returned { contract := contract, locals := relyStore I } (denyPostState evm I) none) := by
   refine ExecFuncBody.execBlockOK ?_
   simpa [denyTransition, nonpayable, auth] using
@@ -70,7 +72,7 @@ theorem gemJoinDenyBodyStatic (evm : EVM.State) (I : ExecutionEnv)
     (hauth :
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (relyAuthStorageSlot I) = ⟨1⟩)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (relyStore I) denyTransition.body
+    ExecTransitionBody fork config contract evm (relyStore I) denyTransition.body
       .staticViolation := by
   refine ExecFuncBody.execBlockStatic ?_
   simpa [denyTransition, nonpayable, auth] using
@@ -94,7 +96,7 @@ theorem gemJoinDenyBodyReverts (evm : EVM.State) (I : ExecutionEnv)
     (hsrc : evm.executionEnv.source = I.source)
     (hauth :
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (relyAuthStorageSlot I) ≠ ⟨1⟩) :
-    ExecTransitionBody config contract evm (relyStore I) denyTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (relyStore I) denyTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   simpa [denyTransition, nonpayable, auth] using
     nonpayableSecondRequireReverts
@@ -110,7 +112,7 @@ theorem gemJoinReachDenyBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = gemJoinBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (gemJoinSelBytes 2)) :
-    ∃ k C, RD gemJoinBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork gemJoinBytecode I g (initState σ σ₀ g A I)
         ⟨336⟩ [gemJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : gemJoinSelWord I = ⟨0x9c52a7f1⟩ :=
@@ -137,10 +139,10 @@ theorem gemJoinReachDenyBody {σ σ₀ A I} {g : Sat256}
 
 theorem gemJoinDenyX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD gemJoinBytecode I g
+    (hreach : ∃ k C, RD fork gemJoinBytecode I g
       (initState σ σ₀ g A I) ⟨336⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD gemJoinBytecode I g (initState σ σ₀ g A I) ⟨1353⟩
+    ∃ k C, RD fork gemJoinBytecode I g (initState σ σ₀ g A I) ⟨1353⟩
         [relyUsrMaskedWord I, ⟨254⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
@@ -161,10 +163,10 @@ theorem gemJoinDenyX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem gemJoinDenyX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
-    (hreach : ∃ k C, RD gemJoinBytecode I g
+    (hreach : ∃ k C, RD fork gemJoinBytecode I g
       (initState σ σ₀ g A I) ⟨336⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev gemJoinBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork gemJoinBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -182,10 +184,10 @@ theorem gemJoinDenyX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 set_option maxHeartbeats 1000000 in
 theorem gemJoinDenyX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : relyAuthWord σ I = ⟨1⟩)
-    (h : RD gemJoinBytecode I g s0 ⟨1353⟩
+    (h : RD fork gemJoinBytecode I g s0 ⟨1353⟩
       [relyUsrMaskedWord I, ⟨254⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD gemJoinBytecode I g s0 ⟨1446⟩
+    ∃ k' C', RD fork gemJoinBytecode I g s0 ⟨1446⟩
       [relyUsrMaskedWord I, ⟨254⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hauthSlot :
@@ -216,7 +218,7 @@ theorem gemJoinDenyX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
     (by evm_ov)
   obtain ⟨k1370, C1370, rd1370raw⟩ := rd1369.sload (by native_decide) (by evm_ov)
-  have rd1370 : RD gemJoinBytecode I g s0 ⟨1370⟩
+  have rd1370 : RD fork gemJoinBytecode I g s0 ⟨1370⟩
       (relyAuthWord σ I :: relyUsrMaskedWord I :: ⟨254⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1370 C1370 := by
     simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1370raw
@@ -232,10 +234,10 @@ theorem gemJoinDenyX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 set_option maxHeartbeats 1000000 in
 theorem gemJoinDenyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : relyAuthWord σ I ≠ ⟨1⟩)
-    (h : RD gemJoinBytecode I g s0 ⟨1353⟩
+    (h : RD fork gemJoinBytecode I g s0 ⟨1353⟩
       [relyUsrMaskedWord I, ⟨254⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev gemJoinBytecode g s0 := by
+    RDrev fork gemJoinBytecode g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
@@ -264,7 +266,7 @@ theorem gemJoinDenyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
     (by evm_ov)
   obtain ⟨k1370, C1370, rd1370raw⟩ := rd1369.sload (by native_decide) (by evm_ov)
-  have rd1370 : RD gemJoinBytecode I g s0 ⟨1370⟩
+  have rd1370 : RD fork gemJoinBytecode I g s0 ⟨1370⟩
       (relyAuthWord σ I :: relyUsrMaskedWord I :: ⟨254⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1370 C1370 := by
     simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1370raw
@@ -299,14 +301,14 @@ theorem gemJoinDenyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 set_option maxHeartbeats 2000000 in
 theorem gemJoinDenyX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
-    (h : RD gemJoinBytecode I g s0 ⟨1446⟩
+    (h : RD fork gemJoinBytecode I g s0 ⟨1446⟩
       [relyUsrMaskedWord I, ⟨254⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     (I.perm = true ∧
-      RDret gemJoinBytecode g s0
+      RDret fork gemJoinBytecode g s0
         (sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨0⟩)
         ByteArray.empty) ∨
-      (I.perm = false ∧ RDstatic gemJoinBytecode g s0) := by
+      (I.perm = false ∧ RDstatic fork gemJoinBytecode g s0) := by
   have hstoreSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((relyStoreHashMem I).readWithPadding 0 64))) =
@@ -398,14 +400,14 @@ theorem gemJoinDenyX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C 
 theorem gemJoinX_deny_okSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hauth : relyAuthWord σ I = ⟨1⟩)
-    (hreach : ∃ k C, RD gemJoinBytecode I g
+    (hreach : ∃ k C, RD fork gemJoinBytecode I g
       (initState σ σ₀ g A I) ⟨336⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     (I.perm = true ∧
-      RDret gemJoinBytecode g (initState σ σ₀ g A I)
+      RDret fork gemJoinBytecode g (initState σ σ₀ g A I)
         (sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨0⟩)
         ByteArray.empty) ∨
-      (I.perm = false ∧ RDstatic gemJoinBytecode g (initState σ σ₀ g A I)) := by
+      (I.perm = false ∧ RDstatic fork gemJoinBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd1353⟩ := gemJoinDenyX_decoded (g := g) hsz36 hsize hreach
   obtain ⟨_, _, rd1446⟩ := gemJoinDenyX_authorized (I := I) hauth rd1353
   exact gemJoinDenyX_storeAuthorizedSplit rd1446
@@ -413,10 +415,10 @@ theorem gemJoinX_deny_okSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem gemJoinX_deny_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hauth : relyAuthWord σ I = ⟨1⟩)
-    (hreach : ∃ k C, RD gemJoinBytecode I g
+    (hreach : ∃ k C, RD fork gemJoinBytecode I g
       (initState σ σ₀ g A I) ⟨336⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret gemJoinBytecode g (initState σ σ₀ g A I)
+    RDret fork gemJoinBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨0⟩)
       ByteArray.empty :=
   permSplit_true hperm (gemJoinX_deny_okSplit hsz36 hsize hauth hreach)
@@ -424,10 +426,10 @@ theorem gemJoinX_deny_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem gemJoinX_deny_unauthorized {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hauth : relyAuthWord σ I ≠ ⟨1⟩)
-    (hreach : ∃ k C, RD gemJoinBytecode I g
+    (hreach : ∃ k C, RD fork gemJoinBytecode I g
       (initState σ σ₀ g A I) ⟨336⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev gemJoinBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork gemJoinBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd1353⟩ := gemJoinDenyX_decoded (g := g) hsz36 hsize hreach
   exact gemJoinDenyX_unauthorized (I := I) hauth rd1353
 
@@ -441,14 +443,14 @@ theorem gemJoinDenyBodyCoreOk
     (hdecode :
       config.externalABI.decodeCalldata? (denyTransition.params.map Param.name)
         (transitionSignature denyTransition).paramTypes I.calldata = some (relyStore I))
-    (hreach : ∃ k C, RD gemJoinBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork gemJoinBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨336⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthWord : relyAuthWord σ I = ⟨1⟩ := hauth
   have hbody :
-      ExecTransitionBody config contract evmStele (relyStore I)
+      ExecTransitionBody fork config contract evmStele (relyStore I)
         denyTransition.body
         (.returned { contract := contract, locals := relyStore I }
           (denyPostState evmStele I) none) := by
@@ -478,14 +480,14 @@ theorem gemJoinDenyBodyCoreStatic
     (hdecode :
       config.externalABI.decodeCalldata? (denyTransition.params.map Param.name)
         (transitionSignature denyTransition).paramTypes I.calldata = some (relyStore I))
-    (hreach : ∃ k C, RD gemJoinBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork gemJoinBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨336⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthWord : relyAuthWord σ I = ⟨1⟩ := hauth
   have hbody :
-      ExecTransitionBody config contract evmStele (relyStore I)
+      ExecTransitionBody fork config contract evmStele (relyStore I)
         denyTransition.body
         .staticViolation := by
     simpa [evmStele, relyAuthWord, solcSlotWordAt, initState, Stele.EVM.storageLoad,
@@ -509,14 +511,14 @@ theorem gemJoinDenyBodyCoreUnauthorized
     (hdecode :
       config.externalABI.decodeCalldata? (denyTransition.params.map Param.name)
         (transitionSignature denyTransition).paramTypes I.calldata = some (relyStore I))
-    (hreach : ∃ k C, RD gemJoinBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork gemJoinBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨336⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthWord : relyAuthWord σ I ≠ ⟨1⟩ := hauth
   have hbody :
-      ExecTransitionBody config contract evmStele (relyStore I)
+      ExecTransitionBody fork config contract evmStele (relyStore I)
         denyTransition.body .reverted := by
     simpa [evmStele, relyAuthWord, solcSlotWordAt, initState, Stele.EVM.storageLoad,
       State.lookupAccount] using
@@ -532,10 +534,10 @@ theorem gemJoinDenyBodyCoreDecodeFailed_short
     (hcode : I.code = gemJoinBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some denyTransition)
-    (hreach : ∃ k C, RD gemJoinBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork gemJoinBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨336⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact (gemJoinDenyX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch (gemJoinDecode_deny_none_short hsz4 hshort)
 
@@ -545,12 +547,12 @@ theorem gemJoinDenyBodyCore {σ σ₀ A I} {g : UInt256}
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (gemJoinSelBytes 2)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (gemJoinSelBytes 2) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some denyTransition :=
     gemJoinDispatchDeny hsel
-  have hreach := gemJoinReachDenyBody
+  have hreach := gemJoinReachDenyBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
@@ -567,7 +569,7 @@ theorem gemJoinDenyBodyCoreAnyPerm {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (gemJoinSelBytes 2)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hperm : I.perm = true
   · exact gemJoinDenyBodyCore hcode hsize hperm hwv hsel
   have hstatic : I.perm = false := by simpa using hperm
@@ -575,7 +577,7 @@ theorem gemJoinDenyBodyCoreAnyPerm {σ σ₀ A I} {g : UInt256}
     calldata_size_ge_of_selIs I (gemJoinSelBytes 2) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some denyTransition :=
     gemJoinDispatchDeny hsel
-  have hreach := gemJoinReachDenyBody
+  have hreach := gemJoinReachDenyBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size

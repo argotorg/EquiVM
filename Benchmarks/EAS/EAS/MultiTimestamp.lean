@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.TimeArrayEntry
 import Benchmarks.EAS.EAS.TimestampLoop
 import Benchmarks.EAS.EAS.TimeArrayRead
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -12,7 +14,7 @@ private theorem multiTimestamp_body : multiTimestampTransition.body =
 theorem easMultiTimestampBody {σ σ₀ A I} {g : UInt256} (v : EASImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (easSelBytes 17)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (easSelBytes 17) rfl hsel
   have hd : dispatchMsg contract I.calldata = some multiTimestampTransition := by
     apply easDispatch_multiTimestamp (hsel := hsel)
@@ -22,7 +24,7 @@ theorem easMultiTimestampBody {σ σ₀ A I} {g : UInt256} (v : EASImmutables)
       decide +kernel
   have hplans : easPlans (bytesToWord (I.calldata.toList.take 4)).toNat = [] :=
     easPlans_empty_of_selector hsel (by native_decide)
-  obtain ⟨k, C, rd⟩ := easReachMultiTimestampBody (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, rd⟩ := easReachMultiTimestampBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
   by_cases hv : I.weiValue = ⟨0⟩
   · have rd1 := easBlocks.eas_block_779_fallthrough (immWords := wordsOf (immStore v)) (by simp) hv rd
@@ -51,7 +53,7 @@ theorem easMultiTimestampBody {σ σ₀ A I} {g : UInt256} (v : EASImmutables)
             let args := (∅ : Store).insert "data" (wordArrayValue I.calldata)
             have hdata : args.get? "data" = some (.array (words.map wordBytes32Value)) := store_get_self _ _ _
             have hinv := timeArrayInitialInv (ee := I) hdata
-            have hprefix := timeArrayPrefixSource (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I)
+            have hprefix := timeArrayPrefixSource (fork := fork) (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I)
               (imms := immStore v) hv hsz hsize (by change I.calldata.size - 4 < 2^255; omega) hdata
             have hread := calldataWordList_read (ee := I) rfl hok.2.2.2.2 hsize
             have hloop := timestampArrayLoop_correct (R := [solcSelectorWord I]) (imms := immStore v)

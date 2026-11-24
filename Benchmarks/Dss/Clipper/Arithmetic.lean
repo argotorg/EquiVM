@@ -2,6 +2,8 @@ import Reasoning.WordArithmetic
 import Benchmarks.Dss.Clipper.Fallback
 import Reasoning.EVMWord
 
+variable {fork : Ethereum.Fork}
+
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
@@ -628,7 +630,7 @@ theorem clipperEvalRdivReturn_revert (v : ClipperImmutables) (evm : EVM.State)
 
 theorem clipperMulFunctionReturns (v : ClipperImmutables) (evm : EVM.State)
     (x y : UInt256) (hmul : x.toNat * y.toNat < UInt256.size) :
-    ExecFuncBody config
+    ExecFuncBody fork config
       ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame)
       evm mulFunction.body
       (.returned
@@ -645,7 +647,7 @@ theorem clipperMulFunctionReturns (v : ClipperImmutables) (evm : EVM.State)
 
 theorem clipperMulFunctionReverts (v : ClipperImmutables) (evm : EVM.State)
     (x y : UInt256) (hover : UInt256.size ≤ x.toNat * y.toNat) :
-    ExecFuncBody config
+    ExecFuncBody fork config
       ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame)
       evm mulFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
@@ -655,7 +657,7 @@ theorem clipperMulFunctionReverts (v : ClipperImmutables) (evm : EVM.State)
 
 theorem clipperSubFunctionReturns (v : ClipperImmutables) (evm : EVM.State)
     (x y : UInt256) (hle : y.toNat ≤ x.toNat) :
-    ExecFuncBody config
+    ExecFuncBody fork config
       ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame)
       evm subFunction.body
       (.returned
@@ -672,7 +674,7 @@ theorem clipperSubFunctionReturns (v : ClipperImmutables) (evm : EVM.State)
 
 theorem clipperSubFunctionReverts (v : ClipperImmutables) (evm : EVM.State)
     (x y : UInt256) (hlt : x.toNat < y.toNat) :
-    ExecFuncBody config
+    ExecFuncBody fork config
       ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame)
       evm subFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
@@ -682,7 +684,7 @@ theorem clipperSubFunctionReverts (v : ClipperImmutables) (evm : EVM.State)
 
 theorem clipperWmulFunctionReturns (v : ClipperImmutables) (evm : EVM.State)
     (x y : UInt256) (hmul : x.toNat * y.toNat < UInt256.size) :
-    ExecFuncBody config
+    ExecFuncBody fork config
       ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame)
       evm wmulFunction.body
       (.returned
@@ -695,7 +697,7 @@ theorem clipperWmulFunctionReturns (v : ClipperImmutables) (evm : EVM.State)
   let afterMul : Frame :=
     { contract := contract, locals := clipperWmulReturnLocals x y (UInt256.mul x y), immutables := immStore v }
   have hcall :
-      ExecStmt config
+      ExecStmt fork config
         ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame) evm
         (.internalCall "mul" [.var "x", .var "y"] "xy") (.ok afterMul evm) := by
     simpa [afterMul, resumeAfterInternalCall, clipperWmulReturnLocals] using
@@ -723,13 +725,13 @@ theorem clipperWmulFunctionReturns (v : ClipperImmutables) (evm : EVM.State)
 
 theorem clipperWmulFunctionReverts (v : ClipperImmutables) (evm : EVM.State)
     (x y : UInt256) (hover : UInt256.size ≤ x.toNat * y.toNat) :
-    ExecFuncBody config
+    ExecFuncBody fork config
       ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame)
       evm wmulFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   simp only [wmulFunction]
   have hcall :
-      ExecStmt config
+      ExecStmt fork config
         ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame) evm
         (.internalCall "mul" [.var "x", .var "y"] "xy") .reverted :=
     internalCallFunctionRevert
@@ -750,7 +752,7 @@ theorem clipperWmulFunctionReverts (v : ClipperImmutables) (evm : EVM.State)
 
 theorem clipperRmulFunctionReturns (v : ClipperImmutables) (evm : EVM.State)
     (x y : UInt256) (hmul : x.toNat * y.toNat < UInt256.size) :
-    ExecFuncBody config
+    ExecFuncBody fork config
       ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame)
       evm rmulFunction.body
       (.returned
@@ -763,7 +765,7 @@ theorem clipperRmulFunctionReturns (v : ClipperImmutables) (evm : EVM.State)
   let afterMul : Frame :=
     { contract := contract, locals := clipperWmulReturnLocals x y (UInt256.mul x y), immutables := immStore v }
   have hcall :
-      ExecStmt config
+      ExecStmt fork config
         ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame) evm
         (.internalCall "mul" [.var "x", .var "y"] "xy") (.ok afterMul evm) := by
     simpa [afterMul, resumeAfterInternalCall, clipperWmulReturnLocals] using
@@ -789,13 +791,13 @@ theorem clipperRmulFunctionReturns (v : ClipperImmutables) (evm : EVM.State)
 
 theorem clipperRmulFunctionReverts (v : ClipperImmutables) (evm : EVM.State)
     (x y : UInt256) (hover : UInt256.size ≤ x.toNat * y.toNat) :
-    ExecFuncBody config
+    ExecFuncBody fork config
       ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame)
       evm rmulFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   simp only [rmulFunction]
   have hcall :
-      ExecStmt config
+      ExecStmt fork config
         ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame) evm
         (.internalCall "mul" [.var "x", .var "y"] "xy") .reverted :=
     internalCallFunctionRevert
@@ -814,7 +816,7 @@ theorem clipperRmulFunctionReverts (v : ClipperImmutables) (evm : EVM.State)
 theorem clipperRdivFunctionReturns (v : ClipperImmutables) (evm : EVM.State)
     (x y : UInt256) (hmul : x.toNat * clipperRayWord.toNat < UInt256.size)
     (hy : y ≠ ⟨0⟩) :
-    ExecFuncBody config
+    ExecFuncBody fork config
       ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame)
       evm rdivFunction.body
       (.returned
@@ -828,7 +830,7 @@ theorem clipperRdivFunctionReturns (v : ClipperImmutables) (evm : EVM.State)
   let afterMul : Frame :=
     { contract := contract, locals := clipperRdivReturnLocals x y (UInt256.mul x clipperRayWord), immutables := immStore v }
   have hcall :
-      ExecStmt config
+      ExecStmt fork config
         ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame) evm
         (.internalCall "mul" [.var "x", .intLit RAY] "xray") (.ok afterMul evm) := by
     simpa [afterMul, resumeAfterInternalCall, clipperRdivReturnLocals] using
@@ -859,13 +861,13 @@ theorem clipperRdivFunctionReturns (v : ClipperImmutables) (evm : EVM.State)
 
 theorem clipperRdivFunctionRevertsMul (v : ClipperImmutables) (evm : EVM.State)
     (x y : UInt256) (hover : UInt256.size ≤ x.toNat * clipperRayWord.toNat) :
-    ExecFuncBody config
+    ExecFuncBody fork config
       ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame)
       evm rdivFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   simp only [rdivFunction]
   have hcall :
-      ExecStmt config
+      ExecStmt fork config
         ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame) evm
         (.internalCall "mul" [.var "x", .intLit RAY] "xray") .reverted :=
     internalCallFunctionRevert
@@ -886,7 +888,7 @@ theorem clipperRdivFunctionRevertsMul (v : ClipperImmutables) (evm : EVM.State)
 theorem clipperRdivFunctionRevertsDivZero (v : ClipperImmutables) (evm : EVM.State)
     (x y : UInt256) (hmul : x.toNat * clipperRayWord.toNat < UInt256.size)
     (hy : y = ⟨0⟩) :
-    ExecFuncBody config
+    ExecFuncBody fork config
       ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame)
       evm rdivFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
@@ -894,7 +896,7 @@ theorem clipperRdivFunctionRevertsDivZero (v : ClipperImmutables) (evm : EVM.Sta
   let afterMul : Frame :=
     { contract := contract, locals := clipperRdivReturnLocals x y (UInt256.mul x clipperRayWord), immutables := immStore v }
   have hcall :
-      ExecStmt config
+      ExecStmt fork config
         ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame) evm
         (.internalCall "mul" [.var "x", .intLit RAY] "xray") (.ok afterMul evm) := by
     simpa [afterMul, resumeAfterInternalCall, clipperRdivReturnLocals] using
@@ -977,7 +979,7 @@ theorem clipperEvalMinLe_false (v : ClipperImmutables) (evm : EVM.State)
 
 theorem clipperMinFunctionReturns (v : ClipperImmutables) (evm : EVM.State)
     (x y : UInt256) :
-    ExecFuncBody config
+    ExecFuncBody fork config
       ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame)
       evm minFunction.body
       (.returned
@@ -988,7 +990,7 @@ theorem clipperMinFunctionReturns (v : ClipperImmutables) (evm : EVM.State)
   by_cases hle : x.toNat ≤ y.toNat
   · have hcond := clipperEvalMinLe_true v evm x y hle
     have hthen :
-        ExecBlock config
+        ExecBlock fork config
           ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame)
           evm [.return [.var "x"]]
           (.returned
@@ -1001,7 +1003,7 @@ theorem clipperMinFunctionReturns (v : ClipperImmutables) (evm : EVM.State)
     simpa [hmin] using ExecBlock.consReturn (ExecStmt.iteTrue hcond hthen)
   · have hcond := clipperEvalMinLe_false v evm x y hle
     have helse :
-        ExecBlock config
+        ExecBlock fork config
           ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame)
           evm [.return [.var "y"]]
           (.returned
@@ -1085,9 +1087,9 @@ theorem RD.clipperMin {code : ByteArray} (v : ClipperImmutables)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {x y ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD code ee g s0 ⟨8661⟩ (x :: y :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 ⟨8661⟩ (x :: y :: ret :: R) mem aw rdata acc k C)
     (hret : (D_J code 0).contains ret = true) (hov : R.length + 10 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret (clipperMinWord x y :: R) mem aw rdata acc k' C' := by
+    ∃ k' C', RD fork code ee g s0 ret (clipperMinWord x y :: R) mem aw rdata acc k' C' := by
   have rd8671pre := evm_run h with [
     raw jumpdest (by clipper_runtime_decode) (by evm_ov),
     raw push1 ⟨0⟩ (by clipper_runtime_decode) (by evm_ov),
@@ -1155,10 +1157,10 @@ theorem RD.clipperCheckedMul {code : ByteArray} (v : ClipperImmutables)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {x y ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD code ee g s0 ⟨8686⟩ (x :: y :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 ⟨8686⟩ (x :: y :: ret :: R) mem aw rdata acc k C)
     (hmul : x.toNat * y.toNat < UInt256.size)
     (hret : (D_J code 0).contains ret = true) (hov : R.length + 10 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret (UInt256.mul x y :: R) mem aw rdata acc k' C' := by
+    ∃ k' C', RD fork code ee g s0 ret (UInt256.mul x y :: R) mem aw rdata acc k' C' := by
   by_cases hx : x = ⟨0⟩
   · subst x
     have hprod : UInt256.mul ⟨0⟩ y = ⟨0⟩ :=
@@ -1231,9 +1233,9 @@ theorem RD.clipperCheckedMulRevert {code : ByteArray} (v : ClipperImmutables)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {x y ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD code ee g s0 ⟨8686⟩ (x :: y :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 ⟨8686⟩ (x :: y :: ret :: R) mem aw rdata acc k C)
     (hover : UInt256.size ≤ x.toNat * y.toNat) (hov : R.length + 12 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   have hx : x ≠ ⟨0⟩ := by
     intro hx
     subst x
@@ -1285,10 +1287,10 @@ theorem RD.clipperWmulRoutine {code : ByteArray} (v : ClipperImmutables)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {x y ret keep : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD code ee g s0 ⟨8238⟩ (x :: y :: ret :: keep :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 ⟨8238⟩ (x :: y :: ret :: keep :: R) mem aw rdata acc k C)
     (hmul : x.toNat * y.toNat < UInt256.size)
     (hret : (D_J code 0).contains ret = true) (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret
+    ∃ k' C', RD fork code ee g s0 ret
       (UInt256.div (UInt256.mul x y) ⟨1000000000000000000⟩ :: keep :: R)
       mem aw rdata acc k' C' := by
   have rd8241 := evm_run h with [
@@ -1325,9 +1327,9 @@ theorem RD.clipperWmulRoutineRevert {code : ByteArray} (v : ClipperImmutables)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {x y ret keep : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD code ee g s0 ⟨8238⟩ (x :: y :: ret :: keep :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 ⟨8238⟩ (x :: y :: ret :: keep :: R) mem aw rdata acc k C)
     (hover : UInt256.size ≤ x.toNat * y.toNat) (hov : R.length + 18 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   have rd8241 := evm_run h with [
     raw jumpdest (by clipper_runtime_decode) (by evm_ov),
     raw push1 ⟨0⟩ (by clipper_runtime_decode) (by evm_ov) ]
@@ -1349,10 +1351,10 @@ theorem RD.clipperRmulRoutine {code : ByteArray} (v : ClipperImmutables)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {x y ret keep : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD code ee g s0 ⟨9233⟩ (x :: y :: ret :: keep :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 ⟨9233⟩ (x :: y :: ret :: keep :: R) mem aw rdata acc k C)
     (hmul : x.toNat * y.toNat < UInt256.size)
     (hret : (D_J code 0).contains ret = true) (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret
+    ∃ k' C', RD fork code ee g s0 ret
       (UInt256.div (UInt256.mul x y) clipperRayWord :: keep :: R)
       mem aw rdata acc k' C' := by
   have rd9236 := evm_run h with [
@@ -1390,9 +1392,9 @@ theorem RD.clipperRmulRoutineRevert {code : ByteArray} (v : ClipperImmutables)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {x y ret keep : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD code ee g s0 ⟨9233⟩ (x :: y :: ret :: keep :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 ⟨9233⟩ (x :: y :: ret :: keep :: R) mem aw rdata acc k C)
     (hover : UInt256.size ≤ x.toNat * y.toNat) (hov : R.length + 18 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   have rd9236 := evm_run h with [
     raw jumpdest (by clipper_runtime_decode) (by evm_ov),
     raw push1 ⟨0⟩ (by clipper_runtime_decode) (by evm_ov)]
@@ -1411,11 +1413,11 @@ theorem RD.clipperRdivRoutine {code : ByteArray} (v : ClipperImmutables)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {x y ret keep : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD code ee g s0 ⟨9290⟩ (y :: x :: ret :: keep :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 ⟨9290⟩ (y :: x :: ret :: keep :: R) mem aw rdata acc k C)
     (hmul : x.toNat * clipperRayWord.toNat < UInt256.size)
     (hy : y ≠ ⟨0⟩)
     (hret : (D_J code 0).contains ret = true) (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret
+    ∃ k' C', RD fork code ee g s0 ret
       (UInt256.div (UInt256.mul x clipperRayWord) y :: keep :: R)
       mem aw rdata acc k' C' := by
   have rd9293 := evm_run h with [
@@ -1454,10 +1456,10 @@ theorem RD.clipperRdivRoutineRevertMul {code : ByteArray} (v : ClipperImmutables
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {x y ret keep : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD code ee g s0 ⟨9290⟩ (y :: x :: ret :: keep :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 ⟨9290⟩ (y :: x :: ret :: keep :: R) mem aw rdata acc k C)
     (hover : UInt256.size ≤ x.toNat * clipperRayWord.toNat)
     (hov : R.length + 18 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   have rd9293 := evm_run h with [
     raw jumpdest (by clipper_runtime_decode) (by evm_ov),
     raw push1 ⟨0⟩ (by clipper_runtime_decode) (by evm_ov),
@@ -1478,10 +1480,10 @@ theorem RD.clipperSubRoutine {code : ByteArray} (v : ClipperImmutables)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {x y ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD code ee g s0 ⟨9274⟩ (y :: x :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 ⟨9274⟩ (y :: x :: ret :: R) mem aw rdata acc k C)
     (hle : y.toNat ≤ x.toNat)
     (hret : (D_J code 0).contains ret = true) (hov : R.length + 9 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret (UInt256.sub x y :: R) mem aw rdata acc k' C' := by
+    ∃ k' C', RD fork code ee g s0 ret (UInt256.sub x y :: R) mem aw rdata acc k' C' := by
   exact RD.solcCheckedSubSuccess h (clipperCheckedSubWf v hpatch) hle hret
     (clipperJumpDest8722 v hpatch) hov
 
@@ -1490,9 +1492,9 @@ theorem RD.clipperSubRoutineRevert {code : ByteArray} (v : ClipperImmutables)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {x y ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD code ee g s0 ⟨9274⟩ (y :: x :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 ⟨9274⟩ (y :: x :: ret :: R) mem aw rdata acc k C)
     (hlt : x.toNat < y.toNat) (hov : R.length + 9 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   rcases clipperCheckedSubWf v hpatch with
     ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd8, hd11, _, _, _, _, _, _⟩
   have hsubNat : (UInt256.sub x y).toNat = UInt256.size + x.toNat - y.toNat :=
@@ -1530,11 +1532,11 @@ theorem RD.clipperUpchostStoreChostReturnSplit {code : ByteArray} (v : ClipperIm
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {chost dust sel : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD code ee g s0 ⟨1806⟩ (chost :: dust :: ⟨502⟩ :: sel :: []) mem aw rdata
+    (h : RD fork code ee g s0 ⟨1806⟩ (chost :: dust :: ⟨502⟩ :: sel :: []) mem aw rdata
       σ k C) :
     (ee.perm = true ∧
-      RDret code g s0 (sstoreAccountMap ee.codeOwner σ ⟨9⟩ chost) ByteArray.empty) ∨
-      (ee.perm = false ∧ RDstatic code g s0) := by
+      RDret fork code g s0 (sstoreAccountMap ee.codeOwner σ ⟨9⟩ chost) ByteArray.empty) ∨
+      (ee.perm = false ∧ RDstatic fork code g s0) := by
   have rd1809pre := evm_run h with [
     raw jumpdest (by clipper_runtime_decode) (by evm_ov),
     raw push1 ⟨9⟩ (by clipper_runtime_decode) (by evm_ov)]

@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.OneRequestResult
 import Benchmarks.EAS.EAS.DelegatedAttestPrepare
 import Benchmarks.EAS.EAS.AttestControl
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -11,14 +13,14 @@ theorem easDelegatedAttestTailAllocate {ee : ExecutionEnv} {g : Sat256} {s0 : St
     {root heap : UInt256} {R : List UInt256} (v : EASImmutables) (hstack : R.length+23 ≤ 1024)
     (hlo : 96 ≤ heap.toNat) (hh : heap.toNat ≤ 2^64-1) (hf : memLoad (UInt256.ofNat 64) mem = heap)
     (hr : requestReferenceValid ee.calldata root (root+UInt256.ofNat 32))
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2122⟩ (delegatedAttestSavedStack ee.calldata root R).tail mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2122⟩ (delegatedAttestSavedStack ee.calldata root R).tail mem aw rdata σ k C) :
     if heap.toNat+256 ≤ 2^64-1 then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨5344⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨5344⟩
         (delegatedAttestData ee.calldata root::UInt256.ofNat ee.calldata.size::UInt256.ofNat 2141::
           (root+UInt256.ofNat 160)::UInt256.ofNat 2166::heap::calldataWord ee.calldata root.toNat::
           UInt256.ofNat 587::UInt256.ofNat 32::UInt256.ofNat 594::UInt256.ofNat 32::R)
         (oneRequestArrayMemory mem heap) aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨a1,k1,C1,r1⟩ := easBlocks.eas_block_2122_packed (immWords := wordsOf (immStore v))
     (by simp only [delegatedAttestSavedStack,List.tail_cons,List.length_cons]; omega)
     (by rw [easPatchedValidJumpsRuntime v]; jump_dest) rd
@@ -45,9 +47,9 @@ theorem easDelegatedAttestTailSet {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hfit : array.toNat+32 < UInt256.size) (hc : array.toNat+32 ≤ mem.size)
     (hn : memLoad array mem ≠ ⟨0⟩)
     (ha : (calldataWord ee.calldata head.toNat).toNat < EVM.addressModulus)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2141⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2141⟩
       (ptr::head::UInt256.ofNat 2166::array::schema::R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨7650⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨7650⟩
       (schema::array::calldataWord ee.calldata head.toNat::ee.weiValue::R)
       (Reasoning.Theory.writeWord mem (array.toNat+32) ptr) aw' rdata σ k' C' := by
   obtain ⟨a1,k1,C1,r1⟩ := easBlocks.eas_block_2141_packed (immWords := wordsOf (immStore v))

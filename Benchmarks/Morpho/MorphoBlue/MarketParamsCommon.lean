@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.ReturnCommon
 import Reasoning.SteleArithmetic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
@@ -91,7 +93,7 @@ theorem marketParamsIdFunction_lookup :
 
 theorem morphoMarketParamsIdBody (p : MarketParamsWords) (hc : p.Canonical)
     (evm : EVM.State) (imms : Store) :
-    ExecFuncBody config { contract := contract, locals := ((∅ : Store).insert "marketParams" p.value), immutables := imms } evm marketParamsIdFunction.body
+    ExecFuncBody fork config { contract := contract, locals := ((∅ : Store).insert "marketParams" p.value), immutables := imms } evm marketParamsIdFunction.body
       (.returned { contract := contract, locals := ((∅ : Store).insert "marketParams" p.value), immutables := imms } evm (some [.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE p.id)])) := by
   apply ExecFuncBody.execBlockRet
   apply ExecBlock.consReturn
@@ -102,7 +104,7 @@ theorem morphoMarketParamsIdBody (p : MarketParamsWords) (hc : p.Canonical)
 theorem morphoMarketParamsIdCall (p : MarketParamsWords) (hc : p.Canonical)
     (evm : EVM.State) (locals imms : Store) (expr : Expr) (retVar : Ident)
     (he : evalExpr? config { contract := contract, locals := locals, immutables := imms } evm expr = .ok p.value) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm
       (.internalCall "MarketParamsLib_id" [expr] retVar)
       (.ok { contract := contract, locals := locals.insert retVar (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE p.id)), immutables := imms } evm) := by
   exact internalCallFunctionReturn (evalExprs?_singleton he) marketParamsIdFunction_lookup rfl

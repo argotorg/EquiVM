@@ -4,6 +4,8 @@ import Benchmarks.Safe.V3_77901a5.Blocks.Runtime_043
 import Benchmarks.Safe.V3_77901a5.Blocks.Runtime_051
 import Benchmarks.Safe.V3_77901a5.ContractSignatureMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V3_77901a5.RuntimeBlocks
 
@@ -32,7 +34,7 @@ theorem contractSignatureArgs_free {mem : ByteArray} {ptr len : Nat} {hash : UIn
 
 theorem safeContractSignatureArgs (words : List UInt256)
     {I g s0 σ k C aw mem rdata ptr src len} {hash ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨11810⟩
+    (h : RD fork safeBytecode I g s0 ⟨11810⟩
       (UInt256.ofNat (ptr + 36) :: UInt256.ofNat src :: hash :: ret :: R)
       mem aw rdata σ k C)
     (hl : memLoad (UInt256.ofNat src) mem = UInt256.ofNat len)
@@ -42,7 +44,7 @@ theorem safeContractSignatureArgs (words : List UInt256)
     (hsrc : src + 32 + 32 * words.length ≤ ptr + 100)
     (hb : ptr + 164 + 32 * words.length < UInt256.size)
     (hov : R.length + 19 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ret
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ret
       (UInt256.ofNat (contractSignatureCallEnd ptr len) :: R)
       (contractSignatureArgsMemory mem ptr len hash words) aw' rdata σ k' C' := by
   have hadd (n : Nat) (hh : ptr + 36 + n < UInt256.size) :
@@ -78,7 +80,7 @@ theorem safeContractSignatureArgs (words : List UInt256)
 theorem safeContractSignatureEncode (words : List UInt256)
     {I g s0 σ k C aw mem rdata ptr src subptr len} {hash offset owner ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7036⟩
+    (h : RD fork safeBytecode I g s0 ⟨7036⟩
       (UInt256.ofNat len :: offset :: UInt256.ofNat src :: hash :: owner :: ret :: R)
       mem aw rdata σ k C)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr)
@@ -89,7 +91,7 @@ theorem safeContractSignatureEncode (words : List UInt256)
     (hin : subptr + 32 ≤ mem.size) (ha : subptr + 32 ≤ ptr)
     (hsrc : subptr + 32 + 32 * words.length ≤ ptr + 100)
     (hb : ptr + 164 + 32 * words.length < UInt256.size) (hov : R.length + 33 ≤ 1024) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨8706⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨8706⟩
       (UInt256.ofNat (contractSignatureCallEnd ptr len) :: signatureMagicWord :: ⟨0⟩ :: ⟨0⟩ ::
         UInt256.ofNat subptr :: hash :: owner :: ⟨7053⟩ :: UInt256.ofNat subptr ::
         UInt256.ofNat len :: offset :: UInt256.ofNat src :: hash :: owner :: ret :: R)

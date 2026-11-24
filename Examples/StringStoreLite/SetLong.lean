@@ -1,6 +1,8 @@
 import Examples.StringStoreLite.SetLongNewShort
 import Examples.StringStoreLite.SetLongNewLong
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # StringStoreLite — valid long set-branch router
 
@@ -36,7 +38,7 @@ theorem stringStoreLiteSetValidRuntime
       uInt256OfByteArray
         (I.calldata.readBytes
           ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32) ≠ ⟨0⟩) :
-    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor fork stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   by_cases hnewShort :
       (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat < 32

@@ -1,12 +1,14 @@
 import Benchmarks.UniswapV3.Pool.SwapStepFeeCalls
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
 
 theorem swapStepUnusedFeeAssign (imms : Store) (evm : EVM.State) (a : SwapStepArgs)
     (hu : swapStepUnusedFee a = true) :
-    ExecStmt config (swapStepCapFrame imms a) evm
+    ExecStmt fork config (swapStepCapFrame imms a) evm
       (.assign .localVar ⟨"feeAmount", []⟩
         (.cast (.binary .sub
           (.cast (.var "amountRemaining") (.elem (.int (.uint ⟨256, by decide⟩))))
@@ -20,7 +22,7 @@ theorem swapStepUnusedFeeAssign (imms : Store) (evm : EVM.State) (a : SwapStepAr
 
 theorem swapStepFeeCallAssign (imms : Store) (evm : EVM.State) (a : SwapStepArgs)
     (hu : swapStepUnusedFee a = false) :
-    ExecStmt config (swapStepFeeCallFrame imms a) evm
+    ExecStmt fork config (swapStepFeeCallFrame imms a) evm
       (.assign .localVar ⟨"feeAmount", []⟩ (.var "__c17"))
       (.ok (swapStepResultFrame imms a) evm) := by
   have hg : (swapStepFeeCallFrame imms a).locals.get? "feeAmount" = some (.int 0) := by
@@ -32,7 +34,7 @@ theorem swapStepFeeCallAssign (imms : Store) (evm : EVM.State) (a : SwapStepArgs
 
 theorem swapStepFeeSource (imms : Store) (evm : EVM.State) (a : SwapStepArgs)
     (hv : swapStepFeeValid a) :
-    ExecStmt config (swapStepCapFrame imms a) evm swapStepFunction.body[10]!
+    ExecStmt fork config (swapStepCapFrame imms a) evm swapStepFunction.body[10]!
       (.ok (swapStepResultFrame imms a) evm) := by
   have he := evalSwapStepFeeTest imms evm a
   cases hu : swapStepUnusedFee a
@@ -46,7 +48,7 @@ theorem swapStepFeeSource (imms : Store) (evm : EVM.State) (a : SwapStepArgs)
 
 theorem swapStepFeeReverts (imms : Store) (evm : EVM.State) (a : SwapStepArgs)
     (hv : ¬swapStepFeeValid a) :
-    ExecStmt config (swapStepCapFrame imms a) evm swapStepFunction.body[10]! .reverted := by
+    ExecStmt fork config (swapStepCapFrame imms a) evm swapStepFunction.body[10]! .reverted := by
   have hu : swapStepUnusedFee a = false := by
     cases h : swapStepUnusedFee a
     · rfl

@@ -5,6 +5,8 @@ import Reasoning.WordArithmetic
 import Benchmarks.Safe.V3_77901a5.Blocks.Runtime_042
 import Benchmarks.Safe.V3_77901a5.Blocks.Runtime_043
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V3_77901a5.RuntimeBlocks
 
@@ -15,7 +17,7 @@ set_option maxRecDepth 2000
 -- The shared byte-copy loop includes a final partial word before its cleanup write.
 theorem safeByteBufferCopyLoopAfter (words : List UInt256)
     {I g s0 σ k C aw mem rdata i len src dst} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨9735⟩
+    (h : RD fork safeBytecode I g s0 ⟨9735⟩
       (UInt256.ofNat i :: UInt256.ofNat (src + 32) ::
         UInt256.ofNat (dst + 32) :: UInt256.ofNat len :: R)
       mem aw rdata σ k C)
@@ -25,7 +27,7 @@ theorem safeByteBufferCopyLoopAfter (words : List UInt256)
     (hi : len ≤ i + 32 * words.length)
     (hlast : words ≠ [] → i + 32 * (words.length - 1) < len)
     (hend : dst + 32 + i + 32 * words.length < UInt256.size) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨9759⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨9759⟩
       (UInt256.ofNat (i + 32 * words.length) :: UInt256.ofNat (src + 32) ::
         UInt256.ofNat (dst + 32) :: UInt256.ofNat len :: R)
       (writeWords mem (dst + 32 + i) words) aw' rdata σ k' C' := by
@@ -38,7 +40,7 @@ theorem safeByteBufferCopyLoopAfter (words : List UInt256)
             rw [ulit_toNat' i (by omega), ulit_toNat' len (by omega)]; omega)]
           decide) (by jump_dest) h
       simpa only [List.length_nil, Nat.mul_zero, Nat.add_zero, writeWords] using
-        (show ∃ aw' k' C', RD safeBytecode I g s0 ⟨9759⟩ _ mem aw' rdata σ k' C' from
+        (show ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨9759⟩ _ mem aw' rdata σ k' C' from
           ⟨_, _, _, h₁⟩)
   | cons w ws ih =>
       have hi' : i < len := by
@@ -89,7 +91,7 @@ theorem safeByteBufferCopyLoopAfter (words : List UInt256)
 -- Copy a whole-word prefix before the final partial word of a raw bytes copy.
 theorem safeByteBufferCopyPrefix (words : List UInt256)
     {I g s0 σ k C aw mem rdata i len src dst} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨9735⟩
+    (h : RD fork safeBytecode I g s0 ⟨9735⟩
       (UInt256.ofNat i :: UInt256.ofNat (src) ::
         UInt256.ofNat (dst) :: UInt256.ofNat len :: R)
       mem aw rdata σ k C)
@@ -98,7 +100,7 @@ theorem safeByteBufferCopyPrefix (words : List UInt256)
     (hsrc : src + i + 32 * words.length ≤ dst + i)
     (hlast : words ≠ [] → i + 32 * (words.length - 1) < len)
     (hend : dst + i + 32 * words.length < UInt256.size) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨9735⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨9735⟩
       (UInt256.ofNat (i + 32 * words.length) :: UInt256.ofNat (src) ::
         UInt256.ofNat (dst) :: UInt256.ofNat len :: R)
       (writeWords mem (dst + i) words) aw' rdata σ k' C' := by
@@ -154,7 +156,7 @@ theorem safeByteBufferCopyPrefix (words : List UInt256)
 -- The original whole-source separation condition is a specialization.
 theorem safeByteBufferCopyLoopInto (words : List UInt256)
     {I g s0 σ k C aw mem rdata i len src dst} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨9735⟩
+    (h : RD fork safeBytecode I g s0 ⟨9735⟩
       (UInt256.ofNat i :: UInt256.ofNat (src + 32) ::
         UInt256.ofNat (dst + 32) :: UInt256.ofNat len :: R)
       mem aw rdata σ k C)
@@ -164,7 +166,7 @@ theorem safeByteBufferCopyLoopInto (words : List UInt256)
     (hi : len ≤ i + 32 * words.length)
     (hlast : words ≠ [] → i + 32 * (words.length - 1) < len)
     (hend : dst + 32 + i + 32 * words.length < UInt256.size) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨9759⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨9759⟩
       (UInt256.ofNat (i + 32 * words.length) :: UInt256.ofNat (src + 32) ::
         UInt256.ofNat (dst + 32) :: UInt256.ofNat len :: R)
       (writeWords mem (dst + 32 + i) words) aw' rdata σ k' C' := by
@@ -173,7 +175,7 @@ theorem safeByteBufferCopyLoopInto (words : List UInt256)
 -- The shared byte-copy loop includes a final partial word before its cleanup write.
 theorem safeByteBufferCopyLoop (words : List UInt256)
     {I g s0 σ k C aw mem rdata i len src dst} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨9735⟩
+    (h : RD fork safeBytecode I g s0 ⟨9735⟩
       (UInt256.ofNat i :: UInt256.ofNat (src + 32) ::
         UInt256.ofNat (dst + 32) :: UInt256.ofNat len :: R)
       mem aw rdata σ k C)
@@ -183,7 +185,7 @@ theorem safeByteBufferCopyLoop (words : List UInt256)
     (hi : len ≤ i + 32 * words.length)
     (hlast : words ≠ [] → i + 32 * (words.length - 1) < len)
     (hend : dst + 32 + i + 32 * words.length < UInt256.size) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨9759⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨9759⟩
       (UInt256.ofNat (i + 32 * words.length) :: UInt256.ofNat (src + 32) ::
         UInt256.ofNat (dst + 32) :: UInt256.ofNat len :: R)
       (mem ++ wordBytes words) aw' rdata σ k' C' := by
@@ -195,7 +197,7 @@ theorem safeByteBufferCopyLoop (words : List UInt256)
 -- Whole-word return buffers are a specialization of the same byte-copy loop.
 theorem safeWordBufferCopyLoop (words : List UInt256)
     {I g s0 σ k C aw mem rdata i len src dst} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨9735⟩
+    (h : RD fork safeBytecode I g s0 ⟨9735⟩
       (UInt256.ofNat i :: UInt256.ofNat (src + 32) ::
         UInt256.ofNat (dst + 32) :: UInt256.ofNat len :: R)
       mem aw rdata σ k C)
@@ -203,7 +205,7 @@ theorem safeWordBufferCopyLoop (words : List UInt256)
     (hw : WordArrayMemory mem (src + 32 + i) words) (hm : mem.size = dst + 32 + i)
     (hsrc : src + 32 + len ≤ dst) (hi : i + 32 * words.length = len)
     (hend : dst + 32 + len < UInt256.size) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨9759⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨9759⟩
       (UInt256.ofNat len :: UInt256.ofNat (src + 32) ::
         UInt256.ofNat (dst + 32) :: UInt256.ofNat len :: R)
       (mem ++ wordBytes words) aw' rdata σ k' C' := by

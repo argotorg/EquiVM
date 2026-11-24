@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.NextAmount0Words
 import Benchmarks.UniswapV4PoolManager.DivRoundSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -16,7 +18,7 @@ theorem nextAmount0FallbackSource {f : Frame} {evm : EVM.State} {price liquidity
     (hn : f.locals.get? "numerator1" = some (.int (Int.ofNat (amount0Numerator1 liquidity).toNat)))
     (hs : f.locals.get? "sqrtPX96" = some (.int (Int.ofNat price.toNat)))
     (ha : f.locals.get? "amount" = some (.int (Int.ofNat amount.toNat))) :
-    ∃ f', ExecBlock config f evm nextAmount0FallbackStmts
+    ∃ f', ExecBlock fork config f evm nextAmount0FallbackStmts
       (if nextAmount0FallbackFits price liquidity amount then
         .returned f' evm (some [.int (Int.ofNat (nextAmount0FallbackWord price liquidity amount).toNat)])
        else .reverted) := by
@@ -24,7 +26,7 @@ theorem nextAmount0FallbackSource {f : Frame} {evm : EVM.State} {price liquidity
   by_cases hfit : nextAmount0FallbackFits price liquidity amount
   · simp only [if_pos hfit]
     have he := checkedAddSourceOk hd (evalLocalValue ha) hfit
-    have hc := divRoundCall hf (evalLocalValue hn) he "__c1"
+    have hc := divRoundCall (fork := fork) hf (evalLocalValue hn) he "__c1"
     let result := divRoundWord (amount0Numerator1 liquidity) (UInt256.div (amount0Numerator1 liquidity) price+amount)
     have hr := evalExpr_cast_int (intType := .uint ⟨160, by decide⟩)
       (wordLocal_eval (cfg := config) (f := f) (evm := evm) (name := "__c1") (w := result))

@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.SwapCrossGlobal0
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,14 +13,14 @@ theorem swapCrossGlobal1X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {aw p q free exactWord cache snap dataStart dataLength ret : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : SwapArgs) (s : SwapStateData) (tick global0 : UInt256)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3804⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3804⟩
       ([global0, tick, ⟨3851⟩, ⟨0⟩, q] ++
         swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
       mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hs : SwapStateMemory mem p s)
     (hb : p.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 20 ≤ 1024) :
     ∃ aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 ⟨3823⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨3823⟩
         ([(if a.zeroForOne then feeGrowthWord true σ ee else s.feeGrowth),
           global0, tick, ⟨3851⟩, ⟨0⟩, q] ++
           swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
@@ -46,7 +48,7 @@ theorem swapCrossGlobal1X {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     obtain ⟨k2, C2, hC2, r2⟩ := rdRoutine_return_mono r1 (fun _ _ rr ↦
       uniswapV3Pool_block_3819 (immWords := wordsOf (immStore v))
         (by change R.length + 18 + 1 ≤ 1024; omega) rr)
-    change RD (deployedRuntime v) ee g s0 ⟨3823⟩
+    change RD fork (deployedRuntime v) ee g s0 ⟨3823⟩
       ([feeGrowthWord true σ ee, global0, tick, ⟨3851⟩, ⟨0⟩, q] ++
         swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
       mem aw rdata σ k2 C2 at r2

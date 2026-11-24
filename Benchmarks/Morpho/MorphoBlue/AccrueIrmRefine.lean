@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.AccrueMathRefine
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Morpho.MorphoBlue.Immutables
 namespace Benchmarks.Morpho.MorphoBlue
@@ -16,10 +18,10 @@ theorem morphoAccrueIrmRefineWithMemory (p : MarketParamsWords) (imms : Store) (
     (hparams : p.InMemory ptr mem) (hptr : 96 ≤ ptr.toNat)
     (hin : ptr.toNat + 160 ≤ mem.size) (hbefore : ptr.toNat + 160 ≤ fp.toNat)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13321)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13321)
       ([p.irm, elapsed, solcAddrMask, p.id, UInt256.ofNat 32, UInt256.ofNat 3,
         UInt256.ofNat 0, UInt256.ofNat 64, uint128Mask, ret, ptr] ++ R) mem aw rdata σ k C) :
-    AccrueTailRefinesWithMemory v ee g s0 p imms (accrueAfterElapsed p imms elapsed).locals evm
+    AccrueTailRefinesWithMemory fork v ee g s0 p imms (accrueAfterElapsed p imms elapsed).locals evm
       accrueIrmBody ret R (spare - 224) mem fp 160 := by
   have hspace := hm.space
   have hgap := hm.gap
@@ -32,7 +34,7 @@ theorem morphoAccrueIrmRefineWithMemory (p : MarketParamsWords) (imms : Store) (
   obtain ⟨evm', z, out, hcall, hs', hout, hrd⟩ := morphoAccrueCall (v := v) p hc hs
     (by omega) (by omega) hm.lower hcin
     (accrueCallDataMem_read p σ ee mem fp (by have hh := hm.size; omega) (by omega)) rd1
-  have hcall' : typedCallViaEVM config evm (AccountAddress.ofNat p.irm.toNat) "borrowRate" 0
+  have hcall' : typedCallViaEVM fork config evm (AccountAddress.ofNat p.irm.toNat) "borrowRate" 0
       [p.value, marketStateValue evm.accountMap evm.executionEnv p.id] (z, evm', out) := by
     simpa only [hs.env, ← hs.accounts] using hcall
   by_cases hok : z = true ∧ 32 ≤ out.size
@@ -52,7 +54,7 @@ theorem morphoAccrueIrmRefineWithMemory (p : MarketParamsWords) (imms : Store) (
       (accrueAfterCall_locals p imms elapsed evm (calldataWord out 0)) hr he hvalid rd2
     have heq : spare - 32 - 192 = spare - 224 := by omega
     rw [heq] at hmth
-    have hab : StateBlock config
+    have hab : StateBlock fork config
         { contract := contract, locals := (accrueAfterElapsed p imms elapsed).locals, immutables := imms }
         evm accrueIrmBody { contract := contract, locals := l, immutables := imms } evm' (accrueIrmBody.drop 3) :=
       (StateBlock.ofABlock (morphoAccrueCallPrelude p imms elapsed evm)).step hsCall
@@ -67,10 +69,10 @@ theorem morphoAccrueIrmRefine (p : MarketParamsWords) (imms : Store) (hc : p.Can
     (hparams : p.InMemory ptr mem) (hptr : 96 ≤ ptr.toNat)
     (hin : ptr.toNat + 160 ≤ mem.size) (hbefore : ptr.toNat + 160 ≤ fp.toNat)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13321)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13321)
       ([p.irm, elapsed, solcAddrMask, p.id, UInt256.ofNat 32, UInt256.ofNat 3,
         UInt256.ofNat 0, UInt256.ofNat 64, uint128Mask, ret, ptr] ++ R) mem aw rdata σ k C) :
-    AccrueTailRefines v ee g s0 p imms (accrueAfterElapsed p imms elapsed).locals evm
+    AccrueTailRefines fork v ee g s0 p imms (accrueAfterElapsed p imms elapsed).locals evm
       accrueIrmBody ret R (spare - 224) := by
   exact (morphoAccrueIrmRefineWithMemory p imms hc hstack hs hm hb hparams hptr hin hbefore hvalid h).forget
 

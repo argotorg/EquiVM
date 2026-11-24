@@ -1,5 +1,7 @@
 import Benchmarks.Auction.PaymentLocals
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -9,7 +11,7 @@ theorem rawReturnSource {locals : Store} {evm : EVM.State} {recipient amount ptr
     (hd : locals.get? "_data" = some (.bytes out))
     (hz : locals.get? "success" = some (.bool z))
     (hb : ptr.toNat + out.size + 63 ≤ 2 ^ 200) :
-    ∃ locals', ExecStmt auctionConfig { contract := auctionContract, locals := locals } evm
+    ∃ locals', ExecStmt fork auctionConfig { contract := auctionContract, locals := locals } evm
       (.ite (.binary .ne (localBytesLength "_data") (.intLit 0))
         [advanceFreePtr (wordRoundedSize (.binary .add (localBytesLength "_data") (.intLit 32)))]
         []) (.ok { contract := auctionContract, locals := locals' } evm) ∧
@@ -50,16 +52,16 @@ theorem rawReturnSource {locals : Store} {evm : EVM.State} {recipient amount ptr
 theorem rawEthSource {locals : Store} {evm evm' : EVM.State} {recipient amount ptr : UInt256}
     {out : ByteArray} {z : Bool} (hv : PaymentValues locals recipient amount ptr)
     (hb : ptr.toNat + 2 ^ 139 ≤ 2 ^ 200) (ho : out.size < 2 ^ 138)
-    (hc : callViaEVM evm (paymentAddress recipient) (Int.ofNat amount.toNat)
+    (hc : callViaEVM fork evm (paymentAddress recipient) (Int.ofNat amount.toNat)
       ByteArray.empty (z, evm', out))
     (hperm : evm.executionEnv.perm = true) :
-    ∃ locals', ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
+    ∃ locals', ExecBlock fork auctionConfig { contract := auctionContract, locals := locals } evm
       paymentRawStmts (.ok { contract := auctionContract, locals := locals' } evm') ∧
       PaymentValues locals' recipient amount (rawEthPtr ptr out) ∧
       locals'.get? "success" = some (.bool z) := by
   let l1 := locals.insert "_freePtr" (.int (Int.ofNat (nextEmptyPtr ptr).toNat))
   have h1 : PaymentValues l1 recipient amount (nextEmptyPtr ptr) := hv.setFree _
-  have st1 : ExecStmt auctionConfig { contract := auctionContract, locals := locals } evm
+  have st1 : ExecStmt fork auctionConfig { contract := auctionContract, locals := locals } evm
       (advanceFreePtr (.intLit 32)) (.ok { contract := auctionContract, locals := l1 } evm) :=
     advanceFreePtrSource (delta := ⟨32⟩) hv.ptr (by simp [evalExpr?, pure]; decide)
       (by change ptr.toNat + 32 < 2 ^ 256; omega)
@@ -67,7 +69,7 @@ theorem rawEthSource {locals : Store} {evm evm' : EVM.State} {recipient amount p
   have h2 : PaymentValues l2 recipient amount (nextEmptyPtr ptr) :=
     (h1.insertOther (.bool z) (by decide) (by decide) (by decide) (by decide)).insertOther
       (.bytes out) (by decide) (by decide) (by decide) (by decide)
-  have st2 : ExecStmt auctionConfig { contract := auctionContract, locals := l1 } evm
+  have st2 : ExecStmt fork auctionConfig { contract := auctionContract, locals := l1 } evm
       (.lowLevelCall (.var "to") (.var "amount") (.newBytes (.intLit 0)) "success" "_data")
       (.ok { contract := auctionContract, locals := l2 } evm') := by
     apply lowLevelCallSource (hperm := Or.inr hperm) (target := paymentAddress recipient)

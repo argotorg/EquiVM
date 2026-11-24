@@ -4,6 +4,8 @@ import Benchmarks.Safe.ViaIR.IRLengthCheck
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_015
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_018
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -17,13 +19,13 @@ set_option maxRecDepth 2000
 set_option maxHeartbeats 1000000
 
 theorem safeSetupDecodeOwnersValid {I g s0 σ k C aw mem rdata n} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨2980⟩ R mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨2980⟩ R mem aw rdata σ k C)
     (hh : 260 ≤ I.calldata.size) (hs : I.calldata.size < 2 ^ 255)
     (ho : (calldataWord I.calldata 4).toNat ≤ 2 ^ 64 - 1)
     (hw : calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat) = UInt256.ofNat n)
     (hn : n ≤ 2 ^ 64 - 1) (hin : setupOwnersStart I.calldata + 32 * n ≤ I.calldata.size)
     (hov : R.length + 20 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨3060⟩ (setupDecodeOwnersStack I.calldata n R)
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨3060⟩ (setupDecodeOwnersStack I.calldata n R)
       mem aw rdata σ k' C' := by
   have hu : UInt256.size = 2 ^ 256 := rfl
   have hsize : I.calldata.size < UInt256.size := by omega
@@ -44,7 +46,7 @@ theorem safeSetupDecodeOwnersValid {I g s0 σ k C aw mem rdata n} {R : List UInt
     rw [hmaxWord]
     change UInt256.gt (calldataWord I.calldata 4) (UInt256.ofNat (2 ^ 64 - 1)) = _
     exact ugt_zero (by rwa [hmax])) h₁
-  change RD safeBytecode I g s0 ⟨3010⟩ (calldataWord I.calldata 4 :: R)
+  change RD fork safeBytecode I g s0 ⟨3010⟩ (calldataWord I.calldata 4 :: R)
     mem aw rdata σ _ _ at h₂
   have h₃ := safeRuntime_block_3010_fallthrough (by omega) (by
     rw [hoff 35 (by omega), slt_ofNat_lit_one_low hs (by
@@ -59,7 +61,7 @@ theorem safeSetupDecodeOwnersValid {I g s0 σ k C aw mem rdata n} {R : List UInt
     change UInt256.gt (calldataWord I.calldata _) (UInt256.ofNat (2 ^ 64 - 1)) = _
     rw [ho4, hw]
     exact ugt_zero (by rwa [hnNat, hmax])) h₃
-  change RD safeBytecode I g s0 ⟨3041⟩
+  change RD fork safeBytecode I g s0 ⟨3041⟩
     (calldataWord I.calldata 4 :: calldataWord I.calldata _ :: R)
     mem aw rdata σ _ _ at h₄
   rw [ho4, hw] at h₄

@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Clipper.TakeDynamicMemory
 import Benchmarks.Dss.Clipper.TakeEvent
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -75,13 +77,13 @@ theorem RD.clipperTakeEventTailSuccessWF {code : ByteArray} (v : ClipperImmutabl
     {σ : AccountMap}
     {owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id sel : UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨5250⟩
+    (rd : RD fork code ee g s0 ⟨5250⟩
       (owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen ::
         dataStart :: who :: max :: amt :: id :: ⟨502⟩ :: [sel])
       mem aw o σ k C)
     (hmem : clipperTakeMemoryWF mem aw)
     (hperm : ee.perm = true) :
-    RDret code g s0 (sstoreAccountMap ee.codeOwner σ ⟨13⟩ ⟨0⟩) ByteArray.empty := by
+    RDret fork code g s0 (sstoreAccountMap ee.codeOwner σ ⟨13⟩ ⟨0⟩) ByteArray.empty := by
   let eventTopic : UInt256 :=
     ⟨2662707474673484271508566864567884168301912169458095775925153504702713661105⟩
   have haw64 := clipperTakeMemoryWF_mstore_aw_event mem aw (⟨64⟩ : UInt256) hmem

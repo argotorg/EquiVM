@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.SignedModStep
 import Benchmarks.UniswapV4PoolManager.Routines
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_054
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -14,10 +16,10 @@ theorem tickCompressTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw tick spacing a b c d : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (lte : Bool) (hstack : R.length+11 ≤ 1024)
-    (h : RD (deployedRuntime v) I g s0 ⟨19221⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨19221⟩
       ([tick, spacing, ⟨0⟩, spacing, tick, spacing, a, b, c, d, if lte then ⟨0⟩ else ⟨1⟩] ++ R)
       mem aw rdata σ k C) :
-    RD (deployedRuntime v) I g s0 (if lte then ⟨19234⟩ else ⟨21109⟩)
+    RD fork (deployedRuntime v) I g s0 (if lte then ⟨19234⟩ else ⟨21109⟩)
       ([tickCompressRaw tick spacing, spacing, a, b, c, d, if lte then ⟨0⟩ else ⟨1⟩] ++ R)
       mem aw rdata σ (k+11) (C+43) := by
   have rd1 := rdSmod h

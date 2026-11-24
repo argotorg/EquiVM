@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.Allocate
 import Benchmarks.EAS.EAS.Storage
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -32,7 +34,7 @@ theorem time_body : timeFunction.body = [
 
 theorem timeSource {cfg : Config} {frame : Frame} {evm : EVM.State} {heap : Nat}
     (hh : frame.locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap))) :
-    ExecFuncBody cfg frame evm timeFunction.body
+    ExecFuncBody fork cfg frame evm timeFunction.body
       (.returned frame evm (some [.int (Int.ofNat (easTimeWord evm.executionEnv).toNat), .int (Int.ofNat heap)])) := by
   rw [time_body]
   apply ExecFuncBody.execBlockRet
@@ -55,7 +57,7 @@ theorem timeCall {cfg : Config} {locals imms : Store} {evm : EVM.State}
     {heapExpr : Expr} {heap : Nat} {retVar : Ident}
     (he : evalExpr? cfg {contract := contract, locals := locals, immutables := imms} evm heapExpr =
       .ok (.int (Int.ofNat heap))) :
-    ExecStmt cfg {contract := contract, locals := locals, immutables := imms} evm
+    ExecStmt fork cfg {contract := contract, locals := locals, immutables := imms} evm
       (.internalCall "_time" [heapExpr] retVar)
       (.ok {
         contract := contract

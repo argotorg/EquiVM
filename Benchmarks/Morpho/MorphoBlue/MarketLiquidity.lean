@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.LiquidityMessage
 import Benchmarks.Morpho.MorphoBlue.MarketTransferLocals
 import Benchmarks.Morpho.MorphoBlue.AccrueMemoryAdvance
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -26,13 +28,13 @@ theorem morphoMarketLiquidity {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sa
     {k C : Nat} {R : List UInt256} (hstack : R.length + 24 ≤ 1024)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
     (hm : MorphoHeap mem ptr 0) (hfit : ptr.toNat + 64 < 2 ^ 64)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12880)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12880)
       ([UInt256.ofNat 585, UInt256.isZero (UInt256.lt (marketFieldWord σ ee id 0)
         (marketFieldWord σ ee id 2)), ret] ++ R) mem aw out σ k C) :
     ((marketFieldWord σ ee id 0).toNat < (marketFieldWord σ ee id 2).toNat ∧
-      RDrev (deployedRuntime v) g s0) ∨
+      RDrev fork (deployedRuntime v) g s0) ∨
     ((marketFieldWord σ ee id 2).toNat ≤ (marketFieldWord σ ee id 0).toNat ∧
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret R (morphoLiquidityMem mem) aw' out σ k' C' ∧
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret R (morphoLiquidityMem mem) aw' out σ k' C' ∧
       MorphoHeap (morphoLiquidityMem mem) (ptr + UInt256.ofNat 64) 0 ∧
       HeapAdvance mem ptr (morphoLiquidityMem mem) (ptr + UInt256.ofNat 64) 64) := by
   obtain ⟨a1, k1, C1, rd1⟩ := morphoLiquidityMessage (v := v)

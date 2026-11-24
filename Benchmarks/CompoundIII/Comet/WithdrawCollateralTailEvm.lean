@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.WithdrawCollateralMemberEvm
 import Benchmarks.CompoundIII.Comet.AssetSearchEvm
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -16,11 +18,11 @@ theorem cometWithdrawCollateralTail {v : CometWithExtendedAssetListImmutables}
     (hnext : next.toNat < 2^128) (hfree : memLoad ⟨64⟩ mem = free) (hlo : 96 ≤ free.toNat)
     (hbound : free.toNat + 672 + 1696 * v.numAssets.toNat < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨16421⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨16421⟩
       (withdrawCollateralReadyStack src recipient asset amount balance next ret R)
       mem aw rdata σ k C) :
-    ∃ result, WithdrawCollateralTailTrace v src recipient asset amount balance next evm result ∧
-      internalDynamicRun (deployedRuntime v) ee g s0 ret R result := by
+    ∃ result, WithdrawCollateralTailTrace fork v src recipient asset amount balance next evm result ∧
+      internalDynamicRun fork (deployedRuntime v) ee g s0 ret R result := by
   have r1 := cometWithExtendedAssetList_block_16421
     (immWords := wordsOf (immStore v)) (by change R.length + 4 + 10 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h

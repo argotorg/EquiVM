@@ -1,6 +1,8 @@
 import Reasoning.WordArithmetic
 import Benchmarks.Dss.GemJoin.ConstructorTraceStores
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS GemJoin constructor decimals staticcall trace
 -/
@@ -59,13 +61,13 @@ theorem gemJoinCtorDecimalsSetupReach
     {σ σStored σAcc σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g0 : Sat256}
     (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress) {k C : ℕ}
     (rd141 :
-      RD (gemJoinCtorCode vat ilk gem) I g0
+      RD fork (gemJoinCtorCode vat ilk gem) I g0
         (initState σ σ₀ g0 A I) ⟨141⟩
         [gemJoinCtorGemStored σStored I gem, solcAddrMask, EVM.word gem.val, ilk, ⟨32⟩,
           EVM.word vat.val, ⟨64⟩]
         (gemJoinCtorWardsHashMem I vat ilk gem) (UInt256.ofNat 7) ByteArray.empty
         σAcc k C) :
-    ∃ k' C', RD (gemJoinCtorCode vat ilk gem) I g0
+    ∃ k' C', RD fork (gemJoinCtorCode vat ilk gem) I g0
       (initState σ σ₀ g0 A I) ⟨184⟩
       [gemJoinCtorGemTargetOfStored (gemJoinCtorGemStored σStored I gem),
         gemJoinCtorGemTargetOfStored (gemJoinCtorGemStored σStored I gem),
@@ -128,7 +130,7 @@ theorem gemJoinCtorDecimalsStaticcallReach
       Reasoning.Theory.extCodeSizeWord σAcc gemTarget ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (rd184 :
-      RD (gemJoinCtorCode vat ilk gem) I g0
+      RD fork (gemJoinCtorCode vat ilk gem) I g0
         (initState σ σ₀ g0 A I) ⟨184⟩
         [gemTarget, gemTarget,
           ⟨224⟩, ⟨4⟩, ⟨224⟩, ⟨32⟩, ⟨228⟩, ⟨826074471⟩,
@@ -139,14 +141,14 @@ theorem gemJoinCtorDecimalsStaticcallReach
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
         (σ', g'', A', z, out) =
-          Ethereum.EVM.Θ σAcc σ₀ Ain
+          Ethereum.EVM.Θ fork σAcc σ₀ Ain
             (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
             (AccountAddress.ofUInt256 gemTarget)
-            (toExecute σAcc (AccountAddress.ofUInt256 gemTarget))
+            (toExecute fork σAcc (AccountAddress.ofUInt256 gemTarget))
             callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
             ((gemJoinCtorDecimalsCalldataMem I vat ilk gem).readWithPadding 224 4)
             (I.depth + 1) I.header I.blobVersionedHashes I.blocks false) ∧
-      RD (gemJoinCtorCode vat ilk gem) I g0
+      RD fork (gemJoinCtorCode vat ilk gem) I g0
         (initState σ σ₀ g0 A I) ⟨200⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: [⟨228⟩, ⟨826074471⟩,
           gemTarget, EVM.word gem.val, ilk, EVM.word vat.val])
@@ -180,14 +182,14 @@ theorem gemJoinCtorDecimalsStaticcallDepthLimitReach
       Reasoning.Theory.extCodeSizeWord σAcc gemTarget ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
     (rd184 :
-      RD (gemJoinCtorCode vat ilk gem) I g0
+      RD fork (gemJoinCtorCode vat ilk gem) I g0
         (initState σ σ₀ g0 A I) ⟨184⟩
         [gemTarget, gemTarget,
           ⟨224⟩, ⟨4⟩, ⟨224⟩, ⟨32⟩, ⟨228⟩, ⟨826074471⟩,
           gemTarget, EVM.word gem.val, ilk, EVM.word vat.val]
         (gemJoinCtorDecimalsCalldataMem I vat ilk gem) (UInt256.ofNat 8) ByteArray.empty
         σAcc k C) :
-    ∃ k' C', RD (gemJoinCtorCode vat ilk gem) I g0
+    ∃ k' C', RD fork (gemJoinCtorCode vat ilk gem) I g0
       (initState σ σ₀ g0 A I) ⟨200⟩
       (⟨0⟩ :: [⟨228⟩, ⟨826074471⟩,
         gemTarget, EVM.word gem.val, ilk, EVM.word vat.val])
@@ -219,14 +221,14 @@ theorem gemJoinCtorDecimalsNoCodeReverts
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σAcc gemTarget = ⟨0⟩)
     (rd184 :
-      RD (gemJoinCtorCode vat ilk gem) I g0
+      RD fork (gemJoinCtorCode vat ilk gem) I g0
         (initState σ σ₀ g0 A I) ⟨184⟩
         [gemTarget, gemTarget,
           ⟨224⟩, ⟨4⟩, ⟨224⟩, ⟨32⟩, ⟨228⟩, ⟨826074471⟩,
           gemTarget, EVM.word gem.val, ilk, EVM.word vat.val]
         (gemJoinCtorDecimalsCalldataMem I vat ilk gem) (UInt256.ofNat 8) ByteArray.empty
         σAcc k C) :
-    RDrev (gemJoinCtorCode vat ilk gem) g0
+    RDrev fork (gemJoinCtorCode vat ilk gem) g0
       (initState σ σ₀ g0 A I) := by
   exact RD.solcExtcodesizeGuardMissing
     (pc := ⟨184⟩) (okPc := ⟨196⟩)
@@ -247,11 +249,11 @@ theorem gemJoinCtorDecimalsStatusOkReach
     {acc : AccountMap} {z : Bool} {k C : ℕ}
     (hz : z = true)
     (rd200 :
-      RD (gemJoinCtorCode vat ilk gem) I g0 s0 ⟨200⟩
+      RD fork (gemJoinCtorCode vat ilk gem) I g0 s0 ⟨200⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: [⟨228⟩, ⟨826074471⟩,
           gemTarget, EVM.word gem.val, ilk, EVM.word vat.val])
         mem aw out acc k C) :
-    ∃ k' C', RD (gemJoinCtorCode vat ilk gem) I g0 s0 ⟨218⟩
+    ∃ k' C', RD fork (gemJoinCtorCode vat ilk gem) I g0 s0 ⟨218⟩
       [⟨228⟩, ⟨826074471⟩, gemTarget, EVM.word gem.val, ilk, EVM.word vat.val]
       mem aw out acc k' C' := by
   subst z
@@ -270,11 +272,11 @@ theorem gemJoinCtorDecimalsStatusFailReverts
     {acc : AccountMap} {z : Bool} {k C : ℕ}
     (hz : z = false) (houtSize : out.size < UInt256.size)
     (rd200 :
-      RD (gemJoinCtorCode vat ilk gem) I g0 s0 ⟨200⟩
+      RD fork (gemJoinCtorCode vat ilk gem) I g0 s0 ⟨200⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: [⟨228⟩, ⟨826074471⟩,
           gemTarget, EVM.word gem.val, ilk, EVM.word vat.val])
         mem aw out acc k C) :
-    RDrev (gemJoinCtorCode vat ilk gem) g0 s0 := by
+    RDrev fork (gemJoinCtorCode vat ilk gem) g0 s0 := by
   subst z
   exact RD.solcCallSuccessGuardMissing
     (pc := ⟨200⟩) (okPc := ⟨216⟩) rd200 rfl
@@ -306,10 +308,10 @@ theorem gemJoinCtorDecimalsReturnDecodeOkReach
     (hMload224Cost : Cₘ (M aw ⟨224⟩ ⟨32⟩) - Cₘ aw = 0)
     (hMload224Aw : UInt256.ofNat (MachineState.M aw.toNat 224 32) = aw)
     (rd218 :
-      RD (gemJoinCtorCode vat ilk gem) I g0 s0 ⟨218⟩
+      RD fork (gemJoinCtorCode vat ilk gem) I g0 s0 ⟨218⟩
         [⟨228⟩, ⟨826074471⟩, gemTarget, EVM.word gem.val, ilk, EVM.word vat.val]
         mem aw out acc k C) :
-    ∃ k' C', RD (gemJoinCtorCode vat ilk gem) I g0 s0 ⟨241⟩
+    ∃ k' C', RD fork (gemJoinCtorCode vat ilk gem) I g0 s0 ⟨241⟩
       [retWord, EVM.word gem.val, ilk, EVM.word vat.val]
       mem aw out acc k' C' := by
   have rdPop0 := RD.pop rd218 (by gem_ctor_decode)
@@ -371,10 +373,10 @@ theorem gemJoinCtorDecimalsReturnDecodeShortReverts
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨224⟩)
     (rd218 :
-      RD (gemJoinCtorCode vat ilk gem) I g0 s0 ⟨218⟩
+      RD fork (gemJoinCtorCode vat ilk gem) I g0 s0 ⟨218⟩
         [⟨228⟩, ⟨826074471⟩, gemTarget, EVM.word gem.val, ilk, EVM.word vat.val]
         mem aw out acc k C) :
-    RDrev (gemJoinCtorCode vat ilk gem) g0 s0 := by
+    RDrev fork (gemJoinCtorCode vat ilk gem) g0 s0 := by
   have rdPop0 := RD.pop rd218 (by gem_ctor_decode)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rdPop1 := RD.pop rdPop0 (by gem_ctor_decode)

@@ -3,6 +3,8 @@ import Benchmarks.Safe.Main.Blocks.Runtime_038
 import Benchmarks.Safe.Main.Blocks.Runtime_039
 import Reasoning.HeapMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.Main.RuntimeBlocks
 
@@ -31,12 +33,12 @@ theorem callOutput32_read_above (mem out : ByteArray) (dst : UInt256) (off count
 set_option maxRecDepth 100000 in
 theorem safeTokenTransferReturn {I g s0 σ k C aw mem out}
     {ptr amount receiver token ret : UInt256} {R : List UInt256} (z : Bool)
-    (h : RD safeBytecode I g s0 ⟨9005⟩
+    (h : RD fork safeBytecode I g s0 ⟨9005⟩
       (z.toUInt256 :: ptr :: ⟨0⟩ :: amount :: receiver :: token :: ret :: R)
       (callOutputMem mem out ⟨0⟩ ⟨32⟩) aw out σ k C)
     (hb : out.size < UInt256.size) (hov : R.length + 11 ≤ 1024)
     (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ret ((tokenTransferResult z out).toUInt256 :: R)
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ret ((tokenTransferResult z out).toUInt256 :: R)
       (callOutputMem mem out ⟨0⟩ ⟨32⟩) aw' out σ k' C' := by
   by_cases hz : out.size = 0
   · have h₁ := safeRuntime_block_9005_taken (by simp; omega)

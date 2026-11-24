@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.PoolSetSlot0Source
 import Benchmarks.UniswapV4PoolManager.WordArrayLoop
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -18,7 +20,7 @@ theorem slot0ProtocolFee_lookup : lookupCallable? contract "Slot0Library_setProt
 
 theorem protocolFeeValidBody {f : Frame} {evm : EVM.State} {fee : UInt256}
     (hs : f.locals.get? "self" = some (.int (Int.ofNat fee.toNat))) (hc : fee.toNat < 2^24) :
-    ExecFuncBody config f evm protocolFeeValidFunction.body
+    ExecFuncBody fork config f evm protocolFeeValidFunction.body
       (.returned f evm (some [.bool (decide (protocolFeeValid fee))])) := by
   have h0 := evalUintWordAnd (y := ⟨4095⟩) ⟨24, by decide⟩ hc (by decide)
     (evalLocalValue (cfg := config) (evm := evm) hs)
@@ -37,7 +39,7 @@ theorem protocolFeeValidBody {f : Frame} {evm : EVM.State} {fee : UInt256}
 theorem protocolFeeValidCall {f : Frame} {evm : EVM.State} {e : Expr} {fee : UInt256}
     (hf : f.contract = contract) (hc : fee.toNat < 2^24)
     (he : evalExpr? config f evm e = .ok (.int (Int.ofNat fee.toNat))) (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "ProtocolFeeLibrary_isValidProtocolFee" [e] retVar)
+    ExecStmt fork config f evm (.internalCall "ProtocolFeeLibrary_isValidProtocolFee" [e] retVar)
       (.ok {f with locals := f.locals.insert retVar (.bool (decide (protocolFeeValid fee)))} evm) := by
   apply internalCallFunctionReturn (argVals := [.int (Int.ofNat fee.toNat)])
     (value := some [.bool (decide (protocolFeeValid fee))]) (evalExprs?_singleton he)
@@ -51,7 +53,7 @@ def slot0ProtocolFeeWord (packed fee : UInt256) : UInt256 :=
 theorem slot0ProtocolFeeBody {f : Frame} {evm : EVM.State} {packed fee : UInt256}
     (hp : f.locals.get? "_packed" = some (wordBytes32Value packed))
     (hf : f.locals.get? "_protocolFee" = some (.int (Int.ofNat fee.toNat))) (hc : fee.toNat < 2^24) :
-    ExecFuncBody config f evm slot0ProtocolFeeFunction.body
+    ExecFuncBody fork config f evm slot0ProtocolFeeFunction.body
       (.returned {f with locals := f.locals.insert "cleared" (.int (Int.ofNat (UInt256.land packed protocolFeeClearMask).toNat))}
         evm (some [wordBytes32Value (slot0ProtocolFeeWord packed fee)])) :=
   wordFieldSetBodyExec protocolFeeClearMask 184 ⟨24, by decide⟩ "_protocolFee" (by decide) (by decide) hp hf hc
@@ -60,7 +62,7 @@ theorem slot0ProtocolFeeCall {f : Frame} {evm : EVM.State} {ep ef : Expr} {packe
     (hf : f.contract = contract) (hc : fee.toNat < 2^24)
     (hp : evalExpr? config f evm ep = .ok (wordBytes32Value packed))
     (he : evalExpr? config f evm ef = .ok (.int (Int.ofNat fee.toNat))) (retVar : Ident) :
-    ExecStmt config f evm (.internalCall "Slot0Library_setProtocolFee" [ep, ef] retVar)
+    ExecStmt fork config f evm (.internalCall "Slot0Library_setProtocolFee" [ep, ef] retVar)
       (.ok {f with locals := f.locals.insert retVar (wordBytes32Value (slot0ProtocolFeeWord packed fee))} evm) := by
   apply internalCallFunctionReturn (argVals := [wordBytes32Value packed, .int (Int.ofNat fee.toNat)])
     (value := some [wordBytes32Value (slot0ProtocolFeeWord packed fee)])

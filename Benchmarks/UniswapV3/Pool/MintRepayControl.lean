@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.MintRepaymentSource
 import Benchmarks.UniswapV3.Pool.Balance
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_022
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -24,14 +26,14 @@ def mintRepayEntryWords (second : Bool) (junk0 junk1 junk2 junk3 : UInt256)
 theorem mintRepayEntryX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw before0 before1 amount0 amount1 junk0 junk1 junk2 junk3 : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables} (second : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (mintRepayEntryPC second)
+    (rd : RD fork (deployedRuntime v) ee g s0 (mintRepayEntryPC second)
       (mintRepayEntryWords second junk0 junk1 junk2 junk3 before0 before1 amount0 amount1 R)
       mem aw rdata σ k C) (hov : R.length + 10 ≤ 1024) :
     ((if second then amount1 else amount0) = ⟨0⟩ ∧ ∃ k' C',
-      RD (deployedRuntime v) ee g s0 (mintRepayNextPC second)
+      RD fork (deployedRuntime v) ee g s0 (mintRepayNextPC second)
         (mintRepayWords before0 before1 amount0 amount1 R) mem aw rdata σ k' C') ∨
     (0 < (if second then amount1 else amount0).toNat ∧ ∃ k' C',
-      RD (deployedRuntime v) ee g s0 (balanceEntry second)
+      RD fork (deployedRuntime v) ee g s0 (balanceEntry second)
         (mintRepayBalanceReturn second :: mintRepayWords before0 before1 amount0 amount1 R)
         mem aw rdata σ k' C') := by
   cases second with
@@ -63,10 +65,10 @@ theorem mintRepayEntryX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem mintRepayAddEntryX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw before0 before1 amount0 amount1 after : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables} (second : Bool)
-    (rd : RD (deployedRuntime v) ee g s0 (mintRepayBalanceReturn second)
+    (rd : RD fork (deployedRuntime v) ee g s0 (mintRepayBalanceReturn second)
       (after :: mintRepayWords before0 before1 amount0 amount1 R) mem aw rdata σ k C)
     (hov : R.length + 11 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨15885⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨15885⟩
       ((if second then amount1 else amount0) :: (if second then before1 else before0) ::
         mintRepayComparePC second :: after :: mintRepayWords before0 before1 amount0 amount1 R)
       mem aw rdata σ k' C' := by

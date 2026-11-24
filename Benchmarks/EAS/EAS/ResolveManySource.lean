@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.ResolveOneSource
 import Benchmarks.EAS.EAS.ResolverManySource
 import Benchmarks.EAS.EAS.TimeArray
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -69,7 +71,7 @@ theorem evalWordArrayIndex {cfg : Config} {frame : Frame} {evm : EVM.State} {arr
 
 theorem resolveManyIncrementSource {cfg : Config} {locals imms : Store} {evm : EVM.State} {i : Nat}
     (hi : locals.get? "i" = some (.int (Int.ofNat i))) (hb : i+1 < UInt256.size) :
-    ExecStmt cfg {contract := contract, locals := locals, immutables := imms} evm resolveManyIncrement
+    ExecStmt fork cfg {contract := contract, locals := locals, immutables := imms} evm resolveManyIncrement
       (.ok {contract := contract, locals := locals.insert "i" (.int (Int.ofNat (i+1))), immutables := imms} evm) := by
   have he := evalCastUint256Add (cfg := cfg) (evm := evm)
     (frame := {contract := contract, locals := locals, immutables := imms})
@@ -101,9 +103,9 @@ theorem resolveManyZeroIterationSource {cfg : Config} {locals imms : Store} {evm
     {words : List UInt256} {heap i : Nat} (h : ResolveManyZeroLocals locals words heap i)
     (hi : i < words.length) (hlen : words.length < UInt256.size) :
     if words[i] = ⟨0⟩ then
-      ExecBlock cfg {contract := contract, locals := locals, immutables := imms} evm resolveManyZeroIteration
+      ExecBlock fork cfg {contract := contract, locals := locals, immutables := imms} evm resolveManyZeroIteration
         (.ok {contract := contract, locals := locals.insert "i" (.int (Int.ofNat (i+1))), immutables := imms} evm)
-    else ExecBlock cfg {contract := contract, locals := locals, immutables := imms} evm resolveManyZeroIteration .reverted := by
+    else ExecBlock fork cfg {contract := contract, locals := locals, immutables := imms} evm resolveManyZeroIteration .reverted := by
   have he := evalWordEqZero (cfg := cfg) (frame := {contract := contract, locals := locals, immutables := imms})
     (evm := evm) (evalWordArrayIndex (arr := .var "values") (idx := .var "i")
       (by simp only [evalExpr?,h.values,EvalResult.ofOption]) (by simp only [evalExpr?,h.index,EvalResult.ofOption]) hi)

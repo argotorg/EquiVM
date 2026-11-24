@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.Storage
 import Benchmarks.UniswapV4PoolManager.Arithmetic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 2000000
@@ -16,8 +18,8 @@ def terminalResult (result : ExecResult) : Prop :=
 
 theorem execFuncBody_of_terminal {cfg : Config} {f : Frame} {evm : EVM.State}
     {stmts : List Stmt} {result : ExecResult}
-    (h : ExecBlock cfg f evm stmts result) (ht : terminalResult result) :
-    ExecFuncBody cfg f evm stmts result := by
+    (h : ExecBlock fork cfg f evm stmts result) (ht : terminalResult result) :
+    ExecFuncBody fork cfg f evm stmts result := by
   cases result with
   | returned => exact ExecFuncBody.execBlockRet h
   | reverted => exact ExecFuncBody.execBlockRevert h
@@ -67,7 +69,7 @@ theorem balanceTransferBlockExec (f : Frame) (evm : EVM.State) (senderExpr : Exp
     (hi : f.locals.get? "id" = some (.int (Int.ofNat id.toNat)))
     (ha : f.locals.get? "amount" = some (.int (Int.ofNat amount.toNat)))
     (hb : f.locals.get? "balanceOf" = none) :
-    ExecBlock config f evm (balanceTransferBlock senderExpr)
+    ExecBlock fork config f evm (balanceTransferBlock senderExpr)
       (balanceTransferResult f evm sender receiver id amount) := by
   have hread := balanceOfRead sender id hf hcs hb (hs evm rfl) (evalLocalValue hi)
   by_cases hsub : amount.toNat ≤ (balanceWord evm sender id).toNat
@@ -81,14 +83,14 @@ theorem balanceTransferBlockExec (f : Frame) (evm : EVM.State) (senderExpr : Exp
         (evalLocalValue hr) (evalLocalValue hi)
       by_cases hadd : (balanceWord (balanceTransferDebited evm sender id amount) receiver id).toNat + amount.toNat < UInt256.size
       · rw [balanceTransferResult, if_pos hsub, if_neg hperm, if_pos hadd]
-        refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (Bool.eq_true_of_not_eq_false hperm)) heval hwrite) ?_
-        refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [balanceTransferDebited, balancePost_env] using Bool.eq_true_of_not_eq_false hperm))
+        refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (Bool.eq_true_of_not_eq_false hperm)) heval hwrite) ?_
+        refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [balanceTransferDebited, balancePost_env] using Bool.eq_true_of_not_eq_false hperm))
           (checkedAddSourceOk hrread (evalLocalValue ha) hadd)
           (balanceOfWrite receiver id _ hf hcr hb (evalLocalValue hr) (evalLocalValue hi))) ?_
         have henv : (balanceTransferPost evm sender receiver id amount).executionEnv = evm.executionEnv :=
           (balancePost_env _ _ _ _).trans (balancePost_env _ _ _ _)
         have hsender := hs (balanceTransferPost evm sender receiver id amount) henv
-        refine ExecBlock.consNormal (ExecStmt.emit (hperm := by simpa only [balancePost_env] using Bool.eq_true_of_not_eq_false hperm)
+        refine ExecBlock.consNormal (ExecStmt.emit (fork := fork) (hperm := by simpa only [balancePost_env] using Bool.eq_true_of_not_eq_false hperm)
           (vals := [.address evm.executionEnv.source, .address (AccountAddress.ofNat sender.toNat),
             .address (AccountAddress.ofNat receiver.toNat), .int (Int.ofNat id.toNat), .int (Int.ofNat amount.toNat)]) ?_) ?_
         · change evalExprs? config f (balanceTransferPost evm sender receiver id amount)
@@ -97,7 +99,7 @@ theorem balanceTransferBlockExec (f : Frame) (evm : EVM.State) (senderExpr : Exp
             EvalResult.bind, envValue, pure, henv]
         · exact ExecBlock.consReturn (ExecStmt.return (by simp only [evalExprs?, evalExpr?, bind, EvalResult.bind, pure]))
       · rw [balanceTransferResult, if_pos hsub, if_neg hperm, if_neg hadd]
-        refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (Bool.eq_true_of_not_eq_false hperm)) heval hwrite) ?_
+        refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (Bool.eq_true_of_not_eq_false hperm)) heval hwrite) ?_
         exact ExecBlock.consRevert (ExecStmt.assignExprRevert
           (checkedAddSourceOverflow hrread (evalLocalValue ha) (Nat.le_of_not_gt hadd)))
   · rw [balanceTransferResult, if_neg hsub]

@@ -1,5 +1,7 @@
 import Benchmarks.Dss.DaiJoin.ConstructorTraceStores
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS DaiJoin constructor return trace
 -/
@@ -15,9 +17,9 @@ theorem daiJoinCtorReturnTrace
     {I : ExecutionEnv} {g : Sat256} {s0 : State} {rdata : ByteArray}
     {acc : AccountMap} {k C : Nat}
     (vat dai : AccountAddress)
-    (h : RD (daiJoinCtorCode vat dai) I g s0 ⟨129⟩ []
+    (h : RD fork (daiJoinCtorCode vat dai) I g s0 ⟨129⟩ []
       (daiJoinCtorWardsHashMem I vat dai) (UInt256.ofNat 6) rdata acc k C) :
-    RDret (daiJoinCtorCode vat dai) g s0 acc daiJoinBytecode := by
+    RDret fork (daiJoinCtorCode vat dai) g s0 acc daiJoinBytecode := by
   have hcopy : (daiJoinCtorCode vat dai).write 143
       (daiJoinCtorWardsHashMem I vat dai) 0 1733 =
       daiJoinCtorReturnMem I vat dai := by
@@ -39,7 +41,7 @@ theorem daiJoinInitcodeSuccess
     (hcode : I.code = daiJoinCtorCode vat dai)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) :
-    RDret (daiJoinCtorCode vat dai) g
+    RDret fork (daiJoinCtorCode vat dai) g
       (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner

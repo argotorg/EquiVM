@@ -1,6 +1,8 @@
 import Benchmarks.Safe.V2_0e91d99.MemoryBytesDecodeValid
 import Benchmarks.Safe.V2_0e91d99.Blocks.Runtime_039
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V2_0e91d99.RuntimeBlocks
 
@@ -9,13 +11,13 @@ namespace Benchmarks.Safe.V2_0e91d99
 set_option maxRecDepth 100000 in
 theorem safeDecodeCalldataBytesValid {I g s0 σ k C aw mem rdata off len} {ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨9027⟩
+    (h : RD fork safeBytecode I g s0 ⟨9027⟩
       (UInt256.ofNat off :: UInt256.ofNat I.calldata.size :: ret :: R) mem aw rdata σ k C)
     (hw : calldataWord I.calldata off = UInt256.ofNat len)
     (hi : off + 32 + len ≤ I.calldata.size) (hs : I.calldata.size < 2 ^ 255)
     (hn : len ≤ 2 ^ 64 - 1) (hov : R.length + 9 ≤ 1024)
     (hret : (D_J safeBytecode 0).contains ret = true) :
-    ∃ k' C', RD safeBytecode I g s0 ret
+    ∃ k' C', RD fork safeBytecode I g s0 ret
       (UInt256.ofNat len :: UInt256.ofNat (off + 32) :: R) mem aw rdata σ k' C' := by
   have hu : UInt256.size = 2 ^ 256 := rfl
   have hadd (a b : Nat) (hab : a + b < UInt256.size) :
@@ -33,7 +35,7 @@ theorem safeDecodeCalldataBytesValid {I g s0 σ k C aw mem rdata off len} {ret :
       exact hn)]
     decide) (by jump_dest) h₁
   simp only [safeRuntime_block_9043_taken_stack, safeRuntime_block_9027_taken_stack, ho] at h₂
-  change RD safeBytecode I g s0 ⟨9065⟩
+  change RD fork safeBytecode I g s0 ⟨9065⟩
     (calldataWord I.calldata off :: ⟨0⟩ :: UInt256.ofNat off ::
       UInt256.ofNat I.calldata.size :: ret :: R) mem aw rdata σ _ _ at h₂
   rw [hw] at h₂
@@ -50,14 +52,14 @@ theorem safeDecodeCalldataBytesValid {I g s0 σ k C aw mem rdata off len} {ret :
 set_option maxRecDepth 100000 in
 theorem safeDecodeCalldataBytesEvidence {I g s0 σ k C aw mem rdata off} {ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨9027⟩
+    (h : RD fork safeBytecode I g s0 ⟨9027⟩
       (UInt256.ofNat off :: UInt256.ofNat I.calldata.size :: ret :: R) mem aw rdata σ k C)
     (hoff : off ≤ 2 ^ 64 + 4) (hsize : I.calldata.size < UInt256.size)
     (hov : R.length + 9 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    RDrev safeBytecode g s0 ∨
+    RDrev fork safeBytecode g s0 ∨
     ∃ len k' C', calldataWord I.calldata off = UInt256.ofNat len ∧ len ≤ 2 ^ 64 - 1 ∧
       I.calldata.size < 2 ^ 255 ∧ off + 32 + len ≤ I.calldata.size ∧
-      RD safeBytecode I g s0 ret (UInt256.ofNat len :: UInt256.ofNat (off + 32) :: R)
+      RD fork safeBytecode I g s0 ret (UInt256.ofNat len :: UInt256.ofNat (off + 32) :: R)
         mem aw rdata σ k' C' := by
   have hu : UInt256.size = 2 ^ 256 := rfl
   have hadd (a b : Nat) (hb : a + b < UInt256.size) :
@@ -65,7 +67,7 @@ theorem safeDecodeCalldataBytesEvidence {I g s0 σ k C aw mem rdata off} {ret : 
   have ho : (UInt256.ofNat off).toNat = off := ulit_toNat' _ (by omega)
   have ht : (UInt256.ofNat I.calldata.size).toNat = I.calldata.size := ulit_toNat' _ hsize
   have hfail (hc : UInt256.slt (UInt256.ofNat off + UInt256.ofNat 31)
-      (UInt256.ofNat I.calldata.size) = UInt256.ofNat 0) : RDrev safeBytecode g s0 := by
+      (UInt256.ofNat I.calldata.size) = UInt256.ofNat 0) : RDrev fork safeBytecode g s0 := by
     have h₁ := safeRuntime_block_9027_fallthrough (by simp; omega) hc h
     exact safeRuntime_block_9040 (by
       simp only [safeRuntime_block_9027_fallthrough_stack, List.length_cons]; omega) h₁
@@ -106,7 +108,7 @@ theorem safeDecodeCalldataBytesEvidence {I g s0 σ k C aw mem rdata off} {ret : 
       decide) (by jump_dest) h₁
     simp only [safeRuntime_block_9043_taken_stack, safeRuntime_block_9027_taken_stack, ho]
       at h₂
-    change RD safeBytecode I g s0 ⟨9065⟩
+    change RD fork safeBytecode I g s0 ⟨9065⟩
       (calldataWord I.calldata off :: ⟨0⟩ :: UInt256.ofNat off ::
         UInt256.ofNat I.calldata.size :: ret :: R) mem aw rdata σ _ _ at h₂
     rw [hw] at h₂

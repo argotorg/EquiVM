@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.EntryTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_008
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_009
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # PoolManager `exttload(bytes32)`
 
@@ -24,7 +26,7 @@ theorem exttloadWordBodyReturns (evm : EVM.State) (locals imms : Store) (slot : 
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit)
     (hslot : locals.get? "slot" = some (wordBytes32Value slot)) :
-    ExecTransitionBody config contract evm locals exttload_bytes32Transition.body
+    ExecTransitionBody fork config contract evm locals exttload_bytes32Transition.body
       (.returned (calldataFrame contract locals imms evm) evm
         (some [wordBytes32Value (Stele.EVM.transientLoad evm evm.executionEnv.codeOwner slot)]))
       imms := by
@@ -36,15 +38,15 @@ theorem exttloadWordBodyReturns (evm : EVM.State) (locals imms : Store) (slot : 
 theorem poolManagerExttload_bytes32BodyCore {σ σ₀ A I} {g : UInt256} (v : PoolManagerImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (poolManagerSelBytes 23)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (poolManagerSelBytes 23) rfl hsel
   have hd : dispatchMsg contract I.calldata = some exttload_bytes32Transition := by
     apply poolManagerDispatch_exttload_bytes32 <;> first
     | exact hsel
     | exact selectorNe_of_selIs hsel (by decide +kernel)
-  obtain ⟨k, C, rdEntry⟩ := poolManagerReachExttload_bytes32Body (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, rdEntry⟩ := poolManagerReachExttload_bytes32Body (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
-  change RD (deployedRuntime v) I (Sat256.ofUInt256 g)
+  change RD fork (deployedRuntime v) I (Sat256.ofUInt256 g)
     (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2292⟩ [solcSelectorWord I]
     entryMemory ⟨3⟩ .empty σ k C at rdEntry
   have hjump : (D_J (immutableLayout.runtime poolManagerBytecode (wordsOf (immStore v))) 0).contains
@@ -58,7 +60,7 @@ theorem poolManagerExttload_bytes32BodyCore {σ σ₀ A I} {g : UInt256} (v : Po
       · have rdLoad := poolManagerBlocks.poolManager_block_2298_fallthrough (by simp)
           (viaIRStaticLenCheckOk (words := 1) hlen hhi hsize) rdSize
         have hret := poolManagerBlocks.poolManager_block_2340 (by simp) rdLoad
-        have hret' : RDret (deployedRuntime v) (Sat256.ofUInt256 g)
+        have hret' : RDret fork (deployedRuntime v) (Sat256.ofUInt256 g)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
             (codeOwnerTransientWord I σ (calldataWord I.calldata 4)).toByteArray := by
           simpa only [show (⟨0⟩ : UInt256).toNat = 0 from rfl,
@@ -68,7 +70,7 @@ theorem poolManagerExttload_bytes32BodyCore {σ σ₀ A I} {g : UInt256} (v : Po
             (transitionSignature exttload_bytes32Transition).paramTypes I.calldata =
             some ((∅ : Store).insert "slot" (wordBytes32Value (calldataWord I.calldata 4))) :=
           decodeCalldataBytes32Word hlen hhi
-        have hbody := exttloadWordBodyReturns (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        have hbody := exttloadWordBodyReturns (fork := fork) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           ((∅ : Store).insert "slot" (wordBytes32Value (calldataWord I.calldata 4)))
           (immStore v) (calldataWord I.calldata 4) hwv hhi (store_get_self _ _ _)
         exact hret'.reEquivExecution hcode hd hdec hbody
@@ -93,7 +95,7 @@ theorem poolManagerExttload_bytes32Body {σ σ₀ A I} {g : UInt256} (v : PoolMa
     (_hWF : Syntax.poolManagerWF σ I)
     (_hGas : Syntax.poolManagerGasBound g)
     (hsel : selIs I (poolManagerSelBytes 23)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) :=
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) :=
   poolManagerExttload_bytes32BodyCore v hcode hsize hsel
 
 end Benchmarks.UniswapV4PoolManager

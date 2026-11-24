@@ -3,6 +3,8 @@ import Reasoning.Memory
 import Examples.OpenZeppelinBench.AccessControl.Storage
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -302,7 +304,7 @@ theorem accessControlRevokeRoleBodyReturns_write (evm : EVM.State) (I : Executio
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (revokeRoleTargetSlot I)) ⟨255⟩ ≠
         ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (revokeRoleStore I) revokeRoleTransition.body
+    ExecTransitionBody fork config contract evm (revokeRoleStore I) revokeRoleTransition.body
       (.returned { contract := contract, locals := revokeRoleStoreWithAdmin evm I }
         (revokeRolePostState evm I) none) := by
   refine ExecFuncBody.execBlockOK ?_
@@ -333,7 +335,7 @@ theorem accessControlRevokeRoleBodyStatic (evm : EVM.State) (I : ExecutionEnv)
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (revokeRoleTargetSlot I)) ⟨255⟩ ≠
         ⟨0⟩)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (revokeRoleStore I) revokeRoleTransition.body
+    ExecTransitionBody fork config contract evm (revokeRoleStore I) revokeRoleTransition.body
       .staticViolation := by
   refine ExecFuncBody.execBlockStatic ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
@@ -354,7 +356,7 @@ theorem accessControlRevokeRoleBodyReturns_noop (evm : EVM.State) (I : Execution
     (htarget : UInt256.land
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (revokeRoleTargetSlot I)) ⟨255⟩ =
         ⟨0⟩) :
-    ExecTransitionBody config contract evm (revokeRoleStore I) revokeRoleTransition.body
+    ExecTransitionBody fork config contract evm (revokeRoleStore I) revokeRoleTransition.body
       (.returned { contract := contract, locals := revokeRoleStoreWithAdmin evm I } evm none) := by
   refine ExecFuncBody.execBlockOK ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
@@ -374,7 +376,7 @@ theorem accessControlRevokeRoleBodyReverts_admin (evm : EVM.State) (I : Executio
     (hadmin : UInt256.land
       (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (revokeRoleAdminHasRoleSlot evm I))
         ⟨255⟩ = ⟨0⟩) :
-    ExecTransitionBody config contract evm (revokeRoleStore I) revokeRoleTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (revokeRoleStore I) revokeRoleTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
   refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_revokeRole_admin evm I hsz68)) ?_
@@ -449,10 +451,10 @@ theorem accessControlDecode_revokeRole_none_noncanon_account {I : ExecutionEnv}
       (y := "account") hsz68 hbig hncAccount
 
 theorem accessControlRevokeRoleX_toDecoder {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+    (hreach : ∃ k C, RD fork accessControlBenchBytecode I g
       (initState σ σ₀ g A I) ⟨280⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨922⟩
+    ∃ k C, RD fork accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨922⟩
         [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨294⟩, ⟨233⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd⟩ := hreach
@@ -464,10 +466,10 @@ theorem accessControlRevokeRoleX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonAccount : (revokeRoleAccountWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+    (hreach : ∃ k C, RD fork accessControlBenchBytecode I g
       (initState σ σ₀ g A I) ⟨280⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨491⟩
+    ∃ k C, RD fork accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨491⟩
         [revokeRoleAccountWord I, revokeRoleRoleWord I, ⟨233⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨0⟩ :=
@@ -501,10 +503,10 @@ theorem accessControlRevokeRoleX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt
 theorem accessControlRevokeRoleX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
-    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+    (hreach : ∃ k C, RD fork accessControlBenchBytecode I g
       (initState σ σ₀ g A I) ⟨280⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev accessControlBenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork accessControlBenchBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ :=
     solcDecodeLenCheckShort_4_64 hsz4 hshort hsize
   obtain ⟨_, _, rd922⟩ := accessControlRevokeRoleX_toDecoder
@@ -517,10 +519,10 @@ theorem accessControlRevokeRoleX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UIn
 theorem accessControlRevokeRoleX_hugearg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hbig : 2 ^ 255 + 4 ≤ I.calldata.size)
-    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+    (hreach : ∃ k C, RD fork accessControlBenchBytecode I g
       (initState σ σ₀ g A I) ⟨280⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev accessControlBenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork accessControlBenchBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ :=
     solcDecodeLenCheckHuge_4_64 hbig hsize
   obtain ⟨_, _, rd922⟩ := accessControlRevokeRoleX_toDecoder
@@ -536,10 +538,10 @@ theorem accessControlRevokeRoleX_noncanon_account {σ σ₀ A I} {g : Sat256}
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hnc : UInt256.eq (revokeRoleAccountWord I)
       (UInt256.land (revokeRoleAccountWord I) solcAddrMask) = ⟨0⟩)
-    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+    (hreach : ∃ k C, RD fork accessControlBenchBytecode I g
       (initState σ σ₀ g A I) ⟨280⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev accessControlBenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork accessControlBenchBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨0⟩ :=
     solcDecodeLenCheckOk_4_64 hsz68 hszhi hsize
   obtain ⟨_, _, rd922⟩ := accessControlRevokeRoleX_toDecoder
@@ -855,10 +857,10 @@ theorem accessControlX_hasRole_internal {σ σ₀ A I} {g : Sat256}
         (KEC ((revokeRoleHasRoleSlotHashMemFrom role account mem0).readWithPadding 0 64))) =
       roleHasRoleSlot (.fixedBytes bytes32Width (EVM.Word.toBytesBE role))
         (.address (AccountAddress.ofNat account.toNat)))
-    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+    (hreach : ∃ k C, RD fork accessControlBenchBytecode I g
       (initState σ σ₀ g A I) ⟨451⟩ (account :: role :: ret :: R)
       mem0 (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ret
+    ∃ k C, RD fork accessControlBenchBytecode I g (initState σ σ₀ g A I) ret
       (UInt256.land
         (revokeRoleStorageWordAt σ I.codeOwner
           (roleHasRoleSlot (.fixedBytes bytes32Width (EVM.Word.toBytesBE role))
@@ -915,7 +917,7 @@ theorem accessControlX_hasRole_internal {σ σ₀ A I} {g : Sat256}
               (.address (AccountAddress.ofNat account.toNat)))) ⟨255⟩ := by
     exact u256_land_comm ⟨255⟩ _
   have rdret := evm_run rd486 with [push1 ⟨255⟩, and, swap1, jump hret]
-  change RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ret
+  change RD fork accessControlBenchBytecode I g (initState σ σ₀ g A I) ret
     (UInt256.land ⟨255⟩
       (revokeRoleStorageWordAt σ I.codeOwner
         (roleHasRoleSlot (.fixedBytes bytes32Width (EVM.Word.toBytesBE role))
@@ -1100,11 +1102,11 @@ theorem revokeRoleUnauthorizedMemFrom_mload64 {mem : ByteArray}
 theorem accessControlRevokeRoleX_adminLoaded {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size)
-    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+    (hreach : ∃ k C, RD fork accessControlBenchBytecode I g
       (initState σ σ₀ g A I) ⟨491⟩
       [revokeRoleAccountWord I, revokeRoleRoleWord I, ⟨233⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨527⟩
+    ∃ k C, RD fork accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨527⟩
       [revokeRoleAdminStorageWord σ I, ⟨517⟩, revokeRoleAdminStorageWord σ I,
         revokeRoleAccountWord I, revokeRoleRoleWord I, ⟨233⟩, sel]
       (revokeRoleBaseHashMem (revokeRoleRoleWord I)) (UInt256.ofNat 3) ByteArray.empty
@@ -1127,7 +1129,7 @@ theorem accessControlRevokeRoleX_adminLoaded {σ σ₀ A I} {g : Sat256}
     push1 ⟨1⟩, add]
   obtain ⟨_, _, rd509₀⟩ := rd508pre.sload (by decide) (by evm_ov)
   have rd509 :
-      ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I)
+      ∃ k C, RD fork accessControlBenchBytecode I g (initState σ σ₀ g A I)
         (⟨491⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 +
                       ⟨1⟩ +
                     ⟨1⟩ +
@@ -1153,13 +1155,13 @@ theorem accessControlRevokeRoleX_onlyRole_ok {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hadmin :
       UInt256.land (revokeRoleAdminHasRoleStorageWord σ I) ⟨255⟩ ≠ ⟨0⟩)
-    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+    (hreach : ∃ k C, RD fork accessControlBenchBytecode I g
       (initState σ σ₀ g A I) ⟨527⟩
       [revokeRoleAdminStorageWord σ I, ⟨517⟩, revokeRoleAdminStorageWord σ I,
         revokeRoleAccountWord I, revokeRoleRoleWord I, ⟨233⟩, sel]
       (revokeRoleBaseHashMem (revokeRoleRoleWord I)) (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨517⟩
+    ∃ k C, RD fork accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨517⟩
       [revokeRoleAdminStorageWord σ I, revokeRoleAccountWord I, revokeRoleRoleWord I,
         ⟨233⟩, sel]
       (revokeRoleHasRoleSlotHashMemFrom (revokeRoleAdminStorageWord σ I)
@@ -1171,7 +1173,7 @@ theorem accessControlRevokeRoleX_onlyRole_ok {σ σ₀ A I} {g : Sat256}
   have rd451 := evm_run rd788 with [
     jumpdest, push2 ⟨798⟩, dup3, dup3, push2 ⟨451⟩, jump (by jump_dest) ]
   have rd451' :
-      ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨451⟩
+      ∃ k C, RD fork accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨451⟩
         [revokeRoleSourceWord I, revokeRoleAdminStorageWord σ I, ⟨798⟩,
           revokeRoleSourceWord I, revokeRoleAdminStorageWord σ I, ⟨537⟩,
           revokeRoleAdminStorageWord σ I, ⟨517⟩, revokeRoleAdminStorageWord σ I,
@@ -1193,7 +1195,7 @@ theorem accessControlRevokeRoleX_onlyRole_ok {σ σ₀ A I} {g : Sat256}
     (revokeRoleBaseHashMem_size _) (revokeRoleBaseHashMem_read64 _)
     (revokeRoleSourceWord_canonical I) (by jump_dest) (by simp) hslot rd451'
   have rd798 :
-      ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨798⟩
+      ∃ k C, RD fork accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨798⟩
         (UInt256.land (revokeRoleAdminHasRoleStorageWord σ I) ⟨255⟩ ::
           revokeRoleSourceWord I :: revokeRoleAdminStorageWord σ I :: ⟨537⟩ ::
           revokeRoleAdminStorageWord σ I :: ⟨517⟩ :: revokeRoleAdminStorageWord σ I ::
@@ -1216,13 +1218,13 @@ theorem accessControlRevokeRoleX_onlyRole_revert {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hadmin :
       UInt256.land (revokeRoleAdminHasRoleStorageWord σ I) ⟨255⟩ = ⟨0⟩)
-    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+    (hreach : ∃ k C, RD fork accessControlBenchBytecode I g
       (initState σ σ₀ g A I) ⟨527⟩
       [revokeRoleAdminStorageWord σ I, ⟨517⟩, revokeRoleAdminStorageWord σ I,
         revokeRoleAccountWord I, revokeRoleRoleWord I, ⟨233⟩, sel]
       (revokeRoleBaseHashMem (revokeRoleRoleWord I)) (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    RDrev accessControlBenchBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork accessControlBenchBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd527⟩ := hreach
   have rd788 := evm_run rd527 with [
     jumpdest, push2 ⟨537⟩, dup2, caller, push2 ⟨788⟩, jump (by jump_dest) ]
@@ -1233,7 +1235,7 @@ theorem accessControlRevokeRoleX_onlyRole_revert {σ σ₀ A I} {g : Sat256}
     revokeRoleHasRoleSlotHashMemFrom (revokeRoleAdminStorageWord σ I)
       (revokeRoleSourceWord I) memAdminBase
   have rd451' :
-      ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨451⟩
+      ∃ k C, RD fork accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨451⟩
         [revokeRoleSourceWord I, revokeRoleAdminStorageWord σ I, ⟨798⟩,
           revokeRoleSourceWord I, revokeRoleAdminStorageWord σ I, ⟨537⟩,
           revokeRoleAdminStorageWord σ I, ⟨517⟩, revokeRoleAdminStorageWord σ I,
@@ -1254,7 +1256,7 @@ theorem accessControlRevokeRoleX_onlyRole_revert {σ σ₀ A I} {g : Sat256}
     (revokeRoleBaseHashMem_size _) (revokeRoleBaseHashMem_read64 _)
     (revokeRoleSourceWord_canonical I) (by jump_dest) (by simp) hslot rd451'
   have rd798 :
-      ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨798⟩
+      ∃ k C, RD fork accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨798⟩
         (UInt256.land (revokeRoleAdminHasRoleStorageWord σ I) ⟨255⟩ ::
           revokeRoleSourceWord I :: revokeRoleAdminStorageWord σ I :: ⟨537⟩ ::
           revokeRoleAdminStorageWord σ I :: ⟨517⟩ :: revokeRoleAdminStorageWord σ I ::
@@ -1330,14 +1332,14 @@ theorem accessControlRevokeRoleX_revoke_noop {σ σ₀ A I} {g : Sat256}
     (hsz68 : 68 ≤ I.calldata.size)
     (hcanonAccount : (revokeRoleAccountWord I).toNat < EVM.addressModulus)
     (htarget : UInt256.land (revokeRoleTargetStorageWord σ I) ⟨255⟩ = ⟨0⟩)
-    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+    (hreach : ∃ k C, RD fork accessControlBenchBytecode I g
       (initState σ σ₀ g A I) ⟨517⟩
       [revokeRoleAdminStorageWord σ I, revokeRoleAccountWord I, revokeRoleRoleWord I,
         ⟨233⟩, sel]
       (revokeRoleHasRoleSlotHashMemFrom (revokeRoleAdminStorageWord σ I)
         (revokeRoleSourceWord I) (revokeRoleBaseHashMem (revokeRoleRoleWord I)))
       (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret accessControlBenchBytecode g (initState σ σ₀ g A I)
+    RDret fork accessControlBenchBytecode g (initState σ σ₀ g A I)
       σ ByteArray.empty := by
   obtain ⟨_, _, rd517⟩ := hreach
   have rd683 := evm_run rd517 with [
@@ -1356,7 +1358,7 @@ theorem accessControlRevokeRoleX_revoke_noop {σ σ₀ A I} {g : Sat256}
       (revokeRoleBaseHashMem_size (revokeRoleRoleWord I))
       (revokeRoleBaseHashMem_read64 (revokeRoleRoleWord I))
   have rd451' :
-      ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨451⟩
+      ∃ k C, RD fork accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨451⟩
         [revokeRoleAccountWord I, revokeRoleRoleWord I, ⟨694⟩, ⟨0⟩,
           revokeRoleAccountWord I, revokeRoleRoleWord I, ⟨389⟩,
           revokeRoleAdminStorageWord σ I, revokeRoleAccountWord I, revokeRoleRoleWord I,
@@ -1382,7 +1384,7 @@ theorem accessControlRevokeRoleX_revoke_noop {σ σ₀ A I} {g : Sat256}
       ⟨233⟩, sel])
     hmemOnlyRole hreadOnlyRole hcanonAccount (by jump_dest) (by simp) hslot' rd451'
   have rd694 :
-      ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨694⟩
+      ∃ k C, RD fork accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨694⟩
         (UInt256.land (revokeRoleTargetStorageWord σ I) ⟨255⟩ :: ⟨0⟩ ::
           revokeRoleAccountWord I :: revokeRoleRoleWord I :: ⟨389⟩ ::
           revokeRoleAdminStorageWord σ I :: revokeRoleAccountWord I :: revokeRoleRoleWord I ::
@@ -1407,16 +1409,16 @@ theorem accessControlRevokeRoleX_revoke_write {σ σ₀ A I} {g : Sat256}
     (hsz68 : 68 ≤ I.calldata.size)
     (hcanonAccount : (revokeRoleAccountWord I).toNat < EVM.addressModulus)
     (htarget : UInt256.land (revokeRoleTargetStorageWord σ I) ⟨255⟩ ≠ ⟨0⟩)
-    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+    (hreach : ∃ k C, RD fork accessControlBenchBytecode I g
       (initState σ σ₀ g A I) ⟨517⟩
       [revokeRoleAdminStorageWord σ I, revokeRoleAccountWord I, revokeRoleRoleWord I,
         ⟨233⟩, sel]
       (revokeRoleHasRoleSlotHashMemFrom (revokeRoleAdminStorageWord σ I)
         (revokeRoleSourceWord I) (revokeRoleBaseHashMem (revokeRoleRoleWord I)))
       (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    (I.perm = true ∧ RDret accessControlBenchBytecode g (initState σ σ₀ g A I)
+    (I.perm = true ∧ RDret fork accessControlBenchBytecode g (initState σ σ₀ g A I)
       (revokeRolePostMap σ I) ByteArray.empty)
-    ∨ (I.perm = false ∧ RDstatic accessControlBenchBytecode g (initState σ σ₀ g A I)) := by
+    ∨ (I.perm = false ∧ RDstatic fork accessControlBenchBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd517⟩ := hreach
   have rd683 := evm_run rd517 with [
     jumpdest, push2 ⟨389⟩, dup4, dup4, push2 ⟨683⟩, jump (by jump_dest) ]
@@ -1434,7 +1436,7 @@ theorem accessControlRevokeRoleX_revoke_write {σ σ₀ A I} {g : Sat256}
       (revokeRoleBaseHashMem_size (revokeRoleRoleWord I))
       (revokeRoleBaseHashMem_read64 (revokeRoleRoleWord I))
   have rd451' :
-      ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨451⟩
+      ∃ k C, RD fork accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨451⟩
         [revokeRoleAccountWord I, revokeRoleRoleWord I, ⟨694⟩, ⟨0⟩,
           revokeRoleAccountWord I, revokeRoleRoleWord I, ⟨389⟩,
           revokeRoleAdminStorageWord σ I, revokeRoleAccountWord I, revokeRoleRoleWord I,
@@ -1463,7 +1465,7 @@ theorem accessControlRevokeRoleX_revoke_write {σ σ₀ A I} {g : Sat256}
     revokeRoleHasRoleSlotHashMemFrom (revokeRoleRoleWord I) (revokeRoleAccountWord I)
       memOnlyRole
   have rd694 :
-      ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨694⟩
+      ∃ k C, RD fork accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨694⟩
         (UInt256.land (revokeRoleTargetStorageWord σ I) ⟨255⟩ :: ⟨0⟩ ::
           revokeRoleAccountWord I :: revokeRoleRoleWord I :: ⟨389⟩ ::
           revokeRoleAdminStorageWord σ I :: revokeRoleAccountWord I :: revokeRoleRoleWord I ::
@@ -1528,7 +1530,7 @@ theorem accessControlRevokeRoleX_revoke_write {σ σ₀ A I} {g : Sat256}
     dup1]
   obtain ⟨_, _, rd733₀⟩ := rd732.sload (by decide) (by evm_ov)
   have rd733 :
-      ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨734⟩
+      ∃ k C, RD fork accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨734⟩
         [revokeRoleTargetStorageWord σ I, revokeRoleTargetSlot I, ⟨64⟩,
           revokeRoleAccountWord I, ⟨0⟩, ⟨0⟩, revokeRoleAccountWord I,
           revokeRoleRoleWord I, ⟨389⟩, revokeRoleAdminStorageWord σ I,
@@ -1554,7 +1556,7 @@ theorem accessControlRevokeRoleX_revoke_write {σ σ₀ A I} {g : Sat256}
   refine Or.inl ⟨hp, ?_⟩
   obtain ⟨_, _, rd740₀⟩ := rd739pre.sstore hp (by decide) (by evm_ov)
   have rd740 :
-      ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨740⟩
+      ∃ k C, RD fork accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨740⟩
         [⟨64⟩, revokeRoleAccountWord I, ⟨0⟩, ⟨0⟩, revokeRoleAccountWord I,
           revokeRoleRoleWord I, ⟨389⟩, revokeRoleAdminStorageWord σ I,
           revokeRoleAccountWord I, revokeRoleRoleWord I, ⟨233⟩, sel]
@@ -1578,7 +1580,7 @@ theorem accessControlRevokeRoleX_revoke_write {σ σ₀ A I} {g : Sat256}
       (by decide) (by evm_ov),
     caller, swap3, dup7, swap2]
   have rd745 := rd745pre.pushConst revokeRoleRevokedTopic (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by decide +kernel) (by decide +kernel) (by evm_ov)
   have rd780 := evm_run rd745 with [swap2, swap1]
   have rd781 := RD.log4 0 (UInt256.ofNat 3) rd780 (by decide) hp
     (by
@@ -1597,11 +1599,11 @@ theorem accessControlRevokeRoleBody {σ σ₀ A I}
     (hcode : I.code = accessControlBenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xd5, 0x47, 0x74, 0x1f]⟩)
-    (hreach : ∃ k C, RD accessControlBenchBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork accessControlBenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨280⟩
       [accessControlSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeRefinementFor config contract
+    runtimeRefinementFor fork config contract
       σ σ₀ g A I := by
   have hsz4 := revokeRoleSelector_size (by simpa [selIs] using hsel)
   have hd := accessControlDispatch_revokeRole (cd := I.calldata)
@@ -1626,7 +1628,7 @@ theorem accessControlRevokeRoleBody {σ σ₀ A I}
               revokeRoleAdminHasRoleSlotFromWord, revokeRoleAdminHasRoleSlot,
               revokeRoleAdminKey, revokeRoleAdminWord, revokeRoleAdminStorageWord,
               revokeRoleSenderKey] using hadmin
-          have hbody := accessControlRevokeRoleBodyReverts_admin evmS I
+          have hbody := accessControlRevokeRoleBodyReverts_admin (fork := fork) evmS I
             (by simp only [evmS, initState]; exact hwv) hsz68 hadminStele
           exact (accessControlRevokeRoleX_onlyRole_revert (g := Sat256.ofUInt256 g)
               hadmin rd527)
@@ -1652,7 +1654,7 @@ theorem accessControlRevokeRoleBody {σ σ₀ A I}
                     (revokeRoleTargetSlot I)) ⟨255⟩ = ⟨0⟩ := by
               simpa [evmS, initState, Stele.EVM.storageLoad, State.lookupAccount,
                 revokeRoleTargetStorageWord, revokeRoleStorageWordAt] using htarget
-            have hbody := accessControlRevokeRoleBodyReturns_noop evmS I
+            have hbody := accessControlRevokeRoleBodyReturns_noop (fork := fork) evmS I
               (by simp only [evmS, initState]; exact hwv) hsz68 hadminStele htargetStele
             exact (accessControlRevokeRoleX_revoke_noop (g := Sat256.ofUInt256 g)
                 hsz68 hcanonAccount htarget rd517)
@@ -1666,7 +1668,7 @@ theorem accessControlRevokeRoleBody {σ σ₀ A I}
               simpa [evmS, initState, Stele.EVM.storageLoad, State.lookupAccount,
                 revokeRoleTargetStorageWord, revokeRoleStorageWordAt] using htargetNonzero
             by_cases hperm : I.perm = true
-            · have hbody := accessControlRevokeRoleBodyReturns_write (hperm := hperm) evmS I
+            · have hbody := accessControlRevokeRoleBodyReturns_write (fork := fork) (hperm := hperm) evmS I
                 (by simp only [evmS, initState]; exact hwv) hsz68 hadminStele htargetStele
               exact (permSplit_true hperm (accessControlRevokeRoleX_revoke_write
                   (g := Sat256.ofUInt256 g) hsz68 hcanonAccount htargetNonzero rd517))
@@ -1678,7 +1680,7 @@ theorem accessControlRevokeRoleBody {σ σ₀ A I}
                       revokeRoleTargetStorageWord, revokeRoleStorageWordAt])
                   (returnEquiv.fallthrough rfl rfl (by native_decide))
             · have hpf : I.perm = false := by simpa using hperm
-              have hbody := accessControlRevokeRoleBodyStatic evmS I
+              have hbody := accessControlRevokeRoleBodyStatic (fork := fork) evmS I
                 (by simp only [evmS, initState]; exact hwv) hsz68 hadminStele htargetStele
                 (by simp only [evmS, initState]; exact hpf)
               exact (permSplit_false hpf (accessControlRevokeRoleX_revoke_write

@@ -1,6 +1,8 @@
 import Benchmarks.Auction.ErrorOffsetGuard
 import Benchmarks.Auction.ErrorAllocation
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -12,25 +14,25 @@ def errorPayloadCondition (ptr : UInt256) (out : ByteArray) : UInt256 :=
 def errorAllocSize (out : ByteArray) : UInt256 := errorOffset out + errorLength out + ⟨32⟩
 
 theorem errorLengthDenied {I g s0 ret R mem aw ptr out acc k C}
-    (h : RD auctionBytecode I g s0 ⟨6001⟩
+    (h : RD fork auctionBytecode I g s0 ⟨6001⟩
       (⟨6010⟩ :: UInt256.isZero (UInt256.gt (errorLength out) ⟨2 ^ 64 - 1⟩) ::
         errorLength out :: ⟨2 ^ 64 - 1⟩ :: (ptr + errorOffset out) :: errorOffset out ::
         UInt256.lnot ⟨3⟩ :: ptr :: ⟨0⟩ :: ret :: R) mem aw out acc k C)
     (hlen : 2 ^ 64 - 1 < (errorLength out).toNat)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 10 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret (⟨0⟩ :: R) mem aw out acc k' C' := by
+    ∃ k' C', RD fork auctionBytecode I g s0 ret (⟨0⟩ :: R) mem aw out acc k' C' := by
   have hg : UInt256.gt (errorLength out) ⟨2 ^ 64 - 1⟩ = ⟨1⟩ := ugt_one hlen
   exact ⟨_, _, evm_run h with [jumpiNT (by rw [hg]; decide),
     pop, pop, pop, pop, pop, pop, swap1, jump hret]⟩
 
 set_option maxRecDepth 2048 in
 theorem errorLengthAllowed {I g s0 ret R mem aw ptr out acc k C}
-    (h : RD auctionBytecode I g s0 ⟨6001⟩
+    (h : RD fork auctionBytecode I g s0 ⟨6001⟩
       (⟨6010⟩ :: UInt256.isZero (UInt256.gt (errorLength out) ⟨2 ^ 64 - 1⟩) ::
         errorLength out :: ⟨2 ^ 64 - 1⟩ :: (ptr + errorOffset out) :: errorOffset out ::
         UInt256.lnot ⟨3⟩ :: ptr :: ⟨0⟩ :: ret :: R) mem aw out acc k C)
     (hlen : (errorLength out).toNat ≤ 2 ^ 64 - 1) (hov : R.length + 13 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨6027⟩
+    ∃ k' C', RD fork auctionBytecode I g s0 ⟨6027⟩
       (⟨6036⟩ :: errorPayloadCondition ptr out :: errorLength out :: ⟨2 ^ 64 - 1⟩ ::
         (ptr + errorOffset out) :: errorOffset out :: UInt256.lnot ⟨3⟩ :: ptr :: ⟨0⟩ :: ret :: R)
       mem aw out acc k' C' := by
@@ -79,22 +81,22 @@ theorem errorPayloadCondition_eq {ptr : UInt256} {out : ByteArray}
     rfl
 
 theorem errorPayloadDenied {I g s0 ret R mem aw ptr out acc k C}
-    (h : RD auctionBytecode I g s0 ⟨6027⟩
+    (h : RD fork auctionBytecode I g s0 ⟨6027⟩
       (⟨6036⟩ :: errorPayloadCondition ptr out :: errorLength out :: ⟨2 ^ 64 - 1⟩ ::
         (ptr + errorOffset out) :: errorOffset out :: UInt256.lnot ⟨3⟩ :: ptr :: ⟨0⟩ :: ret :: R)
       mem aw out acc k C)
     (hc : errorPayloadCondition ptr out = ⟨0⟩)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 10 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret (⟨0⟩ :: R) mem aw out acc k' C' := by
+    ∃ k' C', RD fork auctionBytecode I g s0 ret (⟨0⟩ :: R) mem aw out acc k' C' := by
   exact ⟨_, _, evm_run h with [jumpiNT hc, pop, pop, pop, pop, pop, pop, swap1, jump hret]⟩
 
 theorem errorPayloadAllowed {I g s0 ret R mem aw ptr out acc k C}
-    (h : RD auctionBytecode I g s0 ⟨6027⟩
+    (h : RD fork auctionBytecode I g s0 ⟨6027⟩
       (⟨6036⟩ :: errorPayloadCondition ptr out :: errorLength out :: ⟨2 ^ 64 - 1⟩ ::
         (ptr + errorOffset out) :: errorOffset out :: UInt256.lnot ⟨3⟩ :: ptr :: ⟨0⟩ :: ret :: R)
       mem aw out acc k C)
     (hc : errorPayloadCondition ptr out = ⟨1⟩) (hov : R.length + 14 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨5868⟩
+    ∃ k' C', RD fork auctionBytecode I g s0 ⟨5868⟩
       (ptr :: errorAllocSize out :: ⟨6051⟩ :: errorLength out :: ⟨2 ^ 64 - 1⟩ ::
         (ptr + errorOffset out) :: errorOffset out :: UInt256.lnot ⟨3⟩ :: ptr :: ⟨0⟩ :: ret :: R)
       mem aw out acc k' C' := by
@@ -103,11 +105,11 @@ theorem errorPayloadAllowed {I g s0 ret R mem aw ptr out acc k C}
     push2 ⟨5868⟩, jump (by jump_dest)]⟩
 
 theorem errorDecodeReturn {I g s0 ret R mem aw ptr out acc k C}
-    (h : RD auctionBytecode I g s0 ⟨6051⟩
+    (h : RD fork auctionBytecode I g s0 ⟨6051⟩
       (errorLength out :: ⟨2 ^ 64 - 1⟩ :: (ptr + errorOffset out) :: errorOffset out ::
         UInt256.lnot ⟨3⟩ :: ptr :: ⟨0⟩ :: ret :: R) mem aw out acc k C)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret ((ptr + errorOffset out) :: R)
+    ∃ k' C', RD fork auctionBytecode I g s0 ret ((ptr + errorOffset out) :: R)
       mem aw out acc k' C' := by
   exact ⟨_, _, evm_run h with [jumpdest, pop, swap1, swap6, swap5,
     pop, pop, pop, pop, pop, jump hret]⟩

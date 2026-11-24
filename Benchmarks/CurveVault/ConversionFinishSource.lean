@@ -1,5 +1,7 @@
 import Benchmarks.CurveVault.ConvertSharesArithmetic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch Reasoning.VyperCalls
 namespace Benchmarks.CurveVault
 
@@ -16,7 +18,7 @@ theorem vaultConversionFinishReturns {evm : State} {locals : Store} {isFloor : B
     (hx : locals.get? "numerator" = some (.int (Int.ofNat x.toNat)))
     (hy : locals.get? "denominator" = some (.int (Int.ofNat y.toNat)))
     (hf : locals.get? "_is_floor" = some (.bool isFloor)) (hy0 : y ≠ ⟨0⟩) :
-    ExecBlock config {contract := contract, locals := locals} evm vaultConversionFinishBody
+    ExecBlock fork config {contract := contract, locals := locals} evm vaultConversionFinishBody
       (.returned {contract := contract, locals :=
         vaultConversionResultLocals locals isFloor (vaultConversionResult isFloor x y)}
         evm (some [.int (Int.ofNat (vaultConversionResult isFloor x y).toNat)])) := by
@@ -33,7 +35,7 @@ theorem vaultConversionFinishReturns {evm : State} {locals : Store} {isFloor : B
       (evalExprs?_singleton (evalExpr_div_uint256_ok hevalX hevalY hy0 rfl)))
   | false =>
     apply ExecBlock.consReturn (ExecStmt.iteFalse hevalF ?_)
-    have hcallee := vaultCeilDivSource (evm := evm)
+    have hcallee := vaultCeilDivSource (fork := fork) (evm := evm)
       (uintBinaryLocals_get_x x y) (uintBinaryLocals_get_y x y) hy0
     have hcall := internalCallFunctionReturn
       (caller := {contract := contract, locals := locals}) (callee := vaultCeilDivFunction)
@@ -48,7 +50,7 @@ theorem vaultConversionFinishReverts {evm : State} {locals : Store} {isFloor : B
     (hx : locals.get? "numerator" = some (.int (Int.ofNat x.toNat)))
     (hy : locals.get? "denominator" = some (.int 0))
     (hf : locals.get? "_is_floor" = some (.bool isFloor)) :
-    ExecBlock config {contract := contract, locals := locals} evm vaultConversionFinishBody .reverted := by
+    ExecBlock fork config {contract := contract, locals := locals} evm vaultConversionFinishBody .reverted := by
   have hevalX := evalExpr_varUInt256 (cfg := config) (contract := contract) (evm := evm) hx
   have hevalY := evalExpr_varInt (cfg := config) (contract := contract) (evm := evm) hy
   have hevalF : evalExpr? config {contract := contract, locals := locals} evm (.var "_is_floor") = .ok (.bool isFloor) := by
@@ -61,7 +63,7 @@ theorem vaultConversionFinishReverts {evm : State} {locals : Store} {isFloor : B
     apply ExecBlock.consRevert (ExecStmt.returnRevert ?_)
     simp [evalExprs?, evalExpr?, hevalX, hevalY, evalBinaryOp?, bind, EvalResult.bind]
   | false =>
-    have hcallee := vaultCeilDivSourceRevert (evm := evm) (uintBinaryLocals_get_y x ⟨0⟩)
+    have hcallee := vaultCeilDivSourceRevert (fork := fork) (evm := evm) (uintBinaryLocals_get_y x ⟨0⟩)
     apply ExecBlock.consRevert (ExecStmt.iteFalse hevalF ?_)
     exact ExecBlock.consRevert (internalCallFunctionRevert
       (caller := {contract := contract, locals := locals}) (callee := vaultCeilDivFunction)

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.OracleSurroundingRead
 import Benchmarks.UniswapV3.Pool.OracleSurroundingModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -16,7 +18,7 @@ theorem oracleSurroundingFirstX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat25
     {s0 : EVM.State} {k C : Nat} {aw p afterPtr beforePtr card liquidity index : UInt256}
     {tickRaw targetRaw timeRaw ret time target : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨18658⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨18658⟩
       (oracleSurroundingStack afterPtr beforePtr card liquidity index tickRaw targetRaw timeRaw ret R)
       mem aw rdata σ k C)
     (hin : index.toNat < 65535)
@@ -25,7 +27,7 @@ theorem oracleSurroundingFirstX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat25
     (hm : HeapMemory mem aw p) (hb : p.toNat + 128 ≤ 2 ^ 200)
     (hov : R.length + 26 ≤ 1024) :
     ∃ k' C', C + 1 + (Cₘ (oracleReadFullAw mem aw p) - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 ⟨18776⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨18776⟩
         ((if oracleSurroundingFirst time target index σ ee then ⟨1⟩ else ⟨0⟩) ::
           oracleSurroundingStack afterPtr p card liquidity index tickRaw targetRaw timeRaw ret R)
         (wordArrayAllocMem mem p (oracleStoredObservation index σ ee).words)

@@ -2,6 +2,8 @@ import Benchmarks.Dss.Clipper.KickBase
 import Benchmarks.Dss.Clipper.Arithmetic
 import Benchmarks.Dss.Clipper.Guards
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -64,11 +66,11 @@ set_option maxHeartbeats 1500000 in
 theorem clipperKickX_authCheck {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (_hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (h : RD code I g s0 ⟨5361⟩
+    (h : RD fork code I g s0 ⟨5361⟩
       (clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
         clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD code I g s0 ⟨5381⟩
+    ∃ k' C', RD fork code I g s0 ⟨5381⟩
       (UInt256.eq ⟨1⟩ (clipperRelyAuthWord σ I) :: ⟨0⟩ ::
         clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
         clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
@@ -105,7 +107,7 @@ theorem clipperKickX_authCheck {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by evm_ov)
   obtain ⟨k5378, C5378, rd5378raw⟩ := rd5377.sload
     (by clipper_runtime_decode) (by evm_ov)
-  have rd5378 : RD code I g s0 ⟨5378⟩
+  have rd5378 : RD fork code I g s0 ⟨5378⟩
       (clipperRelyAuthWord σ I :: ⟨0⟩ :: clipperKickKprMaskedWord I ::
         clipperKickUsrMaskedWord I :: clipperKickLotWord I :: clipperKickTabWord I ::
         ⟨476⟩ :: [sel])
@@ -122,11 +124,11 @@ theorem clipperKickX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hauth : clipperRelyAuthWord σ I = ⟨1⟩)
-    (h : RD code I g s0 ⟨5361⟩
+    (h : RD fork code I g s0 ⟨5361⟩
       (clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
         clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD code I g s0 ⟨5443⟩
+    ∃ k' C', RD fork code I g s0 ⟨5443⟩
       (⟨0⟩ :: clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
         clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -142,11 +144,11 @@ theorem clipperKickX_lockOpen {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
-    (h : RD code I g s0 ⟨5443⟩
+    (h : RD fork code I g s0 ⟨5443⟩
       (⟨0⟩ :: clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
         clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD code I g s0 ⟨5520⟩
+    ∃ k' C', RD fork code I g s0 ⟨5520⟩
       (⟨0⟩ :: clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
         clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -155,7 +157,7 @@ theorem clipperKickX_lockOpen {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     raw push1 ⟨13⟩ (by clipper_runtime_decode) (by evm_ov)]
   obtain ⟨k5447, C5447, rd5447raw⟩ := rd5446.sload
     (by clipper_runtime_decode) (by evm_ov)
-  have rd5447 : RD code I g s0 ⟨5447⟩
+  have rd5447 : RD fork code I g s0 ⟨5447⟩
       (solcSlotWord σ I ⟨13⟩ :: ⟨0⟩ :: clipperKickKprMaskedWord I ::
         clipperKickUsrMaskedWord I :: clipperKickLotWord I :: clipperKickTabWord I ::
         ⟨476⟩ :: [sel])
@@ -175,19 +177,19 @@ set_option maxHeartbeats 1000000 in
 theorem clipperKickX_lockAndStoppedOpenSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (h : RD code I g s0 ⟨5520⟩
+    (h : RD fork code I g s0 ⟨5520⟩
       (⟨0⟩ :: clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
         clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     (I.perm = true ∧
       ((solcSlotWord
       (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ⟨14⟩).toNat < 1 →
-        ∃ k' C', RD code I g s0 ⟨5609⟩
+        ∃ k' C', RD fork code I g s0 ⟨5609⟩
           (⟨1⟩ :: ⟨0⟩ :: clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
             clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
           (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
           (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) k' C')) ∨
-    (I.perm = false ∧ RDstatic code g s0) := by
+    (I.perm = false ∧ RDstatic fork code g s0) := by
   have rd5527pre := evm_run h with [
     raw jumpdest (by clipper_runtime_decode) (by evm_ov),
     raw push1 ⟨1⟩ (by clipper_runtime_decode) (by evm_ov),
@@ -207,7 +209,7 @@ theorem clipperKickX_lockAndStoppedOpenSplit {σ I} {g : Sat256} {s0 : State} {k
     (width := 1) (op := .PUSH1) (by decide) (by clipper_runtime_decode) (by evm_ov)
   obtain ⟨k5531, C5531, rd5531raw⟩ := rd5530.sload
     (by clipper_runtime_decode) (by evm_ov)
-  have rd5531 : RD code I g s0 ⟨5531⟩
+  have rd5531 : RD fork code I g s0 ⟨5531⟩
       (solcSlotWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ⟨14⟩ ::
         ⟨1⟩ :: ⟨0⟩ :: clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
         clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
@@ -235,11 +237,11 @@ theorem clipperKickX_lockAndStoppedOpen {σ I} {g : Sat256} {s0 : State} {k C : 
     (hperm : I.perm = true)
     (hstopped : (solcSlotWord
       (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ⟨14⟩).toNat < 1)
-    (h : RD code I g s0 ⟨5520⟩
+    (h : RD fork code I g s0 ⟨5520⟩
       (⟨0⟩ :: clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
         clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD code I g s0 ⟨5609⟩
+    ∃ k' C', RD fork code I g s0 ⟨5609⟩
       (⟨1⟩ :: ⟨0⟩ :: clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
         clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
@@ -251,11 +253,11 @@ theorem clipperKickX_tabPositive {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (htab : 0 < (clipperKickTabWord I).toNat)
-    (h : RD code I g s0 ⟨5609⟩
+    (h : RD fork code I g s0 ⟨5609⟩
       (⟨1⟩ :: ⟨0⟩ :: clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
         clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD code I g s0 ⟨5681⟩
+    ∃ k' C', RD fork code I g s0 ⟨5681⟩
       (⟨1⟩ :: ⟨0⟩ :: clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
         clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -276,7 +278,7 @@ private theorem clipperKickX_lotPositiveCore {code : ByteArray} {I : ExecutionEn
     {g : Sat256} {s0 : State} {k C : ℕ} {one zero kpr usr lot : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD code I g s0 ⟨5681⟩ (one :: zero :: kpr :: usr :: lot :: R)
+    (h : RD fork code I g s0 ⟨5681⟩ (one :: zero :: kpr :: usr :: lot :: R)
       mem (UInt256.ofNat 3) rdata acc k C)
     (hlotGt : UInt256.gt lot ⟨0⟩ = ⟨1⟩)
     (hov : R.length + 7 ≤ 1024)
@@ -287,7 +289,7 @@ private theorem clipperKickX_lotPositiveCore {code : ByteArray} {I : ExecutionEn
     (hd5686 : decode code ⟨5686⟩ = some (.Push .PUSH2, some (⟨5753⟩, 2)))
     (hd5689 : decode code ⟨5689⟩ = some (.JUMPI, .none))
     (hjump : (D_J code 0).contains (⟨5753⟩ : UInt256) = true) :
-    ∃ k' C', RD code I g s0 ⟨5753⟩ (one :: zero :: kpr :: usr :: lot :: R)
+    ∃ k' C', RD fork code I g s0 ⟨5753⟩ (one :: zero :: kpr :: usr :: lot :: R)
       mem (UInt256.ofNat 3) rdata acc k' C' := by
   have rd5689 := evm_run h with [
     raw jumpdest hd5681 (by evm_ov),
@@ -304,11 +306,11 @@ theorem clipperKickX_lotPositive {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hlot : 0 < (clipperKickLotWord I).toNat)
-    (h : RD code I g s0 ⟨5681⟩
+    (h : RD fork code I g s0 ⟨5681⟩
       (⟨1⟩ :: ⟨0⟩ :: clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
         clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD code I g s0 ⟨5753⟩
+    ∃ k' C', RD fork code I g s0 ⟨5753⟩
       (⟨1⟩ :: ⟨0⟩ :: clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
         clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -340,11 +342,11 @@ theorem clipperKickX_usrPositive {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (husr : clipperKickUsrMaskedWord I ≠ ⟨0⟩)
-    (h : RD code I g s0 ⟨5753⟩
+    (h : RD fork code I g s0 ⟨5753⟩
       (⟨1⟩ :: ⟨0⟩ :: clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
         clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD code I g s0 ⟨5831⟩
+    ∃ k' C', RD fork code I g s0 ⟨5831⟩
       (⟨1⟩ :: ⟨0⟩ :: clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
         clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by

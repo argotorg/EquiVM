@@ -1,12 +1,14 @@
 import Benchmarks.UniswapV3.Pool.Amount0DeltaCalls
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
 
 theorem amount0DeltaAssignSource (imms : Store) (evm : EVM.State) (a : AmountDeltaArgs)
     (hv : amountDeltaValid false a) :
-    ExecStmt config (amount0DeltaComputedFrame imms a) evm
+    ExecStmt fork config (amount0DeltaComputedFrame imms a) evm
       (.assign .localVar ⟨"__cond5", []⟩
         (if a.roundUp then .var "__c3" else .binary .div (.var "__c4") (.var "sqrtRatioAX96")))
       (.ok (amount0DeltaReturnFrame imms a) evm) := by
@@ -32,14 +34,14 @@ theorem amount0DeltaAssignSource (imms : Store) (evm : EVM.State) (a : AmountDel
 
 theorem amount0DeltaChoiceSource (imms : Store) (evm : EVM.State) (a : AmountDeltaArgs)
     (hfit : a.Fits) (hv : amountDeltaValid false a) :
-    ExecStmt config (amount0DeltaZeroFrame imms a) evm (amountDeltaFunction false).body[6]!
+    ExecStmt fork config (amount0DeltaZeroFrame imms a) evm (amountDeltaFunction false).body[6]!
       (.ok (amount0DeltaReturnFrame imms a) evm) := by
   have hg : evalExpr? config (amount0DeltaZeroFrame imms a) evm (.var "roundUp") =
       .ok (.bool a.roundUp) := evalExpr_var_get (by
         simpa only [amount0DeltaZeroFrame, Std.HashMap.get?_eq_getElem?,
           Std.HashMap.getElem?_insert] using (amount0DeltaInputsGet imms a).2.2.2.2)
-  have hc := amount0DeltaCallSource imms evm a hfit hv
-  have ha := amount0DeltaAssignSource imms evm a hv
+  have hc := amount0DeltaCallSource (fork := fork) imms evm a hfit hv
+  have ha := amount0DeltaAssignSource (fork := fork) imms evm a hv
   cases hr : a.roundUp
   · apply ExecStmt.iteFalse (by simpa only [hr] using hg)
     exact ExecBlock.consNormal
@@ -55,7 +57,7 @@ theorem amount0DeltaChoiceSource (imms : Store) (evm : EVM.State) (a : AmountDel
 
 theorem amount0DeltaReturns (imms : Store) (evm : EVM.State) (a : AmountDeltaArgs)
     (hfit : a.Fits) (hv : amountDeltaValid false a) :
-    ExecFuncBody config (amountDeltaFrame imms a) evm (amountDeltaFunction false).body
+    ExecFuncBody fork config (amountDeltaFrame imms a) evm (amountDeltaFunction false).body
       (.returned (amount0DeltaReturnFrame imms a) evm
         (some [.int (Int.ofNat (amountDeltaResult false a).toNat)])) := by
   apply ExecFuncBody.execBlockRet

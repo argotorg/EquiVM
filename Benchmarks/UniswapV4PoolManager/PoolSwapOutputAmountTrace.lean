@@ -5,6 +5,8 @@ import Benchmarks.UniswapV4PoolManager.Arithmetic
 import Benchmarks.UniswapV4PoolManager.ReachCost
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_056
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -19,15 +21,15 @@ theorem poolSwapOutputAmountTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hi : memLoad (step+UInt256.ofNat 128) mem = s.amountIn)
     (ho : memLoad (step+UInt256.ofNat 160) mem = s.amountOut)
     (hf : memLoad (step+UInt256.ofNat 192) mem = s.feeAmount)
-    (h : RD (deployedRuntime v) I g s0 ⟨19740⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨19740⟩
       ([remaining, x1, params, calculated, tag, fee, protocol, amountToProtocol, dir, step] ++ R) mem aw rdata σ k C) :
     if poolSwapOutputAmountFits s calculated then ∃ k' C', C ≤ C' ∧
-      RD (deployedRuntime v) I g s0 ⟨19794⟩
+      RD fork (deployedRuntime v) I g s0 ⟨19794⟩
         ([tag, x1, params, UInt256.sub remaining s.amountOut, UInt256.sub calculated (s.amountIn+s.feeAmount),
           fee, protocol, amountToProtocol, dir, step] ++ R)
         mem (M (M (M aw (step+UInt256.ofNat 160) ⟨32⟩) (step+UInt256.ofNat 128) ⟨32⟩)
           (step+UInt256.ofNat 192) ⟨32⟩) rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   by_cases hout : s.amountOut.toNat < 2^255
   · have rd1 := poolManagerBlocks.poolManager_block_19740_fallthrough (by change R.length+13 ≤ 1024; omega)
       (by rw [ho, uintToInt256_guard, decide_eq_false (not_not_intro hout)]; rfl) h

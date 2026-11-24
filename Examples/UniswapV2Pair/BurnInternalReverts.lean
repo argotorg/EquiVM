@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.BurnRoutines
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 
@@ -29,10 +31,10 @@ theorem evalExpr_burnFunction_totalSupply_require_false (evm : EVM.State)
 theorem uniswapBurnFunctionBodyReverts_balanceUnderflow
     (evm : EVM.State) (holder : AccountAddress) (value : UInt256)
     (hlt : (burnFunctionFromBalanceWord evm holder).toNat < value.toNat) :
-    ExecFuncBody config { contract := contract, locals := burnFunctionCallStore holder value }
+    ExecFuncBody fork config { contract := contract, locals := burnFunctionCallStore holder value }
       evm burnFunction.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
-  change ExecBlock config _ _ (_ :: _ :: _) .reverted
+  change ExecBlock fork config _ _ (_ :: _ :: _) .reverted
   refine ExecBlock.consNormal
     (ExecStmt.letDecl (evalExpr_burnFunction_from_balance evm holder value)) ?_
   exact ExecBlock.consRevert
@@ -43,10 +45,10 @@ theorem uniswapBurnFunctionBodyReverts_totalSupplyUnderflow
     (hbalance : value.toNat ≤ (burnFunctionFromBalanceWord evm holder).toNat)
     (hlt : (burnFunctionTotalSupplyWord evm holder value).toNat < value.toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecFuncBody config { contract := contract, locals := burnFunctionCallStore holder value }
+    ExecFuncBody fork config { contract := contract, locals := burnFunctionCallStore holder value }
       evm burnFunction.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
-  change ExecBlock config _ _ (_ :: _ :: _ :: _ :: _ :: _) .reverted
+  change ExecBlock fork config _ _ (_ :: _ :: _ :: _ :: _ :: _) .reverted
   refine ExecBlock.consNormal
     (ExecStmt.letDecl (evalExpr_burnFunction_from_balance evm holder value)) ?_
   refine ExecBlock.consNormal
@@ -71,7 +73,7 @@ theorem uniswapBurnFunctionCallRevert_balanceUnderflow
       .ok [burnFunctionFromValue holder, burnFunctionValueValue value])
     (hlt : (burnFunctionFromBalanceWord evm holder).toNat < value.toNat)
     (himm : caller.immutables = ∅ := by first | rfl | assumption) :
-    ExecStmt config caller evm (.internalCall "_burn" args retVar) .reverted := by
+    ExecStmt fork config caller evm (.internalCall "_burn" args retVar) .reverted := by
   exact internalCallFunctionRevert
     (cfg := config) (caller := caller) (evm := evm)
     (name := "_burn") (retVar := retVar) (args := args)
@@ -92,7 +94,7 @@ theorem uniswapBurnFunctionCallRevert_totalSupplyUnderflow
     (hlt : (burnFunctionTotalSupplyWord evm holder value).toNat < value.toNat)
     (himm : caller.immutables = ∅ := by first | rfl | assumption)
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config caller evm (.internalCall "_burn" args retVar) .reverted := by
+    ExecStmt fork config caller evm (.internalCall "_burn" args retVar) .reverted := by
   exact internalCallFunctionRevert
     (cfg := config) (caller := caller) (evm := evm)
     (name := "_burn") (retVar := retVar) (args := args)

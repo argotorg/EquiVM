@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.AbsorbReadModel
 import Benchmarks.CompoundIII.Comet.SignedPresentValueEvm
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_077
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -15,11 +17,11 @@ theorem cometAbsorbRead {v : CometWithExtendedAssetListImmutables}
     (account : AccountAddress) (hstack : R.length + 11 ≤ 1024)
     (hfree : memLoad ⟨64⟩ mem = free) (hmem : 96 ≤ mem.size)
     (hb : free.toNat + 160 < 2^64) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨16996⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨16996⟩
       (EVM.word account.val :: R) mem aw rdata σ k C) :
     ∃ aw' k' C',
       UserBasicMemory (withdrawBaseReadMemory mem free evm account) free (absorbBasic evm account) ∧
-      RD (deployedRuntime v) ee g s0 ⟨17021⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨17021⟩
         ((absorbBasic evm account).principal :: EVM.word account.val :: free :: R)
         (withdrawBaseReadMemory mem free evm account) aw' rdata σ k' C' := by
   have r1 := cometWithExtendedAssetList_block_16996 (immWords := wordsOf (immStore v))
@@ -49,7 +51,7 @@ theorem cometAbsorbRead {v : CometWithExtendedAssetListImmutables}
   have r5 := cometWithExtendedAssetList_block_17009 (immWords := wordsOf (immStore v))
     (by omega) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r4
   dsimp only [cometWithExtendedAssetList_block_17009_stack] at r5
-  change RD _ _ _ _ _ (UInt256.signextend _
+  change RD fork _ _ _ _ _ (UInt256.signextend _
     (memLoad free (withdrawBaseReadMemory mem free evm account)) :: _) _ _ _ _ _ _ at r5
   rw [hm4.principal, show (⟨12⟩ : UInt256) = UInt256.ofNat 12 from rfl,
     signextend104_idem] at r5
@@ -60,16 +62,16 @@ theorem cometAbsorbPresent {v : CometWithExtendedAssetListImmutables}
     {aw ptr : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (account : AccountAddress) (hstack : R.length + 15 ≤ 1024)
     (hbasic : UserBasicMemory mem ptr (absorbBasic evm account)) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨17021⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨17021⟩
       ((absorbBasic evm account).principal :: EVM.word account.val :: ptr :: R)
       mem aw rdata σ k C) :
     (-(2^103 : Int) < signed104 (absorbBasic evm account).principal ∧
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨17062⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨17062⟩
         ((absorbBasic evm account).reserved :: (absorbBasic evm account).principal ::
           (absorbBasic evm account).assets :: EVM.word account.val :: absorbOldBalance evm account ::
           ptr :: R) mem aw' rdata σ k' C') ∨
     (¬ -(2^103 : Int) < signed104 (absorbBasic evm account).principal ∧
-      RDrev (deployedRuntime v) g s0) := by
+      RDrev fork (deployedRuntime v) g s0) := by
   have r1 := cometWithExtendedAssetList_block_17021 (immWords := wordsOf (immStore v))
     (by change R.length + 1 + 5 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h

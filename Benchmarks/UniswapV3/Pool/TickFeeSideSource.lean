@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.TickFeeModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -39,7 +41,7 @@ theorem tickFeeSideBodySource (locals imms : Store) (evm : EVM.State) (a : TickF
     (halias : locals.get? (tickFeeAliasName above) = some (tickAlias (a.boundary above)))
     (hzero : ∀ second, locals.get? (tickFeeSideName above second) = some (.int 0))
     (hd : decide (a.direct above) = direct) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm
       (tickFeeSideBody above direct)
       (.ok (tickFeeSideFrame {contract := contract, locals := locals, immutables := imms}
         a evm above) evm) := by
@@ -47,11 +49,11 @@ theorem tickFeeSideBodySource (locals imms : Store) (evm : EVM.State) (a : TickF
     (.int (Int.ofNat (tickFeeSide a evm.accountMap evm.executionEnv above false).toNat))
   let first : Frame := {contract := contract, locals := firstLocals, immutables := imms}
   refine ExecBlock.consNormal (stele' := first) (evm' := evm)
-    (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalTickFeeSideExpr locals imms evm a above direct false
+    (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalTickFeeSideExpr locals imms evm a above direct false
       (hglobal false) halias hd) (assignLocalVarBase_frame (hzero false))) ?_
   refine ExecBlock.consNormal (stele' := tickFeeSideFrame
     {contract := contract, locals := locals, immutables := imms} a evm above) (evm' := evm)
-    (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+    (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
       (value := .int (Int.ofNat (tickFeeSide a evm.accountMap evm.executionEnv above true).toNat))
       ?_ ?_) ExecBlock.nil
   · apply evalTickFeeSideExpr first.locals imms evm a above direct true
@@ -73,7 +75,7 @@ theorem tickFeeSideSource (locals imms : Store) (evm : EVM.State) (a : TickFeeAr
     (hcurrent : locals.get? "tickCurrent" = some (.int a.current))
     (hboundary : locals.get? (if above then "tickUpper" else "tickLower") =
       some (.int (a.boundary above))) :
-    ExecStmt config {contract := contract, locals := locals, immutables := imms} evm
+    ExecStmt fork config {contract := contract, locals := locals, immutables := imms} evm
       (tickFeeSideStmt above)
       (.ok (tickFeeSideFrame {contract := contract, locals := locals, immutables := imms}
         a evm above) evm) := by

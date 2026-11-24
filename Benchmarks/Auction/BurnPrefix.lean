@@ -1,6 +1,8 @@
 import Benchmarks.Auction.NounCallMemory
 import Benchmarks.Auction.DepositPrefix
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -9,11 +11,11 @@ def nounsWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.land (solcSlotWord σ I ⟨201⟩) solcAddrMask
 
 theorem burnPrefix {I g s0 snap nounId ret R mem aw ptr rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨4435⟩ (snap :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨4435⟩ (snap :: ret :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 36 ≤ 2 ^ 200)
     (hn : loadedWord mem snap = nounId) (ha : expandedWords aw snap ⟨32⟩ = aw)
     (hov : R.length + 15 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨4498⟩
+    ∃ k' C', RD fork auctionBytecode I g s0 ⟨4498⟩
       (nounsWord σ I :: nounsWord σ I :: ⟨0⟩ :: ptr :: ⟨36⟩ :: ptr :: ⟨0⟩ ::
         (ptr + ⟨36⟩) :: ⟨0x42966c68⟩ :: nounsWord σ I :: snap :: ret :: R)
       (callMem1 mem ptr burnWord nounId) (callWords1 aw ptr) rdata σ k' C' := by
@@ -28,7 +30,7 @@ theorem burnPrefix {I g s0 snap nounId ret R mem aw ptr rdata σ k C}
     raw mstoreSymbolic (by native_decide) (by evm_ov)]
   have hsel : UInt256.shiftLeft ⟨0x0852cd8d⟩ ⟨227⟩ = burnWord := by native_decide
   rw [hsel] at rd4453
-  change RD _ _ _ _ ⟨4453⟩ (ptr :: nounId :: solcSlotWord σ I ⟨201⟩ :: snap :: ret :: R)
+  change RD fork _ _ _ _ ⟨4453⟩ (ptr :: nounId :: solcSlotWord σ I ⟨201⟩ :: snap :: ret :: R)
     (selectorMem mem ptr burnWord) (expandedWords aw ptr ⟨32⟩) rdata σ _ _ at rd4453
   have rd4481 := evm_run rd4453 with [push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub,
     swap1, swap3, and, swap2, push4 ⟨0x42966c68⟩, swap2, push2 ⟨4486⟩, swap2,
@@ -37,7 +39,7 @@ theorem burnPrefix {I g s0 snap nounId ret R mem aw ptr rdata σ k C}
   have h4 : (ptr + ⟨4⟩).toNat = ptr.toNat + 4 :=
     addWord_toNat ptr ⟨4⟩ (by change ptr.toNat + 4 < 2 ^ 256; omega)
   simp only [hmask, u256_add_comm ⟨4⟩ ptr, h4] at rd4481
-  change RD _ _ _ _ ⟨4481⟩ ((ptr + ⟨4⟩) :: ⟨4486⟩ :: ⟨0x42966c68⟩ ::
+  change RD fork _ _ _ _ ⟨4481⟩ ((ptr + ⟨4⟩) :: ⟨4486⟩ :: ⟨0x42966c68⟩ ::
     nounsWord σ I :: snap :: ret :: R) (callMem1 mem ptr burnWord nounId)
     (callWords1 aw ptr) rdata σ _ _ at rd4481
   have rd4491 := evm_run rd4481 with [push1 ⟨32⟩, add, swap1, jump (by jump_dest),
@@ -53,11 +55,11 @@ theorem burnPrefix {I g s0 snap nounId ret R mem aw ptr rdata σ k C}
   exact ⟨_, _, rd4498⟩
 
 theorem burnCodeGuard {I g s0 snap nounId ret R mem aw ptr rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨4435⟩ (snap :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨4435⟩ (snap :: ret :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 36 ≤ 2 ^ 200)
     (hn : loadedWord mem snap = nounId) (ha : expandedWords aw snap ⟨32⟩ = aw)
     (hov : R.length + 15 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨4505⟩
+    ∃ k' C', RD fork auctionBytecode I g s0 ⟨4505⟩
       (⟨4509⟩ :: UInt256.isZero (UInt256.isZero (extCodeSizeWord σ (nounsWord σ I))) ::
         UInt256.isZero (extCodeSizeWord σ (nounsWord σ I)) :: nounsWord σ I :: ⟨0⟩ ::
         ptr :: ⟨36⟩ :: ptr :: ⟨0⟩ :: (ptr + ⟨36⟩) :: ⟨0x42966c68⟩ ::
@@ -68,21 +70,21 @@ theorem burnCodeGuard {I g s0 snap nounId ret R mem aw ptr rdata σ k C}
   exact ⟨_, _, evm_run rd4499 with [iszero, dup1, iszero, push2 ⟨4509⟩]⟩
 
 theorem burnNoCode {I g s0 snap nounId ret R mem aw ptr rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨4435⟩ (snap :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨4435⟩ (snap :: ret :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 36 ≤ 2 ^ 200)
     (hn : loadedWord mem snap = nounId) (ha : expandedWords aw snap ⟨32⟩ = aw)
     (hno : extCodeSizeWord σ (nounsWord σ I) = ⟨0⟩) (hov : R.length + 16 ≤ 1024) :
-    RDrev auctionBytecode g s0 := by
+    RDrev fork auctionBytecode g s0 := by
   obtain ⟨_, _, rd4505⟩ := burnCodeGuard h hm hb hn ha (by omega)
   exact evm_run rd4505 with [jumpiNT (by rw [hno]; decide),
     raw solcPush0Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by evm_ov)]
 
 theorem burnCallPrefix {I g s0 snap nounId ret R mem aw ptr rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨4435⟩ (snap :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨4435⟩ (snap :: ret :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 36 ≤ 2 ^ 200)
     (hn : loadedWord mem snap = nounId) (ha : expandedWords aw snap ⟨32⟩ = aw)
     (hyes : extCodeSizeWord σ (nounsWord σ I) ≠ ⟨0⟩) (hov : R.length + 16 ≤ 1024) :
-    ∃ gasArg k' C', RD auctionBytecode I g s0 ⟨4512⟩
+    ∃ gasArg k' C', RD fork auctionBytecode I g s0 ⟨4512⟩
       (gasArg :: nounsWord σ I :: ⟨0⟩ :: ptr :: ⟨36⟩ :: ptr :: ⟨0⟩ ::
         (ptr + ⟨36⟩) :: ⟨0x42966c68⟩ :: nounsWord σ I :: snap :: ret :: R)
       (callMem1 mem ptr burnWord nounId) (callWords1 aw ptr) rdata σ k' C' := by

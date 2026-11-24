@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.BorrowTail
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -15,9 +17,9 @@ theorem morphoBorrowUpdates {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat2
     (hget : locals.get? "__memory" = some (.int (Int.ofNat (fp.toNat + 320))))
     (hzero : memLoad (UInt256.ofNat 96) mem = UInt256.ofNat 0)
     (hparams : p.InMemory (UInt256.ofNat 128) mem)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 8538)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 8538)
       (borrowUpdateTail p.id assets shares account receiver []) mem aw out σ k C) :
-    ReturnBlockRefines config (deployedRuntime v) ee g s0
+    ReturnBlockRefines fork config (deployedRuntime v) ee g s0
       { contract := contract, locals := locals, immutables := imms } evm
       (borrowTransition.body.drop 14) borrowTransition.returnType := by
   have hp := morphoBorrowPositionRefine p locals imms (by decide) ha hl hs hm h

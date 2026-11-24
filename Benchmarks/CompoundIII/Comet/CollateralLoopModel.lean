@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.IsInAssetSource
 import Benchmarks.CompoundIII.Comet.SignedWord
 import Benchmarks.CompoundIII.Comet.AssetSearch
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -15,7 +17,7 @@ def CollateralValueBound (borrow : Bool) (result : Option (EVM.State × Collater
   | some (_, d) => (d.value borrow).toNat < 2^255
 
 theorem CollateralAfterAsset.value_bound {borrow out amount evm result}
-    (ht : CollateralAfterAsset borrow out amount evm result) :
+    (ht : CollateralAfterAsset fork borrow out amount evm result) :
     CollateralValueBound borrow result := by
   cases ht with
   | priceFailed => trivial
@@ -29,7 +31,7 @@ theorem CollateralAfterAsset.value_bound {borrow out amount evm result}
         trivial
 
 theorem CollateralValueTrace.value_lt {v borrow account i evm evm' d}
-    (ht : CollateralValueTrace v borrow account i evm (some (evm', d))) :
+    (ht : CollateralValueTrace fork v borrow account i evm (some (evm', d))) :
     (d.value borrow).toNat < 2^255 := by
   cases ht with
   | assetOk hc hh hv ht => exact ht.value_bound
@@ -58,35 +60,35 @@ def collateralLoopTail (borrow : Bool) : List Stmt :=
   [.while assetSearchCond (collateralLoopBody borrow), .return [collateralResultExpr borrow]]
 
 /-- Both collateral checks traverse the same assets, with different factors and final tests. -/
-inductive CollateralLoopTrace (v : CometWithExtendedAssetListImmutables) (borrow : Bool)
+inductive CollateralLoopTrace (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables) (borrow : Bool)
     (account : AccountAddress) (assets reserved : UInt256) :
     Nat → UInt256 → EVM.State → Option (EVM.State × Bool) → Prop where
   | exhausted {i liquidity evm} (hi : v.numAssets.toNat ≤ i) :
-      CollateralLoopTrace v borrow account assets reserved i liquidity evm
+      CollateralLoopTrace fork v borrow account assets reserved i liquidity evm
         (some (evm, collateralResultBool borrow liquidity))
   | skipped {i liquidity evm result} (hi : i < v.numAssets.toNat)
       (hm : isInAssetBool assets (UInt256.ofNat i) reserved = false)
-      (ht : CollateralLoopTrace v borrow account assets reserved (i + 1) liquidity evm result) :
-      CollateralLoopTrace v borrow account assets reserved i liquidity evm result
+      (ht : CollateralLoopTrace fork v borrow account assets reserved (i + 1) liquidity evm result) :
+      CollateralLoopTrace fork v borrow account assets reserved i liquidity evm result
   | solvent {i liquidity evm} (hi : i < v.numAssets.toNat)
       (hm : isInAssetBool assets (UInt256.ofNat i) reserved = true)
       (hl : 0 ≤ signedWord liquidity) :
-      CollateralLoopTrace v borrow account assets reserved i liquidity evm (some (evm, borrow))
+      CollateralLoopTrace fork v borrow account assets reserved i liquidity evm (some (evm, borrow))
   | failed {i liquidity evm} (hi : i < v.numAssets.toNat)
       (hm : isInAssetBool assets (UInt256.ofNat i) reserved = true)
       (hl : signedWord liquidity < 0)
-      (ht : CollateralValueTrace v borrow account (UInt256.ofNat i) evm none) :
-      CollateralLoopTrace v borrow account assets reserved i liquidity evm none
+      (ht : CollateralValueTrace fork v borrow account (UInt256.ofNat i) evm none) :
+      CollateralLoopTrace fork v borrow account assets reserved i liquidity evm none
   | next {i liquidity evm evm' d result} (hi : i < v.numAssets.toNat)
       (hm : isInAssetBool assets (UInt256.ofNat i) reserved = true)
       (hl : signedWord liquidity < 0)
-      (hv : CollateralValueTrace v borrow account (UInt256.ofNat i) evm (some (evm', d)))
-      (ht : CollateralLoopTrace v borrow account assets reserved (i + 1)
+      (hv : CollateralValueTrace fork v borrow account (UInt256.ofNat i) evm (some (evm', d)))
+      (ht : CollateralLoopTrace fork v borrow account assets reserved (i + 1)
         (liquidity + d.value borrow) evm' result) :
-      CollateralLoopTrace v borrow account assets reserved i liquidity evm result
+      CollateralLoopTrace fork v borrow account assets reserved i liquidity evm result
 
 theorem CollateralLoopTrace.executionEnv_eq {v borrow account assets reserved i liquidity evm result}
-    (ht : CollateralLoopTrace v borrow account assets reserved i liquidity evm result) :
+    (ht : CollateralLoopTrace fork v borrow account assets reserved i liquidity evm result) :
     ∀ evm' b, result = some (evm', b) → evm'.executionEnv = evm.executionEnv := by
   induction ht with
   | exhausted _ => intro evm' b he; cases he; rfl

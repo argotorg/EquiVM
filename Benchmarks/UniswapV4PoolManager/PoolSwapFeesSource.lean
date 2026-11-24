@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.PoolSwapLoadedSource
 import Benchmarks.UniswapV4PoolManager.PoolSwapFeeInitSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -51,15 +53,15 @@ theorem poolSwapFeesLocals {f : Frame} {evm : State} {id : UInt256} {p : PoolSwa
 theorem poolSwapFeesSource {f : Frame} {evm : State} {id : UInt256} {p : PoolSwapParamsWords}
     (hf : f.contract = contract) (hs : f.locals.get? "self" = some (poolRefValue id))
     (hp : f.locals.get? "params" = some (poolSwapParamsValue p)) (hc : p.lpFeeOverride.toNat < 2^24) :
-    ExecBlock config f evm (poolSwapFunction.body.take 23)
+    ExecBlock fork config f evm (poolSwapFunction.body.take 23)
       (if poolSwapLPFeeValid p.lpFeeOverride then .ok (poolSwapFeesFrame f evm id p) evm else .reverted) := by
-  have h0 := poolSwapLoadedSource (evm := evm) hf hs hp
+  have h0 := poolSwapLoadedSource (fork := fork) (evm := evm) hf hs hp
   have hloc := poolSwapLoadedLocals (evm := evm) hf hs hp
-  have h1 := poolSwapLPInitSource (evm := evm) hloc.contract hloc.params hloc.slot hc
+  have h1 := poolSwapLPInitSource (fork := fork) (evm := evm) hloc.contract hloc.params hloc.slot hc
   by_cases hv : poolSwapLPFeeValid p.lpFeeOverride
   · rw [if_pos hv] at h1 ⊢
     have hl := hloc.lp_init
-    have h2 := poolSwapFeeInitSource (evm := evm) hl.contract
+    have h2 := poolSwapFeeInitSource (fork := fork) (evm := evm) hl.contract
       (poolSwapProtocolWord_bound _ _) (poolSwapLPFeeWord_bound _ _) hl.protocol
       (poolSwapLPInitFrame_fee ..) hl.fee
     exact execBlock_append h0 (execBlock_append h1 h2)

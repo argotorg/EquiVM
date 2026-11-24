@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.DelegatedAttestRun
 import Benchmarks.EAS.EAS.DelegatedAttestEntry
 import Benchmarks.EAS.EAS.Dispatch
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables ABI.Solc08Calldata
 namespace Benchmarks.EAS.EAS
@@ -9,7 +11,7 @@ set_option maxRecDepth 10000
 theorem easAttestByDelegationBody {σ σ₀ A I} {g : UInt256} (v : EASImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (easSelBytes 13)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (easSelBytes 13) rfl hsel
   have hd : dispatchMsg contract I.calldata = some attestByDelegationTransition := by
     apply easDispatch_attestByDelegation (hsel := hsel)
@@ -19,7 +21,7 @@ theorem easAttestByDelegationBody {σ σ₀ A I} {g : UInt256} (v : EASImmutable
       decide +kernel
   have hplans : easPlans (bytesToWord (I.calldata.toList.take 4)).toNat = [] :=
     easPlans_of_selector hsel (by native_decide)
-  obtain ⟨k,C,rd⟩ := easReachAttestByDelegationBody (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
+  obtain ⟨k,C,rd⟩ := easReachAttestByDelegationBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
   by_cases hv : 36 ≤ I.calldata.size ∧ I.calldata.size < 2^255+4
   · have hcheck := solcDecodeLenCheckOk_4_32 hv.1 hv.2 hsize
     have hdec := decodeDelegatedAttest "delegatedRequest" easPlanTable hsz
@@ -32,7 +34,7 @@ theorem easAttestByDelegationBody {σ σ₀ A I} {g : UInt256} (v : EASImmutable
       let root := attestRoot I.calldata
       let r := delegatedAttestRecord I.calldata root
       let args := (∅ : Store).insert "delegatedRequest" r.tuple
-      have hprefix := delegatedAttestPrefixSource (L := args) (imms := immStore v)
+      have hprefix := delegatedAttestPrefixSource (fork := fork) (L := args) (imms := immStore v)
         (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I) (r := r) (store_get_self _ _ _) hsz hsize
         (by change I.calldata.size-4 < 2^255; omega)
       by_cases ha : copyRequestValid 352 r.data.data.size ∧ copyRequestNext 352 r.data.data.size+96 ≤ 2^64-1

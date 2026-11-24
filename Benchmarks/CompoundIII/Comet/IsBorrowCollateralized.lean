@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.IsBorrowCollateralizedEvm
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # CometWithExtendedAssetList `isBorrowCollateralized(address)`
 
@@ -20,7 +22,7 @@ set_option maxRecDepth 2000
 theorem cometWithExtendedAssetListIsBorrowCollateralizedBody {σ σ₀ A I} {g : UInt256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 19)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (cometWithExtendedAssetListSelBytes 19) rfl hsel
   have hbodyEq : isBorrowCollateralizedTransition.body = collateralCheckPublicBody true := rfl
   have hd : selectorDispatchMsg contract I.calldata = some isBorrowCollateralizedTransition :=
@@ -30,7 +32,7 @@ theorem cometWithExtendedAssetListIsBorrowCollateralizedBody {σ σ₀ A I} {g :
       (transitionSignature isBorrowCollateralizedTransition).paramTypes I.calldata =
       decodeCalldata ["account"] [.elem .address] I.calldata := by
     exact solc0815_decodeCalldata_scalar_eq (by decide)
-  have hX := isBorrowCollateralizedX (σ := σ) (σ₀ := σ₀) (A := A)
+  have hX := isBorrowCollateralizedX (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
   by_cases hlo : 36 ≤ I.calldata.size
   · by_cases hhi : I.calldata.size < 2^255 + 4

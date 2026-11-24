@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Spot.ConstructorBase
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Spotter constructor argument and guard traces
 -/
@@ -15,10 +17,10 @@ theorem spotInitcodeNonpayableRevert
     (vat : AccountAddress)
     (hcode : I.code = spotCtorCode vat)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev (spotCtorCode vat) g
+    RDrev fork (spotCtorCode vat) g
       (initState σ σ₀ g A I) := by
   have rd0 :
-      RD (spotCtorCode vat) I g
+      RD fork (spotCtorCode vat) I g
         (initState σ σ₀ g A I) ⟨0⟩ []
         ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
@@ -38,9 +40,9 @@ theorem spotCtorArgCopyTrace
     {I : ExecutionEnv} {g : Sat256} {s0 : State} {rdata : ByteArray}
     {acc : AccountMap} {k C : Nat}
     (vat : AccountAddress)
-    (h : RD (spotCtorCode vat) I g s0 ⟨18⟩ []
+    (h : RD fork (spotCtorCode vat) I g s0 ⟨18⟩ []
       solcFreePtrMem (UInt256.ofNat 3) rdata acc k C) :
-    ∃ k' C', RD (spotCtorCode vat) I g s0 ⟨38⟩
+    ∃ k' C', RD fork (spotCtorCode vat) I g s0 ⟨38⟩
       [(UInt256.ofNat (spotCtorCode vat).size).sub ⟨2320⟩, ⟨128⟩]
       (spotCtorArgFreeMem vat) (UInt256.ofNat 5) rdata acc k' C' := by
   have hcopy : (spotCtorCode vat).write 2320 solcFreePtrMem 128 32 = spotCtorArgMem vat := by
@@ -70,7 +72,7 @@ theorem spotCtorArgCopyTrace
     dup2, dup2, add, push1 ⟨64⟩,
     raw mstore 0 (spotCtorArgFreeMem vat) (UInt256.ofNat 5)
       (by spot_ctor_decode) mem_cost hfree (by decide) (by evm_ov)]
-  have rd38' : RD (spotCtorCode vat) I g s0 ⟨38⟩
+  have rd38' : RD fork (spotCtorCode vat) I g s0 ⟨38⟩
       [(UInt256.ofNat (spotCtorCode vat).size).sub ⟨2320⟩, ⟨128⟩]
       (spotCtorArgFreeMem vat) (UInt256.ofNat 5) rdata acc
       (k + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1)
@@ -90,10 +92,10 @@ theorem spotCtorArgSizeGuardTrace
     {I : ExecutionEnv} {g : Sat256} {s0 : State} {rdata : ByteArray}
     {acc : AccountMap} {k C : Nat}
     (vat : AccountAddress)
-    (h : RD (spotCtorCode vat) I g s0 ⟨38⟩
+    (h : RD fork (spotCtorCode vat) I g s0 ⟨38⟩
       [(UInt256.ofNat (spotCtorCode vat).size).sub ⟨2320⟩, ⟨128⟩]
       (spotCtorArgFreeMem vat) (UInt256.ofNat 5) rdata acc k C) :
-    ∃ k' C', RD (spotCtorCode vat) I g s0 ⟨54⟩
+    ∃ k' C', RD fork (spotCtorCode vat) I g s0 ⟨54⟩
       [EVM.word vat.val] (spotCtorArgFreeMem vat) (UInt256.ofNat 5) rdata acc k' C' := by
   have rdBeforeJump := spot_ctor_run h with [
     push1 ⟨32⟩, dup2, lt, iszero, push2 ⟨51⟩]
@@ -105,7 +107,7 @@ theorem spotCtorArgSizeGuardTrace
     raw mload 0 (EVM.word vat.val) (UInt256.ofNat 5)
       (by spot_ctor_decode) mem_cost (spotCtorArgFreeMem_mload128 vat)
       (by decide) (by evm_ov)]
-  have rd54' : RD (spotCtorCode vat) I g s0 ⟨54⟩
+  have rd54' : RD fork (spotCtorCode vat) I g s0 ⟨54⟩
       [EVM.word vat.val] (spotCtorArgFreeMem vat) (UInt256.ofNat 5) rdata acc
       (k + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1)
       (C + 3 + 3 + 3 + 3 + 3 + 10 + 1 + 2 + (0 + 3)) := by
@@ -118,12 +120,12 @@ theorem spotCtorArgsReach
     (vat : AccountAddress)
     (hcode : I.code = spotCtorCode vat)
     (hwv : I.weiValue = ⟨0⟩) :
-    ∃ k C, RD (spotCtorCode vat) I g
+    ∃ k C, RD fork (spotCtorCode vat) I g
       (initState σ σ₀ g A I) ⟨54⟩
       [EVM.word vat.val] (spotCtorArgFreeMem vat) (UInt256.ofNat 5) ByteArray.empty
       σ k C := by
   have rd8 :
-      RD (spotCtorCode vat) I g
+      RD fork (spotCtorCode vat) I g
         (initState σ σ₀ g A I) ⟨8⟩
         [UInt256.isZero I.weiValue, I.weiValue] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ 6 26 := by
@@ -136,7 +138,7 @@ theorem spotCtorArgsReach
       (by spot_ctor_decode) (by spot_ctor_decode) (by spot_ctor_decode) (by spot_ctor_decode)
       (by spot_ctor_jd)
   have rd18' :
-      RD (spotCtorCode vat) I g
+      RD fork (spotCtorCode vat) I g
         (initState σ σ₀ g A I) ⟨18⟩
         [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k18 C18 := by
     simpa [show ((⟨16⟩ : UInt256) + ⟨1⟩ + ⟨1⟩) = ⟨18⟩ from by native_decide]

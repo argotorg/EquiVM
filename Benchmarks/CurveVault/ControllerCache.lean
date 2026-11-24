@@ -2,6 +2,8 @@ import Benchmarks.CurveVault.Storage
 import Reasoning.ExternalCall
 import Reasoning.SteleArithmetic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -15,7 +17,7 @@ def vaultControllerCacheLocals (locals : Store) (controller : UInt256) : Store :
 
 theorem vaultControllerCache {s0 evm : State} {I : ExecutionEnv} {σ : AccountMap} {locals : Store}
     (hs : SourceState s0 I σ evm) (hb : locals.get? "_controller" = none) :
-    ExecBlock config {contract := contract, locals := locals} evm vaultControllerCacheBody
+    ExecBlock fork config {contract := contract, locals := locals} evm vaultControllerCacheBody
       (.ok {contract := contract, locals := vaultControllerCacheLocals locals (codeOwnerStorageWord I σ ⟨3⟩)} evm) := by
   let controller := codeOwnerStorageWord I σ ⟨3⟩
   have hread : evalExpr? config {contract := contract, locals := locals} evm

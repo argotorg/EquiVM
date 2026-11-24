@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.BitmapNextSource
 import Benchmarks.UniswapV3.Pool.BitmapNextTrace
 import Benchmarks.UniswapV3.Pool.TickUpdateMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -14,7 +16,7 @@ theorem bitmapNextInternalX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (args : List Expr) (retVar : Ident) (hf : caller.contract = contract)
     (he : evalExprs? config caller evm args = .ok [.int tick, .int spacing, .bool lte])
     (hst : SourceState s0 ee σ evm)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨11307⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨11307⟩
       ((if lte then ⟨1⟩ else ⟨0⟩) :: spacingRaw :: tickRaw :: ⟨6⟩ :: ret :: R)
       mem aw rdata σ k C)
     (ht : -(2 ^ 23 : Int) ≤ tick ∧ tick < 2 ^ 23)
@@ -27,15 +29,15 @@ theorem bitmapNextInternalX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     let masked := bitmapNextMasked evm compressed lte
     let result := bitmapNextResult compressed spacing lte masked
     let resultRaw := bitmapNextResultRaw compressed spacingRaw lte masked
-    (ExecStmt config caller evm
+    (ExecStmt fork config caller evm
         (.internalCall "TickBitmap_nextInitializedTickWithinOneWord" args retVar) .reverted ∧
-      RDinvalid (deployedRuntime v) g s0) ∨
-    (ExecStmt config caller evm
+      RDinvalid fork (deployedRuntime v) g s0) ∨
+    (ExecStmt fork config caller evm
         (.internalCall "TickBitmap_nextInitializedTickWithinOneWord" args retVar)
         (.ok (resumeAfterInternalCall caller retVar
           (some [.int result, .bool (decide (masked ≠ ⟨0⟩))])) evm) ∧
       UInt256.signextend (UInt256.ofNat 2) resultRaw = EVM.wordOfInt result ∧
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
         (bitmapNextFlag masked :: resultRaw :: R)
         (bitmapNextMemory mem compressed lte) aw rdata σ k' C' ∧
         HeapMemory (bitmapNextMemory mem compressed lte) aw p) := by
@@ -48,7 +50,7 @@ theorem bitmapNextInternalX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
       some bitmapNextFunction.toCallable := by rw [hf]; exact bitmapNextLookup
   have hsp : UInt256.signextend (UInt256.ofNat 2) spacingRaw = EVM.wordOfInt spacing := by
     rw [signextend_normalizeSint ⟨24, by decide⟩ _ _ (by decide) (by decide), hsraw]
-  have rde : RD (deployedRuntime v) evm.executionEnv g s0 ⟨11307⟩
+  have rde : RD fork (deployedRuntime v) evm.executionEnv g s0 ⟨11307⟩
       ((if lte then ⟨1⟩ else ⟨0⟩) :: spacingRaw :: tickRaw :: ⟨6⟩ :: ret :: R)
       mem aw rdata evm.accountMap k C := by rw [hst.env, ← hst.accounts]; exact rd
   rcases bitmapNextX (v := v) tick spacing lte rde ht.1 ht.2 hs.1 hs.2 htraw hsp hret hov with
@@ -66,7 +68,7 @@ theorem bitmapNextInternalX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
         (by rw [hc]; exact bitmapNextReturns caller.immutables evm tick spacing lte hn)
     · rw [signextend_normalizeSint ⟨24, by decide⟩ _ _ (by decide) (by decide),
         bitmapNextResultRaw_normalize _ spacing spacingRaw lte _ hsraw]
-    · change RD (deployedRuntime v) evm.executionEnv g s0 ret _ _
+    · change RD fork (deployedRuntime v) evm.executionEnv g s0 ret _ _
         (tickUpdateMemoryWords aw) rdata evm.accountMap kr Cr at rr
       rw [hst.env, ← hst.accounts, tickUpdateMemoryWords_eq hm.active] at rr
       exact rr

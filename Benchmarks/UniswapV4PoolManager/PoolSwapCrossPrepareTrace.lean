@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PoolSwapCrossWords
 import Benchmarks.UniswapV4PoolManager.ReachCost
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_057
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -13,10 +15,10 @@ theorem poolSwapCrossPrepareTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
     {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (zeroForOne : Bool) (hstack : R.length+22 ≤ 1024)
     (hI : evm.executionEnv = I) (hg : memLoad (step+UInt256.ofNat 224) mem = s.feeGrowthGlobal)
-    (h : RD (deployedRuntime v) I g s0 ⟨19984⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨19984⟩
       ([tag, x1, params, remaining, calculated, fee, protocol, amount, UInt256.fromBool (!zeroForOne), step, poolSlot id, state] ++ R)
       mem aw rdata evm.accountMap k C) :
-    ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨20029⟩
+    ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨20029⟩
       ([step, UInt256.ofNat 32, poolSlot id, UInt256.ofNat 4,
         poolSwapCrossGrowth1 evm id s zeroForOne, poolSwapCrossGrowth0 evm id s zeroForOne,
         state, UInt256.ofNat 20093, UInt256.ofNat (2^128-1), tag, x1, params, remaining, calculated, fee, protocol,

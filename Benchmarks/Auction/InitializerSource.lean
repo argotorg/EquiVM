@@ -2,6 +2,8 @@ import Reasoning.Storage
 import Benchmarks.Auction.InitializerStorage
 import Benchmarks.Auction.SetterSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -93,13 +95,13 @@ theorem initializerBeginSourceSplit (evm : EVM.State) (locals : Store)
     (hi : locals.get? "_initializing" = none) (hz : locals.get? "_initialized" = none)
     (ht : locals.get? "isTopLevelCall" = some (.bool (initializeTop evm))) :
     ((initializeTop evm = true → evm.executionEnv.perm = true) →
-      ExecStmt auctionConfig { contract := auctionContract, locals := locals } evm
+      ExecStmt fork auctionConfig { contract := auctionContract, locals := locals } evm
       (.ite (.var "isTopLevelCall")
         [.assign .storage initializingRef (.boolLit true),
           .assign .storage initializedRef (.boolLit true)] [])
       (.ok { contract := auctionContract, locals := locals } (initializerEnteredState evm))) ∧
       (evm.executionEnv.perm = false → initializeTop evm = true →
-        ExecStmt auctionConfig { contract := auctionContract, locals := locals } evm
+        ExecStmt fork auctionConfig { contract := auctionContract, locals := locals } evm
           (.ite (.var "isTopLevelCall")
             [.assign .storage initializingRef (.boolLit true),
               .assign .storage initializedRef (.boolLit true)] []) .staticViolation) := by
@@ -114,7 +116,7 @@ theorem initializerBeginSourceSplit (evm : EVM.State) (locals : Store)
     by_cases hb : initializeTop evm = true
     · rw [initializerEnteredState, if_pos hb]
       apply ExecStmt.iteTrue (by simpa only [hb] using hcond)
-      apply ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (hperm hb)) hvalue hassign)
+      apply ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (hperm hb)) hvalue hassign)
       exact assignStorageBlock (by simp [evalExpr?, pure])
         (assignInitialized (setInitializingState evm true) locals hz)
         (by simpa only [setInitializingState, storageStore_executionEnv] using hperm hb)

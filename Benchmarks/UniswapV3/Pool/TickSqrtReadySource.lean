@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.TickSqrtPrefix
 import Benchmarks.UniswapV3.Pool.TickSqrtFactorsSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -31,9 +33,9 @@ theorem evalTickSqrtInitial {frame : Frame} {evm : EVM.State} (absTick : UInt256
 
 theorem tickSqrtReadySource (imms : Store) (evm : EVM.State) (tick : Int)
     (hlo : -(2 ^ 23 : Int) ≤ tick) (hhi : tick < 2 ^ 23) (h : tick.natAbs ≤ 887272) :
-    ExecBlock config (tickSqrtFrame imms tick) evm (tickSqrtFunction.body.take 4)
+    ExecBlock fork config (tickSqrtFrame imms tick) evm (tickSqrtFunction.body.take 4)
       (.ok (tickSqrtReadyFrame imms tick) evm) := by
-  change ExecBlock _ _ _
+  change ExecBlock fork _ _ _
     (tickSqrtFunction.body.take 2 ++ (tickSqrtFunction.body.drop 2).take 2) _
   apply execBlock_append_ok (tickSqrtPrefixSource imms evm tick hlo hhi)
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
@@ -43,7 +45,7 @@ theorem tickSqrtReadySource (imms : Store) (evm : EVM.State) (tick : Int)
 
 theorem tickSqrtRatiosSource (imms : Store) (evm : EVM.State) (tick : Int)
     (hlo : -(2 ^ 23 : Int) ≤ tick) (hhi : tick < 2 ^ 23) (h : tick.natAbs ≤ 887272) :
-    ∃ frame, ExecBlock config (tickSqrtFrame imms tick) evm (tickSqrtFunction.body.take 23)
+    ∃ frame, ExecBlock fork config (tickSqrtFrame imms tick) evm (tickSqrtFunction.body.take 23)
       (.ok frame evm) ∧
       frame.locals.get? "ratio" =
         some (.int (Int.ofNat (tickSqrtRatio (UInt256.ofNat tick.natAbs)).toNat)) ∧
@@ -55,7 +57,7 @@ theorem tickSqrtRatiosSource (imms : Store) (evm : EVM.State) (tick : Int)
     (by simp [tickSqrtReadyFrame, tickSqrtAbsFrame, Std.HashMap.getElem_insert])
     (by simp [tickSqrtReadyFrame]) (by decide +kernel)
   refine ⟨frame, ?_, hr, ?_, ?_⟩
-  · change ExecBlock _ _ _ (tickSqrtFunction.body.take 4 ++
+  · change ExecBlock fork _ _ _ (tickSqrtFunction.body.take 4 ++
       tickSqrtFactors.map tickSqrtStepStmt) _
     exact execBlock_append_ok (tickSqrtReadySource imms evm tick hlo hhi h) hb
   · rw [hp "tick" (by decide)]

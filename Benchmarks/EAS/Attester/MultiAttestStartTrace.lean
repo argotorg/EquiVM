@@ -3,6 +3,8 @@ import Benchmarks.EAS.Attester.MultiArrayABI
 import Benchmarks.EAS.Attester.MultiAttestLoopTrace
 import Benchmarks.EAS.Attester.PairArrayTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.EAS.Attester.Immutables attesterRuntimeBlocks
 
@@ -21,7 +23,7 @@ theorem attesterMultiAttestReachDecode {words : String → UInt256} {σ σ₀ A 
     (hcode : I.code = immutableLayout.runtime attesterBytecode words)
     (hvalue : I.weiValue = ⟨0⟩) (hsize : I.calldata.size < UInt256.size)
     (hsel : (attesterMultiAttestSelBytes == I.calldata.extract 0 4) = true) :
-    ∃ k C, RD (immutableLayout.runtime attesterBytecode words) I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork (immutableLayout.runtime attesterBytecode words) I g (initState σ σ₀ g A I)
       ⟨2482⟩ [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨116⟩, ⟨121⟩, solcSelectorWord I]
       solcFreePtrMem ⟨3⟩ ByteArray.empty σ k C := by
   have hsz := calldata_size_ge_of_selIs I attesterMultiAttestSelBytes rfl hsel
@@ -39,11 +41,11 @@ theorem attesterMultiAttestReachDecode {words : String → UInt256} {σ σ₀ A 
 
 theorem multiAttestRequire {words : String → UInt256} {I g s0 σ mem aw out k C R}
     {n m secondData schemaData : UInt256}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨935⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨935⟩
       ([m, secondData, n, schemaData] ++ R) mem aw out σ k C)
     (hstack : R.length + 9 ≤ 1024) :
-    ((n = ⟨0⟩ ∨ m ≠ n) ∧ RDrev (immutableLayout.runtime attesterBytecode words) g s0) ∨
-      (n ≠ ⟨0⟩ ∧ m = n ∧ ∃ k' C', RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨1006⟩
+    ((n = ⟨0⟩ ∨ m ≠ n) ∧ RDrev fork (immutableLayout.runtime attesterBytecode words) g s0) ∨
+      (n ≠ ⟨0⟩ ∧ m = n ∧ ∃ k' C', RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨1006⟩
         ([n, ⟨96⟩, m, secondData, n, schemaData] ++ R) mem aw out σ k' C') := by
   by_cases hn : n = ⟨0⟩
   · subst n
@@ -70,12 +72,12 @@ theorem multiAttestRequire {words : String → UInt256} {I g s0 σ mem aw out k 
       (by simp only [attesterRuntime_block_951_fallthrough_stack, List.length_cons]; omega) h'''⟩
 
 theorem multiAttestBodyView {words : String → UInt256} {I g s0 σ mem aw out k C R}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨2482⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨2482⟩
       (⟨4⟩ :: UInt256.ofNat I.calldata.size :: ⟨116⟩ :: R) mem aw out σ k C)
     (hstack : R.length + 18 ≤ 1024) :
-    (¬ MultiHeadChecks I.calldata ∧ RDrev (immutableLayout.runtime attesterBytecode words) g s0) ∨
+    (¬ MultiHeadChecks I.calldata ∧ RDrev fork (immutableLayout.runtime attesterBytecode words) g s0) ∨
       (MultiHeadChecks I.calldata ∧ ∃ k' C',
-        RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨935⟩
+        RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨935⟩
           ([UInt256.ofNat (arrayCount I.calldata 36), UInt256.ofNat (arrayDataNat I.calldata 36),
             UInt256.ofNat (arrayCount I.calldata 4),
                 UInt256.ofNat (arrayDataNat I.calldata 4)] ++ R)
@@ -91,12 +93,12 @@ theorem multiAttestBodyView {words : String → UInt256} {I g s0 σ mem aw out k
     arrayData_eq_ofNat (uint64Bound_of_isZero_gt hc.secondOffset)] using h''
 
 theorem multiAttestBadShape {words : String → UInt256} {I g s0 σ mem aw out k C R}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨935⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨935⟩
       ([UInt256.ofNat (arrayCount I.calldata 36), UInt256.ofNat (arrayDataNat I.calldata 36),
         UInt256.ofNat (arrayCount I.calldata 4), UInt256.ofNat (arrayDataNat I.calldata 4)] ++ R)
       mem aw out σ k C)
     (hstack : R.length + 9 ≤ 1024) (hbad : ¬ BatchShape I.calldata) :
-    RDrev (immutableLayout.runtime attesterBytecode words) g s0 := by
+    RDrev fork (immutableLayout.runtime attesterBytecode words) g s0 := by
   rcases multiAttestRequire h hstack with ⟨_, hr⟩ | ⟨hn, heq, _⟩
   · exact hr
   · apply False.elim
@@ -109,13 +111,13 @@ theorem multiAttestBadShape {words : String → UInt256} {I g s0 σ mem aw out k
       simpa only [arrayCount_word] using heq'
 
 theorem multiAttestReachOuter {words : String → UInt256} {I g s0 σ aw out k C R}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨935⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨935⟩
       ([UInt256.ofNat (arrayCount I.calldata 36), UInt256.ofNat (arrayDataNat I.calldata 36),
         UInt256.ofNat (arrayCount I.calldata 4), UInt256.ofNat (arrayDataNat I.calldata 4)] ++ R)
       solcFreePtrMem aw out σ k C)
     (hstack : R.length + 14 ≤ 1024) (hc : MultiHeadChecks I.calldata)
     (hshape : BatchShape I.calldata) :
-    ∃ aw' k' C', RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨1109⟩
+    ∃ aw' k' C', RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨1109⟩
       ([⟨0⟩, ⟨128⟩, UInt256.ofNat (arrayCount I.calldata 4), ⟨96⟩,
           UInt256.ofNat (arrayCount I.calldata 4),
         UInt256.ofNat (arrayDataNat I.calldata 36), UInt256.ofNat (arrayCount I.calldata 4),
@@ -142,15 +144,15 @@ theorem multiAttestReachOuter {words : String → UInt256} {I g s0 σ aw out k C
         omega)
 
 theorem multiAttestBuildRequests {words : String → UInt256} {I g s0 σ aw out k C R}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨935⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨935⟩
       ([UInt256.ofNat (arrayCount I.calldata 36), UInt256.ofNat (arrayDataNat I.calldata 36),
         UInt256.ofNat (arrayCount I.calldata 4), UInt256.ofNat (arrayDataNat I.calldata 4)] ++ R)
       solcFreePtrMem aw out σ k C)
     (hstack : R.length + 21 ≤ 1024) (hc : MultiHeadChecks I.calldata)
     (hshape : BatchShape I.calldata) (hsize : I.calldata.size < UInt256.size) :
-    (¬ BatchRowsValid I.calldata ∧ RDrev (immutableLayout.runtime attesterBytecode words) g s0) ∨
+    (¬ BatchRowsValid I.calldata ∧ RDrev fork (immutableLayout.runtime attesterBytecode words) g s0) ∨
       (BatchRowsValid I.calldata ∧ ∃ aw' k' C',
-        RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨1657⟩
+        RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨1657⟩
           ([UInt256.ofNat (arrayCount I.calldata 4), ⟨128⟩, UInt256.ofNat (arrayCount I.calldata 4),
               ⟨96⟩,
             UInt256.ofNat (arrayCount I.calldata 4), UInt256.ofNat (arrayDataNat I.calldata 36),

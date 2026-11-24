@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Clipper.TakeContinuationEVM
 import Benchmarks.Dss.Clipper.TakeGeneralDogEVM
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -14,7 +16,7 @@ theorem RD.clipperTakeGeneralContinuationElim
     {dog slice owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id :
       UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd4701 : RD code I g (initState σStart σ₀ g A I) ⟨4701⟩
+    (rd4701 : RD fork code I g (initState σStart σ₀ g A I) ⟨4701⟩
       (dog :: slice :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped ::
         dataLen :: dataStart :: who :: max :: amt :: id :: R)
       mem aw rdata σ k C)
@@ -23,12 +25,12 @@ theorem RD.clipperTakeGeneralContinuationElim
     (hov : R.length + 32 ≤ 1024)
     (onMoveNoCode :
       ∀ hcodeVat : extCodeSizeWord σ (clipperTakeVatTarget v) = ⟨0⟩,
-        RDrev code g (initState σStart σ₀ g A I) → P)
+        RDrev fork code g (initState σStart σ₀ g A I) → P)
     (onMoveFailure :
       ∀ (σMove : AccountMap)
         (outMove : ByteArray) (AMove : Substate),
         extCodeSizeWord σ (clipperTakeVatTarget v) ≠ ⟨0⟩ →
-        typedCallViaEVM config
+        typedCallViaEVM fork config
           { initState σStart σ₀ g A I with
             accountMap := σ }
           (EVM.address v.vat) "move" 0
@@ -39,13 +41,13 @@ theorem RD.clipperTakeGeneralContinuationElim
             { initState σStart σ₀ g A I with
               accountMap := σMove, substate := AMove },
             outMove) true →
-        RDrev code g (initState σStart σ₀ g A I) → P)
+        RDrev fork code g (initState σStart σ₀ g A I) → P)
     (onDogZeroNoCode :
       ∀ (σMove : AccountMap)
         (outMove : ByteArray) (AMove : Substate),
         lotNew = ⟨0⟩ →
         extCodeSizeWord σ (clipperTakeVatTarget v) ≠ ⟨0⟩ →
-        typedCallViaEVM config
+        typedCallViaEVM fork config
           { initState σStart σ₀ g A I with
             accountMap := σ }
           (EVM.address v.vat) "move" 0
@@ -57,7 +59,7 @@ theorem RD.clipperTakeGeneralContinuationElim
               accountMap := σMove, substate := AMove },
             outMove) true →
         extCodeSizeWord σMove (UInt256.land solcAddrMask dog) = ⟨0⟩ →
-        RDrev code g (initState σStart σ₀ g A I) → P)
+        RDrev fork code g (initState σStart σ₀ g A I) → P)
     (onDogZeroFailure :
       ∀ (σMove : AccountMap)
         (outMove : ByteArray) (AMove : Substate)
@@ -65,7 +67,7 @@ theorem RD.clipperTakeGeneralContinuationElim
         (outDog : ByteArray) (ADog : Substate),
         lotNew = ⟨0⟩ →
         extCodeSizeWord σ (clipperTakeVatTarget v) ≠ ⟨0⟩ →
-        typedCallViaEVM config
+        typedCallViaEVM fork config
           { initState σStart σ₀ g A I with
             accountMap := σ }
           (EVM.address v.vat) "move" 0
@@ -77,7 +79,7 @@ theorem RD.clipperTakeGeneralContinuationElim
               accountMap := σMove, substate := AMove },
             outMove) true →
         extCodeSizeWord σMove (UInt256.land solcAddrMask dog) ≠ ⟨0⟩ →
-        typedCallViaEVM config
+        typedCallViaEVM fork config
           { initState σStart σ₀ g A I with
             accountMap := σMove }
           (EVM.address (AccountAddress.ofUInt256 (UInt256.land solcAddrMask dog)))
@@ -86,7 +88,7 @@ theorem RD.clipperTakeGeneralContinuationElim
             { initState σStart σ₀ g A I with
               accountMap := σDog, substate := ADog },
             outDog) true →
-        RDrev code g (initState σStart σ₀ g A I) → P)
+        RDrev fork code g (initState σStart σ₀ g A I) → P)
     (onPostDogZero :
       ∀ (σMove : AccountMap)
         (outMove : ByteArray) (AMove : Substate)
@@ -94,7 +96,7 @@ theorem RD.clipperTakeGeneralContinuationElim
         (outDog : ByteArray) (ADog : Substate) (kDog CDog : ℕ),
         lotNew = ⟨0⟩ →
         extCodeSizeWord σ (clipperTakeVatTarget v) ≠ ⟨0⟩ →
-        typedCallViaEVM config
+        typedCallViaEVM fork config
           { initState σStart σ₀ g A I with
             accountMap := σ }
           (EVM.address v.vat) "move" 0
@@ -106,7 +108,7 @@ theorem RD.clipperTakeGeneralContinuationElim
               accountMap := σMove, substate := AMove },
             outMove) true →
         extCodeSizeWord σMove (UInt256.land solcAddrMask dog) ≠ ⟨0⟩ →
-        typedCallViaEVM config
+        typedCallViaEVM fork config
           { initState σStart σ₀ g A I with
             accountMap := σMove }
           (EVM.address (AccountAddress.ofUInt256 (UInt256.land solcAddrMask dog)))
@@ -117,7 +119,7 @@ theorem RD.clipperTakeGeneralContinuationElim
             outDog) true →
         clipperTakeMemoryWF (clipperDogDigsCalldataMem v (UInt256.add tabNew owe)
           (clipperTakeVatMoveCalldataMem σ I owe mem)) aw →
-        RD code I g (initState σStart σ₀ g A I) ⟨5003⟩
+        RD fork code I g (initState σStart σ₀ g A I) ⟨5003⟩
           (owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen ::
             dataStart :: who :: max :: amt :: id :: R)
           (clipperDogDigsCalldataMem v (UInt256.add tabNew owe)
@@ -128,7 +130,7 @@ theorem RD.clipperTakeGeneralContinuationElim
         (outMove : ByteArray) (AMove : Substate),
         lotNew ≠ ⟨0⟩ →
         extCodeSizeWord σ (clipperTakeVatTarget v) ≠ ⟨0⟩ →
-        typedCallViaEVM config
+        typedCallViaEVM fork config
           { initState σStart σ₀ g A I with
             accountMap := σ }
           (EVM.address v.vat) "move" 0
@@ -140,7 +142,7 @@ theorem RD.clipperTakeGeneralContinuationElim
               accountMap := σMove, substate := AMove },
             outMove) true →
         extCodeSizeWord σMove (UInt256.land solcAddrMask dog) = ⟨0⟩ →
-        RDrev code g (initState σStart σ₀ g A I) → P)
+        RDrev fork code g (initState σStart σ₀ g A I) → P)
     (onDogNonzeroFailure :
       ∀ (σMove : AccountMap)
         (outMove : ByteArray) (AMove : Substate)
@@ -148,7 +150,7 @@ theorem RD.clipperTakeGeneralContinuationElim
         (outDog : ByteArray) (ADog : Substate),
         lotNew ≠ ⟨0⟩ →
         extCodeSizeWord σ (clipperTakeVatTarget v) ≠ ⟨0⟩ →
-        typedCallViaEVM config
+        typedCallViaEVM fork config
           { initState σStart σ₀ g A I with
             accountMap := σ }
           (EVM.address v.vat) "move" 0
@@ -160,7 +162,7 @@ theorem RD.clipperTakeGeneralContinuationElim
               accountMap := σMove, substate := AMove },
             outMove) true →
         extCodeSizeWord σMove (UInt256.land solcAddrMask dog) ≠ ⟨0⟩ →
-        typedCallViaEVM config
+        typedCallViaEVM fork config
           { initState σStart σ₀ g A I with
             accountMap := σMove }
           (EVM.address (AccountAddress.ofUInt256 (UInt256.land solcAddrMask dog)))
@@ -169,7 +171,7 @@ theorem RD.clipperTakeGeneralContinuationElim
             { initState σStart σ₀ g A I with
               accountMap := σDog, substate := ADog },
             outDog) true →
-        RDrev code g (initState σStart σ₀ g A I) → P)
+        RDrev fork code g (initState σStart σ₀ g A I) → P)
     (onPostDogNonzero :
       ∀ (σMove : AccountMap)
         (outMove : ByteArray) (AMove : Substate)
@@ -177,7 +179,7 @@ theorem RD.clipperTakeGeneralContinuationElim
         (outDog : ByteArray) (ADog : Substate) (kDog CDog : ℕ),
         lotNew ≠ ⟨0⟩ →
         extCodeSizeWord σ (clipperTakeVatTarget v) ≠ ⟨0⟩ →
-        typedCallViaEVM config
+        typedCallViaEVM fork config
           { initState σStart σ₀ g A I with
             accountMap := σ }
           (EVM.address v.vat) "move" 0
@@ -189,7 +191,7 @@ theorem RD.clipperTakeGeneralContinuationElim
               accountMap := σMove, substate := AMove },
             outMove) true →
         extCodeSizeWord σMove (UInt256.land solcAddrMask dog) ≠ ⟨0⟩ →
-        typedCallViaEVM config
+        typedCallViaEVM fork config
           { initState σStart σ₀ g A I with
             accountMap := σMove }
           (EVM.address (AccountAddress.ofUInt256 (UInt256.land solcAddrMask dog)))
@@ -200,7 +202,7 @@ theorem RD.clipperTakeGeneralContinuationElim
             outDog) true →
         clipperTakeMemoryWF (clipperDogDigsCalldataMem v owe
           (clipperTakeVatMoveCalldataMem σ I owe mem)) aw →
-        RD code I g (initState σStart σ₀ g A I) ⟨5003⟩
+        RD fork code I g (initState σStart σ₀ g A I) ⟨5003⟩
           (owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen ::
             dataStart :: who :: max :: amt :: id :: R)
           (clipperDogDigsCalldataMem v owe

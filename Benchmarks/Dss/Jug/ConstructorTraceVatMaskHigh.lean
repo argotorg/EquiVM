@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Jug.ConstructorTraceVatMaskLow
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Jug constructor vat high-word mask trace
 -/
@@ -14,12 +16,12 @@ theorem jugCtorVatMaskHighReach
     {σ σWards σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat : AccountAddress) {k C : ℕ}
     (rd88 :
-      RD (jugCtorCode vat) I g
+      RD fork (jugCtorCode vat) I g
         (initState σ σ₀ g A I) ⟨88⟩
         [UInt256.land (EVM.word vat.val) solcAddrMask, ⟨2⟩, solcSlotWord σWards I ⟨2⟩]
         (jugCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
         σWards k C) :
-    ∃ k' C', RD (jugCtorCode vat) I g
+    ∃ k' C', RD fork (jugCtorCode vat) I g
       (initState σ σ₀ g A I) ⟨100⟩
       [UInt256.land (solcSlotWord σWards I ⟨2⟩) (UInt256.lnot solcAddrMask), ⟨2⟩,
         UInt256.land (EVM.word vat.val) solcAddrMask]

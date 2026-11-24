@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.ObserveCalldata
 import Benchmarks.UniswapV3.Pool.Dispatch
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -10,12 +12,12 @@ set_option maxRecDepth 10000
 theorem observeDecodeX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256} {s0 : EVM.State}
     {mem rdata : ByteArray} {aw : UInt256} {k C : Nat} {R : List UInt256}
     {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨1587⟩ R mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨1587⟩ R mem aw rdata σ k C)
     (hsz : 4 ≤ ee.calldata.size) (hsize : ee.calldata.size < UInt256.size)
     (hov : R.length + 10 ≤ 1024) :
-    (¬ ObserveCalldataValid ee.calldata ∧ RDrev (deployedRuntime v) g s0) ∨
+    (¬ ObserveCalldataValid ee.calldata ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (ObserveCalldataValid ee.calldata ∧ ∃ k' C',
-      RD (deployedRuntime v) ee g s0 ⟨9436⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨9436⟩
         (UInt256.ofNat (observeCount ee.calldata) :: UInt256.ofNat (observeDataStart ee.calldata) ::
           ⟨1699⟩ :: R) mem aw rdata σ k' C') := by
   by_cases hhead : ee.calldata.size < 36
@@ -41,7 +43,7 @@ theorem observeDecodeX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256} {s0 : 
     (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; jump_dest) r1
   simp only [uniswapV3Pool_block_1609_taken_stack,
     uadd_lit_usub_ofNat_lit hsz hsize] at r2
-  change RD (deployedRuntime v) ee g s0 ⟨1636⟩
+  change RD fork (deployedRuntime v) ee g s0 ⟨1636⟩
     (calldataWord ee.calldata 4 :: UInt256.ofNat 36 :: UInt256.ofNat 4 ::
       UInt256.ofNat ee.calldata.size :: ⟨1699⟩ :: R) mem aw rdata σ _ _ at r2
   have haddr : (UInt256.ofNat 4 + calldataWord ee.calldata 4).toNat =

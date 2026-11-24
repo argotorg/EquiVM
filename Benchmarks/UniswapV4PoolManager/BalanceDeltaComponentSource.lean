@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.BalanceDeltaComponents
 import Benchmarks.UniswapV4PoolManager.CallComposition
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -33,7 +35,7 @@ theorem balanceDeltaComponent_lookup (one : Bool) : lookupCallable? contract (ba
 
 theorem balanceDeltaComponentBody {f : Frame} {evm : State} {word : UInt256}
     (hw : f.locals.get? "balanceDelta" = some (.int (EVM.signed word))) (one : Bool) :
-    ExecFuncBody config f evm (balanceDeltaComponentFunction one).body
+    ExecFuncBody fork config f evm (balanceDeltaComponentFunction one).body
       (.returned f evm (some [.int (balanceDeltaComponent one word)])) := by
   have hb : (balanceDeltaComponentFunction one).body = [.return [balanceDeltaComponentExpr one (.var "balanceDelta")]] := by
     cases one <;> rfl
@@ -43,7 +45,7 @@ theorem balanceDeltaComponentBody {f : Frame} {evm : State} {word : UInt256}
 theorem balanceDeltaComponentCall {f : Frame} {evm : State} {e : Expr} {word : UInt256}
     (hf : f.contract = contract) (he : evalExpr? config f evm e = .ok (.int (EVM.signed word)))
     (one : Bool) (ret : Ident) :
-    ExecStmt config f evm (.internalCall (balanceDeltaComponentName one) [e] ret)
+    ExecStmt fork config f evm (.internalCall (balanceDeltaComponentName one) [e] ret)
       (.ok {f with locals := f.locals.insert ret (.int (balanceDeltaComponent one word))} evm) := by
   apply internalCallFunctionReturn (argVals := [.int (EVM.signed word)])
     (value := some [.int (balanceDeltaComponent one word)]) (evalExprs?_singleton he)

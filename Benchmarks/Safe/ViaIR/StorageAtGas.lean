@@ -2,6 +2,8 @@ import Benchmarks.Safe.ViaIR.Common
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_029
 import Reasoning.WordArithmetic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -12,10 +14,10 @@ set_option maxRecDepth 100000
 -- The generated SLOAD summary hides its gas counter. Preserve a lower bound for long loops.
 theorem safeStorageAtBodyCost {I g s0 σ k C aw mem rdata}
     {index offset len ptr : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6194⟩ (index :: offset :: len :: ptr :: R)
+    (h : RD fork safeBytecode I g s0 ⟨6194⟩ (index :: offset :: len :: ptr :: R)
       mem aw rdata σ k C)
     (hov : R.length + 9 ≤ 1024) :
-    ∃ k' C', C + 32 ≤ C' ∧ RD safeBytecode I g s0 ⟨6165⟩
+    ∃ k' C', C + 32 ≤ C' ∧ RD fork safeBytecode I g s0 ⟨6165⟩
       ((index + UInt256.ofNat 1) :: offset :: len :: ptr :: R)
       (safeRuntime_block_6194_memory (ee := I) (mem := mem) (σ := σ) (x0 := index)
         (x1 := offset) (x3 := ptr))
@@ -43,10 +45,10 @@ theorem safeStorageAtBodyCost {I g s0 σ k C aw mem rdata}
 
 theorem safeStorageAtStepCost {I g s0 σ k C aw mem rdata}
     {offset len ptr : UInt256} {index : Nat} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6165⟩
+    (h : RD fork safeBytecode I g s0 ⟨6165⟩
       (UInt256.ofNat index :: offset :: len :: ptr :: R) mem aw rdata σ k C)
     (hov : R.length + 9 ≤ 1024) (hi : index < len.toNat) :
-    ∃ mem' aw' k' C', C + 32 ≤ C' ∧ RD safeBytecode I g s0 ⟨6165⟩
+    ∃ mem' aw' k' C', C + 32 ≤ C' ∧ RD fork safeBytecode I g s0 ⟨6165⟩
       (UInt256.ofNat (index + 1) :: offset :: len :: ptr :: R)
       mem' aw' rdata σ k' C' := by
   have hlt : UInt256.lt (UInt256.ofNat index) len = ⟨1⟩ :=
@@ -62,10 +64,10 @@ theorem safeStorageAtStepCost {I g s0 σ k C aw mem rdata}
 
 theorem safeStorageAtGasLoop {I g s0 σ k C aw mem rdata}
     {offset len ptr : UInt256} {index fuel : Nat} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6165⟩
+    (h : RD fork safeBytecode I g s0 ⟨6165⟩
       (UInt256.ofNat index :: offset :: len :: ptr :: R) mem aw rdata σ k C)
     (hov : R.length + 9 ≤ 1024) (hi : index + fuel ≤ len.toNat) :
-    ∃ mem' aw' k' C', C + 32 * fuel ≤ C' ∧ RD safeBytecode I g s0 ⟨6165⟩
+    ∃ mem' aw' k' C', C + 32 * fuel ≤ C' ∧ RD fork safeBytecode I g s0 ⟨6165⟩
       (UInt256.ofNat (index + fuel) :: offset :: len :: ptr :: R)
       mem' aw' rdata σ k' C' := by
   induction fuel generalizing index k C aw mem with
@@ -78,10 +80,10 @@ theorem safeStorageAtGasLoop {I g s0 σ k C aw mem rdata}
 
 theorem safeStorageAtHugeOOG {I g s0 σ k C aw mem rdata}
     {offset len ptr : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6165⟩ (⟨0⟩ :: offset :: len :: ptr :: R)
+    (h : RD fork safeBytecode I g s0 ⟨6165⟩ (⟨0⟩ :: offset :: len :: ptr :: R)
       mem aw rdata σ k C)
     (hov : R.length + 9 ≤ 1024) (hl : 2 ^ 251 ≤ len.toNat) :
-    X (g.toNat + 1) (D_J safeBytecode 0) s0 = .error .OutOfGass := by
+    X fork (g.toNat + 1) (D_J safeBytecode 0) s0 = .error .OutOfGass := by
   obtain ⟨_, _, _, C', hc, hr⟩ := safeStorageAtGasLoop (fuel := 2 ^ 251) h hov hl
   have hg : g.toNat < 2 ^ 256 := g.isLt
   exact RD.oog_of_cost_gt hr (by norm_num at hc; omega)

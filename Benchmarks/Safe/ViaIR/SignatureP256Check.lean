@@ -5,6 +5,8 @@ import Benchmarks.Safe.ViaIR.MemoryPreserves
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_039
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_040
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -13,16 +15,16 @@ namespace Benchmarks.Safe.ViaIR
 set_option maxRecDepth 2000
 
 theorem safeSignatureP256Reject {I g s0 σ k C aw mem rdata a b c d} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨8364⟩ (a :: b :: c :: d :: ⟨1⟩ :: R)
+    (h : RD fork safeBytecode I g s0 ⟨8364⟩ (a :: b :: c :: d :: ⟨1⟩ :: R)
       mem aw rdata σ k C)
-    (hov : R.length + 6 ≤ 1024) : RDrev safeBytecode g s0 := by
+    (hov : R.length + 6 ≤ 1024) : RDrev fork safeBytecode g s0 := by
   have h₁ := safeRuntime_block_8364_fallthrough (by simp; omega) (by decide) h
   exact safeRuntime_block_8374 (by simp [safeRuntime_block_8364_fallthrough_stack]; omega) h₁
 
 theorem safeSignatureP256Check (p : SignatureInput) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata ptr src} {off owner last : UInt256}
     {R : List UInt256} {f : Frame}
-    (h : RD safeBytecode I g s0 ⟨8316⟩
+    (h : RD fork safeBytecode I g s0 ⟨8316⟩
       (off :: last :: UInt256.land solcAddrMask owner :: UInt256.ofNat src :: p.hash :: R)
       mem aw rdata σ k C)
     (hc : SignatureCore p f) (hoff : f.locals["p256Offset"]? = some (uint256Value off))
@@ -32,13 +34,13 @@ theorem safeSignatureP256Check (p : SignatureInput) (evm : EVM.State)
     (hz : memLoad ⟨96⟩ mem = ⟨0⟩) (hsrc : 128 ≤ src)
     (ha : src + 32 + p.signatures.size ≤ ptr) (hp : ptr < 2 ^ 224)
     (hbound : off.toNat + 128 ≤ p.signatures.size) (hov : R.length + 20 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧ ExecBlock config f evm (signatureP256Body.drop 5) .reverted) ∨
+    (RDrev fork safeBytecode g s0 ∧ ExecBlock fork config f evm (signatureP256Body.drop 5) .reverted) ∨
     ∃ evm' σ' mem' aw' out k' C',
-      ExecBlock config f evm (signatureP256Body.drop 5)
+      ExecBlock fork config f evm (signatureP256Body.drop 5)
         (.ok (signatureSet (signatureP256SignerFrame f (signatureP256Input p off))
           "p256Ok" (.bool true)) evm') ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧ evm'.σ₀ = s0.σ₀ ∧
-      RD safeBytecode I g s0 ⟨7803⟩
+      RD fork safeBytecode I g s0 ⟨7803⟩
         (last :: UInt256.land solcAddrMask owner :: UInt256.ofNat src :: p.hash :: R)
         mem' aw' out σ' k' C' ∧
       BytesMemory mem' src p.signatures ∧ memLoad ⟨64⟩ mem' = UInt256.ofNat ptr ∧

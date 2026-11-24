@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.WordArrayPrefix
 import Benchmarks.EAS.EAS.RuntimeBlocks_037
 import Benchmarks.EAS.EAS.RuntimeBlocks_038
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -11,8 +13,8 @@ theorem easMergeUIDDone {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {lists out current ret : UInt256} {n : Nat} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length+8 ≤ 1024) (hl : memLoad lists mem = UInt256.ofNat n)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨11990⟩ (out::current::UInt256.ofNat n::lists::ret::R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (out::R) mem aw' rdata σ k' C' := by
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨11990⟩ (out::current::UInt256.ofNat n::lists::ret::R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (out::R) mem aw' rdata σ k' C' := by
   obtain ⟨a1,k1,C1,r1⟩ := easBlocks.eas_block_11990_taken_packed (immWords := wordsOf (immStore v))
     (by simp only [List.length_cons]; omega) (by rw [hl,ult_zero (le_refl _)]; decide)
     (by rw [easPatchedValidJumpsRuntime v]; jump_dest) rd
@@ -23,9 +25,9 @@ theorem easMergeUIDOuterEnter {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {lists out current ret : UInt256} {i : Nat} {groups : List (List UInt256)} {R : List UInt256}
     (v : EASImmutables) (hstack : R.length+12 ≤ 1024)
     (hm : WordArrayArrayMemoryView mem lists groups out.toNat) (hi : i < groups.length)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨11990⟩ (out::current::UInt256.ofNat i::lists::ret::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨11990⟩ (out::current::UInt256.ofNat i::lists::ret::R) mem aw rdata σ k C) :
     ∃ ptr aw' k' C', WordArrayMemoryView mem ptr groups[i] out.toNat ∧
-      RD (deployedRuntime v) ee g s0 ⟨12017⟩ (⟨0⟩::lists::out::ret::UInt256.ofNat i::ptr::current::R) mem aw' rdata σ k' C' := by
+      RD fork (deployedRuntime v) ee g s0 ⟨12017⟩ (⟨0⟩::lists::out::ret::UInt256.ofNat i::ptr::current::R) mem aw' rdata σ k' C' := by
   have hs := hm.span
   have hb := out.val.isLt
   change out.toNat < UInt256.size at hb
@@ -47,9 +49,9 @@ theorem easMergeUIDInnerDone {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {lists out src current ret : UInt256} {i n : Nat} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length+10 ≤ 1024) (hl : memLoad src mem = UInt256.ofNat n)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨12017⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨12017⟩
       (UInt256.ofNat n::lists::out::ret::UInt256.ofNat i::src::current::R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨11990⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨11990⟩
       (out::current::UInt256.ofNat (i+1)::lists::ret::R) mem aw' rdata σ k' C' := by
   obtain ⟨a1,k1,C1,r1⟩ := easBlocks.eas_block_12017_taken_packed (immWords := wordsOf (immStore v))
     (by simp only [List.length_cons]; omega) (by rw [hl,ult_zero (le_refl _)]; decide)
@@ -66,9 +68,9 @@ theorem easMergeUIDInnerStep {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : EASImmutables) (hstack : R.length+18 ≤ 1024)
     (hs : WordArrayMemoryView mem src values out.toNat) (hj : j < values.length)
     (hd : memLoad out mem = UInt256.ofNat len) (hc : c < len) (hlen : len ≤ 2^64-1)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨12017⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨12017⟩
       (UInt256.ofNat j::lists::out::ret::UInt256.ofNat i::src::UInt256.ofNat c::R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨12017⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨12017⟩
       (UInt256.ofNat (j+1)::lists::out::ret::UInt256.ofNat i::src::UInt256.ofNat (c+1)::R)
       (Reasoning.Theory.writeWord mem (UInt256.ofNat (out.toNat+32+32*c)).toNat values[j]) aw' rdata σ k' C' := by
   have hspan := hs.span

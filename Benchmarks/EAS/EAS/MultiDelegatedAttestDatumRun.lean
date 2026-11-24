@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.MultiDelegatedAttestDatumPrepareSource
 import Benchmarks.EAS.EAS.MultiDelegatedAttestVerifyAccess
 import Benchmarks.EAS.EAS.DelegatedAttestationBatch
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach ABI.Solc08Calldata
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -37,7 +39,7 @@ theorem multiDelegatedAttestDatumRun {L : Store} {evm : EVM.State}
     (hjl : j<(delegatedAttestationDataLength ee.calldata root).toNat)
     (hlo : 96≤heap.toNat) (hh : heap.toNat≤2^64-1) (hm : 96≤mem.size)
     (hfree : memLoad (UInt256.ofNat 64) mem=heap)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨2874⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨2874⟩
       (multiDelegatedAttestVerifyStack ee.calldata j root (delegatedAttestationDataOffset ee.calldata root)
         base n (delegatedAttestationDataLength ee.calldata root) available groups total i last R) mem aw out σ k C) :
     let r := delegatedAttestItemRecord ee.calldata root j
@@ -45,17 +47,17 @@ theorem multiDelegatedAttestDatumRun {L : Store} {evm : EVM.State}
     let final := delegatedAttestItemMemory mem ee.calldata root heap j
     let L' := multiDelegatedAttestDatumPreparedLocals L heap.toNat r.data r.signature r.attester
     if delegatedAttestItemValid ee.calldata root heap j then
-      ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedAttestDatumPrepare
+      ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedAttestDatumPrepare
         (.ok {contract := contract,locals := L',immutables := immStore v} evm) ∧
       heap.toNat≤next ∧ next≤2^64-1 ∧ MemoryPrefix mem final heap.toNat ∧
       DelegatedAttestMemoryView final heap (delegatedAttestBuildData heap) (delegatedAttestBuildBytes heap)
         (UInt256.ofNat (next-96)) r next ∧ memLoad (UInt256.ofNat 64) final=UInt256.ofNat next ∧
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨13494⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨13494⟩
         (heap::UInt256.ofNat 3025::UInt256.ofNat j::⟨1⟩::
           multiDelegatedAttestVerifyTail ee.calldata root (delegatedAttestationDataOffset ee.calldata root)
             base n (delegatedAttestationDataLength ee.calldata root) available groups total i last R) final aw' out σ k' C'
-    else ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedAttestDatumPrepare .reverted ∧
-      RDrev (deployedRuntime v) g s0 := by
+    else ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedAttestDatumPrepare .reverted ∧
+      RDrev fork (deployedRuntime v) g s0 := by
   dsimp only
   have hbounds := hb.bounds hsize
   have hjb : j<UInt256.size := by have := (delegatedAttestationDataLength ee.calldata root).val.isLt;omega
@@ -65,7 +67,7 @@ theorem multiDelegatedAttestDatumRun {L : Store} {evm : EVM.State}
   have hjs : j<(delegatedAttestationSigList ee.calldata root).length := by rw [delegatedAttestationSigList_length,← hb.lengths];exact hjl
   have hdval := delegatedAttestationData_get ee.calldata (delegatedBatchArray ee.calldata root 32) j hjd hslot
   have hsval := delegatedAttestationSignature_get ee.calldata (delegatedBatchArray ee.calldata root 64) j hjs
-  have hsrc := multiDelegatedAttestDatumPrepareSource (imms := immStore v) (evm := evm)
+  have hsrc := multiDelegatedAttestDatumPrepareSource (fork := fork) (imms := immStore v) (evm := evm)
     (r := (delegatedAttestItemRecord ee.calldata root j).data) (s := (delegatedAttestItemRecord ee.calldata root j).signature)
     (addr := (delegatedAttestItemRecord ee.calldata root j).attester)
     (delegatedAttestationDataValid ee.calldata (delegatedAttestationDataOffset ee.calldata root) j)

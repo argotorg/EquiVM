@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.OracleInterpolationEval
 import Benchmarks.UniswapV3.Pool.OracleInterpolationFrame
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -11,7 +13,7 @@ theorem oracleInterpolationReturns {frame : Frame} {evm : EVM.State}
     (hb : frame.locals.get? "beforeOrAt" = some before.value)
     (ha : frame.locals.get? "atOrAfter" = some after.value)
     (hn : (oracleDelta after.timestamp before.timestamp).toNat ≠ 0) :
-    ExecBlock config frame evm oracleInterpolationBlock
+    ExecBlock fork config frame evm oracleInterpolationBlock
       (.returned (oracleInterpolationFrame frame before after target) evm
         (some (oracleInterpolatedValues before after target))) := by
   rw [← List.take_append_drop 2 oracleInterpolationBlock]
@@ -30,7 +32,7 @@ theorem oracleInterpolationReverts {frame : Frame} {evm : EVM.State}
     (hb : frame.locals.get? "beforeOrAt" = some before.value)
     (ha : frame.locals.get? "atOrAfter" = some after.value)
     (hz : (oracleDelta after.timestamp before.timestamp).toNat = 0) :
-    ExecBlock config frame evm oracleInterpolationBlock .reverted := by
+    ExecBlock fork config frame evm oracleInterpolationBlock .reverted := by
   rw [← List.take_append_drop 2 oracleInterpolationBlock]
   apply execBlock_append_ok (oracleInterpolationPrefix before after target ht hb ha)
   refine ExecBlock.consRevert (ExecStmt.returnRevert ?_)

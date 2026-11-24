@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.Common
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_073
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -16,9 +18,9 @@ local macro "pool_clear_decode" "(" v:term "," pc:term "," byte:term ","
 theorem tickClearStaticX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw tick base ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨21964⟩ (tick :: base :: ret :: R)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨21964⟩ (tick :: base :: ret :: R)
       mem aw rdata σ k C) (hp : ee.perm = false) (hov : R.length + 6 ≤ 1024) :
-    RDstatic (deployedRuntime v) g s0 := by
+    RDstatic fork (deployedRuntime v) g s0 := by
   have r0 := evm_run rd with [
     raw jumpdest
       (by pool_clear_decode(v, 21964, 91, .JUMPDEST, none)) (by evm_ov),

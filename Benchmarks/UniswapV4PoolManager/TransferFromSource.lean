@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.BalanceTransfer
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 2000000
@@ -80,7 +82,7 @@ theorem transferFromAuthCond_eval {f : Frame} {evm : EVM.State} {sender receiver
 
 theorem transferFromAuthExec {f : Frame} {evm : EVM.State} {sender receiver id amount : UInt256}
     (h : TransferFromArgs f sender receiver id amount) (hcs : sender.toNat < EVM.addressModulus) :
-    ExecStmt config f evm transferFromAuthStmt (transferFromAuthResult f evm sender id amount) := by
+    ExecStmt fork config f evm transferFromAuthStmt (transferFromAuthResult f evm sender id amount) := by
   have hg := transferFromAuthCond_eval (evm := evm) h hcs
   by_cases hneed : transferFromNeedsAllowance evm sender
   · rw [transferFromAuthResult, if_pos hneed]
@@ -118,7 +120,7 @@ theorem transferFromAuthExec {f : Frame} {evm : EVM.State} {sender receiver id a
             (ExecBlock.consStatic (ExecStmt.assignStatic heval hwrite hperm)))
         · rw [if_neg hperm]
           exact ExecBlock.consNormal (ExecStmt.iteTrue hcondTrue
-            (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (Bool.eq_true_of_not_eq_false hperm)) heval hwrite) ExecBlock.nil)) ExecBlock.nil
+            (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (Bool.eq_true_of_not_eq_false hperm)) heval hwrite) ExecBlock.nil)) ExecBlock.nil
       · rw [if_neg hsub]
         exact ExecBlock.consRevert (ExecStmt.iteTrue hcondTrue
           (ExecBlock.consRevert (ExecStmt.assignExprRevert
@@ -131,10 +133,10 @@ theorem transferFromBodyAfterAuth {evm evm' : EVM.State} {locals imms : Store} {
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hhi : evm.executionEnv.calldata.size < calldataLimit)
     (hcs : sender.toNat < EVM.addressModulus) (hcr : receiver.toNat < EVM.addressModulus)
     (h : TransferFromArgs f' sender receiver id amount)
-    (hauth : ExecStmt config (calldataFrame contract locals imms evm) evm transferFromAuthStmt (.ok f' evm')) :
-    ExecTransitionBody config contract evm locals transferFromTransition.body
+    (hauth : ExecStmt fork config (calldataFrame contract locals imms evm) evm transferFromAuthStmt (.ok f' evm')) :
+    ExecTransitionBody fork config contract evm locals transferFromTransition.body
       (balanceTransferResult f' evm' sender receiver id amount) imms := by
-  have hblock := balanceTransferBlockExec f' evm' (.var "sender") sender receiver id amount
+  have hblock := balanceTransferBlockExec (fork := fork) f' evm' (.var "sender") sender receiver id amount
     h.contract_eq hcs hcr (fun _ _ => evalLocalValue h.sender_get)
     h.receiver_get h.id_get h.amount_get h.balance_get
   exact execFuncBody_of_terminal (nonpayableCalldataBlock hwv hhi (ExecBlock.consNormal hauth hblock))
@@ -142,14 +144,14 @@ theorem transferFromBodyAfterAuth {evm evm' : EVM.State} {locals imms : Store} {
 
 theorem transferFromBodyAuthReverts {evm : EVM.State} {locals imms : Store}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hhi : evm.executionEnv.calldata.size < calldataLimit)
-    (hauth : ExecStmt config (calldataFrame contract locals imms evm) evm transferFromAuthStmt .reverted) :
-    ExecTransitionBody config contract evm locals transferFromTransition.body .reverted imms :=
+    (hauth : ExecStmt fork config (calldataFrame contract locals imms evm) evm transferFromAuthStmt .reverted) :
+    ExecTransitionBody fork config contract evm locals transferFromTransition.body .reverted imms :=
   ExecFuncBody.execBlockRevert (nonpayableCalldataBlock hwv hhi (ExecBlock.consRevert hauth))
 
 theorem transferFromBodyAuthStatic {evm : EVM.State} {locals imms : Store}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hhi : evm.executionEnv.calldata.size < calldataLimit)
-    (hauth : ExecStmt config (calldataFrame contract locals imms evm) evm transferFromAuthStmt .staticViolation) :
-    ExecTransitionBody config contract evm locals transferFromTransition.body .staticViolation imms :=
+    (hauth : ExecStmt fork config (calldataFrame contract locals imms evm) evm transferFromAuthStmt .staticViolation) :
+    ExecTransitionBody fork config contract evm locals transferFromTransition.body .staticViolation imms :=
   ExecFuncBody.execBlockStatic (nonpayableCalldataBlock hwv hhi (ExecBlock.consStatic hauth))
 
 end Benchmarks.UniswapV4PoolManager

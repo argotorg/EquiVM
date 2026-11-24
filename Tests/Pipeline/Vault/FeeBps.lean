@@ -1,5 +1,7 @@
 import Tests.Pipeline.Vault.Dispatch
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Vault `feeBps()`
 
@@ -21,7 +23,7 @@ theorem vaultFeeBpsBody {σ σ₀ A I} {g : UInt256} (v : VaultImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (vaultSelBytes 2)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (vaultSelBytes 2) rfl hsel
   sorry
 

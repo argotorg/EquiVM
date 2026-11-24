@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.TotalsStorage
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_018
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_058
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -17,9 +19,9 @@ theorem cometSupplyBaseEvents {v : CometWithExtendedAssetListImmutables}
     {R : List UInt256} (hstack : R.length + 13 ≤ 1024)
     (hsupplied : supplied.toNat < 2^104) (hperm : ee.perm = true)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨12604⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨12604⟩
       (amount :: sender :: supplied :: dst :: ret :: R) mem aw rdata σ k C) :
-    ∃ mem' aw' k' C', RD (deployedRuntime v) ee g s0 ret R mem' aw' rdata σ k' C' := by
+    ∃ mem' aw' k' C', RD fork (deployedRuntime v) ee g s0 ret R mem' aw' rdata σ k' C' := by
   by_cases hz : supplied = UInt256.ofNat 0
   · have r1 := cometWithExtendedAssetList_block_12604_fallthrough
       (immWords := wordsOf (immStore v)) (by change R.length + 1 + 7 ≤ 1024; omega)

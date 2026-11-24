@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.OracleGrowStorage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -51,11 +53,11 @@ theorem oracleGrowStep (imms : Store) (evm : EVM.State) (locals : Store) (i : Na
     (hi : i < 65535) (hget : locals.get? "i" = some (.int (Int.ofNat i)))
     (hbase : locals.get? "observations" = none)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm oracleGrowBody
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm oracleGrowBody
       (.ok {contract := contract, locals := locals, immutables := imms}
         (storeObservationTimestampOne evm (UInt256.ofNat i))) := by
   unfold oracleGrowBody
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) (value := .int 1)
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (value := .int 1)
     (by simp only [evalExpr?, pure]) ?_) ExecBlock.nil
   apply assignObservationTimestampOne _ _ _ "i" (UInt256.ofNat i) hbase
   · rw [ulit_toNat' i (by change i < 2 ^ 256; omega)]; exact hget
@@ -76,20 +78,20 @@ theorem evalExpr_uint_increment {cfg : Config} {frame : Frame} {evm : EVM.State}
 
 theorem oracleGrowIncrement (imms : Store) (evm : EVM.State) (locals : Store) (i : Nat)
     (hi : i < 65535) (hget : locals.get? "i" = some (.int (Int.ofNat i))) :
-    ExecBlock config {contract := contract, locals := locals, immutables := imms} evm oracleGrowPost
+    ExecBlock fork config {contract := contract, locals := locals, immutables := imms} evm oracleGrowPost
       (.ok { contract := contract, locals := locals.insert "i" (.int (Int.ofNat (i + 1))),
              immutables := imms } evm) := by
   have heval := evalExpr_uint_increment (cfg := config) (evm := evm)
     (frame := {contract := contract, locals := locals, immutables := imms})
     ⟨16, by decide⟩ i (evalExpr_var_get hget) (by change i + 1 < 65536; omega)
-  exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inl rfl) heval (assignLocalVarBase_frame hget)) ExecBlock.nil
+  exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inl rfl) heval (assignLocalVarBase_frame hget)) ExecBlock.nil
 
 theorem oracleGrowLoop (imms : Store) (evm : EVM.State) (locals : Store) (next : UInt256) (i count : Nat)
     (hnext : next.toNat < 2 ^ 16) (hsum : i + count = next.toNat)
     (hn : locals.get? "next" = some (.int (Int.ofNat next.toNat)))
     (hi : locals.get? "i" = some (.int (Int.ofNat i))) (hbase : locals.get? "observations" = none)
     (hperm : evm.executionEnv.perm = true) :
-    ∃ locals', ExecForLoop config {contract := contract, locals := locals, immutables := imms} evm
+    ∃ locals', ExecForLoop fork config {contract := contract, locals := locals, immutables := imms} evm
       oracleGrowCondition oracleGrowPost oracleGrowBody
       (.ok {contract := contract, locals := locals', immutables := imms} (oracleGrowState evm i count)) ∧
       locals'.get? "next" = some (.int (Int.ofNat next.toNat)) := by
@@ -110,7 +112,7 @@ theorem oracleGrowLoop (imms : Store) (evm : EVM.State) (locals : Store) (next :
       obtain ⟨locals', hloop, hnFinal⟩ := ih (storeObservationTimestampOne evm (UInt256.ofNat i))
         (locals.insert "i" (.int (Int.ofNat (i + 1)))) (i + 1) (by omega) hn' hi' hb'
         (by simpa only [storeObservationTimestampOne_executionEnv] using hperm)
-      refine ⟨locals', ExecForLoop.iterate ?_ (oracleGrowStep (hperm := hperm) imms evm locals i hib hi hbase)
+      refine ⟨locals', ExecForLoop.iterate ?_ (oracleGrowStep (fork := fork) (hperm := hperm) imms evm locals i hib hi hbase)
         (oracleGrowIncrement imms _ locals i hib hi) hloop, hnFinal⟩
       simpa only [show i < next.toNat by omega, decide_true] using
         evalOracleGrowCondition imms evm locals next i hn hi
@@ -119,7 +121,7 @@ def oracleGrowResult (current next : UInt256) : UInt256 :=
   if current.toNat < next.toNat then next else current
 
 theorem oracleGrowRevertsZero (imms : Store) (evm : EVM.State) (next : UInt256) :
-    ExecFuncBody config (oracleGrowFrame imms ⟨0⟩ next) evm oracleGrowFunction.body .reverted := by
+    ExecFuncBody fork config (oracleGrowFrame imms ⟨0⟩ next) evm oracleGrowFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply ExecBlock.consRevert (ExecStmt.requireFalse ?_)
   simpa using evalOracleGrowPositive imms evm ⟨0⟩ next
@@ -127,11 +129,11 @@ theorem oracleGrowRevertsZero (imms : Store) (evm : EVM.State) (next : UInt256) 
 theorem oracleGrowReturns (imms : Store) (evm : EVM.State) (current next : UInt256)
     (hpos : 0 < current.toNat) (hnext : next.toNat < 2 ^ 16)
     (hperm : evm.executionEnv.perm = true) :
-    ∃ frame, ExecFuncBody config (oracleGrowFrame imms current next) evm oracleGrowFunction.body
+    ∃ frame, ExecFuncBody fork config (oracleGrowFrame imms current next) evm oracleGrowFunction.body
       (.returned frame (oracleGrowState evm current.toNat (next.toNat - current.toNat))
         (some [.int (Int.ofNat (oracleGrowResult current next).toNat)])) := by
   by_cases hgrow : current.toNat < next.toNat
-  · obtain ⟨localsFinal, hloop, hgetFinal⟩ := oracleGrowLoop (hperm := hperm) imms evm
+  · obtain ⟨localsFinal, hloop, hgetFinal⟩ := oracleGrowLoop (fork := fork) (hperm := hperm) imms evm
       (oracleGrowLoopFrame imms current next current.toNat).locals next current.toNat
       (next.toNat - current.toNat) hnext (by omega)
       (by simp [oracleGrowLoopFrame, oracleGrowLocals, Std.HashMap.getElem_insert])

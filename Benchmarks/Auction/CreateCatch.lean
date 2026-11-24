@@ -3,6 +3,8 @@ import Benchmarks.Auction.CreateErrorSource
 import Benchmarks.Auction.PauseRoutine
 import Benchmarks.Auction.SettleStorage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -23,7 +25,7 @@ theorem SourceState.pause {s0 I σ evm} (hs : SourceState s0 I σ evm) :
   exact hs.storageWrite _ _
 
 theorem createCatchRoutine {I g s0 ret R mem aw ptr out σ k C evm locals}
-    (h : RD auctionBytecode I g s0 ⟨3116⟩ (ret :: R) mem aw out σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨3116⟩ (ret :: R) mem aw out σ k C)
     (hs : SourceState s0 I σ evm) (hperm : I.perm = true)
     (hm : HeapMemory mem aw ptr) (hin : ptr.toNat ≤ mem.size)
     (hb : ptr.toNat + out.size + 64 ≤ 2 ^ 200)
@@ -32,12 +34,12 @@ theorem createCatchRoutine {I g s0 ret R mem aw ptr out σ k C evm locals}
     (hpause : locals.get? "_paused" = none)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 19 ≤ 1024) :
     (∃ evm' σ' locals' mem' aw' k' C',
-      ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
+      ExecBlock fork auctionConfig { contract := auctionContract, locals := locals } evm
         createCatchStmts (.ok { contract := auctionContract, locals := locals' } evm') ∧
       SourceState s0 I σ' evm' ∧
-      RD auctionBytecode I g s0 ret R mem' aw' out σ' k' C') ∨
-    (ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
-      createCatchStmts .reverted ∧ RDrev auctionBytecode g s0) := by
+      RD fork auctionBytecode I g s0 ret R mem' aw' out σ' k' C') ∨
+    (ExecBlock fork auctionConfig { contract := auctionContract, locals := locals } evm
+      createCatchStmts .reverted ∧ RDrev fork auctionBytecode g s0) := by
   by_cases he : returnSelector out = ⟨0x08c379a0⟩
   · have hse := createCatchSelectorTrue (evm := evm) hd ((returnSelector_match out).mp he)
     rcases createErrorDecodeRuntime h hm hin hb he hov with

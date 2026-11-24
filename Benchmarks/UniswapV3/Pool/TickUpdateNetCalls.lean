@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.TickUpdateNetModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -25,7 +27,7 @@ theorem evalTickUpdateNetArgs (imms : Store) (evm : EVM.State) (a : TickUpdateAr
 
 theorem tickUpdateMathCall (imms : Store) (evm : EVM.State) (a : TickUpdateArgs)
     (subtract : Bool) (hdlo : -(2 ^ 127 : Int) ≤ a.delta) (hdhi : a.delta < 2 ^ 127) :
-    ExecStmt config (tickUpdateNetStartFrame imms a evm) (tickUpdateGrossState a evm)
+    ExecStmt fork config (tickUpdateNetStartFrame imms a evm) (tickUpdateGrossState a evm)
       ((tickUpdateNetBody subtract)[0]!)
       (.ok (tickUpdateMathFrame imms a evm subtract) (tickUpdateGrossState a evm)) := by
   exact internalCallFunctionReturn (callee := safeSignedMathFunction subtract)
@@ -47,7 +49,7 @@ theorem evalTickUpdateCastArgs (imms : Store) (evm : EVM.State) (a : TickUpdateA
 
 theorem tickUpdateCastCall (imms : Store) (evm : EVM.State) (a : TickUpdateArgs)
     (subtract : Bool) (hv : safeCast128Valid (tickUpdateNetResult a evm subtract)) :
-    ExecStmt config (tickUpdateMathFrame imms a evm subtract) (tickUpdateGrossState a evm)
+    ExecStmt fork config (tickUpdateMathFrame imms a evm subtract) (tickUpdateGrossState a evm)
       ((tickUpdateNetBody subtract)[1]!)
       (.ok (tickUpdateCastFrame imms a evm subtract) (tickUpdateGrossState a evm)) := by
   exact internalCallFunctionReturn (callee := safeCast128Function)
@@ -61,12 +63,12 @@ theorem tickUpdateCastCall (imms : Store) (evm : EVM.State) (a : TickUpdateArgs)
 theorem tickUpdateNetBranchSource (imms : Store) (evm : EVM.State) (a : TickUpdateArgs)
     (subtract : Bool) (hdlo : -(2 ^ 127 : Int) ≤ a.delta) (hdhi : a.delta < 2 ^ 127)
     (hv : safeCast128Valid (tickUpdateNetResult a evm subtract)) :
-    ExecBlock config (tickUpdateNetStartFrame imms a evm) (tickUpdateGrossState a evm)
+    ExecBlock fork config (tickUpdateNetStartFrame imms a evm) (tickUpdateGrossState a evm)
       (tickUpdateNetBody subtract)
       (.ok (tickUpdateNetReadyFrame imms a evm subtract) (tickUpdateGrossState a evm)) := by
   refine ExecBlock.consNormal (tickUpdateMathCall imms evm a subtract hdlo hdhi) ?_
   refine ExecBlock.consNormal (tickUpdateCastCall imms evm a subtract hv) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
     (evalExpr_var_get Std.HashMap.getElem?_insert_self) ?_) ExecBlock.nil
   apply assignLocalVarBase_frame (old := .int 0)
   cases subtract <;> simp only [tickUpdateCastFrame, tickUpdateMathFrame, tickUpdateNetStartFrame,
@@ -76,7 +78,7 @@ theorem tickUpdateNetBranchSource (imms : Store) (evm : EVM.State) (a : TickUpda
 theorem tickUpdateNetBranchReverts (imms : Store) (evm : EVM.State) (a : TickUpdateArgs)
     (subtract : Bool) (hdlo : -(2 ^ 127 : Int) ≤ a.delta) (hdhi : a.delta < 2 ^ 127)
     (hv : ¬ safeCast128Valid (tickUpdateNetResult a evm subtract)) :
-    ExecBlock config (tickUpdateNetStartFrame imms a evm) (tickUpdateGrossState a evm)
+    ExecBlock fork config (tickUpdateNetStartFrame imms a evm) (tickUpdateGrossState a evm)
       (tickUpdateNetBody subtract) .reverted := by
   refine ExecBlock.consNormal (tickUpdateMathCall imms evm a subtract hdlo hdhi) ?_
   apply ExecBlock.consRevert

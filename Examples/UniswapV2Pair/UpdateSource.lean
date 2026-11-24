@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.SyncRuntime
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -284,7 +286,7 @@ theorem bindParams_sync_update_call_with
 theorem uniswapUpdateFunctionReverts_firstBound
     (evm : EVM.State) (balance0 balance1 : UInt256)
     (hbound : maxUint112 < Int.ofNat balance0.toNat) :
-    ExecFuncBody config (syncUpdateCallFrame evm balance0 balance1) evm
+    ExecFuncBody fork config (syncUpdateCallFrame evm balance0 balance1) evm
       updateFunction.body .reverted := by
   exact ExecFuncBody.execBlockRevert
     (ExecBlock.consRevert
@@ -294,7 +296,7 @@ theorem uniswapUpdateFunctionReverts_firstBound
 theorem uniswapUpdateFunctionReverts_firstBound_with
     (evm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256)
     (hbound : maxUint112 < Int.ofNat balance0.toNat) :
-    ExecFuncBody config (syncUpdateCallFrameWith balance0 balance1 reserve0 reserve1) evm
+    ExecFuncBody fork config (syncUpdateCallFrameWith balance0 balance1 reserve0 reserve1) evm
       updateFunction.body .reverted := by
   exact ExecFuncBody.execBlockRevert
     (ExecBlock.consRevert
@@ -306,7 +308,7 @@ theorem uniswapUpdateFunctionReverts_secondBound
     (evm : EVM.State) (balance0 balance1 : UInt256)
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : maxUint112 < Int.ofNat balance1.toNat) :
-    ExecFuncBody config (syncUpdateCallFrame evm balance0 balance1) evm
+    ExecFuncBody fork config (syncUpdateCallFrame evm balance0 balance1) evm
       updateFunction.body .reverted := by
   exact ExecFuncBody.execBlockRevert
     (ExecBlock.consRevert
@@ -317,7 +319,7 @@ theorem uniswapUpdateFunctionReverts_secondBound_with
     (evm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256)
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : maxUint112 < Int.ofNat balance1.toNat) :
-    ExecFuncBody config (syncUpdateCallFrameWith balance0 balance1 reserve0 reserve1) evm
+    ExecFuncBody fork config (syncUpdateCallFrameWith balance0 balance1 reserve0 reserve1) evm
       updateFunction.body .reverted := by
   exact ExecFuncBody.execBlockRevert
     (ExecBlock.consRevert
@@ -328,7 +330,7 @@ theorem uniswapUpdateFunctionReverts_secondBound_with
 theorem uniswapSyncUpdateCallReverts_firstBound
     (evm : EVM.State) (balance0 balance1 : UInt256)
     (hbound : maxUint112 < Int.ofNat balance0.toNat) :
-    ExecStmt config { contract := contract, locals := syncBalanceStore balance0 balance1 } evm
+    ExecStmt fork config { contract := contract, locals := syncBalanceStore balance0 balance1 } evm
       (.internalCall "_update"
         [ .var "balance0", .var "balance1", .storage reserve0Ref, .storage reserve1Ref ]
         "_updateResult") .reverted := by
@@ -343,7 +345,7 @@ theorem uniswapSyncUpdateCallReverts_secondBound
     (evm : EVM.State) (balance0 balance1 : UInt256)
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : maxUint112 < Int.ofNat balance1.toNat) :
-    ExecStmt config { contract := contract, locals := syncBalanceStore balance0 balance1 } evm
+    ExecStmt fork config { contract := contract, locals := syncBalanceStore balance0 balance1 } evm
       (.internalCall "_update"
         [ .var "balance0", .var "balance1", .storage reserve0Ref, .storage reserve1Ref ]
         "_updateResult") .reverted := by
@@ -1296,7 +1298,7 @@ theorem uniswapUpdateFunctionReturns_conditionFalse
             (.binary .ne (.var "_reserve1") (.intLit 0)))) = .ok (.bool false))
     (hperm : evm.executionEnv.perm = true) :
     ∃ evm', evm'.executionEnv = evm.executionEnv ∧
-      ExecFuncBody config (syncUpdateCallFrame evm balance0 balance1) evm
+      ExecFuncBody fork config (syncUpdateCallFrame evm balance0 balance1) evm
         updateFunction.body
         (.returned
           { contract := contract, locals := syncUpdateTimeElapsedStore evm balance0 balance1 }
@@ -1312,7 +1314,7 @@ theorem uniswapUpdateFunctionReturns_conditionFalse
   have henv1 := (storageLocStore_executionEnv_eq hstore1).trans henv0
   have henv2 := (storageLocStore_executionEnv_eq hstoreTs).trans henv1
   refine ⟨evm2, henv2, ExecFuncBody.execBlockOK ?_⟩
-  change ExecBlock config (syncUpdateCallFrame evm balance0 balance1) evm
+  change ExecBlock fork config (syncUpdateCallFrame evm balance0 balance1) evm
     [ .require (.binary .and
         (.binary .le (.var "balance0") (.intLit maxUint112))
         (.binary .le (.var "balance1") (.intLit maxUint112))),
@@ -1386,7 +1388,7 @@ theorem uniswapUpdateFunctionReturns_elapsedZero
     (helapsed : syncTimeElapsedInt evm = 0)
     (hperm : evm.executionEnv.perm = true) :
     ∃ evm', evm'.executionEnv = evm.executionEnv ∧
-      ExecFuncBody config (syncUpdateCallFrame evm balance0 balance1) evm
+      ExecFuncBody fork config (syncUpdateCallFrame evm balance0 balance1) evm
         updateFunction.body
         (.returned
           { contract := contract, locals := syncUpdateTimeElapsedStore evm balance0 balance1 }
@@ -1403,7 +1405,7 @@ theorem uniswapUpdateFunctionReturns_conditionTrue
     (hreserve1 : Int.ofNat (uniswapReserve1Word evm).toNat ≠ 0)
     (hperm : evm.executionEnv.perm = true) :
     ∃ evm', evm'.executionEnv = evm.executionEnv ∧
-      ExecFuncBody config (syncUpdateCallFrame evm balance0 balance1) evm
+      ExecFuncBody fork config (syncUpdateCallFrame evm balance0 balance1) evm
         updateFunction.body
         (.returned
           { contract := contract, locals := syncUpdateTimeElapsedStore evm balance0 balance1 }
@@ -1428,7 +1430,7 @@ theorem uniswapUpdateFunctionReturns_conditionTrue
   have henvR1 := (storageLocStore_executionEnv_eq hstoreR1).trans henvR0
   have henvTs := (storageLocStore_executionEnv_eq hstoreTs).trans henvR1
   refine ⟨evmTs, henvTs, ExecFuncBody.execBlockOK ?_⟩
-  change ExecBlock config (syncUpdateCallFrame evm balance0 balance1) evm
+  change ExecBlock fork config (syncUpdateCallFrame evm balance0 balance1) evm
     [ .require (.binary .and
         (.binary .le (.var "balance0") (.intLit maxUint112))
         (.binary .le (.var "balance1") (.intLit maxUint112))),
@@ -1467,7 +1469,7 @@ theorem uniswapUpdateFunctionReturns_conditionTrue
   refine ExecBlock.consNormal
     (ExecStmt.letDecl (evalExpr_sync_update_timeElapsed evm balance0 balance1)) ?_
   have hpriceBlock :
-      ExecBlock config
+      ExecBlock fork config
         { contract := contract, locals := syncUpdateTimeElapsedStore evm balance0 balance1 } evm
         [ .assign .storage price0CumulativeLastRef
             (wrapU256 (.binary .add (.storage price0CumulativeLastRef)
@@ -1538,7 +1540,7 @@ theorem uniswapSyncUpdateCallReturns_elapsedZero
     (helapsed : syncTimeElapsedInt evm = 0)
     (hperm : evm.executionEnv.perm = true) :
     ∃ evm', evm'.executionEnv = evm.executionEnv ∧
-      ExecStmt config { contract := contract, locals := syncBalanceStore balance0 balance1 } evm
+      ExecStmt fork config { contract := contract, locals := syncBalanceStore balance0 balance1 } evm
         (.internalCall "_update"
           [ .var "balance0", .var "balance1", .storage reserve0Ref, .storage reserve1Ref ]
           "_updateResult")
@@ -1578,7 +1580,7 @@ theorem uniswapSyncUpdateCallReturns_conditionFalse
             (.binary .ne (.var "_reserve1") (.intLit 0)))) = .ok (.bool false))
     (hperm : evm.executionEnv.perm = true) :
     ∃ evm', evm'.executionEnv = evm.executionEnv ∧
-      ExecStmt config { contract := contract, locals := syncBalanceStore balance0 balance1 } evm
+      ExecStmt fork config { contract := contract, locals := syncBalanceStore balance0 balance1 } evm
         (.internalCall "_update"
           [ .var "balance0", .var "balance1", .storage reserve0Ref, .storage reserve1Ref ]
           "_updateResult")
@@ -1612,7 +1614,7 @@ theorem uniswapSyncUpdateCallReturns_conditionTrue
     (hreserve1 : Int.ofNat (uniswapReserve1Word evm).toNat ≠ 0)
     (hperm : evm.executionEnv.perm = true) :
     ∃ evm', evm'.executionEnv = evm.executionEnv ∧
-      ExecStmt config { contract := contract, locals := syncBalanceStore balance0 balance1 } evm
+      ExecStmt fork config { contract := contract, locals := syncBalanceStore balance0 balance1 } evm
         (.internalCall "_update"
           [ .var "balance0", .var "balance1", .storage reserve0Ref, .storage reserve1Ref ]
           "_updateResult")

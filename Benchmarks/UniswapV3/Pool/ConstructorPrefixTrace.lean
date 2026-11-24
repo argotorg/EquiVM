@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.ConstructorInputMemory
 import Benchmarks.UniswapV3.Pool.CreationBlocks_001
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open uniswapV3PoolCreationBlocks
 namespace Benchmarks.UniswapV3.Pool
@@ -37,17 +39,17 @@ theorem constructorInputSummaryStack (ee : ExecutionEnv) (σ : AccountMap) :
 
 theorem constructorNonpayableX {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {σ : AccountMap} {aw : UInt256} {k C : Nat} {rdata : ByteArray}
-    (rd : RD (uniswapV3PoolCreationBytecode ++ tail) ee g s0 ⟨0⟩ [] ByteArray.empty aw rdata σ k C)
-    (hwv : ee.weiValue ≠ ⟨0⟩) : RDrev (uniswapV3PoolCreationBytecode ++ tail) g s0 := by
+    (rd : RD fork (uniswapV3PoolCreationBytecode ++ tail) ee g s0 ⟨0⟩ [] ByteArray.empty aw rdata σ k C)
+    (hwv : ee.weiValue ≠ ⟨0⟩) : RDrev fork (uniswapV3PoolCreationBytecode ++ tail) g s0 := by
   have rb := uniswapV3PoolCreation_block_0_fallthrough (by decide)
     (isZero_eq_zero_of_ne hwv) rd
   exact uniswapV3PoolCreation_block_14 (by change 3 ≤ 1024; decide) rb
 
 theorem constructorZeroValueX {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {σ : AccountMap} {aw : UInt256} {k C : Nat} {rdata : ByteArray}
-    (rd : RD (uniswapV3PoolCreationBytecode ++ tail) ee g s0 ⟨0⟩ [] ByteArray.empty aw rdata σ k C)
+    (rd : RD fork (uniswapV3PoolCreationBytecode ++ tail) ee g s0 ⟨0⟩ [] ByteArray.empty aw rdata σ k C)
     (hwv : ee.weiValue = ⟨0⟩) :
-    ∃ k' C' aw', RD (uniswapV3PoolCreationBytecode ++ tail) ee g s0 ⟨18⟩ [⟨0⟩]
+    ∃ k' C' aw', RD fork (uniswapV3PoolCreationBytecode ++ tail) ee g s0 ⟨18⟩ [⟨0⟩]
       constructorFreeMem aw' rdata σ k' C' := by
   have rn := uniswapV3PoolCreation_block_0_taken (by decide) (by rw [hwv]; decide)
     (by native_decide) rd
@@ -56,20 +58,20 @@ theorem constructorZeroValueX {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256
 
 theorem constructorNoCodeX {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {σ : AccountMap} {aw : UInt256} {k C : Nat} {rdata : ByteArray}
-    (rd : RD (uniswapV3PoolCreationBytecode ++ tail) ee g s0 ⟨18⟩ [⟨0⟩]
+    (rd : RD fork (uniswapV3PoolCreationBytecode ++ tail) ee g s0 ⟨18⟩ [⟨0⟩]
       constructorFreeMem aw rdata σ k C)
     (hc : extCodeSizeWord σ (UInt256.ofNat ee.source.val) = ⟨0⟩) :
-    RDrev (uniswapV3PoolCreationBytecode ++ tail) g s0 := by
+    RDrev fork (uniswapV3PoolCreationBytecode ++ tail) g s0 := by
   obtain ⟨_, _, rb⟩ := uniswapV3PoolCreation_block_18_fallthrough (by decide)
     (by rw [hc]; decide) rd
   exact uniswapV3PoolCreation_block_82 (by change 12 ≤ 1024; decide) rb
 
 theorem constructorBeforeCallX {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {σ : AccountMap} {aw : UInt256} {k C : Nat} {rdata : ByteArray}
-    (rd : RD (uniswapV3PoolCreationBytecode ++ tail) ee g s0 ⟨18⟩ [⟨0⟩]
+    (rd : RD fork (uniswapV3PoolCreationBytecode ++ tail) ee g s0 ⟨18⟩ [⟨0⟩]
       constructorFreeMem aw rdata σ k C)
     (hc : extCodeSizeWord σ (UInt256.ofNat ee.source.val) ≠ ⟨0⟩) :
-    ∃ k' C' aw' gasArg, RD (uniswapV3PoolCreationBytecode ++ tail) ee g s0 ⟨89⟩
+    ∃ k' C' aw' gasArg, RD fork (uniswapV3PoolCreationBytecode ++ tail) ee g s0 ⟨89⟩
       [gasArg, UInt256.ofNat ee.source.val, ⟨352⟩, ⟨4⟩, ⟨352⟩, ⟨160⟩,
         ⟨356⟩, ⟨2298697520⟩, UInt256.ofNat ee.source.val, ⟨0⟩]
       (constructorInputMem ee.codeOwner) aw' rdata σ k' C' := by

@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.RevokeArrayStore
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -17,9 +19,9 @@ theorem easRevokeValuesLog {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hr : request.toNat+64 ≤ site.values.toNat)
     (hu : memLoad request mem = word) (hv : memLoad (request+UInt256.ofNat 32) mem = value)
     (hh : memLoad (UInt256.ofNat 64) mem = heap)
-    (rd : RD (deployedRuntime v) ee g s0 site.kind.valuesPC
+    (rd : RD fork (deployedRuntime v) ee g s0 site.kind.valuesPC
       (revokeValuesStack site ee cell request (UInt256.ofNat i) word R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 site.kind.loopPC (revokeLoopStack site ee (UInt256.ofNat (i+1)) R)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 site.kind.loopPC (revokeLoopStack site ee (UInt256.ofNat (i+1)) R)
       (revokeValuesLogMemory mem site heap value word i) aw' rdata σ k' C' := by
   let m := Reasoning.Theory.writeWord mem (site.values.toNat+32+32*i) value
   have hcell : (UInt256.ofNat (site.values.toNat+32+32*i)).toNat = site.values.toNat+32+32*i := ulit_toNat' _ (by omega)

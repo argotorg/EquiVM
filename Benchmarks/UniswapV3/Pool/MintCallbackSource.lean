@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.FlashCallbackSource
 import Benchmarks.UniswapV3.Pool.Calls
 import Benchmarks.UniswapV3.Pool.SourceExpressions
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 
@@ -25,7 +27,7 @@ theorem mintCallbackNoCode {frame : Frame} {evm : EVM.State} {σ : AccountMap}
     {target : AccountAddress} (ha : σ = evm.accountMap)
     (ht : frame.locals.get? "callback" = some (.address target))
     (hc : extCodeSizeWord σ (EVM.word target.val) = ⟨0⟩) :
-    ExecBlock config frame evm mintCallbackStmts .reverted := by
+    ExecBlock fork config frame evm mintCallbackStmts .reverted := by
   apply checkedExternalCallVarNoCode
   simpa only [hc, show (⟨0⟩ : UInt256).toNat = 0 from rfl, Nat.lt_irrefl, decide_false] using
     evalFlashCallbackGuard ha ht
@@ -38,8 +40,8 @@ theorem mintCallbackReverts {frame : Frame} {evm evm' : EVM.State} {σ : Account
     (hf1 : frame.locals.get? "amount1" = some (.int (Int.ofNat amount1.toNat)))
     (hd : frame.locals.get? "data" = some (.bytes data))
     (hc : extCodeSizeWord σ (EVM.word target.val) ≠ ⟨0⟩)
-    (hcall : callViaEVM evm target 0 (mintCallbackCalldata amount0 amount1 data) (false, evm', out)) :
-    ExecBlock config frame evm mintCallbackStmts .reverted := by
+    (hcall : callViaEVM fork evm target 0 (mintCallbackCalldata amount0 amount1 data) (false, evm', out)) :
+    ExecBlock fork config frame evm mintCallbackStmts .reverted := by
   apply checkedExternalCallVarFailure (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evm' := evm') (out := out) (flashCallbackGuardTrue ha ht hc) ht
     (evalMintCallbackArgs hf0 hf1 hd)
   refine ⟨mintCallbackCalldata amount0 amount1 data, mintCallbackEncode amount0 amount1 data, ?_⟩
@@ -55,8 +57,8 @@ theorem mintCallbackReturns {frame : Frame} {evm evm' : EVM.State} {σ : Account
     (hf1 : frame.locals.get? "amount1" = some (.int (Int.ofNat amount1.toNat)))
     (hd : frame.locals.get? "data" = some (.bytes data))
     (hc : extCodeSizeWord σ (EVM.word target.val) ≠ ⟨0⟩)
-    (hcall : callViaEVM evm target 0 (mintCallbackCalldata amount0 amount1 data) (true, evm', out)) :
-    ExecBlock config frame evm mintCallbackStmts
+    (hcall : callViaEVM fork evm target 0 (mintCallbackCalldata amount0 amount1 data) (true, evm', out)) :
+    ExecBlock fork config frame evm mintCallbackStmts
       (.ok {frame with locals := frame.locals.insert "__c4" .unit} evm') := by
   apply checkedExternalCallVarSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (out := out) (flashCallbackGuardTrue ha ht hc) ht
     (evalMintCallbackArgs hf0 hf1 hd) (value := [])

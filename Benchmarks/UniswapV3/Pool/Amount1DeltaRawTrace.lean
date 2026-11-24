@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.AmountDeltaRawWords
 import Benchmarks.UniswapV3.Pool.FullMathRoundTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,7 +13,7 @@ theorem amount1DeltaRawComputeX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat25
     {s0 : EVM.State} {k C : Nat} {aw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : AmountDeltaArgs)
     (liquidityRaw upperRaw lowerRaw : UInt256)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨18034⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨18034⟩
       (⟨0⟩ :: a.roundUp.toUInt256 :: liquidityRaw :: upperRaw :: lowerRaw :: ret :: R)
       mem aw rdata σ k C)
     (hfit : a.Fits)
@@ -20,7 +22,7 @@ theorem amount1DeltaRawComputeX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat25
     (hD : UInt256.land lowerRaw (UInt256.ofNat (2 ^ 160 - 1)) = amountDeltaLower a)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
     (hov : R.length + 27 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (amountDeltaResult true a :: R) mem aw rdata σ k' C' := by
   have hq : UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 96) =
       UInt256.ofNat (2 ^ 96) := by native_decide
@@ -68,14 +70,14 @@ theorem amount1DeltaRawX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : AmountDeltaArgs)
     (sqrtARaw sqrtBRaw liquidityRaw : UInt256)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨18002⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨18002⟩
       (amountDeltaRawEntryWords a sqrtARaw sqrtBRaw liquidityRaw ++ ret :: R) mem aw rdata σ k C)
     (hfit : a.Fits)
     (hA : UInt256.land sqrtARaw (UInt256.ofNat (2 ^ 160 - 1)) = a.sqrtA)
     (hB : UInt256.land sqrtBRaw (UInt256.ofNat (2 ^ 160 - 1)) = a.sqrtB)
     (hL : UInt256.land liquidityRaw (UInt256.ofNat (2 ^ 128 - 1)) = a.liquidity)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 27 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
       (amountDeltaResult true a :: R) mem aw rdata σ k' C' := by
   obtain ⟨_, _, rr⟩ := amountDeltaRawSortX (v := v) true a sqrtARaw sqrtBRaw liquidityRaw
     rd hA hB (by omega)

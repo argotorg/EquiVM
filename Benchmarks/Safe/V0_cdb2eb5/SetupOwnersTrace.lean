@@ -2,13 +2,15 @@ import Benchmarks.Safe.V0_cdb2eb5.SetupOwnersPrepare
 import Benchmarks.Safe.V0_cdb2eb5.SetupOwnersLoop
 import Benchmarks.Safe.V0_cdb2eb5.SetupOwnersFinish
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V0_cdb2eb5
 
 theorem safeSetupOwnersTrace (p : SetupOwnersInput) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata ptr} {ret : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨8143⟩
+    (h : RD fork safeBytecode I g s0 ⟨8143⟩
       (p.threshold :: UInt256.ofNat ptr :: ret :: R) mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ)
     (hm : WordArrayBuffer mem ptr p.owners) (hp : 96 ≤ ptr)
@@ -16,11 +18,11 @@ theorem safeSetupOwnersTrace (p : SetupOwnersInput) (evm : EVM.State)
     (ho : ∀ j (hj : j < p.owners.length), p.owners[j].toNat < EVM.addressModulus)
     (hperm : I.perm = true) (hov : R.length + 20 ≤ 1024)
     (hret : (D_J safeBytecode 0).contains ret = true) :
-    (RDrev safeBytecode g s0 ∧ ExecFuncBody config p.frame evm setupOwnersFunction.body .reverted) ∨
+    (RDrev fork safeBytecode g s0 ∧ ExecFuncBody fork config p.frame evm setupOwnersFunction.body .reverted) ∨
     ∃ f' evm' mem' aw' k' C',
-      ExecFuncBody config p.frame evm setupOwnersFunction.body (.returned f' evm' none) ∧
+      ExecFuncBody fork config p.frame evm setupOwnersFunction.body (.returned f' evm' none) ∧
       evm'.executionEnv = I ∧ evm'.σ₀ = evm.σ₀ ∧
-      RD safeBytecode I g s0 ret R mem' aw' rdata evm'.accountMap k' C' ∧
+      RD fork safeBytecode I g s0 ret R mem' aw' rdata evm'.accountMap k' C' ∧
       mem'.size = mem.size ∧
       (∀ off count, 64 ≤ off → off + count ≤ mem.size →
         mem'.readWithPadding off count = mem.readWithPadding off count) := by
@@ -39,7 +41,7 @@ theorem safeSetupOwnersTrace (p : SetupOwnersInput) (evm : EVM.State)
   refine .inr ⟨{ contract := contract, locals := locals₂ },
     setupOwnersFinishState p evm₂ current₂, twoWordHashMem current₂ ⟨2⟩ mem₂, aw₃, k₃, C₃,
     .execBlockOK (safeSetupOwnersPrefix p evm hz hle hnz
-      (.consNormal hloop (safeSetupOwnersFinishSource (hperm := by simpa only [hee₂] using hperm) evm₂ hl₂ hc₂ (by omega)))), ?_, ?_,
+      (.consNormal hloop (safeSetupOwnersFinishSource (fork := fork) (hperm := by simpa only [hee₂] using hperm) evm₂ hl₂ hc₂ (by omega)))), ?_, ?_,
     h₃, ?_, ?_⟩
   · simpa only [setupOwnersFinishState, writeOwnerLink, storageStore_executionEnv] using hee₂
   · simpa only [setupOwnersFinishState, writeOwnerLink, storageStore_σ₀] using hw₂
@@ -52,8 +54,8 @@ theorem safeInternalSetupOwners {caller : Frame} {evm : EVM.State}
     (hc : caller.contract = contract) (him : caller.immutables = ∅)
     (ho : evalExpr? config caller evm owners = .ok (.array (p.owners.map addressArrayValue)))
     (ht : evalExpr? config caller evm threshold = .ok (uint256Value p.threshold))
-    (hb : ExecFuncBody config p.frame evm setupOwnersFunction.body result) :
-    ExecStmt config caller evm (.internalCall "setupOwners" [owners, threshold] retVar)
+    (hb : ExecFuncBody fork config p.frame evm setupOwnersFunction.body result) :
+    ExecStmt fork config caller evm (.internalCall "setupOwners" [owners, threshold] retVar)
       (internalCallResult caller retVar result) := by
   apply internalCallFunctionResult (callee := setupOwnersFunction) (locals := p.args)
     (argVals := [.array (p.owners.map addressArrayValue), uint256Value p.threshold])

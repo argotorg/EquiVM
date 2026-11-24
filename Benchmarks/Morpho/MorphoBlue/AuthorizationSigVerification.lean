@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.AuthorizationSigRecoveredMemory
 import Benchmarks.Morpho.MorphoBlue.WordCallOutputMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -28,9 +30,9 @@ def authorizationVerifiedMem (v : MorphoImmutables) (a : AuthorizationWords)
 theorem morphoAuthorizationRecoveryFailed {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {out : ByteArray} {aw : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (a : AuthorizationWords) (ho : EcrecoverOutput out) (hstack : R.length + 24 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 6410)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 6410)
       (UInt256.ofNat 0 :: authorizationRecoveryTail R) (authorizationRecoveredMem v a ee.calldata out)
-      aw out σ k C) : RDrev (deployedRuntime v) g s0 := by
+      aw out σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   have r := morphoBlocks.morpho_block_6410_taken (immWords := wordsOf (immStore v))
     (by simp [authorizationRecoveryTail]; omega) (by decide)
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
@@ -44,9 +46,9 @@ theorem morphoAuthorizationRecoveryCompare {v : MorphoImmutables} {ee : Executio
     {s0 : State} {out : ByteArray} {aw : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (a : AuthorizationWords) (hc : a.Canonical) (ho : EcrecoverOutput out)
     (hstack : R.length + 24 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 6415)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 6415)
       (authorizationRecoveryTail R) (authorizationRecoveredMem v a ee.calldata out) aw out σ k C) :
-    ∃ aw' k' C' discard, RD (deployedRuntime v) ee g s0 (UInt256.ofNat 6467)
+    ∃ aw' k' C' discard, RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 6467)
       ([discard, authorizationSignatureCheckWord a out, UInt256.ofNat 6527] ++ authorizationVerifiedTail R)
       (authorizationRecoveredMem v a ee.calldata out) aw' out σ k' C' := by
   have hp := authorizationRecoveredMem_properties v a ee.calldata out ho
@@ -96,10 +98,10 @@ theorem authorizationVerifiedMem_properties (v : MorphoImmutables) (a : Authoriz
 theorem morphoAuthorizationSignatureMessage {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {out : ByteArray} {aw discard : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (a : AuthorizationWords) (ho : EcrecoverOutput out) (hstack : R.length + 24 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 6467)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 6467)
       ([discard, authorizationSignatureCheckWord a out, UInt256.ofNat 6527] ++ authorizationVerifiedTail R)
       (authorizationRecoveredMem v a ee.calldata out) aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
       ([authorizationSignatureCheckWord a out, UInt256.ofNat 768, UInt256.ofNat 6527] ++ authorizationVerifiedTail R)
       (authorizationVerifiedMem v a ee.calldata out) aw' out σ k' C' := by
   have hf := (authorizationRecoveredMem_properties v a ee.calldata out ho).2.2.2
@@ -130,13 +132,13 @@ theorem morphoAuthorizationSignatureVerify {v : MorphoImmutables} {ee : Executio
     {s0 : State} {out : ByteArray} {aw : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (a : AuthorizationWords) (hc : a.Canonical) (ho : EcrecoverOutput out)
     (hstack : R.length + 24 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 6410)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 6410)
       (UInt256.ofNat 1 :: authorizationRecoveryTail R) (authorizationRecoveredMem v a ee.calldata out)
       aw out σ k C) :
     if AuthorizationSignatureValid a out then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 6527) (authorizationVerifiedTail R)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 6527) (authorizationVerifiedTail R)
         (authorizationVerifiedMem v a ee.calldata out) aw' out σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have r0 := morphoBlocks.morpho_block_6410_fallthrough (immWords := wordsOf (immStore v))
     (by simp [authorizationRecoveryTail]; omega) (by decide) h
   obtain ⟨a1, k1, C1, discard, r1⟩ := morphoAuthorizationRecoveryCompare (v := v) a hc ho hstack r0

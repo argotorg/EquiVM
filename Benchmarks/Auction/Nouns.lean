@@ -1,5 +1,7 @@
 import Benchmarks.Auction.Storage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 100000
@@ -8,7 +10,7 @@ namespace Auction
 
 theorem nounsBodyReturns (evm : EVM.State) (locals : Store)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hbase : locals.get? "nouns" = none) :
-    ExecTransitionBody auctionConfig auctionContract evm locals nounsGetter.body
+    ExecTransitionBody fork auctionConfig auctionContract evm locals nounsGetter.body
       (.returned { contract := auctionContract, locals := locals } evm
         (some [.address (AccountAddress.ofNat
           (UInt256.land (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨201⟩)
@@ -19,8 +21,8 @@ theorem nounsBodyReturns (evm : EVM.State) (locals : Store)
         hbase (by native_decide) rfl, loadAddress])
 
 theorem nounsX {σ σ₀ A I} {g : UInt256}
-    (hreach : EntryReached 1 σ σ₀ A I g) (hwv : I.weiValue = ⟨0⟩) :
-    RDret auctionBytecode (Sat256.ofUInt256 g)
+    (hreach : EntryReached fork 1 σ σ₀ A I g) (hwv : I.weiValue = ⟨0⟩) :
+    RDret fork auctionBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
       (UInt256.toByteArray (UInt256.land (solcSlotWord σ I ⟨201⟩) solcAddrMask)) := by
   obtain ⟨_, _, rd327⟩ := hreach
@@ -42,8 +44,8 @@ theorem nounsX {σ σ₀ A I} {g : UInt256}
 theorem nounsBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (_hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (entryBytes 1))
-    (hreach : EntryReached 1 σ σ₀ A I g) :
-    runtimeRefinementFor auctionConfig auctionContract
+    (hreach : EntryReached fork 1 σ σ₀ A I g) :
+    runtimeRefinementFor fork auctionConfig auctionContract
       σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
   · have hsz := calldata_size_ge_of_selIs I (entryBytes 1) (entryBytes_size 1) hsel
@@ -52,7 +54,7 @@ theorem nounsBodyCore {σ σ₀ A I} {g : UInt256}
         (nounsGetter.params.map Param.name)
         (transitionSignature nounsGetter).paramTypes I.calldata = some ∅ :=
       decodeCalldata_empty_ok hsz
-    have hbody : ExecTransitionBody auctionConfig auctionContract
+    have hbody : ExecTransitionBody fork auctionConfig auctionContract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ nounsGetter.body
         (.returned { contract := auctionContract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)

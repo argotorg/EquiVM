@@ -7,6 +7,8 @@ import Benchmarks.CurveVault.Calls
 import Benchmarks.CurveVault.RuntimeBlocks_004
 import Benchmarks.CurveVault.RuntimeBlocks_005
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch Reasoning.VyperCalls
 namespace Benchmarks.CurveVault
 
@@ -43,10 +45,10 @@ theorem vaultBorrowAprReceiver (evm : EVM.State) (locals : Store) (hbase : local
 
 theorem vaultBorrowAprCallOk {evm evm' : EVM.State} {locals : Store}
     {out : ByteArray} (hbase : locals.get? "_amm" = none)
-    (hcall : typedCallViaEVM config evm
+    (hcall : typedCallViaEVM fork config evm
       (AccountAddress.ofUInt256 (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩))
       "rate" 0 [] (true, evm', out) false) (h32 : 32 ≤ out.size) :
-    ExecStmt config {contract := contract, locals := locals} evm
+    ExecStmt fork config {contract := contract, locals := locals} evm
       (.externalCall (.storage {base := "_amm", steps := []}) "rate" (.intLit 0) [] "__c0" (perm := false))
       (.ok {contract := contract, locals := locals.insert "__c0" (.int (Int.ofNat (retWord out).toNat))} evm') := by
   apply ExecStmt.externalCallSuccess (hperm := Or.inl rfl) (sendVal := 0) (argVals := [])
@@ -58,11 +60,11 @@ theorem vaultBorrowAprCallOk {evm evm' : EVM.State} {locals : Store}
 
 theorem vaultBorrowAprFunctionReturns {evm evm' : EVM.State} {locals : Store}
     {out : ByteArray} (hbase : locals.get? "_amm" = none)
-    (hcall : typedCallViaEVM config evm
+    (hcall : typedCallViaEVM fork config evm
       (AccountAddress.ofUInt256 (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩))
       "rate" 0 [] (true, evm', out) false) (h32 : 32 ≤ out.size)
     (hfit : (retWord out).toNat * (UInt256.ofNat 31536000).toNat < UInt256.size) :
-    ExecFuncBody config {contract := contract, locals := locals} evm vaultBorrowAprFunction.body
+    ExecFuncBody fork config {contract := contract, locals := locals} evm vaultBorrowAprFunction.body
       (.returned {contract := contract, locals := locals.insert "__c0" (.int (Int.ofNat (retWord out).toNat))} evm'
         (some [.int (Int.ofNat (UInt256.mul (retWord out) (UInt256.ofNat 31536000)).toNat)])) := by
   exact ExecFuncBody.execBlockRet <|
@@ -72,11 +74,11 @@ theorem vaultBorrowAprFunctionReturns {evm evm' : EVM.State} {locals : Store}
 
 theorem vaultBorrowAprFunctionOverflow {evm evm' : EVM.State} {locals : Store}
     {out : ByteArray} (hbase : locals.get? "_amm" = none)
-    (hcall : typedCallViaEVM config evm
+    (hcall : typedCallViaEVM fork config evm
       (AccountAddress.ofUInt256 (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩))
       "rate" 0 [] (true, evm', out) false) (h32 : 32 ≤ out.size)
     (hover : UInt256.size ≤ (retWord out).toNat * (UInt256.ofNat 31536000).toNat) :
-    ExecFuncBody config {contract := contract, locals := locals} evm vaultBorrowAprFunction.body .reverted := by
+    ExecFuncBody fork config {contract := contract, locals := locals} evm vaultBorrowAprFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert <| ExecBlock.consNormal (vaultBorrowAprCallOk hbase hcall h32) <|
     ExecBlock.consRevert <| ExecStmt.returnRevert ?_
   have heval := vaultBorrowAprProductReverts evm'
@@ -85,10 +87,10 @@ theorem vaultBorrowAprFunctionOverflow {evm evm' : EVM.State} {locals : Store}
 
 theorem vaultBorrowAprFunctionCallFailed {evm evm' : EVM.State} {locals : Store}
     {out : ByteArray} (hbase : locals.get? "_amm" = none)
-    (hcall : typedCallViaEVM config evm
+    (hcall : typedCallViaEVM fork config evm
       (AccountAddress.ofUInt256 (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩))
       "rate" 0 [] (false, evm', out) false) :
-    ExecFuncBody config {contract := contract, locals := locals} evm vaultBorrowAprFunction.body .reverted :=
+    ExecFuncBody fork config {contract := contract, locals := locals} evm vaultBorrowAprFunction.body .reverted :=
   ExecFuncBody.execBlockRevert <| ExecBlock.consRevert <|
     ExecStmt.externalCallFailure (hperm := Or.inl rfl) (sendVal := 0) (argVals := []) (vaultBorrowAprReceiver evm locals hbase)
       (by simp [evalExpr?, pure]) (by simp [evalExprs?, pure])
@@ -96,11 +98,11 @@ theorem vaultBorrowAprFunctionCallFailed {evm evm' : EVM.State} {locals : Store}
 
 theorem vaultBorrowAprFunctionDecodeFailed {evm evm' : EVM.State} {locals : Store}
     {out : ByteArray} (hbase : locals.get? "_amm" = none)
-    (hcall : typedCallViaEVM config evm
+    (hcall : typedCallViaEVM fork config evm
       (AccountAddress.ofUInt256 (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩))
       "rate" 0 [] (true, evm', out) false)
     (hdec : config.externalABI.decode? "rate" out = none) :
-    ExecFuncBody config {contract := contract, locals := locals} evm vaultBorrowAprFunction.body .reverted :=
+    ExecFuncBody fork config {contract := contract, locals := locals} evm vaultBorrowAprFunction.body .reverted :=
   ExecFuncBody.execBlockRevert <| ExecBlock.consRevert <|
     ExecStmt.externalCallReturnDecodeRevert (hperm := Or.inl rfl) (sendVal := 0) (argVals := []) (vaultBorrowAprReceiver evm locals hbase)
       (by simp [evalExpr?, pure]) (by simp [evalExprs?, pure])
@@ -116,7 +118,7 @@ theorem vaultBorrowAprCalldata (mem : ByteArray) :
 theorem vaultBorrowAprBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vaultBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vaultSelBytes 34)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (vaultSelBytes 34) rfl hsel
   have hd : dispatchMsg contract I.calldata = some borrow_aprTransition := by
     apply vaultDispatch_borrow_apr
@@ -138,16 +140,16 @@ theorem vaultBorrowAprBodyCore {σ σ₀ A I} {g : UInt256}
       (by change UInt256.eq _ (codeOwnerTransientWord I σ ⟨0⟩) ≠ _
           rw [hlocked]; decide +kernel) (by native_decide) rdBody
     have hrev := vaultBlocks.vault_block_8284 (by simp) rdRevert
-    have hsource := vaultLockedBodyReverts (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+    have hsource := vaultLockedBodyReverts (fork := fork) (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
       [.internalCall "borrow_apr_body" [] "__r", .return [.var "__r"]] hvalue
       (by rw [hload]; exact hlocked)
     exact hrev.reEquivExecutionRevert hcode hd hdec hsource
   · have hlock : Stele.EVM.transientLoad (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner ⟨0⟩ ≠ ⟨1⟩ :=
       by rwa [hload]
-    have hwrap (hb : ExecFuncBody config {contract := contract, locals := ∅}
+    have hwrap (hb : ExecFuncBody fork config {contract := contract, locals := ∅}
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) vaultBorrowAprFunction.body .reverted) :
-        ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+        ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
           borrow_aprTransition.body .reverted :=
       vaultViewBodyReverts (fn := vaultBorrowAprFunction) (args := []) (argVals := []) hvalue hlock
         (by simp [evalExprs?, pure]) rfl rfl hb
@@ -160,7 +162,7 @@ theorem vaultBorrowAprBodyCore {σ σ₀ A I} {g : UInt256}
     have hsload : Stele.EVM.storageLoad (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner ⟨2⟩ =
         codeOwnerStorageWord I σ ⟨2⟩ := codeOwnerStorageWord_initState _
-    change typedCallViaEVM config _ (AccountAddress.ofUInt256 (codeOwnerStorageWord I σ ⟨2⟩))
+    change typedCallViaEVM fork config _ (AccountAddress.ofUInt256 (codeOwnerStorageWord I σ ⟨2⟩))
       "rate" 0 [] (z, evm', out) false at hcall
     rw [← hsload] at hcall
     have hout256 : out.size < UInt256.size := lt_trans hout (by decide +kernel)
@@ -189,7 +191,7 @@ theorem vaultBorrowAprBodyCore {σ σ₀ A I} {g : UInt256}
                   (memLoad _ (out.write 0 preMem 64 _)) = _
                 rw [hword, u256_mul_div_right_eq_of_noOverflow _ _ (by decide +kernel) hfit, u256_xor_self]; rfl) rd1072
           have hret := vaultBlocks.vault_block_1097 (by simp) rd1097
-          change RDret vaultBytecode (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ'
+          change RDret fork vaultBytecode (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ'
             (((UInt256.mul (memLoad (UInt256.ofNat 64) (out.write 0 preMem 64 _)) (UInt256.ofNat 31536000)).toByteArray.write
               0 _ 128 32).readWithPadding 128 32) at hret
           rw [hword, toByteArray_write_read_back_of_gap _ _ _
@@ -224,7 +226,7 @@ theorem vaultBorrow_aprBody {σ σ₀ A I} {g : UInt256}
     (_hwf : storageWF σ I)
     (hcode : I.code = vaultBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vaultSelBytes 34)) :
-    runtimeRefinementFor config contract σ σ₀ g A I :=
+    runtimeRefinementFor fork config contract σ σ₀ g A I :=
   vaultBorrowAprBodyCore hcode hsize hsel
 
 end Benchmarks.CurveVault

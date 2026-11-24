@@ -1,6 +1,8 @@
 import Benchmarks.Safe.V3_77901a5.SignatureAddressCalldata
 import Benchmarks.Safe.V3_77901a5.ModuleCallerSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V3_77901a5
@@ -11,8 +13,8 @@ theorem safeInternalCheckSignatures {p : SignatureCheckInput} {caller : Frame}
     (he : evalExpr? config caller evm executor = .ok (.address p.executor))
     (hh : evalExpr? config caller evm hash = .ok (wordBytes32Value p.hash))
     (hs : evalExpr? config caller evm signatures = .ok (.bytes p.signatures))
-    (hbody : ExecFuncBody config p.frame evm checkSignaturesImplFunction.body result) :
-    ExecStmt config caller evm
+    (hbody : ExecFuncBody fork config p.frame evm checkSignaturesImplFunction.body result) :
+    ExecStmt fork config caller evm
       (.internalCall "checkSignaturesImpl" [executor, hash, signatures] retVar)
       (internalCallResult caller retVar result) := by
   apply internalCallFunctionResult (callee := checkSignaturesImplFunction)
@@ -29,8 +31,8 @@ theorem signatureCallerChecks {frame : Frame} {evm : EVM.State} {payload : ByteA
     {result : ExecResult} {tail : List Stmt}
     (hv : evm.executionEnv.weiValue = ⟨0⟩) (hn : payload.size ≤ 2 ^ 64 - 192)
     (hl : frame.locals["signatures"]? = some (.bytes payload))
-    (ht : ExecBlock config frame evm tail result) :
-    ExecBlock config frame evm (nonpayable ++ decodeMemoryBytes "signatures" ++ tail)
+    (ht : ExecBlock fork config frame evm tail result) :
+    ExecBlock fork config frame evm (nonpayable ++ decodeMemoryBytes "signatures" ++ tail)
       result := by
   exact .consNormal (.requireTrue (evalCallvalueEq_true hv))
     (.consNormal (.requireTrue (by
@@ -41,7 +43,7 @@ theorem signatureCallerChecks {frame : Frame} {evm : EVM.State} {payload : ByteA
 theorem signatureCallerInvalid {evm : EVM.State} {args : Store} {payload : ByteArray}
     {tail : List Stmt} (hn : ¬payload.size ≤ 2 ^ 64 - 192)
     (hl : args["signatures"]? = some (.bytes payload)) :
-    ExecTransitionBody config contract evm args
+    ExecTransitionBody fork config contract evm args
       (nonpayable ++ decodeMemoryBytes "signatures" ++ tail) .reverted := by
   by_cases hv : evm.executionEnv.weiValue = ⟨0⟩
   swap
@@ -61,8 +63,8 @@ def signatureAddressFrame (counted : Bool) (p : SignatureCheckInput) (required :
 theorem safeCheckNSignaturesAddressSource {p : SignatureInput} {evm : EVM.State}
     {result : ExecResult} (hv : evm.executionEnv.weiValue = ⟨0⟩)
     (hn : p.signatures.size ≤ 2 ^ 64 - 192)
-    (hbody : ExecFuncBody config p.frame evm checkNSignaturesImplFunction.body result) :
-    ExecBlock config
+    (hbody : ExecFuncBody fork config p.frame evm checkNSignaturesImplFunction.body result) :
+    ExecBlock fork config
       (signatureAddressFrame true ⟨p.executor, p.hash, p.signatures⟩ p.required) evm
       checknsignaturesAddressBytes32BytesUint256Transition.body
       (internalCallResult
@@ -86,8 +88,8 @@ theorem safeCheckNSignaturesAddressSource {p : SignatureInput} {evm : EVM.State}
 theorem safeCheckSignaturesAddressSource {p : SignatureCheckInput} {evm : EVM.State}
     {result : ExecResult} (hv : evm.executionEnv.weiValue = ⟨0⟩)
     (hn : p.signatures.size ≤ 2 ^ 64 - 192)
-    (hbody : ExecFuncBody config p.frame evm checkSignaturesImplFunction.body result) :
-    ExecBlock config (signatureAddressFrame false p ⟨0⟩) evm
+    (hbody : ExecFuncBody fork config p.frame evm checkSignaturesImplFunction.body result) :
+    ExecBlock fork config (signatureAddressFrame false p ⟨0⟩) evm
       checksignaturesAddressBytes32BytesTransition.body
       (internalCallResult (signatureAddressFrame false p ⟨0⟩) "_checked" result) := by
   apply signatureCallerChecks hv hn

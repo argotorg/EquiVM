@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.GetUIDExpr
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -20,12 +22,12 @@ theorem getUIDBodySource {cfg : Config} {locals imms : Store} {evm : EVM.State}
     (hh : locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)))
     (ht : a.time.toNat < 2^64) (he : a.expirationTime.toNat < 2^64) (hc : bump.toNat < 2^32) :
     if allocateNext heap (157+a.data.size) ≤ 2^64-1 ∧ heap ≤ allocateNext heap (157+a.data.size) then
-      ∃ locals', ExecFuncBody cfg {contract := contract,locals := locals,immutables := imms} evm getUIDFunction.body
+      ∃ locals', ExecFuncBody fork cfg {contract := contract,locals := locals,immutables := imms} evm getUIDFunction.body
         (.returned {contract := contract,locals := locals',immutables := imms} evm
           (some [wordBytes32Value (getUIDWord a bump),.int (Int.ofNat (allocateNext heap (157+a.data.size)))]))
-    else ExecFuncBody cfg {contract := contract,locals := locals,immutables := imms} evm getUIDFunction.body .reverted := by
+    else ExecFuncBody fork cfg {contract := contract,locals := locals,immutables := imms} evm getUIDFunction.body .reverted := by
   let L := locals.insert "payload" (.bytes a.data)
-  have hp : ExecBlock cfg {contract := contract,locals := locals,immutables := imms} evm
+  have hp : ExecBlock fork cfg {contract := contract,locals := locals,immutables := imms} evm
       [.letDecl "payload" (some .bytes) (.field (.var "attestation") "data")]
       (.ok {contract := contract,locals := L,immutables := imms} evm) :=
     ExecBlock.consNormal (ExecStmt.letDecl (attestationRecord_field ha "data" _ rfl)) ExecBlock.nil

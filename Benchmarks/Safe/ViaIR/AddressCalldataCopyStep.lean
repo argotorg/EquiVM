@@ -6,6 +6,8 @@ import Benchmarks.Safe.ViaIR.Blocks.Runtime_015
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_016
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_018
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -15,14 +17,14 @@ set_option maxRecDepth 2000
 
 theorem safeAddressCalldataCopyStep {I g s0 σ k C aw mem rdata i n src dst}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3187⟩
+    (h : RD fork safeBytecode I g s0 ⟨3187⟩
       (UInt256.ofNat i :: UInt256.ofNat n :: UInt256.ofNat src :: UInt256.ofNat dst :: R)
       mem aw rdata σ k C)
     (hi : i < n) (hn : n < UInt256.size) (hsrc : src + 32 < UInt256.size)
     (hdst : dst + 32 < UInt256.size)
     (hc : (calldataWord I.calldata src).toNat < EVM.addressModulus)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨3187⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨3187⟩
       (UInt256.ofNat (i + 1) :: UInt256.ofNat n :: UInt256.ofNat (src + 32) ::
         UInt256.ofNat (dst + 32) :: R)
       (writeWord mem dst (calldataWord I.calldata src)) aw' rdata σ k' C' := by
@@ -43,7 +45,7 @@ theorem safeAddressCalldataCopyStep {I g s0 σ k C aw mem rdata i n src dst}
     wordOfNatAdd dst 32 hdst
   simp only [safeRuntime_block_3883_stack, safeRuntime_block_3883_memory,
     safeAddressMask, hs] at h₄
-  change RD safeBytecode I g s0 ⟨3187⟩
+  change RD fork safeBytecode I g s0 ⟨3187⟩
     ((UInt256.ofNat i + UInt256.ofNat 1) :: UInt256.ofNat n ::
       (UInt256.ofNat src + UInt256.ofNat 32) ::
       (UInt256.ofNat dst + UInt256.ofNat 32) :: R)
@@ -54,12 +56,12 @@ theorem safeAddressCalldataCopyStep {I g s0 σ k C aw mem rdata i n src dst}
 
 theorem safeAddressCalldataCopyStepRevert {I g s0 σ k C aw mem rdata i n src dst}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3187⟩
+    (h : RD fork safeBytecode I g s0 ⟨3187⟩
       (UInt256.ofNat i :: UInt256.ofNat n :: UInt256.ofNat src :: UInt256.ofNat dst :: R)
       mem aw rdata σ k C)
     (hi : i < n) (hn : n < UInt256.size) (hsrc : src < UInt256.size)
     (hc : ¬(calldataWord I.calldata src).toNat < EVM.addressModulus)
-    (hov : R.length + 16 ≤ 1024) : RDrev safeBytecode g s0 := by
+    (hov : R.length + 16 ≤ 1024) : RDrev fork safeBytecode g s0 := by
   have h₁ := safeRuntime_block_3187_taken (by simp; omega) (by
     rw [ult_one (by rw [ulit_toNat' _ (by omega), ulit_toNat' _ hn]; exact hi)]
     decide) (by jump_dest) h

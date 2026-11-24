@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.ProtocolFeeStorage
 import Benchmarks.UniswapV3.Pool.TupleReturn
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -26,10 +28,10 @@ theorem pairEventMem_read (mem : ByteArray) (ptr first second : UInt256) :
 theorem RD.poolReturnUint128Pair_heap {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : Nat} {v : UniswapV3PoolImmutables} {a b aw p : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {acc : AccountMap}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨690⟩ (b :: a :: R) mem aw rdata acc k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨690⟩ (b :: a :: R) mem aw rdata acc k C)
     (hm : HeapMemory mem aw p) (hb : p.toNat + 64 ≤ 2 ^ 200)
     (ha : a.toNat < 2 ^ 128) (hb' : b.toNat < 2 ^ 128) (hov : R.length + 8 ≤ 1024) :
-    RDret (deployedRuntime v) g s0 acc (a.toByteArray ++ b.toByteArray) := by
+    RDret fork (deployedRuntime v) g s0 acc (a.toByteArray ++ b.toByteArray) := by
   have hret := uniswapV3Pool_block_690 (immWords := wordsOf (immStore v)) hov rd
   have hload : memLoad (UInt256.ofNat 64) mem = p := hm.load64
   have hca : UInt256.land (UInt256.ofNat (2 ^ 128 - 1)) a = a := uint128Word_clean ha

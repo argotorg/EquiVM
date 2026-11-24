@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.FlashCallValues
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -10,7 +12,7 @@ theorem flashTransfersX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {aw p junk bal1 bal0 fee1 fee0 liquidity len start : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : FlashArgs) (locals : Store)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨6727⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨6727⟩
       (bal1 :: junk :: bal0 :: fee1 :: fee0 :: liquidity :: len :: start :: a.amount1 :: a.amount0 ::
         EVM.word a.recipient.val :: R) mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hperm : ee.perm = true)
@@ -18,15 +20,15 @@ theorem flashTransfersX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hm : HeapMemory mem aw p) (hmem : 128 ≤ mem.size)
     (hzero : memLoad (UInt256.ofNat 96) mem = ⟨0⟩)
     (hb : p.toNat + 2 ^ 140 ≤ 2 ^ 200) (hov : R.length + 30 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧
-      ExecBlock config {contract := contract, locals := locals, immutables := immStore v} evm
+    (RDrev fork (deployedRuntime v) g s0 ∧
+      ExecBlock fork config {contract := contract, locals := locals, immutables := immStore v} evm
         ((flashTransition.body.drop 10).take 2) .reverted) ∨
     ∃ evm' σ' locals' out mem' aw' next k' C', SourceState s0 ee σ' evm' ∧
-      ExecBlock config {contract := contract, locals := locals, immutables := immStore v} evm
+      ExecBlock fork config {contract := contract, locals := locals, immutables := immStore v} evm
         ((flashTransition.body.drop 10).take 2)
         (.ok {contract := contract, locals := locals', immutables := immStore v} evm') ∧
       FlashCallValues locals' a liquidity fee0 fee1 bal0 bal1 ∧
-      RD (deployedRuntime v) ee g s0 ⟨6827⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨6827⟩
         (flashTransferRest bal1 bal0 fee1 fee0 liquidity len start a.amount1 a.amount0 a.recipient R)
         mem' aw' out σ' k' C' ∧
       HeapMemory mem' aw' next ∧ 128 ≤ mem'.size ∧ memLoad (UInt256.ofNat 96) mem' = ⟨0⟩ ∧

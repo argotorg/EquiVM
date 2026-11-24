@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SafeSignedMathWords
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_043
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_044
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,14 +13,14 @@ set_option maxRecDepth 1000
 theorem safeSignedMathX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (subtract : Bool) (x y : Int)
-    (rd : RD (deployedRuntime v) ee g s0 (UInt256.ofNat (if subtract then 12967 else 12995))
+    (rd : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat (if subtract then 12967 else 12995))
       (EVM.wordOfInt y :: EVM.wordOfInt x :: ret :: R) mem aw rdata σ k C)
     (hxlo : -(2 ^ 255 : Int) ≤ x) (hxhi : x < 2 ^ 255)
     (hylo : -(2 ^ 255 : Int) ≤ y) (hyhi : y < 2 ^ 255)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
     (hov : R.length + 7 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧ ¬ safeSignedMathValid subtract x y) ∨
-      (safeSignedMathValid subtract x y ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+    (RDrev fork (deployedRuntime v) g s0 ∧ ¬ safeSignedMathValid subtract x y) ∨
+      (safeSignedMathValid subtract x y ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
         (EVM.wordOfInt (safeSignedMathResult subtract x y) :: R) mem aw rdata σ k' C') := by
   classical
   have hc := safeSignedMathWordGuard subtract x y hxlo hxhi hylo hyhi

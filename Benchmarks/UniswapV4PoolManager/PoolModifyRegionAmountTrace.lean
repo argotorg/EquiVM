@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.PoolModifyCheckedAmountTrace
 import Benchmarks.UniswapV4PoolManager.TickSqrtCanonicalTrace
 import Benchmarks.UniswapV4PoolManager.Signed128Range
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -14,10 +16,10 @@ theorem poolModifyRegionAmount0Trace {I : ExecutionEnv} {g : Sat256} {s0 evm : S
     (v : PoolManagerImmutables) (hstack : R.length+23 ≤ 1024)
     (hu : int24Canonical p.upper) (ht : poolTicksValid p.lower p.upper)
     (hp : sqrtPrice.toNat < 2^160) (hd : signedFits ⟨128, by decide⟩ p.delta)
-    (h : RD (deployedRuntime v) I g s0 ⟨6410⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨6410⟩
       (p.upper :: p.lower :: sqrtPrice :: EVM.wordOfInt p.delta :: R) mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0 (fun _ post => post = evm ∧ ∃ k' C',
-      RD (deployedRuntime v) I g s0 ⟨6442⟩
+    blockResultTrace fork (deployedRuntime v) g s0 (fun _ post => post = evm ∧ ∃ k' C',
+      RD fork (deployedRuntime v) I g s0 ⟨6442⟩
         (poolModifyRegionWord false p sqrtPrice :: p.lower :: ⟨6381⟩ :: ⟨6461⟩ :: sqrtPrice ::
           EVM.wordOfInt p.delta :: R) mem aw rdata post.accountMap k' C') (fun _ _ => False)
       (poolModifyRegionAmountResult f evm false p sqrtPrice) := by
@@ -41,10 +43,10 @@ theorem poolModifyRegionAmount1EntryTrace {I : ExecutionEnv} {g : Sat256} {s0 ev
     (v : PoolManagerImmutables) (hstack : R.length+20 ≤ 1024)
     (hl : int24Canonical p.lower) (ht : poolTicksValid p.lower p.upper)
     (hp : sqrtPrice.toNat < 2^160) (hd : signedFits ⟨128, by decide⟩ p.delta)
-    (h : RD (deployedRuntime v) I g s0 ⟨6442⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨6442⟩
       (amount0 :: p.lower :: ⟨6381⟩ :: ⟨6461⟩ :: sqrtPrice :: EVM.wordOfInt p.delta :: R)
       mem aw rdata evm.accountMap k C) :
-    ∃ k' C', RD (deployedRuntime v) I g s0 ⟨17610⟩
+    ∃ k' C', RD fork (deployedRuntime v) I g s0 ⟨17610⟩
       (tickSqrtPrice (EVM.signed p.lower) :: sqrtPrice :: EVM.wordOfInt p.delta :: ⟨6381⟩ :: ⟨6461⟩ ::
         amount0 :: EVM.wordOfInt p.delta :: R) mem aw rdata evm.accountMap k' C'  := by
   have hs : UInt256.signextend (UInt256.ofNat 15) (EVM.wordOfInt p.delta) = EVM.wordOfInt p.delta :=
@@ -64,11 +66,11 @@ theorem poolModifyRegionAmount1Trace {I : ExecutionEnv} {g : Sat256} {s0 evm : S
     (v : PoolManagerImmutables) (hstack : R.length+20 ≤ 1024)
     (hl : int24Canonical p.lower) (ht : poolTicksValid p.lower p.upper)
     (hp : sqrtPrice.toNat < 2^160) (hd : signedFits ⟨128, by decide⟩ p.delta)
-    (h : RD (deployedRuntime v) I g s0 ⟨6442⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨6442⟩
       (amount0 :: p.lower :: ⟨6381⟩ :: ⟨6461⟩ :: sqrtPrice :: EVM.wordOfInt p.delta :: R)
       mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0 (fun _ post => post = evm ∧ ∃ k' C',
-      RD (deployedRuntime v) I g s0 ⟨6461⟩
+    blockResultTrace fork (deployedRuntime v) g s0 (fun _ post => post = evm ∧ ∃ k' C',
+      RD fork (deployedRuntime v) I g s0 ⟨6461⟩
         (poolModifyRegionWord true p sqrtPrice :: amount0 :: EVM.wordOfInt p.delta :: R)
         mem aw rdata post.accountMap k' C') (fun _ _ => False)
       (poolModifyRegionAmountResult f evm true p sqrtPrice) := by

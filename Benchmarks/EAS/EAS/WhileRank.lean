@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.WhileInvariant
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 
@@ -6,17 +8,17 @@ namespace Benchmarks.EAS.EAS
 theorem execWhile_true_rank {cfg : Config} {contract : ContractDecl} {imms : Store} {body : Body}
     (Inv : Nat → Store → EVM.State → Prop) (Post : Store → EVM.State → Prop) (Rev Static : Prop)
     (hstep : ∀ n L e, Inv n L e →
-      (∃ L' e', ExecBlock cfg {contract := contract,locals := L,immutables := imms} e body
+      (∃ L' e', ExecBlock fork cfg {contract := contract,locals := L,immutables := imms} e body
         (.break {contract := contract,locals := L',immutables := imms} e') ∧ Post L' e') ∨
-      (∃ n' L' e', n' < n ∧ ExecBlock cfg {contract := contract,locals := L,immutables := imms} e body
+      (∃ n' L' e', n' < n ∧ ExecBlock fork cfg {contract := contract,locals := L,immutables := imms} e body
         (.ok {contract := contract,locals := L',immutables := imms} e') ∧ Inv n' L' e') ∨
-      (ExecBlock cfg {contract := contract,locals := L,immutables := imms} e body .reverted ∧ Rev) ∨
-      (ExecBlock cfg {contract := contract,locals := L,immutables := imms} e body .staticViolation ∧ Static)) :
+      (ExecBlock fork cfg {contract := contract,locals := L,immutables := imms} e body .reverted ∧ Rev) ∨
+      (ExecBlock fork cfg {contract := contract,locals := L,immutables := imms} e body .staticViolation ∧ Static)) :
     ∀ n L e, Inv n L e →
-      (∃ L' e', ExecStmt cfg {contract := contract,locals := L,immutables := imms} e (.while (.boolLit true) body)
+      (∃ L' e', ExecStmt fork cfg {contract := contract,locals := L,immutables := imms} e (.while (.boolLit true) body)
         (.ok {contract := contract,locals := L',immutables := imms} e') ∧ Post L' e') ∨
-      (ExecStmt cfg {contract := contract,locals := L,immutables := imms} e (.while (.boolLit true) body) .reverted ∧ Rev) ∨
-      (ExecStmt cfg {contract := contract,locals := L,immutables := imms} e (.while (.boolLit true) body) .staticViolation ∧ Static) := by
+      (ExecStmt fork cfg {contract := contract,locals := L,immutables := imms} e (.while (.boolLit true) body) .reverted ∧ Rev) ∨
+      (ExecStmt fork cfg {contract := contract,locals := L,immutables := imms} e (.while (.boolLit true) body) .staticViolation ∧ Static) := by
   intro n
   induction n using Nat.strong_induction_on with
   | h n ih =>

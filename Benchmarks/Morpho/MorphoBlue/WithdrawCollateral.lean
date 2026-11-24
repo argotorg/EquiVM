@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.WithdrawCollateralRefine
 import Benchmarks.Morpho.MorphoBlue.WithdrawCollateralDecode
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Morpho `withdrawCollateral((address,address,address,address,uint256),uint256,address,address)`
 
@@ -21,13 +23,13 @@ set_option maxRecDepth 1000
 theorem morphoWithdrawCollateralBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 15)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 15) rfl hsel
   have hd : selectorDispatchMsg contract I.calldata = some withdrawCollateralTransition :=
     morphoSelectorDispatch_of_selIs (by decide) hsel
   obtain ⟨k0, C0, rd0⟩ := morphoReachWithdrawCollateralBody (g := .ofUInt256 g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hsz hsize hsel
-  change RD _ _ _ _ _ _ solcFreePtrMem _ _ _ _ _ at rd0
+  change RD fork _ _ _ _ _ _ solcFreePtrMem _ _ _ _ _ at rd0
   by_cases hcv : I.weiValue = ⟨0⟩
   swap
   · have rd1 := morphoBlocks.morpho_block_5391_taken (immWords := wordsOf (immStore v))
@@ -62,7 +64,7 @@ theorem morphoWithdrawCollateralBody {σ σ₀ A I} {g : UInt256} (v : MorphoImm
       ⟨hbad, hrev⟩ | ⟨hg, a3, k3, C3, rd3⟩
     · exact reEquivSelectorRevert hcode hrev hd hdec
         (morphoWithdrawCollateralSourceReject p assets account receiver hc ha hr evm (immStore v) hcv hbound hbad)
-    · have pref := morphoWithdrawCollateralSourceGuards p assets account receiver hc ha hr evm (immStore v) hcv hbound hg
+    · have pref := morphoWithdrawCollateralSourceGuards (fork := fork) p assets account receiver hc ha hr evm (immStore v) hcv hbound hg
       have hl := collateralTransferBeforeAccrue_locals p assets account receiver evm (immStore v)
       have ht := morphoWithdrawCollateralRefine p _ (immStore v) hc ha hr hl SourceState.init
         (by exact store_get_self _ _ _) rd3

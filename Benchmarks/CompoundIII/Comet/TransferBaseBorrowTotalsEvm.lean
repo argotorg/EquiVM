@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.Checked104Evm
 import Benchmarks.CompoundIII.Comet.TotalsPrincipalStoreEvm
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_069
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -16,9 +18,9 @@ theorem cometTransferBaseBorrowTotals {v : CometWithExtendedAssetListImmutables}
     {aw borrowed repaid : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024) (hB : borrowed.toNat < 2^104) (hR : repaid.toNat < 2^104)
     (hp : evm.executionEnv.perm = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨14887⟩ (borrowed :: repaid :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨14887⟩ (borrowed :: repaid :: R)
       mem aw rdata σ k C) :
-    internalRun (deployedRuntime v) ee g s0 mem aw rdata ⟨14930⟩ R
+    internalRun fork (deployedRuntime v) ee g s0 mem aw rdata ⟨14930⟩ R
       (totalsChangeOutcome evm true borrowed repaid) := by
   obtain ⟨k1, C1, r1⟩ := cometWithExtendedAssetList_block_14887
     (immWords := wordsOf (immStore v)) (by change R.length + 2 + 3 ≤ 1024; omega)
@@ -26,7 +28,7 @@ theorem cometTransferBaseBorrowTotals {v : CometWithExtendedAssetListImmutables}
   have r2 := cometWithExtendedAssetList_block_7871
     (immWords := wordsOf (immStore v)) (by change R.length + 2 + 5 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r1
-  change RD _ _ _ _ _ (UInt256.land _ (UInt256.shiftRight
+  change RD fork _ _ _ _ _ (UInt256.land _ (UInt256.shiftRight
     (solcSlotWordAt (UInt256.ofNat 1) σ ee) (UInt256.ofNat 104)) :: borrowed :: repaid :: R)
     _ _ _ _ _ _ at r2
   rw [sourceState_borrowPrincipalRead hs] at r2

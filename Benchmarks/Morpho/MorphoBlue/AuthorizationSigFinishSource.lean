@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.AuthorizationSigFinish
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -14,7 +16,7 @@ def storeAuthorizationEnabled (evm : EVM.State) (a : AuthorizationWords) : EVM.S
 theorem morphoAuthorizationSourceFinish {a cd locals} (hl : AuthorizationLocals a cd locals)
     (imms : Store) (evm : EVM.State) (hc : a.Canonical)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config { contract := contract, locals := locals, immutables := imms } evm
+    ExecBlock fork config { contract := contract, locals := locals, immutables := imms } evm
       (setAuthorizationWithSigTransition.body.drop 24)
       (.returned { contract := contract, locals := locals, immutables := imms }
         (storeAuthorizationEnabled evm a) (some [.bytes ByteArray.empty])) := by
@@ -34,12 +36,12 @@ theorem morphoAuthorizationSourceFinish {a cd locals} (hl : AuthorizationLocals 
       { contract := contract, locals := locals, immutables := imms } st
       (.tupleGet (.var "authorization") 3) = .ok (.int (Int.ofNat a.nonce.toNat)) :=
     by simpa only [AuthorizationWords.fieldValue] using hl.evalField imms st ⟨3, by decide⟩
-  apply ExecBlock.consNormal (ExecStmt.emit (hperm := hperm) (vals := [.address evm.executionEnv.source,
+  apply ExecBlock.consNormal (ExecStmt.emit (fork := fork) (hperm := hperm) (vals := [.address evm.executionEnv.source,
     .address (AccountAddress.ofNat a.authorizer.toNat), .int (Int.ofNat a.nonce.toNat)]) ?_)
-  · apply ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) (h2 evm)
+  · apply ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (h2 evm)
       (assignMorphoIsAuthorized evm locals imms _ _ a.authorizer a.authorized a.enabled
         hl.authorized (h0 evm) (h1 evm) hc.1 hc.2.1))
-    apply ExecBlock.consNormal (ExecStmt.emit (hperm := by simpa only [storageStore_executionEnv] using hperm) (vals := [.address evm.executionEnv.source,
+    apply ExecBlock.consNormal (ExecStmt.emit (fork := fork) (hperm := by simpa only [storageStore_executionEnv] using hperm) (vals := [.address evm.executionEnv.source,
       .address (AccountAddress.ofNat a.authorizer.toNat), .address (AccountAddress.ofNat a.authorized.toNat),
       wordToElem .bool a.enabled]) ?_)
     · apply ExecBlock.consReturn (ExecStmt.return ?_)

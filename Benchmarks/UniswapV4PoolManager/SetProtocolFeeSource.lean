@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.PoolProtocolFeeSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -24,9 +26,9 @@ theorem setProtocolFeeTail {f : Frame} {evm : EVM.State} {id fee : UInt256}
     (hr : f.locals.get? setProtocolFeeAlias = some (poolRefValue id))
     (hi : f.locals.get? "id" = some (wordBytes32Value id))
     (he : f.locals.get? "newProtocolFee" = some (.int (Int.ofNat fee.toNat))) :
-    ExecFuncBody config f evm (setProtocolFeeTransition.body.drop 10)
+    ExecFuncBody fork config f evm (setProtocolFeeTransition.body.drop 10)
       (poolSetProtocolResult {f with locals := f.locals.insert "__c3" .unit} evm id fee) := by
-  have hset := poolSetProtocolCall (evm := evm) hf hc (evalLocalValue hr) (evalLocalValue he) "__c3"
+  have hset := poolSetProtocolCall (fork := fork) (evm := evm) hf hc (evalLocalValue hr) (evalLocalValue he) "__c3"
   simp only [poolSetProtocolCallResult, poolSetProtocolResult, poolSetSlot0Result, resumeCallResult_ite,
     resumeCallResult_reverted, resumeCallResult_static, resumeCallResult_returned] at hset ⊢
   by_cases hz : poolSqrtPriceWord evm id = ⟨0⟩
@@ -39,7 +41,7 @@ theorem setProtocolFeeTail {f : Frame} {evm : EVM.State} {id fee : UInt256}
     · rw [if_neg hp] at hset ⊢
       apply ExecFuncBody.execBlockOK
       refine ExecBlock.consNormal hset (ExecBlock.consNormal
-        (ExecStmt.emit (hperm := by simpa only [storageStore_executionEnv] using Bool.eq_true_of_not_eq_false hp) (vals := [wordBytes32Value id, .int (Int.ofNat fee.toNat)]) ?_) ExecBlock.nil)
+        (ExecStmt.emit (fork := fork) (hperm := by simpa only [storageStore_executionEnv] using Bool.eq_true_of_not_eq_false hp) (vals := [wordBytes32Value id, .int (Int.ofNat fee.toNat)]) ?_) ExecBlock.nil)
       have hi' := evalLocalValue (cfg := config) (f := {f with locals := f.locals.insert "__c3" .unit})
         (evm := poolSetProtocolPost evm id fee)
         ((store_get_ne _ _ (by decide : ("__c3" == "id") = false)).trans hi)
@@ -57,7 +59,7 @@ theorem setProtocolFeeBody {evm : EVM.State} {locals imms : Store} {key : PoolKe
     (hk : locals.get? "key" = some (.tuple (poolKeyValues key)))
     (he : locals.get? "newProtocolFee" = some (.int (Int.ofNat fee.toNat)))
     (hb : locals.get? "protocolFeeController" = none) :
-    ExecTransitionBody config contract evm locals setProtocolFeeTransition.body
+    ExecTransitionBody fork config contract evm locals setProtocolFeeTransition.body
       (setProtocolFeeResult (calldataFrame contract locals imms evm) evm key fee) imms := by
   let f := calldataFrame contract locals imms evm
   let f1 : Frame := {f with locals := f.locals.insert "key" (poolKeyValue key)}
@@ -65,7 +67,7 @@ theorem setProtocolFeeBody {evm : EVM.State} {locals imms : Store} {key : PoolKe
   let f3 : Frame := {f2 with locals := f2.locals.insert "id" (wordBytes32Value (poolKeyId key))}
   let f4 : Frame := {f3 with locals := f3.locals.insert "__c2" (poolRefValue (poolKeyId key))}
   let f5 : Frame := {f4 with locals := f4.locals.insert setProtocolFeeAlias (poolRefValue (poolKeyId key))}
-  have hlet : ExecStmt config f evm setProtocolFeeTransition.body[3]! (.ok f1 evm) :=
+  have hlet : ExecStmt fork config f evm setProtocolFeeTransition.body[3]! (.ok f1 evm) :=
     ExecStmt.letDecl (poolKeyFromTuple_eval (evalLocalValue
       ((store_get_ne _ _ (by decide : ("__calldata" == "key") = false)).trans hk)))
   have hguard := protocolControllerGuard (f := f1) (evm := evm) rfl
@@ -75,23 +77,23 @@ theorem setProtocolFeeBody {evm : EVM.State} {locals imms : Store} {key : PoolKe
   by_cases hauth : protocolControllerAuthorized evm
   · rw [if_pos hauth]
     rw [decide_eq_false (not_not.mpr hauth)] at hguard
-    have hite : ExecStmt config f1 evm setProtocolFeeTransition.body[4]! (.ok f1 evm) :=
+    have hite : ExecStmt fork config f1 evm setProtocolFeeTransition.body[4]! (.ok f1 evm) :=
       ExecStmt.iteFalse hguard ExecBlock.nil
     have he1 : f1.locals.get? "newProtocolFee" = some (.int (Int.ofNat fee.toNat)) :=
       (store_get_ne2 _ _ _ (by decide : ("__calldata" == "newProtocolFee") = false)
         (by decide : ("key" == "newProtocolFee") = false)).trans he
-    have hvalid := protocolFeeValidCall (f := f1) (evm := evm) rfl hfee (evalLocalValue he1) "__c0"
+    have hvalid := protocolFeeValidCall (fork := fork) (f := f1) (evm := evm) rfl hfee (evalLocalValue he1) "__c0"
     have hvguard := evalNotBool (evalLocalValue (cfg := config) (f := f2) (evm := evm) (store_get_self _ _ _))
     by_cases hv : protocolFeeValid fee
     · rw [if_pos hv]
       have hvg : evalExpr? config f2 evm (.unary .not (.var "__c0")) = .ok (.bool false) := by
         simpa only [decide_eq_true hv, Bool.not_true] using hvguard
-      have hvite : ExecStmt config f2 evm setProtocolFeeTransition.body[6]! (.ok f2 evm) :=
+      have hvite : ExecStmt fork config f2 evm setProtocolFeeTransition.body[6]! (.ok f2 evm) :=
         ExecStmt.iteFalse hvg ExecBlock.nil
-      have hid := poolIdCall (f := f2) (evm := evm) rfl hc (evalLocalValue
+      have hid := poolIdCall (fork := fork) (f := f2) (evm := evm) rfl hc (evalLocalValue
         ((store_get_ne _ _ (by decide : ("__c0" == "key") = false)).trans (store_get_self _ _ _))) "id"
-      have hget := poolGetCall (f := f3) (evm := evm) rfl (evalLocalValue (store_get_self _ _ _)) "__c2"
-      have href : ExecStmt config f4 evm setProtocolFeeTransition.body[9]! (.ok f5 evm) :=
+      have hget := poolGetCall (fork := fork) (f := f3) (evm := evm) rfl (evalLocalValue (store_get_self _ _ _)) "__c2"
+      have href : ExecStmt fork config f4 evm setProtocolFeeTransition.body[9]! (.ok f5 evm) :=
         ExecStmt.letStorage (resolveStorageAlias (store_get_self _ _ _))
       have hi5 : f5.locals.get? "id" = some (wordBytes32Value (poolKeyId key)) :=
         (store_get_ne2 _ _ _ (by decide : ("__c2" == "id") = false)
@@ -100,7 +102,7 @@ theorem setProtocolFeeBody {evm : EVM.State} {locals imms : Store} {key : PoolKe
         (store_get_ne4 _ _ _ _ _ (by decide : ("__c0" == "newProtocolFee") = false)
           (by decide : ("id" == "newProtocolFee") = false) (by decide : ("__c2" == "newProtocolFee") = false)
           (by decide : (setProtocolFeeAlias == "newProtocolFee") = false)).trans he1
-      have htail := setProtocolFeeTail (f := f5) (evm := evm) rfl hfee (store_get_self _ _ _) hi5 he5
+      have htail := setProtocolFeeTail (fork := fork) (f := f5) (evm := evm) rfl hfee (store_get_self _ _ _) hi5 he5
       apply nonpayableCalldataBody hwv hhi
       exact execFuncBody_prepend
         (ExecBlock.consNormal hlet (ExecBlock.consNormal hite (ExecBlock.consNormal hvalid

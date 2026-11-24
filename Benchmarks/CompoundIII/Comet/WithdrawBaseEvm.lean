@@ -5,6 +5,8 @@ import Benchmarks.CompoundIII.Comet.WithdrawBaseTailEvm
 import Benchmarks.CompoundIII.Comet.UpdateBaseMemory
 import Benchmarks.CompoundIII.Comet.AccrueInternalEvm
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -20,11 +22,11 @@ theorem cometWithdrawBaseAfterAccrue {v : CometWithExtendedAssetListImmutables}
     (hfree : memLoad ⟨64⟩ mem = free) (hlo : 96 ≤ free.toNat) (hmem : 96 ≤ mem.size)
     (hbound : free.toNat + 576 + 928 * v.numAssets.toNat < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨15748⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨15748⟩
       (EVM.word recipient.val :: amount :: EVM.word src.val :: UInt256.ofNat 12591 :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ result, WithdrawBaseAfterAccrue v src recipient amount evm result ∧
-      internalDynamicRun (deployedRuntime v) ee g s0 ret R result := by
+    ∃ result, WithdrawBaseAfterAccrue fork v src recipient amount evm result ∧
+      internalDynamicRun fork (deployedRuntime v) ee g s0 ret R result := by
   obtain ⟨aw1, k1, C1, hm, r1⟩ := cometWithdrawBaseRead (v := v) src
     (by change R.length + 1 + 13 ≤ 1024; omega) hfree hmem (by omega) hs h
   rcases cometWithdrawBaseMath (v := v) (by change R.length + 1 + 22 ≤ 1024; omega) hs r1 with
@@ -85,10 +87,10 @@ theorem cometWithdrawBase {v : CometWithExtendedAssetListImmutables}
     (hfree : memLoad ⟨64⟩ mem = free) (hlo : 96 ≤ free.toNat) (hmem : 96 ≤ mem.size)
     (hbound : free.toNat + 576 + 928 * v.numAssets.toNat < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨15734⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨15734⟩
       (EVM.word src.val :: EVM.word recipient.val :: amount :: ret :: R) mem aw rdata σ k C) :
-    ∃ result, WithdrawBaseTrace v src recipient amount evm result ∧
-      internalDynamicRun (deployedRuntime v) ee g s0 ret R result := by
+    ∃ result, WithdrawBaseTrace fork v src recipient amount evm result ∧
+      internalDynamicRun fork (deployedRuntime v) ee g s0 ret R result := by
   have r1 := cometWithExtendedAssetList_block_15734
     (immWords := wordsOf (immStore v)) (by change R.length + 1 + 6 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h

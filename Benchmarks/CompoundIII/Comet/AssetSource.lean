@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.AssetDecode
 import Benchmarks.CompoundIII.Comet.StaticCallBridge
 import Benchmarks.CompoundIII.Comet.GetterSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -104,12 +106,12 @@ theorem assetPayload_eval (frame : Frame) (evm : EVM.State) (i : UInt256)
 theorem assetPrefix_exec (imms : Store) (i : UInt256) (addr : AccountAddress)
     (evm evm' : EVM.State) (z : Bool) (out : ByteArray)
     (ha : imms.get? "assetList" = some (.address addr))
-    (hc : callViaEVM evm addr 0 (assetPayload i) (z, evm', out) false) :
-    ExecBlock config (assetEntry imms i) evm assetPrefix
+    (hc : callViaEVM fork evm addr 0 (assetPayload i) (z, evm', out) false) :
+    ExecBlock fork config (assetEntry imms i) evm assetPrefix
       (.ok (assetCallFrame imms i addr z out) evm') := by
   apply ExecBlock.consNormal (ExecStmt.letDecl (value := .address addr) ?_)
   · apply ExecBlock.consNormal (ExecStmt.letDecl (assetPayload_eval _ _ i ?_))
-    · apply ExecBlock.consNormal (lowLevelCallSourceWithPerm (hperm := Or.inl rfl) (target := addr)
+    · apply ExecBlock.consNormal (lowLevelCallSourceWithPerm (fork := fork) (hperm := Or.inl rfl) (target := addr)
         (value := 0) (calldata := assetPayload i) ?_ (by simp only [evalExpr?, pure]) ?_ hc)
       · exact ExecBlock.nil
       all_goals
@@ -123,7 +125,7 @@ theorem assetPrefix_exec (imms : Store) (i : UInt256) (addr : AccountAddress)
 
 theorem assetDecoded_exec (imms : Store) (i : UInt256) (addr : AccountAddress)
     (evm : EVM.State) (out : ByteArray) (hhi : out.size < 2^255) (hv : AssetValid out) :
-    ExecBlock config (assetCallFrame imms i addr true out) evm
+    ExecBlock fork config (assetCallFrame imms i addr true out) evm
       (assetRemainder.take 2) (.ok (assetDecodedFrame imms i addr out) evm) := by
   apply ExecBlock.consNormal (ExecStmt.requireTrue ?_)
   · apply ExecBlock.consNormal (ExecStmt.letDecl (value := assetTuple out) ?_) ExecBlock.nil
@@ -140,9 +142,9 @@ theorem assetDecoded_exec (imms : Store) (i : UInt256) (addr : AccountAddress)
 
 theorem assetRemainder_returns (imms : Store) (i : UInt256) (addr : AccountAddress)
     (evm : EVM.State) (out : ByteArray) (hhi : out.size < 2^255) (hv : AssetValid out) :
-    ExecBlock config (assetCallFrame imms i addr true out) evm assetRemainder
+    ExecBlock fork config (assetCallFrame imms i addr true out) evm assetRemainder
       (.returned (assetDecodedFrame imms i addr out) evm (some [assetValue out])) := by
-  change ExecBlock config _ _ (assetRemainder.take 2 ++ assetRemainder.drop 2) _
+  change ExecBlock fork config _ _ (assetRemainder.take 2 ++ assetRemainder.drop 2) _
   apply execBlockAppendOk (assetDecoded_exec imms i addr evm out hhi hv)
   apply ABlock.returns ABlock.start
   simp only [assetStructExpr, evalExpr?, evalStructFields?, assetDecodedFrame,
@@ -153,7 +155,7 @@ theorem assetRemainder_returns (imms : Store) (i : UInt256) (addr : AccountAddre
 theorem assetRemainder_reverts (imms : Store) (i : UInt256) (addr : AccountAddress)
     (evm : EVM.State) (out : ByteArray) (z : Bool) (hhi : out.size < 2^255)
     (hv : ¬ (z = true ∧ AssetValid out)) :
-    ExecBlock config (assetCallFrame imms i addr z out) evm assetRemainder .reverted := by
+    ExecBlock fork config (assetCallFrame imms i addr z out) evm assetRemainder .reverted := by
   cases z with
   | false =>
       apply ABlock.start.requireRevert
@@ -181,11 +183,11 @@ theorem asset_call_ok (frame : Frame) (evm evm' : EVM.State) (i : UInt256)
     (hf : frame.contract = contract)
     (ha : frame.immutables.get? "assetList" = some (.address addr))
     (he : evalExpr? config frame evm expr = .ok (.int (Int.ofNat i.toNat)))
-    (hc : callViaEVM evm addr 0 (assetPayload i) (true, evm', out) false)
+    (hc : callViaEVM fork evm addr 0 (assetPayload i) (true, evm', out) false)
     (hhi : out.size < 2^255) (hv : AssetValid out) :
-    ExecStmt config frame evm (.internalCall "getAssetInfo_body" [expr] ret)
+    ExecStmt fork config frame evm (.internalCall "getAssetInfo_body" [expr] ret)
       (.ok { frame with locals := frame.locals.insert ret (assetValue out) } evm') := by
-  have hb : ExecFuncBody config (assetEntry frame.immutables i) evm assetCallable.body
+  have hb : ExecFuncBody fork config (assetEntry frame.immutables i) evm assetCallable.body
       (.returned (assetDecodedFrame frame.immutables i addr out) evm'
         (some [assetValue out])) :=
     .execBlockRet (execBlockAppendOk (assetPrefix_exec _ _ _ _ _ _ _ ha hc)
@@ -202,16 +204,16 @@ theorem asset_call_revert (frame : Frame) (evm evm' : EVM.State) (i : UInt256)
     (hf : frame.contract = contract)
     (ha : frame.immutables.get? "assetList" = some (.address addr))
     (he : evalExpr? config frame evm expr = .ok (.int (Int.ofNat i.toNat)))
-    (hc : callViaEVM evm addr 0 (assetPayload i) (z, evm', out) false)
+    (hc : callViaEVM fork evm addr 0 (assetPayload i) (z, evm', out) false)
     (hhi : out.size < 2^255) (hv : ¬ (z = true ∧ AssetValid out)) :
-    ExecStmt config frame evm (.internalCall "getAssetInfo_body" [expr] ret) .reverted := by
+    ExecStmt fork config frame evm (.internalCall "getAssetInfo_body" [expr] ret) .reverted := by
   apply ExecStmt.internalCallRevert (callee := assetCallable)
     (locals := (∅ : Store).insert "i" (.int (Int.ofNat i.toNat)))
     (cfg := config) (stele := frame) (evm := evm) (args := [expr])
     (argVals := [.int (Int.ofNat i.toNat)])
     (by simp only [evalExprs?, he, pure, bind, EvalResult.bind])
     (by rw [hf]; exact assetCallable_lookup) rfl
-  have hb : ExecFuncBody config (assetEntry frame.immutables i) evm assetCallable.body
+  have hb : ExecFuncBody fork config (assetEntry frame.immutables i) evm assetCallable.body
       .reverted :=
     .execBlockRevert (execBlockAppendOk (assetPrefix_exec _ _ _ _ _ _ _ ha hc)
       (assetRemainder_reverts _ _ _ _ _ _ hhi hv))

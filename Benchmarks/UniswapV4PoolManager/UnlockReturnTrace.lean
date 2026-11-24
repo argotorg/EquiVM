@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.UnlockReturnTail
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -12,30 +14,30 @@ def unlockAllocationBounds (out : ByteArray) (first : Bool) : Prop :=
   else AllocationBounds (unlockRawEnd out) (bytesAllocationSize (unlockReturnLength out))
 
 /-- A valid reply can reach capacity panic only after these charged operations and memory growth. -/
-def UnlockAllocationFailure (code : ByteArray) (I : ExecutionEnv) (g : Sat256) (s0 : State)
+def UnlockAllocationFailure (fork : Ethereum.Fork) (code : ByteArray) (I : ExecutionEnv) (g : Sat256) (s0 : State)
     (σ : AccountMap) (out : ByteArray) (aw : UInt256) (C : Nat) : Prop :=
   BytesReturnBounds out ∧ ∃ (first : Bool) (mem' : ByteArray) (aw' : UInt256) (k' C' : Nat) (R' : List UInt256),
     ¬unlockAllocationBounds out first ∧ R'.length+2 ≤ 1024 ∧
     (M aw ⟨160⟩ (UInt256.ofNat out.size)).toNat ≤ aw'.toNat ∧
     C+(if first then 98 else 352)+3*((out.size+31)/32)+Cₘ aw' ≤ C'+Cₘ aw ∧
-    RD code I g s0 ⟨7857⟩ R' mem' aw' out σ k' C'
+    RD fork code I g s0 ⟨7857⟩ R' mem' aw' out σ k' C'
 
-def unlockReturnResultTrace (code : ByteArray) (g : Sat256) (s0 evm : State) (out : ByteArray) : Prop :=
+def unlockReturnResultTrace (fork : Ethereum.Fork) (code : ByteArray) (g : Sat256) (s0 evm : State) (out : ByteArray) : Prop :=
   if BytesReturnBounds out then
     if transientWord evm deltaCountSlot = ⟨0⟩ then
-      RDret code g s0 (lockSetPost evm false).accountMap (bytesReturnEncoding (bytesReturnPayload out))
-    else RDrev code g s0
-  else RDrev code g s0
+      RDret fork code g s0 (lockSetPost evm false).accountMap (bytesReturnEncoding (bytesReturnPayload out))
+    else RDrev fork code g s0
+  else RDrev fork code g s0
 
 theorem unlockReturnTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {mem out : ByteArray} {aw flag saved : UInt256} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+13 ≤ 1024)
     (hI : evm.executionEnv = I) (hp : I.perm = true)
     (hout : out.size < 2^138) (hmem : 160 ≤ mem.size)
-    (h : RD (deployedRuntime v) I g s0 ⟨9242⟩ (⟨160⟩ :: flag :: saved :: R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨9242⟩ (⟨160⟩ :: flag :: saved :: R)
       mem aw out evm.accountMap k C) :
-    UnlockAllocationFailure (deployedRuntime v) I g s0 evm.accountMap out aw C ∨
-    unlockReturnResultTrace (deployedRuntime v) g s0 evm out := by
+    UnlockAllocationFailure fork (deployedRuntime v) I g s0 evm.accountMap out aw C ∨
+    unlockReturnResultTrace fork (deployedRuntime v) g s0 evm out := by
   rcases unlockReturnPrefix v (by simp only [List.length_cons]; omega) hout hmem h with
     ⟨hbad, k', C', hc, rd⟩ | ⟨hbad, hr⟩ | ⟨hraw, hh, aw', k', C', hc, ha, rd⟩
   · by_cases hb : BytesReturnBounds out

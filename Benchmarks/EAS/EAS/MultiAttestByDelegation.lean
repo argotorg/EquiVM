@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.MultiDelegatedAttestPublicRun
 import Benchmarks.EAS.EAS.DelegatedBatchArrayDecode
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables ABI.Solc08Calldata
 namespace Benchmarks.EAS.EAS
@@ -8,7 +10,7 @@ set_option maxRecDepth 10000
 theorem easMultiAttestByDelegationBody {σ σ₀ A I} {g : UInt256} (v : EASImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (easSelBytes 7)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (easSelBytes 7) rfl hsel
   have hd : dispatchMsg contract I.calldata = some multiAttestByDelegationTransition := by
     apply easDispatch_multiAttestByDelegation (hsel := hsel)
@@ -18,7 +20,7 @@ theorem easMultiAttestByDelegationBody {σ σ₀ A I} {g : UInt256} (v : EASImmu
       decide +kernel
   have hplans : easPlans (bytesToWord (I.calldata.toList.take 4)).toNat = [DelegatedBatchSite.attest.plan] :=
     easPlans_of_selector hsel (by native_decide)
-  obtain ⟨k,C,rd⟩ := easReachMultiAttestByDelegationBody (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
+  obtain ⟨k,C,rd⟩ := easReachMultiAttestByDelegationBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
   by_cases h36 : 36 ≤ I.calldata.size
   · by_cases hbig : I.calldata.size < 2^255+4
     · have r1 := easBlocks.eas_block_2648_fallthrough (immWords := wordsOf (immStore v)) (by simp)
@@ -31,7 +33,7 @@ theorem easMultiAttestByDelegationBody {σ σ₀ A I} {g : UInt256} (v : EASImmu
         let args := (∅ : Store).insert "multiDelegatedRequests" (.array
           (delegatedBatchValues .attest I.calldata (UInt256.ofNat (wordArrayOffset I.calldata+36)) (wordArrayLength I.calldata)))
         let L1 := easEntryLocals args I.calldata
-        have hprefix := easPayableEntryPrefix_ok (cfg := config)
+        have hprefix := easPayableEntryPrefix_ok (fork := fork) (cfg := config)
           (frame := {contract := contract,locals := args,immutables := immStore v})
           (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I) hsz hsize (by change I.calldata.size-4 < 2^255; omega)
         have hreq : L1.get? "multiDelegatedRequests" = some (.array

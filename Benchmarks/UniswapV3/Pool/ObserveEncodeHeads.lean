@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.ObserveEncodeMemory
 import Benchmarks.UniswapV3.Pool.ObserveEncodeArithmetic
 import Benchmarks.UniswapV3.Pool.ObserveCopyLoop
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -21,11 +23,11 @@ def observeEncodeSecondStack (i n m : Nat) (s t p : UInt256) (R : List UInt256) 
 theorem observeEncodeFirstHeadX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw s t p : UInt256} {mem rdata : ByteArray}
     {xs : List UInt256} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨1699⟩ (s :: t :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨1699⟩ (s :: t :: R) mem aw rdata σ k C)
     (hm : MemoryCursor mem aw p) (ht : DynamicWordArrayMemory mem t xs)
     (htend : t.toNat + 32 * (xs.length + 1) ≤ p.toNat) (hb : p.toNat + 96 ≤ 2 ^ 200)
     (hov : R.length + 12 ≤ 1024) :
-    ∃ aw' k' C', ActiveWords aw' ∧ RD (deployedRuntime v) ee g s0 ⟨1743⟩
+    ∃ aw' k' C', ActiveWords aw' ∧ RD fork (deployedRuntime v) ee g s0 ⟨1743⟩
       (observeEncodeFirstStack 0 xs.length s t p R) (observeEncodeFirstHead mem p xs.length)
       aw' rdata σ k' C' := by
   have hload : memLoad (UInt256.ofNat 64) mem = p := hm.load64
@@ -74,12 +76,12 @@ theorem observeEncodeFirstHeadX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat25
 theorem observeEncodeSecondHeadX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C n : Nat} {aw s t p : UInt256} {mem rdata : ByteArray}
     {ys : List UInt256} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨1767⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨1767⟩
       (observeEncodeFirstStack n n s t p R) mem aw rdata σ k C)
     (hm : MemoryCursor mem aw p) (hs : DynamicWordArrayMemory mem s ys)
     (hsend : s.toNat + 32 * (ys.length + 1) ≤ p.toNat)
     (hb : p.toNat + 128 + 32 * n ≤ 2 ^ 200) (hov : R.length + 12 ≤ 1024) :
-    ∃ aw' k' C', ActiveWords aw' ∧ RD (deployedRuntime v) ee g s0 ⟨1806⟩
+    ∃ aw' k' C', ActiveWords aw' ∧ RD fork (deployedRuntime v) ee g s0 ⟨1806⟩
       (observeEncodeSecondStack 0 n ys.length s t p R)
       (observeEncodeSecondHead mem p n ys.length) aw' rdata σ k' C' := by
   have hp32 := uadd_word_ofNat_toNat p 32 (by change _ < 2 ^ 256; omega)

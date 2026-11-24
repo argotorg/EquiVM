@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.AccruePublicSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
@@ -13,7 +15,7 @@ def exactlyOneZeroFrame (x y : UInt256) (imms : Store) : Frame :=
     locals := ((∅ : Store).insert "y" (.int (Int.ofNat y.toNat))).insert "x" (.int (Int.ofNat x.toNat)) }
 
 theorem morphoExactlyOneZeroBody (x y : UInt256) (evm : EVM.State) (imms : Store) :
-    ExecFuncBody config (exactlyOneZeroFrame x y imms) evm exactlyOneZeroFunction.body
+    ExecFuncBody fork config (exactlyOneZeroFrame x y imms) evm exactlyOneZeroFunction.body
       (.returned (exactlyOneZeroFrame x y imms) evm (some [.bool (exactlyOneZero x y)])) := by
   have hx : evalExpr? config (exactlyOneZeroFrame x y imms) evm (.var "x") =
       .ok (.int (Int.ofNat x.toNat)) := by
@@ -32,7 +34,7 @@ theorem morphoExactlyOneZeroCall (x y : UInt256) (evm : EVM.State) (locals imms 
     (args : List Expr) (retVar : Ident)
     (he : evalExprs? config { contract := contract, locals := locals, immutables := imms } evm args =
       .ok [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)]) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm
       (.internalCall "UtilsLib_exactlyOneZero" args retVar)
       (.ok { contract := contract, locals := locals.insert retVar (.bool (exactlyOneZero x y)), immutables := imms } evm) :=
   internalCallFunctionReturn (callee := exactlyOneZeroFunction) (value := some [.bool (exactlyOneZero x y)])

@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Jug.ConstructorBase
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Jug constructor vat slot load trace
 -/
@@ -14,11 +16,11 @@ theorem jugCtorVatSloadReach
     {σ σWards σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat : AccountAddress) {k C : ℕ}
     (rd73 :
-      RD (jugCtorCode vat) I g
+      RD fork (jugCtorCode vat) I g
         (initState σ σ₀ g A I) ⟨73⟩
         [EVM.word vat.val] (jugCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
         σWards k C) :
-    ∃ k' C', RD (jugCtorCode vat) I g
+    ∃ k' C', RD fork (jugCtorCode vat) I g
       (initState σ σ₀ g A I) ⟨77⟩
       [solcSlotWord σWards I ⟨2⟩, ⟨2⟩, EVM.word vat.val]
       (jugCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty

@@ -2,6 +2,8 @@ import Reasoning.Stepping
 import Reasoning.Reach
 import Benchmarks.Dss.Clipper.RedoSuckEVM
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -146,14 +148,14 @@ theorem RD.clipperRedoEventUnlockSuccess {code : ByteArray} (v : ClipperImmutabl
     {σ : AccountMap}
     {coin chip tip feedPrice lot tab done topNew tic usr two kpr id sel : UInt256}
     {R : List UInt256} {mem out : ByteArray} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨8118⟩
+    (rd : RD fork code ee g s0 ⟨8118⟩
       (coin :: chip :: tip :: feedPrice :: lot :: tab :: done :: topNew :: tic :: usr ::
         two :: kpr :: id :: ⟨502⟩ :: sel :: R)
       mem (UInt256.ofNat 8) out σ k C)
     (hmem : mem.size = 228)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hperm : ee.perm = true) (hov : R.length + 50 ≤ 1024) :
-    RDret code g s0 (sstoreAccountMap ee.codeOwner σ ⟨13⟩ ⟨0⟩)
+    RDret fork code g s0 (sstoreAccountMap ee.codeOwner σ ⟨13⟩ ⟨0⟩)
       ByteArray.empty := by
   let eventTopic : UInt256 :=
     ⟨0x275de7ecdd375b5e8049319f8b350686131c219dd4dc450a08e9cf83b03c865f⟩
@@ -299,14 +301,14 @@ theorem RD.clipperRedoEventUnlockSuccessFrom196 {code : ByteArray}
     {σ : AccountMap}
     {coin chip tip feedPrice lot tab done topNew tic usr two kpr id sel : UInt256}
     {R : List UInt256} {mem out : ByteArray} {k C : ℕ}
-    (rd : RD code ee g s0 ⟨8118⟩
+    (rd : RD fork code ee g s0 ⟨8118⟩
       (coin :: chip :: tip :: feedPrice :: lot :: tab :: done :: topNew :: tic :: usr ::
         two :: kpr :: id :: ⟨502⟩ :: sel :: R)
       mem (UInt256.ofNat 7) out σ k C)
     (hmem : mem.size = 196)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hperm : ee.perm = true) (hov : R.length + 50 ≤ 1024) :
-    RDret code g s0 (sstoreAccountMap ee.codeOwner σ ⟨13⟩ ⟨0⟩)
+    RDret fork code g s0 (sstoreAccountMap ee.codeOwner σ ⟨13⟩ ⟨0⟩)
       ByteArray.empty := by
   let eventTopic : UInt256 :=
     ⟨0x275de7ecdd375b5e8049319f8b350686131c219dd4dc450a08e9cf83b03c865f⟩

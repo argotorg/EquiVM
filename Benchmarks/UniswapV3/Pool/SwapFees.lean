@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapFeeGrowth
 import Benchmarks.UniswapV3.Pool.SwapProtocolTrace
 import Benchmarks.UniswapV3.Pool.SwapProtocolFrameLaws
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -20,7 +22,7 @@ theorem swapFeesX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (c : SwapCacheData) (s : SwapStateData) (d : SwapIterationData)
     (frame : Frame) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3504⟩ ([q, p, exactWord, cache] ++ R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3504⟩ ([q, p, exactWord, cache] ++ R) mem aw rdata σ k C)
     (hf : frame.contract = contract) (hcache : frame.locals.get? "cache" = some c.value)
     (hstate : frame.locals.get? "state" = some s.value)
     (hstep : frame.locals.get? "step" = some d.value)
@@ -29,18 +31,18 @@ theorem swapFeesX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hfit : s.Fits) (hfee : c.feeProtocol.toNat < 256) (hp : 96 ≤ p.toNat)
     (hcachep : cache.toNat + 192 ≤ p.toNat) (hdisj : p.toNat + 224 ≤ q.toNat)
     (hb : q.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 20 ≤ 1024) :
-    (ExecBlock config frame evm ((swapLoopBody.drop 14).take 2) .reverted ∧
-      RDrev (deployedRuntime v) g s0) ∨
-    (ExecBlock config frame evm ((swapLoopBody.drop 14).take 2)
+    (ExecBlock fork config frame evm ((swapLoopBody.drop 14).take 2) .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) ∨
+    (ExecBlock fork config frame evm ((swapLoopBody.drop 14).take 2)
         (.ok (swapFeesFrame frame c s d) evm) ∧
       (swapFeesState c s d).Fits ∧
       ∃ mem' aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-        RD (deployedRuntime v) ee g s0 ⟨3637⟩ ([q, p, exactWord, cache] ++ R)
+        RD fork (deployedRuntime v) ee g s0 ⟨3637⟩ ([q, p, exactWord, cache] ++ R)
           mem' aw' rdata σ k' C' ∧
         HeapMemory mem' aw' free ∧ SwapStateMemory mem' p (swapFeesState c s d) ∧
         SwapIterationMemory mem' q (swapProtocolData c d) ∧ MemoryPrefix mem mem' p.toNat ∧
         aw.toNat ≤ aw'.toNat) := by
-  have hex1 := swapProtocolSource (evm := evm) c s d hcache hstate hstep
+  have hex1 := swapProtocolSource (fork := fork) (evm := evm) c s d hcache hstate hstep
   have hfit1 := swapProtocolState_fits c s d hfit
   obtain ⟨m1, a1, k1, C1, hC1, r1, hm1, hs1, hd1, hp1, hmono1⟩ :=
     swapProtocolX (v := v) c s d rd hm hc hs hd hfee hp hcachep hdisj hb (by omega)

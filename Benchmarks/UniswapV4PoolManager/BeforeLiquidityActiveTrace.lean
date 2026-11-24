@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.BeforeLiquidityPrepareTrace
 import Benchmarks.UniswapV4PoolManager.HookCallPaidTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -20,21 +22,21 @@ theorem beforeLiquidityActiveTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : Sta
     (hsrc : src.toNat+len.toNat ≤ I.calldata.size)
     (hgas : g.toNat < 324518553658429321982441292826060) (hpaid : Cₘ aw ≤ C)
     (hfree : memLoad (UInt256.ofNat 64) mem = free)
-    (h : RD (deployedRuntime v) I g s0 (beforeLiquidityEncodePc add)
+    (h : RD fork (deployedRuntime v) I g s0 (beforeLiquidityEncodePc add)
       (beforeLiquidityEncodeStack add a b (accountWord hook) src paramsPtr len keyPtr R) mem aw rdata evm.accountMap k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
     ∃ post z out, AllocationBounds free (beforeLiquidityAllocationSize len) ∧
-      callViaEVM evm hook 0 (beforeLiquidityPayload add I.source key p
+      callViaEVM fork evm hook 0 (beforeLiquidityPayload add I.source key p
         (I.calldata.extract src.toNat (src.toNat+len.toNat))) (z, post, out) ∧
       post.executionEnv = I ∧ post.σ₀ = s0.σ₀ ∧ out.size < 2^138 ∧
       (if z = true ∧ hookReplyValid (beforeLiquidityPayload add I.source key p
           (I.calldata.extract src.toNat (src.toNat+len.toNat))) out then
         ∃ aw' k' C', Cₘ aw' ≤ C' ∧ (beforeLiquidityFree free len).toNat+out.size+4096 ≤ solcMaxU64 ∧
-        RD (deployedRuntime v) I g s0 (beforeLiquidityCallRet add)
+        RD fork (deployedRuntime v) I g s0 (beforeLiquidityCallRet add)
           (beforeLiquidityFree free len :: src :: paramsPtr :: len :: keyPtr :: R)
           (solcReturnDataMem (beforeLiquidityMemory add I.calldata mem src.toNat free len I.source key p)
             (beforeLiquidityFree free len) out) aw' out post.accountMap k' C'
-      else RDrev (deployedRuntime v) g s0) := by
+      else RDrev fork (deployedRuntime v) g s0) := by
   rcases beforeLiquidityPrepareTrace v add hstack hk hp hc hl hu hkb hpb hf hgas hpaid hfree h with
     hog | ⟨hb, aw1, k1, C1, hpay1, rd1⟩
   · exact .inl hog

@@ -4,6 +4,8 @@ import Benchmarks.UniswapV3.Pool.TickUpdateStorage
 import Benchmarks.UniswapV3.Pool.SafeSignedMathTrace
 import Benchmarks.UniswapV3.Pool.SafeCast128Trace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -28,10 +30,10 @@ theorem tickUpdateNetEntryX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : TickUpdateArgs) (evm : EVM.State)
     (hs : SourceState s0 ee σ (tickUpdateGrossState a evm))
-    (rd : RD (deployedRuntime v) ee g s0 (if a.upper then ⟨21203⟩ else ⟨21161⟩)
+    (rd : RD fork (deployedRuntime v) ee g s0 (if a.upper then ⟨21203⟩ else ⟨21161⟩)
       (tickUpdateWorkingWords a evm ++ ret :: R) mem aw rdata σ k C)
     (hfit : a.TraceFits) (hov : R.length + 21 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat (if a.upper then 12967 else 12995))
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat (if a.upper then 12967 else 12995))
       (EVM.wordOfInt a.delta :: EVM.wordOfInt (tickUpdateNetBefore a evm) :: ⟨21193⟩ ::
         tickUpdateNetReturnPC a.upper :: tickUpdateWorkingWords a evm ++ ret :: R)
       mem aw rdata σ k' C' := by
@@ -51,7 +53,7 @@ theorem tickUpdateNetEntryX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
       (by change R.length + 4 + 17 ≤ 1024; omega)
       (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; native_decide) rd
     simp only [uniswapV3Pool_block_21161_stack] at rf
-    change RD (deployedRuntime v) ee g s0 ⟨12995⟩
+    change RD fork (deployedRuntime v) ee g s0 ⟨12995⟩
       (UInt256.signextend (UInt256.ofNat 15) (EVM.wordOfInt a.delta) ::
         UInt256.signextend (UInt256.ofNat 15) (UInt256.signextend (UInt256.ofNat 15)
           (UInt256.div (solcSlotWordAt (tickClearBase a.tick) σ ee)
@@ -65,7 +67,7 @@ theorem tickUpdateNetEntryX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
       (by change R.length + 4 + 17 ≤ 1024; omega)
       (by rw [uniswapV3PoolPatchedValidJumpsRuntime v]; native_decide) rd
     simp only [uniswapV3Pool_block_21203_stack] at rf
-    change RD (deployedRuntime v) ee g s0 ⟨12967⟩
+    change RD fork (deployedRuntime v) ee g s0 ⟨12967⟩
       (UInt256.signextend (UInt256.ofNat 15) (EVM.wordOfInt a.delta) ::
         UInt256.signextend (UInt256.ofNat 15) (UInt256.signextend (UInt256.ofNat 15)
           (UInt256.div (solcSlotWordAt (tickClearBase a.tick) σ ee)

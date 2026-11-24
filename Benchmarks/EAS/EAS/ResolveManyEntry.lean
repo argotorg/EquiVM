@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.MemoryArrayIndex
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -14,9 +16,9 @@ theorem resolveManyStart {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C len : Nat}
     {schema array values available last : UInt256} {R : List UInt256} (v : EASImmutables) (rev : Bool)
     (hstack : R.length+9 ≤ 1024) (hlen : len < UInt256.size) (hl : memLoad array mem = UInt256.ofNat len)
-    (rd : RD (deployedRuntime v) ee g s0 (resolveManyEntryPC rev)
+    (rd : RD fork (deployedRuntime v) ee g s0 (resolveManyEntryPC rev)
       (schema::array::values::available::last::R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (if len=1 then resolveManySinglePC rev else resolveManyLoadPC rev)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (if len=1 then resolveManySinglePC rev else resolveManyLoadPC rev)
       (resolveManyHeadStack rev schema array values available last (UInt256.ofNat len) R) mem aw' rdata σ k' C' := by
   by_cases ho : len=1
   · subst len
@@ -53,11 +55,11 @@ theorem resolveManySingleEntry {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hv : memLoad values mem = UInt256.ofNat 1)
     (hs : memLoad (UInt256.ofNat (array.toNat+32)) mem = src)
     (hw : memLoad (UInt256.ofNat (values.toNat+32)) mem = word)
-    (rd : RD (deployedRuntime v) ee g s0 (resolveManySinglePC rev)
+    (rd : RD fork (deployedRuntime v) ee g s0 (resolveManySinglePC rev)
       (resolveManyHeadStack rev schema array values available last (UInt256.ofNat 1) R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨15724⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨15724⟩
       (schema::src::word::rev.toUInt256::available::last::⟨4692⟩::R) mem aw' rdata σ k' C' := by
-  have hfirst : ∃ aw1 k1 C1, RD (deployedRuntime v) ee g s0 ⟨5712⟩
+  have hfirst : ∃ aw1 k1 C1, RD fork (deployedRuntime v) ee g s0 ⟨5712⟩
       (array::⟨15044⟩::⟨15051⟩::values::schema::rev.toUInt256::available::last::⟨4692⟩::R) mem aw1 rdata σ k1 C1 := by
     cases rev with
     | false =>

@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.WordArrayDecode
 import Benchmarks.EAS.EAS.WordArrayGuards
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -33,13 +35,13 @@ theorem easWordArrayDecode {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length + 8 ≤ 1024) (hsize : ee.calldata.size < UInt256.size)
     (ho : wordArrayOffset ee.calldata ≤ solcMaxU64)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨4225⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨4225⟩
       ((UInt256.ofNat 4 + calldataWord ee.calldata 4) :: UInt256.ofNat ee.calldata.size :: ret :: R) mem aw rdata σ k C) :
     if wordArrayValid ee.calldata then
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ret
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret
         (UInt256.ofNat (wordArrayLength ee.calldata) :: UInt256.ofNat (wordArrayOffset ee.calldata + 36) :: R)
         mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   by_cases hh : wordArrayOffset ee.calldata + 36 ≤ ee.calldata.size ∧ ee.calldata.size < 2^255
   · have hg : UInt256.isZero (UInt256.slt ((UInt256.ofNat 4 + calldataWord ee.calldata 4) + UInt256.ofNat 31)
         (UInt256.ofNat ee.calldata.size)) = ⟨0⟩ := by

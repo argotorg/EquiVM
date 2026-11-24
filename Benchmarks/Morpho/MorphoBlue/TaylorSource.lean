@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.MathSource
 import Benchmarks.Morpho.MorphoBlue.MathValues
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
@@ -8,9 +10,9 @@ set_option maxRecDepth 1000
 -- LIBRARY CANDIDATE: extend a source block with any statement preserving EVM state.
 theorem advancePureBlock {cfg : Config} {evm : EVM.State} {start before after : Frame}
     {stmts rest : List Stmt} {stmt : Stmt}
-    (pref : ABlock cfg evm start stmts before (stmt :: rest))
-    (step : ExecStmt cfg before evm stmt (.ok after evm)) :
-    ABlock cfg evm start stmts after rest :=
+    (pref : ABlock fork cfg evm start stmts before (stmt :: rest))
+    (step : ExecStmt fork cfg before evm stmt (.ok after evm)) :
+    ABlock fork cfg evm start stmts after rest :=
   ⟨fun tail ↦ pref.run (ExecBlock.consNormal step tail)⟩
 
 abbrev taylorFunction : FunctionDecl := contract.functions[16]!
@@ -94,7 +96,7 @@ theorem taylor_eval_denominator3 (frame : Frame) (evm : EVM.State) :
 
 theorem morphoTaylorFirst (x n : UInt256) (evm : EVM.State) (imms : Store)
     (h1 : x.toNat * n.toNat < UInt256.size) :
-    ABlock config evm (taylorStart x n imms) taylorFunction.body
+    ABlock fork config evm (taylorStart x n imms) taylorFunction.body
       (taylorAfterFirst x n imms) (taylorFunction.body.drop 1) := by
   exact ABlock.start.letStep (checkedMulSourceOk (taylor_eval_x x n imms evm)
     (taylor_eval_n x n imms evm) h1)
@@ -102,7 +104,7 @@ theorem morphoTaylorFirst (x n : UInt256) (evm : EVM.State) (imms : Store)
 theorem morphoTaylorSecond (x n : UInt256) (evm : EVM.State) (imms : Store)
     (h1 : x.toNat * n.toNat < UInt256.size)
     (h2 : (taylorTerm1 x n).toNat * (taylorTerm1 x n).toNat < UInt256.size) :
-    ABlock config evm (taylorStart x n imms) taylorFunction.body
+    ABlock fork config evm (taylorStart x n imms) taylorFunction.body
       (taylorAfterSecond x n imms) (taylorFunction.body.drop 2) := by
   apply advancePureBlock (morphoTaylorFirst x n evm imms h1)
   exact morphoMulDivDownCallOk _ _ _ evm _ imms _ _ _ _
@@ -113,7 +115,7 @@ theorem morphoTaylorThird (x n : UInt256) (evm : EVM.State) (imms : Store)
     (h1 : x.toNat * n.toNat < UInt256.size)
     (h2 : (taylorTerm1 x n).toNat * (taylorTerm1 x n).toNat < UInt256.size)
     (h3 : (taylorTerm2 x n).toNat * (taylorTerm1 x n).toNat < UInt256.size) :
-    ABlock config evm (taylorStart x n imms) taylorFunction.body
+    ABlock fork config evm (taylorStart x n imms) taylorFunction.body
       (taylorAfterThird x n imms) (taylorFunction.body.drop 3) := by
   apply advancePureBlock (morphoTaylorSecond x n evm imms h1 h2)
   exact morphoMulDivDownCallOk _ _ _ evm _ imms _ _ _ _
@@ -121,7 +123,7 @@ theorem morphoTaylorThird (x n : UInt256) (evm : EVM.State) (imms : Store)
     (taylor_eval_denominator3 _ evm) h3 (by decide)
 
 theorem morphoTaylorBodyOk (x n : UInt256) (evm : EVM.State) (imms : Store) (hfit : TaylorFits x n) :
-    ExecFuncBody config (taylorStart x n imms) evm taylorFunction.body
+    ExecFuncBody fork config (taylorStart x n imms) evm taylorFunction.body
       (.returned (taylorAfterThird x n imms) evm (some [.int (Int.ofNat (taylorWord x n).toNat)])) := by
   obtain ⟨h1, h2, h3, h4, h5⟩ := hfit
   apply ExecFuncBody.execBlockRet
@@ -132,7 +134,7 @@ theorem morphoTaylorBodyOk (x n : UInt256) (evm : EVM.State) (imms : Store) (hfi
 
 theorem morphoTaylorBodyReverts (x n : UInt256) (evm : EVM.State) (imms : Store)
     (hbad : ¬ TaylorFits x n) :
-    ExecFuncBody config (taylorStart x n imms) evm taylorFunction.body .reverted := by
+    ExecFuncBody fork config (taylorStart x n imms) evm taylorFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   by_cases h1 : x.toNat * n.toNat < UInt256.size
   · by_cases h2 : (taylorTerm1 x n).toNat * (taylorTerm1 x n).toNat < UInt256.size
@@ -168,7 +170,7 @@ theorem morphoTaylorCallOk (x n : UInt256) (evm : EVM.State) (locals imms : Stor
       .ok (.int (Int.ofNat x.toNat)))
     (hn : evalExpr? config { contract := contract, locals := locals, immutables := imms } evm en =
       .ok (.int (Int.ofNat n.toNat))) (hfit : TaylorFits x n) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm
       (.internalCall "MathLib_wTaylorCompounded" [ex, en] retVar)
       (.ok { contract := contract, locals := locals.insert retVar (.int (Int.ofNat (taylorWord x n).toNat)), immutables := imms } evm) := by
   exact internalCallFunctionReturn (callee := taylorFunction)
@@ -183,7 +185,7 @@ theorem morphoTaylorCallReverts (x n : UInt256) (evm : EVM.State) (locals imms :
       .ok (.int (Int.ofNat x.toNat)))
     (hn : evalExpr? config { contract := contract, locals := locals, immutables := imms } evm en =
       .ok (.int (Int.ofNat n.toNat))) (hbad : ¬ TaylorFits x n) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm
       (.internalCall "MathLib_wTaylorCompounded" [ex, en] retVar) .reverted := by
   exact internalCallFunctionRevert (callee := taylorFunction)
     (argVals := [.int (Int.ofNat x.toNat), .int (Int.ofNat n.toNat)])

@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.ResolveManyPayableEVM
 import Benchmarks.EAS.EAS.ResolverManyEVM
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -11,9 +13,9 @@ theorem resolveManyAccepted {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {junk word : UInt256} {R : List UInt256} (v : EASImmutables) (rev : Bool)
     (hstack : R.length+5 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 (resolverDonePC true rev) (junk::word::R) mem aw rdata σ k C) :
-    if word ≠ ⟨0⟩ then ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (resolveManyFinishPC rev) R mem aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    (rd : RD fork (deployedRuntime v) ee g s0 (resolverDonePC true rev) (junk::word::R) mem aw rdata σ k C) :
+    if word ≠ ⟨0⟩ then ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (resolveManyFinishPC rev) R mem aw' rdata σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   by_cases hn : word ≠ ⟨0⟩
   · rw [if_pos hn]
     cases rev with
@@ -35,11 +37,11 @@ theorem resolveManyFinish {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {available total ret : UInt256} {R : List UInt256} (v : EASImmutables) (rev last : Bool)
     (hstack : R.length+5 ≤ 1024) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 (resolveManyFinishPC rev)
+    (rd : RD fork (deployedRuntime v) ee g s0 (resolveManyFinishPC rev)
       (last.toUInt256::available::total::ret::R) mem aw rdata σ k C) :
     if last then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨16342⟩ (available::⟨4692⟩::total::ret::R) mem aw' rdata σ k' C'
-    else ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (total::R) mem aw' rdata σ k' C' := by
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨16342⟩ (available::⟨4692⟩::total::ret::R) mem aw' rdata σ k' C'
+    else ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (total::R) mem aw' rdata σ k' C' := by
   cases last with
   | false =>
     cases rev with
@@ -52,7 +54,7 @@ theorem resolveManyFinish {ee : ExecutionEnv} {g : Sat256} {s0 : State}
         (by simp only [List.length_cons]; omega) rfl rd
       exact easBlocks.eas_block_15213_packed (immWords := wordsOf (immStore v)) (by omega) hret hr
   | true =>
-    have hmid : ∃ a j D, RD (deployedRuntime v) ee g s0 ⟨14595⟩ (available::total::ret::R) mem a rdata σ j D := by
+    have hmid : ∃ a j D, RD fork (deployedRuntime v) ee g s0 ⟨14595⟩ (available::total::ret::R) mem a rdata σ j D := by
       cases rev with
       | false =>
         exact easBlocks.eas_block_14588_taken_packed (immWords := wordsOf (immStore v))
@@ -68,9 +70,9 @@ theorem resolveManyLoopDone {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C len : Nat}
     {array target values available last total : UInt256} {R : List UInt256} (v : EASImmutables) (rev : Bool)
     (hstack : R.length+11 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 (resolveManyLoopPC rev)
+    (rd : RD fork (deployedRuntime v) ee g s0 (resolveManyLoopPC rev)
       (resolveManyLoopStack rev len array target values available last total len R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (resolverManyEntryPC rev)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (resolverManyEntryPC rev)
       (resolverManyEntryStack rev (UInt256.ofNat len) (UInt256.ofNat len) ⟨0⟩ array target values last available total R)
       mem aw' rdata σ k' C' := by
   have hg : UInt256.lt (UInt256.ofNat len) (UInt256.ofNat len) = ⟨0⟩ := ult_zero (le_refl _)

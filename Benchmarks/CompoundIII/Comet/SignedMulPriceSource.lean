@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.SignedMulPriceModel
 import Benchmarks.CompoundIII.Comet.AccountMagnitude
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -58,7 +60,7 @@ theorem signedMulPriceReturn_source (frame : Frame) (evm : EVM.State) (m p scale
 
 theorem signedMulPrice_source (evm : EVM.State) (imms : Store) (m p scale : UInt256)
     (hp : p.toNat < 2^255) (hscale : scale.toNat < 2^64) :
-    ExecFuncBody config (signedMulPriceEntry imms m p scale) evm signedMulPriceCallable.body
+    ExecFuncBody fork config (signedMulPriceEntry imms m p scale) evm signedMulPriceCallable.body
       (if signedDebtPriceValid m p scale then
         .returned (signedMulPriceFinal imms m p scale) evm
           (some [.int (signedDebtPriceInt m p scale)]) else .reverted) := by
@@ -68,7 +70,7 @@ theorem signedMulPrice_source (evm : EVM.State) (imms : Store) (m p scale : UInt
     simp only [evalExpr?, frame, signedMulPriceEntry, Std.HashMap.get?_eq_getElem?,
       Std.HashMap.getElem?_insert, EvalResult.ofOption]
     rfl
-  have hcall := signed256_call_ok frame evm p (.var "price") "__c0" rfl he hp
+  have hcall := signed256_call_ok (fork := fork) frame evm p (.var "price") "__c0" rfl he hp
   have hn : evalExpr? config final evm (.var "n") = .ok (.int (-Int.ofNat m.toNat)) := by
     simp only [evalExpr?, final, signedMulPriceFinal, signedMulPriceEntry,
       Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert, EvalResult.ofOption]
@@ -98,11 +100,11 @@ theorem signedMulPrice_call (frame : Frame) (evm : EVM.State) (m p scale : UInt2
     (hn : evalExpr? config frame evm nExpr = .ok (.int (-Int.ofNat m.toNat)))
     (hep : evalExpr? config frame evm priceExpr = .ok (.int p.toNat))
     (hes : evalExpr? config frame evm scaleExpr = .ok (.int scale.toNat)) :
-    ExecStmt config frame evm (.internalCall "signedMulPrice" [nExpr, priceExpr, scaleExpr] ret)
+    ExecStmt fork config frame evm (.internalCall "signedMulPrice" [nExpr, priceExpr, scaleExpr] ret)
       (if signedDebtPriceValid m p scale then .ok { frame with
         locals := frame.locals.insert ret (.int (signedDebtPriceInt m p scale)) } evm
       else .reverted) := by
-  have hb := signedMulPrice_source evm frame.immutables m p scale hp hscale
+  have hb := signedMulPrice_source (fork := fork) evm frame.immutables m p scale hp hscale
   by_cases hv : signedDebtPriceValid m p scale
   · rw [if_pos hv] at hb ⊢
     exact ExecStmt.internalCallReturn (cfg := config) (stele := frame) (evm := evm)

@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Flopper.Dent.Part3
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -28,7 +30,7 @@ theorem flopperDentBodyReverts_addOverflow_moveCallerNe_ticZero_kissSuccess
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord evm.accountMap (dentVatWord evm) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config evm
+      typedCallViaEVM fork config evm
         (EVM.address (AccountAddress.ofNat (dentVatWord evm).toNat)) "move" 0
         [.address evm.executionEnv.source,
           .address (AccountAddress.ofNat (dentGuyWord evm I).toNat),
@@ -39,7 +41,7 @@ theorem flopperDentBodyReverts_addOverflow_moveCallerNe_ticZero_kissSuccess
       Reasoning.Theory.extCodeSizeWord evmMove.accountMap (dentGuyWord evmMove I) ≠
         ⟨0⟩)
     (hashCall :
-      typedCallViaEVM config evmMove
+      typedCallViaEVM fork config evmMove
         (EVM.address (AccountAddress.ofNat (dentGuyWord evmMove I).toNat)) "Ash" 0 []
         (true, evmAsh, outAsh) true)
     (houtAsh32 : 32 ≤ outAsh.size)
@@ -47,7 +49,7 @@ theorem flopperDentBodyReverts_addOverflow_moveCallerNe_ticZero_kissSuccess
       Reasoning.Theory.extCodeSizeWord evmAsh.accountMap (dentGuyWord evmAsh I) ≠
         ⟨0⟩)
     (hkissCall :
-      typedCallViaEVM config evmAsh
+      typedCallViaEVM fork config evmAsh
         (EVM.address (AccountAddress.ofNat (dentGuyWord evmAsh I).toNat)) "kiss" 0
         [.int (Int.ofNat (dentKissAmtWord I outAsh).toNat)]
         (true, evmKiss, outKiss) true)
@@ -56,7 +58,7 @@ theorem flopperDentBodyReverts_addOverflow_moveCallerNe_ticZero_kissSuccess
         (dentNow48Word (dentAfterGuyStore evmKiss I)).toNat +
           (dentTtlWord (dentAfterLotStore (dentAfterGuyStore evmKiss I) I)).toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (dentLocals I) dentTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (dentLocals I) dentTransition.body .reverted := by
   let evmGuy := dentAfterGuyStore evmKiss I
   let evmLot := dentAfterLotStore evmGuy I
   have hticGuard :
@@ -73,7 +75,7 @@ theorem flopperDentBodyReverts_addOverflow_moveCallerNe_ticZero_kissSuccess
       evm evmMove evmAsh evmKiss I outMove outAsh outKiss hcaller hcodeSize hcall
       hticMove hashCodeSize hashCall houtAsh32 hkissCodeSize hkissCall
   have htickChecked :
-      ExecBlock config { contract := contract, locals := dentKissRetLocals evm I outAsh }
+      ExecBlock fork config { contract := contract, locals := dentKissRetLocals evm I outAsh }
           evmLot
         (checkedAdd48Into "tic_" now48 (.storage ttlRef)) .reverted := by
     simpa [checkedAdd48Into, evmGuy, evmLot] using
@@ -85,13 +87,13 @@ theorem flopperDentBodyReverts_addOverflow_moveCallerNe_ticZero_kissSuccess
             (evalExpr_dent_tic_guard_false_wrapped_kissRetLocals evm evmGuy I outAsh
               haddOverflow)))
   have htickTail :
-      ExecBlock config { contract := contract, locals := dentKissRetLocals evm I outAsh }
+      ExecBlock fork config { contract := contract, locals := dentKissRetLocals evm I outAsh }
           evmLot
         (checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
           [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")]) .reverted :=
    execBlock_append_term htickChecked (by intro f e h; cases h)
   have htail :
-      ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evm
+      ExecBlock fork config { contract := contract, locals := dentLotOneLocals evm I } evm
         ([.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
           (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
               [sender, .storage (bidsF (.var "id") "guy"), .var "bid"] "_moveRet" ++
@@ -158,7 +160,7 @@ theorem flopperDentBodyReturns_success_moveCallerNe_ticZero_kissSuccessSplit
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord evm.accountMap (dentVatWord evm) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config evm
+      typedCallViaEVM fork config evm
         (EVM.address (AccountAddress.ofNat (dentVatWord evm).toNat)) "move" 0
         [.address evm.executionEnv.source,
           .address (AccountAddress.ofNat (dentGuyWord evm I).toNat),
@@ -169,7 +171,7 @@ theorem flopperDentBodyReturns_success_moveCallerNe_ticZero_kissSuccessSplit
       Reasoning.Theory.extCodeSizeWord evmMove.accountMap (dentGuyWord evmMove I) ≠
         ⟨0⟩)
     (hashCall :
-      typedCallViaEVM config evmMove
+      typedCallViaEVM fork config evmMove
         (EVM.address (AccountAddress.ofNat (dentGuyWord evmMove I).toNat)) "Ash" 0 []
         (true, evmAsh, outAsh) true)
     (houtAsh32 : 32 ≤ outAsh.size)
@@ -177,20 +179,20 @@ theorem flopperDentBodyReturns_success_moveCallerNe_ticZero_kissSuccessSplit
       Reasoning.Theory.extCodeSizeWord evmAsh.accountMap (dentGuyWord evmAsh I) ≠
         ⟨0⟩)
     (hkissCall :
-      typedCallViaEVM config evmAsh
+      typedCallViaEVM fork config evmAsh
         (EVM.address (AccountAddress.ofNat (dentGuyWord evmAsh I).toNat)) "kiss" 0
         [.int (Int.ofNat (dentKissAmtWord I outAsh).toNat)]
         (true, evmKiss, outKiss) true) :
     (evm.executionEnv.perm = true → ((dentNow48Word (dentAfterGuyStore evmKiss I)).toNat +
           (dentTtlWord (dentAfterLotStore (dentAfterGuyStore evmKiss I) I)).toNat <
         2 ^ 48) →
-      ExecTransitionBody config contract evm (dentLocals I) dentTransition.body
+      ExecTransitionBody fork config contract evm (dentLocals I) dentTransition.body
       (.returned
         { contract := contract
           locals := dentKissRetTicLocals evm (dentAfterGuyStore evmKiss I) I outAsh }
         (dentPostState (dentAfterGuyStore evmKiss I) I) none)) ∧
       (evm.executionEnv.perm = false →
-        ExecTransitionBody config contract evm (dentLocals I)
+        ExecTransitionBody fork config contract evm (dentLocals I)
           dentTransition.body .staticViolation) := by
   let evmGuy := dentAfterGuyStore evmKiss I
   let evmLot := dentAfterLotStore evmGuy I
@@ -208,9 +210,9 @@ theorem flopperDentBodyReturns_success_moveCallerNe_ticZero_kissSuccessSplit
       evm evmMove evmAsh evmKiss I outMove outAsh outKiss hcaller hcodeSize hcall
       hticMove hashCodeSize hashCall houtAsh32 hkissCodeSize hkissCall
   have hprefix {result : ExecResult}
-      (htail : ExecBlock config { contract := contract, locals := dentLotOneLocals evm I }
+      (htail : ExecBlock fork config { contract := contract, locals := dentLotOneLocals evm I }
         evm (dentTransition.body.drop 12) result) :
-      ExecBlock config { contract := contract, locals := dentLocals I } evm
+      ExecBlock fork config { contract := contract, locals := dentLocals I } evm
         dentTransition.body result := by
     simpa [dentTransition, nonpayable, checkedMulUintInto, List.cons_append, List.nil_append,
       evmGuy] using
@@ -241,7 +243,7 @@ theorem flopperDentBodyReturns_success_moveCallerNe_ticZero_kissSuccessSplit
   · intro hperm haddFit
     have htailIteLot := htailIteLotSplit.1 hperm
     have htickLet :
-        ExecBlock config { contract := contract, locals := dentKissRetLocals evm I outAsh }
+        ExecBlock fork config { contract := contract, locals := dentKissRetLocals evm I outAsh }
             evmLot
           (checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
             [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])
@@ -255,14 +257,14 @@ theorem flopperDentBodyReturns_success_moveCallerNe_ticZero_kissSuccessSplit
             (ExecStmt.requireTrue
               (evalExpr_dent_tic_guard_true_kissRetLocals evm evmGuy I outAsh haddFit)) <|
           ExecBlock.consNormal
-            (ExecStmt.assign (hperm := Or.inr (by simpa only [dentAfterLotStore_executionEnv, evmGuy, dentAfterGuyStore, storageStore_executionEnv, typedCallViaEVM_executionEnv_eq hkissCall, typedCallViaEVM_executionEnv_eq hashCall, typedCallViaEVM_executionEnv_eq hcall] using hperm))
+            (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [dentAfterLotStore_executionEnv, evmGuy, dentAfterGuyStore, storageStore_executionEnv, typedCallViaEVM_executionEnv_eq hkissCall, typedCallViaEVM_executionEnv_eq hashCall, typedCallViaEVM_executionEnv_eq hcall] using hperm))
               (evalExpr_dent_tic_var_kissRetTicLocals evm evmGuy I outAsh)
               (assign_dentTicStorage_value_of_locals evmGuy I
                 (dentKissRetTicLocals_get_id evm evmGuy I outAsh)
                 (dentKissRetTicLocals_get_bids evm evmGuy I outAsh) haddFit))
             ExecBlock.nil)
     have htail :
-        ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evm
+        ExecBlock fork config { contract := contract, locals := dentLotOneLocals evm I } evm
           ([.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
             (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
                 [sender, .storage (bidsF (.var "id") "guy"), .var "bid"] "_moveRet" ++
@@ -313,7 +315,7 @@ theorem flopperDentBodyReturns_success_moveCallerNe_ticZero_kissSuccess
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord evm.accountMap (dentVatWord evm) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config evm
+      typedCallViaEVM fork config evm
         (EVM.address (AccountAddress.ofNat (dentVatWord evm).toNat)) "move" 0
         [.address evm.executionEnv.source,
           .address (AccountAddress.ofNat (dentGuyWord evm I).toNat),
@@ -324,7 +326,7 @@ theorem flopperDentBodyReturns_success_moveCallerNe_ticZero_kissSuccess
       Reasoning.Theory.extCodeSizeWord evmMove.accountMap (dentGuyWord evmMove I) ≠
         ⟨0⟩)
     (hashCall :
-      typedCallViaEVM config evmMove
+      typedCallViaEVM fork config evmMove
         (EVM.address (AccountAddress.ofNat (dentGuyWord evmMove I).toNat)) "Ash" 0 []
         (true, evmAsh, outAsh) true)
     (houtAsh32 : 32 ≤ outAsh.size)
@@ -332,7 +334,7 @@ theorem flopperDentBodyReturns_success_moveCallerNe_ticZero_kissSuccess
       Reasoning.Theory.extCodeSizeWord evmAsh.accountMap (dentGuyWord evmAsh I) ≠
         ⟨0⟩)
     (hkissCall :
-      typedCallViaEVM config evmAsh
+      typedCallViaEVM fork config evmAsh
         (EVM.address (AccountAddress.ofNat (dentGuyWord evmAsh I).toNat)) "kiss" 0
         [.int (Int.ofNat (dentKissAmtWord I outAsh).toNat)]
         (true, evmKiss, outKiss) true)
@@ -341,7 +343,7 @@ theorem flopperDentBodyReturns_success_moveCallerNe_ticZero_kissSuccess
           (dentTtlWord (dentAfterLotStore (dentAfterGuyStore evmKiss I) I)).toNat <
         2 ^ 48)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (dentLocals I) dentTransition.body
+    ExecTransitionBody fork config contract evm (dentLocals I) dentTransition.body
       (.returned
         { contract := contract
           locals := dentKissRetTicLocals evm (dentAfterGuyStore evmKiss I) I outAsh }
@@ -370,7 +372,7 @@ theorem flopperDentBodyReverts_addOverflow_moveCallerNe_ticNonzero
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord evm.accountMap (dentVatWord evm) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config evm
+      typedCallViaEVM fork config evm
         (EVM.address (AccountAddress.ofNat (dentVatWord evm).toNat)) "move" 0
         [.address evm.executionEnv.source,
           .address (AccountAddress.ofNat (dentGuyWord evm I).toNat),
@@ -382,7 +384,7 @@ theorem flopperDentBodyReverts_addOverflow_moveCallerNe_ticNonzero
         (dentNow48Word (dentAfterGuyStore evmMove I)).toNat +
           (dentTtlWord (dentAfterLotStore (dentAfterGuyStore evmMove I) I)).toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (dentLocals I) dentTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (dentLocals I) dentTransition.body .reverted := by
   let evmGuy := dentAfterGuyStore evmMove I
   let evmLot := dentAfterLotStore evmGuy I
   have hticGuard :
@@ -398,7 +400,7 @@ theorem flopperDentBodyReverts_addOverflow_moveCallerNe_ticNonzero
     flopperDentBodyMoveSuccessTicNonzeroToLot (hperm := hperm) evm evmMove I out hcaller hcodeSize hcall
       hticMove
   have htickChecked :
-      ExecBlock config { contract := contract, locals := dentMoveLocals evm I } evmLot
+      ExecBlock fork config { contract := contract, locals := dentMoveLocals evm I } evmLot
         (checkedAdd48Into "tic_" now48 (.storage ttlRef)) .reverted := by
     simpa [checkedAdd48Into, evmGuy, evmLot] using
       (ExecBlock.consNormal
@@ -408,12 +410,12 @@ theorem flopperDentBodyReverts_addOverflow_moveCallerNe_ticNonzero
             (evalExpr_dent_tic_guard_false_wrapped_moveLocals evm evmGuy I
               haddOverflow)))
   have htickTail :
-      ExecBlock config { contract := contract, locals := dentMoveLocals evm I } evmLot
+      ExecBlock fork config { contract := contract, locals := dentMoveLocals evm I } evmLot
         (checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
           [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")]) .reverted :=
    execBlock_append_term htickChecked (by intro f e h; cases h)
   have htail :
-      ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evm
+      ExecBlock fork config { contract := contract, locals := dentLotOneLocals evm I } evm
         ([.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
           (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
               [sender, .storage (bidsF (.var "id") "guy"), .var "bid"] "_moveRet" ++
@@ -479,7 +481,7 @@ theorem flopperDentBodyReturns_success_moveCallerNe_ticNonzeroSplit
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord evm.accountMap (dentVatWord evm) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config evm
+      typedCallViaEVM fork config evm
         (EVM.address (AccountAddress.ofNat (dentVatWord evm).toNat)) "move" 0
         [.address evm.executionEnv.source,
           .address (AccountAddress.ofNat (dentGuyWord evm I).toNat),
@@ -489,12 +491,12 @@ theorem flopperDentBodyReturns_success_moveCallerNe_ticNonzeroSplit
     (evm.executionEnv.perm = true → ((dentNow48Word (dentAfterGuyStore evmMove I)).toNat +
           (dentTtlWord (dentAfterLotStore (dentAfterGuyStore evmMove I) I)).toNat <
         2 ^ 48) →
-      ExecTransitionBody config contract evm (dentLocals I) dentTransition.body
+      ExecTransitionBody fork config contract evm (dentLocals I) dentTransition.body
       (.returned
         { contract := contract, locals := dentMoveTicLocals evm (dentAfterGuyStore evmMove I) I }
         (dentPostState (dentAfterGuyStore evmMove I) I) none)) ∧
       (evm.executionEnv.perm = false →
-        ExecTransitionBody config contract evm (dentLocals I)
+        ExecTransitionBody fork config contract evm (dentLocals I)
           dentTransition.body .staticViolation) := by
   let evmGuy := dentAfterGuyStore evmMove I
   let evmLot := dentAfterLotStore evmGuy I
@@ -511,9 +513,9 @@ theorem flopperDentBodyReturns_success_moveCallerNe_ticNonzeroSplit
     flopperDentBodyMoveSuccessTicNonzeroToLotSplit evm evmMove I out hcaller hcodeSize hcall
       hticMove
   have hprefix {result : ExecResult}
-      (htail : ExecBlock config { contract := contract, locals := dentLotOneLocals evm I }
+      (htail : ExecBlock fork config { contract := contract, locals := dentLotOneLocals evm I }
         evm (dentTransition.body.drop 12) result) :
-      ExecBlock config { contract := contract, locals := dentLocals I } evm
+      ExecBlock fork config { contract := contract, locals := dentLocals I } evm
         dentTransition.body result := by
     simpa [dentTransition, nonpayable, checkedMulUintInto, List.cons_append, List.nil_append,
       evmGuy] using
@@ -544,7 +546,7 @@ theorem flopperDentBodyReturns_success_moveCallerNe_ticNonzeroSplit
   · intro hperm haddFit
     have htailIteLot := htailIteLotSplit.1 hperm
     have htickLet :
-        ExecBlock config { contract := contract, locals := dentMoveLocals evm I } evmLot
+        ExecBlock fork config { contract := contract, locals := dentMoveLocals evm I } evmLot
           (checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
             [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])
           (.ok { contract := contract, locals := dentMoveTicLocals evm evmGuy I }
@@ -556,13 +558,13 @@ theorem flopperDentBodyReturns_success_moveCallerNe_ticNonzeroSplit
             (ExecStmt.requireTrue
               (evalExpr_dent_tic_guard_true_moveLocals evm evmGuy I haddFit)) <|
           ExecBlock.consNormal
-            (ExecStmt.assign (hperm := Or.inr (by simpa only [dentAfterLotStore_executionEnv, evmGuy, dentAfterGuyStore, storageStore_executionEnv, typedCallViaEVM_executionEnv_eq hcall] using hperm)) (evalExpr_dent_tic_var_moveTicLocals evm evmGuy I)
+            (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [dentAfterLotStore_executionEnv, evmGuy, dentAfterGuyStore, storageStore_executionEnv, typedCallViaEVM_executionEnv_eq hcall] using hperm)) (evalExpr_dent_tic_var_moveTicLocals evm evmGuy I)
               (assign_dentTicStorage_value_of_locals evmGuy I
                 (dentMoveTicLocals_get_id evm evmGuy I)
                 (dentMoveTicLocals_get_bids evm evmGuy I) haddFit))
             ExecBlock.nil)
     have htail :
-        ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evm
+        ExecBlock fork config { contract := contract, locals := dentLotOneLocals evm I } evm
           ([.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
             (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
                 [sender, .storage (bidsF (.var "id") "guy"), .var "bid"] "_moveRet" ++
@@ -612,7 +614,7 @@ theorem flopperDentBodyReturns_success_moveCallerNe_ticNonzero
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord evm.accountMap (dentVatWord evm) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config evm
+      typedCallViaEVM fork config evm
         (EVM.address (AccountAddress.ofNat (dentVatWord evm).toNat)) "move" 0
         [.address evm.executionEnv.source,
           .address (AccountAddress.ofNat (dentGuyWord evm I).toNat),
@@ -624,7 +626,7 @@ theorem flopperDentBodyReturns_success_moveCallerNe_ticNonzero
           (dentTtlWord (dentAfterLotStore (dentAfterGuyStore evmMove I) I)).toNat <
         2 ^ 48)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (dentLocals I) dentTransition.body
+    ExecTransitionBody fork config contract evm (dentLocals I) dentTransition.body
       (.returned
         { contract := contract, locals := dentMoveTicLocals evm (dentAfterGuyStore evmMove I) I }
         (dentPostState (dentAfterGuyStore evmMove I) I) none) :=
@@ -651,7 +653,7 @@ theorem flopperDentBodyReverts_addOverflow_callerEq (evm : EVM.State) (I : Execu
       2 ^ 48 ≤
         (dentNow48Word evm).toNat + (dentTtlWord (dentAfterLotStore evm I)).toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (dentLocals I) dentTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (dentLocals I) dentTransition.body .reverted := by
   let evmLot := dentAfterLotStore evm I
   have hticGuard :
       evalExpr? config { contract := contract, locals := dentLocals I } evm
@@ -665,7 +667,7 @@ theorem flopperDentBodyReverts_addOverflow_callerEq (evm : EVM.State) (I : Execu
   have hcallerCond :=
     evalExpr_dent_sender_ne_guy_false_lotOneLocals evm I hcaller
   have htailIteLot :
-      ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evm
+      ExecBlock fork config { contract := contract, locals := dentLotOneLocals evm I } evm
         [.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
           (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
               [sender, .storage (bidsF (.var "id") "guy"), .var "bid"] "_moveRet" ++
@@ -683,11 +685,11 @@ theorem flopperDentBodyReverts_addOverflow_callerEq (evm : EVM.State) (I : Execu
         (.ok { contract := contract, locals := dentLotOneLocals evm I } evmLot) := by
     exact ExecBlock.consNormal (ExecStmt.iteFalse hcallerCond ExecBlock.nil) <|
       ExecBlock.consNormal
-        (ExecStmt.assign (hperm := Or.inr hperm) (evalExpr_dent_lot_var_lotOneLocals evm I)
+        (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (evalExpr_dent_lot_var_lotOneLocals evm I)
           (by simpa [evmLot] using assign_dentLotStorage evm I))
         ExecBlock.nil
   have htickChecked :
-      ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evmLot
+      ExecBlock fork config { contract := contract, locals := dentLotOneLocals evm I } evmLot
         (checkedAdd48Into "tic_" now48 (.storage ttlRef)) .reverted := by
     simpa [checkedAdd48Into, evmLot] using
       (ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_dent_ticAdd_wrapped evm I)) <|
@@ -695,12 +697,12 @@ theorem flopperDentBodyReverts_addOverflow_callerEq (evm : EVM.State) (I : Execu
           (ExecStmt.requireFalse
             (evalExpr_dent_tic_guard_false_wrapped evm I haddOverflow)))
   have htickTail :
-      ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evmLot
+      ExecBlock fork config { contract := contract, locals := dentLotOneLocals evm I } evmLot
         (checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
           [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")]) .reverted :=
    execBlock_append_term htickChecked (by intro f e h; cases h)
   have htail :
-      ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evm
+      ExecBlock fork config { contract := contract, locals := dentLotOneLocals evm I } evm
         ([.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
           (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
               [sender, .storage (bidsF (.var "id") "guy"), .var "bid"] "_moveRet" ++
@@ -763,11 +765,11 @@ theorem flopperDentBodyReturns_success_callerEqSplit (evm : EVM.State) (I : Exec
     (hcaller : UInt256.ofNat evm.executionEnv.source.val = dentGuyWord evm I) :
     (evm.executionEnv.perm = true → ((dentNow48Word evm).toNat + (dentTtlWord (dentAfterLotStore evm I)).toNat <
         2 ^ 48) →
-      ExecTransitionBody config contract evm (dentLocals I) dentTransition.body
+      ExecTransitionBody fork config contract evm (dentLocals I) dentTransition.body
       (.returned { contract := contract, locals := dentTicLocals evm I }
         (dentPostState evm I) none)) ∧
       (evm.executionEnv.perm = false →
-        ExecTransitionBody config contract evm (dentLocals I)
+        ExecTransitionBody fork config contract evm (dentLocals I)
           dentTransition.body .staticViolation) := by
   let evmLot := dentAfterLotStore evm I
   have hticGuard :
@@ -782,9 +784,9 @@ theorem flopperDentBodyReturns_success_callerEqSplit (evm : EVM.State) (I : Exec
   have hcallerCond :=
     evalExpr_dent_sender_ne_guy_false_lotOneLocals evm I hcaller
   have hprefix {result : ExecResult}
-      (htail : ExecBlock config { contract := contract, locals := dentLotOneLocals evm I }
+      (htail : ExecBlock fork config { contract := contract, locals := dentLotOneLocals evm I }
         evm (dentTransition.body.drop 12) result) :
-      ExecBlock config { contract := contract, locals := dentLocals I } evm
+      ExecBlock fork config { contract := contract, locals := dentLocals I } evm
         dentTransition.body result := by
     simpa [dentTransition, nonpayable, checkedMulUintInto, List.cons_append, List.nil_append]
       using
@@ -814,7 +816,7 @@ theorem flopperDentBodyReturns_success_callerEqSplit (evm : EVM.State) (I : Exec
   constructor
   · intro hperm haddFit
     have htailIteLot :
-        ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evm
+        ExecBlock fork config { contract := contract, locals := dentLotOneLocals evm I } evm
           [.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
             (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
                 [sender, .storage (bidsF (.var "id") "guy"), .var "bid"] "_moveRet" ++
@@ -832,11 +834,11 @@ theorem flopperDentBodyReturns_success_callerEqSplit (evm : EVM.State) (I : Exec
           (.ok { contract := contract, locals := dentLotOneLocals evm I } evmLot) := by
       exact ExecBlock.consNormal (ExecStmt.iteFalse hcallerCond ExecBlock.nil) <|
         ExecBlock.consNormal
-          (ExecStmt.assign (hperm := Or.inr (by simpa only [dentAfterLotStore_executionEnv] using hperm)) (evalExpr_dent_lot_var_lotOneLocals evm I)
+          (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [dentAfterLotStore_executionEnv] using hperm)) (evalExpr_dent_lot_var_lotOneLocals evm I)
             (by simpa [evmLot] using assign_dentLotStorage evm I))
           ExecBlock.nil
     have htickLet :
-        ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evmLot
+        ExecBlock fork config { contract := contract, locals := dentLotOneLocals evm I } evmLot
           (checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
             [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])
           (.ok { contract := contract, locals := dentTicLocals evm I } (dentPostState evm I)) := by
@@ -845,11 +847,11 @@ theorem flopperDentBodyReturns_success_callerEqSplit (evm : EVM.State) (I : Exec
           ExecBlock.consNormal
             (ExecStmt.requireTrue (evalExpr_dent_tic_guard_true evm I haddFit)) <|
           ExecBlock.consNormal
-            (ExecStmt.assign (hperm := Or.inr (by simpa only [dentAfterLotStore_executionEnv] using hperm)) (evalExpr_dent_tic_var evm I)
+            (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [dentAfterLotStore_executionEnv] using hperm)) (evalExpr_dent_tic_var evm I)
               (assign_dentTicStorage_value evm I haddFit))
             ExecBlock.nil)
     have htail :
-        ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evm
+        ExecBlock fork config { contract := contract, locals := dentLotOneLocals evm I } evm
           ([.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
             (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
                 [sender, .storage (bidsF (.var "id") "guy"), .var "bid"] "_moveRet" ++
@@ -894,7 +896,7 @@ theorem flopperDentBodyReturns_success_callerEq (evm : EVM.State) (I : Execution
       (dentNow48Word evm).toNat + (dentTtlWord (dentAfterLotStore evm I)).toNat <
         2 ^ 48)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (dentLocals I) dentTransition.body
+    ExecTransitionBody fork config contract evm (dentLocals I) dentTransition.body
       (.returned { contract := contract, locals := dentTicLocals evm I }
         (dentPostState evm I) none) :=
   (flopperDentBodyReturns_success_callerEqSplit
@@ -1138,12 +1140,12 @@ theorem flopperDentBodyCoreRevert
       config.externalABI.decodeCalldata? (dentTransition.params.map Param.name)
         (transitionSignature dentTransition).paramTypes I.calldata = some (dentLocals I))
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (dentLocals I)
         dentTransition.body .reverted)
-    (hrev : RDrev flopperBytecode (Sat256.ofUInt256 g)
+    (hrev : RDrev fork flopperBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem flopperDentBodyCoreSuccessCallerEqBridge
@@ -1154,7 +1156,7 @@ theorem flopperDentBodyCoreSuccessCallerEqBridge
       config.externalABI.decodeCalldata? (dentTransition.params.map Param.name)
         (transitionSignature dentTransition).paramTypes I.calldata = some (dentLocals I))
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (dentLocals I)
         dentTransition.body
         (.returned
@@ -1163,14 +1165,14 @@ theorem flopperDentBodyCoreSuccessCallerEqBridge
               dentTicLocals (initState σ σ₀ (Sat256.ofUInt256 g) A I) I }
           (dentPostState (initState σ σ₀ (Sat256.ofUInt256 g) A I) I)
           none))
-    (hret : RDret flopperBytecode (Sat256.ofUInt256 g)
+    (hret : RDret fork flopperBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (dentRuntimeTailSuccessAccountMap I.codeOwner σ I) ByteArray.empty)
     (hAccountsPost :
       Eq (dentRuntimeTailSuccessAccountMap I.codeOwner σ I)
         (dentPostState
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) I).accountMap) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
     (by simpa [evmStele, dentPostState, dentAfterTicStore, dentAfterLotStore,
@@ -1204,7 +1206,7 @@ theorem flopperReachDentBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flopperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (flopperSelBytes 4)) :
-    ∃ k C, RD flopperBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork flopperBytecode I g (initState σ σ₀ g A I)
         ⟨533⟩ [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : flopperSelWord I = ⟨0x5ff3a382⟩ := by
@@ -1240,10 +1242,10 @@ theorem flopperReachDentBody {σ σ₀ A I} {g : Sat256}
 
 theorem flopperDentX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD flopperBytecode I g
+    (hreach : ∃ k C, RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨533⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD flopperBytecode I g (initState σ σ₀ g A I) ⟨1634⟩
+    ∃ k C, RD fork flopperBytecode I g (initState σ σ₀ g A I) ⟨1634⟩
       [dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
@@ -1278,10 +1280,10 @@ theorem flopperDentX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem flopperDentX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 100)
-    (hreach : ∃ k C, RD flopperBytecode I g
+    (hreach : ∃ k C, RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨533⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flopperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flopperBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨1⟩ := by
     apply ult_one
@@ -1299,17 +1301,17 @@ theorem flopperDentX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 set_option maxHeartbeats 1000000 in
 theorem flopperDentX_notLive {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hlive : solcSlotWordAt ⟨8⟩ σ I ≠ ⟨1⟩)
-    (h : ∃ k C, RD flopperBytecode I g
+    (h : ∃ k C, RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨1634⟩
       [dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flopperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flopperBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd1634⟩ := h
   have rd1637 := evm_run rd1634 with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨8⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k1638, C1638, rd1638raw⟩ := rd1637.sload (by native_decide) (by evm_ov)
-  have rd1638 : RD flopperBytecode I g
+  have rd1638 : RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨1638⟩
       (solcSlotWordAt ⟨8⟩ σ I :: dentBidWord I :: dentLotWord I :: dentIdWord I ::
         ⟨334⟩ :: [sel])
@@ -1344,11 +1346,11 @@ theorem flopperDentX_notLive {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 
 theorem flopperDentX_liveOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
-    (h : ∃ k C, RD flopperBytecode I g
+    (h : ∃ k C, RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨1634⟩
       [dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD flopperBytecode I g (initState σ σ₀ g A I) ⟨1708⟩
+    ∃ k C, RD fork flopperBytecode I g (initState σ σ₀ g A I) ⟨1708⟩
       [dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd1634⟩ := h
@@ -1356,7 +1358,7 @@ theorem flopperDentX_liveOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨8⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k1638, C1638, rd1638raw⟩ := rd1637.sload (by native_decide) (by evm_ov)
-  have rd1638 : RD flopperBytecode I g
+  have rd1638 : RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨1638⟩
       (solcSlotWordAt ⟨8⟩ σ I :: dentBidWord I :: dentLotWord I :: dentIdWord I ::
         ⟨334⟩ :: [sel])
@@ -1374,12 +1376,12 @@ theorem flopperDentX_liveOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 set_option maxHeartbeats 1000000 in
 theorem flopperDentX_toGuyGuard
     {σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
-    (rd1708 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨1708⟩
+    (rd1708 : RD fork flopperBytecode I g (initState σ σ₀ g A I) ⟨1708⟩
       [dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     let id := dentIdWord I
     let memMap := twoWordHashMem id ⟨1⟩ solcFreePtrMem
-    ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨1736⟩
+    ∃ k' C', RD fork flopperBytecode I g (initState σ σ₀ g A I) ⟨1736⟩
       [solcAddressSlotWord (auctionPackedSlot id) σ I, dentBidWord I,
         dentLotWord I, id, ⟨334⟩, sel]
       memMap (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -1433,7 +1435,7 @@ theorem flopperDentX_toGuyGuard
     simp [base, auctionPackedSlot_eq, id]
   rw [hpacked] at rd1726pre
   obtain ⟨k1727, C1727, rd1727raw⟩ := rd1726pre.sload (by native_decide) (by evm_ov)
-  have rd1727 : RD flopperBytecode I g
+  have rd1727 : RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨1727⟩
       [solcSlotWordAt (auctionPackedSlot id) σ I, dentBidWord I, dentLotWord I,
         id, ⟨334⟩, sel]
@@ -1460,11 +1462,11 @@ set_option maxHeartbeats 1000000 in
 theorem flopperDentX_guyNotSet {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
     (hguy : solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ I = ⟨0⟩)
-    (h : ∃ k C, RD flopperBytecode I g
+    (h : ∃ k C, RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨1634⟩
       [dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flopperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flopperBytecode g (initState σ σ₀ g A I) := by
   let id := dentIdWord I
   let memMap := twoWordHashMem id ⟨1⟩ solcFreePtrMem
   obtain ⟨_, _, rd1708⟩ := flopperDentX_liveOk (g := g) hlive h
@@ -1498,11 +1500,11 @@ set_option maxHeartbeats 1000000 in
 theorem flopperDentX_guyOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
     (hguy : solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ I ≠ ⟨0⟩)
-    (h : ∃ k C, RD flopperBytecode I g
+    (h : ∃ k C, RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨1634⟩
       [dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD flopperBytecode I g (initState σ σ₀ g A I) ⟨1806⟩
+    ∃ k C, RD fork flopperBytecode I g (initState σ σ₀ g A I) ⟨1806⟩
       [dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
       (twoWordHashMem (dentIdWord I) ⟨1⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -1514,14 +1516,14 @@ theorem flopperDentX_guyOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 set_option maxHeartbeats 1000000 in
 theorem flopperDentX_toTicGtGuard
     {σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
-    (rd1806 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨1806⟩
+    (rd1806 : RD fork flopperBytecode I g (initState σ σ₀ g A I) ⟨1806⟩
       [dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
       (twoWordHashMem (dentIdWord I) ⟨1⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty σ k C) :
     let id := dentIdWord I
     let memGuy := twoWordHashMem id ⟨1⟩ solcFreePtrMem
     let memTic := twoWordHashMem id ⟨1⟩ memGuy
-    ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨1843⟩
+    ∃ k' C', RD fork flopperBytecode I g (initState σ σ₀ g A I) ⟨1843⟩
       [UInt256.gt (uint48Offset20Word (auctionPackedSlot id) σ I)
         (UInt256.ofNat I.header.timestamp), dentBidWord I, dentLotWord I, id, ⟨334⟩, sel]
       memTic (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -1575,7 +1577,7 @@ theorem flopperDentX_toTicGtGuard
     simp [base, auctionPackedSlot_eq, id]
   rw [hpacked] at rd1824pre
   obtain ⟨k1825, C1825, rd1825raw⟩ := rd1824pre.sload (by native_decide) (by evm_ov)
-  have rd1825 : RD flopperBytecode I g
+  have rd1825 : RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨1825⟩
       [solcSlotWordAt (auctionPackedSlot id) σ I, dentBidWord I, dentLotWord I,
         id, ⟨334⟩, sel]
@@ -1609,11 +1611,11 @@ theorem flopperDentX_ticFinished {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hticLe :
       (uint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I).toNat ≤
         (UInt256.ofNat I.header.timestamp).toNat)
-    (h : ∃ k C, RD flopperBytecode I g
+    (h : ∃ k C, RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨1634⟩
       [dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flopperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flopperBytecode g (initState σ σ₀ g A I) := by
   let id := dentIdWord I
   let memGuy := twoWordHashMem id ⟨1⟩ solcFreePtrMem
   let memTic := twoWordHashMem id ⟨1⟩ memGuy
@@ -1679,7 +1681,7 @@ theorem flopperDentX_ticFinished {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     simp [base, auctionPackedSlot_eq, id]
   rw [hpacked] at rd1866pre
   obtain ⟨k1867, C1867, rd1867raw⟩ := rd1866pre.sload (by native_decide) (by evm_ov)
-  have rd1867 : RD flopperBytecode I g
+  have rd1867 : RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨1867⟩
       [solcSlotWordAt (auctionPackedSlot id) σ I, dentBidWord I, dentLotWord I,
         id, ⟨334⟩, sel]
@@ -1714,7 +1716,7 @@ theorem flopperDentX_ticFinished {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     rw [show UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩ = UInt256.ofNat (256 ^ 20)
       from by native_decide]
     rfl
-  have rd1883 : RD flopperBytecode I g
+  have rd1883 : RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨1883⟩
       [UInt256.isZero (uint48Offset20Word (auctionPackedSlot id) σ I),
         dentBidWord I, dentLotWord I, id, ⟨334⟩, sel]
@@ -1763,11 +1765,11 @@ theorem flopperDentX_ticGtOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hticGt :
       (UInt256.ofNat I.header.timestamp).toNat <
         (uint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I).toNat)
-    (h : ∃ k C, RD flopperBytecode I g
+    (h : ∃ k C, RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨1634⟩
       [dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD flopperBytecode I g (initState σ σ₀ g A I) ⟨1964⟩
+    ∃ k C, RD fork flopperBytecode I g (initState σ σ₀ g A I) ⟨1964⟩
       [dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
       (twoWordHashMem (dentIdWord I) ⟨1⟩
         (twoWordHashMem (dentIdWord I) ⟨1⟩ solcFreePtrMem))

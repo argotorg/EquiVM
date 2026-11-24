@@ -2,6 +2,8 @@ import ABI.Encode
 import ABI.Decode
 import Stele.Semantics
 
+variable {fork : Ethereum.Fork}
+
 /-!
 The statement of Stele/EVM refinement, layered bottom-up:
 
@@ -10,12 +12,19 @@ The statement of Stele/EVM refinement, layered bottom-up:
   (equality of final account maps, plus the return data — for constructors, the
   returned bytes must be the deployed runtime code for the constructor's final immutables).
 * **Fixed-input relation** — `runtimeRefinementFor` couples one EVM execution
-  (`Ethereum.EVM.Ξ`) with one Stele execution (`steleExec`) at fixed transaction inputs.
-* **∀-closure** — `runtimeRefinement` (and `runtimeRefinementWithWF`, which carries a storage
-  precondition and a bound on the starting gas) quantify over all inputs.
-* **Top level** — the contract refinement (`contractRefinement`) composes the constructor
-  (`typedConstructorRefinement`) and runtime relations through the immutables the constructor
-  deploys.
+  (`Ethereum.EVM.Ξ`) with one Stele execution (`steleExec`) at fixed transaction inputs, under
+  one fork.
+* **∀-closure** — `runtimeRefinementOn forks` (and `runtimeRefinementWithWFOn forks`, which
+  carries a storage precondition and a bound on the starting gas) quantify over all inputs and
+  over the forks in the set `forks`.
+* **Top level** — the contract refinement (`contractRefinementOn forks`) composes the
+  constructor (`typedConstructorRefinementOn forks`) and runtime relations through the
+  immutables the constructor deploys.
+
+Each closure is stated for a set of forks (`ForkSet`). The names without `On` (`runtimeRefinement`,
+`contractRefinement`, …) are the closures at `supportedForks`, every fork the model supports:
+Cancun onward.  `….mono` restricts a closure to fewer forks, so the general closure yields every
+fork-specific one.
 -/
 
 namespace Stele
@@ -148,8 +157,8 @@ inductive ctorResultEquiv
 
 /-- Runtime refinement of a single message call at fixed transaction inputs: couples the EVM
     execution of the bytecode (`Ethereum.EVM.Ξ`) with the Stele execution of the spec (`steleExec`),
-    both run from the given accounts, gas, substate, and environment `I` (which carries the code
-    and calldata).
+    both run under `fork` from the given accounts, gas, substate, and environment `I` (which
+    carries the code and calldata).
 
     Holds in exactly one of two ways:
     * `execution`: `steleExec` produces `steleRes`; the EVM result is `execResultsEquiv`-related
@@ -160,7 +169,7 @@ inductive ctorResultEquiv
       termination is not forced, a non-terminating EVM program is equivalent to any spec.)
 
     `immutables` are the values the contract was deployed with (`∅` without immutables). -/
-inductive runtimeRefinementFor (cfg : Config)
+inductive runtimeRefinementFor (fork : Ethereum.Fork) (cfg : Config)
     (contract : ContractDecl) /- Spec -/
     (σ : Ethereum.AccountMap)
     (σ₀ : Ethereum.AccountMap)
@@ -171,16 +180,45 @@ inductive runtimeRefinementFor (cfg : Config)
 : Prop where
   | execution {Ξ_res steleRes returnConvention} : /- Both executions produce related outcomes -/
     /- Execute EVM transaction-/
-    Ethereum.EVM.Ξ σ σ₀ g A I = Ξ_res →
+    Ethereum.EVM.Ξ fork σ σ₀ g A I = Ξ_res →
     /- Stele message execution, including dispatch and calldata-decoding failures -/
-    steleExec cfg contract immutables σ σ₀ g A I steleRes returnConvention →
+    steleExec fork cfg contract immutables σ σ₀ g A I steleRes returnConvention →
     /- The outcomes must be related by result equivalence -/
     execResultsEquiv Ξ_res steleRes returnConvention →
-    runtimeRefinementFor cfg contract σ σ₀ g A I immutables
+    runtimeRefinementFor fork cfg contract σ σ₀ g A I immutables
   | outOfGas : /- EVM runs out of gas -/
     /- TODO: non-terminating EVM programs are currently equivalent to any spec -/
-    Ethereum.EVM.Ξ σ σ₀ g A I = .error .OutOfGass →
-    runtimeRefinementFor cfg contract σ σ₀ g A I immutables
+    Ethereum.EVM.Ξ fork σ σ₀ g A I = .error .OutOfGass →
+    runtimeRefinementFor fork cfg contract σ σ₀ g A I immutables
+
+/-! ## Fork sets -/
+
+/-- A set of forks a refinement is stated for. -/
+abbrev ForkSet := Ethereum.Fork → Prop
+
+/-- The forks from `f` onward, in activation order: what bytecode compiled for `f` runs under. -/
+def forksFrom (f : Ethereum.Fork) : ForkSet := fun fork => f ≤ fork
+
+/-- The single fork `f`. -/
+def onlyFork (f : Ethereum.Fork) : ForkSet := fun fork => fork = f
+
+/-- Every fork the model supports: Cancun onward. -/
+abbrev supportedForks : ForkSet := forksFrom .cancun
+
+/-- Every fork is a supported fork. -/
+theorem supportedForks_mem (fork : Ethereum.Fork) : supportedForks fork := Ethereum.Fork.cancun_le fork
+
+theorem forksFrom_mono {f f' : Ethereum.Fork} (h : f ≤ f') {fork : Ethereum.Fork}
+    (hf : forksFrom f' fork) : forksFrom f fork :=
+  Nat.le_trans h hf
+
+theorem onlyFork_sub_forksFrom {f fork : Ethereum.Fork} (h : onlyFork f fork) :
+    forksFrom f fork := by
+  cases h; exact Nat.le_refl _
+
+/-- The forks of `forks` from `f` onward: the forks a contract deployed under `f` can be called
+    under, within `forks`. -/
+def forksAfter (forks : ForkSet) (f : Ethereum.Fork) : ForkSet := fun fork => forks fork ∧ f ≤ fork
 
 abbrev StorageWF := Ethereum.AccountMap → Ethereum.ExecutionEnv → Prop
 
@@ -193,16 +231,18 @@ abbrev GasBound := Ethereum.UInt256 → Prop
 /-- No gas bound: refinement holds for every amount of gas. -/
 def noGasBound : GasBound := fun _ => True
 
-/-- Runtime refinement under a contract-specific storage well-formedness precondition and a gas
-bound.
+/-- Runtime refinement under the forks `forks`, a contract-specific storage well-formedness
+precondition and a gas bound.
 
-This is the same runtime relation as `runtimeRefinement`, except it only covers calls where
+This is the same runtime relation as `runtimeRefinementOn`, except it only covers calls where
 `wf σ I` holds for the EVM-side initial storage and execution environment, and `gasBound g`
 holds for the starting gas.  Both relations cover either permission mode. -/
-inductive runtimeRefinementWithWF (wf : StorageWF) (gasBound : GasBound) (cfg : Config)
-    (bytecode : ByteArray) (contract : ContractDecl) (immutables : Store := ∅) : Prop where
+inductive runtimeRefinementWithWFOn (forks : ForkSet) (wf : StorageWF) (gasBound : GasBound)
+    (cfg : Config) (bytecode : ByteArray) (contract : ContractDecl) (immutables : Store := ∅) :
+    Prop where
   | intro :
-    (∀ (σ : Ethereum.AccountMap)
+    (∀ (fork : Ethereum.Fork), forks fork → ∀
+      (σ : Ethereum.AccountMap)
       (σ₀ : Ethereum.AccountMap)
       (g : Ethereum.UInt256)
       (A : Ethereum.Substate)
@@ -211,45 +251,91 @@ inductive runtimeRefinementWithWF (wf : StorageWF) (gasBound : GasBound) (cfg : 
     I.calldata.size < Ethereum.UInt256.size →
     wf σ I →
     gasBound g →
-    runtimeRefinementFor cfg contract σ σ₀ g A I immutables
+    runtimeRefinementFor fork cfg contract σ σ₀ g A I immutables
     ) →
-    runtimeRefinementWithWF wf gasBound cfg bytecode contract immutables
+    runtimeRefinementWithWFOn forks wf gasBound cfg bytecode contract immutables
 
-/-- Runtime refinement of `bytecode` with the spec run with the deployed `immutables`, in either
-    permission mode.  When entered through `STATICCALL`, the EVM halts at the first forbidden
-    opcode and Stele halts at a state-changing statement, paired by `execResultsEquiv.staticHalt`. -/
-inductive runtimeRefinement (cfg : Config) (bytecode : ByteArray) (contract : ContractDecl)
-    (immutables : Store := ∅) : Prop where
+/-- `runtimeRefinementWithWFOn` at every supported fork. -/
+abbrev runtimeRefinementWithWF (wf : StorageWF) (gasBound : GasBound) (cfg : Config)
+    (bytecode : ByteArray) (contract : ContractDecl) (immutables : Store := ∅) : Prop :=
+  runtimeRefinementWithWFOn supportedForks wf gasBound cfg bytecode contract immutables
+
+/-- Runtime refinement of `bytecode` under the forks `forks`, with the spec run with the deployed
+    `immutables`, in either permission mode.  When entered through `STATICCALL`, the EVM halts at
+    the first forbidden opcode and Stele halts at a state-changing statement, paired by
+    `execResultsEquiv.staticHalt`. -/
+inductive runtimeRefinementOn (forks : ForkSet) (cfg : Config) (bytecode : ByteArray)
+    (contract : ContractDecl) (immutables : Store := ∅) : Prop where
   | intro :
-    (∀ (σ : Ethereum.AccountMap)
+    (∀ (fork : Ethereum.Fork), forks fork → ∀
+      (σ : Ethereum.AccountMap)
       (σ₀ : Ethereum.AccountMap)
       (g : Ethereum.UInt256)
       (A : Ethereum.Substate)
       (I : Ethereum.ExecutionEnv),
     I.code = bytecode →
     I.calldata.size < Ethereum.UInt256.size →
-    runtimeRefinementFor cfg contract σ σ₀ g A I immutables
+    runtimeRefinementFor fork cfg contract σ σ₀ g A I immutables
     ) →
-    runtimeRefinement cfg bytecode contract immutables
+    runtimeRefinementOn forks cfg bytecode contract immutables
+
+/-- Runtime refinement at every supported fork (Cancun onward). -/
+abbrev runtimeRefinement (cfg : Config) (bytecode : ByteArray) (contract : ContractDecl)
+    (immutables : Store := ∅) : Prop :=
+  runtimeRefinementOn supportedForks cfg bytecode contract immutables
+
+/-- Runtime refinement from the fork `f` onward. -/
+abbrev runtimeRefinementFrom (f : Ethereum.Fork) (cfg : Config) (bytecode : ByteArray)
+    (contract : ContractDecl) (immutables : Store := ∅) : Prop :=
+  runtimeRefinementOn (forksFrom f) cfg bytecode contract immutables
+
+/-- Runtime refinement at the single fork `f`. -/
+abbrev runtimeRefinementAt (f : Ethereum.Fork) (cfg : Config) (bytecode : ByteArray)
+    (contract : ContractDecl) (immutables : Store := ∅) : Prop :=
+  runtimeRefinementOn (onlyFork f) cfg bytecode contract immutables
 
 /-- Sanity check: the two definitions agree for the trivial storage predicate and no gas bound. -/
-theorem runtimeRefinementWithWF_trivial_iff {cfg : Config} {bytecode : ByteArray}
-    {contract : ContractDecl} {immutables : Store} :
-    runtimeRefinementWithWF trivialStorageWF noGasBound cfg bytecode contract immutables ↔
-      runtimeRefinement cfg bytecode contract immutables := by
+theorem runtimeRefinementWithWF_trivial_iff {forks : ForkSet} {cfg : Config}
+    {bytecode : ByteArray} {contract : ContractDecl} {immutables : Store} :
+    runtimeRefinementWithWFOn forks trivialStorageWF noGasBound cfg bytecode contract immutables ↔
+      runtimeRefinementOn forks cfg bytecode contract immutables := by
   constructor
   · intro h
     cases h with
     | intro hrun =>
-        refine runtimeRefinement.intro ?_
-        intro σ σ₀ g A I hcode hsize
-        exact hrun σ σ₀ g A I hcode hsize trivial trivial
+        refine runtimeRefinementOn.intro ?_
+        intro fork hfork σ σ₀ g A I hcode hsize
+        exact hrun fork hfork σ σ₀ g A I hcode hsize trivial trivial
   · intro h
     cases h with
     | intro hrun =>
-        refine runtimeRefinementWithWF.intro ?_
-        intro σ σ₀ g A I hcode hsize _hwf _hgas
-        exact hrun σ σ₀ g A I hcode hsize
+        refine runtimeRefinementWithWFOn.intro ?_
+        intro fork hfork σ σ₀ g A I hcode hsize _hwf _hgas
+        exact hrun fork hfork σ σ₀ g A I hcode hsize
+
+/-- A runtime refinement holds on every smaller set of forks. -/
+theorem runtimeRefinementWithWFOn.mono {forks forks' : ForkSet} {wf : StorageWF}
+    {gasBound : GasBound} {cfg : Config} {bytecode : ByteArray} {contract : ContractDecl}
+    {immutables : Store} (hsub : ∀ fork, forks' fork → forks fork)
+    (h : runtimeRefinementWithWFOn forks wf gasBound cfg bytecode contract immutables) :
+    runtimeRefinementWithWFOn forks' wf gasBound cfg bytecode contract immutables := by
+  cases h with
+  | intro hrun => exact .intro fun fork hfork => hrun fork (hsub fork hfork)
+
+/-- A runtime refinement holds on every smaller set of forks. -/
+theorem runtimeRefinementOn.mono {forks forks' : ForkSet} {cfg : Config} {bytecode : ByteArray}
+    {contract : ContractDecl} {immutables : Store} (hsub : ∀ fork, forks' fork → forks fork)
+    (h : runtimeRefinementOn forks cfg bytecode contract immutables) :
+    runtimeRefinementOn forks' cfg bytecode contract immutables := by
+  cases h with
+  | intro hrun => exact .intro fun fork hfork => hrun fork (hsub fork hfork)
+
+/-- The general runtime refinement gives the refinement on any set of forks. -/
+theorem runtimeRefinement.on {forks : ForkSet} {cfg : Config} {bytecode : ByteArray}
+    {contract : ContractDecl} {immutables : Store}
+    (h : runtimeRefinement cfg bytecode contract immutables) :
+    runtimeRefinementOn forks cfg bytecode contract immutables :=
+  h.mono fun fork _ => supportedForks_mem fork
 
 /-! ## Contract refinement
 
@@ -260,7 +346,9 @@ runtime must run with those same immutables.
 `contractRefinement` says it per deployment (`deploymentRefinement`): the EVM deployment run is
 matched by a Stele constructor run (`constructorRefinementFor`), which exposes the immutables it
 deployed, or `none` if it did not succeed; the code deployed for those immutables then refines the
-spec run with them (`runtimeRefinementWithWF`).  One `runtimeCodeOf` is shared by all deployments,
+spec run with them (`runtimeRefinementWithWFOn`).  The runtime half covers every fork of the set
+from the deployment's onward (`forksAfter`): a contract deployed under one fork is called under
+that fork and later ones, never earlier ones.  One `runtimeCodeOf` is shared by all deployments,
 so the constructor affects the runtime only through its immutables, and the deployed code is a
 function of them.
 The constructor's final storage does not reach the runtime half: `runtimeRefinement` quantifies
@@ -303,41 +391,41 @@ def deployedImmutables : ExecResult → Option Store
 /-- Constructor refinement at fixed deployment inputs: the EVM deployment run is matched by a Stele
     constructor run, which deployed `imms?` (`none` if it did not succeed).  On success the EVM
     returns `runtimeCodeOf` of those immutables. -/
-inductive constructorRefinementFor (cfg : Config) (contract : ContractDecl) (args : List Value)
+inductive constructorRefinementFor (fork : Ethereum.Fork) (cfg : Config) (contract : ContractDecl) (args : List Value)
     (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
     (I : Ethereum.ExecutionEnv) (runtimeCodeOf : Store → ByteArray) : Option Store → Prop where
   | execution {Ξ_res steleRes} :
-    Ethereum.EVM.Ξ σ σ₀ g A I = Ξ_res →
-    steleCtorExec cfg contract args σ σ₀ g A I steleRes →
+    Ethereum.EVM.Ξ fork σ σ₀ g A I = Ξ_res →
+    steleCtorExec fork cfg contract args σ σ₀ g A I steleRes →
     ctorResultEquiv Ξ_res steleRes runtimeCodeOf →
-    constructorRefinementFor cfg contract args σ σ₀ g A I runtimeCodeOf
+    constructorRefinementFor fork cfg contract args σ σ₀ g A I runtimeCodeOf
       (deployedImmutables steleRes)
   | outOfGas :
     /- TODO: non-terminating EVM programs are currently equivalent to any spec -/
-    Ethereum.EVM.Ξ σ σ₀ g A I = .error .OutOfGass →
-    constructorRefinementFor cfg contract args σ σ₀ g A I runtimeCodeOf none
+    Ethereum.EVM.Ξ fork σ σ₀ g A I = .error .OutOfGass →
+    constructorRefinementFor fork cfg contract args σ σ₀ g A I runtimeCodeOf none
 
-/-- Deployment refinement at fixed deployment inputs: the constructor refines, and whatever it
-    deployed refines at runtime. -/
-def deploymentRefinement (wf : StorageWF) (gasBound : GasBound) (cfg : Config)
-    (contract : ContractDecl)
+/-- Deployment refinement at fixed deployment inputs: the constructor refines under `fork`, and
+    whatever it deployed refines at runtime under every fork of `forks` from `fork` onward. -/
+def deploymentRefinement (forks : ForkSet) (fork : Ethereum.Fork) (wf : StorageWF)
+    (gasBound : GasBound) (cfg : Config) (contract : ContractDecl)
     (args : List Value) (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256)
     (A : Ethereum.Substate) (I : Ethereum.ExecutionEnv) (runtimeCodeOf : Store → ByteArray) :
     Prop :=
-  ∃ imms?, constructorRefinementFor cfg contract args σ σ₀ g A I runtimeCodeOf imms? ∧
+  ∃ imms?, constructorRefinementFor fork cfg contract args σ σ₀ g A I runtimeCodeOf imms? ∧
     ∀ imms, imms? = some imms →
-      runtimeRefinementWithWF wf gasBound cfg (runtimeCodeOf imms) contract
-        (restrictImmutables contract imms)
+      runtimeRefinementWithWFOn (forksAfter forks fork) wf gasBound cfg (runtimeCodeOf imms)
+        contract (restrictImmutables contract imms)
 
-/-- Top-level refinement of a contract with immutables, under a storage well-formedness
-    precondition and a gas bound for runtime calls: `deploymentRefinement` at every deployment of
-    `initcode` (the deployment inputs of `typedConstructorRefinement`), for one `runtimeCodeOf`
-    shared by all of them. -/
-inductive contractRefinementWF (wf : StorageWF) (gasBound : GasBound) (cfg : Config)
-    (initcode : ByteArray) (contract : ContractDecl) : Prop where
+/-- Top-level refinement of a contract with immutables under the forks `forks`, a storage
+    well-formedness precondition and a gas bound for runtime calls: `deploymentRefinement` at
+    every deployment of `initcode` under a fork of `forks` (the deployment inputs of
+    `typedConstructorRefinementOn`), for one `runtimeCodeOf` shared by all of them. -/
+inductive contractRefinementWFOn (forks : ForkSet) (wf : StorageWF) (gasBound : GasBound)
+    (cfg : Config) (initcode : ByteArray) (contract : ContractDecl) : Prop where
   | intro (runtimeCodeOf : Store → ByteArray) :
-    (∀ (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
-      (I : Ethereum.ExecutionEnv) (args : List Value) (deployedInitcode : ByteArray),
+    (∀ (fork : Ethereum.Fork), forks fork → ∀ (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256)
+      (A : Ethereum.Substate) (I : Ethereum.ExecutionEnv) (args : List Value) (deployedInitcode : ByteArray),
       cfg.selfDeployment initcode args = .some deployedInitcode →
       I.code = deployedInitcode →
       I.calldata = .empty →
@@ -345,12 +433,53 @@ inductive contractRefinementWF (wf : StorageWF) (gasBound : GasBound) (cfg : Con
       -- `CREATE`/`CREATE2` are themselves forbidden under `perm = false`, so `Λ` is never reached
       -- with it.  The hypothesis excludes nothing reachable.
       I.perm = true →
-      deploymentRefinement wf gasBound cfg contract args σ σ₀ g A I runtimeCodeOf) →
-    contractRefinementWF wf gasBound cfg initcode contract
+      deploymentRefinement forks fork wf gasBound cfg contract args σ σ₀ g A I runtimeCodeOf) →
+    contractRefinementWFOn forks wf gasBound cfg initcode contract
 
-/-- Top-level refinement of a contract with immutables. -/
+/-- `contractRefinementWFOn` at every supported fork. -/
+abbrev contractRefinementWF (wf : StorageWF) (gasBound : GasBound) (cfg : Config)
+    (initcode : ByteArray) (contract : ContractDecl) : Prop :=
+  contractRefinementWFOn supportedForks wf gasBound cfg initcode contract
+
+/-- Top-level refinement of a contract with immutables under the forks `forks`. -/
+abbrev contractRefinementOn (forks : ForkSet) (cfg : Config) (initcode : ByteArray)
+    (contract : ContractDecl) : Prop :=
+  contractRefinementWFOn forks trivialStorageWF noGasBound cfg initcode contract
+
+/-- Top-level refinement of a contract with immutables, at every supported fork (Cancun
+    onward). -/
 abbrev contractRefinement (cfg : Config) (initcode : ByteArray) (contract : ContractDecl) : Prop :=
-  contractRefinementWF trivialStorageWF noGasBound cfg initcode contract
+  contractRefinementOn supportedForks cfg initcode contract
+
+/-- Top-level refinement of a contract with immutables, from the fork `f` onward. -/
+abbrev contractRefinementFrom (f : Ethereum.Fork) (cfg : Config) (initcode : ByteArray)
+    (contract : ContractDecl) : Prop :=
+  contractRefinementOn (forksFrom f) cfg initcode contract
+
+/-- Top-level refinement of a contract with immutables, at the single fork `f`. -/
+abbrev contractRefinementAt (f : Ethereum.Fork) (cfg : Config) (initcode : ByteArray)
+    (contract : ContractDecl) : Prop :=
+  contractRefinementOn (onlyFork f) cfg initcode contract
+
+/-- A contract refinement holds on every smaller set of forks. -/
+theorem contractRefinementWFOn.mono {forks forks' : ForkSet} {wf : StorageWF}
+    {gasBound : GasBound} {cfg : Config} {initcode : ByteArray} {contract : ContractDecl}
+    (hsub : ∀ fork, forks' fork → forks fork)
+    (h : contractRefinementWFOn forks wf gasBound cfg initcode contract) :
+    contractRefinementWFOn forks' wf gasBound cfg initcode contract := by
+  cases h with
+  | intro runtimeCodeOf h =>
+    refine .intro runtimeCodeOf fun fork hfork σ σ₀ g A I args d hdeploy hcode hcalldata hperm => ?_
+    obtain ⟨imms?, hctor, hrt⟩ := h fork (hsub fork hfork) σ σ₀ g A I args d hdeploy hcode hcalldata hperm
+    exact ⟨imms?, hctor, fun imms himms =>
+      (hrt imms himms).mono fun f hf => ⟨hsub f hf.1, hf.2⟩⟩
+
+/-- The general contract refinement gives the refinement on any set of forks. -/
+theorem contractRefinementWF.on {forks : ForkSet} {wf : StorageWF} {gasBound : GasBound}
+    {cfg : Config} {initcode : ByteArray} {contract : ContractDecl}
+    (h : contractRefinementWF wf gasBound cfg initcode contract) :
+    contractRefinementWFOn forks wf gasBound cfg initcode contract :=
+  h.mono fun fork _ => supportedForks_mem fork
 
 /-! ### Proving it: constructor and runtime separately -/
 
@@ -370,42 +499,55 @@ theorem ctorImmutablesFit_noImmutables {contract : ContractDecl} {steleRes : Exe
 
 /-- The constructor half as proved: `constructorRefinementFor`, plus that the deployed immutables
     are well-typed (discharged automatically for a contract without immutables). -/
-inductive typedConstructorRefinementFor (cfg : Config) (contract : ContractDecl)
+inductive typedConstructorRefinementFor (fork : Ethereum.Fork) (cfg : Config) (contract : ContractDecl)
     (args : List Value) (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256)
     (A : Ethereum.Substate) (I : Ethereum.ExecutionEnv) (runtimeCodeOf : Store → ByteArray) :
     Prop where
   | execution {Ξ_res steleRes} :
-    Ethereum.EVM.Ξ σ σ₀ g A I = Ξ_res →
-    steleCtorExec cfg contract args σ σ₀ g A I steleRes →
+    Ethereum.EVM.Ξ fork σ σ₀ g A I = Ξ_res →
+    steleCtorExec fork cfg contract args σ σ₀ g A I steleRes →
     ctorResultEquiv Ξ_res steleRes runtimeCodeOf →
     (hfit : ctorImmutablesFit contract steleRes :=
       by exact ctorImmutablesFit_noImmutables (by rfl)) →
-    typedConstructorRefinementFor cfg contract args σ σ₀ g A I runtimeCodeOf
+    typedConstructorRefinementFor fork cfg contract args σ σ₀ g A I runtimeCodeOf
   | outOfGas :
-    Ethereum.EVM.Ξ σ σ₀ g A I = .error .OutOfGass →
-    typedConstructorRefinementFor cfg contract args σ σ₀ g A I runtimeCodeOf
+    Ethereum.EVM.Ξ fork σ σ₀ g A I = .error .OutOfGass →
+    typedConstructorRefinementFor fork cfg contract args σ σ₀ g A I runtimeCodeOf
 
-/-- `typedConstructorRefinementFor` at every deployment of `initcode`. -/
-def typedConstructorRefinement (cfg : Config) (initcode : ByteArray) (contract : ContractDecl)
-    (runtimeCodeOf : Store → ByteArray) : Prop :=
-  ∀ (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
-    (I : Ethereum.ExecutionEnv) (args : List Value) (deployedInitcode : ByteArray),
+/-- `typedConstructorRefinementFor` at every deployment of `initcode` under a fork of `forks`. -/
+def typedConstructorRefinementOn (forks : ForkSet) (cfg : Config) (initcode : ByteArray)
+    (contract : ContractDecl) (runtimeCodeOf : Store → ByteArray) : Prop :=
+  ∀ (fork : Ethereum.Fork), forks fork → ∀ (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256)
+    (A : Ethereum.Substate) (I : Ethereum.ExecutionEnv) (args : List Value) (deployedInitcode : ByteArray),
     cfg.selfDeployment initcode args = .some deployedInitcode →
     I.code = deployedInitcode →
     I.calldata = .empty →
     I.perm = true →  -- unreachable otherwise, see `contractRefinementWF`
-    typedConstructorRefinementFor cfg contract args σ σ₀ g A I runtimeCodeOf
+    typedConstructorRefinementFor fork cfg contract args σ σ₀ g A I runtimeCodeOf
 
-theorem typedConstructorRefinementFor.toDeployment {wf : StorageWF} {gasBound : GasBound}
-    {cfg : Config}
+/-- `typedConstructorRefinementOn` at every supported fork. -/
+abbrev typedConstructorRefinement (cfg : Config) (initcode : ByteArray) (contract : ContractDecl)
+    (runtimeCodeOf : Store → ByteArray) : Prop :=
+  typedConstructorRefinementOn supportedForks cfg initcode contract runtimeCodeOf
+
+/-- A constructor refinement holds on every smaller set of forks. -/
+theorem typedConstructorRefinementOn.mono {forks forks' : ForkSet} {cfg : Config}
+    {initcode : ByteArray} {contract : ContractDecl} {runtimeCodeOf : Store → ByteArray}
+    (hsub : ∀ fork, forks' fork → forks fork)
+    (h : typedConstructorRefinementOn forks cfg initcode contract runtimeCodeOf) :
+    typedConstructorRefinementOn forks' cfg initcode contract runtimeCodeOf :=
+  fun fork hfork => h fork (hsub fork hfork)
+
+theorem typedConstructorRefinementFor.toDeployment {forks : ForkSet} {wf : StorageWF}
+    {gasBound : GasBound} {cfg : Config}
     {contract : ContractDecl} {args : List Value} {σ σ₀ : Ethereum.AccountMap}
     {g : Ethereum.UInt256} {A : Ethereum.Substate} {I : Ethereum.ExecutionEnv}
     {runtimeCodeOf : Store → ByteArray}
-    (h : typedConstructorRefinementFor cfg contract args σ σ₀ g A I runtimeCodeOf)
+    (h : typedConstructorRefinementFor fork cfg contract args σ σ₀ g A I runtimeCodeOf)
     (hrt : ∀ imms, immutablesFit contract imms →
-      runtimeRefinementWithWF wf gasBound cfg (runtimeCodeOf imms) contract
+      runtimeRefinementWithWFOn forks wf gasBound cfg (runtimeCodeOf imms) contract
         (restrictImmutables contract imms)) :
-    deploymentRefinement wf gasBound cfg contract args σ σ₀ g A I runtimeCodeOf := by
+    deploymentRefinement forks fork wf gasBound cfg contract args σ σ₀ g A I runtimeCodeOf := by
   cases h with
   | outOfGas hoog => exact ⟨none, .outOfGas hoog, fun _ h => by cases h⟩
   | @execution _ steleRes hΞ hstele hres hfit =>
@@ -413,28 +555,30 @@ theorem typedConstructorRefinementFor.toDeployment {wf : StorageWF} {gasBound : 
       cases steleRes with
       | returned frame _ _ =>
           cases himms
-          exact hrt _ hfit
+          exact (hrt _ hfit).mono fun _ hf => hf.1
       | _ => cases himms
 
 /-- **The usual proof route**: a constructor proof for some `runtimeCodeOf`, and a runtime proof
     of `runtimeCodeOf imms` for every well-typed immutables store `imms`. -/
-theorem contractRefinementWF.of_runtime {wf : StorageWF} {gasBound : GasBound} {cfg : Config}
-    {initcode : ByteArray} {contract : ContractDecl} {runtimeCodeOf : Store → ByteArray}
-    (hctor : typedConstructorRefinement cfg initcode contract runtimeCodeOf)
+theorem contractRefinementWF.of_runtime {forks : ForkSet} {wf : StorageWF} {gasBound : GasBound}
+    {cfg : Config} {initcode : ByteArray} {contract : ContractDecl}
+    {runtimeCodeOf : Store → ByteArray}
+    (hctor : typedConstructorRefinementOn forks cfg initcode contract runtimeCodeOf)
     (hrt : ∀ imms, immutablesFit contract imms →
-      runtimeRefinementWithWF wf gasBound cfg (runtimeCodeOf imms) contract
+      runtimeRefinementWithWFOn forks wf gasBound cfg (runtimeCodeOf imms) contract
         (restrictImmutables contract imms)) :
-    contractRefinementWF wf gasBound cfg initcode contract :=
-  .intro runtimeCodeOf fun σ σ₀ g A I args d hdeploy hcode hcalldata hperm =>
-    (hctor σ σ₀ g A I args d hdeploy hcode hcalldata hperm).toDeployment hrt
+    contractRefinementWFOn forks wf gasBound cfg initcode contract :=
+  .intro runtimeCodeOf fun fork hfork σ σ₀ g A I args d hdeploy hcode hcalldata hperm =>
+    (hctor fork hfork σ σ₀ g A I args d hdeploy hcode hcalldata hperm).toDeployment hrt
 
 /-- `contractRefinementWF.of_runtime` without a storage precondition or gas bound. -/
-theorem contractRefinement.of_runtime {cfg : Config} {initcode : ByteArray}
+theorem contractRefinement.of_runtime {forks : ForkSet} {cfg : Config} {initcode : ByteArray}
     {contract : ContractDecl} {runtimeCodeOf : Store → ByteArray}
-    (hctor : typedConstructorRefinement cfg initcode contract runtimeCodeOf)
+    (hctor : typedConstructorRefinementOn forks cfg initcode contract runtimeCodeOf)
     (hrt : ∀ imms, immutablesFit contract imms →
-      runtimeRefinement cfg (runtimeCodeOf imms) contract (restrictImmutables contract imms)) :
-    contractRefinement cfg initcode contract :=
+      runtimeRefinementOn forks cfg (runtimeCodeOf imms) contract
+        (restrictImmutables contract imms)) :
+    contractRefinementOn forks cfg initcode contract :=
   contractRefinementWF.of_runtime hctor fun imms hfit =>
     runtimeRefinementWithWF_trivial_iff.mpr (hrt imms hfit)
 
@@ -442,24 +586,25 @@ theorem contractRefinement.of_runtime {cfg : Config} {initcode : ByteArray}
 
 /-- **Contracts without immutables**: the constructor returns `runtimeCode`, which refines the spec
     under the storage precondition `wf` and gas bound `gasBound`. -/
-theorem contractRefinementWF.of_constant {wf : StorageWF} {gasBound : GasBound} {cfg : Config}
-    {initcode runtimeCode : ByteArray} {contract : ContractDecl}
-    (hctor : typedConstructorRefinement cfg initcode contract (fun _ => runtimeCode))
-    (hrt : runtimeRefinementWithWF wf gasBound cfg runtimeCode contract)
+theorem contractRefinementWF.of_constant {forks : ForkSet} {wf : StorageWF}
+    {gasBound : GasBound} {cfg : Config} {initcode runtimeCode : ByteArray}
+    {contract : ContractDecl}
+    (hctor : typedConstructorRefinementOn forks cfg initcode contract (fun _ => runtimeCode))
+    (hrt : runtimeRefinementWithWFOn forks wf gasBound cfg runtimeCode contract)
     (himm : contract.immutables = [] := by rfl) :
-    contractRefinementWF wf gasBound cfg initcode contract :=
+    contractRefinementWFOn forks wf gasBound cfg initcode contract :=
   contractRefinementWF.of_runtime hctor fun imms _ => by
     rw [restrictImmutables_noImmutables himm]
     exact hrt
 
 /-- **Contracts without immutables**: the constructor returns `runtimeCode`, which refines the
     spec. -/
-theorem contractRefinement.of_constant {cfg : Config} {initcode runtimeCode : ByteArray}
-    {contract : ContractDecl}
-    (hctor : typedConstructorRefinement cfg initcode contract (fun _ => runtimeCode))
-    (hrt : runtimeRefinement cfg runtimeCode contract)
+theorem contractRefinement.of_constant {forks : ForkSet} {cfg : Config}
+    {initcode runtimeCode : ByteArray} {contract : ContractDecl}
+    (hctor : typedConstructorRefinementOn forks cfg initcode contract (fun _ => runtimeCode))
+    (hrt : runtimeRefinementOn forks cfg runtimeCode contract)
     (himm : contract.immutables = [] := by rfl) :
-    contractRefinement cfg initcode contract :=
+    contractRefinementOn forks cfg initcode contract :=
   contractRefinementWF.of_constant hctor (runtimeRefinementWithWF_trivial_iff.mpr hrt) himm
 
 end Stele

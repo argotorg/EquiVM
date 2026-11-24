@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.ConstructorDomainMemory
 import Benchmarks.EAS.EAS.ConstructorFrontTrace
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables easCreationBlocks
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -41,14 +43,14 @@ theorem easCtorBlock106_stack (registry : AccountAddress) (ee : ExecutionEnv) (R
 
 theorem easCtorReachDomain {σ σ₀ A I} {g : Sat256} (registry : AccountAddress)
     (hcode : I.code = easCtorCode registry) (hv : I.weiValue = UInt256.ofNat 0) :
-    ∃ aw k C, RD (easCtorCode registry) I g (initState σ σ₀ g A I) (UInt256.ofNat 207)
+    ∃ aw k C, RD fork (easCtorCode registry) I g (initState σ σ₀ g A I) (UInt256.ofNat 207)
       [UInt256.ofNat 512,UInt256.ofNat 544,UInt256.ofNat registry.val,UInt256.ofNat registry.val]
       (easCtorDomainAllocated registry I.codeOwner) aw ByteArray.empty σ k C := by
-  obtain ⟨a,j,D,rd⟩ := easCtorReachStrings (σ := σ) (σ₀ := σ₀) (A := A) (g := g) registry hcode hv
+  obtain ⟨a,j,D,rd⟩ := easCtorReachStrings (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) registry hcode hv
   obtain ⟨a1,j1,D1,r1⟩ := easCreation_block_106_packed (by simp) rd
   rw [easCtorBlock106_memory,easCtorBlock106_stack] at r1
   obtain ⟨a2,j2,D2,r2⟩ := easCreation_block_190_packed (by simp) (by native_decide) r1
-  change RD _ _ _ _ _ [UInt256.ofNat 512,UInt256.ofNat 192,UInt256.ofNat 207,UInt256.ofNat 512,
+  change RD fork _ _ _ _ _ [UInt256.ofNat 512,UInt256.ofNat 192,UInt256.ofNat 207,UInt256.ofNat 512,
     UInt256.ofNat 544,UInt256.ofNat registry.val,UInt256.ofNat registry.val]
     (easCtorDomainMemory registry I.codeOwner) _ _ _ _ _ at r2
   obtain ⟨a3,j3,D3,r3⟩ := easCtorAllocate .domain (by simp) (by native_decide) r2
@@ -67,8 +69,8 @@ theorem easCtorBlock207_memory (registry : AccountAddress) (ee : ExecutionEnv) :
 
 theorem easCtorZeroTrace {σ σ₀ A I} {g : Sat256} (registry : AccountAddress)
     (hcode : I.code = easCtorCode registry) (hv : I.weiValue = UInt256.ofNat 0) (hz : registry = ⟨0,by decide⟩) :
-    RDrev (easCtorCode registry) g (initState σ σ₀ g A I) := by
-  obtain ⟨a,j,D,rd⟩ := easCtorReachDomain (σ := σ) (σ₀ := σ₀) (A := A) (g := g) registry hcode hv
+    RDrev fork (easCtorCode registry) g (initState σ σ₀ g A I) := by
+  obtain ⟨a,j,D,rd⟩ := easCtorReachDomain (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) registry hcode hv
   obtain ⟨a1,j1,D1,r1⟩ := easCreation_block_207_taken_packed (by simp) (by rw [hz]; decide) (by native_decide) rd
   exact easCreation_block_354 (by simp [easCreation_block_207_taken_stack]) r1
 

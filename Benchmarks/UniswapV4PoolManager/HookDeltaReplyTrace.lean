@@ -7,6 +7,8 @@ import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_044
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_050
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_051
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -18,11 +20,11 @@ theorem hookDeltaReplyCostTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hview : BytesObjectView mem ptr out) (ho : out.size < UInt256.size)
     (hfit : ptr.toNat+64 < UInt256.size)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨17833⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨17833⟩
       (ptr :: UInt256.fromBool parse :: ret :: R) mem aw out evm.accountMap k C) :
-    functionResultTrace (deployedRuntime v) g s0 (fun post values => post = evm ∧
+    functionResultTrace fork (deployedRuntime v) g s0 (fun post values => post = evm ∧
       values = some [.int (EVM.signed (hookDeltaWord out parse))] ∧ ∃ aw' k' C',
-        C+Cₘ aw' ≤ C'+Cₘ aw ∧ RD (deployedRuntime v) I g s0 ret (hookDeltaWord out parse :: R)
+        C+Cₘ aw' ≤ C'+Cₘ aw ∧ RD fork (deployedRuntime v) I g s0 ret (hookDeltaWord out parse :: R)
           mem aw' out post.accountMap k' C') (hookDeltaReplyResult f evm out parse) := by
   cases parse with
   | false =>
@@ -51,7 +53,7 @@ theorem hookDeltaReplyCostTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
       have hload : memLoad (UInt256.ofNat 64+ptr) mem = calldataWord out 32 := by
         apply hview.loadWord (by omega)
         rw [u256_add_comm, uadd_word_ofNat_toNat ptr 64 hfit]
-      change RD (deployedRuntime v) I g s0 ret (memLoad (UInt256.ofNat 64+ptr) mem :: R)
+      change RD fork (deployedRuntime v) I g s0 ret (memLoad (UInt256.ofNat 64+ptr) mem :: R)
         mem _ out evm.accountMap _ _ at rd3
       rw [hload] at rd3
       exact ⟨rfl, rfl, _, _, _, by dsimp only [memExpansionCost]; omega, rd3⟩
@@ -67,11 +69,11 @@ theorem hookDeltaReplyTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hview : BytesObjectView mem ptr out) (ho : out.size < UInt256.size)
     (hfit : ptr.toNat+64 < UInt256.size)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨17833⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨17833⟩
       (ptr :: UInt256.fromBool parse :: ret :: R) mem aw out evm.accountMap k C) :
-    functionResultTrace (deployedRuntime v) g s0 (fun post values => post = evm ∧
+    functionResultTrace fork (deployedRuntime v) g s0 (fun post values => post = evm ∧
       values = some [.int (EVM.signed (hookDeltaWord out parse))] ∧ ∃ aw' k' C',
-        RD (deployedRuntime v) I g s0 ret (hookDeltaWord out parse :: R)
+        RD fork (deployedRuntime v) I g s0 ret (hookDeltaWord out parse :: R)
           mem aw' out post.accountMap k' C') (hookDeltaReplyResult f evm out parse) := by
   exact functionResultTrace_mono (hookDeltaReplyCostTrace f v hstack hview ho hfit hret h)
     (fun _ _ ⟨he, hv, aw', k', C', _, hr⟩ => ⟨he, hv, aw', k', C', hr⟩)

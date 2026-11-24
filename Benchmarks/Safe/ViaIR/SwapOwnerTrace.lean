@@ -1,6 +1,8 @@
 import Benchmarks.Safe.ViaIR.SwapOwnerSource
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_008
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -25,11 +27,11 @@ theorem safeSwapOwnerAccounts (evm : EVM.State) (prev old new : UInt256) :
 
 theorem safeSwapOwnerTrace {I g s0 σ k C aw mem rdata} {prev old new : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨1255⟩ (old :: prev :: new :: ⟨0⟩ :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨1255⟩ (old :: prev :: new :: ⟨0⟩ :: R) mem aw rdata σ k C)
     (hov : R.length + 16 ≤ 1024) (hm : mem.size = 96)
     (hp : prev.toNat < EVM.addressModulus) (ho : old.toNat < EVM.addressModulus)
     (hn : new.toNat < EVM.addressModulus) (hperm : I.perm = true) :
-    RDret safeBytecode g s0 (swapOwnerAccounts σ I prev old new) ByteArray.empty := by
+    RDret fork safeBytecode g s0 (swapOwnerAccounts σ I prev old new) ByteArray.empty := by
   obtain ⟨_, _, h₁⟩ := safeRuntime_block_1255 (by omega) hperm h
   have hret := safeRuntime_block_1328 (by omega) hperm h₁
   simp only [safeRuntime_block_1255_stack, safeRuntime_block_1255_memory,
@@ -59,7 +61,7 @@ theorem safeSwapOwnerTrace {I g s0 σ k C aw mem rdata} {prev old new : UInt256}
       setAddressOffset0Word word ⟨0⟩ := by
     rw [setAddressOffset0Word, u256_land_zero_left, u256_lor_zero, u256_land_comm]
   simp only [hfirst, hsecond] at hret
-  change RDret safeBytecode g s0 (sstoreAccountMap I.codeOwner
+  change RDret fork safeBytecode g s0 (sstoreAccountMap I.codeOwner
     (sstoreAccountMap I.codeOwner
       (sstoreAccountMap I.codeOwner σ (mapSlot new ⟨2⟩)
         (setAddressOffset0Word (solcSlotWordAt (mapSlot new ⟨2⟩) σ I) (ownerLinkAt σ I old)))
@@ -70,9 +72,9 @@ theorem safeSwapOwnerTrace {I g s0 σ k C aw mem rdata} {prev old new : UInt256}
 
 theorem safeSwapOwnerTraceStatic {I g s0 σ k C aw mem rdata} {prev old new : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨1255⟩ (old :: prev :: new :: ⟨0⟩ :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨1255⟩ (old :: prev :: new :: ⟨0⟩ :: R) mem aw rdata σ k C)
     (hov : R.length + 15 ≤ 1024) (hperm : I.perm = false) :
-    RDstatic safeBytecode g s0 := by
+    RDstatic fork safeBytecode g s0 := by
   have hhash := evm_run h with [jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩,
     shl, sub, swap1, dup2, and, dup1, dup6, genMstore, push1 ⟨2⟩, push1 ⟨32⟩,
     dup2, dup2, genMstore, push1 ⟨64⟩, dup1, dup9, genKeccak256]

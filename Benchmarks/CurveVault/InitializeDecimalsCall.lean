@@ -4,6 +4,8 @@ import Benchmarks.CurveVault.UintReturnABI
 import Benchmarks.CurveVault.RuntimeBlocks_002
 import Benchmarks.CurveVault.RuntimeBlocks_031
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch Reasoning.VyperCalls
 namespace Benchmarks.CurveVault
 
@@ -16,17 +18,17 @@ theorem vaultInitializeDecimalsCall {I : ExecutionEnv} {g : Sat256} {s0 evm : St
     (htarget : locals.get? "_borrowed_token_" = some (.address (AccountAddress.ofNat target.toNat)))
     (hcd : config.externalABI.encode? "decimals" [] = some (mem.readWithPadding 252 4))
     (hbuffer : 256 ≤ mem.size) (haw : aw.toNat ≤ 10) (hstack : R.length + 7 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 247)
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 247)
       (gasArg :: target :: ⟨252⟩ :: ⟨4⟩ :: ⟨224⟩ :: ⟨32⟩ :: target :: R) mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (out : ByteArray) (aw' : UInt256) (k' C' : Nat),
       (retWord out).toNat < 256 ∧ aw'.toNat ≤ 10 ∧
-      ExecStmt config {contract := contract, locals := locals} evm vaultInitializeDecimalsStmt
+      ExecStmt fork config {contract := contract, locals := locals} evm vaultInitializeDecimalsStmt
         (.ok {contract := contract, locals := locals.insert "__c0" (.int (Int.ofNat (retWord out).toNat))} evm') ∧
       SourceState s0 I σ' evm' ∧
-      RD vaultBytecode I g s0 (UInt256.ofNat 294) (retWord out :: ⟨32⟩ :: target :: R)
+      RD fork vaultBytecode I g s0 (UInt256.ofNat 294) (retWord out :: ⟨32⟩ :: target :: R)
         ((retWord out).toByteArray.write 0 mem 224 32) aw' out σ' k' C') ∨
-    (ExecStmt config {contract := contract, locals := locals} evm vaultInitializeDecimalsStmt .reverted ∧
-      RDrev vaultBytecode g s0) := by
+    (ExecStmt fork config {contract := contract, locals := locals} evm vaultInitializeDecimalsStmt .reverted ∧
+      RDrev fork vaultBytecode g s0) := by
   have hreceiver : evalExpr? config {contract := contract, locals := locals} evm (.var "_borrowed_token_") =
       .ok (.address (AccountAddress.ofNat target.toNat)) := by
     simp only [evalExpr?, htarget, EvalResult.ofOption]
@@ -56,7 +58,7 @@ theorem vaultInitializeDecimalsCall {I : ExecutionEnv} {g : Sat256} {s0 evm : St
         (by simp only [vaultBlocks.vault_block_259_taken_stack, vaultBlocks.vault_block_248_taken_stack, List.length_cons]; omega) rdFail) h
   rcases hbridge with ⟨evm', σ', out, aw', k', C', haw', h32, hwide, hcall, hs', rd283⟩ |
     ⟨evm', out, hcall, hrev⟩ | ⟨evm', out, hcall, hshort, hrev⟩
-  · change RD vaultBytecode I g s0 (UInt256.ofNat 283) (⟨32⟩ :: target :: R)
+  · change RD fork vaultBytecode I g s0 (UInt256.ofNat 283) (⟨32⟩ :: target :: R)
       ((retWord out).toByteArray.write 0 mem 224 32) aw' out σ' k' C' at rd283
     have hawBound : aw'.toNat ≤ 10 := by
       rw [haw']

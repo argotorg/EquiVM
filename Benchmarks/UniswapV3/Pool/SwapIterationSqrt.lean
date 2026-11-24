@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.TickSqrtCostTrace
 import Benchmarks.UniswapV3.Pool.SwapIterationTick
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -15,15 +17,15 @@ theorem swapIterationSqrtX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p free : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (frame : Frame) (evm : EVM.State) (d : SwapIterationData)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3189⟩ (p :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3189⟩ (p :: R) mem aw rdata σ k C)
     (hf : frame.contract = contract) (hstep : frame.locals.get? "step" = some d.value)
     (hm : HeapMemory mem aw free) (hd : SwapIterationMemory mem p d)
     (ht : -887272 ≤ d.tickNext ∧ d.tickNext ≤ 887272)
     (hb : p.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 10 ≤ 1024) :
-    ExecStmt config frame evm swapLoopBody[6]!
+    ExecStmt fork config frame evm swapLoopBody[6]!
       (.ok (swapIterationSqrtFrame frame d) evm) ∧
     ∃ aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 ⟨3202⟩ (tickSqrtValue d.tickNext :: p :: R)
+      RD fork (deployedRuntime v) ee g s0 ⟨3202⟩ (tickSqrtValue d.tickNext :: p :: R)
         mem aw' rdata σ k' C' ∧ HeapMemory mem aw' free ∧ aw.toNat ≤ aw'.toNat := by
   have h24 : -(2 ^ 23 : Int) ≤ d.tickNext ∧ d.tickNext < 2 ^ 23 := by omega
   have habs : d.tickNext.natAbs ≤ 887272 := by omega

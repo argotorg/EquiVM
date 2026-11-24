@@ -2,6 +2,8 @@ import Benchmarks.EAS.EAS.RefUIDSites
 import Benchmarks.EAS.EAS.MemoryArrayIndex
 import Benchmarks.EAS.EAS.ArrayStoreIndex
 import Benchmarks.EAS.EAS.WordArrayStore
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -31,9 +33,9 @@ theorem easRecordArrayStore {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hi : i < len) (hb : (recordArrayPtr site t3 t4).toNat+32+32*len < UInt256.size)
     (hin : (recordArrayPtr site t3 t4).toNat+32+32*len ≤ mem.size)
     (hl : memLoad (recordArrayPtr site t3 t4) mem = UInt256.ofNat len)
-    (rd : RD (deployedRuntime v) ee g s0 (refUIDReadyPC site)
+    (rd : RD fork (deployedRuntime v) ee g s0 (refUIDReadyPC site)
       (refUIDReadyStack site dummy word src t1 (UInt256.ofNat i) t3 t4 R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (recordValuesStartPC site)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (recordValuesStartPC site)
       (recordValuesStack site (UInt256.ofNat ((recordArrayPtr site t3 t4).toNat+32+32*i))
         word t1 (UInt256.ofNat i) t3 t4 R)
       (Reasoning.Theory.writeWord mem ((recordArrayPtr site t3 t4).toNat+32+32*i) src) aw' rdata σ k' C' := by

@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.MintCallback
 import Benchmarks.UniswapV3.Pool.MintRepaymentTrace
 import Benchmarks.UniswapV3.Pool.MintFinishTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -12,7 +14,7 @@ theorem mintBodyX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {len start : UInt256} {rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : MintArgs) (evm : EVM.State)
     (hs : SourceState s0 ee σ evm)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5805⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5805⟩
       (⟨0⟩ :: ⟨0⟩ :: len :: start :: a.amount :: EVM.wordOfInt a.upper ::
         EVM.wordOfInt a.lower :: EVM.word a.recipient.val :: ⟨621⟩ :: R)
       solcFreePtrMem ⟨3⟩ rdata σ k C)
@@ -22,14 +24,14 @@ theorem mintBodyX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hd : a.data = ee.calldata.extract start.toNat (start.toNat + len.toNat))
     (hc : start.toNat + len.toNat ≤ ee.calldata.size) (hl : len.toNat ≤ 2 ^ 32)
     (hov : R.length + 61 ≤ 1024) :
-    (ExecTransitionBody config contract evm (mintLocals a) mintTransition.body .reverted (immStore v) ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    (ExecTransitionBody config contract evm (mintLocals a) mintTransition.body
-        .staticViolation (immStore v) ∧ RDstatic (deployedRuntime v) g s0) ∨
+    (ExecTransitionBody fork config contract evm (mintLocals a) mintTransition.body .reverted (immStore v) ∧
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    (ExecTransitionBody fork config contract evm (mintLocals a) mintTransition.body
+        .staticViolation (immStore v) ∧ RDstatic fork (deployedRuntime v) g s0) ∨
     (∃ (frame : Frame) (evm' : EVM.State) (amount0 amount1 : UInt256),
-      ExecTransitionBody config contract evm (mintLocals a) mintTransition.body
+      ExecTransitionBody fork config contract evm (mintLocals a) mintTransition.body
         (.returned frame evm' (some [.int (Int.ofNat amount0.toNat), .int (Int.ofNat amount1.toNat)]))
-        (immStore v) ∧ RDret (deployedRuntime v) g s0 evm'.accountMap
+        (immStore v) ∧ RDret fork (deployedRuntime v) g s0 evm'.accountMap
           (amount0.toByteArray ++ amount1.toByteArray)) := by
   rcases mintBeforeCallbackX (v := v) a evm hs rd ha hwv hunlocked hperm
       (by simpa only [List.length_cons] using hov) with hbad | hstatic |
@@ -50,9 +52,9 @@ theorem mintBodyX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     exact execBlockAppendReverted hbad
   let f2 := mintCallbackDoneFrame f1 ee.source
   have hv2 : MintCallValues f2.locals a a0 a1 b0 b1 := hv1.callback ee.source
-  have hpre19 : ExecBlock config (mintFrame v a) evm (mintTransition.body.take 19)
+  have hpre19 : ExecBlock fork config (mintFrame v a) evm (mintTransition.body.take 19)
       (.ok f2 evm2) := by
-    change ExecBlock config _ _ (mintTransition.body.take 16 ++
+    change ExecBlock fork config _ _ (mintTransition.body.take 16 ++
       (mintTransition.body.drop 16).take 3) _
     exact execBlock_append_ok hpre hcallback
   have hsize2 := le_trans hsize1 hmem2.size
@@ -73,12 +75,12 @@ theorem mintBodyX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     ⟨{contract := contract, locals := locals3, immutables := immStore v},
       storeSlot0Unlocked evm3 true, a0, a1, ?_, rfinal⟩)
   apply ExecFuncBody.execBlockRet
-  have hpre21 : ExecBlock config (mintFrame v a) evm (mintTransition.body.take 21)
+  have hpre21 : ExecBlock fork config (mintFrame v a) evm (mintTransition.body.take 21)
       (.ok {contract := contract, locals := locals3, immutables := immStore v} evm3) := by
-    change ExecBlock config _ _ (mintTransition.body.take 19 ++
+    change ExecBlock fork config _ _ (mintTransition.body.take 19 ++
       (mintTransition.body.drop 19).take 2) _
     exact execBlock_append_ok hpre19 hrepay
   rw [← List.take_append_drop 21 mintTransition.body]
-  exact execBlock_append_ok hpre21 (mintFinishSource (hperm := (congrArg ExecutionEnv.perm hs3.env).trans hperm) v a locals3 a0 a1 evm3 hv3.core)
+  exact execBlock_append_ok hpre21 (mintFinishSource (fork := fork) (hperm := (congrArg ExecutionEnv.perm hs3.env).trans hperm) v a locals3 a0 a1 evm3 hv3.core)
 
 end Benchmarks.UniswapV3.Pool

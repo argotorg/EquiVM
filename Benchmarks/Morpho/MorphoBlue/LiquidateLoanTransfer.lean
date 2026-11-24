@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.LiquidateCollateralTransfer
 import Benchmarks.Morpho.MorphoBlue.ReturnBlockRefines
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -30,15 +32,15 @@ theorem morphoLiquidateLoanTransfer {v : MorphoImmutables} {ee : ExecutionEnv} {
     (hget : locals.get? "__c21" = some (.int (Int.ofNat fp.toNat)))
     (hzero : memLoad (UInt256.ofNat 96) mem = UInt256.ofNat 0)
     (hloan : memLoad (UInt256.ofNat 128) mem = p.loanToken)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 2710)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 2710)
       [x0, x1, x2, assets, seized, UInt256.ofNat 128] mem aw out σ k C) :
-    ReturnBlockRefines config (deployedRuntime v) ee g s0
+    ReturnBlockRefines fork config (deployedRuntime v) ee g s0
       { contract := contract, locals := locals, immutables := imms } evm
       (liquidateTransition.body.drop 34) liquidateTransition.returnType := by
   obtain ⟨a0, k0, C0, rd0⟩ := morphoBlocks.morpho_block_2710_packed (immWords := wordsOf (immStore v))
     (by decide) (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
   dsimp only [morphoBlocks.morpho_block_2710_stack] at rd0
-  change RD _ _ _ _ _ [UInt256.land (memLoad (UInt256.ofNat 128) mem) solcAddrMask,
+  change RD fork _ _ _ _ _ [UInt256.land (memLoad (UInt256.ofNat 128) mem) solcAddrMask,
     UInt256.ofNat ee.source.val, UInt256.ofNat ee.codeOwner.val, assets, UInt256.ofNat 2752,
     assets, seized, UInt256.ofNat 64] _ _ _ _ _ _ at rd0
   rw [hloan, solcAddrMask_clean hc.1] at rd0
@@ -58,7 +60,7 @@ theorem morphoLiquidateLoanTransfer {v : MorphoImmutables} {ee : ExecutionEnv} {
     have he1 := morphoSafeTransferInternalOk true token ee.source ee.codeOwner assets fp.toNat
       locals imms evm evm' frame' _ _ "__c23" he hb
     have hl1 := hl.insert "__c23" (.int (Int.ofNat fp'.toNat)) (by decide) (by decide) (by decide)
-    have hret : ExecBlock config
+    have hret : ExecBlock fork config
         { contract := contract, locals := locals.insert "__c23" (.int (Int.ofNat fp'.toNat)), immutables := imms }
         evm' (liquidateTransition.body.drop 35)
         (.returned { contract := contract, locals := locals.insert "__c23" (.int (Int.ofNat fp'.toNat)), immutables := imms }
@@ -71,8 +73,8 @@ theorem morphoLiquidateLoanTransfer {v : MorphoImmutables} {ee : ExecutionEnv} {
     have hadd : (fp' + UInt256.ofNat 32).toNat = fp'.toNat + 32 :=
       uadd_word_ofNat_toNat _ _ (by have hh := hm1.space; change _ < 2 ^ 256; omega)
     rw [hadd] at hr
-    have hr' : RDret (deployedRuntime v) g s0 σ' (returnWordBytes [seized, assets]) := by
-      change RDret _ _ _ _ ((writeCascade mem' (returnWordWrites fp'.toNat [seized, assets])).readWithPadding
+    have hr' : RDret fork (deployedRuntime v) g s0 σ' (returnWordBytes [seized, assets]) := by
+      change RDret fork _ _ _ _ ((writeCascade mem' (returnWordWrites fp'.toNat [seized, assets])).readWithPadding
         fp'.toNat (32 * [seized, assets].length)) at hr
       rw [readReturnWords _ _ _ (by have hh := hm1.gap; omega)] at hr
       exact hr

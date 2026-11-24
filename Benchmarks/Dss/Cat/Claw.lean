@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Cat.Storage
 import Benchmarks.Dss.Cat.Arithmetic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -30,11 +32,11 @@ theorem RD.catClawDecodeToRoutine {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret de : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
     {acc : AccountMap}
-    (h : RD code ee g s0 ⟨726⟩ (de :: ⟨4⟩ :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 ⟨726⟩ (de :: ⟨4⟩ :: ret :: R) mem aw rdata acc k C)
     (hwf : code = catBytecode)
     (hroutine : (D_J code 0).contains ⟨3259⟩ = true)
     (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨3259⟩ (calldataWord ee.calldata 4 :: ret :: R)
+    ∃ k' C', RD fork code ee g s0 ⟨3259⟩ (calldataWord ee.calldata 4 :: ret :: R)
       mem aw rdata acc k' C' := by
   subst hwf
   have rd727 := h.jumpdest (by native_decide) (by evm_ov)
@@ -50,11 +52,11 @@ theorem RD.catClawDecodeToRoutine {code : ByteArray} {g : Sat256} {s0 : State}
 theorem RD.catClawSubReturns {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {a b ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {σ : AccountMap} {k C : ℕ}
-    (h : RD catBytecode ee g s0 ⟨3762⟩ (a :: b :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork catBytecode ee g s0 ⟨3762⟩ (a :: b :: ret :: R) mem aw rdata σ k C)
     (hle : a.toNat ≤ b.toNat)
     (hret : (D_J catBytecode 0).contains ret = true)
     (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD catBytecode ee g s0 ret ((UInt256.sub b a) :: R) mem aw rdata σ k' C' := by
+    ∃ k' C', RD fork catBytecode ee g s0 ret ((UInt256.sub b a) :: R) mem aw rdata σ k' C' := by
   have hgt : UInt256.gt (UInt256.sub b a) b = ⟨0⟩ :=
     ugt_zero (by rw [usub_toNat hle]; omega)
   have rdPre := evm_run h with [
@@ -79,10 +81,10 @@ theorem RD.catClawSubReturns {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 theorem RD.catClawSubReverts {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {a b ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {σ : AccountMap} {k C : ℕ}
-    (h : RD catBytecode ee g s0 ⟨3762⟩ (a :: b :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork catBytecode ee g s0 ⟨3762⟩ (a :: b :: ret :: R) mem aw rdata σ k C)
     (hunder : b.toNat < a.toNat)
     (hov : R.length + 6 ≤ 1024) :
-    RDrev catBytecode g s0 := by
+    RDrev fork catBytecode g s0 := by
   have haLt : a.toNat < UInt256.size := a.val.isLt
   have hgt : UInt256.gt (UInt256.sub b a) b = ⟨1⟩ :=
     ugt_one (by rw [usub_toNat_underflow hunder]; omega)
@@ -106,14 +108,14 @@ theorem RD.catClawSubReverts {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 theorem RD.catClawStoreLitterSplit {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {rad ret : UInt256} {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
     {σ : AccountMap} {k C : ℕ}
-    (h : RD catBytecode ee g s0 ⟨3348⟩ (rad :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork catBytecode ee g s0 ⟨3348⟩ (rad :: ret :: R) mem aw rdata σ k C)
     (hret : (D_J catBytecode 0).contains ret = true)
     (hle : rad.toNat ≤ (solcSlotWord σ ee ⟨6⟩).toNat)
     (hov : R.length + 8 ≤ 1024) :
     (ee.perm = true ∧
-      ∃ k' C', RD catBytecode ee g s0 ret R mem aw rdata
+      ∃ k' C', RD fork catBytecode ee g s0 ret R mem aw rdata
         (sstoreAccountMap ee.codeOwner σ ⟨6⟩ (UInt256.sub (solcSlotWord σ ee ⟨6⟩) rad)) k' C') ∨
-      (ee.perm = false ∧ RDstatic catBytecode g s0) := by
+      (ee.perm = false ∧ RDstatic fork catBytecode g s0) := by
   have rd3349 := h.jumpdest (by native_decide) (by evm_ov)
   have rd3352 := rd3349.push2 ⟨3360⟩ (by native_decide) (by evm_ov)
   have rd3354 := rd3352.push1 ⟨6⟩ (by native_decide) (by evm_ov)
@@ -140,10 +142,10 @@ theorem RD.catClawStoreLitterSplit {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 theorem RD.catClawStoreLitterRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {rad ret : UInt256} {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
     {σ : AccountMap} {k C : ℕ}
-    (h : RD catBytecode ee g s0 ⟨3348⟩ (rad :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork catBytecode ee g s0 ⟨3348⟩ (rad :: ret :: R) mem aw rdata σ k C)
     (hunder : (solcSlotWord σ ee ⟨6⟩).toNat < rad.toNat)
     (hov : R.length + 8 ≤ 1024) :
-    RDrev catBytecode g s0 := by
+    RDrev fork catBytecode g s0 := by
   have rd3349 := h.jumpdest (by native_decide) (by evm_ov)
   have rd3352 := rd3349.push2 ⟨3360⟩ (by native_decide) (by evm_ov)
   have rd3354 := rd3352.push1 ⟨6⟩ (by native_decide) (by evm_ov)
@@ -193,7 +195,7 @@ theorem catReachClawBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0xe6, 0x6d, 0x27, 0x9b]⟩) :
-    ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork catBytecode I g (initState σ σ₀ g A I)
         ⟨704⟩ [catSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : catSelWord I = ⟨3865913243⟩ :=
@@ -229,10 +231,10 @@ theorem catClawBodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (clawTransition.params.map Param.name)
         (transitionSignature clawTransition).paramTypes I.calldata = some (clawLocals I))
-    (hreach : ∃ k C, RD catBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨704⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let callerSlot := catCallerWardsSlot I
   have hcallerWord : solcSlotWordAt callerSlot σ I = solcSlotWordAt callerSlot σ I :=
     rfl
@@ -310,14 +312,14 @@ theorem catClawBodyCore
       let diff := UInt256.sub (solcSlotWord σ I ⟨6⟩) (clawRad I)
       let evm1 := Stele.EVM.storageStore evm0 I.codeOwner ⟨6⟩ diff
       have hbodySplit :
-          (I.perm = true → ExecTransitionBody config contract evm0 (clawLocals I) clawTransition.body
+          (I.perm = true → ExecTransitionBody fork config contract evm0 (clawLocals I) clawTransition.body
             (.returned
               (resumeAfterInternalCall { contract := contract, locals := clawLocals I } "litterNew"
                 (some [.int (Int.ofNat diff.toNat)])) evm1 none)) ∧
           (I.perm = false →
-            ExecTransitionBody config contract evm0 (clawLocals I) clawTransition.body
+            ExecTransitionBody fork config contract evm0 (clawLocals I) clawTransition.body
               .staticViolation) := by
-        have hsubBody := execSubFunctionReturn evm0
+        have hsubBody := execSubFunctionReturn (fork := fork) evm0
           (x := solcSlotWord σ I ⟨6⟩) (y := clawRad I) (diff := diff) rfl hle
         have hcall := internalCallFunctionReturn
           (cfg := config) (caller := { contract := contract, locals := clawLocals I })
@@ -365,11 +367,11 @@ theorem catClawBodyCore
               simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
             (hstore := hstore)
         have hprefix : ∀ r,
-            ExecStmt config
+            ExecStmt fork config
               (resumeAfterInternalCall { contract := contract, locals := clawLocals I }
                 "litterNew" (some [.int (Int.ofNat diff.toNat)])) evm0
               (.assign .storage litterRef (.var "litterNew")) r →
-            ExecBlock config { contract := contract, locals := clawLocals I } evm0
+            ExecBlock fork config { contract := contract, locals := clawLocals I } evm0
               clawTransition.body r := by
           intro r h
           refine ExecBlock.consNormal (ExecStmt.requireTrue hcv) ?_
@@ -377,7 +379,7 @@ theorem catClawBodyCore
           refine ExecBlock.consNormal hcall ?_
           exact execBlock_singleton h
         refine ⟨fun hperm ↦ ?_, fun hperm ↦ ?_⟩
-        · exact ExecFuncBody.execBlockOK (hprefix _ (ExecStmt.assign (hperm := Or.inr hperm) hlitterNew hassign))
+        · exact ExecFuncBody.execBlockOK (hprefix _ (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) hlitterNew hassign))
         · exact ExecFuncBody.execBlockStatic (hprefix _ (ExecStmt.assignStatic hlitterNew hassign
             (by simp [evm0, initState]; exact hperm)))
       rcases hstoreSplit with ⟨hperm, _, _, hretPc⟩ | ⟨hperm, hstatic⟩
@@ -385,7 +387,7 @@ theorem catClawBodyCore
       · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode (hbodySplit.2 hperm)
       have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
       have hret :
-          RDret catBytecode (Sat256.ofUInt256 g)
+          RDret fork catBytecode (Sat256.ofUInt256 g)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (sstoreAccountMap I.codeOwner σ ⟨6⟩
               (UInt256.sub (solcSlotWord σ I ⟨6⟩) (clawRad I))) ByteArray.empty :=
@@ -404,8 +406,8 @@ theorem catClawBodyCore
       have hrev := RD.catClawStoreLitterRevert
         (ret := ⟨302⟩) (R := [sel]) hokPc (by rw [hword]; exact hle) (by simp)
       have hbody :
-          ExecTransitionBody config contract evm0 (clawLocals I) clawTransition.body .reverted := by
-        have hsubRev := execSubFunctionRevert evm0
+          ExecTransitionBody fork config contract evm0 (clawLocals I) clawTransition.body .reverted := by
+        have hsubRev := execSubFunctionRevert (fork := fork) evm0
           (x := solcSlotWord σ I ⟨6⟩) (y := clawRad I) hle
         have hcallRev := internalCallFunctionRevert
           (cfg := config) (caller := { contract := contract, locals := clawLocals I })
@@ -417,7 +419,7 @@ theorem catClawBodyCore
           (locals := uintBinaryLocals (solcSlotWord σ I ⟨6⟩) (clawRad I))
           hargs (by rfl) hbind hsubRev
         have hblock :
-            ExecBlock config { contract := contract, locals := clawLocals I } evm0
+            ExecBlock fork config { contract := contract, locals := clawLocals I } evm0
               [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
                 .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)),
                 .internalCall "sub" [.storage litterRef, .var "rad"] "litterNew",
@@ -436,12 +438,12 @@ theorem catClawBodyCore
     have hauthSolc : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩ := by
       simpa [callerSlot, catCallerWardsSlot, solcSlotWordAt] using hauthEvm
     have hbody :
-        ExecTransitionBody config contract evm0 (clawLocals I) clawTransition.body .reverted := by
+        ExecTransitionBody fork config contract evm0 (clawLocals I) clawTransition.body .reverted := by
       have hguard := catAuthGuardEval_false
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) (locals := clawLocals I)
         (by simp [clawLocals]) hauthStele
-      have hblock := nonpayableSecondRequireReverts
+      have hblock := nonpayableSecondRequireReverts (fork := fork)
         (cfg := config) (stele := { contract := contract, locals := clawLocals I })
         (evm := evm0)
         (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
@@ -469,9 +471,9 @@ theorem catClawShort {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hsel : selIs I ⟨#[0xe6, 0x6d, 0x27, 0x9b]⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hreach :=
-    catReachClawBody (σ := σ)
+    catReachClawBody (fork := fork) (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       hcode hwv hsz4 hsize hsel
   have hlt :
@@ -495,7 +497,7 @@ theorem catClawBody {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xe6, 0x6d, 0x27, 0x9b]⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0xe6, 0x6d, 0x27, 0x9b]⟩ (by native_decide) hsel
   by_cases hshort : I.calldata.size < 36

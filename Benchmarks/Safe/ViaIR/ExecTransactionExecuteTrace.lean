@@ -1,6 +1,8 @@
 import Benchmarks.Safe.ViaIR.ExecTransactionExecutePrepare
 import Benchmarks.Safe.ViaIR.ExecuteTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -30,23 +32,23 @@ set_option maxRecDepth 2000
 theorem safeExecTransactionCall (p : ExecTransactionInput) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata ptr} {before gasLeft guard hash : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4689⟩
+    (h : RD fork safeBytecode I g s0 ⟨4689⟩
       (execAllocatedStack p ptr before gasLeft guard hash R) mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ) (hworld : evm.σ₀ = s0.σ₀)
     (hcFields : ExecTransactionCalldataFields I.calldata p)
     (hdata : mem.readWithPadding (UInt256.ofNat ptr + UInt256.ofNat 32).toNat
       (memLoad (UInt256.ofNat ptr) mem).toNat = p.tx.payload)
     (hov : R.length + 20 ≤ 1024) :
-    (RDstatic safeBytecode g s0 ∧ ExecFuncBody config
+    (RDstatic fork safeBytecode g s0 ∧ ExecFuncBody fork config
       (executeFrame p.tx.target p.tx.value p.tx.payload p.tx.operation (execCallGas p gasLeft))
       evm executeFunction.body .staticViolation) ∨
-    ∃ evm' σ' z out aw' k' C', ExecFuncBody config
+    ∃ evm' σ' z out aw' k' C', ExecFuncBody fork config
       (executeFrame p.tx.target p.tx.value p.tx.payload p.tx.operation (execCallGas p gasLeft))
       evm executeFunction.body
       (.returned (executeFinalFrame p.tx.target p.tx.value p.tx.payload p.tx.operation
         (execCallGas p gasLeft) z out) evm' (some [.bool z])) ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧ evm'.σ₀ = s0.σ₀ ∧
-      RD safeBytecode I g s0 ⟨4710⟩ (execExecutedStack p before guard hash z R)
+      RD fork safeBytecode I g s0 ⟨4710⟩ (execExecutedStack p before guard hash z R)
         mem aw' out σ' k' C' ∧ out.size < UInt256.size := by
   have ht : AccountAddress.ofUInt256 (UInt256.ofNat p.tx.target.val) = p.tx.target :=
     AccountAddress.ofUInt256_ofNat p.tx.target
@@ -93,7 +95,7 @@ theorem safeExecTransactionCall (p : ExecTransactionInput) (evm : EVM.State)
 set_option maxRecDepth 100000 in
 theorem safeExecTransactionExecute (p : ExecTransactionInput) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata src ptr locals} {guard hash : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4639⟩ (execGasSaved p src guard hash (⟨0⟩ :: R))
+    (h : RD fork safeBytecode I g s0 ⟨4639⟩ (execGasSaved p src guard hash (⟨0⟩ :: R))
       mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ) (hworld : evm.σ₀ = s0.σ₀)
     (hcFields : ExecTransactionCalldataFields I.calldata p)
@@ -103,16 +105,16 @@ theorem safeExecTransactionExecute (p : ExecTransactionInput) (evm : EVM.State)
     (hd : src + p.tx.payload.size ≤ I.calldata.size) (hcd : I.calldata.size < UInt256.size)
     (hdata : I.calldata.extract src (src + p.tx.payload.size) = p.tx.payload)
     (hov : R.length + 36 ≤ 1024) :
-    RDrev safeBytecode g s0 ∨
-    (RDstatic safeBytecode g s0 ∧ ExecBlock config { contract := contract, locals := locals }
+    RDrev fork safeBytecode g s0 ∨
+    (RDstatic fork safeBytecode g s0 ∧ ExecBlock fork config { contract := contract, locals := locals }
       evm (exectransactionTransition.body.drop 10) .staticViolation) ∨
     ∃ before gasLeft z evm' σ' out aw' k' C',
-      (∀ result, ExecBlock config (execAfterExecute locals before gasLeft z) evm'
+      (∀ result, ExecBlock fork config (execAfterExecute locals before gasLeft z) evm'
         (exectransactionTransition.body.drop 13) result →
-        ExecBlock config { contract := contract, locals := locals } evm
+        ExecBlock fork config { contract := contract, locals := locals } evm
           (exectransactionTransition.body.drop 10) result) ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧ evm'.σ₀ = s0.σ₀ ∧
-      RD safeBytecode I g s0 ⟨4710⟩ (execExecutedStack p before guard hash z R)
+      RD fork safeBytecode I g s0 ⟨4710⟩ (execExecutedStack p before guard hash z R)
         (execDataMemory p I.calldata mem src ptr) aw' out σ' k' C' ∧
       out.size < UInt256.size ∧ ptr + 32 + ABI.paddedSize p.tx.payload.size < 2 ^ 64 := by
   obtain ⟨hr, _⟩ | ⟨before, gasLeft, k₁, C₁, hfit, h₁⟩ :=

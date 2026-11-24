@@ -3,6 +3,8 @@ import Benchmarks.EAS.EAS.MultiDelegatedRevokeControl
 import Benchmarks.EAS.EAS.DelegatedRevocationPrepareValid
 import Benchmarks.EAS.EAS.DelegatedRevocationPrepareInvalid
 import Benchmarks.EAS.EAS.DelegatedRevocationGuard
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -16,10 +18,10 @@ theorem multiDelegatedRevokePrepareRun {L : Store} {evm : EVM.State}
     (hi : i<n) (hn : n<UInt256.size) (hb : base.toNat+32*i < UInt256.size)
     (hsize : ee.calldata.size < 2^255) (hlo : 96 ≤ heap.toNat) (hh : heap.toNat ≤ 2^64-1)
     (hmem : 96 ≤ mem.size) (hfree : memLoad (UInt256.ofNat 64) mem = heap)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨1298⟩ (multiDelegatedRevokeLoopStack n i base available (tag::R)) mem aw out σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨1298⟩ (multiDelegatedRevokeLoopStack n i base available (tag::R)) mem aw out σ k C) :
     (∃ (r : DelegatedRevocationBatch) (L' : Store) (mem' : ByteArray) (aw' : UInt256) (k' C' : Nat),
       delegatedRevocationNext heap r ≤ 2^64-1 ∧ (0<r.data.length ∧ r.data.length=r.signatures.length) ∧
-      ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedRevokePrepare
+      ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedRevokePrepare
         (.ok {contract := contract,locals := L',immutables := immStore v} evm) ∧
       MultiDelegatedRevokeVerifyLocals L' (delegatedBatchValues .revoke ee.calldata base n) available
         (delegatedRevocationNext heap r) i 0 (decide (i=n-1)) r ∧
@@ -27,11 +29,11 @@ theorem multiDelegatedRevokePrepareRun {L : Store} {evm : EVM.State}
       DelegatedRevocationBatchMemoryView mem' heap (delegatedRevocationDataPtr heap) (delegatedRevocationSigPtr heap r.data)
         r (delegatedRevocationNext heap r) ∧
       memLoad (UInt256.ofNat 64) mem' = UInt256.ofNat (delegatedRevocationNext heap r) ∧
-      RD (deployedRuntime v) ee g s0 ⟨1552⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨1552⟩
         (multiDelegatedRevokeVerifyStack 0 base (UInt256.ofNat n) available (UInt256.ofNat n-⟨1⟩) heap
           (delegatedRevocationDataPtr heap) (UInt256.ofNat i::tag::R)) mem' aw' out σ k' C') ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedRevokePrepare .reverted ∧
-      RDrev (deployedRuntime v) g s0) := by
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedRevokePrepare .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) := by
   let rowValue := delegatedBatchElement .revoke ee.calldata base i
   let L1 := batchRowReadLocals L "multiDelegatedRequest" (decide (i=n-1)) rowValue
   have helem : rowValue = ((decodeDelegatedRevocation ee.calldata base i).map DelegatedRevocationBatch.tuple).getD
@@ -40,9 +42,9 @@ theorem multiDelegatedRevokePrepareRun {L : Store} {evm : EVM.State}
     rw [delegatedBatchElement,delegatedRevocationElement_decode _ _ _ hb (by omega)]
   have hnrm : normalizeRawBoolWord? rowValue = .ok rowValue := by
     rw [helem]; cases decodeDelegatedRevocation ee.calldata base i <;> rfl
-  have hsol1 : ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedRevokeRead
+  have hsol1 : ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm multiDelegatedRevokeRead
       (.ok {contract := contract,locals := L1,immutables := immStore v} evm) := by
-    have hread := batchRowReadSource (imms := immStore v) (evm := evm) DelegatedBatchSite.revoke.abi
+    have hread := batchRowReadSource (fork := fork) (imms := immStore v) (evm := evm) DelegatedBatchSite.revoke.abi
       "multiDelegatedRequests" "multiDelegatedRequest" (by decide) hf.requests hf.index
       (by rw [delegatedBatchValues_length]; exact hi) (by rw [delegatedBatchValues_length]; exact hn)
       (by rw [delegatedBatchValues_get _ _ _ _ _ hi]; exact hnrm)
@@ -83,7 +85,7 @@ theorem multiDelegatedRevokePrepareRun {L : Store} {evm : EVM.State}
     obtain ⟨_,hdData,_,hdSig,_,_,_⟩ := decodeDelegatedRevocationFields_facts hfields
     obtain ⟨hdValid,hdLen,_⟩ := decodeRevocationArray_facts (by omega) hdData
     obtain ⟨hsValid,hsLen,_,_⟩ := decodeSignatureArray_facts (by omega) hdSig
-    have hsrc := multiDelegatedRevokePrepareRowSource (imms := immStore v) (evm := evm) hf1 hrow hlast hh
+    have hsrc := multiDelegatedRevokePrepareRowSource (fork := fork) (imms := immStore v) (evm := evm) hf1 hrow hlast hh
       (by rw [hdLen]; exact hdValid.1) (by rw [hsLen]; exact hsValid.1)
     by_cases ha : delegatedRevocationNext heap r ≤ 2^64-1
     · rw [if_pos ha] at hp

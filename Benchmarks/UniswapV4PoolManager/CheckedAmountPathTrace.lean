@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.CheckedAmountTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -10,12 +12,12 @@ theorem checkedAmountPathTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {fits : Prop} [Decidable fits]
     (v : PoolManagerImmutables) (hstack : R.length+4 ≤ 1024) (negate : Bool)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (hcalc : if fits then ∃ k C, RD (deployedRuntime v) I g s0
+    (hcalc : if fits then ∃ k C, RD fork (deployedRuntime v) I g s0
       (if negate then ⟨17691⟩ else ⟨17653⟩) (w :: ret :: R) mem aw rdata σ k C
-      else RDrev (deployedRuntime v) g s0) :
-    if fits ∧ w.toNat < 2^255 then ∃ k' C', RD (deployedRuntime v) I g s0 ret
+      else RDrev fork (deployedRuntime v) g s0) :
+    if fits ∧ w.toNat < 2^255 then ∃ k' C', RD fork (deployedRuntime v) I g s0 ret
       (checkedAmountReturnWord w negate :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   by_cases hfit : fits
   · rw [if_pos hfit] at hcalc
     obtain ⟨k1, C1, rd1⟩ := hcalc

@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.CopyStoredPadding
 import Reasoning.ExternalCall
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -14,7 +16,7 @@ theorem copyStoredCallRun {L : Store} {args : List Expr} {retVar : Ident}
       .ok [wordBytes32Value word,.int (Int.ofNat heap.toNat)])
     (hlo : 96 ≤ heap.toNat) (hfree : memLoad (UInt256.ofNat 64) mem = heap)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨6501⟩ (dbSlot word::ret::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨6501⟩ (dbSlot word::ret::R) mem aw rdata σ k C) :
     (∃ mem' aw' k' C' next dataPtr,
       heap.toNat ≤ next ∧ next ≤ 2^64-1 ∧ MemoryPrefix mem mem' heap.toNat ∧
       MemoryPrefix (recordPadding mem heap.toNat) mem' heap.toNat ∧ dataPtr.toNat = heap.toNat+320 ∧
@@ -22,13 +24,13 @@ theorem copyStoredCallRun {L : Store} {args : List Expr} {retVar : Ident}
       heap.toNat+320 ≤ next ∧
       dataPtr.toNat+32+32*(((storedAttestationRecord evm word).data.size+31)/32) ≤ next ∧
       memLoad (UInt256.ofNat 64) mem' = UInt256.ofNat next ∧
-      ExecStmt config {contract := contract,locals := L,immutables := immStore v} evm
+      ExecStmt fork config {contract := contract,locals := L,immutables := immStore v} evm
         (.internalCall "_copyStoredAttestation" args retVar)
         (.ok (resumeAfterInternalCall {contract := contract,locals := L,immutables := immStore v} retVar
           (some [(storedAttestationRecord evm word).value,.int (Int.ofNat next)])) evm) ∧
-      RD (deployedRuntime v) ee g s0 ret (heap::R) mem' aw' rdata σ k' C') ∨
-    (ExecStmt config {contract := contract,locals := L,immutables := immStore v} evm
-      (.internalCall "_copyStoredAttestation" args retVar) .reverted ∧ RDrev (deployedRuntime v) g s0) := by
+      RD fork (deployedRuntime v) ee g s0 ret (heap::R) mem' aw' rdata σ k' C') ∨
+    (ExecStmt fork config {contract := contract,locals := L,immutables := immStore v} evm
+      (.internalCall "_copyStoredAttestation" args retVar) .reverted ∧ RDrev fork (deployedRuntime v) g s0) := by
   have hrd := easCopyStored (evm := evm) (word := word) v hstack hfree hlo hret
     (by simpa only [hs.env,← hs.accounts] using rd)
   by_cases hv : copyStoredValid evm word heap.toNat

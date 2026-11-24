@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.Routines
 import Benchmarks.Morpho.MorphoBlue.ReturnCommon
 import Benchmarks.Morpho.MorphoBlue.Storage
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Morpho `position(bytes32,address)`
 
@@ -34,7 +36,7 @@ theorem morphoPositionBodyReturns (v : MorphoImmutables) (evm : EVM.State)
     (hcv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsize : evm.executionEnv.calldata.size < 2 ^ 255 + 4)
     (hcanon : (calldataWord evm.executionEnv.calldata 36).toNat < EVM.addressModulus) :
-    ExecTransitionBody config contract evm (positionArgs evm.executionEnv.calldata)
+    ExecTransitionBody fork config contract evm (positionArgs evm.executionEnv.calldata)
       positionTransition.body
       (.returned
         { contract := contract,
@@ -97,7 +99,7 @@ theorem morphoPositionReachDecode {σ σ₀ A I} {g : Sat256} (v : MorphoImmutab
     (hsel : selIs I (morphoSelBytes 12))
     (hcv : I.weiValue = ⟨0⟩) (hlen : 68 ≤ I.calldata.size)
     (hbound : I.calldata.size < 2 ^ 255 + 4) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 11424)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 11424)
       [UInt256.ofNat 4445, ⟨64⟩, solcAddrMask, ⟨0⟩]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨k, C, rd⟩ := morphoReachPositionBody (g := g) (σ := σ) (σ₀ := σ₀)
@@ -120,7 +122,7 @@ theorem morphoPositionXReturns {σ σ₀ A I} {g : Sat256} (v : MorphoImmutables
     (hcv : I.weiValue = ⟨0⟩) (hlen : 68 ≤ I.calldata.size)
     (hbound : I.calldata.size < 2 ^ 255 + 4)
     (hcanon : (calldataWord I.calldata 36).toNat < EVM.addressModulus) :
-    RDret (deployedRuntime v) g (initState σ σ₀ g A I) σ
+    RDret fork (deployedRuntime v) g (initState σ σ₀ g A I) σ
       (returnWordBytes ((positionReturnEntries σ I (calldataWord I.calldata 4)
         (calldataWord I.calldata 36)).map (fun e => e.2.2))) := by
   obtain ⟨k, C, rd⟩ := morphoPositionReachDecode (g := g) (σ := σ) (σ₀ := σ₀)
@@ -158,7 +160,7 @@ theorem morphoPositionXReturns {σ σ₀ A I} {g : Sat256} (v : MorphoImmutables
   rw [hload, hslot] at ret
   let words := (positionReturnEntries σ I (calldataWord I.calldata 4)
     (calldataWord I.calldata 36)).map (fun e => e.2.2)
-  have hwrite : RDret (deployedRuntime v) g (initState σ σ₀ g A I) σ
+  have hwrite : RDret fork (deployedRuntime v) g (initState σ σ₀ g A I) σ
       ((writeCascade mem (returnWordWrites 128 words)).readWithPadding 128 (32 * words.length)) := by
     simpa only [words, positionReturnEntries, positionFieldWord, halfWord, uint128Mask,
       List.map_cons, List.map_nil, returnWordWrites, writeCascade, Reasoning.Theory.writeWord] using ret
@@ -173,7 +175,7 @@ theorem morphoPositionXReverts {σ σ₀ A I} {g : Sat256} (v : MorphoImmutables
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 12))
     (hbad : I.weiValue ≠ ⟨0⟩ ∨ I.calldata.size < 68 ∨ 2 ^ 255 + 4 ≤ I.calldata.size) :
-    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 12) rfl hsel
   obtain ⟨k, C, rd⟩ := morphoReachPositionBody (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hsz hsize hsel
@@ -202,7 +204,7 @@ theorem morphoPositionXNoncanonical {σ σ₀ A I} {g : Sat256} (v : MorphoImmut
     (hsel : selIs I (morphoSelBytes 12)) (hlen : 68 ≤ I.calldata.size)
     (hbound : I.calldata.size < 2 ^ 255 + 4)
     (hnc : ¬ (calldataWord I.calldata 36).toNat < EVM.addressModulus) :
-    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
   by_cases hcv : I.weiValue = ⟨0⟩
   · obtain ⟨k, C, rd⟩ := morphoPositionReachDecode (g := g) (σ := σ) (σ₀ := σ₀)
       (A := A) v hcode hsize hsel hcv hlen hbound
@@ -213,7 +215,7 @@ theorem morphoPositionXNoncanonical {σ σ₀ A I} {g : Sat256} (v : MorphoImmut
 theorem morphoPositionBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 12)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 12) rfl hsel
   have hd : selectorDispatchMsg contract I.calldata = some positionTransition :=
     morphoSelectorDispatch_of_selIs (by decide) hsel

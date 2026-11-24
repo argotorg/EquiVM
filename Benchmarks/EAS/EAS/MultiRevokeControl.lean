@@ -3,6 +3,8 @@ import Benchmarks.EAS.EAS.MultiRevocationDecode
 import Benchmarks.EAS.EAS.CalldataSignedStride
 import Benchmarks.EAS.EAS.MultiAttestControl
 import Benchmarks.EAS.EAS.RuntimeBlocks_014
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -19,11 +21,11 @@ instance (cd : ByteArray) (root : UInt256) : Decidable (revocationArrayAccessVal
 theorem easRevocationArrayAccess {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {root available : UInt256} {R : List UInt256} (v : EASImmutables) (hstack : R.length+8 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3416⟩ (root::available::R) mem aw rdata σ k C) :
-    (revocationArrayAccessValid ee.calldata root → ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨3503⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3416⟩ (root::available::R) mem aw rdata σ k C) :
+    (revocationArrayAccessValid ee.calldata root → ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨3503⟩
       (calldataWord ee.calldata (multiRequestArray ee.calldata root).toNat::
         available::root::(multiRequestArray ee.calldata root+UInt256.ofNat 32)::R) mem aw' rdata σ k' C') ∧
-    (¬revocationArrayAccessValid ee.calldata root → RDrev (deployedRuntime v) g s0) := by
+    (¬revocationArrayAccessValid ee.calldata root → RDrev fork (deployedRuntime v) g s0) := by
   have hneg : (UInt256.sub (UInt256.ofNat ee.calldata.size) root)+UInt256.ofNat 115792089237316195423570985008687907853269984665640564039457584007913129639905 =
       (UInt256.ofNat ee.calldata.size-root)-⟨31⟩ := by rw [word_sub_eq_add_neg (UInt256.ofNat ee.calldata.size-root) ⟨31⟩]; rfl
   by_cases href : requestArrayReferenceValid ee.calldata root
@@ -80,13 +82,13 @@ theorem easMultiRevokeAccess {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C n i : Nat}
     {base available : UInt256} {R : List UInt256} (v : EASImmutables) (hstack : R.length+20 ≤ 1024)
     (hi : i<n) (hn : n<UInt256.size) (hb : base.toNat+32*i < UInt256.size)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3396⟩ (multiRevokeLoopStack n i base available R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3396⟩ (multiRevokeLoopStack n i base available R) mem aw rdata σ k C) :
     if multiRequestReferenceValid ee.calldata base i ∧ revocationArrayAccessValid ee.calldata (multiRequestRoot ee.calldata base i) then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨5924⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨5924⟩
         ((multiRequestArray ee.calldata (multiRequestRoot ee.calldata base i)+UInt256.ofNat 32)::
           calldataWord ee.calldata (multiRequestArray ee.calldata (multiRequestRoot ee.calldata base i)).toNat::
           UInt256.ofNat ee.calldata.size::⟨3530⟩::multiRevokeCopySaved ee n i base available R) mem aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hin : (UInt256.ofNat i).toNat = i := ulit_toNat' _ (by omega)
   obtain ⟨a1,k1,C1,r1⟩ := easBlocks.eas_block_3396_taken_packed (immWords := wordsOf (immStore v))
     (by first | omega | (simp only [List.length_cons]; omega))
@@ -114,8 +116,8 @@ theorem easMultiRevokeAccess {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 theorem easMultiRevokeDone {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C n : Nat}
     {base available : UInt256} {R : List UInt256} (v : EASImmutables) (hstack : R.length+7 ≤ 1024)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3396⟩ (multiRevokeLoopStack n n base available R) mem aw rdata σ k C) :
-    RDret (deployedRuntime v) g s0 σ ByteArray.empty := by
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3396⟩ (multiRevokeLoopStack n n base available R) mem aw rdata σ k C) :
+    RDret fork (deployedRuntime v) g s0 σ ByteArray.empty := by
   obtain ⟨a1,k1,C1,r1⟩ := easBlocks.eas_block_3396_fallthrough_packed (immWords := wordsOf (immStore v))
     (by first | omega | (simp only [List.length_cons]; omega)) (ult_zero (le_refl _)) rd
   exact easBlocks.eas_block_3404 (immWords := wordsOf (immStore v)) (by first | omega | (simp only [List.length_cons]; omega)) r1

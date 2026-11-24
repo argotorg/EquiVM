@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.TickUpdateModel
 import Benchmarks.UniswapV3.Pool.LiquidityDeltaTrace
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_071
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -20,11 +22,11 @@ def tickUpdateMemoryWords (aw : UInt256) : UInt256 :=
 theorem tickUpdateLiquidityRawX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : TickUpdateArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨20795⟩ (tickUpdateWords a ++ ret :: R)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨20795⟩ (tickUpdateWords a ++ ret :: R)
       mem aw rdata σ k C) (hfit : a.TraceFits) (hov : R.length + 25 ≤ 1024) :
     let before := Int.ofNat (tickGrossWord σ ee a.tick).toNat
-    (RDrev (deployedRuntime v) g s0 ∧ ¬ liquidityDeltaValid before a.delta) ∨
-    (liquidityDeltaValid before a.delta ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨20838⟩
+    (RDrev fork (deployedRuntime v) g s0 ∧ ¬ liquidityDeltaValid before a.delta) ∨
+    (liquidityDeltaValid before a.delta ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨20838⟩
       (EVM.wordOfInt (liquidityDeltaResult before a.delta) :: ⟨0⟩ :: tickGrossWord σ ee a.tick ::
         tickClearBase a.tick :: ⟨0⟩ :: tickUpdateWords a ++ ret :: R)
       (twoWordHashMem (EVM.wordOfInt a.tick) ⟨5⟩ mem) (tickUpdateMemoryWords aw) rdata σ k' C') := by
@@ -42,7 +44,7 @@ theorem tickUpdateLiquidityRawX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat25
   simp only [uniswapV3Pool_block_20795_stack, uniswapV3Pool_block_20795_memory, ht, hmask] at rp
   have hh : keccakWord ⟨0⟩ ⟨64⟩ (twoWordHashMem (EVM.wordOfInt a.tick) ⟨5⟩ mem) =
       tickClearBase a.tick := twoWordHashMem_solcMappingSlot_any _ _ _
-  change RD (deployedRuntime v) ee g s0 ⟨13807⟩
+  change RD fork (deployedRuntime v) ee g s0 ⟨13807⟩
     (EVM.wordOfInt a.delta ::
       uint128Word (solcSlotWordAt
         (keccakWord ⟨0⟩ ⟨64⟩ (twoWordHashMem (EVM.wordOfInt a.tick) ⟨5⟩ mem)) σ ee) ::
@@ -58,7 +60,7 @@ theorem tickUpdateLiquidityRawX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat25
     · exact Int.ofNat_nonneg _
     · change ((tickGrossWord σ ee a.tick).toNat : Int) < 2 ^ 128
       exact_mod_cast tickGrossWord_lt σ ee a.tick
-  have hrp : RD (deployedRuntime v) ee g s0 ⟨13807⟩
+  have hrp : RD fork (deployedRuntime v) ee g s0 ⟨13807⟩
       (EVM.wordOfInt a.delta :: EVM.wordOfInt (Int.ofNat (tickGrossWord σ ee a.tick).toNat) ::
         ⟨20838⟩ :: ⟨0⟩ :: tickGrossWord σ ee a.tick :: tickClearBase a.tick ::
         ⟨0⟩ :: tickUpdateWords a ++ ret :: R)
@@ -78,11 +80,11 @@ theorem tickUpdateLiquidityRawX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat25
 theorem tickUpdateLiquidityX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : TickUpdateArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨20795⟩ (tickUpdateWords a ++ ret :: R)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨20795⟩ (tickUpdateWords a ++ ret :: R)
       mem aw rdata σ k C) (hfit : a.TraceFits) (hov : R.length + 25 ≤ 1024) :
     let before := Int.ofNat (tickGrossWord σ ee a.tick).toNat
-    (RDrev (deployedRuntime v) g s0 ∧ ¬ liquidityDeltaValid before a.delta) ∨
-    (liquidityDeltaValid before a.delta ∧ ∃ k' C' aw', RD (deployedRuntime v) ee g s0 ⟨20838⟩
+    (RDrev fork (deployedRuntime v) g s0 ∧ ¬ liquidityDeltaValid before a.delta) ∨
+    (liquidityDeltaValid before a.delta ∧ ∃ k' C' aw', RD fork (deployedRuntime v) ee g s0 ⟨20838⟩
       (EVM.wordOfInt (liquidityDeltaResult before a.delta) :: ⟨0⟩ :: tickGrossWord σ ee a.tick ::
         tickClearBase a.tick :: ⟨0⟩ :: tickUpdateWords a ++ ret :: R)
       (twoWordHashMem (EVM.wordOfInt a.tick) ⟨5⟩ mem) aw' rdata σ k' C') := by

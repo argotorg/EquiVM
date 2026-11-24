@@ -3,6 +3,8 @@ import Benchmarks.Safe.V0_cdb2eb5.ModuleMemory
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_015
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_030
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V0_cdb2eb5.RuntimeBlocks
 
@@ -15,15 +17,15 @@ def signatureApprovalMemory (mem : ByteArray) (owner hash : UInt256) : ByteArray
     (twoWordHashMem (UInt256.land solcAddrMask owner) ⟨8⟩ mem)
 
 theorem safeSignatureApprovalAccept {I g s0 σ k C aw mem rdata} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨2279⟩ (⟨0⟩ :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g s0 ⟨2279⟩ (⟨0⟩ :: R) mem aw rdata σ k C)
     (hov : R.length + 2 ≤ 1024) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨2585⟩ R mem aw' rdata σ k' C' := by
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨2585⟩ R mem aw' rdata σ k' C' := by
   have h₁ := safeRuntime_block_2279_taken hov (by decide) (by jump_dest) h
   exact safeRuntime_block_2195_packed (by omega) (by jump_dest) h₁
 
 theorem safeSignatureApprovalReject {I g s0 σ k C aw mem rdata} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨2279⟩ (⟨1⟩ :: R) mem aw rdata σ k C)
-    (hov : R.length + 6 ≤ 1024) : RDrev safeBytecode g s0 := by
+    (h : RD fork safeBytecode I g s0 ⟨2279⟩ (⟨1⟩ :: R) mem aw rdata σ k C)
+    (hov : R.length + 6 ≤ 1024) : RDrev fork safeBytecode g s0 := by
   have h₁ := safeRuntime_block_2279_fallthrough (by omega) (by decide) h
   have h₂ := safeRuntime_block_2285 (by
     simp only [safeRuntime_block_2279_fallthrough_stack]; omega) (by jump_dest) h₁
@@ -33,12 +35,12 @@ theorem safeSignatureApprovalReject {I g s0 σ k C aw mem rdata} {R : List UInt2
 
 theorem safeSignatureApprovalTrace {I g s0 σ k C aw mem rdata}
     {i s r current last required src hash executor : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨2200⟩
+    (h : RD fork safeBytecode I g s0 ⟨2200⟩
       (i :: s :: r :: ⟨1⟩ :: current :: last :: required :: src :: hash :: executor :: R)
       mem aw rdata σ k C) (hm : 64 ≤ mem.size) (hov : R.length + 16 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧ ¬signatureApproved σ I executor r hash) ∨
+    (RDrev fork safeBytecode g s0 ∧ ¬signatureApproved σ I executor r hash) ∨
     ∃ mem' aw' k' C', signatureApproved σ I executor r hash ∧
-      RD safeBytecode I g s0 ⟨2585⟩
+      RD fork safeBytecode I g s0 ⟨2585⟩
         (i :: s :: r :: ⟨1⟩ :: r :: last :: required :: src :: hash :: executor :: R)
         mem' aw' rdata σ k' C' ∧
       (mem' = mem ∨ mem' = signatureApprovalMemory mem r hash) := by
@@ -81,7 +83,7 @@ theorem safeSignatureApprovalTrace {I g s0 σ k C aw mem rdata}
       rw [twoWordHashMem_size_of_ge64 _ _ hm]; exact hm)
   simp only [safeRuntime_block_2242_stack] at h₃
   rw [← safeRuntime_block_2242_memory, hm', hslot] at h₃
-  change RD safeBytecode I g s0 ⟨2279⟩
+  change RD fork safeBytecode I g s0 ⟨2279⟩
     (UInt256.isZero (signatureApprovalWord σ I r hash) :: i :: s :: r :: ⟨1⟩ :: r :: last ::
       required :: src :: hash :: executor :: R)
     (signatureApprovalMemory mem r hash) aw₃ rdata σ k₃ C₃ at h₃

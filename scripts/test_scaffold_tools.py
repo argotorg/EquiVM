@@ -244,7 +244,7 @@ class VyperImmutableTests(unittest.TestCase):
                                   "Examples.VyperImmutable.immutableBytecode", slots, 8)
         valued = next(unit for unit in units if unit.theorem_names ==
                       ("immutable_block_106", "immutable_block_106_packed"))
-        self.assertIn('RD (Examples.VyperImmutable.immutableBytecode ++', valued.text)
+        self.assertIn('RD fork (Examples.VyperImmutable.immutableBytecode ++', valued.text)
         self.assertIn('(immWords "LIMIT")', valued.text)
         self.assertIn("theorem immutable_block_106_packed", valued.text)
 

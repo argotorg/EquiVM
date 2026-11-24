@@ -1,6 +1,8 @@
 import Benchmarks.EAS.Attester.MultiAttestAllocation
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory
 
 namespace Benchmarks.EAS.Attester
@@ -45,7 +47,7 @@ theorem multiAttestShapeGuard_eval {cfg stele evm} {n : Nat} {rows : List Value}
 
 theorem multiAttestSourcePrelude {imms : Store} {evm : State} {schemas rows : List Value}
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecBlock config ⟨contract, multiAttestLocals schemas rows, imms⟩ evm
+    ExecBlock fork config ⟨contract, multiAttestLocals schemas rows, imms⟩ evm
       (multiAttestTransition.body.take 2)
       (.ok ⟨contract, (multiAttestLocals schemas rows).insert "schemaLength"
         (.int (Int.ofNat schemas.length)), imms⟩ evm) := by
@@ -57,7 +59,7 @@ theorem multiAttestSourcePrelude {imms : Store} {evm : State} {schemas rows : Li
 theorem multiAttestSourceBadShape {imms : Store} {evm : State} {schemas rows : List Value}
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩)
     (hbad : ¬ (0 < schemas.length ∧ rows.length = schemas.length)) :
-    ExecTransitionBody config contract evm (multiAttestLocals schemas rows)
+    ExecTransitionBody fork config contract evm (multiAttestLocals schemas rows)
       multiAttestTransition.body .reverted imms := by
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 2 multiAttestTransition.body]
@@ -77,10 +79,10 @@ theorem multiAttestSourceBuild {imms : Store} {evm : State} {cd : ByteArray}
     (hget : imms.get? "_eas" = some (.address eas))
     (hd : decodeArrays? uint256 cd = some (.array schemas, .array rows))
     (hshape : BatchShape cd) (hsel : cd.extract 0 4 = attesterMultiAttestSelBytes) :
-    (¬ BatchRowsValid cd ∧ ExecTransitionBody config contract evm (multiAttestLocals schemas rows)
+    (¬ BatchRowsValid cd ∧ ExecTransitionBody fork config contract evm (multiAttestLocals schemas rows)
       multiAttestTransition.body .reverted imms) ∨
     (BatchRowsValid cd ∧ ∃ locals,
-      ExecBlock config ⟨contract, multiAttestLocals schemas rows, imms⟩ evm
+      ExecBlock fork config ⟨contract, multiAttestLocals schemas rows, imms⟩ evm
         (multiAttestTransition.body.take 7) (.ok ⟨contract, locals, imms⟩ evm) ∧
       locals.get? "eas" = some (.address eas) ∧
       locals.get? "multiRequests" = some (multiAttestRequests cd) ∧
@@ -109,26 +111,26 @@ theorem multiAttestSourceBuild {imms : Store} {evm : State} {cd : ByteArray}
     rw [hslen, hrlen, decide_eq_true
       (show 0 < arrayCount cd 4 ∧ arrayCount cd 36 = arrayCount cd 4 from hshape)] at he
     exact he
-  have hnew : ExecStmt config ⟨contract, l0, imms⟩ evm
+  have hnew : ExecStmt fork config ⟨contract, l0, imms⟩ evm
       (.letDecl "multiRequests" (some multiAttestationRequestArrayTy)
         (.newArray multiAttestationRequestSt (.var "schemaLength")))
       (.ok ⟨contract, l1, imms⟩ evm) := ExecStmt.letDecl (evalLocalNewArray hn0 hdefault)
   let la := l1.insert "allocationEnd" (.int (Int.ofNat (160 + 192 * schemas.length)))
   have hn1 : l1.get? "schemaLength" = some (.int (Int.ofNat schemas.length)) := by
     simpa [l1, Std.HashMap.getElem?_insert] using hn0
-  have halloc : ExecStmt config ⟨contract, l1, imms⟩ evm
+  have halloc : ExecStmt fork config ⟨contract, l1, imms⟩ evm
       (.letDecl "allocationEnd" (some uint256)
         (.binary .add (.intLit 160) (.binary .mul (.intLit 192) (.var "schemaLength"))))
       (.ok ⟨contract, la, imms⟩ evm) := by
     apply ExecStmt.letDecl
     simp only [evalExpr?, hn1, EvalResult.ofOption, bind, pure, EvalResult.bind,
       evalBinaryOp?, Int.ofNat_eq_natCast, Nat.cast_add, Nat.cast_mul, Nat.cast_ofNat]
-  have hp : ExecBlock config ⟨contract, multiAttestLocals schemas rows, imms⟩ evm
+  have hp : ExecBlock fork config ⟨contract, multiAttestLocals schemas rows, imms⟩ evm
       (multiAttestTransition.body.take 5) (.ok ⟨contract, la, imms⟩ evm) := by
     exact execBlock_append (multiAttestSourcePrelude hvalue)
       (ExecBlock.consNormal (ExecStmt.requireTrue hguard) (ExecBlock.consNormal hnew
           (ExecBlock.consNormal halloc ExecBlock.nil)))
-  have hloop := attestOuterFor (C := contract) (imms := imms) (evm := evm)
+  have hloop := attestOuterFor (fork := fork) (C := contract) (imms := imms) (evm := evm)
     (locals := la) (schemas := schemas) (rows := rows) (expected := expected)
     (requests := List.replicate schemas.length emptyRequest) (n := arrayCount cd 4)
     (allocation := 160 + 192 * schemas.length)
@@ -163,11 +165,11 @@ theorem multiAttestSourceBuild {imms : Store} {evm : State} {cd : ByteArray}
 
 theorem multiAttestSourceSuffix {imms locals : Store} {evm : State} {schemas rows : List Value}
     {result : ExecResult}
-    (hp : ExecBlock config ⟨contract, multiAttestLocals schemas rows, imms⟩ evm
+    (hp : ExecBlock fork config ⟨contract, multiAttestLocals schemas rows, imms⟩ evm
       (multiAttestTransition.body.take 7) (.ok ⟨contract, locals, imms⟩ evm))
-    (hs : ExecBlock config ⟨contract, locals, imms⟩ evm
+    (hs : ExecBlock fork config ⟨contract, locals, imms⟩ evm
       (multiAttestTransition.body.drop 7) result) :
-    ExecBlock config ⟨contract, multiAttestLocals schemas rows, imms⟩ evm
+    ExecBlock fork config ⟨contract, multiAttestLocals schemas rows, imms⟩ evm
       multiAttestTransition.body result := by
   rw [← List.take_append_drop 7 multiAttestTransition.body]
   exact execBlock_append hp hs

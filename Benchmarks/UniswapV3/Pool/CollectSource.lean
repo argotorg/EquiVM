@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.PositionOwedStorage
 import Benchmarks.UniswapV3.Pool.PoolTokenTransfer
 import Benchmarks.UniswapV3.Pool.Slot0Storage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -25,7 +27,7 @@ def collectInitFrame (v : UniswapV3PoolImmutables) (recipient : AccountAddress)
 
 theorem collectInitBlock (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (recipient : AccountAddress) (lower upper req0 req1 : UInt256) (hwv : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecBlock config (collectFrame v recipient lower upper req0 req1) evm
+    ExecBlock fork config (collectFrame v recipient lower upper req0 req1) evm
       (collectTransition.body.take 3) (.ok (collectInitFrame v recipient lower upper req0 req1) evm) := by
   apply (ABlock.start.requireStep (evalCallvalueEq_true hwv)).run
   refine ExecBlock.consNormal (ExecStmt.letDecl (name := "amount0")
@@ -45,7 +47,7 @@ theorem evalCollectUnlocked (v : UniswapV3PoolImmutables) (evm : EVM.State)
 
 theorem collectAssignLock (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (recipient : AccountAddress) (lower upper req0 req1 : UInt256) :
-    ExecStmt config (collectInitFrame v recipient lower upper req0 req1) evm
+    ExecStmt fork config (collectInitFrame v recipient lower upper req0 req1) evm
       (.assign .storage ⟨"slot0", [.field "unlocked"]⟩ (.boolLit false))
       (if evm.executionEnv.perm then .ok (collectInitFrame v recipient lower upper req0 req1) (storeSlot0Unlocked evm false) else .staticViolation) := by
   exact execStmt_assign_storage (by simp only [evalExpr?, pure])
@@ -55,10 +57,10 @@ theorem collectLockPrefix (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (recipient : AccountAddress) (lower upper req0 req1 : UInt256) (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : slot0FieldWord 30 1 evm.accountMap evm.executionEnv ≠ ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config (collectFrame v recipient lower upper req0 req1) evm
+    ExecBlock fork config (collectFrame v recipient lower upper req0 req1) evm
       (collectTransition.body.take 5)
       (.ok (collectInitFrame v recipient lower upper req0 req1) (storeSlot0Unlocked evm false)) := by
-  change ExecBlock config _ _ (collectTransition.body.take 3 ++
+  change ExecBlock fork config _ _ (collectTransition.body.take 3 ++
     [.require (.storage ⟨"slot0", [.field "unlocked"]⟩),
      .assign .storage ⟨"slot0", [.field "unlocked"]⟩ (.boolLit false)]) _
   apply execBlock_append_ok (collectInitBlock v evm recipient lower upper req0 req1 hwv)
@@ -70,7 +72,7 @@ theorem collectLockPrefix (v : UniswapV3PoolImmutables) (evm : EVM.State)
 theorem collectRevertsLocked (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (recipient : AccountAddress) (lower upper req0 req1 : UInt256) (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocked : slot0FieldWord 30 1 evm.accountMap evm.executionEnv = ⟨0⟩) :
-    ExecTransitionBody config contract evm (collectLocals recipient lower upper req0 req1)
+    ExecTransitionBody fork config contract evm (collectLocals recipient lower upper req0 req1)
       collectTransition.body .reverted (immStore v) := by
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 3 collectTransition.body]
@@ -83,7 +85,7 @@ theorem collectStatic (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (recipient : AccountAddress) (lower upper req0 req1 : UInt256) (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : slot0FieldWord 30 1 evm.accountMap evm.executionEnv ≠ ⟨0⟩)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (collectLocals recipient lower upper req0 req1)
+    ExecTransitionBody fork config contract evm (collectLocals recipient lower upper req0 req1)
       collectTransition.body .staticViolation (immStore v) := by
   apply ExecFuncBody.execBlockStatic
   rw [← List.take_append_drop 3 collectTransition.body]
@@ -107,7 +109,7 @@ def collectPositionFrame (v : UniswapV3PoolImmutables) (recipient : AccountAddre
 
 theorem collectCallPosition (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (recipient : AccountAddress) (lower upper req0 req1 : UInt256) :
-    ExecStmt config (collectInitFrame v recipient lower upper req0 req1) evm
+    ExecStmt fork config (collectInitFrame v recipient lower upper req0 req1) evm
       (.internalCall "Position_get" [.env .caller, .var "tickLower", .var "tickUpper"] "__c0")
       (.ok (collectKeyFrame v recipient lower upper req0 req1 (positionKey evm.executionEnv.source lower upper)) evm) := by
   have hl : evalExpr? config (collectInitFrame v recipient lower upper req0 req1) evm
@@ -127,7 +129,7 @@ theorem collectCallPosition (v : UniswapV3PoolImmutables) (evm : EVM.State)
 
 theorem collectLetPosition (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (recipient : AccountAddress) (lower upper req0 req1 key : UInt256) :
-    ExecStmt config (collectKeyFrame v recipient lower upper req0 req1 key) evm
+    ExecStmt fork config (collectKeyFrame v recipient lower upper req0 req1 key) evm
       (.letStorage "position" ⟨"positions", [.mindex (.var "__c0")]⟩)
       (.ok (collectPositionFrame v recipient lower upper req0 req1 key) evm) := by
   apply ExecStmt.letStorage
@@ -144,14 +146,14 @@ theorem collectPositionPrefix (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : slot0FieldWord 30 1 evm.accountMap evm.executionEnv ≠ ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config (collectFrame v recipient lower upper req0 req1) evm (collectTransition.body.take 7)
+    ExecBlock fork config (collectFrame v recipient lower upper req0 req1) evm (collectTransition.body.take 7)
       (.ok (collectPositionFrame v recipient lower upper req0 req1
         (positionKey evm.executionEnv.source lower upper)) (storeSlot0Unlocked evm false)) := by
-  change ExecBlock _ _ _ (collectTransition.body.take 5 ++
+  change ExecBlock fork _ _ _ (collectTransition.body.take 5 ++
     [.internalCall "Position_get" [.env .caller, .var "tickLower", .var "tickUpper"] "__c0",
      .letStorage "position" ⟨"positions", [.mindex (.var "__c0")]⟩]) _
-  apply execBlock_append_ok (collectLockPrefix (hperm := hperm) v evm recipient lower upper req0 req1 hwv hunlocked)
-  have hc := collectCallPosition v (storeSlot0Unlocked evm false) recipient lower upper req0 req1
+  apply execBlock_append_ok (collectLockPrefix (fork := fork) (hperm := hperm) v evm recipient lower upper req0 req1 hwv hunlocked)
+  have hc := collectCallPosition (fork := fork) v (storeSlot0Unlocked evm false) recipient lower upper req0 req1
   rw [storeSlot0Unlocked_executionEnv] at hc
   exact ExecBlock.consNormal hc
     (ExecBlock.consNormal (collectLetPosition v _ recipient lower upper req0 req1 _) ExecBlock.nil)
@@ -174,7 +176,7 @@ theorem collectAssignMin (locals imms : Store) (evm : EVM.State)
     (hget : locals.get? (poolRequestedName second) = some (.int (Int.ofNat requested.toNat)))
     (hposition : locals.get? "position" = some (positionAlias key))
     (hold : locals.get? (poolAmountName second) = some old) :
-    ExecStmt config {contract := contract, locals := locals, immutables := imms} evm
+    ExecStmt fork config {contract := contract, locals := locals, immutables := imms} evm
       (.assign .localVar ⟨poolAmountName second, []⟩ (collectMinExpr second))
       (.ok { contract := contract
              locals := locals.insert (poolAmountName second) (.int (Int.ofNat
@@ -191,7 +193,7 @@ def collectAmountsFrame (v : UniswapV3PoolImmutables) (recipient : AccountAddres
 
 theorem collectAmounts (v : UniswapV3PoolImmutables) (evm : EVM.State)
     (recipient : AccountAddress) (lower upper req0 req1 key : UInt256) :
-    ExecBlock config (collectPositionFrame v recipient lower upper req0 req1 key) evm
+    ExecBlock fork config (collectPositionFrame v recipient lower upper req0 req1 key) evm
       ((collectTransition.body.drop 7).take 2)
       (.ok (collectAmountsFrame v recipient lower upper req0 req1 key
         (minWord req0 (positionOwedWord key false evm.accountMap evm.executionEnv))

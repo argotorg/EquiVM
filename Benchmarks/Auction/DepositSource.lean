@@ -2,6 +2,8 @@ import Reasoning.ExternalCall
 import Benchmarks.Auction.PaymentLocals
 import Benchmarks.Auction.DepositCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -39,8 +41,8 @@ theorem wethCodeGuardSource {s0 I σ evm locals}
     exact hn (uint256_toNat_eq_zero (by omega))
 
 theorem depositTypedCall {evm evm' target out z} {amount : UInt256}
-    (hc : callViaEVM evm target (Int.ofNat amount.toNat) depositSelector (z, evm', out)) :
-    typedCallViaEVM auctionConfig evm (EVM.address target.val) "deposit"
+    (hc : callViaEVM fork evm target (Int.ofNat amount.toNat) depositSelector (z, evm', out)) :
+    typedCallViaEVM fork auctionConfig evm (EVM.address target.val) "deposit"
       (Int.ofNat amount.toNat) [] (z, evm', out) := by
   rw [addressOfAddress]
   exact ⟨depositSelector, rfl, hc⟩
@@ -48,16 +50,16 @@ theorem depositTypedCall {evm evm' target out z} {amount : UInt256}
 theorem depositSourceSuccess {s0 I σ evm evm' locals recipient amount ptr out}
     (hs : SourceState s0 I σ evm) (hv : PaymentValues locals recipient amount ptr)
     (hyes : extCodeSizeWord σ (wethWord σ I) ≠ ⟨0⟩)
-    (hc : callViaEVM evm (AccountAddress.ofUInt256 (wethWord σ I))
+    (hc : callViaEVM fork evm (AccountAddress.ofUInt256 (wethWord σ I))
       (Int.ofNat amount.toNat) depositSelector (true, evm', out))
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
+    ExecBlock fork auctionConfig { contract := auctionContract, locals := locals } evm
       (checkedExternalCallStmts (.storage wethRef) "deposit" (.var "amount") [] "_dep")
       (.ok { contract := auctionContract, locals := locals.insert "_dep" (collapseReturns []) }
         evm') := by
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · rw [wethCodeGuardSource hs hv.weth, decide_eq_true hyes]
-  · refine ExecBlock.consNormal (ExecStmt.externalCallSuccess (hperm := Or.inr hperm) (wethSourceRead hs hv.weth)
+  · refine ExecBlock.consNormal (ExecStmt.externalCallSuccess (fork := fork) (hperm := Or.inr hperm) (wethSourceRead hs hv.weth)
       ?_ ?_ (depositTypedCall hc) rfl) ExecBlock.nil
     · simp only [evalExpr?, hv.amount, EvalResult.ofOption]
     · simp [evalExprs?, pure]
@@ -65,21 +67,21 @@ theorem depositSourceSuccess {s0 I σ evm evm' locals recipient amount ptr out}
 theorem depositSourceFailure {s0 I σ evm evm' locals recipient amount ptr out}
     (hs : SourceState s0 I σ evm) (hv : PaymentValues locals recipient amount ptr)
     (hyes : extCodeSizeWord σ (wethWord σ I) ≠ ⟨0⟩)
-    (hc : callViaEVM evm (AccountAddress.ofUInt256 (wethWord σ I))
+    (hc : callViaEVM fork evm (AccountAddress.ofUInt256 (wethWord σ I))
       (Int.ofNat amount.toNat) depositSelector (false, evm', out))
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
+    ExecBlock fork auctionConfig { contract := auctionContract, locals := locals } evm
       paymentFallbackStmts .reverted := by
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · rw [wethCodeGuardSource hs hv.weth, decide_eq_true hyes]
-  · exact ExecBlock.consRevert (ExecStmt.externalCallFailure (hperm := Or.inr hperm) (wethSourceRead hs hv.weth)
+  · exact ExecBlock.consRevert (ExecStmt.externalCallFailure (fork := fork) (hperm := Or.inr hperm) (wethSourceRead hs hv.weth)
       (by simp only [evalExpr?, hv.amount, EvalResult.ofOption])
       (by simp [evalExprs?, pure]) (depositTypedCall hc))
 
 theorem depositSourceNoCode {s0 I σ evm locals recipient amount ptr}
     (hs : SourceState s0 I σ evm) (hv : PaymentValues locals recipient amount ptr)
     (hno : extCodeSizeWord σ (wethWord σ I) = ⟨0⟩) :
-    ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
+    ExecBlock fork auctionConfig { contract := auctionContract, locals := locals } evm
       paymentFallbackStmts .reverted := by
   exact ExecBlock.consRevert (ExecStmt.requireFalse (by
     rw [wethCodeGuardSource hs hv.weth, hno]

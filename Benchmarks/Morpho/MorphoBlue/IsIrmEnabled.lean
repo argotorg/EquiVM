@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.Routines
 import Benchmarks.Morpho.MorphoBlue.Storage
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Morpho `isIrmEnabled(address)`
 
@@ -24,7 +26,7 @@ theorem morphoIsIrmEnabledBodyReturns (v : MorphoImmutables) (evm : EVM.State)
     (hcv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsize : evm.executionEnv.calldata.size < 2 ^ 255 + 4)
     (hcanon : (calldataWord evm.executionEnv.calldata 4).toNat < EVM.addressModulus) :
-    ExecTransitionBody config contract evm (isIrmEnabledArgs evm.executionEnv.calldata)
+    ExecTransitionBody fork config contract evm (isIrmEnabledArgs evm.executionEnv.calldata)
       isIrmEnabledTransition.body
       (.returned
         { contract := contract,
@@ -48,7 +50,7 @@ theorem morphoIsIrmEnabledReachDecode {σ σ₀ A I} {g : Sat256} (v : MorphoImm
     (hsel : selIs I (morphoSelBytes 26))
     (hcv : I.weiValue = ⟨0⟩) (hlen : 36 ≤ I.calldata.size)
     (hbound : I.calldata.size < 2 ^ 255 + 4) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 11354)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 11354)
       [UInt256.ofNat 420, solcAddrMask, ⟨0⟩, ⟨64⟩, ⟨255⟩, ⟨32⟩]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨k, C, rd⟩ := morphoReachIsIrmEnabledBody (g := g) (σ := σ) (σ₀ := σ₀)
@@ -71,7 +73,7 @@ theorem morphoIsIrmEnabledXReturns {σ σ₀ A I} {g : Sat256} (v : MorphoImmuta
     (hcv : I.weiValue = ⟨0⟩) (hlen : 36 ≤ I.calldata.size)
     (hbound : I.calldata.size < 2 ^ 255 + 4)
     (hcanon : (calldataWord I.calldata 4).toNat < EVM.addressModulus) :
-    RDret (deployedRuntime v) g (initState σ σ₀ g A I) σ
+    RDret fork (deployedRuntime v) g (initState σ σ₀ g A I) σ
       (UInt256.isZero (UInt256.isZero (UInt256.land
         (solcSlotWordAt (solcMappingSlot ⟨4⟩ (calldataWord I.calldata 4)) σ I) ⟨255⟩))).toByteArray := by
   obtain ⟨k, C, rd⟩ := morphoIsIrmEnabledReachDecode (g := g) (σ := σ) (σ₀ := σ₀)
@@ -80,7 +82,7 @@ theorem morphoIsIrmEnabledXReturns {σ σ₀ A I} {g : Sat256} (v : MorphoImmuta
     (by rw [morphoPatchedValidJumps v]; jump_dest) hcanon rd
   have ret := morphoBlocks.morpho_block_420
     (immWords := wordsOf (immStore v)) (by decide) rdReturn
-  change RDret _ _ _ _
+  change RDret fork _ _ _ _
     (let mem := twoWordHashMem (UInt256.land (calldataWord I.calldata 4) solcAddrMask)
        ⟨4⟩ solcFreePtrMem
      ((UInt256.isZero (UInt256.isZero (UInt256.land
@@ -98,7 +100,7 @@ theorem morphoIsIrmEnabledXReverts {σ σ₀ A I} {g : Sat256} (v : MorphoImmuta
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 26))
     (hbad : I.weiValue ≠ ⟨0⟩ ∨ I.calldata.size < 36 ∨ 2 ^ 255 + 4 ≤ I.calldata.size) :
-    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 26) rfl hsel
   obtain ⟨k, C, rd⟩ := morphoReachIsIrmEnabledBody (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hsz hsize hsel
@@ -127,7 +129,7 @@ theorem morphoIsIrmEnabledXNoncanonical {σ σ₀ A I} {g : Sat256} (v : MorphoI
     (hsel : selIs I (morphoSelBytes 26)) (hlen : 36 ≤ I.calldata.size)
     (hbound : I.calldata.size < 2 ^ 255 + 4)
     (hnc : ¬ (calldataWord I.calldata 4).toNat < EVM.addressModulus) :
-    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
   by_cases hcv : I.weiValue = ⟨0⟩
   · obtain ⟨k, C, rd⟩ := morphoIsIrmEnabledReachDecode (g := g) (σ := σ) (σ₀ := σ₀)
       (A := A) v hcode hsize hsel hcv hlen hbound
@@ -138,7 +140,7 @@ theorem morphoIsIrmEnabledXNoncanonical {σ σ₀ A I} {g : Sat256} (v : MorphoI
 theorem morphoIsIrmEnabledBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 26)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 26) rfl hsel
   have hd : selectorDispatchMsg contract I.calldata = some isIrmEnabledTransition :=
     morphoSelectorDispatch_of_selIs (by decide) hsel

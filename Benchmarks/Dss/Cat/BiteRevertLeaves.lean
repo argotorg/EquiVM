@@ -3,6 +3,8 @@ import Benchmarks.Dss.Cat.BiteRevertPrim
 import Benchmarks.Dss.Cat.BiteSource
 import Benchmarks.Dss.Cat.BiteTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -40,7 +42,7 @@ theorem RD.catBiteGuardStringRevert {σ σ₀ A I} {g : Sat256}
     {acc : AccountMap}
     {cond okPc : UInt256} {R : List UInt256} {k C : ℕ}
     {guardPc len rawWord shift word : UInt256} {op : Operation.POp} {width : ℕ}
-    (rd : RD catBytecode I g (initState σ σ₀ g A I) guardPc
+    (rd : RD fork catBytecode I g (initState σ σ₀ g A I) guardPc
       (cond :: R) mem aw rdata acc k C)
     (hcond : cond = ⟨0⟩)
     (hpush2 : decode catBytecode guardPc = some (.Push .PUSH2, some (okPc, 2)))
@@ -51,7 +53,7 @@ theorem RD.catBiteGuardStringRevert {σ σ₀ A I} {g : Sat256}
     (hmemsz : 228 ≤ mem.size) (haw : 8 ≤ aw.toNat) (hawsz : aw.toNat * 32 < UInt256.size)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 5 ≤ 1024) :
-    RDrev catBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork catBytecode g (initState σ σ₀ g A I) := by
   have rd2 := rd.push2 okPc hpush2 (by simp only [List.length_cons]; omega)
   have rd3 := rd2.jumpiNT hjumpi hcond (by omega)
   exact RD.solcErrorStringRevertTailGrown rd3 htail hpush hword hmemsz haw hawsz hread64 hov
@@ -69,7 +71,7 @@ theorem catBiteArtRateOverflowLeaf {σ σ₀ A I} {g : UInt256}
     (hdecode :
       config.externalABI.decodeCalldata? (biteTransition.params.map Param.name)
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3720⟩
       (iRate :: art :: ret :: R) mem aw rdata acc k C)
     (hov : R.length + 9 ≤ 1024)
@@ -80,7 +82,7 @@ theorem catBiteArtRateOverflowLeaf {σ σ₀ A I} {g : UInt256}
           (biteVatAddr (initState σ σ₀ (Sat256.ofUInt256 g) A I))).option 0
           (fun acc => acc.code.size))).toNat)
     (hIlksCall :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (biteVatAddr (initState σ σ₀ (Sat256.ofUInt256 g) A I)))
         "ilks" 0 [biteIlkVal I] (true, evmIlk, ilksOut) false)
     (hIlksDec :
@@ -90,18 +92,18 @@ theorem catBiteArtRateOverflowLeaf {σ σ₀ A I} {g : UInt256}
       0 < (UInt256.ofNat
         ((evmIlk.lookupAccount (biteVatAddr evmIlk)).option 0 (fun acc => acc.code.size))).toNat)
     (hUrnsCall :
-      typedCallViaEVM config evmIlk (EVM.address (biteVatAddr evmIlk))
+      typedCallViaEVM fork config evmIlk (EVM.address (biteVatAddr evmIlk))
         "urns" 0 [biteIlkVal I, biteUrnVal I] (true, evmUrn, urnsOut) false)
     (hUrnsDec : config.externalABI.decode? "urns" urnsOut = some [bw ink, bw art])
     (hlive : solcSlotWordAt ⟨2⟩ evmUrn.accountMap evmUrn.executionEnv = ⟨1⟩)
     (hfitInkSpot : ink.toNat * iSpot.toNat < UInt256.size) (hspotPos : 0 < iSpot.toNat)
     (hover : UInt256.size ≤ art.toNat * iRate.toNat) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
-  have hrev : RDrev catBytecode (Sat256.ofUInt256 g)
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
+  have hrev : RDrev fork catBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
     RD.catBiteCheckedMulRevert rd (by rw [Nat.mul_comm]; exact hover) hov
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
         biteTransition.body .reverted :=
     catBiteSourceArtRateOverflowRevert hwv hvatCode0 hIlksCall hIlksDec hvatCodeIlk
@@ -122,16 +124,16 @@ theorem catBiteKickFailLeaf {σ σ₀ A I} {g : UInt256}
     (hdecode :
       config.externalABI.decodeCalldata? (biteTransition.params.map Param.name)
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2532⟩
       (⟨0⟩ :: R) mem aw rdata acc k C)
     (hrdataSize : rdata.size < UInt256.size) (hov : R.length + 5 ≤ 1024)
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
         biteTransition.body .reverted) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
-  have hrev : RDrev catBytecode (Sat256.ofUInt256 g)
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
+  have hrev : RDrev fork catBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
     RD.catBiteKickCallFailed rd hrdataSize hov
   simpa using hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
@@ -148,15 +150,15 @@ theorem catBiteMulOverflowRevertLeaf {σ σ₀ A I} {g : UInt256}
     (hdecode :
       config.externalABI.decodeCalldata? (biteTransition.params.map Param.name)
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3720⟩
       (a :: b :: ret :: R) mem aw rdata acc k C)
     (hover : UInt256.size ≤ a.toNat * b.toNat) (hov : R.length + 9 ≤ 1024)
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
         biteTransition.body .reverted) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hrev := RD.catBiteCheckedMulRevert rd hover hov
   simpa using hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
@@ -169,15 +171,15 @@ theorem catBiteGrabFailLeaf {σ σ₀ A I} {g : UInt256}
     (hdecode :
       config.externalABI.decodeCalldata? (biteTransition.params.map Param.name)
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2193⟩
       (⟨0⟩ :: R) mem aw rdata acc k C)
     (hrdataSize : rdata.size < UInt256.size) (hov : R.length + 5 ≤ 1024)
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
         biteTransition.body .reverted) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hrev := RD.catBiteGrabCallFailed rd hrdataSize hov
   simpa using hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
@@ -189,15 +191,15 @@ theorem catBiteFessFailLeaf {σ σ' σ₀ A I} {g : UInt256}
     (hdecode :
       config.externalABI.decodeCalldata? (biteTransition.params.map Param.name)
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2300⟩
       (⟨0⟩ :: R) mem aw rdata σ' k C)
     (hrdataSize : rdata.size < UInt256.size) (hov : R.length + 5 ≤ 1024)
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
         biteTransition.body .reverted) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hrev := RD.catBiteFessCallFailed rd hrdataSize hov
   simpa using hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
@@ -215,7 +217,7 @@ theorem catBiteRequireStringRevertLeaf {σ σ₀ A I} {g : UInt256}
     (hdecode :
       config.externalABI.decodeCalldata? (biteTransition.params.map Param.name)
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) guardPc
       (cond :: R) mem aw rdata acc k C)
     (hcond : cond = ⟨0⟩)
@@ -228,10 +230,10 @@ theorem catBiteRequireStringRevertLeaf {σ σ₀ A I} {g : UInt256}
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 5 ≤ 1024)
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
         biteTransition.body .reverted) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hrev := RD.catBiteGuardStringRevert rd hcond hpush2 hjumpi htail hpush hword
     hmemsz haw hawsz hread64 hov
   simpa using hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
@@ -249,7 +251,7 @@ theorem catBiteRoomUnderflowRevertLeaf {σ σ₀ A I} {g : UInt256}
     (hdecode :
       config.externalABI.decodeCalldata? (biteTransition.params.map Param.name)
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3762⟩
       (b :: a :: ret :: R) mem aw rdata acc k C)
     (hsub : solcCheckedSubSuccessWf catBytecode ⟨3762⟩ okPc)
@@ -261,10 +263,10 @@ theorem catBiteRoomUnderflowRevertLeaf {σ σ₀ A I} {g : UInt256}
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 9 ≤ 1024)
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
         biteTransition.body .reverted) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hrev := RD.solcCheckedSubStringRevertGrown rd hsub htail hpush hlt hword
     hmemsz haw hawsz hread64 hov
   simpa using hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
@@ -285,15 +287,15 @@ theorem catBiteMilkChopZeroRevertLeaf {σ σ₀ A I} {g : UInt256}
     (hdecode :
       config.externalABI.decodeCalldata? (biteTransition.params.map Param.name)
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) invalidPc stk mem aw rdata acc k C)
     (hinvalid : decode catBytecode invalidPc = some (.INVALID, .none))
     (hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
         biteTransition.body .reverted) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
-  have rd' : RD I.code I (Sat256.ofUInt256 g)
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
+  have rd' : RD fork I.code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) invalidPc stk mem aw rdata acc k C := by
     rw [hcode]; exact rd
   have hinv' : decode I.code invalidPc = some (.INVALID, .none) := by rw [hcode]; exact hinvalid

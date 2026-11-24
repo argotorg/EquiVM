@@ -6,6 +6,8 @@ import Benchmarks.CompoundIII.Comet.WithdrawAmountsEvm
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_048
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_072
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -18,14 +20,14 @@ theorem cometWithdrawBaseMath {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 evm : State} {mem rdata : ByteArray}
     {aw principal ptr recipient amount src ret : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 22 ≤ 1024) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨15776⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨15776⟩
       (UInt256.signextend (UInt256.ofNat 12) principal :: UInt256.ofNat 15852 :: ptr ::
         recipient :: amount :: src :: ret :: R) mem aw rdata σ k C) :
     (WithdrawBaseMathFits evm principal amount ∧ ∃ k' C',
-      RD (deployedRuntime v) ee g s0 ⟨15820⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨15820⟩
         (withdrawBaseMathStack evm principal ptr recipient amount src ret R)
         mem aw rdata σ k' C') ∨
-    (¬ WithdrawBaseMathFits evm principal amount ∧ RDrev (deployedRuntime v) g s0) := by
+    (¬ WithdrawBaseMathFits evm principal amount ∧ RDrev fork (deployedRuntime v) g s0) := by
   have r1 := cometWithExtendedAssetList_block_15776
     (immWords := wordsOf (immStore v)) (by change R.length + 6 + 5 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
@@ -48,7 +50,7 @@ theorem cometWithdrawBaseMath {v : CometWithExtendedAssetListImmutables}
       · have hbalance : WithdrawBaseBalanceFits evm principal amount :=
           ⟨hm, ha, by simpa only [withdrawBaseBalanceInt,
             signedPresentValueWord_int evm principal hm] using hb⟩
-        change RD _ _ _ _ _ (withdrawBaseBalance evm principal amount ::
+        change RD fork _ _ _ _ _ (withdrawBaseBalance evm principal amount ::
           UInt256.signextend (UInt256.ofNat 12) principal :: UInt256.ofNat 15852 :: ptr ::
           recipient :: amount :: src :: ret :: R) _ _ _ _ _ _ at r6
         have r7 := cometWithExtendedAssetList_block_15797

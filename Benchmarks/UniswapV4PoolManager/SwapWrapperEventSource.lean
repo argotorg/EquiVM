@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PoolSwapValues
 import Benchmarks.UniswapV4PoolManager.BalanceDeltaComponentSource
 import Benchmarks.UniswapV4PoolManager.ValueLocals
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -18,7 +20,7 @@ theorem swapWrapperEmitSource {f : Frame} {evm : State} {id fee delta : UInt256}
     (h1 : f.locals.get? "__c3" = some (.int (balanceDeltaAmount1 delta)))
     (he : f.locals.get? "swapFee" = some (.int (Int.ofNat fee.toNat)))
     (hr : f.locals.get? "result" = some (poolSwapResultValue r)) :
-    ExecStmt config f evm swapWrapperFunction.body[9]!
+    ExecStmt fork config f evm swapWrapperFunction.body[9]!
       (if evm.executionEnv.perm = false then .staticViolation else .ok f evm) := by
   have hresult := evalLocalValue (cfg := config) (evm := evm) hr
   have hp := evalStructField hresult (field := "sqrtPriceX96") rfl
@@ -46,18 +48,18 @@ theorem swapWrapperEventSource {f : Frame} {evm : State} {id fee delta : UInt256
     (hd : f.locals.get? "delta" = some (.int (EVM.signed delta)))
     (he : f.locals.get? "swapFee" = some (.int (Int.ofNat fee.toNat)))
     (hr : f.locals.get? "result" = some (poolSwapResultValue r)) :
-    ExecFuncBody config f evm (swapWrapperFunction.body.drop 7)
+    ExecFuncBody fork config f evm (swapWrapperFunction.body.drop 7)
       (if evm.executionEnv.perm = false then .staticViolation else
         .returned (swapWrapperEventFrame f delta) evm (some [.int (EVM.signed delta)])) := by
   let f1 := valueLocal f "__c2" (.int (balanceDeltaAmount0 delta))
   let f2 := swapWrapperEventFrame f delta
-  have h0 := balanceDeltaComponentCall (evm := evm) hf (evalLocalValue hd) false "__c2"
+  have h0 := balanceDeltaComponentCall (fork := fork) (evm := evm) hf (evalLocalValue hd) false "__c2"
   have hd1 : f1.locals.get? "delta" = some (.int (EVM.signed delta)) :=
     (store_get_ne _ _ (by decide : ("__c2" == "delta") = false)).trans hd
-  have h1 := balanceDeltaComponentCall (f := f1) (evm := evm) hf (evalLocalValue hd1) true "__c3"
+  have h1 := balanceDeltaComponentCall (fork := fork) (f := f1) (evm := evm) hf (evalLocalValue hd1) true "__c3"
   have hget (name : Ident) (h2 : ("__c2" == name) = false) (h3 : ("__c3" == name) = false) :
       f2.locals.get? name = f.locals.get? name := store_get_ne2 _ _ _ h2 h3
-  have hemit := swapWrapperEmitSource (f := f2) (evm := evm)
+  have hemit := swapWrapperEmitSource (fork := fork) (f := f2) (evm := evm)
     ((hget "id" (by decide) (by decide)).trans hi)
     ((store_get_ne _ _ (by decide : ("__c3" == "__c2") = false)).trans (store_get_self _ _ _))
     (store_get_self _ _ _) ((hget "swapFee" (by decide) (by decide)).trans he)

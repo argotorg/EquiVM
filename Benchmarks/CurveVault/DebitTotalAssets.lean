@@ -2,6 +2,8 @@ import Benchmarks.CurveVault.WithdrawAfterAssets
 import Benchmarks.CurveVault.RedeemAfterAssets
 import Benchmarks.CurveVault.TotalAssetsInternal
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -9,15 +11,15 @@ def vaultDebitLocals (isWithdraw : Bool) (receiver owner : AccountAddress) (inpu
   (((∅ : Store).insert "_owner" (.address owner)).insert "_receiver" (.address receiver)).insert
     (if isWithdraw then "_assets" else "_shares") (.int (Int.ofNat input.toNat))
 
-def vaultDebitBlockOutcome (isWithdraw : Bool) (dropN : Nat) (s0 evm : State) (I : ExecutionEnv)
+def vaultDebitBlockOutcome (fork : Ethereum.Fork) (isWithdraw : Bool) (dropN : Nat) (s0 evm : State) (I : ExecutionEnv)
     (g : Sat256) (locals : Store) : Prop :=
   (∃ (evm' : State) (σ' : AccountMap) (locals' : Store) (value : UInt256),
-    ExecBlock config {contract := contract, locals := locals} evm ((vaultDebitFunction isWithdraw).body.drop dropN)
+    ExecBlock fork config {contract := contract, locals := locals} evm ((vaultDebitFunction isWithdraw).body.drop dropN)
       (.returned {contract := contract, locals := locals'} evm' (some [.int (Int.ofNat value.toNat)])) ∧
     SourceState s0 I σ' evm' ∧
-    RDret vaultBytecode g s0 (tstoreAccountMap I.codeOwner σ' ⟨0⟩ ⟨0⟩) value.toByteArray) ∨
-  (ExecBlock config {contract := contract, locals := locals} evm ((vaultDebitFunction isWithdraw).body.drop dropN)
-    .reverted ∧ RDrev vaultBytecode g s0)
+    RDret fork vaultBytecode g s0 (tstoreAccountMap I.codeOwner σ' ⟨0⟩ ⟨0⟩) value.toByteArray) ∨
+  (ExecBlock fork config {contract := contract, locals := locals} evm ((vaultDebitFunction isWithdraw).body.drop dropN)
+    .reverted ∧ RDrev fork vaultBytecode g s0)
 
 theorem vaultDebitTotalAssets (isWithdraw : Bool) {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap}
@@ -33,9 +35,9 @@ theorem vaultDebitTotalAssets (isWithdraw : Bool) {I : ExecutionEnv} {g : Sat256
     (hmo : memLoad (UInt256.ofNat 608) mem = owner)
     (hrcanon : receiver.toNat < EVM.addressModulus) (hocanon : owner.toNat < EVM.addressModulus)
     (hperm : I.perm = true) (hstack : R.length + 14 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 6772)
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 6772)
       (UInt256.ofNat 672 :: UInt256.ofNat (if isWithdraw then 4202 else 5232) :: R) mem aw rdata σ k C) :
-    vaultDebitBlockOutcome isWithdraw (if isWithdraw then 0 else 1) s0 evm I g locals := by
+    vaultDebitBlockOutcome fork isWithdraw (if isWithdraw then 0 else 1) s0 evm I g locals := by
   have hbody : (vaultDebitFunction isWithdraw).body.drop (if isWithdraw then 0 else 1) =
       .internalCall "_total_assets" [] "total_assets" ::
         (vaultDebitFunction isWithdraw).body.drop (if isWithdraw then 1 else 2) := by cases isWithdraw <;> rfl
@@ -76,7 +78,7 @@ theorem vaultDebitTotalAssets (isWithdraw : Bool) {I : ExecutionEnv} {g : Sat256
       some (.int (Int.ofNat (calldataWord I.calldata 4).toNat)) := by
     rw [store_get_ne _ _ (by cases isWithdraw <;> decide +kernel), hi]
   have ht1 : locals1.get? "total_assets" = some (.int (Int.ofNat total.toNat)) := store_get_self _ _ _
-  have hrest : vaultDebitBlockOutcome isWithdraw (if isWithdraw then 1 else 2) s0 evm1 I g locals1 := by
+  have hrest : vaultDebitBlockOutcome fork isWithdraw (if isWithdraw then 1 else 2) s0 evm1 I g locals1 := by
     cases isWithdraw
     · exact vaultRedeemAfterAssets hs1 hsize1 hr1 ho1 hbc1 hb1 hi1 ht1 hrmem homem htmem
         hrcanon hocanon hperm hstack rdNext

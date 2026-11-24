@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.AbsorbAfterAssetModel
 import Benchmarks.CompoundIII.Comet.AbsorbSeizeSource
 import Benchmarks.CompoundIII.Comet.AbsorbCollateralPriceSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -10,7 +12,7 @@ set_option maxRecDepth 2000
 
 theorem absorbAfterAsset_source {account : AccountAddress} {out : ByteArray} {delta : UInt256}
     {evm : State} {result : InternalValueOutcome UInt256}
-    (ht : AbsorbAfterAssetTrace account out delta evm result)
+    (ht : AbsorbAfterAssetTrace fork account out delta evm result)
     (frame : Frame) (absorber : AccountAddress) (hc : frame.contract = contract)
     (hi : frame.locals.get? "assetInfo" = some (assetValue out))
     (hd : frame.locals.get? "deltaValue" = some (.int delta.toNat))
@@ -18,7 +20,7 @@ theorem absorbAfterAsset_source {account : AccountAddress} {out : ByteArray} {de
     (hb : frame.locals.get? "account" = some (.address account))
     (hU : frame.locals.get? "userCollateral" = none)
     (hT : frame.locals.get? "totalsCollateral" = none) :
-    ExecBlock config frame evm absorbAfterAssetBlock
+    ExecBlock fork config frame evm absorbAfterAssetBlock
       (internalValueFrameResult (absorbAfterAssetFrame frame out delta
         (withdrawCollateralBalance evm account (absorbAssetAddress out))) result) := by
   let asset := absorbAssetAddress out
@@ -34,7 +36,7 @@ theorem absorbAfterAsset_source {account : AccountAddress} {out : ByteArray} {de
   have hasset : named.locals.get? "asset" = some (.address asset) := by
     simp only [named, absorbAssetNameFrame, Std.HashMap.get?_eq_getElem?,
       Std.HashMap.getElem?_insert]; rfl
-  have hseize := absorbSeize_source named evm account asset hc
+  have hseize := absorbSeize_source (fork := fork) named evm account asset hc
     ((hname _ (by decide)).trans hb) hasset ((hname _ (by decide)).trans hU)
     ((hname _ (by decide)).trans hT)
   apply ExecBlock.consNormal (ExecStmt.letDecl he)
@@ -52,7 +54,7 @@ theorem absorbAfterAsset_source {account : AccountAddress} {out : ByteArray} {de
         simp only [ready, absorbAssetSeizedFrame, absorbAssetNameFrame,
           Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert, beq_iff_eq,
           if_neg hk1, if_neg hk2]
-      have hp := absorbCollateralPrice_source (hperm := absorbSeizeOutcome_result_perm hs) hprice ready absorber account asset hc
+      have hp := absorbCollateralPrice_source (fork := fork) (hperm := absorbSeizeOutcome_result_perm hs) hprice ready absorber account asset hc
         ((hget _ (by decide) (by decide)).trans hi)
         ((hget _ (by decide) (by decide)).trans hd)
         (by simp only [ready, absorbAssetSeizedFrame, Std.HashMap.get?_eq_getElem?,

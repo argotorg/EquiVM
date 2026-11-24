@@ -3,6 +3,8 @@ import Benchmarks.Safe.ViaIR.SignatureContractTrace
 import Benchmarks.Safe.ViaIR.SignaturePlainTrace
 import Benchmarks.Safe.ViaIR.SignatureEthTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -13,7 +15,7 @@ set_option maxRecDepth 2000
 theorem safeSignatureBranchTrace (p : SignatureInput) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata ptr src i} {s r v last executor : UInt256}
     {R : List UInt256} {f : Frame} {old : Value}
-    (h : RD safeBytecode I g s0 (if v = ⟨0⟩ then ⟨7607⟩ else ⟨8128⟩)
+    (h : RD fork safeBytecode I g s0 (if v = ⟨0⟩ then ⟨7607⟩ else ⟨8128⟩)
       (v :: r :: s :: r :: last :: s :: UInt256.ofNat src :: p.hash ::
         UInt256.ofNat i :: executor :: p.required :: R) mem aw rdata σ k C)
     (hc : SignatureContext p f i last) (he : p.executor = AccountAddress.ofUInt256 executor)
@@ -26,7 +28,7 @@ theorem safeSignatureBranchTrace (p : SignatureInput) (evm : EVM.State)
     (ha : src + 32 + p.signatures.size ≤ ptr) (hp : ptr < 2 ^ 224)
     (hn : p.signatures.size < 2 ^ 64) (hreq : p.requiredBytes ≤ p.signatures.size)
     (hv8 : v.toNat < 256) (hov : R.length + 43 ≤ 1024) :
-    SignatureBranchResult p I g s0 f evm i last executor src ptr mem R
+    SignatureBranchResult fork p I g s0 f evm i last executor src ptr mem R
       (signatureSelectedBody v) := by
   have haddr : AccountAddress.ofUInt256 (UInt256.land solcAddrMask r) =
       AccountAddress.ofUInt256 r := by
@@ -37,7 +39,7 @@ theorem safeSignatureBranchTrace (p : SignatureInput) (evm : EVM.State)
   · have heq : v = ⟨0⟩ := u256_inj h₀
     subst v
     simp only [if_true] at h
-    change SignatureBranchResult p I g s0 f evm i last executor src ptr mem R signatureContractBody
+    change SignatureBranchResult fork p I g s0 f evm i last executor src ptr mem R signatureContractBody
     obtain ⟨hrev, hbody⟩ | ⟨evm', σ', mem', ptr', aw', out, k', C', hbody, hee', hacc', hw',
         h₁, hm', hf', hz', hpl, hph, hms, hpres, hcap⟩ :=
       safeSignatureContractTrace p evm h hc.toSignatureCore hr hs ho hee hacc hworld hm hf hz

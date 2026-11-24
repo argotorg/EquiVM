@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.Dispatch
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Shared EAS entry guards
 
@@ -47,7 +49,7 @@ theorem easEntryPrefix_ok {cfg : Config} {frame : Frame} {evm : EVM.State}
     (hsz : 4 ≤ evm.executionEnv.calldata.size)
     (hsize : evm.executionEnv.calldata.size < UInt256.size)
     (hguard : evm.executionEnv.calldata.size - 4 < 2^255) :
-    ExecBlock cfg frame evm easEntryPrefix
+    ExecBlock fork cfg frame evm easEntryPrefix
       (.ok {frame with locals := easEntryLocals frame.locals evm.executionEnv.calldata} evm) := by
   refine ExecBlock.consNormal (ExecStmt.letDecl (value := .int 224) (by simp only [evalExpr?, pure])) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hvalue)) ?_
@@ -58,7 +60,7 @@ theorem easEntryPrefix_ok {cfg : Config} {frame : Frame} {evm : EVM.State}
 
 theorem easEntryPrefix_value_revert {cfg : Config} {frame : Frame} {evm : EVM.State}
     (hvalue : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecBlock cfg frame evm easEntryPrefix .reverted := by
+    ExecBlock fork cfg frame evm easEntryPrefix .reverted := by
   exact ExecBlock.consNormal (ExecStmt.letDecl (value := .int 224) (by simp only [evalExpr?, pure])) (blockReverts_nonPayable hvalue)
 
 theorem easEntryPrefix_size_revert {cfg : Config} {frame : Frame} {evm : EVM.State}
@@ -66,7 +68,7 @@ theorem easEntryPrefix_size_revert {cfg : Config} {frame : Frame} {evm : EVM.Sta
     (hsz : 4 ≤ evm.executionEnv.calldata.size)
     (hsize : evm.executionEnv.calldata.size < UInt256.size)
     (hguard : ¬ evm.executionEnv.calldata.size - 4 < 2^255) :
-    ExecBlock cfg frame evm easEntryPrefix .reverted := by
+    ExecBlock fork cfg frame evm easEntryPrefix .reverted := by
   refine ExecBlock.consNormal (ExecStmt.letDecl (value := .int 224) (by simp only [evalExpr?, pure])) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hvalue)) ?_
   refine ExecBlock.consNormal (ExecStmt.letDecl (value := .bytes evm.executionEnv.calldata) (by simp only [evalExpr?, pure, envValue])) ?_
@@ -105,7 +107,7 @@ theorem easEntryBody_returns {cfg : Config} {C : ContractDecl} {evm : EVM.State}
       { contract := C
         locals := easEntryLocals locals evm.executionEnv.calldata
         immutables := imms } evm expr = .ok value) :
-    ExecTransitionBody cfg C evm locals (easEntryPrefix ++ [.return [expr]])
+    ExecTransitionBody fork cfg C evm locals (easEntryPrefix ++ [.return [expr]])
       (.returned
         { contract := C
           locals := easEntryLocals locals evm.executionEnv.calldata
@@ -116,7 +118,7 @@ theorem easEntryBody_returns {cfg : Config} {C : ContractDecl} {evm : EVM.State}
 
 theorem easEntryBody_value_revert {cfg : Config} {C : ContractDecl} {evm : EVM.State}
     {locals imms : Store} {rest : Body} (hvalue : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecTransitionBody cfg C evm locals (easEntryPrefix ++ rest) .reverted imms :=
+    ExecTransitionBody fork cfg C evm locals (easEntryPrefix ++ rest) .reverted imms :=
   ExecFuncBody.execBlockRevert (execBlockAppendReverted (easEntryPrefix_value_revert hvalue))
 
 theorem easEntryBody_size_revert {cfg : Config} {C : ContractDecl} {evm : EVM.State}
@@ -125,7 +127,7 @@ theorem easEntryBody_size_revert {cfg : Config} {C : ContractDecl} {evm : EVM.St
     (hsz : 4 ≤ evm.executionEnv.calldata.size)
     (hsize : evm.executionEnv.calldata.size < UInt256.size)
     (hguard : ¬ evm.executionEnv.calldata.size - 4 < 2^255) :
-    ExecTransitionBody cfg C evm locals (easEntryPrefix ++ rest) .reverted imms :=
+    ExecTransitionBody fork cfg C evm locals (easEntryPrefix ++ rest) .reverted imms :=
   ExecFuncBody.execBlockRevert
     (execBlockAppendReverted (easEntryPrefix_size_revert hvalue hsz hsize hguard))
 

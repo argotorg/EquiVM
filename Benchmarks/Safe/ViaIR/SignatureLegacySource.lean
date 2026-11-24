@@ -1,6 +1,8 @@
 import Benchmarks.Safe.ViaIR.SignatureCallerSource
 import Benchmarks.Safe.ViaIR.SignatureLegacyCalldata
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.ViaIR
@@ -12,8 +14,8 @@ def signatureLegacyFrame (counted : Bool) (hash : UInt256) (data signatures : By
 theorem safeCheckNSignaturesLegacySource {p : SignatureInput} {evm : EVM.State}
     (data : ByteArray) {result : ExecResult} (hv : evm.executionEnv.weiValue = ⟨0⟩)
     (he : p.executor = evm.executionEnv.source) (hn : p.signatures.size ≤ 2 ^ 64 - 192)
-    (hbody : ExecFuncBody config p.frame evm checkNSignaturesImplFunction.body result) :
-    ExecBlock config (signatureLegacyFrame true p.hash data p.signatures p.required) evm
+    (hbody : ExecFuncBody fork config p.frame evm checkNSignaturesImplFunction.body result) :
+    ExecBlock fork config (signatureLegacyFrame true p.hash data p.signatures p.required) evm
       checknsignaturesTransition.body
       (internalCallResult (signatureLegacyFrame true p.hash data p.signatures p.required)
         "_checked" result) := by
@@ -34,8 +36,8 @@ theorem safeCheckNSignaturesLegacySource {p : SignatureInput} {evm : EVM.State}
 theorem safeCheckSignaturesLegacySource {p : SignatureCheckInput} {evm : EVM.State}
     (data : ByteArray) {result : ExecResult} (hv : evm.executionEnv.weiValue = ⟨0⟩)
     (he : p.executor = evm.executionEnv.source) (hn : p.signatures.size ≤ 2 ^ 64 - 192)
-    (hbody : ExecFuncBody config p.frame evm checkSignaturesImplFunction.body result) :
-    ExecBlock config (signatureLegacyFrame false p.hash data p.signatures ⟨0⟩) evm
+    (hbody : ExecFuncBody fork config p.frame evm checkSignaturesImplFunction.body result) :
+    ExecBlock fork config (signatureLegacyFrame false p.hash data p.signatures ⟨0⟩) evm
       checksignaturesTransition.body
       (internalCallResult (signatureLegacyFrame false p.hash data p.signatures ⟨0⟩)
         "_checked" result) := by

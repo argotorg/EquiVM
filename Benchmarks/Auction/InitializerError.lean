@@ -1,5 +1,7 @@
 import Benchmarks.Auction.InitializerGuard
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 100000
@@ -7,8 +9,8 @@ set_option maxRecDepth 100000
 namespace Auction
 
 theorem initializerErrorRevert {I g s0 ptr R mem aw rdata acc k C}
-    (h : RD auctionBytecode I g s0 ⟨5742⟩ (ptr :: ⟨994⟩ :: R) mem aw rdata acc k C)
-    (hov : R.length + 8 ≤ 1024) : RDrev auctionBytecode g s0 := by
+    (h : RD fork auctionBytecode I g s0 ⟨5742⟩ (ptr :: ⟨994⟩ :: R) mem aw rdata acc k C)
+    (hov : R.length + 8 ≤ 1024) : RDrev fork auctionBytecode g s0 := by
   have rd5754 := evm_run h with [
     jumpdest, push1 ⟨32⟩, dup1, dup3,
     raw mstoreSymbolic (by native_decide) (by evm_ov),
@@ -29,20 +31,20 @@ theorem initializerErrorRevert {I g s0 ptr R mem aw rdata acc k C}
     dup1, swap2, sub, swap1, raw revertSymbolic (by native_decide) (by evm_ov) ]
 
 theorem initializeGuardRevert {I g s0 R mem aw rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨2130⟩ R mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨2130⟩ R mem aw rdata σ k C)
     (hi : initializingWord σ I = ⟨0⟩) (hz : initializedWord σ I ≠ ⟨0⟩)
-    (hov : R.length + 8 ≤ 1024) : RDrev auctionBytecode g s0 := by
+    (hov : R.length + 8 ≤ 1024) : RDrev fork auctionBytecode g s0 := by
   have rd2132 := evm_run h with [jumpdest, push0]
   obtain ⟨_, _, rd2133⟩ := rd2132.sload (by native_decide) (by evm_ov)
   have rd2141 := evm_run rd2133 with [push2 ⟨256⟩, swap1, div, push1 ⟨255⟩, and]
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     (UInt256.land ⟨255⟩ (UInt256.div (solcSlotWord σ I ⟨0⟩) ⟨256⟩) :: R)
     _ _ _ _ _ _ at rd2141
   rw [u256_land_comm ⟨255⟩] at rd2141
   have rd2148 := evm_run rd2141 with [dup1, push2 ⟨2153⟩, jumpiNT hi, pop, push0]
   obtain ⟨_, _, rd2149⟩ := rd2148.sload (by native_decide) (by evm_ov)
   have rd2153 := evm_run rd2149 with [push1 ⟨255⟩, and, iszero]
-  change RD _ _ _ _ _ (UInt256.isZero (UInt256.land ⟨255⟩ (solcSlotWord σ I ⟨0⟩)) :: R)
+  change RD fork _ _ _ _ _ (UInt256.isZero (UInt256.land ⟨255⟩ (solcSlotWord σ I ⟨0⟩)) :: R)
     _ _ _ _ _ _ at rd2153
   rw [u256_land_comm ⟨255⟩] at rd2153
   have rd2161 := evm_run rd2153 with [

@@ -2,6 +2,8 @@ import Benchmarks.Safe.V1_0227664.Bytecode
 import Benchmarks.Safe.V1_0227664.ConstructorTrace
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Safe constructor correctness stub
 
@@ -16,7 +18,7 @@ namespace Benchmarks.Safe.V1_0227664
 
 theorem safeConstructorBodyCore :
     typedConstructorRefinement config safeCreationBytecode contract (fun _ ↦ safeBytecode) := by
-  intro σ σ₀ g A I args deployedInitcode hdeploy hcode _hcalldata hperm
+  intro fork _hfork σ σ₀ g A I args deployedInitcode hdeploy hcode _hcalldata hperm
   have hlen := emptyCtorDeployment_args_length (cfg := config) (contract := contract)
     rfl rfl hdeploy
   have hdeployed := emptyCtorDeployment_eq_initcode (cfg := config) (contract := contract)
@@ -25,11 +27,11 @@ theorem safeConstructorBodyCore :
   subst args
   rw [hdeployed] at hcode
   by_cases hv : I.weiValue = ⟨0⟩
-  · have hr := safeConstructorTrace (σ := σ) (σ₀ := σ₀) (A := A)
+  · have hr := safeConstructorTrace (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
       (g := Sat256.ofUInt256 g) hcode hv hperm
     exact hr.constructorRefinementEmptyParams hcode rfl
-      (safeConstructorSource (hperm := by assumption) _ hv) (by rw [storageStore_accountMap]; rfl)
-  · have hr := safeConstructorTraceRevert (σ := σ) (σ₀ := σ₀) (A := A)
+      (safeConstructorSource (fork := fork) (hperm := by assumption) _ hv) (by rw [storageStore_accountMap]; rfl)
+  · have hr := safeConstructorTraceRevert (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
       (g := Sat256.ofUInt256 g) hcode hv
     exact hr.constructorRefinementEmptyParams hcode rfl (safeConstructorSourceRevert _ hv)
 

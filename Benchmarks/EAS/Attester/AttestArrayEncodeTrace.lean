@@ -1,6 +1,8 @@
 import Benchmarks.EAS.Attester.AttestCellEncodeTrace
 import Benchmarks.EAS.Attester.AttestArrayEncodeMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.EAS.Attester.Immutables attesterRuntimeBlocks
 
@@ -8,14 +10,14 @@ namespace Benchmarks.EAS.Attester
 
 theorem attestArrayEncodeStep3441 {words : String → UInt256} {I g s0 σ mem aw out k C R}
     {a b c d : UInt256} {limit base n i origin table dst : Nat} {values : Nat → UInt256}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3441⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3441⟩
       ([UInt256.ofNat i, UInt256.ofNat n, UInt256.ofNat table, UInt256.ofNat dst,
         UInt256.ofNat (base + 32 + 32 * i), a, b, c, d, UInt256.ofNat origin] ++ R)
       mem aw out σ k C)
     (hstack : R.length + 22 ≤ 1024) (heap : AttestArrayAt mem 96 limit base n values)
     (hsize : limit ≤ mem.size) (ht : limit ≤ table) (htable : table + 32 ≤ dst)
     (horigin : origin + 96 ≤ dst) (hi : i < n) (hfit : dst + 288 < UInt256.size) :
-    ∃ aw' k' C', RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3441⟩
+    ∃ aw' k' C', RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3441⟩
       ([UInt256.ofNat (i + 1), UInt256.ofNat n, UInt256.ofNat (table + 32),
         UInt256.ofNat (dst + 256), UInt256.ofNat (base + 32 + 32 * (i + 1)),
         a, b, c, d, UInt256.ofNat origin] ++ R)
@@ -69,7 +71,7 @@ set_option maxRecDepth 1000 in
 theorem attestArrayEncodeRun3441 {words : String → UInt256} {I g s0 σ mem aw out k C R}
     {a b c d : UInt256} {limit base n i remaining origin table dst : Nat}
     {values : Nat → UInt256}
-    (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3441⟩
+    (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3441⟩
       ([UInt256.ofNat i, UInt256.ofNat n, UInt256.ofNat table, UInt256.ofNat dst,
         UInt256.ofNat (base + 32 + 32 * i), a, b, c, d, UInt256.ofNat origin] ++ R)
       mem aw out σ k C)
@@ -77,7 +79,7 @@ theorem attestArrayEncodeRun3441 {words : String → UInt256} {I g s0 σ mem aw 
     (hsize : limit ≤ mem.size) (ht : limit ≤ table)
     (htable : table + 32 * remaining ≤ dst) (horigin : origin + 96 ≤ dst)
     (hi : i + remaining = n) (hfit : dst + 256 * remaining + 32 < UInt256.size) :
-    ∃ aw' k' C', RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3521⟩
+    ∃ aw' k' C', RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3521⟩
       ([UInt256.ofNat n, UInt256.ofNat n, UInt256.ofNat (table + 32 * remaining),
         UInt256.ofNat (dst + 256 * remaining), UInt256.ofNat (base + 32 + 32 * n),
         a, b, c, d, UInt256.ofNat origin] ++ R)

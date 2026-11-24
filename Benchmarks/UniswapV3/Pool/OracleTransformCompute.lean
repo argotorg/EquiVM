@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.OracleTransformMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -10,7 +12,7 @@ theorem oracleTransformComputeMonoX {σ : AccountMap} {ee : ExecutionEnv} {g : S
     {s0 : EVM.State} {k C : Nat} {aw ret p lastPtr zeroPtr time timeRaw tickRaw liquidity : UInt256}
     {last : OracleObservation} {tick : Int} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨18474⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨18474⟩
       (zeroPtr :: liquidity :: tickRaw :: timeRaw :: lastPtr :: ret :: R) mem aw rdata σ k C)
     (hh : HeapMemory mem aw p) (hm : ObservationMemory mem lastPtr last)
     (hp : 96 ≤ lastPtr.toNat) (hl : lastPtr.toNat + 128 ≤ p.toNat)
@@ -19,7 +21,7 @@ theorem oracleTransformComputeMonoX {σ : AccountMap} {ee : ExecutionEnv} {g : S
     (htick : UInt256.signextend (UInt256.ofNat 2) tickRaw = EVM.wordOfInt tick)
     (hliq : liquidity.toNat < 2 ^ 128)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 16 ≤ 1024) :
-    ∃ aw' k' C', C + (Cₘ aw' - Cₘ aw) ≤ C' ∧ RD (deployedRuntime v) ee g s0 ret (p :: R)
+    ∃ aw' k' C', C + (Cₘ aw' - Cₘ aw) ≤ C' ∧ RD fork (deployedRuntime v) ee g s0 ret (p :: R)
       (wordArrayAllocMem mem p (oracleTransformed last time tick liquidity).words)
       aw' rdata σ k' C' ∧
       HeapMemory (wordArrayAllocMem mem p (oracleTransformed last time tick liquidity).words)
@@ -64,7 +66,7 @@ theorem oracleTransformComputeMonoX {σ : AccountMap} {ee : ExecutionEnv} {g : S
       · rw [hl32]; omega
     · rw [hp32]; omega
   obtain ⟨kD, CD, hCD, rdDenom⟩ : ∃ kD CD,
-      C + (Cₘ ah - Cₘ aw) ≤ CD ∧ RD (deployedRuntime v) ee g s0 ⟨18560⟩
+      C + (Cₘ ah - Cₘ aw) ≤ CD ∧ RD fork (deployedRuntime v) ee g s0 ⟨18560⟩
         (oracleLiquidityDenominator liquidity :: (p + UInt256.ofNat 64) :: p ::
           UInt256.sub timeRaw last.timestamp :: zeroPtr :: liquidity :: tickRaw ::
           timeRaw :: lastPtr :: ret :: R)
@@ -116,7 +118,7 @@ theorem oracleTransformComputeMonoX {σ : AccountMap} {ee : ExecutionEnv} {g : S
     rw [← oracleDelta_mask_time, htime]
   simp only [uniswapV3Pool_block_18560_taken_stack, solcMask128, hdmask, shiftLeft_mask32_128]
     at rdDivide
-  change RD _ _ _ _ _ (UInt256.shiftLeft (oracleDelta timeRaw last.timestamp) ⟨128⟩ :: _) _ _ _ _ _ _ at rdDivide
+  change RD fork _ _ _ _ _ (UInt256.shiftLeft (oracleDelta timeRaw last.timestamp) ⟨128⟩ :: _) _ _ _ _ _ _ at rdDivide
   rw [hd] at rdDivide
   have rdReturn := uniswapV3Pool_block_18603 (immWords := wordsOf (immStore v))
     (by evm_ov) hret rdDivide
@@ -151,7 +153,7 @@ theorem oracleTransformComputeX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat25
     {s0 : EVM.State} {k C : Nat} {aw ret p lastPtr zeroPtr time timeRaw tickRaw liquidity : UInt256}
     {last : OracleObservation} {tick : Int} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨18474⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨18474⟩
       (zeroPtr :: liquidity :: tickRaw :: timeRaw :: lastPtr :: ret :: R) mem aw rdata σ k C)
     (hh : HeapMemory mem aw p) (hm : ObservationMemory mem lastPtr last)
     (hp : 96 ≤ lastPtr.toNat) (hl : lastPtr.toNat + 128 ≤ p.toNat)
@@ -160,7 +162,7 @@ theorem oracleTransformComputeX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat25
     (htick : UInt256.signextend (UInt256.ofNat 2) tickRaw = EVM.wordOfInt tick)
     (hliq : liquidity.toNat < 2 ^ 128)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 16 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (p :: R)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (p :: R)
       (wordArrayAllocMem mem p (oracleTransformed last time tick liquidity).words)
       aw' rdata σ k' C' ∧
       HeapMemory (wordArrayAllocMem mem p (oracleTransformed last time tick liquidity).words)

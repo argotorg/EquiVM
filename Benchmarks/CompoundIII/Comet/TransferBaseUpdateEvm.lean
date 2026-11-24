@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.TransferBaseUpdateMemory
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_069
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -16,10 +18,10 @@ theorem cometTransferBaseUpdate {v : CometWithExtendedAssetListImmutables}
     (hsm : UserBasicMemory mem srcPtr srcBasic) (hdm : UserBasicMemory mem dstPtr dstBasic)
     (hslo : 96 ≤ srcPtr.toNat) (hdlo : 96 ≤ dstPtr.toNat)
     (hsep : srcPtr.toNat + 96 ≤ dstPtr.toNat) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨14930⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨14930⟩
       (srcNext :: srcPtr :: dstNext :: dstPtr :: balance :: withdrawn :: EVM.word src.val ::
         supplied :: EVM.word dst.val :: ret :: R) mem aw rdata σ k C) :
-    internalMemoryRun (deployedRuntime v) ee g s0
+    internalMemoryRun fork (deployedRuntime v) ee g s0
       (transferBaseUpdateMemory mem srcPtr dstPtr v evm src dst srcBasic dstBasic srcNext dstNext)
       rdata ⟨14950⟩
       (balance :: withdrawn :: EVM.word src.val :: supplied :: EVM.word dst.val :: ret :: R)

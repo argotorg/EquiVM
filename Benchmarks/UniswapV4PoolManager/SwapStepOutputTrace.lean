@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.SwapStepTailDeltaResultTrace
 import Benchmarks.UniswapV4PoolManager.SwapStepFeeTrace
 import Benchmarks.UniswapV4PoolManager.SwapStepWords
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -15,17 +17,17 @@ theorem swapStepOutputTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (zeroForOne : Bool) (hstack : R.length+33 ≤ 1024)
     (hp : price.toNat < 2^160) (ht : target.toNat < 2^160) (hl : liquidity.toNat < 2^128) (hf : fee.toNat < 2^24)
-    (h : RD (deployedRuntime v) I g s0 ⟨20607⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨20607⟩
       ([price, j, if zeroForOne then ⟨1⟩ else ⟨0⟩, target, fee, liquidity,
         remaining, x1, x2, x3, x4, fee, x6, x7, x8, j] ++ R) mem aw rdata σ k C) :
     (swapStepOutputFits price target liquidity remaining fee zeroForOne → ∃ k' C', C ≤ C' ∧
-      RD (deployedRuntime v) I g s0 ⟨19714⟩
+      RD fork (deployedRuntime v) I g s0 ⟨19714⟩
         ([(swapStepOutputWords price target liquidity remaining fee zeroForOne).fee, j, ⟨160⟩,
           (swapStepOutputWords price target liquidity remaining fee zeroForOne).amountOut,
           (swapStepOutputWords price target liquidity remaining fee zeroForOne).amountIn,
           (swapStepOutputWords price target liquidity remaining fee zeroForOne).next, solcAddrMask,
           remaining, x1, x2, x3, x4, fee, x6, x7, x8, j] ++ R) mem aw rdata σ k' C') ∧
-    (¬swapStepOutputFits price target liquidity remaining fee zeroForOne → RDrev (deployedRuntime v) g s0) := by
+    (¬swapStepOutputFits price target liquidity remaining fee zeroForOne → RDrev fork (deployedRuntime v) g s0) := by
   let desired := swapStepDeltaWord price target liquidity false zeroForOne
   have h0 := swapStepOutputDeltaTrace v zeroForOne (by change R.length+31 ≤ 1024; omega) hp ht hl h
   by_cases h0fit : swapStepDeltaFits price target liquidity false zeroForOne

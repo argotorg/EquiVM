@@ -1,6 +1,12 @@
 import Benchmarks.Dss.Flipper.Selectors
 import Benchmarks.Dss.Flipper.CommonRoutines
 
+variable {fork : Ethereum.Fork}
+
+-- Concrete decoder facts must reduce the empty padding of a complete PUSH operand.
+set_option allowUnsafeReducibility true in
+attribute [local semireducible] ByteArray.zeroes
+
 /-!
 # MakerDAO/Sky DSS Flipper dispatcher facts
 
@@ -216,7 +222,7 @@ theorem flipperDispatchYank {I : ExecutionEnv}
 
 theorem flipperBodyReverts_nonPayable (t : TransitionDecl) (ht : t ∈ contract.transitions)
     (evm : EVM.State) (locals : Store) (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecTransitionBody config contract evm locals t.body .reverted := by
+    ExecTransitionBody fork config contract evm locals t.body .reverted := by
   simp [contract, transitions] at ht
   rcases ht with
     rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
@@ -225,8 +231,8 @@ theorem flipperBodyReverts_nonPayable (t : TransitionDecl) (ht : t ∈ contract.
 
 theorem flipperX_callvalue_ne {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flipperBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev flipperBytecode g (initState σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
+    RDrev fork flipperBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (fork := fork) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide)
   have h12 := h0.push2 ⟨16⟩ (by native_decide) (by simp only [List.length]; omega)
@@ -238,7 +244,7 @@ theorem flipperX_callvalue_ne {σ σ₀ A I} {g : Sat256}
 /-- `callvalue ≠ 0` makes the global non-payable guard revert before dispatch. -/
 theorem flipperNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flipperBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeRefinementFor config contract
+    runtimeRefinementFor fork config contract
       σ σ₀ g A I := by
   exact (flipperX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
@@ -395,7 +401,7 @@ theorem flipperHighLowArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
 theorem flipperReachRootSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flipperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD flipperBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork flipperBytecode I g (initState σ σ₀ g A I)
         flipperRootSplitPc [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   simpa [flipperRootSplitPc, flipperSelWord] using
@@ -419,13 +425,13 @@ theorem flipperReachLowSplit {σ σ₀ A I} {g : Sat256}
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat flipperBytecode flipperRootSplitPc)
       (flipperSelWord I) = ⟨0⟩) :
-    ∃ k C, RD flipperBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork flipperBytecode I g (initState σ σ₀ g A I)
         flipperLowSplitPc [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
     flipperReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h43 : RD flipperBytecode I g (initState σ σ₀ g A I)
+  have h43 : RD fork flipperBytecode I g (initState σ σ₀ g A I)
       flipperLowSplitPc [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5) (C32 + 22) := by
     simpa [flipperLowSplitPc, flipperRootSplitPc, selArmNextPc, armTgtWidth,
@@ -438,18 +444,18 @@ theorem flipperReachHighSplit {σ σ₀ A I} {g : Sat256}
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat flipperBytecode flipperRootSplitPc)
       (flipperSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD flipperBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork flipperBytecode I g (initState σ σ₀ g A I)
         flipperHighSplitPc [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
     flipperReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h173 : RD flipperBytecode I g (initState σ σ₀ g A I)
+  have h173 : RD fork flipperBytecode I g (initState σ σ₀ g A I)
       flipperHighJumpdestPc [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5) (C32 + 22) := by
     simpa [flipperRootSplitPc, flipperHighJumpdestPc] using
       RD.selectorSplitTakenAuto h32 flipperRootSplitWellFormed hroot (by jump_dest) (by simp)
-  have h174 : RD flipperBytecode I g (initState σ σ₀ g A I)
+  have h174 : RD fork flipperBytecode I g (initState σ σ₀ g A I)
       flipperHighSplitPc [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5 + 1) (C32 + 22 + 1) := by
     simpa [flipperHighSplitPc] using h173.jumpdest (by native_decide) (by simp)
@@ -462,13 +468,13 @@ theorem flipperReachLowHighFirstArm {σ σ₀ A I} {g : Sat256}
       (flipperSelWord I) = ⟨0⟩)
     (hlow : UInt256.gt (armSelNat flipperBytecode flipperLowSplitPc)
       (flipperSelWord I) = ⟨0⟩) :
-    ∃ k C, RD flipperBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork flipperBytecode I g (initState σ σ₀ g A I)
         flipperLowHighFirstArmPc [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k43, C43, h43⟩ :=
     flipperReachLowSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
-  have h54 : RD flipperBytecode I g (initState σ σ₀ g A I)
+  have h54 : RD fork flipperBytecode I g (initState σ σ₀ g A I)
       flipperLowHighFirstArmPc [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k43 + 5) (C43 + 22) := by
     simpa [flipperLowHighFirstArmPc, flipperLowSplitPc, selArmNextPc, armTgtWidth,
@@ -483,19 +489,19 @@ theorem flipperReachHighLowFirstArm {σ σ₀ A I} {g : Sat256}
       (flipperSelWord I) ≠ ⟨0⟩)
     (hhigh : UInt256.gt (armSelNat flipperBytecode flipperHighSplitPc)
       (flipperSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD flipperBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork flipperBytecode I g (initState σ σ₀ g A I)
         flipperHighLowFirstArmPc [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k174, C174, h174⟩ :=
     flipperReachHighSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
-  have h244 : RD flipperBytecode I g (initState σ σ₀ g A I)
+  have h244 : RD fork flipperBytecode I g (initState σ σ₀ g A I)
       flipperHighLowJumpdestPc [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k174 + 5) (C174 + 22) := by
     simpa [flipperHighSplitPc, flipperHighLowJumpdestPc] using
       RD.selectorSplitTakenAuto h174 flipperHighSplitWellFormed hhigh (by jump_dest)
         (by simp)
-  have h245 : RD flipperBytecode I g (initState σ σ₀ g A I)
+  have h245 : RD fork flipperBytecode I g (initState σ σ₀ g A I)
       flipperHighLowFirstArmPc [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k174 + 5 + 1) (C174 + 22 + 1) := by
     simpa [flipperHighLowFirstArmPc] using h244.jumpdest (by native_decide) (by simp)
@@ -508,13 +514,13 @@ theorem flipperReachHighHighFirstArm {σ σ₀ A I} {g : Sat256}
       (flipperSelWord I) ≠ ⟨0⟩)
     (hhigh : UInt256.gt (armSelNat flipperBytecode flipperHighSplitPc)
       (flipperSelWord I) = ⟨0⟩) :
-    ∃ k C, RD flipperBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork flipperBytecode I g (initState σ σ₀ g A I)
         flipperHighHighFirstArmPc [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k174, C174, h174⟩ :=
     flipperReachHighSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
-  have h185 : RD flipperBytecode I g (initState σ σ₀ g A I)
+  have h185 : RD fork flipperBytecode I g (initState σ σ₀ g A I)
       flipperHighHighFirstArmPc [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k174 + 5) (C174 + 22) := by
     simpa [flipperHighHighFirstArmPc, flipperHighSplitPc, selArmNextPc, armTgtWidth,
@@ -529,18 +535,18 @@ theorem flipperReachLowLowFirstArm {σ σ₀ A I} {g : Sat256}
       (flipperSelWord I) = ⟨0⟩)
     (hlow : UInt256.gt (armSelNat flipperBytecode flipperLowSplitPc)
       (flipperSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD flipperBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork flipperBytecode I g (initState σ σ₀ g A I)
         flipperLowLowFirstArmPc [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k43, C43, h43⟩ :=
     flipperReachLowSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
-  have h113 : RD flipperBytecode I g (initState σ σ₀ g A I)
+  have h113 : RD fork flipperBytecode I g (initState σ σ₀ g A I)
       flipperLowLowJumpdestPc [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k43 + 5) (C43 + 22) := by
     simpa [flipperLowSplitPc, flipperLowLowJumpdestPc] using
       RD.selectorSplitTakenAuto h43 flipperLowSplitWellFormed hlow (by jump_dest) (by simp)
-  have h114 : RD flipperBytecode I g (initState σ σ₀ g A I)
+  have h114 : RD fork flipperBytecode I g (initState σ σ₀ g A I)
       flipperLowLowFirstArmPc [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k43 + 5 + 1) (C43 + 22 + 1) := by
     simpa [flipperLowLowFirstArmPc] using h113.jumpdest (by native_decide) (by simp)
@@ -565,7 +571,7 @@ theorem flipperReachHighHighBody {σ σ₀ A I} {g : Sat256}
     (hjd : (D_J flipperBytecode 0).contains bodyPC = true)
     (hbody : armTgt flipperBytecode
       (nthArmPc flipperBytecode flipperHighHighFirstArmPc i) = bodyPC) :
-    ∃ k C, RD flipperBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork flipperBytecode I g (initState σ σ₀ g A I)
         bodyPC [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
@@ -594,7 +600,7 @@ theorem flipperReachHighLowBody {σ σ₀ A I} {g : Sat256}
     (hjd : (D_J flipperBytecode 0).contains bodyPC = true)
     (hbody : armTgt flipperBytecode
       (nthArmPc flipperBytecode flipperHighLowFirstArmPc i) = bodyPC) :
-    ∃ k C, RD flipperBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork flipperBytecode I g (initState σ σ₀ g A I)
         bodyPC [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
@@ -623,7 +629,7 @@ theorem flipperReachLowHighBody {σ σ₀ A I} {g : Sat256}
     (hjd : (D_J flipperBytecode 0).contains bodyPC = true)
     (hbody : armTgt flipperBytecode
       (nthArmPc flipperBytecode flipperLowHighFirstArmPc i) = bodyPC) :
-    ∃ k C, RD flipperBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork flipperBytecode I g (initState σ σ₀ g A I)
         bodyPC [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
@@ -652,7 +658,7 @@ theorem flipperReachLowLowBody {σ σ₀ A I} {g : Sat256}
     (hjd : (D_J flipperBytecode 0).contains bodyPC = true)
     (hbody : armTgt flipperBytecode
       (nthArmPc flipperBytecode flipperLowLowFirstArmPc i) = bodyPC) :
-    ∃ k C, RD flipperBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork flipperBytecode I g (initState σ σ₀ g A I)
         bodyPC [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
@@ -734,12 +740,12 @@ theorem flipperDispatch_none_nomatch {cd : ByteArray}
 
 theorem flipperJumpToNoMatchRevert {σ σ₀ A I} {g : Sat256} {pc : UInt256}
     {k C : ℕ}
-    (h : RD flipperBytecode I g (initState σ σ₀ g A I) pc
+    (h : RD fork flipperBytecode I g (initState σ σ₀ g A I) pc
       [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hpush : decode flipperBytecode pc =
       some (.Push .PUSH2, some (flipperDispatchRevertPc, 2)))
     (hjump : decode flipperBytecode (pc + UInt256.ofNat 3) = some (.JUMP, .none)) :
-    RDrev flipperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flipperBytecode g (initState σ σ₀ g A I) := by
   have h289 := h.push2 flipperDispatchRevertPc hpush
     (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by simp only [List.length_singleton]; omega)
@@ -748,13 +754,13 @@ theorem flipperJumpToNoMatchRevert {σ σ₀ A I} {g : Sat256} {pc : UInt256}
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
 theorem flipperLowHighNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD flipperBytecode I g (initState σ σ₀ g A I) flipperLowHighFirstArmPc
+    (h : RD fork flipperBytecode I g (initState σ σ₀ g A I) flipperLowHighFirstArmPc
       [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 5 →
       UInt256.eq (armSelNat flipperBytecode
         (nthArmPc flipperBytecode flipperLowHighFirstArmPc j))
         (flipperSelWord I) = ⟨0⟩) :
-    RDrev flipperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flipperBytecode g (initState σ σ₀ g A I) := by
   have h109 := h
     |>.selectorArmNotTakenAuto (flipperLowHighArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -769,13 +775,13 @@ theorem flipperLowHighNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
   exact flipperJumpToNoMatchRevert h109 (by native_decide) (by native_decide)
 
 theorem flipperLowLowNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD flipperBytecode I g (initState σ σ₀ g A I) flipperLowLowFirstArmPc
+    (h : RD fork flipperBytecode I g (initState σ σ₀ g A I) flipperLowLowFirstArmPc
       [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 5 →
       UInt256.eq (armSelNat flipperBytecode
         (nthArmPc flipperBytecode flipperLowLowFirstArmPc j))
         (flipperSelWord I) = ⟨0⟩) :
-    RDrev flipperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flipperBytecode g (initState σ σ₀ g A I) := by
   have h169 := h
     |>.selectorArmNotTakenAuto (flipperLowLowArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -790,14 +796,14 @@ theorem flipperLowLowNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
   exact flipperJumpToNoMatchRevert h169 (by native_decide) (by native_decide)
 
 theorem flipperHighHighNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD flipperBytecode I g (initState σ σ₀ g A I)
+    (h : RD fork flipperBytecode I g (initState σ σ₀ g A I)
       flipperHighHighFirstArmPc [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 5 →
       UInt256.eq (armSelNat flipperBytecode
         (nthArmPc flipperBytecode flipperHighHighFirstArmPc j))
         (flipperSelWord I) = ⟨0⟩) :
-    RDrev flipperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flipperBytecode g (initState σ σ₀ g A I) := by
   have h240 := h
     |>.selectorArmNotTakenAuto (flipperHighHighArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -812,13 +818,13 @@ theorem flipperHighHighNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
   exact flipperJumpToNoMatchRevert h240 (by native_decide) (by native_decide)
 
 theorem flipperHighLowNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD flipperBytecode I g (initState σ σ₀ g A I) flipperHighLowFirstArmPc
+    (h : RD fork flipperBytecode I g (initState σ σ₀ g A I) flipperHighLowFirstArmPc
       [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 4 →
       UInt256.eq (armSelNat flipperBytecode
         (nthArmPc flipperBytecode flipperHighLowFirstArmPc j))
         (flipperSelWord I) = ⟨0⟩) :
-    RDrev flipperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flipperBytecode g (initState σ σ₀ g A I) := by
   have h289 := h
     |>.selectorArmNotTakenAuto (flipperHighLowArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -835,8 +841,8 @@ theorem flipperHighLowNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
 theorem flipperX_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flipperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
-    RDrev flipperBytecode g (initState σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
+    RDrev fork flipperBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (fork := fork) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
@@ -859,7 +865,7 @@ theorem flipperX_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flipperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 19 → (flipperSelBytes i == I.calldata.extract 0 4) = false) :
-    RDrev flipperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flipperBytecode g (initState σ σ₀ g A I) := by
   have heqLowHigh : ∀ j, j < 5 →
       UInt256.eq
         (armSelNat flipperBytecode (nthArmPc flipperBytecode flipperLowHighFirstArmPc j))
@@ -1001,7 +1007,7 @@ theorem flipperNoDispatch {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 19 → (flipperSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (flipperX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
       |>.reEquivNoDispatch hcode (flipperDispatch_none_nomatch hnm)

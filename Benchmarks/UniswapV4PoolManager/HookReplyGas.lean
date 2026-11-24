@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.HookReplyTrace
 import Benchmarks.UniswapV4PoolManager.MemoryGas
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -15,9 +17,9 @@ theorem hookLargeReply_outOfGas {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (haw : aw.toNat ≤ 2048) (hf : free.toNat ≤ 2048)
     (ho : out.size < UInt256.size) (hlarge : solcMaxU64 < out.size+4096)
     (hfree : memLoad (UInt256.ofNat 64) mem = free)
-    (h : RD (deployedRuntime v) I g s0 ⟨16189⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨16189⟩
       (ptr :: hook :: ret :: (ptr+⟨32⟩) :: R) mem aw out σ k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass := by
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass := by
   have hfit : free.toNat+32 < UInt256.size := by change _ < 2^256; omega
   have hout : (UInt256.ofNat out.size).toNat = out.size := UInt256.toNat_ofNat_of_lt ho
   have hm : poolManagerBlocks.poolManager_block_16189_taken_memory (mem := mem) (rdata := out) =

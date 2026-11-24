@@ -1,6 +1,8 @@
 import Benchmarks.EAS.Attester.MultiRevokeSourceABI
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory
 
 namespace Benchmarks.EAS.Attester
@@ -44,7 +46,7 @@ theorem multiRevokeShapeGuard_eval {cfg stele evm} {n : Nat} {rows : List Value}
 
 theorem multiRevokeSourcePrelude {imms : Store} {evm : State} {schemas rows : List Value}
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecBlock config ⟨contract, multiRevokeLocals schemas rows, imms⟩ evm
+    ExecBlock fork config ⟨contract, multiRevokeLocals schemas rows, imms⟩ evm
       (multiRevokeTransition.body.take 2)
       (.ok ⟨contract, (multiRevokeLocals schemas rows).insert "schemaLength"
         (.int (Int.ofNat schemas.length)), imms⟩ evm) := by
@@ -56,7 +58,7 @@ theorem multiRevokeSourcePrelude {imms : Store} {evm : State} {schemas rows : Li
 theorem multiRevokeSourceBadShape {imms : Store} {evm : State} {schemas rows : List Value}
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩)
     (hbad : ¬ (0 < schemas.length ∧ rows.length = schemas.length)) :
-    ExecTransitionBody config contract evm (multiRevokeLocals schemas rows)
+    ExecTransitionBody fork config contract evm (multiRevokeLocals schemas rows)
       multiRevokeTransition.body .reverted imms := by
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 2 multiRevokeTransition.body]
@@ -76,10 +78,10 @@ theorem multiRevokeSourceBuild {imms : Store} {evm : State} {cd : ByteArray}
     (hget : imms.get? "_eas" = some (.address eas))
     (hd : decodeArrays? bytes32 cd = some (.array schemas, .array rows))
     (hshape : BatchShape cd) (hsel : cd.extract 0 4 = attesterMultiRevokeSelBytes) :
-    (¬ BatchRowsValid cd ∧ ExecTransitionBody config contract evm (multiRevokeLocals schemas rows)
+    (¬ BatchRowsValid cd ∧ ExecTransitionBody fork config contract evm (multiRevokeLocals schemas rows)
       multiRevokeTransition.body .reverted imms) ∨
     (BatchRowsValid cd ∧ ∃ locals,
-      ExecBlock config ⟨contract, multiRevokeLocals schemas rows, imms⟩ evm
+      ExecBlock fork config ⟨contract, multiRevokeLocals schemas rows, imms⟩ evm
         (multiRevokeTransition.body.take 6) (.ok ⟨contract, locals, imms⟩ evm) ∧
       locals.get? "eas" = some (.address eas) ∧
       locals.get? "multiRequests" = some (multiRevokeRequests cd)) := by
@@ -107,15 +109,15 @@ theorem multiRevokeSourceBuild {imms : Store} {evm : State} {cd : ByteArray}
     rw [hslen, hrlen, decide_eq_true
       (show 0 < arrayCount cd 4 ∧ arrayCount cd 36 = arrayCount cd 4 from hshape)] at he
     exact he
-  have hnew : ExecStmt config ⟨contract, l0, imms⟩ evm
+  have hnew : ExecStmt fork config ⟨contract, l0, imms⟩ evm
       (.letDecl "multiRequests" (some multiRevocationRequestArrayTy)
         (.newArray multiRevocationRequestSt (.var "schemaLength")))
       (.ok ⟨contract, l1, imms⟩ evm) := ExecStmt.letDecl (evalLocalNewArray hn0 hdefault)
-  have hp : ExecBlock config ⟨contract, multiRevokeLocals schemas rows, imms⟩ evm
+  have hp : ExecBlock fork config ⟨contract, multiRevokeLocals schemas rows, imms⟩ evm
       (multiRevokeTransition.body.take 4) (.ok ⟨contract, l1, imms⟩ evm) := by
     exact execBlock_append (multiRevokeSourcePrelude hvalue)
       (ExecBlock.consNormal (ExecStmt.requireTrue hguard) (ExecBlock.consNormal hnew ExecBlock.nil))
-  have hloop := revokeOuterFor (cfg := config) (C := contract) (imms := imms) (evm := evm)
+  have hloop := revokeOuterFor (fork := fork) (cfg := config) (C := contract) (imms := imms) (evm := evm)
     (locals := l1) (schemas := schemas) (rows := rows) (expected := expected)
     (requests := List.replicate schemas.length emptyRequest) (n := arrayCount cd 4) hn
     (by simpa [l1, l0, Std.HashMap.getElem?_insert, Std.HashMap.getElem_insert, hslen])
@@ -139,11 +141,11 @@ theorem multiRevokeSourceBuild {imms : Store} {evm : State} {cd : ByteArray}
 
 theorem multiRevokeSourceSuffix {imms locals : Store} {evm : State} {schemas rows : List Value}
     {result : ExecResult}
-    (hp : ExecBlock config ⟨contract, multiRevokeLocals schemas rows, imms⟩ evm
+    (hp : ExecBlock fork config ⟨contract, multiRevokeLocals schemas rows, imms⟩ evm
       (multiRevokeTransition.body.take 6) (.ok ⟨contract, locals, imms⟩ evm))
-    (hs : ExecBlock config ⟨contract, locals, imms⟩ evm
+    (hs : ExecBlock fork config ⟨contract, locals, imms⟩ evm
       (multiRevokeTransition.body.drop 6) result) :
-    ExecBlock config ⟨contract, multiRevokeLocals schemas rows, imms⟩ evm
+    ExecBlock fork config ⟨contract, multiRevokeLocals schemas rows, imms⟩ evm
       multiRevokeTransition.body result := by
   rw [← List.take_append_drop 6 multiRevokeTransition.body]
   exact execBlock_append hp hs

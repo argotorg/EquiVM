@@ -143,11 +143,8 @@ The randomized differential test reports:
 Safe_V3_77901a5: 1775 cases: 1761 agree (578 successful), 0 disagree, 0 stuck, 14 EVM out of gas, 0 spec out of fuel
 ```
 
-The EVM dependency's Python cryptography helpers resolve paths from its package directory.
-Install its declared `requirements.txt` in a virtual environment, add that environment's `bin`
-directory to `PATH`, and run the randomized suite there (with `-d` pointing to this repository):
+Run the randomized suite from the repository root:
 
 ```bash
-cd .lake/packages/evmlean
-lake -d ../../.. exe stele-difftest --only Safe_V3_77901a5 --count 50
+lake exe stele-difftest --only Safe_V3_77901a5 --count 50
 ```

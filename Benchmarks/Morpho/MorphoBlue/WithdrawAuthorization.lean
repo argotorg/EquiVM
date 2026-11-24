@@ -3,6 +3,8 @@ import Benchmarks.Morpho.MorphoBlue.SenderAuthorizedReach
 import Benchmarks.Morpho.MorphoBlue.UnauthorizedMessage
 import Benchmarks.Morpho.MorphoBlue.SupplyAccrueRefine
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -39,9 +41,9 @@ theorem morphoWithdrawAuthorization {v : MorphoImmutables} {ee : ExecutionEnv} {
     {s0 : State} {aw assets shares account receiver : UInt256} {out : ByteArray} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (p : MarketParamsWords) (hstack : R.length + 32 ≤ 1024)
     (hc : account.toNat < EVM.addressModulus)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 7629)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 7629)
       (withdrawAccrueTail p.id assets shares account receiver R) (supplyGuardMem p) aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
       ([senderAuthorizedWord σ ee account, UInt256.ofNat 480, UInt256.ofNat 7641] ++
         withdrawAccrueTail p.id assets shares account receiver R)
       (withdrawGuardMem p ee account) aw' out σ k' C' := by

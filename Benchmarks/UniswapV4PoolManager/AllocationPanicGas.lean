@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.Common
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_022
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -13,8 +15,8 @@ before its REVERT, so a capacity panic beyond the gas bound implies out of gas. 
 theorem allocationPanicGas {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+2 ≤ 1024) (hgas : g.toNat < C+23)
-    (h : RD (deployedRuntime v) I g s0 ⟨7857⟩ R mem aw rdata σ k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass := by
+    (h : RD fork (deployedRuntime v) I g s0 ⟨7857⟩ R mem aw rdata σ k C) :
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass := by
   have r1 := h.jumpdest
     (by immutable_decode(immutableLayout, poolManagerBytecode, wordsOf (immStore v), (⟨7857⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.pushConst ⟨35408467139433450592217433187231851964531694900788300625387963629091585785856⟩ (width := 32) (op := .PUSH32) (by decide)

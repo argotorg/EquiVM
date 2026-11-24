@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.ErrorRoutines
 import Benchmarks.Morpho.MorphoBlue.AdminCommon
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Morpho `enableIrm(address)`
 
@@ -39,7 +41,7 @@ theorem morphoEnableIrmBodySplit (v : MorphoImmutables) (evm : EVM.State)
     (ho : solcSourceWord evm.executionEnv = solcAddressSlotWord ⟨0⟩ evm.accountMap evm.executionEnv)
     (hdisabled : irmEnabledByte evm.accountMap evm.executionEnv
       (calldataWord evm.executionEnv.calldata 4) = ⟨0⟩) :
-    (evm.executionEnv.perm = true → ExecTransitionBody config contract evm (enableIrmArgs evm.executionEnv.calldata)
+    (evm.executionEnv.perm = true → ExecTransitionBody fork config contract evm (enableIrmArgs evm.executionEnv.calldata)
       enableIrmTransition.body
       (.returned (enableIrmFrame v evm.executionEnv.calldata)
         (Stele.EVM.storageStore evm evm.executionEnv.codeOwner
@@ -48,7 +50,7 @@ theorem morphoEnableIrmBodySplit (v : MorphoImmutables) (evm : EVM.State)
             (solcMappingSlot ⟨4⟩ (calldataWord evm.executionEnv.calldata 4))
             evm.accountMap evm.executionEnv) (UInt256.lnot ⟨255⟩)) ⟨1⟩)) none) (immStore v)) ∧
     (evm.executionEnv.perm = false →
-      ExecTransitionBody config contract evm (enableIrmArgs evm.executionEnv.calldata)
+      ExecTransitionBody fork config contract evm (enableIrmArgs evm.executionEnv.calldata)
         enableIrmTransition.body .staticViolation (immStore v)) := by
   have howner := evalMorphoOwnerCheck evm (enableIrmFrame v evm.executionEnv.calldata).locals
     (immStore v) (by simp [enableIrmFrame, addressAdminFrame, enableIrmArgs])
@@ -58,7 +60,7 @@ theorem morphoEnableIrmBodySplit (v : MorphoImmutables) (evm : EVM.State)
   have hload := evalMorphoIrmEnabled evm _ (immStore v) (.var "irm") _ hbase hkey hcanon
   have hnot := evalNotBoolWord hload
   simp only [irmEnabledByte] at hdisabled
-  have hprefix : ABlock config evm
+  have hprefix : ABlock fork config evm
       { contract := contract, locals := enableIrmArgs evm.executionEnv.calldata, immutables := immStore v }
       enableIrmTransition.body (enableIrmFrame v evm.executionEnv.calldata)
       (enableIrmTransition.body.drop 5) :=
@@ -73,8 +75,8 @@ theorem morphoEnableIrmBodySplit (v : MorphoImmutables) (evm : EVM.State)
   · intro hperm
     apply ExecFuncBody.execBlockOK
     apply hprefix.run
-    apply ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) (htrue evm) hassign)
-    apply ExecBlock.consNormal (ExecStmt.emit (hperm := by simpa only [storageStore_executionEnv] using hperm) (evalExprs?_singleton (enableIrmArg_eval v _ _)))
+    apply ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (htrue evm) hassign)
+    apply ExecBlock.consNormal (ExecStmt.emit (fork := fork) (hperm := by simpa only [storageStore_executionEnv] using hperm) (evalExprs?_singleton (enableIrmArg_eval v _ _)))
     exact ExecBlock.nil
   · intro hperm
     exact ExecFuncBody.execBlockStatic
@@ -86,7 +88,7 @@ theorem morphoEnableIrmBodyRejects (v : MorphoImmutables) (evm : EVM.State)
     (hcanon : (calldataWord evm.executionEnv.calldata 4).toNat < EVM.addressModulus)
     (hbad : solcSourceWord evm.executionEnv ≠ solcAddressSlotWord ⟨0⟩ evm.accountMap evm.executionEnv ∨
       irmEnabledByte evm.accountMap evm.executionEnv (calldataWord evm.executionEnv.calldata 4) ≠ ⟨0⟩) :
-    ExecTransitionBody config contract evm (enableIrmArgs evm.executionEnv.calldata)
+    ExecTransitionBody fork config contract evm (enableIrmArgs evm.executionEnv.calldata)
       enableIrmTransition.body .reverted (immStore v) := by
   have howner := evalMorphoOwnerCheck evm (enableIrmFrame v evm.executionEnv.calldata).locals
     (immStore v) (by simp [enableIrmFrame, addressAdminFrame, enableIrmArgs])
@@ -109,7 +111,7 @@ theorem morphoEnableIrmReachDecode {σ σ₀ A I} {g : Sat256} (v : MorphoImmuta
     (hsel : selIs I (morphoSelBytes 9))
     (hcv : I.weiValue = ⟨0⟩) (hlen : 36 ≤ I.calldata.size)
     (hbound : I.calldata.size < 2 ^ 255 + 4) :
-    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 11354)
+    ∃ k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 11354)
       [UInt256.ofNat 8161, ⟨0⟩]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨k, C, rd⟩ := morphoReachEnableIrmBody (g := g) (σ := σ) (σ₀ := σ₀)
@@ -132,7 +134,7 @@ theorem morphoEnableIrmReachOwnerCheck {σ σ₀ A I} {g : Sat256} (v : MorphoIm
     (hcv : I.weiValue = ⟨0⟩) (hlen : 36 ≤ I.calldata.size)
     (hbound : I.calldata.size < 2 ^ 255 + 4)
     (hcanon : (calldataWord I.calldata 4).toNat < EVM.addressModulus) :
-    ∃ aw k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 12097)
+    ∃ aw k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 12097)
       [UInt256.eq (solcSourceWord I) (solcAddressSlotWord ⟨0⟩ σ I),
        UInt256.ofNat 128, UInt256.ofNat 8200, calldataWord I.calldata 4,
        solcAddrMask, ⟨0⟩]
@@ -169,7 +171,7 @@ theorem morphoEnableIrmReachEnabledCheck {σ σ₀ A I} {g : Sat256} (v : Morpho
     (hbound : I.calldata.size < 2 ^ 255 + 4)
     (hcanon : (calldataWord I.calldata 4).toNat < EVM.addressModulus)
     (ho : solcSourceWord I = solcAddressSlotWord ⟨0⟩ σ I) :
-    ∃ aw k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 12097)
+    ∃ aw k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 12097)
       [UInt256.isZero (irmEnabledByte σ I (calldataWord I.calldata 4)),
        UInt256.ofNat 192, UInt256.ofNat 8229, calldataWord I.calldata 4, ⟨0⟩]
       (morphoAlreadySetMem (irmCheckMem (calldataWord I.calldata 4))) aw ByteArray.empty σ k C := by
@@ -181,7 +183,7 @@ theorem morphoEnableIrmReachEnabledCheck {σ σ₀ A I} {g : Sat256} (v : Morpho
   obtain ⟨kh, Ch, rdMessage⟩ := morphoBlocks.morpho_block_8200
     (immWords := wordsOf (immStore v)) (by simp)
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) rdNext
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     [UInt256.ofNat 585,
       UInt256.isZero (UInt256.land (solcSlotWordAt
         (keccakWord ⟨0⟩ (UInt256.ofNat 64)
@@ -210,7 +212,7 @@ theorem morphoEnableIrmXRejects {σ σ₀ A I} {g : Sat256} (v : MorphoImmutable
     (hcanon : (calldataWord I.calldata 4).toNat < EVM.addressModulus)
     (hbad : solcSourceWord I ≠ solcAddressSlotWord ⟨0⟩ σ I ∨
       irmEnabledByte σ I (calldataWord I.calldata 4) ≠ ⟨0⟩) :
-    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
   by_cases ho : solcSourceWord I = solcAddressSlotWord ⟨0⟩ σ I
   · obtain ⟨aw, k, C, rd⟩ := morphoEnableIrmReachEnabledCheck (g := g) (σ := σ) (σ₀ := σ₀)
       (A := A) v hcode hsize hsel hcv hlen hbound hcanon ho
@@ -234,7 +236,7 @@ theorem morphoEnableIrmReachStore {σ σ₀ A I} {g : Sat256} (v : MorphoImmutab
     (hcanon : (calldataWord I.calldata 4).toNat < EVM.addressModulus)
     (ho : solcSourceWord I = solcAddressSlotWord ⟨0⟩ σ I)
     (hdisabled : irmEnabledByte σ I (calldataWord I.calldata 4) = ⟨0⟩) :
-    ∃ aw k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 8229)
+    ∃ aw k C, RD fork (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 8229)
       [calldataWord I.calldata 4, ⟨0⟩]
       (morphoAlreadySetMem (irmCheckMem (calldataWord I.calldata 4))) aw ByteArray.empty σ k C := by
   obtain ⟨aw, k, C, rd⟩ := morphoEnableIrmReachEnabledCheck (g := g) (σ := σ) (σ₀ := σ₀)
@@ -249,9 +251,9 @@ theorem morphoEnableIrmStoreStatic {v : MorphoImmutables} {ee : ExecutionEnv} {g
     {s0 : EVM.State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : Nat} {key zero : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024) (hperm : ee.perm = false)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 8229)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 8229)
       (key :: zero :: R) mem aw rdata σ k C) :
-    RDstatic (deployedRuntime v) g s0 := by
+    RDstatic fork (deployedRuntime v) g s0 := by
   let r0 := h
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.Morpho.MorphoBlue.immutableLayout, Benchmarks.Morpho.MorphoBlue.morphoBytecode, wordsOf (immStore v), (⟨8229⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, morphoBlocks.immutableLayout_inBounds, morphoBlocks.immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.dup1 (by immutable_decode(Benchmarks.Morpho.MorphoBlue.immutableLayout, Benchmarks.Morpho.MorphoBlue.morphoBytecode, wordsOf (immStore v), (⟨8230⟩ : UInt256), UInt8.ofNat 128, .DUP1, none, morphoBlocks.immutableLayout_inBounds, morphoBlocks.immutableTemplate_size64)) (by evm_ov)
@@ -284,11 +286,11 @@ theorem morphoEnableIrmXSplit {σ σ₀ A I} {g : Sat256} (v : MorphoImmutables)
     (hcanon : (calldataWord I.calldata 4).toNat < EVM.addressModulus)
     (ho : solcSourceWord I = solcAddressSlotWord ⟨0⟩ σ I)
     (hdisabled : irmEnabledByte σ I (calldataWord I.calldata 4) = ⟨0⟩) :
-    (I.perm = true ∧ RDret (deployedRuntime v) g (initState σ σ₀ g A I)
+    (I.perm = true ∧ RDret fork (deployedRuntime v) g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ (solcMappingSlot ⟨4⟩ (calldataWord I.calldata 4))
         (UInt256.lor (UInt256.land (solcSlotWordAt (solcMappingSlot ⟨4⟩
           (calldataWord I.calldata 4)) σ I) (UInt256.lnot ⟨255⟩)) ⟨1⟩)) ByteArray.empty) ∨
-    (I.perm = false ∧ RDstatic (deployedRuntime v) g (initState σ σ₀ g A I)) := by
+    (I.perm = false ∧ RDstatic fork (deployedRuntime v) g (initState σ σ₀ g A I)) := by
   obtain ⟨aw, k, C, rd⟩ := morphoEnableIrmReachStore (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hsize hsel hcv hlen hbound hcanon ho hdisabled
   by_cases hperm : I.perm = true
@@ -296,7 +298,7 @@ theorem morphoEnableIrmXSplit {σ σ₀ A I} {g : Sat256} (v : MorphoImmutables)
     have ret := morphoBlocks.morpho_block_8229 (immWords := wordsOf (immStore v)) (by decide) hperm rd
     let mem := twoWordHashMem (calldataWord I.calldata 4) (UInt256.ofNat 4)
       (morphoAlreadySetMem (irmCheckMem (calldataWord I.calldata 4)))
-    change RDret _ _ _ (sstoreAccountMap I.codeOwner σ (keccakWord ⟨0⟩ (UInt256.ofNat 64) mem)
+    change RDret fork _ _ _ (sstoreAccountMap I.codeOwner σ (keccakWord ⟨0⟩ (UInt256.ofNat 64) mem)
       (UInt256.lor (UInt256.land (solcSlotWordAt (keccakWord ⟨0⟩ (UInt256.ofNat 64) mem) σ I)
         (UInt256.ofNat 115792089237316195423570985008687907853269984665640564039457584007913129639680))
         (UInt256.ofNat 1))) (mem.readWithPadding 0 0) at ret
@@ -315,7 +317,7 @@ theorem morphoEnableIrmXReverts {σ σ₀ A I} {g : Sat256} (v : MorphoImmutable
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 9))
     (hbad : I.weiValue ≠ ⟨0⟩ ∨ I.calldata.size < 36 ∨ 2 ^ 255 + 4 ≤ I.calldata.size) :
-    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 9) rfl hsel
   obtain ⟨k, C, rd⟩ := morphoReachEnableIrmBody (g := g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hsz hsize hsel
@@ -344,7 +346,7 @@ theorem morphoEnableIrmXNoncanonical {σ σ₀ A I} {g : Sat256} (v : MorphoImmu
     (hsel : selIs I (morphoSelBytes 9)) (hlen : 36 ≤ I.calldata.size)
     (hbound : I.calldata.size < 2 ^ 255 + 4)
     (hnc : ¬ (calldataWord I.calldata 4).toNat < EVM.addressModulus) :
-    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev fork (deployedRuntime v) g (initState σ σ₀ g A I) := by
   by_cases hcv : I.weiValue = ⟨0⟩
   · obtain ⟨k, C, rd⟩ := morphoEnableIrmReachDecode (g := g) (σ := σ) (σ₀ := σ₀)
       (A := A) v hcode hsize hsel hcv hlen hbound
@@ -355,7 +357,7 @@ theorem morphoEnableIrmXNoncanonical {σ σ₀ A I} {g : Sat256} (v : MorphoImmu
 theorem morphoEnableIrmBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 9)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 9) rfl hsel
   have hd : selectorDispatchMsg contract I.calldata = some enableIrmTransition :=
     morphoSelectorDispatch_of_selIs (by decide) hsel
@@ -369,7 +371,7 @@ theorem morphoEnableIrmBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutables)
         by_cases hcv : I.weiValue = ⟨0⟩
         · by_cases ho : solcSourceWord I = solcAddressSlotWord ⟨0⟩ σ I
           · by_cases hdisabled : irmEnabledByte σ I (calldataWord I.calldata 4) = ⟨0⟩
-            · have hbody := morphoEnableIrmBodySplit v (initState σ σ₀ (.ofUInt256 g) A I)
+            · have hbody := morphoEnableIrmBodySplit (fork := fork) v (initState σ σ₀ (.ofUInt256 g) A I)
                 hcv hbound hcanon ho hdisabled
               rcases morphoEnableIrmXSplit (g := .ofUInt256 g) (σ₀ := σ₀) (A := A)
                 v hcode hsize hsel hcv hlen hbound hcanon ho hdisabled with ⟨hp, hx⟩ | ⟨hp, hx⟩

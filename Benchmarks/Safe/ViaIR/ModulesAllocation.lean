@@ -2,6 +2,8 @@ import Benchmarks.Safe.ViaIR.ModulesGuards
 import Benchmarks.Safe.ViaIR.AddressArrayMemory
 import Benchmarks.Safe.ViaIR.Memory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -38,12 +40,12 @@ theorem safeModulesAllocationMemory (mem : ByteArray) (n : Nat) :
 
 set_option maxHeartbeats 800000 in
 theorem safeModulesAllocate {I g s0 σ k C aw mem rdata n start} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨2595⟩
+    (h : RD fork safeBytecode I g s0 ⟨2595⟩
       (UInt256.ofNat n :: start :: ⟨0⟩ :: R) mem aw rdata σ k C)
     (hov : R.length + 14 ≤ 1024) (hn : n ≤ 2 ^ 59 - 6)
     (hsize : I.calldata.size < UInt256.size)
     (hm : mem.size = 96) (hread : mem.readWithPadding 64 32 = (⟨128⟩ : UInt256).toByteArray) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨2629⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨2629⟩
       (moduleLinkAt σ I start :: ⟨128⟩ :: UInt256.ofNat n :: ⟨0⟩ :: ⟨0⟩ :: R)
       (twoWordHashMem start ⟨1⟩ (modulesAllocatedMemory mem n)) aw' rdata σ k' C' := by
   have hb : n ≤ 2 ^ 64 - 1 := by omega
@@ -91,7 +93,7 @@ theorem safeModulesAllocate {I g s0 σ k C aw mem rdata n start} {R : List UInt2
     start ⟨1⟩ (by rw [modulesAllocatedMemory_size mem n hm]; decide)
   change keccakWord ⟨0⟩ ⟨64⟩ (twoWordHashMem start ⟨1⟩ (modulesAllocatedMemory mem n)) =
     mapSlot start ⟨1⟩ at hh
-  change RD safeBytecode I g s0 ⟨2629⟩
+  change RD fork safeBytecode I g s0 ⟨2629⟩
     (UInt256.land solcAddrMask (solcSlotWordAt
       (keccakWord ⟨0⟩ ⟨64⟩ (twoWordHashMem start ⟨1⟩ (modulesAllocatedMemory mem n))) σ I) ::
       ⟨128⟩ :: UInt256.ofNat n :: ⟨0⟩ :: ⟨0⟩ :: R)

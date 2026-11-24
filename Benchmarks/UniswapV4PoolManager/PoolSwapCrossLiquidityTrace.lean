@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.ReachCost
 import Benchmarks.UniswapV4PoolManager.MemoryGas
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_057
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -16,24 +18,24 @@ theorem poolSwapCrossLiquidityTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : PoolManagerImmutables) (zeroForOne : Bool) (hstack : R.length+18 ≤ 1024)
     (hlc : liquidity.toNat < 2^128) (hn : signedFits ⟨128, by decide⟩ (EVM.signed net))
     (hl : memLoad (state+UInt256.ofNat 64) mem = liquidity)
-    (h : RD (deployedRuntime v) I g s0 (if zeroForOne then ⟨20104⟩ else ⟨20082⟩)
+    (h : RD fork (deployedRuntime v) I g s0 (if zeroForOne then ⟨20104⟩ else ⟨20082⟩)
       ([state, net, UInt256.ofNat 20093, UInt256.ofNat (2^128-1), tag, x1, params, remaining,
         calculated, fee, protocol, amount, UInt256.fromBool (!zeroForOne), step, pool, state] ++ R)
       mem aw rdata σ k C) :
     if liquidityAddFits liquidity (EVM.signed (poolSwapCrossDelta zeroForOne net)) then
-      ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨19904⟩
+      ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨19904⟩
         ([tag, x1, params, remaining, calculated, fee, protocol, amount, UInt256.fromBool (!zeroForOne), step, pool, state] ++ R)
         ((liquidityAddResultWord liquidity (EVM.signed (poolSwapCrossDelta zeroForOne net))).toByteArray.write
           0 mem (state+UInt256.ofNat 64).toNat 32)
         (M aw (state+UInt256.ofNat 64) ⟨32⟩) rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hm : UInt256.land (UInt256.ofNat (2^128-1)) liquidity = liquidity :=
     (u256_land_comm _ _).trans (u256LandMaskCleanOfToNat _ _ rfl hlc)
-  have hpre : ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨17774⟩
+  have hpre : ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨17774⟩
       ([liquidity, poolSwapCrossDelta zeroForOne net, UInt256.ofNat 20093, UInt256.ofNat (2^128-1),
         tag, x1, params, remaining, calculated, fee, protocol, amount, UInt256.fromBool (!zeroForOne), step, pool, state] ++ R)
       mem (M aw (state+UInt256.ofNat 64) ⟨32⟩) rdata σ k' C' := by
-    have hneg : ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨20082⟩
+    have hneg : ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨20082⟩
         ([state, poolSwapCrossDelta zeroForOne net, UInt256.ofNat 20093, UInt256.ofNat (2^128-1),
           tag, x1, params, remaining, calculated, fee, protocol, amount, UInt256.fromBool (!zeroForOne), step, pool, state] ++ R)
         mem aw rdata σ k' C' := by
@@ -56,7 +58,7 @@ theorem poolSwapCrossLiquidityTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
   rw [← hdelta] at rd1
   by_cases hfit : liquidityAddFits liquidity (EVM.signed (poolSwapCrossDelta zeroForOne net))
   · rw [if_pos hfit]
-    have hpass : ∃ k' C', C1 ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨20093⟩
+    have hpass : ∃ k' C', C1 ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨20093⟩
         ([liquidityAddResultWord liquidity (EVM.signed (poolSwapCrossDelta zeroForOne net)), UInt256.ofNat (2^128-1),
           tag, x1, params, remaining, calculated, fee, protocol, amount, UInt256.fromBool (!zeroForOne), step, pool, state] ++ R)
         mem (M aw (state+UInt256.ofNat 64) ⟨32⟩) rdata σ k' C' := by

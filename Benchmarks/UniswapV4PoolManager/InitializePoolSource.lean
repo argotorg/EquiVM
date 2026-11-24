@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.PoolInitializeSource
 import Benchmarks.UniswapV4PoolManager.InitializeFinishSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -33,15 +35,15 @@ theorem initializePoolSource {f : Frame} {evm evm' : EVM.State} {key : PoolKeyWo
     (hcall : ∀ tick, poolSqrtPriceWord evm (poolKeyId key) = ⟨0⟩ →
       tickPriceResult price = some tick → evm.executionEnv.perm = true →
       hookEnabled evm.executionEnv.source (AccountAddress.ofNat key.hooks.toNat) ⟨4096⟩ →
-      callViaEVM (poolInitializePost evm (poolKeyId key) price tick fee)
+      callViaEVM fork (poolInitializePost evm (poolKeyId key) price tick fee)
         (AccountAddress.ofNat key.hooks.toNat) 0
         (afterInitializePayload evm.executionEnv.source key price tick) (z, evm', out)) :
-    ExecFuncBody config f evm (initializeTransition.body.drop 13)
+    ExecFuncBody fork config f evm (initializeTransition.body.drop 13)
       (initializePoolResult f evm evm' key price fee z out) := by
   let f1 : Frame := {f with locals := f.locals.insert "id" (wordBytes32Value (poolKeyId key))}
   let f2 := initializePoolFrame f key
-  have hid := poolIdCall hf hc (evalLocalValue (cfg := config) (evm := evm) hk) "id"
-  have href : ExecStmt config f1 evm initializeTransition.body[14]! (.ok f2 evm) :=
+  have hid := poolIdCall (fork := fork) hf hc (evalLocalValue (cfg := config) (evm := evm) hk) "id"
+  have href : ExecStmt fork config f1 evm initializeTransition.body[14]! (.ok f2 evm) :=
     ExecStmt.letStorage (poolMappingResolve (f := f1) hf
       ((store_get_ne _ _ (by decide : ("id" == "_pools") = false)).trans hb)
       (evalLocalValue (store_get_self _ _ _)))
@@ -51,9 +53,9 @@ theorem initializePoolSource {f : Frame} {evm evm' : EVM.State} {key : PoolKeyWo
   have he2 : f2.locals.get? "lpFee" = some (.int (Int.ofNat fee.toNat)) :=
     (store_get_ne2 _ _ _ (by decide : ("id" == "lpFee") = false)
       (by decide : (initializePoolAlias == "lpFee") = false)).trans he
-  have hpre : ExecBlock config f evm ((initializeTransition.body.drop 13).take 2) (.ok f2 evm) :=
+  have hpre : ExecBlock fork config f evm ((initializeTransition.body.drop 13).take 2) (.ok f2 evm) :=
     ExecBlock.consNormal hid (ExecBlock.consNormal href ExecBlock.nil)
-  have hpool := poolInitializeCall (f := f2) (evm := evm) hf hprice hfee
+  have hpool := poolInitializeCall (fork := fork) (f := f2) (evm := evm) hf hprice hfee
     (evalLocalValue (store_get_self _ _ _)) (evalLocalValue hp2) (evalLocalValue he2) "__c5"
   unfold initializePoolResult
   simp only [poolInitializeCallResult, poolInitializeResult] at hpool
@@ -86,7 +88,7 @@ theorem initializePoolSource {f : Frame} {evm evm' : EVM.State} {key : PoolKeyWo
           (store_get_ne3 _ _ _ _ (by decide : ("id" == "tick") = false)
             (by decide : (initializePoolAlias == "tick") = false)
             (by decide : ("__c5" == "tick") = false)).trans ht
-        have hafter := initializeAfterPoolSource (hperm := by
+        have hafter := initializeAfterPoolSource (fork := fork) (hperm := by
           simpa only [poolInitializePost, storageStore_executionEnv] using
             Bool.eq_true_of_not_eq_false hperm) (f := f3)
           (evm := poolInitializePost evm (poolKeyId key) price tick fee) hf hc hprice

@@ -1,5 +1,11 @@
 import Benchmarks.Dss.Pot.Selectors
 
+variable {fork : Ethereum.Fork}
+
+-- Concrete decoder facts must reduce the empty padding of a complete PUSH operand.
+set_option allowUnsafeReducibility true in
+attribute [local semireducible] ByteArray.zeroes
+
 /-!
 # MakerDAO/Sky DSS Pot dispatcher facts
 
@@ -234,7 +240,7 @@ theorem potDispatch_none_nomatch {cd : ByteArray}
 
 theorem potBodyReverts_nonPayable (t : TransitionDecl) (ht : t ∈ contract.transitions)
     (evm : EVM.State) (locals : Store) (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecTransitionBody config contract evm locals t.body .reverted := by
+    ExecTransitionBody fork config contract evm locals t.body .reverted := by
   simp [contract, transitions] at ht
   rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
     rfl | rfl | rfl | rfl <;>
@@ -304,7 +310,7 @@ theorem potG54ArmsWellFormed :
 theorem potReachRootSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = potBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD potBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork potBytecode I g (initState σ σ₀ g A I)
         potRootSplitPc [potSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   simpa [potRootSplitPc, potSelWord] using
@@ -328,13 +334,13 @@ theorem potReach43 {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = potBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat potBytecode potRootSplitPc) (potSelWord I) = ⟨0⟩) :
-    ∃ k C, RD potBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork potBytecode I g (initState σ σ₀ g A I)
         potSplit43Pc [potSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k0, C0, h32⟩ :=
     potReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h43 : RD potBytecode I g (initState σ σ₀ g A I)
+  have h43 : RD fork potBytecode I g (initState σ σ₀ g A I)
       potSplit43Pc [potSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k0 + 5) (C0 + 22) := by
     simpa [potSplit43Pc, potRootSplitPc, selArmNextPc, armTgtWidth, selArmJumpiPc,
@@ -347,18 +353,18 @@ theorem potReach163 {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = potBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat potBytecode potRootSplitPc) (potSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD potBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork potBytecode I g (initState σ σ₀ g A I)
         potSplit163Pc [potSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k0, C0, h32⟩ :=
     potReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h162 : RD potBytecode I g (initState σ σ₀ g A I)
+  have h162 : RD fork potBytecode I g (initState σ σ₀ g A I)
       potJumpdest162Pc [potSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k0 + 5) (C0 + 22) := by
     simpa [potRootSplitPc, potJumpdest162Pc] using
       RD.selectorSplitTakenAuto h32 potRootSplitWellFormed hroot (by jump_dest) (by simp)
-  have h163 : RD potBytecode I g (initState σ σ₀ g A I)
+  have h163 : RD fork potBytecode I g (initState σ σ₀ g A I)
       potSplit163Pc [potSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k0 + 5 + 1) (C0 + 22 + 1) := by
     simpa [potSplit163Pc, potJumpdest162Pc] using h162.jumpdest (by native_decide) (by simp)
@@ -370,18 +376,18 @@ theorem potReachG114First {σ σ₀ A I} {g : Sat256}
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat potBytecode potRootSplitPc) (potSelWord I) = ⟨0⟩)
     (h43 : UInt256.gt (armSelNat potBytecode potSplit43Pc) (potSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD potBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork potBytecode I g (initState σ σ₀ g A I)
         potG114FirstArmPc [potSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k1, C1, h43r⟩ :=
     potReach43 (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
-  have h113 : RD potBytecode I g (initState σ σ₀ g A I)
+  have h113 : RD fork potBytecode I g (initState σ σ₀ g A I)
       potG114JumpdestPc [potSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k1 + 5) (C1 + 22) := by
     simpa [potSplit43Pc, potG114JumpdestPc] using
       RD.selectorSplitTakenAuto h43r potSplit43WellFormed h43 (by jump_dest) (by simp)
-  have h114 : RD potBytecode I g (initState σ σ₀ g A I)
+  have h114 : RD fork potBytecode I g (initState σ σ₀ g A I)
       potG114FirstArmPc [potSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k1 + 5 + 1) (C1 + 22 + 1) := by
     simpa [potG114FirstArmPc, potG114JumpdestPc] using h113.jumpdest (by native_decide) (by simp)
@@ -393,13 +399,13 @@ theorem potReachG54First {σ σ₀ A I} {g : Sat256}
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat potBytecode potRootSplitPc) (potSelWord I) = ⟨0⟩)
     (h43 : UInt256.gt (armSelNat potBytecode potSplit43Pc) (potSelWord I) = ⟨0⟩) :
-    ∃ k C, RD potBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork potBytecode I g (initState σ σ₀ g A I)
         potG54FirstArmPc [potSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k1, C1, h43r⟩ :=
     potReach43 (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
-  have h54 : RD potBytecode I g (initState σ σ₀ g A I)
+  have h54 : RD fork potBytecode I g (initState σ σ₀ g A I)
       potG54FirstArmPc [potSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k1 + 5) (C1 + 22) := by
     simpa [potG54FirstArmPc, potSplit43Pc, selArmNextPc, armTgtWidth, selArmJumpiPc,
@@ -413,18 +419,18 @@ theorem potReachG223First {σ σ₀ A I} {g : Sat256}
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat potBytecode potRootSplitPc) (potSelWord I) ≠ ⟨0⟩)
     (h163 : UInt256.gt (armSelNat potBytecode potSplit163Pc) (potSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD potBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork potBytecode I g (initState σ σ₀ g A I)
         potG223FirstArmPc [potSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k2, C2, h163r⟩ :=
     potReach163 (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
-  have h222 : RD potBytecode I g (initState σ σ₀ g A I)
+  have h222 : RD fork potBytecode I g (initState σ σ₀ g A I)
       potG223JumpdestPc [potSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k2 + 5) (C2 + 22) := by
     simpa [potSplit163Pc, potG223JumpdestPc] using
       RD.selectorSplitTakenAuto h163r potSplit163WellFormed h163 (by jump_dest) (by simp)
-  have h223 : RD potBytecode I g (initState σ σ₀ g A I)
+  have h223 : RD fork potBytecode I g (initState σ σ₀ g A I)
       potG223FirstArmPc [potSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k2 + 5 + 1) (C2 + 22 + 1) := by
     simpa [potG223FirstArmPc, potG223JumpdestPc] using h222.jumpdest (by native_decide) (by simp)
@@ -436,13 +442,13 @@ theorem potReachG174First {σ σ₀ A I} {g : Sat256}
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat potBytecode potRootSplitPc) (potSelWord I) ≠ ⟨0⟩)
     (h163 : UInt256.gt (armSelNat potBytecode potSplit163Pc) (potSelWord I) = ⟨0⟩) :
-    ∃ k C, RD potBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork potBytecode I g (initState σ σ₀ g A I)
         potG174FirstArmPc [potSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty σ k C := by
   obtain ⟨k2, C2, h163r⟩ :=
     potReach163 (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
-  have h174 : RD potBytecode I g (initState σ σ₀ g A I)
+  have h174 : RD fork potBytecode I g (initState σ σ₀ g A I)
       potG174FirstArmPc [potSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k2 + 5) (C2 + 22) := by
     simpa [potG174FirstArmPc, potSplit163Pc, selArmNextPc, armTgtWidth, selArmJumpiPc,
@@ -466,7 +472,7 @@ theorem potReachG223Body {σ σ₀ A I} {g : Sat256}
         (potSelWord I) ≠ ⟨0⟩)
     (hjd : (D_J potBytecode 0).contains bodyPC = true)
     (hbody : armTgt potBytecode (nthArmPc potBytecode potG223FirstArmPc i) = bodyPC) :
-    ∃ k C, RD potBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork potBytecode I g (initState σ σ₀ g A I)
         bodyPC [potSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
     potReachG223First (σ := σ) (σ₀ := σ₀)
@@ -489,7 +495,7 @@ theorem potReachG174Body {σ σ₀ A I} {g : Sat256}
         (potSelWord I) ≠ ⟨0⟩)
     (hjd : (D_J potBytecode 0).contains bodyPC = true)
     (hbody : armTgt potBytecode (nthArmPc potBytecode potG174FirstArmPc i) = bodyPC) :
-    ∃ k C, RD potBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork potBytecode I g (initState σ σ₀ g A I)
         bodyPC [potSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
     potReachG174First (σ := σ) (σ₀ := σ₀)
@@ -512,7 +518,7 @@ theorem potReachG114Body {σ σ₀ A I} {g : Sat256}
         (potSelWord I) ≠ ⟨0⟩)
     (hjd : (D_J potBytecode 0).contains bodyPC = true)
     (hbody : armTgt potBytecode (nthArmPc potBytecode potG114FirstArmPc i) = bodyPC) :
-    ∃ k C, RD potBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork potBytecode I g (initState σ σ₀ g A I)
         bodyPC [potSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
     potReachG114First (σ := σ) (σ₀ := σ₀)
@@ -535,7 +541,7 @@ theorem potReachG54Body {σ σ₀ A I} {g : Sat256}
         (potSelWord I) ≠ ⟨0⟩)
     (hjd : (D_J potBytecode 0).contains bodyPC = true)
     (hbody : armTgt potBytecode (nthArmPc potBytecode potG54FirstArmPc i) = bodyPC) :
-    ∃ k C, RD potBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork potBytecode I g (initState σ σ₀ g A I)
         bodyPC [potSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
     potReachG54First (σ := σ) (σ₀ := σ₀)
@@ -595,11 +601,11 @@ theorem potG54ArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size) (j : ℕ) (
 
 /-- From a group-end cursor at `PUSH2 267; JUMP`, reach the shared no-match revert. -/
 theorem potJumpToNoMatchRevert {σ σ₀ A I} {g : Sat256} {pc : UInt256} {k C : ℕ}
-    (h : RD potBytecode I g (initState σ σ₀ g A I) pc
+    (h : RD fork potBytecode I g (initState σ σ₀ g A I) pc
       [potSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hpush : decode potBytecode pc = some (.Push .PUSH2, some (potDispatchRevertPc, 2)))
     (hjump : decode potBytecode (pc + UInt256.ofNat 3) = some (.JUMP, .none)) :
-    RDrev potBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork potBytecode g (initState σ σ₀ g A I) := by
   have h267 := h.push2 potDispatchRevertPc hpush (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by simp only [List.length_singleton]; omega)
     |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
@@ -607,12 +613,12 @@ theorem potJumpToNoMatchRevert {σ σ₀ A I} {g : Sat256} {pc : UInt256} {k C :
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
 theorem potG223NoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD potBytecode I g (initState σ σ₀ g A I) potG223FirstArmPc
+    (h : RD fork potBytecode I g (initState σ σ₀ g A I) potG223FirstArmPc
       [potSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 4 →
       UInt256.eq (armSelNat potBytecode (nthArmPc potBytecode potG223FirstArmPc j))
         (potSelWord I) = ⟨0⟩) :
-    RDrev potBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork potBytecode g (initState σ σ₀ g A I) := by
   have h267 := h
     |>.selectorArmNotTakenAuto (potG223ArmsWellFormed 0 (by omega)) (heq0 0 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (potG223ArmsWellFormed 1 (by omega)) (heq0 1 (by omega)) (by simp)
@@ -623,12 +629,12 @@ theorem potG223NoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
 theorem potG174NoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD potBytecode I g (initState σ σ₀ g A I) potG174FirstArmPc
+    (h : RD fork potBytecode I g (initState σ σ₀ g A I) potG174FirstArmPc
       [potSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 4 →
       UInt256.eq (armSelNat potBytecode (nthArmPc potBytecode potG174FirstArmPc j))
         (potSelWord I) = ⟨0⟩) :
-    RDrev potBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork potBytecode g (initState σ σ₀ g A I) := by
   have hend := h
     |>.selectorArmNotTakenAuto (potG174ArmsWellFormed 0 (by omega)) (heq0 0 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (potG174ArmsWellFormed 1 (by omega)) (heq0 1 (by omega)) (by simp)
@@ -637,12 +643,12 @@ theorem potG174NoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
   exact potJumpToNoMatchRevert hend (by native_decide) (by native_decide)
 
 theorem potG114NoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD potBytecode I g (initState σ σ₀ g A I) potG114FirstArmPc
+    (h : RD fork potBytecode I g (initState σ σ₀ g A I) potG114FirstArmPc
       [potSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 4 →
       UInt256.eq (armSelNat potBytecode (nthArmPc potBytecode potG114FirstArmPc j))
         (potSelWord I) = ⟨0⟩) :
-    RDrev potBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork potBytecode g (initState σ σ₀ g A I) := by
   have hend := h
     |>.selectorArmNotTakenAuto (potG114ArmsWellFormed 0 (by omega)) (heq0 0 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (potG114ArmsWellFormed 1 (by omega)) (heq0 1 (by omega)) (by simp)
@@ -651,12 +657,12 @@ theorem potG114NoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
   exact potJumpToNoMatchRevert hend (by native_decide) (by native_decide)
 
 theorem potG54NoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD potBytecode I g (initState σ σ₀ g A I) potG54FirstArmPc
+    (h : RD fork potBytecode I g (initState σ σ₀ g A I) potG54FirstArmPc
       [potSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 5 →
       UInt256.eq (armSelNat potBytecode (nthArmPc potBytecode potG54FirstArmPc j))
         (potSelWord I) = ⟨0⟩) :
-    RDrev potBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork potBytecode g (initState σ σ₀ g A I) := by
   have hend := h
     |>.selectorArmNotTakenAuto (potG54ArmsWellFormed 0 (by omega)) (heq0 0 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (potG54ArmsWellFormed 1 (by omega)) (heq0 1 (by omega)) (by simp)
@@ -668,8 +674,8 @@ theorem potG54NoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
 /-- `callvalue ≠ 0`: the non-payable prologue guard reverts. -/
 theorem potX_callvalue_ne {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = potBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev potBytecode g (initState σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
+    RDrev fork potBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (fork := fork) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide)
   have h12 := h0.push2 ⟨16⟩ (by native_decide) (by simp only [List.length]; omega)
@@ -682,8 +688,8 @@ theorem potX_callvalue_ne {σ σ₀ A I} {g : Sat256}
 theorem potX_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = potBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
-    RDrev potBytecode g (initState σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
+    RDrev fork potBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (fork := fork) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
@@ -707,7 +713,7 @@ theorem potX_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = potBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 17 → (potSelBytes i == I.calldata.extract 0 4) = false) :
-    RDrev potBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork potBytecode g (initState σ σ₀ g A I) := by
   by_cases hroot : UInt256.gt (armSelNat potBytecode potRootSplitPc) (potSelWord I) ≠ ⟨0⟩
   · -- low half (sel < 0x65fae35e): split @163
     by_cases h163 : UInt256.gt (armSelNat potBytecode potSplit163Pc) (potSelWord I) ≠ ⟨0⟩

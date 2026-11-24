@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.SwapWriteGuard
 import Benchmarks.UniswapV3.Pool.SwapFeeGrowthStoreTrace
 import Benchmarks.UniswapV3.Pool.SwapProtocolMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -13,12 +15,12 @@ theorem swapPoolFeesBranchX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p free : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (second : Bool) (s : SwapStateData)
-    (rd : RD (deployedRuntime v) ee g s0 (if second then ⟨4418⟩ else ⟨4345⟩)
+    (rd : RD fork (deployedRuntime v) ee g s0 (if second then ⟨4418⟩ else ⟨4345⟩)
       (p :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hs : SwapStateMemory mem p s)
     (hfit : s.Fits) (hperm : ee.perm = true) (hb : p.toNat + 224 ≤ 2 ^ 200)
     (hov : R.length + 8 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨4488⟩ (p :: R)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨4488⟩ (p :: R)
       mem aw' rdata (swapPoolFeesMap σ ee second s) k' C' ∧ HeapMemory mem aw' free := by
   have hg := SwapStateMemory.load_feeGrowth hs (by change _ < 2 ^ 256; omega)
   have hp := SwapStateMemory.load_protocolFee hs (by change _ < 2 ^ 256; omega)
@@ -91,7 +93,7 @@ theorem swapPoolFeesX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {aw p free exactWord cache snap dataStart dataLength ret : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : SwapArgs) (s : SwapStateData) (frame : Frame) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨4338⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨4338⟩
       (swapLoopWords a p exactWord cache snap dataStart dataLength ret R) mem aw rdata σ k C)
     (hsource : SourceState s0 ee σ evm) (hf : frame.contract = contract)
     (hz : frame.locals.get? "zeroForOne" = some (.bool a.zeroForOne))
@@ -101,11 +103,11 @@ theorem swapPoolFeesX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hm : HeapMemory mem aw free) (hs : SwapStateMemory mem p s)
     (hfit : s.Fits) (hperm : ee.perm = true) (hb : p.toNat + 224 ≤ 2 ^ 200)
     (hov : R.length + 20 ≤ 1024) :
-    ExecStmt config frame evm swapTransition.body[16]!
+    ExecStmt fork config frame evm swapTransition.body[16]!
         (.ok frame (swapPoolFeesState evm (!a.zeroForOne) s)) ∧
       SourceState s0 ee (swapPoolFeesMap σ ee (!a.zeroForOne) s)
         (swapPoolFeesState evm (!a.zeroForOne) s) ∧
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨4488⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨4488⟩
         (swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
         mem aw' rdata (swapPoolFeesMap σ ee (!a.zeroForOne) s) k' C' ∧
         HeapMemory mem aw' free := by

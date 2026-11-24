@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.MemoryGas
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_044
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_046
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -14,10 +16,10 @@ theorem hookReplyDecisionTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem out : ByteArray} {aw x0 x1 cond ret ptr : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (v : PoolManagerImmutables)
     (hstack : R.length+5 ≤ 1024) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨16263⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨16263⟩
       (x0 :: x1 :: cond :: ret :: ptr :: R) mem aw out σ k C) :
-    if cond = ⟨0⟩ then ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ret (ptr :: R) mem aw out σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    if cond = ⟨0⟩ then ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ret (ptr :: R) mem aw out σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   by_cases hc : cond = ⟨0⟩
   · rw [if_pos hc]
     have rd1 := poolManagerBlocks.poolManager_block_16263_fallthrough
@@ -41,12 +43,12 @@ theorem hookReplyCostTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hbefore : ptr.toNat+32+data.size ≤ free.toNat) (hfit : free.toNat+32 < UInt256.size)
     (hfree : memLoad (UInt256.ofNat 64) mem = free)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨16189⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨16189⟩
       (ptr :: hook :: ret :: (ptr+⟨32⟩) :: R) mem aw out σ k C) :
     if hookReplyValid data out then ∃ aw' k' C',
       C+Cₘ aw' ≤ C'+Cₘ aw ∧ (free.toNat+out.size+63)/32 ≤ aw'.toNat ∧
-      RD (deployedRuntime v) I g s0 ret (free :: R) (solcReturnDataMem mem free out) aw' out σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+      RD fork (deployedRuntime v) I g s0 ret (free :: R) (solcReturnDataMem mem free out) aw' out σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hm : poolManagerBlocks.poolManager_block_16189_taken_memory (mem := mem) (rdata := out) =
       solcReturnDataMem mem free out := by
     simp only [poolManagerBlocks.poolManager_block_16189_taken_memory, hfree,
@@ -146,11 +148,11 @@ theorem hookReplyTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hbefore : ptr.toNat+32+data.size ≤ free.toNat) (hfit : free.toNat+32 < UInt256.size)
     (hfree : memLoad (UInt256.ofNat 64) mem = free)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨16189⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨16189⟩
       (ptr :: hook :: ret :: (ptr+⟨32⟩) :: R) mem aw out σ k C) :
     if hookReplyValid data out then ∃ aw' k' C',
-      RD (deployedRuntime v) I g s0 ret (free :: R) (solcReturnDataMem mem free out) aw' out σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+      RD fork (deployedRuntime v) I g s0 ret (free :: R) (solcReturnDataMem mem free out) aw' out σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hr := hookReplyCostTrace v hstack hmem hdata hd ho hlo hbefore hfit hfree hret h
   split_ifs at hr ⊢ with hv
   · obtain ⟨aw', k', C', _, _, hr⟩ := hr

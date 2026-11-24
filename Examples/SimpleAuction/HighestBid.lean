@@ -1,6 +1,8 @@
 import Examples.SimpleAuction.Storage
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -13,7 +15,7 @@ def highestBidWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
 theorem simpleAuctionHighestBidBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocals : locals.get? "highestBid" = none) :
-    ExecTransitionBody simpleAuctionConfig simpleAuctionContract evm locals highestBidGetter.body
+    ExecTransitionBody fork simpleAuctionConfig simpleAuctionContract evm locals highestBidGetter.body
       (.returned { contract := simpleAuctionContract, locals := locals } evm
         (some [(.int (Int.ofNat
           (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨3⟩).toNat))])) := by
@@ -32,10 +34,10 @@ theorem simpleAuctionHighestBidBodyReturns (evm : EVM.State) (locals : Store)
       erw [storageLocLoad_uint256])
 
 theorem simpleAuctionX_highestBid_callvalue_ne {σ σ₀ A I} {g : Sat256}
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨305⟩
+    (hreach : ∃ k C, RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨305⟩
       [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev simpleAuctionBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork simpleAuctionBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd305⟩ := hreach
   exact evm_run rd305 with [
     jumpdest, callvalue, dup1, iszero, push2 ⟨316⟩,
@@ -43,10 +45,10 @@ theorem simpleAuctionX_highestBid_callvalue_ne {σ σ₀ A I} {g : Sat256}
     raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
 theorem simpleAuctionX_highestBid {σ σ₀ A I} {g : Sat256}
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨305⟩
+    (hreach : ∃ k C, RD fork simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨305⟩
       [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hwv : I.weiValue = ⟨0⟩) :
-    RDret simpleAuctionBytecode g (initState σ σ₀ g A I) σ
+    RDret fork simpleAuctionBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (highestBidWord σ I)) := by
   obtain ⟨_, _, rd305⟩ := hreach
   have rd323 := evm_run rd305 with [
@@ -121,11 +123,11 @@ theorem simpleAuctionHighestBidBody {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = simpleAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0xd5, 0x7b, 0xde, 0x79]⟩)
-    (hreach : ∃ k C, RD simpleAuctionBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork simpleAuctionBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨305⟩
       [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeRefinementFor simpleAuctionConfig simpleAuctionContract
+    runtimeRefinementFor fork simpleAuctionConfig simpleAuctionContract
       σ σ₀ g A I := by
   have hsel' : ((⟨#[0xd5, 0x7b, 0xde, 0x79]⟩ : ByteArray) == I.calldata.extract 0 4) =
       true := by
@@ -135,7 +137,7 @@ theorem simpleAuctionHighestBidBody {σ σ₀ A I}
   have hdec := simpleAuctionDecode_highestBid (I := I) hsz
   by_cases hwv : I.weiValue = ⟨0⟩
   · have hbody :
-        ExecTransitionBody simpleAuctionConfig simpleAuctionContract
+        ExecTransitionBody fork simpleAuctionConfig simpleAuctionContract
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
           highestBidGetter.body
           (.returned { contract := simpleAuctionContract, locals := ∅ }
@@ -149,7 +151,7 @@ theorem simpleAuctionHighestBidBody {σ σ₀ A I}
       |>.reEquivExecutionGen hcode hd hdec hbody (by rfl)
         (returnEquiv_of_encode (uint256ReturnEncoding (highestBidWord σ I)))
   · have hbody :
-        ExecTransitionBody simpleAuctionConfig simpleAuctionContract
+        ExecTransitionBody fork simpleAuctionConfig simpleAuctionContract
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
           highestBidGetter.body .reverted :=
       bodyReverts_nonPayable (by simp only [initState]; exact hwv)

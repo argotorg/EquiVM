@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.HealthyPriceSource
 import Benchmarks.Morpho.MorphoBlue.OraclePriceSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
@@ -26,7 +28,7 @@ theorem healthyAfterCall_locals (p : MarketParamsWords) (account price : UInt256
 theorem morphoHealthySourceZero (p : MarketParamsWords) (account : UInt256) (imms : Store) (evm : EVM.State)
     (hc : account.toNat < EVM.addressModulus)
     (hz : positionFieldWord evm.accountMap evm.executionEnv p.id account 1 = ⟨0⟩) :
-    ExecFuncBody config (healthyFrame p account imms) evm healthyFunction.body
+    ExecFuncBody fork config (healthyFrame p account imms) evm healthyFunction.body
       (.returned (healthyFrame p account imms) evm (some [.bool true])) := by
   have he := evalWordEqZero ((healthyFrame_locals p account imms).evalPosition imms evm ⟨1, by decide⟩ hc)
   have hz' : positionFieldWord evm.accountMap evm.executionEnv p.id account ⟨1, by decide⟩ = ⟨0⟩ := hz
@@ -38,13 +40,13 @@ theorem morphoHealthySourceZero (p : MarketParamsWords) (account : UInt256) (imm
 theorem morphoHealthySourcePrelude (p : MarketParamsWords) (account : UInt256) (imms : Store) (evm : EVM.State)
     (hc : account.toNat < EVM.addressModulus)
     (hn : positionFieldWord evm.accountMap evm.executionEnv p.id account 1 ≠ ⟨0⟩) :
-    ABlock config evm (healthyFrame p account imms) healthyFunction.body
+    ABlock fork config evm (healthyFrame p account imms) healthyFunction.body
       (healthyBeforeCall p account imms) (healthyFunction.body.drop 2) := by
   have hl := healthyFrame_locals p account imms
   have he := evalWordEqZero (hl.evalPosition imms evm ⟨1, by decide⟩ hc)
   have hn' : positionFieldWord evm.accountMap evm.executionEnv p.id account ⟨1, by decide⟩ ≠ ⟨0⟩ := hn
   rw [decide_eq_false hn'] at he
-  have pref : ABlock config evm (healthyFrame p account imms) healthyFunction.body
+  have pref : ABlock fork config evm (healthyFrame p account imms) healthyFunction.body
       (healthyFrame p account imms) (healthyFunction.body.drop 1) :=
     ⟨fun h ↦ ExecBlock.consNormal (ExecStmt.iteFalse he ExecBlock.nil) h⟩
   apply pref.letStep
@@ -59,17 +61,17 @@ theorem healthy_eval_receiver (p : MarketParamsWords) (account : UInt256) (imms 
 
 theorem morphoHealthySourceCallOk (p : MarketParamsWords) (account : UInt256) (imms : Store)
     (evm evm' : EVM.State) (out : ByteArray)
-    (hcall : typedCallViaEVM config evm (AccountAddress.ofNat p.oracle.toNat) "price" 0 [] (true, evm', out) false)
+    (hcall : typedCallViaEVM fork config evm (AccountAddress.ofNat p.oracle.toNat) "price" 0 [] (true, evm', out) false)
     (hlen : 32 ≤ out.size) (hout : out.size < 2 ^ 138) :
-    ExecStmt config (healthyBeforeCall p account imms) evm healthyFunction.body[2]!
+    ExecStmt fork config (healthyBeforeCall p account imms) evm healthyFunction.body[2]!
       (.ok (healthyAfterCall p account (calldataWord out 0) imms) evm') := by
   exact oraclePriceSourceOk "collateralPrice" out (healthy_eval_receiver p account imms evm) hcall hlen hout
 
 theorem morphoHealthySourceCallReverts (p : MarketParamsWords) (account : UInt256) (imms : Store)
     (evm evm' : EVM.State) (z : Bool) (out : ByteArray)
-    (hcall : typedCallViaEVM config evm (AccountAddress.ofNat p.oracle.toNat) "price" 0 [] (z, evm', out) false)
+    (hcall : typedCallViaEVM fork config evm (AccountAddress.ofNat p.oracle.toNat) "price" 0 [] (z, evm', out) false)
     (hbad : ¬ (z = true ∧ 32 ≤ out.size)) :
-    ExecStmt config (healthyBeforeCall p account imms) evm healthyFunction.body[2]! .reverted := by
+    ExecStmt fork config (healthyBeforeCall p account imms) evm healthyFunction.body[2]! .reverted := by
   exact oraclePriceSourceReverts "collateralPrice" z out (healthy_eval_receiver p account imms evm) hcall hbad
 
 theorem healthy_price_args (p : MarketParamsWords) (account price : UInt256) (imms : Store) (evm : EVM.State) :
@@ -91,9 +93,9 @@ theorem healthy_price_args (p : MarketParamsWords) (account price : UInt256) (im
 
 theorem morphoHealthySourceFinish (p : MarketParamsWords) (account price : UInt256) (imms : Store)
     (evm evm' : EVM.State) (frame' : Frame) (z : Bool)
-    (hb : ExecFuncBody config (healthyPriceFrame p account price imms) evm healthyPriceFunction.body
+    (hb : ExecFuncBody fork config (healthyPriceFrame p account price imms) evm healthyPriceFunction.body
       (.returned frame' evm' (some [.bool z]))) :
-    ExecBlock config (healthyAfterCall p account price imms) evm (healthyFunction.body.drop 3)
+    ExecBlock fork config (healthyAfterCall p account price imms) evm (healthyFunction.body.drop 3)
       (.returned { healthyAfterCall p account price imms with locals :=
         ((healthyAfterCall p account price imms).locals.insert "__c1" (.bool z)) } evm' (some [.bool z])) := by
   apply ExecBlock.consNormal (internalCallFunctionReturn (callee := healthyPriceFunction)
@@ -103,8 +105,8 @@ theorem morphoHealthySourceFinish (p : MarketParamsWords) (account price : UInt2
   simp only [evalExpr?, store_get_self, EvalResult.ofOption]
 
 theorem morphoHealthySourceFinishReverts (p : MarketParamsWords) (account price : UInt256) (imms : Store) (evm : EVM.State)
-    (hb : ExecFuncBody config (healthyPriceFrame p account price imms) evm healthyPriceFunction.body .reverted) :
-    ExecBlock config (healthyAfterCall p account price imms) evm (healthyFunction.body.drop 3) .reverted :=
+    (hb : ExecFuncBody fork config (healthyPriceFrame p account price imms) evm healthyPriceFunction.body .reverted) :
+    ExecBlock fork config (healthyAfterCall p account price imms) evm (healthyFunction.body.drop 3) .reverted :=
   ExecBlock.consRevert (internalCallFunctionRevert (callee := healthyPriceFunction)
     (healthy_price_args p account price imms evm) rfl rfl hb)
 

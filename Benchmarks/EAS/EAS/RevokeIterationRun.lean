@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.RevokeReadGuards
 import Benchmarks.EAS.EAS.RevokeLoopMemory
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -10,22 +12,22 @@ theorem revokeIterationRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g 
     (v : EASImmutables) (site : RevokeSite) (hstack : R.length+37 ≤ 1024) (hs : SourceState s0 ee σ evm)
     (hf : RevokeLoopLocals L site rs s ats values i heap.toNat)
     (hm : RevokeLoopMemory mem site rs s ptrs values ats heap.toNat) (hi : i < rs.length)
-    (rd : RD (deployedRuntime v) ee g s0 site.kind.readPC
+    (rd : RD fork (deployedRuntime v) ee g s0 site.kind.readPC
       (revokeLoopStack site ee (UInt256.ofNat i) R) mem aw rdata σ k C) :
     (∃ L' evm' σ' mem' aw' k' C' next a,
       ee.perm = true ∧ heap.toNat ≤ next ∧ next ≤ 2^64-1 ∧
       RevokeLoopLocals L' site rs s (ats.set i a) (values.set i rs[i].value) (i+1) next ∧
-      ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm revokeIteration
+      ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm revokeIteration
         (.ok {contract := contract,locals := L',immutables := immStore v} evm') ∧
       SourceState s0 ee σ' evm' ∧ MemoryPrefix mem mem' site.records.toNat ∧
       RevokeLoopMemory mem' site rs s (ptrs.set i heap) (values.set i rs[i].value) (ats.set i a) next ∧
       site.values.toNat+32+32*values.length ≤ mem'.size ∧
-      RD (deployedRuntime v) ee g s0 site.kind.loopPC
+      RD fork (deployedRuntime v) ee g s0 site.kind.loopPC
         (revokeLoopStack site ee (UInt256.ofNat (i+1)) R) mem' aw' rdata σ' k' C') ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm revokeIteration .reverted ∧
-      RDrev (deployedRuntime v) g s0) ∨
-    (ExecBlock config {contract := contract,locals := L,immutables := immStore v} evm revokeIteration .staticViolation ∧
-      RDstatic (deployedRuntime v) g s0) := by
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm revokeIteration .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) ∨
+    (ExecBlock fork config {contract := contract,locals := L,immutables := immStore v} evm revokeIteration .staticViolation ∧
+      RDstatic fork (deployedRuntime v) g s0) := by
   obtain ⟨request,hcell,hr,hrequest⟩ := hm.requests.requests i hi
   have has := hm.records.span
   have hac := hm.records.covered
@@ -60,7 +62,7 @@ theorem revokeIterationRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g 
           (hn' : name ∉ ["__c1$allocation","__c1","copied$allocation","copied","$EAS.freeMemory"]) :
           Lp.get? name = L.get? name :=
         (revokeStoreCopyLocals_get _ _ _ _ _ _ hn').trans (revokeReadLocals_get _ _ _ _ hn)
-      have hup := revokeUpdateSource (hperm := (congrArg ExecutionEnv.perm hs'.env).trans hperm) (evm := evm') (imms := immStore v) (L := Lp)
+      have hup := revokeUpdateSource (fork := fork) (hperm := (congrArg ExecutionEnv.perm hs'.env).trans hperm) (evm := evm') (imms := immStore v) (L := Lp)
         (heapResultLocals_result _ _ _ _ _ _ (by decide))
         ((revokeStoreCopyLocals_get _ _ _ _ _ _ (by decide)).trans (revokeReadLocals_alias L rs[i] heap.toNat))
         ((revokeStoreCopyLocals_get _ _ _ _ _ _ (by decide)).trans (revokeReadLocals_request L rs[i] heap.toNat))

@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.WordArrayHeap
 import Benchmarks.UniswapV3.Pool.HeapWordPairReturn
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_022
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -13,12 +15,12 @@ theorem mintFinishX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : EVM.State} {k C : Nat}
     {aw p before0 before1 junk0 junk1 amount0 amount1 len start amount upper lower recipient : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨6283⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨6283⟩
       (before1 :: before0 :: junk1 :: junk0 :: amount1 :: amount0 :: len :: start ::
         amount :: upper :: lower :: recipient :: ⟨621⟩ :: R) mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hperm : ee.perm = true)
     (hm : HeapMemory mem aw p) (hb : p.toNat + 128 ≤ 2 ^ 200) (hov : R.length + 27 ≤ 1024) :
-    RDret (deployedRuntime v) g s0 (storeSlot0Unlocked evm true).accountMap
+    RDret fork (deployedRuntime v) g s0 (storeSlot0Unlocked evm true).accountMap
       (amount0.toByteArray ++ amount1.toByteArray) := by
   obtain ⟨k1, C1, r1⟩ := (uniswapV3Pool_block_6283 (immWords := wordsOf (immStore v))
     (by evm_ov) rd).pack

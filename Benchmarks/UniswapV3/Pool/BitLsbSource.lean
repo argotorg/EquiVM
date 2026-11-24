@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.BitLsbStepSource
 import Benchmarks.UniswapV3.Pool.BitMsbSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -22,7 +24,7 @@ theorem bitLsbBind (x : UInt256) :
     bindParams? bitLsbFunction.params [.int (Int.ofNat x.toNat)] = some (bitLsbLocals x) := rfl
 
 theorem bitLsbReverts (imms : Store) (evm : EVM.State) (x : UInt256) (hx : ¬0 < x.toNat) :
-    ExecFuncBody config (bitLsbFrame imms x) evm bitLsbFunction.body .reverted := by
+    ExecFuncBody fork config (bitLsbFrame imms x) evm bitLsbFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   refine ExecBlock.consNormal (stele' := bitLsbZeroFrame imms x)
     (ExecStmt.letDecl (by simp only [evalExpr?, pure])) ?_
@@ -30,7 +32,7 @@ theorem bitLsbReverts (imms : Store) (evm : EVM.State) (x : UInt256) (hx : ¬0 <
     (by simpa only [hx, decide_false] using evalBitMsbGuard imms evm x))
 
 theorem bitLsbReturns (imms : Store) (evm : EVM.State) (x : UInt256) (hx : 0 < x.toNat) :
-    ∃ out, ExecFuncBody config (bitLsbFrame imms x) evm bitLsbFunction.body
+    ∃ out, ExecFuncBody fork config (bitLsbFrame imms x) evm bitLsbFunction.body
       (.returned out evm (some [.int (Int.ofNat (bitLsbCount x))])) := by
   have hr : (bitLsbReadyFrame imms x).locals.get? "r" = some (.int 255) :=
     Std.HashMap.getElem?_insert_self
@@ -48,9 +50,9 @@ theorem bitLsbReturns (imms : Store) (evm : EVM.State) (x : UInt256) (hx : 0 < x
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (by simpa only [hx, decide_true] using evalBitMsbGuard imms evm x)) ?_
   refine ExecBlock.consNormal (stele' := bitLsbReadyFrame imms x)
-    (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int 255) (by simp only [evalExpr?, pure])
+    (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (value := .int 255) (by simp only [evalExpr?, pure])
       (assignLocalVarBase_frame (old := .int 0) Std.HashMap.getElem?_insert_self)) ?_
-  change ExecBlock _ _ _ (((tickLogMsbBits.take 7).map (fun b ↦ bitLsbStepStmt b true)) ++
+  change ExecBlock fork _ _ _ (((tickLogMsbBits.take 7).map (fun b ↦ bitLsbStepStmt b true)) ++
     [bitLsbStepStmt 1 false, .return [.var "r"]]) _
   apply execBlock_append_ok hs
   refine ExecBlock.consNormal ht (ExecBlock.consReturn (ExecStmt.return ?_))

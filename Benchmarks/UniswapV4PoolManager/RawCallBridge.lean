@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.Common
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 
@@ -10,15 +12,15 @@ theorem rawCallBridge {code : ByteArray} {I : ExecutionEnv} {g : Sat256} {s0 evm
     {gasArg target value inOffset inSize outOffset outSize : UInt256} {R : List UInt256}
     (hI : evm.executionEnv = I) (hσ0 : evm.σ₀ = s0.σ₀)
     (hp : I.perm = true ∨ value = ⟨0⟩)
-    (h : RD code I g s0 pc (gasArg :: target :: value :: inOffset :: inSize :: outOffset :: outSize :: R)
+    (h : RD fork code I g s0 pc (gasArg :: target :: value :: inOffset :: inSize :: outOffset :: outSize :: R)
       mem aw rdata evm.accountMap k C)
     (hdec : decode code pc = some (.CALL, .none))
     (hcd : mem.readWithPadding inOffset.toNat inSize.toNat = calldata)
     (hsmall : calldata.size ≤ Ethereum.EVM.maxReturnDataSizeByGas) (hstack : R.length+1 ≤ 1024) :
     ∃ evm' z out k' C',
-      callViaEVM evm (AccountAddress.ofUInt256 target) (Int.ofNat value.toNat) calldata (z, evm', out) ∧
+      callViaEVM fork evm (AccountAddress.ofUInt256 target) (Int.ofNat value.toNat) calldata (z, evm', out) ∧
       evm'.executionEnv = I ∧ evm'.σ₀ = s0.σ₀ ∧
-      RD code I g s0 (pc+⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: R)
+      RD fork code I g s0 (pc+⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: R)
         (callOutputMem mem out outOffset outSize) (callActiveWords aw inOffset inSize outOffset outSize)
         out evm'.accountMap k' C' ∧ out.size < 2^138 := by
   rcases hp with hp | rfl
@@ -28,8 +30,9 @@ theorem rawCallBridge {code : ByteArray} {I : ExecutionEnv} {g : Sat256} {s0 evm
     exact ⟨evm', z, out, k', C', hc, hs.env, hs.world, hr, ho⟩
   · by_cases hd : I.depth = 1024
     · obtain ⟨k', C', hr⟩ := RD.callDepthLimit h hdec hd hstack
-      have hc : callViaEVM evm (AccountAddress.ofUInt256 target) 0 calldata
-          (false, {evm with substate := (evm.addAccessedAccount (AccountAddress.ofUInt256 target)).substate}, .empty) := by
+      have hc : callViaEVM fork evm (AccountAddress.ofUInt256 target) 0 calldata
+          (false, {evm with substate := (Ethereum.EVM.callSubstate fork
+            evm.accountMap (AccountAddress.ofUInt256 target) evm.substate)}, .empty) := by
         apply callViaEVM.callNotMade rfl rfl
         intro hh
         exact hh.2 (by rw [hI]; exact hd)
@@ -43,7 +46,7 @@ theorem rawCallBridge {code : ByteArray} {I : ExecutionEnv} {g : Sat256} {s0 evm
       rw [hcd] at hΘ
       have ho : out.size < 2^138 :=
         Theta_returnData_size_lt_2pow138_of_eq _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hΘ hsmall
-      have hc : callViaEVM evm (AccountAddress.ofUInt256 target) 0 calldata
+      have hc : callViaEVM fork evm (AccountAddress.ofUInt256 target) 0 calldata
           (z, {evm with accountMap := σ', substate := A'}, out) := by
         apply callViaEVM.callMade (g' := gasLeft) (A' := A') wordOfInt_zero.symm
           ⟨callGas, Ain, ?_⟩ rfl (Fin.zero_le _) (by rw [hI]; exact hd)

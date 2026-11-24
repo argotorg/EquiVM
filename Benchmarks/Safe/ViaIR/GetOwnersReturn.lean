@@ -4,6 +4,8 @@ import Benchmarks.Safe.ViaIR.AddressArrayEncoding
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_020
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_005
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -13,11 +15,11 @@ set_option maxRecDepth 2000
 
 set_option maxHeartbeats 800000 in
 theorem safeGetOwnersReturnTrace {I g s0 σ k C aw mem rdata n words i} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨4171⟩
+    (h : RD fork safeBytecode I g s0 ⟨4171⟩
       (⟨1⟩ :: ⟨0⟩ :: UInt256.ofNat i :: ⟨128⟩ :: R) mem aw rdata σ k C)
     (hov : R.length + 18 ≤ 1024) (hm : AddressArrayMemory mem n words)
     (hn : n ≤ 2 ^ 64 - 1) (hc : ∀ w ∈ words, w.toNat < EVM.addressModulus) :
-    RDret safeBytecode g s0 σ (addressArrayReturnBytes words) := by
+    RDret fork safeBytecode g s0 σ (addressArrayReturnBytes words) := by
   let fp := 160 + 32 * n
   have hfp : (addressArrayFreePtr n).toNat = fp :=
     ulit_toNat' _ (by change 160 + 32 * n < 2 ^ 256; omega)
@@ -35,7 +37,7 @@ theorem safeGetOwnersReturnTrace {I g s0 σ k C aw mem rdata n words i} {R : Lis
     rw [writeWord_sparse_read_preserved _ _ _ _ (.inl ⟨by dsimp [fp]; omega, hm.lower⟩)]
     exact hm.count
   obtain ⟨aw₂, k₂, C₂, h₂⟩ := safeRuntime_block_7437_packed (by simp; omega) h₁
-  change RD safeBytecode I g s0 ⟨7453⟩
+  change RD fork safeBytecode I g s0 ⟨7453⟩
     (⟨0⟩ :: memLoad ⟨128⟩ (writeWord mem fp (UInt256.ofNat 32)) ::
       (⟨128⟩ + UInt256.ofNat 32) :: (UInt256.ofNat (fp + 32) + UInt256.ofNat 32) ::
       ⟨585⟩ :: addressArrayFreePtr n :: addressArrayFreePtr n ::
@@ -57,7 +59,7 @@ theorem safeGetOwnersReturnTrace {I g s0 σ k C aw mem rdata n words i} {R : Lis
     hc (by jump_dest)
   have hret := safeRuntime_block_585 (by simp; omega) h585
   let encoded := addressArrayHeaderMemory mem fp n ++ wordBytes words
-  change RDret safeBytecode g s0 σ (encoded.readWithPadding
+  change RDret fork safeBytecode g s0 σ (encoded.readWithPadding
     (addressArrayFreePtr n).toNat
     (UInt256.sub (UInt256.ofNat (fp + 64 + 32 * words.length))
       (addressArrayFreePtr n)).toNat) at hret

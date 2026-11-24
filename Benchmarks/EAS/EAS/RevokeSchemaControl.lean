@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.RevokeArraysControl
 import Benchmarks.EAS.EAS.SchemaUIDCheck
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -22,9 +24,9 @@ theorem easRevokeSchemaPrepare {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {schema data revoker available last ret heap : UInt256} {R : List UInt256}
     (v : EASImmutables) (kind : RevokeKind) (hstack : R.length+13 ≤ 1024)
     (hb : heap.toNat+4 < UInt256.size) (hh : memLoad (UInt256.ofNat 64) mem = heap)
-    (rd : RD (deployedRuntime v) ee g s0 kind.entryPC
+    (rd : RD fork (deployedRuntime v) ee g s0 kind.entryPC
       (revokeEntryStack kind schema data revoker available last ret R) mem aw rdata σ k C) :
-    ∃ gasArg aw' k' C', RD (deployedRuntime v) ee g s0 (schemaCallPC kind.schemaSite)
+    ∃ gasArg aw' k' C', RD fork (deployedRuntime v) ee g s0 (schemaCallPC kind.schemaSite)
       (gasArg::UInt256.land (EVM.word v._schemaRegistry.val) solcAddrMask::heap::⟨36⟩::heap::⟨0⟩::
         schemaCallSaved kind.schemaSite heap (revokeSchemaSaved kind schema data revoker available last ret R))
       (getSchemaCallMemory mem heap schema) aw' rdata σ k' C' := by

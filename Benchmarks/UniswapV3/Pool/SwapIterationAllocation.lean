@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.WordArrayMemory
 import Benchmarks.UniswapV3.Pool.MemoryGasBound
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_074
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -73,11 +75,11 @@ theorem swapIterationAllocAw_cover {aw p : UInt256}
 theorem swapIterationAllocateX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨22030⟩ (ret :: R) mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨22030⟩ (ret :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw p) (hb : p.toNat + 224 ≤ 2 ^ 200)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 6 ≤ 1024) :
     ∃ k' C', C + 1 + (Cₘ (swapIterationAllocAw aw p) - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 ret (p :: R)
+      RD fork (deployedRuntime v) ee g s0 ret (p :: R)
         (wordArrayAllocMem mem p swapIterationZeroWords) (swapIterationAllocAw aw p)
         rdata σ k' C' ∧
       HeapMemory (wordArrayAllocMem mem p swapIterationZeroWords)

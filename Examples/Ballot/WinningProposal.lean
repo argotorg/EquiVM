@@ -1,6 +1,8 @@
 import Examples.Ballot.Common
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -293,7 +295,7 @@ def winningProposalLoopInv (evm : EVM.State) (target : UInt256 × UInt256)
 theorem winningProposalLoopPostStep (evm : EVM.State) (locals : Store) (p : UInt256)
     (hold : locals.get? "p" = some (.int (Int.ofNat p.toNat)))
     (hsize : p.toNat + 1 < UInt256.size) :
-    ExecBlock ballotConfig { contract := ballotContract, locals := locals } evm
+    ExecBlock fork ballotConfig { contract := ballotContract, locals := locals } evm
       [ .assign .localVar ({ base := "p" } : StorageRef)
           (.binary .add (.var "p") (.intLit 1)) ]
       (.ok (winningProposalFrame
@@ -325,7 +327,7 @@ theorem winningProposalLoopBodySkip (evm : EVM.State) (locals : Store) (p winnin
       some (.int (Int.ofNat winningVoteCount.toNat)))
     (hbound : p.toNat < (winningProposalLengthCurrent evm).toNat)
     (hgt : ¬ winningVoteCount.toNat < (winningProposalVoteCountCurrent evm p).toNat) :
-    ExecBlock ballotConfig { contract := ballotContract, locals := locals } evm
+    ExecBlock fork ballotConfig { contract := ballotContract, locals := locals } evm
       winningProposalLoopBodyStmts
       (.ok (winningProposalFrame locals) evm) := by
   rw [winningProposalLoopBodyStmts]
@@ -345,7 +347,7 @@ theorem winningProposalLoopBodyTake (evm : EVM.State) (locals : Store)
       some (.int (Int.ofNat winningProposal.toNat)))
     (hbound : p.toNat < (winningProposalLengthCurrent evm).toNat)
     (hgt : winningVoteCount.toNat < (winningProposalVoteCountCurrent evm p).toNat) :
-    ExecBlock ballotConfig { contract := ballotContract, locals := locals } evm
+    ExecBlock fork ballotConfig { contract := ballotContract, locals := locals } evm
       winningProposalLoopBodyStmts
       (.ok (winningProposalFrame
         ((locals.insert "winningVoteCount"
@@ -390,7 +392,7 @@ theorem winningProposalForLoopReturns (evm : EVM.State) (locals : Store)
     (hcount : locals.get? "winningVoteCount" = some (.int (Int.ofNat (0 : Nat))))
     (hbest : locals.get? "winningProposal_" = some (.int (Int.ofNat (0 : Nat)))) :
     ∃ locals',
-      ExecStmt ballotConfig (winningProposalFrame locals) evm winningProposalForStmt
+      ExecStmt fork ballotConfig (winningProposalFrame locals) evm winningProposalForStmt
         (.ok (winningProposalFrame locals') evm) ∧
       winningProposalLoopInv evm
         (winningProposalLoopAux evm (winningProposalLengthCurrent evm).toNat ⟨0⟩ ⟨0⟩ ⟨0⟩)
@@ -411,9 +413,9 @@ theorem winningProposalForLoopReturns (evm : EVM.State) (locals : Store)
       hvar, _hle, _hloop⟩
     exact winningProposalEvalLoopCond_true evm L p hprops hp (by omega)
   have hstep : ∀ v L, P (v + 1) L →
-      ∃ L1, ExecBlock ballotConfig (winningProposalFrame L) evm winningProposalLoopBodyStmts
+      ∃ L1, ExecBlock fork ballotConfig (winningProposalFrame L) evm winningProposalLoopBodyStmts
               (.ok (winningProposalFrame L1) evm) ∧
-            ∃ L', ExecBlock ballotConfig (winningProposalFrame L1) evm
+            ∃ L', ExecBlock fork ballotConfig (winningProposalFrame L1) evm
               winningProposalLoopPostStmts (.ok (winningProposalFrame L') evm) ∧ P v L' := by
     rintro v L ⟨p, winningVoteCount, winningProposal, hp, hcountL, hbestL, hprops,
       hvar, hle, hloop⟩
@@ -429,7 +431,7 @@ theorem winningProposalForLoopReturns (evm : EVM.State) (locals : Store)
           "winningProposal_" (.int (Int.ofNat p.toNat))
       let L2 := L1.insert "p" (.int (Int.ofNat (p + ⟨1⟩).toNat))
       have hbody :
-          ExecBlock ballotConfig (winningProposalFrame L) evm winningProposalLoopBodyStmts
+          ExecBlock fork ballotConfig (winningProposalFrame L) evm winningProposalLoopBodyStmts
             (.ok (winningProposalFrame L1) evm) := by
         simpa [L1, voteCount, winningProposalFrame] using
           winningProposalLoopBodyTake evm L p winningVoteCount winningProposal hprops hp hcountL
@@ -437,7 +439,7 @@ theorem winningProposalForLoopReturns (evm : EVM.State) (locals : Store)
       have hpL1 : L1.get? "p" = some (.int (Int.ofNat p.toNat)) := by
         simpa [L1, Std.HashMap.getElem?_insert, Std.HashMap.get?_eq_getElem?] using hp
       have hpost :
-          ExecBlock ballotConfig (winningProposalFrame L1) evm winningProposalLoopPostStmts
+          ExecBlock fork ballotConfig (winningProposalFrame L1) evm winningProposalLoopPostStmts
             (.ok (winningProposalFrame L2) evm) := by
         simpa [winningProposalLoopPostStmts, L2, winningProposalFrame] using
           winningProposalLoopPostStep evm L1 p hpL1 hsize
@@ -483,12 +485,12 @@ theorem winningProposalForLoopReturns (evm : EVM.State) (locals : Store)
         hleL2, hloopL2⟩
     · let L2 := L.insert "p" (.int (Int.ofNat (p + ⟨1⟩).toNat))
       have hbody :
-          ExecBlock ballotConfig (winningProposalFrame L) evm winningProposalLoopBodyStmts
+          ExecBlock fork ballotConfig (winningProposalFrame L) evm winningProposalLoopBodyStmts
             (.ok (winningProposalFrame L) evm) := by
         simpa [winningProposalFrame] using
           winningProposalLoopBodySkip evm L p winningVoteCount hprops hp hcountL hbound hgt
       have hpost :
-          ExecBlock ballotConfig (winningProposalFrame L) evm winningProposalLoopPostStmts
+          ExecBlock fork ballotConfig (winningProposalFrame L) evm winningProposalLoopPostStmts
             (.ok (winningProposalFrame L2) evm) := by
         simpa [winningProposalLoopPostStmts, L2, winningProposalFrame] using
           winningProposalLoopPostStep evm L p hp hsize
@@ -516,7 +518,7 @@ theorem winningProposalForLoopReturns (evm : EVM.State) (locals : Store)
         hpropsL2, hvarL2, hleL2, hloopL2⟩
   let L0 := locals.insert "p" (.int (Int.ofNat (0 : Nat)))
   have hinit :
-      ExecBlock ballotConfig (winningProposalFrame locals) evm
+      ExecBlock fork ballotConfig (winningProposalFrame locals) evm
         [ .letDecl "p" (some uint256) (.intLit 0) ] (.ok (winningProposalFrame L0) evm) := by
     apply ExecBlock.consNormal
     · apply ExecStmt.letDecl
@@ -544,7 +546,7 @@ theorem winningProposalForLoopReturns (evm : EVM.State) (locals : Store)
 theorem ballotWinningProposalBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩)
     (hbase : locals.get? "proposals" = none) :
-    ∃ locals', ExecTransitionBody ballotConfig ballotContract evm locals winningProposalTransition.body
+    ∃ locals', ExecTransitionBody fork ballotConfig ballotContract evm locals winningProposalTransition.body
       (.returned { contract := ballotContract, locals := locals' } evm
         (some [(.int (Int.ofNat (winningProposalResultCurrent evm).toNat))])) := by
   let Lwp := locals.insert "winningProposal_" (.int (Int.ofNat (0 : Nat)))
@@ -889,13 +891,13 @@ theorem ballotWinningProposalLoop {σ I} {g : Sat256} {s0 : State}
       winningProposalLoopAuxWord σ I var p winningVoteCount winningProposal = target →
       mem.size = 96 →
       mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ →
-      RD ballotBytecode I g s0 ⟨1319⟩
+      RD fork ballotBytecode I g s0 ⟨1319⟩
         (p :: winningVoteCount :: winningProposal :: ret :: R)
         mem (UInt256.ofNat 3) rdata σ k C →
       ∃ mem' k' C',
         mem'.size = 96 ∧
         mem'.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ ∧
-        RD ballotBytecode I g s0 ret (target.2 :: R)
+        RD fork ballotBytecode I g s0 ret (target.2 :: R)
           mem' (UInt256.ofNat 3) rdata σ k' C' := by
   intro var p winningVoteCount winningProposal target mem k C hvar hle hloop hmem hread64 h
   let Inv : ℕ → WinningProposalLoopState → Prop := fun v a =>
@@ -910,9 +912,9 @@ theorem ballotWinningProposalLoop {σ I} {g : Sat256} {s0 : State}
   let stateAw : WinningProposalLoopState → UInt256 := fun _ => UInt256.ofNat 3
   let exitStk : WinningProposalLoopState → List UInt256 := fun _ => target.2 :: R
   have hexit : ∀ a, Inv 0 a → ∀ k C,
-      RD ballotBytecode I g s0 ⟨1319⟩ (stk a) (stateMem a) (stateAw a) rdata σ k C →
+      RD fork ballotBytecode I g s0 ⟨1319⟩ (stk a) (stateMem a) (stateAw a) rdata σ k C →
       ∃ k' C',
-        RD ballotBytecode I g s0 ret (exitStk a) (stateMem a) (stateAw a) rdata
+        RD fork ballotBytecode I g s0 ret (exitStk a) (stateMem a) (stateAw a) rdata
           σ k' C' := by
     intro a hInv k C h
     dsimp [Inv] at hInv
@@ -937,10 +939,10 @@ theorem ballotWinningProposalLoop {σ I} {g : Sat256} {s0 : State}
       jumpdest, pop, pop, swap1, jump hret]
     exact ⟨_, _, by simpa [exitStk, stateMem, stateAw, hbestTarget] using rdret⟩
   have hbody : ∀ v a, Inv (v + 1) a → ∀ k C,
-      RD ballotBytecode I g s0 ⟨1319⟩ (stk a) (stateMem a) (stateAw a) rdata σ k C →
+      RD fork ballotBytecode I g s0 ⟨1319⟩ (stk a) (stateMem a) (stateAw a) rdata σ k C →
       ∃ a' k' C',
         Inv v a' ∧
-          RD ballotBytecode I g s0 ⟨1319⟩ (stk a') (stateMem a') (stateAw a') rdata
+          RD fork ballotBytecode I g s0 ⟨1319⟩ (stk a') (stateMem a') (stateAw a') rdata
             σ k' C' := by
     intro v a hInv k C h
     dsimp [Inv] at hInv
@@ -1045,7 +1047,7 @@ theorem ballotWinningProposalLoop {σ I} {g : Sat256} {s0 : State}
         { p := a.p + ⟨1⟩, winningVoteCount := voteCount, winningProposal := a.p, mem := mem2 }
       have hrdNext :
           ∃ k' C',
-            RD ballotBytecode I g s0 ⟨1319⟩ (stk a') (stateMem a') (stateAw a') rdata
+            RD fork ballotBytecode I g s0 ⟨1319⟩ (stk a') (stateMem a') (stateAw a') rdata
               σ k' C' := by
         exact ⟨_, _, by
           simpa [stk, stateMem, stateAw, a', voteCount, winningProposalVoteCountWord,
@@ -1085,7 +1087,7 @@ theorem ballotWinningProposalLoop {σ I} {g : Sat256} {s0 : State}
           winningProposal := a.winningProposal, mem := mem1 }
       have hrdNext :
           ∃ k' C',
-            RD ballotBytecode I g s0 ⟨1319⟩ (stk a') (stateMem a') (stateAw a') rdata
+            RD fork ballotBytecode I g s0 ⟨1319⟩ (stk a') (stateMem a') (stateAw a') rdata
               σ k' C' := by
         exact ⟨_, _, by simpa [stk, stateMem, stateAw, a', u256_add_comm] using rdNext⟩
       rcases hrdNext with ⟨kNext, CNext, rdNext'⟩
@@ -1113,12 +1115,12 @@ theorem ballotWinningProposalRoutine {σ I} {g : Sat256} {s0 : State}
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hret : (D_J ballotBytecode 0).contains ret = true)
     (hov : R.length + 23 ≤ 1024)
-    (h : RD ballotBytecode I g s0 ⟨1315⟩ (ret :: R)
+    (h : RD fork ballotBytecode I g s0 ⟨1315⟩ (ret :: R)
       mem (UInt256.ofNat 3) rdata σ k C) :
     ∃ mem' k' C',
       mem'.size = 96 ∧
       mem'.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ ∧
-      RD ballotBytecode I g s0 ret (winningProposalResultWord σ I :: R)
+      RD fork ballotBytecode I g s0 ret (winningProposalResultWord σ I :: R)
         mem' (UInt256.ofNat 3) rdata σ k' C' := by
   let target :=
     winningProposalLoopAuxWord σ I (winningProposalLengthWord σ I).toNat ⟨0⟩ ⟨0⟩ ⟨0⟩
@@ -1133,10 +1135,10 @@ theorem ballotWinningProposalRoutine {σ I} {g : Sat256} {s0 : State}
   simpa [target, winningProposalResultWord] using rdret
 
 theorem ballotX_winningProposal_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD ballotBytecode I g
+    (hreach : ∃ k C, RD fork ballotBytecode I g
       (initState σ σ₀ g A I) ⟨264⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret ballotBytecode g (initState σ σ₀ g A I) σ
+    RDret fork ballotBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (winningProposalResultWord σ I)) := by
   obtain ⟨_, _, rd264⟩ := hreach
   have rd1315 := evm_run rd264 with [
@@ -1179,10 +1181,10 @@ theorem ballotWinningProposalBodyCore
     (hcode : I.code = ballotBytecode) (_hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0x60, 0x9f, 0xf1, 0xbd]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
-    (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨264⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor ballotConfig ballotContract
+    runtimeRefinementFor fork ballotConfig ballotContract
       σ σ₀ g A I := by
   have hsz4 := ballotWinningProposalSelector_size hsel
   have hd := ballotDispatch_winningProposal (cd := I.calldata) hsel

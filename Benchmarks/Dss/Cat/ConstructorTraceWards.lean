@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Cat.ConstructorTraceArgs
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Cat constructor wards storage trace
 
@@ -20,11 +22,11 @@ theorem catCtorWardsStoreReach
     (vat : AccountAddress) {k C : ℕ}
     (hperm : I.perm = true)
     (rd54 :
-      RD (catCtorCode vat) I g
+      RD fork (catCtorCode vat) I g
         (initState σ σ₀ g A I) ⟨54⟩
         [EVM.word vat.val] (catCtorArgFreeMem vat) (UInt256.ofNat 5) ByteArray.empty
         σ k C) :
-    ∃ k' C', RD (catCtorCode vat) I g
+    ∃ k' C', RD fork (catCtorCode vat) I g
       (initState σ σ₀ g A I) ⟨75⟩
       [⟨1⟩, EVM.word vat.val] (catCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
       (sstoreAccountMap I.codeOwner σ (catCtorCallerWardsSlot I) ⟨1⟩)

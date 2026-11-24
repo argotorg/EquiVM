@@ -4,6 +4,8 @@ import Benchmarks.Auction.InitializerStorage
 import Benchmarks.Auction.CallState
 import Benchmarks.Auction.SettleSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -18,7 +20,7 @@ def settledAccounts (σ : AccountMap) (I : ExecutionEnv) : AccountMap :=
 
 theorem settleStoreSource {evm locals} (ha : locals.get? "auction" = none)
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt auctionConfig { contract := auctionContract, locals := locals } evm
+    ExecStmt fork auctionConfig { contract := auctionContract, locals := locals } evm
       (.assign .storage (aField "settled") (.boolLit true))
       (.ok { contract := auctionContract, locals := locals } (settledState evm)) := by
   apply ExecStmt.assign (hperm := Or.inr hperm) (value := .bool true) (by simp only [evalExpr?, pure])

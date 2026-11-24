@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.EntryTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_008
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -31,10 +33,10 @@ theorem entryMemory_wordReturn : WordReturnMemory entryMemory := by
 theorem wordReturnTrace {I : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray}
     {aw word : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+4 ≤ 1024) (hm : WordReturnMemory mem)
-    (h : RD (deployedRuntime v) I g s0 ⟨1954⟩ (word :: ⟨32⟩ :: R) mem aw rdata σ k C) :
-    RDret (deployedRuntime v) g s0 σ word.toByteArray := by
+    (h : RD fork (deployedRuntime v) I g s0 ⟨1954⟩ (word :: ⟨32⟩ :: R) mem aw rdata σ k C) :
+    RDret fork (deployedRuntime v) g s0 σ word.toByteArray := by
   have hr := poolManagerBlocks.poolManager_block_1954 hstack h
-  change RDret _ _ _ _ (writeWord mem (memLoad ⟨64⟩ mem).toNat word |>.readWithPadding (memLoad ⟨64⟩ mem).toNat 32) at hr
+  change RDret fork _ _ _ _ (writeWord mem (memLoad ⟨64⟩ mem).toNat word |>.readWithPadding (memLoad ⟨64⟩ mem).toNat 32) at hr
   rw [writeWord_read_back _ _ _ hm.gap] at hr
   exact hr
 

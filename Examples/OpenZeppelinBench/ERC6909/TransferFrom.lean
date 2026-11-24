@@ -1,6 +1,8 @@
 import Examples.OpenZeppelinBench.ERC6909.TransferFrom.Cases
 import Examples.OpenZeppelinBench.ERC6909.TransferFrom.Traces
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -18,11 +20,11 @@ theorem erc6909TransferFromBodyCore
     (hcode : I.code = erc6909BenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (erc6909SelBytes 7))
-    (hreach : ∃ k C, RD erc6909BenchBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork erc6909BenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨388⟩
       [erc6909SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeRefinementFor config contract
+    runtimeRefinementFor fork config contract
       σ σ₀ g A I := by
   have hsz4 := erc6909TransferFromSelector_size hsel
   have hd := erc6909Dispatch_transferFrom (cd := I.calldata) hsel
@@ -92,7 +94,7 @@ theorem erc6909TransferFromBodyCore
               evalExpr_transferFrom_allowance_gate_false_sender evmS I
                 (by simp [evmS, initState]) hsenderCaller
             by_cases hsenderZero : transferFromSenderWord I = ⟨0⟩
-            · have hbody := erc6909TransferFromBodyRevertsNoAllowance_sender_zero evmS I
+            · have hbody := erc6909TransferFromBodyRevertsNoAllowance_sender_zero (fork := fork) evmS I
                 (by simp only [evmS, initState]; exact hwv) hgate
                 (hsenderZeroAddr hsenderZero)
               exact (erc6909TransferFromX_skipCaller_revert_sender_zero
@@ -100,7 +102,7 @@ theorem erc6909TransferFromBodyCore
                   hcanonReceiver hsenderCaller hsenderZero hreach)
                 |>.reEquivExecutionRevert hcode hd hdec hbody
             · by_cases hreceiverZero : transferFromReceiverWord I = ⟨0⟩
-              · have hbody := erc6909TransferFromBodyRevertsNoAllowance_receiver_zero evmS I
+              · have hbody := erc6909TransferFromBodyRevertsNoAllowance_receiver_zero (fork := fork) evmS I
                   (by simp only [evmS, initState]; exact hwv) hgate
                   (hsenderNZAddr hsenderZero) (hreceiverZeroAddr hreceiverZero)
                 exact (erc6909TransferFromX_skipCaller_revert_receiver_zero
@@ -114,7 +116,7 @@ theorem erc6909TransferFromBodyCore
                   swap
                   · -- static mode: both sides halt at the sender debit
                     have hpf : I.perm = false := by simpa using hperm
-                    have hbody := erc6909TransferFromBodyStaticNoAllowance evmS I
+                    have hbody := erc6909TransferFromBodyStaticNoAllowance (fork := fork) evmS I
                       (by simp only [evmS, initState]; exact hwv) hgate
                       (evalExpr_transferFrom_sender_nonzero_true_of_get evmS
                         (transferFromStore I) I (transferFromStore_sender I)
@@ -135,7 +137,7 @@ theorem erc6909TransferFromBodyCore
                       simpa [hTailSenderBalance] using henough
                     have hfitS : transferFromTailReceiverCreditNat evmS I < UInt256.size := by
                       simpa [hTailReceiverCreditNat] using hfit
-                    have hbody := erc6909TransferFromBodyCoreNoAllowance (hperm := by assumption) evmS I
+                    have hbody := erc6909TransferFromBodyCoreNoAllowance (fork := fork) (hperm := by assumption) evmS I
                       (by simp only [evmS, initState]; exact hwv) hgate
                       (evalExpr_transferFrom_sender_nonzero_true_of_get evmS
                         (transferFromStore I) I (transferFromStore_sender I)
@@ -162,7 +164,7 @@ theorem erc6909TransferFromBodyCore
                     have hoverS :
                         UInt256.size ≤ transferFromTailReceiverCreditNat evmS I := by
                       simpa [hTailReceiverCreditNat] using hover
-                    have hbody := erc6909TransferFromBodyRevertsNoAllowance_overflow (hperm := by assumption) evmS I
+                    have hbody := erc6909TransferFromBodyRevertsNoAllowance_overflow (fork := fork) (hperm := by assumption) evmS I
                       (by simp only [evmS, initState]; exact hwv) hgate
                       (hsenderNZAddr hsenderZero) (hreceiverNZAddr hreceiverZero)
                       henoughS hoverS
@@ -179,7 +181,7 @@ theorem erc6909TransferFromBodyCore
                       (transferFromSenderBalanceWord evmS I).toNat <
                         (transferFromAmountWord I).toNat := by
                     simpa [hTailSenderBalance] using hlt
-                  have hbody := erc6909TransferFromBodyRevertsNoAllowance_insufficient evmS I
+                  have hbody := erc6909TransferFromBodyRevertsNoAllowance_insufficient (fork := fork) evmS I
                     (by simp only [evmS, initState]; exact hwv) hgate
                     (hsenderNZAddr hsenderZero) (hreceiverNZAddr hreceiverZero) hltS
                   exact (erc6909TransferFromX_skipCaller_insufficient
@@ -218,7 +220,7 @@ theorem erc6909TransferFromBodyCore
                   evalExpr_transferFrom_allowance_lt_max_false evmS I hallowanceMaxS
                 by_cases hsenderZero : transferFromSenderWord I = ⟨0⟩
                 · have hbody :=
-                    erc6909TransferFromBodyRevertsAllowanceMax_sender_zero evmS I
+                    erc6909TransferFromBodyRevertsAllowanceMax_sender_zero (fork := fork) evmS I
                       (by simp only [evmS, initState]; exact hwv) hgate
                       hallowanceMaxExpr (hsenderZeroAddr hsenderZero)
                   exact (erc6909TransferFromX_operatorFalse_allowanceMax_revert_sender_zero
@@ -227,7 +229,7 @@ theorem erc6909TransferFromBodyCore
                     |>.reEquivExecutionRevert hcode hd hdec hbody
                 · by_cases hreceiverZero : transferFromReceiverWord I = ⟨0⟩
                   · have hbody :=
-                      erc6909TransferFromBodyRevertsAllowanceMax_receiver_zero evmS I
+                      erc6909TransferFromBodyRevertsAllowanceMax_receiver_zero (fork := fork) evmS I
                         (by simp only [evmS, initState]; exact hwv) hgate
                         hallowanceMaxExpr (hsenderNZAddr hsenderZero)
                         (hreceiverZeroAddr hreceiverZero)
@@ -243,7 +245,7 @@ theorem erc6909TransferFromBodyCore
                       swap
                       · -- static mode: both sides halt at the sender debit
                         have hpf : I.perm = false := by simpa using hperm
-                        have hbody := erc6909TransferFromBodyStaticAllowanceMax evmS I
+                        have hbody := erc6909TransferFromBodyStaticAllowanceMax (fork := fork) evmS I
                           (by simp only [evmS, initState]; exact hwv) hgate hallowanceMaxExpr
                           (evalExpr_transferFrom_sender_nonzero_true_of_get evmS
                             (transferFromStoreCurrentAllowance evmS I) I
@@ -301,7 +303,7 @@ theorem erc6909TransferFromBodyCore
                             UInt256.size ≤ transferFromTailReceiverCreditNat evmS I := by
                           simpa [hTailReceiverCreditNat] using hover
                         have hbody :=
-                          erc6909TransferFromBodyRevertsAllowanceMax_overflow (hperm := by assumption) evmS I
+                          erc6909TransferFromBodyRevertsAllowanceMax_overflow (fork := fork) (hperm := by assumption) evmS I
                             (by simp only [evmS, initState]; exact hwv) hgate
                             hallowanceMaxExpr (hsenderNZAddr hsenderZero)
                             (hreceiverNZAddr hreceiverZero) henoughS hoverS
@@ -319,7 +321,7 @@ theorem erc6909TransferFromBodyCore
                             (transferFromAmountWord I).toNat := by
                         simpa [hTailSenderBalance] using hlt
                       have hbody :=
-                        erc6909TransferFromBodyRevertsAllowanceMax_insufficient_balance evmS I
+                        erc6909TransferFromBodyRevertsAllowanceMax_insufficient_balance (fork := fork) evmS I
                           (by simp only [evmS, initState]; exact hwv) hgate
                           hallowanceMaxExpr (hsenderNZAddr hsenderZero)
                           (hreceiverNZAddr hreceiverZero) hltS
@@ -347,7 +349,7 @@ theorem erc6909TransferFromBodyCore
                   swap
                   · -- static mode: both sides halt at the allowance debit
                     have hpf : I.perm = false := by simpa using hperm
-                    have hbody := erc6909TransferFromBodyStaticAllowanceDebit evmS I
+                    have hbody := erc6909TransferFromBodyStaticAllowanceDebit (fork := fork) evmS I
                       (by simp only [evmS, initState]; exact hwv) hgate
                       hallowanceNotMaxExpr hallowanceEnoughS
                       (by simp only [evmS, initState]; exact hpf)
@@ -411,7 +413,7 @@ theorem erc6909TransferFromBodyCore
                       hbase hcanonSender hallowanceNotMax hallowanceEnough rd1193
                   by_cases hsenderZero : transferFromSenderWord I = ⟨0⟩
                   · have hbody :=
-                      erc6909TransferFromBodyRevertsAllowance_sender_zero (hperm := by assumption) evmS I
+                      erc6909TransferFromBodyRevertsAllowance_sender_zero (fork := fork) (hperm := by assumption) evmS I
                         (by simp only [evmS, initState]; exact hwv) hgate
                         hallowanceNotMaxExpr hallowanceEnoughS
                         (hsenderZeroAddr hsenderZero)
@@ -428,7 +430,7 @@ theorem erc6909TransferFromBodyCore
                       |>.reEquivExecutionRevert hcode hd hdec hbody
                   · by_cases hreceiverZero : transferFromReceiverWord I = ⟨0⟩
                     · have hbody :=
-                        erc6909TransferFromBodyRevertsAllowance_receiver_zero (hperm := by assumption) evmS I
+                        erc6909TransferFromBodyRevertsAllowance_receiver_zero (fork := fork) (hperm := by assumption) evmS I
                           (by simp only [evmS, initState]; exact hwv) hgate
                           hallowanceNotMaxExpr hallowanceEnoughS
                           (hsenderNZAddr hsenderZero) (hreceiverZeroAddr hreceiverZero)
@@ -463,7 +465,7 @@ theorem erc6909TransferFromBodyCore
                             simpa [hAfterAllowanceSenderBalance] using hbalanceEnough
                           have hfitS : transferFromReceiverCreditNat evmS I < UInt256.size := by
                             simpa [hReceiverCreditNat] using hfit
-                          have hbody := erc6909TransferFromBodyCoreAllowanceDebit (hperm := by assumption) evmS I
+                          have hbody := erc6909TransferFromBodyCoreAllowanceDebit (fork := fork) (hperm := by assumption) evmS I
                             (by simp only [evmS, initState]; exact hwv) hgate
                             hallowanceNotMaxExpr hallowanceEnoughS
                             (evalExpr_transferFrom_sender_nonzero_true_of_get
@@ -517,7 +519,7 @@ theorem erc6909TransferFromBodyCore
                               UInt256.size ≤ transferFromReceiverCreditNat evmS I := by
                             simpa [hReceiverCreditNat] using hover
                           have hbody :=
-                            erc6909TransferFromBodyRevertsAllowance_overflow (hperm := by assumption) evmS I
+                            erc6909TransferFromBodyRevertsAllowance_overflow (fork := fork) (hperm := by assumption) evmS I
                               (by simp only [evmS, initState]; exact hwv) hgate
                               hallowanceNotMaxExpr hallowanceEnoughS
                               (hsenderNZAddr hsenderZero) (hreceiverNZAddr hreceiverZero)
@@ -555,7 +557,7 @@ theorem erc6909TransferFromBodyCore
                               (transferFromAmountWord I).toNat := by
                           simpa [hAfterAllowanceSenderBalance] using hlt
                         have hbody :=
-                          erc6909TransferFromBodyRevertsAllowance_insufficient_balance (hperm := by assumption) evmS I
+                          erc6909TransferFromBodyRevertsAllowance_insufficient_balance (fork := fork) (hperm := by assumption) evmS I
                             (by simp only [evmS, initState]; exact hwv) hgate
                             hallowanceNotMaxExpr hallowanceEnoughS
                             (hsenderNZAddr hsenderZero) (hreceiverNZAddr hreceiverZero)
@@ -580,7 +582,7 @@ theorem erc6909TransferFromBodyCore
                       (transferFromCurrentAllowanceWord evmS I).toNat <
                         (transferFromAmountWord I).toNat := by
                     simpa [hAllowance] using hltAllowance
-                  have hbody := erc6909TransferFromBodyRevertsAllowance_insufficient evmS I
+                  have hbody := erc6909TransferFromBodyRevertsAllowance_insufficient (fork := fork) evmS I
                     (by simp only [evmS, initState]; exact hwv) hgate
                     hallowanceNotMaxExpr hltAllowanceS
                   exact (erc6909TransferFromX_operatorFalse_insufficientAllowance
@@ -593,7 +595,7 @@ theorem erc6909TransferFromBodyCore
                   (by simp [evmS, initState]) hsenderNeSource
                   (by simpa [hOperator] using hopZero)
               by_cases hsenderZero : transferFromSenderWord I = ⟨0⟩
-              · have hbody := erc6909TransferFromBodyRevertsNoAllowance_sender_zero evmS I
+              · have hbody := erc6909TransferFromBodyRevertsNoAllowance_sender_zero (fork := fork) evmS I
                   (by simp only [evmS, initState]; exact hwv) hgate
                   (hsenderZeroAddr hsenderZero)
                 exact (erc6909TransferFromX_operatorApproved_revert_sender_zero
@@ -601,7 +603,7 @@ theorem erc6909TransferFromBodyCore
                     hcanonReceiver hsenderCaller hopZero hsenderZero hreach)
                   |>.reEquivExecutionRevert hcode hd hdec hbody
               · by_cases hreceiverZero : transferFromReceiverWord I = ⟨0⟩
-                · have hbody := erc6909TransferFromBodyRevertsNoAllowance_receiver_zero evmS I
+                · have hbody := erc6909TransferFromBodyRevertsNoAllowance_receiver_zero (fork := fork) evmS I
                     (by simp only [evmS, initState]; exact hwv) hgate
                     (hsenderNZAddr hsenderZero) (hreceiverZeroAddr hreceiverZero)
                   exact (erc6909TransferFromX_operatorApproved_revert_receiver_zero
@@ -615,7 +617,7 @@ theorem erc6909TransferFromBodyCore
                     swap
                     · -- static mode: both sides halt at the sender debit
                       have hpf : I.perm = false := by simpa using hperm
-                      have hbody := erc6909TransferFromBodyStaticNoAllowance evmS I
+                      have hbody := erc6909TransferFromBodyStaticNoAllowance (fork := fork) evmS I
                         (by simp only [evmS, initState]; exact hwv) hgate
                         (evalExpr_transferFrom_sender_nonzero_true_of_get evmS
                           (transferFromStore I) I (transferFromStore_sender I)
@@ -637,7 +639,7 @@ theorem erc6909TransferFromBodyCore
                         simpa [hTailSenderBalance] using henough
                       have hfitS : transferFromTailReceiverCreditNat evmS I < UInt256.size := by
                         simpa [hTailReceiverCreditNat] using hfit
-                      have hbody := erc6909TransferFromBodyCoreNoAllowance (hperm := by assumption) evmS I
+                      have hbody := erc6909TransferFromBodyCoreNoAllowance (fork := fork) (hperm := by assumption) evmS I
                         (by simp only [evmS, initState]; exact hwv) hgate
                         (evalExpr_transferFrom_sender_nonzero_true_of_get evmS
                           (transferFromStore I) I (transferFromStore_sender I)
@@ -665,7 +667,7 @@ theorem erc6909TransferFromBodyCore
                       have hoverS :
                           UInt256.size ≤ transferFromTailReceiverCreditNat evmS I := by
                         simpa [hTailReceiverCreditNat] using hover
-                      have hbody := erc6909TransferFromBodyRevertsNoAllowance_overflow (hperm := by assumption) evmS I
+                      have hbody := erc6909TransferFromBodyRevertsNoAllowance_overflow (fork := fork) (hperm := by assumption) evmS I
                         (by simp only [evmS, initState]; exact hwv) hgate
                         (hsenderNZAddr hsenderZero) (hreceiverNZAddr hreceiverZero)
                         henoughS hoverS
@@ -682,7 +684,7 @@ theorem erc6909TransferFromBodyCore
                         (transferFromSenderBalanceWord evmS I).toNat <
                           (transferFromAmountWord I).toNat := by
                       simpa [hTailSenderBalance] using hlt
-                    have hbody := erc6909TransferFromBodyRevertsNoAllowance_insufficient evmS I
+                    have hbody := erc6909TransferFromBodyRevertsNoAllowance_insufficient (fork := fork) evmS I
                       (by simp only [evmS, initState]; exact hwv) hgate
                       (hsenderNZAddr hsenderZero) (hreceiverNZAddr hreceiverZero) hltS
                     exact (erc6909TransferFromX_operatorApproved_insufficient

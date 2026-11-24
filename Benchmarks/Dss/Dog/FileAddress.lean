@@ -2,6 +2,8 @@ import Benchmarks.Dss.Dog.Dispatch
 import Reasoning.MemCascade
 import Reasoning.ABIComposite
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Dog.Immutables
 
@@ -207,9 +209,9 @@ theorem fileAddressVowSourceBodySplit {v : DogImmutables} {σ σ₀ A I}
     let evm1 := Stele.EVM.storageStore evm0 I.codeOwner ⟨2⟩
       (setAddressOffset0Word (Stele.EVM.storageLoad evm0 I.codeOwner ⟨2⟩)
         (fileAddressDataKey I))
-    (I.perm = true → ExecTransitionBody config contract evm0 locals fileAddressTransition.body
+    (I.perm = true → ExecTransitionBody fork config contract evm0 locals fileAddressTransition.body
       (.returned { contract := contract, locals := locals, immutables := immStore v } evm1 none) (immStore v)) ∧
-      (I.perm = false → ExecTransitionBody config contract
+      (I.perm = false → ExecTransitionBody fork config contract
         evm0 locals fileAddressTransition.body .staticViolation (immStore v)) := by
   intro locals evm0 evm1
   have hguard := dogAuthGuardEval_true (v := v)
@@ -236,9 +238,9 @@ theorem fileAddressVowSourceBodySplit {v : DogImmutables} {σ σ₀ A I}
       (assign_fileAddressVowStorage v evm0 (locals := locals) (fileAddressDataWord I)
         (by simpa [locals] using fileAddressLocals_get_vow I))
   have hprefix {result : ExecResult}
-      (hwrite : ExecBlock config { contract := contract, locals := locals, immutables := immStore v }
+      (hwrite : ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v }
         evm0 [.assign .storage vowRef (.var "data")] result) :
-      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
+      ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evm0
         fileAddressTransition.body result := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -247,7 +249,7 @@ theorem fileAddressVowSourceBodySplit {v : DogImmutables} {σ σ₀ A I}
   constructor
   · intro hperm
     exact ExecFuncBody.execBlockOK
-      (hprefix (ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) hdata hassign) ExecBlock.nil))
+      (hprefix (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) hdata hassign) ExecBlock.nil))
   · intro hperm
     exact ExecFuncBody.execBlockStatic
       (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hdata hassign
@@ -264,7 +266,7 @@ theorem fileAddressVowSourceBody {v : DogImmutables} {σ σ₀ A I}
     let evm1 := Stele.EVM.storageStore evm0 I.codeOwner ⟨2⟩
       (setAddressOffset0Word (Stele.EVM.storageLoad evm0 I.codeOwner ⟨2⟩)
         (fileAddressDataKey I))
-    ExecTransitionBody config contract evm0 locals fileAddressTransition.body
+    ExecTransitionBody fork config contract evm0 locals fileAddressTransition.body
       (.returned { contract := contract, locals := locals, immutables := immStore v } evm1 none) (immStore v) :=
   (fileAddressVowSourceBodySplit hwv hauth hwhat).1 hperm
 
@@ -275,7 +277,7 @@ theorem fileAddressUnrecognizedSourceBody {v : DogImmutables} {σ σ₀ A I}
     (hnotVow : fileAddressWhat I ≠ fileAddressVowBytes) :
     let locals := fileAddressLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 locals fileAddressTransition.body .reverted (immStore v) := by
+    ExecTransitionBody fork config contract evm0 locals fileAddressTransition.body .reverted (immStore v) := by
   intro locals evm0
   have hguard := dogAuthGuardEval_true (v := v)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -292,11 +294,11 @@ theorem fileAddressUnrecognizedSourceBody {v : DogImmutables} {σ σ₀ A I}
         (.boolLit false) = .ok (.bool false) := by
     simp [evalExpr?, pure]
   have helse :
-      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
+      ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evm0
         [.require (.boolLit false)] .reverted := by
     exact ExecBlock.consRevert (ExecStmt.requireFalse hreqFalse)
   have hblock :
-      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
+      ExecBlock fork config { contract := contract, locals := locals, immutables := immStore v } evm0
         fileAddressTransition.body .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -310,7 +312,7 @@ theorem dogReachFileAddressBody {v : DogImmutables} {code : ByteArray}
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (dogSelBytes 9)) :
-    ∃ k C, RD code I g (initState σ σ₀ g A I) ⟨585⟩
+    ∃ k C, RD fork code I g (initState σ σ₀ g A I) ⟨585⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨0xd4e8be83⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xd4 0xe8 0xbe 0x83 ⟨0xd4e8be83⟩
@@ -335,7 +337,7 @@ theorem dogReachFileAddressBody {v : DogImmutables} {code : ByteArray}
     rw [dogPushAtPatchedEqTemplate1405 (pc := selArmPush4Pc (⟨32⟩ : UInt256))
       hpatch (by native_decide)]
     native_decide
-  have h43 : RD code I g (initState σ σ₀ g A I) ⟨43⟩
+  have h43 : RD fork code I g (initState σ σ₀ g A I) ⟨43⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ (k32 + 5) (C32 + 22) := by
     simpa [selArmNextPc, hrootWidth] using
@@ -347,7 +349,7 @@ theorem dogReachFileAddressBody {v : DogImmutables} {code : ByteArray}
     rw [dogPushAtPatchedEqTemplate1405 (pc := selArmPush4Pc (⟨43⟩ : UInt256))
       hpatch (by native_decide)]
     native_decide
-  have h113 : RD code I g (initState σ σ₀ g A I) ⟨113⟩
+  have h113 : RD fork code I g (initState σ σ₀ g A I) ⟨113⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ (k32 + 5 + 5) (C32 + 22 + 22) := by
     simpa [hhighTgt] using
@@ -356,7 +358,7 @@ theorem dogReachFileAddressBody {v : DogImmutables} {code : ByteArray}
           rw [hhighTgt]
           exact dogPatchedDJumpPrefix1405 ⟨113⟩ hpatch (by native_decide))
         (by simp)
-  have h114 : RD code I g (initState σ σ₀ g A I) ⟨114⟩
+  have h114 : RD fork code I g (initState σ σ₀ g A I) ⟨114⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ (k32 + 5 + 5 + 1) (C32 + 22 + 22 + 1) := by
     simpa using
@@ -377,7 +379,7 @@ theorem dogReachFileAddressBody {v : DogImmutables} {code : ByteArray}
   have hfileAddress : UInt256.eq (dogSelectorWord 9) (solcSelectorWord I) ≠ ⟨0⟩ := by
     rw [hword]
     native_decide
-  have h125 : RD code I g (initState σ σ₀ g A I) ⟨125⟩
+  have h125 : RD fork code I g (initState σ σ₀ g A I) ⟨125⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ (k32 + 5 + 5 + 1 + 5) (C32 + 22 + 22 + 1 + 22) := by
     simpa [selArmNextPc] using
@@ -401,7 +403,7 @@ theorem dogReachFileAddressBody {v : DogImmutables} {code : ByteArray}
           native_decide)
         hhole
         (by simp)
-  have h136 : RD code I g (initState σ σ₀ g A I) ⟨136⟩
+  have h136 : RD fork code I g (initState σ σ₀ g A I) ⟨136⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ (k32 + 5 + 5 + 1 + 5 + 5) (C32 + 22 + 22 + 1 + 22 + 22) := by
     simpa [selArmNextPc] using
@@ -425,7 +427,7 @@ theorem dogReachFileAddressBody {v : DogImmutables} {code : ByteArray}
           native_decide)
         hwards
         (by simp)
-  have h147 : RD code I g (initState σ σ₀ g A I) ⟨147⟩
+  have h147 : RD fork code I g (initState σ σ₀ g A I) ⟨147⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ (k32 + 5 + 5 + 1 + 5 + 5 + 5) (C32 + 22 + 22 + 1 + 22 + 22 + 22) := by
     simpa [selArmNextPc] using
@@ -479,10 +481,10 @@ theorem RD.dogFileAddressDecodeToRoutine {v : DogImmutables} {code : ByteArray}
     {ret de sel : UInt256} {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
     {acc : AccountMap}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
-    (h : RD code ee g s0 ⟨607⟩ (de :: ⟨4⟩ :: ret :: sel :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 ⟨607⟩ (de :: ⟨4⟩ :: ret :: sel :: R) mem aw rdata acc k C)
     (hroutine : (D_J code 0).contains ⟨2146⟩ = true)
     (hov : R.length + 15 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨2146⟩
+    ∃ k' C', RD fork code ee g s0 ⟨2146⟩
       (UInt256.land solcAddrMask (calldataWord ee.calldata 36) ::
         calldataWord ee.calldata 4 :: ret :: sel :: R)
       mem aw rdata acc k' C' := by
@@ -543,13 +545,13 @@ theorem RD.dogFileAddressDecodeToRoutine {v : DogImmutables} {code : ByteArray}
 theorem RD.dogFileAddressToSwitch {v : DogImmutables} {code : ByteArray}
     {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
-    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I)
+    (hreach : ∃ k C, RD fork code I g (initState σ σ₀ g A I)
       ⟨585⟩ [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz68 : 68 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hauth :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩) :
-    ∃ k C, RD code I g (initState σ σ₀ g A I) ⟨2235⟩
+    ∃ k C, RD fork code I g (initState σ σ₀ g A I) ⟨2235⟩
       (fileAddressDataKey I :: calldataWord I.calldata 4 :: ⟨313⟩ :: sel :: [])
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -589,13 +591,13 @@ theorem RD.dogFileAddressToSwitch {v : DogImmutables} {code : ByteArray}
 theorem RD.dogFileAddressAuthRevert {v : DogImmutables} {code : ByteArray}
     {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
-    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I)
+    (hreach : ∃ k C, RD fork code I g (initState σ σ₀ g A I)
       ⟨585⟩ [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz68 : 68 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hauth :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩) :
-    RDrev code g (initState σ σ₀ g A I) := by
+    RDrev fork code g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcTwoAddressExternalLenOk
     (code := code) (sel := sel) (entry := ⟨585⟩) (ret := ⟨313⟩)
     (decoded := ⟨607⟩) hreach
@@ -639,7 +641,7 @@ theorem RD.dogFileAddressStoreVowLogSplit {v : DogImmutables} {code : ByteArray}
     {k C : ℕ} {data what ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
-    (h : RD code ee g s0 ⟨2235⟩ (data :: what :: ret :: sel :: R) mem
+    (h : RD fork code ee g s0 ⟨2235⟩ (data :: what :: ret :: sel :: R) mem
       (UInt256.ofNat 3) rdata σ k C)
     (hmatch : what = ABI.bytesToWord fileAddressVowBytes)
     (hret : (D_J code 0).contains ret = true)
@@ -647,12 +649,12 @@ theorem RD.dogFileAddressStoreVowLogSplit {v : DogImmutables} {code : ByteArray}
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 28 ≤ 1024) :
     (ee.perm = true ∧
-      ∃ k' C', RD code ee g s0 ret (sel :: R)
+      ∃ k' C', RD fork code ee g s0 ret (sel :: R)
         (writeWord mem 128 (UInt256.land data solcAddrMask))
         (UInt256.ofNat 5) rdata
         (sstoreAccountMap ee.codeOwner σ ⟨2⟩
           (setAddressOffset0Word (solcSlotWord σ ee ⟨2⟩) data)) k' C') ∨
-      (ee.perm = false ∧ RDstatic code g s0) := by
+      (ee.perm = false ∧ RDstatic fork code g s0) := by
   have rd2236 := h.jumpdest
     (by rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]; native_decide)
     (by evm_ov)
@@ -896,13 +898,13 @@ theorem RD.dogFileAddressUnrecognizedRevert {v : DogImmutables} {code : ByteArra
     {k C : ℕ} {data what ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
-    (h : RD code ee g s0 ⟨2235⟩ (data :: what :: ret :: sel :: R) mem
+    (h : RD fork code ee g s0 ⟨2235⟩ (data :: what :: ret :: sel :: R) mem
       (UInt256.ofNat 3) rdata acc k C)
     (hneq : what ≠ ABI.bytesToWord fileAddressVowBytes)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 9 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   have rd2236 := h.jumpdest
     (by rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]; native_decide)
     (by evm_ov)
@@ -959,7 +961,7 @@ theorem RD.dogFileAddressUnrecognizedRevert {v : DogImmutables} {code : ByteArra
 theorem RD.dogFileAddressSuccessSplit {v : DogImmutables} {code : ByteArray}
     {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
-    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I)
+    (hreach : ∃ k C, RD fork code I g (initState σ σ₀ g A I)
       ⟨585⟩ [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz68 : 68 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
@@ -967,11 +969,11 @@ theorem RD.dogFileAddressSuccessSplit {v : DogImmutables} {code : ByteArray}
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩)
     (hwhat : fileAddressWhat I = fileAddressVowBytes) :
     (I.perm = true ∧
-      RDret code g (initState σ σ₀ g A I)
+      RDret fork code g (initState σ σ₀ g A I)
         (sstoreAccountMap I.codeOwner σ ⟨2⟩
           (setAddressOffset0Word (solcSlotWord σ I ⟨2⟩) (fileAddressDataKey I)))
         ByteArray.empty) ∨
-      (I.perm = false ∧ RDstatic code g (initState σ σ₀ g A I)) := by
+      (I.perm = false ∧ RDstatic fork code g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, hswitch⟩ := RD.dogFileAddressToSwitch hpatch hreach hsz68 hsize hauth
   have hword :
       calldataWord I.calldata 4 = ABI.bytesToWord fileAddressVowBytes :=
@@ -1005,14 +1007,14 @@ theorem RD.dogFileAddressSuccessSplit {v : DogImmutables} {code : ByteArray}
 theorem RD.dogFileAddressUnrecognizedParamRevert {v : DogImmutables} {code : ByteArray}
     {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
-    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I)
+    (hreach : ∃ k C, RD fork code I g (initState σ σ₀ g A I)
       ⟨585⟩ [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz68 : 68 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hauth :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩)
     (hnotVow : fileAddressWhat I ≠ fileAddressVowBytes) :
-    RDrev code g (initState σ σ₀ g A I) := by
+    RDrev fork code g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, hswitch⟩ := RD.dogFileAddressToSwitch hpatch hreach hsz68 hsize hauth
   have hneq :
       calldataWord I.calldata 4 ≠ ABI.bytesToWord fileAddressVowBytes :=
@@ -1041,10 +1043,10 @@ theorem dogFileAddressBodyCoreOk
     (hdecode :
       config.externalABI.decodeCalldata? (fileAddressTransition.params.map Param.name)
         (transitionSignature fileAddressTransition).paramTypes I.calldata = some (fileAddressLocals I))
-    (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨585⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   let dataKey := fileAddressDataKey I
   let callerSlot := dogCallerWardsSlot I
   let locals := fileAddressLocals I
@@ -1063,9 +1065,9 @@ theorem dogFileAddressBodyCoreOk
       have hstoredStele :
           stored = setAddressOffset0Word (solcSlotWordAt ⟨2⟩ σ I) dataKey := rfl
       have hbodySplit :
-          (I.perm = true → ExecTransitionBody config contract evm0 locals fileAddressTransition.body
+          (I.perm = true → ExecTransitionBody fork config contract evm0 locals fileAddressTransition.body
             (.returned { contract := contract, locals := locals, immutables := immStore v } evm1 none) (immStore v)) ∧
-          (I.perm = false → ExecTransitionBody config contract
+          (I.perm = false → ExecTransitionBody fork config contract
             evm0 locals fileAddressTransition.body .staticViolation (immStore v)) := by
         simpa [evm0, evm1, locals, dataKey, stored, hstoredStele, solcSlotWordAt, solcSlotWord,
           initState, Stele.EVM.storageLoad] using
@@ -1082,7 +1084,7 @@ theorem dogFileAddressBodyCoreOk
         simpa [evm1, evm0, initState, storageStore_accountMap, stored, hstoredStele,
           solcSlotWordAt, solcSlotWord, Stele.EVM.storageLoad]
       have hret' :
-          RDret code (Sat256.ofUInt256 g)
+          RDret fork code (Sat256.ofUInt256 g)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (sstoreAccountMap I.codeOwner σ ⟨2⟩ stored) ByteArray.empty := by
         simpa [stored, dataKey, solcSlotWordAt] using hret
@@ -1090,7 +1092,7 @@ theorem dogFileAddressBodyCoreOk
         haccounts henc
     · let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       have hbody :
-          ExecTransitionBody config contract evm0 locals fileAddressTransition.body
+          ExecTransitionBody fork config contract evm0 locals fileAddressTransition.body
             .reverted (immStore v) := by
         simpa [evm0, locals] using
           (fileAddressUnrecognizedSourceBody (v := v)
@@ -1104,13 +1106,13 @@ theorem dogFileAddressBodyCoreOk
       exact hauthEvm hstele
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     have hbody :
-        ExecTransitionBody config contract evm0 locals fileAddressTransition.body
+        ExecTransitionBody fork config contract evm0 locals fileAddressTransition.body
           .reverted (immStore v) := by
       have hguard := dogAuthGuardEval_false (v := v)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) (locals := locals)
         (by simp [locals, fileAddressLocals]) hauthStele
-      have hblock := nonpayableSecondRequireReverts
+      have hblock := nonpayableSecondRequireReverts (fork := fork)
         (cfg := config) (stele := { contract := contract, locals := locals, immutables := immStore v })
         (evm := evm0)
         (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
@@ -1136,10 +1138,10 @@ theorem dogFileAddressBodyCoreDecodeFailed_short
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68)
     (hdispatch : dispatchMsg contract I.calldata = some fileAddressTransition)
-    (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨585⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
     apply ult_one
@@ -1175,12 +1177,12 @@ theorem dogFileAddressBodyCore {v : DogImmutables} {code : ByteArray}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (dogSelBytes 9)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (dogSelBytes 9) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some fileAddressTransition :=
     dogDispatchFileAddress hsel
-  have hreach := dogReachFileAddressBody (σ := σ)
+  have hreach := dogReachFileAddressBody (fork := fork) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hpatch hcode hwv hsz4 hsize hsel
   by_cases hsz68 : 68 ≤ I.calldata.size

@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.ModifyLiquidityParams
 import Benchmarks.UniswapV4PoolManager.PoolKeyView
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_017
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -19,13 +21,13 @@ theorem modifyLiquidityPoolPrepareTrace {I : ExecutionEnv} {g : Sat256} {s0 : St
     (hparams : MemorySlice mem paramsPtr.toNat (wordBytes (modifyLiquidityWords p)))
     (hpb : paramsPtr.toNat+128 ≤ free.toNat) (hfb : free.toNat+320 ≤ solcMaxU64)
     (hfree : memLoad (UInt256.ofNat 64) mem = free) (hpaid : Cₘ aw ≤ C)
-    (h : RD (deployedRuntime v) I g s0 ⟨5511⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨5511⟩
       (x0 :: x1 :: src :: paramsPtr :: len :: keyPtr :: id :: junk :: R) mem aw rdata σ k C) :
     if signedFits ⟨128, by decide⟩ (EVM.signed p.delta) then
-      ∃ aw' k' C', Cₘ aw' ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨5584⟩
+      ∃ aw' k' C', Cₘ aw' ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨5584⟩
         ((free+UInt256.ofNat 192) :: key.tickSpacing :: p.salt :: id :: paramsPtr :: src :: len ::
           p.upper :: p.delta :: p.lower :: keyPtr :: free :: junk :: R) mem aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hfit : free.toNat+320 < UInt256.size := by
     change _ ≤ 2^64-1 at hfb
     change _ < 2^256

@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.PayableCheck
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -21,17 +23,17 @@ theorem boolCallBlockSource {cfg : Config} {locals imms : Store} {evm evm' : EVM
     (ht : (tmp == "$EAS.freeMemory") = false) (hrt : (result == tmp) = false)
     (hrh : (result == "$EAS.freeMemory") = false)
     (hc : if resolverCallValid heap success out then
-      ExecStmt cfg {contract := contract, locals := locals, immutables := imms} evm (.internalCall callee args tmp)
+      ExecStmt fork cfg {contract := contract, locals := locals, immutables := imms} evm (.internalCall callee args tmp)
         (.ok {contract := contract, locals := locals.insert tmp (.tuple [
           .bool (decide (calldataWord out 0 ≠ ⟨0⟩)), .int (Int.ofNat (allocateNext heap (min out.size 32)))]), immutables := imms} evm')
-      else ExecStmt cfg {contract := contract, locals := locals, immutables := imms} evm (.internalCall callee args tmp) .reverted) :
+      else ExecStmt fork cfg {contract := contract, locals := locals, immutables := imms} evm (.internalCall callee args tmp) .reverted) :
     if callBoolAccepted heap success out then
-      ExecBlock cfg {contract := contract, locals := locals, immutables := imms} evm (boolCallBlock callee args tmp result)
+      ExecBlock fork cfg {contract := contract, locals := locals, immutables := imms} evm (boolCallBlock callee args tmp result)
         (.ok {contract := contract, locals := boolCallBlockLocals locals tmp result heap out, immutables := imms} evm')
-    else ExecBlock cfg {contract := contract, locals := locals, immutables := imms} evm (boolCallBlock callee args tmp result) .reverted := by
+    else ExecBlock fork cfg {contract := contract, locals := locals, immutables := imms} evm (boolCallBlock callee args tmp result) .reverted := by
   by_cases hv : resolverCallValid heap success out
   · rw [if_pos hv] at hc
-    have hu := unpackHeapResult (cfg := cfg) (evm := evm')
+    have hu := unpackHeapResult (fork := fork) (cfg := cfg) (evm := evm')
       (frame := {contract := contract, locals := locals.insert tmp (.tuple [
         .bool (decide (calldataWord out 0 ≠ ⟨0⟩)), .int (Int.ofNat (allocateNext heap (min out.size 32)))]), immutables := imms})
       (result := result) (cursor := "$EAS.freeMemory") (tmp := tmp)

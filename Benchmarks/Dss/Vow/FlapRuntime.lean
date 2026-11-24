@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Vow.FlapKickBody
 import Benchmarks.Dss.Vow.FlopBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -16,7 +18,7 @@ theorem vowFlapSin0CallDepthLimitBody
     (hdecode :
       config.externalABI.decodeCalldata? (flapTransition.params.map Param.name)
         (transitionSignature flapTransition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨349⟩ [vowSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hcodeSizeSinNE :
@@ -27,13 +29,14 @@ theorem vowFlapSin0CallDepthLimitBody
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hdepthEq : I.depth = 1024) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨_, _, rd937⟩ :=
     RD.vowFlapSin0CallDepthLimit hreach hcodeSizeSinNE hdepthEq
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-  let A_sin := (evm0.addAccessedAccount (EVM.address (kissVatAddress σ I))).substate
+  let A_sin := (Ethereum.EVM.callSubstate fork evm0.accountMap (EVM.address
+    (kissVatAddress σ I)) evm0.substate)
   have hcallSinDepth :
-      typedCallViaEVM config evm0
+      typedCallViaEVM fork config evm0
         (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
         (false,
           { evm0 with accountMap := σ, substate := A_sin },
@@ -52,7 +55,7 @@ theorem RD.vowFlapSin0PostCallDecodeOk
     {σ σ₀ A I} {g sel target : UInt256}
     {acc : AccountMap}
     {outSin : ByteArray} {k C : ℕ}
-    (rd937 : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd937 : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨937⟩
       (⟨1⟩ :: healSinEndPtr :: healSinSelector :: target ::
         ⟨985⟩ :: ⟨993⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
@@ -61,7 +64,7 @@ theorem RD.vowFlapSin0PostCallDecodeOk
       (UInt256.ofNat 6) outSin acc k C)
     (ho32 : 32 ≤ outSin.size) (hosz : outSin.size < UInt256.size) :
     let vatSin0 := UInt256.ofNat (fromByteArrayBigEndian (outSin.extract 0 32))
-    ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨978⟩
       (vatSin0 :: ⟨985⟩ :: ⟨993⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       (outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 32)
@@ -114,7 +117,7 @@ theorem RD.vowFlapDai0PostCallDecodeOk
     {σ σ₀ A I} {g sel target surplusNeed : UInt256}
     {acc : AccountMap}
     {mem outDai : ByteArray} {k C : ℕ}
-    (rd1072 : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd1072 : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1072⟩
       (⟨1⟩ :: ⟨164⟩ :: ⟨1814410054⟩ :: target :: surplusNeed ::
         ⟨0⟩ :: ⟨357⟩ :: sel :: [])
@@ -125,7 +128,7 @@ theorem RD.vowFlapDai0PostCallDecodeOk
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (ho32 : 32 ≤ outDai.size) (hosz : outDai.size < UInt256.size) :
     let vatDai := UInt256.ofNat (fromByteArrayBigEndian (outDai.extract 0 32))
-    ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1113⟩
       (vatDai :: surplusNeed :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       (outDai.write 0 (vatDaiCalldataMem I mem) 128 32)
@@ -178,7 +181,7 @@ theorem RD.vowFlapSin1PostCallDecodeOk
     {σ σ₀ A I} {g sel target : UInt256}
     {acc : AccountMap}
     {mem outSin1 : ByteArray} {k C : ℕ}
-    (rd1277 : RD vowBytecode I (Sat256.ofUInt256 g)
+    (rd1277 : RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1277⟩
       (⟨1⟩ :: healSinEndPtr :: healSinSelector :: target ::
         ⟨1325⟩ :: ⟨1333⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
@@ -189,7 +192,7 @@ theorem RD.vowFlapSin1PostCallDecodeOk
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (ho32 : 32 ≤ outSin1.size) (hosz : outSin1.size < UInt256.size) :
     let vatSin1 := UInt256.ofNat (fromByteArrayBigEndian (outSin1.extract 0 32))
-    ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
+    ∃ k' C', RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1318⟩
       (vatSin1 :: ⟨1325⟩ :: ⟨1333⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       (outSin1.write 0 (healSinCalldataMem I mem) 128 32)
@@ -250,7 +253,7 @@ theorem vowFlapBodyPrefix
         {evmSinStele : EVM.State} {outSin memSin : ByteArray} {k993 C993 : ℕ}
         {vatSin0 BumpVal surplus0 HumpVal surplusNeed : UInt256},
         memSin = outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 32 →
-        RD vowBytecode I (Sat256.ofUInt256 g)
+        RD fork vowBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨993⟩
           (surplusNeed :: ⟨0⟩ :: ⟨357⟩ :: vowSelWord I :: [])
           memSin (UInt256.ofNat 6) outSin σ_sin k993 C993 →
@@ -259,7 +262,7 @@ theorem vowFlapBodyPrefix
         0 < (UInt256.ofNat
           (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
             (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat →
-        typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
           (true, evmSinStele, outSin) false →
         config.externalABI.decode? "sin" outSin =
@@ -284,11 +287,11 @@ theorem vowFlapBodyPrefix
             solcSlotWordAt slot σ_sin I) →
         (∀ slot : UInt256,
           solcSlotWordAt slot evmSinStele.accountMap I = solcSlotWordAt slot σ I) →
-        runtimeRefinementFor config contract σ σ₀ g A I)
+        runtimeRefinementFor fork config contract σ σ₀ g A I)
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x0e, 0x01, 0x19, 0x8b]⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x0e, 0x01, 0x19, 0x8b]⟩ rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some flapTransition :=
@@ -297,7 +300,7 @@ theorem vowFlapBodyPrefix
       config.externalABI.decodeCalldata? (flapTransition.params.map Param.name)
         (transitionSignature flapTransition).paramTypes I.calldata = some ∅ :=
     vowDecode_flap hsz4
-  have hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
+  have hreach : ∃ k C, RD fork vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨349⟩ [vowSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C :=
     vowReachFlapBody (σ := σ)
@@ -326,7 +329,7 @@ theorem vowFlapBodyPrefix
       RD.vowFlapSin0PostCall hreach hcodeSizeSinNE hdepthLt
     cases zSin
     · have hcallSinEvm :
-          typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
             (false,
               { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -339,14 +342,14 @@ theorem vowFlapBodyPrefix
             accountMap := σ_sin
             substate := A_sin }
       have hcallSinStele :
-          typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
             (false, evmSinStele, outSin) false := by
         simpa [evmSinStele] using hcallSinEvm
       exact vowFlapSin0CallFailureBodyCore (acc := σ_sin)
         hcode hwv hdispatch hdecode (by simpa using rd937) hoszSin hvatCodeStele
         hcallSinStele
-    · have rd937True : RD vowBytecode I (Sat256.ofUInt256 g)
+    · have rd937True : RD fork vowBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨937⟩
           (⟨1⟩ :: healSinEndPtr :: healSinSelector :: kissDaiTargetWord σ I ::
             ⟨985⟩ :: ⟨993⟩ :: ⟨0⟩ :: ⟨357⟩ :: vowSelWord I :: [])
@@ -355,7 +358,7 @@ theorem vowFlapBodyPrefix
           (UInt256.ofNat 6) outSin σ_sin k937 C937 := by
         simpa using rd937
       have hcallSinEvm :
-          typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
             (true,
               { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -372,7 +375,7 @@ theorem vowFlapBodyPrefix
             accountMap := σ_sin
             substate := A_sin }
       have hcallSinStele :
-          typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
             (true, evmSinStele, outSin) false := by
         simpa [evmSinStele] using hcallSinEvm
@@ -520,7 +523,7 @@ theorem vowFlapBodyToSin1
         {k1190 C1190 : ℕ}
         {vatSin0 BumpVal surplus0 HumpVal surplusNeed vatDai : UInt256},
         memDai = outDai.write 0 (vatDaiCalldataMem I memSin) 128 32 →
-        RD vowBytecode I (Sat256.ofUInt256 g)
+        RD fork vowBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1190⟩
           (⟨0⟩ :: ⟨357⟩ :: vowSelWord I :: [])
           memDai (UInt256.ofNat 6) outDai σ_dai k1190 C1190 →
@@ -531,7 +534,7 @@ theorem vowFlapBodyToSin1
         0 < (UInt256.ofNat
           (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
             (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat →
-        typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
           (true, evmSinStele, outSin) false →
         config.externalABI.decode? "sin" outSin =
@@ -550,7 +553,7 @@ theorem vowFlapBodyToSin1
         0 < (UInt256.ofNat
           ((evmSinStele.lookupAccount (kissVatAddress σ I)).option 0
             (fun acc => acc.code.size))).toNat →
-        typedCallViaEVM config evmSinStele (EVM.address (kissVatAddress σ I)) "dai" 0
+        typedCallViaEVM fork config evmSinStele (EVM.address (kissVatAddress σ I)) "dai" 0
           [.address I.codeOwner] (true, evmDaiStele, outDai) false →
         config.externalABI.decode? "dai" outDai =
           some [.int (Int.ofNat vatDai.toNat)] →
@@ -566,11 +569,11 @@ theorem vowFlapBodyToSin1
             solcSlotWordAt slot σ_dai I) →
         (∀ slot : UInt256,
           solcSlotWordAt slot evmDaiStele.accountMap I = solcSlotWordAt slot σ I) →
-        runtimeRefinementFor config contract σ σ₀ g A I)
+        runtimeRefinementFor fork config contract σ σ₀ g A I)
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x0e, 0x01, 0x19, 0x8b]⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hdispatch : dispatchMsg contract I.calldata = some flapTransition :=
     vowDispatch_flap hsel
   have hsz4 : 4 ≤ I.calldata.size :=
@@ -656,7 +659,7 @@ theorem vowFlapBodyToSin1
         accountMap := σ_dai
         substate := A_dai }
   have hcallDaiEvm :
-      typedCallViaEVM config evmDaiEvmIn
+      typedCallViaEVM fork config evmDaiEvmIn
         (EVM.address (kissVatAddress σ_sin I)) "dai" 0 [.address I.codeOwner]
         (zDai, evmDaiEvmOut, outDai) false := by
     simpa [evmDaiEvmIn, evmDaiEvmOut] using hcallDaiEvmRaw
@@ -682,7 +685,7 @@ theorem vowFlapBodyToSin1
         accountMap := σ_dai_stele
         substate := A_dai_stele }
   have hcallDaiStele :
-      typedCallViaEVM config evmSinStele
+      typedCallViaEVM fork config evmSinStele
         (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
         (zDai, evmDaiStele, outDai) false := by
     simpa [evmDaiStele, evmDaiSteleBase, hVatAddrSin] using hcallDaiSteleRaw
@@ -692,7 +695,7 @@ theorem vowFlapBodyToSin1
       hcode hwv hdispatch hdecode (by simpa using rd1072) hoszDai hvatCodeStele
       hcallSinStele hdecSin hBumpLoad hsurplus0 hfit0 hHumpLoad hsurplusNeed
       hfitNeed hvatLoadSin hvatCodeDai (by simpa using hcallDaiStele)
-  · have rd1072True : RD vowBytecode I (Sat256.ofUInt256 g)
+  · have rd1072True : RD fork vowBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1072⟩
         (⟨1⟩ :: ⟨164⟩ :: ⟨1814410054⟩ :: kissDaiTargetWord σ_sin I ::
           surplusNeed :: ⟨0⟩ :: ⟨357⟩ :: vowSelWord I :: [])
@@ -701,7 +704,7 @@ theorem vowFlapBodyToSin1
         (UInt256.ofNat 6) outDai σ_dai k1072 C1072 := by
       simpa using rd1072
     have hcallDaiSteleTrue :
-        typedCallViaEVM config evmSinStele
+        typedCallViaEVM fork config evmSinStele
           (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
           (true, evmDaiStele, outDai) false := by
       simpa using hcallDaiStele
@@ -801,7 +804,7 @@ theorem vowFlapBodyToSub
         {k1318 C1318 : ℕ}
         {vatSin0 BumpVal surplus0 HumpVal surplusNeed vatDai vatSin1 : UInt256},
         memSin1 = outSin1.write 0 (healSinCalldataMem I memDai) 128 32 →
-        RD vowBytecode I (Sat256.ofUInt256 g)
+        RD fork vowBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1318⟩
           (vatSin1 :: ⟨1325⟩ :: ⟨1333⟩ :: ⟨0⟩ :: ⟨357⟩ :: vowSelWord I :: [])
           memSin1 (UInt256.ofNat 6) outSin1 σ_sin1 k1318 C1318 →
@@ -812,7 +815,7 @@ theorem vowFlapBodyToSub
         0 < (UInt256.ofNat
           (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
             (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat →
-        typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
           (true, evmSin0, outSin0) false →
         config.externalABI.decode? "sin" outSin0 =
@@ -829,7 +832,7 @@ theorem vowFlapBodyToSub
         0 < (UInt256.ofNat
           ((evmSin0.lookupAccount (kissVatAddress σ I)).option 0
             (fun acc => acc.code.size))).toNat →
-        typedCallViaEVM config evmSin0 (EVM.address (kissVatAddress σ I)) "dai" 0
+        typedCallViaEVM fork config evmSin0 (EVM.address (kissVatAddress σ I)) "dai" 0
           [.address I.codeOwner] (true, evmDai, outDai) false →
         config.externalABI.decode? "dai" outDai =
           some [.int (Int.ofNat vatDai.toNat)] →
@@ -840,7 +843,7 @@ theorem vowFlapBodyToSub
         0 < (UInt256.ofNat
           ((evmDai.lookupAccount (kissVatAddress σ I)).option 0
             (fun acc => acc.code.size))).toNat →
-        typedCallViaEVM config evmDai (EVM.address (kissVatAddress σ I)) "sin" 0
+        typedCallViaEVM fork config evmDai (EVM.address (kissVatAddress σ I)) "sin" 0
           [.address I.codeOwner] (true, evmSin1, outSin1) false →
         config.externalABI.decode? "sin" outSin1 =
           some [.int (Int.ofNat vatSin1.toNat)] →
@@ -853,11 +856,11 @@ theorem vowFlapBodyToSub
             solcSlotWordAt slot σ_sin1 I) →
         (∀ slot : UInt256,
           solcSlotWordAt slot evmSin1.accountMap I = solcSlotWordAt slot σ I) →
-        runtimeRefinementFor config contract σ σ₀ g A I)
+        runtimeRefinementFor fork config contract σ σ₀ g A I)
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x0e, 0x01, 0x19, 0x8b]⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hdispatch : dispatchMsg contract I.calldata = some flapTransition :=
     vowDispatch_flap hsel
   have hsz4 : 4 ≤ I.calldata.size :=
@@ -942,7 +945,7 @@ theorem vowFlapBodyToSub
         accountMap := σ_sin1
         substate := A_sin1 }
   have hcallSin1Evm :
-      typedCallViaEVM config evmSin1EvmIn
+      typedCallViaEVM fork config evmSin1EvmIn
         (EVM.address (kissVatAddress σ_dai I)) "sin" 0 [.address I.codeOwner]
         (zSin1, evmSin1EvmOut, outSin1) false := by
     simpa [evmSin1EvmIn, evmSin1EvmOut] using hcallSin1EvmRaw
@@ -968,7 +971,7 @@ theorem vowFlapBodyToSub
         accountMap := σ_sin1_stele
         substate := A_sin1_stele }
   have hcallSin1Stele :
-      typedCallViaEVM config evmDaiStele
+      typedCallViaEVM fork config evmDaiStele
         (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
         (zSin1, evmSin1Stele, outSin1) false := by
     simpa [evmSin1Stele, evmSin1SteleBase, hVatAddrDai] using hcallSin1SteleRaw
@@ -979,7 +982,7 @@ theorem vowFlapBodyToSub
       hcallSinStele hdecSin hBumpLoad hsurplus0 hfit0 hHumpLoad hsurplusNeed
       hfitNeed hvatLoadSin hvatCodeDai hcallDaiStele hdecDai hownerDai henough
       hvatLoadDai hvatCodeSin1 (by simpa using hcallSin1Stele)
-  · have rd1277True : RD vowBytecode I (Sat256.ofUInt256 g)
+  · have rd1277True : RD fork vowBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1277⟩
         (⟨1⟩ :: healSinEndPtr :: healSinSelector :: kissDaiTargetWord σ_dai I ::
           ⟨1325⟩ :: ⟨1333⟩ :: ⟨0⟩ :: ⟨357⟩ :: vowSelWord I :: [])
@@ -988,7 +991,7 @@ theorem vowFlapBodyToSub
         (UInt256.ofNat 6) outSin1 σ_sin1 k1277 C1277 := by
       simpa using rd1277
     have hcallSin1SteleTrue :
-        typedCallViaEVM config evmDaiStele
+        typedCallViaEVM fork config evmDaiStele
           (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
           (true, evmSin1Stele, outSin1) false := by
       simpa using hcallSin1Stele
@@ -1070,7 +1073,7 @@ theorem vowFlapBodyToKick
         {outSin0 outDai outSin1 memSin1 : ByteArray} {k1403 C1403 : ℕ}
         {vatSin0 BumpVal surplus0 HumpVal surplusNeed vatDai vatSin1 freeSin debt :
           UInt256},
-        RD vowBytecode I (Sat256.ofUInt256 g)
+        RD fork vowBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1403⟩
           (⟨0⟩ :: ⟨357⟩ :: vowSelWord I :: [])
           memSin1 (UInt256.ofNat 6) outSin1 σ_sin1 k1403 C1403 →
@@ -1079,7 +1082,7 @@ theorem vowFlapBodyToKick
         0 < (UInt256.ofNat
           (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
             (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat →
-        typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        typedCallViaEVM fork config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
           (true, evmSin0, outSin0) false →
         config.externalABI.decode? "sin" outSin0 =
@@ -1096,7 +1099,7 @@ theorem vowFlapBodyToKick
         0 < (UInt256.ofNat
           ((evmSin0.lookupAccount (kissVatAddress σ I)).option 0
             (fun acc => acc.code.size))).toNat →
-        typedCallViaEVM config evmSin0 (EVM.address (kissVatAddress σ I)) "dai" 0
+        typedCallViaEVM fork config evmSin0 (EVM.address (kissVatAddress σ I)) "dai" 0
           [.address I.codeOwner] (true, evmDai, outDai) false →
         config.externalABI.decode? "dai" outDai =
           some [.int (Int.ofNat vatDai.toNat)] →
@@ -1107,7 +1110,7 @@ theorem vowFlapBodyToKick
         0 < (UInt256.ofNat
           ((evmDai.lookupAccount (kissVatAddress σ I)).option 0
             (fun acc => acc.code.size))).toNat →
-        typedCallViaEVM config evmDai (EVM.address (kissVatAddress σ I)) "sin" 0
+        typedCallViaEVM fork config evmDai (EVM.address (kissVatAddress σ I)) "sin" 0
           [.address I.codeOwner] (true, evmSin1, outSin1) false →
         config.externalABI.decode? "sin" outSin1 =
           some [.int (Int.ofNat vatSin1.toNat)] →
@@ -1129,11 +1132,11 @@ theorem vowFlapBodyToKick
             solcSlotWordAt slot σ_sin1 I) →
         (∀ slot : UInt256,
           solcSlotWordAt slot evmSin1.accountMap I = solcSlotWordAt slot σ I) →
-        runtimeRefinementFor config contract σ σ₀ g A I)
+        runtimeRefinementFor fork config contract σ σ₀ g A I)
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x0e, 0x01, 0x19, 0x8b]⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hdispatch : dispatchMsg contract I.calldata = some flapTransition :=
     vowDispatch_flap hsel
   have hsz4 : 4 ≤ I.calldata.size :=
@@ -1220,7 +1223,7 @@ theorem vowFlapBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x0e, 0x01, 0x19, 0x8b]⟩) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hdispatch : dispatchMsg contract I.calldata = some flapTransition :=
     vowDispatch_flap hsel
   have hsz4 : 4 ≤ I.calldata.size :=
@@ -1318,7 +1321,7 @@ theorem vowFlapBody {σ σ₀ A I} {g : UInt256}
             simp [EVM.address, EVM.uintN]
             exact Nat.mod_eq_of_lt (by simp [EVM.twoPow, AccountAddress.size])
   have hcallKickEvm :
-      typedCallViaEVM config evmKickEvmIn
+      typedCallViaEVM fork config evmKickEvmIn
         (EVM.address (flapFlapperAddressOf evmSin1)) "kick" 0
         [.int (Int.ofNat BumpVal.toNat), .int 0]
         (zKick, evmKickEvmOut, outKick) true := by
@@ -1345,7 +1348,7 @@ theorem vowFlapBody {σ σ₀ A I} {g : UInt256}
         accountMap := σ_kick_stele
         substate := A_kick_stele }
   have hcallKickStele :
-      typedCallViaEVM config evmSin1 (EVM.address (flapFlapperAddressOf evmSin1))
+      typedCallViaEVM fork config evmSin1 (EVM.address (flapFlapperAddressOf evmSin1))
         "kick" 0 [.int (Int.ofNat BumpVal.toNat), .int 0]
         (zKick, evmKickStele, outKick) true := by
     simpa [evmKickStele, evmKickSteleBase] using hcallKickSteleRaw
@@ -1359,7 +1362,7 @@ theorem vowFlapBody {σ σ₀ A I} {g : UInt256}
       hfitNeed hvatLoadSin0 hvatCodeDai hcallDai hdecDai hownerDai henough
       hvatLoadDai hvatCodeSin1 hcallSin1 hdecSin1 hSinLoad hfree hfreeOk hAshLoad
       hdebt hdebtOk hdebtZero hBumpLoad1 hflapperCode (by simpa using hcallKickStele)
-  · have rd1498True : RD vowBytecode I (Sat256.ofUInt256 g)
+  · have rd1498True : RD fork vowBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1498⟩
         (⟨1⟩ :: flapKickEndPtr :: flapKickSelectorWord ::
           solcAddressSlotWord ⟨2⟩ σ_sin1 I :: ⟨0⟩ :: ⟨357⟩ :: vowSelWord I :: [])
@@ -1368,7 +1371,7 @@ theorem vowFlapBody {σ σ₀ A I} {g : UInt256}
         (UInt256.ofNat 7) outKick σ_kick k1498 C1498 := by
       simpa [hBumpSin1] using rd1498
     have hcallKickSteleTrue :
-        typedCallViaEVM config evmSin1 (EVM.address (flapFlapperAddressOf evmSin1))
+        typedCallViaEVM fork config evmSin1 (EVM.address (flapFlapperAddressOf evmSin1))
           "kick" 0 [.int (Int.ofNat BumpVal.toNat), .int 0]
           (true, evmKickStele, outKick) true := by
       simpa using hcallKickStele

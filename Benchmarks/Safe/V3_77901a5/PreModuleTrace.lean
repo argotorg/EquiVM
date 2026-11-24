@@ -2,6 +2,8 @@ import Benchmarks.Safe.V3_77901a5.PreModuleCheck
 import Benchmarks.Safe.V3_77901a5.PreModuleAuthorization
 import Benchmarks.Safe.V3_77901a5.Blocks.Runtime_032
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V3_77901a5.RuntimeBlocks
 
@@ -11,7 +13,7 @@ set_option maxRecDepth 100000 in
 theorem safePreModuleTrace (words : List UInt256) (payload : ByteArray) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata ptr src} {target value operation ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7172⟩
+    (h : RD fork safeBytecode I g s0 ⟨7172⟩
       (operation :: UInt256.ofNat src :: value :: target :: ret :: R) mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ) (hworld : evm.σ₀ = s0.σ₀)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr)
@@ -25,16 +27,16 @@ theorem safePreModuleTrace (words : List UInt256) (payload : ByteArray) (evm : E
     (hsmall : 196 + 32 * words.length ≤ maxReturnDataSizeByGas)
     (ho : operation.toNat < 2) (hov : R.length + 30 ≤ 1024)
     (hret : (D_J safeBytecode 0).contains ret = true) :
-    (RDrev safeBytecode g s0 ∧
-      ExecFuncBody config (preModuleFrame (AccountAddress.ofUInt256 target)
+    (RDrev fork safeBytecode g s0 ∧
+      ExecFuncBody fork config (preModuleFrame (AccountAddress.ofUInt256 target)
         value payload operation) evm preModuleExecutionFunction.body .reverted) ∨
     ∃ frame evm' σ' mem' aw' rdata' hash k' C',
-      ExecFuncBody config (preModuleFrame (AccountAddress.ofUInt256 target)
+      ExecFuncBody fork config (preModuleFrame (AccountAddress.ofUInt256 target)
         value payload operation) evm preModuleExecutionFunction.body
         (.returned frame evm' (some [.address (AccountAddress.ofUInt256 (preModuleGuardWord evm)),
           .fixedBytes bytes32Width (EVM.Word.toBytesBE hash)])) ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧ evm'.σ₀ = s0.σ₀ ∧
-      RD safeBytecode I g s0 ret (hash :: preModuleGuardWord evm :: R)
+      RD fork safeBytecode I g s0 ret (hash :: preModuleGuardWord evm :: R)
         mem' aw' rdata' σ' k' C' ∧
       (mem' = twoWordHashMem (UInt256.ofNat I.source.val) ⟨1⟩ mem ∨
         ∃ out, out.size < 2 ^ 138 ∧ mem' = preModuleReturnMemory

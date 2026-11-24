@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.UpdateOverflowRoutines
 import Examples.UniswapV2Pair.SyncDynamicCore
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -43,12 +45,12 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapUpdateOverflowStringRevertTail_aw6_size164 {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {R : List UInt256} {mem : ByteArray}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6994⟩ R mem (UInt256.ofNat 6)
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6994⟩ R mem (UInt256.ofNat 6)
       rdata acc k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 5 ≤ 1024) :
-    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+    RDrev fork UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   exact RD.uniswapUpdateOverflowStringRevertTail_dynamic h
     (by rw [hmem]; decide) (by decide) (by rw [hmem]; native_decide)
     (by native_decide) (by native_decide) (by decide) hread64 hov
@@ -58,14 +60,14 @@ theorem RD.uniswapUpdateOverflowGuardFirstReverts {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {reserve1 reserve0 balance1 balance0 : UInt256}
     {R : List UInt256} {mem : ByteArray} {rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6959⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6959⟩
       (reserve1 :: reserve0 :: balance1 :: balance0 :: R) mem (UInt256.ofNat 6) rdata acc
       k C)
     (hfail0 : UniswapV2Pair.reserve112Mask.toNat < balance0.toNat)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 9 ≤ 1024) :
-    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+    RDrev fork UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   obtain ⟨_, _, rd6994⟩ := RD.uniswapUpdateOverflowGuardFirstToRevert h hfail0 hov
   exact RD.uniswapUpdateOverflowStringRevertTail_aw6_size164 rd6994 hmem hread64
     (by simp only [List.length_cons]; omega)
@@ -75,7 +77,7 @@ theorem RD.uniswapUpdateOverflowGuardSecondReverts {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {reserve1 reserve0 balance1 balance0 : UInt256}
     {R : List UInt256} {mem : ByteArray} {rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6959⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6959⟩
       (reserve1 :: reserve0 :: balance1 :: balance0 :: R) mem (UInt256.ofNat 6) rdata acc
       k C)
     (hfit0 : balance0.toNat ≤ UniswapV2Pair.reserve112Mask.toNat)
@@ -83,7 +85,7 @@ theorem RD.uniswapUpdateOverflowGuardSecondReverts {g : Sat256} {s0 : State}
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 9 ≤ 1024) :
-    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+    RDrev fork UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   obtain ⟨_, _, rd6994⟩ := RD.uniswapUpdateOverflowGuardSecondToRevert h hfit0 hfail1 hov
   exact RD.uniswapUpdateOverflowStringRevertTail_aw6_size164 rd6994 hmem hread64
     (by simp only [List.length_cons]; omega)
@@ -95,12 +97,12 @@ theorem RD.uniswapUpdateOverflowGuardOk {g : Sat256} {s0 : State} {ee : Executio
     {k C : ℕ} {reserve1 reserve0 balance1 balance0 : UInt256} {R : List UInt256}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6959⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6959⟩
       (reserve1 :: reserve0 :: balance1 :: balance0 :: R) mem aw rdata acc k C)
     (hfit0 : balance0.toNat ≤ UniswapV2Pair.reserve112Mask.toNat)
     (hfit1 : balance1.toNat ≤ UniswapV2Pair.reserve112Mask.toNat)
     (hov : R.length + 9 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7060⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7060⟩
       (reserve1 :: reserve0 :: balance1 :: balance0 :: R) mem aw rdata acc k' C' := by
   have hgt0 : UInt256.gt balance0 UniswapV2Pair.reserve112Mask = ⟨0⟩ :=
     ugt_zero hfit0
@@ -137,7 +139,7 @@ theorem RD.uniswapUpdateElapsedZeroSkipsCumulatives {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {reserve1 reserve0 balance1 balance0 : UInt256}
     {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7060⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7060⟩
       (reserve1 :: reserve0 :: balance1 :: balance0 :: R) mem aw rdata acc k C)
     (helapsed0 :
       UInt256.land
@@ -149,7 +151,7 @@ theorem RD.uniswapUpdateElapsedZeroSkipsCumulatives {g : Sat256} {s0 : State}
               reserve224Shift)))
         reserve32Mask = ⟨0⟩)
     (hov : R.length + 12 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7241⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7241⟩
       (UInt256.sub (UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp))
           (UInt256.land reserve32Mask
             (UInt256.div
@@ -183,7 +185,7 @@ theorem RD.uniswapUpdateReserve0ZeroSkipsCumulatives {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {reserve1 reserve0 balance1 balance0 : UInt256}
     {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7060⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7060⟩
       (reserve1 :: reserve0 :: balance1 :: balance0 :: R) mem aw rdata acc k C)
     (helapsedNe :
       UInt256.land
@@ -196,7 +198,7 @@ theorem RD.uniswapUpdateReserve0ZeroSkipsCumulatives {g : Sat256} {s0 : State}
         reserve32Mask ≠ ⟨0⟩)
     (hreserve0Zero : UInt256.land reserve0 reserve112Mask = ⟨0⟩)
     (hov : R.length + 12 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7241⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7241⟩
       (UInt256.sub (UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp))
           (UInt256.land reserve32Mask
             (UInt256.div
@@ -251,7 +253,7 @@ theorem RD.uniswapUpdateReserve1ZeroSkipsCumulatives {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {reserve1 reserve0 balance1 balance0 : UInt256}
     {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7060⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7060⟩
       (reserve1 :: reserve0 :: balance1 :: balance0 :: R) mem aw rdata acc k C)
     (helapsedNe :
       UInt256.land
@@ -265,7 +267,7 @@ theorem RD.uniswapUpdateReserve1ZeroSkipsCumulatives {g : Sat256} {s0 : State}
     (hreserve0Ne : UInt256.land reserve0 reserve112Mask ≠ ⟨0⟩)
     (hreserve1Zero : UInt256.land reserve1 reserve112Mask = ⟨0⟩)
     (hov : R.length + 12 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7241⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7241⟩
       (UInt256.sub (UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp))
           (UInt256.land reserve32Mask
             (UInt256.div
@@ -337,12 +339,12 @@ theorem RD.uniswapUpdateStorePackedReserves {g : Sat256} {s0 : State}
     {elapsed timestamp reserve1 reserve0 balance1 balance0 : UInt256} {R : List UInt256}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7241⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7241⟩
       (elapsed :: timestamp :: reserve1 :: reserve0 :: balance1 :: balance0 :: R)
       mem aw rdata acc k C)
     (hperm : ee.perm = true)
     (hov : R.length + 13 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7339⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7339⟩
       (reserve112Shift :: reserve112Mask ::
         uniswapUpdatePackedReserveWord (solcSlotWordAt ⟨8⟩ acc ee) timestamp balance1
           balance0 ::
@@ -356,12 +358,12 @@ theorem RD.uniswapUpdateStorePackedReserves {g : Sat256} {s0 : State}
   obtain ⟨_, _, rd7246⟩ := rd7244.sload (by native_decide)
     (by simp only [List.length_cons]; omega)
   have rd7261 := rd7246.pushConst reserve112Mask (width := 14) (op := .PUSH14)
-    (by decide) (by decide) (by evm_ov)
+    (by decide +kernel) (by decide +kernel) (by evm_ov)
   have rd7278 := evm_run rd7261 with [
     not, and, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨112⟩, shl, sub, dup9, dup2, and,
     swap2, swap1, swap2, or]
   have rd7293 := rd7278.pushConst reserve112Mask (width := 14) (op := .PUSH14)
-    (by decide) (by decide) (by evm_ov)
+    (by decide +kernel) (by decide +kernel) (by evm_ov)
   have rd7338 := evm_run rd7293 with [
     push1 ⟨112⟩, shl, not, and,
     push1 ⟨1⟩, push1 ⟨112⟩, shl, dup9, dup4, and, dup2, mul,
@@ -386,7 +388,7 @@ theorem RD.uniswapUpdateEmitSyncAndJump {g : Sat256} {s0 : State}
     {R : List UInt256} {mem rdata : ByteArray} {aw awLoad awLog : UInt256}
     {mcostLoad mcostStore0 mcostStore1 mcostLoadLog mcostLog : ℕ}
     {acc : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7339⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7339⟩
       (reserve112Shift :: reserve112Mask :: packed :: elapsed :: timestamp :: reserve1 ::
         reserve0 :: balance1 :: balance0 :: ret :: R)
       mem aw rdata acc k C)
@@ -418,7 +420,7 @@ theorem RD.uniswapUpdateEmitSyncAndJump {g : Sat256} {s0 : State}
     (hperm : ee.perm = true)
     (hret : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret R
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret R
       (uniswapSyncLogMem packed mem) awLog rdata acc k' C' := by
   exact RD.uniswapUpdateEmitSyncAndJumpCore (ptr := ⟨128⟩) (awStore0 := awLog) h
     hmcLoad hmload64 hawLoad hmcStore0 hawStore0 hmcStore1 hawStore1

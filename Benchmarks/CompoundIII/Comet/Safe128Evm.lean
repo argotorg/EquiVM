@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.PrincipalWords
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_056
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -13,9 +15,9 @@ theorem cometSafe128 {v : CometWithExtendedAssetListImmutables}
     {aw n ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨12207⟩ (n :: ret :: R) mem aw rdata σ k C) :
-    (n.toNat < 2^128 ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ret (n :: R)
-      mem aw rdata σ k' C') ∨ (¬ n.toNat < 2^128 ∧ RDrev (deployedRuntime v) g s0) := by
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨12207⟩ (n :: ret :: R) mem aw rdata σ k C) :
+    (n.toNat < 2^128 ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret (n :: R)
+      mem aw rdata σ k' C') ∨ (¬ n.toNat < 2^128 ∧ RDrev fork (deployedRuntime v) g s0) := by
   let mask := UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128))
     (UInt256.ofNat 1)
   have hm : mask.toNat = 2^128-1 := by decide
@@ -25,7 +27,7 @@ theorem cometSafe128 {v : CometWithExtendedAssetListImmutables}
       (ugt_zero (by change n.toNat ≤ mask.toNat; rw [hm]; omega)) h
     have r2 := cometWithExtendedAssetList_block_12224
       (immWords := wordsOf (immStore v)) (by omega) hret r1
-    change RD _ _ _ _ _ (UInt256.land n mask :: R) _ _ _ _ _ _ at r2
+    change RD fork _ _ _ _ _ (UInt256.land n mask :: R) _ _ _ _ _ _ at r2
     rw [u256LandMaskCleanOfToNat n mask hm hn] at r2
     exact Or.inl ⟨hn, _, _, r2⟩
   · have r1 := cometWithExtendedAssetList_block_12207_taken

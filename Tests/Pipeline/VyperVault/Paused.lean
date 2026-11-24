@@ -1,5 +1,7 @@
 import Tests.Pipeline.VyperVault.Helpers
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # VyperVault `paused()`
 
@@ -22,7 +24,7 @@ theorem vyperVaultPausedBody {σ σ₀ A I} {g : UInt256} (imms : Store) (hfit :
     (hwf : storageWF σ I)
     (hcode : I.code = immutableLayout.deployed vyperVaultBytecode imms) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vyperVaultSelBytes 4)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (restrictImmutables contract imms) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (restrictImmutables contract imms) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (vyperVaultSelBytes 4) rfl hsel
   have hcode' : I.code = vyperVaultBytecode ++ immutableLayout.suffixWords (wordsOf imms) := by
     rw [hcode, deployed_of_fit hfit]
@@ -44,7 +46,7 @@ theorem vyperVaultPausedBody {σ σ₀ A I} {g : UInt256} (imms : Store) (hfit :
       toByteArray_write_read_back_of_gap _ (vyperVaultDispatchMem 10) 64
         (by rw [hmemsize]; exact lt_usize _ (by decide)),
       slotWord_eq] at rd2
-    have hbody : ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+    have hbody : ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         pausedTransition.body
         (.returned (frame imms ∅) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [wordToElem .bool (solcSlotWordAt (UInt256.ofNat 4) σ I)]))

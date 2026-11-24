@@ -1,6 +1,8 @@
 import Benchmarks.CurveVault.PriceFinish
 import Benchmarks.CurveVault.RuntimeBlocks_007
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -12,13 +14,13 @@ theorem vaultPriceRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hflag : locals.get? "_is_floor" = some (.bool isFloor))
     (hmflag : memLoad (UInt256.ofNat 320) mem = if isFloor then ⟨1⟩ else ⟨0⟩)
     (hstack : R.length + 10 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 1543) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 1543) R mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (locals' : Store) (value : UInt256),
-      ExecFuncBody config {contract := contract, locals := locals} evm vaultPriceFunction.body
+      ExecFuncBody fork config {contract := contract, locals := locals} evm vaultPriceFunction.body
         (.returned {contract := contract, locals := locals'} evm' (some [.int (Int.ofNat value.toNat)])) ∧
-      SourceState s0 I σ' evm' ∧ RDret vaultBytecode g s0 σ' value.toByteArray) ∨
-    (ExecFuncBody config {contract := contract, locals := locals} evm vaultPriceFunction.body .reverted ∧
-      RDrev vaultBytecode g s0) := by
+      SourceState s0 I σ' evm' ∧ RDret fork vaultBytecode g s0 σ' value.toByteArray) ∨
+    (ExecFuncBody fork config {contract := contract, locals := locals} evm vaultPriceFunction.body .reverted ∧
+      RDrev fork vaultBytecode g s0) := by
   let supply := codeOwnerStorageWord I σ ⟨14⟩
   let precision := codeOwnerStorageWord I σ ⟨15⟩
   let locals1 := locals.insert "supply" (.int (Int.ofNat supply.toNat))
@@ -38,7 +40,7 @@ theorem vaultPriceRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
       (by change memLoad (UInt256.ofNat 352) mem1 = _; rw [hmSupply, hz]; rfl) h
     have rd1780 := vaultBlocks.vault_block_1558 (by omega) (by native_decide) rd1558
     have hret := vaultBlocks.vault_block_1780 (by omega) rd1780
-    change RDret vaultBytecode g s0 σ
+    change RDret fork vaultBytecode g s0 σ
       (((UInt256.ofNat 1000000000000000).toByteArray.write 0 mem1 384 32).readWithPadding 384 32) at hret
     rw [toByteArray_write_read_back_of_gap _ _ _ (hgap _ (by omega) _)] at hret
     refine Or.inl ⟨evm, σ, locals1, UInt256.ofNat 1000000000000000, ?_, hs, hret⟩
@@ -97,7 +99,7 @@ theorem vaultPriceRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     have hcall := internalCallFunctionReturn (caller := {contract := contract, locals := locals2})
       (callee := vaultTotalAssetsFunction) (name := "_total_assets") (args := []) (argVals := []) (retVar := "__c0")
       (by simp [evalExprs?, pure]) rfl rfl hcallee
-    have hprefix : ExecBlock config {contract := contract, locals := locals1} evm
+    have hprefix : ExecBlock fork config {contract := contract, locals := locals1} evm
         (vaultPriceNonzeroBody.take 2) (.ok {contract := contract, locals := locals3} evm') :=
       ExecBlock.consNormal (ExecStmt.letDecl hpEval) (ExecBlock.consNormal hcall ExecBlock.nil)
     have hbranch : vaultPriceNonzeroBody = vaultPriceNonzeroBody.take 2 ++
@@ -111,7 +113,7 @@ theorem vaultPriceRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     · refine Or.inr ⟨ExecFuncBody.execBlockRevert ?_, hrev⟩
       apply ExecBlock.consNormal (ExecStmt.letDecl hsEval)
       apply ExecBlock.consRevert (ExecStmt.iteFalse hfalse ?_)
-      change ExecBlock _ _ _ vaultPriceNonzeroBody _
+      change ExecBlock fork _ _ _ vaultPriceNonzeroBody _
       rw [hbranch]
       exact execBlock_append hprefix (execBlock_reverted_append harith)
     let num := UInt256.mul vaultPriceScale (UInt256.mul total precision + ⟨1⟩)
@@ -137,7 +139,7 @@ theorem vaultPriceRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     · refine Or.inr ⟨ExecFuncBody.execBlockRevert ?_, hrev⟩
       apply ExecBlock.consNormal (ExecStmt.letDecl hsEval)
       apply ExecBlock.consRevert (ExecStmt.iteFalse hfalse ?_)
-      change ExecBlock _ _ _ vaultPriceNonzeroBody _
+      change ExecBlock fork _ _ _ vaultPriceNonzeroBody _
       rw [hbranch]
       exact execBlock_append hprefix (execBlock_append harith
         (vaultPriceFinishReverts hnumLocal hdenLocal hflagLocal hden hzero))
@@ -146,7 +148,7 @@ theorem vaultPriceRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
       apply ExecFuncBody.execBlockRet
       apply ExecBlock.consNormal (ExecStmt.letDecl hsEval)
       apply ExecBlock.consReturn (ExecStmt.iteFalse hfalse ?_)
-      change ExecBlock _ _ _ vaultPriceNonzeroBody _
+      change ExecBlock fork _ _ _ vaultPriceNonzeroBody _
       rw [hbranch]
       exact execBlock_append hprefix (execBlock_append harith
         (vaultPriceFinishReturns hnumLocal hdenLocal hflagLocal hden hnonzero))

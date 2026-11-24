@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.BeforeLiquidityMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -16,10 +18,10 @@ theorem beforeLiquidityStartTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw free a b hook keyPtr paramsPtr src len : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (v : PoolManagerImmutables)
     (add : Bool) (hstack : R.length+17 ≤ 1024) (hfree : memLoad (UInt256.ofNat 64) mem = free)
-    (h : RD (deployedRuntime v) I g s0 (beforeLiquidityEncodePc add)
+    (h : RD fork (deployedRuntime v) I g s0 (beforeLiquidityEncodePc add)
       (beforeLiquidityEncodeStack add a b hook src paramsPtr len keyPtr R) mem aw rdata σ k C) :
     ∃ aw' k' C', C+71+Cₘ aw' ≤ C'+Cₘ aw ∧
-      RD (deployedRuntime v) I g s0 ⟨14027⟩
+      RD fork (deployedRuntime v) I g s0 ⟨14027⟩
         ((free+UInt256.ofNat 36) :: accountWord I.source :: keyPtr :: paramsPtr :: src :: len ::
           UInt256.ofNat 7990 :: free :: UInt256.ofNat 4778 :: hook :: free :: beforeLiquidityCallRet add ::
           src :: paramsPtr :: len :: keyPtr :: R)

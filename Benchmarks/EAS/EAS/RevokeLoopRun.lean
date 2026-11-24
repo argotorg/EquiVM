@@ -1,6 +1,8 @@
 import Benchmarks.EAS.EAS.RevokeIterationRun
 import Benchmarks.EAS.EAS.WhileInvariant
 import Benchmarks.EAS.EAS.TimeArray
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -11,28 +13,28 @@ theorem revokeLoopRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g : Sat
     (v : EASImmutables) (site : RevokeSite) (hstack : R.length+37 ≤ 1024) (hs : SourceState s0 ee σ evm)
     (hf : RevokeLoopLocals L site rs s ats values 0 heap.toNat)
     (hm : RevokeLoopMemory mem site rs s ptrs values ats heap.toNat) (hh : heap.toNat ≤ 2^64-1)
-    (rd : RD (deployedRuntime v) ee g s0 site.kind.loopPC
+    (rd : RD fork (deployedRuntime v) ee g s0 site.kind.loopPC
       (revokeLoopStack site ee (UInt256.ofNat 0) R) mem aw rdata σ k C) :
     (∃ L' evm' σ' mem' aw' k' C' next ptrs' ats' values',
       heap.toNat ≤ next ∧ next ≤ 2^64-1 ∧ (rs.length = 0 ∨ ee.perm = true) ∧
       SourceState s0 ee σ' evm' ∧ MemoryPrefix mem mem' site.records.toNat ∧
       RevokeLoopLocals L' site rs s ats' values' rs.length next ∧
       RevokeLoopMemory mem' site rs s ptrs' values' ats' next ∧ WordArrayMemoryView mem' site.values values' next ∧
-      ExecStmt config {contract := contract,locals := L,immutables := immStore v} evm revokeLoop
+      ExecStmt fork config {contract := contract,locals := L,immutables := immStore v} evm revokeLoop
         (.ok {contract := contract,locals := L',immutables := immStore v} evm') ∧
-      RD (deployedRuntime v) ee g s0 site.kind.exitPC
+      RD fork (deployedRuntime v) ee g s0 site.kind.exitPC
         (revokeLoopStack site ee (UInt256.ofNat rs.length) R) mem' aw' rdata σ' k' C') ∨
-    (ExecStmt config {contract := contract,locals := L,immutables := immStore v} evm revokeLoop .reverted ∧
-      RDrev (deployedRuntime v) g s0) ∨
-    (ExecStmt config {contract := contract,locals := L,immutables := immStore v} evm revokeLoop .staticViolation ∧
-      RDstatic (deployedRuntime v) g s0) := by
+    (ExecStmt fork config {contract := contract,locals := L,immutables := immStore v} evm revokeLoop .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) ∨
+    (ExecStmt fork config {contract := contract,locals := L,immutables := immStore v} evm revokeLoop .staticViolation ∧
+      RDstatic fork (deployedRuntime v) g s0) := by
   let Inv := fun i L1 e1 => ∃ (σ1 : AccountMap) (m : ByteArray) (a : UInt256) (j D : Nat) (p : UInt256)
       (ps vs : List UInt256) (records : List AttestationRecord),
     SourceState s0 ee σ1 e1 ∧ heap.toNat ≤ p.toNat ∧ p.toNat ≤ 2^64-1 ∧
     (i = 0 ∨ (ee.perm = true ∧ site.values.toNat+32+32*vs.length ≤ m.size)) ∧
     MemoryPrefix mem m site.records.toNat ∧ RevokeLoopLocals L1 site rs s records vs i p.toNat ∧
     RevokeLoopMemory m site rs s ps vs records p.toNat ∧
-    RD (deployedRuntime v) ee g s0 site.kind.loopPC (revokeLoopStack site ee (UInt256.ofNat i) R) m a rdata σ1 j D
+    RD fork (deployedRuntime v) ee g s0 site.kind.loopPC (revokeLoopStack site ee (UInt256.ofNat i) R) m a rdata σ1 j D
   have hguard : ∀ i L1 e1, i ≤ rs.length → Inv i L1 e1 →
       evalExpr? config {contract := contract,locals := L1,immutables := immStore v} e1 timeArrayGuard =
         .ok (.bool (decide (i < rs.length))) := by
@@ -40,10 +42,10 @@ theorem revokeLoopRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g : Sat
     simp only [timeArrayGuard,evalExpr?,hf1.index,hf1.length,EvalResult.ofOption,EvalResult.bind,bind,
       evalBinaryOp_lt_int_ok,Int.ofNat_eq_natCast,Nat.cast_lt]
   have hstep : ∀ i L1 e1, i < rs.length → Inv i L1 e1 →
-      (∃ L2 e2, ExecBlock config {contract := contract,locals := L1,immutables := immStore v} e1 revokeIteration
+      (∃ L2 e2, ExecBlock fork config {contract := contract,locals := L1,immutables := immStore v} e1 revokeIteration
         (.ok {contract := contract,locals := L2,immutables := immStore v} e2) ∧ Inv (i+1) L2 e2) ∨
-      (ExecBlock config {contract := contract,locals := L1,immutables := immStore v} e1 revokeIteration .reverted ∧ RDrev (deployedRuntime v) g s0) ∨
-      (ExecBlock config {contract := contract,locals := L1,immutables := immStore v} e1 revokeIteration .staticViolation ∧ RDstatic (deployedRuntime v) g s0) := by
+      (ExecBlock fork config {contract := contract,locals := L1,immutables := immStore v} e1 revokeIteration .reverted ∧ RDrev fork (deployedRuntime v) g s0) ∨
+      (ExecBlock fork config {contract := contract,locals := L1,immutables := immStore v} e1 revokeIteration .staticViolation ∧ RDstatic fork (deployedRuntime v) g s0) := by
     rintro i L1 e1 hi ⟨σ1,m,a,j,D,p,ps,vs,records,hs1,hlo,hhi,hperm,hpre,hf1,hm1,hr1⟩
     have hn : rs.length < UInt256.size := by have := hm1.requests.span; have htop : site.schemaPtr.toNat < UInt256.size := site.schemaPtr.val.isLt; omega
     have hlen := hm1.lengthSite
@@ -62,7 +64,7 @@ theorem revokeLoopRun {L : Store} {evm : EVM.State} {ee : ExecutionEnv} {g : Sat
     · exact Or.inr (Or.inr ⟨hsol,hstatic⟩)
   have hloop := execWhile_invariant (cfg := config) (contract := contract) (imms := immStore v)
     (cond := timeArrayGuard) (body := revokeIteration) (bound := rs.length)
-    Inv (Inv rs.length) (RDrev (deployedRuntime v) g s0) (RDstatic (deployedRuntime v) g s0)
+    Inv (Inv rs.length) (RDrev fork (deployedRuntime v) g s0) (RDstatic fork (deployedRuntime v) g s0)
     hguard (fun _ _ h => h) hstep rs.length 0 L evm (by omega)
     ⟨σ,mem,aw,k,C,heap,ptrs,values,ats,hs,le_refl _,hh,Or.inl rfl,MemoryPrefix.refl _ _,hf,hm,rd⟩
   rcases hloop with ⟨L1,e1,hsol,σ1,m,a,j,D,p,ps,vs,records,hstate,hlo,hhi,hperm,hpre,hf1,hm1,hr1⟩ | ⟨hsol,hrev⟩ | ⟨hsol,hstatic⟩

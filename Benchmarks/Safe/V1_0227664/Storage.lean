@@ -1,6 +1,8 @@
 import Benchmarks.Safe.V1_0227664.Common
 import Reasoning.Storage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V1_0227664
@@ -16,7 +18,7 @@ theorem uint256GetterBodyReturns {cfg : Config} {c : ContractDecl} {layout : Sto
     (hty : storageTypeAt? c.storage er = some (.elem (.int (.uint ⟨256, by decide⟩))))
     (hbackend : cfg.storageBackend = solidityStorageBackend layout)
     (hloc : layout er = some (.leaf (uint256Loc slot))) :
-    ExecTransitionBody cfg c evm locals
+    ExecTransitionBody fork cfg c evm locals
       [.require (.binary .eq (.env .callvalue) (.intLit 0)), .return [.storage ref]]
       (.returned { contract := c, locals := locals, immutables := imms } evm
         (some [.int (Int.ofNat

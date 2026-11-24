@@ -1,6 +1,8 @@
 import Benchmarks.Safe.Main.SignatureP256BoundsTrace
 import Benchmarks.Safe.Main.SignatureP256Check
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.Main
@@ -12,7 +14,7 @@ def signatureP256FinalFrame (f : Frame) (p : SignatureInput) (r s : UInt256) : F
 theorem safeSignatureP256Trace (p : SignatureInput) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata ptr src} {i s r v current last : UInt256}
     {R : List UInt256} {f : Frame} {old : Value}
-    (h : RD safeBytecode I g s0 ⟨2218⟩
+    (h : RD fork safeBytecode I g s0 ⟨2218⟩
       (i :: s :: r :: v :: current :: last :: p.required :: UInt256.ofNat src :: p.hash :: R)
       mem aw rdata σ k C)
     (hc : SignatureCore p f) (hr : f.locals["r"]? = some (wordBytes32Value r))
@@ -24,11 +26,11 @@ theorem safeSignatureP256Trace (p : SignatureInput) (evm : EVM.State)
     (ha : src + 32 + p.signatures.size ≤ ptr) (hp : ptr < 2 ^ 224)
     (hn : p.signatures.size < 2 ^ 64) (hreq : p.requiredBytes ≤ p.signatures.size)
     (hov : R.length + 26 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧ ExecBlock config f evm signatureP256Body .reverted) ∨
+    (RDrev fork safeBytecode g s0 ∧ ExecBlock fork config f evm signatureP256Body .reverted) ∨
     ∃ evm' σ' mem' aw' out k' C',
-      ExecBlock config f evm signatureP256Body (.ok (signatureP256FinalFrame f p r s) evm') ∧
+      ExecBlock fork config f evm signatureP256Body (.ok (signatureP256FinalFrame f p r s) evm') ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧ evm'.σ₀ = s0.σ₀ ∧
-      RD safeBytecode I g s0 ⟨2679⟩
+      RD fork safeBytecode I g s0 ⟨2679⟩
         (i :: (signatureP256Input p s).s :: (signatureP256Input p s).r :: v :: r :: last ::
           p.required :: UInt256.ofNat src :: p.hash :: R) mem' aw' out σ' k' C' ∧
       BytesMemory mem' src p.signatures ∧ memLoad ⟨64⟩ mem' = UInt256.ofNat ptr ∧
@@ -38,7 +40,7 @@ theorem safeSignatureP256Trace (p : SignatureInput) (evm : EVM.State)
   obtain ⟨hrev, hbad⟩ | ⟨aw₁, k₁, C₁, hl, hh, h₁⟩ :=
     safeSignatureP256Bounds p h hm hn' hreq (by simp; omega)
   · exact .inl ⟨hrev, signatureP256SourceBoundsFailed hc hr hs ho hbad⟩
-  have hprefix := signatureP256SourcePrefix (evm := evm) hc hr hs ho hl hh hn'
+  have hprefix := signatureP256SourcePrefix (fork := fork) (evm := evm) hc hr hs ho hl hh hn'
   have hoff : (signatureP256EndFrame f r s).locals["p256Offset"]? =
       some (uint256Value s) := by
     simp [signatureP256EndFrame, signatureP256OffsetFrame, signatureDynamicFrame,

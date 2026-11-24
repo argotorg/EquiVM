@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.CreateAssetListLoop
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -21,7 +23,7 @@ theorem createAssetListStartFrame_state (imms : Store) (factory : AccountAddress
 
 theorem createAssetListPrefix_exec (imms : Store) (factory : AccountAddress)
     (assets : List ConstructorAsset) (evm : EVM.State) (hn : assets.length < UInt256.size) :
-    ∃ frame, ExecBlock config (createAssetListEntry imms factory assets) evm createAssetListPrefix
+    ∃ frame, ExecBlock fork config (createAssetListEntry imms factory assets) evm createAssetListPrefix
       (.ok frame evm) ∧ CreateAssetListLoopState factory assets assets.length frame := by
   obtain ⟨frame, hw, hi⟩ := createAssetListLoop_exec
     (createAssetListStartFrame_state imms factory assets) evm (Nat.zero_le _)
@@ -53,8 +55,8 @@ def createAssetListDecodedFrame (frame : Frame) (out : ByteArray) : Frame :=
 theorem createAssetListCall_exec {factory : AccountAddress} {assets : List ConstructorAsset}
     {frame : Frame} {evm evm' : EVM.State} {z : Bool} {out : ByteArray}
     (h : CreateAssetListLoopState factory assets assets.length frame)
-    (hc : callViaEVM evm factory 0 (createAssetListPayload assets assets.length) (z, evm', out)) :
-    ExecStmt config frame evm
+    (hc : callViaEVM fork evm factory 0 (createAssetListPayload assets assets.length) (z, evm', out)) :
+    ExecStmt fork config frame evm
       (.lowLevelCall (.var "factory") (.intLit 0) (.var "payload") "ok" "result")
       (.ok (createAssetListCallFrame frame z out) evm') := by
   exact lowLevelCallSourceWithPerm (hperm := Or.inl rfl) (target := factory) (value := 0)
@@ -66,9 +68,9 @@ theorem createAssetListCall_exec {factory : AccountAddress} {assets : List Const
 theorem createAssetListRemainder_ok {factory : AccountAddress} {assets : List ConstructorAsset}
     {frame : Frame} {evm evm' : EVM.State} {out : ByteArray}
     (h : CreateAssetListLoopState factory assets assets.length frame)
-    (hc : callViaEVM evm factory 0 (createAssetListPayload assets assets.length) (true, evm', out))
+    (hc : callViaEVM fork evm factory 0 (createAssetListPayload assets assets.length) (true, evm', out))
     (hhi : out.size < 2^255) (hv : ConstructorFactoryReturnValid out) :
-    ExecBlock config frame evm createAssetListRemainder
+    ExecBlock fork config frame evm createAssetListRemainder
       (.returned (createAssetListDecodedFrame frame out) evm'
         (some [.address (AccountAddress.ofUInt256 (calldataWord out 0))])) := by
   refine .consNormal (createAssetListCall_exec h hc) ?_
@@ -91,9 +93,9 @@ theorem createAssetListRemainder_ok {factory : AccountAddress} {assets : List Co
 theorem createAssetListRemainder_revert {factory : AccountAddress} {assets : List ConstructorAsset}
     {frame : Frame} {evm evm' : EVM.State} {z : Bool} {out : ByteArray}
     (h : CreateAssetListLoopState factory assets assets.length frame)
-    (hc : callViaEVM evm factory 0 (createAssetListPayload assets assets.length) (z, evm', out))
+    (hc : callViaEVM fork evm factory 0 (createAssetListPayload assets assets.length) (z, evm', out))
     (hhi : out.size < 2^255) (hv : ¬ (z = true ∧ ConstructorFactoryReturnValid out)) :
-    ExecBlock config frame evm createAssetListRemainder .reverted := by
+    ExecBlock fork config frame evm createAssetListRemainder .reverted := by
   refine .consNormal (createAssetListCall_exec h hc) ?_
   cases z with
   | false =>
@@ -116,9 +118,9 @@ theorem createAssetListRemainder_revert {factory : AccountAddress} {assets : Lis
 theorem createAssetListBody_ok (imms : Store) (factory : AccountAddress)
     (assets : List ConstructorAsset) {evm evm' : EVM.State} {out : ByteArray}
     (hn : assets.length < UInt256.size)
-    (hc : callViaEVM evm factory 0 (createAssetListPayload assets assets.length) (true, evm', out))
+    (hc : callViaEVM fork evm factory 0 (createAssetListPayload assets assets.length) (true, evm', out))
     (hhi : out.size < 2^255) (hv : ConstructorFactoryReturnValid out) :
-    ∃ final, ExecFuncBody config (createAssetListEntry imms factory assets) evm
+    ∃ final, ExecFuncBody fork config (createAssetListEntry imms factory assets) evm
       createAssetListCallable.body
       (.returned final evm' (some [.address (AccountAddress.ofUInt256 (calldataWord out 0))])) := by
   obtain ⟨frame, hp, hs⟩ := createAssetListPrefix_exec imms factory assets evm hn
@@ -127,9 +129,9 @@ theorem createAssetListBody_ok (imms : Store) (factory : AccountAddress)
 theorem createAssetListBody_revert (imms : Store) (factory : AccountAddress)
     (assets : List ConstructorAsset) {evm evm' : EVM.State} {z : Bool} {out : ByteArray}
     (hn : assets.length < UInt256.size)
-    (hc : callViaEVM evm factory 0 (createAssetListPayload assets assets.length) (z, evm', out))
+    (hc : callViaEVM fork evm factory 0 (createAssetListPayload assets assets.length) (z, evm', out))
     (hhi : out.size < 2^255) (hv : ¬ (z = true ∧ ConstructorFactoryReturnValid out)) :
-    ExecFuncBody config (createAssetListEntry imms factory assets) evm
+    ExecFuncBody fork config (createAssetListEntry imms factory assets) evm
       createAssetListCallable.body .reverted := by
   obtain ⟨frame, hp, hs⟩ := createAssetListPrefix_exec imms factory assets evm hn
   exact .execBlockRevert (execBlockAppendOk hp (createAssetListRemainder_revert hs hc hhi hv))

@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.Dispatch
 import Benchmarks.Morpho.MorphoBlue.BodyCommon
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -60,17 +62,17 @@ variable {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 
 theorem morphoCheckedSubOk (hstack : R.length + 6 ≤ 1024)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true) (hfit : b.toNat ≤ a.toNat)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12833) (a :: b :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12833) (a :: b :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret (UInt256.sub a b :: R) mem aw rdata σ k' C' := by
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret (UInt256.sub a b :: R) mem aw rdata σ k' C' := by
   have rd1 := morphoBlocks.morpho_block_12833_fallthrough (immWords := wordsOf (immStore v))
     (by omega) (checkedSubGuard_ok a b hfit) h
   exact ⟨_, _, morphoBlocks.morpho_block_12845 (immWords := wordsOf (immStore v))
     (by simp only [List.length_cons]; omega) hvalid rd1⟩
 
 theorem morphoCheckedSubReverts (hstack : R.length + 6 ≤ 1024) (hunder : a.toNat < b.toNat)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12833) (a :: b :: ret :: R)
-      mem aw rdata σ k C) : RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12833) (a :: b :: ret :: R)
+      mem aw rdata σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   have rd1 := morphoBlocks.morpho_block_12833_taken (immWords := wordsOf (immStore v))
     (by omega) (by rw [checkedSubGuard_underflow a b hunder]; decide)
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
@@ -80,9 +82,9 @@ theorem morphoCheckedSubReverts (hstack : R.length + 6 ≤ 1024) (hunder : a.toN
 theorem morphoCheckedAddOk (hstack : R.length + 6 ≤ 1024)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
     (hfit : a.toNat + b.toNat < UInt256.size)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12651) (a :: b :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12651) (a :: b :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret ((a + b) :: R) mem aw rdata σ k' C' := by
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret ((a + b) :: R) mem aw rdata σ k' C' := by
   have hc := checkedAddNoOverflowGt a b hfit
   rw [u256_add_comm b a] at hc
   have rd1 := morphoBlocks.morpho_block_12651_fallthrough (immWords := wordsOf (immStore v))
@@ -92,8 +94,8 @@ theorem morphoCheckedAddOk (hstack : R.length + 6 ≤ 1024)
 
 theorem morphoCheckedAddReverts (hstack : R.length + 6 ≤ 1024)
     (hover : UInt256.size ≤ a.toNat + b.toNat)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12651) (a :: b :: ret :: R)
-      mem aw rdata σ k C) : RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12651) (a :: b :: ret :: R)
+      mem aw rdata σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   have hc := checkedAddOverflowGt a b hover
   rw [u256_add_comm b a] at hc
   have rd1 := morphoBlocks.morpho_block_12651_taken (immWords := wordsOf (immStore v))
@@ -105,9 +107,9 @@ theorem morphoCheckedAddReverts (hstack : R.length + 6 ≤ 1024)
 theorem morphoCheckedMulOk (hstack : R.length + 6 ≤ 1024)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
     (hfit : a.toNat * b.toNat < UInt256.size)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14395) (a :: b :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14395) (a :: b :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret (UInt256.mul a b :: R) mem aw rdata σ k' C' := by
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret (UInt256.mul a b :: R) mem aw rdata σ k' C' := by
   have rd1 := morphoBlocks.morpho_block_14395_fallthrough (immWords := wordsOf (immStore v))
     hstack (checkedMulGuard_ok a b hfit) h
   exact ⟨_, _, morphoBlocks.morpho_block_14413 (immWords := wordsOf (immStore v))
@@ -115,8 +117,8 @@ theorem morphoCheckedMulOk (hstack : R.length + 6 ≤ 1024)
 
 theorem morphoCheckedMulReverts (hstack : R.length + 6 ≤ 1024)
     (hover : UInt256.size ≤ a.toNat * b.toNat)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14395) (a :: b :: ret :: R)
-      mem aw rdata σ k C) : RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14395) (a :: b :: ret :: R)
+      mem aw rdata σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   have rd1 := morphoBlocks.morpho_block_14395_taken (immWords := wordsOf (immStore v))
     hstack (by change checkedMulGuard a b ≠ _; rw [checkedMulGuard_overflow a b hover]; decide)
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
@@ -125,17 +127,17 @@ theorem morphoCheckedMulReverts (hstack : R.length + 6 ≤ 1024)
 
 theorem morphoCheckedDivOk (hstack : R.length + 6 ≤ 1024)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true) (hb : b ≠ ⟨0⟩)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14414) (a :: b :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14414) (a :: b :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret (UInt256.div a b :: R) mem aw rdata σ k' C' := by
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret (UInt256.div a b :: R) mem aw rdata σ k' C' := by
   have rd1 := morphoBlocks.morpho_block_14414_fallthrough (immWords := wordsOf (immStore v))
     (by simp only [List.length_cons]; omega) (isZero_eq_zero_of_ne hb) h
   exact ⟨_, _, morphoBlocks.morpho_block_14421 (immWords := wordsOf (immStore v))
     (by omega) hvalid rd1⟩
 
 theorem morphoCheckedDivReverts (hstack : R.length + 6 ≤ 1024) (hb : b = ⟨0⟩)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14414) (a :: b :: ret :: R)
-      mem aw rdata σ k C) : RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14414) (a :: b :: ret :: R)
+      mem aw rdata σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   have rd1 := morphoBlocks.morpho_block_14414_taken (immWords := wordsOf (immStore v))
     (by simp only [List.length_cons]; omega) (by rw [hb]; decide)
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h

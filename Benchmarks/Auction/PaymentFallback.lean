@@ -2,6 +2,8 @@ import Benchmarks.Auction.TransferSource
 import Benchmarks.Auction.TransferRoutine
 import Benchmarks.Auction.CallGrowth
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -9,7 +11,7 @@ namespace Auction
 /-- The fallback starts only after the raw ETH send has failed. Each source call uses the state
 returned by the matching EVM call, so a callback can change the WETH storage slot. -/
 theorem paymentFallbackRoutine {I g s0 amount recipient ret R mem aw ptr rdata σ k C evm locals}
-    (h : RD auctionBytecode I g s0 ⟨3352⟩ (amount :: recipient :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨3352⟩ (amount :: recipient :: ret :: R)
       mem aw rdata σ k C)
     (hs : SourceState s0 I σ evm) (hperm : I.perm = true)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 2 ^ 139 ≤ 2 ^ 200)
@@ -17,14 +19,14 @@ theorem paymentFallbackRoutine {I g s0 amount recipient ret R mem aw ptr rdata �
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 18 ≤ 1024) :
     (∃ (evm' : EVM.State) (σ' : AccountMap)
         (locals' : Store) (mem' : ByteArray) (aw' ptr' : UInt256) (out : ByteArray) (k' C' : Nat),
-      ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
+      ExecBlock fork auctionConfig { contract := auctionContract, locals := locals } evm
         paymentFallbackStmts (.ok { contract := auctionContract, locals := locals' } evm') ∧
       PaymentValues locals' recipient amount ptr' ∧ SourceState s0 I σ' evm' ∧
-      RD auctionBytecode I g s0 ret R mem' aw' out σ' k' C' ∧
+      RD fork auctionBytecode I g s0 ret R mem' aw' out σ' k' C' ∧
       MemoryCursor mem' aw' ptr' ∧ MemoryPrefix mem mem' ptr.toNat ∧
       ptr.toNat ≤ ptr'.toNat ∧ ptr'.toNat ≤ ptr.toNat + 2 ^ 139 ∧ aw.toNat ≤ aw'.toNat) ∨
-    (ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
-      paymentFallbackStmts .reverted ∧ RDrev auctionBytecode g s0) := by
+    (ExecBlock fork auctionConfig { contract := auctionContract, locals := locals } evm
+      paymentFallbackStmts .reverted ∧ RDrev fork auctionBytecode g s0) := by
   have hb32 : ptr.toNat + 32 ≤ 2 ^ 200 := by omega
   by_cases hcode : extCodeSizeWord σ (wethWord σ I) = ⟨0⟩
   · exact Or.inr ⟨depositSourceNoCode hs hv hcode, depositNoCode h hm hb32 hcode hov⟩

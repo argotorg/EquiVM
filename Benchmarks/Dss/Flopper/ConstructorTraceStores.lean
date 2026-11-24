@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Flopper.ConstructorTraceArgs
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Flopper constructor storage traces
 -/
@@ -16,12 +18,12 @@ theorem flopperCtorWardsStoreReach
     (vat gem : AccountAddress) {k C : ℕ}
     (hperm : I.perm = true)
     (rd134 :
-      RD (flopperCtorCode vat gem) I g
+      RD fork (flopperCtorCode vat gem) I g
         (initState σ σ₀ g A I) ⟨134⟩
         [EVM.word gem.val, EVM.word vat.val, ⟨32⟩]
         (flopperCtorArgsMem vat gem) (UInt256.ofNat 6) ByteArray.empty
         σDefaults k C) :
-    ∃ k' C', RD (flopperCtorCode vat gem) I g
+    ∃ k' C', RD fork (flopperCtorCode vat gem) I g
       (initState σ σ₀ g A I) ⟨155⟩
       [⟨1⟩, EVM.word vat.val, EVM.word gem.val]
       (flopperCtorWardsHashMem I vat gem) (UInt256.ofNat 6) ByteArray.empty
@@ -50,12 +52,12 @@ theorem flopperCtorVatStoreReach
     (vat gem : AccountAddress) {k C : ℕ}
     (hperm : I.perm = true)
     (rd155 :
-      RD (flopperCtorCode vat gem) I g
+      RD fork (flopperCtorCode vat gem) I g
         (initState σ σ₀ g A I) ⟨155⟩
         [⟨1⟩, EVM.word vat.val, EVM.word gem.val]
         (flopperCtorWardsHashMem I vat gem) (UInt256.ofNat 6) ByteArray.empty
         σWards k C) :
-    ∃ k' C', RD (flopperCtorCode vat gem) I g
+    ∃ k' C', RD fork (flopperCtorCode vat gem) I g
       (initState σ σ₀ g A I) ⟨186⟩
       [UInt256.lnot solcAddrMask, ⟨1⟩, solcAddrMask, EVM.word gem.val]
       (flopperCtorWardsHashMem I vat gem) (UInt256.ofNat 6) ByteArray.empty
@@ -64,7 +66,7 @@ theorem flopperCtorVatStoreReach
   have rdBeforeSload := flopper_ctor_run rd155 with [push1 ⟨2⟩, dup1]
   obtain ⟨k159, C159, rd159raw⟩ := rdBeforeSload.sload (by flopper_ctor_decode) (by evm_ov)
   have rd159 :
-      RD (flopperCtorCode vat gem) I g
+      RD fork (flopperCtorCode vat gem) I g
         (initState σ σ₀ g A I) ⟨159⟩
         [solcSlotWord σWards I ⟨2⟩, ⟨2⟩, ⟨1⟩, EVM.word vat.val, EVM.word gem.val]
         (flopperCtorWardsHashMem I vat gem) (UInt256.ofNat 6) ByteArray.empty
@@ -101,12 +103,12 @@ theorem flopperCtorGemStoreReach
     (vat gem : AccountAddress) {k C : ℕ}
     (hperm : I.perm = true)
     (rd186 :
-      RD (flopperCtorCode vat gem) I g
+      RD fork (flopperCtorCode vat gem) I g
         (initState σ σ₀ g A I) ⟨186⟩
         [UInt256.lnot solcAddrMask, ⟨1⟩, solcAddrMask, EVM.word gem.val]
         (flopperCtorWardsHashMem I vat gem) (UInt256.ofNat 6) ByteArray.empty
         σVat k C) :
-    ∃ k' C', RD (flopperCtorCode vat gem) I g
+    ∃ k' C', RD fork (flopperCtorCode vat gem) I g
       (initState σ σ₀ g A I) ⟨203⟩
       [⟨1⟩]
       (flopperCtorWardsHashMem I vat gem) (UInt256.ofNat 6) ByteArray.empty
@@ -114,7 +116,7 @@ theorem flopperCtorGemStoreReach
   have rdBeforeSload := flopper_ctor_run rd186 with [push1 ⟨3⟩, dup1]
   obtain ⟨k190, C190, rd190raw⟩ := rdBeforeSload.sload (by flopper_ctor_decode) (by evm_ov)
   have rd190 :
-      RD (flopperCtorCode vat gem) I g
+      RD fork (flopperCtorCode vat gem) I g
         (initState σ σ₀ g A I) ⟨190⟩
         [solcSlotWord σVat I ⟨3⟩, ⟨3⟩, UInt256.lnot solcAddrMask, ⟨1⟩, solcAddrMask,
           EVM.word gem.val]
@@ -138,12 +140,12 @@ theorem flopperCtorLiveStoreReach
     (vat gem : AccountAddress) {k C : ℕ}
     (hperm : I.perm = true)
     (rd203 :
-      RD (flopperCtorCode vat gem) I g
+      RD fork (flopperCtorCode vat gem) I g
         (initState σ σ₀ g A I) ⟨203⟩
         [⟨1⟩]
         (flopperCtorWardsHashMem I vat gem) (UInt256.ofNat 6) ByteArray.empty
         σGem k C) :
-    ∃ k' C', RD (flopperCtorCode vat gem) I g
+    ∃ k' C', RD fork (flopperCtorCode vat gem) I g
       (initState σ σ₀ g A I) ⟨206⟩
       []
       (flopperCtorWardsHashMem I vat gem) (UInt256.ofNat 6) ByteArray.empty
@@ -158,12 +160,12 @@ theorem flopperCtorStoresReach
     (vat gem : AccountAddress) {k C : ℕ}
     (hperm : I.perm = true)
     (rd134 :
-      RD (flopperCtorCode vat gem) I g
+      RD fork (flopperCtorCode vat gem) I g
         (initState σ σ₀ g A I) ⟨134⟩
         [EVM.word gem.val, EVM.word vat.val, ⟨32⟩]
         (flopperCtorArgsMem vat gem) (UInt256.ofNat 6) ByteArray.empty
         σDefaults k C) :
-    ∃ k' C', RD (flopperCtorCode vat gem) I g
+    ∃ k' C', RD fork (flopperCtorCode vat gem) I g
       (initState σ σ₀ g A I) ⟨206⟩
       [] (flopperCtorWardsHashMem I vat gem) (UInt256.ofNat 6) ByteArray.empty
       (flopperCtorFinalMap σDefaults I vat gem) k' C' := by

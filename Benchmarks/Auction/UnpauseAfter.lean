@@ -2,6 +2,8 @@ import Benchmarks.Auction.UnpauseCondition
 import Benchmarks.Auction.CreateInternal
 import Benchmarks.Auction.OwnershipRoutine
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -10,18 +12,18 @@ def unpauseCreateStmt : Stmt :=
   .ite unpauseCreateExpr [.internalCall "_createAuction" [.intLit 128] "_c"] []
 
 theorem unpauseAfterRoutine {I g s0 ret R mem aw rdata σ k C evm}
-    (h : RD auctionBytecode I g s0 ⟨1126⟩ (ret :: R) mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨1126⟩ (ret :: R) mem aw rdata σ k C)
     (hs : SourceState s0 I σ evm) (hperm : I.perm = true)
     (hm : HeapMemory mem aw ⟨128⟩)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 20 ≤ 1024) :
     (∃ (evm' : EVM.State) (σ' : AccountMap)
         (locals' : Store) (mem' : ByteArray) (aw' : UInt256) (out : ByteArray) (k' C' : Nat),
-      ExecStmt auctionConfig { contract := auctionContract, locals := ∅ } evm unpauseCreateStmt
+      ExecStmt fork auctionConfig { contract := auctionContract, locals := ∅ } evm unpauseCreateStmt
         (.ok { contract := auctionContract, locals := locals' } evm') ∧
       SourceState s0 I σ' evm' ∧
-      RD auctionBytecode I g s0 ret R mem' aw' out σ' k' C') ∨
-    (ExecStmt auctionConfig { contract := auctionContract, locals := ∅ } evm
-      unpauseCreateStmt .reverted ∧ RDrev auctionBytecode g s0) := by
+      RD fork auctionBytecode I g s0 ret R mem' aw' out σ' k' C') ∨
+    (ExecStmt fork auctionConfig { contract := auctionContract, locals := ∅ } evm
+      unpauseCreateStmt .reverted ∧ RDrev fork auctionBytecode g s0) := by
   have he := unpauseCreateSource (locals := ∅) hs (by simp)
   obtain ⟨_, _, rd1150⟩ := unpauseCondition h (by evm_ov)
   by_cases hn : UnpauseCreates σ I

@@ -2,6 +2,8 @@ import Benchmarks.Safe.ViaIR.SetupEventMemory
 import Benchmarks.Safe.ViaIR.AddressCalldataCopy
 import Benchmarks.Safe.ViaIR.SetupDecodeScalars
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -20,11 +22,11 @@ set_option maxHeartbeats 800000
 
 theorem safeSetupEventEncodeStart {I g s0 σ k C aw mem rdata ptr n len}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3163⟩ (setupDecodedStack I.calldata n len R)
+    (h : RD fork safeBytecode I g s0 ⟨3163⟩ (setupDecodedStack I.calldata n len R)
       mem aw rdata σ k C)
     (hf : memLoad (UInt256.ofNat 64) mem = UInt256.ofNat ptr)
     (hp : ptr + 160 < UInt256.size) (hov : R.length + 32 ≤ 1024) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨3187⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨3187⟩
       (⟨0⟩ :: UInt256.ofNat n :: UInt256.ofNat (setupOwnersStart I.calldata) ::
         UInt256.ofNat (ptr + 160) :: setupEventSaved I n len ptr R)
       (setupEventHeader mem ptr n) aw' rdata σ k' C' := by
@@ -37,7 +39,7 @@ theorem safeSetupEventEncodeStart {I g s0 σ k C aw mem rdata ptr n len}
 
 theorem safeSetupEventEncode {I g s0 σ k C aw mem rdata ptr n len}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3163⟩ (setupDecodedStack I.calldata n len R)
+    (h : RD fork safeBytecode I g s0 ⟨3163⟩ (setupDecodedStack I.calldata n len R)
       mem aw rdata σ k C)
     (hf : memLoad (UInt256.ofNat 64) mem = UInt256.ofNat ptr)
     (hm : mem.size ≤ ptr) (hn : n < UInt256.size)
@@ -46,7 +48,7 @@ theorem safeSetupEventEncode {I g s0 σ k C aw mem rdata ptr n len}
     (hc : ∀ w ∈ calldataWords I.calldata (setupOwnersStart I.calldata) n,
       w.toNat < EVM.addressModulus)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ aw' k' C', RD safeBytecode I g s0 ⟨3195⟩
+    ∃ aw' k' C', RD fork safeBytecode I g s0 ⟨3195⟩
       (UInt256.ofNat n :: UInt256.ofNat n ::
         UInt256.ofNat (setupOwnersStart I.calldata + 32 * n) ::
         UInt256.ofNat (ptr + 160 + 32 * n) :: setupEventSaved I n len ptr R)
@@ -59,14 +61,14 @@ theorem safeSetupEventEncode {I g s0 σ k C aw mem rdata ptr n len}
 
 theorem safeSetupEventEncodeRevert {I g s0 σ k C aw mem rdata ptr n len}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3163⟩ (setupDecodedStack I.calldata n len R)
+    (h : RD fork safeBytecode I g s0 ⟨3163⟩ (setupDecodedStack I.calldata n len R)
       mem aw rdata σ k C)
     (hf : memLoad (UInt256.ofNat 64) mem = UInt256.ofNat ptr)
     (hn : n < UInt256.size) (hp : ptr + 160 + 32 * n < UInt256.size)
     (hs : setupOwnersStart I.calldata + 32 * n < UInt256.size)
     (hc : ¬∀ w ∈ calldataWords I.calldata (setupOwnersStart I.calldata) n,
       w.toNat < EVM.addressModulus)
-    (hov : R.length + 32 ≤ 1024) : RDrev safeBytecode g s0 := by
+    (hov : R.length + 32 ≤ 1024) : RDrev fork safeBytecode g s0 := by
   obtain ⟨_, _, _, h₁⟩ := safeSetupEventEncodeStart h hf (by omega) hov
   exact safeAddressCalldataCopyLoopRevert (i := 0) n h₁ (Nat.zero_add _) hn hs hp hc
     (by simp [setupEventSaved]; omega)

@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.Checked104Evm
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_069
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_070
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -15,10 +17,10 @@ theorem cometTransferBaseMint {v : CometWithExtendedAssetListImmutables}
     {aw a b supplied dst ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 13 ≤ 1024) (hS : supplied.toNat < 2^104) (hp : ee.perm = true)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨14977⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨14977⟩
       (a :: b :: UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 104))
         (UInt256.ofNat 1) :: supplied :: dst :: ret :: R) mem aw rdata σ k C) :
-    ∃ mem' aw' k' C', RD (deployedRuntime v) ee g s0 ret R mem' aw' rdata σ k' C' := by
+    ∃ mem' aw' k' C', RD fork (deployedRuntime v) ee g s0 ret R mem' aw' rdata σ k' C' := by
   by_cases hz : supplied = UInt256.ofNat 0
   · have r1 := cometWithExtendedAssetList_block_14977_fallthrough
       (immWords := wordsOf (immStore v)) (by change R.length + 2 + 4 ≤ 1024; omega)
@@ -49,9 +51,9 @@ theorem cometTransferBaseEvents {v : CometWithExtendedAssetListImmutables}
     {R : List UInt256} (hstack : R.length + 16 ≤ 1024)
     (hW : withdrawn.toNat < 2^104) (hS : supplied.toNat < 2^104) (hp : ee.perm = true)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨14959⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨14959⟩
       (unused :: withdrawn :: src :: supplied :: dst :: ret :: R) mem aw rdata σ k C) :
-    ∃ mem' aw' k' C', RD (deployedRuntime v) ee g s0 ret R mem' aw' rdata σ k' C' := by
+    ∃ mem' aw' k' C', RD fork (deployedRuntime v) ee g s0 ret R mem' aw' rdata σ k' C' := by
   by_cases hz : withdrawn = UInt256.ofNat 0
   · have r1 := cometWithExtendedAssetList_block_14959_fallthrough
       (immWords := wordsOf (immStore v)) (by change R.length + 3 + 5 ≤ 1024; omega)

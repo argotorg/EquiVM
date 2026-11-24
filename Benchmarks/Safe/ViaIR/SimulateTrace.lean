@@ -3,6 +3,8 @@ import Benchmarks.Safe.ViaIR.RawDelegateCall
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_018
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_019
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -10,9 +12,9 @@ namespace Benchmarks.Safe.ViaIR
 
 set_option maxRecDepth 2000 in
 theorem safeSimulateReverts {σ σ₀ A I} {g : Sat256} {k C aw mem rdata selector} {R : List UInt256}
-    (h : RD safeBytecode I g (initState σ σ₀ g A I) ⟨3917⟩ (selector :: ⟨0⟩ :: R) mem aw rdata σ k C)
+    (h : RD fork safeBytecode I g (initState σ σ₀ g A I) ⟨3917⟩ (selector :: ⟨0⟩ :: R) mem aw rdata σ k C)
     (hov : R.length + 17 ≤ 1024) :
-    RDrev safeBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork safeBytecode g (initState σ σ₀ g A I) := by
   by_cases hv : I.weiValue = UInt256.ofNat 0
   swap
   · have hr := safeRuntime_block_3917_taken (by simp; omega) hv (by jump_dest) h

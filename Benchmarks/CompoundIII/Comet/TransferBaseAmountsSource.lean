@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.WithdrawAmountsSource
 import Benchmarks.CompoundIII.Comet.RepayAmountsSource
 import Benchmarks.CompoundIII.Comet.TupleLocalSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -16,7 +18,7 @@ theorem transferBaseAmounts_source (frame : Frame) (evm : EVM.State)
     (hdp : frame.locals.get? "dstPrincipal" = some (.int (signed104 dstPrincipal)))
     (hsn : frame.locals.get? "srcPrincipalNew" = some (.int (signed104 srcNext)))
     (hdn : frame.locals.get? "dstPrincipalNew" = some (.int (signed104 dstNext))) :
-    ExecBlock config frame evm transferBaseAmountsBlock
+    ExecBlock fork config frame evm transferBaseAmountsBlock
       (if WithdrawAmountsFits srcPrincipal srcNext ∧ RepayAmountsFits dstPrincipal dstNext then
         .ok (transferBaseAmountsFrame frame srcPrincipal dstPrincipal srcNext dstNext) evm
       else .reverted) := by
@@ -24,7 +26,7 @@ theorem transferBaseAmounts_source (frame : Frame) (evm : EVM.State)
       .ok (.int (signed104 srcPrincipal)) := by simp only [evalExpr?, hsp, EvalResult.ofOption]
   have hsne : evalExpr? config frame evm (.var "srcPrincipalNew") =
       .ok (.int (signed104 srcNext)) := by simp only [evalExpr?, hsn, EvalResult.ofOption]
-  have hsrc := withdrawAmounts_call frame evm srcPrincipal srcNext _ _ "__c7" hc hspe hsne
+  have hsrc := withdrawAmounts_call (fork := fork) frame evm srcPrincipal srcNext _ _ "__c7" hc hspe hsne
   by_cases hs : WithdrawAmountsFits srcPrincipal srcNext
   · rw [if_pos hs] at hsrc
     let withdrawn := withdrawSupplyAmount srcPrincipal srcNext
@@ -33,7 +35,7 @@ theorem transferBaseAmounts_source (frame : Frame) (evm : EVM.State)
       locals := frame.locals.insert "__c7" (.tuple [.int withdrawn.toNat, .int borrowed.toNat]) }
     have ht1 : f1.locals.get? "__c7" = some (.tuple [.int withdrawn.toNat, .int borrowed.toNat]) := by
       simp only [f1, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert]; rfl
-    have hp1 := tuplePairLets_source config f1 evm "__c7" "withdrawAmount" "borrowAmount"
+    have hp1 := tuplePairLets_source (fork := fork) config f1 evm "__c7" "withdrawAmount" "borrowAmount"
       (some (.elem (.int (.uint ⟨104, by decide⟩))))
       (some (.elem (.int (.uint ⟨104, by decide⟩)))) _ _ (by decide) ht1
     let f3 : Frame := { f1 with
@@ -49,7 +51,7 @@ theorem transferBaseAmounts_source (frame : Frame) (evm : EVM.State)
       simp only [evalExpr?, f3, f1, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert]
       change EvalResult.ofOption .unboundVariable (frame.locals.get? "dstPrincipalNew") = _
       rw [hdn]; rfl
-    have hdst := repayAmounts_call f3 evm dstPrincipal dstNext _ _ "__c8" hc hdpe hdne
+    have hdst := repayAmounts_call (fork := fork) f3 evm dstPrincipal dstNext _ _ "__c8" hc hdpe hdne
     by_cases hd : RepayAmountsFits dstPrincipal dstNext
     · rw [if_pos hd] at hdst
       rw [if_pos ⟨hs, hd⟩]
@@ -59,7 +61,7 @@ theorem transferBaseAmounts_source (frame : Frame) (evm : EVM.State)
         locals := f3.locals.insert "__c8" (.tuple [.int repaid.toNat, .int supplied.toNat]) }
       have ht4 : f4.locals.get? "__c8" = some (.tuple [.int repaid.toNat, .int supplied.toNat]) := by
         simp only [f4, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert]; rfl
-      have hp4 := tuplePairLets_source config f4 evm "__c8" "repayAmount" "supplyAmount"
+      have hp4 := tuplePairLets_source (fork := fork) config f4 evm "__c8" "repayAmount" "supplyAmount"
         (some (.elem (.int (.uint ⟨104, by decide⟩))))
         (some (.elem (.int (.uint ⟨104, by decide⟩)))) _ _ (by decide) ht4
       exact ExecBlock.consNormal hsrc (execBlock_append hp1 (ExecBlock.consNormal hdst hp4))

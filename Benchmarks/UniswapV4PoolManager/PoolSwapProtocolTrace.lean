@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.MemoryGas
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_056
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_058
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -28,9 +30,9 @@ theorem poolSwapProtocolTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hfc : fee.toNat < 2^24) (hpc : protocol.toNat < 2^16)
     (hi : memLoad (step+UInt256.ofNat 128) mem = s.amountIn)
     (hf : memLoad (step+UInt256.ofNat 192) mem = s.feeAmount)
-    (h : RD (deployedRuntime v) I g s0 ⟨19794⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨19794⟩
       ([tag, x1, params, remaining, calculated, fee, protocol, amount, dir, step] ++ R) mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨19804⟩
+    ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨19804⟩
       ([tag, x1, params, remaining, calculated, fee, protocol, poolSwapProtocolAmount s fee protocol amount, dir, step] ++ R)
       (poolSwapProtocolMemory mem step s fee protocol) (poolSwapProtocolAW aw step fee protocol) rdata σ k' C' := by
   have hfm : UInt256.land fee (UInt256.ofNat 16777215) = fee := u256LandMaskCleanOfToNat _ _ rfl hfc
@@ -43,7 +45,7 @@ theorem poolSwapProtocolTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
   · have rd0 := poolManagerBlocks.poolManager_block_19794_taken
       (by change R.length+3+9 ≤ 1024; omega) (by rwa [hpm])
       (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) h
-    have hshare : ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨20272⟩
+    have hshare : ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨20272⟩
         ([amount, poolSwapProtocolShare s fee protocol, x1, params, remaining, calculated,
           fee, protocol, tag, dir, step] ++ R)
         mem (poolSwapProtocolActiveAW aw step fee protocol) rdata σ k' C' := by

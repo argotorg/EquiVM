@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.RecordEventSource
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 
@@ -19,7 +21,7 @@ theorem recordTailSource {L imms : Store} {evm : EVM.State} {ats : List Attestat
     (hschema : L.get? "schema" = some (wordBytes32Value schema))
     (hia : i < ats.length) (hiv : i < values.length) (hiu : i < uids.length) (hb : i+1 < UInt256.size)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config {contract := contract,locals := L,immutables := imms} evm recordTailBody
+    ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm recordTailBody
       (.ok {contract := contract,locals := recordTailLocals L ats values uids used a r.value uid i,immutables := imms} evm) := by
   apply execBlock_append (recordArraysSource ha hr hu hi hats hvalues huids hia hiv hiu)
   apply recordEventSource (hperm := by assumption) (r := r) (attester := attester) (uid := uid) (schema := schema) (i := i)

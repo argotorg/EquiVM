@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.SupplyCollateralMemory
 import Benchmarks.Morpho.MorphoBlue.WithdrawAuthorization
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -19,10 +21,10 @@ variable {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
   {R : List UInt256}
 
 theorem morphoWithdrawCollateralCreated (p : MarketParamsWords) (hstack : R.length + 24 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5498)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5498)
       ([UInt256.ofNat 128, account, solcAddrMask, receiver, assets, receiver, UInt256.ofNat 0] ++ R)
       (createMarketDecodedMem p) aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
       ([UInt256.isZero (UInt256.isZero (marketFieldWord σ ee p.id 4)), UInt256.ofNat 288, UInt256.ofNat 5562] ++
         withdrawCollateralGuardTail p.id assets account receiver R) (accruePublicMem p) aw' out σ k' C' := by
   have hid : keccakWord (UInt256.ofNat 128) (UInt256.ofNat 160) (createMarketDecodedMem p) = p.id :=
@@ -34,7 +36,7 @@ theorem morphoWithdrawCollateralCreated (p : MarketParamsWords) (hstack : R.leng
   let mem := twoWordHashMem p.id (UInt256.ofNat 3) (createMarketDecodedMem p)
   have hh : keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) mem = solcMappingSlot ⟨3⟩ p.id :=
     twoWordHashMem_solcMappingSlot_any _ _ _
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     ([UInt256.ofNat 585, UInt256.isZero (UInt256.isZero (UInt256.land
       (solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) mem + UInt256.ofNat 2) σ ee)
       uint128Mask)), UInt256.ofNat 5562] ++ withdrawCollateralGuardTail p.id assets account receiver R)
@@ -51,9 +53,9 @@ theorem morphoWithdrawCollateralCreated (p : MarketParamsWords) (hstack : R.leng
   exact ⟨a2, _, _, rd3⟩
 
 theorem morphoWithdrawCollateralAssets (p : MarketParamsWords) (hstack : R.length + 24 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5562)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5562)
       (withdrawCollateralGuardTail p.id assets account receiver R) (accruePublicMem p) aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
       ([UInt256.isZero (UInt256.isZero assets), UInt256.ofNat 352, UInt256.ofNat 5581] ++
         withdrawCollateralGuardTail p.id assets account receiver R) (supplyCollateralAssetsMem p) aw' out σ k' C' := by
   have rd1 := morphoBlocks.morpho_block_5562 (immWords := wordsOf (immStore v))
@@ -68,9 +70,9 @@ theorem morphoWithdrawCollateralAssets (p : MarketParamsWords) (hstack : R.lengt
   exact ⟨a2, _, _, rd3⟩
 
 theorem morphoWithdrawCollateralAddress (p : MarketParamsWords) (hstack : R.length + 24 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5581)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5581)
       (withdrawCollateralGuardTail p.id assets account receiver R) (supplyCollateralAssetsMem p) aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
       ([UInt256.isZero (UInt256.isZero receiver), UInt256.ofNat 416, UInt256.ofNat 5600] ++
         withdrawCollateralGuardTail p.id assets account receiver R) (supplyCollateralGuardMem p) aw' out σ k' C' := by
   have rd1 := morphoBlocks.morpho_block_5581 (immWords := wordsOf (immStore v))
@@ -111,9 +113,9 @@ theorem morphoWithdrawCollateralAuthorization {v : MorphoImmutables} {ee : Execu
     {s0 : State} {aw assets account receiver : UInt256} {out : ByteArray} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (p : MarketParamsWords) (hstack : R.length + 32 ≤ 1024)
     (hc : account.toNat < EVM.addressModulus)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5600)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5600)
       (withdrawCollateralGuardTail p.id assets account receiver R) (supplyCollateralGuardMem p) aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
       ([senderAuthorizedWord σ ee account, UInt256.ofNat 480, UInt256.ofNat 5620] ++
         withdrawCollateralGuardTail p.id assets account receiver R)
       (withdrawCollateralGuardMem p ee account) aw' out σ k' C' := by

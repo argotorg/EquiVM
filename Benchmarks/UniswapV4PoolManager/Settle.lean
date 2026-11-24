@@ -4,6 +4,8 @@ import Benchmarks.UniswapV4PoolManager.SettleEntrySource
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_030
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_006
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # PoolManager `settle()`
 
@@ -26,7 +28,7 @@ theorem poolManagerSettleBody {σ σ₀ A I} {g : UInt256} (v : PoolManagerImmut
     (_hWF : Syntax.poolManagerWF σ I)
     (_hGas : Syntax.poolManagerGasBound g)
     (hsel : selIs I (poolManagerSelBytes 3)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (poolManagerSelBytes 3) rfl hsel
   have hd : dispatchMsg contract I.calldata = some settleTransition := by
     apply poolManagerDispatch_settle <;> first
@@ -36,9 +38,9 @@ theorem poolManagerSettleBody {σ σ₀ A I} {g : UInt256} (v : PoolManagerImmut
       (transitionSignature settleTransition).paramTypes I.calldata = some ∅ := by
     change decodeCalldataWithMode .modern [] [] I.calldata = some ∅
     exact decodeCalldataWithMode_empty_ok hsz
-  obtain ⟨k, C, rdEntry⟩ := poolManagerReachSettleBody (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, rdEntry⟩ := poolManagerReachSettleBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
-  change RD (deployedRuntime v) I (Sat256.ofUInt256 g)
+  change RD fork (deployedRuntime v) I (Sat256.ofUInt256 g)
     (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨10885⟩ [solcSelectorWord I]
     entryMemory ⟨3⟩ .empty σ k C at rdEntry
   by_cases hhi : I.calldata.size < calldataLimit

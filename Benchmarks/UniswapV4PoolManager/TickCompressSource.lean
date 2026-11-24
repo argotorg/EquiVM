@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.TickCompressWords
 import Benchmarks.UniswapV4PoolManager.SignedQuotientSource
 import Benchmarks.UniswapV4PoolManager.ValueLocals
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -22,7 +24,7 @@ theorem tickCompress_body_eq : tickCompressFunction.body =
 theorem tickCompressBody {f : Frame} {evm : EVM.State} {tick spacing : Int}
     (ht : f.locals.get? "tick" = some (.int tick))
     (hs : f.locals.get? "tickSpacing" = some (.int spacing)) :
-    ExecFuncBody config f evm tickCompressFunction.body
+    ExecFuncBody fork config f evm tickCompressFunction.body
       (.returned f evm (some [.int (tickCompressValue tick spacing)])) := by
   have hcond := evalIntEq (evalLocalValue (cfg := config) (evm := evm) hs)
     (show evalExpr? config f evm (.intLit 0) = .ok (.int 0) by simp only [evalExpr?, pure])
@@ -43,7 +45,7 @@ theorem tickCompressCall {f : Frame} {evm : EVM.State} {et es : Expr} {tick spac
     (hf : f.contract = contract)
     (ht : evalExpr? config f evm et = .ok (.int tick))
     (hs : evalExpr? config f evm es = .ok (.int spacing)) (ret : Ident) :
-    ExecStmt config f evm (.internalCall "TickBitmap_compress" [et, es] ret)
+    ExecStmt fork config f evm (.internalCall "TickBitmap_compress" [et, es] ret)
       (.ok (valueLocal f ret (.int (tickCompressValue tick spacing))) evm) := by
   apply internalCallFunctionReturn (argVals := [.int tick, .int spacing])
     (value := some [.int (tickCompressValue tick spacing)])

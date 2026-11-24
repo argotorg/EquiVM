@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.ModifyPositionMiddleAmountsModel
 import Benchmarks.UniswapV3.Pool.PoolLiquidityStore
 import Benchmarks.UniswapV3.Pool.LiquidityDeltaSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -44,7 +46,7 @@ theorem evalModifyPositionMiddleDeltaExprs (v : UniswapV3PoolImmutables)
 theorem modifyPositionMiddleLiquidityStoreSource (v : UniswapV3PoolImmutables)
     (a : ModifyPositionArgs) (evm evm' : EVM.State)
     (hperm : evm'.executionEnv.perm = true) :
-    ExecStmt config (modifyPositionMiddleFinalFrame v a evm) evm'
+    ExecStmt fork config (modifyPositionMiddleFinalFrame v a evm) evm'
       (.assign .storage ⟨"liquidity", []⟩ (.var "__c12"))
       (.ok (modifyPositionMiddleFinalFrame v a evm)
         (storePoolLiquidity evm' (EVM.wordOfInt (modifyPositionMiddleNewLiquidity v a evm)))) := by
@@ -58,7 +60,7 @@ theorem modifyPositionMiddleLiquidityStoreSource (v : UniswapV3PoolImmutables)
 
 theorem modifyPositionMiddleReturnSource (v : UniswapV3PoolImmutables)
     (a : ModifyPositionArgs) (evm evm' : EVM.State) :
-    ExecStmt config (modifyPositionMiddleFinalFrame v a evm) evm'
+    ExecStmt fork config (modifyPositionMiddleFinalFrame v a evm) evm'
       (.return [.var "position", .var "amount0", .var "amount1"])
       (.returned (modifyPositionMiddleFinalFrame v a evm) evm'
         (some [modifyPositionKeyValue a,

@@ -1,16 +1,18 @@
 import Benchmarks.Auction.DepositPrefix
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
 theorem transferPrefix {I g s0 amount recipient ret oldTarget R mem aw ptr rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨3449⟩
+    (h : RD fork auctionBytecode I g s0 ⟨3449⟩
       (amount :: ⟨0xd0e30db0⟩ :: oldTarget :: amount :: recipient :: ret :: R)
       mem aw rdata σ k C)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 68 ≤ 2 ^ 200)
     (hov : R.length + 18 ≤ 1024) :
-    ∃ gasArg k' C', RD auctionBytecode I g s0 ⟨3517⟩
+    ∃ gasArg k' C', RD fork auctionBytecode I g s0 ⟨3517⟩
       (gasArg :: wethWord σ I :: ⟨0⟩ :: ptr :: ⟨68⟩ :: ptr :: ⟨32⟩ ::
         (ptr + ⟨68⟩) :: ⟨0xa9059cbb⟩ :: wethWord σ I :: amount :: recipient :: ret :: R)
       (callMem2 mem ptr transferWord (UInt256.land recipient solcAddrMask) amount)
@@ -24,7 +26,7 @@ theorem transferPrefix {I g s0 amount recipient ret oldTarget R mem aw ptr rdata
     raw mstoreSymbolic (by native_decide) (by evm_ov)]
   have hsel : UInt256.shiftLeft ⟨0xa9059cbb⟩ ⟨224⟩ = transferWord := by native_decide
   simp only [hsel] at rd3465
-  change RD _ _ _ _ ⟨3465⟩ (ptr :: solcSlotWord σ I ⟨202⟩ :: amount :: ⟨0xd0e30db0⟩ ::
+  change RD fork _ _ _ _ ⟨3465⟩ (ptr :: solcSlotWord σ I ⟨202⟩ :: amount :: ⟨0xd0e30db0⟩ ::
     oldTarget :: amount :: recipient :: ret :: R) (selectorMem mem ptr transferWord)
     (expandedWords aw ptr ⟨32⟩) rdata σ _ _ at rd3465
   have rd3481 := evm_run rd3465 with [push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl,
@@ -39,7 +41,7 @@ theorem transferPrefix {I g s0 amount recipient ret oldTarget R mem aw ptr rdata
   have rd3488 := evm_run rd3481 with [push1 ⟨36⟩, dup3, add, dup8, swap1,
     raw mstoreSymbolic (by native_decide) (by evm_ov)]
   simp only [h36] at rd3488
-  change RD _ _ _ _ ⟨3488⟩ (solcAddrMask :: ptr :: solcSlotWord σ I ⟨202⟩ :: amount ::
+  change RD fork _ _ _ _ ⟨3488⟩ (solcAddrMask :: ptr :: solcSlotWord σ I ⟨202⟩ :: amount ::
     ⟨0xd0e30db0⟩ :: oldTarget :: amount :: recipient :: ret :: R)
     (callMem2 mem ptr transferWord (UInt256.land recipient solcAddrMask) amount)
     (callWords2 aw ptr) rdata σ _ _ at rd3488

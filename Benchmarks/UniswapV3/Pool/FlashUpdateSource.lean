@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.FlashGrowthSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 
@@ -22,7 +24,7 @@ theorem evalFlashUpdateGuard (locals imms : Store) (evm : EVM.State)
 
 theorem flashUpdateSkip (locals imms : Store) (evm : EVM.State) (second : Bool)
     (hp : locals.get? (flashPaidName second) = some (.int 0)) :
-    ExecStmt config {contract := contract, locals := locals, immutables := imms} evm
+    ExecStmt fork config {contract := contract, locals := locals, immutables := imms} evm
       (flashUpdateStmt second) (.ok {contract := contract, locals := locals, immutables := imms} evm) := by
   refine ExecStmt.iteFalse ?_ ExecBlock.nil
   simpa only [show (⟨0⟩ : UInt256).toNat = 0 from rfl, Nat.lt_irrefl, decide_false] using

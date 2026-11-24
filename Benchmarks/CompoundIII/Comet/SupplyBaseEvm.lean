@@ -7,6 +7,8 @@ import Benchmarks.CompoundIII.Comet.UpdateBaseMemory
 import Benchmarks.CompoundIII.Comet.AccrueInternalEvm
 import Benchmarks.CompoundIII.Comet.InternalDynamicOutcome
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -22,11 +24,11 @@ theorem cometSupplyBaseAfterAccrue {v : CometWithExtendedAssetListImmutables}
     (hfree : memLoad ⟨64⟩ mem = free) (hlo : 96 ≤ free.toNat) (hmem : 96 ≤ mem.size)
     (hbound : free.toNat + 160 < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨12473⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨12473⟩
       (amount :: EVM.word sender.val :: UInt256.ofNat 12591 :: EVM.word dst.val :: ret :: R)
       mem aw rdata σ k C) :
     ∃ result, SupplyBaseAfterAccrue v sender dst amount evm result ∧
-      internalDynamicRun (deployedRuntime v) ee g s0 ret R result := by
+      internalDynamicRun fork (deployedRuntime v) ee g s0 ret R result := by
   obtain ⟨aw1, k1, C1, hm, r1⟩ := cometSupplyBaseRead (v := v) dst
     (by omega) hfree hmem (by omega) hs h
   rcases cometSupplyBaseMath (v := v) (by omega) hs hm.principal r1 with
@@ -77,10 +79,10 @@ theorem cometSupplyBaseAfterTransfer {v : CometWithExtendedAssetListImmutables}
     (hfree : memLoad ⟨64⟩ mem = free) (hlo : 96 ≤ free.toNat) (hmem : 96 ≤ mem.size)
     (hbound : free.toNat + 160 < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨12465⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨12465⟩
       (amount :: EVM.word sender.val :: UInt256.ofNat 12591 :: EVM.word dst.val :: ret :: R) mem aw rdata σ k C) :
     ∃ result, SupplyBaseAfterTransfer v sender dst amount evm result ∧
-      internalDynamicRun (deployedRuntime v) ee g s0 ret R result := by
+      internalDynamicRun fork (deployedRuntime v) ee g s0 ret R result := by
   have r1 := cometWithExtendedAssetList_block_12465
     (immWords := wordsOf (immStore v)) (by change R.length + 5 + 2 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
@@ -103,10 +105,10 @@ theorem cometSupplyBase {v : CometWithExtendedAssetListImmutables}
     (hfree : memLoad ⟨64⟩ mem = free) (hlo : 96 ≤ free.toNat)
     (hbound : free.toNat + 224 < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨12418⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨12418⟩
       (EVM.word sender.val :: EVM.word dst.val :: amount :: ret :: R) mem aw rdata σ k C) :
-    ∃ result, SupplyBaseTrace v sender dst amount evm result ∧
-      internalDynamicRun (deployedRuntime v) ee g s0 ret R result := by
+    ∃ result, SupplyBaseTrace fork v sender dst amount evm result ∧
+      internalDynamicRun fork (deployedRuntime v) ee g s0 ret R result := by
   have r1 := cometWithExtendedAssetList_block_12418
     (immWords := wordsOf (immStore v)) (by change R.length + 1 + 8 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h

@@ -1,5 +1,7 @@
 import Benchmarks.Safe.ViaIR.MemoryBytesDecodeValid
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -9,16 +11,16 @@ set_option maxRecDepth 2000 in
 set_option maxHeartbeats 200000 in
 theorem safeDecodeMemoryBytesEvidence {I g s0 σ k C aw rdata off} {ret : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7262⟩
+    (h : RD fork safeBytecode I g s0 ⟨7262⟩
       (UInt256.ofNat off :: UInt256.ofNat I.calldata.size :: ret :: R)
       solcFreePtrMem aw rdata σ k C)
     (hoff : off ≤ 2 ^ 64 + 4) (hsize : I.calldata.size < UInt256.size)
     (hov : R.length + 12 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
-    RDrev safeBytecode g s0 ∨
+    RDrev fork safeBytecode g s0 ∨
     ∃ len aw' k' C',
       calldataWord I.calldata off = UInt256.ofNat len ∧ len ≤ 2 ^ 64 - 192 ∧
       I.calldata.size < 2 ^ 255 ∧ off + 32 + len ≤ I.calldata.size ∧
-      RD safeBytecode I g s0 ret (⟨128⟩ :: R)
+      RD fork safeBytecode I g s0 ret (⟨128⟩ :: R)
         (memoryBytesDecoded (I.calldata.extract (off + 32) (off + 32 + len)))
         aw' rdata σ k' C' := by
   have hu : UInt256.size = 2 ^ 256 := rfl
@@ -27,7 +29,7 @@ theorem safeDecodeMemoryBytesEvidence {I g s0 σ k C aw rdata off} {ret : UInt25
   have ho : (UInt256.ofNat off).toNat = off := ulit_toNat' _ (by omega)
   have ht : (UInt256.ofNat I.calldata.size).toNat = I.calldata.size := ulit_toNat' _ hsize
   have hfail (hc : UInt256.slt (UInt256.ofNat off + UInt256.ofNat 31)
-      (UInt256.ofNat I.calldata.size) = UInt256.ofNat 0) : RDrev safeBytecode g s0 := by
+      (UInt256.ofNat I.calldata.size) = UInt256.ofNat 0) : RDrev fork safeBytecode g s0 := by
     have h₁ := safeRuntime_block_7262_taken (by simp; omega) (by rw [hc]; decide)
       (by jump_dest) h
     exact safeRuntime_block_111 (by
@@ -51,7 +53,7 @@ theorem safeDecodeMemoryBytesEvidence {I g s0 σ k C aw rdata off} {ret : UInt25
       (UInt256.ofNat 1) = UInt256.ofNat (2 ^ 64 - 1) := by decide +kernel
   have hmaxNat : (UInt256.ofNat (2 ^ 64 - 1)).toNat = 2 ^ 64 - 1 := by decide +kernel
   have h₂ := safeRuntime_block_7275 (by simp; omega) (by jump_dest) h₁
-  change RD safeBytecode I g s0 ⟨7208⟩
+  change RD fork safeBytecode I g s0 ⟨7208⟩
     ((UInt256.ofNat off + UInt256.ofNat 32) ::
       calldataWord I.calldata (UInt256.ofNat off).toNat :: UInt256.ofNat I.calldata.size ::
       ⟨7289⟩ :: ret :: R) solcFreePtrMem aw rdata σ _ _ at h₂

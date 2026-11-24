@@ -1,5 +1,7 @@
 import Benchmarks.CurveVault.BoolCalls
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch Reasoning.VyperCalls
 namespace Benchmarks.CurveVault
 
@@ -50,7 +52,7 @@ theorem vaultTokenReturnSourceSuccess {s0 evm : State} {I : ExecutionEnv} {σ : 
     (hs : SourceState s0 I σ evm) (locals : Store) (token : UInt256) (out : ByteArray)
     (ht : locals.get? "token" = some (.address (AccountAddress.ofUInt256 token)))
     (hret : locals.get? "returned" = some (.bytes out)) (haccept : vaultTokenReturnAccepted σ token out) :
-    ∃ locals', ExecStmt config {contract := contract, locals := locals} evm vaultTokenReturnStmt
+    ∃ locals', ExecStmt fork config {contract := contract, locals := locals} evm vaultTokenReturnStmt
       (.ok {contract := contract, locals := locals'} evm) := by
   have hsize := vaultTokenReturnSizeEval evm locals out hret
   rcases haccept with ⟨hempty, hcode⟩ | ⟨h32, hword⟩
@@ -74,7 +76,7 @@ theorem vaultTokenReturnSourceRevert {s0 evm : State} {I : ExecutionEnv} {σ : A
     (hs : SourceState s0 I σ evm) (locals : Store) (token : UInt256) (out : ByteArray)
     (ht : locals.get? "token" = some (.address (AccountAddress.ofUInt256 token)))
     (hret : locals.get? "returned" = some (.bytes out)) (hreject : ¬ vaultTokenReturnAccepted σ token out) :
-    ExecStmt config {contract := contract, locals := locals} evm vaultTokenReturnStmt .reverted := by
+    ExecStmt fork config {contract := contract, locals := locals} evm vaultTokenReturnStmt .reverted := by
   have hsize := vaultTokenReturnSizeEval evm locals out hret
   by_cases hempty : out.size = 0
   · have hcode : extCodeSizeWord σ token = ⟨0⟩ := by

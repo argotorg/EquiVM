@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.MappingMemory
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_004
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_005
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -22,8 +24,8 @@ theorem transferFromOperatorTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {sender receiver : UInt256} {R : List UInt256} (v : PoolManagerImmutables)
     (hstack : R.length + 12 ≤ 1024) (hmem : mem.size = 96)
     (hc : sender.toNat < EVM.addressModulus) (hne : accountWord I.source ≠ sender)
-    (h : RD (deployedRuntime v) I g s0 ⟨453⟩ (receiver :: sender :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) I g s0 ⟨532⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨453⟩ (receiver :: sender :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 ⟨532⟩
       (UInt256.isZero (UInt256.land (solcSlotWordAt (operatorSlot sender (accountWord I.source)) σ I) ⟨255⟩) ::
         transferFromStack sender receiver (calldataWord I.calldata 68) (calldataWord I.calldata 100) R)
       (transferFromOperatorMemory I sender mem) aw' rdata σ k' C' := by
@@ -34,7 +36,7 @@ theorem transferFromOperatorTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
   have hj781 : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 781) = true := by
     rw [deployedRuntime_jumps]; jump_dest
   have h781 := poolManagerBlocks.poolManager_block_453_taken (by omega) hcond hj781 h
-  change RD (deployedRuntime v) I g s0 ⟨781⟩
+  change RD fork (deployedRuntime v) I g s0 ⟨781⟩
     (UInt256.isZero (UInt256.eq (accountWord I.source) (UInt256.land sender solcAddrMask)) ::
       receiver :: solcAddrMask :: ⟨633⟩ :: transferEventTopic :: UInt256.land sender solcAddrMask ::
       calldataWord I.calldata 100 :: calldataWord I.calldata 68 :: R) mem aw rdata σ _ _ at h781
@@ -45,7 +47,7 @@ theorem transferFromOperatorTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (by simp only [List.length_cons]; omega) hj532 h781
   let masked := UInt256.land (accountWord I.source) solcAddrMask
   let nextMem := nestedMappingMemory sender masked ⟨3⟩ mem
-  change RD (deployedRuntime v) I g s0 ⟨532⟩
+  change RD fork (deployedRuntime v) I g s0 ⟨532⟩
     (UInt256.isZero (UInt256.land (solcSlotWordAt (keccakWord ⟨0⟩ ⟨64⟩ nextMem) σ I) ⟨255⟩) ::
       transferFromStack sender receiver (calldataWord I.calldata 68) (calldataWord I.calldata 100) R)
     nextMem _ rdata σ k' C' at hnext
@@ -61,16 +63,16 @@ theorem transferFromSkipAllowanceTrace {I : ExecutionEnv} {g : Sat256} {s0 : Sta
     (hc : sender.toNat < EVM.addressModulus)
     (hskip : ¬(accountWord I.source ≠ sender ∧
       UInt256.land (solcSlotWordAt (operatorSlot sender (accountWord I.source)) σ I) ⟨255⟩ = ⟨0⟩))
-    (h : RD (deployedRuntime v) I g s0 ⟨453⟩ (receiver :: sender :: R) mem aw rdata σ k C) :
+    (h : RD fork (deployedRuntime v) I g s0 ⟨453⟩ (receiver :: sender :: R) mem aw rdata σ k C) :
     ∃ mem' aw' k' C', mem'.size = 96 ∧ memLoad ⟨64⟩ mem' = memLoad ⟨64⟩ mem ∧
-      RD (deployedRuntime v) I g s0 ⟨537⟩
+      RD fork (deployedRuntime v) I g s0 ⟨537⟩
         (transferFromStack sender receiver (calldataWord I.calldata 68) (calldataWord I.calldata 100) R)
         mem' aw' rdata σ k' C' := by
   by_cases heq : accountWord I.source = sender
   · have hcond : UInt256.isZero (UInt256.eq (accountWord I.source) (UInt256.land sender solcAddrMask)) = ⟨0⟩ := by
       rw [solcAddrMask_clean hc, heq, uInt256_eq_self]; decide
     have h532 := poolManagerBlocks.poolManager_block_453_fallthrough (by omega) hcond h
-    change RD (deployedRuntime v) I g s0 ⟨532⟩
+    change RD fork (deployedRuntime v) I g s0 ⟨532⟩
       (UInt256.isZero (UInt256.eq (accountWord I.source) (UInt256.land sender solcAddrMask)) ::
         receiver :: solcAddrMask :: ⟨633⟩ :: transferEventTopic :: UInt256.land sender solcAddrMask ::
         calldataWord I.calldata 100 :: calldataWord I.calldata 68 :: R) mem aw rdata σ _ _ at h532
@@ -96,8 +98,8 @@ theorem transferFromNeedAllowanceTrace {I : ExecutionEnv} {g : Sat256} {s0 : Sta
     (hc : sender.toNat < EVM.addressModulus)
     (hneed : accountWord I.source ≠ sender ∧
       UInt256.land (solcSlotWordAt (operatorSlot sender (accountWord I.source)) σ I) ⟨255⟩ = ⟨0⟩)
-    (h : RD (deployedRuntime v) I g s0 ⟨453⟩ (receiver :: sender :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) I g s0 ⟨647⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨453⟩ (receiver :: sender :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 ⟨647⟩
       (transferFromStack sender receiver (calldataWord I.calldata 68) (calldataWord I.calldata 100) R)
       (transferFromOperatorMemory I sender mem) aw' rdata σ k' C' := by
   obtain ⟨aw', k', C', h532⟩ := transferFromOperatorTrace v hstack hmem hc hneed.1 h
@@ -115,10 +117,10 @@ theorem transferFromAllowanceReadTrace {I : ExecutionEnv} {g : Sat256} {s0 : Sta
     {mem rdata : ByteArray} {aw : UInt256} {σ : AccountMap} {k C : Nat}
     {sender receiver id amount : UInt256} {R : List UInt256} (v : PoolManagerImmutables)
     (hstack : R.length + 12 ≤ 1024) (hmem : mem.size = 96)
-    (h : RD (deployedRuntime v) I g s0 ⟨647⟩ (transferFromStack sender receiver id amount R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨647⟩ (transferFromStack sender receiver id amount R)
       mem aw rdata σ k C) :
     let allowed := solcSlotWordAt (allowanceSlot sender (accountWord I.source) id) σ I
-    ∃ aw' k' C', RD (deployedRuntime v) I g s0
+    ∃ aw' k' C', RD fork (deployedRuntime v) I g s0
       (if allowed = maxAllowanceWord then ⟨723⟩ else ⟨730⟩)
       (amount :: allowed :: transferFromStack sender receiver id amount R)
       (transferFromAllowanceMemory I sender id mem) aw' rdata σ k' C' := by
@@ -136,7 +138,7 @@ theorem transferFromAllowanceReadTrace {I : ExecutionEnv} {g : Sat256} {s0 : Sta
     have hcond : UInt256.sub (solcSlotWordAt (keccakWord ⟨0⟩ ⟨64⟩ rawMem) σ I) maxAllowanceWord = ⟨0⟩ := by
       rw [hv, hmax]; exact u256_sub_eq_zero_iff_eq.mpr rfl
     obtain ⟨k', C', hnext⟩ := poolManagerBlocks.poolManager_block_647_fallthrough (R := R) (by omega) hcond h
-    change RD (deployedRuntime v) I g s0 ⟨723⟩
+    change RD fork (deployedRuntime v) I g s0 ⟨723⟩
       (amount :: solcSlotWordAt (keccakWord ⟨0⟩ ⟨64⟩ rawMem) σ I :: transferFromStack sender receiver id amount R)
       rawMem _ rdata σ k' C' at hnext
     rw [hv, hm] at hnext
@@ -147,7 +149,7 @@ theorem transferFromAllowanceReadTrace {I : ExecutionEnv} {g : Sat256} {s0 : Sta
     have hj : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 730) = true := by
       rw [deployedRuntime_jumps]; jump_dest
     obtain ⟨k', C', hnext⟩ := poolManagerBlocks.poolManager_block_647_taken (R := R) (by omega) hcond hj h
-    change RD (deployedRuntime v) I g s0 ⟨730⟩
+    change RD fork (deployedRuntime v) I g s0 ⟨730⟩
       (amount :: solcSlotWordAt (keccakWord ⟨0⟩ ⟨64⟩ rawMem) σ I :: transferFromStack sender receiver id amount R)
       rawMem _ rdata σ k' C' at hnext
     rw [hv, hm] at hnext
@@ -157,9 +159,9 @@ theorem transferFromAllowanceStoreTrace {I : ExecutionEnv} {g : Sat256} {s0 : St
     {mem rdata : ByteArray} {aw : UInt256} {σ : AccountMap} {k C : Nat}
     {sender receiver id amount value : UInt256} {R : List UInt256} (v : PoolManagerImmutables)
     (hstack : R.length + 12 ≤ 1024) (hmem : mem.size = 96) (hperm : I.perm = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨739⟩ (value :: transferFromStack sender receiver id amount R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨739⟩ (value :: transferFromStack sender receiver id amount R)
       mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) I g s0 ⟨537⟩ (transferFromStack sender receiver id amount R)
+    ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 ⟨537⟩ (transferFromStack sender receiver id amount R)
       (transferFromAllowanceMemory I sender id mem) aw' rdata
       (sstoreAccountMap I.codeOwner σ (allowanceSlot sender (accountWord I.source) id) value) k' C' := by
   have hj723 : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 723) = true := by
@@ -168,7 +170,7 @@ theorem transferFromAllowanceStoreTrace {I : ExecutionEnv} {g : Sat256} {s0 : St
     rw [deployedRuntime_jumps]; jump_dest
   obtain ⟨k', C', h723⟩ := poolManagerBlocks.poolManager_block_739 (R := R) (by omega) hperm hj723 h
   let rawMem := tripleMappingMemory sender (UInt256.land (accountWord I.source) solcAddrMask) id ⟨5⟩ mem
-  change RD (deployedRuntime v) I g s0 ⟨723⟩ (amount :: ⟨0⟩ :: transferFromStack sender receiver id amount R)
+  change RD fork (deployedRuntime v) I g s0 ⟨723⟩ (amount :: ⟨0⟩ :: transferFromStack sender receiver id amount R)
     rawMem _ rdata (sstoreAccountMap I.codeOwner σ (keccakWord ⟨0⟩ ⟨64⟩ rawMem) value) k' C' at h723
   have h537 := poolManagerBlocks.poolManager_block_723
     (by simp only [transferFromStack, List.length_cons]; omega) hj537 h723
@@ -184,8 +186,8 @@ open poolManagerBlocks in
 theorem transferFromAllowanceStaticTrace {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 x6 x7 : UInt256} {R : List UInt256}
     (hstack : R.length + 11 ≤ 1024)
     (hperm : ee.perm = false)
-    (h : RD (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 739) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: R) mem aw rdata σ k C)
-    : RDstatic (immutableLayout.runtime poolManagerBytecode immWords) g s0 := by
+    (h : RD fork (Benchmarks.UniswapV4PoolManager.immutableLayout.runtime Benchmarks.UniswapV4PoolManager.poolManagerBytecode immWords) ee g s0 (UInt256.ofNat 739) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: R) mem aw rdata σ k C)
+    : RDstatic fork (immutableLayout.runtime poolManagerBytecode immWords) g s0 := by
   let r0 := h
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨739⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.dup6 (by immutable_decode(Benchmarks.UniswapV4PoolManager.immutableLayout, Benchmarks.UniswapV4PoolManager.poolManagerBytecode, immWords, (⟨740⟩ : UInt256), UInt8.ofNat 133, .DUP6, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
@@ -224,9 +226,9 @@ theorem transferFromBalanceLoadTrace {I : ExecutionEnv} {g : Sat256} {s0 : State
     {mem rdata : ByteArray} {aw : UInt256} {σ : AccountMap} {k C : Nat}
     {sender receiver id amount : UInt256} {R : List UInt256} (v : PoolManagerImmutables)
     (hstack : R.length + 12 ≤ 1024) (hmem : mem.size = 96)
-    (h : RD (deployedRuntime v) I g s0 ⟨537⟩ (transferFromStack sender receiver id amount R)
+    (h : RD fork (deployedRuntime v) I g s0 ⟨537⟩ (transferFromStack sender receiver id amount R)
       mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) I g s0 ⟨12269⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 ⟨12269⟩
       (solcSlotWordAt (balanceSlot sender id) σ I :: amount :: ⟨570⟩ :: balanceSlot sender id ::
         transferFromStack sender receiver id amount R)
       (nestedMappingMemory sender id ⟨4⟩ mem) aw' rdata σ k' C' := by
@@ -234,7 +236,7 @@ theorem transferFromBalanceLoadTrace {I : ExecutionEnv} {g : Sat256} {s0 : State
     rw [deployedRuntime_jumps]; jump_dest
   obtain ⟨k', C', hnext⟩ := poolManagerBlocks.poolManager_block_537 (R := R) hstack hj h
   let nextMem := nestedMappingMemory sender id ⟨4⟩ mem
-  change RD (deployedRuntime v) I g s0 ⟨12269⟩
+  change RD fork (deployedRuntime v) I g s0 ⟨12269⟩
     (solcSlotWordAt (keccakWord ⟨0⟩ ⟨64⟩ nextMem) σ I :: amount :: ⟨570⟩ ::
       keccakWord ⟨0⟩ ⟨64⟩ nextMem :: transferFromStack sender receiver id amount R)
     nextMem _ rdata σ k' C' at hnext
@@ -246,8 +248,8 @@ theorem transferFromBalanceStaticTrace {I : ExecutionEnv} {g : Sat256} {s0 : Sta
     {mem rdata : ByteArray} {aw : UInt256} {σ : AccountMap} {k C : Nat}
     {value slot : UInt256} {R : List UInt256} (v : PoolManagerImmutables)
     (hstack : R.length + 2 ≤ 1024) (hperm : I.perm = false)
-    (h : RD (deployedRuntime v) I g s0 ⟨570⟩ (value :: slot :: R) mem aw rdata σ k C) :
-    RDstatic (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) I g s0 ⟨570⟩ (value :: slot :: R) mem aw rdata σ k C) :
+    RDstatic fork (deployedRuntime v) g s0 := by
   have r1 := h.jumpdest
     (by immutable_decode(immutableLayout, poolManagerBytecode, wordsOf (immStore v), (⟨570⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.swap1
@@ -260,9 +262,9 @@ theorem transferFromBalanceCreditTrace {I : ExecutionEnv} {g : Sat256} {s0 : Sta
     {value slot sender receiver id amount : UInt256} {R : List UInt256} (v : PoolManagerImmutables)
     (hstack : R.length + 12 ≤ 1024) (hmem : mem.size = 96)
     (hc : receiver.toNat < EVM.addressModulus) (hperm : I.perm = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨570⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨570⟩
       (value :: slot :: transferFromStack sender receiver id amount R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) I g s0 ⟨12282⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 ⟨12282⟩
       (solcSlotWordAt (balanceSlot receiver id) (sstoreAccountMap I.codeOwner σ slot value) I ::
         amount :: ⟨607⟩ :: balanceSlot receiver id :: amount :: ⟨633⟩ :: transferEventTopic :: sender :: receiver :: id :: R)
       (nestedMappingMemory receiver id ⟨4⟩ mem) aw' rdata (sstoreAccountMap I.codeOwner σ slot value) k' C' := by
@@ -271,7 +273,7 @@ theorem transferFromBalanceCreditTrace {I : ExecutionEnv} {g : Sat256} {s0 : Sta
   obtain ⟨k', C', hnext⟩ := poolManagerBlocks.poolManager_block_570 (R := R) (by omega) hperm hj h
   let masked := UInt256.land receiver solcAddrMask
   let nextMem := nestedMappingMemory masked id ⟨4⟩ mem
-  change RD (deployedRuntime v) I g s0 ⟨12282⟩
+  change RD fork (deployedRuntime v) I g s0 ⟨12282⟩
     (solcSlotWordAt (keccakWord ⟨0⟩ ⟨64⟩ nextMem) (sstoreAccountMap I.codeOwner σ slot value) I ::
       amount :: ⟨607⟩ :: keccakWord ⟨0⟩ ⟨64⟩ nextMem :: amount :: ⟨633⟩ :: transferEventTopic :: sender :: masked :: id :: R)
     nextMem _ rdata (sstoreAccountMap I.codeOwner σ slot value) k' C' at hnext
@@ -285,9 +287,9 @@ theorem transferFromBalanceReturnTrace {I : ExecutionEnv} {g : Sat256} {s0 : Sta
     {value slot sender receiver id amount : UInt256} {R : List UInt256} (v : PoolManagerImmutables)
     (hstack : R.length + 12 ≤ 1024) (hmem : mem.size = 96) (hp : memLoad ⟨64⟩ mem = ⟨160⟩)
     (hperm : I.perm = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨607⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨607⟩
       (value :: slot :: amount :: ⟨633⟩ :: transferEventTopic :: sender :: receiver :: id :: R) mem aw rdata σ k C) :
-    RDret (deployedRuntime v) g s0 (sstoreAccountMap I.codeOwner σ slot value) (⟨1⟩ : UInt256).toByteArray := by
+    RDret fork (deployedRuntime v) g s0 (sstoreAccountMap I.codeOwner σ slot value) (⟨1⟩ : UInt256).toByteArray := by
   have hj : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 633) = true := by
     rw [deployedRuntime_jumps]; jump_dest
   obtain ⟨k', C', hnext⟩ := poolManagerBlocks.poolManager_block_607
@@ -296,11 +298,11 @@ theorem transferFromBalanceReturnTrace {I : ExecutionEnv} {g : Sat256} {s0 : Sta
   have hret := poolManagerBlocks.poolManager_block_633 (R := R) (by omega) hperm hnext
   let eventMem := Reasoning.Theory.writeWord (Reasoning.Theory.writeWord mem
     (memLoad ⟨64⟩ mem).toNat (accountWord I.source)) (memLoad ⟨64⟩ mem + ⟨32⟩).toNat amount
-  change RDret (deployedRuntime v) g s0 (sstoreAccountMap I.codeOwner σ slot value)
+  change RDret fork (deployedRuntime v) g s0 (sstoreAccountMap I.codeOwner σ slot value)
     (((⟨1⟩ : UInt256).toByteArray.write 0 eventMem (memLoad ⟨64⟩ eventMem).toNat 32).readWithPadding
       (memLoad ⟨64⟩ eventMem).toNat 32) at hret
   have hout := eventTwoWordsThenReturn hp (by rw [hmem]) (by decide)
     (by rw [hmem]; native_decide) (by decide) (accountWord I.source) amount (⟨1⟩ : UInt256)
-  exact (congrArg (fun out => RDret (deployedRuntime v) g s0 (sstoreAccountMap I.codeOwner σ slot value) out) hout).mp hret
+  exact (congrArg (fun out => RDret fork (deployedRuntime v) g s0 (sstoreAccountMap I.codeOwner σ slot value) out) hout).mp hret
 
 end Benchmarks.UniswapV4PoolManager

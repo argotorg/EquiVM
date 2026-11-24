@@ -1,4 +1,6 @@
 import Examples.UniswapV2Pair.SwapRecipientRuntime
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -9,11 +11,11 @@ theorem uniswapSwapRuntimeCallbackBranchCases
     {σ : AccountMap}
     {mem rdata : ByteArray} {aw token1 token0 scratch1 scratch0 reserve1 reserve0 dataLen dataPtr toWord amount1Out amount0Out : UInt256}
     {R : List UInt256} {k C : Nat}
-    (rd : RD uniswapV2PairBytecode I g s0 ⟨1904⟩ (token1 :: token0 :: scratch1 :: scratch0 :: reserve1 :: reserve0 :: dataLen :: dataPtr :: toWord :: amount1Out :: amount0Out :: R) mem aw rdata σ k C)
+    (rd : RD fork uniswapV2PairBytecode I g s0 ⟨1904⟩ (token1 :: token0 :: scratch1 :: scratch0 :: reserve1 :: reserve0 :: dataLen :: dataPtr :: toWord :: amount1Out :: amount0Out :: R) mem aw rdata σ k C)
     (hov : R.length + 18 ≤ 1024) :
-    (dataLen = ⟨0⟩ ∧ ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨2091⟩
+    (dataLen = ⟨0⟩ ∧ ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨2091⟩
       (token1 :: token0 :: scratch1 :: scratch0 :: reserve1 :: reserve0 :: dataLen :: dataPtr :: toWord :: amount1Out :: amount0Out :: R) mem aw rdata σ k' C') ∨
-    (dataLen ≠ ⟨0⟩ ∧ ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨1911⟩
+    (dataLen ≠ ⟨0⟩ ∧ ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨1911⟩
       (token1 :: token0 :: scratch1 :: scratch0 :: reserve1 :: reserve0 :: dataLen :: dataPtr :: toWord :: amount1Out :: amount0Out :: R)
       mem aw rdata σ k' C') := by
   have rdGuard := evm_run rd with [jumpdest, dup7, iszero, push2 ⟨2091⟩]

@@ -1,6 +1,8 @@
 import Benchmarks.Auction.BidSource
 import Benchmarks.Auction.CreateStorage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -34,16 +36,16 @@ def bidStoreStmts : List Stmt :=
 
 theorem bidStoresSource {evm locals} (ha : locals.get? "auction" = none)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm bidStoreStmts
+    ExecBlock fork auctionConfig { contract := auctionContract, locals := locals } evm bidStoreStmts
       (.ok { contract := auctionContract, locals := locals } (bidStoredState evm)) := by
-  apply ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) (value := .int (Int.ofNat
+  apply ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (value := .int (Int.ofNat
     evm.executionEnv.weiValue.toNat))
     (by simp only [evalExpr?, envValue, pure]; rfl)
     (auctionFieldWrite evm _ locals "amount" (.elem (.int uint256Int)) (auctionUint256Loc ⟨208⟩)
       _ ha (by native_decide) rfl (by exact Or.inl ⟨_, rfl⟩)
       (storageLocStore_uint256 evm ⟨208⟩ evm.executionEnv.weiValue)))
-  change ExecBlock _ _ (bidAmountState evm) _ _
-  apply ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [bidAmountState, storageStore_executionEnv] using hperm))
+  change ExecBlock fork _ _ (bidAmountState evm) _ _
+  apply ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [bidAmountState, storageStore_executionEnv] using hperm))
     (value := .address (bidAmountState evm).executionEnv.source)
     (by simp only [sender, evalExpr?, envValue, pure])
     (auctionFieldWrite _ _ locals "bidder" (.elem .address) (auctionAddrLoc ⟨211⟩)
@@ -55,10 +57,10 @@ theorem bidStoresSource {evm locals} (ha : locals.get? "auction" = none)
   exact ExecBlock.nil
 
 theorem bidStoresRuntime {I g s0 bidder snap noun ret R mem aw rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨1715⟩ (bidder :: snap :: noun :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨1715⟩ (bidder :: snap :: noun :: ret :: R)
       mem aw rdata σ k C)
     (hperm : I.perm = true) (hov : R.length + 9 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨1738⟩ (bidder :: snap :: noun :: ret :: R)
+    ∃ k' C', RD fork auctionBytecode I g s0 ⟨1738⟩ (bidder :: snap :: noun :: ret :: R)
       mem aw rdata (bidStoredAccounts σ I) k' C' := by
   have rd1719 := evm_run h with [jumpdest, callvalue, push1 ⟨208⟩]
   obtain ⟨_, _, rd1720⟩ := rd1719.sstore hperm (by native_decide) (by evm_ov)
@@ -72,11 +74,11 @@ theorem bidStoresRuntime {I g s0 bidder snap noun ret R mem aw rdata σ k C}
   exact rd1737.sstore hperm (by native_decide) (by evm_ov)
 
 theorem bidExit {I g s0 extended bidder snap noun ret R mem aw rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨1923⟩ (extended :: bidder :: snap :: noun :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨1923⟩ (extended :: bidder :: snap :: noun :: ret :: R)
       mem aw rdata σ k C)
     (hperm : I.perm = true) (hret : (D_J auctionBytecode 0).contains ret = true)
     (hov : R.length + 5 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret R mem aw rdata
+    ∃ k' C', RD fork auctionBytecode I g s0 ret R mem aw rdata
       (sstoreAccountMap I.codeOwner σ ⟨101⟩ ⟨1⟩) k' C' := by
   have rd1930 := evm_run h with [jumpdest, pop, pop, push1 ⟨1⟩, push1 ⟨101⟩]
   obtain ⟨_, _, rd1931⟩ := rd1930.sstore hperm (by native_decide) (by evm_ov)

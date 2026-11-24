@@ -3,6 +3,8 @@ import Benchmarks.Auction.Uint8Decoder
 import Benchmarks.Auction.UIntABI
 import Benchmarks.Auction.Events
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 100000
@@ -16,7 +18,7 @@ theorem setMinBidBodySplit (evm : EVM.State) (value : UInt256)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (ho : solcSourceWord evm.executionEnv = ownerWord evm.accountMap evm.executionEnv)
     (hc : value.toNat < 256) :
-    (evm.executionEnv.perm = true → ExecTransitionBody auctionConfig auctionContract evm
+    (evm.executionEnv.perm = true → ExecTransitionBody fork auctionConfig auctionContract evm
       ((∅ : Store).insert "_minBidIncrementPercentage" (.int (Int.ofNat value.toNat)))
       setMinBidIncTransition.body
       (.returned
@@ -25,7 +27,7 @@ theorem setMinBidBodySplit (evm : EVM.State) (value : UInt256)
         (Stele.EVM.storageStore evm evm.executionEnv.codeOwner ⟨205⟩
           (minBidWord (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨205⟩) value))
         none)) ∧
-      (evm.executionEnv.perm = false → ExecTransitionBody auctionConfig auctionContract evm
+      (evm.executionEnv.perm = false → ExecTransitionBody fork auctionConfig auctionContract evm
       ((∅ : Store).insert "_minBidIncrementPercentage" (.int (Int.ofNat value.toNat)))
       setMinBidIncTransition.body .staticViolation) := by
   let locals := (∅ : Store).insert "_minBidIncrementPercentage" (.int (Int.ofNat value.toNat))
@@ -50,7 +52,7 @@ theorem setMinBidBody (evm : EVM.State) (value : UInt256)
     (ho : solcSourceWord evm.executionEnv = ownerWord evm.accountMap evm.executionEnv)
     (hc : value.toNat < 256)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody auctionConfig auctionContract evm
+    ExecTransitionBody fork auctionConfig auctionContract evm
       ((∅ : Store).insert "_minBidIncrementPercentage" (.int (Int.ofNat value.toNat)))
       setMinBidIncTransition.body
       (.returned
@@ -62,20 +64,20 @@ theorem setMinBidBody (evm : EVM.State) (value : UInt256)
   (setMinBidBodySplit evm value hwv ho hc).1 hperm
 
 theorem setMinBidStoreSplit {I g s0 value ret R rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨1003⟩ (value :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨1003⟩ (value :: ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hc : value.toNat < 256)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 9 ≤ 1024) :
     (I.perm = true ∧
-      ∃ k' C', RD auctionBytecode I g s0 ret R (solcReturnMem value) (UInt256.ofNat 5)
+      ∃ k' C', RD fork auctionBytecode I g s0 ret R (solcReturnMem value) (UInt256.ofNat 5)
         rdata (sstoreAccountMap I.codeOwner σ ⟨205⟩
           (minBidWord (solcSlotWord σ I ⟨205⟩) value)) k' C') ∨
-      (I.perm = false ∧ RDstatic auctionBytecode g s0) := by
+      (I.perm = false ∧ RDstatic fork auctionBytecode g s0) := by
   have rd1007 := evm_run h with [jumpdest, push1 ⟨205⟩, dup1]
   obtain ⟨_, _, rd1008⟩ := rd1007.sload (by native_decide) (by evm_ov)
   have rd1021 := evm_run rd1008 with [
     push1 ⟨255⟩, not, and, push1 ⟨255⟩, dup4, and, swap1, dup2, or, swap1, swap2 ]
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     (⟨205⟩ :: UInt256.lor (UInt256.land value ⟨255⟩)
       (UInt256.land (UInt256.lnot ⟨255⟩) (solcSlotWord σ I ⟨205⟩)) ::
       UInt256.land value ⟨255⟩ :: value :: ret :: R) _ _ _ _ _ _ at rd1021
@@ -101,11 +103,11 @@ theorem setMinBidStoreSplit {I g s0 value ret R rdata σ k C}
   exact wordEventReturn rd1065 hperm hret (by omega)
 
 theorem setMinBidStore {I g s0 value ret R rdata σ k C}
-    (h : RD auctionBytecode I g s0 ⟨1003⟩ (value :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨1003⟩ (value :: ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hperm : I.perm = true) (hc : value.toNat < 256)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 9 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret R (solcReturnMem value) (UInt256.ofNat 5)
+    ∃ k' C', RD fork auctionBytecode I g s0 ret R (solcReturnMem value) (UInt256.ofNat 5)
       rdata (sstoreAccountMap I.codeOwner σ ⟨205⟩
         (minBidWord (solcSlotWord σ I ⟨205⟩) value)) k' C' :=
   permSplit_true hperm (setMinBidStoreSplit h hc hret hov)
@@ -113,8 +115,8 @@ theorem setMinBidStore {I g s0 value ret R rdata σ k C}
 theorem setMinBidIncrementPercentageBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (entryBytes 2))
-    (hreach : EntryReached 2 σ σ₀ A I g) :
-    runtimeRefinementFor auctionConfig auctionContract
+    (hreach : EntryReached fork 2 σ σ₀ A I g) :
+    runtimeRefinementFor fork auctionConfig auctionContract
       σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
   · have hd := dispatchEntry 2 hsel
@@ -147,14 +149,14 @@ theorem setMinBidIncrementPercentageBodyCore {σ σ₀ A I} {g : UInt256}
                 ((setMinBidBodySplit
                   (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                   (calldataWord I.calldata 4) hwv ho hc).2 hperm)
-            have hbody := setMinBidBody (hperm := _hperm)
+            have hbody := setMinBidBody (fork := fork) (hperm := _hperm)
               (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               (calldataWord I.calldata 4) hwv ho hc
             exact (auctionStop rd413 (by evm_ov)).reEquivExecutionGen
               hcode hd hdec hbody (by simp [storageStore_accountMap, initState, solcSlotWord, Stele.EVM.storageLoad,
                 State.lookupAccount, Account.lookupStorage])
               (.fallthrough rfl rfl (by native_decide))
-          · have hbody : ExecTransitionBody auctionConfig auctionContract
+          · have hbody : ExecTransitionBody fork auctionConfig auctionContract
                 (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 ((∅ : Store).insert "_minBidIncrementPercentage"
                   (.int (Int.ofNat (calldataWord I.calldata 4).toNat)))

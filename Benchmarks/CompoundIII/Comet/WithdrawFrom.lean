@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.Dispatch
 import Benchmarks.CompoundIII.Comet.WithdrawFromEvm
 import Benchmarks.CompoundIII.Comet.WithdrawFromSource
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # CometWithExtendedAssetList `withdrawFrom(address,address,address,uint256)`
 
@@ -22,7 +24,7 @@ set_option maxRecDepth 2000
 theorem cometWithExtendedAssetListWithdrawFromBody {σ σ₀ A I} {g : UInt256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 10)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (cometWithExtendedAssetListSelBytes 10) rfl hsel
   have hd : selectorDispatchMsg contract I.calldata = some withdrawFromTransition :=
     cometSelectorDispatch ⟨10, by decide⟩ hsel
@@ -33,7 +35,7 @@ theorem cometWithExtendedAssetListWithdrawFromBody {σ σ₀ A I} {g : UInt256} 
         [.elem .address, .elem .address, .elem .address, abiUInt256] I.calldata := by
     exact solc0815_decodeCalldata_scalar_eq (by decide)
   have hdec := hdecode.trans (decodeCalldata_threeAddressUint I "src" "to" "asset" "amount" hsz)
-  have hX := withdrawFromX (σ := σ) (σ₀ := σ₀) (A := A)
+  have hX := withdrawFromX (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
   by_cases hargs : ThreeAddressUintCalldataValid I
   · rw [if_pos hargs] at hdec

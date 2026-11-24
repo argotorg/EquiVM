@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.SkimSecondSafeTransferDynamicOffsetRuntime
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -1111,7 +1113,7 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyReturnToCheck_dynamic_offset
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {self value toWord prevValue token token0 ret sel status : UInt256}
     {o out1 out2 out : ByteArray} {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (status :: skimSecondSafeTransferDynamicRetEnd out1 ::
         UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ret :: token :: token0 :: toWord :: ⟨570⟩ ::
@@ -1122,7 +1124,7 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyReturnToCheck_dynamic_offset
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hout1Ne : out1.size ≠ 0) (hout1Size : out1.size < 2 ^ 255)
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6652⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6652⟩
       (skimSecondSafeTransferDynamicCallPtr out1 :: status :: value :: toWord :: token :: ret ::
         token :: token0 :: toWord :: ⟨570⟩ :: sel :: [])
       (skimSecondSafeTransferDynamicReturnDataMem self o toWord prevValue out1 out2 value out)
@@ -1243,7 +1245,7 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyTrueStatusToLengthLoaded_dynamic
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {self value toWord prevValue token token0 ret sel : UInt256}
     {o out1 out2 out : ByteArray} {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (⟨1⟩ :: skimSecondSafeTransferDynamicRetEnd out1 ::
         UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ret :: token :: token0 :: toWord :: ⟨570⟩ ::
@@ -1256,7 +1258,7 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyTrueStatusToLengthLoaded_dynamic
     (hout1Ne : out1.size ≠ 0) (hout1Size : out1.size < 2 ^ 255)
     (hout1Small : out1.size < 2 ^ 138)
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6676⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6676⟩
       (UInt256.ofNat out.size :: skimSecondSafeTransferDynamicRetPtr out1 ::
         skimSecondSafeTransferDynamicCallPtr out1 :: ⟨1⟩ ::
         value :: toWord :: token :: ret :: token :: token0 :: toWord :: ⟨570⟩ ::
@@ -1311,7 +1313,7 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyShortReverts_dynamic_offset
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {self value toWord prevValue token token0 ret sel : UInt256}
     {o out1 out2 out : ByteArray} {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (⟨1⟩ :: skimSecondSafeTransferDynamicRetEnd out1 ::
         UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ret :: token :: token0 :: toWord :: ⟨570⟩ ::
@@ -1324,7 +1326,7 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyShortReverts_dynamic_offset
     (hout1Ne : out1.size ≠ 0) (hout1Size : out1.size < 2 ^ 255)
     (hout1Small : out1.size < 2 ^ 138)
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size) :
-    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+    RDrev fork UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   obtain ⟨k6676, C6676, rd6676⟩ :=
     RD.uniswapSkimSecondSafeTransferNonemptyTrueStatusToLengthLoaded_dynamic_offset
       h houtNe houtSize houtSmall ho32 hoSize hout1Ne hout1Size hout1Small
@@ -1348,11 +1350,11 @@ theorem RD.uniswapSkimSecondSafeTransferFailureMessageFrom6697Reverts_generic
     {value toWord token token0 ret sel status retDataPtr : UInt256}
     {mem out : ByteArray} {aw : UInt256}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6697⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6697⟩
       (retDataPtr :: status :: value :: toWord :: token :: ret :: token :: token0 :: toWord ::
         ⟨570⟩ :: sel :: [])
       mem aw out σ k C) :
-    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+    RDrev fork UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   let fp0 : UInt256 :=
     if (⟨64⟩ : UInt256).toNat ≥ mem.size then
       ⟨0⟩
@@ -1443,7 +1445,7 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyFalseReverts_dynamic_offset
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {self value toWord prevValue token token0 ret sel : UInt256}
     {o out1 out2 out : ByteArray} {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (⟨1⟩ :: skimSecondSafeTransferDynamicRetEnd out1 ::
         UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ret :: token :: token0 :: toWord :: ⟨570⟩ ::
@@ -1457,7 +1459,7 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyFalseReverts_dynamic_offset
     (hout1Ne : out1.size ≠ 0) (hout1Size : out1.size < 2 ^ 255)
     (hout1Small : out1.size < 2 ^ 138)
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size) :
-    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+    RDrev fork UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   obtain ⟨k6676, C6676, rd6676⟩ :=
     RD.uniswapSkimSecondSafeTransferNonemptyTrueStatusToLengthLoaded_dynamic_offset
       h houtNe houtSize houtSmall ho32 hoSize hout1Ne hout1Size hout1Small
@@ -1488,7 +1490,7 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyFalseReverts_dynamic_offset
   have rd6697 := evm_run rd6692 with [
     jumpdest, push2 ⟨6773⟩, jumpiNT (by native_decide)]
   obtain ⟨k6697, C6697, rd6697'⟩ : ∃ k' C',
-      RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6697⟩
+      RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6697⟩
         (skimSecondSafeTransferDynamicCallPtr out1 :: ⟨1⟩ :: value :: toWord ::
           token :: ret :: token :: token0 :: toWord :: ⟨570⟩ :: sel :: [])
         (skimSecondSafeTransferDynamicReturnDataMem self o toWord prevValue out1 out2 value out)
@@ -1501,7 +1503,7 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyTrueToRet_dynamic_offset
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {self value toWord prevValue token token0 ret sel : UInt256}
     {o out1 out2 out : ByteArray} {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (⟨1⟩ :: skimSecondSafeTransferDynamicRetEnd out1 ::
         UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ret :: token :: token0 :: toWord :: ⟨570⟩ ::
@@ -1516,7 +1518,7 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyTrueToRet_dynamic_offset
     (hout1Small : out1.size < 2 ^ 138)
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size)
     (hret : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ret = true) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret
       (token :: token0 :: toWord :: ⟨570⟩ :: sel :: [])
       (skimSecondSafeTransferDynamicReturnDataMem self o toWord prevValue out1 out2 value out)
       (skimSecondSafeTransferDynamicReturnDataActiveWords out1 out) out σ k' C' := by
@@ -1556,7 +1558,7 @@ theorem RD.uniswapSkimSecondSafeTransferEmptyReturnToRet_dynamic_offset
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {self value toWord prevValue token token0 ret sel : UInt256}
     {o out1 out2 out : ByteArray} {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (⟨1⟩ :: skimSecondSafeTransferDynamicRetEnd out1 ::
         UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ret :: token :: token0 :: toWord :: ⟨570⟩ ::
@@ -1568,7 +1570,7 @@ theorem RD.uniswapSkimSecondSafeTransferEmptyReturnToRet_dynamic_offset
     (hout1Ne : out1.size ≠ 0) (hout1Size : out1.size < 2 ^ 255)
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size)
     (hret : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ret = true) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret
       (token :: token0 :: toWord :: ⟨570⟩ :: sel :: [])
       (skimSecondSafeTransferDynamicCallMem2 self o toWord prevValue out1 out2 value)
       (skimSecondSafeTransferDynamicWordsCall2 out1) out σ k' C' := by
@@ -1611,7 +1613,7 @@ theorem RD.uniswapSkimSecondSafeTransferEmptyReturnTo5433_dynamic_offset
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {self value toWord prevValue token token0 sel : UInt256}
     {o out1 out2 out : ByteArray} {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (⟨1⟩ :: skimSecondSafeTransferDynamicRetEnd out1 ::
         UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ⟨5433⟩ :: token :: token0 :: toWord :: ⟨570⟩ ::
@@ -1622,7 +1624,7 @@ theorem RD.uniswapSkimSecondSafeTransferEmptyReturnTo5433_dynamic_offset
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hout1Ne : out1.size ≠ 0) (hout1Size : out1.size < 2 ^ 255)
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5433⟩
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5433⟩
       (token :: token0 :: toWord :: ⟨570⟩ :: sel :: [])
       (skimSecondSafeTransferDynamicCallMem2 self o toWord prevValue out1 out2 value)
       (skimSecondSafeTransferDynamicWordsCall2 out1) out σ k' C' := by
@@ -1634,7 +1636,7 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyFailureReverts_dynamic_offset
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {self value toWord prevValue token token0 ret sel : UInt256}
     {o out1 out2 out : ByteArray} {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (⟨0⟩ :: skimSecondSafeTransferDynamicRetEnd out1 ::
         UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ret :: token :: token0 :: toWord :: ⟨570⟩ ::
@@ -1645,7 +1647,7 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyFailureReverts_dynamic_offset
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hout1Ne : out1.size ≠ 0) (hout1Size : out1.size < 2 ^ 255)
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size) :
-    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+    RDrev fork UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   obtain ⟨k6652, C6652, rd6652⟩ :=
     RD.uniswapSkimSecondSafeTransferNonemptyReturnToCheck_dynamic_offset
       (self := self) (value := value) (toWord := toWord) (prevValue := prevValue)
@@ -1663,7 +1665,7 @@ theorem RD.uniswapSkimSecondSafeTransferEmptyFailureReverts_dynamic_offset
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {self value toWord prevValue token token0 ret sel : UInt256}
     {o out1 out2 out : ByteArray} {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (⟨0⟩ :: skimSecondSafeTransferDynamicRetEnd out1 ::
         UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ret :: token :: token0 :: toWord :: ⟨570⟩ ::
@@ -1671,7 +1673,7 @@ theorem RD.uniswapSkimSecondSafeTransferEmptyFailureReverts_dynamic_offset
       (skimSecondSafeTransferDynamicCallMem2 self o toWord prevValue out1 out2 value)
       (skimSecondSafeTransferDynamicWordsCall2 out1) out σ k C)
     (hout : out.size = 0) :
-    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+    RDrev fork UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   have rd6607 := evm_run h with [
     swap2, pop, pop, returndatasize, dup1, push1 ⟨0⟩, dup2, eq, push2 ⟨6641⟩]
   have rd6607' := rd6607

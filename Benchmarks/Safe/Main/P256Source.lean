@@ -1,6 +1,8 @@
 import Benchmarks.Safe.Main.WordCallResult
 import Benchmarks.Safe.Main.WordArrayMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.Main
@@ -81,9 +83,9 @@ theorem evalP256Result (evm : EVM.State) (p : P256Input) (z : Bool) (out : ByteA
     if_true, EvalResult.ofOption, EvalResult.bind, bind, pure, hd, evalBinaryOp_eq_int_ok, he]
 
 theorem safeP256Source {evm evm' : EVM.State} {p : P256Input} {z : Bool} {out : ByteArray}
-    (hc : callViaEVM evm (AccountAddress.ofNat 256) 0 (wordBytes (p256Words p))
+    (hc : callViaEVM fork evm (AccountAddress.ofNat 256) 0 (wordBytes (p256Words p))
       (z, evm', out) false) :
-    ExecFuncBody config (p256Frame p) evm p256VerifyFunction.body
+    ExecFuncBody fork config (p256Frame p) evm p256VerifyFunction.body
       (.returned (p256FinalFrame p z out) evm' (some [.bool (p256Result z out)])) := by
   apply ExecFuncBody.execBlockRet
   refine .consNormal ?_ (.consReturn (.return (evalExprs?_singleton

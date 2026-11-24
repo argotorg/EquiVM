@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Pot.ConstructorTraceArgs
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Pot constructor wards storage trace
 
@@ -20,11 +22,11 @@ theorem potCtorWardsStoreReach
     (vat : AccountAddress) {k C : ℕ}
     (hperm : I.perm = true)
     (rd54 :
-      RD (potCtorCode vat) I g
+      RD fork (potCtorCode vat) I g
         (initState σ σ₀ g A I) ⟨54⟩
         [EVM.word vat.val] (potCtorArgFreeMem vat) (UInt256.ofNat 5) ByteArray.empty
         σ k C) :
-    ∃ k' C', RD (potCtorCode vat) I g
+    ∃ k' C', RD fork (potCtorCode vat) I g
       (initState σ σ₀ g A I) ⟨75⟩
       [⟨1⟩, EVM.word vat.val] (potCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
       (sstoreAccountMap I.codeOwner σ (potCtorCallerWardsSlot I) ⟨1⟩)

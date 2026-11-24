@@ -2,6 +2,8 @@ import Benchmarks.Dss.End.Common
 import Reasoning.Constructor
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS End constructor correctness
 -/
@@ -139,7 +141,7 @@ theorem endCtorBodySuccess
       (Sat256.ofUInt256 g) A I
     let evm1 := endCtorAfterWardsState evm0
     let evm2 := endCtorAfterLiveState evm1
-    ExecBlock config { contract := contract, locals := ∅ } evm0 constructorDecl.body
+    ExecBlock fork config { contract := contract, locals := ∅ } evm0 constructorDecl.body
       (.ok { contract := contract, locals := ∅ } evm2) := by
   intro evm0 evm1 evm2
   have hassignWards :
@@ -157,8 +159,8 @@ theorem endCtorBodySuccess
   simp only [constructorDecl, nonpayable, List.cons_append, List.nil_append]
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hassignWards) ?_
-  exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa [evm1, endCtorAfterWardsState, evm0, initState] using hperm)) (by simp [evalExpr?, pure]) hassignLive)
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) (by simp [evalExpr?, pure]) hassignWards) ?_
+  exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [evm1, endCtorAfterWardsState, evm0, initState] using hperm)) (by simp [evalExpr?, pure]) hassignLive)
     ExecBlock.nil
 
 theorem endSteleCtorExecSuccess
@@ -166,7 +168,7 @@ theorem endSteleCtorExecSuccess
     {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hperm : I.perm = true) :
-    steleCtorExec config contract []
+    steleCtorExec fork config contract []
       σ σ₀ g A I
       (.returned { contract := contract, locals := ∅ }
         (endCtorAfterLiveState
@@ -183,14 +185,14 @@ theorem endSteleCtorExecSuccess
   · rfl
   · simpa [ExecTransitionBody, contract, constructorDecl] using
       ExecFuncBody.execBlockOK
-        (endCtorBodySuccess (hperm := hperm)
+        (endCtorBodySuccess (fork := fork) (hperm := hperm)
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv)
 
 theorem endSteleCtorExecReverts_nonpayable
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256}
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    steleCtorExec config contract []
+    steleCtorExec fork config contract []
       σ σ₀ g A I .reverted := by
   refine steleCtorExec.intro
     (evmState := initState σ σ₀
@@ -211,10 +213,10 @@ set_option maxHeartbeats 2000000 in
 theorem endCtorInitcodeRevert {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endCreationBytecode)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev endCreationBytecode g
+    RDrev fork endCreationBytecode g
       (initState σ σ₀ g A I) := by
   have rd0 :
-      RD endCreationBytecode I g
+      RD fork endCreationBytecode I g
         (initState σ σ₀ g A I) ⟨0⟩ []
         ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
@@ -235,13 +237,13 @@ theorem endCtorInitcodeSuccess {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endCreationBytecode)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) :
-    RDret endCreationBytecode g
+    RDret fork endCreationBytecode g
       (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ (endCtorCallerWardsSlot I) ⟨1⟩) ⟨8⟩ ⟨1⟩)
       endBytecode := by
   have rd0 :
-      RD endCreationBytecode I g
+      RD fork endCreationBytecode I g
         (initState σ σ₀ g A I) ⟨0⟩ []
         ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
@@ -333,7 +335,7 @@ theorem endCtorInitcodeSuccess {σ σ₀ A I} {g : Sat256}
 set_option maxHeartbeats 1200000 in
 theorem endConstructorCorrect :
     typedConstructorRefinement config endCreationBytecode contract (fun _ => endBytecode) := by
-  intro σ σ₀ g A I
+  intro fork _hfork σ σ₀ g A I
       args deployedInitcode hdeploy hcode _hcalldata hperm
   have hdeployed := emptyCtorDeployment_eq_initcode end_selfDeployment_eq
     end_ctor_params_nil hdeploy
@@ -344,7 +346,7 @@ theorem endConstructorCorrect :
     rw [end_ctor_params_nil] at hlen
     exact List.eq_nil_of_length_eq_zero hlen
   by_cases hwv : I.weiValue = ⟨0⟩
-  · have hrd := endCtorInitcodeSuccess
+  · have hrd := endCtorInitcodeSuccess (fork := fork)
       (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hperm hwv
     rcases hrd with hOOG | ⟨s, hX, hacc⟩
@@ -373,7 +375,7 @@ theorem endConstructorCorrect :
         endCtorCallerWardsSlot_eq I
       simp [evm2s, evm1s, evm0s, endCtorAfterLiveState, endCtorAfterWardsState,
         storageStore_accountMap, storageStore_executionEnv, initState, hslot]
-  · have hrd := endCtorInitcodeRevert
+  · have hrd := endCtorInitcodeRevert (fork := fork)
       (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hwv
     rcases hrd.xiResult hcode with hOOG | ⟨g', o, hrev⟩

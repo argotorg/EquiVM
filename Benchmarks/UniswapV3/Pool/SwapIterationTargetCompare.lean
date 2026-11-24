@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapIterationPriceStore
 import Benchmarks.UniswapV3.Pool.SwapIterationTargetSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -17,7 +19,7 @@ theorem swapIterationTargetCompareX {σ : AccountMap} {ee : ExecutionEnv} {g : S
     {aw p q free current callRet exactWord cache snap dataStart dataLength ret : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : SwapArgs) (d : SwapIterationData)
-    (rd : RD (deployedRuntime v) ee g s0 (if a.zeroForOne then ⟨3260⟩ else ⟨3231⟩)
+    (rd : RD fork (deployedRuntime v) ee g s0 (if a.zeroForOne then ⟨3260⟩ else ⟨3231⟩)
       (swapIterationCompareWords a current callRet q p exactWord cache snap
         dataStart dataLength ret R)
       mem aw rdata σ k C)
@@ -25,7 +27,7 @@ theorem swapIterationTargetCompareX {σ : AccountMap} {ee : ExecutionEnv} {g : S
     (ha : a.Fits) (hf : d.priceNext.toNat < 2 ^ 160)
     (hb : q.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 21 ≤ 1024) :
     ∃ aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 ⟨3286⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨3286⟩
         ((swapIterationChooseLimit a d).toUInt256 ::
           swapIterationCompareWords a current callRet q p exactWord cache snap
             dataStart dataLength ret R)

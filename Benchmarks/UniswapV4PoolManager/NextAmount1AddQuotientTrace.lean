@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.FullMathShift96Trace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_059
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_052
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -14,13 +16,13 @@ theorem nextAmount1AddQuotientTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+20 ≤ 1024)
     (hl : liquidity.toNat < 2^128) (hn : liquidity ≠ ⟨0⟩)
-    (h : RD (deployedRuntime v) I g s0 ⟨20476⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨20476⟩
       ([liquidity, price, j0, j1, j2, j3, amount, solcAddrMask] ++ R) mem aw rdata σ k C) :
     if nextAmount1QuotientFits liquidity amount true then ∃ k' C', C ≤ C' ∧
-      RD (deployedRuntime v) I g s0 ⟨20520⟩
+      RD fork (deployedRuntime v) I g s0 ⟨20520⟩
         ([nextAmount1Quotient liquidity amount true, ⟨20528⟩, ⟨20533⟩,
           liquidity, price, j0, j1, j2, j3, amount, solcAddrMask] ++ R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hclean : UInt256.land liquidity (UInt256.ofNat 340282366920938463463374607431768211455) = liquidity :=
     u256LandMaskCleanOfToNat liquidity _ (bits := 128) rfl hl
   by_cases hs : amount.toNat < 2^160

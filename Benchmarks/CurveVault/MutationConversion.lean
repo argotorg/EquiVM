@@ -1,6 +1,8 @@
 import Benchmarks.CurveVault.MutationConversionSetup
 import Benchmarks.CurveVault.ConversionForward
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -12,18 +14,18 @@ theorem vaultMutationConversion (flow : VaultFlow) {I : ExecutionEnv} {g : Sat25
     (hargs : evalExprs? config {contract := contract, locals := locals} evm args =
       .ok [.int (Int.ofNat (calldataWord I.calldata 4).toNat), .bool flow.conversionFloor, .int (Int.ofNat total.toNat)])
     (hstack : R.length + 14 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat flow.conversionEntry) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat flow.conversionEntry) R mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (mem' : ByteArray) (value aw' : UInt256) (out : ByteArray) (k' C' : Nat),
-      ExecStmt config {contract := contract, locals := locals} evm
+      ExecStmt fork config {contract := contract, locals := locals} evm
         (.internalCall (vaultConversionFunction flow.conversionToShares).name args retVar)
         (.ok {contract := contract, locals := locals.insert retVar (.int (Int.ofNat value.toNat))} evm') ∧
       SourceState s0 I σ' evm' ∧
       WordMemoryRange (vaultMutationConversionBase flow mem total) mem' 576 672 ∧
       736 ≤ mem'.size ∧ memLoad (UInt256.ofNat 704) mem' = value ∧
-      RD vaultBytecode I g s0 (UInt256.ofNat flow.conversionNext) R mem' aw' out σ' k' C') ∨
-    (ExecStmt config {contract := contract, locals := locals} evm
+      RD fork vaultBytecode I g s0 (UInt256.ofNat flow.conversionNext) R mem' aw' out σ' k' C') ∨
+    (ExecStmt fork config {contract := contract, locals := locals} evm
       (.internalCall (vaultConversionFunction flow.conversionToShares).name args retVar) .reverted ∧
-      RDrev vaultBytecode g s0) := by
+      RDrev fork vaultBytecode g s0) := by
   obtain ⟨aw0, k0, C0, rdCall⟩ := vaultMutationConversionSetup flow hsize hmt (by omega) h
   let baseMem := vaultMutationConversionBase flow mem total
   let flag : UInt256 := if flow.conversionFloor then ⟨1⟩ else ⟨0⟩

@@ -1,6 +1,8 @@
 import Benchmarks.Safe.Runs1e6.SignatureContext
 import Benchmarks.Safe.Runs1e6.SignatureApprovalSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.Runs1e6
@@ -32,8 +34,8 @@ def signatureSelectedBody (v : UInt256) : List Stmt :=
 
 theorem signatureSwitchSource {f : Frame} {evm : EVM.State} {v : UInt256} {result : ExecResult}
     (hv : f.locals["v"]? = some (uint256Value v))
-    (hbody : ExecBlock config f evm (signatureSelectedBody v) result) :
-    ExecStmt config f evm signatureLoopBody[4]! result := by
+    (hbody : ExecBlock fork config f evm (signatureSelectedBody v) result) :
+    ExecStmt fork config f evm signatureLoopBody[4]! result := by
   have heq (n : Nat) : evalExpr? config f evm (eqE (.var "v") (.intLit (Int.ofNat n))) =
       .ok (.bool (decide (v.toNat = n))) :=
     naturalEqSource (evalLocalValue hv) (by simp [evalExpr?, pure])

@@ -3,6 +3,8 @@ import Benchmarks.Safe.ViaIR.OwnerCount
 import Benchmarks.Safe.ViaIR.OwnerGuards
 import Benchmarks.Safe.ViaIR.InternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.ViaIR
@@ -101,8 +103,8 @@ theorem safeInternalCanAddOwner {caller : Frame} {evm : EVM.State} {expr : Expr}
     {owner : UInt256} {retVar : Ident} {result : ExecResult}
     (hc : caller.contract = contract) (him : caller.immutables = ∅)
     (he : evalExpr? config caller evm expr = .ok (addressArrayValue owner))
-    (hb : ExecFuncBody config (canAddOwnerFrame owner) evm requireCanAddOwnerFunction.body result) :
-    ExecStmt config caller evm (.internalCall "requireCanAddOwner" [expr] retVar)
+    (hb : ExecFuncBody fork config (canAddOwnerFrame owner) evm requireCanAddOwnerFunction.body result) :
+    ExecStmt fork config caller evm (.internalCall "requireCanAddOwner" [expr] retVar)
       (internalCallResult caller retVar result) := by
   apply internalCallFunctionResult (callee := requireCanAddOwnerFunction)
     (locals := canAddOwnerArgs owner) (evalExprs?_singleton he)

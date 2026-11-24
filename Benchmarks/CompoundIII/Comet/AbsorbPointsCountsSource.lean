@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.AbsorbPointsModel
 import Benchmarks.CompoundIII.Comet.NarrowArithmetic
 import Benchmarks.CompoundIII.Comet.ArithmeticSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -28,7 +30,7 @@ theorem absorbPointsCounts_source (frame : Frame) (evm : State) (p : LiquidatorP
     (hp : frame.locals.get? "points" = some (liquidatorPointsValue p))
     (ha : frame.locals.get? "accounts" = some (.array accounts))
     (hlen : accounts.length = n.toNat) (hn : n.toNat < 2^64) :
-    ExecBlock config frame evm absorbPointsCountsBlock
+    ExecBlock fork config frame evm absorbPointsCountsBlock
       (if p.absorbs.toNat + 1 < 2^32 ∧ p.absorbed.toNat + n.toNat < 2^64 then
         .ok (absorbPointsCountsFrame frame p n) evm else .reverted) := by
   have he : evalExpr? config frame evm (.var "points") = .ok (liquidatorPointsValue p) := by
@@ -41,8 +43,8 @@ theorem absorbPointsCounts_source (frame : Frame) (evm : State) (p : LiquidatorP
     let f2 : Frame := { f1 with locals := f1.locals.insert "__c3" (.int n.toNat) }
     have hinc := checkedNarrowAddSourceOk ⟨32, by decide⟩ (by decide)
       (evalLiquidatorPointsLocalField 0 he) hone hi
-    have hstep : ExecStmt config frame evm absorbPointsCountsBlock[0]!
-        (.ok f1 evm) := ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hinc (assignLiquidatorPointsLocalField 0 _ hp)
+    have hstep : ExecStmt fork config frame evm absorbPointsCountsBlock[0]!
+        (.ok f1 evm) := ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hinc (assignLiquidatorPointsLocalField 0 _ hp)
     have halen : evalExpr? config f1 evm (.arrayLength .localVar ⟨"accounts", []⟩) =
         .ok (.int n.toNat) := by
       have ha' := ha
@@ -51,7 +53,7 @@ theorem absorbPointsCounts_source (frame : Frame) (evm : State) (p : LiquidatorP
         ha', readLocalPath?, pure, bind, EvalResult.bind]
       change EvalResult.ok (Value.int accounts.length) = EvalResult.ok (Value.int n.toNat)
       rw [hlen]
-    have hcall := safe64_call_ok f1 evm n _ "__c3" hc halen hn
+    have hcall := safe64_call_ok (fork := fork) f1 evm n _ "__c3" hc halen hn
     have hp2 : f2.locals.get? "points" = some (liquidatorPointsValue p1) := by
       simp only [f2, f1, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert]
       rfl
@@ -66,7 +68,7 @@ theorem absorbPointsCounts_source (frame : Frame) (evm : State) (p : LiquidatorP
       have hadd := checkedNarrowAddSourceOk ⟨64, by decide⟩ (by decide)
         (evalLiquidatorPointsLocalField 1 he2) hn2 hj
       exact ExecBlock.consNormal hstep (ExecBlock.consNormal hcall
-        (ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hadd
+        (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) hadd
           (assignLiquidatorPointsLocalField 1 (p.absorbed + n) hp2)) ExecBlock.nil))
     · rw [if_neg (fun hh ↦ hj hh.2)]
       have hadd := uintRangeSourceOverflow ⟨64, by decide⟩

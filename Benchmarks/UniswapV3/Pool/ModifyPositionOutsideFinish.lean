@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.ModifyPositionResult
 import Benchmarks.UniswapV3.Pool.ModifyPositionOutsideTrace
 import Benchmarks.UniswapV3.Pool.ModifyPositionOutsideChoice
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -12,11 +14,11 @@ theorem modifyPositionOutsideFinishX {σ : AccountMap} {ee : ExecutionEnv} {g : 
     {s0 : EVM.State} {k C : Nat} {aw p q free ret : UInt256} {mem mem' rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : ModifyPositionArgs) (evm : EVM.State)
     (second : Bool)
-    (hprefix : ExecBlock config (modifyPositionFrame (immStore v) a) evm
+    (hprefix : ExecBlock fork config (modifyPositionFrame (immStore v) a) evm
       (modifyPositionFunction.body.take 8)
       (.ok (modifyPositionUpdatedFrame (immStore v) a evm) (modifyPositionUpdatedState v a evm)))
     (hs : SourceState s0 ee σ (modifyPositionUpdatedState v a evm))
-    (rd : RD (deployedRuntime v) ee g s0 (modifyPositionOutsideEntry second)
+    (rd : RD fork (deployedRuntime v) ee g s0 (modifyPositionOutsideEntry second)
       (p :: ⟨0⟩ :: ⟨0⟩ :: solcMappingSlot ⟨7⟩ (modifyPositionKey a) :: q :: ret :: R)
       mem' aw rdata σ k C)
     (ha : a.Fits) (ht : validTicks a.lower a.upper) (hz : a.delta ≠ 0)
@@ -26,9 +28,9 @@ theorem modifyPositionOutsideFinishX {σ : AccountMap} {ee : ExecutionEnv} {g : 
     (hb : q.toNat + 128 ≤ 2 ^ 200) (hfree : free.toNat ≤ p.toNat + 1210)
     (hmem : MemoryPrefix mem mem' p.toNat)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 42 ≤ 1024) :
-    (ExecFuncBody config (modifyPositionFrame (immStore v) a) evm modifyPositionFunction.body .reverted ∧
-      RDrev (deployedRuntime v) g s0) ∨
-    ModifyPositionSuccess v a evm s0 ee g ret R mem p rdata := by
+    (ExecFuncBody fork config (modifyPositionFrame (immStore v) a) evm modifyPositionFunction.body .reverted ∧
+      RDrev fork (deployedRuntime v) g s0) ∨
+    ModifyPositionSuccess fork v a evm s0 ee g ret R mem p rdata := by
   rcases modifyPositionOutsideX (v := v) a evm (modifyPositionUpdatedState v a evm) second
     rd ha ht hm hq hb (by evm_ov) with ⟨hsrc, rr⟩ | ⟨hsrc, hv, aw', kr, Cr, rr, hm'⟩
   · have hchoice := modifyPositionOutsideChoiceSource (immStore v) a evm
@@ -55,7 +57,7 @@ theorem modifyPositionOutsideFinishX {σ : AccountMap} {ee : ExecutionEnv} {g : 
       · norm_num
       · exact hbounds
     apply Or.inr
-    have rr' : RD (deployedRuntime v) ee g s0 ⟨16801⟩
+    have rr' : RD fork (deployedRuntime v) ee g s0 ⟨16801⟩
         (p :: EVM.wordOfInt (if second then signedAmountDeltaResult second (modifyPositionOutsideArgs a) else 0) ::
           EVM.wordOfInt (if second then 0 else signedAmountDeltaResult second (modifyPositionOutsideArgs a)) ::
           solcMappingSlot ⟨7⟩ (modifyPositionKey a) :: q :: ret :: R) mem' aw' rdata σ kr Cr := by

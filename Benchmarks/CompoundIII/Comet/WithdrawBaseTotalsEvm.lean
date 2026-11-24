@@ -6,6 +6,8 @@ import Benchmarks.CompoundIII.Comet.TotalsPrincipalStatic
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_058
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_073
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -19,10 +21,10 @@ theorem cometWithdrawBaseTotals {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 19 ≤ 1024) (hS : supplied.toNat < 2^104) (hB : borrowed.toNat < 2^104)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨15820⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨15820⟩
       (borrowed :: supplied :: UInt256.ofNat 12598 :: ptr :: principal :: UInt256.ofNat 15852 ::
         balance :: recipient :: amount :: src :: UInt256.ofNat 12591 :: R) mem aw rdata σ k C) :
-    internalRun (deployedRuntime v) ee g s0 mem aw rdata ⟨12598⟩
+    internalRun fork (deployedRuntime v) ee g s0 mem aw rdata ⟨12598⟩
       (ptr :: principal :: UInt256.ofNat 15852 :: balance :: recipient :: amount :: src ::
         supplied :: R) (withdrawBaseTotalsOutcome evm supplied borrowed) := by
   have hword := sourceState_supplyPrincipalRead hs
@@ -32,7 +34,7 @@ theorem cometWithdrawBaseTotals {v : CometWithExtendedAssetListImmutables}
   have r2 := cometWithExtendedAssetList_block_7787
     (immWords := wordsOf (immStore v)) (by change R.length + 14 + 5 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r1
-  change RD _ _ _ _ _ (UInt256.land _ (solcSlotWordAt (UInt256.ofNat 1) σ ee) ::
+  change RD fork _ _ _ _ _ (UInt256.land _ (solcSlotWordAt (UInt256.ofNat 1) σ ee) ::
     supplied :: UInt256.ofNat 12568 :: UInt256.ofNat 15841 :: borrowed :: UInt256.ofNat 12591 ::
     UInt256.ofNat 12598 :: ptr :: principal :: UInt256.ofNat 15852 :: balance :: recipient ::
     amount :: src :: supplied :: R) _ _ _ _ _ _ at r2
@@ -64,7 +66,7 @@ theorem cometWithdrawBaseTotals {v : CometWithExtendedAssetListImmutables}
       have r8 := cometWithExtendedAssetList_block_7871
         (immWords := wordsOf (immStore v)) (by change R.length + 11 + 5 ≤ 1024; omega)
         (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r7
-      change RD _ _ _ _ _ (UInt256.land _ (UInt256.shiftRight
+      change RD fork _ _ _ _ _ (UInt256.land _ (UInt256.shiftRight
         (solcSlotWordAt (UInt256.ofNat 1) σ1 ee) (UInt256.ofNat 104)) :: borrowed ::
         UInt256.ofNat 12591 :: UInt256.ofNat 12598 :: ptr :: principal :: UInt256.ofNat 15852 ::
         balance :: recipient :: amount :: src :: supplied :: R) _ _ _ _ _ _ at r8

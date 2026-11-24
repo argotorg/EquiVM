@@ -2,6 +2,8 @@ import Benchmarks.Safe.V3_77901a5.P256Memory
 import Benchmarks.Safe.V3_77901a5.RawStaticCall
 import Benchmarks.Safe.V3_77901a5.Blocks.Runtime_031
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V3_77901a5.RuntimeBlocks
 
@@ -46,16 +48,16 @@ theorem p256OutputResultWord (mem out : ByteArray) (ptr : Nat) (p : P256Input) (
 set_option maxRecDepth 100000 in
 theorem safeP256Trace (p : P256Input) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata ptr ret} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨7108⟩
+    (h : RD fork safeBytecode I g s0 ⟨7108⟩
       (p.qy :: p.qx :: p.s :: p.r :: p.hash :: ret :: R) mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ) (hworld : evm.σ₀ = s0.σ₀)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr) (hb : ptr + 160 < UInt256.size)
     (hov : R.length + 14 ≤ 1024) (hret : (D_J safeBytecode 0).contains ret = true) :
     ∃ evm' σ' out z aw' k' C',
-      ExecFuncBody config p.frame evm p256VerifyFunction.body
+      ExecFuncBody fork config p.frame evm p256VerifyFunction.body
         (.returned (p.finalFrame z out) evm' (some [.bool (p256Result z out)])) ∧
       evm'.executionEnv = I ∧ evm'.accountMap = σ' ∧ evm'.σ₀ = s0.σ₀ ∧
-      RD safeBytecode I g s0 ret ((p256Result z out).toUInt256 :: R)
+      RD fork safeBytecode I g s0 ret ((p256Result z out).toUInt256 :: R)
         (p256OutputMemory mem ptr p out) aw' out σ' k' C' := by
   obtain ⟨aw₁, k₁, C₁, h₁⟩ := safeRuntime_block_7108_packed (by simp; omega) h
   have hm := safeP256InputMemory (p := p) hf hb
@@ -72,11 +74,11 @@ theorem safeP256Trace (p : P256Input) (evm : EVM.State)
     rw [callOutputLength hout]
     rfl
   rw [hmem] at h₂
-  have hc' : callViaEVM evm (AccountAddress.ofNat 256) 0 (wordBytes p.words)
+  have hc' : callViaEVM fork evm (AccountAddress.ofNat 256) 0 (wordBytes p.words)
       (z, evm', out) false := by
     simpa only [ulit_toNat' ptr (by omega),
       show (UInt256.ofNat 160).toNat = 160 from rfl, p256InputMemory_read] using hc
-  change RD safeBytecode I g s0 ⟨7151⟩
+  change RD fork safeBytecode I g s0 ⟨7151⟩
     (z.toUInt256 :: UInt256.ofNat ptr :: ⟨0⟩ :: p.qy :: p.qx :: p.s :: p.r :: p.hash :: ret :: R)
     (p256OutputMemory mem ptr p out) aw₂ out σ' k₂ C₂ at h₂
   obtain ⟨aw₃, k₃, C₃, h₃⟩ := safeRuntime_block_7151_packed (by omega) hret h₂

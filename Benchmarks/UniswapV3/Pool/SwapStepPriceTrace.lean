@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.SwapStepInitialTrace
 import Benchmarks.UniswapV3.Pool.SwapStepInputPriceTrace
 import Benchmarks.UniswapV3.Pool.SwapStepOutputPriceTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -11,7 +13,7 @@ set_option maxRecDepth 10000
 theorem swapStepPriceX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw currentRaw targetRaw liquidityRaw feeRaw : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables} (a : SwapStepArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨12447⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨12447⟩
       (swapStepRawWords a currentRaw targetRaw liquidityRaw feeRaw ++ R) mem aw rdata σ k C)
     (hc : UInt256.land currentRaw (UInt256.ofNat (2 ^ 160 - 1)) = a.current)
     (ht : UInt256.land targetRaw (UInt256.ofNat (2 ^ 160 - 1)) = a.target)
@@ -19,8 +21,8 @@ theorem swapStepPriceX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hf : UInt256.land feeRaw (UInt256.ofNat (2 ^ 24 - 1)) = a.fee)
     (ha : a.Fits) (hov : R.length + 49 ≤ 1024) :
     (¬swapStepPriceValid a ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    (swapStepPriceValid a ∧ ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨12654⟩
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    (swapStepPriceValid a ∧ ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨12654⟩
       (swapStepPriceWords a currentRaw targetRaw liquidityRaw feeRaw ++ R)
       mem aw rdata σ k' C') := by
   obtain ⟨kp, Cp, rp⟩ := swapStepPrefixX (v := v) a rd hc ht ha.2.2.2.1 (by omega)
@@ -31,7 +33,7 @@ theorem swapStepPriceX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     · refine Or.inl ⟨?_, Or.inl rr⟩
       intro hv
       exact hbad (by simpa only [swapStepInitialValid, hi] using hv.2.1)
-    · have ri : RD (deployedRuntime v) ee g s0 ⟨12616⟩
+    · have ri : RD fork (deployedRuntime v) ee g s0 ⟨12616⟩
           (swapStepInitialDelta a ::
             swapStepReadyWords a currentRaw targetRaw liquidityRaw feeRaw ++ R)
           mem aw rdata σ kd Cd := by
@@ -51,7 +53,7 @@ theorem swapStepPriceX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
       · refine Or.inl ⟨?_, Or.inl rr⟩
         intro hv
         exact hbad (by simpa only [swapStepInitialValid, hi] using hv.2.1)
-      · have ri : RD (deployedRuntime v) ee g s0 ⟨12542⟩
+      · have ri : RD fork (deployedRuntime v) ee g s0 ⟨12542⟩
             (swapStepInitialDelta a :: swapStepBudget a ::
               swapStepReadyWords a currentRaw targetRaw liquidityRaw feeRaw ++ R)
             mem aw rdata σ kd Cd := by

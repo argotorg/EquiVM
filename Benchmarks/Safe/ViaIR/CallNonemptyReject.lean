@@ -1,6 +1,9 @@
 import Reasoning.Stepping
 import Stele.Semantics.Calls
 import Ethereum.Theory.GasLemmas
+import Ethereum.Theory.PrecompileLemmas
+
+variable {fork : Ethereum.Fork}
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory
 
@@ -10,7 +13,7 @@ set_option maxRecDepth 5000
 
 private theorem emptyStackHaltIsStop {validJumps : Array UInt256} {state state' : State}
     {cause : HaltCause} {out : ByteArray} (hs : state.machineState.stack = [])
-    (h : Xstep validJumps state = .ok (state', some (cause, out))) :
+    (h : Xstep fork validJumps state = .ok (state', some (cause, out))) :
     ((decode state.executionEnv.code state.machineState.pc).getD (.STOP, none)).1 =
       .STOP := by
   unfold Xstep at h
@@ -41,13 +44,13 @@ private theorem emptyStackHaltIsStop {validJumps : Array UInt256} {state state' 
 
 private theorem xiZeroGasFailure (σ σ₀ : AccountMap) (A : Substate) (I : ExecutionEnv)
     (hn : ((decode I.code ⟨0⟩).getD (.STOP, none)).1 ≠ .STOP) :
-    (match Ξ σ σ₀ ⟨0⟩ A I with
+    (match Ξ fork σ σ₀ ⟨0⟩ A I with
       | .error _ => (∅, (⟨0⟩ : UInt256), A, ByteArray.empty)
       | .ok (.revert g' out) => (∅, g', A, out)
       | .ok (.success (σ', g', A') out) => (σ', g', A', out)).1 = ∅ := by
   unfold Ξ
   simp only [show (⟨0⟩ : UInt256).toNat = 0 from rfl, Nat.zero_add, X, bind, Except.bind]
-  generalize hstep : Xstep (D_J I.code 0) _ = stepResult
+  generalize hstep : Xstep fork (D_J I.code 0) _ = stepResult
   cases stepResult with
   | error _ => rfl
   | ok pair =>
@@ -62,7 +65,7 @@ private theorem stopDefaultStep {state : State} {jumps : Array UInt256}
     (hs : state.machineState.stack = [])
     (hd : ((decode state.executionEnv.code state.machineState.pc).getD (.STOP, none)).1 =
       .STOP) :
-    Xstep jumps state = .ok (stStop state, some (.success, ByteArray.empty)) := by
+    Xstep fork jumps state = .ok (stStop state, some (.success, ByteArray.empty)) := by
   generalize hi : (decode state.executionEnv.code state.machineState.pc).getD (.STOP, none) =
     instr at hd
   rcases instr with ⟨op, arg⟩
@@ -76,7 +79,7 @@ private theorem stopDefaultStep {state : State} {jumps : Array UInt256}
 private theorem xiStopOutput (σ σ₀ : AccountMap) (g : UInt256) (A : Substate)
     (I : ExecutionEnv)
     (hd : ((decode I.code ⟨0⟩).getD (.STOP, none)).1 = .STOP) :
-    (match Ξ σ σ₀ g A I with
+    (match Ξ fork σ σ₀ g A I with
       | .error _ => (∅, (⟨0⟩ : UInt256), A, ByteArray.empty)
       | .ok (.revert g' out) => (∅, g', A, out)
       | .ok (.success (σ', g', A') out) => (σ', g', A', out)).2.2.2 = .empty := by
@@ -85,61 +88,43 @@ private theorem xiStopOutput (σ σ₀ : AccountMap) (g : UInt256) (A : Substate
   rw [X, stopDefaultStep rfl hd]
   rfl
 
-set_option maxRecDepth 65536 in
 private theorem precompileZeroGasFailure (pc : AccountAddress) (σ : AccountMap) (A : Substate)
     (I : ExecutionEnv) (hinput : I.calldata.size ≠ 213) :
-    (match pc with
-      | 1 => Ξ_ECREC σ ⟨0⟩ A I
-      | 2 => Ξ_SHA256 σ ⟨0⟩ A I
-      | 3 => Ξ_RIP160 σ ⟨0⟩ A I
-      | 4 => Ξ_ID σ ⟨0⟩ A I
-      | 5 => Ξ_EXPMOD σ ⟨0⟩ A I
-      | 6 => Ξ_BN_ADD σ ⟨0⟩ A I
-      | 7 => Ξ_BN_MUL σ ⟨0⟩ A I
-      | 8 => Ξ_SNARKV σ ⟨0⟩ A I
-      | 9 => Ξ_BLAKE2_F σ ⟨0⟩ A I
-      | 10 => Ξ_PointEval σ ⟨0⟩ A I
-      | _ => (default : AccountMap × UInt256 × Substate × ByteArray)).1 = ∅ := by
-  have hdispatch := precompile_dispatch_match_eq_if pc
-    (Ξ_ECREC σ ⟨0⟩ A I) (Ξ_SHA256 σ ⟨0⟩ A I) (Ξ_RIP160 σ ⟨0⟩ A I)
-    (Ξ_ID σ ⟨0⟩ A I) (Ξ_EXPMOD σ ⟨0⟩ A I) (Ξ_BN_ADD σ ⟨0⟩ A I)
-    (Ξ_BN_MUL σ ⟨0⟩ A I) (Ξ_SNARKV σ ⟨0⟩ A I) (Ξ_BLAKE2_F σ ⟨0⟩ A I)
-    (Ξ_PointEval σ ⟨0⟩ A I) (default : AccountMap × UInt256 × Substate × ByteArray)
-  have hbound :
-      (if pc = 1 then Ξ_ECREC σ ⟨0⟩ A I
-       else if pc = 2 then Ξ_SHA256 σ ⟨0⟩ A I
-       else if pc = 3 then Ξ_RIP160 σ ⟨0⟩ A I
-       else if pc = 4 then Ξ_ID σ ⟨0⟩ A I
-       else if pc = 5 then Ξ_EXPMOD σ ⟨0⟩ A I
-       else if pc = 6 then Ξ_BN_ADD σ ⟨0⟩ A I
-       else if pc = 7 then Ξ_BN_MUL σ ⟨0⟩ A I
-       else if pc = 8 then Ξ_SNARKV σ ⟨0⟩ A I
-       else if pc = 9 then Ξ_BLAKE2_F σ ⟨0⟩ A I
-       else if pc = 10 then Ξ_PointEval σ ⟨0⟩ A I
-       else (default : AccountMap × UInt256 × Substate × ByteArray)).1 = ∅ := by
-    split_ifs
+    (Ξ_PRECOMPILE fork pc σ ⟨0⟩ A I).1 = ∅ := by
+  apply Ξ_PRECOMPILE_induction fork (fun r ↦ r.1 = ∅)
+  · rfl
+  · simp [Ξ_SHA256]
+  · simp [Ξ_RIP160]
+  · simp [Ξ_ID]
+  · unfold Ξ_EXPMOD
+    dsimp only
+    split
     · rfl
-    · simp [Ξ_SHA256]
-    · simp [Ξ_RIP160]
-    · simp [Ξ_ID]
-    · unfold Ξ_EXPMOD
-      dsimp only
-      rw [if_pos (by change 0 < max 200 _; omega)]
-    · rfl
-    · rfl
-    · simp [Ξ_SNARKV]
-    · simp [Ξ_BLAKE2_F, ffi.BLAKE2, hinput, bind, Except.bind, dbgTrace]
-    · rfl
-    · rfl
-  exact (congrArg (fun x : AccountMap × UInt256 × Substate × ByteArray ↦ x.1)
-    hdispatch).symm ▸ hbound
+    · rename_i gas hgas
+      have hpos : 0 < gas := by
+        unfold expmodRequiredGas at hgas
+        dsimp only at hgas
+        split at hgas
+        · contradiction
+        · split at hgas <;> simp only [Option.some.injEq] at hgas <;> subst gas <;> omega
+      simp [hpos]
+  · rfl
+  · rfl
+  · simp [Ξ_SNARKV]
+  · simp [Ξ_BLAKE2_F, BLAKE2_F, Crypto.BLAKE2F.blake2f, hinput, dbgTrace]
+  · rfl
+  · intro op
+    rw [precompile_BLS12_381_zero_gas]
+  · rfl
+  · rfl
 
-private theorem thetaZeroGasFailureOfNonempty (σ σ₀ : AccountMap) (A A₀ : Substate)
+private theorem thetaZeroGasFailureOfNonempty {fork : Ethereum.Fork} (σ σ₀ : AccountMap) (A A₀ :
+  Substate)
     (s o r : AccountAddress) (c : ToExecute) (g p v v' : UInt256) (d : ByteArray)
     (e : Fin 1025) (H : BlockHeader) (hashes : List ByteArray) (blocks : ProcessedBlocks)
     (perm : Bool) (hinput : d.size ≠ 213)
-    (hout : (Θ σ σ₀ A s o r c g p v v' d e H hashes blocks perm).2.2.2.2 ≠ .empty) :
-    (Θ σ σ₀ A₀ s o r c ⟨0⟩ p v v' d e H hashes blocks perm).2.2.2.1 = false := by
+    (hout : (Θ fork σ σ₀ A s o r c g p v v' d e H hashes blocks perm).2.2.2.2 ≠ .empty) :
+    (Θ fork σ σ₀ A₀ s o r c ⟨0⟩ p v v' d e H hashes blocks perm).2.2.2.1 = false := by
   cases c with
   | Code code =>
     have hn : ((decode code ⟨0⟩).getD (.STOP, none)).1 ≠ .STOP := by
@@ -168,16 +153,16 @@ private theorem thetaZeroGasFailureOfNonempty (σ σ₀ : AccountMap) (A A₀ : 
 The input-size condition excludes the zero-round BLAKE2 precompile exception. -/
 theorem callNonemptyCanReject {evm : State} {target : EVM.Address} {value : Int}
     {data out : ByteArray} {z : Bool} {evm' : State} {perm : Bool}
-    (hc : callViaEVM evm target value data (z, evm', out) perm)
+    (hc : callViaEVM fork evm target value data (z, evm', out) perm)
     (hinput : data.size ≠ 213) (hout : out ≠ .empty) :
-    ∃ evm'' out', callViaEVM evm target value data (false, evm'', out') perm := by
+    ∃ evm'' out', callViaEVM fork evm target value data (false, evm'', out') perm := by
   cases hc with
   | callNotMade _ _ _ => exact False.elim (hout rfl)
   | callMade hw hr he hb hd =>
     rw [hw] at hr hb
     obtain ⟨gas, A, hr⟩ := hr
-    let result := Θ evm.accountMap evm.σ₀ default evm.executionEnv.codeOwner
-      evm.executionEnv.sender target (toExecute evm.accountMap target) ⟨0⟩
+    let result := Θ fork evm.accountMap evm.σ₀ default evm.executionEnv.codeOwner
+      evm.executionEnv.sender target (toExecute fork evm.accountMap target) ⟨0⟩
       (UInt256.ofNat evm.executionEnv.gasPrice) (EVM.wordOfInt value) (EVM.wordOfInt value) data
       (evm.executionEnv.depth + 1) evm.executionEnv.header evm.executionEnv.blobVersionedHashes
       evm.executionEnv.blocks (perm && evm.executionEnv.perm)

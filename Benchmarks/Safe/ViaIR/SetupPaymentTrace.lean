@@ -2,6 +2,8 @@ import Benchmarks.Safe.ViaIR.SetupOutcome
 import Benchmarks.Safe.ViaIR.SetupPaymentPaths
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_017
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -11,7 +13,7 @@ set_option maxRecDepth 5000
 
 theorem safeSetupPaymentTrace (p : SetupInput) (evm : EVM.State)
     {I g s0 σ k C aw mem rdata ptr locals} {x y : UInt256} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3475⟩
+    (h : RD fork safeBytecode I g s0 ⟨3475⟩
       (x :: y :: p.paymentToken :: p.paymentReceiver :: p.payment :: ⟨0⟩ :: R)
       mem aw rdata σ k C)
     (hee : evm.executionEnv = I) (hacc : evm.accountMap = σ) (hworld : evm.σ₀ = s0.σ₀)
@@ -21,7 +23,7 @@ theorem safeSetupPaymentTrace (p : SetupInput) (evm : EVM.State)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr) (hp : 128 ≤ ptr)
     (hptr : ptr = 160 + 32 * p.owners.length + 32 + ABI.paddedSize p.payload.size)
     (hcap : ptr < 2 ^ 64) (hperm : I.perm = true) (hov : R.length + 36 ≤ 1024) :
-    SetupTailOutcome p { contract := contract, locals := locals } evm [setupPaymentStmt] g s0 := by
+    SetupTailOutcome fork p { contract := contract, locals := locals } evm [setupPaymentStmt] g s0 := by
   have hdata : 32 * p.owners.length + p.payload.size ≤ 2 ^ 64 - 224 := by
     rw [hptr] at hcap
     unfold ABI.paddedSize at hcap
@@ -41,7 +43,7 @@ theorem safeSetupPaymentTrace (p : SetupInput) (evm : EVM.State)
     ((canonicalAddress_eq_address_iff _ _ htoken).mp rfl).symm
   have hr : UInt256.ofNat p.paymentInput.refundReceiver.val = p.paymentReceiver :=
     ((canonicalAddress_eq_address_iff _ _ hreceiver).mp rfl).symm
-  have hcall : RD safeBytecode I g s0 ⟨10429⟩
+  have hcall : RD fork safeBytecode I g s0 ⟨10429⟩
       (p.paymentInput.gasUsed :: UInt256.ofNat p.paymentInput.gasToken.val ::
         UInt256.ofNat p.paymentInput.refundReceiver.val :: ⟨3495⟩ :: ⟨0⟩ :: R)
       mem aw rdata σ (k + 6 + 5) (C + 21 + 18) := by
@@ -52,8 +54,8 @@ theorem safeSetupPaymentTrace (p : SetupInput) (evm : EVM.State)
   have hs := (safeSetupPaymentBounds p.paymentInput I rfl rfl).1
   have hm := (safeSetupPaymentBounds p.paymentInput I rfl rfl).2
   have finish (ha : 32 * p.owners.length + p.payload.size ≤ p.allocationLimit)
-      (ho : SetupPaymentOutcome p.paymentInput evm I g s0 ⟨3495⟩ (⟨0⟩ :: R)) :
-      SetupTailOutcome p { contract := contract, locals := locals } evm
+      (ho : SetupPaymentOutcome fork p.paymentInput evm I g s0 ⟨3495⟩ (⟨0⟩ :: R)) :
+      SetupTailOutcome fork p { contract := contract, locals := locals } evm
         [setupPaymentStmt] g s0 := by
     obtain ⟨hrev, hsource⟩ | ⟨f', evm', mem', out, aw', k', C', hsource, htrace⟩ := ho
     · exact .reverted (.consRevert (safeSetupPaymentCall p evm hl hpay hsource)) hrev

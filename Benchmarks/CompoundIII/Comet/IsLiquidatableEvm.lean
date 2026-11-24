@@ -5,6 +5,8 @@ import Benchmarks.CompoundIII.Comet.RuntimeBlocks_010
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_018
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_011
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -17,7 +19,7 @@ theorem isLiquidatableX {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 0)) :
-    CollateralCheckPublicResult v false I g (initState σ σ₀ g A I) := by
+    CollateralCheckPublicResult fork v false I g (initState σ σ₀ g A I) := by
   obtain ⟨k, C, rd⟩ := cometWithExtendedAssetListReachIsLiquidatableBody
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) v hcode hsz hsize hsel
   have rd1 := cometWithExtendedAssetList_block_1384 (immWords := wordsOf (immStore v))
@@ -40,7 +42,7 @@ theorem isLiquidatableX {σ σ₀ A I} {g : Sat256}
           have rd6 := cometWithExtendedAssetList_block_1450
             (immWords := wordsOf (immStore v)) (by change 4 ≤ 1024; decide)
             (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) rd5
-          change RD _ _ _ _ (collateralCheckPc false)
+          change RD fork _ _ _ _ (collateralCheckPc false)
             [calldataWord I.calldata 4, UInt256.ofNat 1455, UInt256.ofNat 32]
             _ _ _ _ _ _ at rd6
           rw [← addressWord_eq_ofNat_address hc] at rd6

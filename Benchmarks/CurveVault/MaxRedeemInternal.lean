@@ -4,6 +4,8 @@ import Benchmarks.CurveVault.MaxRedeemArguments
 import Benchmarks.CurveVault.BalanceStorage
 import Benchmarks.CurveVault.RuntimeBlocks_017
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -15,15 +17,15 @@ theorem vaultMaxRedeemReturn {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hsize : 64 ≤ mem.size) (howner : memLoad (UInt256.ofNat 576) mem = owner)
     (hshares : memLoad (UInt256.ofNat 640) mem = shares)
     (hcanon : owner.toNat < EVM.addressModulus) (hstack : R.length + 6 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 4888) R mem aw rdata σ k C) :
-    RDret vaultBytecode g s0 σ
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 4888) R mem aw rdata σ k C) :
+    RDret fork vaultBytecode g s0 σ
       (wordMin shares (codeOwnerStorageWord I σ
         (vyperMappingSlot ⟨13⟩ (.address (AccountAddress.ofNat owner.toNat))))).toByteArray := by
   have hhash := vyperHashMem_address ⟨13⟩ owner mem hsize hcanon
   have hret := vaultBlocks.vault_block_4888 hstack h
   let key := keccakWord ⟨0⟩ (UInt256.ofNat 64)
     (wordAt0Mem ⟨13⟩ (wordAt32Mem (memLoad (UInt256.ofNat 576) mem) mem))
-  change RDret vaultBytecode g s0 σ
+  change RDret fork vaultBytecode g s0 σ
     (((UInt256.xor (UInt256.mul (UInt256.lt (memLoad (UInt256.ofNat 640) mem)
       (codeOwnerStorageWord I σ key)) (UInt256.xor (codeOwnerStorageWord I σ key)
         (memLoad (UInt256.ofNat 640) mem))) (codeOwnerStorageWord I σ key)).toByteArray.write
@@ -42,13 +44,13 @@ theorem vaultMaxRedeemRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hbase : locals.get? "balanceOf" = none)
     (harg : locals.get? "_owner" = some (.address (AccountAddress.ofNat owner.toNat)))
     (hstack : R.length + 14 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 4808) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 4808) R mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (locals' : Store) (value : UInt256),
-      ExecFuncBody config {contract := contract, locals := locals} evm vaultMaxRedeemFunction.body
+      ExecFuncBody fork config {contract := contract, locals := locals} evm vaultMaxRedeemFunction.body
         (.returned {contract := contract, locals := locals'} evm' (some [.int (Int.ofNat value.toNat)])) ∧
-      SourceState s0 I σ' evm' ∧ RDret vaultBytecode g s0 σ' value.toByteArray) ∨
-    (ExecFuncBody config {contract := contract, locals := locals} evm vaultMaxRedeemFunction.body .reverted ∧
-      RDrev vaultBytecode g s0) := by
+      SourceState s0 I σ' evm' ∧ RDret fork vaultBytecode g s0 σ' value.toByteArray) ∨
+    (ExecFuncBody fork config {contract := contract, locals := locals} evm vaultMaxRedeemFunction.body .reverted ∧
+      RDrev fork vaultBytecode g s0) := by
   have hgap (d : Nat) (hd : d < 1024) (m : ByteArray) : d - m.size < USize.size :=
     lt_of_le_of_lt (Nat.sub_le _ _) (lt_usize d (by omega))
   have rd7819 := vaultBlocks.vault_block_4808 (by omega) (by native_decide) h
@@ -69,7 +71,7 @@ theorem vaultMaxRedeemRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     rw [memLoad_below_write _ _ 608 576 (le_trans hsize hframe0.size) (by omega) (hgap _ (by omega) _) (by decide +kernel),
       hframe0.load 576 (by omega) (by decide +kernel) hsize (by decide +kernel), howner]
   have rd7108 := vaultBlocks.vault_block_4818 (by omega) (by native_decide) rd4818
-  change RD vaultBytecode I g s0 (UInt256.ofNat 7108) (UInt256.ofNat 640 :: UInt256.ofNat 4888 :: R)
+  change RD fork vaultBytecode I g s0 (UInt256.ofNat 7108) (UInt256.ofNat 640 :: UInt256.ofNat 4888 :: R)
     (vaultMaxRedeemArgsMemory mem0 (memLoad (UInt256.ofNat 608) mem0)) _ out0 σ0 _ _ at rd7108
   rw [hword0] at rd7108
   have hm := vaultMaxRedeemArgsMemory_reads mem0 available

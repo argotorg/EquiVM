@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.SupplyMarketRefine
 import Benchmarks.Morpho.MorphoBlue.HeapWordWrites
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -13,7 +15,7 @@ def supplyCallbackTail (assets shares srcOff len : UInt256) (R : List UInt256) :
 theorem supplyEmit (p : MarketParamsWords) (assets shares account : UInt256) (data : ByteArray)
     (locals imms : Store) (evm : EVM.State) (hl : SupplyLocals p assets shares account data locals)
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm
       supplyTransition.body[17]! (.ok { contract := contract, locals := locals, immutables := imms } evm) := by
   apply ExecStmt.emit (hperm := hperm)
   change evalExprs? config _ _ [.var "id", .env .caller, .var "onBehalf", .var "assets", .var "shares"] = _
@@ -26,10 +28,10 @@ theorem morphoSupplyStoreEvent {v : MorphoImmutables} {ee : ExecutionEnv} {g : S
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 24 ≤ 1024)
     (hperm : ee.perm = true) (hfree : memLoad (UInt256.ofNat 64) mem = fp)
     (hc : (marketFieldWord σ ee id 0 + assets).toNat < 2 ^ 128)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 4124)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 4124)
       ((marketFieldWord σ ee id 0 + assets) :: supplyStoreTail σ ee id assets shares account srcOff len R)
       mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0
       (if len = UInt256.ofNat 0 then UInt256.ofNat 4186 else UInt256.ofNat 4218)
       (supplyCallbackTail assets shares srcOff len R) (twoWordEventMem mem fp assets shares) aw' out
       (storeMarketFieldAccounts σ ee id ⟨0, by decide⟩ (marketFieldWord σ ee id 0 + assets)) k' C' := by

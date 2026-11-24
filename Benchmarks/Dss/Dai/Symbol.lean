@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Dai.StringReturn
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -24,7 +26,7 @@ theorem daiSymbolReturnEncoding :
 /-- The Stele `symbol()` body returns `"DAI"` as a dynamic string value. -/
 theorem daiSymbolBodyReturns (evm : EVM.State)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract evm symbolStore symbolTransition.body
+    ExecTransitionBody fork config contract evm symbolStore symbolTransition.body
       (.returned { contract := contract, locals := symbolStore } evm
         (some [.bytes daiSymbolBytes])) := by
   simpa [symbolTransition, symbolStore, daiSymbolBytes] using
@@ -43,10 +45,10 @@ private theorem daiSymbolReturnRead :
 
 /-- Runtime-only `symbol()` slice from selector dispatch through dynamic string return. -/
 theorem daiX_symbol_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD daiBytecode I g
+    (hreach : ∃ k C, RD fork daiBytecode I g
       (initState σ σ₀ g A I) ⟨900⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret daiBytecode g (initState σ σ₀ g A I) σ
+    RDret fork daiBytecode g (initState σ σ₀ g A I) σ
       daiSymbolReturnBytes := by
   obtain ⟨_, _, h900⟩ := hreach
   have h3190 := evm_run h900 with [
@@ -137,12 +139,12 @@ theorem daiSymbolBodyCoreOk
       config.externalABI.decodeCalldata? (symbolTransition.params.map Param.name)
         (transitionSignature symbolTransition).paramTypes I.calldata =
           some symbolStore)
-    (hreach : ∃ k C, RD daiBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork daiBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨900⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         symbolStore
         symbolTransition.body
@@ -171,12 +173,12 @@ theorem daiSymbolBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (daiSelBytes 16)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (daiSelBytes 16) (by native_decide) hsel
   have hdispatch : dispatchMsg contract I.calldata = some symbolTransition :=
     daiDispatchSymbol hsel
-  have hreach := daiReachSymbolBody
+  have hreach := daiReachSymbolBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   exact daiSymbolBodyCoreOk hcode hsize hwv hdispatch

@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.AttestationRequest
 import Benchmarks.EAS.EAS.Storage
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 
@@ -15,7 +17,7 @@ theorem validUID_bind (word : UInt256) (heap : Nat) :
     bindParams? validUIDFunction.params [wordBytes32Value word,.int (Int.ofNat heap)] = some (validUIDArgs word heap) := rfl
 
 theorem validUIDSource (imms : Store) (evm : EVM.State) (word : UInt256) (heap : Nat) :
-    ExecFuncBody config {contract := contract,locals := validUIDArgs word heap,immutables := imms} evm validUIDFunction.body
+    ExecFuncBody fork config {contract := contract,locals := validUIDArgs word heap,immutables := imms} evm validUIDFunction.body
       (.returned {contract := contract,locals := validUIDArgs word heap,immutables := imms} evm
         (some [.bool (decide (dbUIDWord evm word ≠ ⟨0⟩)),.int (Int.ofNat heap)])) := by
   rw [validUID_body]
@@ -34,7 +36,7 @@ theorem validUIDSource (imms : Store) (evm : EVM.State) (word : UInt256) (heap :
 theorem validUIDCall {L imms : Store} {evm : EVM.State} {args : List Expr} {retVar : Ident} {word : UInt256} {heap : Nat}
     (he : evalExprs? config {contract := contract,locals := L,immutables := imms} evm args =
       .ok [wordBytes32Value word,.int (Int.ofNat heap)]) :
-    ExecStmt config {contract := contract,locals := L,immutables := imms} evm
+    ExecStmt fork config {contract := contract,locals := L,immutables := imms} evm
       (.internalCall "isAttestationValid_body" args retVar)
       (.ok (resumeAfterInternalCall {contract := contract,locals := L,immutables := imms} retVar
         (some [.bool (decide (dbUIDWord evm word ≠ ⟨0⟩)),.int (Int.ofNat heap)])) evm) :=

@@ -2,15 +2,17 @@ import Benchmarks.Auction.ReturnReserve
 import Benchmarks.Auction.BoolDecoder
 import Benchmarks.Auction.DepositPrefix
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
 theorem transferReturnPrefix {I g s0 amount recipient ret R mem aw ptr out acc k C}
-    (h : RD auctionBytecode I g s0 ⟨3537⟩ (amount :: recipient :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨3537⟩ (amount :: recipient :: ret :: R)
       mem aw out acc k C)
     (hm : MemoryCursor mem aw ptr) (hov : R.length + 12 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨6062⟩
+    ∃ k' C', RD fork auctionBytecode I g s0 ⟨6062⟩
       (ptr :: (ptr + UInt256.ofNat out.size) :: ⟨3568⟩ :: amount :: recipient :: ret :: R)
       (returnReserveMem mem ptr out.size) aw out acc k' C' := by
   have rd3540 := evm_run h with [push1 ⟨64⟩,
@@ -21,7 +23,7 @@ theorem transferReturnPrefix {I g s0 amount recipient ret R mem aw ptr out acc k
     raw mstoreSymbolic (by native_decide) (by evm_ov)]
   simp only [u256_land_comm (UInt256.ofNat out.size + ⟨31⟩) (UInt256.lnot ⟨31⟩),
     expandedWords64_eq hm.active] at rd3555
-  change RD _ _ _ _ ⟨3555⟩ (returnReservePtr ptr out.size :: UInt256.ofNat out.size ::
+  change RD fork _ _ _ _ ⟨3555⟩ (returnReservePtr ptr out.size :: UInt256.ofNat out.size ::
     ptr :: amount :: recipient :: ret :: R) (returnReserveMem mem ptr out.size)
     aw out acc _ _ at rd3555
   exact ⟨_, _, evm_run rd3555 with [pop, dup2, add, swap1, push2 ⟨3568⟩, swap2,
@@ -29,14 +31,14 @@ theorem transferReturnPrefix {I g s0 amount recipient ret R mem aw ptr out acc k
 
 
 theorem transferReturnOk {I g s0 amount recipient ret R mem aw ptr out acc k C} {word : UInt256}
-    (h : RD auctionBytecode I g s0 ⟨3537⟩ (amount :: recipient :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨3537⟩ (amount :: recipient :: ret :: R)
       mem aw out acc k C)
     (hm : MemoryCursor mem aw ptr) (hlen : 32 ≤ out.size) (hhi : out.size < 2 ^ 255)
     (hin : ptr.toNat + 32 ≤ mem.size)
     (hread : mem.readWithPadding ptr.toNat 32 = word.toByteArray)
     (hc : word = ⟨0⟩ ∨ word = ⟨1⟩)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 12 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret R
+    ∃ k' C', RD fork auctionBytecode I g s0 ret R
       (returnReserveMem mem ptr out.size) (expandedWords aw ptr ⟨32⟩) out acc k' C' := by
   obtain ⟨_, _, rd6062⟩ := transferReturnPrefix h hm hov
   have hcheck : UInt256.slt (UInt256.sub (ptr + UInt256.ofNat out.size) ptr) ⟨32⟩ = ⟨0⟩ := by
@@ -47,10 +49,10 @@ theorem transferReturnOk {I g s0 amount recipient ret R mem aw ptr out acc k C} 
   exact ⟨_, _, evm_run rd3568 with [jumpdest, pop, jumpdest, pop, pop, jump hret]⟩
 
 theorem transferReturnShort {I g s0 amount recipient ret R mem aw ptr out acc k C}
-    (h : RD auctionBytecode I g s0 ⟨3537⟩ (amount :: recipient :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨3537⟩ (amount :: recipient :: ret :: R)
       mem aw out acc k C)
     (hm : MemoryCursor mem aw ptr) (hlen : out.size < 32) (hov : R.length + 12 ≤ 1024) :
-    RDrev auctionBytecode g s0 := by
+    RDrev fork auctionBytecode g s0 := by
   obtain ⟨_, _, rd6062⟩ := transferReturnPrefix h hm hov
   apply boolDecodeShort rd6062 _ (by evm_ov)
   rw [word_add_sub_left]
@@ -58,13 +60,13 @@ theorem transferReturnShort {I g s0 amount recipient ret R mem aw ptr out acc k 
 
 theorem transferReturnNoncanonical {I g s0 amount recipient ret R mem aw ptr out acc k C}
     {word : UInt256}
-    (h : RD auctionBytecode I g s0 ⟨3537⟩ (amount :: recipient :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨3537⟩ (amount :: recipient :: ret :: R)
       mem aw out acc k C)
     (hm : MemoryCursor mem aw ptr) (hlen : 32 ≤ out.size) (hhi : out.size < 2 ^ 255)
     (hin : ptr.toNat + 32 ≤ mem.size)
     (hread : mem.readWithPadding ptr.toNat 32 = word.toByteArray)
     (hc : ¬ (word = ⟨0⟩ ∨ word = ⟨1⟩)) (hov : R.length + 12 ≤ 1024) :
-    RDrev auctionBytecode g s0 := by
+    RDrev fork auctionBytecode g s0 := by
   obtain ⟨_, _, rd6062⟩ := transferReturnPrefix h hm hov
   have hcheck : UInt256.slt (UInt256.sub (ptr + UInt256.ofNat out.size) ptr) ⟨32⟩ = ⟨0⟩ := by
     rw [word_add_sub_left]

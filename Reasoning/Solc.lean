@@ -4,6 +4,8 @@ import Reasoning.Stepping
 import Reasoning.Reach
 import Reasoning.MemCascade
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Solc — reusable boilerplate shared by every solc-compiled contract
 
@@ -1408,7 +1410,7 @@ theorem solcGuardPrologueRD {σ σ₀ A I} {g : Sat256} {code : ByteArray}
     (hd5 : decode code ⟨5⟩ = some (.CALLVALUE, .none))
     (hd6 : decode code ⟨6⟩ = some (.DUP1, .none))
     (hd7 : decode code ⟨7⟩ = some (.ISZERO, .none)) :
-    RD code I g (initState σ σ₀ g A I) ⟨8⟩
+    RD fork code I g (initState σ σ₀ g A I) ⟨8⟩
         [UInt256.isZero I.weiValue, I.weiValue] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ 6 26 := by
   set s0 := initState σ σ₀ g A I with hs0
@@ -1421,7 +1423,7 @@ theorem solcGuardPrologueRD {σ σ₀ A I} {g : Sat256} {code : ByteArray}
   have hmem0 : s0.machineState.memory = ByteArray.empty := by rw [hs0]; simp [initState]; rfl
   have hrdata0 : s0.machineState.returnData = ByteArray.empty := by rw [hs0]; simp [initState]; rfl
   have hacc0 : s0.accountMap = σ := by rw [hs0]; simp [initState]
-  have hX0 : X (g.toNat + 1) (D_J code 0) s0 = X (g.toNat + 1 - 0) (D_J code 0) s0 := rfl
+  have hX0 : X fork (g.toNat + 1) (D_J code 0) s0 = X fork (g.toNat + 1 - 0) (D_J code 0) s0 := rfl
   -- PUSH1 0x80 · PUSH1 0x40 · MSTORE (install free pointer) · CALLVALUE · DUP1 · ISZERO ⇒ pc 8
   exact RD.startWith (rdata := ByteArray.empty) hcode0 hpc0 hstk0 hgas0 (by omega) (by omega) hX0
         hmem0 haw0 hrdata0 hacc0 hee0 rfl
@@ -1494,11 +1496,11 @@ theorem RD.solcCallerTransferThunk {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc contPc routinePc value toWord ret : UInt256}
     {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD code ee g s0 pc (value :: toWord :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (value :: toWord :: ret :: R) mem aw rdata acc k C)
     (hwf : solcCallerTransferThunkWf code pc contPc routinePc)
     (hroutine : (D_J code 0).contains routinePc = true)
     (hov : R.length + 10 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 routinePc
+    ∃ k' C', RD fork code ee g s0 routinePc
       (value :: toWord :: solcSourceWord ee :: contPc :: ⟨0⟩ :: value :: toWord :: ret :: R)
       mem aw rdata acc k' C' := by
   rcases hwf with ⟨hd0, hd1, hd3, hd6, hd7, hd8, hd9, hd12⟩
@@ -1532,11 +1534,11 @@ theorem RD.solcInternalCallSetup3 {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc contPc routinePc discard a b c ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
     {acc : AccountMap}
-    (h : RD code ee g s0 pc (discard :: a :: b :: c :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (discard :: a :: b :: c :: ret :: R) mem aw rdata acc k C)
     (hwf : solcInternalCallSetup3Wf code pc contPc routinePc)
     (hroutine : (D_J code 0).contains routinePc = true)
     (hov : R.length + 10 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 routinePc
+    ∃ k' C', RD fork code ee g s0 routinePc
       (a :: b :: c :: contPc :: discard :: a :: b :: c :: ret :: R)
       mem aw rdata acc k' C' := by
   rcases hwf with ⟨hd0, hd1, hd4, hd5, hd6, hd7, hd10⟩
@@ -1732,7 +1734,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.solcExternalStaticArgsLenOk {σ : AccountMap} {I : ExecutionEnv}
     {s0 : State} {g : Sat256}
     {code : ByteArray} {sel entry ret decoded need : UInt256}
-    (hreach : ∃ k C, RD code I g s0 entry [sel]
+    (hreach : ∃ k C, RD fork code I g s0 entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hd0 : decode code entry = some (.JUMPDEST, .none))
     (hd1 : decode code (entry + ⟨1⟩) = some (.Push .PUSH2, some (ret, 2)))
@@ -1779,7 +1781,7 @@ theorem RD.solcExternalStaticArgsLenOk {σ : AccountMap} {I : ExecutionEnv}
         some (.JUMPI, .none))
     (hdecoded : (D_J code 0).contains decoded = true)
     (hlt : UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) need = ⟨0⟩) :
-    ∃ k C, RD code I g s0 decoded
+    ∃ k C, RD fork code I g s0 decoded
       (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩ :: ⟨4⟩ :: ret :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rdEntry⟩ := hreach
@@ -1804,7 +1806,7 @@ theorem RD.solcExternalStaticArgsLenOk {σ : AccountMap} {I : ExecutionEnv}
 set_option maxHeartbeats 1000000 in
 theorem RD.solcOneAddressExternalLenOk {σ σ₀ A I} {g : Sat256}
     {code : ByteArray} {sel entry ret decoded : UInt256}
-    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I) entry [sel]
+    (hreach : ∃ k C, RD fork code I g (initState σ σ₀ g A I) entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hd0 : decode code entry = some (.JUMPDEST, .none))
     (hd1 : decode code (entry + ⟨1⟩) = some (.Push .PUSH2, some (ret, 2)))
@@ -1851,7 +1853,7 @@ theorem RD.solcOneAddressExternalLenOk {σ σ₀ A I} {g : Sat256}
         some (.JUMPI, .none))
     (hdecoded : (D_J code 0).contains decoded = true)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD code I g (initState σ σ₀ g A I) decoded
+    ∃ k C, RD fork code I g (initState σ σ₀ g A I) decoded
       (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩ :: ⟨4⟩ :: ret :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hlt :
@@ -1865,7 +1867,7 @@ theorem RD.solcOneAddressExternalMaskAndJumpMasked {code : ByteArray} {g : Sat25
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {decoded ret routine de : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
     {acc : AccountMap}
-    (h : RD code ee g s0 decoded (de :: ⟨4⟩ :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 decoded (de :: ⟨4⟩ :: ret :: R) mem aw rdata acc k C)
     (hd0 : decode code decoded = some (.JUMPDEST, .none))
     (hd1 : decode code (decoded + ⟨1⟩) = some (.POP, .none))
     (hd2 : decode code (decoded + ⟨1⟩ + ⟨1⟩) = some (.CALLDATALOAD, .none))
@@ -1905,7 +1907,7 @@ theorem RD.solcOneAddressExternalMaskAndJumpMasked {code : ByteArray} {g : Sat25
         some (.JUMP, .none))
     (hroutine : (D_J code 0).contains routine = true)
     (hov : R.length + 5 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 routine
+    ∃ k' C', RD fork code ee g s0 routine
       (UInt256.land solcAddrMask (calldataWord ee.calldata 4) :: ret :: R)
       mem aw rdata acc k' C' := by
   have rd1 := h.jumpdest hd0 (by evm_ov)
@@ -1927,7 +1929,7 @@ theorem RD.solcOneAddressExternalMaskAndJump {code : ByteArray} {g : Sat256} {s0
     {ee : ExecutionEnv} {k C : ℕ} {decoded ret routine de : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
     {acc : AccountMap}
-    (h : RD code ee g s0 decoded (de :: ⟨4⟩ :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 decoded (de :: ⟨4⟩ :: ret :: R) mem aw rdata acc k C)
     (hd0 : decode code decoded = some (.JUMPDEST, .none))
     (hd1 : decode code (decoded + ⟨1⟩) = some (.POP, .none))
     (hd2 : decode code (decoded + ⟨1⟩ + ⟨1⟩) = some (.CALLDATALOAD, .none))
@@ -1968,7 +1970,7 @@ theorem RD.solcOneAddressExternalMaskAndJump {code : ByteArray} {g : Sat256} {s0
     (hcanon : (calldataWord ee.calldata 4).toNat < EVM.addressModulus)
     (hroutine : (D_J code 0).contains routine = true)
     (hov : R.length + 5 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 routine (calldataWord ee.calldata 4 :: ret :: R)
+    ∃ k' C', RD fork code ee g s0 routine (calldataWord ee.calldata 4 :: ret :: R)
       mem aw rdata acc k' C' := by
   obtain ⟨k', C', h'⟩ :=
     RD.solcOneAddressExternalMaskAndJumpMasked h hd0 hd1 hd2 hd3 hd5 hd7 hd9 hd10 hd11
@@ -1982,7 +1984,7 @@ theorem RD.solcOneAddressExternalMaskAndJump {code : ByteArray} {g : Sat256} {s0
 set_option maxHeartbeats 1000000 in
 theorem RD.solcTwoAddressExternalLenOk {σ σ₀ A I} {g : Sat256}
     {code : ByteArray} {sel entry ret decoded : UInt256}
-    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I) entry [sel]
+    (hreach : ∃ k C, RD fork code I g (initState σ σ₀ g A I) entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hd0 : decode code entry = some (.JUMPDEST, .none))
     (hd1 : decode code (entry + ⟨1⟩) = some (.Push .PUSH2, some (ret, 2)))
@@ -2029,7 +2031,7 @@ theorem RD.solcTwoAddressExternalLenOk {σ σ₀ A I} {g : Sat256}
         some (.JUMPI, .none))
     (hdecoded : (D_J code 0).contains decoded = true)
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD code I g (initState σ σ₀ g A I) decoded
+    ∃ k C, RD fork code I g (initState σ σ₀ g A I) decoded
       (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩ :: ⟨4⟩ :: ret :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hlt :
@@ -2041,7 +2043,7 @@ theorem RD.solcTwoAddressExternalLenOk {σ σ₀ A I} {g : Sat256}
 set_option maxHeartbeats 1000000 in
 theorem RD.solcExternalStaticArgsShortReverts {σ σ₀ A I} {g : Sat256}
     {code : ByteArray} {sel entry ret decoded need : UInt256}
-    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I) entry [sel]
+    (hreach : ∃ k C, RD fork code I g (initState σ σ₀ g A I) entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hd0 : decode code entry = some (.JUMPDEST, .none))
     (hd1 : decode code (entry + ⟨1⟩) = some (.Push .PUSH2, some (ret, 2)))
@@ -2104,7 +2106,7 @@ theorem RD.solcExternalStaticArgsShortReverts {σ σ₀ A I} {g : Sat256}
             UInt256.ofNat 2 + ⟨1⟩) =
         some (.REVERT, .none))
     (hlt : UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) need = ⟨1⟩) :
-    RDrev code g (initState σ σ₀ g A I) := by
+    RDrev fork code g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rdEntry⟩ := hreach
   have rd1 := rdEntry.jumpdest hd0 (by simp only [List.length_singleton]; omega)
   have rd4 := rd1.push2 ret hd1 (by evm_ov)
@@ -2131,7 +2133,7 @@ theorem RD.solcTwoAddressExternalMaskAndJumpMasked {code : ByteArray} {g : Sat25
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {decoded ret routine de : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
     {acc : AccountMap}
-    (h : RD code ee g s0 decoded (de :: ⟨4⟩ :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 decoded (de :: ⟨4⟩ :: ret :: R) mem aw rdata acc k C)
     (hd0 : decode code decoded = some (.JUMPDEST, .none))
     (hd1 : decode code (decoded + ⟨1⟩) = some (.POP, .none))
     (hd2 :
@@ -2215,7 +2217,7 @@ theorem RD.solcTwoAddressExternalMaskAndJumpMasked {code : ByteArray} {g : Sat25
         some (.JUMP, .none))
     (hroutine : (D_J code 0).contains routine = true)
     (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 routine
+    ∃ k' C', RD fork code ee g s0 routine
       (UInt256.land solcAddrMask (calldataWord ee.calldata 36) ::
         UInt256.land solcAddrMask (calldataWord ee.calldata 4) :: ret :: R)
       mem aw rdata acc k' C' := by
@@ -2248,7 +2250,7 @@ theorem RD.solcTwoAddressExternalMaskAndJump {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {decoded ret routine de : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
     {acc : AccountMap}
-    (h : RD code ee g s0 decoded (de :: ⟨4⟩ :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 decoded (de :: ⟨4⟩ :: ret :: R) mem aw rdata acc k C)
     (hd0 : decode code decoded = some (.JUMPDEST, .none))
     (hd1 : decode code (decoded + ⟨1⟩) = some (.POP, .none))
     (hd2 :
@@ -2334,7 +2336,7 @@ theorem RD.solcTwoAddressExternalMaskAndJump {code : ByteArray} {g : Sat256}
     (hcanon1 : (calldataWord ee.calldata 36).toNat < EVM.addressModulus)
     (hroutine : (D_J code 0).contains routine = true)
     (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 routine
+    ∃ k' C', RD fork code ee g s0 routine
       (calldataWord ee.calldata 36 :: calldataWord ee.calldata 4 :: ret :: R)
       mem aw rdata acc k' C' := by
   obtain ⟨k', C', h'⟩ :=
@@ -2355,7 +2357,7 @@ theorem RD.solcAddressUint256ExternalMaskAndJumpMasked {code : ByteArray} {g : S
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {decoded ret routine de : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
     {acc : AccountMap}
-    (h : RD code ee g s0 decoded (de :: ⟨4⟩ :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 decoded (de :: ⟨4⟩ :: ret :: R) mem aw rdata acc k C)
     (hd0 : decode code decoded = some (.JUMPDEST, .none))
     (hd1 : decode code (decoded + ⟨1⟩) = some (.POP, .none))
     (hd2 :
@@ -2428,7 +2430,7 @@ theorem RD.solcAddressUint256ExternalMaskAndJumpMasked {code : ByteArray} {g : S
         some (.JUMP, .none))
     (hroutine : (D_J code 0).contains routine = true)
     (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 routine
+    ∃ k' C', RD fork code ee g s0 routine
       (calldataWord ee.calldata 36 :: UInt256.land solcAddrMask (calldataWord ee.calldata 4) ::
         ret :: R)
       mem aw rdata acc k' C' := by
@@ -2459,7 +2461,7 @@ theorem RD.solcAddressUint256ExternalMaskAndJump {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {decoded ret routine de : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
     {acc : AccountMap}
-    (h : RD code ee g s0 decoded (de :: ⟨4⟩ :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 decoded (de :: ⟨4⟩ :: ret :: R) mem aw rdata acc k C)
     (hd0 : decode code decoded = some (.JUMPDEST, .none))
     (hd1 : decode code (decoded + ⟨1⟩) = some (.POP, .none))
     (hd2 :
@@ -2533,7 +2535,7 @@ theorem RD.solcAddressUint256ExternalMaskAndJump {code : ByteArray} {g : Sat256}
     (hcanon : (calldataWord ee.calldata 4).toNat < EVM.addressModulus)
     (hroutine : (D_J code 0).contains routine = true)
     (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 routine
+    ∃ k' C', RD fork code ee g s0 routine
       (calldataWord ee.calldata 36 :: calldataWord ee.calldata 4 :: ret :: R)
       mem aw rdata acc k' C' := by
   obtain ⟨k', C', h'⟩ :=
@@ -2550,7 +2552,7 @@ theorem RD.solcAddressAddressUint256ExternalMaskAndJumpMasked {code : ByteArray}
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {decoded ret routine de : UInt256} {R : List UInt256} {mem rdata : ByteArray}
     {aw : UInt256} {acc : AccountMap}
-    (h : RD code ee g s0 decoded (de :: ⟨4⟩ :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 decoded (de :: ⟨4⟩ :: ret :: R) mem aw rdata acc k C)
     (hd0 : decode code decoded = some (.JUMPDEST, .none))
     (hd1 : decode code (decoded + ⟨1⟩) = some (.POP, .none))
     (hd2 :
@@ -2680,7 +2682,7 @@ theorem RD.solcAddressAddressUint256ExternalMaskAndJumpMasked {code : ByteArray}
         some (.JUMP, .none))
     (hroutine : (D_J code 0).contains routine = true)
     (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 routine
+    ∃ k' C', RD fork code ee g s0 routine
       (calldataWord ee.calldata 68 :: UInt256.land solcAddrMask (calldataWord ee.calldata 36) ::
         UInt256.land solcAddrMask (calldataWord ee.calldata 4) :: ret :: R)
       mem aw rdata acc k' C' := by
@@ -2722,7 +2724,7 @@ theorem RD.solcAddressAddressUint256ExternalMaskAndJump {code : ByteArray} {g : 
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {decoded ret routine de : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
     {acc : AccountMap}
-    (h : RD code ee g s0 decoded (de :: ⟨4⟩ :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 decoded (de :: ⟨4⟩ :: ret :: R) mem aw rdata acc k C)
     (hd0 : decode code decoded = some (.JUMPDEST, .none))
     (hd1 : decode code (decoded + ⟨1⟩) = some (.POP, .none))
     (hd2 :
@@ -2854,7 +2856,7 @@ theorem RD.solcAddressAddressUint256ExternalMaskAndJump {code : ByteArray} {g : 
     (hcanon1 : (calldataWord ee.calldata 36).toNat < EVM.addressModulus)
     (hroutine : (D_J code 0).contains routine = true)
     (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 routine
+    ∃ k' C', RD fork code ee g s0 routine
       (calldataWord ee.calldata 68 :: calldataWord ee.calldata 36 ::
         calldataWord ee.calldata 4 :: ret :: R)
       mem aw rdata acc k' C' := by
@@ -3006,12 +3008,12 @@ open Ethereum Ethereum.EVM Reasoning.Theory
 
 theorem RD.solcGetterThunk {code : ByteArray} {σ σ₀ A I} {g : Sat256}
     {sel : UInt256} {entry returnPc routine : UInt256}
-    (hreach : ∃ k C, RD code I g (Reasoning.Theory.initState σ σ₀ g A I)
+    (hreach : ∃ k C, RD fork code I g (Reasoning.Theory.initState σ σ₀ g A I)
       entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf code entry returnPc routine)
     (hroutine : (D_J code 0).contains routine = true) :
-    ∃ k C, RD code I g (Reasoning.Theory.initState σ σ₀ g A I) routine
+    ∃ k C, RD fork code I g (Reasoning.Theory.initState σ σ₀ g A I) routine
       (returnPc :: [sel]) solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rdEntry⟩ := hreach
   rcases hentry with ⟨hd0, hd1, hd4, hd7⟩
@@ -3027,11 +3029,11 @@ theorem RD.solcAddressSlotGetter {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc slot ret : UInt256} {R : List UInt256}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD code ee g s0 pc (ret :: R) mem aw rdata σ k C)
+    (h : RD fork code ee g s0 pc (ret :: R) mem aw rdata σ k C)
     (hwf : solcAddressSlotGetterWf code pc slot)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret
+    ∃ k' C', RD fork code ee g s0 ret
       (UInt256.land solcAddrMask
         (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)) ::
         ret :: R) mem aw rdata σ k' C' := by
@@ -3056,11 +3058,11 @@ theorem RD.solcWordSlotGetter {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc slot ret : UInt256} {R : List UInt256}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD code ee g s0 pc (ret :: R) mem aw rdata σ k C)
+    (h : RD fork code ee g s0 pc (ret :: R) mem aw rdata σ k C)
     (hwf : solcWordSlotGetterWf code pc slot)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 3 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret
+    ∃ k' C', RD fork code ee g s0 ret
       ((σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)) ::
         ret :: R) mem aw rdata σ k' C' := by
   rcases hwf with ⟨hd0, hd1, hd2, hd3, hd4⟩
@@ -3075,11 +3077,11 @@ theorem RD.solcConstGetter {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc val ret : UInt256} {width : Nat}
     {op : Operation.POp} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 pc (ret :: R) mem aw rdata σ k C)
+    (h : RD fork code ee g s0 pc (ret :: R) mem aw rdata σ k C)
     (hwf : solcConstGetterWf code pc val width op)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 3 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret (val :: ret :: R)
+    ∃ k' C', RD fork code ee g s0 ret (val :: ret :: R)
       mem aw rdata σ k' C' := by
   rcases hwf with ⟨hd0, hop, hd1, hdNext, hdJump⟩
   have rd1 := h.jumpdest hd0 (by simp only [List.length_cons]; omega)
@@ -3163,7 +3165,7 @@ theorem RD.solcSingleMappingLoadToRoutineMem {code : ByteArray} {g : Sat256} {s0
     {pc baseSlot afterLoadPc routinePc value aux key ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD code ee g s0 pc (value :: aux :: key :: ret :: R)
+    (h : RD fork code ee g s0 pc (value :: aux :: key :: ret :: R)
         mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcSingleMappingLoadToRoutineMemWf code pc baseSlot afterLoadPc routinePc)
     (hmem : mem.size = 96)
@@ -3171,7 +3173,7 @@ theorem RD.solcSingleMappingLoadToRoutineMem {code : ByteArray} {g : Sat256} {s0
     (hroutine : (D_J code 0).contains routinePc = true)
     (hroutineMask : UInt256.land routinePc ⟨0xffffffff⟩ = routinePc)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 routinePc
+    ∃ k' C', RD fork code ee g s0 routinePc
       (value :: solcSlotWord σ ee (solcMappingSlot baseSlot key) ::
         afterLoadPc :: value :: aux :: key :: ret :: R)
       (twoWordHashMem key baseSlot mem) (UInt256.ofNat 3) rdata σ k' C' := by
@@ -3310,19 +3312,19 @@ theorem RD.solcSingleMappingStoreDebitMemSplit {code : ByteArray} {g : Sat256} {
     {ee : ExecutionEnv} {k C : ℕ} {pc baseSlot newValue value aux key ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD code ee g s0 pc (newValue :: value :: aux :: key :: ret :: R)
+    (h : RD fork code ee g s0 pc (newValue :: value :: aux :: key :: ret :: R)
       (twoWordHashMem key baseSlot mem) (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcSingleMappingStoreDebitMemWf code pc baseSlot)
     (hmem : mem.size = 96)
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hov : R.length + 16 ≤ 1024) :
     (ee.perm = true ∧
-    ∃ k' C', RD code ee g s0 (solcSingleMappingStoreDebitOutPc pc)
+    ∃ k' C', RD fork code ee g s0 (solcSingleMappingStoreDebitOutPc pc)
       (⟨0⟩ :: solcAddrMask :: ⟨64⟩ :: value :: aux :: key :: ret :: R)
       (twoWordHashMem key baseSlot (twoWordHashMem key baseSlot mem))
       (UInt256.ofNat 3) rdata
       (sstoreAccountMap ee.codeOwner σ (solcMappingSlot baseSlot key) newValue) k' C') ∨
-      (ee.perm = false ∧ RDstatic code g s0) := by
+      (ee.perm = false ∧ RDstatic fork code g s0) := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd5, hd7, hd8, hd9, hd10, hd11, hd12, hd14, hd15, hd16,
       hd17, hd19, hd21, hd22, hd24, hd25, hd26, hd27, hd28, hd29, hd30⟩
@@ -3389,14 +3391,14 @@ theorem RD.solcSingleMappingStoreDebitMem {code : ByteArray} {g : Sat256} {s0 : 
     {ee : ExecutionEnv} {k C : ℕ} {pc baseSlot newValue value aux key ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD code ee g s0 pc (newValue :: value :: aux :: key :: ret :: R)
+    (h : RD fork code ee g s0 pc (newValue :: value :: aux :: key :: ret :: R)
       (twoWordHashMem key baseSlot mem) (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcSingleMappingStoreDebitMemWf code pc baseSlot)
     (hmem : mem.size = 96)
     (hperm : ee.perm = true)
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (solcSingleMappingStoreDebitOutPc pc)
+    ∃ k' C', RD fork code ee g s0 (solcSingleMappingStoreDebitOutPc pc)
       (⟨0⟩ :: solcAddrMask :: ⟨64⟩ :: value :: aux :: key :: ret :: R)
       (twoWordHashMem key baseSlot (twoWordHashMem key baseSlot mem))
       (UInt256.ofNat 3) rdata
@@ -3493,7 +3495,7 @@ theorem RD.solcSingleMappingStoreCreditMemSplit {code : ByteArray} {g : Sat256} 
     {ee : ExecutionEnv} {k C : ℕ} {pc baseSlot newValue value key aux ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD code ee g s0 pc (newValue :: value :: key :: aux :: ret :: R)
+    (h : RD fork code ee g s0 pc (newValue :: value :: key :: aux :: ret :: R)
       mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcSingleMappingStoreCreditMemWf code pc baseSlot)
     (hslot :
@@ -3503,11 +3505,11 @@ theorem RD.solcSingleMappingStoreCreditMemSplit {code : ByteArray} {g : Sat256} 
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hov : R.length + 16 ≤ 1024) :
     (ee.perm = true ∧
-    ∃ k' C', RD code ee g s0 (solcSingleMappingStoreCreditOutPc pc)
+    ∃ k' C', RD fork code ee g s0 (solcSingleMappingStoreCreditOutPc pc)
       (⟨64⟩ :: key :: solcAddrMask :: ⟨32⟩ :: value :: key :: aux :: ret :: R)
       (twoWordHashMem key baseSlot mem) (UInt256.ofNat 3) rdata
       (sstoreAccountMap ee.codeOwner σ (solcMappingSlot baseSlot key) newValue) k' C') ∨
-      (ee.perm = false ∧ RDstatic code g s0) := by
+      (ee.perm = false ∧ RDstatic fork code g s0) := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd5, hd7, hd8, hd9, hd10, hd11, hd12, hd14, hd15, hd16,
       hd17, hd19, hd21, hd22, hd23, hd24, hd26, hd27, hd28, hd29, hd30, hd31,
@@ -3568,7 +3570,7 @@ theorem RD.solcSingleMappingStoreCreditMem {code : ByteArray} {g : Sat256} {s0 :
     {ee : ExecutionEnv} {k C : ℕ} {pc baseSlot newValue value key aux ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD code ee g s0 pc (newValue :: value :: key :: aux :: ret :: R)
+    (h : RD fork code ee g s0 pc (newValue :: value :: key :: aux :: ret :: R)
       mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcSingleMappingStoreCreditMemWf code pc baseSlot)
     (hslot :
@@ -3578,7 +3580,7 @@ theorem RD.solcSingleMappingStoreCreditMem {code : ByteArray} {g : Sat256} {s0 :
     (hperm : ee.perm = true)
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (solcSingleMappingStoreCreditOutPc pc)
+    ∃ k' C', RD fork code ee g s0 (solcSingleMappingStoreCreditOutPc pc)
       (⟨64⟩ :: key :: solcAddrMask :: ⟨32⟩ :: value :: key :: aux :: ret :: R)
       (twoWordHashMem key baseSlot mem) (UInt256.ofNat 3) rdata
       (sstoreAccountMap ee.codeOwner σ (solcMappingSlot baseSlot key) newValue) k' C' :=
@@ -3658,13 +3660,13 @@ theorem RD.solcNestedMappingStoreInnerHash {code : ByteArray} {g : Sat256} {s0 :
     {ee : ExecutionEnv} {k C : ℕ} {pc baseSlot value spender owner ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD code ee g s0 pc (value :: spender :: owner :: ret :: R)
+    (h : RD fork code ee g s0 pc (value :: spender :: owner :: ret :: R)
       mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcNestedMappingStoreInnerHashWf code pc baseSlot)
     (hmem : mem.size = 96)
     (hcanonOwner : owner.toNat < EVM.addressModulus)
     (hov : R.length + 13 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (solcNestedMappingStoreInnerHashOutPc pc)
+    ∃ k' C', RD fork code ee g s0 (solcNestedMappingStoreInnerHashOutPc pc)
       (solcMappingSlot baseSlot owner :: ⟨64⟩ :: ⟨32⟩ :: ⟨0⟩ :: owner ::
         solcAddrMask :: value :: spender :: owner :: ret :: R)
       (twoWordHashMem owner baseSlot mem)
@@ -3773,7 +3775,7 @@ theorem RD.solcNestedMappingStoreOuterSstoreSplit {code : ByteArray} {g : Sat256
     {ee : ExecutionEnv} {k C : ℕ} {pc innerSlot value spender owner ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD code ee g s0 pc
+    (h : RD fork code ee g s0 pc
       (innerSlot :: ⟨64⟩ :: ⟨32⟩ :: ⟨0⟩ :: owner :: solcAddrMask ::
         value :: spender :: owner :: ret :: R)
       mem (UInt256.ofNat 3) rdata σ k C)
@@ -3782,13 +3784,13 @@ theorem RD.solcNestedMappingStoreOuterSstoreSplit {code : ByteArray} {g : Sat256
     (hcanonSpender : spender.toNat < EVM.addressModulus)
     (hov : R.length + 13 ≤ 1024) :
     (ee.perm = true ∧
-    ∃ k' C', RD code ee g s0 (solcNestedMappingStoreOuterSstoreOutPc pc)
+    ∃ k' C', RD fork code ee g s0 (solcNestedMappingStoreOuterSstoreOutPc pc)
       (⟨32⟩ :: ⟨64⟩ :: owner :: spender :: value :: spender :: owner :: ret :: R)
       (twoWordHashMem spender innerSlot mem)
       (UInt256.ofNat 3) rdata
       (sstoreAccountMap ee.codeOwner σ (solcMappingSlot innerSlot spender) value)
       k' C') ∨
-      (ee.perm = false ∧ RDstatic code g s0) := by
+      (ee.perm = false ∧ RDstatic fork code g s0) := by
   rcases hwf with
     ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd8, hd9, hd10, hd11, hd12,
       hd13, hd14, hd15⟩
@@ -3836,7 +3838,7 @@ theorem RD.solcNestedMappingStoreOuterSstore {code : ByteArray} {g : Sat256} {s0
     {ee : ExecutionEnv} {k C : ℕ} {pc innerSlot value spender owner ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD code ee g s0 pc
+    (h : RD fork code ee g s0 pc
       (innerSlot :: ⟨64⟩ :: ⟨32⟩ :: ⟨0⟩ :: owner :: solcAddrMask ::
         value :: spender :: owner :: ret :: R)
       mem (UInt256.ofNat 3) rdata σ k C)
@@ -3845,7 +3847,7 @@ theorem RD.solcNestedMappingStoreOuterSstore {code : ByteArray} {g : Sat256} {s0
     (hperm : ee.perm = true)
     (hcanonSpender : spender.toNat < EVM.addressModulus)
     (hov : R.length + 13 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (solcNestedMappingStoreOuterSstoreOutPc pc)
+    ∃ k' C', RD fork code ee g s0 (solcNestedMappingStoreOuterSstoreOutPc pc)
       (⟨32⟩ :: ⟨64⟩ :: owner :: spender :: value :: spender :: owner :: ret :: R)
       (twoWordHashMem spender innerSlot mem)
       (UInt256.ofNat 3) rdata
@@ -3958,21 +3960,21 @@ theorem RD.solcNestedMappingCallerStoreMemSplit
     {pc baseSlot newValue discard value aux owner ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD code ee g s0 pc (newValue :: discard :: value :: aux :: owner :: ret :: R)
+    (h : RD fork code ee g s0 pc (newValue :: discard :: value :: aux :: owner :: ret :: R)
       mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcNestedMappingCallerStoreMemWf code pc baseSlot)
     (hmem : mem.size = 96)
     (hcanonOwner : owner.toNat < EVM.addressModulus)
     (hov : R.length + 16 ≤ 1024) :
     (ee.perm = true ∧
-    ∃ k' C', RD code ee g s0 (solcNestedMappingCallerStoreMemOutPc pc)
+    ∃ k' C', RD fork code ee g s0 (solcNestedMappingCallerStoreMemOutPc pc)
       (discard :: value :: aux :: owner :: ret :: R)
       (solcNestedMappingCallerHashMem baseSlot owner ee mem)
       (UInt256.ofNat 3) rdata
       (sstoreAccountMap ee.codeOwner σ
         (solcMappingSlot (solcMappingSlot baseSlot owner) (solcSourceWord ee)) newValue)
       k' C') ∨
-      (ee.perm = false ∧ RDstatic code g s0) := by
+      (ee.perm = false ∧ RDstatic fork code g s0) := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd5, hd7, hd8, hd9, hd10, hd11, hd13, hd14, hd15,
       hd16, hd18, hd20, hd21, hd22, hd23, hd25, hd26, hd27, hd28, hd29,
@@ -4057,14 +4059,14 @@ theorem RD.solcNestedMappingCallerStoreMem
     {pc baseSlot newValue discard value aux owner ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD code ee g s0 pc (newValue :: discard :: value :: aux :: owner :: ret :: R)
+    (h : RD fork code ee g s0 pc (newValue :: discard :: value :: aux :: owner :: ret :: R)
       mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcNestedMappingCallerStoreMemWf code pc baseSlot)
     (hmem : mem.size = 96)
     (hperm : ee.perm = true)
     (hcanonOwner : owner.toNat < EVM.addressModulus)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (solcNestedMappingCallerStoreMemOutPc pc)
+    ∃ k' C', RD fork code ee g s0 (solcNestedMappingCallerStoreMemOutPc pc)
       (discard :: value :: aux :: owner :: ret :: R)
       (solcNestedMappingCallerHashMem baseSlot owner ee mem)
       (UInt256.ofNat 3) rdata
@@ -4172,13 +4174,13 @@ theorem RD.solcNestedMappingCallerLoad {code : ByteArray} {g : Sat256} {s0 : Sta
     {ee : ExecutionEnv} {k C : ℕ}
     {pc baseSlot value aux owner ret : UInt256} {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD code ee g s0 pc (value :: aux :: owner :: ret :: R)
+    (h : RD fork code ee g s0 pc (value :: aux :: owner :: ret :: R)
       mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcNestedMappingCallerLoadWf code pc baseSlot)
     (hmem : mem.size = 96)
     (hcanonOwner : owner.toNat < EVM.addressModulus)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (solcNestedMappingCallerLoadOutPc pc)
+    ∃ k' C', RD fork code ee g s0 (solcNestedMappingCallerLoadOutPc pc)
       (solcSlotWord σ ee (solcMappingSlot (solcMappingSlot baseSlot owner) (solcSourceWord ee)) ::
         ⟨0⟩ :: value :: aux :: owner :: ret :: R)
       (solcNestedMappingCallerHashMem baseSlot owner ee mem)
@@ -4274,12 +4276,12 @@ theorem RD.solcUintMaxEqBranchTrue {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc targetPc word discard : UInt256}
     {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD code ee g s0 pc (word :: discard :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (word :: discard :: R) mem aw rdata acc k C)
     (hwf : solcUintMaxEqBranchWf code pc targetPc)
     (hmax : word.toNat = UInt256.size - 1)
     (htarget : (D_J code 0).contains targetPc = true)
     (hov : R.length + 3 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 targetPc (discard :: R) mem aw rdata acc k' C' := by
+    ∃ k' C', RD fork code ee g s0 targetPc (discard :: R) mem aw rdata acc k' C' := by
   rcases hwf with ⟨hd0, hd2, hd3, hd4, hd7⟩
   have hlnot0 : (UInt256.lnot (⟨0⟩ : UInt256)).toNat = UInt256.size - 1 := by
     unfold UInt256.lnot
@@ -4311,11 +4313,11 @@ theorem RD.solcUintMaxEqBranchFalse {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc targetPc word discard : UInt256}
     {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD code ee g s0 pc (word :: discard :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (word :: discard :: R) mem aw rdata acc k C)
     (hwf : solcUintMaxEqBranchWf code pc targetPc)
     (hnotMax : word.toNat ≠ UInt256.size - 1)
     (hov : R.length + 3 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (solcUintMaxEqBranchFallthroughPc pc)
+    ∃ k' C', RD fork code ee g s0 (solcUintMaxEqBranchFallthroughPc pc)
       (discard :: R) mem aw rdata acc k' C' := by
   rcases hwf with ⟨hd0, hd2, hd3, hd4, hd7⟩
   have hlnot0 : (UInt256.lnot (⟨0⟩ : UInt256)).toNat = UInt256.size - 1 := by
@@ -4416,7 +4418,7 @@ theorem RD.solcNestedMappingCallerReloadToRoutineMem
     {pc baseSlot contPc routinePc discard value aux owner ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD code ee g s0 pc (discard :: value :: aux :: owner :: ret :: R)
+    (h : RD fork code ee g s0 pc (discard :: value :: aux :: owner :: ret :: R)
       mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcNestedMappingCallerReloadToRoutineMemWf code pc baseSlot contPc routinePc)
     (hmem : mem.size = 96)
@@ -4424,7 +4426,7 @@ theorem RD.solcNestedMappingCallerReloadToRoutineMem
     (hroutine : (D_J code 0).contains routinePc = true)
     (hroutineMask : UInt256.land routinePc ⟨0xffffffff⟩ = routinePc)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 routinePc
+    ∃ k' C', RD fork code ee g s0 routinePc
       (value ::
         solcSlotWord σ ee (solcMappingSlot (solcMappingSlot baseSlot owner) (solcSourceWord ee)) ::
         contPc :: discard :: value :: aux :: owner :: ret :: R)
@@ -4548,7 +4550,7 @@ theorem RD.solcPreparedSingleMappingLoadToRoutineMem
     {pc baseSlot afterLoadPc routinePc value key other ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD code ee g s0 pc
+    (h : RD fork code ee g s0 pc
       (⟨0⟩ :: solcAddrMask :: ⟨64⟩ :: value :: key :: other :: ret :: R)
       mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcPreparedSingleMappingLoadToRoutineMemWf code pc afterLoadPc routinePc)
@@ -4560,7 +4562,7 @@ theorem RD.solcPreparedSingleMappingLoadToRoutineMem
     (hroutine : (D_J code 0).contains routinePc = true)
     (hroutineMask : UInt256.land routinePc ⟨0xffffffff⟩ = routinePc)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 routinePc
+    ∃ k' C', RD fork code ee g s0 routinePc
       (value :: solcSlotWord σ ee (solcMappingSlot baseSlot key) ::
         afterLoadPc :: value :: key :: other :: ret :: R)
       (wordAt0Mem key mem) (UInt256.ofNat 3) rdata σ k' C' := by
@@ -4715,12 +4717,12 @@ theorem RD.solcPreparedSingleMappingLoadToRoutineMem
 theorem RD.solcSingleMappingGetter {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc baseSlot key ret : UInt256} {R : List UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 pc (key :: ret :: R)
+    (h : RD fork code ee g s0 pc (key :: ret :: R)
         solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcSingleMappingGetterWf code pc baseSlot)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret
+    ∃ k' C', RD fork code ee g s0 ret
       (solcSlotWord σ ee (solcMappingSlot baseSlot key) :: ret :: R)
       (solcMappingHashMem baseSlot key) (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
@@ -4752,11 +4754,11 @@ theorem RD.solcNestedMappingInnerHash {code : ByteArray} {g : Sat256} {s0 : Stat
     {ee : ExecutionEnv} {k C : ℕ}
     {pc baseSlot owner spender ret : UInt256} {R : List UInt256} {rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD code ee g s0 pc (spender :: owner :: ret :: R)
+    (h : RD fork code ee g s0 pc (spender :: owner :: ret :: R)
         solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcNestedMappingGetterWf code pc baseSlot)
     (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD code ee g s0
+    ∃ k' C', RD fork code ee g s0
       (solcNestedMappingGetterAfterInnerHashPc pc)
       (solcMappingSlot baseSlot owner :: ⟨64⟩ :: ⟨32⟩ :: spender :: ⟨0⟩ :: ret :: R)
       (solcMappingHashMem baseSlot owner) (UInt256.ofNat 3) rdata σ k' C' := by
@@ -4792,13 +4794,13 @@ theorem RD.solcNestedMappingOuterHash {code : ByteArray} {g : Sat256} {s0 : Stat
     {ee : ExecutionEnv} {k C : ℕ}
     {pc baseSlot owner spender ret : UInt256} {R : List UInt256} {rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD code ee g s0
+    (h : RD fork code ee g s0
       (solcNestedMappingGetterAfterInnerHashPc pc)
       (solcMappingSlot baseSlot owner :: ⟨64⟩ :: ⟨32⟩ :: spender :: ⟨0⟩ :: ret :: R)
       (solcMappingHashMem baseSlot owner) (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcNestedMappingGetterWf code pc baseSlot)
     (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD code ee g s0
+    ∃ k' C', RD fork code ee g s0
       (solcNestedMappingGetterSloadPc pc)
       (solcMappingSlot (solcMappingSlot baseSlot owner) spender :: ret :: R)
       (solcNestedMappingHashMem baseSlot owner spender)
@@ -4829,12 +4831,12 @@ theorem RD.solcNestedMappingLoadAndJump {code : ByteArray} {g : Sat256} {s0 : St
     {ee : ExecutionEnv} {k C : ℕ} {pc baseSlot slot ret : UInt256} {R : List UInt256}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD code ee g s0 (solcNestedMappingGetterSloadPc pc) (slot :: ret :: R)
+    (h : RD fork code ee g s0 (solcNestedMappingGetterSloadPc pc) (slot :: ret :: R)
       mem aw rdata σ k C)
     (hwf : solcNestedMappingGetterWf code pc baseSlot)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 3 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret (solcSlotWord σ ee slot :: ret :: R)
+    ∃ k' C', RD fork code ee g s0 ret (solcSlotWord σ ee slot :: ret :: R)
       mem aw rdata σ k' C' := by
   rcases hwf with
     ⟨_hd0, _hd1, _hd3, _hd5, _hd6, _hd7, _hd8, _hd10, _hd11, _hd12, _hd13,
@@ -4874,15 +4876,15 @@ theorem RD.solcLockEnterOkSplit {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc okPc slot unlocked locked : UInt256}
     {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD code ee g s0 pc R mem aw rdata σ k C)
+    (h : RD fork code ee g s0 pc R mem aw rdata σ k C)
     (hwf : solcLockEnterOkWf code pc okPc slot unlocked locked)
     (hunlocked : solcSlotWord σ ee slot = unlocked)
     (hok : (D_J code 0).contains okPc = true)
     (hov : R.length + 2 ≤ 1024) :
     (ee.perm = true ∧
-    ∃ k' C', RD code ee g s0 (okPc + UInt256.ofNat 6) R mem aw rdata
+    ∃ k' C', RD fork code ee g s0 (okPc + UInt256.ofNat 6) R mem aw rdata
       (sstoreAccountMap ee.codeOwner σ slot locked) k' C') ∨
-      (ee.perm = false ∧ RDstatic code g s0) := by
+      (ee.perm = false ∧ RDstatic fork code g s0) := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd4, hd6, hd7, hd10, hdOk, hdOk1, hdOk3, hdOk5⟩
   have rd1 := h.jumpdest hd0 (by omega)
@@ -4924,13 +4926,13 @@ theorem RD.solcLockEnterOk {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc okPc slot unlocked locked : UInt256}
     {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD code ee g s0 pc R mem aw rdata σ k C)
+    (h : RD fork code ee g s0 pc R mem aw rdata σ k C)
     (hwf : solcLockEnterOkWf code pc okPc slot unlocked locked)
     (hperm : ee.perm = true)
     (hunlocked : solcSlotWord σ ee slot = unlocked)
     (hok : (D_J code 0).contains okPc = true)
     (hov : R.length + 2 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (okPc + UInt256.ofNat 6) R mem aw rdata
+    ∃ k' C', RD fork code ee g s0 (okPc + UInt256.ofNat 6) R mem aw rdata
       (sstoreAccountMap ee.codeOwner σ slot locked) k' C' :=
   permSplit_true hperm (RD.solcLockEnterOkSplit h hwf hunlocked hok hov)
 
@@ -4997,13 +4999,13 @@ theorem RD.solcCheckedSubSuccess {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc okPc a b ret : UInt256} {R : List UInt256}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD code ee g s0 pc (b :: a :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (b :: a :: ret :: R) mem aw rdata acc k C)
     (hwf : solcCheckedSubSuccessWf code pc okPc)
     (hle : b.toNat ≤ a.toNat)
     (hret : (D_J code 0).contains ret = true)
     (hok : (D_J code 0).contains okPc = true)
     (hov : R.length + 9 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret (UInt256.sub a b :: R) mem aw rdata acc k' C' := by
+    ∃ k' C', RD fork code ee g s0 ret (UInt256.sub a b :: R) mem aw rdata acc k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd8, hd11, hdOk, hdOk1, hdOk2,
       hdOk3, hdOk4, hdOk5⟩
@@ -5039,13 +5041,13 @@ theorem RD.solcCheckedAddSuccess {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc okPc a b ret : UInt256} {R : List UInt256}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD code ee g s0 pc (b :: a :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (b :: a :: ret :: R) mem aw rdata acc k C)
     (hwf : solcCheckedAddSuccessWf code pc okPc)
     (hfit : a.toNat + b.toNat < UInt256.size)
     (hret : (D_J code 0).contains ret = true)
     (hok : (D_J code 0).contains okPc = true)
     (hov : R.length + 9 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret ((a + b) :: R) mem aw rdata acc k' C' := by
+    ∃ k' C', RD fork code ee g s0 ret ((a + b) :: R) mem aw rdata acc k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd8, hd11, hdOk, hdOk1, hdOk2,
       hdOk3, hdOk4, hdOk5⟩
@@ -5168,14 +5170,14 @@ theorem RD.solcErrorStringRevertTail {code : ByteArray} {g : Sat256} {s0 : State
     {op : Operation.POp} {width : ℕ}
     {stk : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD code ee g s0 pc stk mem (UInt256.ofNat 3) rdata acc k C)
+    (h : RD fork code ee g s0 pc stk mem (UInt256.ofNat 3) rdata acc k C)
     (hwf : solcErrorStringRevertTailWf code pc len rawWord shift op width)
     (hpush : op ≠ .PUSH0)
     (hword : UInt256.shiftLeft rawWord shift = word)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : stk.length + 5 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   rcases hwf with
     ⟨hd0, hd2, hd3, hd4, hd8, hd10, hd11, hd12, hd13, hd15, hd17, hd18,
       hd19, hd20, hd22, hd24, hd25, hd26, hd27, hdRawOut, hdShl, hd68,
@@ -5266,7 +5268,7 @@ theorem RD.solcLockEnterLockedStringRevert {code : ByteArray} {g : Sat256} {s0 :
     {op : Operation.POp} {width : ℕ}
     {R : List UInt256} {rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD code ee g s0 pc R solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
+    (h : RD fork code ee g s0 pc R solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hlock : solcLockEnterGuardWf code pc okPc slot unlocked)
     (htail : solcErrorStringRevertTailWf code (solcLockEnterRevertPc pc)
       len rawWord shift op width)
@@ -5274,7 +5276,7 @@ theorem RD.solcLockEnterLockedStringRevert {code : ByteArray} {g : Sat256} {s0 :
     (hlocked : solcSlotWord σ ee slot ≠ unlocked)
     (hword : UInt256.shiftLeft rawWord shift = word)
     (hov : R.length + 6 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   rcases hlock with ⟨hd0, hd1, hd3, hd4, hd6, hd7, hd10⟩
   set lockedWord := solcSlotWord σ ee slot with hlockedWord
   have hlockedWord_ne : lockedWord ≠ unlocked := by
@@ -5308,7 +5310,7 @@ theorem RD.solcCheckedSubStringRevert {code : ByteArray} {g : Sat256} {s0 : Stat
     {op : Operation.POp} {width : ℕ}
     {a b ret : UInt256} {R : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD code ee g s0 pc (b :: a :: ret :: R) mem (UInt256.ofNat 3) rdata acc k C)
+    (h : RD fork code ee g s0 pc (b :: a :: ret :: R) mem (UInt256.ofNat 3) rdata acc k C)
     (hsub : solcCheckedSubSuccessWf code pc okPc)
     (htail : solcErrorStringRevertTailWf code (solcCheckedArithmeticRevertPc pc)
       len rawWord shift op width)
@@ -5318,7 +5320,7 @@ theorem RD.solcCheckedSubStringRevert {code : ByteArray} {g : Sat256} {s0 : Stat
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 9 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   rcases hsub with
     ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd8, hd11, _, _, _, _, _, _⟩
   have hsubNat : (UInt256.sub a b).toNat = UInt256.size + a.toNat - b.toNat :=
@@ -5357,7 +5359,7 @@ theorem RD.solcCheckedAddStringRevert {code : ByteArray} {g : Sat256} {s0 : Stat
     {op : Operation.POp} {width : ℕ}
     {a b ret : UInt256} {R : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD code ee g s0 pc (b :: a :: ret :: R) mem (UInt256.ofNat 3) rdata acc k C)
+    (h : RD fork code ee g s0 pc (b :: a :: ret :: R) mem (UInt256.ofNat 3) rdata acc k C)
     (hadd : solcCheckedAddSuccessWf code pc okPc)
     (htail : solcErrorStringRevertTailWf code (solcCheckedArithmeticRevertPc pc)
       len rawWord shift op width)
@@ -5367,7 +5369,7 @@ theorem RD.solcCheckedAddStringRevert {code : ByteArray} {g : Sat256} {s0 : Stat
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 9 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   rcases hadd with
     ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd8, hd11, _, _, _, _, _, _⟩
   have hsum_lt2 : a.toNat + b.toNat < 2 * UInt256.size := by
@@ -5410,7 +5412,7 @@ theorem RD.solcSingleMappingLoadCheckedSubMem {code : ByteArray} {g : Sat256} {s
     {pc baseSlot afterLoadPc routinePc checkedOkPc value aux key ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD code ee g s0 pc (value :: aux :: key :: ret :: R)
+    (h : RD fork code ee g s0 pc (value :: aux :: key :: ret :: R)
         mem (UInt256.ofNat 3) rdata σ k C)
     (hload : solcSingleMappingLoadToRoutineMemWf code pc baseSlot afterLoadPc routinePc)
     (hsub : solcCheckedSubSuccessWf code routinePc checkedOkPc)
@@ -5422,7 +5424,7 @@ theorem RD.solcSingleMappingLoadCheckedSubMem {code : ByteArray} {g : Sat256} {s
     (hafterLoad : (D_J code 0).contains afterLoadPc = true)
     (hcheckedOk : (D_J code 0).contains checkedOkPc = true)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 afterLoadPc
+    ∃ k' C', RD fork code ee g s0 afterLoadPc
       (UInt256.sub (solcSlotWord σ ee (solcMappingSlot baseSlot key)) value ::
         value :: aux :: key :: ret :: R)
       (twoWordHashMem key baseSlot mem) (UInt256.ofNat 3) rdata σ k' C' := by
@@ -5443,7 +5445,7 @@ theorem RD.solcPreparedSingleMappingLoadCheckedAddMem
     {pc baseSlot afterLoadPc routinePc checkedOkPc value key other ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD code ee g s0 pc
+    (h : RD fork code ee g s0 pc
       (⟨0⟩ :: solcAddrMask :: ⟨64⟩ :: value :: key :: other :: ret :: R)
       mem (UInt256.ofNat 3) rdata σ k C)
     (hload : solcPreparedSingleMappingLoadToRoutineMemWf code pc afterLoadPc routinePc)
@@ -5460,7 +5462,7 @@ theorem RD.solcPreparedSingleMappingLoadCheckedAddMem
     (hafterLoad : (D_J code 0).contains afterLoadPc = true)
     (hcheckedOk : (D_J code 0).contains checkedOkPc = true)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 afterLoadPc
+    ∃ k' C', RD fork code ee g s0 afterLoadPc
       ((solcSlotWord σ ee (solcMappingSlot baseSlot key) + value) ::
         value :: key :: other :: ret :: R)
       (wordAt0Mem key mem) (UInt256.ofNat 3) rdata σ k' C' := by
@@ -5520,11 +5522,11 @@ theorem RD.solcDiscard2ReturnTrue {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc discard a b ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
     {acc : AccountMap}
-    (h : RD code ee g s0 pc (discard :: a :: b :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (discard :: a :: b :: ret :: R) mem aw rdata acc k C)
     (hwf : solcDiscard2ReturnTrueWf code pc)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 5 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret (⟨1⟩ :: R) mem aw rdata acc k' C' := by
+    ∃ k' C', RD fork code ee g s0 ret (⟨1⟩ :: R) mem aw rdata acc k' C' := by
   rcases hwf with ⟨hd0, hd1, hd2, hd4, hd5, hd6, hd7, hd8, hd9⟩
   exact ⟨_, _, evm_run h with [
     raw jumpdest hd0 (by evm_ov),
@@ -5541,12 +5543,12 @@ theorem RD.solcDiscard4ReturnTrue {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc discard value toWord src ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
     {acc : AccountMap}
-    (h : RD code ee g s0 pc (discard :: value :: toWord :: src :: ret :: R) mem aw rdata
+    (h : RD fork code ee g s0 pc (discard :: value :: toWord :: src :: ret :: R) mem aw rdata
       acc k C)
     (hwf : solcDiscard4ReturnTrueWf code pc)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret (⟨1⟩ :: R) mem aw rdata acc k' C' := by
+    ∃ k' C', RD fork code ee g s0 ret (⟨1⟩ :: R) mem aw rdata acc k' C' := by
   rcases hwf with ⟨hd0, hd1, hd2, hd4, hd5, hd6, hd7, hd8, hd9⟩
   exact ⟨_, _, evm_run h with [
     raw jumpdest hd0 (by evm_ov),
@@ -5620,7 +5622,7 @@ theorem RD.solcMaskedTransferLog3AndJumpSplit {code : ByteArray} {g : Sat256} {s
     {ee : ExecutionEnv} {k C : ℕ} {pc topic value toWord src ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD code ee g s0 pc
+    (h : RD fork code ee g s0 pc
       (⟨64⟩ :: toWord :: solcAddrMask :: ⟨32⟩ :: value :: toWord :: src :: ret :: R)
       mem (UInt256.ofNat 3) rdata acc k C)
     (hwf : solcMaskedTransferLog3AndJumpWf code pc topic)
@@ -5641,9 +5643,9 @@ theorem RD.solcMaskedTransferLog3AndJumpSplit {code : ByteArray} {g : Sat256} {s
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 16 ≤ 1024) :
     (ee.perm = true ∧
-    ∃ k' C', RD code ee g s0 ret R
+    ∃ k' C', RD fork code ee g s0 ret R
       ((UInt256.toByteArray value).write 0 mem 128 32) (UInt256.ofNat 5) rdata acc k' C') ∨
-      (ee.perm = false ∧ RDstatic code g s0) := by
+      (ee.perm = false ∧ RDstatic fork code g s0) := by
   rcases hwf with
     ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd8, hd9, hd10, hd11, hd12,
       hd13, hd46, hd47, hd48, hd49, hd50, hd51, hd52, hd53, hd54, hd55, hd56,
@@ -5695,7 +5697,7 @@ theorem RD.solcMaskedTransferLog3AndJump {code : ByteArray} {g : Sat256} {s0 : S
     {ee : ExecutionEnv} {k C : ℕ} {pc topic value toWord src ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD code ee g s0 pc
+    (h : RD fork code ee g s0 pc
       (⟨64⟩ :: toWord :: solcAddrMask :: ⟨32⟩ :: value :: toWord :: src :: ret :: R)
       mem (UInt256.ofNat 3) rdata acc k C)
     (hwf : solcMaskedTransferLog3AndJumpWf code pc topic)
@@ -5716,7 +5718,7 @@ theorem RD.solcMaskedTransferLog3AndJump {code : ByteArray} {g : Sat256} {s0 : S
     (hcanonSrc : src.toNat < EVM.addressModulus)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret R
+    ∃ k' C', RD fork code ee g s0 ret R
       ((UInt256.toByteArray value).write 0 mem 128 32) (UInt256.ofNat 5) rdata acc k' C' :=
   permSplit_true hperm (RD.solcMaskedTransferLog3AndJumpSplit h hwf hmload hlogMload hcanonSrc hret hov)
 
@@ -5769,7 +5771,7 @@ theorem RD.solcPlainLog3AndJumpSplit {code : ByteArray} {g : Sat256} {s0 : State
     {ee : ExecutionEnv} {k C : ℕ} {pc topic value topic1 topic2 ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD code ee g s0 pc
+    (h : RD fork code ee g s0 pc
       (⟨32⟩ :: ⟨64⟩ :: topic1 :: topic2 :: value :: topic2 :: topic1 :: ret :: R)
       mem (UInt256.ofNat 3) rdata acc k C)
     (hwf : solcPlainLog3AndJumpWf code pc topic)
@@ -5789,9 +5791,9 @@ theorem RD.solcPlainLog3AndJumpSplit {code : ByteArray} {g : Sat256} {s0 : State
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 11 ≤ 1024) :
     (ee.perm = true ∧
-    ∃ k' C', RD code ee g s0 ret R
+    ∃ k' C', RD fork code ee g s0 ret R
       ((UInt256.toByteArray value).write 0 mem 128 32) (UInt256.ofNat 5) rdata acc k' C') ∨
-      (ee.perm = false ∧ RDstatic code g s0) := by
+      (ee.perm = false ∧ RDstatic fork code g s0) := by
   rcases hwf with
     ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd40, hd41, hd42, hd43, hd44,
       hd45, hd46, hd47, hd48, hd49, hd50, hd51, hd52⟩
@@ -5836,7 +5838,7 @@ theorem RD.solcPlainLog3AndJump {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc topic value topic1 topic2 ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD code ee g s0 pc
+    (h : RD fork code ee g s0 pc
       (⟨32⟩ :: ⟨64⟩ :: topic1 :: topic2 :: value :: topic2 :: topic1 :: ret :: R)
       mem (UInt256.ofNat 3) rdata acc k C)
     (hwf : solcPlainLog3AndJumpWf code pc topic)
@@ -5856,7 +5858,7 @@ theorem RD.solcPlainLog3AndJump {code : ByteArray} {g : Sat256} {s0 : State}
     (hperm : ee.perm = true)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 11 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret R
+    ∃ k' C', RD fork code ee g s0 ret R
       ((UInt256.toByteArray value).write 0 mem 128 32) (UInt256.ofNat 5) rdata acc k' C' :=
   permSplit_true hperm (RD.solcPlainLog3AndJumpSplit h hwf hmload hlogMload hret hov)
 
@@ -5910,7 +5912,7 @@ theorem RD.solcPlainLog3AndJump {code : ByteArray} {g : Sat256} {s0 : State}
 theorem RD.solcReturnWordFromMem {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc val ret : UInt256} {R : List UInt256}
     {mem memout rdata : ByteArray} {acc : AccountMap}
-    (h : RD code ee g s0 pc (val :: ret :: R) mem (UInt256.ofNat 3) rdata acc k C)
+    (h : RD fork code ee g s0 pc (val :: ret :: R) mem (UInt256.ofNat 3) rdata acc k C)
     (hwf : solcReturnWordFromMemWf code pc)
     (hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
@@ -5925,7 +5927,7 @@ theorem RD.solcReturnWordFromMem {code : ByteArray} {g : Sat256} {s0 : State}
         = ⟨128⟩)
     (hread128 : memout.readWithPadding 128 32 = UInt256.toByteArray val)
     (hov : R.length + 5 ≤ 1024) :
-    RDret code g s0 acc (UInt256.toByteArray val) := by
+    RDret fork code g s0 acc (UInt256.toByteArray val) := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd4, hd5, hd6, hd7, hd8, hd9, hd10, hd11, hd12, hd13, hd15,
       hd16, hd17⟩
@@ -6051,7 +6053,7 @@ theorem RD.solcReturnWordFromMem {code : ByteArray} {g : Sat256} {s0 : State}
 theorem RD.solcReturnAddressFromMem {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc val ret : UInt256} {R : List UInt256}
     {mem memout rdata : ByteArray} {acc : AccountMap}
-    (h : RD code ee g s0 pc (val :: ret :: R) mem (UInt256.ofNat 3) rdata acc k C)
+    (h : RD fork code ee g s0 pc (val :: ret :: R) mem (UInt256.ofNat 3) rdata acc k C)
     (hwf : solcReturnAddressFromMemWf code pc)
     (hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
@@ -6068,7 +6070,7 @@ theorem RD.solcReturnAddressFromMem {code : ByteArray} {g : Sat256} {s0 : State}
     (hread128 :
       memout.readWithPadding 128 32 = UInt256.toByteArray (UInt256.land val solcAddrMask))
     (hov : R.length + 9 ≤ 1024) :
-    RDret code g s0 acc (UInt256.toByteArray (UInt256.land val solcAddrMask)) := by
+    RDret fork code g s0 acc (UInt256.toByteArray (UInt256.land val solcAddrMask)) := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd4, hd5, hd7, hd9, hd11, hd12, hd13, hd14, hd15, hd16, hd17,
       hd18, hd19, hd20, hd21, hd22, hd23, hd25, hd26, hd27⟩
@@ -6177,7 +6179,7 @@ theorem RD.solcReturnAddressFromMem {code : ByteArray} {g : Sat256} {s0 : State}
 theorem RD.solcReturnUint8FromMem {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc val ret : UInt256} {R : List UInt256}
     {mem memout rdata : ByteArray} {acc : AccountMap}
-    (h : RD code ee g s0 pc (val :: ret :: R) mem (UInt256.ofNat 3) rdata acc k C)
+    (h : RD fork code ee g s0 pc (val :: ret :: R) mem (UInt256.ofNat 3) rdata acc k C)
     (hwf : solcReturnUint8FromMemWf code pc)
     (hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
@@ -6194,7 +6196,7 @@ theorem RD.solcReturnUint8FromMem {code : ByteArray} {g : Sat256} {s0 : State}
     (hread128 :
       memout.readWithPadding 128 32 = UInt256.toByteArray (UInt256.land val ⟨255⟩))
     (hov : R.length + 9 ≤ 1024) :
-    RDret code g s0 acc (UInt256.toByteArray (UInt256.land val ⟨255⟩)) := by
+    RDret fork code g s0 acc (UInt256.toByteArray (UInt256.land val ⟨255⟩)) := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd4, hd5, hd7, hd8, hd9, hd10, hd11, hd12, hd13, hd14, hd15,
       hd16, hd17, hd19, hd20, hd21⟩
@@ -6290,7 +6292,7 @@ theorem RD.solcReturnUint8FromMem {code : ByteArray} {g : Sat256} {s0 : State}
 theorem RD.solcReturnBoolFromMem {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc val : UInt256} {R : List UInt256}
     {mem memout rdata : ByteArray} {acc : AccountMap}
-    (h : RD code ee g s0 pc (val :: R) mem (UInt256.ofNat 5) rdata acc k C)
+    (h : RD fork code ee g s0 pc (val :: R) mem (UInt256.ofNat 5) rdata acc k C)
     (hwf : solcReturnBoolFromMemWf code pc)
     (hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
@@ -6309,7 +6311,7 @@ theorem RD.solcReturnBoolFromMem {code : ByteArray} {g : Sat256} {s0 : State}
       memout.readWithPadding 128 32 =
         UInt256.toByteArray (UInt256.isZero (UInt256.isZero val)))
     (hov : R.length + 5 ≤ 1024) :
-    RDret code g s0 acc (UInt256.toByteArray (UInt256.isZero (UInt256.isZero val))) := by
+    RDret fork code g s0 acc (UInt256.toByteArray (UInt256.isZero (UInt256.isZero val))) := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd4, hd5, hd6, hd7, hd8, hd9, hd10, hd11, hd12, hd13, hd14,
       hd15, hd17, hd18, hd19⟩
@@ -6346,14 +6348,14 @@ theorem RD.solcReturnBoolFromMem {code : ByteArray} {g : Sat256} {s0 : State}
 
 theorem RD.solcAddressGetterExternal {code : ByteArray} {σ σ₀ A I}
     {g : Sat256} {sel entry routine slot returnPc : UInt256}
-    (hreach : ∃ k C, RD code I g (Reasoning.Theory.initState σ σ₀ g A I)
+    (hreach : ∃ k C, RD fork code I g (Reasoning.Theory.initState σ σ₀ g A I)
       entry [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf code entry returnPc routine)
     (hgetter : solcAddressSlotGetterWf code routine slot)
     (hroutine : (D_J code 0).contains routine = true)
     (hret : (D_J code 0).contains returnPc = true)
     (hreturn : solcReturnAddressFromMemWf code returnPc) :
-    RDret code g (Reasoning.Theory.initState σ σ₀ g A I) σ
+    RDret fork code g (Reasoning.Theory.initState σ σ₀ g A I) σ
       (UInt256.toByteArray
         (UInt256.land (solcSlotWord σ I slot) solcAddrMask)) := by
   obtain ⟨_, _, rdRoutine⟩ := RD.solcGetterThunk hreach hentry hroutine
@@ -6372,21 +6374,21 @@ theorem RD.solcAddressGetterExternal {code : ByteArray} {σ σ₀ A I}
         UInt256.land (solcSlotWord σ I slot) solcAddrMask := by
     rw [u256_land_comm solcAddrMask (solcSlotWord σ I slot)]
     exact solcAddrMask_clean (solcAddrMask_result_canonical (solcSlotWord σ I slot))
-  change RDret code g (Reasoning.Theory.initState σ σ₀ g A I) σ
+  change RDret fork code g (Reasoning.Theory.initState σ σ₀ g A I) σ
     (UInt256.toByteArray
       (UInt256.land (UInt256.land solcAddrMask (solcSlotWord σ I slot)) solcAddrMask)) at hrd
   simpa only [hclean] using hrd
 
 theorem RD.solcWordGetterExternal {code : ByteArray} {σ σ₀ A I}
     {g : Sat256} {sel entry routine slot returnPc : UInt256}
-    (hreach : ∃ k C, RD code I g (Reasoning.Theory.initState σ σ₀ g A I)
+    (hreach : ∃ k C, RD fork code I g (Reasoning.Theory.initState σ σ₀ g A I)
       entry [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf code entry returnPc routine)
     (hgetter : solcWordSlotGetterWf code routine slot)
     (hroutine : (D_J code 0).contains routine = true)
     (hret : (D_J code 0).contains returnPc = true)
     (hreturn : solcReturnWordFromMemWf code returnPc) :
-    RDret code g (Reasoning.Theory.initState σ σ₀ g A I) σ
+    RDret fork code g (Reasoning.Theory.initState σ σ₀ g A I) σ
       (UInt256.toByteArray (solcSlotWord σ I slot)) := by
   obtain ⟨_, _, rdRoutine⟩ := RD.solcGetterThunk hreach hentry hroutine
   obtain ⟨_, _, rdReturn⟩ := RD.solcWordSlotGetter (slot := slot) (R := [sel])
@@ -6401,14 +6403,14 @@ theorem RD.solcWordGetterExternal {code : ByteArray} {σ σ₀ A I}
 theorem RD.solcWordConstGetterExternal {code : ByteArray} {σ σ₀ A I}
     {g : Sat256} {sel entry routine returnPc val : UInt256} {width : Nat}
     {op : Operation.POp}
-    (hreach : ∃ k C, RD code I g (Reasoning.Theory.initState σ σ₀ g A I)
+    (hreach : ∃ k C, RD fork code I g (Reasoning.Theory.initState σ σ₀ g A I)
       entry [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf code entry returnPc routine)
     (hgetter : solcConstGetterWf code routine val width op)
     (hroutine : (D_J code 0).contains routine = true)
     (hret : (D_J code 0).contains returnPc = true)
     (hreturn : solcReturnWordFromMemWf code returnPc) :
-    RDret code g (Reasoning.Theory.initState σ σ₀ g A I) σ
+    RDret fork code g (Reasoning.Theory.initState σ σ₀ g A I) σ
       (UInt256.toByteArray val) := by
   obtain ⟨_, _, rdRoutine⟩ := RD.solcGetterThunk hreach hentry hroutine
   obtain ⟨_, _, rdReturn⟩ := RD.solcConstGetter (val := val) (width := width)
@@ -6424,14 +6426,14 @@ theorem RD.solcWordConstGetterExternal {code : ByteArray} {σ σ₀ A I}
 theorem RD.solcUint8ConstGetterExternal {code : ByteArray} {σ σ₀ A I}
     {g : Sat256} {sel entry routine returnPc val : UInt256} {width : Nat}
     {op : Operation.POp}
-    (hreach : ∃ k C, RD code I g (Reasoning.Theory.initState σ σ₀ g A I)
+    (hreach : ∃ k C, RD fork code I g (Reasoning.Theory.initState σ σ₀ g A I)
       entry [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf code entry returnPc routine)
     (hgetter : solcConstGetterWf code routine val width op)
     (hroutine : (D_J code 0).contains routine = true)
     (hret : (D_J code 0).contains returnPc = true)
     (hreturn : solcReturnUint8FromMemWf code returnPc) :
-    RDret code g (Reasoning.Theory.initState σ σ₀ g A I) σ
+    RDret fork code g (Reasoning.Theory.initState σ σ₀ g A I) σ
       (UInt256.toByteArray (UInt256.land val ⟨255⟩)) := by
   obtain ⟨_, _, rdRoutine⟩ := RD.solcGetterThunk hreach hentry hroutine
   obtain ⟨_, _, rdReturn⟩ := RD.solcConstGetter (val := val) (width := width)
@@ -6450,12 +6452,12 @@ theorem RD.solcUint8ConstGetterExternal {code : ByteArray} {σ σ₀ A I}
 theorem RD.revertStub {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C)
     (hd0 : decode code pc = some (.PUSH0, .none))
     (hd1 : decode code (pc + ⟨1⟩) = some (.PUSH0, .none))
     (hd2 : decode code (pc + ⟨1⟩ + ⟨1⟩) = some (.REVERT, .none))
     (hov : stk.length + 2 ≤ 1024) :
-    RDrev code g s0 :=
+    RDrev fork code g s0 :=
   h.push0 hd0 (by omega)
     |>.push0 hd1 (by simp only [List.length_cons]; omega)
     |>.rev 0 hd2 (by simp [M, MachineState.M, u256_ofNat_toNat]) (by omega)
@@ -6465,12 +6467,12 @@ theorem RD.solcPush1Dup1Revert0 {code : ByteArray} {ee : ExecutionEnv} {g : Sat2
     {s0 : State} {pc : UInt256} {stk : List UInt256} {mem : ByteArray}
     {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc stk mem aw rdata acc k C)
     (hd0 : decode code pc = some (.Push .PUSH1, some (⟨0⟩, 1)))
     (hd1 : decode code (pc + UInt256.ofNat 2) = some (.DUP1, .none))
     (hd2 : decode code (pc + UInt256.ofNat 2 + ⟨1⟩) = some (.REVERT, .none))
     (hov : stk.length + 2 ≤ 1024) :
-    RDrev code g s0 :=
+    RDrev fork code g s0 :=
   h.push1 ⟨0⟩ hd0 (by omega)
     |>.dup1 hd1 (by omega)
     |>.rev 0 hd2 (by simp [M, MachineState.M, u256_ofNat_toNat]) (by omega)
@@ -6481,7 +6483,7 @@ theorem RD.solcUint256ReturnWordDecodeOk {code : ByteArray} {ee : ExecutionEnv}
     {g : Sat256} {s0 : State} {pc okPc : UInt256} {mem o : ByteArray}
     {aw : UInt256} {acc : AccountMap} {k C : ℕ}
     {d0 d1 d2 retWord : UInt256} {R : List UInt256}
-    (h : RD code ee g s0 pc (d0 :: d1 :: d2 :: R) mem aw o acc k C)
+    (h : RD fork code ee g s0 pc (d0 :: d1 :: d2 :: R) mem aw o acc k C)
     (hlo : 32 ≤ o.size) (hhi : o.size < UInt256.size)
     (hMload64Aw : UInt256.ofNat (MachineState.M aw.toNat 64 32) = aw)
     (hMload64Value :
@@ -6540,7 +6542,7 @@ theorem RD.solcUint256ReturnWordDecodeOk {code : ByteArray} {ee : ExecutionEnv}
     (hPopLen : decode code (okPc + ⟨1⟩) = some (.POP, .none))
     (hMload128 : decode code (okPc + ⟨1⟩ + ⟨1⟩) = some (.MLOAD, .none))
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (okPc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) (retWord :: R)
+    ∃ k' C', RD fork code ee g s0 (okPc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) (retWord :: R)
       mem aw o acc k' C' := by
   have rdPop0 := RD.pop h hPop0 (by simp only [List.length_cons]; omega)
   have rdPop1 := RD.pop rdPop0 hPop1 (by simp only [List.length_cons]; omega)
@@ -6588,7 +6590,7 @@ theorem RD.solcUint256ReturnWordDecodeShortReverts {code : ByteArray} {ee : Exec
     {g : Sat256} {s0 : State} {pc okPc : UInt256} {mem o : ByteArray}
     {aw : UInt256} {acc : AccountMap} {k C : ℕ}
     {d0 d1 d2 : UInt256} {R : List UInt256}
-    (h : RD code ee g s0 pc (d0 :: d1 :: d2 :: R) mem aw o acc k C)
+    (h : RD fork code ee g s0 pc (d0 :: d1 :: d2 :: R) mem aw o acc k C)
     (hshort : o.size < 32) (hhi : o.size < UInt256.size)
     (hMload64Aw : UInt256.ofNat (MachineState.M aw.toNat 64 32) = aw)
     (hMload64Value :
@@ -6655,7 +6657,7 @@ theorem RD.solcUint256ReturnWordDecodeShortReverts {code : ByteArray} {ee : Exec
                 ⟨1⟩) + UInt256.ofNat 2) + ⟨1⟩) =
         some (.REVERT, .none))
     (hov : R.length + 4 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   have rdPop0 := RD.pop h hPop0 (by simp only [List.length_cons]; omega)
   have rdPop1 := RD.pop rdPop0 hPop1 (by simp only [List.length_cons]; omega)
   have rdPop2 := RD.pop rdPop1 hPop2 (by omega)
@@ -6697,7 +6699,7 @@ theorem RD.solcExtcodesizeGuardOk {code : ByteArray} {ee : ExecutionEnv} {g : Sa
     {s0 : State} {pc okPc : UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {σ : AccountMap}
     {k C : ℕ} {target : UInt256} {R : List UInt256}
-    (h : RD code ee g s0 pc (target :: target :: R) mem aw rdata σ k C)
+    (h : RD fork code ee g s0 pc (target :: target :: R) mem aw rdata σ k C)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩)
     (hExt : decode code pc = some (.EXTCODESIZE, .none))
     (hIszero0 : decode code (pc + ⟨1⟩) = some (.ISZERO, .none))
@@ -6712,7 +6714,7 @@ theorem RD.solcExtcodesizeGuardOk {code : ByteArray} {ee : ExecutionEnv} {g : Sa
     (hJumpdest : decode code okPc = some (.JUMPDEST, .none))
     (hPop : decode code (okPc + ⟨1⟩) = some (.POP, .none))
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (okPc + ⟨1⟩ + ⟨1⟩) (target :: R) mem aw rdata
+    ∃ k' C', RD fork code ee g s0 (okPc + ⟨1⟩ + ⟨1⟩) (target :: R) mem aw rdata
       σ k' C' := by
   obtain ⟨_, _, rdExt⟩ :=
     RD.extcodesize h hExt
@@ -6745,7 +6747,7 @@ theorem RD.solcExtcodesizeGuardOkGas {code : ByteArray} {ee : ExecutionEnv}
     {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : ℕ}
     {target : UInt256} {R : List UInt256}
-    (h : RD code ee g s0 pc (target :: target :: R) mem aw rdata σ k C)
+    (h : RD fork code ee g s0 pc (target :: target :: R) mem aw rdata σ k C)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩)
     (hExt : decode code pc = some (.EXTCODESIZE, .none))
     (hIszero0 : decode code (pc + ⟨1⟩) = some (.ISZERO, .none))
@@ -6761,7 +6763,7 @@ theorem RD.solcExtcodesizeGuardOkGas {code : ByteArray} {ee : ExecutionEnv}
     (hPop : decode code (okPc + ⟨1⟩) = some (.POP, .none))
     (hGas : decode code (okPc + ⟨1⟩ + ⟨1⟩) = some (.GAS, .none))
     (hov : R.length + 4 ≤ 1024) :
-    ∃ gasWord k' C', RD code ee g s0 (okPc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩)
+    ∃ gasWord k' C', RD fork code ee g s0 (okPc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩)
       (gasWord :: target :: R) mem aw rdata σ k' C' := by
   obtain ⟨_, _, rdReady⟩ :=
     RD.solcExtcodesizeGuardOk h hcodeSize hExt hIszero0 hDup1 hIszero1 hPush hJumpi
@@ -6777,7 +6779,7 @@ theorem RD.solcExtcodesizeGuardMissing {code : ByteArray} {ee : ExecutionEnv}
     {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : ℕ}
     {target : UInt256} {R : List UInt256}
-    (h : RD code ee g s0 pc (target :: target :: R) mem aw rdata σ k C)
+    (h : RD fork code ee g s0 pc (target :: target :: R) mem aw rdata σ k C)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩)
     (hExt : decode code pc = some (.EXTCODESIZE, .none))
     (hIszero0 : decode code (pc + ⟨1⟩) = some (.ISZERO, .none))
@@ -6802,7 +6804,7 @@ theorem RD.solcExtcodesizeGuardMissing {code : ByteArray} {ee : ExecutionEnv}
               UInt256.ofNat 2) + ⟨1⟩) =
         some (.REVERT, .none))
     (hov : R.length + 4 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   obtain ⟨_, _, rdExt⟩ :=
     RD.extcodesize h hExt
       (by simp only [List.length_cons]; omega)
@@ -6831,7 +6833,7 @@ theorem RD.solcCallSuccessGuardOk {code : ByteArray} {ee : ExecutionEnv}
     {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {status : UInt256} {R : List UInt256}
-    (h : RD code ee g s0 pc (status :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (status :: R) mem aw rdata acc k C)
     (hstatus : status ≠ ⟨0⟩)
     (hIszero0 : decode code pc = some (.ISZERO, .none))
     (hDup1 : decode code (pc + ⟨1⟩) = some (.DUP1, .none))
@@ -6844,7 +6846,7 @@ theorem RD.solcCallSuccessGuardOk {code : ByteArray} {ee : ExecutionEnv}
     (hJumpdest : decode code okPc = some (.JUMPDEST, .none))
     (hPop : decode code (okPc + ⟨1⟩) = some (.POP, .none))
     (hov : R.length + 3 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (okPc + ⟨1⟩ + ⟨1⟩) R mem aw rdata acc k' C' := by
+    ∃ k' C', RD fork code ee g s0 (okPc + ⟨1⟩ + ⟨1⟩) R mem aw rdata acc k' C' := by
   have rdIszero0 := RD.iszero h hIszero0
     (by omega)
   have rdDup1 := RD.dup1 rdIszero0 hDup1
@@ -6871,7 +6873,7 @@ theorem RD.solcCallSuccessGuardMissing {code : ByteArray} {ee : ExecutionEnv}
     {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}
     {status : UInt256} {R : List UInt256}
-    (h : RD code ee g s0 pc (status :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (status :: R) mem aw rdata acc k C)
     (hstatus : status = ⟨0⟩)
     (hIszero0 : decode code pc = some (.ISZERO, .none))
     (hDup1 : decode code (pc + ⟨1⟩) = some (.DUP1, .none))
@@ -6914,7 +6916,7 @@ theorem RD.solcCallSuccessGuardMissing {code : ByteArray} {ee : ExecutionEnv}
         some (.REVERT, .none))
     (hrdataSize : rdata.size < UInt256.size)
     (hov : R.length + 5 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   have rdIszero0 := RD.iszero h hIszero0
     (by omega)
   have rdDup1 := RD.dup1 rdIszero0 hDup1
@@ -6963,7 +6965,7 @@ theorem RD.solcStaticcall {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {rdata : ByteArray} {σ : AccountMap}
     {k C : ℕ} {gasArg target inOffset inSize outOffset outSize : UInt256}
     {t : List UInt256}
-    (h : RD code ee g s0 pc
+    (h : RD fork code ee g s0 pc
           (gasArg :: target :: inOffset :: inSize :: outOffset :: outSize :: t)
           mem aw rdata σ k C)
     (hdec : decode code pc = some (.STATICCALL, .none))
@@ -6972,12 +6974,12 @@ theorem RD.solcStaticcall {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ σ s0.σ₀ A_in
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ fork σ s0.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat ee.codeOwner)) ee.sender
-          (AccountAddress.ofUInt256 target) (toExecute σ (AccountAddress.ofUInt256 target))
+          (AccountAddress.ofUInt256 target) (toExecute fork σ (AccountAddress.ofUInt256 target))
           callGas (UInt256.ofNat ee.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding inOffset.toNat inSize.toNat) (ee.depth + 1) ee.header ee.blobVersionedHashes ee.blocks false)
-      ∧ RD code ee g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: t)
+      ∧ RD fork code ee g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: t)
           (o.write 0 mem outOffset.toNat (min outSize (UInt256.ofNat o.size)).toNat)
           (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat inSize.toNat)
             outOffset.toNat outSize.toNat))
@@ -6993,7 +6995,7 @@ theorem RD.solcStaticcall {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
   · have hd : decode s.executionEnv.code s.machineState.pc = some (.STATICCALL, .none) := by
       rw [hcode, hpc]; exact hdec
     have hdepth' : s.executionEnv.depth.val < 1024 := by rw [hee]; exact hdepth
-    have st := step_staticcall s hd
+    have st := step_staticcall (fork := fork) s hd
     rw [hstk] at st
     have hovF : (t.length + 1 + 1 + 1 + 1 + 1 + 1 - 6 + 1 > 1024) = False :=
       eq_false (by omega)
@@ -7017,7 +7019,7 @@ theorem RD.solcStaticcall {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
             (Reasoning.Reach.readWithPadding_size_lt_uint256_of_word _ inOffset inSize))⟩
     · rename_i hP
       set mc := memoryExpansionCost s Operation.STATICCALL with hmc
-      set gc := Ccall (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target)
+      set gc := Ccall fork (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target)
         (⟨0⟩ : UInt256) gasArg s.accountMap
         { pc := s.machineState.pc, stack := s.machineState.stack,
           execLength := s.machineState.execLength,
@@ -7025,7 +7027,7 @@ theorem RD.solcStaticcall {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
           activeWords := s.machineState.activeWords, memory := s.machineState.memory,
           returnData := s.machineState.returnData, H_return := s.machineState.H_return }
         s.substate with hgc
-      set G := Ccallgas (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target)
+      set G := Ccallgas fork (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target)
         (⟨0⟩ : UInt256) gasArg s.accountMap
         { pc := s.machineState.pc, stack := s.machineState.stack,
           execLength := s.machineState.execLength + 1,
@@ -7034,13 +7036,13 @@ theorem RD.solcStaticcall {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
           returnData := s.machineState.returnData, H_return := s.machineState.H_return }
         s.substate with hG
       set cg := UInt256.ofNat G with hcg
-      set ce := Cextra (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target)
+      set ce := Cextra fork (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target)
         (⟨0⟩ : UInt256) s.accountMap s.substate with hce
-      set θs := Θ s.accountMap s.σ₀
-        (s.addAccessedAccount (AccountAddress.ofUInt256 target)).substate
+      set θs := Θ fork s.accountMap s.σ₀
+        (Ethereum.EVM.callSubstate fork s.accountMap (AccountAddress.ofUInt256 target) s.substate)
         (AccountAddress.ofUInt256 (UInt256.ofNat ↑s.executionEnv.codeOwner))
         s.executionEnv.sender (AccountAddress.ofUInt256 target)
-        (toExecute s.accountMap (AccountAddress.ofUInt256 target)) cg
+        (toExecute fork s.accountMap (AccountAddress.ofUInt256 target)) cg
         (UInt256.ofNat s.executionEnv.gasPrice) (⟨0⟩ : UInt256) (⟨0⟩ : UInt256)
         (s.machineState.memory.readWithPadding inOffset.toNat inSize.toNat)
         (s.executionEnv.depth + 1) s.executionEnv.header s.executionEnv.blobVersionedHashes
@@ -7054,10 +7056,10 @@ theorem RD.solcStaticcall {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
       have hretle : θs.2.1.toNat ≤ cg.toNat := by
         rw [hθs]
         exact Theta_returnedGas_le s.accountMap s.σ₀
-          (s.addAccessedAccount (AccountAddress.ofUInt256 target)).substate
+          (Ethereum.EVM.callSubstate fork s.accountMap (AccountAddress.ofUInt256 target) s.substate)
           (AccountAddress.ofUInt256 (UInt256.ofNat ↑s.executionEnv.codeOwner))
           s.executionEnv.sender (AccountAddress.ofUInt256 target)
-          (toExecute s.accountMap (AccountAddress.ofUInt256 target)) cg
+          (toExecute fork s.accountMap (AccountAddress.ofUInt256 target)) cg
           (UInt256.ofNat s.executionEnv.gasPrice) (⟨0⟩ : UInt256) (⟨0⟩ : UInt256)
           (s.machineState.memory.readWithPadding inOffset.toNat inSize.toNat)
           (s.executionEnv.depth + 1) s.executionEnv.header s.executionEnv.blobVersionedHashes
@@ -7090,7 +7092,7 @@ theorem RD.solcStaticcall {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
         rw [Sat256.subNat_sub_add_of_sub_sub, Sat256.subNat_sub_add_of_sub_sub]
       rw [show g.toNat - k = g.toNat + 1 - (k + 1) from by omega] at hXP
       refine ⟨θs.1, θs.2.2.2.1, θs.2.2.2.2,
-        (s.addAccessedAccount (AccountAddress.ofUInt256 target)).substate, cg, k + 1,
+        (Ethereum.EVM.callSubstate fork s.accountMap (AccountAddress.ofUInt256 target) s.substate), cg, k + 1,
         C + callCharge, ⟨θs.2.1, θs.2.2.1, ?_⟩, ?_, ?_⟩
       · rw [← hee, ← hσ, ← hmem, ← hw1, ← hθs]
       · unfold RD
@@ -7113,10 +7115,10 @@ theorem RD.solcStaticcall {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
       · rw [hθs]
         exact Ethereum.EVM.theta_projection_output_size_lt_uint256
           s.accountMap s.σ₀
-          (s.addAccessedAccount (AccountAddress.ofUInt256 target)).substate
+          (Ethereum.EVM.callSubstate fork s.accountMap (AccountAddress.ofUInt256 target) s.substate)
           (AccountAddress.ofUInt256 (UInt256.ofNat ↑s.executionEnv.codeOwner))
           s.executionEnv.sender (AccountAddress.ofUInt256 target)
-          (toExecute s.accountMap (AccountAddress.ofUInt256 target))
+          (toExecute fork s.accountMap (AccountAddress.ofUInt256 target))
           (s.machineState.memory.readWithPadding inOffset.toNat inSize.toNat)
           cg (UInt256.ofNat s.executionEnv.gasPrice) (⟨0⟩ : UInt256) (⟨0⟩ : UInt256)
           (s.executionEnv.depth + 1) s.executionEnv.header s.executionEnv.blobVersionedHashes
@@ -7129,13 +7131,13 @@ theorem RD.solcStaticcallDepthLimit {code : ByteArray} {ee : ExecutionEnv} {g : 
     {rdata : ByteArray} {σ : AccountMap}
     {k C : ℕ} {gasArg target inOffset inSize outOffset outSize : UInt256}
     {t : List UInt256}
-    (h : RD code ee g s0 pc
+    (h : RD fork code ee g s0 pc
           (gasArg :: target :: inOffset :: inSize :: outOffset :: outSize :: t)
           mem aw rdata σ k C)
     (hdec : decode code pc = some (.STATICCALL, .none))
     (hdepth : ee.depth = 1024)
     (hov : t.length + 1 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (pc + ⟨1⟩) (⟨0⟩ :: t)
+    ∃ k' C', RD fork code ee g s0 (pc + ⟨1⟩) (⟨0⟩ :: t)
         (ByteArray.empty.write 0 mem outOffset.toNat
           (min outSize (UInt256.ofNat ByteArray.empty.size)).toNat)
         (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat inSize.toNat)
@@ -7148,7 +7150,7 @@ theorem RD.solcStaticcallDepthLimit {code : ByteArray} {ee : ExecutionEnv} {g : 
   · have hd : decode s.executionEnv.code s.machineState.pc = some (.STATICCALL, .none) := by
       rw [hcode, hpc]; exact hdec
     have hdepth1024 : s.executionEnv.depth = 1024 := by rw [hee]; exact hdepth
-    have st := step_staticcall s hd
+    have st := step_staticcall (fork := fork) s hd
     rw [hstk] at st
     have hovF : (t.length + 1 + 1 + 1 + 1 + 1 + 1 - 6 + 1 > 1024) = False :=
       eq_false (by omega)
@@ -7166,7 +7168,7 @@ theorem RD.solcStaticcallDepthLimit {code : ByteArray} {ee : ExecutionEnv} {g : 
     have hfuel : g.toNat + 1 - k = (g.toNat - k) + 1 := by omega
     have hXP := hX.trans (hfuel.symm ▸ X_peel (f := g.toNat - k) st)
     set mc := memoryExpansionCost s Operation.STATICCALL with hmc
-    set gc := Ccall (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target)
+    set gc := Ccall fork (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target)
       (⟨0⟩ : UInt256) gasArg s.accountMap
       { pc := s.machineState.pc, stack := s.machineState.stack,
         execLength := s.machineState.execLength,
@@ -7174,7 +7176,7 @@ theorem RD.solcStaticcallDepthLimit {code : ByteArray} {ee : ExecutionEnv} {g : 
         activeWords := s.machineState.activeWords, memory := s.machineState.memory,
         returnData := s.machineState.returnData, H_return := s.machineState.H_return }
       s.substate with hgc
-    set G := Ccallgas (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target)
+    set G := Ccallgas fork (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target)
       (⟨0⟩ : UInt256) gasArg s.accountMap
       { pc := s.machineState.pc, stack := s.machineState.stack,
         execLength := s.machineState.execLength + 1,
@@ -7182,7 +7184,7 @@ theorem RD.solcStaticcallDepthLimit {code : ByteArray} {ee : ExecutionEnv} {g : 
         activeWords := s.machineState.activeWords, memory := s.machineState.memory,
         returnData := s.machineState.returnData, H_return := s.machineState.H_return }
       s.substate with hG
-    set ce := Cextra (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target)
+    set ce := Cextra fork (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target)
       (⟨0⟩ : UInt256) s.accountMap s.substate with hce
     set gv := (s.machineState.gasAvailable.subNat mc).subNat (gc - (UInt256.ofNat G).toNat)
       with hgv
@@ -7292,7 +7294,7 @@ theorem RD.solcInlinedDecodeAddrOk {code : ByteArray} {ee : ExecutionEnv} {g : S
     {s0 : State} {pc off ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
     {k C : ℕ}
-    (h : RD code ee g s0 pc (off :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (off :: ret :: R) mem aw rdata acc k C)
     (hcanon : (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32)).toNat
         < EVM.addressModulus)
     (hret : (D_J code 0).contains ret = true)
@@ -7318,7 +7320,7 @@ theorem RD.solcInlinedDecodeAddrOk {code : ByteArray} {ee : ExecutionEnv} {g : S
     (hd25 : decode code (solcInlinedDecodeAddrPc25 pc) = some (.POP, .none))
     (hd26 : decode code (solcInlinedDecodeAddrPc26 pc) = some (.JUMP, .none))
     (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret
+    ∃ k' C', RD fork code ee g s0 ret
       (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32) :: R) mem aw rdata acc k' C' := by
   have hmask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
@@ -7353,7 +7355,7 @@ theorem RD.solcInlinedDecodeAddrRevert {code : ByteArray} {ee : ExecutionEnv} {g
     {s0 : State} {pc off ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
     {k C : ℕ}
-    (h : RD code ee g s0 pc (off :: ret :: R) mem aw rdata acc k C)
+    (h : RD fork code ee g s0 pc (off :: ret :: R) mem aw rdata acc k C)
     (hnc : UInt256.eq (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
         (UInt256.land (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
           solcAddrMask) = ⟨0⟩)
@@ -7377,7 +7379,7 @@ theorem RD.solcInlinedDecodeAddrRevert {code : ByteArray} {ee : ExecutionEnv} {g
     (hr2 : decode code (solcInlinedDecodeAddrPc19 pc + ⟨1⟩ + ⟨1⟩)
         = some (.REVERT, .none))
     (hov : R.length + 6 ≤ 1024) :
-    RDrev code g s0 := by
+    RDrev fork code g s0 := by
   have hmask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
     decide
@@ -7401,7 +7403,7 @@ theorem RD.solcInlinedDecodeAddrRevert {code : ByteArray} {ee : ExecutionEnv} {g
     |>.push2 (solcInlinedDecodeAddrPc22 pc) hd15 (by simp only [List.length_cons]; omega)
     |>.jumpiNT hd18 hb (by simp only [List.length_cons]; omega)
     |>.revertStub hr0 hr1 hr2 (by simp only [List.length_cons]; omega) :
-    RDrev code g s0)
+    RDrev fork code g s0)
 
 /-! ## Solc dispatcher scaffold — small staged lemmas off the prologue
 
@@ -7490,7 +7492,7 @@ macro "solc_dispatch_prefix" : tactic =>
     `JUMPDEST` and `POP` the call value, reaching the dispatcher body at `ctgt + 2` with empty stack. -/
 theorem solcGuardCallvalueZero {σ σ₀ A I} {g : Sat256} {code : ByteArray}
     {ctgt : UInt256} {wC : ℕ} {opC : Operation.POp} {k0 C0 : ℕ}
-    (h : RD code I g (initState σ σ₀ g A I) ⟨8⟩
+    (h : RD fork code I g (initState σ σ₀ g A I) ⟨8⟩
           [UInt256.isZero I.weiValue, I.weiValue] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
           σ k0 C0)
     (hwv : I.weiValue = ⟨0⟩) (hopC : opC ≠ .PUSH0)
@@ -7499,7 +7501,7 @@ theorem solcGuardCallvalueZero {σ σ₀ A I} {g : Sat256} {code : ByteArray}
     (hjmpdest : decode code ctgt = some (.JUMPDEST, .none))
     (hpop : decode code (ctgt + ⟨1⟩) = some (.POP, .none))
     (hjd : (D_J code 0).contains ctgt = true) :
-    ∃ k C, RD code I g (initState σ σ₀ g A I) (ctgt + ⟨1⟩ + ⟨1⟩)
+    ∃ k C, RD fork code I g (initState σ σ₀ g A I) (ctgt + ⟨1⟩ + ⟨1⟩)
           [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C :=
   ⟨_, _, h.pushConst ctgt hopC hpushC (by simp only [List.length]; omega)
     |>.jumpiT hjumpi (by rw [hwv]; decide) hjd (by simp only [List.length]; omega)
@@ -7510,7 +7512,7 @@ theorem solcGuardCallvalueZero {σ σ₀ A I} {g : Sat256} {code : ByteArray}
     `revert(0,0)` stub — the whole run reverts. -/
 theorem solcGuardCallvalueNonzeroRevert {σ σ₀ A I} {g : Sat256} {code : ByteArray}
     {ctgt : UInt256} {wC : ℕ} {opC : Operation.POp} {k0 C0 : ℕ}
-    (h : RD code I g (initState σ σ₀ g A I) ⟨8⟩
+    (h : RD fork code I g (initState σ σ₀ g A I) ⟨8⟩
           [UInt256.isZero I.weiValue, I.weiValue] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
           σ k0 C0)
     (hwv : I.weiValue ≠ ⟨0⟩) (hopC : opC ≠ .PUSH0)
@@ -7519,7 +7521,7 @@ theorem solcGuardCallvalueNonzeroRevert {σ σ₀ A I} {g : Sat256} {code : Byte
     (hr0 : decode code (⟨8⟩ + UInt256.ofNat wC.succ + ⟨1⟩) = some (.PUSH0, .none))
     (hr1 : decode code (⟨8⟩ + UInt256.ofNat wC.succ + ⟨1⟩ + ⟨1⟩) = some (.PUSH0, .none))
     (hr2 : decode code (⟨8⟩ + UInt256.ofNat wC.succ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = some (.REVERT, .none)) :
-    RDrev code g (initState σ σ₀ g A I) :=
+    RDrev fork code g (initState σ σ₀ g A I) :=
   (h.pushConst ctgt hopC hpushC (by simp only [List.length]; omega)
     |>.jumpiNT hjumpi (isZero_eq_zero_of_ne hwv) (by simp only [List.length]; omega)).revertStub
     hr0 hr1 hr2 (by simp only [List.length]; omega)
@@ -7529,7 +7531,7 @@ theorem solcGuardCallvalueNonzeroRevert {σ σ₀ A I} {g : Sat256} {code : Byte
     `revert(0,0)` stub.  Width-generic in the revert-target push. -/
 theorem solcCalldataShortRevert {σ σ₀ A I} {g : Sat256} {code : ByteArray}
     {bodyPc rtgt : UInt256} {wR : ℕ} {opR : Operation.POp} {k0 C0 : ℕ}
-    (h : RD code I g (initState σ σ₀ g A I) bodyPc [] solcFreePtrMem (UInt256.ofNat 3)
+    (h : RD fork code I g (initState σ σ₀ g A I) bodyPc [] solcFreePtrMem (UInt256.ofNat 3)
           ByteArray.empty σ k0 C0)
     (hsz : I.calldata.size < 4)
     (hd_p4 : decode code bodyPc = some (.Push .PUSH1, some (⟨4⟩, 1)))
@@ -7543,7 +7545,7 @@ theorem solcCalldataShortRevert {σ σ₀ A I} {g : Sat256} {code : ByteArray}
     (hr0 : decode code (rtgt + ⟨1⟩) = some (.PUSH0, .none))
     (hr1 : decode code (rtgt + ⟨1⟩ + ⟨1⟩) = some (.PUSH0, .none))
     (hr2 : decode code (rtgt + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = some (.REVERT, .none)) :
-    RDrev code g (initState σ σ₀ g A I) :=
+    RDrev fork code g (initState σ σ₀ g A I) :=
   (h.push1 ⟨4⟩ hd_p4 (by simp only [List.length]; omega)
     |>.calldatasize hd_cds (by simp only [List.length]; omega)
     |>.lt hd_lt (by simp only [List.length]; omega)
@@ -7557,7 +7559,7 @@ theorem solcCalldataShortRevert {σ σ₀ A I} {g : Sat256} {code : ByteArray}
     falls through to the selector load (the `PUSH0` at the returned pc) with an empty stack. -/
 theorem solcCalldataOk {σ σ₀ A I} {g : Sat256} {code : ByteArray}
     {bodyPc selLoadTgt : UInt256} {wR : ℕ} {opR : Operation.POp} {k0 C0 : ℕ}
-    (h : RD code I g (initState σ σ₀ g A I) bodyPc [] solcFreePtrMem (UInt256.ofNat 3)
+    (h : RD fork code I g (initState σ σ₀ g A I) bodyPc [] solcFreePtrMem (UInt256.ofNat 3)
           ByteArray.empty σ k0 C0)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hd_p4 : decode code bodyPc = some (.Push .PUSH1, some (⟨4⟩, 1)))
@@ -7567,7 +7569,7 @@ theorem solcCalldataOk {σ σ₀ A I} {g : Sat256} {code : ByteArray}
     (hd_pR : decode code (bodyPc + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩) = some (.Push opR, some (selLoadTgt, wR)))
     (hd_ji : decode code (bodyPc + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat wR.succ)
               = some (.JUMPI, .none)) :
-    ∃ k C, RD code I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork code I g (initState σ σ₀ g A I)
         (bodyPc + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat wR.succ + ⟨1⟩)
         [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C :=
   ⟨_, _, h.push1 ⟨4⟩ hd_p4 (by simp only [List.length]; omega)
@@ -7582,13 +7584,13 @@ theorem solcCalldataOk {σ σ₀ A I} {g : Sat256} {code : ByteArray}
 theorem solcSelectorLoad {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {loadPc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k0 C0 : ℕ} {rest : List UInt256}
-    (h : RD code ee g s0 loadPc rest mem aw rdata acc k0 C0)
+    (h : RD fork code ee g s0 loadPc rest mem aw rdata acc k0 C0)
     (hp0 : decode code loadPc = some (.PUSH0, .none))
     (hcdl : decode code (loadPc + ⟨1⟩) = some (.CALLDATALOAD, .none))
     (hp1 : decode code (loadPc + ⟨1⟩ + ⟨1⟩) = some (.Push .PUSH1, some (⟨224⟩, 1)))
     (hshr : decode code (loadPc + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2) = some (.SHR, .none))
     (hov : rest.length + 2 ≤ 1024) :
-    ∃ k C, RD code ee g s0 (loadPc + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩)
+    ∃ k C, RD fork code ee g s0 (loadPc + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩)
         (UInt256.shiftRight (uInt256OfByteArray (ee.calldata.readBytes 0 32)) ⟨224⟩ :: rest)
         mem aw rdata acc k C :=
   ⟨_, _, h.push0 hp0 (by omega)
@@ -7601,7 +7603,7 @@ theorem solcLegacySelectorLoad {code : ByteArray} {ee : ExecutionEnv} {g : Sat25
     {s0 : State} {loadPc : UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : AccountMap}
     {k0 C0 : ℕ} {rest : List UInt256}
-    (h : RD code ee g s0 loadPc rest mem aw rdata acc k0 C0)
+    (h : RD fork code ee g s0 loadPc rest mem aw rdata acc k0 C0)
     (hp0 : decode code loadPc = some (.Push .PUSH1, some (⟨0⟩, 1)))
     (hcdl : decode code (loadPc + UInt256.ofNat 2) = some (.CALLDATALOAD, .none))
     (hp1 : decode code (loadPc + UInt256.ofNat 2 + ⟨1⟩) =
@@ -7609,7 +7611,7 @@ theorem solcLegacySelectorLoad {code : ByteArray} {ee : ExecutionEnv} {g : Sat25
     (hshr : decode code (loadPc + UInt256.ofNat 2 + ⟨1⟩ + UInt256.ofNat 2) =
       some (.SHR, .none))
     (hov : rest.length + 2 ≤ 1024) :
-    ∃ k C, RD code ee g s0
+    ∃ k C, RD fork code ee g s0
         (loadPc + UInt256.ofNat 2 + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩)
         (UInt256.shiftRight (uInt256OfByteArray (ee.calldata.readBytes 0 32)) ⟨224⟩ :: rest)
         mem aw rdata acc k C :=
@@ -7630,13 +7632,13 @@ theorem solcDispatchReachSelector {σ σ₀ A I} {g : Sat256} {code : ByteArray}
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hprefix : solcDispatchPrefixWellFormed code firstPc)
     (hguardJd : (D_J code 0).contains (solcGuardTgt code) = true) :
-    ∃ k C, RD code I g (initState σ σ₀ g A I) firstPc
+    ∃ k C, RD fork code I g (initState σ σ₀ g A I) firstPc
         [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨hd0, hd2, hd4, hd5, hd6, hd7,
     hguardOp, hguardPush, hguardJumpi, hguardDest, hguardPop,
     hcdPush4, hcdSize, hcdLt, hcdOp, hcdPushRevert, hcdJumpi,
     hselPush0, hselLoad, hselPush224, hselShr, hfirst⟩ := hprefix
-  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
+  have h0 := solcGuardPrologueRD (fork := fork) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode hd0 hd2 hd4 hd5 hd6 hd7
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
     (ctgt := solcGuardTgt code) (opC := solcGuardTgtOp code) (wC := solcGuardTgtWidth code)
@@ -7692,10 +7694,10 @@ theorem solcLegacyDispatchReachSelector {σ σ₀ A I} {g : Sat256}
       decode code (loadPc + UInt256.ofNat 2 + ⟨1⟩ + UInt256.ofNat 2) =
         some (.SHR, .none))
     (hfirst : loadPc + UInt256.ofNat 2 + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ = firstPc) :
-    ∃ k C, RD code I g (initState σ σ₀ g A I) firstPc
+    ∃ k C, RD fork code I g (initState σ σ₀ g A I) firstPc
         [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
-  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
+  have h0 := solcGuardPrologueRD (fork := fork) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode hd0 hd2 hd4 hd5 hd6 hd7
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
     (ctgt := guardTgt) (opC := guardOp) (wC := guardWidth)
@@ -7732,7 +7734,7 @@ theorem solcDispatchReachBody {σ σ₀ A I} {g : Sat256} {code : ByteArray}
         (UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩) ≠ ⟨0⟩)
     (hjd : (D_J code 0).contains bodyPC = true)
     (hbody : armTgt code (nthArmPc code firstArmPc i) = bodyPC) :
-    ∃ k C, RD code I g (initState σ σ₀ g A I) bodyPC
+    ∃ k C, RD fork code I g (initState σ σ₀ g A I) bodyPC
         [solcSelectorWord I]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, h3'⟩ := solcDispatchReachSelector
@@ -7771,12 +7773,12 @@ theorem solcBinaryDispatchReachHighBody {σ σ₀ A I} {g : Sat256}
     (hjd : (D_J code 0).contains bodyPC = true)
     (hbody : armTgt code (nthArmPc code (selArmNextPc splitPc (armTgtWidth code splitPc)) i)
         = bodyPC) :
-    ∃ k C, RD code I g (initState σ σ₀ g A I) bodyPC
+    ∃ k C, RD fork code I g (initState σ σ₀ g A I) bodyPC
         [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hsplitPc⟩ := solcDispatchReachSelector
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     hcode hwv hsz hsize hprefix hguardJd
-  have hfirst : RD code I g (initState σ σ₀ g A I)
+  have hfirst : RD fork code I g (initState σ σ₀ g A I)
       (selArmNextPc splitPc (armTgtWidth code splitPc)) [solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ _ _ :=
     RD.selectorSplitNotTakenAuto hsplitPc hsplit hpivot (by simp)
@@ -7806,15 +7808,15 @@ theorem solcBinaryDispatchReachLowBody {σ σ₀ A I} {g : Sat256}
         (solcSelectorWord I) ≠ ⟨0⟩)
     (hjd : (D_J code 0).contains bodyPC = true)
     (hbody : armTgt code (nthArmPc code (armTgt code splitPc + ⟨1⟩) i) = bodyPC) :
-    ∃ k C, RD code I g (initState σ σ₀ g A I) bodyPC
+    ∃ k C, RD fork code I g (initState σ σ₀ g A I) bodyPC
         [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hsplitPc⟩ := solcDispatchReachSelector
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     hcode hwv hsz hsize hprefix hguardJd
-  have hlowJd : RD code I g (initState σ σ₀ g A I) (armTgt code splitPc)
+  have hlowJd : RD fork code I g (initState σ σ₀ g A I) (armTgt code splitPc)
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ _ _ :=
     RD.selectorSplitTakenAuto hsplitPc hsplit hpivot hsplitJd (by simp)
-  have hfirst : RD code I g (initState σ σ₀ g A I)
+  have hfirst : RD fork code I g (initState σ σ₀ g A I)
       (armTgt code splitPc + ⟨1⟩) [solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ _ _ :=
     hlowJd.jumpdest hlowJumpdest (by simp)

@@ -3,6 +3,8 @@ import Benchmarks.UniswapV3.Pool.SwapAccountingMemory
 import Benchmarks.UniswapV3.Pool.SwapWriteGuard
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_018
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -13,12 +15,12 @@ theorem swapAmountsX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p free cache snap dataStart dataLength ret : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : SwapArgs) (s : SwapStateData)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨4488⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨4488⟩
       (swapLoopWords a p (swapExactInput a).toUInt256 cache snap dataStart dataLength ret R)
       mem aw rdata σ k C)
     (hm : HeapMemory mem aw free) (hs : SwapStateMemory mem p s)
     (hb : p.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 16 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨4526⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨4526⟩
       ([EVM.wordOfInt (swapAmount1 a s), EVM.wordOfInt (swapAmount0 a s)] ++
         swapLoopWords a p (swapExactInput a).toUInt256 cache snap dataStart dataLength ret R)
       mem aw' rdata σ k' C' ∧ HeapMemory mem aw' free := by

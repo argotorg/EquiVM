@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.LocalArray
 
+variable {fork : Ethereum.Fork}
+
 /-! Source semantics of the bounded, bytewise calldata read used for empty arrays. -/
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
@@ -78,7 +80,7 @@ theorem CalldataReadLocals.setIndex {data off j word f} (h : CalldataReadLocals 
 theorem calldataReadOptionalByte {data : ByteArray} {off j word : Nat} {f : Frame}
     (evm : EVM.State) (h : CalldataReadLocals data off j word f) :
     ∃ f' byte, byte < 256 ∧
-      ExecStmt config f evm calldataReadByteStmt (.ok f' evm) ∧
+      ExecStmt fork config f evm calldataReadByteStmt (.ok f' evm) ∧
       CalldataReadLocals data off j (word + byte) f' := by
   have heindex : evalExpr? config f evm calldataReadIndex = .ok (.int (Int.ofNat (off + j))) :=
     naturalAddSource (evalLocalValue h.off_eq) (evalLocalValue h.index_eq)
@@ -94,7 +96,7 @@ theorem calldataReadOptionalByte {data : ByteArray} {off j word : Nat} {f : Fram
     refine ⟨{f with locals := f.locals.insert "word" (.int (Int.ofNat (word + byte)))},
       byte, hbfit, ExecStmt.iteTrue ?_ ?_, h.setWord (word + byte)⟩
     · simpa only [hb, decide_true] using hecond
-    · exact ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+    · exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
         (naturalAddSource (evalLocalValue h.word_eq)
           (evalByteIndexUint256 (evalLocalValue h.data_eq) heindex hbl))
         (assignLocalValue h.word_eq)) ExecBlock.nil
@@ -105,15 +107,15 @@ theorem calldataReadOptionalByte {data : ByteArray} {off j word : Nat} {f : Fram
 theorem calldataReadStep {data : ByteArray} {off j word : Nat} {f : Frame}
     (evm : EVM.State) (h : CalldataReadLocals data off j word f) :
     ∃ f' next, next < (word + 1) * 256 ∧
-      ExecBlock config f evm calldataReadBody (.ok f' evm) ∧
+      ExecBlock fork config f evm calldataReadBody (.ok f' evm) ∧
       CalldataReadLocals data off (j + 1) next f' := by
   let f1 := {f with locals := f.locals.insert "word" (.int (Int.ofNat (word * 256)))}
   have h1 : CalldataReadLocals data off j (word * 256) f1 := h.setWord _
   obtain ⟨f2, byte, hb, hs, h2⟩ := calldataReadOptionalByte evm h1
   refine ⟨{f2 with locals := f2.locals.insert "j" (.int (Int.ofNat (j + 1)))},
     word * 256 + byte, by omega, ?_, h2.setIndex _⟩
-  refine ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) ?_ (assignLocalValue h.word_eq))
-    (ExecBlock.consNormal hs (ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+  refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) ?_ (assignLocalValue h.word_eq))
+    (ExecBlock.consNormal hs (ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
       (naturalAddSource (evalLocalValue h2.index_eq) (by simp only [evalExpr?, pure]; rfl))
       (assignLocalValue h2.index_eq)) ExecBlock.nil))
   simp only [evalExpr?, h.word_eq, EvalResult.ofOption, bind, EvalResult.bind, pure, evalBinaryOp?]
@@ -122,7 +124,7 @@ theorem calldataReadStep {data : ByteArray} {off j word : Nat} {f : Frame}
 theorem calldataReadLoop (evm : EVM.State) (data : ByteArray) (off remaining : Nat) :
     ∀ f j word, CalldataReadLocals data off j word f → j + remaining = 32 → word < 256^j →
     ∃ f' out, out < UInt256.size ∧
-      ExecStmt config f evm (.while calldataReadCond calldataReadBody) (.ok f' evm) ∧
+      ExecStmt fork config f evm (.while calldataReadCond calldataReadBody) (.ok f' evm) ∧
       f'.locals.get? "word" = some (.int (Int.ofNat out)) := by
   induction remaining with
   | zero =>
@@ -147,7 +149,7 @@ theorem calldataReadLoop (evm : EVM.State) (data : ByteArray) (off remaining : N
 /-- The bounded read always returns a word, including reads partly outside calldata. -/
 theorem calldataWordBodyExec {f : Frame} {evm : EVM.State} {off : Nat}
     (hoff : f.locals.get? "offset" = some (.int (Int.ofNat off))) :
-    ∃ f' : Frame, ∃ word : UInt256, ExecFuncBody config f evm calldataWordFunction.body
+    ∃ f' : Frame, ∃ word : UInt256, ExecFuncBody fork config f evm calldataWordFunction.body
       (.returned f' evm (some [.int (Int.ofNat word.toNat)])) := by
   let f1 := {f with locals := ((f.locals.insert "data" (.bytes evm.executionEnv.calldata)).insert
     "word" (.int 0)).insert "j" (.int 0)}
@@ -172,7 +174,7 @@ theorem calldataWordBodyExec {f : Frame} {evm : EVM.State} {off : Nat}
 theorem calldataWordCall {f : Frame} {evm : EVM.State} {e : Expr} {off : Nat}
     (hf : f.contract = contract) (he : evalExpr? config f evm e = .ok (.int (Int.ofNat off)))
     (retVar : Ident) :
-    ∃ word : UInt256, ExecStmt config f evm (.internalCall "calldataWordAt" [e] retVar)
+    ∃ word : UInt256, ExecStmt fork config f evm (.internalCall "calldataWordAt" [e] retVar)
       (.ok {f with locals := f.locals.insert retVar (.int (Int.ofNat word.toNat))} evm) := by
   obtain ⟨last, word, hbody⟩ := calldataWordBodyExec
     (f := {f with locals := (∅ : Store).insert "offset" (.int (Int.ofNat off))})

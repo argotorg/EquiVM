@@ -1,16 +1,18 @@
 import Benchmarks.Auction.ErrorDecodeMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
 theorem errorDecodeRoutine {I g s0 ret R mem aw ptr out acc k C}
-    (h : RD auctionBytecode I g s0 ⟨5925⟩ (ret :: R) mem aw out acc k C)
+    (h : RD fork auctionBytecode I g s0 ⟨5925⟩ (ret :: R) mem aw out acc k C)
     (hm : HeapMemory mem aw ptr) (hin : ptr.toNat ≤ mem.size)
     (hb : ptr.toNat + out.size + 64 ≤ 2 ^ 200)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 18 ≤ 1024) :
     (ErrorDataValid out ∧ ErrorAllocAllowed ptr (errorAllocSize out) ∧
-      (∃ k' C', RD auctionBytecode I g s0 ret ((ptr + errorOffset out) :: R)
+      (∃ k' C', RD fork auctionBytecode I g s0 ret ((ptr + errorOffset out) :: R)
         (writeWord (errorPayloadMem mem out ptr) 64 (errorAllocPtr ptr (errorAllocSize out)))
         (errorPayloadWords aw ptr out) out acc k' C') ∧
       HeapMemory
@@ -18,9 +20,9 @@ theorem errorDecodeRoutine {I g s0 ret R mem aw ptr out acc k C}
         (errorPayloadWords aw ptr out) (errorAllocPtr ptr (errorAllocSize out)) ∧
       ptr + errorOffset out ≠ ⟨0⟩) ∨
     (¬ ErrorDataValid out ∧
-      ∃ mem' aw' k' C', RD auctionBytecode I g s0 ret (⟨0⟩ :: R) mem' aw' out acc k' C') ∨
+      ∃ mem' aw' k' C', RD fork auctionBytecode I g s0 ret (⟨0⟩ :: R) mem' aw' out acc k' C') ∨
     (ErrorDataValid out ∧ ¬ ErrorAllocAllowed ptr (errorAllocSize out) ∧
-      RDrev auctionBytecode g s0) := by
+      RDrev fork auctionBytecode g s0) := by
   by_cases hl : 68 ≤ out.size
   · have hb' : ptr.toNat + out.size ≤ 2 ^ 200 := by omega
     have ho : out.size < UInt256.size := by change out.size < 2 ^ 256; omega

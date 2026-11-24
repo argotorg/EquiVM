@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.PrincipalWords
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -20,9 +22,9 @@ theorem signed104Callable_result (evm : EVM.State) (imms : Store) (n : UInt256) 
     let frame : Frame :=
       { contract := contract, locals := (∅ : Store).insert "n" (.int n.toNat), immutables := imms }
     if n.toNat < 2^103 then
-      ExecFuncBody config frame evm signed104Callable.body
+      ExecFuncBody fork config frame evm signed104Callable.body
         (.returned frame evm (some [.int n.toNat]))
-    else ExecFuncBody config frame evm signed104Callable.body .reverted := by
+    else ExecFuncBody fork config frame evm signed104Callable.body .reverted := by
   dsimp only
   let frame : Frame :=
     { contract := contract, locals := (∅ : Store).insert "n" (.int n.toNat), immutables := imms }
@@ -57,10 +59,10 @@ theorem signed104Callable_result (evm : EVM.State) (imms : Store) (n : UInt256) 
 theorem signed104_call (frame : Frame) (evm : EVM.State) (n : UInt256)
     (expr : Expr) (ret : Ident) (hc : frame.contract = contract)
     (he : evalExpr? config frame evm expr = .ok (.int n.toNat)) :
-    ExecStmt config frame evm (.internalCall "signed104" [expr] ret)
+    ExecStmt fork config frame evm (.internalCall "signed104" [expr] ret)
       (if n.toNat < 2^103 then
         .ok { frame with locals := frame.locals.insert ret (.int n.toNat) } evm else .reverted) := by
-  have hb := signed104Callable_result evm frame.immutables n
+  have hb := signed104Callable_result (fork := fork) evm frame.immutables n
   dsimp only at hb
   split_ifs with hn
   · rw [if_pos hn] at hb

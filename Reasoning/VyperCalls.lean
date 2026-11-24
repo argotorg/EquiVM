@@ -2,6 +2,8 @@ import Reasoning.ExternalCall
 import Reasoning.Solc
 import Reasoning.VyperDispatch
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Typed external calls in Vyper bytecode
 
@@ -25,29 +27,29 @@ theorem typedCallBridge {code : ByteArray} {I : ExecutionEnv} {g : Sat256} {s0 :
     {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ}
     {evm : EVM.State} {cfg : Config} {name : Ident} {args : List Value}
     {gasArg target inOffset inSize outOffset outSize : UInt256}
-    (h : RD code I g s0 pc (gasArg :: target :: ⟨0⟩ :: inOffset :: inSize :: outOffset :: outSize :: R) mem aw rdata σ k C)
+    (h : RD fork code I g s0 pc (gasArg :: target :: ⟨0⟩ :: inOffset :: inSize :: outOffset :: outSize :: R) mem aw rdata σ k C)
     (hs : SourceState s0 I σ evm)
     (hdec : decode code pc = some (.CALL, .none))
     (hcd : cfg.externalABI.encode? name args = some (mem.readWithPadding inOffset.toNat inSize.toNat))
     (hsmall : inSize.toNat ≤ 2 ^ 64)
     (hov : R.length + 1 ≤ 1024) :
     ∃ (evm' : EVM.State) (σ' : AccountMap) (z : Bool) (out : ByteArray) (k' C' : ℕ),
-      typedCallViaEVM cfg evm (AccountAddress.ofUInt256 target) name 0 args (z, evm', out) ∧
+      typedCallViaEVM fork cfg evm (AccountAddress.ofUInt256 target) name 0 args (z, evm', out) ∧
       SourceState s0 I σ' evm' ∧
-      RD code I g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: R)
+      RD fork code I g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: R)
         (out.write 0 mem outOffset.toNat (min outSize (UInt256.ofNat out.size)).toNat)
         (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat inSize.toNat) outOffset.toNat outSize.toNat))
         out σ' k' C' ∧
       out.size < 2 ^ 138 ∧
       (σ' = σ ∨ ∃ (A_in : Substate) (callGas g' : UInt256) (A' : Substate),
-        (σ', g', A', z, out) = Ethereum.EVM.Θ σ s0.σ₀ A_in
+        (σ', g', A', z, out) = Ethereum.EVM.Θ fork σ s0.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
-          (AccountAddress.ofUInt256 target) (toExecute σ (AccountAddress.ofUInt256 target))
+          (AccountAddress.ofUInt256 target) (toExecute fork σ (AccountAddress.ofUInt256 target))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding inOffset.toNat inSize.toNat) (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm) := by
   by_cases hd : I.depth = 1024
   · obtain ⟨k', C', rd⟩ := h.callDepthLimit hdec hd hov
-    refine ⟨{ evm with substate := (evm.addAccessedAccount (AccountAddress.ofUInt256 target)).substate }, σ, false,
+    refine ⟨{ evm with substate := (Ethereum.EVM.callSubstate fork evm.accountMap (AccountAddress.ofUInt256 target) evm.substate) }, σ, false,
       ByteArray.empty, k', C', ?_, ⟨hs.world, hs.env, hs.accounts⟩, rd, by decide, Or.inl rfl⟩
     refine ⟨_, hcd, callViaEVM.callNotMade rfl rfl ?_⟩
     intro hn
@@ -64,9 +66,9 @@ theorem typedCallBridge {code : ByteArray} {I : ExecutionEnv} {g : Sat256} {s0 :
           (le_trans hsmall Ethereum.EVM.pow_two_64_le_maxReturnDataSizeByGas))
     rw [hs.accounts, ← hs.world, ← hs.env] at hΘ
     have hΘ' : (σ', g'', A', z, out) =
-        Ethereum.EVM.Θ evm.accountMap evm.σ₀ A_in
+        Ethereum.EVM.Θ fork evm.accountMap evm.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat evm.executionEnv.codeOwner)) evm.executionEnv.sender
-          (AccountAddress.ofUInt256 target) (toExecute evm.accountMap (AccountAddress.ofUInt256 target))
+          (AccountAddress.ofUInt256 target) (toExecute fork evm.accountMap (AccountAddress.ofUInt256 target))
           callGas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding inOffset.toNat inSize.toNat) (evm.executionEnv.depth + 1)
           evm.executionEnv.header evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks
@@ -81,23 +83,23 @@ theorem typedStaticCallBridge {code : ByteArray} {I : ExecutionEnv} {g : Sat256}
     {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ}
     {evm : EVM.State} {cfg : Config} {name : Ident} {args : List Value}
     {gasArg target inOffset inSize outOffset outSize : UInt256}
-    (h : RD code I g s0 pc (gasArg :: target :: inOffset :: inSize :: outOffset :: outSize :: R) mem aw rdata σ k C)
+    (h : RD fork code I g s0 pc (gasArg :: target :: inOffset :: inSize :: outOffset :: outSize :: R) mem aw rdata σ k C)
     (hs : SourceState s0 I σ evm)
     (hdec : decode code pc = some (.STATICCALL, .none))
     (hcd : cfg.externalABI.encode? name args = some (mem.readWithPadding inOffset.toNat inSize.toNat))
     (hsmall : inSize.toNat ≤ 2 ^ 64)
     (hov : R.length + 1 ≤ 1024) :
     ∃ (evm' : EVM.State) (σ' : AccountMap) (z : Bool) (out : ByteArray) (k' C' : ℕ),
-      typedCallViaEVM cfg evm (AccountAddress.ofUInt256 target) name 0 args (z, evm', out) false ∧
+      typedCallViaEVM fork cfg evm (AccountAddress.ofUInt256 target) name 0 args (z, evm', out) false ∧
       SourceState s0 I σ' evm' ∧
-      RD code I g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: R)
+      RD fork code I g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: R)
         (out.write 0 mem outOffset.toNat (min outSize (UInt256.ofNat out.size)).toNat)
         (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat inSize.toNat) outOffset.toNat outSize.toNat))
         out σ' k' C' ∧
       out.size < 2 ^ 138 := by
   by_cases hd : I.depth = 1024
   · obtain ⟨k', C', rd⟩ := RD.solcStaticcallDepthLimit h hdec hd hov
-    refine ⟨{ evm with substate := (evm.addAccessedAccount (AccountAddress.ofUInt256 target)).substate }, σ, false,
+    refine ⟨{ evm with substate := (Ethereum.EVM.callSubstate fork evm.accountMap (AccountAddress.ofUInt256 target) evm.substate) }, σ, false,
       ByteArray.empty, k', C', ?_, ⟨hs.world, hs.env, hs.accounts⟩, rd, by decide⟩
     refine ⟨_, hcd, callViaEVM.callNotMade rfl rfl ?_⟩
     intro hn
@@ -113,9 +115,9 @@ theorem typedStaticCallBridge {code : ByteArray} {I : ExecutionEnv} {g : Sat256}
           (le_trans hsmall Ethereum.EVM.pow_two_64_le_maxReturnDataSizeByGas))
     rw [hs.accounts, ← hs.world, ← hs.env] at hΘ
     have hΘ' : (σ', g'', A', z, out) =
-        Ethereum.EVM.Θ evm.accountMap evm.σ₀ A_in
+        Ethereum.EVM.Θ fork evm.accountMap evm.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat evm.executionEnv.codeOwner)) evm.executionEnv.sender
-          (AccountAddress.ofUInt256 target) (toExecute evm.accountMap (AccountAddress.ofUInt256 target))
+          (AccountAddress.ofUInt256 target) (toExecute fork evm.accountMap (AccountAddress.ofUInt256 target))
           callGas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding inOffset.toNat inSize.toNat) (evm.executionEnv.depth + 1)
           evm.executionEnv.header evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks

@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.MintRuntimeBalance
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 
@@ -9,10 +11,10 @@ theorem uniswapBurnRuntimeReservesLoaded
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {σ : AccountMap}
     {toWord ret sel : UInt256} {k C : ℕ}
-    (rd4179 : RD uniswapV2PairBytecode I g s0 ⟨4179⟩
+    (rd4179 : RD fork uniswapV2PairBytecode I g s0 ⟨4179⟩
       [⟨0⟩, ⟨0⟩, ⟨0⟩, toWord, ret, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨4189⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨4189⟩
       [reserve1Word σ I, reserve0Word σ I, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, toWord, ret, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd2852 := evm_run rd4179 with [dup1, push2 ⟨4187⟩, push2 ⟨2852⟩, jump (by jump_dest)]
@@ -26,10 +28,10 @@ theorem uniswapBurnRuntimeFirstBalanceOfExtcodesize
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {σ : AccountMap}
     {toWord ret sel : UInt256} {k C : ℕ}
-    (rd4179 : RD uniswapV2PairBytecode I g s0 ⟨4179⟩
+    (rd4179 : RD fork uniswapV2PairBytecode I g s0 ⟨4179⟩
       [⟨0⟩, ⟨0⟩, ⟨0⟩, toWord, ret, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨4267⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨4267⟩
       [UInt256.land solcAddrMask (solcSlotWordAt ⟨6⟩ σ I),
         UInt256.land solcAddrMask (solcSlotWordAt ⟨6⟩ σ I),
         ⟨128⟩, ⟨36⟩, ⟨128⟩, ⟨32⟩, ⟨164⟩, balanceOfSelectorWord,
@@ -75,10 +77,10 @@ theorem uniswapBurnRuntimeFirstBalanceOfMissingCodeReverts
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {σ : AccountMap}
     {mem rdata : ByteArray} {aw target : UInt256} {R : List UInt256} {k C : ℕ}
-    (rd4267 : RD uniswapV2PairBytecode I g s0 ⟨4267⟩
+    (rd4267 : RD fork uniswapV2PairBytecode I g s0 ⟨4267⟩
       (target :: target :: R) mem aw rdata σ k C)
     (hnoCode : extCodeSizeWord σ target = ⟨0⟩) (hov : R.length + 4 ≤ 1024) :
-    RDrev uniswapV2PairBytecode g s0 := by
+    RDrev fork uniswapV2PairBytecode g s0 := by
   exact RD.solcExtcodesizeGuardMissing (okPc := ⟨4279⟩) rd4267 hnoCode
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)

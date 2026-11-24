@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.RuntimeBlocks_018
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_050
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_055
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -17,12 +19,12 @@ theorem cometAccountDelta {v : CometWithExtendedAssetListImmutables}
     {basic : UserBasicData} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024) (hm : UserBasicMemory mem ptr basic)
     (hc : current.toNat < 2^64) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨11793⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨11793⟩
       (current :: ⟨32⟩ :: ⟨11801⟩ :: ptr :: ⟨10587⟩ :: ret :: R) mem aw rdata σ k C) :
     if basic.index.toNat ≤ current.toNat then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (UInt256.sub current basic.index :: R)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (UInt256.sub current basic.index :: R)
         mem aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have r1 := cometWithExtendedAssetList_block_11793 (immWords := wordsOf (immStore v))
     (by change R.length + 2 + 4 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h

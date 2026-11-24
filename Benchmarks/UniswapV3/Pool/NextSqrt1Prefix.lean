@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.NextSqrtModel
 import Benchmarks.UniswapV3.Pool.WordShiftBits
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -17,7 +19,7 @@ def nextSqrt1ZeroFrame (imms : Store) (a : NextSqrtArgs) : Frame :=
     locals := (nextSqrtLocals a).insert (nextSqrt1CondName a.add) (.int 0)}
 
 theorem nextSqrt1ZeroSource (imms : Store) (evm : EVM.State) (a : NextSqrtArgs) :
-    ExecStmt config (nextSqrtFrame imms a) evm (nextSqrt1Branch a.add)[0]!
+    ExecStmt fork config (nextSqrtFrame imms a) evm (nextSqrt1Branch a.add)[0]!
       (.ok (nextSqrt1ZeroFrame imms a) evm) := by
   cases a with
   | mk price liquidity amount add =>

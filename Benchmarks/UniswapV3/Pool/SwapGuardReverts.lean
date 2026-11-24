@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.SwapGuardsSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -9,7 +11,7 @@ theorem swapLockedReverts (v : UniswapV3PoolImmutables) (a : SwapArgs) (evm : EV
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hself : evm.executionEnv.codeOwner = v.original)
     (hn : a.amountSpecified ≠ 0)
     (hu : slot0FieldWord 30 1 evm.accountMap evm.executionEnv = ⟨0⟩) :
-    ExecTransitionBody config contract evm (swapLocals a) swapTransition.body .reverted
+    ExecTransitionBody fork config contract evm (swapLocals a) swapTransition.body .reverted
       (immStore v) := by
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 6 swapTransition.body]
@@ -22,7 +24,7 @@ theorem swapLimitReverts (v : UniswapV3PoolImmutables) (a : SwapArgs) (evm : EVM
     (hn : a.amountSpecified ≠ 0)
     (hu : slot0FieldWord 30 1 evm.accountMap evm.executionEnv ≠ ⟨0⟩)
     (hl : ¬swapLimitValid a evm) :
-    ExecTransitionBody config contract evm (swapLocals a) swapTransition.body .reverted
+    ExecTransitionBody fork config contract evm (swapLocals a) swapTransition.body .reverted
       (immStore v) := by
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 6 swapTransition.body]
@@ -37,7 +39,7 @@ theorem swapStatic (v : UniswapV3PoolImmutables) (a : SwapArgs) (evm : EVM.State
     (hn : a.amountSpecified ≠ 0)
     (hu : slot0FieldWord 30 1 evm.accountMap evm.executionEnv ≠ ⟨0⟩)
     (hl : swapLimitValid a evm) (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (swapLocals a) swapTransition.body .staticViolation
+    ExecTransitionBody fork config contract evm (swapLocals a) swapTransition.body .staticViolation
       (immStore v) := by
   apply ExecFuncBody.execBlockStatic
   rw [← List.take_append_drop 8 swapTransition.body]

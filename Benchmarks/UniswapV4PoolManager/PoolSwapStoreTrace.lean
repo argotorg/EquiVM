@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.PoolSwapStoreStatic
 import Benchmarks.UniswapV4PoolManager.PoolSwapMemoryFields
 import Benchmarks.UniswapV4PoolManager.ReachCost
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -14,9 +16,9 @@ theorem poolSwapGrowthStoreTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State
     (v : PoolManagerImmutables) (hstack : R.length+5 ≤ 1024)
     (hI : evm.executionEnv = I) (hperm : I.perm = true)
     (hm : memLoad (step+UInt256.ofNat 224) mem = growth)
-    (h : RD (deployedRuntime v) I g s0 ⟨21698⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨21698⟩
       (dummy :: step :: poolSlot id :: UInt256.fromBool (!zeroForOne) :: R) mem aw rdata evm.accountMap k C) :
-    ∃ k' C', RD (deployedRuntime v) I g s0 ⟨21716⟩ (UInt256.fromBool (!zeroForOne) :: R)
+    ∃ k' C', RD fork (deployedRuntime v) I g s0 ⟨21716⟩ (UInt256.fromBool (!zeroForOne) :: R)
       mem (M aw (step+UInt256.ofNat 224) ⟨32⟩) rdata (poolSwapGrowthPost evm id growth zeroForOne).accountMap k' C' := by
   cases zeroForOne
   · have rd1 := poolManagerBlocks.poolManager_block_21698_fallthrough hstack (by rfl) h
@@ -47,11 +49,11 @@ theorem poolSwapStoreTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (v : PoolManagerImmutables) (hstack : R.length+15 ≤ 1024)
     (hI : evm.executionEnv = I) (hm : PoolSwapMemoryView mem step state params s r p)
     (hp : r.price.toNat < 2^160) (hl : r.liquidity.toNat < 2^128)
-    (h : RD (deployedRuntime v) I g s0 ⟨21536⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨21536⟩
       ([remaining, ret, params, calculated, packed, fee, protocol, amount,
         UInt256.fromBool (!p.zeroForOne), step, poolSlot id, state]++R) mem aw rdata evm.accountMap k C) :
-    if I.perm = false then RDstatic (deployedRuntime v) g s0 else
-      ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨21716⟩
+    if I.perm = false then RDstatic fork (deployedRuntime v) g s0 else
+      ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨21716⟩
         ([UInt256.fromBool (!p.zeroForOne), remaining, params, calculated, state, fee, amount, ret]++R)
         mem (poolSwapStoreAW aw state step) rdata (poolSwapFinishPost evm id packed s r p.zeroForOne).accountMap k' C' := by
   by_cases hperm : I.perm = false

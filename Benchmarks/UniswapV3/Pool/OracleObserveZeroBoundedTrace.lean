@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.OracleObserveZeroCanonical
 import Benchmarks.UniswapV3.Pool.RuntimeBlocks_044
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -10,7 +12,7 @@ set_option maxRecDepth 10000
 theorem oracleObserveSingleZeroBoundedX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p card liquidity index tickRaw timeRaw time ret : UInt256}
     {tick : Int} {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨13193⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨13193⟩
       (card :: liquidity :: index :: tickRaw :: ⟨0⟩ :: timeRaw :: ⟨8⟩ :: ret :: R)
       mem aw rdata σ k C)
     (hi : index.toNat < 2 ^ 16)
@@ -19,10 +21,10 @@ theorem oracleObserveSingleZeroBoundedX {σ : AccountMap} {ee : ExecutionEnv} {g
     (hliq : liquidity.toNat < 2 ^ 128)
     (hm : HeapMemory mem aw p) (hb : p.toNat + 384 ≤ 2 ^ 200)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 30 ≤ 1024) :
-    (¬index.toNat < 65535 ∧ RDinvalid (deployedRuntime v) g s0) ∨
+    (¬index.toNat < 65535 ∧ RDinvalid fork (deployedRuntime v) g s0) ∨
       (index.toNat < 65535 ∧ ∃ aw' k' C',
         let last := oracleStoredObservation index σ ee
-        RD (deployedRuntime v) ee g s0 ret
+        RD fork (deployedRuntime v) ee g s0 ret
           ((oracleObserveZeroResult last time tick liquidity).secondsPerLiquidity ::
             EVM.wordOfInt (oracleObserveZeroResult last time tick liquidity).tickCumulative :: R)
           (oracleObserveZeroMemory mem p last time tick liquidity) aw' rdata σ k' C' ∧

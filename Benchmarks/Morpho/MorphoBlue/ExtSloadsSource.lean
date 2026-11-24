@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.ExtSloadsSourceStep
 import Benchmarks.EAS.Attester.WordArrayABI
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
@@ -11,7 +13,7 @@ theorem extSloadsSourceLoop (evm : EVM.State) (imms : Store) (slots : List Value
     ∀ locals res i, ExtSloadsLocals slots res i locals → i + remaining = slots.length →
       res.length = slots.length →
       (∀ j, j < i → res[j]? = some (wordBytes32Value (extSloadsValue evm j))) →
-      ∃ locals', ExecStmt config { contract := contract, locals := locals, immutables := imms }
+      ∃ locals', ExecStmt fork config { contract := contract, locals := locals, immutables := imms }
         evm (.while extSloadsCond extSloadsLoopBody)
         (.ok { contract := contract, locals := locals', immutables := imms } evm) ∧
         locals'.get? "res" = some (.array (wordArrayValues (extSloadsValue evm) 0 slots.length)) := by
@@ -74,11 +76,11 @@ theorem extSloadsAllocationGuard_eval {frame : Frame} {evm : EVM.State} {n : Nat
 theorem extSloadsSourcePrelude (slots : List Value) (evm : EVM.State) (imms : Store)
     (hd : WordArrayDecoded evm.executionEnv.calldata slots)
     (hcv : evm.executionEnv.weiValue = ⟨0⟩) :
-    ABlock config evm { contract := contract, locals := extSloadsArgs slots, immutables := imms }
+    ABlock fork config evm { contract := contract, locals := extSloadsArgs slots, immutables := imms }
       extSloadsTransition.body (extSloadsCountFrame slots evm.executionEnv.calldata imms)
       (extSloadsTransition.body.drop 5) := by
   have hn : slots.length ≤ solcMaxU64 := by rw [hd.length]; exact hd.bounds.2.2.2.2.1
-  have hprefix : ABlock config evm
+  have hprefix : ABlock fork config evm
       { contract := contract, locals := extSloadsArgs slots, immutables := imms }
       extSloadsTransition.body (extSloadsCountFrame slots evm.executionEnv.calldata imms)
       (extSloadsTransition.body.drop 4) :=
@@ -99,7 +101,7 @@ theorem morphoExtSloadsSource (slots : List Value) (evm : EVM.State) (imms : Sto
     (hd : WordArrayDecoded evm.executionEnv.calldata slots)
     (hcv : evm.executionEnv.weiValue = ⟨0⟩)
     (ha : 128 + 32 * (slots.length + 1) ≤ solcMaxU64) :
-    ∃ frame, ExecTransitionBody config contract evm (extSloadsArgs slots) extSloadsTransition.body
+    ∃ frame, ExecTransitionBody fork config contract evm (extSloadsArgs slots) extSloadsTransition.body
       (.returned frame evm (some [.array (wordArrayValues (extSloadsValue evm) 0 slots.length)]))
       imms := by
   let f := extSloadsCountFrame slots evm.executionEnv.calldata imms
@@ -117,7 +119,7 @@ theorem morphoExtSloadsSource (slots : List Value) (evm : EVM.State) (imms : Sto
     loopLocals res 0 hl (by omega) (List.length_replicate ..) (by omega)
   refine ⟨{ contract := contract, locals := last, immutables := imms },
     ExecFuncBody.execBlockRet ?_⟩
-  have hp := (extSloadsSourcePrelude slots evm imms hd hcv).requireStep
+  have hp := (extSloadsSourcePrelude (fork := fork) slots evm imms hd hcv).requireStep
     (by simpa only [ha, decide_true] using (extSloadsAllocationGuard_eval
       (evm := evm) (frame := f) (store_get_self _ _ _)))
   have hr := hp.letStep (evalLocalNewArray (store_get_self _ _ _)
@@ -131,7 +133,7 @@ theorem morphoExtSloadsSourceAllocationRevert (slots : List Value) (evm : EVM.St
     (hd : WordArrayDecoded evm.executionEnv.calldata slots)
     (hcv : evm.executionEnv.weiValue = ⟨0⟩)
     (ha : ¬ 128 + 32 * (slots.length + 1) ≤ solcMaxU64) :
-    ExecTransitionBody config contract evm (extSloadsArgs slots) extSloadsTransition.body
+    ExecTransitionBody fork config contract evm (extSloadsArgs slots) extSloadsTransition.body
       .reverted imms := by
   apply ExecFuncBody.execBlockRevert
   apply (extSloadsSourcePrelude slots evm imms hd hcv).requireRevert

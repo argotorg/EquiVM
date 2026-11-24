@@ -2,6 +2,8 @@ import Benchmarks.Dss.Clipper.Arithmetic
 import Benchmarks.Dss.Clipper.Sales
 import Benchmarks.Dss.Clipper.UintEntry
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -188,7 +190,7 @@ theorem clipperEvalStatusAgeArgs (v : ClipperImmutables) (evm : EVM.State)
 
 theorem clipperStatusAgeForPriceCallReturns (v : ClipperImmutables) (evm : EVM.State)
     (tic top : UInt256) (hle : tic.toNat ≤ (clipperTimestampWord evm).toNat) :
-    ExecStmt config { contract := contract, locals := clipperStatusLocals tic top, immutables := immStore v } evm
+    ExecStmt fork config { contract := contract, locals := clipperStatusLocals tic top, immutables := immStore v } evm
       (.internalCall "sub" [.env .timestamp, .var "tic"] "ageForPrice")
       (.ok
         { contract := contract,
@@ -220,7 +222,7 @@ theorem clipperStatusAgeForPriceCallReturns (v : ClipperImmutables) (evm : EVM.S
 
 theorem clipperStatusAgeForPriceCallReverts (v : ClipperImmutables) (evm : EVM.State)
     (tic top : UInt256) (hlt : (clipperTimestampWord evm).toNat < tic.toNat) :
-    ExecStmt config { contract := contract, locals := clipperStatusLocals tic top, immutables := immStore v } evm
+    ExecStmt fork config { contract := contract, locals := clipperStatusLocals tic top, immutables := immStore v } evm
       (.internalCall "sub" [.env .timestamp, .var "tic"] "ageForPrice") .reverted :=
     internalCallFunctionRevert
       (cfg := config)
@@ -325,7 +327,7 @@ theorem clipperStatusPriceCallNoCode (v : ClipperImmutables) (evm : EVM.State)
     (hnoCode :
       (UInt256.ofNat ((evm.lookupAccount (clipperStatusCalcAddress evm)).option 0
         (fun acc => acc.code.size))).toNat = 0) :
-    ExecBlock config
+    ExecBlock fork config
       ({ contract := contract, locals := clipperStatusAgeForPriceLocals tic top age, immutables := immStore v } : Frame)
       evm
       (checkedExternalCallStmts (.storage calcRef) "price" (.intLit 0)
@@ -346,10 +348,10 @@ theorem clipperStatusPriceCallFailure (v : ClipperImmutables) {evm evm' : EVM.St
       0 < (UInt256.ofNat ((evm.lookupAccount (clipperStatusCalcAddress evm)).option 0
         (fun acc => acc.code.size))).toNat)
     (hcall :
-      typedCallViaEVM config evm (EVM.address (clipperStatusCalcAddress evm))
+      typedCallViaEVM fork config evm (EVM.address (clipperStatusCalcAddress evm))
         "price" 0 [.int (Int.ofNat top.toNat), .int (Int.ofNat age.toNat)]
         (false, evm', out) false) :
-    ExecBlock config
+    ExecBlock fork config
       ({ contract := contract, locals := clipperStatusAgeForPriceLocals tic top age, immutables := immStore v } : Frame)
       evm
       (checkedExternalCallStmts (.storage calcRef) "price" (.intLit 0)
@@ -378,12 +380,12 @@ theorem clipperStatusPriceCallReturns (v : ClipperImmutables) {evm evm' : EVM.St
       0 < (UInt256.ofNat ((evm.lookupAccount (clipperStatusCalcAddress evm)).option 0
         (fun acc => acc.code.size))).toNat)
     (hcall :
-      typedCallViaEVM config evm (EVM.address (clipperStatusCalcAddress evm))
+      typedCallViaEVM fork config evm (EVM.address (clipperStatusCalcAddress evm))
         "price" 0 [.int (Int.ofNat top.toNat), .int (Int.ofNat age.toNat)]
         (true, evm', out) false)
     (hdec : config.externalABI.decode? "price" out =
       some [.int (Int.ofNat price.toNat)]) :
-    ExecBlock config
+    ExecBlock fork config
       ({ contract := contract, locals := clipperStatusAgeForPriceLocals tic top age, immutables := immStore v } : Frame)
       evm
       (checkedExternalCallStmts (.storage calcRef) "price" (.intLit 0)
@@ -415,11 +417,11 @@ theorem clipperStatusPriceCallDecodeReverts (v : ClipperImmutables) {evm evm' : 
       0 < (UInt256.ofNat ((evm.lookupAccount (clipperStatusCalcAddress evm)).option 0
         (fun acc => acc.code.size))).toNat)
     (hcall :
-      typedCallViaEVM config evm (EVM.address (clipperStatusCalcAddress evm))
+      typedCallViaEVM fork config evm (EVM.address (clipperStatusCalcAddress evm))
         "price" 0 [.int (Int.ofNat top.toNat), .int (Int.ofNat age.toNat)]
         (true, evm', out) false)
     (hdec : config.externalABI.decode? "price" out = none) :
-    ExecBlock config
+    ExecBlock fork config
       ({ contract := contract, locals := clipperStatusAgeForPriceLocals tic top age, immutables := immStore v } : Frame)
       evm
       (checkedExternalCallStmts (.storage calcRef) "price" (.intLit 0)
@@ -466,7 +468,7 @@ theorem clipperEvalStatusAgeForDoneArgs (v : ClipperImmutables) (evm : EVM.State
 theorem clipperStatusAgeForDoneCallReturns (v : ClipperImmutables) (evm : EVM.State)
     (tic top ageForPrice price : UInt256)
     (hle : tic.toNat ≤ (clipperTimestampWord evm).toNat) :
-    ExecStmt config
+    ExecStmt fork config
       { contract := contract,
         locals := clipperStatusPriceLocals tic top ageForPrice price, immutables := immStore v } evm
       (.internalCall "sub" [.env .timestamp, .var "tic"] "ageForDone")
@@ -503,7 +505,7 @@ theorem clipperStatusAgeForDoneCallReturns (v : ClipperImmutables) (evm : EVM.St
 theorem clipperStatusAgeForDoneCallReverts (v : ClipperImmutables) (evm : EVM.State)
     (tic top ageForPrice price : UInt256)
     (hlt : (clipperTimestampWord evm).toNat < tic.toNat) :
-    ExecStmt config
+    ExecStmt fork config
       { contract := contract,
         locals := clipperStatusPriceLocals tic top ageForPrice price, immutables := immStore v } evm
       (.internalCall "sub" [.env .timestamp, .var "tic"] "ageForDone") .reverted :=
@@ -597,7 +599,7 @@ theorem clipperEvalStatusDoneTailCond_false (v : ClipperImmutables) (evm : EVM.S
 
 theorem clipperStatusLetDoneFalse (v : ClipperImmutables) (evm : EVM.State)
     (tic top ageForPrice price ageForDone : UInt256) :
-    ExecStmt config
+    ExecStmt fork config
       ({ contract := contract, locals := clipperStatusAgeForDoneLocals tic top ageForPrice price ageForDone, immutables := immStore v } : Frame) evm
       (.letDecl "done" (some boolTy) (.boolLit false))
       (.ok
@@ -614,7 +616,7 @@ theorem clipperStatusLetDoneFalse (v : ClipperImmutables) (evm : EVM.State)
 
 theorem clipperStatusAssignDoneTrue (v : ClipperImmutables) (evm : EVM.State)
     (tic top ageForPrice price ageForDone : UInt256) :
-    ExecStmt config
+    ExecStmt fork config
       ({ contract := contract, locals := clipperStatusDoneLocals tic top ageForPrice price ageForDone, immutables := immStore v } : Frame) evm
       (.assign .localVar (varRef "done") (.boolLit true))
       (.ok
@@ -674,7 +676,7 @@ theorem clipperEvalStatusReturnDoneTrue (v : ClipperImmutables) (evm : EVM.State
 theorem clipperStatusDoneTailTrueBranch (v : ClipperImmutables) (evm : EVM.State)
     (tic top ageForPrice price ageForDone : UInt256)
     (hlt : (clipperStatusTailWord evm).toNat < ageForDone.toNat) :
-    ExecBlock config
+    ExecBlock fork config
       ({ contract := contract, locals := clipperStatusDoneLocals tic top ageForPrice price ageForDone, immutables := immStore v } : Frame) evm
       [ .ite (.binary .gt (.var "ageForDone") (.storage tailRef))
           [ .assign .localVar (varRef "done") (.boolLit true) ]
@@ -692,7 +694,7 @@ theorem clipperStatusDoneTailTrueBranch (v : ClipperImmutables) (evm : EVM.State
     { contract := contract,
       locals := clipperStatusDoneTrueLocals tic top ageForPrice price ageForDone, immutables := immStore v }
   have hthen :
-      ExecBlock config doneFrame evm
+      ExecBlock fork config doneFrame evm
         [ .assign .localVar (varRef "done") (.boolLit true) ]
         (.ok doneTrueFrame evm) := by
     exact ExecBlock.consNormal
@@ -701,7 +703,7 @@ theorem clipperStatusDoneTailTrueBranch (v : ClipperImmutables) (evm : EVM.State
         clipperStatusAssignDoneTrue v evm tic top ageForPrice price ageForDone)
       ExecBlock.nil
   have hite :
-      ExecStmt config doneFrame evm
+      ExecStmt fork config doneFrame evm
         (.ite (.binary .gt (.var "ageForDone") (.storage tailRef))
           [ .assign .localVar (varRef "done") (.boolLit true) ]
           ([ .internalCall "rdiv" [.var "price", .var "top"] "ratio",
@@ -713,7 +715,7 @@ theorem clipperStatusDoneTailTrueBranch (v : ClipperImmutables) (evm : EVM.State
         clipperEvalStatusDoneTailCond_true v evm tic top ageForPrice price ageForDone hlt)
       hthen
   have hret :
-      ExecBlock config doneTrueFrame evm [.return [.var "done", .var "price"]]
+      ExecBlock fork config doneTrueFrame evm [.return [.var "done", .var "price"]]
         (.returned doneTrueFrame evm (some [.bool true, .int (Int.ofNat price.toNat)])) := by
     exact ExecBlock.consReturn
       (ExecStmt.return
@@ -759,7 +761,7 @@ theorem clipperEvalStatusRdivArgs (v : ClipperImmutables) (evm : EVM.State)
 theorem clipperStatusRdivCallReturns (v : ClipperImmutables) (evm : EVM.State)
     (tic top ageForPrice price ageForDone : UInt256)
     (hmul : price.toNat * clipperRayWord.toNat < UInt256.size) (htop : top ≠ ⟨0⟩) :
-    ExecStmt config
+    ExecStmt fork config
       ({ contract := contract, locals :=
         clipperStatusDoneLocals tic top ageForPrice price ageForDone, immutables := immStore v } : Frame) evm
       (.internalCall "rdiv" [.var "price", .var "top"] "ratio")
@@ -793,7 +795,7 @@ theorem clipperStatusRdivCallReturns (v : ClipperImmutables) (evm : EVM.State)
 theorem clipperStatusRdivCallRevertsMul (v : ClipperImmutables) (evm : EVM.State)
     (tic top ageForPrice price ageForDone : UInt256)
     (hover : UInt256.size ≤ price.toNat * clipperRayWord.toNat) :
-    ExecStmt config
+    ExecStmt fork config
       ({ contract := contract, locals :=
         clipperStatusDoneLocals tic top ageForPrice price ageForDone, immutables := immStore v } : Frame) evm
       (.internalCall "rdiv" [.var "price", .var "top"] "ratio") .reverted :=
@@ -887,7 +889,7 @@ theorem clipperStatusAssignDoneFromRatio (v : ClipperImmutables) (evm : EVM.Stat
         { contract := contract,
           locals := clipperStatusRatioLocals tic top ageForPrice price ageForDone ratio, immutables := immStore v } evm
         (.binary .lt (.var "ratio") (.storage cuspRef)) = .ok (.bool done)) :
-    ExecStmt config
+    ExecStmt fork config
       ({ contract := contract, locals :=
         clipperStatusRatioLocals tic top ageForPrice price ageForDone ratio, immutables := immStore v } : Frame) evm
       (.assign .localVar (varRef "done")
@@ -953,7 +955,7 @@ theorem clipperStatusDoneTailFalseBranchReturns (v : ClipperImmutables) (evm : E
           locals := clipperStatusRatioLocals tic top ageForPrice price ageForDone
             (UInt256.div (UInt256.mul price clipperRayWord) top), immutables := immStore v } evm
         (.binary .lt (.var "ratio") (.storage cuspRef)) = .ok (.bool done)) :
-    ExecBlock config
+    ExecBlock fork config
       ({ contract := contract, locals :=
         clipperStatusDoneLocals tic top ageForPrice price ageForDone, immutables := immStore v } : Frame) evm
       [ .ite (.binary .gt (.var "ageForDone") (.storage tailRef))
@@ -978,20 +980,20 @@ theorem clipperStatusDoneTailFalseBranchReturns (v : ClipperImmutables) (evm : E
     { contract := contract,
       locals := clipperStatusDoneFromRatioLocals tic top ageForPrice price ageForDone ratio done, immutables := immStore v }
   have hrdiv :
-      ExecStmt config doneFrame evm
+      ExecStmt fork config doneFrame evm
         (.internalCall "rdiv" [.var "price", .var "top"] "ratio")
         (.ok ratioFrame evm) := by
     simpa [doneFrame, ratioFrame, ratio] using
       clipperStatusRdivCallReturns v evm tic top ageForPrice price ageForDone hmul htop
   have hassign :
-      ExecStmt config ratioFrame evm
+      ExecStmt fork config ratioFrame evm
         (.assign .localVar (varRef "done")
           (.binary .lt (.var "ratio") (.storage cuspRef)))
         (.ok doneRatioFrame evm) := by
     exact clipperStatusAssignDoneFromRatio v evm tic top ageForPrice price ageForDone ratio done
       (by simpa [ratioFrame, ratio] using hdone)
   have helse :
-      ExecBlock config doneFrame evm
+      ExecBlock fork config doneFrame evm
         [ .internalCall "rdiv" [.var "price", .var "top"] "ratio",
           .assign .localVar (varRef "done")
             (.binary .lt (.var "ratio") (.storage cuspRef)) ]
@@ -999,7 +1001,7 @@ theorem clipperStatusDoneTailFalseBranchReturns (v : ClipperImmutables) (evm : E
     exact ExecBlock.consNormal (stele' := ratioFrame) (evm' := evm) hrdiv
       (ExecBlock.consNormal (stele' := doneRatioFrame) (evm' := evm) hassign ExecBlock.nil)
   have hite :
-      ExecStmt config doneFrame evm
+      ExecStmt fork config doneFrame evm
         (.ite (.binary .gt (.var "ageForDone") (.storage tailRef))
           [ .assign .localVar (varRef "done") (.boolLit true) ]
           ([ .internalCall "rdiv" [.var "price", .var "top"] "ratio",
@@ -1011,7 +1013,7 @@ theorem clipperStatusDoneTailFalseBranchReturns (v : ClipperImmutables) (evm : E
         clipperEvalStatusDoneTailCond_false v evm tic top ageForPrice price ageForDone hleTail)
       helse
   have hret :
-      ExecBlock config doneRatioFrame evm [.return [.var "done", .var "price"]]
+      ExecBlock fork config doneRatioFrame evm [.return [.var "done", .var "price"]]
         (.returned doneRatioFrame evm (some [.bool done, .int (Int.ofNat price.toNat)])) := by
     exact ExecBlock.consReturn
       (ExecStmt.return
@@ -1034,7 +1036,7 @@ theorem clipperStatusFunctionReturnsDoneTailTrue (v : ClipperImmutables)
       0 < (UInt256.ofNat ((evm.lookupAccount (clipperStatusCalcAddress evm)).option 0
         (fun acc => acc.code.size))).toNat)
     (hcall :
-      typedCallViaEVM config evm (EVM.address (clipperStatusCalcAddress evm))
+      typedCallViaEVM fork config evm (EVM.address (clipperStatusCalcAddress evm))
         "price" 0
         [.int (Int.ofNat top.toNat),
           .int (Int.ofNat (UInt256.sub (clipperTimestampWord evm) tic).toNat)]
@@ -1045,7 +1047,7 @@ theorem clipperStatusFunctionReturnsDoneTailTrue (v : ClipperImmutables)
     (htail :
       (clipperStatusTailWord evmPrice).toNat <
         (UInt256.sub (clipperTimestampWord evmPrice) tic).toNat) :
-    ExecFuncBody config
+    ExecFuncBody fork config
       ({ contract := contract, locals := clipperStatusLocals tic top, immutables := immStore v } : Frame)
       evm statusFunction.body
       (.returned
@@ -1068,7 +1070,7 @@ theorem clipperStatusFunctionReturnsDoneTailTrue (v : ClipperImmutables)
   let doneFrame : Frame :=
     { contract := contract, locals := clipperStatusDoneLocals tic top ageForPrice price ageForDone, immutables := immStore v }
   have hsubPrice :
-      ExecStmt config startFrame evm
+      ExecStmt fork config startFrame evm
         (.internalCall "sub" [.env .timestamp, .var "tic"] "ageForPrice")
         (.ok ageFrame evm) := by
     simpa [startFrame, ageFrame, ageForPrice] using
@@ -1094,12 +1096,12 @@ theorem clipperStatusFunctionReturnsDoneTailTrue (v : ClipperImmutables)
     simpa [ageFrame, ageForPrice] using
       clipperEvalStatusPriceArgs v evm tic top ageForPrice
   have hcallStmt :
-      ExecStmt config ageFrame evm
+      ExecStmt fork config ageFrame evm
         (.externalCall (.storage calcRef) "price" (.intLit 0)
           [.var "top", .var "ageForPrice"] "price" (perm := false))
         (.ok priceFrame evmPrice) := by
     simpa [priceFrame] using
-      (ExecStmt.externalCallSuccess (hperm := Or.inl rfl)
+      (ExecStmt.externalCallSuccess (fork := fork) (hperm := Or.inl rfl)
         (cfg := config) (stele := ageFrame) (evm := evm) (evm' := evmPrice)
         (receiver := .storage calcRef) (name := "price") (eth := .intLit 0)
         (args := [.var "top", .var "ageForPrice"]) (retVar := "price")
@@ -1110,18 +1112,18 @@ theorem clipperStatusFunctionReturnsDoneTailTrue (v : ClipperImmutables)
         (by simpa [ageForPrice] using hcall)
         hdec)
   have hsubDone :
-      ExecStmt config priceFrame evmPrice
+      ExecStmt fork config priceFrame evmPrice
         (.internalCall "sub" [.env .timestamp, .var "tic"] "ageForDone")
         (.ok ageDoneFrame evmPrice) := by
     simpa [priceFrame, ageDoneFrame, ageForDone] using
       clipperStatusAgeForDoneCallReturns v evmPrice tic top ageForPrice price hleDone
   have hletDone :
-      ExecStmt config ageDoneFrame evmPrice (.letDecl "done" (some boolTy) (.boolLit false))
+      ExecStmt fork config ageDoneFrame evmPrice (.letDecl "done" (some boolTy) (.boolLit false))
         (.ok doneFrame evmPrice) := by
     simpa [ageDoneFrame, doneFrame] using
       clipperStatusLetDoneFalse v evmPrice tic top ageForPrice price ageForDone
   have hbranch :
-      ExecBlock config doneFrame evmPrice
+      ExecBlock fork config doneFrame evmPrice
         [ .ite (.binary .gt (.var "ageForDone") (.storage tailRef))
             [ .assign .localVar (varRef "done") (.boolLit true) ]
             ([ .internalCall "rdiv" [.var "price", .var "top"] "ratio",
@@ -1149,7 +1151,7 @@ theorem clipperStatusFunctionReturnsRdivBranch (v : ClipperImmutables)
       0 < (UInt256.ofNat ((evm.lookupAccount (clipperStatusCalcAddress evm)).option 0
         (fun acc => acc.code.size))).toNat)
     (hcall :
-      typedCallViaEVM config evm (EVM.address (clipperStatusCalcAddress evm))
+      typedCallViaEVM fork config evm (EVM.address (clipperStatusCalcAddress evm))
         "price" 0
         [.int (Int.ofNat top.toNat),
           .int (Int.ofNat (UInt256.sub (clipperTimestampWord evm) tic).toNat)]
@@ -1170,7 +1172,7 @@ theorem clipperStatusFunctionReturnsRdivBranch (v : ClipperImmutables)
             (UInt256.sub (clipperTimestampWord evmPrice) tic)
             (UInt256.div (UInt256.mul price clipperRayWord) top), immutables := immStore v } evmPrice
         (.binary .lt (.var "ratio") (.storage cuspRef)) = .ok (.bool done)) :
-    ExecFuncBody config
+    ExecFuncBody fork config
       ({ contract := contract, locals := clipperStatusLocals tic top, immutables := immStore v } : Frame)
       evm statusFunction.body
       (.returned
@@ -1196,7 +1198,7 @@ theorem clipperStatusFunctionReturnsRdivBranch (v : ClipperImmutables)
   let doneFrame : Frame :=
     { contract := contract, locals := clipperStatusDoneLocals tic top ageForPrice price ageForDone, immutables := immStore v }
   have hsubPrice :
-      ExecStmt config startFrame evm
+      ExecStmt fork config startFrame evm
         (.internalCall "sub" [.env .timestamp, .var "tic"] "ageForPrice")
         (.ok ageFrame evm) := by
     simpa [startFrame, ageFrame, ageForPrice] using
@@ -1222,12 +1224,12 @@ theorem clipperStatusFunctionReturnsRdivBranch (v : ClipperImmutables)
     simpa [ageFrame, ageForPrice] using
       clipperEvalStatusPriceArgs v evm tic top ageForPrice
   have hcallStmt :
-      ExecStmt config ageFrame evm
+      ExecStmt fork config ageFrame evm
         (.externalCall (.storage calcRef) "price" (.intLit 0)
           [.var "top", .var "ageForPrice"] "price" (perm := false))
         (.ok priceFrame evmPrice) := by
     simpa [priceFrame] using
-      (ExecStmt.externalCallSuccess (hperm := Or.inl rfl)
+      (ExecStmt.externalCallSuccess (fork := fork) (hperm := Or.inl rfl)
         (cfg := config) (stele := ageFrame) (evm := evm) (evm' := evmPrice)
         (receiver := .storage calcRef) (name := "price") (eth := .intLit 0)
         (args := [.var "top", .var "ageForPrice"]) (retVar := "price")
@@ -1238,18 +1240,18 @@ theorem clipperStatusFunctionReturnsRdivBranch (v : ClipperImmutables)
         (by simpa [ageForPrice] using hcall)
         hdec)
   have hsubDone :
-      ExecStmt config priceFrame evmPrice
+      ExecStmt fork config priceFrame evmPrice
         (.internalCall "sub" [.env .timestamp, .var "tic"] "ageForDone")
         (.ok ageDoneFrame evmPrice) := by
     simpa [priceFrame, ageDoneFrame, ageForDone] using
       clipperStatusAgeForDoneCallReturns v evmPrice tic top ageForPrice price hleDone
   have hletDone :
-      ExecStmt config ageDoneFrame evmPrice (.letDecl "done" (some boolTy) (.boolLit false))
+      ExecStmt fork config ageDoneFrame evmPrice (.letDecl "done" (some boolTy) (.boolLit false))
         (.ok doneFrame evmPrice) := by
     simpa [ageDoneFrame, doneFrame] using
       clipperStatusLetDoneFalse v evmPrice tic top ageForPrice price ageForDone
   have hbranch :
-      ExecBlock config doneFrame evmPrice
+      ExecBlock fork config doneFrame evmPrice
         [ .ite (.binary .gt (.var "ageForDone") (.storage tailRef))
             [ .assign .localVar (varRef "done") (.boolLit true) ]
             ([ .internalCall "rdiv" [.var "price", .var "top"] "ratio",
@@ -1554,7 +1556,7 @@ theorem clipperGetStatusStatusCallReturnsDoneTailTrue (v : ClipperImmutables)
       0 < (UInt256.ofNat ((evm.lookupAccount (clipperStatusCalcAddress evm)).option 0
         (fun acc => acc.code.size))).toNat)
     (hcall :
-      typedCallViaEVM config evm (EVM.address (clipperStatusCalcAddress evm))
+      typedCallViaEVM fork config evm (EVM.address (clipperStatusCalcAddress evm))
         "price" 0
         [.int (Int.ofNat (clipperGetStatusTopWord evm I).toNat),
           .int (Int.ofNat
@@ -1566,7 +1568,7 @@ theorem clipperGetStatusStatusCallReturnsDoneTailTrue (v : ClipperImmutables)
     (htail :
       (clipperStatusTailWord evmPrice).toNat <
         (UInt256.sub (clipperTimestampWord evmPrice) (clipperGetStatusTicWord evm I)).toNat) :
-    ExecStmt config
+    ExecStmt fork config
       { contract := contract, locals := clipperGetStatusLocalsTic evm I, immutables := immStore v } evm
       (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
       (.ok { contract := contract, locals := clipperGetStatusLocalsSt evm I true price, immutables := immStore v }
@@ -1605,7 +1607,7 @@ theorem clipperGetStatusStatusCallReturnsRdivBranch (v : ClipperImmutables)
       0 < (UInt256.ofNat ((evm.lookupAccount (clipperStatusCalcAddress evm)).option 0
         (fun acc => acc.code.size))).toNat)
     (hcall :
-      typedCallViaEVM config evm (EVM.address (clipperStatusCalcAddress evm))
+      typedCallViaEVM fork config evm (EVM.address (clipperStatusCalcAddress evm))
         "price" 0
         [.int (Int.ofNat (clipperGetStatusTopWord evm I).toNat),
           .int (Int.ofNat
@@ -1628,7 +1630,7 @@ theorem clipperGetStatusStatusCallReturnsRdivBranch (v : ClipperImmutables)
             (UInt256.sub (clipperTimestampWord evmPrice) (clipperGetStatusTicWord evm I))
             (UInt256.div (UInt256.mul price clipperRayWord) (clipperGetStatusTopWord evm I)), immutables := immStore v }
         evmPrice (.binary .lt (.var "ratio") (.storage cuspRef)) = .ok (.bool done)) :
-    ExecStmt config
+    ExecStmt fork config
       { contract := contract, locals := clipperGetStatusLocalsTic evm I, immutables := immStore v } evm
       (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
       (.ok { contract := contract, locals := clipperGetStatusLocalsSt evm I done price, immutables := immStore v }
@@ -1878,7 +1880,7 @@ theorem clipperGetStatusBodyReturnsDoneTailTrue (v : ClipperImmutables)
       0 < (UInt256.ofNat ((evm.lookupAccount (clipperStatusCalcAddress evm)).option 0
         (fun acc => acc.code.size))).toNat)
     (hcall :
-      typedCallViaEVM config evm (EVM.address (clipperStatusCalcAddress evm))
+      typedCallViaEVM fork config evm (EVM.address (clipperStatusCalcAddress evm))
         "price" 0
         [.int (Int.ofNat (clipperGetStatusTopWord evm I).toNat),
           .int (Int.ofNat
@@ -1890,7 +1892,7 @@ theorem clipperGetStatusBodyReturnsDoneTailTrue (v : ClipperImmutables)
     (htail :
       (clipperStatusTailWord evmPrice).toNat <
         (UInt256.sub (clipperTimestampWord evmPrice) (clipperGetStatusTicWord evm I)).toNat) :
-    ExecTransitionBody config contract evm (clipperGetStatusStore I)
+    ExecTransitionBody fork config contract evm (clipperGetStatusStore I)
       getStatusTransition.body
       (.returned
         { contract := contract, locals := clipperGetStatusLocalsNeedsRedo evm I true price, immutables := immStore v }
@@ -1907,7 +1909,7 @@ theorem clipperGetStatusBodyReturnsDoneTailTrue (v : ClipperImmutables)
   let priceFrame : Frame := { contract := contract, locals := clipperGetStatusLocalsPrice evm I true price, immutables := immStore v }
   let needsFrame : Frame := { contract := contract, locals := clipperGetStatusLocalsNeedsRedo evm I true price, immutables := immStore v }
   have hletUsr :
-      ExecStmt config startFrame evm
+      ExecStmt fork config startFrame evm
         (.letDecl "usr" (some addr) (.storage (salesF (.var "id") "usr")))
         (.ok usrFrame evm) := by
     simpa [startFrame, usrFrame, clipperGetStatusLocalsUsr] using
@@ -1918,7 +1920,7 @@ theorem clipperGetStatusBodyReturnsDoneTailTrue (v : ClipperImmutables)
         (by simpa [startFrame, clipperGetStatusUsrWord] using
           clipperEvalGetStatusSalesUsr v evm I))
   have hletTic :
-      ExecStmt config usrFrame evm
+      ExecStmt fork config usrFrame evm
         (.letDecl "tic" (some uint96) (.storage (salesF (.var "id") "tic")))
         (.ok ticFrame evm) := by
     simpa [usrFrame, ticFrame, clipperGetStatusLocalsTic] using
@@ -1928,14 +1930,14 @@ theorem clipperGetStatusBodyReturnsDoneTailTrue (v : ClipperImmutables)
         (value := .int (Int.ofNat (clipperGetStatusTicWord evm I).toNat))
         (by simpa [usrFrame] using clipperEvalGetStatusSalesTicAfterUsr v evm I))
   have hstatus :
-      ExecStmt config ticFrame evm
+      ExecStmt fork config ticFrame evm
         (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
         (.ok stFrame evmPrice) := by
     simpa [ticFrame, stFrame] using
       clipperGetStatusStatusCallReturnsDoneTailTrue v I price hlePrice hcode hcall hdec
         hleDone htail
   have hletDone :
-      ExecStmt config stFrame evmPrice
+      ExecStmt fork config stFrame evmPrice
         (.letDecl "done" (some boolTy) (tuple0 (.var "st")))
         (.ok doneFrame evmPrice) := by
     simpa [stFrame, doneFrame, clipperGetStatusLocalsDone] using
@@ -1945,7 +1947,7 @@ theorem clipperGetStatusBodyReturnsDoneTailTrue (v : ClipperImmutables)
         (by simpa [stFrame] using
           clipperEvalGetStatusDoneFromStatusAt v evm evmPrice I true price))
   have hletPrice :
-      ExecStmt config doneFrame evmPrice
+      ExecStmt fork config doneFrame evmPrice
         (.letDecl "price" (some uint256) (tuple1 (.var "st")))
         (.ok priceFrame evmPrice) := by
     simpa [doneFrame, priceFrame, clipperGetStatusLocalsPrice] using
@@ -1956,7 +1958,7 @@ theorem clipperGetStatusBodyReturnsDoneTailTrue (v : ClipperImmutables)
         (by simpa [doneFrame] using
           clipperEvalGetStatusPriceFromStatusAt v evm evmPrice I true price))
   have hletNeeds :
-      ExecStmt config priceFrame evmPrice
+      ExecStmt fork config priceFrame evmPrice
         (.letDecl "needsRedo" (some boolTy)
           (.binary .and (.binary .ne (.var "usr") zeroAddr) (.var "done")))
         (.ok needsFrame evmPrice) := by
@@ -1969,7 +1971,7 @@ theorem clipperGetStatusBodyReturnsDoneTailTrue (v : ClipperImmutables)
         (by simpa [priceFrame] using
           clipperEvalGetStatusNeedsRedoAt v evm evmPrice I true price))
   have hret :
-      ExecBlock config needsFrame evmPrice
+      ExecBlock fork config needsFrame evmPrice
         [ .return [ .var "needsRedo", .var "price",
             .storage (salesF (.var "id") "lot"),
             .storage (salesF (.var "id") "tab") ] ]

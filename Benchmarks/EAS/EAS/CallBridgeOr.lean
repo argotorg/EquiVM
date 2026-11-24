@@ -1,4 +1,6 @@
 import Reasoning.ExternalCall
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 
@@ -8,12 +10,12 @@ theorem callStateMadeAny {s0 I σ evm} (hs : SourceState s0 I σ evm)
     {σ' : AccountMap} {gasLeft callGas : UInt256} {AS' AIn : Substate} {z : Bool} {out : ByteArray}
     (hbalance : value ≤ (σ.get? I.codeOwner |>.elim ⟨0⟩ (·.balance)))
     (hdepth : I.depth.val < 1024)
-    (hΘ : (σ', gasLeft, AS', z, out) = Θ σ s0.σ₀ AIn
+    (hΘ : (σ', gasLeft, AS', z, out) = Θ fork σ s0.σ₀ AIn
       (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
-      (AccountAddress.ofUInt256 target) (toExecute σ (AccountAddress.ofUInt256 target))
+      (AccountAddress.ofUInt256 target) (toExecute fork σ (AccountAddress.ofUInt256 target))
       callGas (UInt256.ofNat I.gasPrice) value value calldata (I.depth + 1) I.header
       I.blobVersionedHashes I.blocks I.perm) :
-    callViaEVM (callState evm σ) (AccountAddress.ofUInt256 target) (Int.ofNat value.toNat)
+    callViaEVM fork (callState evm σ) (AccountAddress.ofUInt256 target) (Int.ofNat value.toNat)
       calldata (z,
         { callState evm σ with
           accountMap := σ'
@@ -34,7 +36,7 @@ theorem callStateMadeAny {s0 I σ evm} (hs : SourceState s0 I σ evm)
 -- GENERALIZES Reasoning.ExternalCall.callBridge to zero-value CALL in static mode.
 theorem callBridgeOr {code I g s0 pc R mem aw rdata σ k C evm}
     {gasArg target value inOffset inSize outOffset outSize : UInt256} {calldata : ByteArray}
-    (h : RD code I g s0 pc
+    (h : RD fork code I g s0 pc
       (gasArg :: target :: value :: inOffset :: inSize :: outOffset :: outSize :: R)
       mem aw rdata σ k C)
     (hs : SourceState s0 I σ evm) (hperm : I.perm = true ∨ value = ⟨0⟩)
@@ -44,16 +46,16 @@ theorem callBridgeOr {code I g s0 pc R mem aw rdata σ k C evm}
     (hov : R.length + 1 ≤ 1024) :
     ∃ (evm' : EVM.State) (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (k' C' : Nat),
-      callViaEVM evm (AccountAddress.ofUInt256 target) (Int.ofNat value.toNat)
+      callViaEVM fork evm (AccountAddress.ofUInt256 target) (Int.ofNat value.toNat)
         calldata (z, evm', out) ∧
       SourceState s0 I σ' evm' ∧
-      RD code I g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: R)
+      RD fork code I g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: R)
         (callOutputMem mem out outOffset outSize)
         (callActiveWords aw inOffset inSize outOffset outSize) out σ' k' C' ∧
       out.size < 2 ^ 138 := by
   by_cases hd : I.depth = 1024
   · obtain ⟨_, _, rd⟩ := h.callValueDepthLimitOr hperm hdec hd hov
-    have hraw := callStateNotMade (target := target) (value := value) (calldata := calldata)
+    have hraw := callStateNotMade (fork := fork) (target := target) (value := value) (calldata := calldata)
       hs (fun hn => hn.2 hd)
     obtain ⟨evm', hcall, hs'⟩ := hs.callTransport hraw
     exact ⟨evm', σ, false, ByteArray.empty, _, _, hcall, hs', rd, by decide⟩
@@ -73,7 +75,7 @@ theorem callBridgeOr {code I g s0 pc R mem aw rdata σ k C evm}
       obtain ⟨evm', hcall, hs'⟩ := hs.callTransport hraw
       exact ⟨evm', σ', z, out, k', C', hcall, hs', rd, ho⟩
     · obtain ⟨_, _, rd⟩ := h.callValueInsufficientBalanceOr hperm hdec hb hdlt hov
-      have hraw := callStateNotMade (target := target) (value := value) (calldata := calldata)
+      have hraw := callStateNotMade (fork := fork) (target := target) (value := value) (calldata := calldata)
         hs (fun hn => hb hn.1)
       obtain ⟨evm', hcall, hs'⟩ := hs.callTransport hraw
       exact ⟨evm', σ, false, ByteArray.empty, _, _, hcall, hs', rd, by decide⟩

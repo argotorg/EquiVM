@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.Dispatch
 import Benchmarks.CompoundIII.Comet.ApproveThisEvm
 import Benchmarks.CompoundIII.Comet.ApproveThisSource
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # CometWithExtendedAssetList `approveThis(address,address,uint256)`
 
@@ -22,7 +24,7 @@ set_option maxRecDepth 2000
 theorem cometWithExtendedAssetListApproveThisBody {σ σ₀ A I} {g : UInt256} (v : CometWithExtendedAssetListImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 51)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (cometWithExtendedAssetListSelBytes 51) rfl hsel
   have hd : selectorDispatchMsg contract I.calldata = some approveThisTransition :=
     cometSelectorDispatch ⟨51, by decide⟩ hsel
@@ -32,7 +34,7 @@ theorem cometWithExtendedAssetListApproveThisBody {σ σ₀ A I} {g : UInt256} (
       decodeCalldata ["manager", "asset", "amount"]
         [.elem .address, .elem .address, abiUInt256] I.calldata := by
     exact solc0815_decodeCalldata_scalar_eq (by decide)
-  have hX := approveThisX (σ := σ) (σ₀ := σ₀) (A := A)
+  have hX := approveThisX (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
   by_cases hargs : TwoAddressUintCalldataValid I
   · have hdec := hdecode.trans (decodeCalldata_address_address_uint256_ok

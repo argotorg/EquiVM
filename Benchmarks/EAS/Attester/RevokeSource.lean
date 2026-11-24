@@ -1,6 +1,8 @@
 import Benchmarks.EAS.Attester.Decode
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.EAS.Attester.Immutables
 
@@ -53,9 +55,9 @@ def revokeFinalFrame (imms : Store) (eas : EVM.Address) (schema uid : UInt256) :
 theorem revokeSourcePrefix {imms : Store} {eas : EVM.Address} {schema uid : UInt256}
     {evm : State} {result : ExecResult} (hvalue : evm.executionEnv.weiValue = ⟨0⟩)
     (hget : imms.get? "_eas" = some (.address eas))
-    (hrest : ExecBlock config (revokeCallFrame imms eas schema uid) evm
+    (hrest : ExecBlock fork config (revokeCallFrame imms eas schema uid) evm
       (revokeTransition.body.drop 2) result) :
-    ExecBlock config (revokeFrame imms schema uid) evm revokeTransition.body result := by
+    ExecBlock fork config (revokeFrame imms schema uid) evm revokeTransition.body result := by
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hvalue)) ?_
   refine ExecBlock.consNormal (ExecStmt.letDecl ?_) hrest
   change evalExpr? config (revokeFrame imms schema uid) evm (.immutable "_eas") = _
@@ -80,7 +82,7 @@ theorem revokeSourceNoCode {imms : Store} {eas : EVM.Address} {schema uid : UInt
     (hget : imms.get? "_eas" = some (.address eas))
     (hguard : evalExpr? config (revokeCallFrame imms eas schema uid) evm
       (.binary .gt (.extCodeSize (.var "eas")) (.intLit 0)) = .ok (.bool false)) :
-    ExecTransitionBody config contract evm (revokeLocals schema uid) revokeTransition.body
+    ExecTransitionBody fork config contract evm (revokeLocals schema uid) revokeTransition.body
       .reverted imms :=
   .execBlockRevert (revokeSourcePrefix hvalue hget
     (ExecBlock.consRevert (ExecStmt.requireFalse hguard)))
@@ -90,14 +92,14 @@ theorem revokeSourceFailure {imms : Store} {eas : EVM.Address} {schema uid : UIn
     (hget : imms.get? "_eas" = some (.address eas))
     (hguard : evalExpr? config (revokeCallFrame imms eas schema uid) evm
       (.binary .gt (.extCodeSize (.var "eas")) (.intLit 0)) = .ok (.bool true))
-    (hcall : typedCallViaEVM config evm eas "revoke" 0 [revokeRequest schema uid]
+    (hcall : typedCallViaEVM fork config evm eas "revoke" 0 [revokeRequest schema uid]
       (false, evm', out)) :
-    ExecTransitionBody config contract evm (revokeLocals schema uid) revokeTransition.body
+    ExecTransitionBody fork config contract evm (revokeLocals schema uid) revokeTransition.body
       .reverted imms := by
   apply ExecFuncBody.execBlockRevert
   apply revokeSourcePrefix hvalue hget
   refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
-  exact ExecBlock.consRevert (ExecStmt.externalCallFailure (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0) revokeSourceReceiver
+  exact ExecBlock.consRevert (ExecStmt.externalCallFailure (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0) revokeSourceReceiver
     (by simp only [evalExpr?, pure]) revokeSourceArgs
     (by simpa only [address_of_val] using hcall))
 
@@ -106,14 +108,14 @@ theorem revokeSourceSuccess {imms : Store} {eas : EVM.Address} {schema uid : UIn
     (hget : imms.get? "_eas" = some (.address eas))
     (hguard : evalExpr? config (revokeCallFrame imms eas schema uid) evm
       (.binary .gt (.extCodeSize (.var "eas")) (.intLit 0)) = .ok (.bool true))
-    (hcall : typedCallViaEVM config evm eas "revoke" 0 [revokeRequest schema uid]
+    (hcall : typedCallViaEVM fork config evm eas "revoke" 0 [revokeRequest schema uid]
       (true, evm', out)) :
-    ExecTransitionBody config contract evm (revokeLocals schema uid) revokeTransition.body
+    ExecTransitionBody fork config contract evm (revokeLocals schema uid) revokeTransition.body
       (.returned (revokeFinalFrame imms eas schema uid) evm' none) imms := by
   apply ExecFuncBody.execBlockOK
   apply revokeSourcePrefix hvalue hget
   refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
-  exact ExecBlock.consNormal (ExecStmt.externalCallSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0) (value := [])
+  exact ExecBlock.consNormal (ExecStmt.externalCallSuccess (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (sendVal := 0) (value := [])
     revokeSourceReceiver
     (by simp only [evalExpr?, pure]) revokeSourceArgs
     (by simpa only [address_of_val] using hcall) (by rfl)) ExecBlock.nil

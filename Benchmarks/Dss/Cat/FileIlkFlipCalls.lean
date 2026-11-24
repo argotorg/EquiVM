@@ -1,6 +1,8 @@
 import Benchmarks.Dss.Cat.Storage
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -169,7 +171,7 @@ theorem catReachFileIlkFlipBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0xeb, 0xec, 0xb3, 0x9d]⟩) :
-    ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork catBytecode I g (initState σ σ₀ g A I)
         ⟨733⟩ [catSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : catSelWord I = ⟨3958158237⟩ :=
@@ -200,10 +202,10 @@ theorem RD.catFileIlkFlipDecodeToRoutine {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret de sel : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
     {acc : AccountMap}
-    (h : RD catBytecode ee g s0 ⟨755⟩ (de :: ⟨4⟩ :: ret :: sel :: R) mem aw rdata acc k C)
+    (h : RD fork catBytecode ee g s0 ⟨755⟩ (de :: ⟨4⟩ :: ret :: sel :: R) mem aw rdata acc k C)
     (hroutine : (D_J catBytecode 0).contains ⟨3366⟩ = true)
     (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD catBytecode ee g s0 ⟨3366⟩
+    ∃ k' C', RD fork catBytecode ee g s0 ⟨3366⟩
       (UInt256.land solcAddrMask (calldataWord ee.calldata 68) ::
         calldataWord ee.calldata 36 :: calldataWord ee.calldata 4 :: ret :: sel :: R)
       mem aw rdata acc k' C' := by
@@ -236,12 +238,12 @@ theorem RD.catFileIlkFlipDecodeToRoutine {g : Sat256} {s0 : State}
 /-! ### Reach → auth → what-check (⟨733⟩ → ⟨3455⟩ on auth ok) -/
 
 theorem RD.catFileIlkFlipToWhatCheck {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
+    (hreach : ∃ k C, RD fork catBytecode I g (initState σ σ₀ g A I)
       ⟨733⟩ [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz100 : 100 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hauth : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩) :
-    ∃ k C, RD catBytecode I g (initState σ σ₀ g A I) ⟨3455⟩
+    ∃ k C, RD fork catBytecode I g (initState σ σ₀ g A I) ⟨3455⟩
       (fileIlkFlipFlipKey I :: fileIlkFlipWhatWord I :: fileIlkFlipIlkWord I :: ⟨302⟩ :: sel :: [])
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -269,12 +271,12 @@ theorem RD.catFileIlkFlipToWhatCheck {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   exact ⟨_, _, hafterAuth⟩
 
 theorem RD.catFileIlkFlipAuthRevert {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
+    (hreach : ∃ k C, RD fork catBytecode I g (initState σ σ₀ g A I)
       ⟨733⟩ [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz100 : 100 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hauth : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩) :
-    RDrev catBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork catBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨0⟩ :=
     solcDecodeLenCheckOkUnsigned (by simpa using hsz100) hsize
@@ -309,11 +311,11 @@ theorem fileIlkFlipConst_eq :
 theorem RD.catFileIlkFlipWhatFlip {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {flip what ilk ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD catBytecode ee g s0 ⟨3455⟩ (flip :: what :: ilk :: ret :: sel :: R) mem
+    (h : RD fork catBytecode ee g s0 ⟨3455⟩ (flip :: what :: ilk :: ret :: sel :: R) mem
       (UInt256.ofNat 3) rdata acc k C)
     (hmatch : what = ABI.bytesToWord fileIlkFlipBytes)
     (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD catBytecode ee g s0 ⟨3471⟩ (flip :: what :: ilk :: ret :: sel :: R) mem
+    ∃ k' C', RD fork catBytecode ee g s0 ⟨3471⟩ (flip :: what :: ilk :: ret :: sel :: R) mem
       (UInt256.ofNat 3) rdata acc k' C' := by
   have rd3456 := h.jumpdest (by native_decide) (by evm_ov)
   have rd3457 := rd3456.dup2 (by native_decide) (by evm_ov)
@@ -332,11 +334,11 @@ theorem RD.catFileIlkFlipWhatFlip {g : Sat256} {s0 : State} {ee : ExecutionEnv}
 theorem RD.catFileIlkFlipWhatSkip {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {flip what ilk ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
-    (h : RD catBytecode ee g s0 ⟨3455⟩ (flip :: what :: ilk :: ret :: sel :: R) mem
+    (h : RD fork catBytecode ee g s0 ⟨3455⟩ (flip :: what :: ilk :: ret :: sel :: R) mem
       (UInt256.ofNat 3) rdata acc k C)
     (hneq : what ≠ ABI.bytesToWord fileIlkFlipBytes)
     (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD catBytecode ee g s0 ⟨953⟩ (flip :: what :: ilk :: ret :: sel :: R) mem
+    ∃ k' C', RD fork catBytecode ee g s0 ⟨953⟩ (flip :: what :: ilk :: ret :: sel :: R) mem
       (UInt256.ofNat 3) rdata acc k' C' := by
   have rd3456 := h.jumpdest (by native_decide) (by evm_ov)
   have rd3457 := rd3456.dup2 (by native_decide) (by evm_ov)
@@ -433,11 +435,11 @@ theorem fifNopeCdMem_read64 (I : ExecutionEnv) (arg : UInt256) :
   exact fifNopeSelMem_read64 I
 
 theorem RD.catFileIlkFlipNopeEncode {σ σ₀ A I} {g : Sat256} {flip ret sel : UInt256}
-    (h : RD catBytecode I g (initState σ σ₀ g A I) ⟨3471⟩
+    (h : RD fork catBytecode I g (initState σ σ₀ g A I) ⟨3471⟩
       (flip :: fileIlkFlipWhatWord I :: fileIlkFlipIlkWord I :: ret :: sel :: [])
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD catBytecode I g (initState σ σ₀ g A I) ⟨3546⟩
+    ∃ k' C', RD fork catBytecode I g (initState σ σ₀ g A I) ⟨3546⟩
       (UInt256.land (solcSlotWord σ I ⟨3⟩) solcAddrMask ::
         UInt256.land (solcSlotWord σ I ⟨3⟩) solcAddrMask :: ⟨0⟩ :: ⟨128⟩ :: ⟨36⟩ ::
         ⟨128⟩ :: ⟨0⟩ :: ⟨164⟩ :: ⟨3696042234⟩ ::

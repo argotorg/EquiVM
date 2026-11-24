@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.FlashLoanCallbackPrepare
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -10,9 +12,9 @@ theorem morphoFlashLoanCallbackFailure {v : MorphoImmutables} {ee : ExecutionEnv
     {s0 : State} {mem out : ByteArray} {aw ptr assets token : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (hstack : R.length + 20 ≤ 1024)
     (hout : out.size < UInt256.size)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 1186)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 1186)
       ([UInt256.ofNat 0, ptr, UInt256.ofNat 0, assets, token, UInt256.ofNat 0] ++ R) mem aw out σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨a1, k1, C1, rd1⟩ := morphoBlocks.morpho_block_1186_taken_packed
     (immWords := wordsOf (immStore v)) (by change R.length + 5 + 3 ≤ 1024; omega)
     (by decide) (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
@@ -24,9 +26,9 @@ theorem morphoFlashLoanCallbackSuccess {v : MorphoImmutables} {ee : ExecutionEnv
     {s0 : State} {mem out : ByteArray} {aw ptr assets token : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (hstack : R.length + 20 ≤ 1024)
     (hptr : ptr.toNat < 2 ^ 64)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 1186)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 1186)
       ([UInt256.ofNat 1, ptr, UInt256.ofNat 0, assets, token, UInt256.ofNat 0] ++ R) mem aw out σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 15033)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 15033)
       ([token, UInt256.ofNat ee.source.val, UInt256.ofNat ee.codeOwner.val, assets,
         UInt256.ofNat 1211, UInt256.ofNat 0] ++ R) (writeWord mem 64 ptr) aw' out σ k' C' := by
   obtain ⟨a1, k1, C1, rd1⟩ := morphoBlocks.morpho_block_1186_fallthrough_packed

@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.ConstructorDecodeAddresses
 import Benchmarks.CompoundIII.Comet.CreationBlocks_002
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open cometWithExtendedAssetListCreationBlocks
 
@@ -11,12 +13,12 @@ set_option maxRecDepth 2000
 theorem cometConstructorDecodeUint64 {σ σ₀ A I} {g : Sat256} {c : ConstructorConfig}
     {aw : UInt256} {k C : Nat}
     (hsize : 22161 + 224 * c.assetConfigs.length < UInt256.size)
-    (h : RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+    (h : RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
       (initState σ σ₀ g A I) ⟨193⟩
       [constructorRecordWord c 4, ⟨928⟩, ⟨32⟩, constructorArgumentSizeWord c,
       UInt256.ofNat (constructorRecordBase c)]
       (constructorScalarMemory c 4) aw ByteArray.empty σ k C) :
-    ∃ aw' k' C', RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+    ∃ aw' k' C', RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
       (initState σ σ₀ g A I) ⟨462⟩
       [constructorRecordWord c 16, ⟨928⟩, ⟨32⟩, constructorArgumentSizeWord c,
       UInt256.ofNat (constructorRecordBase c)]
@@ -30,7 +32,7 @@ theorem cometConstructorDecodeUint64 {σ σ₀ A I} {g : Sat256} {c : Constructo
     rw [constructorRecordBase_add_toNat (by decide) hsize]
     rfl
   rw [hm5] at s5
-  change RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+  change RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
     (initState σ σ₀ g A I)
     ⟨2768⟩ [UInt256.ofNat 1120, ⟨214⟩, ⟨928⟩, ⟨32⟩, constructorArgumentSizeWord c,
       UInt256.ofNat (constructorRecordBase c)]
@@ -49,7 +51,7 @@ theorem cometConstructorDecodeUint64 {σ σ₀ A I} {g : Sat256} {c : Constructo
     rw [constructorRecordBase_add_toNat (by decide) hsize]
     rfl
   rw [hm6] at s6
-  change RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+  change RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
     (initState σ σ₀ g A I)
     ⟨2768⟩ [UInt256.ofNat 1152, ⟨235⟩, ⟨928⟩, ⟨32⟩, constructorArgumentSizeWord c,
       UInt256.ofNat (constructorRecordBase c)]
@@ -68,7 +70,7 @@ theorem cometConstructorDecodeUint64 {σ σ₀ A I} {g : Sat256} {c : Constructo
     rw [constructorRecordBase_add_toNat (by decide) hsize]
     rfl
   rw [hm7] at s7
-  change RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+  change RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
     (initState σ σ₀ g A I)
     ⟨2768⟩ [UInt256.ofNat 1184, ⟨256⟩, ⟨928⟩, ⟨32⟩, constructorArgumentSizeWord c,
       UInt256.ofNat (constructorRecordBase c)]
@@ -87,7 +89,7 @@ theorem cometConstructorDecodeUint64 {σ σ₀ A I} {g : Sat256} {c : Constructo
     rw [constructorRecordBase_add_toNat (by decide) hsize]
     rfl
   rw [hm8] at s8
-  change RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+  change RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
     (initState σ σ₀ g A I)
     ⟨2768⟩ [UInt256.ofNat 1216, ⟨278⟩, ⟨928⟩, ⟨32⟩, constructorArgumentSizeWord c,
       UInt256.ofNat (constructorRecordBase c)]
@@ -106,7 +108,7 @@ theorem cometConstructorDecodeUint64 {σ σ₀ A I} {g : Sat256} {c : Constructo
     rw [constructorRecordBase_add_toNat (by decide) hsize]
     rfl
   rw [hm9] at s9
-  change RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+  change RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
     (initState σ σ₀ g A I)
     ⟨2768⟩ [UInt256.ofNat 1248, ⟨301⟩, ⟨928⟩, ⟨32⟩, constructorArgumentSizeWord c,
       UInt256.ofNat (constructorRecordBase c)]
@@ -125,7 +127,7 @@ theorem cometConstructorDecodeUint64 {σ σ₀ A I} {g : Sat256} {c : Constructo
     rw [constructorRecordBase_add_toNat (by decide) hsize]
     rfl
   rw [hm10] at s10
-  change RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+  change RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
     (initState σ σ₀ g A I)
     ⟨2768⟩ [UInt256.ofNat 1280, ⟨324⟩, ⟨928⟩, ⟨32⟩, constructorArgumentSizeWord c,
       UInt256.ofNat (constructorRecordBase c)]
@@ -144,7 +146,7 @@ theorem cometConstructorDecodeUint64 {σ σ₀ A I} {g : Sat256} {c : Constructo
     rw [constructorRecordBase_add_toNat (by decide) hsize]
     rfl
   rw [hm11] at s11
-  change RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+  change RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
     (initState σ σ₀ g A I)
     ⟨2768⟩ [UInt256.ofNat 1312, ⟨347⟩, ⟨928⟩, ⟨32⟩, constructorArgumentSizeWord c,
       UInt256.ofNat (constructorRecordBase c)]
@@ -163,7 +165,7 @@ theorem cometConstructorDecodeUint64 {σ σ₀ A I} {g : Sat256} {c : Constructo
     rw [constructorRecordBase_add_toNat (by decide) hsize]
     rfl
   rw [hm12] at s12
-  change RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+  change RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
     (initState σ σ₀ g A I)
     ⟨2768⟩ [UInt256.ofNat 1344, ⟨370⟩, ⟨928⟩, ⟨32⟩, constructorArgumentSizeWord c,
       UInt256.ofNat (constructorRecordBase c)]
@@ -182,7 +184,7 @@ theorem cometConstructorDecodeUint64 {σ σ₀ A I} {g : Sat256} {c : Constructo
     rw [constructorRecordBase_add_toNat (by decide) hsize]
     rfl
   rw [hm13] at s13
-  change RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+  change RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
     (initState σ σ₀ g A I)
     ⟨2768⟩ [UInt256.ofNat 1376, ⟨393⟩, ⟨928⟩, ⟨32⟩, constructorArgumentSizeWord c,
       UInt256.ofNat (constructorRecordBase c)]
@@ -201,7 +203,7 @@ theorem cometConstructorDecodeUint64 {σ σ₀ A I} {g : Sat256} {c : Constructo
     rw [constructorRecordBase_add_toNat (by decide) hsize]
     rfl
   rw [hm14] at s14
-  change RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+  change RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
     (initState σ σ₀ g A I)
     ⟨2768⟩ [UInt256.ofNat 1408, ⟨416⟩, ⟨928⟩, ⟨32⟩, constructorArgumentSizeWord c,
       UInt256.ofNat (constructorRecordBase c)]
@@ -220,7 +222,7 @@ theorem cometConstructorDecodeUint64 {σ σ₀ A I} {g : Sat256} {c : Constructo
     rw [constructorRecordBase_add_toNat (by decide) hsize]
     rfl
   rw [hm15] at s15
-  change RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+  change RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
     (initState σ σ₀ g A I)
     ⟨2768⟩ [UInt256.ofNat 1440, ⟨439⟩, ⟨928⟩, ⟨32⟩, constructorArgumentSizeWord c,
       UInt256.ofNat (constructorRecordBase c)]
@@ -239,7 +241,7 @@ theorem cometConstructorDecodeUint64 {σ σ₀ A I} {g : Sat256} {c : Constructo
     rw [constructorRecordBase_add_toNat (by decide) hsize]
     rfl
   rw [hm16] at s16
-  change RD (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
+  change RD fork (cometWithExtendedAssetListCreationBytecode ++ c.encodedArgs.toByteArray) I g
     (initState σ σ₀ g A I)
     ⟨2768⟩ [UInt256.ofNat 1472, ⟨462⟩, ⟨928⟩, ⟨32⟩, constructorArgumentSizeWord c,
       UInt256.ofNat (constructorRecordBase c)]

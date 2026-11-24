@@ -1,5 +1,7 @@
 import Tests.Pipeline.VyperVault.Helpers
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # VyperVault `deposit()`
 
@@ -138,7 +140,7 @@ theorem vyperVaultDepositBody {σ σ₀ A I} {g : UInt256} (imms : Store) (hfit 
     (hwf : storageWF σ I)
     (hcode : I.code = immutableLayout.deployed vyperVaultBytecode imms) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vyperVaultSelBytes 8)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (restrictImmutables contract imms) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (restrictImmutables contract imms) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (vyperVaultSelBytes 8) rfl hsel
   have hcode' : I.code = vyperVaultBytecode ++ immutableLayout.suffixWords (wordsOf imms) := by
     rw [hcode, deployed_of_fit hfit]
@@ -481,7 +483,7 @@ theorem vyperVaultDepositBody {σ σ₀ A I} {g : UInt256} (imms : Store) (hfit 
     rw [evalExprs?, evalExpr_caller, evalExprs?, evalVar imms _ _ "credited" _ (store_get_self _ _ _), evalExprs?]
     simp only [storageStore_executionEnv, EvalResult.bind, bind, pure]
     rfl
-  have hbody : ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+  have hbody : ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
       depositTransition.body
       (.returned (frame imms (depositLocals I.weiValue))
         (Stele.EVM.storageStore

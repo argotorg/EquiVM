@@ -12,6 +12,8 @@ import Ethereum.Theory.OpcodeLemmas
 import Reasoning.ExternalCall
 import Reasoning.MemCascade
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -1696,7 +1698,7 @@ theorem evalExpr_permitDigestStore_holder_ne_zero_false (evm : EVM.State) (I : E
 theorem daiPermitBodyReverts_holderZero (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hz : permitHolderMaskedWord I = ⟨0⟩) :
-    ExecTransitionBody config contract evm (permitStore I) permitTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (permitStore I) permitTransition.body .reverted := by
   exact ExecFuncBody.execBlockRevert <| by
     simpa [permitTransition, nonpayable, permitDigestStore] using
       ((ABlock.start
@@ -1710,9 +1712,9 @@ theorem daiPermitBodyReverts_ecrecoverFailed (evm evm' : EVM.State) (I : Executi
     (hsz260 : 260 ≤ I.calldata.size)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hnz : permitHolderMaskedWord I ≠ ⟨0⟩)
-    (hcall : callViaEVM evm (EVM.address (AccountAddress.ofNat 1)) 0
+    (hcall : callViaEVM fork evm (EVM.address (AccountAddress.ofNat 1)) 0
       (permitEcrecoverCalldata evm I) (false, evm', out) false) :
-    ExecTransitionBody config contract evm (permitStore I) permitTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (permitStore I) permitTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   simpa [permitTransition, nonpayable] using
     (((ABlock.start
@@ -1720,7 +1722,7 @@ theorem daiPermitBodyReverts_ecrecoverFailed (evm evm' : EVM.State) (I : Executi
       |>.letStep (evalExpr_permitDigest evm I))
       |>.requireStep (evalExpr_permitDigestStore_holder_ne_zero_true evm I hnz)).run <|
         ExecBlock.consNormal
-          (ExecStmt.lowLevelCallFailure (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+          (ExecStmt.lowLevelCallFailure (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
             (evalExpr_ecrecoverPrecompile evm (permitDigestStore evm I))
             (evalExpr_zeroInt evm (permitDigestStore evm I))
             (evalExpr_ecrecoverCalldata evm hsz260)
@@ -1736,10 +1738,10 @@ theorem daiPermitBodyReverts_recoveredDecode (evm evm' : EVM.State) (I : Executi
     (hsz260 : 260 ≤ I.calldata.size)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hnz : permitHolderMaskedWord I ≠ ⟨0⟩)
-    (hcall : callViaEVM evm (EVM.address (AccountAddress.ofNat 1)) 0
+    (hcall : callViaEVM fork evm (EVM.address (AccountAddress.ofNat 1)) 0
       (permitEcrecoverCalldata evm I) (true, evm', out) false)
     (hdec : config.externalABI.decodeValue? addr out = none) :
-    ExecTransitionBody config contract evm (permitStore I) permitTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (permitStore I) permitTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   simpa [permitTransition, nonpayable, permitEcrecoverCallStore] using
     (((ABlock.start
@@ -1747,7 +1749,7 @@ theorem daiPermitBodyReverts_recoveredDecode (evm evm' : EVM.State) (I : Executi
       |>.letStep (evalExpr_permitDigest evm I))
       |>.requireStep (evalExpr_permitDigestStore_holder_ne_zero_true evm I hnz)).run <|
         ExecBlock.consNormal
-          (ExecStmt.lowLevelCallSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+          (ExecStmt.lowLevelCallSuccess (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
             (evalExpr_ecrecoverPrecompile evm (permitDigestStore evm I))
             (evalExpr_zeroInt evm (permitDigestStore evm I))
             (evalExpr_ecrecoverCalldata evm hsz260)
@@ -1767,13 +1769,13 @@ theorem daiPermitBodyReverts_badRecovered (evm evm' : EVM.State) (I : ExecutionE
     (hsz260 : 260 ≤ I.calldata.size)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hnz : permitHolderMaskedWord I ≠ ⟨0⟩)
-    (hcall : callViaEVM evm (EVM.address (AccountAddress.ofNat 1)) 0
+    (hcall : callViaEVM fork evm (EVM.address (AccountAddress.ofNat 1)) 0
       (permitEcrecoverCalldata evm I) (true, evm', out) false)
     (hdec :
       config.externalABI.decodeValue? addr out =
         some (.address recovered))
     (hne : AccountAddress.ofNat (permitHolderWord I).toNat ≠ recovered) :
-    ExecTransitionBody config contract evm (permitStore I) permitTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (permitStore I) permitTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   simpa [permitTransition, nonpayable, permitEcrecoverCallStore, permitRecoveredStore] using
     ((((ABlock.start
@@ -1781,7 +1783,7 @@ theorem daiPermitBodyReverts_badRecovered (evm evm' : EVM.State) (I : ExecutionE
       |>.letStep (evalExpr_permitDigest evm I))
       |>.requireStep (evalExpr_permitDigestStore_holder_ne_zero_true evm I hnz)).run <|
         ExecBlock.consNormal
-          (ExecStmt.lowLevelCallSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+          (ExecStmt.lowLevelCallSuccess (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
             (evalExpr_ecrecoverPrecompile evm (permitDigestStore evm I))
             (evalExpr_zeroInt evm (permitDigestStore evm I))
             (evalExpr_ecrecoverCalldata evm hsz260)
@@ -1805,7 +1807,7 @@ theorem daiPermitBodyReverts_expired (evm evm' : EVM.State) (I : ExecutionEnv)
     (hsz260 : 260 ≤ I.calldata.size)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hnz : permitHolderMaskedWord I ≠ ⟨0⟩)
-    (hcall : callViaEVM evm (EVM.address (AccountAddress.ofNat 1)) 0
+    (hcall : callViaEVM fork evm (EVM.address (AccountAddress.ofNat 1)) 0
       (permitEcrecoverCalldata evm I) (true, evm', out) false)
     (hdec :
       config.externalABI.decodeValue? addr out =
@@ -1814,7 +1816,7 @@ theorem daiPermitBodyReverts_expired (evm evm' : EVM.State) (I : ExecutionEnv)
     (hexpiryNonzero : permitExpiryWord I ≠ ⟨0⟩)
     (hexpired :
       (permitExpiryWord I).toNat < (UInt256.ofNat evm'.executionEnv.header.timestamp).toNat) :
-    ExecTransitionBody config contract evm (permitStore I) permitTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (permitStore I) permitTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   simpa [permitTransition, nonpayable, permitEcrecoverCallStore, permitRecoveredStore] using
     ((((ABlock.start
@@ -1822,7 +1824,7 @@ theorem daiPermitBodyReverts_expired (evm evm' : EVM.State) (I : ExecutionEnv)
       |>.letStep (evalExpr_permitDigest evm I))
       |>.requireStep (evalExpr_permitDigestStore_holder_ne_zero_true evm I hnz)).run <|
         ExecBlock.consNormal
-          (ExecStmt.lowLevelCallSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+          (ExecStmt.lowLevelCallSuccess (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
             (evalExpr_ecrecoverPrecompile evm (permitDigestStore evm I))
             (evalExpr_zeroInt evm (permitDigestStore evm I))
             (evalExpr_ecrecoverCalldata evm hsz260)
@@ -1849,7 +1851,7 @@ theorem daiPermitBodyPrefix (evm evm' : EVM.State) (I : ExecutionEnv)
     (hsz260 : 260 ≤ I.calldata.size)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hnz : permitHolderMaskedWord I ≠ ⟨0⟩)
-    (hcall : callViaEVM evm (EVM.address (AccountAddress.ofNat 1)) 0
+    (hcall : callViaEVM fork evm (EVM.address (AccountAddress.ofNat 1)) 0
       (permitEcrecoverCalldata evm I) (true, evm', out) false)
     (hdec :
       config.externalABI.decodeValue? addr out =
@@ -1859,11 +1861,11 @@ theorem daiPermitBodyPrefix (evm evm' : EVM.State) (I : ExecutionEnv)
       permitExpiryWord I = ⟨0⟩ ∨
         (UInt256.ofNat evm'.executionEnv.header.timestamp).toNat ≤ (permitExpiryWord I).toNat)
     {result : ExecResult}
-    (htail : ExecBlock config
+    (htail : ExecBlock fork config
       { contract := contract, locals := permitSavedNonceStore evm I out recovered
           (Stele.EVM.storageLoad evm' evm'.executionEnv.codeOwner (permitNonceStorageSlot I)) }
       evm' (permitTransition.body.drop 9) result) :
-    ExecBlock config { contract := contract, locals := permitStore I } evm
+    ExecBlock fork config { contract := contract, locals := permitStore I } evm
       permitTransition.body result := by
   simpa [permitTransition, nonpayable, permitEcrecoverCallStore, permitRecoveredStore,
     permitSavedNonceStore] using
@@ -1872,7 +1874,7 @@ theorem daiPermitBodyPrefix (evm evm' : EVM.State) (I : ExecutionEnv)
       |>.letStep (evalExpr_permitDigest evm I))
       |>.requireStep (evalExpr_permitDigestStore_holder_ne_zero_true evm I hnz)).run <|
         ExecBlock.consNormal
-          (ExecStmt.lowLevelCallSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+          (ExecStmt.lowLevelCallSuccess (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
             (evalExpr_ecrecoverPrecompile evm (permitDigestStore evm I))
             (evalExpr_zeroInt evm (permitDigestStore evm I))
             (evalExpr_ecrecoverCalldata evm hsz260)
@@ -1903,7 +1905,7 @@ theorem daiPermitBodyStatic (evm evm' : EVM.State) (I : ExecutionEnv)
     (hsz260 : 260 ≤ I.calldata.size)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hnz : permitHolderMaskedWord I ≠ ⟨0⟩)
-    (hcall : callViaEVM evm (EVM.address (AccountAddress.ofNat 1)) 0
+    (hcall : callViaEVM fork evm (EVM.address (AccountAddress.ofNat 1)) 0
       (permitEcrecoverCalldata evm I) (true, evm', out) false)
     (hdec :
       config.externalABI.decodeValue? addr out =
@@ -1913,7 +1915,7 @@ theorem daiPermitBodyStatic (evm evm' : EVM.State) (I : ExecutionEnv)
       permitExpiryWord I = ⟨0⟩ ∨
         (UInt256.ofNat evm'.executionEnv.header.timestamp).toNat ≤ (permitExpiryWord I).toNat)
     (hperm : evm'.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (permitStore I) permitTransition.body
+    ExecTransitionBody fork config contract evm (permitStore I) permitTransition.body
       .staticViolation := by
   refine ExecFuncBody.execBlockStatic ?_
   apply daiPermitBodyPrefix evm evm' I out recovered hsz260 hwv hnz hcall hdec heq hexpiryOk
@@ -1928,7 +1930,7 @@ theorem daiPermitBodyReverts_nonceMismatch (evm evm' : EVM.State) (I : Execution
     (hsz260 : 260 ≤ I.calldata.size)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hnz : permitHolderMaskedWord I ≠ ⟨0⟩)
-    (hcall : callViaEVM evm (EVM.address (AccountAddress.ofNat 1)) 0
+    (hcall : callViaEVM fork evm (EVM.address (AccountAddress.ofNat 1)) 0
       (permitEcrecoverCalldata evm I) (true, evm', out) false)
     (hdec :
       config.externalABI.decodeValue? addr out =
@@ -1941,11 +1943,11 @@ theorem daiPermitBodyReverts_nonceMismatch (evm evm' : EVM.State) (I : Execution
       permitNonceWord I ≠
         Stele.EVM.storageLoad evm' evm'.executionEnv.codeOwner (permitNonceStorageSlot I))
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (permitStore I) permitTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (permitStore I) permitTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   apply daiPermitBodyPrefix evm evm' I out recovered hsz260 hwv hnz hcall hdec heq hexpiryOk
   refine ExecBlock.consNormal
-    (ExecStmt.assign (hperm := Or.inr (by simpa only [permitPostNonceState, storageStore_executionEnv, callViaEVM_executionEnv_eq hcall] using hperm))
+    (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [permitPostNonceState, storageStore_executionEnv, callViaEVM_executionEnv_eq hcall] using hperm))
       (evalExpr_permitSavedNonceStore_increment evm evm' I out recovered _)
       (permitAssignSavedNonce evm evm' I out recovered _ rfl)) ?_
   exact ExecBlock.consRevert (ExecStmt.requireFalse (by
@@ -1960,7 +1962,7 @@ theorem daiPermitBodyReturns_success (evm evm' : EVM.State) (I : ExecutionEnv)
     (hsz260 : 260 ≤ I.calldata.size)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hnz : permitHolderMaskedWord I ≠ ⟨0⟩)
-    (hcall : callViaEVM evm (EVM.address (AccountAddress.ofNat 1)) 0
+    (hcall : callViaEVM fork evm (EVM.address (AccountAddress.ofNat 1)) 0
       (permitEcrecoverCalldata evm I) (true, evm', out) false)
     (hdec :
       config.externalABI.decodeValue? addr out =
@@ -1973,14 +1975,14 @@ theorem daiPermitBodyReturns_success (evm evm' : EVM.State) (I : ExecutionEnv)
       permitNonceWord I =
         Stele.EVM.storageLoad evm' evm'.executionEnv.codeOwner (permitNonceStorageSlot I))
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (permitStore I) permitTransition.body
+    ExecTransitionBody fork config contract evm (permitStore I) permitTransition.body
       (.returned { contract := contract, locals := permitWadStore evm I out recovered }
         (permitPostState evm' I) none) := by
   refine ExecFuncBody.execBlockOK ?_
   apply daiPermitBodyPrefix evm evm' I out recovered hsz260 hwv hnz hcall hdec heq hexpiryOk
   rw [← hnonce]
   refine ExecBlock.consNormal
-    (ExecStmt.assign (hperm := Or.inr (by simpa only [permitPostNonceState, storageStore_executionEnv, callViaEVM_executionEnv_eq hcall] using hperm))
+    (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [permitPostNonceState, storageStore_executionEnv, callViaEVM_executionEnv_eq hcall] using hperm))
       (evalExpr_permitSavedNonceStore_increment evm evm' I out recovered _)
       (permitAssignSavedNonce evm evm' I out recovered _ hnonce)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (by
@@ -1990,7 +1992,7 @@ theorem daiPermitBodyReturns_success (evm evm' : EVM.State) (I : ExecutionEnv)
     (ExecStmt.letDecl (evalExpr_permitSavedNonceStore_wad evm
       (permitPostNonceState evm' I) I out recovered (permitNonceWord I)))
     (ExecBlock.consNormal
-      (ExecStmt.assign (hperm := Or.inr (by simpa only [permitPostNonceState, storageStore_executionEnv, callViaEVM_executionEnv_eq hcall] using hperm))
+      (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [permitPostNonceState, storageStore_executionEnv, callViaEVM_executionEnv_eq hcall] using hperm))
         (evalExpr_permitWadStore_wad evm (permitPostNonceState evm' I) I out recovered)
         (permitAssignAllowance evm evm' I out recovered)) ExecBlock.nil)
 
@@ -2218,10 +2220,10 @@ theorem daiDecode_permit_none_short {I : ExecutionEnv}
 
 theorem daiPermitX_lenOk {σ σ₀ A I} {g : Sat256}
     (hsz260 : 260 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD daiBytecode I g
+    (hreach : ∃ k C, RD fork daiBytecode I g
       (initState σ σ₀ g A I) ⟨810⟩ [daiSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨833⟩
+    ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨833⟩
       [UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩, ⟨4⟩, ⟨686⟩, daiSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd810⟩ := hreach
@@ -2250,10 +2252,10 @@ theorem daiPermitX_lenOk {σ σ₀ A I} {g : Sat256}
 theorem daiPermitX_shortarg {σ σ₀ A I} {g : Sat256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 260)
-    (hreach : ∃ k C, RD daiBytecode I g
+    (hreach : ∃ k C, RD fork daiBytecode I g
       (initState σ σ₀ g A I) ⟨810⟩ [daiSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev daiBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork daiBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd810⟩ := hreach
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨256⟩ = ⟨1⟩ := by
@@ -2284,10 +2286,10 @@ theorem daiPermitX_shortarg {σ σ₀ A I} {g : Sat256}
 
 theorem daiPermitX_decoded {σ σ₀ A I} {g : Sat256}
     (hsz260 : 260 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD daiBytecode I g
+    (hreach : ∃ k C, RD fork daiBytecode I g
       (initState σ σ₀ g A I) ⟨810⟩ [daiSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨2428⟩
+    ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨2428⟩
       [permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
         permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
@@ -3467,9 +3469,9 @@ set_option maxHeartbeats 1000000 in
 theorem daiPermitX_holderZeroRevert {σ σ₀ A I} {g : Sat256}
     (hsz260 : 260 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hz : permitHolderMaskedWord I = ⟨0⟩)
-    (hreach : ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨810⟩
+    (hreach : ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨810⟩
       [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev daiBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork daiBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd2428⟩ := daiPermitX_decoded hsz260 hsize hreach
   obtain ⟨_, _, rd2432raw⟩ := (evm_run rd2428 with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -3853,9 +3855,9 @@ set_option maxHeartbeats 1000000 in
 theorem daiPermitX_nonzeroHolderReach2684 {σ σ₀ A I} {g : Sat256}
     (hsz260 : 260 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnz : permitHolderMaskedWord I ≠ ⟨0⟩)
-    (hreach : ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨810⟩
+    (hreach : ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨810⟩
       [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨2684⟩
+    ∃ k C, RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨2684⟩
       [permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
@@ -4113,7 +4115,7 @@ theorem daiPermitX_nonzeroHolderReach2684 {σ σ₀ A I} {g : Sat256}
 set_option maxHeartbeats 1000000 in
 theorem daiPermitX_nonzeroHolderToStaticcallFrom2684 {σ σ₀ A I} {g : Sat256}
     {k C : ℕ}
-    (rd2684 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨2684⟩
+    (rd2684 : RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨2684⟩
       [permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
@@ -4123,7 +4125,7 @@ theorem daiPermitX_nonzeroHolderToStaticcallFrom2684 {σ σ₀ A I} {g : Sat256}
           (initState σ σ₀ g A I).executionEnv.codeOwner
           domainSeparatorStorageSlot))
       (UInt256.ofNat 15) ByteArray.empty σ k C) :
-    ∃ gasArg k' C', RD daiBytecode I g (initState σ σ₀ g A I) ⟨2757⟩
+    ∃ gasArg k' C', RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨2757⟩
       [gasArg, ⟨1⟩, ⟨482⟩, ⟨128⟩, ⟨450⟩, ⟨32⟩, ⟨610⟩, ⟨1⟩,
         permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
@@ -4255,7 +4257,7 @@ set_option maxHeartbeats 1000000 in
 theorem daiPermitX_nonzeroHolderStaticcallFrom2684 {σ σ₀ A I} {g : Sat256}
     {k C : ℕ}
     (hsz260 : 260 ≤ I.calldata.size) (hdepth : I.depth.val < 1024)
-    (rd2684 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨2684⟩
+    (rd2684 : RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨2684⟩
       [permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
@@ -4268,14 +4270,14 @@ theorem daiPermitX_nonzeroHolderStaticcallFrom2684 {σ σ₀ A I} {g : Sat256}
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ σ σ₀ A_in
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ fork σ σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
-      (toExecute σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
+      (toExecute fork σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           (permitEcrecoverCalldata (initState σ σ₀ g A I) I)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
-      ∧ RD daiBytecode I g (initState σ σ₀ g A I) ⟨2758⟩
+      ∧ RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨2758⟩
           ((if z then (⟨1⟩ : UInt256) else ⟨0⟩) ::
             [⟨610⟩, ⟨1⟩, permitDigestWord (initState σ σ₀ g A I) I,
               permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
@@ -4442,7 +4444,7 @@ theorem daiPermitX_nonzeroHolderEcrecoverFailureAfter2758
     {σ σ₀ A I} {g : Sat256}
     {σ' : AccountMap} {o mem : ByteArray}
     {aw : UInt256} {k C : ℕ}
-    (rd2758 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨2758⟩
+    (rd2758 : RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨2758⟩
       (⟨0⟩ ::
         [⟨610⟩, ⟨1⟩, permitDigestWord (initState σ σ₀ g A I) I,
           permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
@@ -4450,7 +4452,7 @@ theorem daiPermitX_nonzeroHolderEcrecoverFailureAfter2758
           permitHolderMaskedWord I, ⟨686⟩, daiSelWord I])
       mem aw o σ' k C)
     (hoSize : o.size < UInt256.size) :
-    RDrev daiBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork daiBytecode g (initState σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (okPc := ⟨2774⟩) rd2758 rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -4720,7 +4722,7 @@ theorem daiPermitX_nonzeroHolderEcrecoverSuccessToRecoveredBranchAfter2758
     {σ σ₀ A I} {g : Sat256}
     {σ' : AccountMap} {o : ByteArray}
     {k C : ℕ}
-    (rd2758 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨2758⟩
+    (rd2758 : RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨2758⟩
       (⟨1⟩ ::
         [⟨610⟩, ⟨1⟩, permitDigestWord (initState σ σ₀ g A I) I,
           permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
@@ -4735,7 +4737,7 @@ theorem daiPermitX_nonzeroHolderEcrecoverSuccessToRecoveredBranchAfter2758
         o)
       permitEcrecoverStaticcallAw o σ' k C)
     (hoSize : o.size < UInt256.size) :
-    ∃ k' C', RD daiBytecode I g (initState σ σ₀ g A I) ⟨2808⟩
+    ∃ k' C', RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨2808⟩
       [⟨2874⟩,
         UInt256.eq (permitHolderMaskedWord I)
           (UInt256.land solcAddrMask
@@ -4827,7 +4829,7 @@ theorem daiPermitX_nonzeroHolderRecoveredOkAfter2808
     {σ σ₀ A I} {g : Sat256}
     {σ' : AccountMap} {o : ByteArray}
     {k C : ℕ}
-    (rd2808 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨2808⟩
+    (rd2808 : RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨2808⟩
       [⟨2874⟩,
         UInt256.eq (permitHolderMaskedWord I)
           (UInt256.land solcAddrMask
@@ -4864,7 +4866,7 @@ theorem daiPermitX_nonzeroHolderRecoveredOkAfter2808
                 (permitDigestWord (initState σ σ₀ g A I) I))
               o)
             permitEcrecoverStaticcallAw ⟨450⟩)) ≠ ⟨0⟩) :
-    ∃ k' C', RD daiBytecode I g (initState σ σ₀ g A I) ⟨2874⟩
+    ∃ k' C', RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨2874⟩
       [permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
@@ -4883,7 +4885,7 @@ theorem daiPermitX_nonzeroHolderExpiryOkAfter2874
     {σ σ₀ A I} {g : Sat256}
     {σ' : AccountMap} {o : ByteArray}
     {k C : ℕ}
-    (rd2874 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨2874⟩
+    (rd2874 : RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨2874⟩
       [permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
@@ -4899,7 +4901,7 @@ theorem daiPermitX_nonzeroHolderExpiryOkAfter2874
     (hexpiryOk :
       permitExpiryWord I = ⟨0⟩ ∨
         (UInt256.ofNat I.header.timestamp).toNat ≤ (permitExpiryWord I).toNat) :
-    ∃ k' C', RD daiBytecode I g (initState σ σ₀ g A I) ⟨2957⟩
+    ∃ k' C', RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨2957⟩
       [permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
@@ -4970,7 +4972,7 @@ theorem daiPermitX_nonzeroHolderExpiredAfter2874
     {σ σ₀ A I} {g : Sat256}
     {σ' : AccountMap} {o : ByteArray}
     {k C : ℕ}
-    (rd2874 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨2874⟩
+    (rd2874 : RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨2874⟩
       [permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
@@ -4987,7 +4989,7 @@ theorem daiPermitX_nonzeroHolderExpiredAfter2874
     (hexpiryNonzero : permitExpiryWord I ≠ ⟨0⟩)
     (hexpired :
       (permitExpiryWord I).toNat < (UInt256.ofNat I.header.timestamp).toNat) :
-    RDrev daiBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork daiBytecode g (initState σ σ₀ g A I) := by
   let evm := initState σ σ₀ g A I
   let domainWord := Stele.EVM.storageLoad evm evm.executionEnv.codeOwner domainSeparatorStorageSlot
   let digestWord := permitDigestWord evm I
@@ -5113,7 +5115,7 @@ theorem daiPermitX_nonzeroHolderBadRecoveredAfter2808
     {σ σ₀ A I} {g : Sat256}
     {σ' : AccountMap} {o : ByteArray}
     {k C : ℕ}
-    (rd2808 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨2808⟩
+    (rd2808 : RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨2808⟩
       [⟨2874⟩,
         UInt256.eq (permitHolderMaskedWord I)
           (UInt256.land solcAddrMask
@@ -5151,7 +5153,7 @@ theorem daiPermitX_nonzeroHolderBadRecoveredAfter2808
                 (permitDigestWord (initState σ σ₀ g A I) I))
               o)
             permitEcrecoverStaticcallAw ⟨450⟩)) = ⟨0⟩) :
-    RDrev daiBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork daiBytecode g (initState σ σ₀ g A I) := by
   let evm := initState σ σ₀ g A I
   let domainWord := Stele.EVM.storageLoad evm evm.executionEnv.codeOwner domainSeparatorStorageSlot
   let digestWord := permitDigestWord evm I
@@ -5179,7 +5181,7 @@ theorem daiPermitX_nonzeroHolderBadRecoveredAfter2808
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov)]
   have rd2813 :
-      RD daiBytecode I g (initState σ σ₀ g A I) ⟨2813⟩
+      RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨2813⟩
         [⟨482⟩, ⟨64⟩, permitDigestWord (initState σ σ₀ g A I) I,
           permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
           permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
@@ -5260,14 +5262,14 @@ theorem daiPermitX_nonceBranchAfter2957Split
     {o memRet : ByteArray} {k C : ℕ}
     (hmem : memRet.size = 610)
     (hread64 : memRet.readWithPadding 64 32 = UInt256.toByteArray (⟨482⟩ : UInt256))
-    (rd2957 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨2957⟩
+    (rd2957 : RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨2957⟩
       [permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
         permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
       memRet permitEcrecoverStaticcallAw o σ' k C) :
     (I.perm = true ∧
-      ∃ k' C', RD daiBytecode I g (initState σ σ₀ g A I) ⟨2996⟩
+      ∃ k' C', RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨2996⟩
         [⟨3061⟩, UInt256.eq (permitNonceWord I) (permitEvmNonceWord σ' I),
           permitDigestWord (initState σ σ₀ g A I) I,
           permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
@@ -5275,7 +5277,7 @@ theorem daiPermitX_nonceBranchAfter2957Split
           permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
         (permitNonceHashMem memRet I) permitEcrecoverStaticcallAw o
         (permitEvmAfterNonceAccountMap σ' I) k' C') ∨
-      (I.perm = false ∧ RDstatic daiBytecode g (initState σ σ₀ g A I)) := by
+      (I.perm = false ∧ RDstatic fork daiBytecode g (initState σ σ₀ g A I)) := by
   have hmask :
       UInt256.land (permitHolderMaskedWord I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -5355,13 +5357,13 @@ theorem daiPermitX_nonceBranchAfter2957
     (hperm : I.perm = true)
     (hmem : memRet.size = 610)
     (hread64 : memRet.readWithPadding 64 32 = UInt256.toByteArray (⟨482⟩ : UInt256))
-    (rd2957 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨2957⟩
+    (rd2957 : RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨2957⟩
       [permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
         permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
       memRet permitEcrecoverStaticcallAw o σ' k C) :
-    ∃ k' C', RD daiBytecode I g (initState σ σ₀ g A I) ⟨2996⟩
+    ∃ k' C', RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨2996⟩
       [⟨3061⟩, UInt256.eq (permitNonceWord I) (permitEvmNonceWord σ' I),
         permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
@@ -5380,13 +5382,13 @@ theorem daiPermitX_nonceMismatchAfter2957
     (hmem : memRet.size = 610)
     (hread64 : memRet.readWithPadding 64 32 = UInt256.toByteArray (⟨482⟩ : UInt256))
     (hnonce : permitNonceWord I ≠ permitEvmNonceWord σ' I)
-    (rd2957 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨2957⟩
+    (rd2957 : RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨2957⟩
       [permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
         permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
       memRet permitEcrecoverStaticcallAw o σ' k C) :
-    RDrev daiBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork daiBytecode g (initState σ σ₀ g A I) := by
   let memHash := permitNonceHashMem memRet I
   let err0 := (UInt256.toByteArray solcErrorStringSelector).write 0 memHash 482 32
   let err1 := (UInt256.toByteArray (⟨32⟩ : UInt256)).write 0 err0 486 32
@@ -5484,7 +5486,7 @@ theorem daiPermitX_successLogStopAfter3124
     (hmem : memAllowance.size = 610)
     (hread64 : memAllowance.readWithPadding 64 32 =
       UInt256.toByteArray (⟨482⟩ : UInt256))
-    (rd3124 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨3124⟩
+    (rd3124 : RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨3124⟩
       [⟨32⟩, ⟨64⟩, permitHolderMaskedWord I, permitSpenderMaskedWord I,
         permitWadWord I, ⟨0⟩,
         permitDigestWord (initState σ σ₀ g A I) I,
@@ -5493,7 +5495,7 @@ theorem daiPermitX_successLogStopAfter3124
         permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
       memAllowance permitEcrecoverStaticcallAw o
       acct k C) :
-    RDret daiBytecode g (initState σ σ₀ g A I)
+    RDret fork daiBytecode g (initState σ σ₀ g A I)
       acct ByteArray.empty := by
   let memLog := permitApprovalLogMem memAllowance I
   have hmloadAllow64 :
@@ -5569,7 +5571,7 @@ theorem daiPermitX_successStorageAfter3079
     (hperm : I.perm = true)
     (hmem : memRet.size = 610)
     (hread64 : memRet.readWithPadding 64 32 = UInt256.toByteArray (⟨482⟩ : UInt256))
-    (rd3079 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨3079⟩
+    (rd3079 : RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨3079⟩
       [permitWadWord I, ⟨0⟩,
         permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
@@ -5578,7 +5580,7 @@ theorem daiPermitX_successStorageAfter3079
       (permitNonceHashMem memRet I) permitEcrecoverStaticcallAw o
       (permitEvmAfterNonceAccountMap σ' I) k C) :
     ∃ k' C',
-      RD daiBytecode I g (initState σ σ₀ g A I) ⟨3124⟩
+      RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨3124⟩
         [⟨32⟩, ⟨64⟩, permitHolderMaskedWord I, permitSpenderMaskedWord I,
           permitWadWord I, ⟨0⟩,
           permitDigestWord (initState σ σ₀ g A I) I,
@@ -5724,7 +5726,7 @@ theorem daiPermitX_successTailAfter3079
     (hperm : I.perm = true)
     (hmem : memRet.size = 610)
     (hread64 : memRet.readWithPadding 64 32 = UInt256.toByteArray (⟨482⟩ : UInt256))
-    (rd3079 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨3079⟩
+    (rd3079 : RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨3079⟩
       [permitWadWord I, ⟨0⟩,
         permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
@@ -5732,7 +5734,7 @@ theorem daiPermitX_successTailAfter3079
         permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
       (permitNonceHashMem memRet I) permitEcrecoverStaticcallAw o
       (permitEvmAfterNonceAccountMap σ' I) k C) :
-    RDret daiBytecode g (initState σ σ₀ g A I)
+    RDret fork daiBytecode g (initState σ σ₀ g A I)
       (permitEvmPostAccountMap σ' I) ByteArray.empty := by
   let memNonce := permitNonceHashMem memRet I
   let memOwner := permitAllowanceOwnerHashMem memNonce I
@@ -5779,7 +5781,7 @@ theorem daiPermitX_after3061_allowedZero_to3079
     {o memRet : ByteArray} {k C : ℕ}
     (hclean : permitAllowedCleanWord I = ⟨0⟩)
     (hwad : permitWadWord I = ⟨0⟩)
-    (rd3061 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨3061⟩
+    (rd3061 : RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨3061⟩
       [permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
@@ -5787,7 +5789,7 @@ theorem daiPermitX_after3061_allowedZero_to3079
       (permitNonceHashMem memRet I) permitEcrecoverStaticcallAw o
       (permitEvmAfterNonceAccountMap σ' I) k C) :
     ∃ k' C',
-      RD daiBytecode I g (initState σ σ₀ g A I) ⟨3079⟩
+      RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨3079⟩
         [permitWadWord I, ⟨0⟩,
           permitDigestWord (initState σ σ₀ g A I) I,
           permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
@@ -5814,7 +5816,7 @@ theorem daiPermitX_after3061_allowedNonzero_to3079
     {o memRet : ByteArray} {k C : ℕ}
     (hclean : permitAllowedCleanWord I = ⟨1⟩)
     (hwad : permitWadWord I = UInt256.lnot ⟨0⟩)
-    (rd3061 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨3061⟩
+    (rd3061 : RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨3061⟩
       [permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
@@ -5822,7 +5824,7 @@ theorem daiPermitX_after3061_allowedNonzero_to3079
       (permitNonceHashMem memRet I) permitEcrecoverStaticcallAw o
       (permitEvmAfterNonceAccountMap σ' I) k C) :
     ∃ k' C',
-      RD daiBytecode I g (initState σ σ₀ g A I) ⟨3079⟩
+      RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨3079⟩
         [permitWadWord I, ⟨0⟩,
           permitDigestWord (initState σ σ₀ g A I) I,
           permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
@@ -5853,14 +5855,14 @@ theorem daiPermitX_successAfter3061_allowedZero
     (hmem : memRet.size = 610)
     (hread64 : memRet.readWithPadding 64 32 = UInt256.toByteArray (⟨482⟩ : UInt256))
     (hallowedZero : (permitAllowedWord I).toNat = 0)
-    (rd3061 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨3061⟩
+    (rd3061 : RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨3061⟩
       [permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
         permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
       (permitNonceHashMem memRet I) permitEcrecoverStaticcallAw o
       (permitEvmAfterNonceAccountMap σ' I) k C) :
-    RDret daiBytecode g (initState σ σ₀ g A I)
+    RDret fork daiBytecode g (initState σ σ₀ g A I)
       (permitEvmPostAccountMap σ' I) ByteArray.empty := by
   have hclean : permitAllowedCleanWord I = ⟨0⟩ := by
     unfold permitAllowedCleanWord
@@ -5882,14 +5884,14 @@ theorem daiPermitX_successAfter3061_allowedNonzero
     (hmem : memRet.size = 610)
     (hread64 : memRet.readWithPadding 64 32 = UInt256.toByteArray (⟨482⟩ : UInt256))
     (hallowedNonzero : ¬ (permitAllowedWord I).toNat = 0)
-    (rd3061 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨3061⟩
+    (rd3061 : RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨3061⟩
       [permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
         permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
       (permitNonceHashMem memRet I) permitEcrecoverStaticcallAw o
       (permitEvmAfterNonceAccountMap σ' I) k C) :
-    RDret daiBytecode g (initState σ σ₀ g A I)
+    RDret fork daiBytecode g (initState σ σ₀ g A I)
       (permitEvmPostAccountMap σ' I) ByteArray.empty := by
   have hclean : permitAllowedCleanWord I = ⟨1⟩ := by
     unfold permitAllowedCleanWord
@@ -5913,13 +5915,13 @@ theorem daiPermitX_successAfter2957
     (hmem : memRet.size = 610)
     (hread64 : memRet.readWithPadding 64 32 = UInt256.toByteArray (⟨482⟩ : UInt256))
     (hnonce : permitNonceWord I = permitEvmNonceWord σ' I)
-    (rd2957 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨2957⟩
+    (rd2957 : RD fork daiBytecode I g (initState σ σ₀ g A I) ⟨2957⟩
       [permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
         permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
       memRet permitEcrecoverStaticcallAw o σ' k C) :
-    RDret daiBytecode g (initState σ σ₀ g A I)
+    RDret fork daiBytecode g (initState σ σ₀ g A I)
       (permitEvmPostAccountMap σ' I) ByteArray.empty := by
   obtain ⟨_, _, rd2996⟩ :=
     daiPermitX_nonceBranchAfter2957 (g := g) hperm hmem hread64 rd2957
@@ -5942,14 +5944,14 @@ theorem permitStaticcallTheta_callViaEVM {σ σ₀ A I} {g : Sat256}
     {A' : Substate}
     (hdepth : I.depth.val < 1024)
     (hΘ :
-      (σ', g'', A', z, o) = Ethereum.EVM.Θ σ σ₀ A_in
+      (σ', g'', A', z, o) = Ethereum.EVM.Θ fork σ σ₀ A_in
         (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
         (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
-        (toExecute σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
+        (toExecute fork σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
         callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
         (permitEcrecoverCalldata (initState σ σ₀ g A I) I)
         (I.depth + 1) I.header I.blobVersionedHashes I.blocks false) :
-    callViaEVM (initState σ σ₀ g A I) (EVM.address (AccountAddress.ofNat 1)) 0
+    callViaEVM fork (initState σ σ₀ g A I) (EVM.address (AccountAddress.ofNat 1)) 0
       (permitEcrecoverCalldata (initState σ σ₀ g A I) I)
       (z,
         { initState σ σ₀ g A I with
@@ -5971,12 +5973,12 @@ theorem daiPermitBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (daiSelBytes 11)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (daiSelBytes 11) (by native_decide) hsel
   have hdispatch : dispatchMsg contract I.calldata = some permitTransition :=
     daiDispatchPermit hsel
-  have hreach := daiReachPermitBody
+  have hreach := daiReachPermitBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz260 : 260 ≤ I.calldata.size
@@ -5984,7 +5986,7 @@ theorem daiPermitBodyCore {σ σ₀ A I} {g : UInt256}
     let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
     by_cases hz : permitHolderMaskedWord I = ⟨0⟩
     · have hbody :
-          ExecTransitionBody config contract evmStele (permitStore I)
+          ExecTransitionBody fork config contract evmStele (permitStore I)
             permitTransition.body .reverted := by
         exact daiPermitBodyReverts_holderZero evmStele I
           (by simpa [evmStele, initState] using hwv) hz
@@ -6003,7 +6005,7 @@ theorem daiPermitBodyCore {σ σ₀ A I} {g : UInt256}
           hstaticOnDepth hdepth
         rcases hΘex with ⟨g'', A', hΘ⟩
         have hcallEvm :
-            callViaEVM (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+            callViaEVM fork (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               (EVM.address (AccountAddress.ofNat 1)) 0
               (permitEcrecoverCalldata
                 (initState σ σ₀ (Sat256.ofUInt256 g) A I) I)
@@ -6016,7 +6018,7 @@ theorem daiPermitBodyCore {σ σ₀ A I} {g : UInt256}
         let σ'_stele := σ'
         let A'_stele := A'
         have hcallStele :
-            callViaEVM evmStele (EVM.address (AccountAddress.ofNat 1)) 0
+            callViaEVM fork evmStele (EVM.address (AccountAddress.ofNat 1)) 0
               (permitEcrecoverCalldata evmStele I)
               (z, { evmStele with accountMap := σ'_stele, substate := A'_stele }, o) false := by
           simpa [evmStele, σ'_stele, A'_stele] using hcallEvm
@@ -6037,7 +6039,7 @@ theorem daiPermitBodyCore {σ σ₀ A I} {g : UInt256}
             { evmStele with
               accountMap := σ'_stele, substate := A'_stele }
           have hcallSucceeded :
-              callViaEVM evmStele (EVM.address (AccountAddress.ofNat 1)) 0
+              callViaEVM fork evmStele (EVM.address (AccountAddress.ofNat 1)) 0
                 (permitEcrecoverCalldata evmStele I) (true, evmPostStele, o) false := by
             simpa [evmPostStele, evmStele, hzcall] using hcallStele
           have hnonceLoad :
@@ -6048,7 +6050,7 @@ theorem daiPermitBodyCore {σ σ₀ A I} {g : UInt256}
               σ'_stele, initState, Stele.EVM.storageLoad, State.lookupAccount,
               Account.lookupStorage]
           have hrd2758 :
-              RD daiBytecode I (Sat256.ofUInt256 g) evmE ⟨2758⟩
+              RD fork daiBytecode I (Sat256.ofUInt256 g) evmE ⟨2758⟩
                 (⟨1⟩ ::
                   [⟨610⟩, ⟨1⟩, permitDigestWord evmE I,
                     permitSWord I, permitRWord I, permitVMaskedWord I,
@@ -6141,7 +6143,7 @@ theorem daiPermitBodyCore {σ σ₀ A I} {g : UInt256}
                 by_cases hperm : I.perm = true
                 swap
                 · have hstatic : I.perm = false := by simpa using hperm
-                  have hbody : ExecTransitionBody config contract evmStele (permitStore I)
+                  have hbody : ExecTransitionBody fork config contract evmStele (permitStore I)
                       permitTransition.body .staticViolation :=
                     daiPermitBodyStatic evmStele evmPostStele I o recovered hsz260
                       (by simpa [evmStele, initState] using hwv) hz hcallSucceeded hdecRet
@@ -6157,7 +6159,7 @@ theorem daiPermitBodyCore {σ σ₀ A I} {g : UInt256}
                         evmPostStele.executionEnv.codeOwner (permitNonceStorageSlot I) :=
                     hnonce.trans hnonceLoad
                   have hbody :
-                      ExecTransitionBody config contract evmStele (permitStore I)
+                      ExecTransitionBody fork config contract evmStele (permitStore I)
                         permitTransition.body
                         (.returned
                           { contract := contract,
@@ -6200,7 +6202,7 @@ theorem daiPermitBodyCore {σ σ₀ A I} {g : UInt256}
                     intro hbad
                     exact hnonce (hbad.trans hnonceLoad.symm)
                   have hbody :
-                      ExecTransitionBody config contract evmStele (permitStore I)
+                      ExecTransitionBody fork config contract evmStele (permitStore I)
                         permitTransition.body .reverted := by
                     exact daiPermitBodyReverts_nonceMismatch (hperm := by assumption) evmStele evmPostStele I
                       o recovered hsz260 (by simpa [evmStele, initState] using hwv)
@@ -6226,7 +6228,7 @@ theorem daiPermitBodyCore {σ σ₀ A I} {g : UInt256}
                       (UInt256.ofNat I.header.timestamp).toNat := by
                   simpa [evmPostStele, evmStele, initState] using hexpiredStele
                 have hbody :
-                    ExecTransitionBody config contract evmStele (permitStore I)
+                    ExecTransitionBody fork config contract evmStele (permitStore I)
                       permitTransition.body .reverted := by
                   exact daiPermitBodyReverts_expired evmStele evmPostStele I o recovered
                     hsz260 (by simpa [evmStele, initState] using hwv) hz
@@ -6269,7 +6271,7 @@ theorem daiPermitBodyCore {σ σ₀ A I} {g : UInt256}
                         permitEcrecoverStaticcallAw ⟨450⟩)) = ⟨0⟩ := by
                 simpa [domainWord, digestWord, baseMem, memRet] using hcondLocal
               have hbody :
-                  ExecTransitionBody config contract evmStele (permitStore I)
+                  ExecTransitionBody fork config contract evmStele (permitStore I)
                     permitTransition.body .reverted := by
                 exact daiPermitBodyReverts_badRecovered evmStele evmPostStele I
                   o recovered hsz260 (by simpa [evmStele, initState] using hwv) hz
@@ -6314,7 +6316,7 @@ theorem daiPermitBodyCore {σ σ₀ A I} {g : UInt256}
                       permitEcrecoverStaticcallAw ⟨450⟩)) = ⟨0⟩ := by
               simpa [domainWord, digestWord, baseMem, memRet] using hcondLocal
             have hbody :
-                ExecTransitionBody config contract evmStele (permitStore I)
+                ExecTransitionBody fork config contract evmStele (permitStore I)
                   permitTransition.body .reverted := by
               exact daiPermitBodyReverts_recoveredDecode evmStele evmPostStele I o
                 hsz260 (by simpa [evmStele, initState] using hwv) hz
@@ -6324,7 +6326,7 @@ theorem daiPermitBodyCore {σ σ₀ A I} {g : UInt256}
                 (g := Sat256.ofUInt256 g) rd2808 hoSize hcond)
               |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
         · have hrd2758 :
-              RD daiBytecode I (Sat256.ofUInt256 g)
+              RD fork daiBytecode I (Sat256.ofUInt256 g)
                 (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2758⟩
                 (⟨0⟩ ::
                   [⟨610⟩, ⟨1⟩,
@@ -6355,11 +6357,11 @@ theorem daiPermitBodyCore {σ σ₀ A I} {g : UInt256}
             { evmStele with
               accountMap := σ'_stele, substate := A'_stele }
           have hcallFailed :
-              callViaEVM evmStele (EVM.address (AccountAddress.ofNat 1)) 0
+              callViaEVM fork evmStele (EVM.address (AccountAddress.ofNat 1)) 0
                 (permitEcrecoverCalldata evmStele I) (false, evmPostStele, o) false := by
             simpa [evmPostStele, evmStele, hzcall] using hcallStele
           have hbody :
-              ExecTransitionBody config contract evmStele (permitStore I)
+              ExecTransitionBody fork config contract evmStele (permitStore I)
                 permitTransition.body .reverted := by
             exact daiPermitBodyReverts_ecrecoverFailed evmStele evmPostStele I o hsz260
               (by simpa [evmStele, initState] using hwv) hz hcallFailed
@@ -6378,17 +6380,17 @@ theorem daiPermitBodyCore {σ σ₀ A I} {g : UInt256}
           RD.solcStaticcallDepthLimit rd2757 (by native_decide) hdepthEq (by simp)
         let evmPostStele :=
           { evmStele with
-            substate := (evmStele.addAccessedAccount
-              (EVM.address (AccountAddress.ofNat 1))).substate }
+            substate := (Ethereum.EVM.callSubstate fork evmStele.accountMap
+              (EVM.address (AccountAddress.ofNat 1)) evmStele.substate) }
         have hcallFailed :
-            callViaEVM evmStele (EVM.address (AccountAddress.ofNat 1)) 0
+            callViaEVM fork evmStele (EVM.address (AccountAddress.ofNat 1)) 0
               (permitEcrecoverCalldata evmStele I)
               (false, evmPostStele, ByteArray.empty) false := by
           apply callViaEVM.callNotMade (perm := false) rfl rfl
           rintro ⟨_, hdepthNe⟩
           exact hdepthNe (by simpa [evmStele, initState] using hdepthEq)
         have hbody :
-            ExecTransitionBody config contract evmStele (permitStore I)
+            ExecTransitionBody fork config contract evmStele (permitStore I)
               permitTransition.body .reverted := by
           exact daiPermitBodyReverts_ecrecoverFailed evmStele evmPostStele I ByteArray.empty hsz260
             (by simpa [evmStele, initState] using hwv) hz hcallFailed

@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.ExtSloadsReadLoop
 import Benchmarks.Morpho.MorphoBlue.ExtSloadsMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -12,9 +14,9 @@ theorem morphoArrayByteSize {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat2
     {k C n : Nat} {ret : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024) (hn : n ≤ solcMaxU64)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14371)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14371)
       (UInt256.ofNat n :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret
       (UInt256.ofNat (32 * (n + 1)) :: R) mem aw' rdata σ k' C' := by
   have hf : 32 * (n + 1) < UInt256.size := by
     norm_num [solcMaxU64, UInt256.size] at hn ⊢; omega
@@ -48,12 +50,12 @@ theorem morphoExtSloadsPrepare {v : MorphoImmutables} {ee : ExecutionEnv} {g : S
     {s0 : State} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap}
     {k C n : Nat} {off : UInt256}
     (hn : n ≤ solcMaxU64) (hsize : ee.calldata.size < UInt256.size)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 6873)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 6873)
       [UInt256.ofNat n, UInt256.ofNat 5, UInt256.ofNat 32, UInt256.ofNat 36, off, UInt256.ofNat 0]
       solcFreePtrMem aw rdata σ k C) :
-    (¬ 128 + 32 * (n + 1) ≤ solcMaxU64 ∧ RDrev (deployedRuntime v) g s0) ∨
+    (¬ 128 + 32 * (n + 1) ≤ solcMaxU64 ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (128 + 32 * (n + 1) ≤ solcMaxU64 ∧ ∃ aw' k' C',
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat 6955)
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 6955)
         (extSloadsReadStack off n 0 [off, UInt256.ofNat 0]) (extSloadsHeaderMem n)
         aw' rdata σ k' C') := by
   have hf : 160 + 32 * n + 64 < UInt256.size := by
@@ -64,7 +66,7 @@ theorem morphoExtSloadsPrepare {v : MorphoImmutables} {ee : ExecutionEnv} {g : S
     (by rw [morphoPatchedValidJumps v]; jump_dest) rd0
   have rd2 := morphoBlocks.morpho_block_6885 (immWords := wordsOf (immStore v)) (by simp)
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) rd1
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     [memLoad (UInt256.ofNat 64) solcFreePtrMem, UInt256.ofNat (32 * (n + 1)), UInt256.ofNat 6899,
      UInt256.ofNat 36, UInt256.ofNat n, UInt256.ofNat 5, UInt256.ofNat 0, off, UInt256.ofNat 32,
      memLoad (UInt256.ofNat 64) solcFreePtrMem, off, UInt256.ofNat 0] _ _ _ _ _ _ at rd2
@@ -116,7 +118,7 @@ theorem morphoExtSloadsPrepare {v : MorphoImmutables} {ee : ExecutionEnv} {g : S
       UInt256.sub ⟨0⟩ (UInt256.ofNat 32) by native_decide, word_add_sub_zero,
       usub_ofNat_lit_toNat (by omega) (by omega)]
     omega
-  change RD _ _ _ _ _ (extSloadsReadStack off n 0 [off, UInt256.ofNat 0])
+  change RD fork _ _ _ _ _ (extSloadsReadStack off n 0 [off, UInt256.ofNat 0])
     (ee.calldata.write (UInt256.ofNat ee.calldata.size).toNat (extSloadsHeaderMem n) 160 _)
     aw6 rdata σ k6 C6 at rd6
   rw [UInt256.toNat_ofNat_of_lt hsize, hlen, ← extSloadsHeader_size n,

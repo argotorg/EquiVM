@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.AfterSwapPackSource
 import Benchmarks.UniswapV4PoolManager.SwapParamsEncodeTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_045
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -24,9 +26,9 @@ theorem afterSwapPackTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : PoolManagerImmutables) (hstack : R.length+9 ≤ 1024)
     (hp : MemorySlice mem ptr.toNat (wordBytes (swapParamsWordList p)))
     (hfit : ptr.toNat+96 < UInt256.size)
-    (h : RD (deployedRuntime v) I g s0 ⟨15832⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨15832⟩
       (ptr :: EVM.wordOfInt unspecified :: EVM.wordOfInt specified :: delta :: ret :: old :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', C+Cₘ aw' ≤ C'+Cₘ aw ∧ RD (deployedRuntime v) I g s0 ⟨15880⟩
+    ∃ aw' k' C', C+Cₘ aw' ≤ C'+Cₘ aw ∧ RD fork (deployedRuntime v) I g s0 ⟨15880⟩
       (afterSwapPackWord (afterSwapSpecifiedFirst p) specified unspecified :: UInt256.ofNat 15887 :: ret :: delta :: R)
         mem aw' rdata σ k' C' := by
   have hz : memLoad ptr mem = UInt256.fromBool p.zeroForOne :=

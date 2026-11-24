@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.QuoteResultEvm
 import Benchmarks.CompoundIII.Comet.PriceInternal
 import Benchmarks.CompoundIII.Comet.PriceAssetMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -11,26 +13,26 @@ namespace Benchmarks.CompoundIII.Comet
 
 set_option maxRecDepth 2000
 
-def QuoteRun (v : CometWithExtendedAssetListImmutables) (ee : ExecutionEnv)
+def QuoteRun (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables) (ee : ExecutionEnv)
     (g : Sat256) (s0 : State) (ret : UInt256) (R : List UInt256)
     (result : Option (EVM.State × UInt256)) : Prop :=
   match result with
-  | none => RDrev (deployedRuntime v) g s0
+  | none => RDrev fork (deployedRuntime v) g s0
   | some (evm', value) => ∃ σ' mem aw rdata k C, SourceState s0 ee σ' evm' ∧
-      RD (deployedRuntime v) ee g s0 ret (value :: R) mem aw rdata σ' k C
+      RD fork (deployedRuntime v) ee g s0 ret (value :: R) mem aw rdata σ' k C
 
 -- GENERALIZES QuoteRun with the allocation facts needed by a caller that continues execution.
-def QuoteRunBounded (v : CometWithExtendedAssetListImmutables) (ee : ExecutionEnv)
+def QuoteRunBounded (fork : Ethereum.Fork) (v : CometWithExtendedAssetListImmutables) (ee : ExecutionEnv)
     (g : Sat256) (s0 : State) (ret : UInt256) (R : List UInt256) (limit : Nat)
     (result : Option (EVM.State × UInt256)) : Prop :=
   match result with
-  | none => RDrev (deployedRuntime v) g s0
+  | none => RDrev fork (deployedRuntime v) g s0
   | some (evm', value) => ∃ σ' mem free aw rdata k C, SourceState s0 ee σ' evm' ∧
       memLoad ⟨64⟩ mem = free ∧ 96 ≤ free.toNat ∧ free.toNat ≤ limit ∧ free.toNat ≤ mem.size ∧
-      RD (deployedRuntime v) ee g s0 ret (value :: R) mem aw rdata σ' k C
+      RD fork (deployedRuntime v) ee g s0 ret (value :: R) mem aw rdata σ' k C
 
 theorem QuoteRunBounded.forget {v ee g s0 ret R limit result}
-    (h : QuoteRunBounded v ee g s0 ret R limit result) : QuoteRun v ee g s0 ret R result := by
+    (h : QuoteRunBounded fork v ee g s0 ret R limit result) : QuoteRun fork v ee g s0 ret R result := by
   cases result with
   | none => exact h
   | some pair =>
@@ -39,8 +41,8 @@ theorem QuoteRunBounded.forget {v ee g s0 ret R limit result}
     exact ⟨σ', mem, aw, rdata, k, C, hs, hr⟩
 
 theorem QuoteRunBounded.mono {v ee g s0 ret R limit limit' result}
-    (h : QuoteRunBounded v ee g s0 ret R limit result) (hle : limit ≤ limit') :
-    QuoteRunBounded v ee g s0 ret R limit' result := by
+    (h : QuoteRunBounded fork v ee g s0 ret R limit result) (hle : limit ≤ limit') :
+    QuoteRunBounded fork v ee g s0 ret R limit' result := by
   cases result with
   | none => exact h
   | some pair =>
@@ -55,10 +57,10 @@ theorem cometQuoteFinishBounded {v : CometWithExtendedAssetListImmutables}
     (hm : AssetMemory mem ptr free assetOut) (hv : AssetValid assetOut)
     (hgap : free.toNat ≤ mem.size + 32) (hbound : free.toNat + 416 < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨18010⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨18010⟩
       (price :: ⟨18155⟩ :: ⟨96⟩ :: ⟨18112⟩ :: ptr :: ⟨18165⟩ :: amount :: ⟨2425⟩ :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ result, QuoteFinish v assetOut amount price evm result ∧ QuoteRunBounded v ee g s0 ret R (free.toNat + 160) result := by
+    ∃ result, QuoteFinish fork v assetOut amount price evm result ∧ QuoteRunBounded fork v ee g s0 ret R (free.toNat + 160) result := by
   have hr := cometQuoteDiscount (v := v) (out := assetOut)
     (by change R.length + 4 + 17 ≤ 1024; omega) hm hv h
   rcases hr with ⟨hd, aw1, k1, C1, r1⟩ | ⟨hd, hr⟩
@@ -106,10 +108,10 @@ theorem cometQuoteFinish {v : CometWithExtendedAssetListImmutables}
     (hm : AssetMemory mem ptr free assetOut) (hv : AssetValid assetOut)
     (hgap : free.toNat ≤ mem.size + 32) (hbound : free.toNat + 416 < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨18010⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨18010⟩
       (price :: ⟨18155⟩ :: ⟨96⟩ :: ⟨18112⟩ :: ptr :: ⟨18165⟩ :: amount :: ⟨2425⟩ :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ result, QuoteFinish v assetOut amount price evm result ∧ QuoteRun v ee g s0 ret R result := by
+    ∃ result, QuoteFinish fork v assetOut amount price evm result ∧ QuoteRun fork v ee g s0 ret R result := by
   obtain ⟨result, ht, hr⟩ := cometQuoteFinishBounded hstack hm hv hgap hbound hret hs h
   exact ⟨result, ht, hr.forget⟩
 

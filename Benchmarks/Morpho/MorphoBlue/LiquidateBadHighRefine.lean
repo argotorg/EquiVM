@@ -1,25 +1,27 @@
 import Benchmarks.Morpho.MorphoBlue.LiquidateBadHighReach
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
 
-inductive LiquidateBadHighRefines (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
+inductive LiquidateBadHighRefines (fork : Ethereum.Fork) (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     (p : MarketParamsWords) (assets seized shares account badAssets badShares srcOff len : UInt256)
     (locals imms : Store) (evm : EVM.State) (mem : ByteArray) (fp : UInt256) (spare : Nat) (R : List UInt256) : Prop where
-  | reverted : ExecBlock config { contract := contract, locals := locals, immutables := imms }
-      evm (liquidateBadBody.drop 10) .reverted → RDrev (deployedRuntime v) g s0 →
-      LiquidateBadHighRefines v ee g s0 p assets seized shares account badAssets badShares srcOff len locals imms evm mem fp spare R
+  | reverted : ExecBlock fork config { contract := contract, locals := locals, immutables := imms }
+      evm (liquidateBadBody.drop 10) .reverted → RDrev fork (deployedRuntime v) g s0 →
+      LiquidateBadHighRefines fork v ee g s0 p assets seized shares account badAssets badShares srcOff len locals imms evm mem fp spare R
   | ok {evm' σ' mem' aw' out' k' C'} :
-      ExecBlock config { contract := contract, locals := locals, immutables := imms }
+      ExecBlock fork config { contract := contract, locals := locals, immutables := imms }
         evm (liquidateBadBody.drop 10) (.ok { contract := contract, locals := locals, immutables := imms } evm') →
       SourceState s0 ee σ' evm' → MorphoHeap mem' fp spare → HeapAdvance mem fp mem' fp 0 →
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat 2574)
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 2574)
         (liquidateEventTail (UInt256.ofNat (deployedRuntime v).size) p.id assets seized shares badAssets badShares srcOff len R)
         mem' aw' out' σ' k' C' →
-      LiquidateBadHighRefines v ee g s0 p assets seized shares account badAssets badShares srcOff len locals imms evm mem fp spare R
+      LiquidateBadHighRefines fork v ee g s0 p assets seized shares account badAssets badShares srcOff len locals imms evm mem fp spare R
 
 theorem morphoLiquidateBadHighRefine {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : State} {aw fp assets seized shares account badAssets badShares srcOff len : UInt256} {out mem data : ByteArray}
@@ -29,10 +31,10 @@ theorem morphoLiquidateBadHighRefine {v : MorphoImmutables} {ee : ExecutionEnv} 
     (hl : LiquidateEventLocals p account seized shares data assets badAssets badShares locals) (hs : SourceState s0 ee σ evm)
     (hm : MorphoHeap mem fp spare) (hget : locals.get? "__c20" = some (.int (Int.ofNat badShares.toNat)))
     (hbs : badShares.toNat < 2 ^ 128)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 3140)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 3140)
       ([badShares, UInt256.ofNat 3169] ++ liquidateBadTail p.id assets seized shares badAssets badShares srcOff len R)
       mem aw out σ k C) :
-    LiquidateBadHighRefines v ee g s0 p assets seized shares account badAssets badShares srcOff len locals imms evm mem fp spare R := by
+    LiquidateBadHighRefines fork v ee g s0 p assets seized shares account badAssets badShares srcOff len locals imms evm mem fp spare R := by
   have hecast : evalExpr? config { contract := contract, locals := locals, immutables := imms } evm
       (.var "__c20") = .ok (.int (Int.ofNat badShares.toNat)) := by
     simp only [evalExpr?, hget, EvalResult.ofOption]
@@ -49,7 +51,7 @@ theorem morphoLiquidateBadHighRefine {v : MorphoImmutables} {ee : ExecutionEnv} 
   have hs1 : SourceState s0 ee σ1 e1 := by
     simpa only [e1, σ1, hs.env, ← hs.accounts] using storeMarketField_bridge hs p.id ⟨3, by decide⟩
       (UInt256.sub (marketFieldWord σ ee p.id 3) badShares)
-  have hass := morphoMarketSubtractAssign p locals imms evm ⟨3, by decide⟩ "__c20" badShares hl.toMarketLocals hecast
+  have hass := morphoMarketSubtractAssign (fork := fork) p locals imms evm ⟨3, by decide⟩ "__c20" badShares hl.toMarketLocals hecast
     (by simpa only [hs.env, ← hs.accounts] using hf)
   simp only [show evm.executionEnv.perm = true from
     (congrArg ExecutionEnv.perm hs.env).trans hperm, if_true] at hass
@@ -61,12 +63,12 @@ theorem morphoLiquidateBadHighRefine {v : MorphoImmutables} {ee : ExecutionEnv} 
     hperm (by rw [morphoPatchedValidJumps v]; jump_dest) (by rw [usub_toNat hf]; omega) rd2
   have hezero : evalExpr? config { contract := contract, locals := locals, immutables := imms } e1
       (.intLit 0) = .ok (.int (Int.ofNat (UInt256.ofNat 0).toNat)) := by simp only [evalExpr?, pure]; rfl
-  have hclear : ExecStmt config { contract := contract, locals := locals, immutables := imms } e1
+  have hclear : ExecStmt fork config { contract := contract, locals := locals, immutables := imms } e1
       liquidateBadBody[11]! (.ok { contract := contract, locals := locals, immutables := imms }
         (storePositionPacked e1 p.id account false (UInt256.ofNat 0))) :=
     ExecStmt.assign (hperm := Or.inr ((congrArg ExecutionEnv.perm hs1.env).trans hperm)) hezero (assignPositionPacked e1 locals imms _ _ p.id account false (UInt256.ofNat 0)
       (by decide) ha hl.position (hl.evalId imms e1) (hl.evalBorrower imms e1))
-  have he : ExecBlock config { contract := contract, locals := locals, immutables := imms } evm
+  have he : ExecBlock fork config { contract := contract, locals := locals, immutables := imms } evm
       (liquidateBadBody.drop 10) (.ok { contract := contract, locals := locals, immutables := imms }
         (storePositionPacked e1 p.id account false (UInt256.ofNat 0))) :=
     ExecBlock.consNormal hass (ExecBlock.consNormal hclear ExecBlock.nil)

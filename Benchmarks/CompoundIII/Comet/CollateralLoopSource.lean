@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.CollateralLoopFrame
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -10,7 +12,7 @@ set_option maxRecDepth 2000
 theorem collateralMembership_exec {v account assets reserved i liquidity frame}
     (hf : CollateralLoopFrame v account assets reserved i liquidity frame) (evm : EVM.State)
     (ha : assets.toNat < 2^16) (hr : reserved.toNat < 2^8) (hi : i < 256) :
-    ExecStmt config frame evm
+    ExecStmt fork config frame evm
       (.internalCall "isInAsset" [.var "assetsIn", .var "i", .var "_reserved"] "__c3")
       (.ok (collateralMemberFrame frame (isInAssetBool assets (UInt256.ofNat i) reserved)) evm) := by
   have hin : (UInt256.ofNat i).toNat = i :=
@@ -28,19 +30,19 @@ theorem collateralMember_eval (frame : Frame) (evm : EVM.State) (member : Bool) 
     Std.HashMap.getElem?_insert, EvalResult.ofOption]
   rfl
 
-def CollateralLoopSourceResult (frame : Frame) (evm : EVM.State) (borrow : Bool)
+def CollateralLoopSourceResult (fork : Ethereum.Fork) (frame : Frame) (evm : EVM.State) (borrow : Bool)
     (result : Option (EVM.State × Bool)) : Prop :=
   match result with
-  | none => ExecBlock config frame evm (collateralLoopTail borrow) .reverted
-  | some (evm', value) => ∃ final, ExecBlock config frame evm (collateralLoopTail borrow)
+  | none => ExecBlock fork config frame evm (collateralLoopTail borrow) .reverted
+  | some (evm', value) => ∃ final, ExecBlock fork config frame evm (collateralLoopTail borrow)
       (.returned final evm' (some [.bool value]))
 
 theorem collateralLoop_source_step {frame next : Frame} {evm evm' : EVM.State}
     {borrow : Bool} {result : Option (EVM.State × Bool)}
     (hc : evalExpr? config frame evm assetSearchCond = .ok (.bool true))
-    (hb : ExecBlock config frame evm (collateralLoopBody borrow) (.ok next evm'))
-    (ht : CollateralLoopSourceResult next evm' borrow result) :
-    CollateralLoopSourceResult frame evm borrow result := by
+    (hb : ExecBlock fork config frame evm (collateralLoopBody borrow) (.ok next evm'))
+    (ht : CollateralLoopSourceResult fork next evm' borrow result) :
+    CollateralLoopSourceResult fork frame evm borrow result := by
   cases result with
   | none => exact execBlock_while_step hc hb ht
   | some r =>
@@ -51,10 +53,10 @@ theorem collateralLoop_source_step {frame next : Frame} {evm evm' : EVM.State}
 theorem collateralLoop_source {v : CometWithExtendedAssetListImmutables}
     {borrow : Bool} {account : AccountAddress} {assets reserved liquidity : UInt256}
     {i : Nat} {evm : EVM.State} {result : Option (EVM.State × Bool)}
-    (ht : CollateralLoopTrace v borrow account assets reserved i liquidity evm result)
+    (ht : CollateralLoopTrace fork v borrow account assets reserved i liquidity evm result)
     (ha : assets.toNat < 2^16) (hr : reserved.toNat < 2^8) (frame : Frame)
     (hf : CollateralLoopFrame v account assets reserved i liquidity frame) :
-    CollateralLoopSourceResult frame evm borrow result := by
+    CollateralLoopSourceResult fork frame evm borrow result := by
   induction ht generalizing frame with
   | exhausted hi =>
       refine ⟨frame, ExecBlock.consNormal (ExecStmt.whileFalse ?_) ?_⟩
@@ -62,10 +64,10 @@ theorem collateralLoop_source {v : CometWithExtendedAssetListImmutables}
       · exact ABlock.start.returns (collateralResult_eval borrow hf.liquidity)
   | @skipped i liquidity evm result hi hm ht ih =>
       have hi8 : i + 1 < 256 := by have hn := v.numAssets_lt; omega
-      have hmcall := collateralMembership_exec hf evm ha hr (by omega)
+      have hmcall := collateralMembership_exec (fork := fork) hf evm ha hr (by omega)
       rw [hm] at hmcall
       have hfm := hf.member false
-      have hinc := assetSearchIncrement_exec (evm := evm) hfm.index hi8
+      have hinc := assetSearchIncrement_exec (fork := fork) (evm := evm) hfm.index hi8
       apply collateralLoop_source_step
         (by rw [assetSearchCond_eval hf.immutables hf.index, decide_eq_true hi])
         (ExecBlock.consNormal hmcall (ExecBlock.consNormal
@@ -74,7 +76,7 @@ theorem collateralLoop_source {v : CometWithExtendedAssetListImmutables}
       exact ih _ hfm.next
   | @solvent i liquidity evm hi hm hl =>
       have hi8 : i < 256 := lt_trans hi v.numAssets_lt
-      have hmcall := collateralMembership_exec hf evm ha hr hi8
+      have hmcall := collateralMembership_exec (fork := fork) hf evm ha hr hi8
       rw [hm] at hmcall
       have hfm := hf.member true
       refine ⟨collateralMemberFrame frame true,
@@ -89,7 +91,7 @@ theorem collateralLoop_source {v : CometWithExtendedAssetListImmutables}
       have hi8 : i < 256 := lt_trans hi v.numAssets_lt
       have hin : (UInt256.ofNat i).toNat = i :=
         UInt256.toNat_ofNat_of_lt (by change i < 2^256; omega)
-      have hmcall := collateralMembership_exec hf evm ha hr hi8
+      have hmcall := collateralMembership_exec (fork := fork) hf evm ha hr hi8
       rw [hm] at hmcall
       have hfm := hf.member true
       have hvalue := collateralValue_source hv (collateralMemberFrame frame true)
@@ -106,7 +108,7 @@ theorem collateralLoop_source {v : CometWithExtendedAssetListImmutables}
       have hi8 : i + 1 < 256 := by have hn := v.numAssets_lt; omega
       have hin : (UInt256.ofNat i).toNat = i :=
         UInt256.toNat_ofNat_of_lt (by change i < 2^256; omega)
-      have hmcall := collateralMembership_exec hf evm ha hr (by omega)
+      have hmcall := collateralMembership_exec (fork := fork) hf evm ha hr (by omega)
       rw [hm] at hmcall
       let f1 := collateralMemberFrame frame true
       have hf1 := hf.member true
@@ -116,10 +118,10 @@ theorem collateralLoop_source {v : CometWithExtendedAssetListImmutables}
       have hf3 := hf2.add (d.value borrow)
       have hvalue := collateralValue_source hv f1 hf1.contract hf1.immutables hf1.storage
         hf1.account (by simp only [f1, evalExpr?, hf1.index, hin, EvalResult.ofOption])
-      have hadd := collateralAdd_exec (frame := f2) (evm := evm') hf2.liquidity
+      have hadd := collateralAdd_exec (fork := fork) (frame := f2) (evm := evm') hf2.liquidity
         (by simp only [f2, collateralValueFrame, collateralMathFinal,
           Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert]; rfl) hl hv.value_lt
-      have hinc := assetSearchIncrement_exec (evm := evm') hf3.index hi8
+      have hinc := assetSearchIncrement_exec (fork := fork) (evm := evm') hf3.index hi8
       apply collateralLoop_source_step
         (by rw [assetSearchCond_eval hf.immutables hf.index, decide_eq_true hi])
       · apply ExecBlock.consNormal hmcall

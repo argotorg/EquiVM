@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.Mask128Evm
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_034
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_065
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -19,17 +21,17 @@ theorem cometSupplyCollateralTotal {v : CometWithExtendedAssetListImmutables}
     (hv : AssetValid out) (hm : TotalsCollateralMemory mem free total reserved)
     (hs : WordStructMemory mem ptr 8 (fun i ↦ calldataWord out (32 * i)))
     (hlo : 96 ≤ ptr.toNat) (hsep : ptr.toNat + 256 ≤ free.toNat)
-    (h : RD (deployedRuntime v) ee g s0 ⟨13881⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨13881⟩
       (free :: EVM.word asset.val :: ptr :: ⟨2^128-1⟩ :: amount :: sender :: dst :: ret :: R)
       mem aw out σ k C) :
     (total.toNat + amount.toNat < 2^128 ∧
       (total + amount).toNat ≤ (calldataWord out 224).toNat ∧
       ∃ aw' k' C',
-        RD (deployedRuntime v) ee g s0 ⟨13952⟩
+        RD fork (deployedRuntime v) ee g s0 ⟨13952⟩
           (EVM.word asset.val :: ptr :: free :: amount :: sender :: dst :: ret :: R)
           (writeWord mem free.toNat (total + amount)) aw' out σ k' C') ∨
     (¬ (total.toNat + amount.toNat < 2^128 ∧
-      (total + amount).toNat ≤ (calldataWord out 224).toNat) ∧ RDrev (deployedRuntime v) g s0) := by
+      (total + amount).toNat ≤ (calldataWord out 224).toNat) ∧ RDrev fork (deployedRuntime v) g s0) := by
   have r1 := cometWithExtendedAssetList_block_13881
     (immWords := wordsOf (immStore v)) (by change R.length + 3 + 11 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
@@ -49,7 +51,7 @@ theorem cometSupplyCollateralTotal {v : CometWithExtendedAssetListImmutables}
       (immWords := wordsOf (immStore v)) (by change R.length + 4 + 9 ≤ 1024; omega)
       (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r4
     simp only [cometWithExtendedAssetList_block_13904_memory, mask128Clean _ hn] at r5
-    change RD _ _ _ _ ⟨13917⟩
+    change RD fork _ _ _ _ ⟨13917⟩
       (⟨2^128-1⟩ :: EVM.word asset.val :: ptr :: free :: amount :: sender :: dst :: ret :: R)
       (writeWord mem free.toNat (total + amount)) _ _ _ _ _ at r5
     have hm' := hm.writeTotal (total + amount)

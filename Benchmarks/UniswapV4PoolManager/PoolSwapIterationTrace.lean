@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.PoolSwapScanComputeTrace
 import Benchmarks.UniswapV4PoolManager.PoolSwapAccountingWindow
 import Benchmarks.UniswapV4PoolManager.PoolSwapActiveWords
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -17,7 +19,7 @@ theorem poolSwapIterationTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State} 
     (htc : int24Canonical r.tick) (hspacing : int24Canonical p.tickSpacing)
     (hprice : r.price.toNat < 2^160) (hlimit : p.priceLimit.toNat < 2^160)
     (hliq : r.liquidity.toNat < 2^128) (hfee : fee.toNat < 2^24) (hprotocol : protocol.toNat < 2^16)
-    (h : RD (deployedRuntime v) I g s0 ⟨19169⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨19169⟩
       ([remaining, x1, params, calculated, tag, fee, protocol, amount, UInt256.fromBool (!p.zeroForOne),
         step, poolSlot id, state] ++ R) mem aw rdata evm.accountMap k C) :
     let scan := poolSwapScanStep s evm id r p
@@ -26,9 +28,9 @@ theorem poolSwapIterationTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State} 
     let computed := poolSwapComputeStep {scan with tickNext := tickClampWord scan.tickNext} next w
     let result := {r with price := w.next}
     let fees := poolSwapAccountingStep computed result fee protocol
-    blockResultTrace (deployedRuntime v) g s0
+    blockResultTrace fork (deployedRuntime v) g s0
       (fun _ post => ∃ mem' aw' k' C', C < C' ∧
-        RD (deployedRuntime v) I g s0 ⟨19155⟩
+        RD fork (deployedRuntime v) I g s0 ⟨19155⟩
           ([poolSwapRemainingAfter computed p.amountSpecified remaining, x1, params,
             poolSwapCalculatedAfter computed p.amountSpecified calculated, tag, fee, protocol,
             poolSwapProtocolAmount computed fee protocol amount, UInt256.fromBool (!p.zeroForOne), step, poolSlot id, state] ++ R)

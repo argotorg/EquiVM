@@ -1,5 +1,7 @@
 import Benchmarks.Morpho.MorphoBlue.ExtSloadsFinish
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Morpho `extSloads(bytes32[])`
 
@@ -20,13 +22,13 @@ set_option maxRecDepth 1000
 theorem morphoExtSloadsBody {σ σ₀ A I} {g : UInt256} (v : MorphoImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (morphoSelBytes 14)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (morphoSelBytes 14) rfl hsel
   have hd : selectorDispatchMsg contract I.calldata = some extSloadsTransition :=
     morphoSelectorDispatch_of_selIs (by decide) hsel
   obtain ⟨k, C, rd⟩ := morphoReachExtSloadsBody (g := .ofUInt256 g) (σ := σ) (σ₀ := σ₀)
     (A := A) v hcode hsz hsize hsel
-  change RD _ _ _ _ _ _ solcFreePtrMem _ _ _ _ _ at rd
+  change RD fork _ _ _ _ _ _ solcFreePtrMem _ _ _ _ _ at rd
   by_cases hcv : I.weiValue = ⟨0⟩
   swap
   · have rd0 := morphoBlocks.morpho_block_6760_taken (immWords := wordsOf (immStore v))

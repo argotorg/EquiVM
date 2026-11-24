@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.TransientSource
 import Benchmarks.UniswapV4PoolManager.MappingMemory
 
+variable {fork : Ethereum.Fork}
+
 /-! Shared transient-storage bridges and static-call stepping. -/
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
@@ -29,7 +31,7 @@ theorem tstore_xstep_static {s : State} {code : ByteArray} {pcv slot val : UInt2
     (hdec : decode code pcv = some (.TSTORE, .none))
     (hperm : s.executionEnv.perm = false)
     (hstk : s.machineState.stack = slot :: val :: t) (hov : t.length ≤ 1024) :
-    Xstep (D_J code 0) s =
+    Xstep fork (D_J code 0) s =
       (if s.machineState.gasAvailable.toNat < Ctstore then .error .OutOfGass
        else .error .StaticModeViolation) := by
   have hd : decode s.executionEnv.code s.machineState.pc = some (.TSTORE, .none) := by
@@ -43,14 +45,14 @@ theorem tstore_xstep_static {s : State} {code : ByteArray} {pcv slot val : UInt2
 theorem tstoreStatic {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : Nat} {slot val : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (slot :: val :: t) mem aw rdata σ k C)
+    (h : RD fork code ee g s0 pc (slot :: val :: t) mem aw rdata σ k C)
     (hperm : ee.perm = false) (hdec : decode code pc = some (.TSTORE, .none))
-    (hov : t.length ≤ 1024) : RDstatic code g s0 := by
+    (hov : t.length ≤ 1024) : RDstatic fork code g s0 := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, _, hk, hC, _, _, _, _, hee, _⟩
   · exact Or.inl hoog
   · have hperms : s.executionEnv.perm = false := by rw [hee]; exact hperm
-    have st := tstore_xstep_static hcode hpc hdec hperms hstk hov
+    have st := tstore_xstep_static (fork := fork) hcode hpc hdec hperms hstk hov
     rcases stepStatic (g := g) st hk hC with h | h
     · exact Or.inl (hX.trans h)
     · exact Or.inr (hX.trans h)

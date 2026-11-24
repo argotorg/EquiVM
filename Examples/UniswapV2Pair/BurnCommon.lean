@@ -2,6 +2,8 @@ import Examples.UniswapV2Pair.ExternalWrappers
 import Examples.UniswapV2Pair.BurnRoutines
 import Examples.UniswapV2Pair.MutatorDispatch
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -61,10 +63,10 @@ theorem burnStore_balanceOf (I : ExecutionEnv) :
     the external burn routine at pc 4093. -/
 theorem uniswapBurnX_decoded_masked {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨1163⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨4093⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨4093⟩
       [burnToMaskedWord I, ⟨1201⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd1185⟩ := RD.uniswapOneAddressExternalLenOk
@@ -80,10 +82,10 @@ theorem uniswapBurnX_decoded_masked {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem uniswapBurnX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨1163⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
   exact RD.uniswapOneAddressExternalShort
     (entry := ⟨1163⟩) (ret := ⟨1201⟩) (routine := ⟨4093⟩)
     hreach uniswap_one_address_external_entry_wf hsz4 hsize hshort
@@ -94,11 +96,11 @@ theorem uniswapBurnX_locked {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hlocked :
       (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) ≠
         ⟨1⟩)
-    (hdecoded : ∃ k C, RD uniswapV2PairBytecode I g
+    (hdecoded : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨4093⟩
       [burnToMaskedWord I, ⟨1201⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd4093⟩ := hdecoded
   have rd4097 := evm_run rd4093 with [jumpdest, push1 ⟨0⟩, dup1]
   exact RD.uniswapLockEnterBodyLocked
@@ -114,11 +116,11 @@ theorem uniswapBurnX_lockEntered {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hunlocked :
       (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
-    (hdecoded : ∃ k C, RD uniswapV2PairBytecode I g
+    (hdecoded : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨4093⟩
       [burnToMaskedWord I, ⟨1201⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨4179⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨4179⟩
       [⟨0⟩, ⟨0⟩, ⟨0⟩, burnToMaskedWord I, ⟨1201⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) k C := by
@@ -137,11 +139,11 @@ theorem uniswapBurnX_lockEnteredStatic {σ σ₀ A I} {g : Sat256} {sel : UInt25
     (hunlocked :
       (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
-    (hdecoded : ∃ k C, RD uniswapV2PairBytecode I g
+    (hdecoded : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨4093⟩
       [burnToMaskedWord I, ⟨1201⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDstatic uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
+    RDstatic fork uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd4093⟩ := hdecoded
   have rd4097 := evm_run rd4093 with [jumpdest, push1 ⟨0⟩, dup1]
   exact RD.uniswapLockEnterBodyOkStatic
@@ -153,9 +155,9 @@ theorem uniswapBurnX_lockEnteredStatic {σ σ₀ A I} {g : Sat256} {sel : UInt25
 theorem uniswapBurnBodyReverts_locked (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ ≠ ⟨1⟩) :
-    ExecTransitionBody config contract evm (burnStore I) burnTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (burnStore I) burnTransition.body .reverted := by
   have hlock :=
-    uniswapLockEnterLockedRevert evm (burnStore I) hwv (by simp [burnStore]) hlocked
+    uniswapLockEnterLockedRevert (fork := fork) evm (burnStore I) hwv (by simp [burnStore]) hlocked
   exact ExecFuncBody.execBlockRevert (by
     simpa [burnTransition, List.append_assoc] using
       (execBlock_append_term hlock (by intro f e h; cases h)))
@@ -164,9 +166,9 @@ theorem uniswapBurnBodyStatic (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (burnStore I) burnTransition.body
+    ExecTransitionBody fork config contract evm (burnStore I) burnTransition.body
       .staticViolation := by
-  have hlock := uniswapLockEnterStatic evm (burnStore I) hwv (by simp [burnStore]) hunlocked hperm
+  have hlock := uniswapLockEnterStatic (fork := fork) evm (burnStore I) hwv (by simp [burnStore]) hunlocked hperm
   exact ExecFuncBody.execBlockStatic (by
     simpa [burnTransition, List.append_assoc] using
       (execBlock_append_term hlock (by intro f e h; cases h)))
@@ -176,10 +178,10 @@ theorem uniswapBurnBodyCoreDecodeFailed_short
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some burnTransition)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1163⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hdec := uniswapDecode_burn_none_short (I := I) hsz4 hshort
   exact (uniswapBurnX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch hdec
@@ -192,18 +194,18 @@ theorem uniswapBurnBodyCoreRevert_locked
       (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) ≠
         ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some burnTransition)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1163⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
      :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hlockedStele :
       Stele.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨12⟩ ≠ ⟨1⟩ := by
     simpa [evmS, initState, Stele.EVM.storageLoad, State.lookupAccount,
       Account.lookupStorage] using hlocked
   have hbody :
-      ExecTransitionBody config contract evmS (burnStore I) burnTransition.body .reverted := by
+      ExecTransitionBody fork config contract evmS (burnStore I) burnTransition.body .reverted := by
     exact uniswapBurnBodyReverts_locked evmS I
       (by simp only [evmS, initState]; exact hwv)
       hlockedStele
@@ -217,7 +219,7 @@ theorem uniswapBurnBodyDecodeFailed_short
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x89, 0xaf, 0xcb, 0x44]⟩)
     (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some burnTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x89, 0xaf, 0xcb, 0x44]⟩ rfl hsel
   exact uniswapBurnBodyCoreDecodeFailed_short hcode hsize hsz4 hshort hdispatch
@@ -232,7 +234,7 @@ theorem uniswapBurnBodyRevert_locked
       (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) ≠
         ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some burnTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x89, 0xaf, 0xcb, 0x44]⟩ rfl hsel
   exact uniswapBurnBodyCoreRevert_locked hcode hsize hwv hsz36 hlocked hdispatch

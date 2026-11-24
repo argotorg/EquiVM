@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.FlashRepaymentTrace
 import Benchmarks.UniswapV3.Pool.FlashBalances
 import Benchmarks.UniswapV3.Pool.FlashFeesSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -33,7 +35,7 @@ theorem flashRepayAddReturns (v : UniswapV3PoolImmutables) (locals : Store) (evm
     (hb : locals.get? (flashBalanceName false second) = some (.int (Int.ofNat before.toNat)))
     (hf : locals.get? (flashFeeName second) = some (.int (Int.ofNat fee.toNat)))
     (hv : before.toNat ≤ (before + fee).toNat) :
-    ExecStmt config {contract := contract, locals := locals, immutables := immStore v} evm
+    ExecStmt fork config {contract := contract, locals := locals, immutables := immStore v} evm
       (flashRepayStmts second)[0]! (.ok (flashRepayFrame v locals second before fee) evm) := by
   exact internalCallFunctionReturn (callee := safeAddFunction) (locals := safeAddLocals before fee)
     (calleeStele := safeAddResultFrame (immStore v) before fee)
@@ -59,7 +61,7 @@ theorem flashRepayReturns (v : UniswapV3PoolImmutables) (locals : Store) (evm : 
     (hf : locals.get? (flashFeeName second) = some (.int (Int.ofNat fee.toNat)))
     (ha : locals.get? (flashBalanceName true second) = some (.int (Int.ofNat after.toNat)))
     (hv : flashRepayValid before fee after) :
-    ExecBlock config {contract := contract, locals := locals, immutables := immStore v} evm
+    ExecBlock fork config {contract := contract, locals := locals, immutables := immStore v} evm
       (flashRepayStmts second) (.ok (flashRepayFrame v locals second before fee) evm) := by
   refine ExecBlock.consNormal (flashRepayAddReturns v locals evm second before fee hb hf hv.1)
     (ExecBlock.consNormal (ExecStmt.requireTrue ?_) ExecBlock.nil)
@@ -71,7 +73,7 @@ theorem flashRepayReverts (v : UniswapV3PoolImmutables) (locals : Store) (evm : 
     (hf : locals.get? (flashFeeName second) = some (.int (Int.ofNat fee.toNat)))
     (ha : locals.get? (flashBalanceName true second) = some (.int (Int.ofNat after.toNat)))
     (hv : ¬ flashRepayValid before fee after) :
-    ExecBlock config {contract := contract, locals := locals, immutables := immStore v} evm
+    ExecBlock fork config {contract := contract, locals := locals, immutables := immStore v} evm
       (flashRepayStmts second) .reverted := by
   by_cases hadd : before.toNat ≤ (before + fee).toNat
   · refine ExecBlock.consNormal (flashRepayAddReturns v locals evm second before fee hb hf hadd)
@@ -101,10 +103,10 @@ theorem flashRepaymentReturns (v : UniswapV3PoolImmutables) (locals : Store) (ev
     (before0 before1 fee0 fee1 after0 after1 : UInt256)
     (hget : FlashRepayValues locals before0 before1 fee0 fee1 after0 after1)
     (hv : flashRepayValid before0 fee0 after0 ∧ flashRepayValid before1 fee1 after1) :
-    ExecBlock config {contract := contract, locals := locals, immutables := immStore v} evm
+    ExecBlock fork config {contract := contract, locals := locals, immutables := immStore v} evm
       ((flashTransition.body.drop 17).take 4)
       (.ok (flashRepaidFrame v locals before0 before1 fee0 fee1) evm) := by
-  change ExecBlock _ _ _ (flashRepayStmts false ++ flashRepayStmts true) _
+  change ExecBlock fork _ _ _ (flashRepayStmts false ++ flashRepayStmts true) _
   apply execBlock_append_ok
     (flashRepayReturns v locals evm false before0 fee0 after0 hget.before0 hget.fee0 hget.after0 hv.1)
   apply flashRepayReturns v _ evm true before1 fee1 after1 _ _ _ hv.2
@@ -119,9 +121,9 @@ theorem flashRepaymentReverts (v : UniswapV3PoolImmutables) (locals : Store) (ev
     (before0 before1 fee0 fee1 after0 after1 : UInt256)
     (hget : FlashRepayValues locals before0 before1 fee0 fee1 after0 after1)
     (hv : ¬ (flashRepayValid before0 fee0 after0 ∧ flashRepayValid before1 fee1 after1)) :
-    ExecBlock config {contract := contract, locals := locals, immutables := immStore v} evm
+    ExecBlock fork config {contract := contract, locals := locals, immutables := immStore v} evm
       ((flashTransition.body.drop 17).take 4) .reverted := by
-  change ExecBlock _ _ _ (flashRepayStmts false ++ flashRepayStmts true) _
+  change ExecBlock fork _ _ _ (flashRepayStmts false ++ flashRepayStmts true) _
   by_cases hv0 : flashRepayValid before0 fee0 after0
   · apply execBlock_append_ok
       (flashRepayReturns v locals evm false before0 fee0 after0 hget.before0 hget.fee0 hget.after0 hv0)
@@ -148,7 +150,7 @@ theorem flashPaidSource (v : UniswapV3PoolImmutables) (locals : Store) (evm : EV
     (hb1 : locals.get? "balance1Before" = some (.int (Int.ofNat before1.toNat)))
     (ha0 : locals.get? "balance0After" = some (.int (Int.ofNat after0.toNat)))
     (ha1 : locals.get? "balance1After" = some (.int (Int.ofNat after1.toNat))) :
-    ExecBlock config {contract := contract, locals := locals, immutables := immStore v} evm
+    ExecBlock fork config {contract := contract, locals := locals, immutables := immStore v} evm
       ((flashTransition.body.drop 21).take 2)
       (.ok (flashPaidFrame v locals before0 before1 after0 after1) evm) := by
   refine ExecBlock.consNormal (ExecStmt.letDecl

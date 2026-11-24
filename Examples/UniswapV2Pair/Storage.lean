@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.Common
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -345,14 +347,14 @@ macro "uniswap_one_address_getter_entry_wf" : term =>
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapOneAddressGetterLenOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {entry routine : UInt256}
-    (hreach : ∃ k C, RD UniswapV2Pair.uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork UniswapV2Pair.uniswapV2PairBytecode I g
       (Reasoning.Theory.initState σ σ₀ g A I) entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hwf : uniswapOneAddressGetterEntryWf entry routine)
     (hdecoded : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains
       (uniswapOneAddressGetterDecodedPc entry) = true)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD UniswapV2Pair.uniswapV2PairBytecode I g
+    ∃ k C, RD fork UniswapV2Pair.uniswapV2PairBytecode I g
       (Reasoning.Theory.initState σ σ₀ g A I)
       (uniswapOneAddressGetterDecodedPc entry)
       (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩ :: ⟨4⟩ :: ⟨861⟩ :: [sel])
@@ -368,14 +370,14 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapOneAddressGetterMaskAndJump {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {entry routine de : UInt256} {R : List UInt256} {rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0
       (uniswapOneAddressGetterDecodedPc entry) (de :: ⟨4⟩ :: ⟨861⟩ :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : uniswapOneAddressGetterEntryWf entry routine)
     (hcanon : (calldataWord ee.calldata 4).toNat < EVM.addressModulus)
     (hroutine : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains routine = true)
     (hov : R.length + 5 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 routine
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 routine
       (calldataWord ee.calldata 4 :: ⟨861⟩ :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
@@ -389,13 +391,13 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapOneAddressGetterMaskAndJumpMasked {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {entry routine de : UInt256} {R : List UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0
       (uniswapOneAddressGetterDecodedPc entry) (de :: ⟨4⟩ :: ⟨861⟩ :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : uniswapOneAddressGetterEntryWf entry routine)
     (hroutine : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains routine = true)
     (hov : R.length + 5 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 routine
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 routine
       (UInt256.land solcAddrMask (calldataWord ee.calldata 4) :: ⟨861⟩ :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
@@ -516,14 +518,14 @@ macro "uniswap_two_address_getter_entry_wf" : term =>
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapTwoAddressGetterLenOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {entry routine : UInt256}
-    (hreach : ∃ k C, RD UniswapV2Pair.uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork UniswapV2Pair.uniswapV2PairBytecode I g
       (Reasoning.Theory.initState σ σ₀ g A I) entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hwf : uniswapTwoAddressGetterEntryWf entry routine)
     (hdecoded : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains
       (uniswapTwoAddressGetterDecodedPc entry) = true)
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD UniswapV2Pair.uniswapV2PairBytecode I g
+    ∃ k C, RD fork UniswapV2Pair.uniswapV2PairBytecode I g
       (Reasoning.Theory.initState σ σ₀ g A I)
       (uniswapTwoAddressGetterDecodedPc entry)
       (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩ :: ⟨4⟩ :: ⟨861⟩ :: [sel])
@@ -539,7 +541,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapTwoAddressGetterMaskAndJump {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {entry routine de : UInt256} {R : List UInt256} {rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0
       (uniswapTwoAddressGetterDecodedPc entry) (de :: ⟨4⟩ :: ⟨861⟩ :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : uniswapTwoAddressGetterEntryWf entry routine)
@@ -547,7 +549,7 @@ theorem RD.uniswapTwoAddressGetterMaskAndJump {g : Sat256} {s0 : State} {ee : Ex
     (hcanonSpender : (calldataWord ee.calldata 36).toNat < EVM.addressModulus)
     (hroutine : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains routine = true)
     (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 routine
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 routine
       (calldataWord ee.calldata 36 :: calldataWord ee.calldata 4 :: ⟨861⟩ :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
@@ -562,13 +564,13 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapTwoAddressGetterMaskAndJumpMasked {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {entry routine de : UInt256} {R : List UInt256}
     {rdata : ByteArray} {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0
       (uniswapTwoAddressGetterDecodedPc entry) (de :: ⟨4⟩ :: ⟨861⟩ :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : uniswapTwoAddressGetterEntryWf entry routine)
     (hroutine : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains routine = true)
     (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 routine
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 routine
       (UInt256.land solcAddrMask (calldataWord ee.calldata 36) ::
         UInt256.land solcAddrMask (calldataWord ee.calldata 4) :: ⟨861⟩ :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k' C' := by
@@ -582,12 +584,12 @@ theorem RD.uniswapTwoAddressGetterMaskAndJumpMasked {g : Sat256} {s0 : State}
 theorem RD.uniswapSingleMappingGetter {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {pc baseSlot key ret : UInt256} {R : List UInt256} {rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 pc (key :: ret :: R)
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 pc (key :: ret :: R)
         solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : uniswapSingleMappingGetterWf pc baseSlot)
     (hret : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret
       ((σ.get? ee.codeOwner |>.option ⟨0⟩
           (fun acc => acc.storage.getD (UniswapV2Pair.mapSlot key baseSlot) ⟨0⟩))
         :: ret :: R)
@@ -601,11 +603,11 @@ theorem RD.uniswapNestedMappingInnerHash {g : Sat256} {s0 : State} {ee : Executi
     {k C : ℕ}
     {pc baseSlot owner spender ret : UInt256} {R : List UInt256} {rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 pc (spender :: owner :: ret :: R)
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 pc (spender :: owner :: ret :: R)
         solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : uniswapNestedMappingGetterWf pc baseSlot)
     (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0
       (uniswapNestedMappingGetterAfterInnerHashPc pc)
       (UniswapV2Pair.mapSlot owner baseSlot :: ⟨64⟩ :: ⟨32⟩ :: spender :: ⟨0⟩ :: ret :: R)
       (UniswapV2Pair.uniswapMappingHashMem baseSlot owner)
@@ -619,14 +621,14 @@ theorem RD.uniswapNestedMappingOuterHash {g : Sat256} {s0 : State} {ee : Executi
     {k C : ℕ}
     {pc baseSlot owner spender ret : UInt256} {R : List UInt256} {rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0
       (uniswapNestedMappingGetterAfterInnerHashPc pc)
       (UniswapV2Pair.mapSlot owner baseSlot :: ⟨64⟩ :: ⟨32⟩ :: spender :: ⟨0⟩ :: ret :: R)
       (UniswapV2Pair.uniswapMappingHashMem baseSlot owner)
       (UInt256.ofNat 3) rdata σ k C)
     (hwf : uniswapNestedMappingGetterWf pc baseSlot)
     (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0
       (uniswapNestedMappingGetterSloadPc pc)
       (UniswapV2Pair.mapSlot spender (UniswapV2Pair.mapSlot owner baseSlot) :: ret :: R)
       (UniswapV2Pair.uniswapNestedMappingHashMem baseSlot owner spender)
@@ -640,12 +642,12 @@ theorem RD.uniswapNestedMappingLoadAndJump {g : Sat256} {s0 : State} {ee : Execu
     {k C : ℕ} {pc baseSlot slot ret : UInt256} {R : List UInt256} {mem : ByteArray}
     {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0
+    (h : RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0
       (uniswapNestedMappingGetterSloadPc pc) (slot :: ret :: R) mem aw rdata σ k C)
     (hwf : uniswapNestedMappingGetterWf pc baseSlot)
     (hret : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 3 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret
+    ∃ k' C', RD fork UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret
       ((σ.get? ee.codeOwner |>.option ⟨0⟩
           (fun acc => acc.storage.getD slot ⟨0⟩)) :: ret :: R)
       mem aw rdata σ k' C' := by

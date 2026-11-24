@@ -6,6 +6,8 @@ import Benchmarks.CurveVault.Calls
 import Benchmarks.CurveVault.RuntimeBlocks_022
 import Benchmarks.CurveVault.RuntimeBlocks_023
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch Reasoning.VyperCalls
 namespace Benchmarks.CurveVault
 
@@ -13,14 +15,14 @@ abbrev vaultAdminFunction : FunctionDecl := contract.functions[25]!
 
 theorem vaultAdminFunctionReturns {evm evm' : EVM.State} {locals : Store}
     {out : ByteArray} {value : Value} (hbase : locals.get? "_factory" = none)
-    (hcall : typedCallViaEVM config evm
+    (hcall : typedCallViaEVM fork config evm
       (AccountAddress.ofUInt256 (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨4⟩))
       "admin" 0 [] (true, evm', out) false)
     (hdec : config.externalABI.decode? "admin" out = some [value]) :
-    ExecFuncBody config {contract := contract, locals := locals} evm vaultAdminFunction.body
+    ExecFuncBody fork config {contract := contract, locals := locals} evm vaultAdminFunction.body
       (.returned {contract := contract, locals := locals.insert "__c0" value} evm' (some [value])) := by
   exact ExecFuncBody.execBlockRet <|
-    ExecBlock.consNormal (ExecStmt.externalCallSuccess (hperm := Or.inl rfl) (sendVal := 0) (argVals := []) (vaultFactoryEval evm locals hbase)
+    ExecBlock.consNormal (ExecStmt.externalCallSuccess (fork := fork) (hperm := Or.inl rfl) (sendVal := 0) (argVals := []) (vaultFactoryEval evm locals hbase)
       (by simp [evalExpr?, pure]) (by simp [evalExprs?, pure])
       (by simpa only [address_of_val] using hcall) hdec) <|
       ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton (by
@@ -28,10 +30,10 @@ theorem vaultAdminFunctionReturns {evm evm' : EVM.State} {locals : Store}
 
 theorem vaultAdminFunctionCallFailed {evm evm' : EVM.State} {locals : Store}
     {out : ByteArray} (hbase : locals.get? "_factory" = none)
-    (hcall : typedCallViaEVM config evm
+    (hcall : typedCallViaEVM fork config evm
       (AccountAddress.ofUInt256 (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨4⟩))
       "admin" 0 [] (false, evm', out) false) :
-    ExecFuncBody config {contract := contract, locals := locals} evm vaultAdminFunction.body .reverted :=
+    ExecFuncBody fork config {contract := contract, locals := locals} evm vaultAdminFunction.body .reverted :=
   ExecFuncBody.execBlockRevert <| ExecBlock.consRevert <|
     ExecStmt.externalCallFailure (hperm := Or.inl rfl) (sendVal := 0) (argVals := []) (vaultFactoryEval evm locals hbase)
       (by simp [evalExpr?, pure]) (by simp [evalExprs?, pure])
@@ -39,11 +41,11 @@ theorem vaultAdminFunctionCallFailed {evm evm' : EVM.State} {locals : Store}
 
 theorem vaultAdminFunctionDecodeFailed {evm evm' : EVM.State} {locals : Store}
     {out : ByteArray} (hbase : locals.get? "_factory" = none)
-    (hcall : typedCallViaEVM config evm
+    (hcall : typedCallViaEVM fork config evm
       (AccountAddress.ofUInt256 (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨4⟩))
       "admin" 0 [] (true, evm', out) false)
     (hdec : config.externalABI.decode? "admin" out = none) :
-    ExecFuncBody config {contract := contract, locals := locals} evm vaultAdminFunction.body .reverted :=
+    ExecFuncBody fork config {contract := contract, locals := locals} evm vaultAdminFunction.body .reverted :=
   ExecFuncBody.execBlockRevert <| ExecBlock.consRevert <|
     ExecStmt.externalCallReturnDecodeRevert (hperm := Or.inl rfl) (sendVal := 0) (argVals := []) (vaultFactoryEval evm locals hbase)
       (by simp [evalExpr?, pure]) (by simp [evalExprs?, pure])
@@ -52,7 +54,7 @@ theorem vaultAdminFunctionDecodeFailed {evm evm' : EVM.State} {locals : Store}
 theorem vaultAdminBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vaultBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vaultSelBytes 44)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (vaultSelBytes 44) rfl hsel
   have hd : dispatchMsg contract I.calldata = some adminTransition := by
     apply vaultDispatch_admin
@@ -74,16 +76,16 @@ theorem vaultAdminBodyCore {σ σ₀ A I} {g : UInt256}
       (by change UInt256.eq _ (codeOwnerTransientWord I σ ⟨0⟩) ≠ _
           rw [hlocked]; decide +kernel) (by native_decide) rdBody
     have hrev := vaultBlocks.vault_block_8284 (by simp) rdRevert
-    have hsource := vaultLockedBodyReverts (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+    have hsource := vaultLockedBodyReverts (fork := fork) (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
       [.internalCall "admin_body" [] "__r", .return [.var "__r"]] hvalue
       (by rw [hload]; exact hlocked)
     exact hrev.reEquivExecutionRevert hcode hd hdec hsource
   · have hlock : Stele.EVM.transientLoad (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner ⟨0⟩ ≠ ⟨1⟩ :=
       by rwa [hload]
-    have hwrap (hb : ExecFuncBody config {contract := contract, locals := ∅}
+    have hwrap (hb : ExecFuncBody fork config {contract := contract, locals := ∅}
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) vaultAdminFunction.body .reverted) :
-        ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+        ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
           adminTransition.body .reverted :=
       vaultViewBodyReverts (fn := vaultAdminFunction) (args := []) (argVals := []) hvalue hlock
         (by simp [evalExprs?, pure]) rfl rfl hb
@@ -96,7 +98,7 @@ theorem vaultAdminBodyCore {σ σ₀ A I} {g : UInt256}
     have hsload : Stele.EVM.storageLoad (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner ⟨4⟩ =
         codeOwnerStorageWord I σ ⟨4⟩ := codeOwnerStorageWord_initState _
-    change typedCallViaEVM config _ (AccountAddress.ofUInt256 (codeOwnerStorageWord I σ ⟨4⟩))
+    change typedCallViaEVM fork config _ (AccountAddress.ofUInt256 (codeOwnerStorageWord I σ ⟨4⟩))
       "admin" 0 [] (z, evm', out) false at hcall
     rw [← hsload] at hcall
     have hout256 : out.size < UInt256.size := lt_trans hout (by decide +kernel)
@@ -123,7 +125,7 @@ theorem vaultAdminBodyCore {σ σ₀ A I} {g : UInt256}
             (by change UInt256.shiftRight (memLoad _ (out.write 0 preMem 64 _)) _ = _
                 rw [hword]; exact u256_shiftRight160_zero_of_lt _ hcanon) rd6394
           have hret := vaultBlocks.vault_block_6405 (by simp) rd6405
-          change RDret vaultBytecode (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ'
+          change RDret fork vaultBytecode (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ'
             (((memLoad (UInt256.ofNat 64) (out.write 0 preMem 64 _)).toByteArray.write 0 _ 128 32).readWithPadding 128 32) at hret
           rw [hword, toByteArray_write_read_back_of_gap _ _ _
             (lt_of_le_of_lt (Nat.sub_le _ _) (lt_usize 128 (by norm_num)))] at hret
@@ -160,7 +162,7 @@ theorem vaultAdminBody {σ σ₀ A I} {g : UInt256}
     (_hwf : storageWF σ I)
     (hcode : I.code = vaultBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vaultSelBytes 44)) :
-    runtimeRefinementFor config contract σ σ₀ g A I :=
+    runtimeRefinementFor fork config contract σ σ₀ g A I :=
   vaultAdminBodyCore hcode hsize hsel
 
 end Benchmarks.CurveVault

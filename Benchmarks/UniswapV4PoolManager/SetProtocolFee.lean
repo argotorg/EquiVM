@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.PoolKeyDecodeTrace
 import Benchmarks.UniswapV4PoolManager.SetProtocolFeeTrace
 import Benchmarks.UniswapV4PoolManager.LPFeeTrace
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # PoolManager `setProtocolFee((address,address,uint24,int24,address),uint24)`
 
@@ -25,15 +27,15 @@ theorem poolManagerSetProtocolFeeBody {σ σ₀ A I} {g : UInt256} (v : PoolMana
     (_hWF : Syntax.poolManagerWF σ I)
     (_hGas : Syntax.poolManagerGasBound g)
     (hsel : selIs I (poolManagerSelBytes 27)) :
-    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (poolManagerSelBytes 27) rfl hsel
   have hd : dispatchMsg contract I.calldata = some setProtocolFeeTransition := by
     apply poolManagerDispatch_setProtocolFee <;> first
     | exact hsel
     | exact selectorNe_of_selIs hsel (by decide +kernel)
-  obtain ⟨k, C, rdEntry⟩ := poolManagerReachSetProtocolFeeBody (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, rdEntry⟩ := poolManagerReachSetProtocolFeeBody (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
-  change RD (deployedRuntime v) I (Sat256.ofUInt256 g)
+  change RD fork (deployedRuntime v) I (Sat256.ofUInt256 g)
     (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3673⟩ [solcSelectorWord I]
     entryMemory ⟨3⟩ .empty σ k C at rdEntry
   have hjump : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 816) = true := by
@@ -73,7 +75,7 @@ theorem poolManagerSetProtocolFeeBody {σ σ₀ A I} {g : UInt256} (v : PoolMana
             have hcontroller : args.get? "protocolFeeController" = none :=
               (store_get_ne2 _ _ _ (by decide : ("key" == "protocolFeeController") = false)
                 (by decide : ("newProtocolFee" == "protocolFeeController") = false)).trans (store_get_empty _)
-            have hbody := setProtocolFeeBody (evm := evm) (imms := immStore v) hwv hhi hcanon hfeeCanon hk he hcontroller
+            have hbody := setProtocolFeeBody (fork := fork) (evm := evm) (imms := immStore v) hwv hhi hcanon hfeeCanon hk he hcontroller
             have htrace := setProtocolFeeTrace (evm := evm) v (by simp) hI hfeeCanon rdBody
             rw [setProtocolFeeResult] at hbody
             unfold setProtocolFeeTraceResult at htrace

@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SafeTransferBuild
 import Benchmarks.UniswapV3.Pool.SafeTransferCopy
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -14,10 +16,10 @@ def safeTransferInputMem (mem : ByteArray) (p : UInt256) (recipient : AccountAdd
 theorem safeTransferPrepareX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p value ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (token recipient : AccountAddress)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨15238⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨15238⟩
       (value :: EVM.word recipient.val :: EVM.word token.val :: ret :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw p) (hb : p.toNat + 196 ≤ 2 ^ 200) (hov : R.length + 20 ≤ 1024) :
-    ∃ gasArg aw' k' C', RD (deployedRuntime v) ee g s0 ⟨15413⟩
+    ∃ gasArg aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨15413⟩
       (gasArg :: EVM.word token.val :: ⟨0⟩ :: (p + ⟨100⟩) :: ⟨68⟩ :: (p + ⟨100⟩) :: ⟨0⟩ ::
         (UInt256.ofNat 68 + (p + ⟨100⟩)) :: EVM.word token.val :: ⟨0⟩ :: ⟨0⟩ ::
         value :: EVM.word recipient.val :: EVM.word token.val :: ret :: R)
@@ -82,21 +84,21 @@ theorem safeTransferEntryCallGrowingX {σ : AccountMap} {ee : ExecutionEnv} {g :
     {s0 evm : EVM.State} {k C : Nat} {aw p value ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (imms : Store)
     (token recipient : AccountAddress)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨15238⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨15238⟩
       (value :: EVM.word recipient.val :: EVM.word token.val :: ret :: R) mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hperm : ee.perm = true)
     (hm : HeapMemory mem aw p) (hmem : 128 ≤ mem.size)
     (hzero : memLoad (UInt256.ofNat 96) mem = ⟨0⟩)
     (hb : p.toNat + 2 ^ 138 + 195 ≤ 2 ^ 200)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 20 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧
-      ExecFuncBody config (safeTransferFrame imms token recipient value) evm
+    (RDrev fork (deployedRuntime v) g s0 ∧
+      ExecFuncBody fork config (safeTransferFrame imms token recipient value) evm
         safeTransferFunction.body .reverted) ∨
     ∃ evm' σ' out mem' aw' next k' C', SourceState s0 ee σ' evm' ∧
-      ExecFuncBody config (safeTransferFrame imms token recipient value) evm
+      ExecFuncBody fork config (safeTransferFrame imms token recipient value) evm
         safeTransferFunction.body
         (.returned (safeTransferCallFrame imms token recipient value true out) evm' none) ∧
-      RD (deployedRuntime v) ee g s0 ret R mem' aw' out σ' k' C' ∧
+      RD fork (deployedRuntime v) ee g s0 ret R mem' aw' out σ' k' C' ∧
       HeapMemory mem' aw' next ∧
       MemoryPrefix (safeTransferInputMem mem p recipient value) mem' (p + ⟨100⟩).toNat ∧
       (p + ⟨100⟩).toNat ≤ next.toNat ∧
@@ -114,21 +116,21 @@ theorem safeTransferEntryCallX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256
     {s0 evm : EVM.State} {k C : Nat} {aw p value ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (imms : Store)
     (token recipient : AccountAddress)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨15238⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨15238⟩
       (value :: EVM.word recipient.val :: EVM.word token.val :: ret :: R) mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hperm : ee.perm = true)
     (hm : HeapMemory mem aw p) (hmem : 128 ≤ mem.size)
     (hzero : memLoad (UInt256.ofNat 96) mem = ⟨0⟩)
     (hb : p.toNat + 2 ^ 138 + 195 ≤ 2 ^ 200)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 20 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧
-      ExecFuncBody config (safeTransferFrame imms token recipient value) evm
+    (RDrev fork (deployedRuntime v) g s0 ∧
+      ExecFuncBody fork config (safeTransferFrame imms token recipient value) evm
         safeTransferFunction.body .reverted) ∨
     ∃ evm' σ' out mem' aw' next k' C', SourceState s0 ee σ' evm' ∧
-      ExecFuncBody config (safeTransferFrame imms token recipient value) evm
+      ExecFuncBody fork config (safeTransferFrame imms token recipient value) evm
         safeTransferFunction.body
         (.returned (safeTransferCallFrame imms token recipient value true out) evm' none) ∧
-      RD (deployedRuntime v) ee g s0 ret R mem' aw' out σ' k' C' ∧
+      RD fork (deployedRuntime v) ee g s0 ret R mem' aw' out σ' k' C' ∧
       HeapMemory mem' aw' next ∧
       MemoryPrefix (safeTransferInputMem mem p recipient value) mem' (p + ⟨100⟩).toNat ∧
       next.toNat ≤ (p + ⟨100⟩).toNat + 2 ^ 138 + 63 := by
@@ -154,21 +156,21 @@ theorem safeTransferGrowingX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : EVM.State} {k C : Nat} {aw p value ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (imms : Store)
     (token recipient : AccountAddress)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨15238⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨15238⟩
       (value :: EVM.word recipient.val :: EVM.word token.val :: ret :: R) mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hperm : ee.perm = true)
     (hm : HeapMemory mem aw p) (hmem : 128 ≤ mem.size)
     (hzero : memLoad (UInt256.ofNat 96) mem = ⟨0⟩)
     (hb : p.toNat + 2 ^ 138 + 195 ≤ 2 ^ 200)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 20 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧
-      ExecFuncBody config (safeTransferFrame imms token recipient value) evm
+    (RDrev fork (deployedRuntime v) g s0 ∧
+      ExecFuncBody fork config (safeTransferFrame imms token recipient value) evm
         safeTransferFunction.body .reverted) ∨
     ∃ evm' σ' out mem' aw' next k' C', SourceState s0 ee σ' evm' ∧
-      ExecFuncBody config (safeTransferFrame imms token recipient value) evm
+      ExecFuncBody fork config (safeTransferFrame imms token recipient value) evm
         safeTransferFunction.body
         (.returned (safeTransferCallFrame imms token recipient value true out) evm' none) ∧
-      RD (deployedRuntime v) ee g s0 ret R mem' aw' out σ' k' C' ∧
+      RD fork (deployedRuntime v) ee g s0 ret R mem' aw' out σ' k' C' ∧
       HeapMemory mem' aw' next ∧ MemoryPrefix mem mem' p.toNat ∧
       p.toNat ≤ next.toNat ∧ next.toNat ≤ p.toNat + 2 ^ 138 + 163 := by
   rcases safeTransferEntryCallGrowingX (v := v) imms token recipient rd hs hperm hm hmem hzero hb
@@ -186,21 +188,21 @@ theorem safeTransferX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : EVM.State} {k C : Nat} {aw p value ret : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (imms : Store)
     (token recipient : AccountAddress)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨15238⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨15238⟩
       (value :: EVM.word recipient.val :: EVM.word token.val :: ret :: R) mem aw rdata σ k C)
     (hs : SourceState s0 ee σ evm) (hperm : ee.perm = true)
     (hm : HeapMemory mem aw p) (hmem : 128 ≤ mem.size)
     (hzero : memLoad (UInt256.ofNat 96) mem = ⟨0⟩)
     (hb : p.toNat + 2 ^ 138 + 195 ≤ 2 ^ 200)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true) (hov : R.length + 20 ≤ 1024) :
-    (RDrev (deployedRuntime v) g s0 ∧
-      ExecFuncBody config (safeTransferFrame imms token recipient value) evm
+    (RDrev fork (deployedRuntime v) g s0 ∧
+      ExecFuncBody fork config (safeTransferFrame imms token recipient value) evm
         safeTransferFunction.body .reverted) ∨
     ∃ evm' σ' out mem' aw' next k' C', SourceState s0 ee σ' evm' ∧
-      ExecFuncBody config (safeTransferFrame imms token recipient value) evm
+      ExecFuncBody fork config (safeTransferFrame imms token recipient value) evm
         safeTransferFunction.body
         (.returned (safeTransferCallFrame imms token recipient value true out) evm' none) ∧
-      RD (deployedRuntime v) ee g s0 ret R mem' aw' out σ' k' C' ∧
+      RD fork (deployedRuntime v) ee g s0 ret R mem' aw' out σ' k' C' ∧
       HeapMemory mem' aw' next ∧ MemoryPrefix mem mem' p.toNat ∧
       next.toNat ≤ p.toNat + 2 ^ 138 + 163 := by
   rcases safeTransferGrowingX (v := v) imms token recipient rd hs hperm hm hmem hzero

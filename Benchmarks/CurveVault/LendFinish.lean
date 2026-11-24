@@ -2,6 +2,8 @@ import Benchmarks.CurveVault.LendNumerator
 import Benchmarks.CurveVault.Memory
 import Benchmarks.CurveVault.RuntimeBlocks_007
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch Reasoning.VyperCalls
 namespace Benchmarks.CurveVault
 
@@ -16,12 +18,12 @@ theorem vaultLendFinish {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hp : locals.get? "admin_pct" = some (.int (Int.ofNat pct.toNat)))
     (hmg : memLoad (UInt256.ofNat 288) mem = gross)
     (hmp : memLoad (UInt256.ofNat 352) mem = pct) (hstack : R.length + 7 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 1369) (unused :: R) mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 1369) (unused :: R) mem aw rdata σ k C) :
     let result := UInt256.div (UInt256.mul gross (UInt256.sub vaultLendScale pct)) vaultLendScale
-    (ExecStmt config {contract := contract, locals := locals} evm vaultLendReturnStmt
+    (ExecStmt fork config {contract := contract, locals := locals} evm vaultLendReturnStmt
       (.returned {contract := contract, locals := locals} evm (some [.int (Int.ofNat result.toNat)])) ∧
-      RDret vaultBytecode g s0 σ result.toByteArray) ∨
-    (ExecStmt config {contract := contract, locals := locals} evm vaultLendReturnStmt .reverted ∧ RDrev vaultBytecode g s0) := by
+      RDret fork vaultBytecode g s0 σ result.toByteArray) ∨
+    (ExecStmt fork config {contract := contract, locals := locals} evm vaultLendReturnStmt .reverted ∧ RDrev fork vaultBytecode g s0) := by
   dsimp only
   let mem1 := pct.toByteArray.write 0 mem 320 32
   have hgap : 320 - mem.size < USize.size := lt_of_le_of_lt (Nat.sub_le _ _) (lt_usize 320 (by norm_num))
@@ -48,7 +50,7 @@ theorem vaultLendFinish {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
   have rd1413 := vaultBlocks.vault_block_1369_fallthrough (by omega)
     (by rw [hmp]; change UInt256.gt (UInt256.sub vaultLendScale (memLoad (UInt256.ofNat 320) mem1)) vaultLendScale = _
         rw [hp1]; exact ugt_zero (by rw [usub_toNat hsub]; omega)) h
-  change RD vaultBytecode I g s0 (UInt256.ofNat 1413)
+  change RD fork vaultBytecode I g s0 (UInt256.ofNat 1413)
     (UInt256.sub vaultLendScale (memLoad (UInt256.ofNat 320) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem 320 32)) ::
       memLoad (UInt256.ofNat 320) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem 320 32) ::
       memLoad (UInt256.ofNat 288) ((memLoad (UInt256.ofNat 352) mem).toByteArray.write 0 mem 320 32) :: R)
@@ -59,7 +61,7 @@ theorem vaultLendFinish {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
   · have rd1431 := vaultBlocks.vault_block_1413_fallthrough hstack (mulCheck_ok _ _ hmul) rd1413
     have rd1457 := vaultBlocks.vault_block_1431 (by omega) rd1431
     have hret := vaultBlocks.vault_block_1457 (by omega) rd1457
-    change RDret vaultBytecode g s0 σ
+    change RDret fork vaultBytecode g s0 σ
       (((UInt256.div (UInt256.mul gross (UInt256.sub vaultLendScale pct)) vaultLendScale).toByteArray.write
         0 mem1 352 32).readWithPadding 352 32) at hret
     rw [toByteArray_write_read_back_of_gap _ _ _ (lt_of_le_of_lt (Nat.sub_le _ _) (lt_usize 352 (by norm_num)))] at hret

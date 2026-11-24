@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.ModifyPositionUpdateSource
 import Benchmarks.UniswapV3.Pool.ModifyPositionMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -10,7 +12,7 @@ theorem modifyPositionUpdateX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw free p q : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : ModifyPositionArgs) (evm : EVM.State)
     (hs : SourceState s0 ee σ evm)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨19151⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨19151⟩
       (updatePositionEntryWords (modifyPositionUpdateArgs a evm) ++
         ⟨16428⟩ :: p :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: q :: R) mem aw rdata σ k C)
     (ha : a.Fits) (hm : HeapMemory mem aw free) (hq : ModifyPositionParamsMemory mem q a)
@@ -18,15 +20,15 @@ theorem modifyPositionUpdateX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hqlo : 96 ≤ q.toNat) (hplo : 96 ≤ p.toNat)
     (hqb : q.toNat + 128 ≤ free.toNat) (hpb : p.toNat + 224 ≤ free.toNat)
     (hb : free.toNat + 602 ≤ 2 ^ 200) (hov : R.length + 49 ≤ 1024) :
-    (ExecBlock config (modifyPositionSlotFrame (immStore v) a evm) evm
+    (ExecBlock fork config (modifyPositionSlotFrame (immStore v) a evm) evm
       modifyPositionUpdateBody .reverted ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    (ExecBlock config (modifyPositionSlotFrame (immStore v) a evm) evm
-      modifyPositionUpdateBody .staticViolation ∧ RDstatic (deployedRuntime v) g s0) ∨
-    (ExecBlock config (modifyPositionSlotFrame (immStore v) a evm) evm modifyPositionUpdateBody
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    (ExecBlock fork config (modifyPositionSlotFrame (immStore v) a evm) evm
+      modifyPositionUpdateBody .staticViolation ∧ RDstatic fork (deployedRuntime v) g s0) ∨
+    (ExecBlock fork config (modifyPositionSlotFrame (immStore v) a evm) evm modifyPositionUpdateBody
       (.ok (modifyPositionUpdatedFrame (immStore v) a evm) (modifyPositionUpdatedState v a evm)) ∧
       ∃ σ' aw' k' C', SourceState s0 ee σ' (modifyPositionUpdatedState v a evm) ∧
-      RD (deployedRuntime v) ee g s0 ⟨16428⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨16428⟩
         (solcMappingSlot ⟨7⟩ (modifyPositionKey a) :: p :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: q :: R)
         (updatePositionMemory mem free v (modifyPositionUpdateArgs a evm) evm) aw' rdata σ' k' C' ∧
       HeapMemory (updatePositionMemory mem free v (modifyPositionUpdateArgs a evm) evm) aw'

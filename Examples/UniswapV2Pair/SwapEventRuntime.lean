@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.QuadDynamicMemory
 import Examples.UniswapV2Pair.SwapUpdateRuntime
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000
@@ -12,14 +14,14 @@ theorem RD.uniswapSwapEmitEvent {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {amount1In amount0In balance1 balance0 reserve1 reserve0 dataLen dataPtr toWord amount1Out amount0Out : UInt256}
     {aw ptr : UInt256} {R : List UInt256} {mem rdata : ByteArray} {k C : Nat}
     {σ : AccountMap}
-    (rd2712 : RD uniswapV2PairBytecode I g s0 ⟨2712⟩
+    (rd2712 : RD fork uniswapV2PairBytecode I g s0 ⟨2712⟩
       (amount1In :: amount0In :: balance1 :: balance0 :: reserve1 :: reserve0 :: dataLen :: dataPtr ::
         toWord :: amount1Out :: amount0Out :: R) mem aw rdata σ k C)
     (hin : 96 ≤ mem.size) (hlo : 96 ≤ ptr.toNat) (hgap : ptr.toNat - mem.size < USize.size)
     (hfit : ptr.toNat + 159 < UInt256.size) (haw : aw.toNat * 32 < UInt256.size)
     (hcover : ptr.toNat + 64 ≤ aw.toNat * 32) (hread : mem.readWithPadding 64 32 = ptr.toByteArray)
     (hperm : I.perm = true) (hov : R.length + 20 ≤ 1024) :
-    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨2797⟩
+    ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨2797⟩
       (amount1In :: amount0In :: balance1 :: balance0 :: reserve1 :: reserve0 :: dataLen :: dataPtr ::
         toWord :: amount1Out :: amount0Out :: R)
       (quadDynamicMem mem ptr amount0In amount1In amount0Out amount1Out)
@@ -73,7 +75,7 @@ theorem RD.uniswapSwapEmitEvent {g : Sat256} {s0 : State} {I : ExecutionEnv}
   simp only [hwQuad, pairDynamicWords, pairDynamicWords0, hsum] at hwLog
   simpa only [quadDynamicMem, pairDynamicMem, pairDynamicMem0, hwQuad,
     pairDynamicWords, pairDynamicWords0, hsum] using
-    (show ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨2797⟩ _ _ _ rdata σ k' C' from
+    (show ∃ k' C', RD fork uniswapV2PairBytecode I g s0 ⟨2797⟩ _ _ _ rdata σ k' C' from
       ⟨_, _, RD.log3 0 _ rd2796 (by native_decide) hperm (by
         simp only [M]
         change Cₘ (UInt256.ofNat (MachineState.M _ ptr.toNat 128)) - Cₘ _ = 0
@@ -84,11 +86,11 @@ theorem RD.uniswapSwapUnlockAndStop {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {amount1In amount0In balance1 balance0 reserve1 reserve0 dataLen dataPtr toWord amount1Out amount0Out : UInt256}
     {aw : UInt256} {R : List UInt256} {mem rdata : ByteArray} {k C : Nat}
     {σ : AccountMap}
-    (rd2797 : RD uniswapV2PairBytecode I g s0 ⟨2797⟩
+    (rd2797 : RD fork uniswapV2PairBytecode I g s0 ⟨2797⟩
       (amount1In :: amount0In :: balance1 :: balance0 :: reserve1 :: reserve0 :: dataLen :: dataPtr ::
         toWord :: amount1Out :: amount0Out :: ⟨570⟩ :: R) mem aw rdata σ k C)
     (hperm : I.perm = true) (hov : R.length + 14 ≤ 1024) :
-    RDret uniswapV2PairBytecode g s0 (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨1⟩) ByteArray.empty := by
+    RDret fork uniswapV2PairBytecode g s0 (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨1⟩) ByteArray.empty := by
   have rd2803 := evm_run rd2797 with [pop, pop, push1 ⟨1⟩, push1 ⟨12⟩]
   obtain ⟨_, _, rd2804⟩ := rd2803.sstore hperm (by native_decide) (by evm_ov)
   have rd571 := evm_run rd2804 with [pop, pop, pop, pop, pop, pop, pop, pop, pop,

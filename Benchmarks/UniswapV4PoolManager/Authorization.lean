@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.Storage
 import Benchmarks.UniswapV4PoolManager.EntryTrace
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_035
 
+variable {fork : Ethereum.Fork}
+
 /-! Owner authorization in source and bytecode. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -30,7 +32,7 @@ theorem ownerGuardReverts (evm : EVM.State) (locals imms : Store) (rest : List S
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit)
     (hbase : locals.get? "owner" = none) (hauth : ¬ ownerAuthorized evm) :
-    ExecTransitionBody config contract evm locals
+    ExecTransitionBody fork config contract evm locals
       (nonpayableCalldataPrefix ++ .require (.binary .eq (.env .caller) (.storage {base := "owner"})) :: rest)
       .reverted imms := by
   apply ExecFuncBody.execBlockRevert
@@ -45,9 +47,9 @@ theorem requireAuthorizedPass {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {R : List UInt256} (v : PoolManagerImmutables)
     (hstack : R.length + 3 ≤ 1024) (hauth : a = b)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨12295⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨12295⟩
       (UInt256.eq a b :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) I g s0 ret R mem aw rdata σ k' C' := by
+    ∃ k' C', RD fork (deployedRuntime v) I g s0 ret R mem aw rdata σ k' C' := by
   have hcond : UInt256.isZero (UInt256.eq a b) = ⟨0⟩ := by rw [hauth, uInt256_eq_self]; decide
   have rdReturn := poolManagerBlocks.poolManager_block_12295_fallthrough
     (by simpa only [List.length_cons] using hstack) hcond h
@@ -58,9 +60,9 @@ theorem requireAuthorizedReverts {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw a b : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (v : PoolManagerImmutables)
     (hstack : R.length + 5 ≤ 1024) (hauth : a ≠ b)
-    (h : RD (deployedRuntime v) I g s0 ⟨12295⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨12295⟩
       (UInt256.eq a b :: R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    RDrev fork (deployedRuntime v) g s0 := by
   have heq : UInt256.eq a b = ⟨0⟩ := uInt256_eq_zero_of_ne (fun h => hauth (uInt256_eq_one_eq h))
   have hcond : UInt256.isZero (UInt256.eq a b) ≠ ⟨0⟩ := by rw [heq]; decide
   have hjump : (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 12302) = true := by

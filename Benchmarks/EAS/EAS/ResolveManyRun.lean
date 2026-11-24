@@ -3,6 +3,8 @@ import Benchmarks.EAS.EAS.ResolveManySingleRun
 import Benchmarks.EAS.EAS.ResolveManyZeroRun
 import Benchmarks.EAS.EAS.ResolveManyTailRun
 import Benchmarks.EAS.EAS.HeapBranch
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -27,9 +29,9 @@ theorem resolveManyRun {imms : Store} {ee : ExecutionEnv} {g : Sat256} {s0 evm :
     (hvalues : WordArrayMemoryView mem values words ptr.toNat) (hlen : ats.length = words.length)
     (hheap : ptr.toNat ≤ 2^64-1) (hh : memLoad (UInt256.ofNat 64) mem = ptr)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 (resolveManyEntryPC rev)
+    (rd : RD fork (deployedRuntime v) ee g s0 (resolveManyEntryPC rev)
       (schema::array::values::available::last.toUInt256::ret::R) mem aw rdata σ k C) :
-    HeapReturnPostOrStatic ((resolveManyUsedValue target words).toNat ≤ available.toNat) config (deployedRuntime v) ee g s0
+    HeapReturnPostOrStatic fork ((resolveManyUsedValue target words).toNat ≤ available.toNat) config (deployedRuntime v) ee g s0
       {contract := contract, locals := resolveManyArgs record ats words rev available last ptr.toNat, immutables := imms}
       evm resolveManyFunction.body (.int (Int.ofNat (resolveManyUsedValue target words).toNat))
       ret (resolveManyUsedValue target words::R) mem ptr.toNat := by
@@ -41,7 +43,7 @@ theorem resolveManyRun {imms : Store} {ee : ExecutionEnv} {g : Sat256} {s0 evm :
     have hwlen : words.length=1 := by simpa only [List.length_cons,List.length_nil] using hlen.symm
     obtain ⟨value,rfl⟩ := List.length_eq_one_iff.mp hwlen
     rw [resolveManyUsedValue_single]
-    have hlength := resolveManyLengthSource (cfg := config) (imms := imms) (evm := evm) (ats := [a])
+    have hlength := resolveManyLengthSource (fork := fork) (cfg := config) (imms := imms) (evm := evm) (ats := [a])
       (locals := resolveManyArgs record [a] [value] rev available last ptr.toNat)
       (by simp (disch := decide) only [resolveManyArgs,store_get_self,store_get_ne])
     let L := resolveManyLengthLocals record [a] [value] rev available last ptr.toNat
@@ -66,7 +68,7 @@ theorem resolveManyRun {imms : Store} {ee : ExecutionEnv} {g : Sat256} {s0 evm :
     exact Or.inl ((hrun.iteTrue (elseB := []) (suffix := [resolveManyResolverInit,resolveManyZero] ++ resolveManySuffix) hg).prepend (front := [resolveManyLength])
       hlength (MemoryPrefix.refl _ _) (le_refl _))
   · rw [if_neg hone] at r1
-    have hprefix := resolveManyHeadSource (imms := imms) (evm := evm) record ats words target rev available last ptr.toNat hfield hone
+    have hprefix := resolveManyHeadSource (fork := fork) (imms := imms) (evm := evm) record ats words target rev available last ptr.toNat hfield hone
     obtain ⟨a2,k2,C2,r2⟩ := resolveManyLoad v rev (by simp only [List.length_cons]; omega) ht r1
     have he := resolveOneZeroExpr_eval (cfg := config) (evm := evm)
       (frame := {contract := contract, locals := resolveManyHeadLocals record ats words target rev available last ptr.toNat, immutables := imms})
@@ -98,7 +100,7 @@ theorem resolveManyRun {imms : Store} {ee : ExecutionEnv} {g : Sat256} {s0 evm :
         · exact Or.inl hp
         · exact Or.inr (by simpa only [ha,List.length_nil,List.length_eq_zero_iff] using hlen.symm)
       have hrun := resolveManyTailRun (imms := imms) v hf hstack hperm' hs harray hvalues hheap hh hret r3
-      have hinit : ExecBlock config
+      have hinit : ExecBlock fork config
           {contract := contract, locals := resolveManyHeadLocals record ats words target rev available last ptr.toNat, immutables := imms}
           evm [resolveManyZero,resolveManyTotalInit,resolveManyIndexInit]
           (.ok {contract := contract, locals := resolveManyLoopLocals record ats words target rev available last ptr.toNat, immutables := imms} evm) := by

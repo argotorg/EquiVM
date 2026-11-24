@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.TickClampLowerTrace
 import Benchmarks.UniswapV4PoolManager.TickClampUpperTrace
 import Benchmarks.UniswapV4PoolManager.TickSqrtCanonicalTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -12,10 +14,10 @@ theorem tickClampTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw step tick : UInt256} {initialized : Bool}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+9 ≤ 1024)
-    (h : RD (deployedRuntime v) I g s0 ⟨19401⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨19401⟩
       ([initialized.toUInt256, tick, tickMinWord, step, UInt256.ofNat 96, UInt256.ofNat 1, UInt256.ofNat 64] ++ R)
       mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨19442⟩
+    ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨19442⟩
       ([step, UInt256.ofNat 96, UInt256.ofNat 1, UInt256.ofNat 64] ++ R)
       (tickClampMemory mem step tick initialized)
       (M (M aw (step+UInt256.ofNat 64) ⟨32⟩) (step+UInt256.ofNat 32) ⟨32⟩) rdata σ k' C' := by
@@ -30,10 +32,10 @@ theorem tickClampPriceTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw step tick : UInt256} {initialized : Bool}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+12 ≤ 1024)
-    (h : RD (deployedRuntime v) I g s0 ⟨19401⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨19401⟩
       ([initialized.toUInt256, tick, tickMinWord, step, UInt256.ofNat 96, UInt256.ofNat 1, UInt256.ofNat 64] ++ R)
       mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ⟨19479⟩
+    ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ⟨19479⟩
       ([tickSqrtPrice (EVM.signed (tickClampWord tick)), UInt256.ofNat (2^160-1),
         step, UInt256.ofNat 96, UInt256.ofNat 1, UInt256.ofNat 64] ++ R)
       (tickClampMemory mem step tick initialized)

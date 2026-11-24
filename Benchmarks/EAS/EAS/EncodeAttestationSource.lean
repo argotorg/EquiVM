@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.AttestationABI
 import Benchmarks.EAS.EAS.BuildDomain
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 set_option maxRecDepth 10000
@@ -138,7 +140,7 @@ theorem encodeAttestationSource {cfg : Config} {evm : EVM.State} {locals imms : 
     (ha : locals.get? "attestation" = some a.value)
     (hh : locals.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)))
     (hsize : a.data.size < UInt256.size) :
-    ExecFuncBody cfg {contract := contract, locals := locals, immutables := imms} evm encodeAttestationFunction.body
+    ExecFuncBody fork cfg {contract := contract, locals := locals, immutables := imms} evm encodeAttestationFunction.body
       (.returned {contract := contract, locals := encodeAttestationLocals locals a, immutables := imms}
         evm (some [.bytes a.encoding, .int (Int.ofNat heap)])) := by
   rw [encodeAttestation_body]
@@ -173,7 +175,7 @@ theorem encodeAttestationCall {cfg : Config} {evm : EVM.State} {locals imms : St
     {a : AttestationRecord} {heap : Nat} {args : List Expr} {retVar : Ident}
     (he : evalExprs? cfg {contract := contract, locals := locals, immutables := imms} evm args =
       .ok [a.value, .int (Int.ofNat heap)]) (hsize : a.data.size < UInt256.size) :
-    ExecStmt cfg {contract := contract, locals := locals, immutables := imms} evm
+    ExecStmt fork cfg {contract := contract, locals := locals, immutables := imms} evm
       (.internalCall "_encodeAttestation" args retVar)
       (.ok {contract := contract, locals := locals.insert retVar (.tuple [.bytes a.encoding, .int (Int.ofNat heap)]), immutables := imms} evm) := by
   exact internalCallFunctionReturn he encodeAttestation_lookup (encodeAttestation_bind a heap)
@@ -183,8 +185,8 @@ theorem encodeAttestationCall {cfg : Config} {evm : EVM.State} {locals imms : St
 -- LIBRARY CANDIDATE: prepend a normally terminating block to an internal function body.
 theorem execFuncBody_append {cfg : Config} {f f' : Frame} {e e' : EVM.State}
     {front suffix : Body} {result : ExecResult}
-    (hp : ExecBlock cfg f e front (.ok f' e')) (hs : ExecFuncBody cfg f' e' suffix result) :
-    ExecFuncBody cfg f e (front ++ suffix) result := by
+    (hp : ExecBlock fork cfg f e front (.ok f' e')) (hs : ExecFuncBody fork cfg f' e' suffix result) :
+    ExecFuncBody fork cfg f e (front ++ suffix) result := by
   cases hs with
   | execBlockOK h => exact .execBlockOK (execBlock_append hp h)
   | execBlockRet h => exact .execBlockRet (execBlock_append hp h)

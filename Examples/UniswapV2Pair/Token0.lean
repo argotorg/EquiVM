@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.Dispatch
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -19,7 +21,7 @@ abbrev token0ReturnWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
 theorem uniswapToken0BodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocals : locals.get? "token0" = none) :
-    ExecTransitionBody config contract evm locals token0Transition.body
+    ExecTransitionBody fork config contract evm locals token0Transition.body
       (.returned { contract := contract, locals := locals } evm
         (some [(.address (AccountAddress.ofNat
           (UInt256.land (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨6⟩)
@@ -33,10 +35,10 @@ theorem uniswapToken0BodyReturns (evm : EVM.State) (locals : Store)
 
 /-- From `token0()`'s external body entry (pc 817), the bytecode returns slot 6 as an address. -/
 theorem uniswapX_token0 {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨817⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret uniswapV2PairBytecode g (initState σ σ₀ g A I) σ
+    RDret fork uniswapV2PairBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (token0ReturnWord σ I)) := by
   exact RD.addressGetterExternal (entry := ⟨817⟩) (routine := ⟨2917⟩)
     (slot := ⟨6⟩) hreach uniswap_address_getter_entry_wf uniswap_address_slot_getter_wf
@@ -56,12 +58,12 @@ theorem uniswapToken0BodyCore
     (hdecode :
       config.externalABI.decodeCalldata? (token0Transition.params.map Param.name)
         (transitionSignature token0Transition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨817⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ token0Transition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -81,7 +83,7 @@ theorem uniswapToken0Body
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x0d, 0xfe, 0x16, 0x81]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some token0Transition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x0d, 0xfe, 0x16, 0x81]⟩ rfl hsel
   exact uniswapToken0BodyCore hcode hwv hdispatch (uniswapDecode_token0 hsz)

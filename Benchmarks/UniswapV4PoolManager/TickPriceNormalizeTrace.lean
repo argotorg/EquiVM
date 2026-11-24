@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.Routines
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_051
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_052
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -12,9 +14,9 @@ set_option maxRecDepth 5000
 theorem tickPriceNormalizeTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw price msb : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length + 7 ≤ 1024) (hm : msb.toNat < 256)
-    (h : RD (deployedRuntime v) I g s0 ⟨18041⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨18041⟩
       (msb :: UInt256.ofNat 255 :: price :: price :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD (deployedRuntime v) I g s0 ⟨18089⟩
+    ∃ k' C', RD fork (deployedRuntime v) I g s0 ⟨18089⟩
       (tickPriceNormalize price msb :: msb :: R) mem aw rdata σ k' C' := by
   have hclean : UInt256.land msb (UInt256.ofNat 255) = msb :=
     u256LandMaskCleanOfToNat msb _ (bits := 8) rfl hm

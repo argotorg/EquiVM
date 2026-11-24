@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.Uint128Subtraction
 import Benchmarks.Morpho.MorphoBlue.AccrueSourceMath
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
@@ -10,7 +12,7 @@ theorem morphoMarketSubtractAssign (p : MarketParamsWords) (locals imms : Store)
     (hi : evalExpr? config { contract := contract, locals := locals, immutables := imms } evm
       (.var name) = .ok (.int (Int.ofNat amount.toNat)))
     (hfit : amount.toNat ≤ (marketFieldWord evm.accountMap evm.executionEnv p.id i).toNat) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm
       (.assign .storage ⟨"market", [.mindex (.var "id"), .field (marketFieldName i)]⟩
         (.inRange (.uint ⟨128, by decide⟩) (.binary .sub
           (.storage ⟨"market", [.mindex (.var "id"), .field (marketFieldName i)]⟩) (.var name))))
@@ -27,7 +29,7 @@ theorem morphoMarketSubtractAssignReverts (p : MarketParamsWords) (locals imms :
     (hi : evalExpr? config { contract := contract, locals := locals, immutables := imms } evm
       (.var name) = .ok (.int (Int.ofNat amount.toNat)))
     (hunder : (marketFieldWord evm.accountMap evm.executionEnv p.id i).toNat < amount.toNat) :
-    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+    ExecStmt fork config { contract := contract, locals := locals, immutables := imms } evm
       (.assign .storage ⟨"market", [.mindex (.var "id"), .field (marketFieldName i)]⟩
         (.inRange (.uint ⟨128, by decide⟩) (.binary .sub
           (.storage ⟨"market", [.mindex (.var "id"), .field (marketFieldName i)]⟩) (.var name)))) .reverted :=

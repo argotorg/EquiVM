@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.StateBlock
 import Benchmarks.Morpho.MorphoBlue.Common
 import Benchmarks.Morpho.MorphoBlue.LocalBytesGuard
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
@@ -40,7 +42,7 @@ theorem safeTransferHasReturn_eval {frame : Frame} {evm : EVM.State} {out : Byte
 
 theorem safeTransferTail_oversize {frame : Frame} {evm : EVM.State} {out : ByteArray}
     (hout : frame.locals.get? "returndata" = some (.bytes out)) (hb : 2 ^ 64 ≤ out.size) :
-    ExecBlock config frame evm safeTransferTail .reverted := by
+    ExecBlock fork config frame evm safeTransferTail .reverted := by
   have hn : out.size ≠ 0 := by omega
   apply ExecBlock.consRevert (ExecStmt.iteTrue ?_ ?_)
   · exact (safeTransferHasReturn_eval hout).trans (by rw [decide_eq_true hn])
@@ -73,17 +75,17 @@ theorem safeTransferTail_allocationPrefix_preserves {frame : Frame} {evm : EVM.S
     {n : Nat} {out : ByteArray}
     (hm : frame.locals.get? "__memory" = some (.int (Int.ofNat n)))
     (hout : frame.locals.get? "returndata" = some (.bytes out)) (hb : out.size < 2 ^ 64) :
-    ∃ frame', ABlock config evm frame safeTransferTail frame' (safeTransferTail.drop 2) ∧
+    ∃ frame', ABlock fork config evm frame safeTransferTail frame' (safeTransferTail.drop 2) ∧
       frame'.locals.get? "__memory" =
         some (.int (Int.ofNat (n + safeTransferReturnAlloc out.size + 128))) ∧
       (∀ name, name ≠ "__memory" → frame'.locals.get? name = frame.locals.get? name) := by
   by_cases hz : out.size = 0
   · have ht : evalExpr? config frame evm safeTransferHasReturn = .ok (.bool false) :=
       (safeTransferHasReturn_eval hout).trans (by rw [decide_eq_false (not_not.mpr hz)])
-    have hi : ExecStmt config frame evm safeTransferTail[0]! (.ok frame evm) :=
+    have hi : ExecStmt fork config frame evm safeTransferTail[0]! (.ok frame evm) :=
       .iteFalse ht .nil
     let frame' := { frame with locals := frame.locals.insert "__memory" (.int (Int.ofNat (n + 128))) }
-    have ha : ExecStmt config frame evm safeTransferTail[1]! (.ok frame' evm) :=
+    have ha : ExecStmt fork config frame evm safeTransferTail[1]! (.ok frame' evm) :=
       .assign (hperm := Or.inl rfl) (safeTransferMemoryAdd_eval hm 128) (assignLocalWord hm)
     refine ⟨frame', ⟨fun hh ↦ .consNormal hi (.consNormal ha hh)⟩, ?_, ?_⟩
     · simp only [frame', store_get_self, safeTransferReturnAlloc, hz, ↓reduceIte, Nat.add_zero]
@@ -96,13 +98,13 @@ theorem safeTransferTail_allocationPrefix_preserves {frame : Frame} {evm : EVM.S
     have hc : evalExpr? config frame evm (safeTransferCap safeTransferRetLength) =
         .ok (.bool true) := (safeTransferCap_eval (safeTransferRetLength_eval hout)).trans
           (by rw [decide_eq_true (by omega)])
-    have he : ExecStmt config frame evm (.assign .localVar ⟨"__memory", []⟩ safeTransferCopyCursor)
+    have he : ExecStmt fork config frame evm (.assign .localVar ⟨"__memory", []⟩ safeTransferCopyCursor)
         (.ok mid evm) := .assign (hperm := Or.inl rfl) (safeTransferCopyCursor_eval hm hout) (assignLocalWord hm)
-    have hi : ExecStmt config frame evm safeTransferTail[0]! (.ok mid evm) :=
+    have hi : ExecStmt fork config frame evm safeTransferTail[0]! (.ok mid evm) :=
       .iteTrue ht (.consNormal (.requireTrue hc) (.consNormal he .nil))
     have hmm : mid.locals.get? "__memory" = some (.int (Int.ofNat m)) := store_get_self _ _ _
     let frame' := { mid with locals := mid.locals.insert "__memory" (.int (Int.ofNat (m + 128))) }
-    have ha : ExecStmt config mid evm safeTransferTail[1]! (.ok frame' evm) :=
+    have ha : ExecStmt fork config mid evm safeTransferTail[1]! (.ok frame' evm) :=
       .assign (hperm := Or.inl rfl) (safeTransferMemoryAdd_eval hmm 128) (assignLocalWord hmm)
     refine ⟨frame', ⟨fun hh ↦ .consNormal hi (.consNormal ha hh)⟩, ?_, ?_⟩
     · rw [show frame'.locals.get? "__memory" = some (.int (Int.ofNat (m + 128)))
@@ -118,7 +120,7 @@ theorem safeTransferTail_allocationPrefix {frame : Frame} {evm : EVM.State}
     {n : Nat} {out : ByteArray}
     (hm : frame.locals.get? "__memory" = some (.int (Int.ofNat n)))
     (hout : frame.locals.get? "returndata" = some (.bytes out)) (hb : out.size < 2 ^ 64) :
-    ∃ frame', ABlock config evm frame safeTransferTail frame' (safeTransferTail.drop 2) ∧
+    ∃ frame', ABlock fork config evm frame safeTransferTail frame' (safeTransferTail.drop 2) ∧
       frame'.locals.get? "__memory" =
         some (.int (Int.ofNat (n + safeTransferReturnAlloc out.size + 128))) := by
   obtain ⟨frame', hp, hm', _⟩ := safeTransferTail_allocationPrefix_preserves hm hout hb
@@ -129,7 +131,7 @@ theorem safeTransferTail_allocationRevert {frame : Frame} {evm : EVM.State}
     (hm : frame.locals.get? "__memory" = some (.int (Int.ofNat n)))
     (hout : frame.locals.get? "returndata" = some (.bytes out)) (hb : out.size < 2 ^ 64)
     (hcap : 2 ^ 64 ≤ n + safeTransferReturnAlloc out.size + 128) :
-    ExecBlock config frame evm safeTransferTail .reverted := by
+    ExecBlock fork config frame evm safeTransferTail .reverted := by
   obtain ⟨frame', hp, hm'⟩ := safeTransferTail_allocationPrefix hm hout hb
   apply hp.run (ExecBlock.consRevert (.requireFalse ?_))
   have he : evalExpr? config frame' evm (.var "__memory") =

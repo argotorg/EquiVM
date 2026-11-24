@@ -3,6 +3,8 @@ import Reasoning.Initcode
 import Benchmarks.EAS.Attester.Bytecode
 import Benchmarks.EAS.Attester.Immutables
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM
 open Reasoning.Theory Reasoning.Reach
 
@@ -24,8 +26,8 @@ theorem attesterCreation_block_0_taken {tail : ByteArray} {ee : ExecutionEnv} {g
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.isZero ee.weiValue) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.EAS.Attester.attesterCreationBytecode 0).contains (UInt256.ofNat 15) = true)
-    (h : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 0) R mem aw rdata σ k C)
-    : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15) (attesterCreation_block_0_taken_stack (ee := ee) (R := R)) (attesterCreation_block_0_taken_memory (mem := mem)) (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) rdata σ (k + 8) (C + ((30) + (memExpansionCost aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 0) R mem aw rdata σ k C)
+    : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15) (attesterCreation_block_0_taken_stack (ee := ee) (R := R)) (attesterCreation_block_0_taken_memory (mem := mem)) (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) rdata σ (k + 8) (C + ((30) + (memExpansionCost aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.EAS.Attester.attesterCreationBytecode.size = 4057 := by native_decide
   have r1 := r0.push1 (UInt256.ofNat 160) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -44,8 +46,8 @@ theorem attesterCreation_block_0_taken_packed {tail : ByteArray} {ee : Execution
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.isZero ee.weiValue) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.EAS.Attester.attesterCreationBytecode 0).contains (UInt256.ofNat 15) = true)
-    (h : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 0) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15) (attesterCreation_block_0_taken_stack (ee := ee) (R := R)) (attesterCreation_block_0_taken_memory (mem := mem)) aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 0) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15) (attesterCreation_block_0_taken_stack (ee := ee) (R := R)) (attesterCreation_block_0_taken_memory (mem := mem)) aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (attesterCreation_block_0_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -61,8 +63,8 @@ def attesterCreation_block_0_fallthrough_memory {mem : ByteArray} : ByteArray :=
 theorem attesterCreation_block_0_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.isZero ee.weiValue) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 0) R mem aw rdata σ k C)
-    : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 11) (attesterCreation_block_0_fallthrough_stack (ee := ee) (R := R)) (attesterCreation_block_0_fallthrough_memory (mem := mem)) (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) rdata σ (k + 8) (C + ((30) + (memExpansionCost aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 0) R mem aw rdata σ k C)
+    : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 11) (attesterCreation_block_0_fallthrough_stack (ee := ee) (R := R)) (attesterCreation_block_0_fallthrough_memory (mem := mem)) (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) rdata σ (k + 8) (C + ((30) + (memExpansionCost aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.EAS.Attester.attesterCreationBytecode.size = 4057 := by native_decide
   have r1 := r0.push1 (UInt256.ofNat 160) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -80,16 +82,16 @@ theorem attesterCreation_block_0_fallthrough {tail : ByteArray} {ee : ExecutionE
 theorem attesterCreation_block_0_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (hcond : (UInt256.isZero ee.weiValue) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 0) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 11) (attesterCreation_block_0_fallthrough_stack (ee := ee) (R := R)) (attesterCreation_block_0_fallthrough_memory (mem := mem)) aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 0) R mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 11) (attesterCreation_block_0_fallthrough_stack (ee := ee) (R := R)) (attesterCreation_block_0_fallthrough_memory (mem := mem)) aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (attesterCreation_block_0_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
 /-- Automatically generated RD summary for bytecode block at pc 11. -/
 theorem attesterCreation_block_11 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
-    (h : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 11) R mem aw rdata σ k C)
-    : RDrev (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) g s0 := by
+    (h : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 11) R mem aw rdata σ k C)
+    : RDrev fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) g s0 := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.EAS.Attester.attesterCreationBytecode.size = 4057 := by native_decide
   have r1 := r0.push1 (UInt256.ofNat 0) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -108,8 +110,8 @@ def attesterCreation_block_15_memory {tail : ByteArray} {mem : ByteArray} : Byte
 theorem attesterCreation_block_15 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
     (hvalid : (D_J Benchmarks.EAS.Attester.attesterCreationBytecode 0).contains (UInt256.ofNat 98) = true)
-    (h : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15) (x0 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 98) (attesterCreation_block_15_stack (tail := tail) (mem := mem) (R := R)) (attesterCreation_block_15_memory (tail := tail) (mem := mem)) (M (M (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (memLoad (UInt256.ofNat 64) mem) (UInt256.sub (UInt256.ofNat (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail).size) (UInt256.ofNat 4057))) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) rdata σ (k + 21) (C + ((61) + (memExpansionCost aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (memLoad (UInt256.ofNat 64) mem) (UInt256.sub (UInt256.ofNat (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail).size) (UInt256.ofNat 4057))) + (3 + 3 * (((UInt256.sub (UInt256.ofNat (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail).size) (UInt256.ofNat 4057)).toNat + 31) / 32)) + (memExpansionCost (M (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (memLoad (UInt256.ofNat 64) mem) (UInt256.sub (UInt256.ofNat (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail).size) (UInt256.ofNat 4057))) (UInt256.ofNat 64) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 98) (attesterCreation_block_15_stack (tail := tail) (mem := mem) (R := R)) (attesterCreation_block_15_memory (tail := tail) (mem := mem)) (M (M (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (memLoad (UInt256.ofNat 64) mem) (UInt256.sub (UInt256.ofNat (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail).size) (UInt256.ofNat 4057))) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) rdata σ (k + 21) (C + ((61) + (memExpansionCost aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (memLoad (UInt256.ofNat 64) mem) (UInt256.sub (UInt256.ofNat (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail).size) (UInt256.ofNat 4057))) + (3 + 3 * (((UInt256.sub (UInt256.ofNat (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail).size) (UInt256.ofNat 4057)).toNat + 31) / 32)) + (memExpansionCost (M (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (memLoad (UInt256.ofNat 64) mem) (UInt256.sub (UInt256.ofNat (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail).size) (UInt256.ofNat 4057))) (UInt256.ofNat 64) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.EAS.Attester.attesterCreationBytecode.size = 4057 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -140,8 +142,8 @@ theorem attesterCreation_block_15 {tail : ByteArray} {ee : ExecutionEnv} {g : Sa
 theorem attesterCreation_block_15_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
     (hvalid : (D_J Benchmarks.EAS.Attester.attesterCreationBytecode 0).contains (UInt256.ofNat 98) = true)
-    (h : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 98) (attesterCreation_block_15_stack (tail := tail) (mem := mem) (R := R)) (attesterCreation_block_15_memory (tail := tail) (mem := mem)) aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 98) (attesterCreation_block_15_stack (tail := tail) (mem := mem) (R := R)) (attesterCreation_block_15_memory (tail := tail) (mem := mem)) aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (attesterCreation_block_15 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -150,8 +152,8 @@ theorem attesterCreation_block_44_taken {tail : ByteArray} {ee : ExecutionEnv} {
     (hstack : R.length + 4 ≤ 1024)
     (hcond : (UInt256.land x0 (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.EAS.Attester.attesterCreationBytecode 0).contains (UInt256.ofNat 82) = true)
-    (h : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 44) (x0 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 82) (x0 :: R) mem aw rdata σ (k + 10) (C + ((35))) := by
+    (h : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 44) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 82) (x0 :: R) mem aw rdata σ (k + 10) (C + ((35))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.EAS.Attester.attesterCreationBytecode.size = 4057 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -172,8 +174,8 @@ theorem attesterCreation_block_44_taken_packed {tail : ByteArray} {ee : Executio
     (hstack : R.length + 4 ≤ 1024)
     (hcond : (UInt256.land x0 (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.EAS.Attester.attesterCreationBytecode 0).contains (UInt256.ofNat 82) = true)
-    (h : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 44) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 82) (x0 :: R) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 44) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 82) (x0 :: R) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (attesterCreation_block_44_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -181,8 +183,8 @@ theorem attesterCreation_block_44_taken_packed {tail : ByteArray} {ee : Executio
 theorem attesterCreation_block_44_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hcond : (UInt256.land x0 (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1))) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 44) (x0 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 58) (x0 :: R) mem aw rdata σ (k + 10) (C + ((35))) := by
+    (h : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 44) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 58) (x0 :: R) mem aw rdata σ (k + 10) (C + ((35))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.EAS.Attester.attesterCreationBytecode.size = 4057 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -202,16 +204,16 @@ theorem attesterCreation_block_44_fallthrough {tail : ByteArray} {ee : Execution
 theorem attesterCreation_block_44_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hcond : (UInt256.land x0 (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1))) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 44) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 58) (x0 :: R) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 44) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 58) (x0 :: R) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (attesterCreation_block_44_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
 /-- Automatically generated RD summary for bytecode block at pc 58. -/
 theorem attesterCreation_block_58 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
-    (h : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 58) R mem aw rdata σ k C)
-    : RDrev (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) g s0 := by
+    (h : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 58) R mem aw rdata σ k C)
+    : RDrev fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) g s0 := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.EAS.Attester.attesterCreationBytecode.size = 4057 := by native_decide
   have r1 := r0.push1 (UInt256.ofNat 64) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -243,8 +245,8 @@ def attesterCreation_block_82_memory {mem : ByteArray} {x0 : UInt256} : ByteArra
 theorem attesterCreation_block_82 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J Benchmarks.EAS.Attester.attesterCreationBytecode 0).contains (UInt256.ofNat 144) = true)
-    (h : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 82) (x0 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 144) (attesterCreation_block_82_stack (R := R)) (attesterCreation_block_82_memory (mem := mem) (x0 := x0)) (M aw (UInt256.ofNat 128) (⟨32⟩ : UInt256)) rdata σ (k + 11) (C + ((36) + (memExpansionCost aw (UInt256.ofNat 128) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 82) (x0 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 144) (attesterCreation_block_82_stack (R := R)) (attesterCreation_block_82_memory (mem := mem) (x0 := x0)) (M aw (UInt256.ofNat 128) (⟨32⟩ : UInt256)) rdata σ (k + 11) (C + ((36) + (memExpansionCost aw (UInt256.ofNat 128) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.EAS.Attester.attesterCreationBytecode.size = 4057 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -265,8 +267,8 @@ theorem attesterCreation_block_82 {tail : ByteArray} {ee : ExecutionEnv} {g : Sa
 theorem attesterCreation_block_82_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J Benchmarks.EAS.Attester.attesterCreationBytecode 0).contains (UInt256.ofNat 144) = true)
-    (h : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 82) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 144) (attesterCreation_block_82_stack (R := R)) (attesterCreation_block_82_memory (mem := mem) (x0 := x0)) aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 82) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 144) (attesterCreation_block_82_stack (R := R)) (attesterCreation_block_82_memory (mem := mem) (x0 := x0)) aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (attesterCreation_block_82 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -279,8 +281,8 @@ theorem attesterCreation_block_98_taken {tail : ByteArray} {ee : ExecutionEnv} {
     (hstack : R.length + 6 ≤ 1024)
     (hcond : (UInt256.isZero (UInt256.slt (UInt256.sub x1 x0) (UInt256.ofNat 32))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.EAS.Attester.attesterCreationBytecode 0).contains (UInt256.ofNat 115) = true)
-    (h : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 98) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 115) (attesterCreation_block_98_taken_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 10) (C + ((35))) := by
+    (h : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 98) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 115) (attesterCreation_block_98_taken_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 10) (C + ((35))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.EAS.Attester.attesterCreationBytecode.size = 4057 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -301,8 +303,8 @@ theorem attesterCreation_block_98_taken_packed {tail : ByteArray} {ee : Executio
     (hstack : R.length + 6 ≤ 1024)
     (hcond : (UInt256.isZero (UInt256.slt (UInt256.sub x1 x0) (UInt256.ofNat 32))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.EAS.Attester.attesterCreationBytecode 0).contains (UInt256.ofNat 115) = true)
-    (h : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 98) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 115) (attesterCreation_block_98_taken_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 98) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 115) (attesterCreation_block_98_taken_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (attesterCreation_block_98_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -314,8 +316,8 @@ def attesterCreation_block_98_fallthrough_stack {x0 : UInt256} {x1 : UInt256} {R
 theorem attesterCreation_block_98_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024)
     (hcond : (UInt256.isZero (UInt256.slt (UInt256.sub x1 x0) (UInt256.ofNat 32))) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 98) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 111) (attesterCreation_block_98_fallthrough_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 10) (C + ((35))) := by
+    (h : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 98) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 111) (attesterCreation_block_98_fallthrough_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 10) (C + ((35))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.EAS.Attester.attesterCreationBytecode.size = 4057 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -335,16 +337,16 @@ theorem attesterCreation_block_98_fallthrough {tail : ByteArray} {ee : Execution
 theorem attesterCreation_block_98_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024)
     (hcond : (UInt256.isZero (UInt256.slt (UInt256.sub x1 x0) (UInt256.ofNat 32))) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 98) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 111) (attesterCreation_block_98_fallthrough_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 98) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 111) (attesterCreation_block_98_fallthrough_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (attesterCreation_block_98_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
 /-- Automatically generated RD summary for bytecode block at pc 111. -/
 theorem attesterCreation_block_111 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
-    (h : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 111) R mem aw rdata σ k C)
-    : RDrev (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) g s0 := by
+    (h : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 111) R mem aw rdata σ k C)
+    : RDrev fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) g s0 := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.EAS.Attester.attesterCreationBytecode.size = 4057 := by native_decide
   have r1 := r0.push1 (UInt256.ofNat 0) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -360,8 +362,8 @@ theorem attesterCreation_block_115_taken {tail : ByteArray} {ee : ExecutionEnv} 
     (hstack : R.length + 6 ≤ 1024)
     (hcond : (UInt256.eq (memLoad x1 mem) (UInt256.land (memLoad x1 mem) (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.EAS.Attester.attesterCreationBytecode 0).contains (UInt256.ofNat 137) = true)
-    (h : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 115) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 137) (attesterCreation_block_115_taken_stack (mem := mem) (x0 := x0) (x1 := x1) (R := R)) mem (M aw x1 (⟨32⟩ : UInt256)) rdata σ (k + 14) (C + ((47) + (memExpansionCost aw x1 (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 115) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 137) (attesterCreation_block_115_taken_stack (mem := mem) (x0 := x0) (x1 := x1) (R := R)) mem (M aw x1 (⟨32⟩ : UInt256)) rdata σ (k + 14) (C + ((47) + (memExpansionCost aw x1 (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.EAS.Attester.attesterCreationBytecode.size = 4057 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -386,8 +388,8 @@ theorem attesterCreation_block_115_taken_packed {tail : ByteArray} {ee : Executi
     (hstack : R.length + 6 ≤ 1024)
     (hcond : (UInt256.eq (memLoad x1 mem) (UInt256.land (memLoad x1 mem) (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.EAS.Attester.attesterCreationBytecode 0).contains (UInt256.ofNat 137) = true)
-    (h : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 115) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 137) (attesterCreation_block_115_taken_stack (mem := mem) (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 115) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 137) (attesterCreation_block_115_taken_stack (mem := mem) (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (attesterCreation_block_115_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -399,8 +401,8 @@ def attesterCreation_block_115_fallthrough_stack {mem : ByteArray} {x0 : UInt256
 theorem attesterCreation_block_115_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024)
     (hcond : (UInt256.eq (memLoad x1 mem) (UInt256.land (memLoad x1 mem) (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)))) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 115) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 133) (attesterCreation_block_115_fallthrough_stack (mem := mem) (x0 := x0) (x1 := x1) (R := R)) mem (M aw x1 (⟨32⟩ : UInt256)) rdata σ (k + 14) (C + ((47) + (memExpansionCost aw x1 (⟨32⟩ : UInt256)))) := by
+    (h : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 115) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 133) (attesterCreation_block_115_fallthrough_stack (mem := mem) (x0 := x0) (x1 := x1) (R := R)) mem (M aw x1 (⟨32⟩ : UInt256)) rdata σ (k + 14) (C + ((47) + (memExpansionCost aw x1 (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.EAS.Attester.attesterCreationBytecode.size = 4057 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -424,16 +426,16 @@ theorem attesterCreation_block_115_fallthrough {tail : ByteArray} {ee : Executio
 theorem attesterCreation_block_115_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024)
     (hcond : (UInt256.eq (memLoad x1 mem) (UInt256.land (memLoad x1 mem) (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)))) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 115) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 133) (attesterCreation_block_115_fallthrough_stack (mem := mem) (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 115) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 133) (attesterCreation_block_115_fallthrough_stack (mem := mem) (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (attesterCreation_block_115_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
 /-- Automatically generated RD summary for bytecode block at pc 133. -/
 theorem attesterCreation_block_133 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
-    (h : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 133) R mem aw rdata σ k C)
-    : RDrev (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) g s0 := by
+    (h : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 133) R mem aw rdata σ k C)
+    : RDrev fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) g s0 := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.EAS.Attester.attesterCreationBytecode.size = 4057 := by native_decide
   have r1 := r0.push1 (UInt256.ofNat 0) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -448,8 +450,8 @@ def attesterCreation_block_137_stack {x0 : UInt256} {R : List UInt256} : List UI
 theorem attesterCreation_block_137 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
     (hvalid : (D_J Benchmarks.EAS.Attester.attesterCreationBytecode 0).contains x4 = true)
-    (h : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 137) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 x4 (attesterCreation_block_137_stack (x0 := x0) (R := R)) mem aw rdata σ (k + 7) (C + ((21))) := by
+    (h : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 137) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
+    : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 x4 (attesterCreation_block_137_stack (x0 := x0) (R := R)) mem aw rdata σ (k + 7) (C + ((21))) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.EAS.Attester.attesterCreationBytecode.size = 4057 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -465,16 +467,16 @@ theorem attesterCreation_block_137 {tail : ByteArray} {ee : ExecutionEnv} {g : S
 theorem attesterCreation_block_137_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
     (hvalid : (D_J Benchmarks.EAS.Attester.attesterCreationBytecode 0).contains x4 = true)
-    (h : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 137) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 x4 (attesterCreation_block_137_stack (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 137) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 x4 (attesterCreation_block_137_stack (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (attesterCreation_block_137 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
 /-- Automatically generated RD summary for bytecode block at pc 144. -/
 theorem attesterCreation_block_144 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
-    (h : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 144) R mem aw rdata σ k C)
-    : RDret (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) g s0 σ (((memLoad (UInt256.ofNat 128) mem).toByteArray.write 0 ((memLoad (UInt256.ofNat 128) mem).toByteArray.write 0 ((memLoad (UInt256.ofNat 128) mem).toByteArray.write 0 ((memLoad (UInt256.ofNat 128) mem).toByteArray.write 0 ((Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail).write (UInt256.ofNat 192).toNat mem (UInt256.ofNat 0).toNat (UInt256.ofNat 3865).toNat) ((UInt256.ofNat 824) + (UInt256.ofNat 0)).toNat 32) ((UInt256.ofNat 1719) + (UInt256.ofNat 0)).toNat 32) ((UInt256.ofNat 1888) + (UInt256.ofNat 0)).toNat 32) ((UInt256.ofNat 2289) + (UInt256.ofNat 0)).toNat 32).readWithPadding (UInt256.ofNat 0).toNat (UInt256.ofNat 3865).toNat) := by
+    (h : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 144) R mem aw rdata σ k C)
+    : RDret fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) g s0 σ (((memLoad (UInt256.ofNat 128) mem).toByteArray.write 0 ((memLoad (UInt256.ofNat 128) mem).toByteArray.write 0 ((memLoad (UInt256.ofNat 128) mem).toByteArray.write 0 ((memLoad (UInt256.ofNat 128) mem).toByteArray.write 0 ((Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail).write (UInt256.ofNat 192).toNat mem (UInt256.ofNat 0).toNat (UInt256.ofNat 3865).toNat) ((UInt256.ofNat 824) + (UInt256.ofNat 0)).toNat 32) ((UInt256.ofNat 1719) + (UInt256.ofNat 0)).toNat 32) ((UInt256.ofNat 1888) + (UInt256.ofNat 0)).toNat 32) ((UInt256.ofNat 2289) + (UInt256.ofNat 0)).toNat 32).readWithPadding (UInt256.ofNat 0).toNat (UInt256.ofNat 3865).toNat) := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.EAS.Attester.attesterCreationBytecode.size = 4057 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -509,8 +511,8 @@ theorem attesterCreation_block_144 {tail : ByteArray} {ee : ExecutionEnv} {g : S
 
 /-- Automatically generated RD summary for bytecode block at pc 191. -/
 theorem attesterCreation_block_191 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
-    (h : RD (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 191) R mem aw rdata σ k C)
-    : RDinvalid (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) g s0 := by
+    (h : RD fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 191) R mem aw rdata σ k C)
+    : RDinvalid fork (Benchmarks.EAS.Attester.attesterCreationBytecode ++ tail) g s0 := by
   let r0 := h
   have hcreationCodeSize : Benchmarks.EAS.Attester.attesterCreationBytecode.size = 4057 := by native_decide
   exact RD.invalid r0 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide))

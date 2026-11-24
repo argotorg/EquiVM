@@ -2,6 +2,8 @@ import Stele.Refine
 import Stele.SolidityStorage
 import Reasoning.EVMWord
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # SteleBody — compositional lemmas for the Stele contract body
 
@@ -43,14 +45,14 @@ theorem evalCallvalueEq_false {cfg : Config} {stele : Frame} {evm : EVM.State}
 theorem bodyReverts_nonPayable {cfg : Config} {imms : Store} {contract : ContractDecl} {evm : EVM.State}
     {locals : Store} {rest : List Stmt}
     (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecTransitionBody cfg contract evm locals
+    ExecTransitionBody fork cfg contract evm locals
       (.require (.binary .eq (.env .callvalue) (.intLit 0)) :: rest) .reverted imms :=
   ExecFuncBody.execBlockRevert (ExecBlock.consRevert (ExecStmt.requireFalse (evalCallvalueEq_false h)))
 
 /-- Block-level form of the non-payable revert: the guard fails under non-zero call value. -/
 theorem blockReverts_nonPayable {cfg : Config} {stele : Frame} {evm : EVM.State}
     {rest : List Stmt} (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecBlock cfg stele evm
+    ExecBlock fork cfg stele evm
       (.require (.binary .eq (.env .callvalue) (.intLit 0)) :: rest) .reverted :=
   ExecBlock.consRevert (ExecStmt.requireFalse (evalCallvalueEq_false h))
 
@@ -63,7 +65,7 @@ theorem nonpayableRequireAssignStorageBlock {cfg : Config} {stele : Frame}
     (hrhs : evalExpr? cfg stele evm rhs = .ok value)
     (hassign : assignStorageRef? cfg stele evm .storage ref value = .ok (stele, evm'))
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock cfg stele evm
+    ExecBlock fork cfg stele evm
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .require guard,
         .assign .storage ref rhs ]
@@ -82,7 +84,7 @@ theorem nonpayableRequireAssignStorageBlockStatic {cfg : Config} {stele stele' :
     (hrhs : evalExpr? cfg stele evm rhs = .ok value)
     (hassign : assignStorageRef? cfg stele evm .storage ref value = .ok (stele', evm'))
     (hperm : evm.executionEnv.perm = false) :
-    ExecBlock cfg stele evm
+    ExecBlock fork cfg stele evm
       (.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
         .require guard :: .assign .storage ref rhs :: rest)
       .staticViolation := by
@@ -93,7 +95,7 @@ theorem nonpayableRequireAssignStorageBlockStatic {cfg : Config} {stele stele' :
 /-- A successful storage assignment requires write permission. -/
 theorem execStmt_assign_perm {cfg : Config} {stele stele' : Frame} {evm evm' : EVM.State}
     {slot : StorageRef} {rhs : Expr}
-    (h : ExecStmt cfg stele evm (.assign .storage slot rhs) (.ok stele' evm')) :
+    (h : ExecStmt fork cfg stele evm (.assign .storage slot rhs) (.ok stele' evm')) :
     evm.executionEnv.perm = true := by
   cases h with
   | assign hp _ _ => simpa using hp
@@ -103,7 +105,7 @@ theorem execStmt_assign_storage {cfg : Config} {stele stele' : Frame} {evm evm' 
     {slot : StorageRef} {rhs : Expr} {value : Value}
     (heval : evalExpr? cfg stele evm rhs = .ok value)
     (hassign : assignStorageRef? cfg stele evm .storage slot value = .ok (stele', evm')) :
-    ExecStmt cfg stele evm (.assign .storage slot rhs)
+    ExecStmt fork cfg stele evm (.assign .storage slot rhs)
       (if evm.executionEnv.perm then .ok stele' evm' else .staticViolation) := by
   cases hp : evm.executionEnv.perm with
   | false => exact ExecStmt.assignStatic heval hassign hp
@@ -112,10 +114,10 @@ theorem execStmt_assign_storage {cfg : Config} {stele stele' : Frame} {evm evm' 
 /-- Select the static outcome of a storage assignment without assuming a successful write. -/
 theorem execStmt_assign_static {cfg : Config} {stele stele' : Frame} {evm evm' : EVM.State}
     {slot : StorageRef} {rhs : Expr}
-    (h : ExecStmt cfg stele evm (.assign .storage slot rhs)
+    (h : ExecStmt fork cfg stele evm (.assign .storage slot rhs)
       (if evm.executionEnv.perm then .ok stele' evm' else .staticViolation))
     (hperm : evm.executionEnv.perm = false) :
-    ExecStmt cfg stele evm (.assign .storage slot rhs) .staticViolation := by
+    ExecStmt fork cfg stele evm (.assign .storage slot rhs) .staticViolation := by
   simpa only [hperm, Bool.false_eq_true, if_false] using h
 
 /-- The non-payable guard passes but the second `require(guard)` fails: the block reverts. -/
@@ -123,7 +125,7 @@ theorem nonpayableSecondRequireReverts {cfg : Config} {stele : Frame}
     {evm : EVM.State} {guard : Expr} {rest : List Stmt}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hguard : evalExpr? cfg stele evm guard = .ok (.bool false)) :
-    ExecBlock cfg stele evm
+    ExecBlock fork cfg stele evm
       (.require (.binary .eq (.env .callvalue) (.intLit 0)) :: .require guard :: rest)
       .reverted := by
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
@@ -135,7 +137,7 @@ theorem assignStorageBlock {cfg : Config} {stele : Frame} {evm evm' : EVM.State}
     (hrhs : evalExpr? cfg stele evm rhs = .ok value)
     (hassign : assignStorageRef? cfg stele evm .storage ref value = .ok (stele, evm'))
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock cfg stele evm [ .assign .storage ref rhs ] (.ok stele evm') := by
+    ExecBlock fork cfg stele evm [ .assign .storage ref rhs ] (.ok stele evm') := by
   exact ExecBlock.consNormal (ExecStmt.assign (Or.inr hperm) hrhs hassign) ExecBlock.nil
 
 /-- A single-expression `return` evaluates its one operand into a singleton value list. -/
@@ -147,7 +149,7 @@ theorem evalExprs?_singleton {cfg : Config} {stele : Frame} {evm : EVM.State}
 theorem nonpayableBytesLiteralBodyReturns {cfg : Config} {imms : Store} {contract : ContractDecl}
     (evm : EVM.State) (locals : Store) (bytes : ByteArray)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody cfg contract evm locals
+    ExecTransitionBody fork cfg contract evm locals
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .return [.bytesLit bytes] ]
       (.returned { contract := contract, locals := locals, immutables := imms } evm (some [.bytes bytes])) imms := by
@@ -159,7 +161,7 @@ theorem nonpayableReturnExprBodyReturns {cfg : Config} {imms : Store} {contract 
     {evm : EVM.State} {locals : Store} {expr : Expr} {value : Value}
     (h : evm.executionEnv.weiValue = ⟨0⟩)
     (heval : evalExpr? cfg { contract := contract, locals := locals, immutables := imms } evm expr = .ok value) :
-    ExecTransitionBody cfg contract evm locals
+    ExecTransitionBody fork cfg contract evm locals
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .return [expr] ]
       (.returned { contract := contract, locals := locals, immutables := imms } evm (some [value])) imms := by
@@ -170,7 +172,7 @@ theorem nonpayableReturnExprBodyReturns {cfg : Config} {imms : Store} {contract 
 theorem nonpayableIntLiteralBodyReturns {cfg : Config} {imms : Store} {contract : ContractDecl}
     (evm : EVM.State) (locals : Store) (n : Int)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody cfg contract evm locals
+    ExecTransitionBody fork cfg contract evm locals
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .return [.intLit n] ]
       (.returned { contract := contract, locals := locals, immutables := imms } evm (some [.int n])) imms := by
@@ -179,7 +181,7 @@ theorem nonpayableIntLiteralBodyReturns {cfg : Config} {imms : Store} {contract 
 theorem nonpayableFixedBytesLiteralBodyReturns {cfg : Config} {imms : Store} {contract : ContractDecl}
     (evm : EVM.State) (locals : Store) (n : Fin 32) (bytes : List UInt8)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody cfg contract evm locals
+    ExecTransitionBody fork cfg contract evm locals
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .return [.fixedBytesLit n bytes] ]
       (.returned { contract := contract, locals := locals, immutables := imms } evm (some [.fixedBytes n bytes])) imms := by
@@ -223,9 +225,9 @@ theorem internalCallTransitionReturn {cfg : Config} {caller : Frame} {evm callee
     (hargs : evalExprs? cfg caller evm args = .ok argVals)
     (hlookup : lookupCallable? caller.contract name = some callee.toCallable)
     (hbind : bindParams? callee.toCallable.params argVals = some locals)
-    (hbody : ExecTransitionBody cfg caller.contract evm locals callee.body
+    (hbody : ExecTransitionBody fork cfg caller.contract evm locals callee.body
       (.returned calleeStele calleeEvm (some [value])) caller.immutables) :
-    ExecStmt cfg caller evm (.internalCall name args retVar)
+    ExecStmt fork cfg caller evm (.internalCall name args retVar)
       (.ok { caller with locals := caller.locals.insert retVar value } calleeEvm) := by
   simpa [TransitionDecl.toCallable, ExecTransitionBody, resumeAfterInternalCall] using
     ExecStmt.internalCallReturn (cfg := cfg) (stele := caller) (evm := evm) (name := name)
@@ -241,9 +243,9 @@ theorem internalCallTransitionRevert {cfg : Config} {caller : Frame} {evm : EVM.
     (hargs : evalExprs? cfg caller evm args = .ok argVals)
     (hlookup : lookupCallable? caller.contract name = some callee.toCallable)
     (hbind : bindParams? callee.toCallable.params argVals = some locals)
-    (hbody : ExecTransitionBody cfg caller.contract evm locals callee.body .reverted
+    (hbody : ExecTransitionBody fork cfg caller.contract evm locals callee.body .reverted
       caller.immutables) :
-    ExecStmt cfg caller evm (.internalCall name args retVar) .reverted := by
+    ExecStmt fork cfg caller evm (.internalCall name args retVar) .reverted := by
   exact ExecStmt.internalCallRevert (cfg := cfg) (stele := caller) (evm := evm) (name := name)
     (args := args) (retVar := retVar) (argVals := argVals) (callee := callee.toCallable)
     (locals := locals) hargs hlookup (by simpa [TransitionDecl.toCallable] using hbind)
@@ -257,9 +259,9 @@ theorem internalCallFunctionReturn {cfg : Config} {caller : Frame} {evm calleeEv
     (hargs : evalExprs? cfg caller evm args = .ok argVals)
     (hlookup : lookupCallable? caller.contract name = some callee.toCallable)
     (hbind : bindParams? callee.params argVals = some locals)
-    (hbody : ExecFuncBody cfg { caller with locals := locals } evm callee.body
+    (hbody : ExecFuncBody fork cfg { caller with locals := locals } evm callee.body
       (.returned calleeStele calleeEvm value)) :
-    ExecStmt cfg caller evm (.internalCall name args retVar)
+    ExecStmt fork cfg caller evm (.internalCall name args retVar)
       (.ok (resumeAfterInternalCall caller retVar value) calleeEvm) := by
   exact ExecStmt.internalCallReturn (cfg := cfg) (stele := caller) (evm := evm)
     (name := name) (args := args) (retVar := retVar) (argVals := argVals)
@@ -275,8 +277,8 @@ theorem internalCallFunctionRevert {cfg : Config} {caller : Frame} {evm : EVM.St
     (hargs : evalExprs? cfg caller evm args = .ok argVals)
     (hlookup : lookupCallable? caller.contract name = some callee.toCallable)
     (hbind : bindParams? callee.params argVals = some locals)
-    (hbody : ExecFuncBody cfg { caller with locals := locals } evm callee.body .reverted) :
-    ExecStmt cfg caller evm (.internalCall name args retVar) .reverted := by
+    (hbody : ExecFuncBody fork cfg { caller with locals := locals } evm callee.body .reverted) :
+    ExecStmt fork cfg caller evm (.internalCall name args retVar) .reverted := by
   exact ExecStmt.internalCallRevert (cfg := cfg) (stele := caller) (evm := evm)
     (name := name) (args := args) (retVar := retVar) (argVals := argVals)
     (callee := callee.toCallable) (locals := locals)
@@ -294,10 +296,10 @@ theorem externalCallFailure {cfg : Config} {C : ContractDecl} {imms : Store}
       evalExpr? cfg { contract := C, locals := locals, immutables := imms } evm receiver = .ok (.address target))
     (hargs : evalExprs? cfg { contract := C, locals := locals, immutables := imms } evm args = .ok argVals)
     (hcall :
-      typedCallViaEVM cfg evm (EVM.address target) name sendVal argVals
+      typedCallViaEVM fork cfg evm (EVM.address target) name sendVal argVals
         (false, evm', out) perm)
     (hperm : EVM.wordOfInt sendVal = ⟨0⟩ ∨ evm.executionEnv.perm = true) :
-    ExecBlock cfg { contract := C, locals := locals, immutables := imms } evm
+    ExecBlock fork cfg { contract := C, locals := locals, immutables := imms } evm
       [ .externalCall receiver name (.intLit sendVal) args retVar (perm := perm) ]
       .reverted := by
   exact ExecBlock.consRevert
@@ -312,11 +314,11 @@ theorem externalCallSuccess {cfg : Config} {C : ContractDecl} {imms : Store}
       evalExpr? cfg { contract := C, locals := locals, immutables := imms } evm receiver = .ok (.address target))
     (hargs : evalExprs? cfg { contract := C, locals := locals, immutables := imms } evm args = .ok argVals)
     (hcall :
-      typedCallViaEVM cfg evm (EVM.address target) name sendVal argVals
+      typedCallViaEVM fork cfg evm (EVM.address target) name sendVal argVals
         (true, evm', out) perm)
     (hdec : cfg.externalABI.decode? name out = some value)
     (hperm : EVM.wordOfInt sendVal = ⟨0⟩ ∨ evm.executionEnv.perm = true) :
-    ExecBlock cfg { contract := C, locals := locals, immutables := imms } evm
+    ExecBlock fork cfg { contract := C, locals := locals, immutables := imms } evm
       [ .externalCall receiver name (.intLit sendVal) args retVar (perm := perm) ]
       (.ok { contract := C, locals := locals.insert retVar (collapseReturns value), immutables := imms } evm') := by
   exact ExecBlock.consNormal
@@ -333,11 +335,11 @@ theorem externalCallDecodeRevert {cfg : Config} {C : ContractDecl} {imms : Store
       evalExpr? cfg { contract := C, locals := locals, immutables := imms } evm receiver = .ok (.address target))
     (hargs : evalExprs? cfg { contract := C, locals := locals, immutables := imms } evm args = .ok argVals)
     (hcall :
-      typedCallViaEVM cfg evm (EVM.address target) name sendVal argVals
+      typedCallViaEVM fork cfg evm (EVM.address target) name sendVal argVals
         (true, evm', out) perm)
     (hdec : cfg.externalABI.decode? name out = none)
     (hperm : EVM.wordOfInt sendVal = ⟨0⟩ ∨ evm.executionEnv.perm = true) :
-    ExecBlock cfg { contract := C, locals := locals, immutables := imms } evm
+    ExecBlock fork cfg { contract := C, locals := locals, immutables := imms } evm
       [ .externalCall receiver name (.intLit sendVal) args retVar (perm := perm) ]
       .reverted := by
   exact ExecBlock.consRevert
@@ -355,10 +357,10 @@ theorem checkedExternalCallFailure {cfg : Config} {C : ContractDecl} {imms : Sto
       evalExpr? cfg { contract := C, locals := locals, immutables := imms } evm receiver = .ok (.address target))
     (hargs : evalExprs? cfg { contract := C, locals := locals, immutables := imms } evm args = .ok argVals)
     (hcall :
-      typedCallViaEVM cfg evm (EVM.address target) name sendVal argVals
+      typedCallViaEVM fork cfg evm (EVM.address target) name sendVal argVals
         (false, evm', out) perm)
     (hperm : EVM.wordOfInt sendVal = ⟨0⟩ ∨ evm.executionEnv.perm = true) :
-    ExecBlock cfg { contract := C, locals := locals, immutables := imms } evm
+    ExecBlock fork cfg { contract := C, locals := locals, immutables := imms } evm
       [ .require (.binary .gt (.extCodeSize receiver) (.intLit 0)),
         .externalCall receiver name (.intLit sendVal) args retVar (perm := perm) ]
       .reverted := by
@@ -377,11 +379,11 @@ theorem checkedExternalCallSuccess {cfg : Config} {C : ContractDecl} {imms : Sto
       evalExpr? cfg { contract := C, locals := locals, immutables := imms } evm receiver = .ok (.address target))
     (hargs : evalExprs? cfg { contract := C, locals := locals, immutables := imms } evm args = .ok argVals)
     (hcall :
-      typedCallViaEVM cfg evm (EVM.address target) name sendVal argVals
+      typedCallViaEVM fork cfg evm (EVM.address target) name sendVal argVals
         (true, evm', out) perm)
     (hdec : cfg.externalABI.decode? name out = some value)
     (hperm : EVM.wordOfInt sendVal = ⟨0⟩ ∨ evm.executionEnv.perm = true) :
-    ExecBlock cfg { contract := C, locals := locals, immutables := imms } evm
+    ExecBlock fork cfg { contract := C, locals := locals, immutables := imms } evm
       [ .require (.binary .gt (.extCodeSize receiver) (.intLit 0)),
         .externalCall receiver name (.intLit sendVal) args retVar (perm := perm) ]
       (.ok { contract := C, locals := locals.insert retVar (collapseReturns value), immutables := imms } evm') := by
@@ -401,11 +403,11 @@ theorem checkedExternalCallDecodeRevert {cfg : Config} {C : ContractDecl} {imms 
       evalExpr? cfg { contract := C, locals := locals, immutables := imms } evm receiver = .ok (.address target))
     (hargs : evalExprs? cfg { contract := C, locals := locals, immutables := imms } evm args = .ok argVals)
     (hcall :
-      typedCallViaEVM cfg evm (EVM.address target) name sendVal argVals
+      typedCallViaEVM fork cfg evm (EVM.address target) name sendVal argVals
         (true, evm', out) perm)
     (hdec : cfg.externalABI.decode? name out = none)
     (hperm : EVM.wordOfInt sendVal = ⟨0⟩ ∨ evm.executionEnv.perm = true) :
-    ExecBlock cfg { contract := C, locals := locals, immutables := imms } evm
+    ExecBlock fork cfg { contract := C, locals := locals, immutables := imms } evm
       [ .require (.binary .gt (.extCodeSize receiver) (.intLit 0)),
         .externalCall receiver name (.intLit sendVal) args retVar (perm := perm) ]
       .reverted := by
@@ -419,7 +421,7 @@ theorem checkedExternalCallNoCode {cfg : Config} {C : ContractDecl} {imms : Stor
     (hguard :
       evalExpr? cfg { contract := C, locals := locals, immutables := imms } evm
         (.binary .gt (.extCodeSize receiver) (.intLit 0)) = .ok (.bool false)) :
-    ExecBlock cfg { contract := C, locals := locals, immutables := imms } evm
+    ExecBlock fork cfg { contract := C, locals := locals, immutables := imms } evm
       [ .require (.binary .gt (.extCodeSize receiver) (.intLit 0)),
         .externalCall receiver name (.intLit sendVal) args retVar (perm := perm) ]
       .reverted := by
@@ -434,11 +436,11 @@ theorem externalCallVarSuccess {cfg : Config} {C : ContractDecl} {imms : Store}
     (hreceiver : locals.get? receiver = some (.address target))
     (hargs : evalExprs? cfg { contract := C, locals := locals, immutables := imms } evm args = .ok argVals)
     (hcall :
-      typedCallViaEVM cfg evm (EVM.address target) name sendVal argVals
+      typedCallViaEVM fork cfg evm (EVM.address target) name sendVal argVals
         (true, evm', out) perm)
     (hdec : cfg.externalABI.decode? name out = some value)
     (hperm : EVM.wordOfInt sendVal = ⟨0⟩ ∨ evm.executionEnv.perm = true) :
-    ExecBlock cfg { contract := C, locals := locals, immutables := imms } evm
+    ExecBlock fork cfg { contract := C, locals := locals, immutables := imms } evm
       [ .externalCall (.var receiver) name (.intLit sendVal) args retVar (perm := perm) ]
       (.ok { contract := C, locals := locals.insert retVar (collapseReturns value), immutables := imms } evm') := by
   exact externalCallSuccess (hperm := hperm)
@@ -458,10 +460,10 @@ theorem checkedExternalCallVarFailure {cfg : Config} {C : ContractDecl} {imms : 
     (hreceiver : locals.get? receiver = some (.address target))
     (hargs : evalExprs? cfg { contract := C, locals := locals, immutables := imms } evm args = .ok argVals)
     (hcall :
-      typedCallViaEVM cfg evm (EVM.address target) name sendVal argVals
+      typedCallViaEVM fork cfg evm (EVM.address target) name sendVal argVals
         (false, evm', out) perm)
     (hperm : EVM.wordOfInt sendVal = ⟨0⟩ ∨ evm.executionEnv.perm = true) :
-    ExecBlock cfg { contract := C, locals := locals, immutables := imms } evm
+    ExecBlock fork cfg { contract := C, locals := locals, immutables := imms } evm
       [ .require (.binary .gt (.extCodeSize (.var receiver)) (.intLit 0)),
         .externalCall (.var receiver) name (.intLit sendVal) args retVar (perm := perm) ]
       .reverted := by
@@ -483,11 +485,11 @@ theorem checkedExternalCallVarSuccess {cfg : Config} {C : ContractDecl} {imms : 
     (hreceiver : locals.get? receiver = some (.address target))
     (hargs : evalExprs? cfg { contract := C, locals := locals, immutables := imms } evm args = .ok argVals)
     (hcall :
-      typedCallViaEVM cfg evm (EVM.address target) name sendVal argVals
+      typedCallViaEVM fork cfg evm (EVM.address target) name sendVal argVals
         (true, evm', out) perm)
     (hdec : cfg.externalABI.decode? name out = some value)
     (hperm : EVM.wordOfInt sendVal = ⟨0⟩ ∨ evm.executionEnv.perm = true) :
-    ExecBlock cfg { contract := C, locals := locals, immutables := imms } evm
+    ExecBlock fork cfg { contract := C, locals := locals, immutables := imms } evm
       [ .require (.binary .gt (.extCodeSize (.var receiver)) (.intLit 0)),
         .externalCall (.var receiver) name (.intLit sendVal) args retVar (perm := perm) ]
       (.ok { contract := C, locals := locals.insert retVar (collapseReturns value), immutables := imms } evm') := by
@@ -509,11 +511,11 @@ theorem checkedExternalCallVarDecodeRevert {cfg : Config} {C : ContractDecl} {im
     (hreceiver : locals.get? receiver = some (.address target))
     (hargs : evalExprs? cfg { contract := C, locals := locals, immutables := imms } evm args = .ok argVals)
     (hcall :
-      typedCallViaEVM cfg evm (EVM.address target) name sendVal argVals
+      typedCallViaEVM fork cfg evm (EVM.address target) name sendVal argVals
         (true, evm', out) perm)
     (hdec : cfg.externalABI.decode? name out = none)
     (hperm : EVM.wordOfInt sendVal = ⟨0⟩ ∨ evm.executionEnv.perm = true) :
-    ExecBlock cfg { contract := C, locals := locals, immutables := imms } evm
+    ExecBlock fork cfg { contract := C, locals := locals, immutables := imms } evm
       [ .require (.binary .gt (.extCodeSize (.var receiver)) (.intLit 0)),
         .externalCall (.var receiver) name (.intLit sendVal) args retVar (perm := perm) ]
       .reverted := by
@@ -530,7 +532,7 @@ theorem checkedExternalCallVarNoCode {cfg : Config} {C : ContractDecl} {imms : S
     (hguard :
       evalExpr? cfg { contract := C, locals := locals, immutables := imms } evm
         (.binary .gt (.extCodeSize (.var receiver)) (.intLit 0)) = .ok (.bool false)) :
-    ExecBlock cfg { contract := C, locals := locals, immutables := imms } evm
+    ExecBlock fork cfg { contract := C, locals := locals, immutables := imms } evm
       [ .require (.binary .gt (.extCodeSize (.var receiver)) (.intLit 0)),
         .externalCall (.var receiver) name (.intLit sendVal) args retVar (perm := perm) ]
       .reverted := by
@@ -549,13 +551,13 @@ theorem lowLevelCallSuccessThenRequireTrue {cfg : Config} {C : ContractDecl} {im
     (heth : evalExpr? cfg { contract := C, locals := locals, immutables := imms } evm eth = .ok (.int sendVal))
     (hdata : evalExpr? cfg { contract := C, locals := locals, immutables := imms } evm cdata =
       .ok (.bytes calldata))
-    (hcall : callViaEVM evm (EVM.address target) sendVal calldata (true, evm', out))
+    (hcall : callViaEVM fork evm (EVM.address target) sendVal calldata (true, evm', out))
     (hrequire :
       evalExpr? cfg
         { contract := C, locals := (locals.insert okVar (.bool true)).insert dataVar (.bytes out), immutables := imms }
         evm' requireCond = .ok (.bool true))
     (hperm : EVM.wordOfInt sendVal = ⟨0⟩ ∨ evm.executionEnv.perm = true) :
-    ExecBlock cfg { contract := C, locals := locals, immutables := imms } evm
+    ExecBlock fork cfg { contract := C, locals := locals, immutables := imms } evm
       [ .lowLevelCall receiver eth cdata okVar dataVar,
         .require requireCond ]
       (.ok
@@ -578,13 +580,13 @@ theorem lowLevelCallFailureThenRequireFalse {cfg : Config} {C : ContractDecl} {i
     (heth : evalExpr? cfg { contract := C, locals := locals, immutables := imms } evm eth = .ok (.int sendVal))
     (hdata : evalExpr? cfg { contract := C, locals := locals, immutables := imms } evm cdata =
       .ok (.bytes calldata))
-    (hcall : callViaEVM evm (EVM.address target) sendVal calldata (false, evm', out))
+    (hcall : callViaEVM fork evm (EVM.address target) sendVal calldata (false, evm', out))
     (hrequire :
       evalExpr? cfg
         { contract := C, locals := (locals.insert okVar (.bool false)).insert dataVar (.bytes out), immutables := imms }
         evm' requireCond = .ok (.bool false))
     (hperm : EVM.wordOfInt sendVal = ⟨0⟩ ∨ evm.executionEnv.perm = true) :
-    ExecBlock cfg { contract := C, locals := locals, immutables := imms } evm
+    ExecBlock fork cfg { contract := C, locals := locals, immutables := imms } evm
       [ .lowLevelCall receiver eth cdata okVar dataVar,
         .require requireCond ]
       .reverted := by
@@ -612,10 +614,10 @@ theorem execWhile_var {cfg : Config} {C : ContractDecl} {imms : Store} {evm : EV
     (htrue : ∀ v L, P (v + 1) L →
         evalExpr? cfg { contract := C, locals := L, immutables := imms } evm cond = .ok (.bool true))
     (hstep : ∀ v L, P (v + 1) L →
-        ∃ L', ExecBlock cfg { contract := C, locals := L, immutables := imms } evm body
+        ∃ L', ExecBlock fork cfg { contract := C, locals := L, immutables := imms } evm body
                 (.ok { contract := C, locals := L', immutables := imms } evm) ∧ P v L') :
     ∀ v L, P v L → ∃ L',
-      ExecStmt cfg { contract := C, locals := L, immutables := imms } evm (.while cond body)
+      ExecStmt fork cfg { contract := C, locals := L, immutables := imms } evm (.while cond body)
         (.ok { contract := C, locals := L', immutables := imms } evm) ∧ P 0 L' := by
   intro v
   induction v with
@@ -639,12 +641,12 @@ theorem execFor_var {cfg : Config} {C : ContractDecl} {imms : Store} {evm : EVM.
     (htrue : ∀ v L, P (v + 1) L →
         evalExpr? cfg { contract := C, locals := L, immutables := imms } evm condExpr = .ok (.bool true))
     (hstep : ∀ v L, P (v + 1) L →
-        ∃ L1, ExecBlock cfg { contract := C, locals := L, immutables := imms } evm body
+        ∃ L1, ExecBlock fork cfg { contract := C, locals := L, immutables := imms } evm body
                 (.ok { contract := C, locals := L1, immutables := imms } evm) ∧
-              ∃ L', ExecBlock cfg { contract := C, locals := L1, immutables := imms } evm post
+              ∃ L', ExecBlock fork cfg { contract := C, locals := L1, immutables := imms } evm post
                 (.ok { contract := C, locals := L', immutables := imms } evm) ∧ P v L') :
     ∀ v L, P v L → ∃ L',
-      ExecForLoop cfg { contract := C, locals := L, immutables := imms } evm condExpr post body
+      ExecForLoop fork cfg { contract := C, locals := L, immutables := imms } evm condExpr post body
         (.ok { contract := C, locals := L', immutables := imms } evm) ∧ P 0 L' := by
   intro v
   induction v with
@@ -668,16 +670,16 @@ theorem execFor_var_state_continue {cfg : Config} {C : ContractDecl} {imms : Sto
         evalExpr? cfg { contract := C, locals := L, immutables := imms } evm condExpr = .ok (.bool true))
     (hstep : ∀ v L evm, P (v + 1) L evm →
         ∃ L1 evm1,
-          (ExecBlock cfg { contract := C, locals := L, immutables := imms } evm body
+          (ExecBlock fork cfg { contract := C, locals := L, immutables := imms } evm body
               (.ok { contract := C, locals := L1, immutables := imms } evm1) ∨
-            ExecBlock cfg { contract := C, locals := L, immutables := imms } evm body
+            ExecBlock fork cfg { contract := C, locals := L, immutables := imms } evm body
               (.continue { contract := C, locals := L1, immutables := imms } evm1)) ∧
           ∃ L2 evm2,
-            ExecBlock cfg { contract := C, locals := L1, immutables := imms } evm1 post
+            ExecBlock fork cfg { contract := C, locals := L1, immutables := imms } evm1 post
               (.ok { contract := C, locals := L2, immutables := imms } evm2) ∧
             P v L2 evm2) :
     ∀ v L evm, P v L evm → ∃ L' evm',
-      ExecForLoop cfg { contract := C, locals := L, immutables := imms } evm condExpr post body
+      ExecForLoop fork cfg { contract := C, locals := L, immutables := imms } evm condExpr post body
         (.ok { contract := C, locals := L', immutables := imms } evm') ∧ P 0 L' evm' := by
   intro v
   induction v with
@@ -726,8 +728,8 @@ def resultState? : ExecResult → Option EVM.State
 
 /-- A function body's result carries the state of its block's result. -/
 theorem execFuncBody_block {cfg : Config} {stele : Frame} {evm : EVM.State} {body : List Stmt}
-    {r : ExecResult} (h : ExecFuncBody cfg stele evm body r) :
-    ∃ r', ExecBlock cfg stele evm body r' ∧ resultState? r' = resultState? r := by
+    {r : ExecResult} (h : ExecFuncBody fork cfg stele evm body r) :
+    ∃ r', ExecBlock fork cfg stele evm body r' ∧ resultState? r' = resultState? r := by
   cases h with
   | execBlockOK hb => exact ⟨_, hb, rfl⟩
   | execBlockRet hb => exact ⟨_, hb, rfl⟩
@@ -738,8 +740,8 @@ theorem execFuncBody_block {cfg : Config} {stele : Frame} {evm : EVM.State} {bod
 
 /-- A block opening with `require c` either reverted or passed the check unchanged. -/
 theorem execBlock_require_cons {cfg : Config} {stele : Frame} {evm : EVM.State} {c : Expr}
-    {rest : List Stmt} {r : ExecResult} (h : ExecBlock cfg stele evm (.require c :: rest) r) :
-    r = .reverted ∨ (evalExpr? cfg stele evm c = .ok (.bool true) ∧ ExecBlock cfg stele evm rest r) := by
+    {rest : List Stmt} {r : ExecResult} (h : ExecBlock fork cfg stele evm (.require c :: rest) r) :
+    r = .reverted ∨ (evalExpr? cfg stele evm c = .ok (.bool true) ∧ ExecBlock fork cfg stele evm rest r) := by
   cases h with
   | consNormal hst hrest => cases hst with | requireTrue hc => exact Or.inr ⟨hc, hrest⟩
   | consReturn hst => cases hst
@@ -751,9 +753,9 @@ theorem execBlock_require_cons {cfg : Config} {stele : Frame} {evm : EVM.State} 
 /-- A block opening with a `let` either reverted or bound the evaluated value. -/
 theorem execBlock_letDecl_cons {cfg : Config} {stele : Frame} {evm : EVM.State} {name : Ident}
     {ty : Option ABIType} {e : Expr} {rest : List Stmt} {r : ExecResult}
-    (h : ExecBlock cfg stele evm (.letDecl name ty e :: rest) r) :
+    (h : ExecBlock fork cfg stele evm (.letDecl name ty e :: rest) r) :
     r = .reverted ∨ ∃ v, evalExpr? cfg stele evm e = .ok v ∧
-      ExecBlock cfg { stele with locals := stele.locals.insert name v } evm rest r := by
+      ExecBlock fork cfg { stele with locals := stele.locals.insert name v } evm rest r := by
   cases h with
   | consNormal hst hrest => cases hst with | letDecl hv => exact Or.inr ⟨_, hv, hrest⟩
   | consReturn hst => cases hst
@@ -766,11 +768,11 @@ theorem execBlock_letDecl_cons {cfg : Config} {stele : Frame} {evm : EVM.State} 
     write. -/
 theorem execBlock_assign_cons {cfg : Config} {stele : Frame} {evm : EVM.State} {origin : VarOrigin}
     {ref : StorageRef} {e : Expr} {rest : List Stmt} {r : ExecResult}
-    (h : ExecBlock cfg stele evm (.assign origin ref e :: rest) r) :
+    (h : ExecBlock fork cfg stele evm (.assign origin ref e :: rest) r) :
     r = .reverted ∨ r = .staticViolation ∨
       ∃ v stele' evm', evalExpr? cfg stele evm e = .ok v ∧
         assignStorageRef? cfg stele evm origin ref v = .ok (stele', evm') ∧
-        ExecBlock cfg stele' evm' rest r := by
+        ExecBlock fork cfg stele' evm' rest r := by
   cases h with
   | consNormal hst hrest =>
       cases hst with | assign _ hv ha => exact Or.inr (Or.inr ⟨_, _, _, hv, ha, hrest⟩)
@@ -783,8 +785,8 @@ theorem execBlock_assign_cons {cfg : Config} {stele : Frame} {evm : EVM.State} {
 /-- A block opening with `emit` either reverted, halted in static mode, or continued unchanged. -/
 theorem execBlock_emit_cons {cfg : Config} {stele : Frame} {evm : EVM.State} {name : Ident}
     {args : List Expr} {rest : List Stmt} {r : ExecResult}
-    (h : ExecBlock cfg stele evm (.emit name args :: rest) r) :
-    r = .reverted ∨ r = .staticViolation ∨ ExecBlock cfg stele evm rest r := by
+    (h : ExecBlock fork cfg stele evm (.emit name args :: rest) r) :
+    r = .reverted ∨ r = .staticViolation ∨ ExecBlock fork cfg stele evm rest r := by
   cases h with
   | consNormal hst hrest => cases hst with | emit _ _ => exact Or.inr (Or.inr hrest)
   | consReturn hst => cases hst
@@ -796,7 +798,7 @@ theorem execBlock_emit_cons {cfg : Config} {stele : Frame} {evm : EVM.State} {na
 /-- A block opening with `return` either reverted or returned the evaluated values from the
     current state. -/
 theorem execBlock_return_cons {cfg : Config} {stele : Frame} {evm : EVM.State} {es : List Expr}
-    {rest : List Stmt} {r : ExecResult} (h : ExecBlock cfg stele evm (.return es :: rest) r) :
+    {rest : List Stmt} {r : ExecResult} (h : ExecBlock fork cfg stele evm (.return es :: rest) r) :
     r = .reverted ∨ ∃ vs, evalExprs? cfg stele evm es = .ok vs ∧ r = .returned stele evm (some vs) := by
   cases h with
   | consNormal hst _ => cases hst
@@ -810,8 +812,8 @@ theorem execBlock_return_cons {cfg : Config} {stele : Frame} {evm : EVM.State} {
 
 /-- Append helper: if `s1` falls through to `(f1, e1)`, running `s2` from there is running `s1 ++ s2`. -/
 theorem execBlock_append {cfg : Config} {s2 : List Stmt} :
-    ∀ {s1 : List Stmt} {f e f1 e1 r}, ExecBlock cfg f e s1 (.ok f1 e1) → ExecBlock cfg f1 e1 s2 r →
-      ExecBlock cfg f e (s1 ++ s2) r := by
+    ∀ {s1 : List Stmt} {f e f1 e1 r}, ExecBlock fork cfg f e s1 (.ok f1 e1) → ExecBlock fork cfg f1 e1 s2 r →
+      ExecBlock fork cfg f e (s1 ++ s2) r := by
   intro s1
   induction s1 with
   | nil => intro f e f1 e1 r h1 h2; cases h1; exact h2
@@ -823,8 +825,8 @@ theorem execBlock_append {cfg : Config} {s2 : List Stmt} :
 /-- Append helper: if `s1` *terminates* (any non-`.ok` result), `s1 ++ s2` terminates the same way —
     `s2` never runs. -/
 theorem execBlock_append_term {cfg : Config} {s2 : List Stmt} :
-    ∀ {s1 : List Stmt} {f e r}, ExecBlock cfg f e s1 r → (∀ f' e', r ≠ .ok f' e') →
-      ExecBlock cfg f e (s1 ++ s2) r := by
+    ∀ {s1 : List Stmt} {f e r}, ExecBlock fork cfg f e s1 r → (∀ f' e', r ≠ .ok f' e') →
+      ExecBlock fork cfg f e (s1 ++ s2) r := by
   intro s1
   induction s1 with
   | nil => intro f e r h1 hterm; cases h1; exact absurd rfl (hterm _ _)
@@ -840,7 +842,7 @@ theorem execBlock_append_term {cfg : Config} {s2 : List Stmt} :
 
 /-- A one-statement block ends as its statement does. -/
 theorem execBlock_singleton {cfg : Config} {stele : Frame} {evm : EVM.State} {stmt : Stmt}
-    {r : ExecResult} (h : ExecStmt cfg stele evm stmt r) : ExecBlock cfg stele evm [stmt] r := by
+    {r : ExecResult} (h : ExecStmt fork cfg stele evm stmt r) : ExecBlock fork cfg stele evm [stmt] r := by
   cases r with
   | ok => exact ExecBlock.consNormal h ExecBlock.nil
   | returned => exact ExecBlock.consReturn h
@@ -855,70 +857,70 @@ theorem execBlock_singleton {cfg : Config} {stele : Frame} {evm : EVM.State} {st
 
 `ExecBlock` is built tail-first (`consNormal` needs the rest), so a straight-line body reads
 inside-out.  `ABlock` is the difference-list/CPS view that lets it read **left-to-right** like
-`evm_run`: `ABlock cfg evm stele₀ stmts₀ stele stmts` transforms a continuation from the cursor
+`evm_run`: `ABlock fork cfg evm stele₀ stmts₀ stele stmts` transforms a continuation from the cursor
 `(stele, stmts)` into the whole block from `(stele₀, stmts₀)`.  Chain with `start |>.requireStep …
 |>.letStep … |>.whileStep …` and close with a terminal (`returns` / `requireRevert`); wrap the
 result with `ExecFuncBody.execBlockRet` / `.execBlockRevert` to get an `ExecTransitionBody`. -/
 
 /-- A straight-line `ExecBlock` builder, cursor `(stele, stmts)` over fixed entry `(stele₀, stmts₀)`.
     (A one-field structure so the combinators chain by dot-notation.) -/
-structure ABlock (cfg : Config) (evm : EVM.State) (stele₀ : Frame) (stmts₀ : List Stmt)
+structure ABlock (fork : Ethereum.Fork) (cfg : Config) (evm : EVM.State) (stele₀ : Frame) (stmts₀ : List Stmt)
     (stele : Frame) (stmts : List Stmt) : Prop where
-  run : ∀ {result}, ExecBlock cfg stele evm stmts result → ExecBlock cfg stele₀ evm stmts₀ result
+  run : ∀ {result}, ExecBlock fork cfg stele evm stmts result → ExecBlock fork cfg stele₀ evm stmts₀ result
 
 /-- Open a builder at the entry frame. -/
-theorem ABlock.start {cfg evm stele stmts} : ABlock cfg evm stele stmts stele stmts := ⟨fun h => h⟩
+theorem ABlock.start {cfg evm stele stmts} : ABlock fork cfg evm stele stmts stele stmts := ⟨fun h => h⟩
 
 /-- A passing `require` (frame unchanged). -/
 theorem ABlock.requireStep {cfg evm stele₀ stmts₀ stele rest} {cond : Expr}
-    (prev : ABlock cfg evm stele₀ stmts₀ stele (.require cond :: rest))
+    (prev : ABlock fork cfg evm stele₀ stmts₀ stele (.require cond :: rest))
     (heval : evalExpr? cfg stele evm cond = .ok (.bool true)) :
-    ABlock cfg evm stele₀ stmts₀ stele rest :=
+    ABlock fork cfg evm stele₀ stmts₀ stele rest :=
   ⟨fun h => prev.run (ExecBlock.consNormal (ExecStmt.requireTrue heval) h)⟩
 
 /-- A `let` binding (advances the cursor's locals). -/
 theorem ABlock.letStep {cfg evm stele₀ stmts₀ stele rest} {name ty expr value}
-    (prev : ABlock cfg evm stele₀ stmts₀ stele (.letDecl name ty expr :: rest))
+    (prev : ABlock fork cfg evm stele₀ stmts₀ stele (.letDecl name ty expr :: rest))
     (heval : evalExpr? cfg stele evm expr = .ok value) :
-    ABlock cfg evm stele₀ stmts₀ { stele with locals := stele.locals.insert name value } rest :=
+    ABlock fork cfg evm stele₀ stmts₀ { stele with locals := stele.locals.insert name value } rest :=
   ⟨fun h => prev.run (ExecBlock.consNormal (ExecStmt.letDecl heval) h)⟩
 
 /-- An `emit` (frame unchanged; the arguments evaluate). -/
 theorem ABlock.emitStep {cfg evm stele₀ stmts₀ stele rest} {name : Ident} {args : List Expr}
     {vals : List Value}
-    (prev : ABlock cfg evm stele₀ stmts₀ stele (.emit name args :: rest))
+    (prev : ABlock fork cfg evm stele₀ stmts₀ stele (.emit name args :: rest))
     (heval : evalExprs? cfg stele evm args = .ok vals)
     (hperm : evm.executionEnv.perm = true) :
-    ABlock cfg evm stele₀ stmts₀ stele rest :=
+    ABlock fork cfg evm stele₀ stmts₀ stele rest :=
   ⟨fun h => prev.run (ExecBlock.consNormal (ExecStmt.emit hperm heval) h)⟩
 
 /-- A `while` loop that runs to `.ok` at frame `stele'` (supply the loop fact, e.g. `execWhile_var`). -/
 theorem ABlock.whileStep {cfg evm stele₀ stmts₀ stele stele' rest} {cond body}
-    (prev : ABlock cfg evm stele₀ stmts₀ stele (.while cond body :: rest))
-    (hwhile : ExecStmt cfg stele evm (.while cond body) (.ok stele' evm)) :
-    ABlock cfg evm stele₀ stmts₀ stele' rest :=
+    (prev : ABlock fork cfg evm stele₀ stmts₀ stele (.while cond body :: rest))
+    (hwhile : ExecStmt fork cfg stele evm (.while cond body) (.ok stele' evm)) :
+    ABlock fork cfg evm stele₀ stmts₀ stele' rest :=
   ⟨fun h => prev.run (ExecBlock.consNormal hwhile h)⟩
 
 /-- A `for` loop that runs to `.ok` at frame `stele'` (supply the loop fact, e.g. `ExecStmt.for`
     composing `init` with `execFor_var`).  The `for` analog of `ABlock.whileStep`. -/
 theorem ABlock.forStep {cfg evm stele₀ stmts₀ stele stele' rest} {init cond post body}
-    (prev : ABlock cfg evm stele₀ stmts₀ stele (.for init cond post body :: rest))
-    (hfor : ExecStmt cfg stele evm (.for init cond post body) (.ok stele' evm)) :
-    ABlock cfg evm stele₀ stmts₀ stele' rest :=
+    (prev : ABlock fork cfg evm stele₀ stmts₀ stele (.for init cond post body :: rest))
+    (hfor : ExecStmt fork cfg stele evm (.for init cond post body) (.ok stele' evm)) :
+    ABlock fork cfg evm stele₀ stmts₀ stele' rest :=
   ⟨fun h => prev.run (ExecBlock.consNormal hfor h)⟩
 
 /-- Close with a `return` ⇒ the block returns `value`. -/
 theorem ABlock.returns {cfg evm stele₀ stmts₀ stele rest} {expr value}
-    (prev : ABlock cfg evm stele₀ stmts₀ stele (.return [expr] :: rest))
+    (prev : ABlock fork cfg evm stele₀ stmts₀ stele (.return [expr] :: rest))
     (heval : evalExpr? cfg stele evm expr = .ok value) :
-    ExecBlock cfg stele₀ evm stmts₀ (.returned stele evm (some [value])) :=
+    ExecBlock fork cfg stele₀ evm stmts₀ (.returned stele evm (some [value])) :=
   prev.run (ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton heval)))
 
 /-- Close with a failing `require` ⇒ the block reverts. -/
 theorem ABlock.requireRevert {cfg evm stele₀ stmts₀ stele rest} {cond : Expr}
-    (prev : ABlock cfg evm stele₀ stmts₀ stele (.require cond :: rest))
+    (prev : ABlock fork cfg evm stele₀ stmts₀ stele (.require cond :: rest))
     (heval : evalExpr? cfg stele evm cond = .ok (.bool false)) :
-    ExecBlock cfg stele₀ evm stmts₀ .reverted :=
+    ExecBlock fork cfg stele₀ evm stmts₀ .reverted :=
   prev.run (ExecBlock.consRevert (ExecStmt.requireFalse heval))
 
 /-! ## `Stele.Store` (locals) lookup -/
@@ -1173,29 +1175,29 @@ theorem evalPackedArgs_single {cfg : Config} {stele : Frame} {evm : EVM.State}
 
 theorem execBlockAppendRevert {cfg : Config} {stele stele' : Frame} {evm evm' : EVM.State}
     {pref suff : List Stmt}
-    (hp : ExecBlock cfg stele evm pref (.ok stele' evm'))
-    (hs : ExecBlock cfg stele' evm' suff .reverted) :
-    ExecBlock cfg stele evm (pref ++ suff) .reverted := by
+    (hp : ExecBlock fork cfg stele evm pref (.ok stele' evm'))
+    (hs : ExecBlock fork cfg stele' evm' suff .reverted) :
+    ExecBlock fork cfg stele evm (pref ++ suff) .reverted := by
   exact execBlock_append hp hs
 
 theorem execBlockAppendOk {cfg : Config} {stele stele' : Frame} {evm evm' : EVM.State}
     {pref suff : List Stmt} {res : ExecResult}
-    (hp : ExecBlock cfg stele evm pref (.ok stele' evm'))
-    (hs : ExecBlock cfg stele' evm' suff res) :
-    ExecBlock cfg stele evm (pref ++ suff) res := by
+    (hp : ExecBlock fork cfg stele evm pref (.ok stele' evm'))
+    (hs : ExecBlock fork cfg stele' evm' suff res) :
+    ExecBlock fork cfg stele evm (pref ++ suff) res := by
   exact execBlock_append hp hs
 
 theorem execBlockAppendReverted {cfg : Config} {stele : Frame} {evm : EVM.State}
     {pref suff : List Stmt}
-    (hp : ExecBlock cfg stele evm pref .reverted) :
-    ExecBlock cfg stele evm (pref ++ suff) .reverted := by
+    (hp : ExecBlock fork cfg stele evm pref .reverted) :
+    ExecBlock fork cfg stele evm (pref ++ suff) .reverted := by
   exact execBlock_append_term hp (by intro _ _ h; cases h)
 
 theorem execBlock_append_ok {cfg : Config} {stele evm stele' evm' result}
     {xs ys : List Stmt}
-    (hxs : ExecBlock cfg stele evm xs (.ok stele' evm'))
-    (hys : ExecBlock cfg stele' evm' ys result) :
-    ExecBlock cfg stele evm (xs ++ ys) result := by
+    (hxs : ExecBlock fork cfg stele evm xs (.ok stele' evm'))
+    (hys : ExecBlock fork cfg stele' evm' ys result) :
+    ExecBlock fork cfg stele evm (xs ++ ys) result := by
   exact execBlock_append hxs hys
 
 theorem sliceBytes_nat {out : ByteArray} {start finish : Nat}
@@ -1327,12 +1329,12 @@ theorem execFor_var_state {cfg : Config} {C : ContractDecl}
     (htrue : ∀ v L evm, P (v + 1) L evm →
         evalExpr? cfg { contract := C, locals := L } evm condExpr = .ok (.bool true))
     (hstep : ∀ v L evm, P (v + 1) L evm →
-        ∃ L1 evm1, ExecBlock cfg { contract := C, locals := L } evm body
+        ∃ L1 evm1, ExecBlock fork cfg { contract := C, locals := L } evm body
               (.ok { contract := C, locals := L1 } evm1) ∧
-            ∃ L2 evm2, ExecBlock cfg { contract := C, locals := L1 } evm1 post
+            ∃ L2 evm2, ExecBlock fork cfg { contract := C, locals := L1 } evm1 post
               (.ok { contract := C, locals := L2 } evm2) ∧ P v L2 evm2) :
     ∀ v L evm, P v L evm → ∃ L' evm',
-      ExecForLoop cfg { contract := C, locals := L } evm condExpr post body
+      ExecForLoop fork cfg { contract := C, locals := L } evm condExpr post body
         (.ok { contract := C, locals := L' } evm') ∧ P 0 L' evm' := by
   exact Reasoning.Theory.execFor_var_state_continue P hfalse htrue
     (fun v L evm hP => by
@@ -1351,8 +1353,8 @@ theorem evalAddressLiteral (cfg : Config) (frame : Frame) (evm : EVM.State) (a :
   · exact not_lt.mpr (Int.natCast_nonneg (↑a : Nat))
 
 theorem execBlock_reverted_append {cfg : Config} {s2 : List Stmt} :
-    ∀ {f e s1}, ExecBlock cfg f e s1 .reverted →
-      ExecBlock cfg f e (s1 ++ s2) .reverted := by
+    ∀ {f e s1}, ExecBlock fork cfg f e s1 .reverted →
+      ExecBlock fork cfg f e (s1 ++ s2) .reverted := by
   intro f e s1
   induction s1 generalizing f e with
   | nil =>

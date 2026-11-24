@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.SchemaHead
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -9,10 +11,10 @@ theorem easSchemaTextHead {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {src off ending : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length+5 ≤ 1024)
     (hsrc : src.toNat+off.toNat+31 < 2^255) (hend : ending.toNat < 2^255)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨7467⟩ (src::off::ending::R) mem aw out σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨7467⟩ (src::off::ending::R) mem aw out σ k C) :
     if src.toNat+off.toNat+32 ≤ ending.toNat then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨7479⟩ ((src+off)::ending::R) mem aw' out σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨7479⟩ ((src+off)::ending::R) mem aw' out σ k' C'
+    else RDrev fork (deployedRuntime v) g s0 := by
   have hsum : (src+off).toNat = src.toNat+off.toNat := by
     rw [uadd_toNat, Nat.mod_eq_of_lt (by change src.toNat+off.toNat < 2^256; omega)]
   have hn : ((src+off)+UInt256.ofNat 31).toNat = src.toNat+off.toNat+31 := by

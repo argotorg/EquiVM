@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.TryRecoverSource
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 
@@ -13,16 +15,16 @@ theorem tryRecoverLowSource {L imms : Store} {evm evm' : EVM.State} {hash v r s 
     (hs : L.get? "s" = some (wordBytes32Value s))
     (hf : L.get? "$EAS.freeMemory" = some (.int (Int.ofNat heap)))
     (hi : ¬ ecdsaHalfOrder < s.toNat)
-    (hc : callViaEVM evm (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) 0 (tryRecoverPayload hash v r s)
+    (hc : callViaEVM fork evm (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) 0 (tryRecoverPayload hash v r s)
       (success,evm',out) false)
     (hout : (out = ByteArray.empty ∧ a = 0) ∨ out = (UInt256.ofNat a.val).toByteArray) :
-    if success then ∃ L', ExecFuncBody config {contract := contract,locals := L,immutables := imms} evm tryRecoverFunction.body
+    if success then ∃ L', ExecFuncBody fork config {contract := contract,locals := L,immutables := imms} evm tryRecoverFunction.body
       (.returned {contract := contract,locals := L',immutables := imms} evm'
         (some [.tuple [.address a,.int (Int.ofNat (recoveryError a))],.int (Int.ofNat heap)]))
-    else ExecFuncBody config {contract := contract,locals := L,immutables := imms} evm tryRecoverFunction.body .reverted := by
+    else ExecFuncBody fork config {contract := contract,locals := L,immutables := imms} evm tryRecoverFunction.body .reverted := by
   have hguard := tryRecoverGuard_eval (cfg := config) (evm := evm)
     (frame := {contract := contract,locals := L,immutables := imms}) hs
-  have hinvoke : ExecStmt config {contract := contract,locals := tryRecoverInputLocals L hash v r s,immutables := imms} evm
+  have hinvoke : ExecStmt fork config {contract := contract,locals := tryRecoverInputLocals L hash v r s,immutables := imms} evm
       tryRecoverInvoke
       (.ok {contract := contract,locals := tryRecoverCallLocals L hash v r s success out,immutables := imms} evm') := by
     apply lowLevelCallSource_perm (hperm := Or.inl rfl) (target := AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) _ _ _ hc
@@ -30,7 +32,7 @@ theorem tryRecoverLowSource {L imms : Store} {evm evm' : EVM.State} {hash v r s 
       rfl
     · simp only [evalExpr?,pure]
     · simp only [evalExpr?,tryRecoverInputLocals,store_get_self,EvalResult.ofOption]
-  have htail := tryRecoverTailSource (L := tryRecoverCallLocals L hash v r s success out) (imms := imms)
+  have htail := tryRecoverTailSource (fork := fork) (L := tryRecoverCallLocals L hash v r s success out) (imms := imms)
     (evm := evm') (heap := heap) (success := success) (out := out) (a := a)
     (by simp (disch := decide) only [tryRecoverCallLocals,store_get_ne,store_get_self])
     (store_get_self _ _ _)

@@ -3,6 +3,8 @@ import ABI.Encode
 import Stele.Notation
 import Stele.Semantics
 
+variable {fork : Ethereum.Fork}
+
 open ABI
 
 namespace Stele.CastTests
@@ -138,7 +140,7 @@ example (cfg : Config) (stele : Frame) (evm : EVM.State) :
     evalBinaryOp?, EvalResult.bind, bind, pure, EvalResult.ofOption]
 
 example (cfg : Config) (stele : Frame) (evm : EVM.State) :
-    ExecStmt cfg stele evm
+    ExecStmt fork cfg stele evm
       (.letDecl "sum" (some (.elem (.int (.uint ⟨8, by decide⟩)))) narrowSum)
       (.ok { stele with locals := stele.locals.insert "sum" (.int 260) } evm) := by
   apply ExecStmt.letDecl

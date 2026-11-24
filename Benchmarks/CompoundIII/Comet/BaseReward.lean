@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.ArithmeticSource
 import Benchmarks.CompoundIII.Comet.PresentValue
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.CompoundIII.Comet.Immutables
 
@@ -33,7 +35,7 @@ theorem baseReward_call (v : CometWithExtendedAssetListImmutables)
     (hp : evalExpr? config frame evm principalExpr = .ok (.int principal.toNat))
     (hd : evalExpr? config frame evm deltaExpr = .ok (.int delta.toNat))
     (hpb : principal.toNat < 2^104) (hdb : delta.toNat < 2^64) :
-    ExecStmt config frame evm (.internalCall "safe64" [baseRewardExpr principalExpr deltaExpr] ret)
+    ExecStmt fork config frame evm (.internalCall "safe64" [baseRewardExpr principalExpr deltaExpr] ret)
       (if BaseRewardValid v principal delta then
         .ok { frame with
           locals := frame.locals.insert ret (.int (baseRewardWord v principal delta).toNat) }

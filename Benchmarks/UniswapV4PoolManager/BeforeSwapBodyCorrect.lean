@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.BeforeSwapEntryTrace
 import Benchmarks.UniswapV4PoolManager.BeforeSwapReturn
 import Benchmarks.UniswapV4PoolManager.FunctionFinishTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -27,17 +29,17 @@ theorem beforeSwapBodyCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {
     (hgas : g.toNat < 324518553658429321982441292826060) (hpaid : Cₘ aw ≤ C+63)
     (hfree : memLoad (UInt256.ofNat 64) mem = free)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨15172⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨15172⟩
       (accountWord hook :: keyPtr :: paramsPtr :: src :: len :: ret :: R) mem aw rdata evm.accountMap k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
-    ∃ result, ExecFuncBody config f evm beforeSwapFunction.body result ∧
-      functionResultTrace (deployedRuntime v) g s0 (beforeSwapReturn v I g s0 mem free ret R) result := by
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    ∃ result, ExecFuncBody fork config f evm beforeSwapFunction.body result ∧
+      functionResultTrace fork (deployedRuntime v) g s0 (beforeSwapReturn fork v I g s0 mem free ret R) result := by
   have he := beforeSwapEntryTrace v (by omega) hparams (by omega) hpaid hret h
   by_cases hself : I.source = hook
   · rw [beforeSwapEntryResult, if_pos hself] at he
     obtain ⟨aw', k', C', hpay, rd⟩ := he
     have hcall : evm.executionEnv.source ≠ hook → beforeSwapActive hook →
-        callViaEVM evm hook 0 (beforeSwapPayload evm.executionEnv.source key p
+        callViaEVM fork evm hook 0 (beforeSwapPayload evm.executionEnv.source key p
           (I.calldata.extract src.toNat (src.toNat+len.toNat))) (false, evm, .empty) := by
       rw [hI]; intro hn _; exact (hn hself).elim
     refine .inr ⟨_, beforeSwapBody hc hs hk hp hd hcanonical hlimit hcall, ?_⟩
@@ -52,7 +54,7 @@ theorem beforeSwapBodyCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {
         hog | ⟨post, z, out, hcall, henv, hworld, ht⟩
       · exact .inl hog
       have hcall' : evm.executionEnv.source ≠ hook → beforeSwapActive hook →
-          callViaEVM evm hook 0 (beforeSwapPayload evm.executionEnv.source key p
+          callViaEVM fork evm hook 0 (beforeSwapPayload evm.executionEnv.source key p
             (I.calldata.extract src.toNat (src.toNat+len.toNat))) (z, post, out) := by
         rw [hI]; exact fun _ _ => hcall
       refine .inr ⟨_, beforeSwapBody hc hs hk hp hd hcanonical hlimit hcall', ?_⟩
@@ -66,12 +68,12 @@ theorem beforeSwapBodyCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {
     · rw [if_neg ha] at he
       obtain ⟨aw', k', C', hpay, rd⟩ := he
       have hcall : evm.executionEnv.source ≠ hook → beforeSwapActive hook →
-          callViaEVM evm hook 0 (beforeSwapPayload evm.executionEnv.source key p
+          callViaEVM fork evm hook 0 (beforeSwapPayload evm.executionEnv.source key p
             (I.calldata.extract src.toNat (src.toNat+len.toNat))) (false, evm, .empty) :=
         fun _ hen => (ha hen).elim
       refine .inr ⟨_, beforeSwapBody hc hs hk hp hd hcanonical hlimit hcall, ?_⟩
       rw [beforeSwapResult, beforeSwapBlockResult, hI, if_neg hself, beforeSwapSelectedResult, if_neg ha]
-      change functionResultTrace _ _ _ _ (finishBlockResult (beforeSwapReturnResult _ evm hook key _ .empty))
+      change functionResultTrace fork _ _ _ _ (finishBlockResult (beforeSwapReturnResult _ evm hook key _ .empty))
       rw [beforeSwapReturnResult, if_neg ha]
       exact beforeSwapReturn_bypass hI hσ0 hfree hroom hpay rd
 

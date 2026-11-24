@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.OptionalSafeTransferCases
 import Examples.UniswapV2Pair.SafeTransferDepthLimit
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -11,8 +13,8 @@ theorem uniswapOptionalSafeTransferAnyDepthCases
     {mem rdata : ByteArray} {ptr aw value toWord tokenWord ret : UInt256} {R : List UInt256}
     {caller : Frame} {condition tokenExpr toExpr valueExpr : Expr} {retVar : Ident}
     (evm : EVM.State) (token recipient : AccountAddress)
-    (hentry : (value = ⟨0⟩ ∧ ∃ k C, RD uniswapV2PairBytecode I g s0 ret R mem aw rdata σ k C) ∨
-      (value ≠ ⟨0⟩ ∧ ∃ k C, RD uniswapV2PairBytecode I g s0 ⟨6370⟩
+    (hentry : (value = ⟨0⟩ ∧ ∃ k C, RD fork uniswapV2PairBytecode I g s0 ret R mem aw rdata σ k C) ∨
+      (value ≠ ⟨0⟩ ∧ ∃ k C, RD fork uniswapV2PairBytecode I g s0 ⟨6370⟩
         (value :: toWord :: tokenWord :: ret :: R) mem aw rdata σ k C))
     (hAccounts : σ = evm.accountMap) (henv : evm.executionEnv = I)
     (hσ0 : evm.σ₀ = s0.σ₀)
@@ -25,14 +27,14 @@ theorem uniswapOptionalSafeTransferAnyDepthCases
     (hready : SafeTransferMemoryReady mem aw ptr) (hptrCap : ptr.toNat ≤ 2 ^ 255 + 1024)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true) (hov : R.length + 20 ≤ 1024)
     (himm : caller.immutables = ∅ := by first | rfl | assumption) :
-    (ExecStmt config caller evm (.ite condition [.internalCall "_safeTransfer" [tokenExpr, toExpr, valueExpr] retVar] [])
-      .reverted ∧ RDrev uniswapV2PairBytecode g s0) ∨
+    (ExecStmt fork config caller evm (.ite condition [.internalCall "_safeTransfer" [tokenExpr, toExpr, valueExpr] retVar] [])
+      .reverted ∧ RDrev fork uniswapV2PairBytecode g s0) ∨
     (∃ evm' σ' mem' aw' ptr' data' k' C',
-      ExecStmt config caller evm (.ite condition [.internalCall "_safeTransfer" [tokenExpr, toExpr, valueExpr] retVar] [])
+      ExecStmt fork config caller evm (.ite condition [.internalCall "_safeTransfer" [tokenExpr, toExpr, valueExpr] retVar] [])
         (.ok (optionalSafeTransferFrame caller retVar value) evm') ∧
       σ' = evm'.accountMap ∧ evm'.σ₀ = s0.σ₀ ∧ evm'.executionEnv = I ∧
       SafeTransferMemoryReady mem' aw' ptr' ∧ ptr'.toNat ≤ ptr.toNat + 2 ^ 138 + 227 ∧
-      RD uniswapV2PairBytecode I g s0 ret R mem' aw' data' σ' k' C') := by
+      RD fork uniswapV2PairBytecode I g s0 ret R mem' aw' data' σ' k' C') := by
   by_cases hdepth : I.depth.val < 1024
   · exact uniswapOptionalSafeTransferCases evm token recipient hentry hAccounts henv
       hσ0 hcaller hcond hargs htoken hrecipient hdepth hperm hready hptrCap hret hov
@@ -44,7 +46,7 @@ theorem uniswapOptionalSafeTransferAnyDepthCases
     · have hpos : 0 < value.toNat := Nat.pos_of_ne_zero (fun h ↦ hnz (uint256_toNat_eq_zero h))
       have hc : evalExpr? config caller evm condition = .ok (.bool true) := by
         simpa only [decide_eq_true hpos] using hcond
-      have hcallee := safeTransferInternalCallReverts_depthLimit (retVar := retVar) caller evm token recipient value
+      have hcallee := safeTransferInternalCallReverts_depthLimit (fork := fork) (retVar := retVar) caller evm token recipient value
         hcaller hargs (by rw [henv]; exact hd)
       have hcover : (⟨64⟩ : UInt256).toNat + 32 ≤ aw.toNat * 32 := hready.wordsLo
       have hload : memoryWordLoad mem ⟨64⟩ = ptr :=

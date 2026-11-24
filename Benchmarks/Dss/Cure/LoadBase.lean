@@ -3,6 +3,8 @@ import Benchmarks.Dss.Cure.Common
 import Benchmarks.Dss.Cure.Cage
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 section
@@ -600,7 +602,7 @@ theorem execLoadLoadedZeroTail {evm : EVM.State} {locals : Store} (I : Execution
     let count := Stele.EVM.storageLoad evmLoaded evmLoaded.executionEnv.codeOwner ⟨8⟩
     let evmCount := Stele.EVM.storageStore evmLoaded evmLoaded.executionEnv.codeOwner
       ⟨8⟩ (count + ⟨1⟩)
-    ExecStmt config { contract := contract, locals := locals } evm
+    ExecStmt fork config { contract := contract, locals := locals } evm
       (.ite
         (.binary .eq (.storage (loadedRef (.var "src"))) (.intLit 0))
         [ .assign .storage (loadedRef (.var "src")) (.intLit 1),
@@ -630,13 +632,13 @@ theorem execLoadLoadedZeroTail {evm : EVM.State} {locals : Store} (I : Execution
     simpa [evmCount] using assign_loadLCountStorage (evm := evmLoaded)
       (locals := locals) (count + ⟨1⟩) hbaseLCount
   have hthen :
-      ExecBlock config { contract := contract, locals := locals } evm
+      ExecBlock fork config { contract := contract, locals := locals } evm
         [ .assign .storage (loadedRef (.var "src")) (.intLit 1),
           .assign .storage lCountRef (incUnchecked (.storage lCountRef)) ]
         (.ok { contract := contract, locals := locals } evmCount) := by
-    refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) ?_ hassignLoaded) ?_
+    refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) ?_ hassignLoaded) ?_
     · simp [evalExpr?, pure]
-    exact ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr (by simpa only [evmLoaded, storageStore_executionEnv] using hperm)) hinc hassignCount) ExecBlock.nil
+    exact ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa only [evmLoaded, storageStore_executionEnv] using hperm)) hinc hassignCount) ExecBlock.nil
   exact ExecStmt.iteTrue hcond hthen
 
 theorem evalExpr_loadPosGtZero_false (evm : EVM.State) (I : ExecutionEnv)

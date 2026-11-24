@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.SetFeeMemory
 import Benchmarks.Morpho.MorphoBlue.SetFeeSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -12,9 +14,9 @@ variable {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
   {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
 
 theorem morphoSetFeeReachOwner (p : MarketParamsWords)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 9639)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 9639)
       [UInt256.ofNat 128, UInt256.ofNat 0] (createMarketDecodedMem p) aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
       [UInt256.eq (solcSourceWord ee) (solcAddressSlotWord ⟨0⟩ σ ee), UInt256.ofNat 288,
         UInt256.ofNat 9714, calldataWord ee.calldata 164, UInt256.ofNat 32, setFeeTopic,
         UInt256.ofNat 128, UInt256.ofNat 0] (setFeeOwnerMem p) aw' rdata σ k' C' := by
@@ -27,7 +29,7 @@ theorem morphoSetFeeReachOwner (p : MarketParamsWords)
     (by rw [(createMarketDecodedHeap p).freePtr]; decide) rd1
   have rd3 := morphoBlocks.morpho_block_585 (immWords := wordsOf (immStore v)) (by simp)
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) rd2
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     [UInt256.eq (solcSourceWord ee) (solcAddressSlotWord ⟨0⟩ σ ee),
       memLoad (UInt256.ofNat 64) (createMarketDecodedMem p), UInt256.ofNat 9714,
       calldataWord ee.calldata 164, UInt256.ofNat 32, setFeeTopic, UInt256.ofNat 128, UInt256.ofNat 0]
@@ -36,10 +38,10 @@ theorem morphoSetFeeReachOwner (p : MarketParamsWords)
   exact ⟨aw2, _, _, rd3⟩
 
 theorem morphoSetFeeReachCreated (p : MarketParamsWords) (fee : UInt256)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 9714)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 9714)
       [fee, UInt256.ofNat 32, setFeeTopic, UInt256.ofNat 128, UInt256.ofNat 0]
       (setFeeOwnerMem p) aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
       ([UInt256.isZero (UInt256.isZero (marketFieldWord σ ee p.id 4)), UInt256.ofNat 352,
         UInt256.ofNat 9774] ++ setFeeAccrueStack p.id fee) (setFeeCreatedMem p) aw' rdata σ k' C' := by
   obtain ⟨aw1, k1, C1, rd1⟩ := morphoBlocks.morpho_block_9714_packed
@@ -50,7 +52,7 @@ theorem morphoSetFeeReachCreated (p : MarketParamsWords) (fee : UInt256)
   let mem := twoWordHashMem p.id (UInt256.ofNat 3) (setFeeOwnerMem p)
   have hh : keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) mem = solcMappingSlot ⟨3⟩ p.id :=
     twoWordHashMem_solcMappingSlot_any _ _ _
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     ([UInt256.ofNat 585, UInt256.isZero (UInt256.isZero (UInt256.land
       (solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) mem + UInt256.ofNat 2) σ ee)
       uint128Mask)), UInt256.ofNat 9774] ++ setFeeAccrueStack p.id fee) mem _ _ _ _ _ at rd1
@@ -66,9 +68,9 @@ theorem morphoSetFeeReachCreated (p : MarketParamsWords) (fee : UInt256)
   exact ⟨aw2, _, _, rd3⟩
 
 theorem morphoSetFeeReachChanged (p : MarketParamsWords) (fee : UInt256)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 9774)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 9774)
       (setFeeAccrueStack p.id fee) (setFeeCreatedMem p) aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
       ([UInt256.isZero (UInt256.eq fee (marketFieldWord σ ee p.id 5)), UInt256.ofNat 416,
         UInt256.ofNat 9806] ++ setFeeAccrueStack p.id fee) (setFeeChangedMem p) aw' rdata σ k' C' := by
   obtain ⟨aw1, k1, C1, rd1⟩ := morphoBlocks.morpho_block_9774_packed
@@ -78,7 +80,7 @@ theorem morphoSetFeeReachChanged (p : MarketParamsWords) (fee : UInt256)
   have hh : keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) mem = solcMappingSlot ⟨3⟩ p.id :=
     twoWordHashMem_solcMappingSlot_any _ _ _
   have hm := (setFeeCreatedHeap p).1.hash (by decide) p.id (UInt256.ofNat 3)
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     ([UInt256.ofNat 585, UInt256.isZero (UInt256.eq fee (UInt256.shiftRight
       (solcSlotWordAt (keccakWord (UInt256.ofNat 0) (UInt256.ofNat 64) mem + UInt256.ofNat 2) σ ee)
       (UInt256.ofNat 128))), UInt256.ofNat 9806] ++ setFeeAccrueStack p.id fee) mem _ _ _ _ _ at rd1
@@ -86,7 +88,7 @@ theorem morphoSetFeeReachChanged (p : MarketParamsWords) (fee : UInt256)
   obtain ⟨aw2, k2, C2, rd2⟩ := morphoAlreadySetMessage (v := v)
     (by simp [setFeeAccrueStack, setFeeAccrueTail])
     (by rw [morphoPatchedValidJumps v]; jump_dest) (by rw [hm.freePtr]; decide) rd1
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     ([memLoad (UInt256.ofNat 64) mem, UInt256.isZero (UInt256.eq fee (marketFieldWord σ ee p.id 5)),
       UInt256.ofNat 9806] ++ setFeeAccrueStack p.id fee) (setFeeChangedMem p) _ _ _ _ _ at rd2
   rw [hm.freePtr] at rd2
@@ -96,9 +98,9 @@ theorem morphoSetFeeReachChanged (p : MarketParamsWords) (fee : UInt256)
   exact ⟨aw2, _, _, rd3⟩
 
 theorem morphoSetFeeReachLimit (p : MarketParamsWords) (fee : UInt256)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 9806)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 9806)
       (setFeeAccrueStack p.id fee) (setFeeChangedMem p) aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12097)
       ([UInt256.isZero (UInt256.gt fee (UInt256.ofNat maxMarketFee)), UInt256.ofNat 480,
         UInt256.ofNat 9879] ++ setFeeAccrueStack p.id fee) (setFeeLimitMem p) aw' rdata σ k' C' := by
   have rd1 := morphoBlocks.morpho_block_9806 (immWords := wordsOf (immStore v))
@@ -123,9 +125,9 @@ theorem morphoSetFeeReachLimit (p : MarketParamsWords) (fee : UInt256)
 
 theorem morphoSetFeeEnter (p : MarketParamsWords)
     (hg : SetFeeGuards σ ee p (calldataWord ee.calldata 164))
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 9639)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 9639)
       [UInt256.ofNat 128, UInt256.ofNat 0] (createMarketDecodedMem p) aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 13166)
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 13166)
       (setFeeAccrueStack p.id (calldataWord ee.calldata 164)) (setFeeLimitMem p) aw' rdata σ k' C' := by
   obtain ⟨aw1, k1, C1, rd1⟩ := morphoSetFeeReachOwner (v := v) p h
   obtain ⟨k2, C2, rd2⟩ := morphoRequireTrue (v := v) (by simp)
@@ -150,9 +152,9 @@ theorem morphoSetFeeEnter (p : MarketParamsWords)
 
 theorem morphoSetFeeGuardReverts (p : MarketParamsWords)
     (hbad : ¬ SetFeeGuards σ ee p (calldataWord ee.calldata 164))
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 9639)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 9639)
       [UInt256.ofNat 128, UInt256.ofNat 0] (createMarketDecodedMem p) aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨aw1, k1, C1, rd1⟩ := morphoSetFeeReachOwner (v := v) p h
   by_cases ho : solcSourceWord ee = solcAddressSlotWord ⟨0⟩ σ ee
   · obtain ⟨k2, C2, rd2⟩ := morphoRequireTrue (v := v) (by simp)

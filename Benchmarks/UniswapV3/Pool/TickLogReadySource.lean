@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.TickLogNormalizeSource
 import Benchmarks.UniswapV3.Pool.SourceSignedBits
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -33,7 +35,7 @@ theorem evalTickLogInitial {frame : Frame} {evm : EVM.State} (msb : Nat)
 
 theorem tickLogLogReadySource (imms : Store) (evm : EVM.State) (price : UInt256)
     (hp : price.toNat < 2 ^ 160) (hv : tickLogValid price) :
-    ∃ frame, ExecBlock config (tickLogFrame imms price) evm (tickLogFunction.body.take 15)
+    ∃ frame, ExecBlock fork config (tickLogFrame imms price) evm (tickLogFunction.body.take 15)
         (.ok frame evm) ∧
       frame.locals.get? "r" = some (.int (Int.ofNat
         (tickLogNormalized (tickLogRatio price) (tickLogMsb price).1).toNat)) ∧
@@ -58,7 +60,7 @@ theorem tickLogLogReadySource (imms : Store) (evm : EVM.State) (price : UInt256)
       (.int (signedWordInt (tickLogInitial (tickLogMsb price).1))))[name]? = mid.locals[name]?
     simp only [Std.HashMap.getElem?_insert, beq_iff_eq, Ne.symm hn, if_false]
   refine ⟨out, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · change ExecBlock _ _ _ (tickLogFunction.body.take 13 ++
+  · change ExecBlock fork _ _ _ (tickLogFunction.body.take 13 ++
       [tickLogFunction.body[13]!, .letDecl "log_2"
         (some (.elem (.int (.sint ⟨256, by decide⟩)))) tickLogInitialExpr]) _
     apply execBlock_append_ok hs

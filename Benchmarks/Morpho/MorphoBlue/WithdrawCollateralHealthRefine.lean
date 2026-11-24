@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.WithdrawCollateralUpdateRefine
 import Benchmarks.Morpho.MorphoBlue.HealthyCallerSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -32,22 +34,22 @@ theorem CollateralTransferLocals.evalPositionBorrowShares {p assets account rece
   evalMorphoPositionField evm locals imms _ _ p.id account 1 hl.position
     (hl.evalId imms evm) (hl.evalAccount imms evm) ha
 
-inductive WithdrawCollateralHealthRefines (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
+inductive WithdrawCollateralHealthRefines (fork : Ethereum.Fork) (v : MorphoImmutables) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     (p : MarketParamsWords) (assets account receiver : UInt256)
     (locals imms : Store) (evm : EVM.State) (mem : ByteArray) (fp : UInt256) (R : List UInt256) : Prop where
-  | reverted : ExecBlock config { contract := contract, locals := locals, immutables := imms }
-      evm (withdrawCollateralTransition.body.drop 14) .reverted → RDrev (deployedRuntime v) g s0 →
-      WithdrawCollateralHealthRefines v ee g s0 p assets account receiver locals imms evm mem fp R
+  | reverted : ExecBlock fork config { contract := contract, locals := locals, immutables := imms }
+      evm (withdrawCollateralTransition.body.drop 14) .reverted → RDrev fork (deployedRuntime v) g s0 →
+      WithdrawCollateralHealthRefines fork v ee g s0 p assets account receiver locals imms evm mem fp R
   | ok {locals' evm' σ' mem' fp' aw' out' k' C'} (z : Bool) :
-      StateBlock config { contract := contract, locals := locals, immutables := imms }
+      StateBlock fork config { contract := contract, locals := locals, immutables := imms }
         evm (withdrawCollateralTransition.body.drop 14) { contract := contract, locals := locals', immutables := imms }
         evm' (withdrawCollateralTransition.body.drop 16) → CollateralTransferLocals p assets account receiver locals' →
       locals'.get? "__memory" = some (.int (Int.ofNat (fp'.toNat + 64))) →
       locals'.get? "__c4" = some (.bool z) → SourceState s0 ee σ' evm' → MorphoHeap mem' fp' 320 →
       HeapAdvance mem fp mem' fp' (healthyMemoryCost p account evm) →
-      RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5693)
+      RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5693)
         ((if z then UInt256.ofNat 1 else UInt256.ofNat 0) :: UInt256.ofNat 5701 :: withdrawCollateralHealthTail p.id assets account receiver R)
-        mem' aw' out' σ' k' C' → WithdrawCollateralHealthRefines v ee g s0 p assets account receiver locals imms evm mem fp R
+        mem' aw' out' σ' k' C' → WithdrawCollateralHealthRefines fork v ee g s0 p assets account receiver locals imms evm mem fp R
 
 theorem morphoWithdrawCollateralHealthRefine {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : State} {aw fp assets account receiver : UInt256} {out mem : ByteArray}
@@ -56,18 +58,18 @@ theorem morphoWithdrawCollateralHealthRefine {v : MorphoImmutables} {ee : Execut
     (hl : CollateralTransferLocals p assets account receiver locals) (hs : SourceState s0 ee σ evm)
     (hm : MorphoHeap mem fp 352) (hmem : locals.get? "__memory" = some (.int (Int.ofNat (fp.toNat + 64))))
     (hparams : p.InMemory (UInt256.ofNat 128) mem) (hsize : 288 ≤ mem.size) (hbefore : 288 ≤ fp.toNat)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 5686)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 5686)
       (withdrawCollateralUpdateTail p.id assets account receiver R)
       mem aw out σ k C) :
-    WithdrawCollateralHealthRefines v ee g s0 p assets account receiver locals imms evm mem fp R := by
+    WithdrawCollateralHealthRefines fork v ee g s0 p assets account receiver locals imms evm mem fp R := by
   have rd0 := morphoBlocks.morpho_block_5686 (immWords := wordsOf (immStore v))
     (by change R.length + 6 + 10 ≤ 1024; omega)
     (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
   let word := positionFieldWord evm.accountMap evm.executionEnv p.id account 1
   let l1 := healthyCapturedLocals locals (fp.toNat + 64) word
   have hl1 : CollateralTransferLocals p assets account receiver l1 := hl.healthyCapture _ _
-  have hecap := healthyCaptureMemory (hl.evalPositionBorrowShares imms evm ha) hmem
-  have ab : StateBlock config { contract := contract, locals := locals, immutables := imms }
+  have hecap := healthyCaptureMemory (fork := fork) (hl.evalPositionBorrowShares imms evm ha) hmem
+  have ab : StateBlock fork config { contract := contract, locals := locals, immutables := imms }
       evm (withdrawCollateralTransition.body.drop 14) { contract := contract, locals := l1, immutables := imms }
       evm (withdrawCollateralTransition.body.drop 15) := StateBlock.start.step hecap
   have hm1 : l1.get? "__memory" = some (.int (Int.ofNat (fp.toNat + 64 + healthyMemoryCost p account evm))) :=

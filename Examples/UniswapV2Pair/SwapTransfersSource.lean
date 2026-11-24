@@ -1,5 +1,7 @@
 import Examples.UniswapV2Pair.OptionalSafeTransferSource
 import Examples.UniswapV2Pair.SwapRecipientSource
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
@@ -27,10 +29,10 @@ theorem swapTokenStore_transferGets (evm : EVM.State) (I : ExecutionEnv) :
   · rw [swapTokenStore, store_get_ne _ _ (by decide), store_get_ne _ _ (by decide)]; exact ha1
 
 theorem uniswapSwapBodyReverts_transfers (evm evmT : EVM.State) (I : ExecutionEnv) (caller : Frame)
-    (hprefix : ExecBlock config { contract := contract, locals := swapStore I } evm swapRecipientGuardPrefix
+    (hprefix : ExecBlock fork config { contract := contract, locals := swapStore I } evm swapRecipientGuardPrefix
       (.ok caller evmT))
-    (htransfers : ExecBlock config caller evmT [swapFirstTransferStmt, swapSecondTransferStmt] .reverted) :
-    ExecTransitionBody config contract evm (swapStore I) swapTransition.body .reverted := by
+    (htransfers : ExecBlock fork config caller evmT [swapFirstTransferStmt, swapSecondTransferStmt] .reverted) :
+    ExecTransitionBody fork config contract evm (swapStore I) swapTransition.body .reverted := by
   exact ExecFuncBody.execBlockRevert (by
     simpa only [swapTransition, swapRecipientGuardPrefix, swapTokenPrefix, swapReserveGuardPrefix,
       swapReservePrefix, swapOutputPrefix, swapOutputRequireStmt, swapOutputRequireExpr,

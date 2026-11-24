@@ -2,6 +2,8 @@ import Examples.UniswapV2Pair.ExternalWrappers
 import Examples.UniswapV2Pair.Dispatch
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -104,7 +106,7 @@ theorem uniswapDecode_allowance_none_short {I : ExecutionEnv}
 /-- The Stele `allowance(address,address)` body returns `allowance[owner][spender]`. -/
 theorem uniswapAllowanceBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract evm (allowanceStore I) allowanceTransition.body
+    ExecTransitionBody fork config contract evm (allowanceStore I) allowanceTransition.body
       (.returned { contract := contract, locals := allowanceStore I } evm
         (some [(.int (Int.ofNat
           (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -132,10 +134,10 @@ theorem uniswapAllowanceBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     words and jumps to the shared nested-mapping getter routine at pc 5987. -/
 theorem uniswapAllowanceX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨1421⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨5987⟩
+    ∃ k C, RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨5987⟩
         [allowanceSpenderMaskedWord I, allowanceOwnerMaskedWord I, ⟨861⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd1443⟩ := RD.uniswapTwoAddressGetterLenOk
@@ -157,10 +159,10 @@ This covers calldata with a selector present but fewer than two ABI words. The d
 theorem uniswapAllowanceX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨1421⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
   exact RD.uniswapTwoAddressGetterShort
     (entry := ⟨1421⟩) (routine := ⟨5987⟩)
     hreach uniswap_two_address_getter_entry_wf hsz4 hsize hshort
@@ -169,10 +171,10 @@ theorem uniswapAllowanceX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     returns it. -/
 theorem uniswapX_allowance_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨1421⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret uniswapV2PairBytecode g (initState σ σ₀ g A I) σ
+    RDret fork uniswapV2PairBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (allowanceWord σ I)) := by
   obtain ⟨_, _, rd5987⟩ := uniswapAllowanceX_decoded (g := g) hsz68 hsize hreach
   obtain ⟨_, _, rd6005⟩ := RD.uniswapNestedMappingInnerHash (pc := ⟨5987⟩)
@@ -199,7 +201,7 @@ theorem uniswapX_allowance_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
         = allowanceWord σ I := by
     unfold allowanceWord
     rw [hslot]
-  have rd861 : RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨861⟩
+  have rd861 : RD fork uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨861⟩
       (allowanceWord σ I :: ⟨861⟩ :: [sel])
       (uniswapNestedMappingHashMem ⟨2⟩ (allowanceOwnerMaskedWord I)
         (allowanceSpenderMaskedWord I))
@@ -232,12 +234,12 @@ theorem uniswapAllowanceBodyCoreOk
     (hdecode :
       config.externalABI.decodeCalldata? (allowanceTransition.params.map Param.name)
         (transitionSignature allowanceTransition).paramTypes I.calldata = some (allowanceStore I))
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1421⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hbody :
-      ExecTransitionBody config contract
+      ExecTransitionBody fork config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (allowanceStore I)
         allowanceTransition.body
@@ -263,10 +265,10 @@ theorem uniswapAllowanceBodyCoreDecodeFailed_short
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68)
     (hdispatch : dispatchMsg contract I.calldata = some allowanceTransition)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1421⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hdec := uniswapDecode_allowance_none_short (I := I) hsz4 hshort
   exact (uniswapAllowanceX_shortarg (g := Sat256.ofUInt256 g)
       hsz4 hsize hshort hreach)
@@ -280,7 +282,7 @@ theorem uniswapAllowanceBodyOk
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xdd, 0x62, 0xed, 0x3e]⟩)
     (hsz68 : 68 ≤ I.calldata.size)
     (hdispatch : dispatchMsg contract I.calldata = some allowanceTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0xdd, 0x62, 0xed, 0x3e]⟩ rfl hsel
   exact uniswapAllowanceBodyCoreOk hcode hsize hwv hsz68
@@ -296,7 +298,7 @@ theorem uniswapAllowanceBodyDecodeFailed_short
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xdd, 0x62, 0xed, 0x3e]⟩)
     (hshort : I.calldata.size < 68)
     (hdispatch : dispatchMsg contract I.calldata = some allowanceTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0xdd, 0x62, 0xed, 0x3e]⟩ rfl hsel
   exact uniswapAllowanceBodyCoreDecodeFailed_short hcode hsize hsz4 hshort hdispatch
@@ -307,7 +309,7 @@ theorem uniswapAllowanceBody
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xdd, 0x62, 0xed, 0x3e]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some allowanceTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   by_cases hsz68 : 68 ≤ I.calldata.size
   · exact uniswapAllowanceBodyOk hcode hsize hwv hsel hsz68 hdispatch
   · exact uniswapAllowanceBodyDecodeFailed_short hcode hsize hwv hsel (by omega) hdispatch

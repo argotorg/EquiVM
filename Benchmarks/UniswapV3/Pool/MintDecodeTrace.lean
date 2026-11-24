@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.MintCalldata
 import Benchmarks.UniswapV3.Pool.BytesWindowWords
 import Benchmarks.UniswapV3.Pool.Dispatch
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -11,12 +13,12 @@ set_option maxRecDepth 10000
 theorem mintDecodeX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256} {s0 : EVM.State}
     {mem rdata : ByteArray} {aw : UInt256} {k C : Nat} {R : List UInt256}
     {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨948⟩ R mem aw rdata σ k C)
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨948⟩ R mem aw rdata σ k C)
     (hsz : 4 ≤ ee.calldata.size) (hsize : ee.calldata.size < UInt256.size)
     (hov : R.length + 13 ≤ 1024) :
-    (¬ MintCalldataValid ee.calldata ∧ RDrev (deployedRuntime v) g s0) ∨
+    (¬ MintCalldataValid ee.calldata ∧ RDrev fork (deployedRuntime v) g s0) ∨
     (MintCalldataValid ee.calldata ∧ ∃ k' C',
-      RD (deployedRuntime v) ee g s0 ⟨5734⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨5734⟩
         (UInt256.ofNat (mintDataLength ee.calldata) :: UInt256.ofNat (mintDataStart ee.calldata) ::
           (mintDecodedArgs ee.calldata).amount :: EVM.wordOfInt (mintDecodedArgs ee.calldata).upper ::
           EVM.wordOfInt (mintDecodedArgs ee.calldata).lower ::
@@ -56,7 +58,7 @@ theorem mintDecodeX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256} {s0 : EVM
       (UInt256.ofNat (2 ^ 128 - 1)) = uint128Word (calldataWord ee.calldata 100) :=
     u256_land_comm _ _
   rw [hamount] at r2
-  change RD (deployedRuntime v) ee g s0 ⟨1047⟩
+  change RD fork (deployedRuntime v) ee g s0 ⟨1047⟩
     (calldataWord ee.calldata 132 :: UInt256.ofNat 164 :: UInt256.ofNat 4 ::
       UInt256.ofNat ee.calldata.size :: uint128Word (calldataWord ee.calldata 100) ::
       positionTickWord (calldataWord ee.calldata 68) :: positionTickWord (calldataWord ee.calldata 36) ::

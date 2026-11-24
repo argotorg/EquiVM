@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.OracleWriteModel
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 1000
@@ -10,7 +12,7 @@ macro "oracle_write_get" : tactic =>
     Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert, Std.HashMap.getElem?_empty]; rfl))
 
 theorem oracleWriteZeroSource (imms : Store) (evm : EVM.State) (a : OracleWriteArgs) :
-    ExecBlock config (oracleWriteFrame imms a) evm (oracleWriteFunction.body.take 2)
+    ExecBlock fork config (oracleWriteFrame imms a) evm (oracleWriteFunction.body.take 2)
       (.ok (oracleWriteZeroFrame imms a) evm) := by
   let f : Frame := {oracleWriteFrame imms a with
     locals := (oracleWriteLocals a).insert "indexUpdated" (.int 0)}
@@ -20,9 +22,9 @@ theorem oracleWriteZeroSource (imms : Store) (evm : EVM.State) (a : OracleWriteA
 
 theorem oracleWriteLastSource (imms : Store) (evm : EVM.State) (a : OracleWriteArgs)
     (hin : a.index.toNat < 65535) :
-    ExecBlock config (oracleWriteFrame imms a) evm (oracleWriteFunction.body.take 3)
+    ExecBlock fork config (oracleWriteFrame imms a) evm (oracleWriteFunction.body.take 3)
       (.ok (oracleWriteLastFrame imms a evm) evm) := by
-  change ExecBlock config (oracleWriteFrame imms a) evm
+  change ExecBlock fork config (oracleWriteFrame imms a) evm
     (oracleWriteFunction.body.take 2 ++ [oracleWriteFunction.body[2]!]) _
   exact execBlock_append_ok (oracleWriteZeroSource imms evm a)
     (ExecBlock.consNormal (ExecStmt.letDecl
@@ -31,7 +33,7 @@ theorem oracleWriteLastSource (imms : Store) (evm : EVM.State) (a : OracleWriteA
 
 theorem oracleWriteReadReverts (imms : Store) (evm : EVM.State) (a : OracleWriteArgs)
     (hin : ¬ a.index.toNat < 65535) :
-    ExecFuncBody config (oracleWriteFrame imms a) evm oracleWriteFunction.body .reverted := by
+    ExecFuncBody fork config (oracleWriteFrame imms a) evm oracleWriteFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   rw [← List.take_append_drop 2 oracleWriteFunction.body]
   exact execBlock_append_ok (oracleWriteZeroSource imms evm a)
@@ -48,7 +50,7 @@ theorem evalOracleWriteSame (imms : Store) (evm : EVM.State) (a : OracleWriteArg
 
 theorem oracleWriteSameReturns (imms : Store) (evm : EVM.State) (a : OracleWriteArgs)
     (hin : a.index.toNat < 65535) (hsame : oracleWriteSame a evm = true) :
-    ExecFuncBody config (oracleWriteFrame imms a) evm oracleWriteFunction.body
+    ExecFuncBody fork config (oracleWriteFrame imms a) evm oracleWriteFunction.body
       (.returned (oracleWriteLastFrame imms a evm) evm
         (some [.int (Int.ofNat a.index.toNat), .int (Int.ofNat a.cardinality.toNat)])) := by
   apply ExecFuncBody.execBlockRet
@@ -65,9 +67,9 @@ theorem oracleWriteSameReturns (imms : Store) (evm : EVM.State) (a : OracleWrite
 
 theorem oracleWriteNewTimeSource (imms : Store) (evm : EVM.State) (a : OracleWriteArgs)
     (hin : a.index.toNat < 65535) (hsame : oracleWriteSame a evm = false) :
-    ExecBlock config (oracleWriteFrame imms a) evm (oracleWriteFunction.body.take 4)
+    ExecBlock fork config (oracleWriteFrame imms a) evm (oracleWriteFunction.body.take 4)
       (.ok (oracleWriteLastFrame imms a evm) evm) := by
-  change ExecBlock config (oracleWriteFrame imms a) evm
+  change ExecBlock fork config (oracleWriteFrame imms a) evm
     (oracleWriteFunction.body.take 3 ++ [oracleWriteFunction.body[3]!]) _
   exact execBlock_append_ok (oracleWriteLastSource imms evm a hin)
     (ExecBlock.consNormal (ExecStmt.iteFalse

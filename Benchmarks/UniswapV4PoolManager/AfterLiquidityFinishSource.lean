@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV4PoolManager.BalanceDeltaCombineSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 
@@ -18,18 +20,18 @@ def afterLiquidityFinishStmts : List Stmt :=
 theorem afterLiquidityFinish {f : Frame} {evm : State} {delta hookDelta : UInt256} {old : Value}
     (hf : f.contract = contract) (hd : f.locals.get? "callerDelta" = some (.int (EVM.signed delta)))
     (hh : f.locals.get? "hookDelta" = some old) (hr : f.locals.get? "result" = some (.int (EVM.signed hookDelta))) :
-    ExecBlock config f evm afterLiquidityFinishStmts (afterLiquidityFinishResult f evm delta hookDelta) := by
-  have hs := ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalLocalValue (cfg := config) (evm := evm) hr) (assignLocalValue hh)
+    ExecBlock fork config f evm afterLiquidityFinishStmts (afterLiquidityFinishResult f evm delta hookDelta) := by
+  have hs := ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalLocalValue (cfg := config) (evm := evm) hr) (assignLocalValue hh)
   let f1 := {f with locals := f.locals.insert "hookDelta" (.int (EVM.signed hookDelta))}
   have hd1 : f1.locals.get? "callerDelta" = some (.int (EVM.signed delta)) :=
     (store_get_ne _ _ (by decide : ("hookDelta" == "callerDelta") = false)).trans hd
-  have hc := balanceDeltaCombineCall (f := f1) (evm := evm) hf
+  have hc := balanceDeltaCombineCall (fork := fork) (f := f1) (evm := evm) hf
     (evalLocalValue hd1) (evalLocalValue (store_get_self _ _ _)) true "remaining"
   by_cases hfit : balanceDeltaCombineFits true delta hookDelta
   · rw [if_pos hfit] at hc
     rw [afterLiquidityFinishResult, if_pos hfit]
     exact ExecBlock.consNormal hs (ExecBlock.consNormal hc
-      (execBlock_singleton (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalLocalValue (store_get_self _ _ _))
+      (execBlock_singleton (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalLocalValue (store_get_self _ _ _))
         (assignLocalValue ((store_get_ne _ _ (by decide : ("remaining" == "callerDelta") = false)).trans hd1)))))
   · rw [if_neg hfit] at hc
     rw [afterLiquidityFinishResult, if_neg hfit]

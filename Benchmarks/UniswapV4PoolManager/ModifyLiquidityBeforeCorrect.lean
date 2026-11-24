@@ -3,12 +3,14 @@ import Benchmarks.UniswapV4PoolManager.BeforeLiquidityCall
 import Benchmarks.UniswapV4PoolManager.BlockResultTrace
 import Benchmarks.UniswapV4PoolManager.PoolStorage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
 
-def modifyLiquidityAfterBeforeTrace (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256)
+def modifyLiquidityAfterBeforeTrace (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256)
     (s0 post : State) (key : PoolKeyWords) (p : ModifyLiquidityWords)
     (keyPtr paramsPtr src len id junk : UInt256) (R : List UInt256) : Prop :=
   post.executionEnv = I ∧ post.σ₀ = s0.σ₀ ∧ ∃ mem rdata free,
@@ -16,7 +18,7 @@ def modifyLiquidityAfterBeforeTrace (v : PoolManagerImmutables) (I : ExecutionEn
     MemorySlice mem 128 (wordBytes [poolSlot id]) ∧
     keyPtr.toNat+160 ≤ free.toNat ∧ paramsPtr.toNat+128 ≤ free.toNat ∧
     free.toNat+4000 ≤ solcMaxU64 ∧ memLoad (UInt256.ofNat 64) mem = free ∧
-    beforeLiquidityContinuation v I g s0 mem rdata post.accountMap src paramsPtr len keyPtr id junk R
+    beforeLiquidityContinuation fork v I g s0 mem rdata post.accountMap src paramsPtr len keyPtr id junk R
 
 theorem modifyLiquidityBeforeCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {f : Frame} {mem rdata : ByteArray} {aw free keyPtr paramsPtr src len id junk : UInt256}
@@ -35,13 +37,13 @@ theorem modifyLiquidityBeforeCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : S
     (hfb : free.toNat+4000 ≤ solcMaxU64) (hfree : memLoad (UInt256.ofNat 64) mem = free)
     (hsrc : src.toNat+len.toNat ≤ I.calldata.size) (hlen : len.toNat ≤ solcMaxU64)
     (hgas : g.toNat < 324518553658429321982441292826060) (hpaid : Cₘ aw ≤ C+46)
-    (h : RD (deployedRuntime v) I g s0 ⟨5474⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨5474⟩
       ([src, paramsPtr, len, keyPtr, id, junk] ++ R) mem aw rdata evm.accountMap k C) :
-    X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
-    ∃ result, ExecStmt config f evm modifyLiquidityTransition.body[15]! result ∧
-      blockResultTrace (deployedRuntime v) g s0
+    X fork (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass ∨
+    ∃ result, ExecStmt fork config f evm modifyLiquidityTransition.body[15]! result ∧
+      blockResultTrace fork (deployedRuntime v) g s0
         (fun f' post => f' = {f with locals := f.locals.insert "__c5" .unit} ∧
-          modifyLiquidityAfterBeforeTrace v I g s0 post key p keyPtr paramsPtr src len id junk R)
+          modifyLiquidityAfterBeforeTrace fork v I g s0 post key p keyPtr paramsPtr src len id junk R)
         (fun _ _ => False) result := by
   let hook := AccountAddress.ofNat key.hooks.toNat
   have hw : accountWord hook = key.hooks :=
@@ -59,15 +61,15 @@ theorem modifyLiquidityBeforeCorrect {I : ExecutionEnv} {g : Sat256} {s0 evm : S
     hkeyeval (evalLocalValue hp) (evalLocalValue hd) hc hl hu (by simpa only [hI] using hcall) "__c5"
   simp only [beforeLiquidityInvocationResult, hI] at hstmt
   unfold beforeLiquidityTraceResult at hr
-  have hskip (ht : beforeLiquidityContinuation v I g s0 mem rdata evm.accountMap
+  have hskip (ht : beforeLiquidityContinuation fork v I g s0 mem rdata evm.accountMap
       src paramsPtr len keyPtr id junk R) :
-      modifyLiquidityAfterBeforeTrace v I g s0 evm key p keyPtr paramsPtr src len id junk R :=
+      modifyLiquidityAfterBeforeTrace fork v I g s0 evm key p keyPtr paramsPtr src len id junk R :=
     ⟨hI, hσ0, mem, rdata, free, hkey, hparams, hslot, hkb, hpb, hfb, hfree, ht⟩
   have hactive (add : Bool) (hb : (beforeLiquidityFree free len).toNat+out.size+4096 ≤ solcMaxU64)
-      (ht : beforeLiquidityContinuation v I g s0
+      (ht : beforeLiquidityContinuation fork v I g s0
         (beforeLiquidityReplyMemory add I.calldata mem src.toNat free len I.source key p out) out
         post.accountMap src paramsPtr len keyPtr id junk R) :
-      modifyLiquidityAfterBeforeTrace v I g s0 post key p keyPtr paramsPtr src len id junk R := by
+      modifyLiquidityAfterBeforeTrace fork v I g s0 post key p keyPtr paramsPtr src len id junk R := by
     have hs := beforeLiquidityReplyFree_bounds free len out hfit hb
     refine ⟨henv, hworld, _, out, beforeLiquidityReplyFree free len out, ?_, ?_, ?_,
       by omega, by omega, hs.2, ?_, ht⟩

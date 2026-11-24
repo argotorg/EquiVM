@@ -1,6 +1,8 @@
 import Tests.Pipeline.VyperVault.Helpers
 import Tests.Pipeline.VyperVault.CreationBlocks_001
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # VyperVault constructor correctness
 
@@ -59,7 +61,7 @@ theorem ctorOutput (I : ExecutionEnv) :
 
 theorem vyperVaultConstructorCorrect :
     typedConstructorRefinement config vyperVaultCreationBytecode contract (immutableLayout.deployed vyperVaultBytecode) := by
-  intro σ σ₀ g A I args deployedInitcode hdeploy hcode hcalldata hperm
+  intro fork _hfork σ σ₀ g A I args deployedInitcode hdeploy hcode hcalldata hperm
   have hlen : args.length = contract.ctor.params.length :=
     emptyCtorDeployment_args_length (hself := rfl) (hparams := rfl) hdeploy
   have hargs : args = [] := List.eq_nil_of_length_eq_zero hlen
@@ -70,13 +72,13 @@ theorem vyperVaultConstructorCorrect :
   have hcode' : I.code = vyperVaultCreationBytecode ++ ByteArray.empty := by
     rw [hcodeC, ByteArray.append_empty]
   have rd0 := RD.normalizePC (pc' := UInt256.ofNat 0)
-    (RD.initState (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) hcode') rfl
+    (RD.initState (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) hcode') rfl
   by_cases hwv : I.weiValue = ⟨0⟩
   · have rd1 := vyperVaultCreationBlocks.vyperVaultCreation_block_0_fallthrough (by simp) (by rw [hwv]; rfl) rd0
     have rd2 := vyperVaultCreationBlocks.vyperVaultCreation_block_10 (by simp) rd1
     rw [ByteArray.append_empty, ulit_toNat' 36 (by decide), ulit_toNat' 1429 (by decide),
       ulit_toNat' 0 (by decide), ulit_toNat' 1461 (by decide), ctorOutput] at rd2
-    have hbody : ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ contract.ctor.body
+    have hbody : ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ contract.ctor.body
         (.returned { contract := contract, locals := ∅, immutables := ctorImms I }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) none) (initialImmutables contract) := by
       rw [ctorBody_eq]

@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.OracleWriteReadMemory
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -27,10 +29,10 @@ theorem wordEq_decide (a b : UInt256) :
 theorem oracleWriteGrowsRawX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p timeRaw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : OracleWriteArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14935⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14935⟩
       (oracleWriteReadWords {a with time := timeRaw} p ++ R) mem aw rdata σ k C)
     (hfit : a.Fits) (hov : R.length + 14 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨14968⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨14968⟩
       ((oracleWriteGrows a).toUInt256 :: oracleWriteReadWords {a with time := timeRaw} p ++ R) mem aw rdata σ k' C' := by
   have hc : UInt256.land (UInt256.ofNat 65535) a.cardinality = a.cardinality := by
     rw [u256_land_comm]
@@ -63,10 +65,10 @@ theorem oracleWriteGrowsRawX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem oracleWriteGrowsX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : OracleWriteArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14935⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14935⟩
       (oracleWriteReadWords a p ++ R) mem aw rdata σ k C)
     (hfit : a.Fits) (hov : R.length + 14 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨14968⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨14968⟩
       ((oracleWriteGrows a).toUInt256 :: oracleWriteReadWords a p ++ R) mem aw rdata σ k' C' := by
   exact oracleWriteGrowsRawX (v := v) (timeRaw := a.time) a rd hfit hov
 
@@ -77,10 +79,10 @@ def oracleWriteCardinalityWords (a : OracleWriteArgs) (p : UInt256) : List UInt2
 theorem oracleWriteCardinalityChoiceRawX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p timeRaw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : OracleWriteArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14968⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14968⟩
       ((oracleWriteGrows a).toUInt256 :: oracleWriteReadWords {a with time := timeRaw} p ++ R) mem aw rdata σ k C)
     (hov : R.length + 14 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨14985⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨14985⟩
       (oracleWriteCardinalityWords {a with time := timeRaw} p ++ R) mem aw rdata σ k' C' := by
   simp only [oracleWriteReadWords, List.cons_append, List.nil_append] at rd
   cases hg : oracleWriteGrows a
@@ -106,20 +108,20 @@ theorem oracleWriteCardinalityChoiceRawX {σ : AccountMap} {ee : ExecutionEnv} {
 theorem oracleWriteCardinalityChoiceX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : OracleWriteArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14968⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14968⟩
       ((oracleWriteGrows a).toUInt256 :: oracleWriteReadWords a p ++ R) mem aw rdata σ k C)
     (hov : R.length + 14 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨14985⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨14985⟩
       (oracleWriteCardinalityWords a p ++ R) mem aw rdata σ k' C' := by
   exact oracleWriteCardinalityChoiceRawX (v := v) (timeRaw := a.time) a rd hov
 
 theorem oracleWriteCardinalityRawX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p timeRaw : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : OracleWriteArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14935⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14935⟩
       (oracleWriteReadWords {a with time := timeRaw} p ++ R) mem aw rdata σ k C)
     (hfit : a.Fits) (hov : R.length + 14 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨14985⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨14985⟩
       (oracleWriteCardinalityWords {a with time := timeRaw} p ++ R) mem aw rdata σ k' C' := by
   obtain ⟨_, _, rr⟩ := oracleWriteGrowsRawX (v := v) a rd hfit hov
   exact oracleWriteCardinalityChoiceRawX (v := v) a rr hov
@@ -127,10 +129,10 @@ theorem oracleWriteCardinalityRawX {σ : AccountMap} {ee : ExecutionEnv} {g : Sa
 theorem oracleWriteCardinalityX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables} (a : OracleWriteArgs)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨14935⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨14935⟩
       (oracleWriteReadWords a p ++ R) mem aw rdata σ k C)
     (hfit : a.Fits) (hov : R.length + 14 ≤ 1024) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨14985⟩
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨14985⟩
       (oracleWriteCardinalityWords a p ++ R) mem aw rdata σ k' C' := by
   exact oracleWriteCardinalityRawX (v := v) (timeRaw := a.time) a rd hfit hov
 

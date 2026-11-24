@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.AttestationRequest
 import Benchmarks.EAS.EAS.UIDLoopSource
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.EAS.EAS
 
@@ -32,7 +34,7 @@ theorem newAttestationSource {L imms : Store} {evm : EVM.State} {r : Attestation
     {schema time : UInt256} {attester : AccountAddress}
     (hr : L.get? "request" = some r.struct) (hs : L.get? "schema" = some (wordBytes32Value schema))
     (ht : L.get? "__c2" = some (.int (Int.ofNat time.toNat))) (ha : L.get? "attester" = some (.address attester)) :
-    ExecBlock config {contract := contract,locals := L,immutables := imms} evm newAttestationBody
+    ExecBlock fork config {contract := contract,locals := L,immutables := imms} evm newAttestationBody
       (.ok {contract := contract,locals := newAttestationLocals L (newAttestation r schema time attester),immutables := imms} evm) := by
   exact ExecBlock.consNormal (ExecStmt.letDecl (newAttestationExpr_eval hr hs ht ha))
     (ExecBlock.consNormal (ExecStmt.letDecl (by simp only [evalExpr?,wordBytes32Value,pure]))

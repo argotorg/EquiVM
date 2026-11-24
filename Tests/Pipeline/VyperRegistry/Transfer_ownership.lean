@@ -1,5 +1,7 @@
 import Tests.Pipeline.VyperRegistry.Helpers
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Registry `transfer_ownership(address)`
 
@@ -64,7 +66,7 @@ theorem mem57_size (I : ExecutionEnv) : (mem57 I).size = 288 :=
 theorem registryTransfer_ownershipBody {σ σ₀ A I} {g : UInt256} (hwf : storageWF σ I)
     (hcode : I.code = registryBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (registrySelBytes 10)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (registrySelBytes 10) rfl hsel
   obtain ⟨_, _, rd⟩ := registryReachTransfer_ownershipBody (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) hcode hsz hsize hsel
   have hd : dispatchMsg contract I.calldata = some transfer_ownershipTransition :=
@@ -122,7 +124,7 @@ theorem registryTransfer_ownershipBody {σ σ₀ A I} {g : UInt256} (hwf : stora
     (by rw [slotWord_eq]; exact isZero_xor_ne_zero_of_eq hown) (by jump_dest) rd3
   have rd5 := registryBlocks.registry_block_1659 (by simp) (by jump_dest) rd4
   simp only [registryBlocks.registry_block_1659_stack] at rd5
-  have hcheck : ExecStmt config (frame (toStore I)) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+  have hcheck : ExecStmt fork config (frame (toStore I)) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (.internalCall "ownable__check_owner" [] "__c0")
       (.ok (resumeAfterInternalCall (frame (toStore I)) "__c0" none) (initState σ σ₀ (Sat256.ofUInt256 g) A I)) :=
     ExecStmt.internalCallReturn (callee := checkOwnerCallee) rfl checkOwnerCallee_lookup rfl
@@ -189,7 +191,7 @@ theorem registryTransfer_ownershipBody {σ σ₀ A I} {g : UInt256} (hwf : stora
       rw [evalExprs?, evalVar _ _ "previous" _ (store_get_self _ _ _), evalExprs?,
         evalVar _ _ "new_owner" _ (by rw [store_get_ne2 _ _ _ (by decide) (by decide), store_get_self]), evalExprs?]
       rfl
-    have hbody : ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) (toStore I)
+    have hbody : ExecTransitionBody fork config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I) (toStore I)
         transfer_ownershipTransition.body
         (.returned (frame (toL2 σ I))
           (Stele.EVM.storageStore (initState σ σ₀ (Sat256.ofUInt256 g) A I) I.codeOwner ⟨0⟩ (argWord I)) none) := by

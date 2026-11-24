@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.PoolDonateModel
 import Benchmarks.UniswapV4PoolManager.SafeCast
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
@@ -29,24 +31,24 @@ theorem poolDonateDeltaSource {f : Frame} {evm : State} {amount0 amount1 : UInt2
     (h0 : f.locals.get? "amount0" = some (.int (Int.ofNat amount0.toNat)))
     (h1 : f.locals.get? "amount1" = some (.int (Int.ofNat amount1.toNat)))
     (hd : f.locals.get? "delta" = some old) :
-    ExecBlock config f evm ((poolDonateFunction.body.drop 3).take 4)
+    ExecBlock fork config f evm ((poolDonateFunction.body.drop 3).take 4)
       (if amount0.toNat < 2^127 ∧ amount1.toNat < 2^127 then
         .ok (poolDonateDeltaFrame f amount0 amount1) evm else .reverted) := by
   by_cases ha : amount0.toNat < 2^127
   · let f0 : Frame := {f with locals := f.locals.insert "__c0" (.int (Int.ofNat amount0.toNat))}
-    have hc0 := uintToInt128Call (evm := evm) hf (evalLocalValue h0) ha "__c0"
+    have hc0 := uintToInt128Call (fork := fork) (evm := evm) hf (evalLocalValue h0) ha "__c0"
     have h1' : f0.locals.get? "amount1" = some (.int (Int.ofNat amount1.toNat)) :=
       (store_get_ne _ _ (by decide : ("__c0" == "amount1") = false)).trans h1
     by_cases hb : amount1.toNat < 2^127
     · rw [if_pos ⟨ha, hb⟩]
       let f1 : Frame := {f0 with locals := f0.locals.insert "__c1" (.int (Int.ofNat amount1.toNat))}
       let f2 : Frame := {f1 with locals := f1.locals.insert "__c2" (.int (EVM.signed (poolDonateDelta amount0 amount1)))}
-      have hc1 := uintToInt128Call (evm := evm) (f := f0) hf (evalLocalValue h1') hb "__c1"
+      have hc1 := uintToInt128Call (fork := fork) (evm := evm) (f := f0) hf (evalLocalValue h1') hb "__c1"
       have he0 := evalNegateInt128AsWord (cfg := config) (f := f1) (evm := evm) (evalLocalValue
         ((store_get_ne _ _ (by decide : ("__c1" == "__c0") = false)).trans (store_get_self _ _ _))) ha
       have he1 := evalNegateInt128AsWord (cfg := config) (f := f1) (evm := evm) (evalLocalValue (store_get_self _ _ _)) hb
-      have hc2 := balanceDeltaCall (f := f1) (evm := evm) hf he0 he1 "__c2"
-      have hass : ExecStmt config f2 evm poolDonateFunction.body[6]!
+      have hc2 := balanceDeltaCall (fork := fork) (f := f1) (evm := evm) hf he0 he1 "__c2"
+      have hass : ExecStmt fork config f2 evm poolDonateFunction.body[6]!
           (.ok (poolDonateDeltaFrame f amount0 amount1) evm) :=
         ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalLocalValue (store_get_self _ _ _))
           (assignLocalValue ((store_get_ne3 _ _ _ _ (by decide : ("__c0" == "delta") = false)

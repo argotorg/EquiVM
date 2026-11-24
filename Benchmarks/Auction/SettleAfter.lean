@@ -1,5 +1,7 @@
 import Benchmarks.Auction.SettleEvent
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
@@ -12,7 +14,7 @@ theorem settleBody_eq : settleAuctionFn.body =
     settleSnapshotStmts ++ settleGuardStmts ++ settleAfterStmts := rfl
 
 theorem settleAfter {I g s0 s snap ret R mem aw ptr rdata σ k C evm locals}
-    (h : RD auctionBytecode I g s0 ⟨4397⟩ (snap :: ret :: R) mem aw rdata σ k C)
+    (h : RD fork auctionBytecode I g s0 ⟨4397⟩ (snap :: ret :: R) mem aw rdata σ k C)
     (hs : SourceState s0 I σ evm) (hperm : I.perm = true)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 2 ^ 141 ≤ 2 ^ 200)
     (hsm : SnapshotMemory s mem aw snap) (hsep : snap.toNat + 192 ≤ ptr.toNat)
@@ -20,18 +22,18 @@ theorem settleAfter {I g s0 s snap ret R mem aw ptr rdata σ k C evm locals}
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 26 ≤ 1024) :
     (∃ (evm' : EVM.State) (σ' : AccountMap)
         (locals' : Store) (mem' : ByteArray) (aw' ptr' : UInt256) (out : ByteArray) (k' C' : Nat),
-      ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
+      ExecBlock fork auctionConfig { contract := auctionContract, locals := locals } evm
         settleAfterStmts
         (.returned { contract := auctionContract, locals := locals' } evm'
           (some [.int (Int.ofNat ptr'.toNat)])) ∧
       SourceState s0 I σ' evm' ∧
-      RD auctionBytecode I g s0 ret R mem' aw' out σ' k' C' ∧
+      RD fork auctionBytecode I g s0 ret R mem' aw' out σ' k' C' ∧
       HeapMemory mem' aw' ptr' ∧ MemoryPrefix mem mem' ptr.toNat ∧
       ptr.toNat ≤ ptr'.toNat ∧ ptr'.toNat ≤ ptr.toNat + 2 ^ 140 ∧ aw.toNat ≤ aw'.toNat) ∨
-    (ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
-      settleAfterStmts .reverted ∧ RDrev auctionBytecode g s0) := by
+    (ExecBlock fork auctionConfig { contract := auctionContract, locals := locals } evm
+      settleAfterStmts .reverted ∧ RDrev fork auctionBytecode g s0) := by
   obtain ⟨_, _, rd4434⟩ := settleStorePrefix h hsm hperm (by omega)
-  have hstore := settleStoreSource (hperm := by rw [hs.env]; exact hperm) (evm := evm) hv.auction
+  have hstore := settleStoreSource (fork := fork) (hperm := by rw [hs.env]; exact hperm) (evm := evm) hv.auction
   rcases settleNounRoutine rd4434 (SourceState.settled hs) hperm hm (by omega) hsm hsep hv
     (by omega) with
     ⟨evm1, σ1, locals1, mem1, aw1, out1, _, _, hsrc1, hv1, hs1, rd4647, hm1,

@@ -4,6 +4,8 @@ import Benchmarks.Safe.ViaIR.IRLengthCheck
 import Benchmarks.Safe.ViaIR.Threshold
 import Benchmarks.Safe.ViaIR.Blocks.Runtime_027
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -19,13 +21,13 @@ theorem safeChangeThresholdSource (evm : EVM.State) (value : UInt256)
     (hle : value.toNat ≤ (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨3⟩).toNat)
     (hnz : value ≠ ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (thresholdArgs value) changethresholdTransition.body
+    ExecTransitionBody fork config contract evm (thresholdArgs value) changethresholdTransition.body
       (.returned (resumeAfterInternalCall (thresholdFrame value) "_ok" none)
         (Stele.EVM.storageStore evm evm.executionEnv.codeOwner ⟨4⟩ value) none) := by
   have hcall := internalCallFunctionReturn (caller := thresholdFrame value)
     (name := "changeThresholdBody") (retVar := "_ok") (callee := changeThresholdBodyFunction)
     (evalExprs?_singleton (safeEvalThreshold evm value)) rfl rfl
-    (safeThresholdSource (hperm := by assumption) evm value hle hnz)
+    (safeThresholdSource (fork := fork) (hperm := by assumption) evm value hle hnz)
   exact .execBlockOK (.consNormal (.requireTrue (evalCallvalueEq_true hvalue))
     (.consNormal (.requireTrue (by simpa [hauth] using safeEvalAuthorized evm _))
       (.consNormal hcall .nil)))
@@ -35,13 +37,13 @@ theorem safeChangeThresholdSourceStatic (evm : EVM.State) (value : UInt256)
     (hauth : evm.executionEnv.source = evm.executionEnv.codeOwner)
     (hle : value.toNat ≤ (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨3⟩).toNat)
     (hnz : value ≠ ⟨0⟩) (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (thresholdArgs value) changethresholdTransition.body
+    ExecTransitionBody fork config contract evm (thresholdArgs value) changethresholdTransition.body
       .staticViolation := by
-  have hcall := ExecStmt.internalCallStatic (cfg := config) (stele := thresholdFrame value)
+  have hcall := ExecStmt.internalCallStatic (fork := fork) (cfg := config) (stele := thresholdFrame value)
     (name := "changeThresholdBody") (retVar := "_ok") (callee :=
       changeThresholdBodyFunction.toCallable)
     (evalExprs?_singleton (safeEvalThreshold evm value)) rfl rfl
-    (safeThresholdSourceStatic evm value hle hnz hperm)
+    (safeThresholdSourceStatic (fork := fork) evm value hle hnz hperm)
   exact .execBlockStatic (.consNormal (.requireTrue (evalCallvalueEq_true hvalue))
     (.consNormal (.requireTrue (by simpa [hauth] using safeEvalAuthorized evm _)) (.consStatic
       hcall)))
@@ -49,9 +51,9 @@ theorem safeChangeThresholdSourceStatic (evm : EVM.State) (value : UInt256)
 theorem safeChangeThresholdSourceRevert (evm : EVM.State) (value : UInt256)
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩)
     (hauth : evm.executionEnv.source = evm.executionEnv.codeOwner)
-    (hbody : ExecFuncBody config (thresholdFrame value) evm changeThresholdBodyFunction.body
+    (hbody : ExecFuncBody fork config (thresholdFrame value) evm changeThresholdBodyFunction.body
       .reverted) :
-    ExecTransitionBody config contract evm (thresholdArgs value) changethresholdTransition.body
+    ExecTransitionBody fork config contract evm (thresholdArgs value) changethresholdTransition.body
       .reverted := by
   have hcall := internalCallFunctionRevert (caller := thresholdFrame value)
     (name := "changeThresholdBody") (retVar := "_ok") (callee := changeThresholdBodyFunction)
@@ -63,7 +65,7 @@ theorem safeChangeThresholdSourceRevert (evm : EVM.State) (value : UInt256)
 theorem safeChangeThresholdUnauthorized (evm : EVM.State) (locals : Store)
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩)
     (hauth : evm.executionEnv.source ≠ evm.executionEnv.codeOwner) :
-    ExecTransitionBody config contract evm locals changethresholdTransition.body .reverted :=
+    ExecTransitionBody fork config contract evm locals changethresholdTransition.body .reverted :=
   .execBlockRevert (nonpayableSecondRequireReverts hvalue
     (by simpa [hauth] using safeEvalAuthorized evm _))
 
@@ -71,10 +73,10 @@ theorem safeChangethresholdBodyCore
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some changethresholdTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨hlong, hword⟩ := selectorDispatchFacts 0x69 0x4e 0x80 0xc3 ⟨0x694e80c3⟩
     hdispatch changethresholdSelectorBytes (by decide)
-  obtain ⟨k, C, h5693⟩ := safeReachEntry (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, h5693⟩ := safeReachEntry (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) ⟨0x694e80c3⟩ 10 ⟨5693⟩ hcode hsize hlong hword
     (by native_decide)
   have hlenWord := safeIRArgumentSizeSub hlong hsize
@@ -91,34 +93,34 @@ theorem safeChangethresholdBodyCore
             some (thresholdArgs (calldataWord I.calldata 4)) := decodeCalldata_uint256_ok hlen hbig
         by_cases hauth : I.source = I.codeOwner
         · obtain ⟨_, _, h5721⟩ := safeAuthorizedTrace h9325 (by simp) hauth (by jump_dest)
-          change RD safeBytecode I (.ofUInt256 g) (initState σ σ₀ (.ofUInt256 g) A I) ⟨5721⟩
+          change RD fork safeBytecode I (.ofUInt256 g) (initState σ σ₀ (.ofUInt256 g) A I) ⟨5721⟩
             [calldataWord I.calldata 4, selWord I, ⟨0⟩] _ _ _ σ _ _ at h5721
           by_cases hle : (calldataWord I.calldata 4).toNat ≤ (solcSlotWordAt ⟨3⟩ σ I).toNat
           · by_cases hz : calldataWord I.calldata 4 = ⟨0⟩
             · have hrev := safeThresholdTraceZero (hz ▸ h5721) (by simp)
-              have hbody := safeChangeThresholdSourceRevert (initState σ σ₀ (.ofUInt256 g) A I)
-                (calldataWord I.calldata 4) hvalue hauth (hz ▸ safeThresholdSourceZero _)
+              have hbody := safeChangeThresholdSourceRevert (fork := fork) (initState σ σ₀ (.ofUInt256 g) A I)
+                (calldataWord I.calldata 4) hvalue hauth (hz ▸ safeThresholdSourceZero (fork := fork) _)
               exact RDrev.reEquivElim hcode hrev fun _ _ hΞ ↦
                 reEquivSelectorExecution hdispatch hdec hbody (.revert hΞ rfl)
             · obtain ⟨_, _, h5737⟩ := safeThresholdReach h5721 (by simp) hle hz
               cases hperm : I.perm with
               | false =>
                   have hstatic := safeThresholdTraceStatic h5737 (by simp) hperm
-                  have hbody := safeChangeThresholdSourceStatic (initState σ σ₀ (.ofUInt256 g) A I)
+                  have hbody := safeChangeThresholdSourceStatic (fork := fork) (initState σ σ₀ (.ofUInt256 g) A I)
                     (calldataWord I.calldata 4) hvalue hauth hle hz hperm
                   exact RDstatic.reEquivElim hcode hstatic fun hΞ ↦
                     reEquivSelectorExecution hdispatch hdec hbody (.staticHalt hΞ rfl)
               | true =>
                   have hret := safeThresholdTrace h5737 (by simp) hperm
-                  have hbody := safeChangeThresholdSource (hperm := by assumption) (initState σ σ₀ (.ofUInt256 g) A I)
+                  have hbody := safeChangeThresholdSource (fork := fork) (hperm := by assumption) (initState σ σ₀ (.ofUInt256 g) A I)
                     (calldataWord I.calldata 4) hvalue hauth hle hz
                   refine reEquivReturnElim hcode hret fun _ _ hsuccess ↦ ?_
                   exact reEquivSelectorExecution hdispatch hdec hbody
                     (.success hsuccess rfl (by simp only [storageStore_accountMap]; rfl)
                       (.abi (.fallthrough rfl rfl encodeReturnValues_nil)))
           · have hrev := safeThresholdTraceTooLarge h5721 (by simp) hle
-            have hbody := safeChangeThresholdSourceRevert (initState σ σ₀ (.ofUInt256 g) A I)
-              (calldataWord I.calldata 4) hvalue hauth (safeThresholdSourceTooLarge _ _ hle)
+            have hbody := safeChangeThresholdSourceRevert (fork := fork) (initState σ σ₀ (.ofUInt256 g) A I)
+              (calldataWord I.calldata 4) hvalue hauth (safeThresholdSourceTooLarge (fork := fork) _ _ hle)
             exact RDrev.reEquivElim hcode hrev fun _ _ hΞ ↦
               reEquivSelectorExecution hdispatch hdec hbody (.revert hΞ rfl)
         · have hrev := safeUnauthorizedTrace h9325 (by simp [safeRuntime_block_5711_stack]) hauth
@@ -151,7 +153,7 @@ theorem safeChangethresholdRefines
     (hcode : I.code = safeBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata = some changethresholdTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact safeChangethresholdBodyCore hcode hsize hdispatch
 
 end Benchmarks.Safe.ViaIR

@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.ArithmeticSource
 import Benchmarks.CompoundIII.Comet.NarrowArithmetic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -81,7 +83,7 @@ theorem indexAccrualBlock_result (frame : Frame) (evm : EVM.State) (borrow : Boo
     (hr : frame.locals.get? (indexRateName borrow) = some (.int rate.toNat))
     (ht : frame.locals.get? "timeElapsed" = some (.int elapsed.toNat))
     (hib : index.toNat < 2^64) (hrb : rate.toNat < 2^64) (htb : elapsed.toNat < 2^40) :
-    ExecBlock config frame evm (indexAccrualBlock borrow)
+    ExecBlock fork config frame evm (indexAccrualBlock borrow)
       (if IndexAccrualValid index rate elapsed then
         .ok (indexAccrualFrame frame borrow index rate elapsed) evm else .reverted) := by
   have hei : evalExpr? config frame evm (.var (indexLocalName borrow)) =
@@ -116,7 +118,7 @@ theorem indexAccrualBlock_result (frame : Frame) (evm : EVM.State) (borrow : Boo
     by_cases ha : index.toNat + delta.toNat < 2^64
     · simp only [IndexAccrualValid, show indexIncrement index rate elapsed = delta from rfl,
         hs, ha, and_self, if_true]
-      apply ExecBlock.consNormal (ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
+      apply ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›)
         (checkedNarrowAddSourceOk ⟨64, by decide⟩ (by decide) heib hedb ha)
         (assignLocalFrame hig))
       exact ExecBlock.nil

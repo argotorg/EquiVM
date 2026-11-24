@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SwapIterationSqrt
 import Benchmarks.UniswapV3.Pool.SwapIterationPriceStore
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -39,17 +41,17 @@ theorem swapIterationPriceX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {aw p q free exactWord cache snap dataStart dataLength ret : UInt256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : SwapArgs) (s : SwapStateData) (d : SwapIterationData) (frame : Frame) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3189⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3189⟩
       (q :: swapLoopWords a p exactWord cache snap dataStart dataLength ret R) mem aw rdata σ k C)
     (hf : frame.contract = contract) (hstep : frame.locals.get? "step" = some d.value)
     (hm : HeapMemory mem aw free) (hs : SwapStateMemory mem p s)
     (hd : SwapIterationMemory mem q d) (ht : -887272 ≤ d.tickNext ∧ d.tickNext ≤ 887272)
     (hq : 96 ≤ q.toNat) (hdisj : p.toNat + 224 ≤ q.toNat)
     (hb : q.toNat + 224 ≤ 2 ^ 200) (hov : R.length + 23 ≤ 1024) :
-    ExecBlock config frame evm ((swapLoopBody.drop 6).take 2)
+    ExecBlock fork config frame evm ((swapLoopBody.drop 6).take 2)
       (.ok (swapIterationPriceFrame frame d) evm) ∧
     ∃ mem' aw' k' C', C + 1 + (Cₘ aw' - Cₘ aw) ≤ C' ∧
-      RD (deployedRuntime v) ee g s0 (if a.zeroForOne then ⟨3260⟩ else ⟨3231⟩)
+      RD fork (deployedRuntime v) ee g s0 (if a.zeroForOne then ⟨3260⟩ else ⟨3231⟩)
         ([s.price, ⟨3347⟩, q] ++
           swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
         mem' aw' rdata σ k' C' ∧ HeapMemory mem' aw' free ∧ SwapStateMemory mem' p s ∧
@@ -58,7 +60,7 @@ theorem swapIterationPriceX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
   obtain ⟨hex1, a1, k1, C1, hC1, r1, hm1, hmono1⟩ :=
     swapIterationSqrtX frame evm d rd hf hstep hm hd ht hb
       (by change R.length + 13 + 10 ≤ 1024; omega)
-  have hex2 := swapIterationPriceStoreSource (evm := evm) d (tickSqrtValue d.tickNext)
+  have hex2 := swapIterationPriceStoreSource (fork := fork) (evm := evm) d (tickSqrtValue d.tickNext)
     (swapIterationSqrtFrame_step d hstep) (swapIterationSqrtFrame_result frame d)
   have hclean : UInt256.land (UInt256.ofNat (2 ^ 160 - 1)) (tickSqrtValue d.tickNext) =
       tickSqrtValue d.tickNext := by

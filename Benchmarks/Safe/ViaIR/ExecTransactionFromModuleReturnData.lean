@@ -3,6 +3,8 @@ import Benchmarks.Safe.ViaIR.ModuleArgsDecoder
 import Benchmarks.Safe.ViaIR.ModuleCalldata
 import Benchmarks.Safe.ViaIR.ModuleReturnDataTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -17,10 +19,10 @@ theorem safeExectransactionfrommodulereturndataBodyCore
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata =
       some exectransactionfrommodulereturndataTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨hlong, hword⟩ := selectorDispatchFacts 0x52 0x29 0x07 0x3f ⟨0x5229073f⟩
     hdispatch exectransactionfrommodulereturndataSelectorBytes (by decide)
-  obtain ⟨k, C, hentry⟩ := safeReachEntry (σ := σ) (σ₀ := σ₀) (A := A)
+  obtain ⟨k, C, hentry⟩ := safeReachEntry (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) ⟨0x5229073f⟩ 6 ⟨6217⟩ hcode hsize hlong hword (by native_decide)
   by_cases hvalue : I.weiValue = ⟨0⟩
   swap
@@ -33,7 +35,7 @@ theorem safeExectransactionfrommodulereturndataBodyCore
   cases hdec : decodeCalldata ["to", "value", "data", "operation"] moduleCalldataTypes
       I.calldata with
   | none =>
-    have hr : RDrev safeBytecode (.ofUInt256 g) evm := by
+    have hr : RDrev fork safeBytecode (.ofUInt256 g) evm := by
       rcases safeDecodeModuleArgsEvidence hdecode hlong hsize (by simp) (by jump_dest) with
         hr | ⟨len, aw', k', C', hh, hs, hc, hoff, hw, hn, hin, ho, hr⟩
       · exact hr
@@ -68,7 +70,7 @@ theorem safeExectransactionfrommodulereturndataBodyCore
       · exact reEquivReturnElim hcode hr fun _ _ hΞ ↦
           reEquivSelectorExecution hdispatch hdec' hbody
             (.success hΞ rfl ha.symm (.abi (.returned rfl (boolBytesReturnEncoding z out))))
-    · have hr : RDrev safeBytecode (.ofUInt256 g) evm := by
+    · have hr : RDrev fork safeBytecode (.ofUInt256 g) evm := by
         rcases safeDecodeModuleArgsEvidence hdecode hlong hsize (by simp) (by jump_dest) with
           hr | ⟨len', aw', k', C', hh', hs', hc', hoff', hw', hn', hin', ho', hr⟩
         · exact hr
@@ -92,7 +94,7 @@ theorem safeExectransactionfrommodulereturndataRefines
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : selectorDispatchMsg contract I.calldata =
       some exectransactionfrommodulereturndataTransition) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   exact safeExectransactionfrommodulereturndataBodyCore hcode hsize hdispatch
 
 end Benchmarks.Safe.ViaIR

@@ -1,4 +1,6 @@
 import Benchmarks.EAS.EAS.TryRecoverControl
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -15,17 +17,17 @@ theorem tryRecoverLowEVM {ee : ExecutionEnv} {g : Sat256} {s0 evm : EVM.State}
     (hmem : 96 ≤ mem.size) (hv : sigV.toNat < 2^8)
     (hlo : 96 ≤ heap.toNat) (hb : heap.toNat+128 < UInt256.size)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨16645⟩ (hash::sigV::r::s::ret::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨16645⟩ (hash::sigV::r::s::ret::R) mem aw rdata σ k C) :
     ∃ (evm' : EVM.State) (σ' : AccountMap) (success : Bool) (out : ByteArray) (a : AccountAddress),
-      callViaEVM evm (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) 0 (tryRecoverPayload hash sigV r s)
+      callViaEVM fork evm (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) 0 (tryRecoverPayload hash sigV r s)
         (success,evm',out) false ∧ SourceState s0 ee σ' evm' ∧
       ((out = ByteArray.empty ∧ a = 0) ∨ out = (UInt256.ofNat a.val).toByteArray) ∧
       MemoryPrefix mem (tryRecoverOutputMemory mem heap hash sigV r s out) heap.toNat ∧
       memLoad (UInt256.ofNat 64) (tryRecoverOutputMemory mem heap hash sigV r s out) = heap ∧
-      (if success then ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret
+      (if success then ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret
         (UInt256.ofNat (recoveryError a)::UInt256.ofNat a.val::R)
         (tryRecoverOutputMemory mem heap hash sigV r s out) aw' out σ' k' C'
-       else RDrev (deployedRuntime v) g s0) := by
+       else RDrev fork (deployedRuntime v) g s0) := by
   obtain ⟨gasArg,aw1,k1,C1,r1⟩ := tryRecoverStart v hstack hi hh hv hb rd
   obtain ⟨evm',σ',success,out,k2,C2,hcall,hs',r2,_⟩ :=
     staticcallBridge r1 hs (tryRecoverCall_decode v) (tryRecoverInputMemory_read hlo)

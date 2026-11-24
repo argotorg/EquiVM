@@ -2,6 +2,8 @@ import Benchmarks.CurveVault.ConvertAssetsArithmetic
 import Benchmarks.CurveVault.ConvertAssetsFinish
 import Benchmarks.CurveVault.ConvertSharesInternal
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
 namespace Benchmarks.CurveVault
 
@@ -14,9 +16,9 @@ theorem vaultConvertAssetsRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
     (hmt : memLoad (UInt256.ofNat 384) mem = total)
     (hstack : R.length + 14 ≤ 1024)
     (hvalid : (D_J vaultBytecode 0).contains returnPc = true)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat 7332)
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat 7332)
       (dest :: returnPc :: R) mem aw rdata σ k C) :
-    vaultConversionRoutineOutcome s0 evm I g vaultConvertAssetsFunction
+    vaultConversionRoutineOutcome fork s0 evm I g vaultConvertAssetsFunction
       (vaultConversionLocals "_shares" shares isFloor total) mem dest returnPc R := by
   have hbody : vaultConvertAssetsFunction.body =
       vaultConversionPrefix ++ (vaultAssetsArithmeticBody ++ vaultConversionFinishBody) := rfl
@@ -71,11 +73,11 @@ theorem vaultConvertAssetsRoutine {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
       rcases vaultConvertAssetsFinish hsize2 hnum hflag hstack hvalid rd7483 with
         ⟨hz, rdRev⟩ | ⟨hd, scratch, aw3, k3, C3, hframe, rdRet⟩
       · change d = ⟨0⟩ at hz
-        have hfinish := vaultConversionFinishReverts (evm := evm') hnumLocal (by simpa only [hz] using hdenLocal) hflagLocal
+        have hfinish := vaultConversionFinishReverts (fork := fork) (evm := evm') hnumLocal (by simpa only [hz] using hdenLocal) hflagLocal
         refine Or.inr ⟨ExecFuncBody.execBlockRevert ?_, rdRev⟩
         rw [hbody]
         exact execBlock_append hprefix (execBlock_append harith hfinish)
-      · have hfinish := vaultConversionFinishReturns (evm := evm') hnumLocal hdenLocal hflagLocal hd
+      · have hfinish := vaultConversionFinishReturns (fork := fork) (evm := evm') hnumLocal hdenLocal hflagLocal hd
         refine Or.inl ⟨evm', σ', vaultConversionResultLocals locals2 isFloor (vaultConversionResult isFloor n d),
           scratch, vaultConversionResult isFloor n d, aw3, out, k3, C3, ?_, hs', ?_, rdRet⟩
         · apply ExecFuncBody.execBlockRet

@@ -40,7 +40,7 @@ def defaultExternalCallABI : ExternalCallABI :=
     `perm && evm.executionEnv.perm`, exactly as the EVM passes `I.perm` through `CALL` and a
     literal `false` through `STATICCALL`.  Both the low-level `.call` and (via `typedCallViaEVM`)
     typed external calls are built on this. -/
-inductive callViaEVM (evm : EVM.State) (target : EVM.Address)
+inductive callViaEVM (fork : Ethereum.Fork) (evm : EVM.State) (target : EVM.Address)
     (value : ℤ) (calldata : EVM.Bytes) :
     (Bool × EVM.State × EVM.Bytes) → (perm : Bool := true) → Prop where
   | callMade :
@@ -53,13 +53,14 @@ inductive callViaEVM (evm : EVM.State) (target : EVM.Address)
         -- it.)  `g'` is the (discarded) returned gas; named so it is a plain implicit.
           (σ', g', A', z, o)
             = Ethereum.EVM.Θ
+            fork
             evm.accountMap
             evm.σ₀
             A_in
             evm.executionEnv.codeOwner  -- sender (msg.sender): `this`, as a CALL does
             evm.executionEnv.sender      -- original transactor (tx.origin)
             target
-            (Ethereum.toExecute evm.accountMap target) -- this is the code
+            (Ethereum.toExecute fork evm.accountMap target) -- this is the code
             callGas
             (.ofNat evm.executionEnv.gasPrice)
             valueWord -- actual value sent
@@ -76,32 +77,33 @@ inductive callViaEVM (evm : EVM.State) (target : EVM.Address)
 
       → valueWord ≤ (evm.accountMap.get? evm.executionEnv.codeOwner |>.elim ⟨0⟩ (·.balance))
       → evm.executionEnv.depth ≠ 1024
-      → callViaEVM evm target value calldata (z, evm', o) perm
+      → callViaEVM fork evm target value calldata (z, evm', o) perm
 
   | callNotMade :
-      A' = ((evm.addAccessedAccount target) |>.substate )
+      A' = Ethereum.EVM.callSubstate fork evm.accountMap target evm.substate
       → evm' = { evm with substate := A' }
       → (¬ (EVM.wordOfInt value ≤ (evm.accountMap.get? evm.executionEnv.codeOwner |>.elim ⟨0⟩ (·.balance))
          ∧ evm.executionEnv.depth ≠ 1024))
-      → callViaEVM evm target value calldata (false, evm', ByteArray.empty) perm
+      → callViaEVM fork evm target value calldata (false, evm', ByteArray.empty) perm
 
 /-- A raw `DELEGATECALL` to `target` with verbatim `calldata`, bridged directly to EVM `Θ`.
     Delegatecall executes the target's code in the current contract's context: `address(this)` and
     storage owner stay `codeOwner`, `msg.sender` and `msg.value` are preserved, no ETH is
     transferred, and the current static permission bit is preserved. -/
-inductive delegateCallViaEVM (evm : EVM.State) (target : EVM.Address)
+inductive delegateCallViaEVM (fork : Ethereum.Fork) (evm : EVM.State) (target : EVM.Address)
     (calldata : EVM.Bytes) : (Bool × EVM.State × EVM.Bytes) → Prop where
   | callMade :
       (∃ (callGas : Ethereum.UInt256) (A_in : Ethereum.Substate),
           (σ', g', A', z, o)
             = Ethereum.EVM.Θ
+            fork
             evm.accountMap
             evm.σ₀
             A_in
             evm.executionEnv.source
             evm.executionEnv.sender
             evm.executionEnv.codeOwner
-            (Ethereum.toExecute evm.accountMap target)
+            (Ethereum.toExecute fork evm.accountMap target)
             callGas
             (.ofNat evm.executionEnv.gasPrice)
             (⟨0⟩ : EVM.Word)
@@ -114,21 +116,21 @@ inductive delegateCallViaEVM (evm : EVM.State) (target : EVM.Address)
             evm.executionEnv.perm)
       → evm' = { evm with accountMap := σ', substate := A' }
       → evm.executionEnv.depth ≠ 1024
-      → delegateCallViaEVM evm target calldata (z, evm', o)
+      → delegateCallViaEVM fork evm target calldata (z, evm', o)
   | callNotMade :
-      A' = ((evm.addAccessedAccount target) |>.substate)
+      A' = Ethereum.EVM.callSubstate fork evm.accountMap target evm.substate
       → evm' = { evm with substate := A' }
       → evm.executionEnv.depth = 1024
-      → delegateCallViaEVM evm target calldata (false, evm', ByteArray.empty)
+      → delegateCallViaEVM fork evm target calldata (false, evm', ByteArray.empty)
 
 /-- A typed external call: ABI-encode `name`/`args` into calldata, then make a raw `callViaEVM`.
     This is the call form `externalCall` uses.  The return *decode* (and its failure) stays in the
     `ExecStmt` rules over the raw output bytes `o`, so decode-failure handling is unchanged. -/
-def typedCallViaEVM (cfg : Config) (evm : EVM.State) (target : EVM.Address)
+def typedCallViaEVM (fork : Ethereum.Fork) (cfg : Config) (evm : EVM.State) (target : EVM.Address)
     (name : Ident) (value : ℤ) (args : List Value)
     (result : Bool × EVM.State × EVM.Bytes) (perm : Bool := true) : Prop :=
   ∃ calldata, cfg.externalABI.encode? name args = some calldata
-            ∧ callViaEVM evm target value calldata result perm
+            ∧ callViaEVM fork evm target value calldata result perm
 
 /-- Preconditions under which a `new` (the `CREATE` opcode) actually runs the init code,
     mirroring the guards the opcode checks before calling `Lambda`. -/
@@ -143,7 +145,7 @@ def newCanCreate (evm : EVM.State) (value : ℤ) (initCode : EVM.Bytes) : Prop :
     `(addr, evm', success)`: the created contract's address, the resulting EVM state,
     and whether creation succeeded. Mirrors `callViaEVM`, but `Λ` runs the
     initialisation code instead of a message call and returns the new address. -/
-inductive newViaEVM (cfg : Config) (evm : EVM.State)
+inductive newViaEVM (fork : Ethereum.Fork) (cfg : Config) (evm : EVM.State)
     (name : Ident) (value : ℤ) (args : List Value) (salt : Option ByteArray) :
     (EVM.Address × EVM.State × Bool) → Prop where
   | created :
@@ -159,6 +161,7 @@ inductive newViaEVM (cfg : Config) (evm : EVM.State)
                         { creator with nonce := creator.nonce + ⟨1⟩ }
           (addr, σ', _, A', z, _)
             = Ethereum.EVM.Lambda
+            fork
             σStar
             evm.σ₀
             A_in
@@ -175,10 +178,10 @@ inductive newViaEVM (cfg : Config) (evm : EVM.State)
             evm.executionEnv.blocks
             evm.executionEnv.perm)      -- CREATE passes the caller's permission through
       → evm' = { evm with accountMap := σ', substate := A' }
-      → newViaEVM cfg evm name value args salt (addr, evm', z)
+      → newViaEVM fork cfg evm name value args salt (addr, evm', z)
   | notCreated :
       cfg.creationCode name args = .some initCode
       → ¬ newCanCreate evm value initCode
-      → newViaEVM cfg evm name value args salt (EVM.address 0, evm, false)
+      → newViaEVM fork cfg evm name value args salt (EVM.address 0, evm, false)
 
 end Stele

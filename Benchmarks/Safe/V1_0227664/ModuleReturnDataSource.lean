@@ -1,5 +1,7 @@
 import Benchmarks.Safe.V1_0227664.ModuleCallerSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Safe.V1_0227664
@@ -18,9 +20,9 @@ theorem safeModuleExecuteLocals (target guard : EVM.Address) (value operation ha
 
 theorem safeModuleReturnDataPost {evm : EVM.State} {target guard : EVM.Address}
     {payload out : ByteArray} {value operation hash : UInt256} {z : Bool} {result : ExecResult}
-    (hbody : ExecFuncBody config (postModuleFrame guard hash z) evm
+    (hbody : ExecFuncBody fork config (postModuleFrame guard hash z) evm
       postModuleExecutionFunction.body result) :
-    ExecStmt config (moduleReturnDataFrame target guard value operation hash payload z out) evm
+    ExecStmt fork config (moduleReturnDataFrame target guard value operation hash payload z out) evm
       modulePostCall
       (internalCallResult (moduleReturnDataFrame target guard value operation hash payload z out)
         "_post" result) := by
@@ -36,7 +38,7 @@ theorem safeModuleReturnDataPost {evm : EVM.State} {target guard : EVM.Address}
 
 theorem safeModuleReturnDataReturn (evm : EVM.State) (target guard : EVM.Address)
     (value operation hash : UInt256) (payload : ByteArray) (z : Bool) (out : ByteArray) :
-    ExecBlock config
+    ExecBlock fork config
       (resumeAfterInternalCall
         (moduleReturnDataFrame target guard value operation hash payload z out) "_post" none)
       evm [.return [.var "success", .var "returnData"]]

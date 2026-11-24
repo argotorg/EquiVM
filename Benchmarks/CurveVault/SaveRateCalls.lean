@@ -7,6 +7,8 @@ import Benchmarks.CurveVault.RuntimeBlocks_019
 import Benchmarks.CurveVault.RuntimeBlocks_020
 import Benchmarks.CurveVault.RuntimeBlocks_031
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch Reasoning.VyperCalls
 namespace Benchmarks.CurveVault
 
@@ -20,17 +22,17 @@ theorem vaultSaveRateCall (flow : VaultFlow) {I : ExecutionEnv} {g : Sat256} {s0
     (htarget : locals.get? "controller" = some (.address (AccountAddress.ofUInt256 target)))
     (hload : memLoad (UInt256.ofNat flow.controllerOffset) mem = target)
     (hstack : R.length + 8 ≤ 1024)
-    (h : RD vaultBytecode I g s0 (UInt256.ofNat flow.saveEntry) R mem aw rdata σ k C) :
+    (h : RD fork vaultBytecode I g s0 (UInt256.ofNat flow.saveEntry) R mem aw rdata σ k C) :
     (∃ (evm' : State) (σ' : AccountMap) (out : ByteArray) (aw' : UInt256) (k' C' : Nat),
-      ExecBlock config {contract := contract, locals := locals} evm
+      ExecBlock fork config {contract := contract, locals := locals} evm
         [.require (.binary .gt (.extCodeSize (.var "controller")) (.intLit 0)),
           .externalCall (.var "controller") "save_rate" (.intLit 0) [] retVar]
         (.ok {contract := contract, locals := locals.insert retVar (collapseReturns [])} evm') ∧
-      SourceState s0 I σ' evm' ∧ RD vaultBytecode I g s0 (UInt256.ofNat flow.saveNext)
+      SourceState s0 I σ' evm' ∧ RD fork vaultBytecode I g s0 (UInt256.ofNat flow.saveNext)
         (target :: R) (vaultSaveRateMemory flow mem) aw' out σ' k' C') ∨
-    (ExecBlock config {contract := contract, locals := locals} evm
+    (ExecBlock fork config {contract := contract, locals := locals} evm
       [.require (.binary .gt (.extCodeSize (.var "controller")) (.intLit 0)),
-        .externalCall (.var "controller") "save_rate" (.intLit 0) [] retVar] .reverted ∧ RDrev vaultBytecode g s0) := by
+        .externalCall (.var "controller") "save_rate" (.intLit 0) [] retVar] .reverted ∧ RDrev fork vaultBytecode g s0) := by
   have hr : evalExpr? config {contract := contract, locals := locals} evm (.var "controller") =
       .ok (.address (AccountAddress.ofUInt256 target)) := by
     rw [evalExpr?]; simp only [htarget, EvalResult.ofOption]

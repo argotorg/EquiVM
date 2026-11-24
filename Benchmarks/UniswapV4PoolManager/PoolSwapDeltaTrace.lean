@@ -2,6 +2,8 @@ import Benchmarks.UniswapV4PoolManager.PoolSwapDeltaBranchesTrace
 import Benchmarks.UniswapV4PoolManager.WordAbsolute
 import Benchmarks.UniswapV4PoolManager.SafeCast256Source
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -26,15 +28,15 @@ theorem poolSwapDeltaTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {zeroForOne : Bool} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : PoolManagerImmutables) (hstack : R.length+11 ≤ 1024)
     (hm : memLoad params mem = specified) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨21716⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨21716⟩
       ([UInt256.fromBool (!zeroForOne), remaining, params, calculated, state, fee, amount, ret]++R)
       mem aw rdata σ k C) :
     let cf := poolSwapCalculatedFirst zeroForOne specified
     if poolSwapDeltaFits cf specified remaining calculated then
-      ∃ k' C', C ≤ C' ∧ RD (deployedRuntime v) I g s0 ret
+      ∃ k' C', C ≤ C' ∧ RD fork (deployedRuntime v) I g s0 ret
         ([state, fee, amount, poolSwapDeltaWord cf specified remaining calculated]++R)
         mem (poolSwapDeltaAW aw params cf) rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   dsimp only
   cases hc : poolSwapCalculatedFirst zeroForOne specified
   · simp only [poolSwapDeltaAW, Bool.false_eq_true, if_false]

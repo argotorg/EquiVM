@@ -1,6 +1,8 @@
 import Benchmarks.CompoundIII.Comet.TotalsStorage
 import Benchmarks.CompoundIII.Comet.NarrowArithmetic
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
@@ -44,9 +46,9 @@ theorem nowCallable_lookup : lookupCallable? contract "getNowInternal" = some no
 theorem nowCallable_result (evm : EVM.State) (imms : Store) :
     let frame : Frame := { contract := contract, locals := ∅, immutables := imms }
     if (timestampWord evm.executionEnv).toNat < 2^40 then
-      ExecFuncBody config frame evm nowCallable.body
+      ExecFuncBody fork config frame evm nowCallable.body
         (.returned frame evm (some [.int (timestampWord evm.executionEnv).toNat]))
-    else ExecFuncBody config frame evm nowCallable.body .reverted := by
+    else ExecFuncBody fork config frame evm nowCallable.body .reverted := by
   dsimp only
   let frame : Frame := { contract := contract, locals := ∅, immutables := imms }
   let t := timestampWord evm.executionEnv
@@ -72,10 +74,10 @@ theorem nowCallable_result (evm : EVM.State) (imms : Store) :
 
 theorem now_call_ok (frame : Frame) (evm : EVM.State) (ret : Ident)
     (hc : frame.contract = contract) (ht : (timestampWord evm.executionEnv).toNat < 2^40) :
-    ExecStmt config frame evm (.internalCall "getNowInternal" [] ret)
+    ExecStmt fork config frame evm (.internalCall "getNowInternal" [] ret)
       (.ok { frame with
         locals := frame.locals.insert ret (.int (timestampWord evm.executionEnv).toNat) } evm) := by
-  have hb := nowCallable_result evm frame.immutables
+  have hb := nowCallable_result (fork := fork) evm frame.immutables
   dsimp only at hb
   rw [if_pos ht] at hb
   exact ExecStmt.internalCallReturn (callee := nowCallable) (locals := ∅)
@@ -84,8 +86,8 @@ theorem now_call_ok (frame : Frame) (evm : EVM.State) (ret : Ident)
 
 theorem now_call_revert (frame : Frame) (evm : EVM.State) (ret : Ident)
     (hc : frame.contract = contract) (ht : ¬ (timestampWord evm.executionEnv).toNat < 2^40) :
-    ExecStmt config frame evm (.internalCall "getNowInternal" [] ret) .reverted := by
-  have hb := nowCallable_result evm frame.immutables
+    ExecStmt fork config frame evm (.internalCall "getNowInternal" [] ret) .reverted := by
+  have hb := nowCallable_result (fork := fork) evm frame.immutables
   dsimp only at hb
   rw [if_neg ht] at hb
   exact ExecStmt.internalCallRevert (callee := nowCallable) (locals := ∅)

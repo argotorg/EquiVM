@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Clipper.TakeDynamicDog
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -19,14 +21,14 @@ theorem RD.clipperTakeDogDigsTailWithArgWF {code : ByteArray}
     {dog slice owe digsAmt tabNew lotNew price tic packed stopped dataLen dataStart who max
       amt id : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd4915 : RD code ee g s0 ⟨4915⟩
+    (rd4915 : RD fork code ee g s0 ⟨4915⟩
       (digsAmt :: clipperYankIlkWord v :: clipperDogDigsSelectorWord ::
         UInt256.land solcAddrMask dog :: dog :: slice :: owe :: tabNew :: lotNew :: price ::
         tic :: packed :: stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: R)
       mem aw rdata σ k C)
     (hmem : clipperTakeMemoryWF mem aw)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨4964⟩
+    ∃ k' C', RD fork code ee g s0 ⟨4964⟩
       (UInt256.land solcAddrMask dog :: UInt256.land solcAddrMask dog :: ⟨0⟩ ::
         ⟨128⟩ :: ⟨68⟩ :: ⟨128⟩ :: ⟨0⟩ :: ⟨196⟩ ::
         clipperDogDigsSelectorWord :: UInt256.land solcAddrMask dog ::
@@ -113,13 +115,13 @@ theorem RD.clipperTakeDogDigsOweCallSetupZeroGeneralWF {code : ByteArray}
     {dog slice owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id :
       UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd4850 : RD code ee g s0 ⟨4850⟩
+    (rd4850 : RD fork code ee g s0 ⟨4850⟩
       (dog :: slice :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped ::
         dataLen :: dataStart :: who :: max :: amt :: id :: R)
       mem aw rdata σ k C)
     (hmem : clipperTakeMemoryWF mem aw) (hlotNew : lotNew = ⟨0⟩)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ⟨4964⟩
+    ∃ k' C', RD fork code ee g s0 ⟨4964⟩
       (UInt256.land solcAddrMask dog :: UInt256.land solcAddrMask dog :: ⟨0⟩ ::
         ⟨128⟩ :: ⟨68⟩ :: ⟨128⟩ :: ⟨0⟩ :: ⟨196⟩ ::
         clipperDogDigsSelectorWord :: UInt256.land solcAddrMask dog ::
@@ -152,7 +154,7 @@ theorem RD.clipperTakeDogDigsPostCallWithArgWF
     {R : List UInt256} {baseMem rdata : ByteArray} {aw : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (rd4964 : RD code I g (initState σStart σ₀ g A I) ⟨4964⟩
+    (rd4964 : RD fork code I g (initState σStart σ₀ g A I) ⟨4964⟩
       (target :: target :: ⟨0⟩ :: ⟨128⟩ :: ⟨68⟩ :: ⟨128⟩ :: ⟨0⟩ ::
         ⟨196⟩ :: clipperDogDigsSelectorWord :: target :: dog :: slice :: owe ::
         tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen :: dataStart ::
@@ -164,13 +166,13 @@ theorem RD.clipperTakeDogDigsPostCallWithArgWF
     (hov : R.length + 32 ≤ 1024) :
     ∃ (σ_dog : AccountMap)
       (zDog : Bool) (outDog : ByteArray) (A_dog : Substate) (k' C' : ℕ),
-      RD code I g (initState σStart σ₀ g A I) ⟨4980⟩
+      RD fork code I g (initState σStart σ₀ g A I) ⟨4980⟩
         ((if zDog then ⟨1⟩ else ⟨0⟩) :: ⟨196⟩ :: clipperDogDigsSelectorWord ::
           target :: dog :: slice :: owe :: tabNew :: lotNew :: price :: tic ::
           packed :: stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: R)
         (clipperDogDigsCalldataMem v digsAmt baseMem) aw outDog
         σ_dog k' C' ∧
-      typedCallViaEVM config
+      typedCallViaEVM fork config
         { initState σStart σ₀ g A I with
           accountMap := σ }
         (EVM.address (AccountAddress.ofUInt256 target)) "digs" 0

@@ -2,6 +2,8 @@ import Benchmarks.Dss.Clipper.TakeNoAdjustVatMoveSource
 import Reasoning.SteleBody
 import Reasoning.Storage
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
@@ -102,11 +104,11 @@ theorem clipperTakeNoAdjustDogDigsOweCallSuccessBlock (v : ClipperImmutables)
             (AccountAddress.ofNat (clipperTakeDogEVMWord evmVat).toNat)).option
             0 (fun acc => acc.code.size))).toNat)
     (hcallDog :
-      typedCallViaEVM config evmMove
+      typedCallViaEVM fork config evmMove
         (EVM.address (AccountAddress.ofNat (clipperTakeDogEVMWord evmVat).toNat))
         "digs" 0 [v.ilk, .int (Int.ofNat owe.toNat)]
         (true, evmDog, outDog) true) :
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeLocalsNoAdjustMoveRet evmLoc evmRead evmVat I price slice owe0 owe
           tabNew lotNew) (immStore v))
       evmMove
@@ -134,7 +136,7 @@ theorem clipperTakeNoAdjustDogDigsOweCallSuccessBlock (v : ClipperImmutables)
       clipperEvalTakeNoAdjustLotEqZero_false v evmLoc evmRead evmVat evmMove I price
         slice owe0 owe tabNew lotNew hlotNew
   have hdogOk :
-      ExecBlock config moveFrame evmMove
+      ExecBlock fork config moveFrame evmMove
         (checkedExternalCallStmts (.var "dog_") "digs" (.intLit 0)
           [ilkExpr, .var "owe"] "_digsRet")
         (.ok digsFrame evmDog) := by
@@ -161,7 +163,7 @@ theorem clipperTakeNoAdjustDogDigsOweCallSuccessBlock (v : ClipperImmutables)
       clipperTakeLocalsNoAdjustDigsRet, collapseReturns] using
       (ExecBlock.consNormal (ExecStmt.requireTrue hguard)
         (ExecBlock.consNormal
-          (ExecStmt.externalCallSuccess (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) htarget (by simp [evalExpr?, pure]) hargs hcallDog
+          (ExecStmt.externalCallSuccess (fork := fork) (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) htarget (by simp [evalExpr?, pure]) hargs hcallDog
             (clipperTakeDecodeDigsVoid outDog))
           ExecBlock.nil))
   simpa [moveFrame, digsFrame] using
@@ -382,7 +384,7 @@ theorem clipperTakeNoAdjustDogDigsOweNonzeroStoreSourceOk (v : ClipperImmutables
             (AccountAddress.ofNat (clipperTakeDogEVMWord evmVat).toNat)).option
             0 (fun acc => acc.code.size))).toNat)
     (hcallDog :
-      typedCallViaEVM config evmMove
+      typedCallViaEVM fork config evmMove
         (EVM.address (AccountAddress.ofNat (clipperTakeDogEVMWord evmVat).toNat))
         "digs" 0 [v.ilk, .int (Int.ofNat owe.toNat)]
         (true, evmDog, outDog) true)
@@ -393,7 +395,7 @@ theorem clipperTakeNoAdjustDogDigsOweNonzeroStoreSourceOk (v : ClipperImmutables
     let evmLot :=
       Stele.EVM.storageStore evmTab evmTab.executionEnv.codeOwner
         (clipperTakeSalesLotSlot I) lotNew
-    ExecBlock config
+    ExecBlock fork config
       (Frame.mk contract (clipperTakeLocalsNoAdjustMoveRet evmLoc evmRead evmVat I price slice owe0 owe
           tabNew lotNew) (immStore v))
       evmMove
@@ -427,7 +429,7 @@ theorem clipperTakeNoAdjustDogDigsOweNonzeroStoreSourceOk (v : ClipperImmutables
     Frame.mk contract (clipperTakeLocalsNoAdjustDigsRet evmLoc evmRead evmVat I price slice owe0 owe
         tabNew lotNew) (immStore v)
   have hdog :
-      ExecBlock config moveFrame evmMove
+      ExecBlock fork config moveFrame evmMove
         [ .ite
           (.binary .eq (.var "lot") (.intLit 0))
           (wrappingAddInto "digsAmt" (.var "tab") (.var "owe") ++
@@ -465,7 +467,7 @@ theorem clipperTakeNoAdjustDogDigsOweNonzeroStoreSourceOk (v : ClipperImmutables
       clipperTakeNoAdjustAssignSalesTabAtDigsRet v evmLoc evmRead evmVat evmDog I
         price slice owe0 owe tabNew lotNew
   have htabStmt :
-      ExecStmt config digsRetFrame evmDog
+      ExecStmt fork config digsRetFrame evmDog
         (.assign .storage (salesF (.var "id") "tab") (.var "tab"))
         (.ok digsRetFrame evmTab) := by
     exact ExecStmt.assign (hperm := Or.inr (by
@@ -484,19 +486,19 @@ theorem clipperTakeNoAdjustDogDigsOweNonzeroStoreSourceOk (v : ClipperImmutables
       clipperTakeNoAdjustAssignSalesLotAtDigsRet v evmLoc evmRead evmVat evmTab I
         price slice owe0 owe tabNew lotNew
   have hlotStmt :
-      ExecStmt config digsRetFrame evmTab
+      ExecStmt fork config digsRetFrame evmTab
         (.assign .storage (salesF (.var "id") "lot") (.var "lot"))
         (.ok digsRetFrame evmLot) := by
     exact ExecStmt.assign (hperm := Or.inr (by
       simpa only [evmTab, evmLot, storageStore_executionEnv] using hperm)) hlotEval hlotAssign
   have hstoreBlock :
-      ExecBlock config digsRetFrame evmDog
+      ExecBlock fork config digsRetFrame evmDog
         [ .assign .storage (salesF (.var "id") "tab") (.var "tab"),
           .assign .storage (salesF (.var "id") "lot") (.var "lot") ]
         (.ok digsRetFrame evmLot) := by
     exact ExecBlock.consNormal htabStmt (ExecBlock.consNormal hlotStmt ExecBlock.nil)
   have htabIte :
-      ExecStmt config digsRetFrame evmDog
+      ExecStmt fork config digsRetFrame evmDog
         (.ite
           (.binary .eq (.var "tab") (.intLit 0))
           (checkedExternalCallStmts vatExpr "flux" (.intLit 0)
@@ -507,7 +509,7 @@ theorem clipperTakeNoAdjustDogDigsOweNonzeroStoreSourceOk (v : ClipperImmutables
         (.ok digsRetFrame evmLot) := by
     exact ExecStmt.iteFalse htabCond hstoreBlock
   have hlotIte :
-      ExecStmt config digsRetFrame evmDog
+      ExecStmt fork config digsRetFrame evmDog
         (.ite
           (.binary .eq (.var "lot") (.intLit 0))
           [ .internalCall "_remove" [.var "id"] "_removeRet" ]
@@ -536,14 +538,14 @@ theorem clipperTakeNoAdjustDogDigsOweNonzeroStoreSourceOk (v : ClipperImmutables
           owe0 owe tabNew lotNew)
         ⟨0⟩
   have hunlock :
-      ExecStmt config digsRetFrame evmLot
+      ExecStmt fork config digsRetFrame evmLot
         (.assign .storage lockedRef (.intLit 0))
         (.ok digsRetFrame
           (Stele.EVM.storageStore evmLot evmLot.executionEnv.codeOwner ⟨13⟩ ⟨0⟩)) := by
     exact ExecStmt.assign (hperm := Or.inr (by
       simpa only [evmTab, evmLot, storageStore_executionEnv] using hperm)) hzero hassign
   have htail :
-      ExecBlock config digsRetFrame evmDog
+      ExecBlock fork config digsRetFrame evmDog
         [ .ite
           (.binary .eq (.var "lot") (.intLit 0))
           [ .internalCall "_remove" [.var "id"] "_removeRet" ]

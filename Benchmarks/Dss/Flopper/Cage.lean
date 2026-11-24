@@ -1,5 +1,7 @@
 import Benchmarks.Dss.Flopper.Deny
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -76,18 +78,18 @@ theorem flopperCageBodyReturnsSplit (evm : EVM.State) (I : ExecutionEnv)
     (hsrc : evm.executionEnv.source = I.source)
     (hauth :
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (relyAuthStorageSlot I) = ⟨1⟩) :
-    (evm.executionEnv.perm = true → ExecTransitionBody config contract evm ∅ cageTransition.body
+    (evm.executionEnv.perm = true → ExecTransitionBody fork config contract evm ∅ cageTransition.body
       (.returned { contract := contract, locals := ∅ } (cagePostState evm I) none)) ∧
       (evm.executionEnv.perm = false →
-        ExecTransitionBody config contract evm ∅ cageTransition.body .staticViolation) := by
+        ExecTransitionBody fork config contract evm ∅ cageTransition.body .staticViolation) := by
   have hguard := evalExpr_auth_true_of_wards_none evm I ∅ (by simp) hsrc hauth
   have hvalue : evalExpr? config { contract := contract, locals := ∅ } evm
       (.intLit 0) = .ok (.int 0) := by simp [evalExpr?, pure]
   have hassign := cageAssignLive evm
   have hprefix {result : ExecResult}
-      (hwrite : ExecBlock config { contract := contract, locals := ∅ } evm
+      (hwrite : ExecBlock fork config { contract := contract, locals := ∅ } evm
         [.assign .storage liveRef (.intLit 0), .assign .storage vowRef sender] result) :
-      ExecBlock config { contract := contract, locals := ∅ } evm
+      ExecBlock fork config { contract := contract, locals := ∅ } evm
         cageTransition.body result := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
     exact ExecBlock.consNormal (ExecStmt.requireTrue hguard) hwrite
@@ -95,9 +97,9 @@ theorem flopperCageBodyReturnsSplit (evm : EVM.State) (I : ExecutionEnv)
   · intro hperm
     apply ExecFuncBody.execBlockOK
     apply hprefix
-    refine ExecBlock.consNormal (ExecStmt.assign (hperm := Or.inr hperm) hvalue hassign) ?_
+    refine ExecBlock.consNormal (ExecStmt.assign (fork := fork) (hperm := Or.inr hperm) hvalue hassign) ?_
     refine ExecBlock.consNormal
-      (ExecStmt.assign (hperm := Or.inr (by simpa [cageLivePostState] using hperm)) ?_ (cageAssignVow evm I hsrc)) ExecBlock.nil
+      (ExecStmt.assign (fork := fork) (hperm := Or.inr (by simpa [cageLivePostState] using hperm)) ?_ (cageAssignVow evm I hsrc)) ExecBlock.nil
     simp [evalExpr?, sender, envValue, cageLivePostState, pure]
   · intro hperm
     exact ExecFuncBody.execBlockStatic
@@ -108,7 +110,7 @@ theorem flopperCageBodyReverts (evm : EVM.State) (I : ExecutionEnv)
     (hsrc : evm.executionEnv.source = I.source)
     (hauth :
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner (relyAuthStorageSlot I) ≠ ⟨1⟩) :
-    ExecTransitionBody config contract evm ∅ cageTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm ∅ cageTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   simpa [cageTransition, nonpayable, auth] using
     nonpayableSecondRequireReverts
@@ -124,7 +126,7 @@ theorem flopperReachCageBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flopperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (flopperSelBytes 2)) :
-    ∃ k C, RD flopperBytecode I g (initState σ σ₀ g A I)
+    ∃ k C, RD fork flopperBytecode I g (initState σ σ₀ g A I)
         ⟨620⟩ [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         σ k C := by
   have hword : flopperSelWord I = ⟨0x69245009⟩ := by
@@ -157,10 +159,10 @@ theorem flopperReachCageBody {σ σ₀ A I} {g : Sat256}
     heq0 htake (by jump_dest) (by native_decide) (by simp)
 
 theorem flopperCageX_enter {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD flopperBytecode I g
+    (hreach : ∃ k C, RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨620⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD flopperBytecode I g (initState σ σ₀ g A I) ⟨3131⟩
+    ∃ k C, RD fork flopperBytecode I g (initState σ σ₀ g A I) ⟨3131⟩
         [⟨334⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, h392⟩ := hreach
@@ -172,9 +174,9 @@ theorem flopperCageX_enter {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 set_option maxHeartbeats 1000000 in
 theorem flopperCageX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : relyAuthWord σ I = ⟨1⟩)
-    (h : RD flopperBytecode I g s0 ⟨3131⟩ [⟨334⟩, sel]
+    (h : RD fork flopperBytecode I g s0 ⟨3131⟩ [⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flopperBytecode I g s0 ⟨3224⟩ [⟨334⟩, sel]
+    ∃ k' C', RD fork flopperBytecode I g s0 ⟨3224⟩ [⟨334⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -204,7 +206,7 @@ theorem flopperCageX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
     (by evm_ov)
   obtain ⟨k1596, C1596, rd1596raw⟩ := rd1595.sload (by native_decide) (by evm_ov)
-  have rd1596 : RD flopperBytecode I g s0 ⟨3148⟩
+  have rd1596 : RD fork flopperBytecode I g s0 ⟨3148⟩
       (relyAuthWord σ I :: ⟨334⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1596 C1596 := by
     simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1596raw
@@ -220,9 +222,9 @@ theorem flopperCageX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 set_option maxHeartbeats 1000000 in
 theorem flopperCageX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : relyAuthWord σ I ≠ ⟨1⟩)
-    (h : RD flopperBytecode I g s0 ⟨3131⟩ [⟨334⟩, sel]
+    (h : RD fork flopperBytecode I g s0 ⟨3131⟩ [⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flopperBytecode g s0 := by
+    RDrev fork flopperBytecode g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
@@ -251,7 +253,7 @@ theorem flopperCageX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
     (by evm_ov)
   obtain ⟨k1596, C1596, rd1596raw⟩ := rd1595.sload (by native_decide) (by evm_ov)
-  have rd1596 : RD flopperBytecode I g s0 ⟨3148⟩
+  have rd1596 : RD fork flopperBytecode I g s0 ⟨3148⟩
       (relyAuthWord σ I :: ⟨334⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1596 C1596 := by
     simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1596raw
@@ -284,13 +286,13 @@ theorem flopperCageX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 
 theorem flopperCageX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
-    (h : RD flopperBytecode I g s0 ⟨3224⟩ [⟨334⟩, sel]
+    (h : RD fork flopperBytecode I g s0 ⟨3224⟩ [⟨334⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     (I.perm = true ∧
-      RDret flopperBytecode g s0
+      RDret fork flopperBytecode g s0
         (cagePostAccountMap I σ)
         ByteArray.empty) ∨
-      (I.perm = false ∧ RDstatic flopperBytecode g s0) := by
+      (I.perm = false ∧ RDstatic fork flopperBytecode g s0) := by
   have rd3225 := h.jumpdest (by native_decide) (by evm_ov)
   have rd3227 := rd3225.push1 ⟨0⟩ (by native_decide) (by evm_ov)
   have rd3229 := rd3227.push1 ⟨8⟩ (by native_decide) (by evm_ov)
@@ -304,7 +306,7 @@ theorem flopperCageX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C 
   have rd3232 := rd3230raw.push1 ⟨9⟩ (by native_decide) (by evm_ov)
   have rd3233 := rd3232.dup1 (by native_decide) (by evm_ov)
   obtain ⟨k3234, C3234, rd3234raw⟩ := rd3233.sload (by native_decide) (by evm_ov)
-  have rd3234 : RD flopperBytecode I g s0 ⟨3234⟩
+  have rd3234 : RD fork flopperBytecode I g s0 ⟨3234⟩
       (solcSlotWord (cageLivePostAccountMap I σ) I ⟨9⟩ :: ⟨9⟩ :: ⟨334⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
       (cageLivePostAccountMap I σ) k3234 C3234 := by
@@ -358,24 +360,24 @@ theorem flopperCageX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C 
 
 theorem flopperX_cage_okSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hauth : relyAuthWord σ I = ⟨1⟩)
-    (hreach : ∃ k C, RD flopperBytecode I g
+    (hreach : ∃ k C, RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨620⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     (I.perm = true ∧
-      RDret flopperBytecode g (initState σ σ₀ g A I)
+      RDret fork flopperBytecode g (initState σ σ₀ g A I)
         (cagePostAccountMap I σ)
         ByteArray.empty) ∨
-      (I.perm = false ∧ RDstatic flopperBytecode g (initState σ σ₀ g A I)) := by
+      (I.perm = false ∧ RDstatic fork flopperBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd1579⟩ := flopperCageX_enter (g := g) hreach
   obtain ⟨_, _, rd1661⟩ := flopperCageX_authorized (I := I) hauth rd1579
   exact flopperCageX_storeAuthorizedSplit rd1661
 
 theorem flopperX_cage_unauthorized {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hauth : relyAuthWord σ I ≠ ⟨1⟩)
-    (hreach : ∃ k C, RD flopperBytecode I g
+    (hreach : ∃ k C, RD fork flopperBytecode I g
       (initState σ σ₀ g A I) ⟨620⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev flopperBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork flopperBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd1579⟩ := flopperCageX_enter (g := g) hreach
   exact flopperCageX_unauthorized (I := I) hauth rd1579
 
@@ -387,16 +389,16 @@ theorem flopperCageBodyCoreOk
     (hdecode :
       config.externalABI.decodeCalldata? (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨620⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthWord : relyAuthWord σ I = ⟨1⟩ := hauth
   have hbodySplit :
-      (I.perm = true → ExecTransitionBody config contract evmStele ∅ cageTransition.body
+      (I.perm = true → ExecTransitionBody fork config contract evmStele ∅ cageTransition.body
         (.returned { contract := contract, locals := ∅ } (cagePostState evmStele I) none)) ∧
-      (I.perm = false → ExecTransitionBody config contract evmStele ∅
+      (I.perm = false → ExecTransitionBody fork config contract evmStele ∅
         cageTransition.body .staticViolation) := by
     simpa [evmStele, relyAuthWord, solcSlotWordAt, initState, Stele.EVM.storageLoad,
       State.lookupAccount] using
@@ -427,14 +429,14 @@ theorem flopperCageBodyCoreUnauthorized
     (hdecode :
       config.externalABI.decodeCalldata? (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some ∅)
-    (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨620⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evmStele := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthWord : relyAuthWord σ I ≠ ⟨1⟩ := hauth
   have hbody :
-      ExecTransitionBody config contract evmStele ∅ cageTransition.body .reverted := by
+      ExecTransitionBody fork config contract evmStele ∅ cageTransition.body .reverted := by
     simpa [evmStele, relyAuthWord, solcSlotWordAt, initState, Stele.EVM.storageLoad,
       State.lookupAccount] using
       flopperCageBodyReverts evmStele I
@@ -449,7 +451,7 @@ theorem flopperCageBodyCore {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flopperSelBytes 2)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flopperSelBytes 2) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some cageTransition :=
@@ -458,7 +460,7 @@ theorem flopperCageBodyCore {σ σ₀ A I} {g : UInt256}
       config.externalABI.decodeCalldata? (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some ∅ :=
     flopperDecode_cage hsz4
-  have hreach := flopperReachCageBody
+  have hreach := flopperReachCageBody (fork := fork)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hauth : relyAuthWord σ I = ⟨1⟩

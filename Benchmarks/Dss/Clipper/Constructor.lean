@@ -3,6 +3,8 @@ import Benchmarks.Dss.Clipper.ConstructorTrace
 import Stele.Refine
 import Reasoning.Immutables
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # MakerDAO/Sky DSS Clipper constructor correctness
 -/
@@ -123,14 +125,14 @@ theorem clipperCtorFinalImms_fit (vat : AccountAddress) (ilk : List UInt8)
 theorem clipperConstructorCorrect :
     typedConstructorRefinement config clipperCreationBytecode contract
       (immutableLayout.deployed clipperBytecode) := by
-  intro σ σ₀ g A I args deployedInitcode hdeploy hcode _hcalldata hperm
+  intro fork _hfork σ σ₀ g A I args deployedInitcode hdeploy hcode _hcalldata hperm
   rcases clipperCtorDeployment_shape hdeploy with
     ⟨vat, spotter, dog, ilk, hilk, hargs, hdeployed⟩
   subst args
   have hcodeCtor : I.code = clipperCtorCode vat spotter dog ilk := by
     rw [hcode, hdeployed]
   by_cases hwv : I.weiValue = ⟨0⟩
-  · have hrd := clipperInitcodeSuccess
+  · have hrd := clipperInitcodeSuccess (fork := fork)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       vat spotter dog ilk hilk hcodeCtor hperm hwv
     rcases RDretXiResultAccountMap (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -188,7 +190,7 @@ theorem clipperConstructorCorrect :
         exact (clipperDeployed_eq (clipperCtorFinalImms_get_vat vat ilk)
           (clipperCtorFinalImms_get_ilk vat ilk) hilk).symm
       · exact clipperCtorFinalImms_fit vat ilk hilk
-  · have hrd := clipperInitcodeNonpayableRevert
+  · have hrd := clipperInitcodeNonpayableRevert (fork := fork)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       vat spotter dog ilk hcodeCtor hperm hwv
     rcases RDrev.xiResult (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -198,7 +200,7 @@ theorem clipperConstructorCorrect :
         (by simpa [Sat256.ofUInt256] using hOOG)
     · exact .execution
         (by simpa [Sat256.ofUInt256] using hrev)
-        (clipperSteleCtorExecReverts_nonpayable (hperm := hperm)
+        (clipperSteleCtorExecReverts_nonpayable (fork := fork) (hperm := hperm)
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
           vat spotter dog ilk hwv)
         (ctorResultEquiv.revert rfl rfl) trivial

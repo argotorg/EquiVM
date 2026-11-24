@@ -2,6 +2,8 @@ import Benchmarks.EAS.EAS.ArrayAllocationHead
 import Benchmarks.EAS.EAS.FixedAllocate
 import Benchmarks.EAS.EAS.RuntimeBlocks_023
 import Benchmarks.EAS.EAS.RuntimeBlocks_024
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -11,11 +13,11 @@ theorem easCopyRevocationArrayReserve {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {offset len stop heap ret : UInt256} {R : List UInt256} (v : EASImmutables) (hstack : R.length+12 ≤ 1024)
     (hheap : memLoad (UInt256.ofNat 64) mem = heap) (hlen : len.toNat ≤ 2^64-1)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5924⟩ (offset::len::stop::ret::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5924⟩ (offset::len::stop::ret::R) mem aw rdata σ k C) :
     if allocateNext heap.toNat (32+32*len.toNat) ≤ 2^64-1 ∧ heap.toNat ≤ allocateNext heap.toNat (32+32*len.toNat) then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨5950⟩ (stop::offset::len::ret::heap::R)
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨5950⟩ (stop::offset::len::ret::heap::R)
         (Reasoning.Theory.writeWord mem 64 (UInt256.ofNat (allocateNext heap.toNat (32+32*len.toNat)))) aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨a1,k1,C1,r1⟩ := easBlocks.eas_block_5924_packed (immWords := wordsOf (immStore v))
     (by omega) (by rw [easPatchedValidJumpsRuntime v]; jump_dest) rd
   simp only [easBlocks.eas_block_5924_stack] at r1
@@ -42,12 +44,12 @@ theorem easCopyRevocationArrayHead {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {offset len stop heap ret : UInt256} {R : List UInt256} (v : EASImmutables) (hstack : R.length+12 ≤ 1024)
     (hheap : memLoad (UInt256.ofNat 64) mem = heap) (hlen : len.toNat ≤ 2^64-1)
     (he : UInt256.gt (offset+UInt256.shiftLeft len (UInt256.ofNat 6)) stop = ⟨0⟩)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5924⟩ (offset::len::stop::ret::R) mem aw rdata σ k C) :
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5924⟩ (offset::len::stop::ret::R) mem aw rdata σ k C) :
     if allocateNext heap.toNat (32+32*len.toNat) ≤ 2^64-1 ∧ heap.toNat ≤ allocateNext heap.toNat (32+32*len.toNat) then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨5973⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨5973⟩
         ((heap+UInt256.ofNat 32)::stop::(offset+UInt256.shiftLeft len (UInt256.ofNat 6))::offset::ret::heap::R)
         (arrayAllocationHeaderMemory mem heap len.toNat) aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have h := easCopyRevocationArrayReserve v hstack hheap hlen rd
   split <;> rename_i hg
   · rw [if_pos hg] at h
@@ -66,8 +68,8 @@ theorem easCopyRevocationArrayReject {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
     {offset len stop heap ret : UInt256} {R : List UInt256} (v : EASImmutables) (hstack : R.length+12 ≤ 1024)
     (hheap : memLoad (UInt256.ofNat 64) mem = heap) (hlen : len.toNat ≤ 2^64-1)
     (he : UInt256.gt (offset+UInt256.shiftLeft len (UInt256.ofNat 6)) stop ≠ ⟨0⟩)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5924⟩ (offset::len::stop::ret::R) mem aw rdata σ k C) :
-    RDrev (deployedRuntime v) g s0 := by
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5924⟩ (offset::len::stop::ret::R) mem aw rdata σ k C) :
+    RDrev fork (deployedRuntime v) g s0 := by
   have h := easCopyRevocationArrayReserve v hstack hheap hlen rd
   split at h
   · obtain ⟨a1,k1,C1,r1⟩ := h
@@ -81,8 +83,8 @@ theorem easCopyRevocationArrayDone {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {dst src stop ret array : UInt256} {R : List UInt256} (v : EASImmutables)
     (hstack : R.length+8 ≤ 1024) (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5973⟩ (dst::stop::src::src::ret::array::R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ret (array::R) mem aw' rdata σ k' C' := by
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5973⟩ (dst::stop::src::src::ret::array::R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ret (array::R) mem aw' rdata σ k' C' := by
   obtain ⟨a1,k1,C1,r1⟩ := easBlocks.eas_block_5973_fallthrough_packed (immWords := wordsOf (immStore v))
     (by simp only [List.length_cons]; omega) (ult_zero (le_refl _)) rd
   exact easBlocks.eas_block_5981_packed (immWords := wordsOf (immStore v))
@@ -102,13 +104,13 @@ theorem easCopyRevocationArrayStep {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hi : src.toNat < limit.toNat) (he : src.toNat+64 ≤ ee.calldata.size)
     (hsize : ee.calldata.size < 2^255) (hh : heap.toNat ≤ 2^64-1)
     (hheap : memLoad (UInt256.ofNat 64) mem = heap)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨5973⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨5973⟩
       (dst::UInt256.ofNat ee.calldata.size::limit::src::R) mem aw rdata σ k C) :
     if heap.toNat+64 ≤ 2^64-1 then
-      ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨5973⟩
+      ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨5973⟩
         ((dst+UInt256.ofNat 32)::UInt256.ofNat ee.calldata.size::limit::(src+UInt256.ofNat 64)::R)
         (revocationArrayCopyMemory mem ee.calldata src dst heap) aw' rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   obtain ⟨a1,k1,C1,r1⟩ := easBlocks.eas_block_5973_taken_packed (immWords := wordsOf (immStore v))
     (by omega) (by rw [ult_one hi]; decide) (by rw [easPatchedValidJumpsRuntime v]; jump_dest) rd
   obtain ⟨a2,k2,C2,r2⟩ := easBlocks.eas_block_5986_fallthrough_packed (immWords := wordsOf (immStore v))

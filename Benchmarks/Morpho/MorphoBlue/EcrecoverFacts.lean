@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.ScalarSliceABI
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Morpho.MorphoBlue
 set_option maxRecDepth 1000
@@ -21,11 +23,11 @@ theorem ecrecover_output_shape (σ : AccountMap) (g : UInt256) (A : Substate) (I
       · exact Or.inr ⟨_, by rw [ByteArray.size_extract, keccak_size]; rfl, rfl⟩
       · exact Or.inl rfl
 
-theorem theta_ecrecover_output_shape
+theorem theta_ecrecover_output_shape {fork : Ethereum.Fork}
     {blobVersionedHashes blocks σ σ₀ A_in r s g p v v' d e H w σ' g' A' z o}
-    (hΘ : (σ', g', A', z, o) = Θ σ σ₀ A_in r s
+    (hΘ : (σ', g', A', z, o) = Θ fork σ σ₀ A_in r s
       (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
-      (toExecute σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
+      (toExecute fork σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
       g p v v' d e H blobVersionedHashes blocks w) : EcrecoverOutput o := by
   have hout := congrArg (fun x => x.2.2.2.2) hΘ
   dsimp only at hout
@@ -38,7 +40,7 @@ theorem theta_ecrecover_output_shape
 
 theorem callViaEVM_ecrecover_output_shape {evm evm' : EVM.State} {value : Int}
     {cd out : ByteArray} {z perm : Bool}
-    (h : callViaEVM evm (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) value cd (z, evm', out) perm) :
+    (h : callViaEVM fork evm (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) value cd (z, evm', out) perm) :
     EcrecoverOutput out := by
   cases h with
   | callNotMade => exact Or.inl rfl

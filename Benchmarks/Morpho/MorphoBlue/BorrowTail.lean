@@ -2,6 +2,8 @@ import Benchmarks.Morpho.MorphoBlue.BorrowTailGuards
 import Benchmarks.Morpho.MorphoBlue.MarketTransferPair
 import Benchmarks.Morpho.MorphoBlue.MarketTransferEvents
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -18,10 +20,10 @@ theorem morphoBorrowTail {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     (hz : locals.get? "__c9" = some (.bool z))
     (hzero : memLoad (UInt256.ofNat 96) mem = UInt256.ofNat 0)
     (htoken : memLoad (UInt256.ofNat 128) mem = p.loanToken)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 8794)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 8794)
       ((if z then UInt256.ofNat 1 else UInt256.ofNat 0) :: borrowHealthTail p.id assets shares account receiver [])
       mem aw out σ k C) :
-    ReturnBlockRefines config (deployedRuntime v) ee g s0
+    ReturnBlockRefines fork config (deployedRuntime v) ee g s0
       { contract := contract, locals := locals, immutables := imms } evm
       (borrowTransition.body.drop 22) borrowTransition.returnType := by
   have hez : evalExpr? config { contract := contract, locals := locals, immutables := imms } evm
@@ -31,7 +33,7 @@ theorem morphoBorrowTail {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
   cases z
   · exact .reverted (ExecBlock.consRevert (ExecStmt.requireFalse hez)) hcheck
   obtain ⟨a1, k1, C1, rd1, hm1, had1⟩ := hcheck
-  have ab1 : StateBlock config { contract := contract, locals := locals, immutables := imms } evm
+  have ab1 : StateBlock fork config { contract := contract, locals := locals, immutables := imms } evm
       (borrowTransition.body.drop 22) { contract := contract, locals := locals, immutables := imms } evm
       (borrowTransition.body.drop 23) := StateBlock.start.step (ExecStmt.requireTrue hez)
   have hg := marketLiquidityGuard_eval p locals imms evm hl.toMarketLocals
@@ -41,10 +43,10 @@ theorem morphoBorrowTail {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
     ⟨hbad, hrev⟩ | ⟨hgood, a2, k2, C2, rd2, hm2, had2⟩
   · exact .reverted (ab1.reverts (ExecStmt.requireFalse (by
       simpa only [decide_eq_false (Nat.not_le_of_gt hbad)] using hg))) hrev
-  · have hguard : ExecStmt config { contract := contract, locals := locals, immutables := imms }
+  · have hguard : ExecStmt fork config { contract := contract, locals := locals, immutables := imms }
         evm borrowTransition.body[23]! (.ok { contract := contract, locals := locals, immutables := imms } evm) :=
       ExecStmt.requireTrue (by simpa only [decide_eq_true hgood] using hg)
-    have hab : StateBlock config { contract := contract, locals := locals, immutables := imms } evm
+    have hab : StateBlock fork config { contract := contract, locals := locals, immutables := imms } evm
         (borrowTransition.body.drop 22) { contract := contract, locals := locals, immutables := imms } evm
         (borrowTransition.body.drop 25) := (ab1.step hguard).step (hl.emit imms evm "Borrow" ((congrArg ExecutionEnv.perm hs.env).trans hp))
     have had := had1.trans had2
@@ -62,7 +64,7 @@ theorem morphoBorrowTail {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256}
       exact htoken
     obtain ⟨a3, k3, C3, rd3⟩ := morphoBlocks.morpho_block_8850_packed (immWords := wordsOf (immStore v))
       (by change 14 ≤ 1024; decide) hp (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) rd2
-    change RD _ _ _ _ _
+    change RD fork _ _ _ _ _
       [UInt256.land (memLoad (UInt256.ofNat 128)
         (accrueEventMem m2 (UInt256.ofNat ee.source.val) assets shares)) solcAddrMask,
         receiver, assets, UInt256.ofNat 8920, UInt256.ofNat 32, shares, assets]

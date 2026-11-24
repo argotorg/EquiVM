@@ -6,22 +6,24 @@ import Benchmarks.UniswapV4PoolManager.MemoryGas
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_006
 import Benchmarks.UniswapV4PoolManager.RuntimeBlocks_028
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
 set_option maxRecDepth 5000
 
-def donateValidationTraceResult (v : PoolManagerImmutables) (I : ExecutionEnv)
+def donateValidationTraceResult (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv)
     (g : Sat256) (s0 evm : State) (mem rdata : ByteArray) (key : PoolKeyWords)
     (keyPtr amount0 amount1 src len junk : UInt256) (R : List UInt256) : Prop :=
-  if transientWord evm lockSlot = ⟨0⟩ then RDrev (deployedRuntime v) g s0
+  if transientWord evm lockSlot = ⟨0⟩ then RDrev fork (deployedRuntime v) g s0
   else if I.codeOwner = v.original then
-    if poolSqrtPriceWord evm (poolKeyId key) = ⟨0⟩ then RDrev (deployedRuntime v) g s0
-    else ∃ aw k C, aw.toNat ≤ 10 ∧ RD (deployedRuntime v) I g s0 ⟨10153⟩
+    if poolSqrtPriceWord evm (poolKeyId key) = ⟨0⟩ then RDrev fork (deployedRuntime v) g s0
+    else ∃ aw k C, aw.toNat ≤ 10 ∧ RD fork (deployedRuntime v) I g s0 ⟨10153⟩
       ([keyPtr, src, amount1, amount0, len, poolSlot (poolKeyId key), poolKeyId key, junk] ++ R)
       (twoWordHashMem (poolKeyId key) ⟨6⟩ mem) aw rdata evm.accountMap k C
-  else RDrev (deployedRuntime v) g s0
+  else RDrev fork (deployedRuntime v) g s0
 
 theorem donateValidationTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {mem rdata : ByteArray} {aw keyPtr amount0 amount1 src len junk : UInt256} {k C : Nat}
@@ -29,10 +31,10 @@ theorem donateValidationTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (v : PoolManagerImmutables) (hstack : R.length+11 ≤ 1024) (hI : evm.executionEnv = I)
     (hk : PoolKeyView mem keyPtr key)
     (hb : keyPtr.toNat+160 ≤ 320) (haw : aw.toNat ≤ 10)
-    (h : RD (deployedRuntime v) I g s0 ⟨10076⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨10076⟩
       ([len, src, amount0, keyPtr, amount1, junk] ++ R)
       mem aw rdata evm.accountMap k C) :
-    donateValidationTraceResult v I g s0 evm mem rdata key keyPtr amount0 amount1 src len junk R := by
+    donateValidationTraceResult fork v I g s0 evm mem rdata key keyPtr amount0 amount1 src len junk R := by
   rw [donateValidationTraceResult]
   have hlock : codeOwnerTransientWord I evm.accountMap lockSlot = transientWord evm lockSlot :=
     (transientWord_accountMap hI lockSlot).symm

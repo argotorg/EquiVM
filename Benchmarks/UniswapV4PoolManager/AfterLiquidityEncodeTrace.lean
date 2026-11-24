@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.LiquidityHookABI
 import Benchmarks.UniswapV4PoolManager.WordBytesCallMemory
 import Benchmarks.UniswapV4PoolManager.BytesValueTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.UniswapV4PoolManager.Immutables
@@ -21,12 +23,12 @@ theorem afterLiquidityEncodeTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hkb : keyPtr.toNat+160 ≤ free.toNat) (hpb : paramsPtr.toNat+128 ≤ free.toNat)
     (hf : free.toNat+len.toNat+516 < UInt256.size)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) I g s0 ⟨14227⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨14227⟩
       ((free+UInt256.ofNat 36) :: accountWord sender :: keyPtr :: paramsPtr :: delta :: fees :: src :: len :: ret :: R)
       (writeWord mem (free+UInt256.ofNat 32).toNat selector) aw rdata σ k C) :
     ∃ aw' k' C', (free.toNat+len.toNat+547)/32 ≤ aw'.toNat ∧
       C+449+3*((len.toNat+31)/32)+Cₘ aw' ≤ C'+Cₘ aw ∧
-      RD (deployedRuntime v) I g s0 ret
+      RD fork (deployedRuntime v) I g s0 ret
         (UInt256.ofNat (free.toNat+484+paddedSize len.toNat) :: R)
         (wordBytesCallMemory I.calldata mem src.toNat (free.toNat+32) selector
           (liquidityHookHeadWords true sender key p delta fees) len) aw' rdata σ k' C' := by

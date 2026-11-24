@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.ConstructorMemory
 import Benchmarks.UniswapV3.Pool.TickSpacingTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open uniswapV3PoolCreationBlocks
 namespace Benchmarks.UniswapV3.Pool
@@ -30,10 +32,10 @@ theorem constructorFieldsSummaryMem (original : AccountAddress) (out : ByteArray
 
 theorem constructorFieldsX {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {σ : AccountMap} {aw : UInt256} {k C : Nat} {out : ByteArray}
-    (rd : RD (uniswapV3PoolCreationBytecode ++ tail) ee g s0 ⟨130⟩
+    (rd : RD fork (uniswapV3PoolCreationBytecode ++ tail) ee g s0 ⟨130⟩
       [UInt256.ofNat out.size, ⟨352⟩, ⟨0⟩] (constructorOutputMem ee.codeOwner out)
       aw out σ k C) (hlen : 160 ≤ out.size) :
-    ∃ k' C' aw', RD (uniswapV3PoolCreationBytecode ++ tail) ee g s0 ⟨271⟩
+    ∃ k' C' aw', RD fork (uniswapV3PoolCreationBytecode ++ tail) ee g s0 ⟨271⟩
       [calldataWord out 128, ⟨247⟩, calldataWord out 128]
       (constructorTickMem ee.codeOwner out) aw' out σ k' C' := by
   have rf := uniswapV3PoolCreation_block_130 (by decide) rd
@@ -46,23 +48,23 @@ theorem constructorFieldsX {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256}
 
 theorem constructorAfterSpacingX {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {σ : AccountMap} {aw : UInt256} {k C : Nat} {out : ByteArray}
-    (rd : RD (uniswapV3PoolCreationBytecode ++ tail) ee g s0 ⟨247⟩
+    (rd : RD fork (uniswapV3PoolCreationBytecode ++ tail) ee g s0 ⟨247⟩
       [EVM.wordOfInt (spacingLiquidity (constructorSpacing out)), calldataWord out 128]
       (constructorTickMem ee.codeOwner out) aw out σ k C) :
-    ∃ k' C' aw', RD (uniswapV3PoolCreationBytecode ++ tail) ee g s0 ⟨381⟩ []
+    ∃ k' C' aw', RD fork (uniswapV3PoolCreationBytecode ++ tail) ee g s0 ⟨381⟩ []
       (constructorFinalMem ee.codeOwner out) aw' out σ k' C' := by
   have rn := uniswapV3PoolCreation_block_247 (by decide) (by native_decide) rd
   exact ⟨_, _, _, rn⟩
 
 theorem constructorBeforeRuntimeX {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {σ : AccountMap} {aw : UInt256} {k C : Nat} {out : ByteArray}
-    (rd : RD (uniswapV3PoolCreationBytecode ++ tail) ee g s0 ⟨130⟩
+    (rd : RD fork (uniswapV3PoolCreationBytecode ++ tail) ee g s0 ⟨130⟩
       [UInt256.ofNat out.size, ⟨352⟩, ⟨0⟩] (constructorOutputMem ee.codeOwner out)
       aw out σ k C) (hlen : 160 ≤ out.size) :
-    (RDinvalid (uniswapV3PoolCreationBytecode ++ tail) g s0 ∧
+    (RDinvalid fork (uniswapV3PoolCreationBytecode ++ tail) g s0 ∧
       (constructorSpacing out = 0 ∨ spacingCount (constructorSpacing out) = 0)) ∨
     (constructorSpacing out ≠ 0 ∧ spacingCount (constructorSpacing out) ≠ 0 ∧
-      ∃ k' C' aw', RD (uniswapV3PoolCreationBytecode ++ tail) ee g s0 ⟨381⟩ []
+      ∃ k' C' aw', RD fork (uniswapV3PoolCreationBytecode ++ tail) ee g s0 ⟨381⟩ []
         (constructorFinalMem ee.codeOwner out) aw' out σ k' C') := by
   obtain ⟨_, _, _, rt⟩ := constructorFieldsX rd hlen
   have hb := constructorSpacing_bounds out

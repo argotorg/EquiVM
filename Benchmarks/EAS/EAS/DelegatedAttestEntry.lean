@@ -1,5 +1,7 @@
 import Benchmarks.EAS.EAS.DelegatedAttestPrepare
 import Benchmarks.EAS.EAS.DelegatedAttestBounds
+
+variable {fork : Ethereum.Fork}
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.EAS.EAS.Immutables
 namespace Benchmarks.EAS.EAS
@@ -13,11 +15,11 @@ instance (cd : ByteArray) : Decidable (delegatedAttestEntryReady cd) := inferIns
 theorem easDelegatedAttestEntry {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (v : EASImmutables) (hstack : R.length+27 ≤ 1024) (hsize : ee.calldata.size < 2^255+4)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨1933⟩ R attestPublicInitialMemory aw rdata σ k C) :
-    (delegatedAttestEntryReady ee.calldata → ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨13494⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨1933⟩ R attestPublicInitialMemory aw rdata σ k C) :
+    (delegatedAttestEntryReady ee.calldata → ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨13494⟩
       (UInt256.ofNat 224::delegatedAttestSavedStack ee.calldata (attestRoot ee.calldata) R)
       (delegatedAttestInputMemory ee.calldata (attestRoot ee.calldata)) aw' rdata σ k' C') ∧
-    (¬ delegatedAttestEntryReady ee.calldata → RDrev (deployedRuntime v) g s0) := by
+    (¬ delegatedAttestEntryReady ee.calldata → RDrev fork (deployedRuntime v) g s0) := by
   by_cases ho : (calldataWord ee.calldata 4).toNat ≤ 2^64-1
   · obtain ⟨a1,k1,C1,r1⟩ := easBlocks.eas_block_1933_fallthrough_packed (immWords := wordsOf (immStore v))
       (by omega) ((word_gt_zero _ _).mpr ho) rd

@@ -1,5 +1,7 @@
 import Stele.Refine
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Behavioral inclusion
 
@@ -26,11 +28,11 @@ abbrev EVMResult :=
 /-- A bytecode result `r` is captured by the specification, run from the Stele-side inputs:
     some run of `steleExec` produces a result `execResultsEquiv`-related to `r`. This includes
     dispatch and calldata-decoding failures as explicit Stele execution outcomes. -/
-def capturedBySpec (cfg : Config) (contract : ContractDecl)
+def capturedBySpec (fork : Ethereum.Fork) (cfg : Config) (contract : ContractDecl)
     (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
     (I : Ethereum.ExecutionEnv) (r : EVMResult) (immutables : Store := ∅) : Prop :=
   ∃ steleRes returnConvention,
-    steleExec cfg contract immutables σ σ₀ g A I steleRes returnConvention ∧
+    steleExec fork cfg contract immutables σ σ₀ g A I steleRes returnConvention ∧
     execResultsEquiv r steleRes returnConvention
 
 /-- Behavioral inclusion at fixed inputs: a `runtimeRefinementFor` derivation says that the
@@ -38,10 +40,10 @@ def capturedBySpec (cfg : Config) (contract : ContractDecl)
 theorem runtimeRefinementFor_captured {cfg : Config} {contract : ContractDecl}
     {σ σ₀ : Ethereum.AccountMap} {g : Ethereum.UInt256} {A : Ethereum.Substate}
     {I : Ethereum.ExecutionEnv} {immutables : Store}
-    (h : runtimeRefinementFor cfg contract σ σ₀ g A I immutables) :
-    Ethereum.EVM.Ξ σ σ₀ g A I = .error .OutOfGass ∨
-    capturedBySpec cfg contract σ σ₀ g A I
-      (Ethereum.EVM.Ξ σ σ₀ g A I) immutables := by
+    (h : runtimeRefinementFor fork cfg contract σ σ₀ g A I immutables) :
+    Ethereum.EVM.Ξ fork σ σ₀ g A I = .error .OutOfGass ∨
+    capturedBySpec fork cfg contract σ σ₀ g A I
+      (Ethereum.EVM.Ξ fork σ σ₀ g A I) immutables := by
   cases h with
   | execution hΞ hstele hequiv =>
       right
@@ -49,45 +51,47 @@ theorem runtimeRefinementFor_captured {cfg : Config} {contract : ContractDecl}
   | outOfGas hΞ =>
       left; exact hΞ
 
-/-- **Behavioral inclusion.**  If the bytecode refines the specification, then on every admissible
-    input (the deployed code and calldata shorter than `2^256` bytes), in either permission mode,
-    the bytecode's unique result is either out of gas or captured by a behavior of the
-    specification.  No other behavior of the bytecode exists. -/
-theorem runtimeRefinement_behaviors_included {cfg : Config} {bytecode : ByteArray}
-    {contract : ContractDecl} {immutables : Store}
-    (h : runtimeRefinement cfg bytecode contract immutables)
-    (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
-    (I : Ethereum.ExecutionEnv)
+/-- **Behavioral inclusion.**  If the bytecode refines the specification under the forks `forks`,
+    then under each of them, on every admissible input (the deployed code and calldata shorter
+    than `2^256` bytes), in either permission mode, the bytecode's unique result is either out of
+    gas or captured by a behavior of the specification.  No other behavior of the bytecode
+    exists. -/
+theorem runtimeRefinement_behaviors_included {forks : ForkSet} {cfg : Config}
+    {bytecode : ByteArray} {contract : ContractDecl} {immutables : Store}
+    (h : runtimeRefinementOn forks cfg bytecode contract immutables)
+    (fork : Ethereum.Fork) (hfork : forks fork) (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256)
+    (A : Ethereum.Substate) (I : Ethereum.ExecutionEnv)
     (hcode : I.code = bytecode) (hsize : I.calldata.size < Ethereum.UInt256.size) :
-    Ethereum.EVM.Ξ σ σ₀ g A I = .error .OutOfGass ∨
-    capturedBySpec cfg contract σ σ₀ g A I
-      (Ethereum.EVM.Ξ σ σ₀ g A I) immutables := by
+    Ethereum.EVM.Ξ fork σ σ₀ g A I = .error .OutOfGass ∨
+    capturedBySpec fork cfg contract σ σ₀ g A I
+      (Ethereum.EVM.Ξ fork σ σ₀ g A I) immutables := by
   obtain ⟨hrun⟩ := h
   exact runtimeRefinementFor_captured
-    (hrun σ σ₀ g A I hcode hsize)
+    (hrun fork hfork σ σ₀ g A I hcode hsize)
 
 /-- The same inclusion for relations carrying a storage well-formedness precondition and a gas
     bound. -/
-theorem runtimeRefinementWithWF_behaviors_included {wf : StorageWF} {gasBound : GasBound}
-    {cfg : Config} {bytecode : ByteArray} {contract : ContractDecl} {immutables : Store}
-    (h : runtimeRefinementWithWF wf gasBound cfg bytecode contract immutables)
-    (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
-    (I : Ethereum.ExecutionEnv)
+theorem runtimeRefinementWithWF_behaviors_included {forks : ForkSet} {wf : StorageWF}
+    {gasBound : GasBound} {cfg : Config} {bytecode : ByteArray} {contract : ContractDecl}
+    {immutables : Store}
+    (h : runtimeRefinementWithWFOn forks wf gasBound cfg bytecode contract immutables)
+    (fork : Ethereum.Fork) (hfork : forks fork) (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256)
+    (A : Ethereum.Substate) (I : Ethereum.ExecutionEnv)
     (hcode : I.code = bytecode) (hsize : I.calldata.size < Ethereum.UInt256.size)
     (hwf : wf σ I) (hgas : gasBound g) :
-    Ethereum.EVM.Ξ σ σ₀ g A I = .error .OutOfGass ∨
-    capturedBySpec cfg contract σ σ₀ g A I
-      (Ethereum.EVM.Ξ σ σ₀ g A I) immutables := by
+    Ethereum.EVM.Ξ fork σ σ₀ g A I = .error .OutOfGass ∨
+    capturedBySpec fork cfg contract σ σ₀ g A I
+      (Ethereum.EVM.Ξ fork σ σ₀ g A I) immutables := by
   obtain ⟨hrun⟩ := h
   exact runtimeRefinementFor_captured
-    (hrun σ σ₀ g A I hcode hsize hwf hgas)
+    (hrun fork hfork σ σ₀ g A I hcode hsize hwf hgas)
 
 /-- A captured exceptional halt is `INVALID`, or a static-mode violation matched by a Stele
     `.staticViolation`. -/
 theorem capturedBySpec_error {cfg : Config} {contract : ContractDecl}
     {σ_stele σ₀ : Ethereum.AccountMap} {g : Ethereum.UInt256} {A : Ethereum.Substate}
     {I : Ethereum.ExecutionEnv} {e : Ethereum.EVM.ExecutionException} {immutables : Store}
-    (h : capturedBySpec cfg contract σ_stele σ₀ g A I
+    (h : capturedBySpec fork cfg contract σ_stele σ₀ g A I
       (.error e) immutables) :
     e = .InvalidInstruction ∨ e = .StaticModeViolation := by
   rcases h with ⟨_, _, _, hequiv⟩
@@ -103,9 +107,9 @@ theorem capturedBySpec_error {cfg : Config} {contract : ContractDecl}
 theorem capturedBySpec_static {cfg : Config} {contract : ContractDecl}
     {σ_stele σ₀ : Ethereum.AccountMap} {g : Ethereum.UInt256} {A : Ethereum.Substate}
     {I : Ethereum.ExecutionEnv} {immutables : Store}
-    (h : capturedBySpec cfg contract σ_stele σ₀ g A I (.error .StaticModeViolation) immutables) :
+    (h : capturedBySpec fork cfg contract σ_stele σ₀ g A I (.error .StaticModeViolation) immutables) :
     ∃ returnConvention,
-      steleExec cfg contract immutables σ_stele σ₀ g A I .staticViolation returnConvention := by
+      steleExec fork cfg contract immutables σ_stele σ₀ g A I .staticViolation returnConvention := by
   rcases h with ⟨steleRes, rc, hstele, hequiv⟩
   cases hequiv with
   | success h1 _ _ _ => exact absurd h1 (by simp)
@@ -119,18 +123,18 @@ theorem capturedBySpec_static {cfg : Config} {contract : ContractDecl}
     `INVALID`, or a static-mode violation on an admissible input: no stack under- or overflow,
     invalid jump, or invalid opcode is reachable.  A static-mode violation in turn requires a Stele
     run ending in `.staticViolation` (`capturedBySpec_static`), which only a state-changing
-    statement produces. -/
-theorem runtimeRefinement_no_crash {cfg : Config} {bytecode : ByteArray}
+    statement produces.  This holds under every fork the refinement is stated for. -/
+theorem runtimeRefinement_no_crash {forks : ForkSet} {cfg : Config} {bytecode : ByteArray}
     {contract : ContractDecl} {immutables : Store}
-    (h : runtimeRefinement cfg bytecode contract immutables)
-    (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
-    (I : Ethereum.ExecutionEnv)
+    (h : runtimeRefinementOn forks cfg bytecode contract immutables)
+    (fork : Ethereum.Fork) (hfork : forks fork) (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256)
+    (A : Ethereum.Substate) (I : Ethereum.ExecutionEnv)
     (hcode : I.code = bytecode) (hsize : I.calldata.size < Ethereum.UInt256.size)
     {e : Ethereum.EVM.ExecutionException}
-    (herr : Ethereum.EVM.Ξ σ σ₀ g A I = .error e) :
+    (herr : Ethereum.EVM.Ξ fork σ σ₀ g A I = .error e) :
     e = .OutOfGass ∨ e = .InvalidInstruction ∨ e = .StaticModeViolation := by
   rcases runtimeRefinement_behaviors_included h
-      σ σ₀ g A I hcode hsize with hoog | hcap
+      fork hfork σ σ₀ g A I hcode hsize with hoog | hcap
   · left; rw [herr] at hoog; exact Except.error.inj hoog
   · right; rw [herr] at hcap; exact capturedBySpec_error hcap
 

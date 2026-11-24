@@ -3,6 +3,8 @@ import Benchmarks.Safe.V0_cdb2eb5.ExecTransactionExecuteSource
 import Benchmarks.Safe.V0_cdb2eb5.CheckedSubtract
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_020
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V0_cdb2eb5.RuntimeBlocks
 
@@ -12,13 +14,13 @@ set_option maxRecDepth 100000 in
 theorem safeExecExecutePrepare (p : ExecTransactionInput)
     {I g s0 σ k C aw mem rdata src ptr} {before sigPtr guard hash : UInt256}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3810⟩
+    (h : RD fork safeBytecode I g s0 ⟨3810⟩
       (execAllocatedStack p src ptr before sigPtr guard hash R) mem aw rdata σ k C)
     (hov : R.length + 36 ≤ 1024) :
-    (RDrev safeBytecode g s0 ∧ p.tx.gasPrice = ⟨0⟩ ∧
+    (RDrev fork safeBytecode g s0 ∧ p.tx.gasPrice = ⟨0⟩ ∧
       ∃ gasLeft : UInt256, gasLeft.toNat < 2500) ∨
     ∃ gasLeft k' C', (p.tx.gasPrice = ⟨0⟩ → 2500 ≤ gasLeft.toNat) ∧
-      RD safeBytecode I g s0 ⟨7576⟩
+      RD fork safeBytecode I g s0 ⟨7576⟩
         ([execCallGas p gasLeft, p.tx.operation, UInt256.ofNat ptr, p.tx.value,
           UInt256.ofNat p.tx.target.val, ⟨3846⟩, before] ++
           execGuardSaved p src sigPtr guard hash R) mem aw rdata σ k' C' := by
@@ -28,7 +30,7 @@ theorem safeExecExecutePrepare (p : ExecTransactionInput)
     have h₂ := safeRuntime_block_3827 (by
       simp [safeRuntime_block_3810_taken_stack, execGuardSaved]; omega) (by jump_dest) h₁
     let gasLeft := (g.subNat (C + 32 + 4 + 2)).toUInt256
-    change RD safeBytecode I g s0 _
+    change RD fork safeBytecode I g s0 _
       (gasLeft :: ⟨2500⟩ :: ⟨3841⟩ :: p.tx.operation :: UInt256.ofNat ptr :: p.tx.value ::
         UInt256.ofNat p.tx.target.val :: ⟨3846⟩ :: before ::
           execGuardSaved p src sigPtr guard hash R) _ _ _ _ _ _ at h₂

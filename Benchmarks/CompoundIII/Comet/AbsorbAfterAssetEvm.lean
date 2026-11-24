@@ -2,6 +2,8 @@ import Benchmarks.CompoundIII.Comet.AbsorbAfterAssetModel
 import Benchmarks.CompoundIII.Comet.AbsorbAssetSeizeEvm
 import Benchmarks.CompoundIII.Comet.AbsorbCollateralPriceEvm
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -20,11 +22,11 @@ theorem cometAbsorbAfterAsset {v : CometWithExtendedAssetListImmutables}
     (hm : AssetMemory mem ptr free out) (hc : AssetCanonical out)
     (hgap : free.toNat ≤ mem.size + 32) (hbound : free.toNat + 416 < 2^64)
     (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨17589⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨17589⟩
       (ptr :: absorber :: EVM.word account.val :: i :: assets :: reserved :: old :: principal ::
         price :: EVM.word account.val :: delta :: R) mem aw rdata σ k C) :
-    ∃ result, AbsorbAfterAssetTrace account out delta evm result ∧
-      internalValuePreservingRun (deployedRuntime v) ee g s0 mem free 160 ⟨17567⟩
+    ∃ result, AbsorbAfterAssetTrace fork account out delta evm result ∧
+      internalValuePreservingRun fork (deployedRuntime v) ee g s0 mem free 160 ⟨17567⟩
         (fun p ↦ i :: assets :: reserved :: old :: principal :: price :: EVM.word account.val ::
           absorbCollateralDelta delta
             (withdrawCollateralBalance evm account (absorbAssetAddress out)) p out :: R) result := by

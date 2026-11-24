@@ -3,6 +3,8 @@ import Benchmarks.UniswapV4PoolManager.PoolFeeInsideTrace
 import Benchmarks.UniswapV4PoolManager.PositionGetTrace
 import Benchmarks.UniswapV4PoolManager.PositionLiquidityTrace
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -22,10 +24,10 @@ theorem poolModifyFeesPreludeTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : Sta
     (ha : UInt256.land (memLoad params mem) solcAddrMask = accountWord p.owner)
     (hs : memLoad (params+UInt256.ofNat 160) mem = p.salt)
     (hp : 64 ≤ params.toNat) (hps : params.toNat+192 ≤ mem.size) (hpf : params.toNat+160 < UInt256.size)
-    (h : RD (deployedRuntime v) I g s0 ⟨5722⟩
+    (h : RD fork (deployedRuntime v) I g s0 ⟨5722⟩
       (x0 :: x1 :: x2 :: ptr :: x4 :: x5 :: p.upper :: EVM.wordOfInt p.delta :: p.lower :: x9 :: params :: R)
       mem aw rdata evm.accountMap k C) :
-    ∃ aw' k' C', RD (deployedRuntime v) I g s0 ⟨5915⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) I g s0 ⟨5915⟩
       (positionUpdateInputStack evm id (poolModifyPositionKey p) p.delta (poolModifyFeeWord evm id p false)
         p.upper x0 x1 x2 ptr x4 x5 p.lower x9 (poolModifyFeeWord evm id p true) R)
       (poolModifyFeesMemory mem free id p) aw' rdata evm.accountMap k' C' := by

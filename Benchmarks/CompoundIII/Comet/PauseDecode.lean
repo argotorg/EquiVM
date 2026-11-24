@@ -1,5 +1,7 @@
 import Benchmarks.CompoundIII.Comet.PauseInputs
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -12,13 +14,13 @@ theorem cometPauseDecode {v : CometWithExtendedAssetListImmutables}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray} {aw : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024)
-    (h : RD (deployedRuntime v) ee g s0 ⟨3380⟩ R mem aw rdata σ k C) :
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨3380⟩ R mem aw rdata σ k C) :
     if PauseCanonical ee.calldata then
-      ∃ k' C', RD (deployedRuntime v) ee g s0 ⟨3431⟩
+      ∃ k' C', RD fork (deployedRuntime v) ee g s0 ⟨3431⟩
         (boolWord (pauseInputs ee.calldata).buy :: boolWord (pauseInputs ee.calldata).withdraw ::
           boolWord (pauseInputs ee.calldata).supply :: boolWord (pauseInputs ee.calldata).transfer ::
           boolWord (pauseInputs ee.calldata).absorb :: R) mem aw rdata σ k' C'
-    else RDrev (deployedRuntime v) g s0 := by
+    else RDrev fork (deployedRuntime v) g s0 := by
   have rd1 := cometWithExtendedAssetList_block_3380 (immWords := wordsOf (immStore v))
     (by omega) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) h
   by_cases h0 : BoolCanonical (calldataWord ee.calldata 4)

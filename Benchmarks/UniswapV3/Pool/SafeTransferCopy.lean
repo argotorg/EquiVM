@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV3.Pool.SafeTransferCopyMemory
 import Benchmarks.UniswapV3.Pool.SafeTransferCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 open uniswapV3PoolBlocks
@@ -10,11 +12,11 @@ set_option maxRecDepth 10000
 theorem transferCopyWordsX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨15331⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨15331⟩
       ((p + ⟨32⟩) :: (p + ⟨100⟩) :: ⟨68⟩ :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw (p + ⟨100⟩)) (hb : p.toNat + 196 ≤ 2 ^ 200)
     (hov : R.length + 5 ≤ 1024) :
-    ∃ aw' k' C', RD (deployedRuntime v) ee g s0 ⟨15362⟩
+    ∃ aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨15362⟩
       ((p + ⟨96⟩) :: (p + ⟨164⟩) :: ⟨4⟩ :: R) (transferCopyMem2 mem p) aw' rdata σ k' C' ∧
       HeapMemory (transferCopyMem2 mem p) aw' (p + ⟨100⟩) := by
   have hoff (n : Nat) (hn : n ≤ 196) : (p + UInt256.ofNat n).toNat = p.toNat + n :=
@@ -58,12 +60,12 @@ theorem transferCopyWordsX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
 theorem transferCopyX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {s0 : EVM.State} {k C : Nat} {aw p token : UInt256} {mem rdata : ByteArray}
     {R : List UInt256} {v : UniswapV3PoolImmutables}
-    (rd : RD (deployedRuntime v) ee g s0 ⟨15331⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨15331⟩
       ((p + ⟨32⟩) :: (p + ⟨100⟩) :: ⟨68⟩ :: ⟨68⟩ :: (p + ⟨32⟩) ::
         (p + ⟨100⟩) :: (p + ⟨100⟩) :: p :: token :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw (p + ⟨100⟩)) (hb : p.toNat + 196 ≤ 2 ^ 200)
     (hov : R.length + 14 ≤ 1024) :
-    ∃ gasArg aw' k' C', RD (deployedRuntime v) ee g s0 ⟨15413⟩
+    ∃ gasArg aw' k' C', RD fork (deployedRuntime v) ee g s0 ⟨15413⟩
       (gasArg :: token :: ⟨0⟩ :: (p + ⟨100⟩) :: ⟨68⟩ :: (p + ⟨100⟩) :: ⟨0⟩ ::
         (UInt256.ofNat 68 + (p + ⟨100⟩)) :: token :: R)
       (transferCopyMem3 mem p) aw' rdata σ k' C' ∧

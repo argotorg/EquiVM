@@ -1,5 +1,7 @@
 import Benchmarks.Auction.InitializerGuard
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option synthInstance.maxSize 4096
@@ -76,13 +78,13 @@ theorem initializerBegins : ∀ i : InitializerBodySite, initializerBeginWf i :=
   native_decide
 
 theorem initializerBeginSplit {I g s0 R mem aw rdata σ k C} (i : InitializerBodySite)
-    (h : RD auctionBytecode I g s0 (initializerGuardSuccess (initializerBodyGuard i))
+    (h : RD fork auctionBytecode I g s0 (initializerGuardSuccess (initializerBodyGuard i))
       R mem aw rdata σ k C)
     (hov : R.length + 5 ≤ 1024) :
-    (    ∃ k' C', RD auctionBytecode I g s0 (initializerBodyPc i)
+    (    ∃ k' C', RD fork auctionBytecode I g s0 (initializerBodyPc i)
       (UInt256.isZero (initializingWord σ I) :: R) mem aw rdata
       (initializerEntered σ I) k' C') ∨
-      (I.perm = false ∧ RDstatic auctionBytecode g s0) := by
+      (I.perm = false ∧ RDstatic fork auctionBytecode g s0) := by
   obtain ⟨h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13,
     h14, h15, h16, h17, h18, h19, h20, h21, h22, hp, hd⟩ := initializerBegins i
   have rdLoad := evm_run h with [
@@ -91,7 +93,7 @@ theorem initializerBeginSplit {I g s0 R mem aw rdata σ k C} (i : InitializerBod
   have rdTest := evm_run rdWord with [
     raw push2 ⟨256⟩ h3 (by evm_ov), raw swap1 h4 (by evm_ov), raw div h5 (by evm_ov),
     raw push1 ⟨255⟩ h6 (by evm_ov), raw and h7 (by evm_ov), raw iszero h8 (by evm_ov) ]
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     (UInt256.isZero (UInt256.land ⟨255⟩ (UInt256.div (solcSlotWord σ I ⟨0⟩) ⟨256⟩)) :: R)
     _ _ _ _ _ _ at rdTest
   rw [u256_land_comm ⟨255⟩] at rdTest
@@ -115,7 +117,7 @@ theorem initializerBeginSplit {I g s0 R mem aw rdata σ k C} (i : InitializerBod
     rw [initializerEntered, if_pos hi]
     obtain ⟨_, _, rdBody⟩ := rdStore.sstore hperm h22 (by evm_ov)
     rw [hp] at rdBody
-    change RD _ _ _ _ _ _ _ _ _ (sstoreAccountMap I.codeOwner σ ⟨0⟩
+    change RD fork _ _ _ _ _ _ _ _ _ (sstoreAccountMap I.codeOwner σ ⟨0⟩
       (UInt256.lor ⟨257⟩ (UInt256.land (UInt256.lnot ⟨65535⟩) (solcSlotWord σ I ⟨0⟩))))
       _ _ at rdBody
     rw [u256_land_comm (UInt256.lnot ⟨65535⟩), u256_lor_comm ⟨257⟩] at rdBody
@@ -138,12 +140,12 @@ theorem initializerEntered_ready_eq {σ : AccountMap} {I : ExecutionEnv}
     · rfl
 
 theorem initializerPrefixReadySplit {I g s0 R mem aw rdata σ k C} (i : InitializerBodySite)
-    (h : RD auctionBytecode I g s0 (initializerPc (initializerBodyGuard i))
+    (h : RD fork auctionBytecode I g s0 (initializerPc (initializerBodyGuard i))
       R mem aw rdata σ k C)
     (hr : InitializerReady σ I) (hov : R.length + 5 ≤ 1024) :
-    (    ∃ k' C', RD auctionBytecode I g s0 (initializerBodyPc i)
+    (    ∃ k' C', RD fork auctionBytecode I g s0 (initializerBodyPc i)
       (UInt256.isZero (initializingWord σ I) :: R) mem aw rdata σ k' C') ∨
-      (I.perm = false ∧ RDstatic auctionBytecode g s0) := by
+      (I.perm = false ∧ RDstatic fork auctionBytecode g s0) := by
   obtain ⟨_, _, rdGuard⟩ := initializerGuardReady (initializerBodyGuard i) h hr (by omega)
   rcases initializerBeginSplit i rdGuard hov with ⟨_, _, rdBody⟩ | ⟨hperm, hstatic⟩
   swap
@@ -153,10 +155,10 @@ theorem initializerPrefixReadySplit {I g s0 R mem aw rdata σ k C} (i : Initiali
   exact ⟨_, _, rdBody⟩
 
 theorem initializerPrefixReady {I g s0 R mem aw rdata σ k C} (i : InitializerBodySite)
-    (h : RD auctionBytecode I g s0 (initializerPc (initializerBodyGuard i))
+    (h : RD fork auctionBytecode I g s0 (initializerPc (initializerBodyGuard i))
       R mem aw rdata σ k C)
     (hr : InitializerReady σ I) (hperm : I.perm = true) (hov : R.length + 5 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 (initializerBodyPc i)
+    ∃ k' C', RD fork auctionBytecode I g s0 (initializerBodyPc i)
       (UInt256.isZero (initializingWord σ I) :: R) mem aw rdata σ k' C' :=
   (initializerPrefixReadySplit i h hr hov).resolve_right (by rintro ⟨hp, _⟩; simp [hperm] at hp)
 

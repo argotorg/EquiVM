@@ -3,6 +3,8 @@ import Benchmarks.CompoundIII.Comet.MemoryAllocate
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_074
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_037
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -30,9 +32,9 @@ theorem cometTransferReturnWord {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {value ret : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024) (hv : value ≠ ⟨0⟩)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨16216⟩ (value :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨16216⟩ (value :: ret :: R)
       mem aw out σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret R mem aw out σ k' C' := by
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret R mem aw out σ k' C' := by
   have r1 := cometWithExtendedAssetList_block_16216_fallthrough
     (immWords := wordsOf (immStore v)) (by change R.length + 1 + 2 ≤ 1024; omega)
     (isZero_eq_zero_of_ne hv) h
@@ -44,11 +46,11 @@ theorem cometTransferReturn {v : CometWithExtendedAssetListImmutables}
     {σ : AccountMap} {k C : Nat} {x0 x1 ret : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024) (hh : out.size < UInt256.size)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨16187⟩ (x0 :: x1 :: ret :: ⟨0⟩ :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨16187⟩ (x0 :: x1 :: ret :: ⟨0⟩ :: R)
       mem aw out σ k C) :
     (TransferReturnValid out ∧ ∃ aw' k' C',
-      RD (deployedRuntime v) ee g s0 ret R (transferReplyMemory mem out) aw' out σ k' C') ∨
-    (¬ TransferReturnValid out ∧ RDrev (deployedRuntime v) g s0) := by
+      RD fork (deployedRuntime v) ee g s0 ret R (transferReplyMemory mem out) aw' out σ k' C') ∨
+    (¬ TransferReturnValid out ∧ RDrev fork (deployedRuntime v) g s0) := by
   by_cases hz : out.size = 0
   · have r1 := cometWithExtendedAssetList_block_16187_taken
       (immWords := wordsOf (immStore v)) (by change R.length + 2 + 3 ≤ 1024; omega)
@@ -75,7 +77,7 @@ theorem cometTransferReturn {v : CometWithExtendedAssetListImmutables}
         (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r1
       have r3 := cometWithExtendedAssetList_block_16208
         (immWords := wordsOf (immStore v)) (by omega) (by change 0 + 32 ≤ out.size; omega) r2
-      change RD _ _ _ _ ⟨16216⟩
+      change RD fork _ _ _ _ ⟨16216⟩
         (memLoad ⟨0⟩ (out.write 0 mem 0 32) :: ret :: R) _ _ _ _ _ _ at r3
       rw [returndataCopyWord mem out (by omega)] at r3
       by_cases hw : calldataWord out 0 = ⟨0⟩
@@ -108,13 +110,13 @@ theorem cometTransferResponse {v : CometWithExtendedAssetListImmutables}
     (hstack : R.length + 9 ≤ 1024) (hh : out.size < UInt256.size)
     (hb : ptr.toNat < 2^64)
     (hret : (D_J (deployedRuntime v) 0).contains ret = true)
-    (h : RD (deployedRuntime v) ee g s0 ⟨16176⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨16176⟩
       ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨0⟩ :: ptr :: ret :: ⟨0⟩ :: R)
       mem aw out σ k C) :
     (z = true ∧ TransferReturnValid out ∧ ∃ aw' k' C',
-      RD (deployedRuntime v) ee g s0 ret R
+      RD fork (deployedRuntime v) ee g s0 ret R
         (transferReplyMemory (writeWord mem 64 ptr) out) aw' out σ k' C') ∨
-    (¬ (z = true ∧ TransferReturnValid out) ∧ RDrev (deployedRuntime v) g s0) := by
+    (¬ (z = true ∧ TransferReturnValid out) ∧ RDrev fork (deployedRuntime v) g s0) := by
   cases z with
   | false =>
     have r1 := cometWithExtendedAssetList_block_16176_taken

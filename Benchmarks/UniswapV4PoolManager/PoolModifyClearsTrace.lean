@@ -1,6 +1,8 @@
 import Benchmarks.UniswapV4PoolManager.PoolModifyClearTrace
 import Benchmarks.UniswapV4PoolManager.PoolModifyClears
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
@@ -9,22 +11,22 @@ set_option maxRecDepth 5000
 def poolModifyClearsMemory (mem : ByteArray) (id : UInt256) (p : PoolModifyParams) (fl fu : Bool) : ByteArray :=
   if p.delta < 0 then poolModifyClearMemory (poolModifyClearMemory mem id p.lower fl) id p.upper fu else mem
 
-def poolModifyClearsNormal (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
+def poolModifyClearsNormal (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
     (σ₀ : AccountMap) (mem rdata : ByteArray) (id fees ptr x0 x1 x2 x4 x5 x9 : UInt256)
     (p : PoolModifyParams) (R : List UInt256) (fl fu : Bool) (_ : Frame) (post : State) : Prop :=
   post.executionEnv = I ∧ post.σ₀ = σ₀ ∧ ∃ junk aw k C,
-    RD (deployedRuntime v) I g s0 ⟨6036⟩
+    RD fork (deployedRuntime v) I g s0 ⟨6036⟩
       (junk :: (poolModifyFeesOutputStack fees ptr x0 x1 x2 x4 x5 x9 p R).tail)
       (poolModifyClearsMemory mem id p fl fu) aw rdata post.accountMap k C
 
 def poolModifyClearsActiveWords (aw ptr : UInt256) (delta : Int) (fl fu : Bool) : UInt256 :=
   if delta < 0 then poolModifyClearActiveWords (poolModifyClearActiveWords aw ptr false fl) ptr true fu else aw
 
-def poolModifyClearsNormalAtAW (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
+def poolModifyClearsNormalAtAW (fork : Ethereum.Fork) (v : PoolManagerImmutables) (I : ExecutionEnv) (g : Sat256) (s0 : State)
     (σ₀ : AccountMap) (mem rdata : ByteArray) (id fees ptr x0 x1 x2 x4 x5 x9 : UInt256)
     (p : PoolModifyParams) (R : List UInt256) (fl fu : Bool) (aw : UInt256) (_ : Frame) (post : State) : Prop :=
   post.executionEnv = I ∧ post.σ₀ = σ₀ ∧ ∃ junk k C,
-    RD (deployedRuntime v) I g s0 ⟨6036⟩
+    RD fork (deployedRuntime v) I g s0 ⟨6036⟩
       (junk :: (poolModifyFeesOutputStack fees ptr x0 x1 x2 x4 x5 x9 p R).tail)
       (poolModifyClearsMemory mem id p fl fu) aw rdata post.accountMap k C
 
@@ -37,10 +39,10 @@ theorem poolModifyClearsExactTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : Sta
     (hptr : 64 ≤ ptr.toNat) (hspan : ptr.toNat+96 ≤ mem.size) (hfit : ptr.toNat+128 < UInt256.size)
     (hfl : memLoad ptr mem = UInt256.fromBool fl)
     (hfu : memLoad (ptr+UInt256.ofNat 64) mem = UInt256.fromBool fu)
-    (h : RD (deployedRuntime v) I g s0 (if p.delta < 0 then ⟨6620⟩ else ⟨6036⟩)
+    (h : RD fork (deployedRuntime v) I g s0 (if p.delta < 0 then ⟨6620⟩ else ⟨6036⟩)
       (poolModifyFeesOutputStack fees ptr x0 x1 x2 x4 x5 x9 p (extra :: R)) mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0
-      (poolModifyClearsNormalAtAW v I g s0 evm.σ₀ mem rdata id fees ptr x0 x1 x2 x4 x5 x9 p (extra :: R) fl fu (poolModifyClearsActiveWords aw ptr p.delta fl fu))
+    blockResultTrace fork (deployedRuntime v) g s0
+      (poolModifyClearsNormalAtAW fork v I g s0 evm.σ₀ mem rdata id fees ptr x0 x1 x2 x4 x5 x9 p (extra :: R) fl fu (poolModifyClearsActiveWords aw ptr p.delta fl fu))
       (fun _ _ => False) (poolModifyClearsResult f evm id p fl fu) := by
   by_cases hd : p.delta < 0
   · rw [if_pos hd] at h
@@ -79,10 +81,10 @@ theorem poolModifyClearsTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hptr : 64 ≤ ptr.toNat) (hspan : ptr.toNat+96 ≤ mem.size) (hfit : ptr.toNat+128 < UInt256.size)
     (hfl : memLoad ptr mem = UInt256.fromBool fl)
     (hfu : memLoad (ptr+UInt256.ofNat 64) mem = UInt256.fromBool fu)
-    (h : RD (deployedRuntime v) I g s0 (if p.delta < 0 then ⟨6620⟩ else ⟨6036⟩)
+    (h : RD fork (deployedRuntime v) I g s0 (if p.delta < 0 then ⟨6620⟩ else ⟨6036⟩)
       (poolModifyFeesOutputStack fees ptr x0 x1 x2 x4 x5 x9 p (extra :: R)) mem aw rdata evm.accountMap k C) :
-    blockResultTrace (deployedRuntime v) g s0
-      (poolModifyClearsNormal v I g s0 evm.σ₀ mem rdata id fees ptr x0 x1 x2 x4 x5 x9 p (extra :: R) fl fu)
+    blockResultTrace fork (deployedRuntime v) g s0
+      (poolModifyClearsNormal fork v I g s0 evm.σ₀ mem rdata id fees ptr x0 x1 x2 x4 x5 x9 p (extra :: R) fl fu)
       (fun _ _ => False) (poolModifyClearsResult f evm id p fl fu) := by
   have hr := poolModifyClearsExactTrace f v hstack hI hl hu hm hmem hptr hspan hfit hfl hfu h
   apply blockResultTrace_mono hr

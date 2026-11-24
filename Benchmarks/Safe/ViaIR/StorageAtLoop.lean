@@ -1,6 +1,8 @@
 import Benchmarks.Safe.ViaIR.StorageAtSource
 import Benchmarks.Safe.ViaIR.StorageAtAllocation
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.ViaIR.RuntimeBlocks
 
@@ -18,11 +20,11 @@ theorem safeStorageAtIndexAddress (i : Nat) (hi : i ≤ 2 ^ 64 - 1) :
 set_option maxHeartbeats 800000 in
 theorem safeStorageAtLoopNext (evm : EVM.State) {g s0 k C aw mem rdata i n offset}
     {R : List UInt256}
-    (h : RD safeBytecode evm.executionEnv g s0 ⟨6165⟩
+    (h : RD fork safeBytecode evm.executionEnv g s0 ⟨6165⟩
       (UInt256.ofNat i :: offset :: UInt256.ofNat n :: ⟨128⟩ :: R)
       mem aw rdata evm.accountMap k C)
     (hov : R.length + 9 ≤ 1024) (hn : n ≤ 2 ^ 64 - 1) (hi : i < n) :
-    ∃ aw' k' C', RD safeBytecode evm.executionEnv g s0 ⟨6165⟩
+    ∃ aw' k' C', RD fork safeBytecode evm.executionEnv g s0 ⟨6165⟩
       (UInt256.ofNat (i + 1) :: offset :: UInt256.ofNat n :: ⟨128⟩ :: R)
       (writeWord mem (160 + 32 * i) (storageAtWord evm offset i))
       aw' rdata evm.accountMap k' C' := by
@@ -56,10 +58,10 @@ theorem safeStorageAtLoopNext (evm : EVM.State) {g s0 k C aw mem rdata i n offse
 
 theorem safeStorageAtLoopExit {I g s0 σ k C aw mem rdata n offset}
     {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨6165⟩
+    (h : RD fork safeBytecode I g s0 ⟨6165⟩
       (UInt256.ofNat n :: offset :: UInt256.ofNat n :: ⟨128⟩ :: R) mem aw rdata σ k C)
     (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD safeBytecode I g s0 ⟨6173⟩
+    ∃ k' C', RD fork safeBytecode I g s0 ⟨6173⟩
       (UInt256.ofNat n :: offset :: UInt256.ofNat n :: ⟨128⟩ :: R) mem aw rdata σ k' C' := by
   have h' := safeRuntime_block_6165_fallthrough (by simp; omega)
     (ult_zero (by omega)) h
@@ -67,7 +69,7 @@ theorem safeStorageAtLoopExit {I g s0 σ k C aw mem rdata n offset}
 
 theorem safeStorageAtLoop (evm : EVM.State) {g s0 k C aw mem rdata n offset locals}
     {doneWords : List UInt256} {fuel : Nat} {R : List UInt256}
-    (h : RD safeBytecode evm.executionEnv g s0 ⟨6165⟩
+    (h : RD fork safeBytecode evm.executionEnv g s0 ⟨6165⟩
       (UInt256.ofNat doneWords.length :: offset :: UInt256.ofNat n :: ⟨128⟩ :: R)
       mem aw rdata evm.accountMap k C)
     (hov : R.length + 10 ≤ 1024)
@@ -76,11 +78,11 @@ theorem safeStorageAtLoop (evm : EVM.State) {g s0 k C aw mem rdata n offset loca
     (hl : StorageAtLocals locals offset (UInt256.ofNat n) doneWords)
     (hn : n ≤ 2 ^ 64 - 1) (hf : doneWords.length + fuel = n) :
     ∃ words' locals' mem' aw' k' C',
-      ExecStmt config { contract := contract, locals := locals } evm storageAtLoop
+      ExecStmt fork config { contract := contract, locals := locals } evm storageAtLoop
         (.ok { contract := contract, locals := locals' } evm) ∧
       StorageAtLocals locals' offset (UInt256.ofNat n) words' ∧
       AddressArrayMemory mem' n words' (UInt256.ofNat (32 * n)) ∧
-      RD safeBytecode evm.executionEnv g s0 ⟨6173⟩
+      RD fork safeBytecode evm.executionEnv g s0 ⟨6173⟩
         (UInt256.ofNat n :: offset :: UInt256.ofNat n :: ⟨128⟩ :: R)
         mem' aw' rdata evm.accountMap k' C' := by
   induction fuel generalizing doneWords locals mem aw k C with
@@ -96,7 +98,7 @@ theorem safeStorageAtLoop (evm : EVM.State) {g s0 k C aw mem rdata n offset loca
       have hi : doneWords.length < n := by omega
       have hcond := safeStorageAtCondition evm hl
       rw [ulit_toNat' n (by change n < 2 ^ 256; omega)] at hcond
-      have hsrc := safeStorageAtStep evm hl (by change doneWords.length + 1 < 2 ^ 256; omega)
+      have hsrc := safeStorageAtStep (fork := fork) evm hl (by change doneWords.length + 1 < 2 ^ 256; omega)
       obtain ⟨aw₁, k₁, C₁, h₁⟩ := safeStorageAtLoopNext evm h (by simp; omega) hn hi
       have hm₁ := hm.write doneWords.length (storageAtWord evm offset doneWords.length) hi
       have hset : (doneWords ++ List.replicate (fuel + 1) (⟨0⟩ : UInt256)).set

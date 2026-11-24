@@ -1,5 +1,7 @@
 import Benchmarks.UniswapV3.Pool.BitmapNextComputeSource
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV3.Pool
 set_option maxRecDepth 10000
@@ -47,7 +49,7 @@ theorem bitmapNextComputedGet (imms locals : Store) (compressed spacing : Int)
 
 theorem bitmapNextBranchSource (imms : Store) (evm : EVM.State)
     (tick spacing : Int) (lte : Bool) :
-    ExecBlock config (bitmapNextPrefixFrame imms tick spacing lte) evm (bitmapNextBranch lte)
+    ExecBlock fork config (bitmapNextPrefixFrame imms tick spacing lte) evm (bitmapNextBranch lte)
       (.ok (bitmapNextReadyFrame imms evm tick spacing lte) evm) := by
   rw [← List.take_append_drop 3 (bitmapNextBranch lte)]
   apply execBlock_append_ok (bitmapNextPositionSource imms evm tick spacing lte)
@@ -58,10 +60,10 @@ theorem bitmapNextBranchSource (imms : Store) (evm : EVM.State)
   let locals := (bitmapNextCondFrame imms evm tick spacing lte).locals
   let compressed := bitmapNextCompressed tick spacing
   let masked := bitmapNextMasked evm compressed lte
-  have hcompute := bitmapNextComputeSource imms locals evm compressed spacing lte masked
+  have hcompute := bitmapNextComputeSource (fork := fork) imms locals evm compressed spacing lte masked
     hc hs hb hm hi hh
   obtain ⟨hcond, hnext, _⟩ := bitmapNextComputedGet imms locals compressed spacing lte masked
-  have ha : ExecStmt config (bitmapNextComputedFrame imms locals compressed spacing lte masked) evm
+  have ha : ExecStmt fork config (bitmapNextComputedFrame imms locals compressed spacing lte masked) evm
       (.assign .localVar ⟨"next", []⟩ (.var (bitmapNextCondName lte)))
       (.ok (bitmapNextReadyFrame imms evm tick spacing lte) evm) :=
     ExecStmt.assign (hperm := by first | exact Or.inl rfl | assumption | exact Or.inr ‹_›) (evalExpr_var_get hcond) (assignLocalVarBase_frame (hnext.trans hn))
@@ -86,7 +88,7 @@ theorem bitmapNextReturns (imms : Store) (evm : EVM.State) (tick spacing : Int) 
     (hn : spacing ≠ 0) :
     let compressed := bitmapNextCompressed tick spacing
     let masked := bitmapNextMasked evm compressed lte
-    ExecFuncBody config (bitmapNextFrame imms tick spacing lte) evm bitmapNextFunction.body
+    ExecFuncBody fork config (bitmapNextFrame imms tick spacing lte) evm bitmapNextFunction.body
       (.returned (bitmapNextReadyFrame imms evm tick spacing lte) evm
         (some [.int (bitmapNextResult compressed spacing lte masked),
           .bool (decide (masked ≠ ⟨0⟩))])) := by
@@ -94,14 +96,14 @@ theorem bitmapNextReturns (imms : Store) (evm : EVM.State) (tick spacing : Int) 
   apply ExecFuncBody.execBlockRet
   rw [← List.take_append_drop 4 bitmapNextFunction.body]
   apply execBlock_append_ok (bitmapNextPrefixSource imms evm tick spacing lte hn)
-  have hbranch := bitmapNextBranchSource imms evm tick spacing lte
+  have hbranch := bitmapNextBranchSource (fork := fork) imms evm tick spacing lte
   have he := evalExpr_var_get (cfg := config) (evm := evm)
     (bitmapNextPrefixGet imms tick spacing lte).2.2.1
   have hnxt := evalExpr_var_get (cfg := config) (evm := evm)
     (bitmapNextReadyGet imms evm tick spacing lte).1
   have hini := evalExpr_var_get (cfg := config) (evm := evm)
     (bitmapNextReadyGet imms evm tick spacing lte).2
-  have hr : ExecStmt config (bitmapNextReadyFrame imms evm tick spacing lte) evm
+  have hr : ExecStmt fork config (bitmapNextReadyFrame imms evm tick spacing lte) evm
       (.return [(.var "next"), (.var "initialized")])
       (.returned (bitmapNextReadyFrame imms evm tick spacing lte) evm
         (some [.int (bitmapNextResult (bitmapNextCompressed tick spacing) spacing lte

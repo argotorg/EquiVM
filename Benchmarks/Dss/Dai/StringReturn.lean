@@ -2,6 +2,8 @@ import Reasoning.Solc
 import Benchmarks.Dss.Dai.Dispatch
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -22,7 +24,7 @@ def daiVersionBytes : ByteArray :=
 /-- The Stele body pattern for Dai's constant dynamic string getters. -/
 theorem daiBytesLiteralBodyReturns (evm : EVM.State) (locals : Store) (bytes : ByteArray)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract evm locals
+    ExecTransitionBody fork config contract evm locals
       (nonpayable ++ [.return [.bytesLit bytes]])
       (.returned { contract := contract, locals := locals } evm (some [.bytes bytes])) := by
   simpa [nonpayable] using

@@ -1,6 +1,8 @@
 import Examples.UniswapV2Pair.Common
 import Reasoning.SteleBody
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -400,12 +402,12 @@ theorem uniswapBurnFunctionBody (evm : EVM.State) (holder : AccountAddress) (val
     (hbalance : value.toNat ≤ (burnFunctionFromBalanceWord evm holder).toNat)
     (hsupply : value.toNat ≤ (burnFunctionTotalSupplyWord evm holder value).toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecFuncBody config { contract := contract, locals := burnFunctionCallStore holder value } evm
+    ExecFuncBody fork config { contract := contract, locals := burnFunctionCallStore holder value } evm
       burnFunction.body
       (.returned { contract := contract, locals := burnFunctionAfterTotalSupplyStore evm holder value }
         (burnFunctionPostState evm holder value) none) := by
   refine ExecFuncBody.execBlockOK ?_
-  change ExecBlock config { contract := contract, locals := burnFunctionCallStore holder value } evm
+  change ExecBlock fork config { contract := contract, locals := burnFunctionCallStore holder value } evm
     [ .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef (.var "from"))),
       .require (.binary .ge (.var "fromBalance") (.var "value")),
       .assign .storage (balanceOfRef (.var "from"))
@@ -446,7 +448,7 @@ theorem uniswapBurnFunctionCallSuccess {caller : Frame} {evm : EVM.State}
     (hsupply : value.toNat ≤ (burnFunctionTotalSupplyWord evm holder value).toNat)
     (himm : caller.immutables = ∅ := by first | rfl | assumption)
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config caller evm (.internalCall "_burn" args retVar)
+    ExecStmt fork config caller evm (.internalCall "_burn" args retVar)
       (.ok (resumeAfterInternalCall caller retVar none) (burnFunctionPostState evm holder value)) := by
   exact internalCallFunctionReturn
     (cfg := config) (caller := caller) (evm := evm)
@@ -461,6 +463,6 @@ theorem uniswapBurnFunctionCallSuccess {caller : Frame} {evm : EVM.State}
     (bindParams_burnFunction_call holder value)
     (by
       simpa [hcontract, himm] using
-        (uniswapBurnFunctionBody (hperm := by assumption) evm holder value hbalance hsupply))
+        (uniswapBurnFunctionBody (fork := fork) (hperm := by assumption) evm holder value hbalance hsupply))
 
 end UniswapV2Pair

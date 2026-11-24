@@ -1,6 +1,8 @@
 import Benchmarks.Morpho.MorphoBlue.MulDivUpSource
 import Benchmarks.Morpho.MorphoBlue.ArithmeticRoutines
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.Morpho.MorphoBlue.Immutables
@@ -20,9 +22,9 @@ variable {v : MorphoImmutables} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 
 theorem morphoMulDivUpReachDenom (hstack : R.length + 12 ≤ 1024)
     (hf : x.toNat * y.toNat < UInt256.size)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14424) (x :: y :: d :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14424) (x :: y :: d :: ret :: R)
       mem aw out σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14434)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14434)
       (UInt256.mul x y :: d :: ret :: R) mem aw out σ k' C' := by
   have rd1 := morphoBlocks.morpho_block_14424 (immWords := wordsOf (immStore v))
     (by simp; omega) (by rw [morphoPatchedValidJumpsRuntime v]; jump_dest) h
@@ -30,9 +32,9 @@ theorem morphoMulDivUpReachDenom (hstack : R.length + 12 ≤ 1024)
     (by rw [morphoPatchedValidJumps v]; jump_dest) hf rd1
 
 theorem morphoMulDivUpReachAdd (hstack : R.length + 12 ≤ 1024) (hn : 1 ≤ d.toNat)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14434)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14434)
       (UInt256.mul x y :: d :: ret :: R) mem aw out σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 (UInt256.ofNat 12651)
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 12651)
       ([UInt256.mul x y, UInt256.sub d (UInt256.ofNat 1), UInt256.ofNat 2004, d,
         UInt256.ofNat 14109, ret] ++ R) mem aw out σ k' C' := by
   have rd1 := morphoBlocks.morpho_block_14434_fallthrough (immWords := wordsOf (immStore v))
@@ -44,9 +46,9 @@ theorem morphoMulDivUpReachAdd (hstack : R.length + 12 ≤ 1024) (hn : 1 ≤ d.t
 
 theorem morphoMulDivUpOk (hstack : R.length + 12 ≤ 1024)
     (hvalid : (D_J (deployedRuntime v) 0).contains ret = true) (hf : MulDivUpFits x y d)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14424) (x :: y :: d :: ret :: R)
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14424) (x :: y :: d :: ret :: R)
       mem aw out σ k C) :
-    ∃ k' C', RD (deployedRuntime v) ee g s0 ret (mulDivUpWord x y d :: R) mem aw out σ k' C' := by
+    ∃ k' C', RD fork (deployedRuntime v) ee g s0 ret (mulDivUpWord x y d :: R) mem aw out σ k' C' := by
   obtain ⟨k1, C1, rd1⟩ := morphoMulDivUpReachDenom (v := v) hstack hf.1 h
   obtain ⟨k2, C2, rd2⟩ := morphoMulDivUpReachAdd (v := v) hstack hf.2.1 rd1
   obtain ⟨k3, C3, rd3⟩ := morphoCheckedAddOk (v := v) (by simp; omega)
@@ -59,8 +61,8 @@ theorem morphoMulDivUpOk (hstack : R.length + 12 ≤ 1024)
   exact ⟨_, _, morphoBlocks.morpho_block_14109 (immWords := wordsOf (immStore v)) (by simp; omega) hvalid rd5⟩
 
 theorem morphoMulDivUpReverts (hstack : R.length + 12 ≤ 1024) (hf : ¬ MulDivUpFits x y d)
-    (h : RD (deployedRuntime v) ee g s0 (UInt256.ofNat 14424) (x :: y :: d :: ret :: R)
-      mem aw out σ k C) : RDrev (deployedRuntime v) g s0 := by
+    (h : RD fork (deployedRuntime v) ee g s0 (UInt256.ofNat 14424) (x :: y :: d :: ret :: R)
+      mem aw out σ k C) : RDrev fork (deployedRuntime v) g s0 := by
   by_cases hp : x.toNat * y.toNat < UInt256.size
   swap
   · have rd1 := morphoBlocks.morpho_block_14424 (immWords := wordsOf (immStore v))

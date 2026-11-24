@@ -2,6 +2,8 @@ import Benchmarks.UniswapV3.Pool.SwapCrossBranch
 import Benchmarks.UniswapV3.Pool.SwapPriceChanged
 import Benchmarks.UniswapV3.Pool.SwapCrossGuard
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables Benchmarks.UniswapV3.Pool.Immutables
 namespace Benchmarks.UniswapV3.Pool
@@ -13,7 +15,7 @@ theorem swapIterationTailX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     {mem rdata : ByteArray} {R : List UInt256} {v : UniswapV3PoolImmutables}
     (a : SwapArgs) (c : SwapCacheData) (s : SwapStateData) (d : SwapIterationData)
     (initial : EVM.State) (frame : Frame) (evm : EVM.State)
-    (rd : RD (deployedRuntime v) ee g s0 ⟨3637⟩
+    (rd : RD fork (deployedRuntime v) ee g s0 ⟨3637⟩
       (q :: swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
       mem aw rdata σ k C)
     (hsource : SourceState s0 ee σ evm) (hf : frame.contract = contract)
@@ -37,10 +39,10 @@ theorem swapIterationTailX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}
     (hqfree : q.toNat + 224 ≤ free.toNat) (hb : free.toNat ≤ 2 ^ 200)
     (hbudget : MemoryGasBound aw C allowance) (hallowance : allowance ≤ 2 ^ 200)
     (hcover : free.toNat ≤ aw.toNat * 32 + 32) (hov : R.length + 67 ≤ 1024) :
-    (X (g.toNat + 1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass) ∨
-    (ExecStmt config frame evm swapLoopBody[16]! .reverted ∧
-      (RDrev (deployedRuntime v) g s0 ∨ RDinvalid (deployedRuntime v) g s0)) ∨
-    Nonempty (SwapTailExit v ee g s0 rdata ⟨3993⟩ q p cache
+    (X fork (g.toNat + 1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass) ∨
+    (ExecStmt fork config frame evm swapLoopBody[16]! .reverted ∧
+      (RDrev fork (deployedRuntime v) g s0 ∨ RDinvalid fork (deployedRuntime v) g s0)) ∨
+    Nonempty (SwapTailExit fork v ee g s0 rdata ⟨3993⟩ q p cache
       (q :: swapLoopWords a p exactWord cache snap dataStart dataLength ret R)
       d [swapLoopBody[16]!] frame evm mem aw free C) := by
   have he := evalSwapCrossGuard (evm := evm) s d hsget hdget

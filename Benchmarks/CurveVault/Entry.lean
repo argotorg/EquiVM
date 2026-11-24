@@ -2,6 +2,8 @@ import Benchmarks.CurveVault.Common
 import Benchmarks.CurveVault.RuntimeBlocks_001
 import Benchmarks.CurveVault.RuntimeBlocks_031
 
+variable {fork : Ethereum.Fork}
+
 /-! The shared calldata/payability guard and computed jump at pcs 73–98. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
@@ -18,8 +20,8 @@ theorem vaultGuardPass {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hvalid : (D_J vaultBytecode 0).contains pc = true)
     (hvalue : I.weiValue = ⟨0⟩) (hsize : I.calldata.size < UInt256.size)
     (hargs : minSize ≤ I.calldata.size)
-    (h : RD vaultBytecode I g s0 ⟨73⟩ (entry :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD vaultBytecode I g s0 pc (entry :: R) mem aw rdata σ k' C' := by
+    (h : RD fork vaultBytecode I g s0 ⟨73⟩ (entry :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork vaultBytecode I g s0 pc (entry :: R) mem aw rdata σ k' C' := by
   have hlt : UInt256.lt (UInt256.ofNat I.calldata.size) (UInt256.ofNat minSize) = ⟨0⟩ := by
     apply ult_zero
     rw [ulit_toNat' _ hsize, ulit_toNat' _ (Nat.lt_of_le_of_lt hargs hsize)]
@@ -36,8 +38,8 @@ theorem vaultGuardNonpayable {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length + 5 ≤ 1024)
     (hpayable : UInt256.land (UInt256.ofNat 1) entry = ⟨1⟩)
     (hvalue : I.weiValue ≠ ⟨0⟩)
-    (h : RD vaultBytecode I g s0 ⟨73⟩ (entry :: R) mem aw rdata σ k C) :
-    RDrev vaultBytecode g s0 := by
+    (h : RD fork vaultBytecode I g s0 ⟨73⟩ (entry :: R) mem aw rdata σ k C) :
+    RDrev fork vaultBytecode g s0 := by
   have rdRevert := vaultBlocks.vault_block_73_taken hstack
     (by rw [hpayable, u256_one_mul, u256_lor_comm]; exact u256_lor_ne_zero_right hvalue)
     (by native_decide) h
@@ -49,8 +51,8 @@ theorem vaultGuardShort {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length + 5 ≤ 1024)
     (hminimum : UInt256.land (UInt256.ofNat 254) entry = UInt256.ofNat minSize)
     (hbound : minSize < UInt256.size) (hshort : I.calldata.size < minSize)
-    (h : RD vaultBytecode I g s0 ⟨73⟩ (entry :: R) mem aw rdata σ k C) :
-    RDrev vaultBytecode g s0 := by
+    (h : RD fork vaultBytecode I g s0 ⟨73⟩ (entry :: R) mem aw rdata σ k C) :
+    RDrev fork vaultBytecode g s0 := by
   have hlt : UInt256.lt (UInt256.ofNat I.calldata.size) (UInt256.ofNat minSize) = ⟨1⟩ := by
     apply ult_one
     rw [ulit_toNat' _ (Nat.lt_trans hshort hbound), ulit_toNat' _ hbound]
@@ -73,14 +75,14 @@ theorem vaultGuardedEntry {σ σ₀ A I} {g : UInt256} {t : TransitionDecl}
     (hshort : I.calldata.size < minSize →
       config.externalABI.decodeCalldata? (t.params.map Param.name)
         (transitionSignature t).paramTypes I.calldata = none)
-    (hreach : ∃ k C, RD vaultBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vaultBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨73⟩ [entry, solcSelectorWord I]
       mem ⟨1⟩ ByteArray.empty σ k C)
     (htrace : I.weiValue = ⟨0⟩ → minSize ≤ I.calldata.size → ∀ k C,
-      RD vaultBytecode I (Sat256.ofUInt256 g)
+      RD fork vaultBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) pc [entry, solcSelectorWord I]
-        mem ⟨1⟩ ByteArray.empty σ k C → runtimeRefinementFor config contract σ σ₀ g A I) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+        mem ⟨1⟩ ByteArray.empty σ k C → runtimeRefinementFor fork config contract σ σ₀ g A I) :
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   obtain ⟨k, C, rd73⟩ := hreach
   by_cases hvalue : I.weiValue = ⟨0⟩
   · by_cases hargs : minSize ≤ I.calldata.size
@@ -111,15 +113,15 @@ theorem vaultNullaryReturn {σ σ₀ A I} {g : UInt256} {t : TransitionDecl}
     (hminimum : UInt256.land (UInt256.ofNat 254) entry = UInt256.ofNat 4)
     (htarget : UInt256.land (UInt256.ofNat 65535) (UInt256.shiftRight entry (UInt256.ofNat 8)) = pc)
     (hvalid : (D_J vaultBytecode 0).contains pc = true)
-    (hreach : ∃ k C, RD vaultBytecode I (Sat256.ofUInt256 g)
+    (hreach : ∃ k C, RD fork vaultBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨73⟩ [entry, solcSelectorWord I]
       mem ⟨1⟩ ByteArray.empty σ k C)
-    (htrace : ∀ k C, RD vaultBytecode I (Sat256.ofUInt256 g)
+    (htrace : ∀ k C, RD fork vaultBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) pc [entry, solcSelectorWord I]
       mem ⟨1⟩ ByteArray.empty σ k C →
-      RDret vaultBytecode (Sat256.ofUInt256 g)
+      RDret fork vaultBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ out) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   apply vaultGuardedEntry hcode hsize hd hbody hpayable hminimum
     (by decide +kernel : 4 < UInt256.size) htarget hvalid
     (fun h => False.elim (by omega)) hreach
@@ -130,7 +132,7 @@ theorem vaultNullaryReturn {σ σ₀ A I} {g : UInt256} {t : TransitionDecl}
       (t.params.map (fun p => p.ty)) I.calldata = some ∅
     rw [hparams]
     exact decodeCalldataWithMode_empty_ok hsz
-  have hsource := nonpayableReturnExprBodyReturns (contract := contract)
+  have hsource := nonpayableReturnExprBodyReturns (fork := fork) (contract := contract)
     (locals := (∅ : Store)) hvalue heval
   rw [← hbody] at hsource
   exact (htrace k C rdBody).reEquivExecution hcode hd hdec hsource hencode

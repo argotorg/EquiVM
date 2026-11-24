@@ -2,25 +2,27 @@ import Benchmarks.Safe.V0_cdb2eb5.ExecGuardCallTrace
 import Benchmarks.Safe.V0_cdb2eb5.ExecGuardCalldataStack
 import Benchmarks.Safe.V0_cdb2eb5.Blocks.Runtime_019
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Safe.V0_cdb2eb5.RuntimeBlocks
 
 namespace Benchmarks.Safe.V0_cdb2eb5
 
-def ExecTransactionGuardOutcome (p : ExecTransactionInput) (initial current : EVM.State)
+def ExecTransactionGuardOutcome (fork : Ethereum.Fork) (p : ExecTransactionInput) (initial current : EVM.State)
     (I : ExecutionEnv) (g : Sat256) (s0 : State) (src ptr : Nat) (R : List UInt256) : Prop :=
-  (RDrev safeBytecode g s0 ∧ ExecBlock config (execSignedFrame p initial) current
+  (RDrev fork safeBytecode g s0 ∧ ExecBlock fork config (execSignedFrame p initial) current
     (exectransactionTransition.body.drop 6) .reverted) ∨
   ∃ locals evm' mem' aw' out k' C',
-    (∀ result, ExecBlock config { contract := contract, locals := locals } evm'
+    (∀ result, ExecBlock fork config { contract := contract, locals := locals } evm'
       (exectransactionTransition.body.drop 8) result →
-      ExecBlock config (execSignedFrame p initial) current
+      ExecBlock fork config (execSignedFrame p initial) current
         (exectransactionTransition.body.drop 6) result) ∧
     ExecTransactionLocals p locals ∧
     locals["guard"]? = some (.address (AccountAddress.ofUInt256 (execGuardWord current))) ∧
     locals["txHash"]? = some (wordBytes32Value (execTransactionHash p initial)) ∧
     evm'.executionEnv = I ∧ evm'.σ₀ = s0.σ₀ ∧
-    RD safeBytecode I g s0 ⟨3664⟩
+    RD fork safeBytecode I g s0 ⟨3664⟩
       (execGuardSaved p src ⟨128⟩ (execGuardWord current) (execTransactionHash p initial) R)
       mem' aw' out evm'.accountMap k' C' ∧
     memLoad ⟨64⟩ mem' = UInt256.ofNat ptr ∧ memLoad ⟨96⟩ mem' = ⟨0⟩ ∧ 128 ≤ mem'.size
@@ -28,7 +30,7 @@ def ExecTransactionGuardOutcome (p : ExecTransactionInput) (initial current : EV
 set_option maxRecDepth 100000 in
 theorem safeExecTransactionGuard (initial evm : EVM.State)
     {I g s0 σ k C aw mem rdata ptr dataLen sigLen} {R : List UInt256}
-    (h : RD safeBytecode I g s0 ⟨3494⟩
+    (h : RD fork safeBytecode I g s0 ⟨3494⟩
       (execSignatureSaved I.calldata dataLen ⟨128⟩
         (execTransactionHash (execTransactionCalldataInput I.calldata dataLen sigLen) initial) R)
       mem aw rdata σ k C)
@@ -40,7 +42,7 @@ theorem safeExecTransactionGuard (initial evm : EVM.State)
     (hf : memLoad ⟨64⟩ mem = UInt256.ofNat ptr) (hz : memLoad ⟨96⟩ mem = ⟨0⟩)
     (ha : 128 + 32 + (execTransactionCalldataInput I.calldata dataLen sigLen).signatures.size ≤ ptr)
     (hp : ptr < 2 ^ 220) (hov : R.length + 48 ≤ 1024) :
-    ExecTransactionGuardOutcome (execTransactionCalldataInput I.calldata dataLen sigLen)
+    ExecTransactionGuardOutcome fork (execTransactionCalldataInput I.calldata dataLen sigLen)
       initial evm I g s0 (execTransactionDataStart I.calldata) ptr R := by
   let p := execTransactionCalldataInput I.calldata dataLen sigLen
   have hn : p.tx.payload.size = dataLen := execTransactionPayloadSize hb
@@ -66,13 +68,13 @@ theorem safeExecTransactionGuard (initial evm : EVM.State)
       hee, hacc]
   obtain ⟨_, _, h₁⟩ := safeRuntime_block_3494
     (by simp [execSignatureSaved, execTransactionDecodedStack]; omega) (by jump_dest) h
-  change RD safeBytecode I g s0 ⟨3535⟩
+  change RD fork safeBytecode I g s0 ⟨3535⟩
     ((σ.get? I.codeOwner |>.option (⟨0⟩ : UInt256)
       (fun ac ↦ ac.storage.getD guardSlot ⟨0⟩)) :: ⟨0⟩ ::
       execSignatureSaved I.calldata dataLen ⟨128⟩ (execTransactionHash p initial) R)
     mem aw rdata σ _ _ at h₁
   rw [hload] at h₁
-  have hs := safeExecGuardLoad p initial evm
+  have hs := safeExecGuardLoad (fork := fork) p initial evm
   have hl := execGuardFrame_locals p initial evm
   have hg : (execGuardFrame p initial evm).locals["guard"]? =
       some (.address (AccountAddress.ofUInt256 (execGuardWord evm))) := by
@@ -85,14 +87,14 @@ theorem safeExecTransactionGuard (initial evm : EVM.State)
   · have h₂ := safeRuntime_block_3535_taken
       (by simp [execSignatureSaved, execTransactionDecodedStack]; omega)
       (by rw [safeAddressMask, hzero]; decide) (by jump_dest) h₁
-    change RD safeBytecode I g s0 _
+    change RD fork safeBytecode I g s0 _
       (execGuardWord evm :: execSignatureSaved I.calldata dataLen ⟨128⟩
         (execTransactionHash p initial) R) _ _ _ _ _ _ at h₂
     rw [← execGuardSaved_calldata hb, ← hacc] at h₂
     have hgzero : AccountAddress.ofUInt256 (execGuardWord evm) = 0 := by
       rw [accountAddress_ofUInt256_eq_ofNat_toNat, addressOfNat_eq_of_masked_word, hzero]
       rfl
-    have hskip : ExecStmt config (execGuardFrame p initial evm) evm execGuardCheck
+    have hskip : ExecStmt fork config (execGuardFrame p initial evm) evm execGuardCheck
         (.ok (execGuardFrame p initial evm) evm) :=
       optionalCheckedCallZero (evalLocalValue (hgzero ▸ hg))
     exact .inr ⟨_, evm, mem, _, rdata, _, _,
@@ -101,7 +103,7 @@ theorem safeExecTransactionGuard (initial evm : EVM.State)
   have h₂ := safeRuntime_block_3535_fallthrough
     (by simp [execSignatureSaved, execTransactionDecodedStack]; omega)
     (by rw [safeAddressMask]; exact isZero_eq_zero_of_ne hzero) h₁
-  change RD safeBytecode I g s0 _
+  change RD fork safeBytecode I g s0 _
     (execGuardWord evm :: execSignatureSaved I.calldata dataLen ⟨128⟩
       (execTransactionHash p initial) R) _ _ _ _ _ _ at h₂
   rw [← execGuardSaved_calldata hb] at h₂

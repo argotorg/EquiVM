@@ -1,15 +1,17 @@
 import Benchmarks.Auction.BidStorage
 import Benchmarks.Auction.Log2
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
 theorem bidEvent {I g s0 extended bidder snap noun ret R mem aw rdata acc k C}
-    (h : RD auctionBytecode I g s0 ⟨1792⟩ (extended :: bidder :: snap :: noun :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨1792⟩ (extended :: bidder :: snap :: noun :: ret :: R)
       mem aw rdata acc k C)
     (hperm : I.perm = true) (hov : R.length + 12 ≤ 1024) :
-    ∃ mem' aw' k' C', RD auctionBytecode I g s0 ⟨1859⟩
+    ∃ mem' aw' k' C', RD fork auctionBytecode I g s0 ⟨1859⟩
       (extended :: bidder :: snap :: noun :: ret :: R) mem' aw' rdata acc k' C' := by
   have rd1802 := evm_run h with [jumpdest, dup3,
     raw mloadSymbolic (by native_decide) (by evm_ov), push1 ⟨64⟩, dup1,
@@ -27,10 +29,10 @@ theorem bidEvent {I g s0 extended bidder snap noun ret R mem aw rdata acc k C}
   exact ⟨_, _, _, _, hr⟩
 
 theorem bidExtendedEvent {I g s0 extended bidder snap noun ret R mem aw rdata acc k C}
-    (h : RD auctionBytecode I g s0 ⟨1865⟩ (extended :: bidder :: snap :: noun :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨1865⟩ (extended :: bidder :: snap :: noun :: ret :: R)
       mem aw rdata acc k C)
     (hperm : I.perm = true) (hov : R.length + 11 ≤ 1024) :
-    ∃ mem' aw' k' C', RD auctionBytecode I g s0 ⟨1923⟩
+    ∃ mem' aw' k' C', RD fork auctionBytecode I g s0 ⟨1923⟩
       (extended :: bidder :: snap :: noun :: ret :: R) mem' aw' rdata acc k' C' := by
   have rd1878 := evm_run h with [dup3, raw mloadSymbolic (by native_decide) (by evm_ov),
     push1 ⟨96⟩, dup5, add, raw mloadSymbolic (by native_decide) (by evm_ov), push1 ⟨64⟩,
@@ -45,10 +47,10 @@ theorem bidExtendedEvent {I g s0 extended bidder snap noun ret R mem aw rdata ac
   exact ⟨_, _, _, _, hr⟩
 
 theorem bidEvents {I g s0 extended bidder snap noun ret R mem aw rdata acc k C}
-    (h : RD auctionBytecode I g s0 ⟨1792⟩ (extended :: bidder :: snap :: noun :: ret :: R)
+    (h : RD fork auctionBytecode I g s0 ⟨1792⟩ (extended :: bidder :: snap :: noun :: ret :: R)
       mem aw rdata acc k C)
     (hperm : I.perm = true) (hov : R.length + 12 ≤ 1024) :
-    ∃ mem' aw' k' C', RD auctionBytecode I g s0 ⟨1923⟩
+    ∃ mem' aw' k' C', RD fork auctionBytecode I g s0 ⟨1923⟩
       (extended :: bidder :: snap :: noun :: ret :: R) mem' aw' rdata acc k' C' := by
   obtain ⟨_, _, _, _, rd1859⟩ := bidEvent h hperm hov
   have rd1864 := evm_run rd1859 with [dup1, iszero, push2 ⟨1923⟩]

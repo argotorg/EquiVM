@@ -4,6 +4,8 @@ import Benchmarks.CompoundIII.Comet.RuntimeBlocks_057
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_072
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables cometWithExtendedAssetListBlocks
 
@@ -30,11 +32,11 @@ theorem cometWithdrawBaseRead {v : CometWithExtendedAssetListImmutables}
     (src : AccountAddress) (hstack : R.length + 13 ≤ 1024)
     (hfree : memLoad (UInt256.ofNat 64) mem = free) (hmem : 96 ≤ mem.size)
     (hb : free.toNat + 160 < 2^64) (hs : SourceState s0 ee σ evm)
-    (h : RD (deployedRuntime v) ee g s0 ⟨15748⟩
+    (h : RD fork (deployedRuntime v) ee g s0 ⟨15748⟩
       (recipient :: amount :: EVM.word src.val :: ret :: R) mem aw rdata σ k C) :
     ∃ aw' k' C',
       UserBasicMemory (withdrawBaseReadMemory mem free evm src) free (withdrawBaseBasic evm src) ∧
-      RD (deployedRuntime v) ee g s0 ⟨15776⟩
+      RD fork (deployedRuntime v) ee g s0 ⟨15776⟩
         (UInt256.signextend (UInt256.ofNat 12) (withdrawBaseBasic evm src).principal ::
           UInt256.ofNat 15852 :: free :: recipient :: amount :: EVM.word src.val :: ret :: R)
         (withdrawBaseReadMemory mem free evm src) aw' rdata σ k' C' := by
@@ -67,7 +69,7 @@ theorem cometWithdrawBaseRead {v : CometWithExtendedAssetListImmutables}
   have r5 := cometWithExtendedAssetList_block_15762
     (immWords := wordsOf (immStore v)) (by change R.length + 4 + 5 ≤ 1024; omega)
     (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) r4
-  change RD _ _ _ _ _ (UInt256.signextend (UInt256.ofNat 12)
+  change RD fork _ _ _ _ _ (UInt256.signextend (UInt256.ofNat 12)
     (memLoad free (withdrawBaseReadMemory mem free evm src)) :: UInt256.ofNat 15852 :: free ::
     recipient :: amount :: EVM.word src.val :: ret :: R) _ _ _ _ _ _ at r5
   rw [hpr, signextend104_idem] at r5
