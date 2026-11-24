@@ -23,7 +23,7 @@ jobs:
       # Pin the unreleased fix after v1.6.0 that also pins nested cache actions:
       # https://github.com/leanprover/lean-action/pull/193
       - name: Build libraries
-        uses: leanprover/lean-action@fe408643ea7367d8c0404a8be3975bb145f5fb64
+        uses: leanprover/lean-action@ba3fdfe5c4476c925da13bf11a005ddb47e47aee
         with:
           build-args: EquiVM EVM ABI Stele Reasoning Proofs
           use-github-cache: true
