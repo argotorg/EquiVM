@@ -96,9 +96,9 @@ word, nothing, revert, return zero, write, return two words). For a contract wit
 function (see `tinyImmutable`); when the constructor fixes the immutables itself,
 `deployedRuntime := true` takes the runtime from a constructor run instead (see `vestingWallet`).
 `gas` bounds the EVM budget per case (`safe` lowers it: linked-list walks over random storage
-cycle until out of gas). A fixture needs `Spec.lean` and `Bytecode.lean`; `scripts/scaffold.py
-compile` and `lean` produce the bytecode module and `scripts/sol2stele.py` a draft of the
-specification.
+cycle until out of gas). A fixture needs `Spec.lean` and `Bytecode.lean` (and
+`CreationBytecode.lean` for its creation code); `scripts/scaffold.py compile` and `lean` produce
+the bytecode modules and `scripts/sol2stele.py` a draft of the specification.
 
 ## Towards the equivalence proof
 

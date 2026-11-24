@@ -159,8 +159,9 @@ bytecode before attempting a proof.
 - [`ERC20.sol`](Examples/ERC20/ERC20.sol) — the Solidity source, compiled with solc 0.8.35
   (optimizer off).
 - [`Bytecode.lean`](Examples/ERC20/Bytecode.lean) — the exact compiled bytecode
-  as a Lean byte array, the verified jump-destination table, and the six
-  function-selector theorems.
+  as a kernel-checked listing with the jump-destination table;
+  [`Selectors.lean`](Examples/ERC20/Selectors.lean) — the six function-selector
+  theorems; [`Initcode.lean`](Examples/ERC20/Initcode.lean) — the hand-assembled initcode.
 - [`Spec.lean`](Examples/ERC20/Spec.lean) /
   [`SpecSyntax.lean`](Examples/ERC20/SpecSyntax.lean) — the Stele specification,
   and the same spec in surface syntax, proved definitionally equal.
@@ -218,7 +219,7 @@ bundles this with the constructor equivalence for the creation code.
 Checking the proof can be done with:
 
 ```sh
-lake build Examples.ERC20.Correct Examples.ERC20.SpecSyntax Proofs.ERC20.Bytecode
+lake build Examples.ERC20.Correct Examples.ERC20.SpecSyntax Proofs.ERC20.BytecodeInvariant
 lake env lean --run Examples/ERC20/SpecTests.lean
 ```
 

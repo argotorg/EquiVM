@@ -27,8 +27,9 @@
        to confirm the copy. Commit: "Benchmarks: Safe copy Main to ViaIR".
        From here on work only in `Benchmarks/Safe/ViaIR/`; never touch `Main`.
     1. Recompile with the command in the copy's README, adding `--via-ir` and changing nothing
-       else. Replace `runtime.hex`, `creation.hex`, `Safe.abi.json`; regenerate `Bytecode.lean`
-       (same names, same format); `contracts/` and `sources.sha256` stay as they are. Then run
+       else. Replace `runtime.hex`, `creation.hex`, `Safe.abi.json`; regenerate `Bytecode.lean` and
+       `CreationBytecode.lean` (`scripts/gen_listing.py --dir Benchmarks/Safe/ViaIR --force`, then
+       again with `--creation`); `contracts/` and `sources.sha256` stay as they are. Then run
        `python3 scripts/audit_safe.py --dir Benchmarks/Safe/ViaIR --via-ir --solc <solc> --write`,
        which regenerates the block summaries (`Blocks/`, `Blocks.lean`), `ArtifactChecks.lean` and
        `AuditManifest.json`. If it reports stale block shards, delete those files in `Blocks/` and

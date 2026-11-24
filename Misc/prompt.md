@@ -267,7 +267,7 @@ The proof of a contract `<Name>` goes in a directory `<Name>/`:
 |---|---|
 | `<Name>.sol` or `<Name>.vy` | the pinned source closure + the exact compiler invocation used. |
 | `Spec.lean` | the Stele `ContractDecl`, storage layout, `Config`. |
-| `Bytecode.lean` | runtime bytecode + verified jump destinations. |
+| `Bytecode.lean`, `CreationBytecode.lean` | runtime / creation bytecode as kernel-checked listings (a `listing_from_hex` command decoding `runtime.hex` / `creation.hex`, pinned by SHA-256, into tables of instructions; `#print_listing <Module>.Listing.table` shows them; `jumpdest_code` gives jump destinations; written with `gen_listing.py --valid-jumps`, they also state `JUMPDEST` membership for `jump_dest`). |
 | `Selectors.lean` | selector table, `selIs`/`selWord`, and ABI selector theorems. |
 | `Trusted.lean` (when required) | explicitly authorized contract-specific assumptions. |
 | `Common.lean` | single proof import point plus contract-specific helpers shared by ≥2 proof files. |
@@ -531,11 +531,14 @@ template with every immutable site patched with `wordsOf imms`, each immutable's
    Compose the summaries into dispatch, body and revert paths (see
    `Examples/TinyImmutable/BlocksProof.lean`: `tinyBlocksReachSelector`, `tinyOwnerX`). Never
    reprove that the patched code decodes like the template.
-3. Jump destinations: the summaries need `(D_J (deployedRuntime v) 0).contains pc`. The patched
-   runtime has the template's jump destinations, since the `D_J` scan skips push payloads:
-   `D_J (deployedRuntime v) 0 = D_J <template> 0 := Layout.D_J_runtime (by native_decide)
-   (by native_decide)` (see `tinyPatchedValidJumps`). Rewrite with it, and each jump
-   destination is a `native_decide` on the template.
+3. Jump destinations: the summaries need `(D_J (deployedRuntime v) 0).contains pc`. With the
+   listing, `<prefix>Jumpdest v rfl rfl` (`Common.lean`, from the listing's `jumpdest_code`)
+   proves it for a literal target, and summaries that jump to a literal target prove it
+   themselves (they have no `hvalid`). Alternatively the patched runtime has the template's
+   jump destinations, since the `D_J` scan skips push payloads: rewrite with
+   `rw [deployedRuntime, Layout.deployed, Listing.code_eq]; exact Listing.check.D_J_filled _`
+   (see `tinyPatchedValidJumps`), then `jump_dest` with the listing's `@[valid_jumps]`
+   equation (`gen_listing.py --valid-jumps`).
 4. Bridge, in `Correct.lean`:
    ```lean
    theorem <name>RuntimeCorrect (imms : Store) (hfit : immutablesFit contract imms) :
@@ -599,7 +602,8 @@ template with every immutable site patched with `wordsOf imms`, each immutable's
   big bytecode). The generated summaries discharge their own; in hand
   steps, `evm_run` cooked steps auto-supply it; raw steps
   write `(by native_decide)` for decode, `(by decide)` for small side
-  conditions, `(by jump_dest)` for jump-dest membership, `(by evm_ov)`
+  conditions, `(by exact <prefix>Jumpdest rfl rfl)` for jump-dest membership
+  (or `(by jump_dest)` when the listing states its `@[valid_jumps]` equation), `(by evm_ov)`
   for stack-overflow bounds. Keep these — the resulting `native_decide`
   axiom dependencies (`….native_decide.ax_*`) are expected and fine.
 
@@ -677,7 +681,9 @@ only because its bytecode is tiny, and its constructor trace predates the creati
 Never guess PCs, opcodes, jump destinations, or stack shapes. They are a pure function of the
 bytecode and the summaries already encode them: read entry PCs from the summary name, exit PCs
 from the conclusion, and stack shapes from the `…_stack` definitions. For any hand step, disassemble
-`Bytecode.lean` (a short script, `evmasm`/`solc --asm`, or by decoding the byte array) and treat the
+the listing (`#print_listing <Module>.Listing.table` after `import <Module>.Bytecode` prints
+the instructions with their offsets; otherwise a short script over `runtime.hex`,
+`evmasm`/`solc --asm`) and treat the
 step as "fill in the side conditions of a known opcode," not "invent the opcode." When a step fails,
 re-check it against the disassembly first.
 

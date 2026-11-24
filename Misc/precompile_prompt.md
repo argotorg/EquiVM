@@ -106,7 +106,7 @@ Recommended layout:
 |---|---|
 | `README.md` | Current proof status, final theorem, trusted sources, and caveats. |
 | `Model.lean` | Pure Lean model and validity/output definitions, or imports of them. |
-| `Bytecode.lean` | Concrete bytecode, jump-destination facts, bytecode-local constants. |
+| `Bytecode.lean` | Concrete bytecode as a listing (`scripts/gen_listing.py`, with `--valid-jumps` for its jump-destination facts); bytecode-local constants go in a hand-written module. |
 | `Spec.lean` | Thin bytecode-spec target: `accepts`, `valid`, `output`, `gasCost`, target theorem type. |
 | `Fallback/` | Low-level bytecode trace fragments and routine reachability lemmas. |
 | `Correct/Interface.lean` | Shared bridge lemmas between local traces and the bytecode spec. |
@@ -324,7 +324,8 @@ Expected trusted footprint should be limited to:
 
 - normal Lean axioms already present in the project;
 - native evaluation axioms already used by the project, if any;
-- trusted bytecode/jump-destination facts in the example's `Bytecode.lean`;
+- the example's bytecode as a listing `Bytecode.lean` (its decoding and jump destinations are
+  checked in the kernel, so they add no trusted fact);
 - explicitly documented copied-model assumptions, if the example intentionally
   imports or axiomatizes them.
 
