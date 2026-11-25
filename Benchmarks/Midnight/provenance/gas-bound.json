@@ -1,0 +1,78 @@
+{
+  "strictUpperBound": "327073817860464196263953616796569",
+  "formula": "min_p C(p)+3*p+26767+J(C(2^59-1-p)+15)",
+  "C": "3*w+floor(w*w/512)",
+  "J": "q+floor((q-1)/63)",
+  "minimizingParentWords": [
+    "290499906672590983",
+    "290499906672590984",
+    "290499906672590985",
+    "290499906672590986",
+    "290499906672590987",
+    "290499906672590988",
+    "290499906672590989",
+    "290499906672590990",
+    "290499906672590991",
+    "290499906672590993",
+    "290499906672590994",
+    "290499906672590995",
+    "290499906672590996",
+    "290499906672590997",
+    "290499906672590998",
+    "290499906672591003"
+  ],
+  "witness": {
+    "parentWords": "290499906672590983",
+    "replyWords": "285960845630832504",
+    "replyBytes": "9150747060186640128",
+    "takerCallbackDataBytes": "9295997013522907392",
+    "parentGasBeforeCall": "164824601126533131921849852785272",
+    "calleeGas": "159714072722463391461758392698523",
+    "parentGasAfterCall": "2535144011467672880345371312674"
+  },
+  "ordinarySizeMeasurements": [
+    {
+      "inputBytes": 0,
+      "buy": true,
+      "assetsCap": false,
+      "baseGas": 26667
+    },
+    {
+      "inputBytes": 32,
+      "buy": true,
+      "assetsCap": false,
+      "baseGas": 26667
+    },
+    {
+      "inputBytes": 64,
+      "buy": true,
+      "assetsCap": false,
+      "baseGas": 26667
+    },
+    {
+      "inputBytes": 1024,
+      "buy": true,
+      "assetsCap": false,
+      "baseGas": 26667
+    },
+    {
+      "inputBytes": 0,
+      "buy": true,
+      "assetsCap": true,
+      "baseGas": 26702
+    },
+    {
+      "inputBytes": 0,
+      "buy": false,
+      "assetsCap": false,
+      "baseGas": 26864
+    },
+    {
+      "inputBytes": 0,
+      "buy": false,
+      "assetsCap": true,
+      "baseGas": 26900
+    }
+  ],
+  "status": "arithmetic and executable measurements; refinement proof remains a generated stub"
+}
