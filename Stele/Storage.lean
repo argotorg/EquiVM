@@ -49,9 +49,7 @@ end EVM
 /-! ## Storage maps
 
 A contract's persistent storage and its transient storage are both maps from words to words
-(`Ethereum.Storage`, absent keys reading as zero). Storage backends work on such a map only: the
-semantics hands them the executing account's storage (`EVM.ownStorage`) and writes the result
-back (`EVM.setOwnStorage`), so a backend cannot read or change anything else. -/
+(`Ethereum.Storage`, absent keys reading as zero). -/
 
 /-- A storage map: a contract's persistent or transient storage. -/
 abbrev SlotMap := Ethereum.Storage

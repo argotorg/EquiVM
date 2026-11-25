@@ -40,11 +40,9 @@ Transient state is declared with `uint256 transient flag;` and stored separately
 `Config.transientBackend`; persistent state still uses `Config.storageBackend`.
 The two layouts each start at slot zero and use the current Solidity packing rules.
 
-A `StorageBackend` acts on a single storage map (`SlotMap`), not on the EVM state: the
-semantics passes it the executing account's storage (`EVM.ownStorage`, or `EVM.ownTransient`
-for the transient backend) and writes the result back (`EVM.setOwnStorage` /
-`EVM.setOwnTransient`). A backend therefore cannot read or change anything else, and the
-Solidity transient backend is the persistent one applied to the `tstorage` map.
+A `StorageBackend` acts on a single storage map (`SlotMap`). The semantics passes
+it the executing account's storage (`EVM.ownStorage`, or `EVM.ownTransient` for the
+transient backend) and writes the result back (`EVM.setOwnStorage` / `EVM.setOwnTransient`).
 
 Reads and assignments resolve the declared storage kind. `delete`, `push`, and `pop`
 also select the appropriate backend; local persistent-storage aliases take precedence.
