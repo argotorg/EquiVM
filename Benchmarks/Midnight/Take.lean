@@ -3,6 +3,8 @@ import Benchmarks.Midnight.TakeEntryLoads
 import Benchmarks.Midnight.TakeAuthorization
 import Benchmarks.Midnight.TakeAfterAuthFinish
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `take(((uint256,address,address,(address,uint256,uint256,address)[],uint256,uint256,address,address),bool,address,uint256,uint256,uint256,bytes32,address,bytes,address,address,bool,uint128,uint128,uint256),bytes,uint256,address,address,address,bytes)`
 
@@ -20,17 +22,17 @@ set_option maxRecDepth 2000000
 /-- `take(((uint256,address,address,(address,uint256,uint256,address)[],uint256,uint256,address,address),bool,address,uint256,uint256,uint256,bytes32,address,bytes,address,address,bool,uint128,uint128,uint256),bytes,uint256,address,address,address,bytes)`: the theorem `Correct.lean` routes selector 18 to. -/
 theorem midnightTakeBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 18)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 18) rfl hsel
   have hd : dispatchMsg contract I.calldata = some takeTransition := by
     apply midnightDispatch_take <;>
       first | exact hsel | exact selectorNe_of_selIs hsel (by decide +kernel)
   obtain ⟨k, C, rd⟩ := midnightReachTakeBody
     (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) hcode hsz hsize hsel
-  change RD midnightBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+  change RD fork midnightBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
     ⟨10407⟩ [solcSelectorWord I] midnightEntryMemory (UInt256.ofNat 26) ByteArray.empty σ k C at rd
   have ha : MemoryAccounting midnightEntryMemory (UInt256.ofNat 26) C := by
     refine ⟨MemoryPaid.entry C, ?_⟩
@@ -99,7 +101,7 @@ theorem midnightTakeBody {σ σ₀ A I} {g : UInt256}
               (memLoad_writeWord mem2 (UInt256.ofNat 320) takerPtr)
         have hi3 := (hi.writeWord_below (off := 320) takerPtr (by decide)).preserve
           (hp3.mono hused)
-        rcases midnightTakeAfterAuthFinish (origin := origin) (R := []) (by decide) hwf hgas hc
+        rcases midnightTakeAfterAuthFinish (origin := origin) (R := []) (by decide) hfork hgas hc
             hv.1 hi3 hroot (by rw [hsize3]; exact hused) ha3 (hfree3.trans hfree)
             ((hread _ (by decide) (by decide) (Or.inl (by decide))).trans hzero2)
             ((hread _ (by decide) (by decide) (Or.inr (by decide))).trans hoffer2) hdata3

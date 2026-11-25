@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TakeAmountsRuntime
 import Benchmarks.Midnight.MulDivCall
 
+variable {fork : Ethereum.Fork}
+
 /-! Source calls for the offer-dependent asset rounding mode. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -22,7 +24,7 @@ theorem takeAmountCallSource {cfg : Config} {frame : Frame} {evm : State}
     (hc : frame.contract = contract) (hu : frame.locals.get? "units" = some (.int units.toNat))
     (hp : frame.locals.get? priceName = some (.int price.toNat))
     (hs : TakeAmountSafe buy units price) :
-    ExecStmt cfg frame evm (takeAmountCall buy priceName name)
+    ExecStmt fork cfg frame evm (takeAmountCall buy priceName name)
       (.ok (wordLocal frame name (takeAmount buy units price)) evm) := by
   have he : evalExprs? cfg frame evm [.var "units", .var priceName,
       .intLit 1000000000000000000] = .ok [.int units.toNat, .int price.toNat,
@@ -41,7 +43,7 @@ theorem takeAmountCallRevert {cfg : Config} {frame : Frame} {evm : State}
     (hc : frame.contract = contract) (hu : frame.locals.get? "units" = some (.int units.toNat))
     (hp : frame.locals.get? priceName = some (.int price.toNat))
     (hs : ¬ TakeAmountSafe buy units price) :
-    ExecStmt cfg frame evm (takeAmountCall buy priceName name) .reverted := by
+    ExecStmt fork cfg frame evm (takeAmountCall buy priceName name) .reverted := by
   have he : evalExprs? cfg frame evm [.var "units", .var priceName,
       .intLit 1000000000000000000] = .ok [.int units.toNat, .int price.toNat,
         .int takePriceScale.toNat] := by
@@ -61,7 +63,7 @@ theorem takeAmountStepSource {cfg : Config} {frame : Frame} {evm : State}
     (hp : frame.locals.get? priceName = some (.int price.toNat))
     (ht : frame.locals.get? target = some old) (hne : name ≠ target)
     (hs : TakeAmountSafe buy units price) :
-    ExecBlock cfg frame evm (takeAmountStep buy priceName name target)
+    ExecBlock fork cfg frame evm (takeAmountStep buy priceName name target)
       (.ok (takeAmountStepFrame frame buy units price name target) evm) := by
   exact ExecBlock.consNormal (takeAmountCallSource hc hu hp hs)
     (ExecBlock.consNormal

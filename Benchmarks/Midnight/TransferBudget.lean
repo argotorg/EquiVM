@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.MemoryFunding
 
+variable {fork : Ethereum.Fork}
+
 /-! Either a small transfer heap or the gas credit needed for a large heap. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,7 +18,7 @@ theorem TransferBudget.mono {root credit mem aw spent spent'}
   h.imp_right (fun ⟨halign, hf⟩ ↦ ⟨halign, hf.mono hle⟩)
 
 theorem transferBudgetAt {root credit code I g s0 pc stk mem aw rdata σ k C}
-    (_rd : RD code I g s0 pc stk mem aw rdata σ k C)
+    (_rd : RD fork code I g s0 pc stk mem aw rdata σ k C)
     (h : TransferBudget root credit mem aw C) : TransferBudget root credit mem aw C := h
 
 macro "transfer_budget" h:ident : tactic => `(tactic|

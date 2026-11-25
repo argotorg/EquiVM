@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.TakeCallbackSelect
 
+variable {fork : Ethereum.Fork}
+
 /-! Runtime payer selection, including the zero-callback branch. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,12 +17,12 @@ theorem midnightTakePayerSelect {credit : Nat} {I : ExecutionEnv} {g : Sat256} {
     {R : List UInt256} (hstack : R.length + 9 ≤ 1024) (hc : OfferCanonical offer)
     (hbuyer : memLoad (UInt256.ofNat 576) mem = UInt256.ofNat buyer.val)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨12757⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨12757⟩
       ([decrease, increase, ratifierPtr, UInt256.ofNat (takeSellerCallback offer callback).val,
         offer.buy, UInt256.ofNat (takeBuyerCallback offer callback).val] ++ R)
       mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding credit mem aw' C' ∧
-      RD midnightBytecode I g s0 ⟨12775⟩
+      RD fork midnightBytecode I g s0 ⟨12775⟩
         ([offer.buy, decrease, increase, ratifierPtr,
           UInt256.ofNat (takeSellerCallback offer callback).val,
           UInt256.ofNat (takePayer offer callback buyer I.source).val,

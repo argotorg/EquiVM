@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.LiquidateLif
 
+variable {fork : Ethereum.Fork}
+
 /-! Select the recovery-threshold check for a pre-maturity liquidation below full LLTV. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -30,15 +32,15 @@ theorem evalLiquidateRcfGuard {frame : Frame} {evm : State} {mode lltv : UInt256
 theorem midnightLiquidateRcfGuard {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw maxDebt lltv lif price pos dp dl borrower badDebt receiver mode : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 14 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 ⟨6731⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨6731⟩
       ([maxDebt, lltv, lif, price, pos, dp, dl, borrower, badDebt, receiver, mode] ++ R)
       mem aw rdata σ k C) :
     (LiquidateRcfEnabled mode lltv ∧ ∃ k' C', C ≤ C' ∧
-      RD midnightBytecode I g s0 ⟨7014⟩
+      RD fork midnightBytecode I g s0 ⟨7014⟩
         ([maxDebt, lltv, lif, price, pos, dp, dl, borrower, badDebt, receiver, mode] ++ R)
         mem aw rdata σ k' C') ∨
     (¬ LiquidateRcfEnabled mode lltv ∧ ∃ k' C', C ≤ C' ∧
-      RD midnightBytecode I g s0 ⟨6744⟩
+      RD fork midnightBytecode I g s0 ⟨6744⟩
         ([maxDebt, lltv, lif, price, pos, dp, dl, borrower, badDebt, receiver, mode] ++ R)
         mem aw rdata σ k' C') := by
   by_cases hz : mode = ⟨0⟩

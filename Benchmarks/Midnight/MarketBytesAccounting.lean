@@ -3,6 +3,8 @@ import Benchmarks.Midnight.MarketEncoderAccounting
 import Benchmarks.Midnight.MemoryBufferBounds
 import Benchmarks.Midnight.AllocationAccounting
 
+variable {fork : Ethereum.Fork}
+
 /-! The market bytes encoder discharges allocation limits using its actual memory cost. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -20,13 +22,13 @@ theorem midnightMarketBytesEncode_accounted {I : ExecutionEnv} {g : Sat256} {s0 
     (hret : (D_J midnightBytecode 0).contains ret = true)
     (hgas : midnightGasBound g.toUInt256) (ha : MemoryAccounting
       (writeWord mem (root.toNat + 32) (UInt256.ofNat 32)) aw C)
-    (rd : RD midnightBytecode I g s0 ⟨19181⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨19181⟩
       (ptr :: (root + UInt256.ofNat 64) :: ⟨12824⟩ :: root :: ret :: root :: R)
       (writeWord mem (root.toNat + 32) (UInt256.ofNat 32)) aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
     (root.toNat + m.encodingSize + 32 < 2^64 ∧
       ∃ aw' k' C', MemoryAccounting (marketBytesMemory mem root m) aw' C' ∧
-      RD midnightBytecode I g s0 ret (root :: R)
+      RD fork midnightBytecode I g s0 ret (root :: R)
       (marketBytesMemory mem root m) aw' rdata σ k' C') := by
   have hword : UInt256.size = 2^256 := rfl
   have hroot : 96 ≤ root.toNat := by

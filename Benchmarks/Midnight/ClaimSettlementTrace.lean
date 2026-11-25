@@ -3,6 +3,8 @@ import Benchmarks.Midnight.CheckedArithmetic
 import Benchmarks.Midnight.SafeTransfer
 import Benchmarks.Midnight.ScratchMemory
 
+variable {fork : Ethereum.Fork}
+
 /-! Settlement-claim bytecode from authorization through the token transfer. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -32,10 +34,10 @@ theorem claimSettlementTraceSubtract {I : ExecutionEnv} {g : Sat256} {s0 : State
     {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {token receiver : AccountAddress} {amount : UInt256} {R : List UInt256}
     (hstack : R.length + 10 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 ⟨17693⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨17693⟩
       (UInt256.ofNat receiver.val :: amount :: UInt256.ofNat token.val :: R)
       midnightEntryMemory aw rdata σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g s0 ⟨19447⟩
+    ∃ aw' k' C', RD fork midnightBytecode I g s0 ⟨19447⟩
       (solcSlotWordAt (claimSettlementSlot token) σ I :: amount :: ⟨17729⟩ ::
         claimSettlementSlot token :: UInt256.ofNat token.val :: UInt256.ofNat token.val ::
         UInt256.ofNat receiver.val :: amount :: ⟨15786⟩ :: R)
@@ -57,11 +59,11 @@ theorem claimSettlementTraceStore {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {token receiver : AccountAddress} {amount balance : UInt256} {R : List UInt256}
     (hstack : R.length + 10 ≤ 1024) (hperm : I.perm = true)
-    (rd : RD midnightBytecode I g s0 ⟨17729⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨17729⟩
       (UInt256.sub balance amount :: claimSettlementSlot token :: UInt256.ofNat token.val ::
         UInt256.ofNat token.val :: UInt256.ofNat receiver.val :: amount :: ⟨15786⟩ :: R)
       (mappingMemory (UInt256.ofNat token.val) ⟨6⟩) aw rdata σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g s0 ⟨23236⟩
+    ∃ aw' k' C', RD fork midnightBytecode I g s0 ⟨23236⟩
       (UInt256.ofNat token.val :: UInt256.ofNat receiver.val :: amount :: ⟨15786⟩ :: R)
       (claimSettlementMemory token amount) aw' rdata
       (sstoreAccountMap I.codeOwner σ (claimSettlementSlot token) (UInt256.sub balance amount))
@@ -70,14 +72,14 @@ theorem claimSettlementTraceStore {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (by simp only [List.length_cons]; omega) hperm (by jump_dest) rd
   simpa only [midnightBlocks.midnight_block_17729_stack,
     midnightBlocks.midnight_block_17729_memory, mappingMemory_freePtr] using
-      (show ∃ aw' k' C', RD _ _ _ _ _ _ _ aw' _ _ k' C' from ⟨aw1, k1, C1, rd1⟩)
+      (show ∃ aw' k' C', RD fork _ _ _ _ _ _ _ aw' _ _ k' C' from ⟨aw1, k1, C1, rd1⟩)
 
 theorem claimSettlementTraceStatic {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {value slot : UInt256} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024) (hperm : I.perm = false)
-    (rd : RD midnightBytecode I g s0 ⟨17729⟩ (value :: slot :: R) mem aw rdata σ k C) :
-    RDstatic midnightBytecode g s0 := by
+    (rd : RD fork midnightBytecode I g s0 ⟨17729⟩ (value :: slot :: R) mem aw rdata σ k C) :
+    RDstatic fork midnightBytecode g s0 := by
   have rd1 := rd.jumpdest (by native_decide) hstack
   have rd2 := rd1.swap1 (by native_decide) (by simp; omega)
   exact rd2.sstoreStatic hperm (by native_decide) (by omega)

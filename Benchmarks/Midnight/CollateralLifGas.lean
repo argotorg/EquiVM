@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.CollateralLifTrace
 import Benchmarks.Midnight.MaxLifGas
 
+variable {fork : Ethereum.Fork}
+
 /-! Monotone gas accounting through the collateral liquidation-factor checks. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -12,9 +14,9 @@ set_option maxRecDepth 2000000 in
 theorem midnightCollateralLif_mono {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw lltv cursor : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 9 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 ⟨20957⟩ (cursor :: lltv :: R) mem aw rdata σ k C) :
-    (¬ CollateralLifSafe lltv cursor ∧ RDrev midnightBytecode g s0) ∨
-    (CollateralLifSafe lltv cursor ∧ ∃ k' C', C ≤ C' ∧ RD midnightBytecode I g s0 ⟨21008⟩ R
+    (rd : RD fork midnightBytecode I g s0 ⟨20957⟩ (cursor :: lltv :: R) mem aw rdata σ k C) :
+    (¬ CollateralLifSafe lltv cursor ∧ RDrev fork midnightBytecode g s0) ∨
+    (CollateralLifSafe lltv cursor ∧ ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode I g s0 ⟨21008⟩ R
       mem aw rdata σ k' C') := by
   have rd1 := midnightBlocks.midnight_block_20957 (by omega) (by jump_dest) rd
   simp only [midnightBlocks.midnight_block_20957_stack] at rd1

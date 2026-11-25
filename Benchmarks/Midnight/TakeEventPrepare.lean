@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.TakeEventHead
 
+variable {fork : Ethereum.Fork}
+
 /-! The encoded-offer hash and signed check preceding the trade event encoder. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -14,11 +16,11 @@ theorem midnightTakeEventPrepare {credit : Nat} {I : ExecutionEnv} {g : Sat256} 
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 11 ≤ 1024)
     (hi : increase.toNat < 2^255) (hd : decrease.toNat < 2^255)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨12838⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨12838⟩
       (encodedPtr :: encodedDataPtr :: decrease :: increase :: ratifierPtr :: R)
       mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding credit mem aw' C' ∧
-      RD midnightBytecode I g s0 ⟨12921⟩
+      RD fork midnightBytecode I g s0 ⟨12921⟩
         (midnightBlocks.midnight_block_12838_fallthrough_stack (mem := mem)
           (x0 := encodedPtr) (x1 := encodedDataPtr) (x2 := decrease)
           (x3 := increase) (x4 := ratifierPtr) (R := R)) mem aw' rdata σ k' C' := by

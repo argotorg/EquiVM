@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.LiquidateAmountsPhase
 import Benchmarks.Midnight.LiquidateTail
 
+variable {fork : Ethereum.Fork}
+
 /-! Calculate liquidation amounts, choose the payer, and execute the event and transfers. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -29,21 +31,21 @@ theorem midnightLiquidateSettlement {I : ExecutionEnv} {g : UInt256} {s0 evm : S
     (hpaid : memLoad (UInt256.ofNat 608) mem = repaid)
     (hslot : memLoad (UInt256.ofNat 672) mem = solcMappingSlot ⟨1⟩ id)
     (hdl : dl.toNat < 2^64) (hdata : dp.toNat + dl.toNat ≤ I.calldata.size)
-    (hh : TransferHeap mem aw root C) (hgas : midnightGasBound g) (hfork : I.fork ≥ .osaka)
+    (hh : TransferHeap mem aw root C) (hgas : midnightGasBound g) (hfork : fork ≥ .osaka)
     (hs : SourceState s0 I σ evm)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨5468⟩
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨5468⟩
       ([head, UInt256.isZero (UInt256.isZero repaid), UInt256.isZero repaid, maxDebt, price,
         positionSlot id borrower, dp, dl, borrower, badDebt, UInt256.ofNat receiver.val, mode,
         saved] ++ R) mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (ExecBlock config frame evm (liquidateTransition.body.drop 18) .reverted ∧
-      RDrev midnightBytecode (Sat256.ofUInt256 g) s0) ∨
-    (ExecBlock config frame evm (liquidateTransition.body.drop 18) .staticViolation ∧
-      RDstatic midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (ExecBlock fork config frame evm (liquidateTransition.body.drop 18) .reverted ∧
+      RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+    (ExecBlock fork config frame evm (liquidateTransition.body.drop 18) .staticViolation ∧
+      RDstatic fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
     ∃ frame' evm' seized' repaid',
-      ExecBlock config frame evm (liquidateTransition.body.drop 18)
+      ExecBlock fork config frame evm (liquidateTransition.body.drop 18)
         (.returned frame' evm' (some [.int seized'.toNat, .int repaid'.toNat])) ∧
-      RDret midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap
+      RDret fork midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap
         (wordArrayBytes [seized', repaid']) := by
   rcases liquidateAmountsPhase (R := R) (by omega) hf ha hcanon hd hi hcs hcr hseized hpaid hslot
       (by omega) hs hh.funding.budget rd with
@@ -57,7 +59,7 @@ theorem midnightLiquidateSettlement {I : ExecutionEnv} {g : UInt256} {s0 evm : S
     obtain ⟨aw2, k2, C2, hb2, rd2⟩ := midnightLiquidatePayer (R := saved :: R)
       (by simp only [List.length_cons]; omega)
       ((hk _ (by decide) (Or.inr (by decide))).trans hcallback) hb1 rd1
-    have hxpay := liquidatePayerSource (evm := evm1) hf1.callback
+    have hxpay := liquidatePayerSource (fork := fork) (evm := evm1) hf1.callback
     rw [hs1.env] at hxpay
     have hf2 := hf1.insert "payer" (.address (repayPayer I callback)) (by decide)
     have hpay2 : (repayPayerFrame f1 I callback).locals.get? "payer" =

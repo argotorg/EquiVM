@@ -4,6 +4,8 @@ import Benchmarks.Midnight.ClaimFeeCore
 import Benchmarks.Midnight.TouchMarketCapacity
 import Benchmarks.Midnight.TouchMarketLargeFunding
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `claimContinuousFee((uint256,address,address,(address,uint256,uint256,address)[],uint256,uint256,address,address),uint256,address)`
 
@@ -21,17 +23,17 @@ set_option maxRecDepth 2000000
 /-- `claimContinuousFee((uint256,address,address,(address,uint256,uint256,address)[],uint256,uint256,address,address),uint256,address)`: the theorem `Correct.lean` routes selector 14 to. -/
 theorem midnightClaimContinuousFeeBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 14)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 14) rfl hsel
   have hd : dispatchMsg contract I.calldata = some claimContinuousFeeTransition := by
     apply midnightDispatch_claimContinuousFee <;>
       first | exact hsel | exact selectorNe_of_selIs hsel (by decide +kernel)
   obtain ⟨k, C, rd⟩ := midnightReachClaimContinuousFeeBody
     (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) hcode hsz hsize hsel
-  change RD midnightBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+  change RD fork midnightBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
     ⟨15481⟩ [solcSelectorWord I] midnightEntryMemory (UInt256.ofNat 26) ByteArray.empty σ k C at rd
   have ha : MemoryAccounting midnightEntryMemory (UInt256.ofNat 26) C := by
     refine ⟨MemoryPaid.entry C, ?_⟩
@@ -59,9 +61,9 @@ theorem midnightClaimContinuousFeeBody {σ σ₀ A I} {g : UInt256}
         omega
       have hzero : memLoad ⟨96⟩ mem' = ⟨0⟩ := hk2.load ⟨0, by decide⟩
       have h128 : 128 ≤ mem'.size := by omega
-      have rejectTouch (hr : RDrev midnightBytecode (Sat256.ofUInt256 g) evm)
-          (hs : ExecFuncBody config (touchMarketCallFrame ∅ m) evm touchMarketFunction.body .reverted) :
-          runtimeRefinementFor config contract σ σ₀ g A I := by
+      have rejectTouch (hr : RDrev fork midnightBytecode (Sat256.ofUInt256 g) evm)
+          (hs : ExecFuncBody fork config (touchMarketCallFrame ∅ m) evm touchMarketFunction.body .reverted) :
+          runtimeRefinementFor fork config contract σ σ₀ g A I := by
         apply hr.reEquivExecutionRevert hcode hd hdec
         apply ExecFuncBody.execBlockRevert
         apply guardedBodyBlock hwv hlimit
@@ -88,7 +90,7 @@ theorem midnightClaimContinuousFeeBody {σ σ₀ A I} {g : UInt256}
             dsimp only [MarketData.encodingSize] at hfreeBound
             omega
           rw [hs.accounts] at rd3
-          exact claimFeeBodyCore (credit := 0) hcode hwv hlimit hgas hwf hd hdec hs.env hs.world
+          exact claimFeeBodyCore (credit := 0) hcode hwv hlimit hgas hfork hd hdec hs.env hs.world
             htouch (by simp) hu (by omega) (by omega) hfree' hz hm'.loanToken
             (Or.inl (by omega)) (by change 4 * ((free.toNat + 128 + 31) / 32) ≤ 999921; omega) rd3
       · rcases midnightTouchMarketLarge_funded (evm := evm) (g := Sat256.ofUInt256 g)
@@ -108,7 +110,7 @@ theorem midnightClaimContinuousFeeBody {σ σ₀ A I} {g : UInt256}
             rw [hfn, hroot, MarketData.encodingSize]; omega
           have hz : memLoad ⟨96⟩ (touchMarketHashMemory mem' root m) = ⟨0⟩ := by
             rw [hp.load ⟨96⟩ (by decide) (by change 128 ≤ root.toNat; omega) h128, hzero]
-          exact claimFeeBodyCore (credit := 128 * m.collaterals.length) hcode hwv hlimit hgas hwf
+          exact claimFeeBodyCore (credit := 128 * m.collaterals.length) hcode hwv hlimit hgas hfork
             hd hdec rfl rfl htouch (by simp) hu (by omega) (by rw [hn]; omega)
             (touchMarketHashMemory_free mem' root m) hz hm'.loanToken
             (Or.inr ⟨by rw [hn]; omega, hfund⟩)

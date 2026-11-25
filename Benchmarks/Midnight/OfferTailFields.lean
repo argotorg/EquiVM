@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.OfferTailBlocks
 import Benchmarks.Midnight.OfferDecodeFacts
 
+variable {fork : Ethereum.Fork}
+
 /-! The offer tail's addresses, Boolean flag, and uint128 caps. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -22,12 +24,12 @@ theorem midnightOfferTailFields {credit : Nat} {I : ExecutionEnv} {g : Sat256} {
     (hrel : rel.toNat < 2^64) (hm : 416 ≤ mem.size)
     (hroot : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨10687⟩ (data :: rel :: R) mem aw rdata σ k C) :
-    (decodeOfferData I.calldata (rel.toNat + 4) = none ∧ RDrev midnightBytecode g s0) ∨
+    (rd : RD fork midnightBytecode I g s0 ⟨10687⟩ (data :: rel :: R) mem aw rdata σ k C) :
+    (decodeOfferData I.calldata (rel.toNat + 4) = none ∧ RDrev fork midnightBytecode g s0) ∨
     (OfferData.tailCanonicalAt I.calldata (rel.toNat + 4) ∧
       ∃ aw' k' C',
         MemoryFunding credit (offerTailPrefixMemory mem I.calldata (rel.toNat + 4) data) aw' C' ∧
-        RD midnightBytecode I g s0 ⟨10795⟩
+        RD fork midnightBytecode I g s0 ⟨10795⟩
           (calldataWord I.calldata (rel.toNat + 420) :: rel :: R)
           (offerTailPrefixMemory mem I.calldata (rel.toNat + 4) data) aw' rdata σ k' C') := by
   have hadd (off : Nat) (ho : off ≤ 420) :

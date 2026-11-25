@@ -2,6 +2,8 @@ import Benchmarks.Midnight.CollateralData
 import Benchmarks.Midnight.MemoryWords
 import Benchmarks.Midnight.AddressDecode
 
+variable {fork : Ethereum.Fork}
+
 /-! Copying one decoded collateral record into the market's ABI return buffer. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -65,9 +67,9 @@ theorem midnightCollateralEncodeStep {I : ExecutionEnv} {g : Sat256} {s0 : State
     (hstack : R.length + 15 ≤ 1024)
     (hptr : memLoad writePtr mem = ptr) (hm : MemoryWords mem ptr.toNat c.words)
     (hbelow : ptr.toNat + 128 ≤ output.toNat) (hout : output.toNat + 128 < UInt256.size)
-    (rd : RD midnightBytecode I g s0 ⟨19324⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨19324⟩
       (index :: count :: writePtr :: market :: outputBase :: output :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g s0 ⟨19261⟩
+    ∃ aw' k' C', RD fork midnightBytecode I g s0 ⟨19261⟩
       ((index + UInt256.ofNat 1) :: count :: (writePtr + UInt256.ofNat 32) :: market :: outputBase ::
         (output + UInt256.ofNat 128) :: R)
       (writeWordArray mem output.toNat c.words) aw' rdata σ k' C' := by

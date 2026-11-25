@@ -3,6 +3,8 @@ import Benchmarks.Midnight.ToUint128Source
 import Benchmarks.Midnight.CollateralSourceState
 import Benchmarks.Midnight.NamedCollateralSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Source conversion, subtraction, and storage assignment for seized collateral. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -24,11 +26,11 @@ theorem liquidateCollateralUpdateSource {frame : Frame} {evm : State} {m : Marke
     let old := collateralWord (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner)
       id borrower index
     let safe := index.toNat < 128 ∧ seized.toNat < 2^128 ∧ seized.toNat ≤ old.toNat
-    (¬ safe ∧ ExecBlock config frame evm liquidateCollateralUpdateBody .reverted) ∨
+    (¬ safe ∧ ExecBlock fork config frame evm liquidateCollateralUpdateBody .reverted) ∨
     (safe ∧ evm.executionEnv.perm = false ∧
-      ExecBlock config frame evm liquidateCollateralUpdateBody .staticViolation) ∨
+      ExecBlock fork config frame evm liquidateCollateralUpdateBody .staticViolation) ∨
     (safe ∧ evm.executionEnv.perm = true ∧
-      ExecBlock config frame evm liquidateCollateralUpdateBody
+      ExecBlock fork config frame evm liquidateCollateralUpdateBody
         (.ok (liquidateCollateralUpdateFrame frame seized (UInt256.sub old seized))
           (collateralWriteState evm id borrower index (UInt256.sub old seized)))) := by
   dsimp only
@@ -41,13 +43,13 @@ theorem liquidateCollateralUpdateSource {frame : Frame} {evm : State} {m : Marke
   have ha0 : evalExprs? config frame evm [.var "seizedAssets"] = .ok [.int seized.toNat] := by
     simp only [evalExprs?, evalWordLocal hf.seized, bind, pure, EvalResult.bind]
   by_cases h128 : seized.toNat < 2^128
-  · have hx0 := callToUint128 (name := "__c27") hf.contract ha0 h128
+  · have hx0 := callToUint128 (fork := fork) (name := "__c27") hf.contract ha0 h128
     by_cases hidx : index.toNat < 128
     · have hr : evalExpr? config f1 evm (positionCollateralExpr "collateralIndex") =
           .ok (.int old.toNat) :=
         evalPositionCollateral "collateralIndex" hf1.contract hcanon hf1.position hf1.index hidx
       by_cases hle : seized.toNat ≤ old.toNat
-      · have hx1 : ExecStmt config f1 evm (liquidateAmountsBody[7]!)
+      · have hx1 : ExecStmt fork config f1 evm (liquidateAmountsBody[7]!)
             (.ok (wordLocal f1 "newCollateral" (UInt256.sub old seized)) evm) :=
           ExecStmt.letDecl (evalCheckedSub128 hr (evalWordLocal hc1) (low128_lt _) hle)
         let value := UInt256.sub old seized

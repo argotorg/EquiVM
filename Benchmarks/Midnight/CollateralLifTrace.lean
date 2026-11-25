@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.MaxLifTrace
 import Benchmarks.Midnight.RuntimeBlocks_080
 
+variable {fork : Ethereum.Fork}
+
 /-! The liquidation-factor restrictions for a newly initialized collateral. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -22,9 +24,9 @@ set_option maxRecDepth 2000000 in
 theorem midnightCollateralLif {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw lltv cursor : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 9 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 ⟨20957⟩ (cursor :: lltv :: R) mem aw rdata σ k C) :
-    (¬ CollateralLifSafe lltv cursor ∧ RDrev midnightBytecode g s0) ∨
-    (CollateralLifSafe lltv cursor ∧ ∃ k' C', RD midnightBytecode I g s0 ⟨21008⟩ R
+    (rd : RD fork midnightBytecode I g s0 ⟨20957⟩ (cursor :: lltv :: R) mem aw rdata σ k C) :
+    (¬ CollateralLifSafe lltv cursor ∧ RDrev fork midnightBytecode g s0) ∨
+    (CollateralLifSafe lltv cursor ∧ ∃ k' C', RD fork midnightBytecode I g s0 ⟨21008⟩ R
       mem aw rdata σ k' C') := by
   have rd1 := midnightBlocks.midnight_block_20957 (by omega) (by jump_dest) rd
   simp only [midnightBlocks.midnight_block_20957_stack] at rd1

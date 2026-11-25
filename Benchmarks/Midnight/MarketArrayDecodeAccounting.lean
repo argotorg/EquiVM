@@ -4,6 +4,8 @@ import Benchmarks.Midnight.MarketLastFieldsAccounting
 import Benchmarks.Midnight.MemoryBufferBounds
 import Benchmarks.Midnight.CollateralLoopAccounting
 
+variable {fork : Ethereum.Fork}
+
 /-! Composing the collateral array decoder with the final market fields. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -31,11 +33,11 @@ theorem midnightMarketCalldataArrayDecode_accounted {I : ExecutionEnv} {g : Sat2
     (hheader : header.toNat = head.toNat + (calldataWord I.calldata (head.toNat + 96)).toNat)
     (hvalid : (D_J midnightBytecode 0).contains ret = true)
     (ha0 : MemoryAccounting mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨18684⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨18684⟩
       (UInt256.ofNat (pointerArrayAllocation n.toNat) :: n :: header :: UInt256.ofNat I.calldata.size ::
         head :: ptr :: ret :: ptr :: R) mem aw rdata σ k C) :
     ((∀ m, decodeMarketData I.calldata head.toNat = some m →
-        ¬ ptr.toNat + 288 + 160 * m.collaterals.length < 2^64) ∧ RDrev midnightBytecode g s0) ∨
+        ¬ ptr.toNat + 288 + 160 * m.collaterals.length < 2^64) ∧ RDrev fork midnightBytecode g s0) ∨
     (∃ m, decodeMarketData I.calldata head.toNat = some m ∧
       ptr.toNat + 288 + 160 * m.collaterals.length < 2^64 ∧
       ∃ mem' root aw' k' C',
@@ -43,7 +45,7 @@ theorem midnightMarketCalldataArrayDecode_accounted {I : ExecutionEnv} {g : Sat2
         MarketStored mem' ptr (ptr + UInt256.ofNat 256) root m ∧
         memLoad (UInt256.ofNat 64) mem' = root ∧
         root.toNat ≤ mem'.size ∧ MemoryAccounting mem' aw' C' ∧
-        RD midnightBytecode I g s0 ret (ptr :: R) mem' aw' rdata σ k' C') := by
+        RD fork midnightBytecode I g s0 ret (ptr :: R) mem' aw' rdata σ k' C') := by
   have count {m : MarketData} (hd : decodeMarketData I.calldata head.toNat = some m) :
       m.collaterals.length = n.toNat := by
     rw [decodeMarketData_collateralCount hd, hnword]

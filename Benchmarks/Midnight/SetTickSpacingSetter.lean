@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.Dispatch
 import Benchmarks.Midnight.AdminTrace
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `setTickSpacingSetter(address)`
 
@@ -18,10 +20,10 @@ set_option maxRecDepth 2000000
 /-- `setTickSpacingSetter(address)`: the theorem `Correct.lean` routes selector 54 to. -/
 theorem midnightSetTickSpacingSetterBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 54)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 54) rfl hsel
   have hd : dispatchMsg contract I.calldata = some setTickSpacingSetterTransition := by
     apply midnightDispatch_setTickSpacingSetter <;>
@@ -45,7 +47,7 @@ theorem midnightSetTickSpacingSetterBody {σ σ₀ A I} {g : UInt256}
               (by rw [addressMask_computed]; exact u256_sub_eq_zero_iff_eq.mpr hauth) rd4
             by_cases hperm : I.perm = true
             · have hr := adminSetterTraceReturn ⟨2, by decide⟩ hperm rd5
-              have hbody := adminAddressReturns (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+              have hbody := adminAddressReturns (fork := fork) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 "tickSpacingSetter" "newTickSpacingSetter" "SetTickSpacingSetter" ⟨12⟩ (calldataWord I.calldata 4)
                 hcanon (by decide) (by decide) (by decide) (by decide) rfl rfl hwv hhi hauth hperm
               exact hr.reEquivExecutionGen hcode hd hdec hbody

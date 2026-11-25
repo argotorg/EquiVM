@@ -4,6 +4,8 @@ import Benchmarks.Midnight.MarketEncoderFunding
 import Benchmarks.Midnight.MemoryBytesEncodeMemory
 import Benchmarks.Midnight.BytesCalldataMemory
 
+variable {fork : Ethereum.Fork}
+
 /-! The complete offer ABI encoder, with funding and the original offer preserved. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -36,13 +38,13 @@ theorem midnightOfferEncoder_funded {credit : Nat} {I : ExecutionEnv} {g : Sat25
     (hc : OfferCanonical offer) (hbelow : root.toNat ≤ output.toNat)
     (hout : output.toNat + offerEncodedSize offer + 64 < UInt256.size)
     (hret : (D_J midnightBytecode 0).contains ret = true) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨20131⟩ (ptr :: output :: ret :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨20131⟩ (ptr :: output :: ret :: R)
       mem aw rdata σ k C) :
     ∃ aw' k' C',
       MemoryFunding (credit + 128 * offer.market.collaterals.length +
         3 * ((offer.callbackData.size + 31) / 32))
         (offerEncodeMemory mem callbackPtr output offer) aw' C' ∧
-      RD midnightBytecode I g s0 ret ((output + UInt256.ofNat (offerEncodedSize offer)) :: R)
+      RD fork midnightBytecode I g s0 ret ((output + UInt256.ofNat (offerEncodedSize offer)) :: R)
         (offerEncodeMemory mem callbackPtr output offer) aw' rdata σ k' C' := by
   have hlayout := ho.layout
   have harray := ho.market.array

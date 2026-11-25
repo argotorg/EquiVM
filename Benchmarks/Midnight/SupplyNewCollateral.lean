@@ -3,6 +3,8 @@ import Benchmarks.Midnight.SupplyBitmapPhase
 import Benchmarks.Midnight.SupplySourceFrame
 import Benchmarks.Midnight.ArrayIndexGas
 
+variable {fork : Ethereum.Fork}
+
 /-! The oracle and bitmap branch for a newly supplied collateral token. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -23,22 +25,22 @@ theorem supplyNewCollateral {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hroot : root.toNat + 32 < 2^64) (hlower : 128 ≤ root.toNat)
     (hfree : memLoad (UInt256.ofNat 64) mem = root)
     (hb : TransferBudget (root + UInt256.ofNat 32) credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨17211⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨17211⟩
       ([market + UInt256.ofNat 96, positionSlot id user, old, index, id, user,
         UInt256.ofNat token.val, assets, positionSlot id user + UInt256.ofNat 3] ++ R)
       mem aw rdata evm.accountMap k C) :
-    (RDrev midnightBytecode g s0 ∧ ExecBlock config frame evm supplyNewCollateralBody .reverted) ∨
-    (RDstatic midnightBytecode g s0 ∧
-      ExecBlock config frame evm supplyNewCollateralBody .staticViolation) ∨
+    (RDrev fork midnightBytecode g s0 ∧ ExecBlock fork config frame evm supplyNewCollateralBody .reverted) ∨
+    (RDstatic fork midnightBytecode g s0 ∧
+      ExecBlock fork config frame evm supplyNewCollateralBody .staticViolation) ∨
     ∃ frame' evm' out aw' k' C',
       SourceState s0 I evm'.accountMap evm' ∧
       SupplySourceFrame frame' m id user index assets old token ∧
-      ExecBlock config frame evm supplyNewCollateralBody (.ok frame' evm') ∧
+      ExecBlock fork config frame evm supplyNewCollateralBody (.ok frame' evm') ∧
       MemoryPrefix mem (oraclePriceMemory mem root out) root.toNat ∧
       (oraclePriceMemory mem root out).size = max mem.size (root.toNat + 32) ∧
       memLoad (UInt256.ofNat 64) (oraclePriceMemory mem root out) = root + UInt256.ofNat 32 ∧
       TransferBudget (root + UInt256.ofNat 32) credit (oraclePriceMemory mem root out) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨17462⟩
+      RD fork midnightBytecode I g s0 ⟨17462⟩
         ([index, id, old, user, UInt256.ofNat token.val, assets,
           positionSlot id user + UInt256.ofNat 3] ++ R)
         (oraclePriceMemory mem root out) aw' out evm'.accountMap k' C' := by
@@ -50,7 +52,7 @@ theorem supplyNewCollateral {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
       (.field (marketCollateralExpr "collateralIndex") "oracle") = .ok (.address oracle) := by
     rw [evalExpr?, evalMarketCollateralAt "collateralIndex" hf.market hf.index hindex]
     rfl
-  have hlet : ExecStmt config frame evm (supplyNewCollateralBody[0]!) (.ok frame1 evm) :=
+  have hlet : ExecStmt fork config frame evm (supplyNewCollateralBody[0]!) (.ok frame1 evm) :=
     ExecStmt.letDecl horacleExpr
   simp only [List.cons_append, List.nil_append] at rd
   have rd1 := midnightBlocks.midnight_block_17211
@@ -78,8 +80,8 @@ theorem supplyNewCollateral {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     have hf2 : SupplySourceFrame frame2 m id user index assets old token :=
       hf1.insert "__c1" (.int (calldataWord out 0).toNat) (by decide)
     have sourcePrefix {result : ExecResult}
-        (ht : ExecBlock config frame2 evm2 (supplyNewCollateralBody.drop 2) result) :
-        ExecBlock config frame evm supplyNewCollateralBody result :=
+        (ht : ExecBlock fork config frame2 evm2 (supplyNewCollateralBody.drop 2) result) :
+        ExecBlock fork config frame evm supplyNewCollateralBody result :=
       ExecBlock.consNormal hlet (ExecBlock.consNormal hcall ht)
     rw [hs2.accounts] at rd3
     rcases supplyBitmapPhase hs2.env (by simp only [List.length_cons]; omega)

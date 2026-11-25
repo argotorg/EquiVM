@@ -2,6 +2,8 @@ import Benchmarks.Midnight.FlashLoanArguments
 import Benchmarks.Midnight.FlashLoanSliceTrace
 import Benchmarks.Midnight.AddressDecode
 
+variable {fork : Ethereum.Fork}
+
 /-! The flash-loan entry checks through the decoding of all calldata references. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -20,10 +22,10 @@ theorem midnightFlashLoanEntry {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length + 13 ≤ 1024) (h4 : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hselector : ¬ 0xac9650d8 = (bytesToWord (I.calldata.toList.take 4)).toNat)
-    (rd : RD midnightBytecode I g s0 ⟨16038⟩ R mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨16038⟩ R mem aw rdata σ k C) :
     (config.externalABI.decodeCalldata? ["tokens", "assets", "callback", "data"]
         [.dynamicArray Model.addr, .dynamicArray Model.u256, Model.addr, .bytes] I.calldata =
-        none ∧ RDrev midnightBytecode g s0) ∨
+        none ∧ RDrev fork midnightBytecode g s0) ∨
     (132 ≤ I.calldata.size ∧ CalldataArgumentValid false I.calldata 4 ∧
       CalldataArgumentValid false I.calldata 36 ∧
       (calldataWord I.calldata 68).toNat < EVM.addressModulus ∧
@@ -31,13 +33,13 @@ theorem midnightFlashLoanEntry {I : ExecutionEnv} {g : Sat256} {s0 : State}
       config.externalABI.decodeCalldata? ["tokens", "assets", "callback", "data"]
         [.dynamicArray Model.addr, .dynamicArray Model.u256, Model.addr, .bytes] I.calldata =
         decodeFlashLoanArguments I.calldata ∧
-      ∃ k' C', C ≤ C' ∧ RD midnightBytecode I g s0 ⟨16153⟩
+      ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode I g s0 ⟨16153⟩
         (flashLoanRefStack I.calldata ++ R) mem aw rdata σ k' C') := by
   have reject (hc : UInt256.slt (UInt256.lnot ⟨3⟩ + UInt256.ofNat I.calldata.size)
       ⟨128⟩ = ⟨1⟩) :
       config.externalABI.decodeCalldata? ["tokens", "assets", "callback", "data"]
         [.dynamicArray Model.addr, .dynamicArray Model.u256, Model.addr, .bytes] I.calldata =
-        none ∧ RDrev midnightBytecode g s0 := by
+        none ∧ RDrev fork midnightBytecode g s0 := by
     refine ⟨midnightDecodeFlashLoan_none_check h4
       (solcSLT_sub4_of_check (bit := true) hc), ?_⟩
     have rr := midnightBlocks.midnight_block_16038_taken (by omega)

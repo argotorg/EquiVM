@@ -2,6 +2,8 @@ import Benchmarks.Midnight.MarketEntryDecode
 import Benchmarks.Midnight.MarketCalldataDecoder
 import Benchmarks.Midnight.MarketCalldataHugeRuntime
 
+variable {fork : Ethereum.Fork}
+
 /-! Runtime and ABI agreement for the market, identifier, and user argument decoder. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,10 +19,10 @@ theorem midnightMarketIdUserDecoder {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hselector : ¬ 0xac9650d8 = (bytesToWord (I.calldata.toList.take 4)).toNat)
     (hfree : memLoad (UInt256.ofNat 64) mem = ⟨832⟩)
     (hvalid : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨18934⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨18934⟩
       (UInt256.ofNat I.calldata.size :: ret :: R) mem aw rdata σ k C) :
     (config.externalABI.decodeCalldata? ["market", "id", "user"]
-        [Model.marketABI, Model.b32, Model.addr] I.calldata = none ∧ RDrev midnightBytecode g s0) ∨
+        [Model.marketABI, Model.b32, Model.addr] I.calldata = none ∧ RDrev fork midnightBytecode g s0) ∨
     (∃ m, config.externalABI.decodeCalldata? ["market", "id", "user"]
         [Model.marketABI, Model.b32, Model.addr] I.calldata =
         some (marketIdUserArguments m (calldataWord I.calldata 36)
@@ -29,12 +31,12 @@ theorem midnightMarketIdUserDecoder {I : ExecutionEnv} {g : Sat256} {s0 : State}
       (calldataWord I.calldata 68).toNat < EVM.addressModulus ∧
       ∃ mem' root aw' k' C', root.toNat = 1120 + 160 * m.collaterals.length ∧
         MarketStored mem' ⟨832⟩ ⟨1088⟩ root m ∧ memLoad (UInt256.ofNat 64) mem' = root ∧
-        RD midnightBytecode I g s0 ret
+        RD fork midnightBytecode I g s0 ret
           (calldataWord I.calldata 68 :: calldataWord I.calldata 36 :: ⟨832⟩ :: R)
           mem' aw' rdata σ k' C') := by
   have reject (hc : UInt256.slt (UInt256.lnot ⟨3⟩ + UInt256.ofNat I.calldata.size) ⟨96⟩ = ⟨1⟩) :
       config.externalABI.decodeCalldata? ["market", "id", "user"]
-          [Model.marketABI, Model.b32, Model.addr] I.calldata = none ∧ RDrev midnightBytecode g s0 := by
+          [Model.marketABI, Model.b32, Model.addr] I.calldata = none ∧ RDrev fork midnightBytecode g s0 := by
     refine ⟨midnightDecodeMarketIdUser_none_check h4
       (solcSLT_sub4_of_check (bit := true) hc), ?_⟩
     have rd1 := midnightBlocks.midnight_block_18934_taken
@@ -65,7 +67,7 @@ theorem midnightMarketIdUserDecoder {I : ExecutionEnv} {g : Sat256} {s0 : State}
     have rd3 := midnightBlocks.midnight_block_18965
       (by simp only [List.length_cons]; omega)
       (by jump_dest) rd2
-    change RD midnightBytecode I g s0 ⟨18574⟩
+    change RD fork midnightBytecode I g s0 ⟨18574⟩
       ((UInt256.ofNat 4 + calldataWord I.calldata 4) :: UInt256.ofNat I.calldata.size ::
         ⟨18976⟩ :: ret :: R) mem aw rdata σ _ _ at rd3
     have hh : (UInt256.ofNat 4 + calldataWord I.calldata 4).toNat =

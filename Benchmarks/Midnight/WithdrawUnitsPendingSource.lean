@@ -2,6 +2,8 @@ import Benchmarks.Midnight.WithdrawUnitsSourceFrame
 import Benchmarks.Midnight.WithdrawUnitsPendingTrace
 import Benchmarks.Midnight.ToUint128Source
 
+variable {fork : Ethereum.Fork}
+
 /-! Source execution of withdrawal's conditional pending-fee reduction. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -58,7 +60,7 @@ theorem withdrawUnitsPendingReturns {frame : Frame} {m : MarketData} {evm : EVM.
     (hperm : evm.executionEnv.perm = true) :
     let decrease := mulDivUp (positionFieldWord evm id user 1) units
       (positionFieldWord evm id user 0)
-    ExecStmt config frame evm (withdrawTransition.body[9]!)
+    ExecStmt fork config frame evm (withdrawTransition.body[9]!)
       (.ok (withdrawUnitsPendingFrame frame decrease)
         (storeHigh128 evm (positionSlot id user)
           (UInt256.sub (positionFieldWord evm id user 1) decrease))) := by
@@ -94,7 +96,7 @@ theorem withdrawUnitsPendingZero {frame : Frame} {m : MarketData} {evm : EVM.Sta
     (hf : WithdrawUnitsSourceFrame frame m id user units receiver)
     (hcanon : user.toNat < EVM.addressModulus)
     (hzero : (positionFieldWord evm id user 0).toNat = 0) :
-    ExecStmt config frame evm (withdrawTransition.body[9]!) (.ok frame evm) := by
+    ExecStmt fork config frame evm (withdrawTransition.body[9]!) (.ok frame evm) := by
   exact ExecStmt.iteFalse ((withdrawUnitsCreditGuard hf hcanon).trans
     (by rw [hzero]; rfl)) ExecBlock.nil
 
@@ -106,7 +108,7 @@ theorem withdrawUnitsPendingReverts {frame : Frame} {m : MarketData} {evm : EVM.
     (hpos : 0 < (positionFieldWord evm id user 0).toNat)
     (hbad : ¬ WithdrawPendingSafe (EVM.storageLoad evm evm.executionEnv.codeOwner
       (positionSlot id user)) units) :
-    ExecStmt config frame evm (withdrawTransition.body[9]!) .reverted := by
+    ExecStmt fork config frame evm (withdrawTransition.body[9]!) .reverted := by
   let decrease := mulDivUp (positionFieldWord evm id user 1) units
     (positionFieldWord evm id user 0)
   change ¬ (MulDivUpSafe (positionFieldWord evm id user 1) units

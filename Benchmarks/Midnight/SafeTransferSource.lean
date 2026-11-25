@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.SafeTransferABI
 import Benchmarks.Midnight.SafeTransferSourceTail
 
+variable {fork : Ethereum.Fork}
+
 /-! Source execution of the internal safe-transfer functions, including the external call. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -115,9 +117,9 @@ theorem safeTransferCode_eval (isFrom : Bool) (imms : Store) (evm : EVM.State)
 
 theorem safeTransferCall (isFrom : Bool) (imms : Store) (evm evm' : EVM.State)
     (token sender recipient : AccountAddress) (value : UInt256) (success : Bool) (out : ByteArray)
-    (hcall : callViaEVM evm token 0 (safeTransferCalldata isFrom sender recipient value)
+    (hcall : callViaEVM fork evm token 0 (safeTransferCalldata isFrom sender recipient value)
       (success, evm', out) true) :
-    ExecStmt config (safeTransferPayloadFrame isFrom imms token sender recipient value) evm
+    ExecStmt fork config (safeTransferPayloadFrame isFrom imms token sender recipient value) evm
       (.lowLevelCall (.var "token") (.intLit 0) (.var "payload") "success" "returndata" true)
       (.ok (safeTransferCallFrame isFrom imms token sender recipient value success out) evm') := by
   apply lowLevelCallSource (hperm := Or.inl rfl) (value := 0)
@@ -130,11 +132,11 @@ theorem safeTransferCall (isFrom : Bool) (imms : Store) (evm evm' : EVM.State)
 theorem safeTransferRun (isFrom : Bool) (imms : Store) (evm evm' : EVM.State)
     (token sender recipient : AccountAddress) (value : UInt256) (success : Bool) (out : ByteArray)
     (hcode : 0 < (extCodeSizeWord evm.accountMap (UInt256.ofNat token.val)).toNat)
-    (hcall : callViaEVM evm token 0 (safeTransferCalldata isFrom sender recipient value)
+    (hcall : callViaEVM fork evm token 0 (safeTransferCalldata isFrom sender recipient value)
       (success, evm', out) true) {result : ExecResult}
-    (htail : ExecBlock config (safeTransferCallFrame isFrom imms token sender recipient value
+    (htail : ExecBlock fork config (safeTransferCallFrame isFrom imms token sender recipient value
       success out) evm' safeTransferTail result) :
-    ExecBlock config (safeTransferFrame isFrom imms token sender recipient value) evm
+    ExecBlock fork config (safeTransferFrame isFrom imms token sender recipient value) evm
       (safeTransferFunctionFor isFrom).body result := by
   rw [safeTransferBody_shape]
   apply ExecBlock.consNormal (ExecStmt.requireTrue
@@ -148,7 +150,7 @@ theorem safeTransferRun (isFrom : Bool) (imms : Store) (evm evm' : EVM.State)
 theorem safeTransferRevertsCode (isFrom : Bool) (imms : Store) (evm : EVM.State)
     (token sender recipient : AccountAddress) (value : UInt256)
     (hcode : (extCodeSizeWord evm.accountMap (UInt256.ofNat token.val)).toNat = 0) :
-    ExecFuncBody config (safeTransferFrame isFrom imms token sender recipient value) evm
+    ExecFuncBody fork config (safeTransferFrame isFrom imms token sender recipient value) evm
       (safeTransferFunctionFor isFrom).body .reverted := by
   apply ExecFuncBody.execBlockRevert
   rw [safeTransferBody_shape]
@@ -173,9 +175,9 @@ theorem safeTransferCallFrame_success (isFrom : Bool) (imms : Store)
 theorem safeTransferRevertsCall (isFrom : Bool) (imms : Store) (evm evm' : EVM.State)
     (token sender recipient : AccountAddress) (value : UInt256) (out : ByteArray)
     (hcode : 0 < (extCodeSizeWord evm.accountMap (UInt256.ofNat token.val)).toNat)
-    (hcall : callViaEVM evm token 0 (safeTransferCalldata isFrom sender recipient value)
+    (hcall : callViaEVM fork evm token 0 (safeTransferCalldata isFrom sender recipient value)
       (false, evm', out) true) :
-    ExecFuncBody config (safeTransferFrame isFrom imms token sender recipient value) evm
+    ExecFuncBody fork config (safeTransferFrame isFrom imms token sender recipient value) evm
       (safeTransferFunctionFor isFrom).body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply safeTransferRun isFrom imms evm evm' token sender recipient value false out hcode hcall
@@ -184,9 +186,9 @@ theorem safeTransferRevertsCall (isFrom : Bool) (imms : Store) (evm evm' : EVM.S
 theorem safeTransferRevertsSize (isFrom : Bool) (imms : Store) (evm evm' : EVM.State)
     (token sender recipient : AccountAddress) (value : UInt256) (success : Bool) (out : ByteArray)
     (hcode : 0 < (extCodeSizeWord evm.accountMap (UInt256.ofNat token.val)).toNat)
-    (hcall : callViaEVM evm token 0 (safeTransferCalldata isFrom sender recipient value)
+    (hcall : callViaEVM fork evm token 0 (safeTransferCalldata isFrom sender recipient value)
       (success, evm', out) true) (hb : 2 ^ 64 ≤ out.size) :
-    ExecFuncBody config (safeTransferFrame isFrom imms token sender recipient value) evm
+    ExecFuncBody fork config (safeTransferFrame isFrom imms token sender recipient value) evm
       (safeTransferFunctionFor isFrom).body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply safeTransferRun isFrom imms evm evm' token sender recipient value success out hcode hcall
@@ -195,11 +197,11 @@ theorem safeTransferRevertsSize (isFrom : Bool) (imms : Store) (evm evm' : EVM.S
 theorem safeTransferRevertsDecode (isFrom : Bool) (imms : Store) (evm evm' : EVM.State)
     (token sender recipient : AccountAddress) (value : UInt256) (out : ByteArray)
     (hcode : 0 < (extCodeSizeWord evm.accountMap (UInt256.ofNat token.val)).toNat)
-    (hcall : callViaEVM evm token 0 (safeTransferCalldata isFrom sender recipient value)
+    (hcall : callViaEVM fork evm token 0 (safeTransferCalldata isFrom sender recipient value)
       (true, evm', out) true) (hne : out.size ≠ 0)
     (hd : config.externalABI.decodeValue? abiBool out = none ∨
       config.externalABI.decodeValue? abiBool out = some (.bool false)) :
-    ExecFuncBody config (safeTransferFrame isFrom imms token sender recipient value) evm
+    ExecFuncBody fork config (safeTransferFrame isFrom imms token sender recipient value) evm
       (safeTransferFunctionFor isFrom).body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply safeTransferRun isFrom imms evm evm' token sender recipient value true out hcode hcall
@@ -209,10 +211,10 @@ theorem safeTransferRevertsDecode (isFrom : Bool) (imms : Store) (evm evm' : EVM
 theorem safeTransferReturns (isFrom : Bool) (imms : Store) (evm evm' : EVM.State)
     (token sender recipient : AccountAddress) (value : UInt256) (out : ByteArray)
     (hcode : 0 < (extCodeSizeWord evm.accountMap (UInt256.ofNat token.val)).toNat)
-    (hcall : callViaEVM evm token 0 (safeTransferCalldata isFrom sender recipient value)
+    (hcall : callViaEVM fork evm token 0 (safeTransferCalldata isFrom sender recipient value)
       (true, evm', out) true) (hb : out.size < 2 ^ 64)
     (hd : out.size = 0 ∨ config.externalABI.decodeValue? abiBool out = some (.bool true)) :
-    ExecFuncBody config (safeTransferFrame isFrom imms token sender recipient value) evm
+    ExecFuncBody fork config (safeTransferFrame isFrom imms token sender recipient value) evm
       (safeTransferFunctionFor isFrom).body
       (.returned (safeTransferCallFrame isFrom imms token sender recipient value true out) evm'
         none) := by

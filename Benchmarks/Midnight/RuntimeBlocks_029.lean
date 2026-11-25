@@ -1,6 +1,8 @@
 import Reasoning.Reach
 import Benchmarks.Midnight.Bytecode
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM
 open Reasoning.Theory Reasoning.Reach
 
@@ -14,8 +16,8 @@ def midnight_block_7118_stack {x0 : UInt256} {x1 : UInt256} {R : List UInt256} :
 theorem midnight_block_7118 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024)
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 19536) = true)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7118) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 19536) (midnight_block_7118_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 10) (C + ((34))) := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7118) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 19536) (midnight_block_7118_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 10) (C + ((34))) := by
   let r0 := h
   have r1 := r0.push2 (UInt256.ofNat 6721) (by native_decide) (by evm_ov)
   have r2 := r1.push2 (UInt256.ofNat 7134) (by native_decide) (by evm_ov)
@@ -34,8 +36,8 @@ theorem midnight_block_7118 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem :
 theorem midnight_block_7118_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024)
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 19536) = true)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7118) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 19536) (midnight_block_7118_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7118) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 19536) (midnight_block_7118_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (midnight_block_7118 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -48,8 +50,8 @@ theorem midnight_block_7134_taken {ee : ExecutionEnv} {g : Sat256} {s0 : State} 
     (hstack : R.length + 6 ≤ 1024)
     (hcond : (UInt256.gt (memLoad (UInt256.ofNat 608) mem) x0) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 7188) = true)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7134) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7188) (midnight_block_7134_taken_stack (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem (M aw (UInt256.ofNat 608) (⟨32⟩ : UInt256)) rdata σ (k + 12) (C + ((41) + (memExpansionCost aw (UInt256.ofNat 608) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7134) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7188) (midnight_block_7134_taken_stack (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem (M aw (UInt256.ofNat 608) (⟨32⟩ : UInt256)) rdata σ (k + 12) (C + ((41) + (memExpansionCost aw (UInt256.ofNat 608) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.swap1 (by native_decide) (by evm_ov)
@@ -71,8 +73,8 @@ theorem midnight_block_7134_taken_packed {ee : ExecutionEnv} {g : Sat256} {s0 : 
     (hstack : R.length + 6 ≤ 1024)
     (hcond : (UInt256.gt (memLoad (UInt256.ofNat 608) mem) x0) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 7188) = true)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7134) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7188) (midnight_block_7134_taken_stack (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7134) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7188) (midnight_block_7134_taken_stack (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (midnight_block_7134_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -84,8 +86,8 @@ def midnight_block_7134_fallthrough_stack {mem : ByteArray} {x0 : UInt256} {x1 :
 theorem midnight_block_7134_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024)
     (hcond : (UInt256.gt (memLoad (UInt256.ofNat 608) mem) x0) = (UInt256.ofNat 0))
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7134) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7150) (midnight_block_7134_fallthrough_stack (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem (M aw (UInt256.ofNat 608) (⟨32⟩ : UInt256)) rdata σ (k + 12) (C + ((41) + (memExpansionCost aw (UInt256.ofNat 608) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7134) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7150) (midnight_block_7134_fallthrough_stack (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem (M aw (UInt256.ofNat 608) (⟨32⟩ : UInt256)) rdata σ (k + 12) (C + ((41) + (memExpansionCost aw (UInt256.ofNat 608) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.swap1 (by native_decide) (by evm_ov)
@@ -106,8 +108,8 @@ theorem midnight_block_7134_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : S
 theorem midnight_block_7134_fallthrough_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024)
     (hcond : (UInt256.gt (memLoad (UInt256.ofNat 608) mem) x0) = (UInt256.ofNat 0))
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7134) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7150) (midnight_block_7134_fallthrough_stack (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7134) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7150) (midnight_block_7134_fallthrough_stack (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (midnight_block_7134_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -120,8 +122,8 @@ theorem midnight_block_7150_taken {ee : ExecutionEnv} {g : Sat256} {s0 : State} 
     (hstack : R.length + 4 ≤ 1024)
     (hcond : (UInt256.isZero x3) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 7167) = true)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7150) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7167) (midnight_block_7150_taken_stack (R := R)) mem aw rdata σ (k + 7) (C + ((23))) := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7150) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
+    : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7167) (midnight_block_7150_taken_stack (R := R)) mem aw rdata σ (k + 7) (C + ((23))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.pop (by native_decide) (by evm_ov)
@@ -138,8 +140,8 @@ theorem midnight_block_7150_taken_packed {ee : ExecutionEnv} {g : Sat256} {s0 : 
     (hstack : R.length + 4 ≤ 1024)
     (hcond : (UInt256.isZero x3) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 7167) = true)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7150) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7167) (midnight_block_7150_taken_stack (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7150) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7167) (midnight_block_7150_taken_stack (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (midnight_block_7150_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -151,8 +153,8 @@ def midnight_block_7150_fallthrough_stack {R : List UInt256} : List UInt256 :=
 theorem midnight_block_7150_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hcond : (UInt256.isZero x3) = (UInt256.ofNat 0))
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7150) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7159) (midnight_block_7150_fallthrough_stack (R := R)) mem aw rdata σ (k + 7) (C + ((23))) := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7150) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
+    : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7159) (midnight_block_7150_fallthrough_stack (R := R)) mem aw rdata σ (k + 7) (C + ((23))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.pop (by native_decide) (by evm_ov)
@@ -168,8 +170,8 @@ theorem midnight_block_7150_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : S
 theorem midnight_block_7150_fallthrough_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hcond : (UInt256.isZero x3) = (UInt256.ofNat 0))
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7150) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7159) (midnight_block_7150_fallthrough_stack (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7150) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7159) (midnight_block_7150_fallthrough_stack (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (midnight_block_7150_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -181,8 +183,8 @@ def midnight_block_7159_stack {x0 : UInt256} {x1 : UInt256} {x2 : UInt256} {x3 :
 theorem midnight_block_7159 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 x6 x7 : UInt256} {R : List UInt256}
     (hstack : R.length + 13 ≤ 1024)
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 6744) = true)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7159) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: R) mem aw rdata σ k C)
-    : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 6744) (midnight_block_7159_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (R := R)) mem aw rdata σ (k + 6) (C + ((23))) := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7159) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: R) mem aw rdata σ k C)
+    : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 6744) (midnight_block_7159_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (R := R)) mem aw rdata σ (k + 6) (C + ((23))) := by
   let r0 := h
   have r1 := r0.dup8 (by native_decide) (by evm_ov)
   have r2 := r1.dup1 (by native_decide) (by evm_ov)
@@ -197,16 +199,16 @@ theorem midnight_block_7159 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem :
 theorem midnight_block_7159_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 x6 x7 : UInt256} {R : List UInt256}
     (hstack : R.length + 13 ≤ 1024)
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 6744) = true)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7159) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 6744) (midnight_block_7159_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7159) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 6744) (midnight_block_7159_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (midnight_block_7159 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
 /-- Automatically generated RD summary for bytecode block at pc 7167. -/
 theorem midnight_block_7167 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7167) R mem aw rdata σ k C)
-    : RDrev Benchmarks.Midnight.midnightBytecode g s0 := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7167) R mem aw rdata σ k C)
+    : RDrev fork Benchmarks.Midnight.midnightBytecode g s0 := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push4 (UInt256.ofNat 57168337) (by native_decide) (by evm_ov)
@@ -228,8 +230,8 @@ def midnight_block_7188_stack {ee : ExecutionEnv} {x0 : UInt256} {x1 : UInt256} 
 theorem midnight_block_7188 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 : UInt256} {R : List UInt256}
     (hstack : R.length + 13 ≤ 1024)
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 19480) = true)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7188) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
-    : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 19480) (midnight_block_7188_stack (ee := ee) (x0 := x0) (x1 := x1) (x2 := x2) (x4 := x4) (R := R)) mem aw rdata σ (k + 22) (C + ((68))) := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7188) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
+    : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 19480) (midnight_block_7188_stack (ee := ee) (x0 := x0) (x1 := x1) (x2 := x2) (x4 := x4) (R := R)) mem aw rdata σ (k + 22) (C + ((68))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push2 (UInt256.ofNat 7253) (by native_decide) (by evm_ov)
@@ -260,8 +262,8 @@ theorem midnight_block_7188 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem :
 theorem midnight_block_7188_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 : UInt256} {R : List UInt256}
     (hstack : R.length + 13 ≤ 1024)
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 19480) = true)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7188) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 19480) (midnight_block_7188_stack (ee := ee) (x0 := x0) (x1 := x1) (x2 := x2) (x4 := x4) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7188) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 19480) (midnight_block_7188_stack (ee := ee) (x0 := x0) (x1 := x1) (x2 := x2) (x4 := x4) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (midnight_block_7188 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -273,8 +275,8 @@ def midnight_block_7240_stack {ee : ExecutionEnv} {σ : AccountMap} {x0 : UInt25
 theorem midnight_block_7240 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 20413) = true)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7240) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 20413) (midnight_block_7240_stack (ee := ee) (σ := σ) (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw rdata σ k' C' := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7240) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : ∃ (k' C' : ℕ), RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 20413) (midnight_block_7240_stack (ee := ee) (σ := σ) (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw rdata σ k' C' := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.swap1 (by native_decide) (by evm_ov)
@@ -293,8 +295,8 @@ theorem midnight_block_7240 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem :
 theorem midnight_block_7240_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 20413) = true)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7240) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 20413) (midnight_block_7240_stack (ee := ee) (σ := σ) (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7240) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 20413) (midnight_block_7240_stack (ee := ee) (σ := σ) (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k0, C0, h0⟩ := midnight_block_7240 hstack hvalid h
   obtain ⟨k', C', h'⟩ := RD.pack h0
   exact ⟨_, k', C', h'⟩
@@ -307,8 +309,8 @@ def midnight_block_7253_stack {ee : ExecutionEnv} {x0 : UInt256} {x1 : UInt256} 
 theorem midnight_block_7253 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 : UInt256} {R : List UInt256}
     (hstack : R.length + 13 ≤ 1024)
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 7150) = true)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7253) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: R) mem aw rdata σ k C)
-    : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7150) (midnight_block_7253_stack (ee := ee) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (x9 := x9) (R := R)) mem aw rdata σ (k + 19) (C + ((62))) := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7253) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: R) mem aw rdata σ k C)
+    : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7150) (midnight_block_7253_stack (ee := ee) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (x9 := x9) (R := R)) mem aw rdata σ (k + 19) (C + ((62))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push1 (UInt256.ofNat 164) (by native_decide) (by evm_ov)
@@ -336,16 +338,16 @@ theorem midnight_block_7253 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem :
 theorem midnight_block_7253_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 : UInt256} {R : List UInt256}
     (hstack : R.length + 13 ≤ 1024)
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 7150) = true)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7253) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7150) (midnight_block_7253_stack (ee := ee) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (x9 := x9) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7253) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7150) (midnight_block_7253_stack (ee := ee) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (x9 := x9) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (midnight_block_7253 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
 /-- Automatically generated RD summary for bytecode block at pc 7276. -/
 theorem midnight_block_7276 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7276) R mem aw rdata σ k C)
-    : RDrev Benchmarks.Midnight.midnightBytecode g s0 := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7276) R mem aw rdata σ k C)
+    : RDrev fork Benchmarks.Midnight.midnightBytecode g s0 := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push4 (UInt256.ofNat 1313373041) (by native_decide) (by evm_ov)
@@ -365,8 +367,8 @@ theorem midnight_block_7276 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem :
 /-- Automatically generated RD summary for bytecode block at pc 7302. -/
 theorem midnight_block_7302 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7302) R mem aw rdata σ k C)
-    : RDrev Benchmarks.Midnight.midnightBytecode g s0 := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7302) R mem aw rdata σ k C)
+    : RDrev fork Benchmarks.Midnight.midnightBytecode g s0 := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push4 (UInt256.ofNat 1313373041) (by native_decide) (by evm_ov)
@@ -389,8 +391,8 @@ def midnight_block_7322_stack {x1 : UInt256} {x2 : UInt256} {R : List UInt256} :
 theorem midnight_block_7322 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 6739) = true)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7322) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 6739) (midnight_block_7322_stack (x1 := x1) (x2 := x2) (R := R)) mem aw rdata σ (k + 7) (C + ((23))) := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7322) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 6739) (midnight_block_7322_stack (x1 := x1) (x2 := x2) (R := R)) mem aw rdata σ (k + 7) (C + ((23))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.pop (by native_decide) (by evm_ov)
@@ -406,8 +408,8 @@ theorem midnight_block_7322 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem :
 theorem midnight_block_7322_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 6739) = true)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7322) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 6739) (midnight_block_7322_stack (x1 := x1) (x2 := x2) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7322) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 6739) (midnight_block_7322_stack (x1 := x1) (x2 := x2) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (midnight_block_7322 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -419,8 +421,8 @@ def midnight_block_7339_stack {ee : ExecutionEnv} {x0 : UInt256} {x1 : UInt256} 
 theorem midnight_block_7339 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024)
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 20413) = true)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7339) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 20413) (midnight_block_7339_stack (ee := ee) (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw rdata σ (k + 8) (C + ((27))) := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7339) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 20413) (midnight_block_7339_stack (ee := ee) (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw rdata σ (k + 8) (C + ((27))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.pushConst (UInt256.ofNat 1000000000000000000) (width := 8) (op := .PUSH8) (by decide) (by native_decide) (by evm_ov)
@@ -437,8 +439,8 @@ theorem midnight_block_7339 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem :
 theorem midnight_block_7339_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024)
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 20413) = true)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7339) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 20413) (midnight_block_7339_stack (ee := ee) (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7339) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 20413) (midnight_block_7339_stack (ee := ee) (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (midnight_block_7339 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -451,8 +453,8 @@ theorem midnight_block_7360_taken {ee : ExecutionEnv} {g : Sat256} {s0 : State} 
     (hstack : R.length + 5 ≤ 1024)
     (hcond : (UInt256.isZero (UInt256.lor (UInt256.eq (UInt256.div (UInt256.mul (UInt256.div x0 x1) (UInt256.ofNat 1000000000000000000000000000000000000)) (UInt256.div x0 x1)) (UInt256.ofNat 1000000000000000000000000000000000000)) (UInt256.isZero (UInt256.div x0 x1)))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 7276) = true)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7360) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7276) (midnight_block_7360_taken_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 19) (C + ((68))) := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7360) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7276) (midnight_block_7360_taken_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 19) (C + ((68))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.pushConst (UInt256.ofNat 1000000000000000000000000000000000000) (width := 15) (op := .PUSH15) (by decide) (by native_decide) (by evm_ov)
@@ -481,8 +483,8 @@ theorem midnight_block_7360_taken_packed {ee : ExecutionEnv} {g : Sat256} {s0 : 
     (hstack : R.length + 5 ≤ 1024)
     (hcond : (UInt256.isZero (UInt256.lor (UInt256.eq (UInt256.div (UInt256.mul (UInt256.div x0 x1) (UInt256.ofNat 1000000000000000000000000000000000000)) (UInt256.div x0 x1)) (UInt256.ofNat 1000000000000000000000000000000000000)) (UInt256.isZero (UInt256.div x0 x1)))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 7276) = true)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7360) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7276) (midnight_block_7360_taken_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7360) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7276) (midnight_block_7360_taken_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (midnight_block_7360_taken hstack hcond hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -494,8 +496,8 @@ def midnight_block_7360_fallthrough_stack {x0 : UInt256} {x1 : UInt256} {R : Lis
 theorem midnight_block_7360_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
     (hcond : (UInt256.isZero (UInt256.lor (UInt256.eq (UInt256.div (UInt256.mul (UInt256.div x0 x1) (UInt256.ofNat 1000000000000000000000000000000000000)) (UInt256.div x0 x1)) (UInt256.ofNat 1000000000000000000000000000000000000)) (UInt256.isZero (UInt256.div x0 x1)))) = (UInt256.ofNat 0))
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7360) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7396) (midnight_block_7360_fallthrough_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 19) (C + ((68))) := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7360) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7396) (midnight_block_7360_fallthrough_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 19) (C + ((68))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.pushConst (UInt256.ofNat 1000000000000000000000000000000000000) (width := 15) (op := .PUSH15) (by decide) (by native_decide) (by evm_ov)
@@ -523,8 +525,8 @@ theorem midnight_block_7360_fallthrough {ee : ExecutionEnv} {g : Sat256} {s0 : S
 theorem midnight_block_7360_fallthrough_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
     (hcond : (UInt256.isZero (UInt256.lor (UInt256.eq (UInt256.div (UInt256.mul (UInt256.div x0 x1) (UInt256.ofNat 1000000000000000000000000000000000000)) (UInt256.div x0 x1)) (UInt256.ofNat 1000000000000000000000000000000000000)) (UInt256.isZero (UInt256.div x0 x1)))) = (UInt256.ofNat 0))
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7360) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7396) (midnight_block_7360_fallthrough_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7360) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7396) (midnight_block_7360_fallthrough_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (midnight_block_7360_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
@@ -536,8 +538,8 @@ def midnight_block_7396_stack {x0 : UInt256} {x1 : UInt256} {x2 : UInt256} {x3 :
 theorem midnight_block_7396 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 : UInt256} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024)
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 19391) = true)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7396) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
-    : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 19391) (midnight_block_7396_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) mem aw rdata σ (k + 5) (C + ((20))) := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7396) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
+    : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 19391) (midnight_block_7396_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) mem aw rdata σ (k + 5) (C + ((20))) := by
   let r0 := h
   have r1 := r0.dup5 (by native_decide) (by evm_ov)
   have r2 := r1.push2 (UInt256.ofNat 7405) (by native_decide) (by evm_ov)
@@ -551,8 +553,8 @@ theorem midnight_block_7396 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem :
 theorem midnight_block_7396_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 : UInt256} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024)
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 19391) = true)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7396) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 19391) (midnight_block_7396_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7396) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 19391) (midnight_block_7396_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (midnight_block_7396 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -568,8 +570,8 @@ def midnight_block_7405_memory {mem : ByteArray} {x0 : UInt256} : ByteArray :=
 theorem midnight_block_7405 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 6731) = true)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7405) (x0 :: R) mem aw rdata σ k C)
-    : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 6731) (midnight_block_7405_stack (R := R)) (midnight_block_7405_memory (mem := mem) (x0 := x0)) (M aw (UInt256.ofNat 640) (⟨32⟩ : UInt256)) rdata σ (k + 5) (C + ((18) + (memExpansionCost aw (UInt256.ofNat 640) (⟨32⟩ : UInt256)))) := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7405) (x0 :: R) mem aw rdata σ k C)
+    : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 6731) (midnight_block_7405_stack (R := R)) (midnight_block_7405_memory (mem := mem) (x0 := x0)) (M aw (UInt256.ofNat 640) (⟨32⟩ : UInt256)) rdata σ (k + 5) (C + ((18) + (memExpansionCost aw (UInt256.ofNat 640) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push2 (UInt256.ofNat 640) (by native_decide) (by evm_ov)
@@ -583,8 +585,8 @@ theorem midnight_block_7405 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem :
 theorem midnight_block_7405_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 6731) = true)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7405) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 6731) (midnight_block_7405_stack (R := R)) (midnight_block_7405_memory (mem := mem) (x0 := x0)) aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7405) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 6731) (midnight_block_7405_stack (R := R)) (midnight_block_7405_memory (mem := mem) (x0 := x0)) aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (midnight_block_7405 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -596,8 +598,8 @@ def midnight_block_7414_stack {x0 : UInt256} {x1 : UInt256} {x2 : UInt256} {R : 
 theorem midnight_block_7414 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 6639) = true)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7414) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 6639) (midnight_block_7414_stack (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw rdata σ (k + 4) (C + ((15))) := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7414) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 6639) (midnight_block_7414_stack (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw rdata σ (k + 4) (C + ((15))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.swap2 (by native_decide) (by evm_ov)
@@ -610,8 +612,8 @@ theorem midnight_block_7414 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem :
 theorem midnight_block_7414_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 6639) = true)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7414) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 6639) (midnight_block_7414_stack (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7414) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 6639) (midnight_block_7414_stack (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (midnight_block_7414 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -623,8 +625,8 @@ def midnight_block_7420_stack {ee : ExecutionEnv} {R : List UInt256} : List UInt
 theorem midnight_block_7420 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 5475) = true)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7420) (x0 :: R) mem aw rdata σ k C)
-    : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 5475) (midnight_block_7420_stack (ee := ee) (R := R)) mem aw rdata σ (k + 8) (C + ((26))) := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7420) (x0 :: R) mem aw rdata σ k C)
+    : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 5475) (midnight_block_7420_stack (ee := ee) (R := R)) mem aw rdata σ (k + 8) (C + ((26))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.pop (by native_decide) (by evm_ov)
@@ -641,8 +643,8 @@ theorem midnight_block_7420 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem :
 theorem midnight_block_7420_packed {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 5475) = true)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7420) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 5475) (midnight_block_7420_stack (ee := ee) (R := R)) mem aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7420) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 5475) (midnight_block_7420_stack (ee := ee) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (midnight_block_7420 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 

@@ -2,6 +2,8 @@ import Benchmarks.Midnight.TakeBuyData
 import Benchmarks.Midnight.BuyCallbackABI
 import Benchmarks.Midnight.FlashLoanCallbackSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Source statements and exact argument evaluation for the buyer callback. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -65,30 +67,30 @@ variable {frame : Frame} {evm evm' : State} {m : MarketData}
 include ht ha
 
 theorem buyCallbackFailure
-    (hcall : typedCallViaEVM config evm callback "onBuy" 0
+    (hcall : typedCallViaEVM fork config evm callback "onBuy" 0
       (buyCallbackArguments m id assets units fee (AccountAddress.ofNat user.toNat) data)
       (false, evm', out) true) :
-    ExecStmt config frame evm buyCallbackStmt .reverted := by
+    ExecStmt fork config frame evm buyCallbackStmt .reverted := by
   exact ExecStmt.externalCallFailure (target := callback) (Or.inl wordOfInt_zero)
     (by simp only [evalExpr?, ht, EvalResult.ofOption])
     (by simp only [evalExpr?, pure]) ha
     (by simpa only [address_of_val] using hcall)
 
 theorem buyCallbackShort
-    (hcall : typedCallViaEVM config evm callback "onBuy" 0
+    (hcall : typedCallViaEVM fork config evm callback "onBuy" 0
       (buyCallbackArguments m id assets units fee (AccountAddress.ofNat user.toNat) data)
       (true, evm', out) true) (hshort : out.size < 32) :
-    ExecStmt config frame evm buyCallbackStmt .reverted := by
+    ExecStmt fork config frame evm buyCallbackStmt .reverted := by
   exact ExecStmt.externalCallReturnDecodeRevert (target := callback) (Or.inl wordOfInt_zero)
     (by simp only [evalExpr?, ht, EvalResult.ofOption])
     (by simp only [evalExpr?, pure]) ha
     (by simpa only [address_of_val] using hcall) (decodeBuyCallback_short hshort)
 
 theorem buyCallbackSuccess
-    (hcall : typedCallViaEVM config evm callback "onBuy" 0
+    (hcall : typedCallViaEVM fork config evm callback "onBuy" 0
       (buyCallbackArguments m id assets units fee (AccountAddress.ofNat user.toNat) data)
       (true, evm', out) true) (h32 : 32 ≤ out.size) :
-    ExecStmt config frame evm buyCallbackStmt
+    ExecStmt fork config frame evm buyCallbackStmt
       (.ok (buyCallbackFrame frame (calldataWord out 0)) evm') := by
   exact ExecStmt.externalCallSuccess (target := callback) (Or.inl wordOfInt_zero)
     (by simp only [evalExpr?, ht, EvalResult.ofOption])

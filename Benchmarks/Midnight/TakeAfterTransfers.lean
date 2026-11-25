@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TakeCleanup
 import Benchmarks.Midnight.TakeSellCallback
 
+variable {fork : Ethereum.Fork}
+
 /-! The complete suffix after the two token transfers. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,7 +18,7 @@ theorem midnightTakeAfterTransfers {I : ExecutionEnv} {g : UInt256} {s0 evm : St
     {frame : Frame} {mem rdata data : ByteArray} {aw root market arrayPtr callbackPtr offerRoot
       takerPtr id units seller receiver fee wasLocked saved bought sold : UInt256}
     {offer : OfferData} {callback : AccountAddress} {σ : AccountMap} {k C : Nat} {R : List UInt256}
-    (hstack : R.length + 28 ≤ 1024) (hfork : I.fork ≥ .osaka) (hgas : midnightGasBound g)
+    (hstack : R.length + 28 ≤ 1024) (hfork : fork ≥ .osaka) (hgas : midnightGasBound g)
     (hc : frame.contract = contract) (hcanon : seller.toNat < EVM.addressModulus)
     (hrcanon : receiver.toNat < EVM.addressModulus) (hfee128 : fee.toNat < 2^128)
     (hfOffer : frame.locals.get? "offer" = some (Model.offerValue offer.value))
@@ -46,15 +48,15 @@ theorem midnightTakeAfterTransfers {I : ExecutionEnv} {g : UInt256} {s0 evm : St
     (hfee : memLoad (UInt256.ofNat 160) mem = fee)
     (hunits : calldataWord I.calldata 68 = units)
     (hs : SourceState s0 I σ evm)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨13329⟩
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨13329⟩
       ([UInt256.ofNat callback.val, solcAddrMask, wasLocked, saved] ++ R) mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (ExecBlock config frame evm (takeTransition.body.drop 70) .reverted ∧
-      RDrev midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (ExecBlock fork config frame evm (takeTransition.body.drop 70) .reverted ∧
+      RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
     ∃ frame' evm',
-      ExecBlock config frame evm (takeTransition.body.drop 70)
+      ExecBlock fork config frame evm (takeTransition.body.drop 70)
         (.returned frame' evm' (some [.int bought.toNat, .int sold.toNat])) ∧
-      RDret midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap (wordArrayBytes [bought, sold]) := by
+      RDret fork midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap (wordArrayBytes [bought, sold]) := by
   rcases midnightMemoryPaid_headroom rd hh.funding.accounting.paid hgas hh.covered with
     hoog | hroom
   · exact Or.inl hoog

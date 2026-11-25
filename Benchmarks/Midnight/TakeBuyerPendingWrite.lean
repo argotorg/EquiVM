@@ -6,6 +6,8 @@ import Benchmarks.Midnight.WithdrawUnitsWriteBlocksGas
 import Benchmarks.Midnight.PackedStorageSourceState
 import Benchmarks.Midnight.MemoryFunding
 
+variable {fork : Ethereum.Fork}
+
 /-! Checked accumulation of the buyer's pending fee after the debt write. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -29,18 +31,18 @@ theorem midnightTakeBuyerPendingWrite {credit : Nat} {I : ExecutionEnv} {g : Sat
     (hcanon : buyer.toNat < EVM.addressModulus) (hfee : fee.toNat < 2^128)
     (hperm : I.perm = true) (hs : SourceState s0 I σ evm)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨20456⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨20456⟩
       (positionFieldWord evm id buyer 1 :: fee :: ⟨4216⟩ :: ⟨12386⟩ :: positionSlot id buyer :: R)
       mem aw rdata σ k C) :
-    (ExecBlock config frame evm (takeTransition.body.drop 48) .reverted ∧
-      RDrev midnightBytecode g s0) ∨
+    (ExecBlock fork config frame evm (takeTransition.body.drop 48) .reverted ∧
+      RDrev fork midnightBytecode g s0) ∨
     ∃ σ' k' C',
-      (∀ result, ExecBlock config frame (takeBuyerPendingWriteState evm id buyer fee)
+      (∀ result, ExecBlock fork config frame (takeBuyerPendingWriteState evm id buyer fee)
           (takeTransition.body.drop 49) result →
-        ExecBlock config frame evm (takeTransition.body.drop 48) result) ∧
+        ExecBlock fork config frame evm (takeTransition.body.drop 48) result) ∧
       SourceState s0 I σ' (takeBuyerPendingWriteState evm id buyer fee) ∧
       MemoryFunding credit mem aw C' ∧
-      RD midnightBytecode I g s0 ⟨12386⟩ (positionSlot id buyer :: R) mem aw rdata σ' k' C' := by
+      RD fork midnightBytecode I g s0 ⟨12386⟩ (positionSlot id buyer :: R) mem aw rdata σ' k' C' := by
   have he := evalNamedPositionField (evm := evm) 1 hcanon hp
   by_cases hsum : (positionFieldWord evm id buyer 1).toNat + fee.toNat < 2^128
   · obtain ⟨k1, C1, hc1, rd1⟩ := midnightCheckedAdd128_mono

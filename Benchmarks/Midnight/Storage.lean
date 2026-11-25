@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.Entry
 
+variable {fork : Ethereum.Fork}
+
 /-! Storage and return-value lemmas shared by Midnight's entry points. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,7 +17,7 @@ theorem guardedAddressGetter {cfg : Config} {C : ContractDecl} {layout : Storage
     (hname : name ≠ "__calldata")
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) :
-    ExecTransitionBody cfg C evm ∅ (entryPrefix ++ [.return [.storage { base := name }]])
+    ExecTransitionBody fork cfg C evm ∅ (entryPrefix ++ [.return [.storage { base := name }]])
       (.returned (calldataFrame C ∅ ∅ evm) evm
         (some [.address (AccountAddress.ofNat
           (UInt256.land (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
@@ -40,7 +42,7 @@ theorem guardedBoolMappingGetter {cfg : Config} {C : ContractDecl} {layout : Sto
     (hname : name ≠ "__calldata") (harg : name ≠ "arg0")
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) :
-    ExecTransitionBody cfg C evm ((∅ : Store).insert "arg0" (.int key.toNat))
+    ExecTransitionBody fork cfg C evm ((∅ : Store).insert "arg0" (.int key.toNat))
       (entryPrefix ++ [.return [.storage { base := name, steps := [.mindex (.var "arg0")] }]])
       (.returned (calldataFrame C ((∅ : Store).insert "arg0" (.int key.toNat)) ∅ evm) evm
         (some [wordToElem .bool (UInt256.land
@@ -113,7 +115,7 @@ theorem guardedBytes32MappingFieldGetter
     (hname : name ≠ "__calldata") (harg : name ≠ arg) (hargData : arg ≠ "__calldata")
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) :
-    ExecTransitionBody cfg C evm ((∅ : Store).insert arg (wordBytes32Value key))
+    ExecTransitionBody fork cfg C evm ((∅ : Store).insert arg (wordBytes32Value key))
       (entryPrefix ++ [.return [.storage
         { base := name, steps := [.mindex (.var arg), .field field] }]])
       (.returned (calldataFrame C ((∅ : Store).insert arg (wordBytes32Value key)) ∅ evm) evm
@@ -146,7 +148,7 @@ theorem guardedAddressMappingGetter
     (hname : name ≠ "__calldata") (harg : name ≠ "arg0")
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) :
-    ExecTransitionBody cfg C evm
+    ExecTransitionBody fork cfg C evm
       ((∅ : Store).insert "arg0" (.address (AccountAddress.ofNat key.toNat)))
       (entryPrefix ++ [.return [.storage { base := name, steps := [.mindex (.var "arg0")] }]])
       (.returned (calldataFrame C

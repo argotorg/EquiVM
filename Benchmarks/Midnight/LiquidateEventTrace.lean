@@ -2,6 +2,8 @@ import Benchmarks.Midnight.LiquidateEventBudget
 import Benchmarks.Midnight.LiquidateEventMemory
 import Benchmarks.Midnight.LiquidateEventStatic
 
+variable {fork : Ethereum.Fork}
+
 /-! The liquidation event's storage reads, buffer writes, and LOG4. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -19,15 +21,15 @@ theorem midnightLiquidateEvent {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hseized : memLoad (UInt256.ofNat 640) mem = seized)
     (hpaid : memLoad (UInt256.ofNat 608) mem = repaid)
     (hb : TransferBudget budgetRoot credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨5548⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨5548⟩
       ([token, mode, dp, dl, borrower, badDebt, receiver, payer] ++ R) mem aw rdata σ k C) :
     let loss := UInt256.shiftRight (solcSlotWordAt (solcMappingSlot ⟨1⟩ id) σ I) (UInt256.ofNat 128)
     let fee := UInt256.shiftRight (solcSlotWordAt (solcMappingSlot ⟨1⟩ id + UInt256.ofNat 1) σ I)
       (UInt256.ofNat 128)
     let mem' := liquidateEventMemory mem root I seized repaid mode receiver payer badDebt loss fee
-    (I.perm = false ∧ RDstatic midnightBytecode g s0) ∨
+    (I.perm = false ∧ RDstatic fork midnightBytecode g s0) ∨
     (I.perm = true ∧ ∃ aw' k' C', TransferBudget budgetRoot credit mem' aw' C' ∧
-      RD midnightBytecode I g s0 ⟨20488⟩
+      RD fork midnightBytecode I g s0 ⟨20488⟩
         ([⟨4⟩ + calldataWord I.calldata 4, calldataWord I.calldata 4 + ⟨100⟩,
           ⟨5734⟩, ⟨5750⟩, receiver, ⟨5543⟩, ⟨5755⟩, dp, dl, borrower, badDebt, receiver, payer] ++ R)
         mem' aw' rdata σ k' C') := by
@@ -40,7 +42,7 @@ theorem midnightLiquidateEvent {I : ExecutionEnv} {g : Sat256} {s0 : State}
     I hroot hlo hsize hfree hseized hpaid
   rw [hm1] at rd1 hb1
   simp only [midnightBlocks.midnight_block_5548_stack, hfree, hslot] at rd1 hb1
-  change RD midnightBytecode I g s0 ⟨5636⟩
+  change RD fork midnightBytecode I g s0 ⟨5636⟩
     ([root, UInt256.ofNat 192, badDebt, loss, fee, root, token, dp, dl, borrower, badDebt,
       receiver, payer] ++ R)
     (liquidateEventHeadMemory mem root I seized repaid mode receiver payer) _ rdata σ k1 C1 at rd1

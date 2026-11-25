@@ -4,6 +4,8 @@ import Benchmarks.Midnight.MulticallInvalidLoop
 import Benchmarks.Midnight.MulticallLoop
 import Benchmarks.Midnight.MarketEntryDecode
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `multicall(bytes[])`
 
@@ -21,17 +23,17 @@ set_option maxRecDepth 2000000
 /-- `multicall(bytes[])`: the theorem `Correct.lean` routes selector 36 to. -/
 theorem midnightMulticallBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 36)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 36) rfl hsel
   have hd : dispatchMsg contract I.calldata = some multicallTransition := by
     apply midnightDispatch_multicall <;>
       first | exact hsel | exact selectorNe_of_selIs hsel (by decide +kernel)
   obtain ⟨k, C, rd⟩ := midnightReachMulticallBody
     (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) hcode hsz hsize hsel
-  change RD midnightBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+  change RD fork midnightBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
     ⟨3542⟩ [solcSelectorWord I] midnightEntryMemory (UInt256.ofNat 26) ByteArray.empty σ k C at rd
   have ha : MemoryAccounting midnightEntryMemory (UInt256.ofNat 26) C := by
     refine ⟨MemoryPaid.entry C, ?_⟩
@@ -60,7 +62,7 @@ theorem midnightMulticallBody {σ σ₀ A I} {g : UInt256}
     have ha2 := memoryAccountingAt rd2 ⟨ha.paid.mono (by omega), ha.covered⟩
     have ha3 := memoryAccountingAt rd3 (by memory_account ha2)
     simp only [midnightBlocks.midnight_block_3590_stack, hz, wordAddLnot30] at rd3
-    change RD midnightBytecode I (Sat256.ofUInt256 g) origin ⟨3605⟩
+    change RD fork midnightBytecode I (Sat256.ofUInt256 g) origin ⟨3605⟩
       (⟨0⟩ :: base :: multicallTailBound I.calldata base :: count :: [solcSelectorWord I])
       midnightEntryMemory _ ByteArray.empty σ _ _ at rd3
     have hh : TransferHeap midnightEntryMemory
@@ -89,14 +91,14 @@ theorem midnightMulticallBody {σ σ₀ A I} {g : UInt256}
         rw [store_get_ne _ _ (by decide), store_get_ne _ _ (by decide)]
         exact store_get_self _ _ _
       have sourcePrefix {result : ExecResult}
-          (hbody : ExecBlock config frame origin (multicallTransition.body.drop 3) result) :
-          ExecBlock config
+          (hbody : ExecBlock fork config frame origin (multicallTransition.body.drop 3) result) :
+          ExecBlock fork config
             { contract := contract, locals := multicallArguments calls, immutables := ∅ }
             origin multicallTransition.body result :=
         guardedBodyBlock hwv hlimit hbody
       rcases midnightMulticallLoop count.toNat (index := ⟨0⟩) (by simp)
           (by change count.toNat = 0 + count.toNat; omega) hn hhi hspan hvalid hf
-          (flashLoanSetIndex_get frame 0) hm (by decide) hz hh hgas hwf
+          (flashLoanSetIndex_get frame 0) hm (by decide) hz hh hgas hfork
           (by exact ⟨rfl, rfl, rfl⟩) rd3 with
         hoog | ⟨hloop, hr⟩ | ⟨frame', evm', σ', hloop, hs', hr⟩
       · exact reEquiv_outOfGas (Xi_error_of_X (by rw [← hcode] at hoog; exact hoog))
@@ -106,7 +108,7 @@ theorem midnightMulticallBody {σ σ₀ A I} {g : UInt256}
         rw [multicallLoop_shape]
         exact .consRevert (multicallLoopStatement hloop)
       · rw [hs'.accounts] at hr
-        have hb : ExecBlock config frame origin (multicallTransition.body.drop 3)
+        have hb : ExecBlock fork config frame origin (multicallTransition.body.drop 3)
             (.ok frame' evm') := by
           rw [multicallLoop_shape]
           exact .consNormal (multicallLoopStatement hloop) .nil
@@ -121,7 +123,7 @@ theorem midnightMulticallBody {σ σ₀ A I} {g : UInt256}
           if_neg hvalid, Option.map_none]
       rcases midnightMulticallInvalidLoop count.toNat (index := ⟨0⟩) (by simp)
           (by change count.toNat = 0 + count.toNat; omega) hn hhi hspan hvalid
-          hm (by decide) hz hh hgas hwf (by exact ⟨rfl, rfl, rfl⟩) rd3 with hoog | hr
+          hm (by decide) hz hh hgas hfork (by exact ⟨rfl, rfl, rfl⟩) rd3 with hoog | hr
       · exact reEquiv_outOfGas (Xi_error_of_X (by rw [← hcode] at hoog; exact hoog))
       · exact hr.reEquivDecodingFailed hcode hd hdec
   · have rd1 := midnightBlocks.midnight_block_3542_taken (by simp) hwv (by jump_dest) rd

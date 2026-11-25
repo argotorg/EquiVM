@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.TakeConsumptionValues
 
+variable {fork : Ethereum.Fork}
+
 /-! Checked accumulation and the selected offer cap in the source semantics. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -28,7 +30,7 @@ theorem takeConsumptionStepSource {frame : Frame} {evm : State}
     (hc : evalExpr? config (wordLocal frame "newConsumed" (old + increment)) evm capExpr =
       .ok (.int cap.toNat))
     (hsafe : old.toNat + increment.toNat ≤ cap.toNat) :
-    ExecBlock config frame evm (takeConsumptionStep incExpr capExpr)
+    ExecBlock fork config frame evm (takeConsumptionStep incExpr capExpr)
       (.ok (wordLocal frame "newConsumed" (old + increment)) evm) := by
   have hfit : old.toNat + increment.toNat < UInt256.size :=
     lt_of_le_of_lt hsafe cap.val.isLt
@@ -50,7 +52,7 @@ theorem takeConsumptionStepRevert {frame : Frame} {evm : State}
     (hc : evalExpr? config (wordLocal frame "newConsumed" (old + increment)) evm capExpr =
       .ok (.int cap.toNat))
     (hbad : ¬ old.toNat + increment.toNat ≤ cap.toNat) :
-    ExecBlock config frame evm (takeConsumptionStep incExpr capExpr) .reverted := by
+    ExecBlock fork config frame evm (takeConsumptionStep incExpr capExpr) .reverted := by
   by_cases hfit : old.toNat + increment.toNat < UInt256.size
   · have hadd : (old + increment).toNat = old.toNat + increment.toNat :=
       addWord_toNat old increment hfit

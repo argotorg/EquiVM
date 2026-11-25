@@ -3,6 +3,8 @@ import Benchmarks.Midnight.TouchMarketSource
 import Benchmarks.Midnight.RoleSource
 import Benchmarks.Midnight.ClaimFeeState
 
+variable {fork : Ethereum.Fork}
+
 /-! Source frames through market initialization and claim authorization. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -41,17 +43,17 @@ theorem evalClaimFeeTouchArgs (evm : EVM.State) (m : MarketData) (amount receive
 
 theorem claimFeeAfterTouchSource {evm evm' : EVM.State} {m : MarketData} {amount receiver : UInt256}
     {frame : Frame} {result}
-    (htouch : ExecFuncBody config (touchMarketCallFrame ∅ m) evm touchMarketFunction.body
+    (htouch : ExecFuncBody fork config (touchMarketCallFrame ∅ m) evm touchMarketFunction.body
       (.returned frame evm' (some [wordBytes32Value m.id])))
-    (htail : ExecBlock config (claimFeeAfterTouchFrame evm m amount receiver) evm'
+    (htail : ExecBlock fork config (claimFeeAfterTouchFrame evm m amount receiver) evm'
       (claimContinuousFeeTransition.body.drop 4) result) :
-    ExecBlock config (claimFeeExternalFrame evm m amount receiver) evm
+    ExecBlock fork config (claimFeeExternalFrame evm m amount receiver) evm
       (claimContinuousFeeTransition.body.drop 3) result :=
   ExecBlock.consNormal (internalCallFunctionReturn (callee := touchMarketFunction)
     (locals := touchMarketArguments m) (evalClaimFeeTouchArgs evm m amount receiver) rfl rfl htouch) htail
 
 theorem claimFeeBindAlias (evm evm' : EVM.State) (m : MarketData) (amount receiver : UInt256) :
-    ABlock config evm' (claimFeeAfterTouchFrame evm m amount receiver)
+    ABlock fork config evm' (claimFeeAfterTouchFrame evm m amount receiver)
       (claimContinuousFeeTransition.body.drop 4) (claimFeeAliasFrame evm m amount receiver)
       (claimContinuousFeeTransition.body.drop 5) := by
   refine ⟨fun h ↦ ExecBlock.consNormal (ExecStmt.letStorage ?_) h⟩

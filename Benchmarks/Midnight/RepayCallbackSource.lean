@@ -2,6 +2,8 @@ import Benchmarks.Midnight.RepayPayerSource
 import Benchmarks.Midnight.RepayCallbackABI
 import Benchmarks.Midnight.FlashLoanCallbackSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Source execution of repayment's optional callback and acknowledgement check. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -46,10 +48,10 @@ theorem repayMagicGuard_eval (frame : Frame) (evm : State) (value : UInt256) :
 theorem repayCallbackFailure {frame : Frame} {evm evm' : State} {m : MarketData}
     {id user units : UInt256} {callback : AccountAddress} {data out : ByteArray}
     (hf : RepaySourceFrame frame m id user units callback data)
-    (hcall : typedCallViaEVM config evm callback "onRepay" 0
+    (hcall : typedCallViaEVM fork config evm callback "onRepay" 0
       (repayCallbackArguments m id units (AccountAddress.ofNat user.toNat) data)
       (false, evm', out) true) :
-    ExecStmt config frame evm repayCallbackStmt .reverted := by
+    ExecStmt fork config frame evm repayCallbackStmt .reverted := by
   exact ExecStmt.externalCallFailure (target := callback) (Or.inl wordOfInt_zero)
     (by simp only [evalExpr?, hf.callback, EvalResult.ofOption])
     (by simp only [evalExpr?, pure]) (repayCallbackArgs hf)
@@ -58,10 +60,10 @@ theorem repayCallbackFailure {frame : Frame} {evm evm' : State} {m : MarketData}
 theorem repayCallbackShort {frame : Frame} {evm evm' : State} {m : MarketData}
     {id user units : UInt256} {callback : AccountAddress} {data out : ByteArray}
     (hf : RepaySourceFrame frame m id user units callback data)
-    (hcall : typedCallViaEVM config evm callback "onRepay" 0
+    (hcall : typedCallViaEVM fork config evm callback "onRepay" 0
       (repayCallbackArguments m id units (AccountAddress.ofNat user.toNat) data)
       (true, evm', out) true) (hshort : out.size < 32) :
-    ExecStmt config frame evm repayCallbackStmt .reverted := by
+    ExecStmt fork config frame evm repayCallbackStmt .reverted := by
   exact ExecStmt.externalCallReturnDecodeRevert (target := callback) (Or.inl wordOfInt_zero)
     (by simp only [evalExpr?, hf.callback, EvalResult.ofOption])
     (by simp only [evalExpr?, pure]) (repayCallbackArgs hf)
@@ -70,10 +72,10 @@ theorem repayCallbackShort {frame : Frame} {evm evm' : State} {m : MarketData}
 theorem repayCallbackSuccess {frame : Frame} {evm evm' : State} {m : MarketData}
     {id user units : UInt256} {callback : AccountAddress} {data out : ByteArray}
     (hf : RepaySourceFrame frame m id user units callback data)
-    (hcall : typedCallViaEVM config evm callback "onRepay" 0
+    (hcall : typedCallViaEVM fork config evm callback "onRepay" 0
       (repayCallbackArguments m id units (AccountAddress.ofNat user.toNat) data)
       (true, evm', out) true) (h32 : 32 ≤ out.size) :
-    ExecStmt config frame evm repayCallbackStmt
+    ExecStmt fork config frame evm repayCallbackStmt
       (.ok (repayCallbackFrame frame (calldataWord out 0)) evm') := by
   exact ExecStmt.externalCallSuccess (target := callback) (Or.inl wordOfInt_zero)
     (by simp only [evalExpr?, hf.callback, EvalResult.ofOption])

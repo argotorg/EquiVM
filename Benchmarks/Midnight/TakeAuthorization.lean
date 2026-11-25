@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TakeAuthorizationRead
 import Benchmarks.Midnight.RuntimeBlocks_042
 
+variable {fork : Ethereum.Fork}
+
 /-! Take's caller-or-delegate guard after saving its callback-data pointer. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,14 +17,14 @@ theorem midnightTakeAuthorization {credit : Nat} {I : ExecutionEnv} {g : Sat256}
     (hstack : R.length + 6 ≤ 1024) (hmem : 576 ≤ mem.size)
     (huser : memLoad (UInt256.ofNat 544) mem = user)
     (hcanon : user.toNat < EVM.addressModulus) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨10925⟩ (takerPtr :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨10925⟩ (takerPtr :: R)
       mem aw rdata evm.accountMap k C) :
-    (¬ onBehalfAllowed evm user ∧ RDrev midnightBytecode g s0) ∨
+    (¬ onBehalfAllowed evm user ∧ RDrev fork midnightBytecode g s0) ∨
     (onBehalfAllowed evm user ∧ ∃ mem' aw' k' C',
       MemoryPrefix (writeWord mem 320 takerPtr) mem' mem.size ∧ mem'.size = mem.size ∧
       memLoad (UInt256.ofNat 64) mem' = memLoad (UInt256.ofNat 64) mem ∧
       MemoryFunding credit mem' aw' C' ∧
-      RD midnightBytecode I g s0 ⟨10957⟩ R mem' aw' rdata evm.accountMap k' C') := by
+      RD fork midnightBytecode I g s0 ⟨10957⟩ R mem' aw' rdata evm.accountMap k' C') := by
   let base := writeWord mem 320 takerPtr
   have hbsize : base.size = mem.size := by rw [writeWord_sparse_size]; omega
   have hbuser : memLoad (UInt256.ofNat 544) base = user := by
@@ -35,14 +37,14 @@ theorem midnightTakeAuthorization {credit : Nat} {I : ExecutionEnv} {g : Sat256}
       (hf : memLoad (UInt256.ofNat 64) mem' = memLoad (UInt256.ofNat 64) mem)
       (ha' : MemoryFunding credit mem' aw' C')
       (hc : check ≠ ⟨0⟩ ↔ onBehalfAllowed evm user)
-      (rd' : RD midnightBytecode I g s0 ⟨10951⟩ (check :: R)
+      (rd' : RD fork midnightBytecode I g s0 ⟨10951⟩ (check :: R)
         mem' aw' rdata evm.accountMap k' C') :
-      (¬ onBehalfAllowed evm user ∧ RDrev midnightBytecode g s0) ∨
+      (¬ onBehalfAllowed evm user ∧ RDrev fork midnightBytecode g s0) ∨
       (onBehalfAllowed evm user ∧ ∃ mem' aw' k' C',
         MemoryPrefix base mem' mem.size ∧ mem'.size = mem.size ∧
         memLoad (UInt256.ofNat 64) mem' = memLoad (UInt256.ofNat 64) mem ∧
         MemoryFunding credit mem' aw' C' ∧
-        RD midnightBytecode I g s0 ⟨10957⟩ R mem' aw' rdata evm.accountMap k' C') := by
+        RD fork midnightBytecode I g s0 ⟨10957⟩ R mem' aw' rdata evm.accountMap k' C') := by
     by_cases hz : check = ⟨0⟩
     · have rr := midnightBlocks.midnight_block_10951_taken (by omega)
         (by rw [hz]; decide) (by jump_dest) rd'

@@ -2,6 +2,8 @@ import Benchmarks.Midnight.TakeRatifierFinish
 import Benchmarks.Midnight.TakeRatifierAuthorization
 import Benchmarks.Midnight.TakeRatifierSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Ratifier authorization followed by the complete trade suffix. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,7 +17,7 @@ theorem midnightTakeRatifierAuthFinish {credit : Nat} {I : ExecutionEnv} {g : UI
     {aw root market arrayPtr callbackPtr offerRoot takerPtr ratifierPtr id units taker
       saved : UInt256}
     {offer : OfferData} {initialReceiver initialCallback : AccountAddress} {σ : AccountMap} {k C : Nat} {R : List UInt256}
-    (hstack : R.length + 33 ≤ 1024) (hfork : I.fork ≥ .osaka) (hgas : midnightGasBound g)
+    (hstack : R.length + 33 ≤ 1024) (hfork : fork ≥ .osaka) (hgas : midnightGasBound g)
     (hc : OfferCanonical offer)
     (hf : TakeSourceFrame frame offer id units taker initialReceiver initialCallback ratifierData data)
     (htCanon : taker.toNat < EVM.addressModulus)
@@ -40,17 +42,17 @@ theorem midnightTakeRatifierAuthFinish {credit : Nat} {I : ExecutionEnv} {g : UI
     (htakerWord : memLoad (UInt256.ofNat 544) mem = taker)
     (hunits : calldataWord I.calldata 68 = units)
     (hs : SourceState s0 I σ evm)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨11209⟩
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨11209⟩
       ([ratifierPtr, solcMappingSlot ⟨1⟩ id, saved] ++ R) mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (ExecBlock config frame evm (takeTransition.body.drop 14) .staticViolation ∧
-      RDstatic midnightBytecode (Sat256.ofUInt256 g) s0) ∨
-    (ExecBlock config frame evm (takeTransition.body.drop 14) .reverted ∧
-      RDrev midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (ExecBlock fork config frame evm (takeTransition.body.drop 14) .staticViolation ∧
+      RDstatic fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+    (ExecBlock fork config frame evm (takeTransition.body.drop 14) .reverted ∧
+      RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
     ∃ (bought sold : UInt256) (frame' : Frame) (evm' : State),
-      ExecBlock config frame evm (takeTransition.body.drop 14)
+      ExecBlock fork config frame evm (takeTransition.body.drop 14)
         (.returned frame' evm' (some [.int bought.toNat, .int sold.toNat])) ∧
-      RDret midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap
+      RDret fork midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap
         (wordArrayBytes [bought, sold]) := by
   have hs' : SourceState s0 I evm.accountMap evm := by rw [← hs.accounts]; exact hs
   rw [hs.accounts] at rd
@@ -61,7 +63,7 @@ theorem midnightTakeRatifierAuthFinish {credit : Nat} {I : ExecutionEnv} {g : UI
     ⟨hbad, hr⟩ | ⟨hgood, aw1, k1, C1, ha1, rd1⟩
   · exact Or.inr (Or.inr (Or.inl
       ⟨takeRatifierRevert hf.contract hf.authorization hf.offerValue hbad, hr⟩))
-  · have source1 := takeRatifierSource hf.contract hf.authorization hf.offerValue hgood
+  · have source1 := takeRatifierSource (fork := fork) hf.contract hf.authorization hf.offerValue hgood
     have hp := takeRatifierMemory_prefix mem offer root.toNat
     have hread (off : UInt256) (hl : 64 ≤ off.toNat) (hh : off.toNat + 32 ≤ 832) :
         memLoad off (takeRatifierMemory mem offer) = memLoad off mem :=

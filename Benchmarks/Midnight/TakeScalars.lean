@@ -4,6 +4,8 @@ import Benchmarks.Midnight.MemoryFunding
 import Benchmarks.Midnight.RuntimeBlocks_042
 import Benchmarks.Midnight.RuntimeBlocks_069
 
+variable {fork : Ethereum.Fork}
+
 /-! The checked taker, receiver, callback, and callback-data offset in the take head. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -19,12 +21,12 @@ def takeScalarsMemory (mem bytes : ByteArray) : ByteArray :=
 theorem midnightTakeScalars {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 10 ≤ 1024) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨10846⟩ R mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨10846⟩ R mem aw rdata σ k C) :
     ((¬ TakeScalarsValid I.calldata ∨ decodeCalldataBytes I.calldata 196 = none) ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     (TakeScalarsValid I.calldata ∧ (calldataWord I.calldata 196).toNat < 2^64 ∧
       ∃ aw' k' C', MemoryFunding credit (takeScalarsMemory mem I.calldata) aw' C' ∧
-        RD midnightBytecode I g s0 ⟨10911⟩ R
+        RD fork midnightBytecode I g s0 ⟨10911⟩ R
           (takeScalarsMemory mem I.calldata) aw' rdata σ k' C') := by
   have rd1 := midnightBlocks.midnight_block_10846 (by omega) (by jump_dest) rd
   by_cases ht : (calldataWord I.calldata 100).toNat < EVM.addressModulus

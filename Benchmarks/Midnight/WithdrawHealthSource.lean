@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.WithdrawCollateralSource
 import Benchmarks.Midnight.HealthSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Calling the health predicate and requiring its Boolean result during withdrawal. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -21,9 +23,9 @@ theorem WithdrawSourceFrame.healthFrame {frame : Frame} {m : MarketData}
 theorem withdrawHealthRevert {frame : Frame} {m : MarketData} {evm : EVM.State}
     {id user index assets : UInt256} {token receiver : AccountAddress}
     (hf : WithdrawSourceFrame frame m id user index assets token receiver)
-    (hbody : ExecFuncBody config (healthCallFrame frame.immutables m id user) evm
+    (hbody : ExecFuncBody fork config (healthCallFrame frame.immutables m id user) evm
       healthFunction.body .reverted) :
-    ExecBlock config frame evm (withdrawCollateralTransition.body.drop 11) .reverted := by
+    ExecBlock fork config frame evm (withdrawCollateralTransition.body.drop 11) .reverted := by
   apply ExecBlock.consRevert
   apply internalCallFunctionRevert (callee := healthFunction) (locals := healthArguments m id user)
     (withdrawCollateralHealthArgs hf) (by rw [hf.contract]; rfl) rfl
@@ -32,9 +34,9 @@ theorem withdrawHealthRevert {frame : Frame} {m : MarketData} {evm : EVM.State}
 theorem withdrawHealthReturn {frame frame' : Frame} {m : MarketData} {evm evm' : EVM.State}
     {id user index assets : UInt256} {token receiver : AccountAddress} {value : Bool}
     (hf : WithdrawSourceFrame frame m id user index assets token receiver)
-    (hbody : ExecFuncBody config (healthCallFrame frame.immutables m id user) evm
+    (hbody : ExecFuncBody fork config (healthCallFrame frame.immutables m id user) evm
       healthFunction.body (.returned frame' evm' (some [.bool value]))) :
-    ExecStmt config frame evm (withdrawCollateralTransition.body[11]!)
+    ExecStmt fork config frame evm (withdrawCollateralTransition.body[11]!)
       (.ok (withdrawHealthFrame frame value) evm') := by
   apply internalCallFunctionReturn (callee := healthFunction) (locals := healthArguments m id user)
     (value := some [.bool value])

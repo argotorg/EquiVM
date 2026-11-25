@@ -3,6 +3,8 @@ import Benchmarks.Midnight.MarketEncoder
 import Benchmarks.Midnight.AllocationArithmetic
 import Benchmarks.Midnight.RuntimeBlocks_048
 
+variable {fork : Ethereum.Fork}
+
 /-! The shared ABI encoder and dynamic-bytes allocation tail used for market hashing. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -38,10 +40,10 @@ theorem midnightMarketBytesEncode {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length + 19 ≤ 1024) (hm : MarketStored mem ptr arrayPtr limit m)
     (hlimit : limit.toNat ≤ root.toNat) (hb : root.toNat + m.encodingSize + 32 < 2^64)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨19181⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨19181⟩
       (ptr :: (root + UInt256.ofNat 64) :: ⟨12824⟩ :: root :: ret :: root :: R)
       (writeWord mem (root.toNat + 32) (UInt256.ofNat 32)) aw rdata σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g s0 ret (root :: R)
+    ∃ aw' k' C', RD fork midnightBytecode I g s0 ret (root :: R)
       (marketBytesMemory mem root m) aw' rdata σ k' C' := by
   have hroot : 96 ≤ root.toNat := by
     have := hm.lower; have := hm.array; have := hm.extent; omega

@@ -2,6 +2,8 @@ import Benchmarks.Midnight.LiquidateCallbackHeadMemory
 import Benchmarks.Midnight.CalldataAddressFunding
 import Benchmarks.Midnight.RuntimeBlocks_024
 
+variable {fork : Ethereum.Fork}
+
 /-! Callback selector, caller, identifier, and the first market fields. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,11 +19,11 @@ theorem midnightLiquidateCallbackHead {credit : Nat} {I : ExecutionEnv} {g : Sat
     (hroot : root.toNat < 2^128) (hlo : 832 ≤ root.toNat) (hsize : 832 ≤ mem.size)
     (hfree : memLoad (UInt256.ofNat 64) mem = root)
     (hid : memLoad (UInt256.ofNat 768) mem = id) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨5824⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨5824⟩
       ([dp, dl, borrower, badDebt, receiver] ++ R) mem aw rdata σ k C) :
     ∃ aw' k' C',
       MemoryFunding (credit + 4) (liquidateCallbackHeadMemory mem root.toNat I.source id m) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨5931⟩
+      RD fork midnightBytecode I g s0 ⟨5931⟩
         ([UInt256.ofNat m.loanToken.val, solcAddrMask, borrower, receiver, dp, dl,
           root + UInt256.ofNat 580, badDebt, root] ++ R)
         (liquidateCallbackHeadMemory mem root.toNat I.source id m) aw' rdata σ k' C' := by

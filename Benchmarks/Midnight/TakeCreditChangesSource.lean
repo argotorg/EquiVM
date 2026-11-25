@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TakePositionUpdatesValues
 import Benchmarks.Midnight.WordMin
 
+variable {fork : Ethereum.Fork}
+
 /-! Credit and debt deltas are computed from the state after both position updates. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -43,7 +45,7 @@ theorem takeBuyerCreditSource {frame : Frame} {evm : State} {id buyer units : UI
     (hp : frame.locals.get? "buyerPos" = some (.storageRef (positionRef id buyer) positionType))
     (hu : frame.locals.get? "units" = some (.int units.toNat))
     (hcanon : buyer.toNat < EVM.addressModulus) :
-    ExecStmt config frame evm takeTransition.body[35]!
+    ExecStmt fork config frame evm takeTransition.body[35]!
       (.ok (takeBuyerCreditFrame frame evm id buyer units) evm) := by
   apply callZeroFloorSub hc
   simp only [evalExprs?, evalWordLocal hu, evalNamedPositionDebt hcanon hp,
@@ -54,7 +56,7 @@ theorem takeSellerCreditSourceChange {frame : Frame} {evm : State} {id seller un
     (hp : frame.locals.get? "sellerPos" = some (.storageRef (positionRef id seller) positionType))
     (hu : frame.locals.get? "units" = some (.int units.toNat))
     (hcanon : seller.toNat < EVM.addressModulus) :
-    ExecStmt config frame evm takeTransition.body[36]!
+    ExecStmt fork config frame evm takeTransition.body[36]!
       (.ok (wordLocal frame "sellerCreditDecrease" (takeSellerCreditDecrease evm id seller units))
         evm) := by
   apply callMin hc
@@ -70,7 +72,7 @@ theorem takeCreditChangesSource {frame : Frame} {evm : State} {offer : OfferData
     (hb : frame.locals.get? "buyerPos" = some (.storageRef (positionRef id buyer) positionType))
     (hs : frame.locals.get? "sellerPos" = some (.storageRef (positionRef id seller) positionType))
     (hbc : buyer.toNat < EVM.addressModulus) (hsc : seller.toNat < EVM.addressModulus) :
-    ABlock config evm frame (takeTransition.body.drop 35)
+    ABlock fork config evm frame (takeTransition.body.drop 35)
       (takeCreditChangesFrame frame evm id buyer seller units) (takeTransition.body.drop 38) := by
   have hf1 := hf.insert "buyerCreditIncrease"
     (.int (takeBuyerCreditIncrease evm id buyer units).toNat) (by decide)

@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.TakeCreditFinish
 
+variable {fork : Ethereum.Fork}
+
 /-! The buyer pending-fee write and all remaining trade steps. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -13,7 +15,7 @@ theorem midnightTakeBuyerPendingFinish {credit : Nat} {I : ExecutionEnv} {g : UI
     {aw root market arrayPtr callbackPtr offerRoot takerPtr ratifierPtr id units taker buyer seller
       buyerFee sellerFee bought sold consumed increase decrease sellerDebt saved : UInt256}
     {offer : OfferData} {initialReceiver initialCallback : AccountAddress} {σ : AccountMap} {k C : Nat} {R : List UInt256}
-    (hstack : R.length + 33 ≤ 1024) (hfork : I.fork ≥ .osaka) (hgas : midnightGasBound g)
+    (hstack : R.length + 33 ≤ 1024) (hfork : fork ≥ .osaka) (hgas : midnightGasBound g)
     (hc : OfferCanonical offer)
     (hf : TakeSourceFrame frame offer id units taker initialReceiver initialCallback ratifierData data)
     (hbuyerCanon : buyer.toNat < EVM.addressModulus)
@@ -62,18 +64,18 @@ theorem midnightTakeBuyerPendingFinish {credit : Nat} {I : ExecutionEnv} {g : UI
     (hconsumed : memLoad (UInt256.ofNat 480) mem = consumed)
     (hunits : calldataWord I.calldata 68 = units)
     (hs : SourceState s0 I σ evm)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨20456⟩
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨20456⟩
       ([positionFieldWord evm id buyer 1, buyerFee, ⟨4216⟩, ⟨12386⟩,
         positionSlot id buyer, sellerDebt, ⟨12505⟩, ⟨2⟩, ⟨12517⟩, uint128Mask,
         positionSlot id seller, solcMappingSlot ⟨1⟩ id, decrease, ratifierPtr, increase, saved] ++ R)
       mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (ExecBlock config frame evm (takeTransition.body.drop 48) .reverted ∧
-      RDrev midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (ExecBlock fork config frame evm (takeTransition.body.drop 48) .reverted ∧
+      RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
     ∃ frame' evm',
-      ExecBlock config frame evm (takeTransition.body.drop 48)
+      ExecBlock fork config frame evm (takeTransition.body.drop 48)
         (.returned frame' evm' (some [.int bought.toNat, .int sold.toNat])) ∧
-      RDret midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap
+      RDret fork midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap
         (wordArrayBytes [bought, sold]) := by
   rcases midnightTakeBuyerPendingWrite
       (R := [sellerDebt, ⟨12505⟩, ⟨2⟩, ⟨12517⟩, uint128Mask, positionSlot id seller,

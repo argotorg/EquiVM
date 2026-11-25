@@ -2,6 +2,8 @@ import Benchmarks.Midnight.LiquidatePostLoopGuard
 import Benchmarks.Midnight.LiquidateBadDebt
 import Benchmarks.Midnight.LiquidateSettlement
 
+variable {fork : Ethereum.Fork}
+
 /-! The post-loop eligibility, bad-debt update, amount calculation, and settlement. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -36,20 +38,20 @@ theorem midnightLiquidatePostLoop {I : ExecutionEnv} {g : UInt256} {s0 evm : Sta
     (hdl : dl.toNat < 2^64) (hdata : dp.toNat + dl.toNat ≤ I.calldata.size)
     (hfund : MemoryFunding credit mem aw C)
     (hcredit : transferHeapCredit (root + UInt256.ofNat 128) ≤ credit)
-    (hgas : midnightGasBound g) (hfork : I.fork ≥ .osaka) (hs : SourceState s0 I σ evm)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨5358⟩
+    (hgas : midnightGasBound g) (hfork : fork ≥ .osaka) (hs : SourceState s0 I σ evm)
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨5358⟩
       ([debtWord, UInt256.isZero (UInt256.isZero repaid), UInt256.isZero repaid, maxDebt, price,
         positionSlot id borrower, dp, dl, borrower, badDebt, UInt256.ofNat receiver.val, mode,
         saved] ++ R) mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (ExecBlock config frame evm (liquidateTransition.body.drop 15) .reverted ∧
-      RDrev midnightBytecode (Sat256.ofUInt256 g) s0) ∨
-    (ExecBlock config frame evm (liquidateTransition.body.drop 15) .staticViolation ∧
-      RDstatic midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (ExecBlock fork config frame evm (liquidateTransition.body.drop 15) .reverted ∧
+      RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+    (ExecBlock fork config frame evm (liquidateTransition.body.drop 15) .staticViolation ∧
+      RDstatic fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
     ∃ frame' evm' seized' repaid',
-      ExecBlock config frame evm (liquidateTransition.body.drop 15)
+      ExecBlock fork config frame evm (liquidateTransition.body.drop 15)
         (.returned frame' evm' (some [.int seized'.toNat, .int repaid'.toNat])) ∧
-      RDret midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap
+      RDret fork midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap
         (wordArrayBytes [seized', repaid']) := by
   rcases midnightLiquidatePostLoopGuard (R := saved :: R)
       (by simp only [List.length_cons]; omega) hcanon hd hroot (by omega) hfree hid hf ha hs

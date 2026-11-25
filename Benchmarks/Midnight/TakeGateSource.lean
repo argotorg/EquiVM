@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TakeGateABI
 import Benchmarks.Midnight.TakeTradeGuardsSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Source control flow for the two optional entry-gate calls. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -77,7 +79,7 @@ theorem takeGateSkipped {frame : Frame} {evm : State} {offer : OfferData} {delta
     (ho : frame.locals.get? "offer" = some (Model.offerValue offer.value))
     (hd : frame.locals.get? kind.deltaName = some (.int delta.toNat))
     (hn : ¬ TakeGateNeeded offer delta) :
-    ExecStmt config frame evm (takeGateStmt kind) (.ok frame evm) :=
+    ExecStmt fork config frame evm (takeGateStmt kind) (.ok frame evm) :=
   ExecStmt.iteFalse ((evalTakeGateCondition kind ho hd).trans (by rw [decide_eq_false hn]))
     ExecBlock.nil
 
@@ -86,8 +88,8 @@ theorem takeGateFailed {frame : Frame} {evm : State} {offer : OfferData} {delta 
     (ho : frame.locals.get? "offer" = some (Model.offerValue offer.value))
     (hd : frame.locals.get? kind.deltaName = some (.int delta.toNat))
     (hn : TakeGateNeeded offer delta)
-    (hcall : ExecStmt config frame evm (takeGateCall kind) .reverted) :
-    ExecStmt config frame evm (takeGateStmt kind) .reverted :=
+    (hcall : ExecStmt fork config frame evm (takeGateCall kind) .reverted) :
+    ExecStmt fork config frame evm (takeGateStmt kind) .reverted :=
   ExecStmt.iteTrue ((evalTakeGateCondition kind ho hd).trans (by rw [decide_eq_true hn]))
     (ExecBlock.consRevert hcall)
 
@@ -96,9 +98,9 @@ theorem takeGateDenied {frame : Frame} {evm evm' : State} {offer : OfferData} {d
     (ho : frame.locals.get? "offer" = some (Model.offerValue offer.value))
     (hd : frame.locals.get? kind.deltaName = some (.int delta.toNat))
     (hn : TakeGateNeeded offer delta)
-    (hcall : ExecStmt config frame evm (takeGateCall kind)
+    (hcall : ExecStmt fork config frame evm (takeGateCall kind)
       (.ok (takeGateAllowedFrame frame ⟨0⟩) evm')) :
-    ExecStmt config frame evm (takeGateStmt kind) .reverted := by
+    ExecStmt fork config frame evm (takeGateStmt kind) .reverted := by
   apply ExecStmt.iteTrue ((evalTakeGateCondition kind ho hd).trans (by rw [decide_eq_true hn]))
   refine ExecBlock.consNormal hcall (ExecBlock.consRevert (ExecStmt.requireFalse ?_))
   simp only [evalExpr?, takeGateAllowedFrame, store_get_self, EvalResult.ofOption]
@@ -109,9 +111,9 @@ theorem takeGateAllowed {frame : Frame} {evm evm' : State} {offer : OfferData} {
     (ho : frame.locals.get? "offer" = some (Model.offerValue offer.value))
     (hd : frame.locals.get? kind.deltaName = some (.int delta.toNat))
     (hn : TakeGateNeeded offer delta)
-    (hcall : ExecStmt config frame evm (takeGateCall kind)
+    (hcall : ExecStmt fork config frame evm (takeGateCall kind)
       (.ok (takeGateAllowedFrame frame ⟨1⟩) evm')) :
-    ExecStmt config frame evm (takeGateStmt kind) (.ok (takeGateAllowedFrame frame ⟨1⟩) evm') := by
+    ExecStmt fork config frame evm (takeGateStmt kind) (.ok (takeGateAllowedFrame frame ⟨1⟩) evm') := by
   apply ExecStmt.iteTrue ((evalTakeGateCondition kind ho hd).trans (by rw [decide_eq_true hn]))
   refine ExecBlock.consNormal hcall (ExecBlock.consNormal (ExecStmt.requireTrue ?_) ExecBlock.nil)
   simp only [evalExpr?, takeGateAllowedFrame, store_get_self, EvalResult.ofOption]

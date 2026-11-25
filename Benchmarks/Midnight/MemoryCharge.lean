@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.MemoryFunding
 
+variable {fork : Ethereum.Fork}
+
 /-! Memory growth and non-memory gas charges across a runtime segment. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -33,7 +35,7 @@ theorem MemoryCovered.mono {mem aw aw'} (h : MemoryCovered mem aw)
   omega
 
 theorem memoryChargeAt {work aw₀ C₀ code I g s0 pc stk mem aw rdata σ k C}
-    (_rd : RD code I g s0 pc stk mem aw rdata σ k C)
+    (_rd : RD fork code I g s0 pc stk mem aw rdata σ k C)
     (h : MemoryCharge work aw₀ aw C₀ C) : MemoryCharge work aw₀ aw C₀ C := h
 
 syntax "memory_expands" : tactic

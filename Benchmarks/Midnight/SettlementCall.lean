@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.SettlementSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Source wrapper calling the settlement-fee internal function. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -32,7 +34,7 @@ theorem settlementFeeBodyReturns (evm : EVM.State) (id time : UInt256)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit)
     (hspace : marketTickSpacing (marketFeeWord evm id) ≠ ⟨0⟩) :
-    ExecTransitionBody config contract evm (settlementExternalArguments id time)
+    ExecTransitionBody fork config contract evm (settlementExternalArguments id time)
       settlementFeeTransition.body
       (.returned (resumeAfterInternalCall
         (calldataFrame contract (settlementExternalArguments id time) ∅ evm)
@@ -51,7 +53,7 @@ theorem settlementFeeBodyReverts (evm : EVM.State) (id time : UInt256)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit)
     (hspace : marketTickSpacing (marketFeeWord evm id) = ⟨0⟩) :
-    ExecTransitionBody config contract evm (settlementExternalArguments id time)
+    ExecTransitionBody fork config contract evm (settlementExternalArguments id time)
       settlementFeeTransition.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply guardedBodyBlock hwv hhi

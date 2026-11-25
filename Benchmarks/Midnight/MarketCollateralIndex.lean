@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.MarketCollateralReference
 
+variable {fork : Ethereum.Fork}
+
 /-! A checked calldata record pointer at the liquidation's requested collateral index. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -52,12 +54,12 @@ theorem midnightMarketCollateralIndex {I : ExecutionEnv} {g : Sat256} {s0 : Stat
     {R : List UInt256} (hstack : R.length + 7 ≤ 1024)
     (hd : decodeCalldataMarket I.calldata 4 = some m)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨20488⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨20488⟩
       ((⟨4⟩ + calldataWord I.calldata 4) :: (calldataWord I.calldata 4 + ⟨100⟩) ::
         ⟨5534⟩ :: ret :: R) mem aw rdata σ k C) :
-    (¬ (calldataWord I.calldata 36).toNat < m.collaterals.length ∧ RDrev midnightBytecode g s0) ∨
+    (¬ (calldataWord I.calldata 36).toNat < m.collaterals.length ∧ RDrev fork midnightBytecode g s0) ∨
     ((calldataWord I.calldata 36).toNat < m.collaterals.length ∧ ∃ k' C', C ≤ C' ∧
-      RD midnightBytecode I g s0 ret
+      RD fork midnightBytecode I g s0 ret
         (marketCollateralPointer I.calldata (calldataWord I.calldata 36) :: R)
         mem aw rdata σ k' C') := by
   have hn : m.collaterals.length < 2 ^ 64 := by

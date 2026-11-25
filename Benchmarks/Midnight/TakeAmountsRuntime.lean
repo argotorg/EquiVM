@@ -2,6 +2,8 @@ import Benchmarks.Midnight.WmulUp
 import Benchmarks.Midnight.TakeSpread
 import Benchmarks.Midnight.RuntimeBlocks_054
 
+variable {fork : Ethereum.Fork}
+
 /-! Both asset calculations, with their multiplication and rounding overflow paths. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -26,11 +28,11 @@ theorem midnightTakeBuyerAmount {credit : Nat} {I : ExecutionEnv} {g : Sat256} {
     {R : List UInt256} (hstack : R.length + 7 ≤ 1024)
     (hbuy : memLoad (UInt256.ofNat 32 + memLoad (UInt256.ofNat 384) mem) mem = buy)
     (hunits : calldataWord I.calldata 68 = units) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨11591⟩ (price :: R) mem aw rdata σ k C) :
-    (¬ TakeAmountSafe buy units price ∧ RDrev midnightBytecode g s0) ∨
+    (rd : RD fork midnightBytecode I g s0 ⟨11591⟩ (price :: R) mem aw rdata σ k C) :
+    (¬ TakeAmountSafe buy units price ∧ RDrev fork midnightBytecode g s0) ∨
     (TakeAmountSafe buy units price ∧ ∃ aw' k' C',
       MemoryFunding credit (takeAmountMemory mem 256 (takeAmount buy units price)) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨11636⟩ R
+      RD fork midnightBytecode I g s0 ⟨11636⟩ R
         (takeAmountMemory mem 256 (takeAmount buy units price)) aw' rdata σ k' C') := by
   by_cases hb : buy = ⟨0⟩
   · have rd1 := midnightBlocks.midnight_block_11591_taken
@@ -39,7 +41,7 @@ theorem midnightTakeBuyerAmount {credit : Nat} {I : ExecutionEnv} {g : Sat256} {
     have rd2 := midnightBlocks.midnight_block_14738 (by omega) (by jump_dest) rd1
     have ha2 := memoryFundingAt (credit := credit) rd2 (by memory_fund ha)
     simp only [midnightBlocks.midnight_block_14738_stack] at rd2
-    change RD midnightBytecode I g s0 ⟨24082⟩
+    change RD fork midnightBytecode I g s0 ⟨24082⟩
       (calldataWord I.calldata 68 :: price :: UInt256.ofNat 14750 :: R) _ _ rdata σ _ _ at rd2
     rw [hunits] at rd2
     rcases midnightWmulUp hstack (by jump_dest) rd2 with
@@ -59,7 +61,7 @@ theorem midnightTakeBuyerAmount {credit : Nat} {I : ExecutionEnv} {g : Sat256} {
     have rd2 := midnightBlocks.midnight_block_11610 (by omega) (by jump_dest) rd1
     have ha2 := memoryFundingAt (credit := credit) rd2 (by memory_fund ha)
     simp only [midnightBlocks.midnight_block_11610_stack] at rd2
-    change RD midnightBytecode I g s0 ⟨20413⟩
+    change RD fork midnightBytecode I g s0 ⟨20413⟩
       (calldataWord I.calldata 68 :: price :: UInt256.ofNat 11630 :: takePriceScale :: R)
       _ _ rdata σ _ _ at rd2
     rw [hunits] at rd2
@@ -82,11 +84,11 @@ theorem midnightTakeSellerAmount {credit : Nat} {I : ExecutionEnv} {g : Sat256} 
     {R : List UInt256} (hstack : R.length + 7 ≤ 1024)
     (hbuy : memLoad (UInt256.ofNat 32 + memLoad (UInt256.ofNat 384) mem) mem = buy)
     (hunits : calldataWord I.calldata 68 = units) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨11636⟩ (price :: R) mem aw rdata σ k C) :
-    (¬ TakeAmountSafe buy units price ∧ RDrev midnightBytecode g s0) ∨
+    (rd : RD fork midnightBytecode I g s0 ⟨11636⟩ (price :: R) mem aw rdata σ k C) :
+    (¬ TakeAmountSafe buy units price ∧ RDrev fork midnightBytecode g s0) ∨
     (TakeAmountSafe buy units price ∧ ∃ aw' k' C',
       MemoryFunding credit (takeAmountMemory mem 416 (takeAmount buy units price)) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨11681⟩ R
+      RD fork midnightBytecode I g s0 ⟨11681⟩ R
         (takeAmountMemory mem 416 (takeAmount buy units price)) aw' rdata σ k' C') := by
   by_cases hb : buy = ⟨0⟩
   · have rd1 := midnightBlocks.midnight_block_11636_taken
@@ -95,7 +97,7 @@ theorem midnightTakeSellerAmount {credit : Nat} {I : ExecutionEnv} {g : Sat256} 
     have rd2 := midnightBlocks.midnight_block_14717 (by omega) (by jump_dest) rd1
     have ha2 := memoryFundingAt (credit := credit) rd2 (by memory_fund ha)
     simp only [midnightBlocks.midnight_block_14717_stack] at rd2
-    change RD midnightBytecode I g s0 ⟨24082⟩
+    change RD fork midnightBytecode I g s0 ⟨24082⟩
       (calldataWord I.calldata 68 :: price :: UInt256.ofNat 14729 :: R) _ _ rdata σ _ _ at rd2
     rw [hunits] at rd2
     rcases midnightWmulUp hstack (by jump_dest) rd2 with
@@ -115,7 +117,7 @@ theorem midnightTakeSellerAmount {credit : Nat} {I : ExecutionEnv} {g : Sat256} 
     have rd2 := midnightBlocks.midnight_block_11655 (by omega) (by jump_dest) rd1
     have ha2 := memoryFundingAt (credit := credit) rd2 (by memory_fund ha)
     simp only [midnightBlocks.midnight_block_11655_stack] at rd2
-    change RD midnightBytecode I g s0 ⟨20413⟩
+    change RD fork midnightBytecode I g s0 ⟨20413⟩
       (calldataWord I.calldata 68 :: price :: UInt256.ofNat 11675 :: takePriceScale :: R)
       _ _ rdata σ _ _ at rd2
     rw [hunits] at rd2

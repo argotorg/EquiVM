@@ -2,6 +2,8 @@ import Benchmarks.Midnight.MarketFirstFieldsAccounting
 import Benchmarks.Midnight.AllocationAccounting
 import Benchmarks.Midnight.AllocationArithmetic
 
+variable {fork : Ethereum.Fork}
+
 /-! Allocating a market record and copying its first calldata fields. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,10 +18,10 @@ theorem midnightMarketCalldataPrepare_accounted {I : ExecutionEnv} {g : Sat256} 
     (hhead : head.toNat + 256 < UInt256.size) (hptr : ptr.toNat < 2^64)
     (hfree : memLoad (UInt256.ofNat 64) mem = ptr)
     (ha : MemoryAccounting mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨18589⟩ (head :: ret :: finish :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨18589⟩ (head :: ret :: finish :: R)
       mem aw rdata σ k C) :
-    (¬ ptr.toNat + 256 < 2^64 ∧ RDrev midnightBytecode g s0) ∨
-    (decodeMarketData I.calldata head.toNat = none ∧ RDrev midnightBytecode g s0) ∨
+    (¬ ptr.toNat + 256 < 2^64 ∧ RDrev fork midnightBytecode g s0) ∨
+    (decodeMarketData I.calldata head.toNat = none ∧ RDrev fork midnightBytecode g s0) ∨
     (ptr.toNat + 256 < 2^64 ∧
       (calldataWord I.calldata (head.toNat + 32)).toNat < EVM.addressModulus ∧
       (calldataWord I.calldata (head.toNat + 64)).toNat < EVM.addressModulus ∧
@@ -27,7 +29,7 @@ theorem midnightMarketCalldataPrepare_accounted {I : ExecutionEnv} {g : Sat256} 
       MemoryAccounting
         (marketFirstMemory (writeWord mem 64 (ptr + UInt256.ofNat 256)) ptr I.calldata head.toNat)
         aw' C' ∧
-      RD midnightBytecode I g s0 ⟨18661⟩
+      RD fork midnightBytecode I g s0 ⟨18661⟩
         (calldataWord I.calldata (head.toNat + 96) :: finish :: head :: ptr :: ret :: ptr :: R)
         (marketFirstMemory (writeWord mem 64 (ptr + UInt256.ofNat 256)) ptr I.calldata head.toNat)
         aw' rdata σ k' C') := by

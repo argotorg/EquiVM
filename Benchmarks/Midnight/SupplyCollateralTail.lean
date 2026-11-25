@@ -2,6 +2,8 @@ import Benchmarks.Midnight.SupplyCollateralArithmetic
 import Benchmarks.Midnight.SupplyCollateralSource
 import Benchmarks.Midnight.SafeTransferBudget
 
+variable {fork : Ethereum.Fork}
+
 /-! Collateral supply from the final balance addition through the token transfer. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -23,18 +25,18 @@ theorem supplyCollateralTail {I : ExecutionEnv} {g : UInt256} {s0 evm : State}
     (hzero : memLoad (UInt256.ofNat 96) mem = ⟨0⟩)
     (hb : TransferBudget root credit mem aw C)
     (hcredit : 4 * ((root.toNat + safeTransferCallAllocation true + 31) / 32) ≤ credit + 999921)
-    (hgas : midnightGasBound g) (hfork : I.fork ≥ .osaka)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨17124⟩
+    (hgas : midnightGasBound g) (hfork : fork ≥ .osaka)
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨17124⟩
       ([unused0, unused1, old, index, id, user, UInt256.ofNat token.val, assets,
         positionSlot id user + UInt256.ofNat 3] ++ R) mem aw rdata evm.accountMap k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (RDrev midnightBytecode (Sat256.ofUInt256 g) s0 ∧
-      ExecBlock config frame evm (supplyCollateralTransition.body.drop 9) .reverted) ∨
-    (RDstatic midnightBytecode (Sat256.ofUInt256 g) s0 ∧
-      ExecBlock config frame evm (supplyCollateralTransition.body.drop 9) .staticViolation) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0 ∧
+      ExecBlock fork config frame evm (supplyCollateralTransition.body.drop 9) .reverted) ∨
+    (RDstatic fork midnightBytecode (Sat256.ofUInt256 g) s0 ∧
+      ExecBlock fork config frame evm (supplyCollateralTransition.body.drop 9) .staticViolation) ∨
     ∃ frame' evm',
-      ExecBlock config frame evm (supplyCollateralTransition.body.drop 9) (.ok frame' evm') ∧
-      RDret midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap ByteArray.empty := by
+      ExecBlock fork config frame evm (supplyCollateralTransition.body.drop 9) (.ok frame' evm') ∧
+      RDret fork midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap ByteArray.empty := by
   rcases supplyCollateralArithmetic hs.env (by omega) hi rd with ⟨hbad, hr⟩ |
     ⟨hfit, hperm, hr⟩ | ⟨hfit, hperm, k1, C1, hc1, rd1⟩
   · exact Or.inr (Or.inl ⟨hr, supplyAddRevert hf hbad⟩)
@@ -49,8 +51,8 @@ theorem supplyCollateralTail {I : ExecutionEnv} {g : UInt256} {s0 evm : State}
       refine ⟨?_, henv1, rfl⟩
       simpa only [evm1, collateralWriteState, storageStore_σ₀] using hs.world
     have sourcePrefix {result : ExecResult}
-        (ht : ExecBlock config frame1 evm1 (supplyCollateralTransition.body.drop 12) result) :
-        ExecBlock config frame evm (supplyCollateralTransition.body.drop 9) result := by
+        (ht : ExecBlock fork config frame1 evm1 (supplyCollateralTransition.body.drop 12) result) :
+        ExecBlock fork config frame evm (supplyCollateralTransition.body.drop 9) result := by
       apply supplyAddSource hf hcanon hi hfit (by rw [hs.env]; exact hperm)
       exact (supplyCollateralEmit hf1 (by rw [henv1]; exact hperm)).run ht
     simp only [List.cons_append, List.nil_append] at rd1

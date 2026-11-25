@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.InitMarketTickTrace
 import Benchmarks.Midnight.AllocationArithmetic
 
+variable {fork : Ethereum.Fork}
+
 /-! The seven copied default fees and their newly allocated memory region. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -42,10 +44,10 @@ theorem midnightInitMarketFeeCopy {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw root word : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 13 ≤ 1024)
     (hb : root.toNat + 224 < 2^64)
-    (rd : RD midnightBytecode I g s0 ⟨21213⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨21213⟩
       (word :: (root + UInt256.ofNat 32) :: root :: word :: R)
       (writeWord mem root.toNat (settlementFeeWord word 0)) aw rdata σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g s0 ⟨21305⟩
+    ∃ aw' k' C', RD fork midnightBytecode I g s0 ⟨21305⟩
       (root :: (root + UInt256.ofNat 32) :: (root + UInt256.ofNat 64) ::
         (root + UInt256.ofNat 96) :: (root + UInt256.ofNat 128) ::
         (root + UInt256.ofNat 160) :: (root + UInt256.ofNat 192) :: R)

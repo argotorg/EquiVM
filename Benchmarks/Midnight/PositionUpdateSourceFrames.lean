@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.PositionViewSource
 import Benchmarks.Midnight.PositionUpdateStorage
 
+variable {fork : Ethereum.Fork}
+
 /-! Source frames through the view call and the two decrease calculations. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -40,7 +42,7 @@ def positionUpdateWritesFrame (evm : EVM.State) (imms : Store) (m : MarketData) 
   wordLocal (positionUpdateCreditFrame evm imms m id user) "pendingFeeDecrease" (positionPendingDecrease evm m id user)
 
 theorem positionUpdateAliasPrefix (evm : EVM.State) (imms : Store) (m : MarketData) (id user : UInt256) :
-    ABlock config evm (positionViewCallFrame imms m id user) positionUpdateFunction.body
+    ABlock fork config evm (positionViewCallFrame imms m id user) positionUpdateFunction.body
       (positionViewAliasFrame imms m id user) (positionUpdateFunction.body.drop 1) := by
   refine ⟨fun h ↦ ExecBlock.consNormal (ExecStmt.letStorage ?_) h⟩
   apply resolvePositionRef rfl
@@ -57,12 +59,12 @@ theorem evalPositionUpdateViewArgs (evm : EVM.State) (imms : Store) (m : MarketD
 
 theorem positionUpdateValuesPrefix (evm : EVM.State) (imms : Store) (m : MarketData) (id user : UInt256)
     (hcanon : user.toNat < EVM.addressModulus) (hsafe : PositionViewSourceSafe evm m id user) :
-    ABlock config evm (positionViewCallFrame imms m id user) positionUpdateFunction.body
+    ABlock fork config evm (positionViewCallFrame imms m id user) positionUpdateFunction.body
       (positionUpdateValuesFrame evm imms m id user) (positionUpdateFunction.body.drop 5) := by
-  have hp := sourceNormalStep (positionUpdateAliasPrefix evm imms m id user)
-    (internalCallFunctionReturn (callee := positionViewFunction) (locals := positionViewArguments m id user)
+  have hp := sourceNormalStep (fork := fork) (positionUpdateAliasPrefix (fork := fork) evm imms m id user)
+    (internalCallFunctionReturn (fork := fork) (callee := positionViewFunction) (locals := positionViewArguments m id user)
       (evalPositionUpdateViewArgs evm imms m id user) rfl rfl
-      (positionViewInternalReturns evm imms m id user hcanon hsafe))
+      (positionViewInternalReturns (fork := fork) evm imms m id user hcanon hsafe))
   have ht0 : evalExpr? config (positionUpdateTupleFrame evm imms m id user) evm
       (.tupleGet (.var "__c0") 0) = .ok (.int (positionNewCredit evm m id user).toNat) := by
     simp only [positionUpdateTupleFrame, resumeAfterInternalCall, collapseReturns,
@@ -83,7 +85,7 @@ theorem positionUpdateValuesPrefix (evm : EVM.State) (imms : Store) (m : MarketD
 
 theorem positionUpdateViewReverts (evm : EVM.State) (imms : Store) (m : MarketData) (id user : UInt256)
     (hcanon : user.toNat < EVM.addressModulus) (hbad : ¬ PositionViewSourceSafe evm m id user) :
-    ExecFuncBody config (positionViewCallFrame imms m id user) evm positionUpdateFunction.body .reverted := by
+    ExecFuncBody fork config (positionViewCallFrame imms m id user) evm positionUpdateFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply (positionUpdateAliasPrefix evm imms m id user).run
   exact ExecBlock.consRevert (internalCallFunctionRevert (callee := positionViewFunction)

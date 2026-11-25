@@ -2,6 +2,8 @@ import Benchmarks.Midnight.AliasStorage
 import Benchmarks.Midnight.InternalCall
 import Reasoning.VyperDispatch
 
+variable {fork : Ethereum.Fork}
+
 /-! Shared authorization and address storage updates for Midnight's administrative setters. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -77,7 +79,7 @@ theorem adminArgumentEval (evm : EVM.State) (arg : Ident) (value : UInt256)
 theorem adminAddressReverts (evm : EVM.State) (name arg event : Ident) (value : UInt256)
     (harg : arg ≠ "configurator") (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) (hno : ¬ adminAllowed evm) :
-    ExecTransitionBody config contract evm (adminAddressArguments arg value)
+    ExecTransitionBody fork config contract evm (adminAddressArguments arg value)
       (adminAddressBody name arg event) .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply guardedBodyBlock hwv hhi
@@ -95,7 +97,7 @@ theorem adminAddressReturns (evm : EVM.State) (name arg event : Ident) (slot val
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit)
     (hauth : adminAllowed evm) (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (adminAddressArguments arg value)
+    ExecTransitionBody fork config contract evm (adminAddressArguments arg value)
       (adminAddressBody name arg event)
       (.returned (calldataFrame contract (adminAddressArguments arg value) ∅ evm)
         (addressUpdateState evm slot value) none) := by
@@ -125,7 +127,7 @@ theorem adminAddressStatic (evm : EVM.State) (name arg event : Ident) (slot valu
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit)
     (hauth : adminAllowed evm) (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (adminAddressArguments arg value)
+    ExecTransitionBody fork config contract evm (adminAddressArguments arg value)
       (adminAddressBody name arg event) .staticViolation := by
   apply ExecFuncBody.execBlockStatic
   apply guardedBodyBlock hwv hhi

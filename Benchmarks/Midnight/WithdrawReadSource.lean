@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.WithdrawCollateralSource
 import Benchmarks.Midnight.SupplyReadSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Token lookup and position binding before collateral withdrawal. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -22,17 +24,17 @@ theorem withdrawReadSource {frame : Frame} {m : MarketData} {evm : EVM.State}
     {user index assets : UInt256} {result : ExecResult}
     (hf : SupplyTouchSourceFrame frame m user index assets)
     (hi : index.toNat < m.collaterals.length)
-    (htail : ExecBlock config
+    (htail : ExecBlock fork config
       (supplyPositionFrame frame m.id user m.collaterals[index.toNat].token) evm
       (withdrawCollateralTransition.body.drop 7) result) :
-    ExecBlock config frame evm (withdrawCollateralTransition.body.drop 5) result :=
+    ExecBlock fork config frame evm (withdrawCollateralTransition.body.drop 5) result :=
   ExecBlock.consNormal (ExecStmt.letDecl (supplyTokenValue hf evm hi))
     (ExecBlock.consNormal (supplyPositionBind hf evm _) htail)
 
 theorem withdrawReadRevert {frame : Frame} {m : MarketData} {evm : EVM.State}
     {user index assets : UInt256} (hf : SupplyTouchSourceFrame frame m user index assets)
     (hbad : ¬ index.toNat < m.collaterals.length ∨ ¬ index.toNat < 128) :
-    ExecBlock config frame evm (withdrawCollateralTransition.body.drop 5) .reverted := by
+    ExecBlock fork config frame evm (withdrawCollateralTransition.body.drop 5) .reverted := by
   by_cases hi : index.toNat < m.collaterals.length
   · have h128 : ¬ index.toNat < 128 := hbad.resolve_left (not_not.mpr hi)
     apply withdrawReadSource hf hi

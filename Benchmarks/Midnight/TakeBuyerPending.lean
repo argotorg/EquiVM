@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TakeContinuousRead
 import Benchmarks.Midnight.TakeBuyerPendingRuntime
 
+variable {fork : Ethereum.Fork}
+
 /-! Join the source pending-fee calculation to its checked runtime arithmetic. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -19,20 +21,20 @@ theorem midnightTakeBuyerPending {gasCredit : Nat} {I : ExecutionEnv} {g : Sat25
     (ht : frame.locals.get? "timeToMaturity" = some (.int time.toNat))
     (hi : frame.locals.get? "buyerCreditIncrease" = some (.int increase.toNat))
     (hs : SourceState s0 I evm.accountMap evm) (ha : MemoryFunding gasCredit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨12118⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨12118⟩
       ([debt, UInt256.ofNat 12138, UInt256.ofNat 12144, takePendingScale, UInt256.ofNat 12150,
         credit, buyerSlot, time, buyerDebt, sellerSlot, solcMappingSlot ⟨1⟩ id, decrease,
         ratifierPtr, increase] ++ R) mem aw rdata evm.accountMap k C) :
-    (ExecBlock config frame evm (takeTransition.body.drop 38) .reverted ∧
-      RDrev midnightBytecode g s0) ∨
+    (ExecBlock fork config frame evm (takeTransition.body.drop 38) .reverted ∧
+      RDrev fork midnightBytecode g s0) ∨
     (let rate := marketContinuousFee (marketFeeWord evm id)
      let value := takeBuyerPendingValue rate time increase
      let frame' := takeBuyerPendingFrame frame rate time increase
      value.toNat < 2^128 ∧
-     ABlock config evm frame (takeTransition.body.drop 38) frame' (takeTransition.body.drop 40) ∧
+     ABlock fork config evm frame (takeTransition.body.drop 38) frame' (takeTransition.body.drop 40) ∧
      TakeSourceFrame frame' offer id units taker receiver callback ratifierData data ∧
      ∃ k' C', MemoryFunding gasCredit mem aw C' ∧
-       RD midnightBytecode I g s0 ⟨12150⟩
+       RD fork midnightBytecode I g s0 ⟨12150⟩
          ([value, credit, buyerSlot, debt, buyerDebt, sellerSlot, solcMappingSlot ⟨1⟩ id,
            decrease, ratifierPtr, increase] ++ R) mem aw rdata evm.accountMap k' C') := by
   have hword : marketFeeWord evm id =

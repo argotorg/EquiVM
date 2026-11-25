@@ -3,6 +3,8 @@ import Benchmarks.Midnight.WithdrawUnitsUpdateSource
 import Benchmarks.Midnight.WithdrawUnitsAfterUpdate
 import Benchmarks.Midnight.PositionUpdateInternalBudget
 
+variable {fork : Ethereum.Fork}
+
 /-! Unit withdrawal from the market touch through the internal update and final transfer. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -25,22 +27,22 @@ theorem withdrawUnitsCore {I : ExecutionEnv} {g : UInt256} {s0 evm origin : Stat
     (hb : TransferBudget root gasCredit mem aw C)
     (hcredit : 4 * ((root.toNat + safeTransferCallAllocation false + 31) / 32) ≤
       gasCredit + 999921)
-    (hgas : midnightGasBound g) (hfork : I.fork ≥ .osaka)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨3881⟩
+    (hgas : midnightGasBound g) (hfork : fork ≥ .osaka)
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨3881⟩
       ([m.id, user, user, market, UInt256.ofNat 64, solcAddrMask,
         UInt256.ofNat receiver.val, units, UInt256.ofNat 3723, saved] ++ R)
       mem aw rdata evm.accountMap k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (RDrev midnightBytecode (Sat256.ofUInt256 g) s0 ∧
-      ExecBlock config (withdrawUnitsAfterTouchFrame origin m user units receiver) evm
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0 ∧
+      ExecBlock fork config (withdrawUnitsAfterTouchFrame origin m user units receiver) evm
         (withdrawTransition.body.drop 5) .reverted) ∨
-    (RDstatic midnightBytecode (Sat256.ofUInt256 g) s0 ∧
-      ExecBlock config (withdrawUnitsAfterTouchFrame origin m user units receiver) evm
+    (RDstatic fork midnightBytecode (Sat256.ofUInt256 g) s0 ∧
+      ExecBlock fork config (withdrawUnitsAfterTouchFrame origin m user units receiver) evm
         (withdrawTransition.body.drop 5) .staticViolation) ∨
     ∃ frame' evm',
-      ExecBlock config (withdrawUnitsAfterTouchFrame origin m user units receiver) evm
+      ExecBlock fork config (withdrawUnitsAfterTouchFrame origin m user units receiver) evm
         (withdrawTransition.body.drop 5) (.ok frame' evm') ∧
-      RDret midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap ByteArray.empty := by
+      RDret fork midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap ByteArray.empty := by
   simp only [List.cons_append, List.nil_append] at rd
   obtain ⟨aw1, k1, C1, hb1, rd1⟩ := midnightWithdrawUnitsUpdateEntry
     (by simp only [List.length_cons]; omega) hmem hzero800 hb rd
@@ -98,11 +100,11 @@ theorem withdrawUnitsCore {I : ExecutionEnv} {g : UInt256} {s0 evm origin : Stat
     have hz8002 : memLoad (UInt256.ofNat 800) mem2 = ⟨0⟩ := by
       rw [hp2.load (UInt256.ofNat 800) (by decide) hlower hmem, hzero800]
     have sourcePrefix {result : ExecResult}
-        (hbody : ExecBlock config
+        (hbody : ExecBlock fork config
           (withdrawUnitsReadyFrame origin m user units receiver
             (positionNewCredit evm m m.id user) (positionNewPending evm m m.id user)
             (positionViewFee evm m m.id user)) evm2 (withdrawTransition.body.drop 9) result) :
-        ExecBlock config (withdrawUnitsAfterTouchFrame origin m user units receiver) evm
+        ExecBlock fork config (withdrawUnitsAfterTouchFrame origin m user units receiver) evm
           (withdrawTransition.body.drop 5) result := withdrawUnitsUpdateReturns ht hbody
     rcases withdrawUnitsAfterUpdate (R := R) (saved := saved) hs2
         (withdrawUnitsReady_get ..) hcanon

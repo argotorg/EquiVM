@@ -3,6 +3,8 @@ import Benchmarks.Midnight.TakePositionUpdatesValues
 import Benchmarks.Midnight.TakeBuyerUpdate
 import Benchmarks.Midnight.TakeSellerUpdate
 
+variable {fork : Ethereum.Fork}
+
 /-! Both conditional position updates in take, including their failure paths. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -26,22 +28,22 @@ theorem midnightTakePositionUpdates {credit : Nat} {I : ExecutionEnv} {g : Sat25
     (htaker : memLoad (UInt256.ofNat 544) mem = taker)
     (hu : calldataWord I.calldata 68 = units)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨11826⟩ (saved :: R) mem aw rdata evm.accountMap k C) :
-    (ExecBlock config frame evm (takeTransition.body.drop 27) .reverted ∧
-      RDrev midnightBytecode g s0) ∨
-    (ExecBlock config frame evm (takeTransition.body.drop 27) .staticViolation ∧
-      RDstatic midnightBytecode g s0) ∨
+    (rd : RD fork midnightBytecode I g s0 ⟨11826⟩ (saved :: R) mem aw rdata evm.accountMap k C) :
+    (ExecBlock fork config frame evm (takeTransition.body.drop 27) .reverted ∧
+      RDrev fork midnightBytecode g s0) ∨
+    (ExecBlock fork config frame evm (takeTransition.body.drop 27) .staticViolation ∧
+      RDstatic fork midnightBytecode g s0) ∨
     (let frame' := takePositionUpdatesFrame frame evm offer id units taker
      let evm' := takePositionUpdatesState evm offer id units taker
      let mem' := takePositionUpdatesMemory mem root evm offer id units taker
-     (∀ result, ExecBlock config frame' evm' (takeTransition.body.drop 35) result →
-       ExecBlock config frame evm (takeTransition.body.drop 27) result) ∧
+     (∀ result, ExecBlock fork config frame' evm' (takeTransition.body.drop 35) result →
+       ExecBlock fork config frame evm (takeTransition.body.drop 27) result) ∧
      TakeSourceFrame frame' offer id units taker receiver callback ratifierData data ∧
      SourceState s0 I evm'.accountMap evm' ∧
      MemoryPrefix (takePositionPrepareMemory mem offer id taker) mem' root.toNat ∧
      memLoad (UInt256.ofNat 64) mem' = root ∧
      ∃ aw' k' C', MemoryFunding credit mem' aw' C' ∧
-       RD midnightBytecode I g s0 ⟨12026⟩
+       RD fork midnightBytecode I g s0 ⟨12026⟩
          (positionSlot id (takeSeller offer taker) :: saved ::
            positionSlot id (takeBuyer offer taker) :: R)
          mem' aw' rdata evm'.accountMap k' C') := by
@@ -76,12 +78,12 @@ theorem midnightTakePositionUpdates {credit : Nat} {I : ExecutionEnv} {g : Sat25
   · exact Or.inl ⟨hx1.run hx, hr⟩
   · exact Or.inr (Or.inl ⟨hx1.run hx, hr⟩)
   · have hsource2 {result : ExecResult}
-        (hx : ExecBlock config
+        (hx : ExecBlock fork config
           (takeBuyerUpdateFrame (takePositionPrepareFrame frame evm offer id taker) evm offer id
             (takeBuyer offer taker) units)
           (takeBuyerUpdateState evm offer id (takeBuyer offer taker) units)
           (takeTransition.body.drop 33) result) :
-        ExecBlock config frame evm (takeTransition.body.drop 27) result := by
+        ExecBlock fork config frame evm (takeTransition.body.drop 27) result := by
       apply hx1.run
       rw [takeBuyerUpdate_shape]
       exact ExecBlock.consNormal hx2 hx

@@ -2,6 +2,8 @@ import Benchmarks.Midnight.TakeMarketStore
 import Benchmarks.Midnight.TakeSellerDebt
 import Benchmarks.Midnight.CheckedAddGas
 
+variable {fork : Ethereum.Fork}
+
 /-! Checked market total-units arithmetic, followed by its packed write. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -40,20 +42,20 @@ theorem midnightTakeMarketTotal {credit : Nat} {I : ExecutionEnv} {g : Sat256} {
     (hi : frame.locals.get? "buyerCreditIncrease" = some (.int increase.toNat))
     (hd : frame.locals.get? "sellerCreditDecrease" = some (.int decrease.toNat))
     (hperm : I.perm = true) (hs : SourceState s0 I σ evm) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨19536⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨19536⟩
       ([marketBalanceWord evm id 0, increase, ⟨12561⟩, decrease, ⟨4204⟩, ⟨12566⟩,
         uint128Mask, solcMappingSlot ⟨1⟩ id] ++ R) mem aw rdata σ k C) :
-    (ExecBlock config frame evm (takeTransition.body.drop 56) .reverted ∧
-      RDrev midnightBytecode g s0) ∨
+    (ExecBlock fork config frame evm (takeTransition.body.drop 56) .reverted ∧
+      RDrev fork midnightBytecode g s0) ∨
     ∃ σ' k' C',
-      (∀ result, ExecBlock config
+      (∀ result, ExecBlock fork config
           (takeMarketTotalFrame frame (takeMarketTotalValue evm id increase decrease))
           (takeMarketTotalState evm id increase decrease) (takeTransition.body.drop 58) result →
-        ExecBlock config frame evm (takeTransition.body.drop 56) result) ∧
+        ExecBlock fork config frame evm (takeTransition.body.drop 56) result) ∧
       SourceState s0 I σ' (takeMarketTotalState evm id increase decrease) ∧
       MemoryFunding credit mem
         (M (M aw (UInt256.ofNat 416) ⟨32⟩) (UInt256.ofNat 256) ⟨32⟩) C' ∧
-      RD midnightBytecode I g s0 ⟨19447⟩
+      RD fork midnightBytecode I g s0 ⟨19447⟩
         (memLoad (UInt256.ofNat 256) mem :: memLoad (UInt256.ofNat 416) mem :: ⟨12598⟩ :: R)
         mem (M (M aw (UInt256.ofNat 416) ⟨32⟩) (UInt256.ofNat 256) ⟨32⟩) rdata σ' k' C' := by
   simp only [List.cons_append, List.nil_append] at rd

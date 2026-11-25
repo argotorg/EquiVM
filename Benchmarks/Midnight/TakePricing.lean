@@ -2,6 +2,8 @@ import Benchmarks.Midnight.TakePricingSource
 import Benchmarks.Midnight.SettlementFunding
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 /-! Source/runtime correspondence for take's price, maturity, and settlement fee. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -41,16 +43,16 @@ theorem midnightTakePricing {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0 e
     (hroot : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (hid : memLoad (UInt256.ofNat 512) mem = id)
     (hs : SourceState s0 I σ evm) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨11413⟩ (ratifierPtr :: slot :: R) mem aw rdata σ k C) :
-    (ExecBlock config frame evm (takeTransition.body.drop 17) .reverted ∧
-      RDrev midnightBytecode g s0) ∨
+    (rd : RD fork midnightBytecode I g s0 ⟨11413⟩ (ratifierPtr :: slot :: R) mem aw rdata σ k C) :
+    (ExecBlock fork config frame evm (takeTransition.body.drop 17) .reverted ∧
+      RDrev fork midnightBytecode g s0) ∨
     (let fee := settlementFeeValue (marketFeeWord evm id) (takeTimeToMaturity I offer)
-     ABlock config evm frame (takeTransition.body.drop 17) (takePricingFrame frame I offer fee)
+     ABlock fork config evm frame (takeTransition.body.drop 17) (takePricingFrame frame I offer fee)
        (takeTransition.body.drop 20) ∧
      TakeSourceFrame (takePricingFrame frame I offer fee) offer id units taker receiver callback
        ratifierData data ∧
      ∃ aw' k' C', MemoryFunding credit (takePricingMemory mem id) aw' C' ∧
-       RD midnightBytecode I g s0 ⟨11556⟩
+       RD fork midnightBytecode I g s0 ⟨11556⟩
          (fee :: UInt256.ofNat 11591 :: tickPriceWord offer.tick.toNat :: slot :: ratifierPtr ::
            takeTimeToMaturity I offer :: R) (takePricingMemory mem id) aw' rdata σ k' C') := by
   have hword : marketFeeWord evm id =
@@ -67,7 +69,7 @@ theorem midnightTakePricing {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0 e
           (by rwa [← hword]) rd2⟩
     · obtain ⟨aw3, k3, C3, ha3, rd3⟩ := settlementInternalTrace_funded
         (by simp only [List.length_cons]; omega) hm (by jump_dest) (by rwa [← hword]) ha2 rd2
-      have hx := takePricingSource hf.contract hf.offerValue hf.idValue hbound hz
+      have hx := takePricingSource (fork := fork) hf.contract hf.offerValue hf.idValue hbound hz
       rw [hs.env] at hx
       rw [← hword] at rd3
       exact Or.inr ⟨hx, hf.pricing I, aw3, k3, C3, ha3, rd3⟩

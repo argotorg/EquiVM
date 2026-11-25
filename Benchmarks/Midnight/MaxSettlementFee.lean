@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.InternalCall
 import Benchmarks.Midnight.Allocation
 
+variable {fork : Ethereum.Fork}
+
 /-! The shared seven-entry settlement-fee cap table, in source and runtime memory. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -33,7 +35,7 @@ theorem maxFeeIndexEval (i : Fin 7) :
   decide
 
 theorem maxFeeBodyReturns (evm : EVM.State) (imms : Store) (i : Fin 7) :
-    ExecFuncBody config { contract := contract, locals := maxFeeArguments i, immutables := imms }
+    ExecFuncBody fork config { contract := contract, locals := maxFeeArguments i, immutables := imms }
       evm maxSettlementFeeFunction.body
       (.returned (maxFeeFrame imms i) evm (some [.int (maxSettlementFeeValue i)])) := by
   apply ExecFuncBody.execBlockRet
@@ -52,7 +54,7 @@ theorem maxFeeBodyReturns (evm : EVM.State) (imms : Store) (i : Fin 7) :
 theorem maxFeeCall {frame : Frame} {evm : EVM.State} (i : Fin 7)
     (hc : frame.contract = contract)
     (hi : frame.locals.get? "index" = some (.int i.val)) :
-    ExecStmt config frame evm (.internalCall "maxSettlementFee" [.var "index"] "__c0")
+    ExecStmt fork config frame evm (.internalCall "maxSettlementFee" [.var "index"] "__c0")
       (.ok (resumeAfterInternalCall frame "__c0" (some [.int (maxSettlementFeeValue i)])) evm) := by
   apply internalCallFunctionReturn (callee := maxSettlementFeeFunction)
     (locals := maxFeeArguments i) (argVals := [.int i.val])
@@ -119,8 +121,8 @@ theorem midnightMaxSettlementFee {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {ret : UInt256} {R : List UInt256} (i : Fin 7)
     (hstack : R.length + 9 ≤ 1024) (hmem : memLoad (UInt256.ofNat 64) mem = ⟨832⟩)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨23967⟩ (UInt256.ofNat i.val :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g s0 ret (UInt256.ofNat (maxSettlementFeeValue i) :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨23967⟩ (UInt256.ofNat i.val :: ret :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork midnightBytecode I g s0 ret (UInt256.ofNat (maxSettlementFeeValue i) :: R)
       (maxFeeMemory mem) aw' rdata σ k' C' := by
   have rd1 := midnightBlocks.midnight_block_23967 (by simp; omega) (by jump_dest) rd
   simp only [midnightBlocks.midnight_block_23967_stack, hmem] at rd1
@@ -132,7 +134,7 @@ theorem midnightMaxSettlementFee {I : ExecutionEnv} {g : Sat256} {s0 : State}
     exact i.isLt
   obtain ⟨aw3, k3, C3, rd3⟩ := midnightBlocks.midnight_block_23980_fallthrough_packed
     (by simp; omega) (by rw [ult_one hi]; rfl) rd2
-  change RD _ _ _ _ _ _ (maxFeeMemory mem) _ _ _ _ _ at rd3
+  change RD fork _ _ _ _ _ _ (maxFeeMemory mem) _ _ _ _ _ at rd3
   have rd4 := midnightBlocks.midnight_block_24075 (by simp; omega) hret rd3
   simp only [midnightBlocks.midnight_block_24075_stack] at rd4
   have ha : UInt256.shiftLeft (UInt256.ofNat i.val) (UInt256.ofNat 5) + ⟨832⟩ =
@@ -149,8 +151,8 @@ theorem midnightMaxSettlementFeeWord {I : ExecutionEnv} {g : Sat256} {s0 : State
     (hstack : R.length + 9 ≤ 1024) (hi : index.toNat < 7)
     (hmem : memLoad (UInt256.ofNat 64) mem = ⟨832⟩)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨23967⟩ (index :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g s0 ret
+    (rd : RD fork midnightBytecode I g s0 ⟨23967⟩ (index :: ret :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork midnightBytecode I g s0 ret
       (UInt256.ofNat (maxSettlementFeeValue ⟨index.toNat, hi⟩) :: R)
       (maxFeeMemory mem) aw' rdata σ k' C' := by
   apply midnightMaxSettlementFee (aw := aw) (k := k) (C := C) ⟨index.toNat, hi⟩ hstack hmem hret

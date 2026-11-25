@@ -2,6 +2,8 @@ import Benchmarks.Midnight.RepayBalanceSource
 import Benchmarks.Midnight.CollateralBlocksGas
 import Benchmarks.Midnight.RuntimeBlocks_039
 
+variable {fork : Ethereum.Fork}
+
 /-! The debt write and its static-call halt preserve previously paid gas. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -14,11 +16,11 @@ theorem midnightRepayWriteDebt {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw value slot dp id dl user callback units : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 11 ≤ 1024)
-    (h : RD midnightBytecode ee g s0 ⟨9925⟩
+    (h : RD fork midnightBytecode ee g s0 ⟨9925⟩
       (value :: uint128Mask :: slot :: dp :: id :: dl :: user :: callback :: units :: R)
       mem aw rdata σ k C) :
-    (ee.perm = false ∧ RDstatic midnightBytecode g s0) ∨
-    (ee.perm = true ∧ ∃ k' C', C ≤ C' ∧ RD midnightBytecode ee g s0 ⟨23403⟩
+    (ee.perm = false ∧ RDstatic fork midnightBytecode g s0) ∨
+    (ee.perm = true ∧ ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode ee g s0 ⟨23403⟩
       (units :: UInt256.ofNat 9950 :: dp :: id :: dl :: user :: callback :: units :: R)
       mem aw rdata (storeLow128Accounts σ ee slot value) k' C') := by
   have hvalid : (D_J midnightBytecode 0).contains (UInt256.ofNat 23403) = true := by jump_dest

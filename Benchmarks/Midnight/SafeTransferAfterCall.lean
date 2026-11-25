@@ -2,6 +2,8 @@ import Benchmarks.Midnight.SafeTransferPostResult
 import Benchmarks.Midnight.ReturnDataMemory
 import Benchmarks.Midnight.SafeTransferSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Compose raw return-data extraction, decoding, and source execution after a token call. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -19,9 +21,9 @@ def safeTransferOutputPtr (ptr : UInt256) (out : ByteArray) : UInt256 :=
 theorem safeTransferReturnDataStepCharge (isFrom : Bool) {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem out : ByteArray} {aw : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 (safeTransferCallPC isFrom + ⟨1⟩)
+    (rd : RD fork midnightBytecode I g s0 (safeTransferCallPC isFrom + ⟨1⟩)
       R mem aw out σ k C) :
-    ∃ k' C', MemoryCharge 0 aw aw C C' ∧ RD midnightBytecode I g s0 ⟨22728⟩ (safeTransferCheckPC isFrom :: R)
+    ∃ k' C', MemoryCharge 0 aw aw C C' ∧ RD fork midnightBytecode I g s0 ⟨22728⟩ (safeTransferCheckPC isFrom :: R)
       mem aw out σ k' C' := by
   have h0 := MemoryCharge.refl aw C
   cases isFrom with
@@ -37,9 +39,9 @@ theorem safeTransferReturnDataStepCharge (isFrom : Bool) {I : ExecutionEnv} {g :
 theorem safeTransferReturnDataStep (isFrom : Bool) {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem out : ByteArray} {aw : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 (safeTransferCallPC isFrom + ⟨1⟩)
+    (rd : RD fork midnightBytecode I g s0 (safeTransferCallPC isFrom + ⟨1⟩)
       R mem aw out σ k C) :
-    ∃ k' C', RD midnightBytecode I g s0 ⟨22728⟩ (safeTransferCheckPC isFrom :: R)
+    ∃ k' C', RD fork midnightBytecode I g s0 ⟨22728⟩ (safeTransferCheckPC isFrom :: R)
       mem aw out σ k' C' := by
   obtain ⟨k', C', _, rd'⟩ := safeTransferReturnDataStepCharge isFrom hstack rd
   exact ⟨k', C', rd'⟩
@@ -56,15 +58,15 @@ theorem safeTransferAfterCallCharge (isFrom : Bool) (imms : Store)
     (hspace : out.size < 2 ^ 64 → out.size ≠ 0 →
       ptr.toNat + returnDataAllocation out.size < 2 ^ 64)
     (hcode : 0 < (extCodeSizeWord evm.accountMap (UInt256.ofNat token.val)).toNat)
-    (hcall : callViaEVM evm token 0 (safeTransferCalldata isFrom sender recipient value)
+    (hcall : callViaEVM fork evm token 0 (safeTransferCalldata isFrom sender recipient value)
       (success, evm', out) true)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 (safeTransferCallPC isFrom + ⟨1⟩)
+    (rd : RD fork midnightBytecode I g s0 (safeTransferCallPC isFrom + ⟨1⟩)
       ((if success then ⟨1⟩ else ⟨0⟩) :: ret :: R) mem aw out σ k C) :
-    (ExecFuncBody config (safeTransferFrame isFrom imms token sender recipient value) evm
-      (safeTransferFunctionFor isFrom).body .reverted ∧ RDrev midnightBytecode g s0) ∨
+    (ExecFuncBody fork config (safeTransferFrame isFrom imms token sender recipient value) evm
+      (safeTransferFunctionFor isFrom).body .reverted ∧ RDrev fork midnightBytecode g s0) ∨
     (success = true ∧
-      ExecFuncBody config (safeTransferFrame isFrom imms token sender recipient value) evm
+      ExecFuncBody fork config (safeTransferFrame isFrom imms token sender recipient value) evm
         (safeTransferFunctionFor isFrom).body
         (.returned (safeTransferCallFrame isFrom imms token sender recipient value true out) evm'
           none) ∧
@@ -74,7 +76,7 @@ theorem safeTransferAfterCallCharge (isFrom : Bool) (imms : Store)
       (safeTransferOutputPtr ptr out).toNat < 2 ^ 64 ∧
       ∃ aw' k' C', MemoryCharge (3 * ((out.size + 31) / 32)) aw aw' C C' ∧
         (MemoryCovered mem aw → MemoryCovered (safeTransferOutputMem mem out ptr) aw') ∧
-        RD midnightBytecode I g s0 ret R
+        RD fork midnightBytecode I g s0 ret R
         (safeTransferOutputMem mem out ptr) aw' out σ k' C') := by
   obtain ⟨k1, C1, hc1, rd1⟩ := safeTransferReturnDataStepCharge isFrom
     (by simp only [List.length_cons]; omega) rd
@@ -154,15 +156,15 @@ theorem safeTransferAfterCall (isFrom : Bool) (imms : Store)
     (hspace : out.size < 2 ^ 64 → out.size ≠ 0 →
       ptr.toNat + returnDataAllocation out.size < 2 ^ 64)
     (hcode : 0 < (extCodeSizeWord evm.accountMap (UInt256.ofNat token.val)).toNat)
-    (hcall : callViaEVM evm token 0 (safeTransferCalldata isFrom sender recipient value)
+    (hcall : callViaEVM fork evm token 0 (safeTransferCalldata isFrom sender recipient value)
       (success, evm', out) true)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 (safeTransferCallPC isFrom + ⟨1⟩)
+    (rd : RD fork midnightBytecode I g s0 (safeTransferCallPC isFrom + ⟨1⟩)
       ((if success then ⟨1⟩ else ⟨0⟩) :: ret :: R) mem aw out σ k C) :
-    (ExecFuncBody config (safeTransferFrame isFrom imms token sender recipient value) evm
-      (safeTransferFunctionFor isFrom).body .reverted ∧ RDrev midnightBytecode g s0) ∨
+    (ExecFuncBody fork config (safeTransferFrame isFrom imms token sender recipient value) evm
+      (safeTransferFunctionFor isFrom).body .reverted ∧ RDrev fork midnightBytecode g s0) ∨
     (success = true ∧
-      ExecFuncBody config (safeTransferFrame isFrom imms token sender recipient value) evm
+      ExecFuncBody fork config (safeTransferFrame isFrom imms token sender recipient value) evm
         (safeTransferFunctionFor isFrom).body
         (.returned (safeTransferCallFrame isFrom imms token sender recipient value true out) evm'
           none) ∧
@@ -170,7 +172,7 @@ theorem safeTransferAfterCall (isFrom : Bool) (imms : Store)
       memLoad (UInt256.ofNat 64) (safeTransferOutputMem mem out ptr) = safeTransferOutputPtr ptr out ∧
       ptr.toNat ≤ (safeTransferOutputPtr ptr out).toNat ∧
       (safeTransferOutputPtr ptr out).toNat < 2 ^ 64 ∧
-      ∃ aw' k' C', RD midnightBytecode I g s0 ret R
+      ∃ aw' k' C', RD fork midnightBytecode I g s0 ret R
         (safeTransferOutputMem mem out ptr) aw' out σ k' C') := by
   rcases safeTransferAfterCallCharge isFrom imms hstack hm hl hfree hzero hptr hout hspace
       hcode hcall hret rd with hrev | ⟨hs, hb, hp, hf, hl, hlt, aw', k', C', _, _, rd'⟩

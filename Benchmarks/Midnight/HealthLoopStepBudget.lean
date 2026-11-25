@@ -5,6 +5,8 @@ import Benchmarks.Midnight.ArrayIndexGas
 import Benchmarks.Midnight.MemoryArrayIndex
 import Benchmarks.Midnight.MarketBytesMemory
 
+variable {fork : Ethereum.Fork}
+
 /-! One health-loop iteration, retaining memory bounds and transfer funding. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,7 +18,7 @@ set_option maxRecDepth 2000000
 theorem midnightHealthLoopStep_budget {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {frame : Frame}
     {mem rdata : ByteArray} {aw market arrayPtr heap root id user bitmap maxDebt debt : UInt256}
     {budgetRoot : UInt256} {credit : Nat} {m : MarketData} {σ : AccountMap} {k C : Nat} {R : List UInt256}
-    (hstack : R.length + 22 ≤ 1024) (hfork : I.fork ≥ .osaka)
+    (hstack : R.length + 22 ≤ 1024) (hfork : fork ≥ .osaka)
     (hcanon : user.toNat < EVM.addressModulus) (hbitmap : bitmap.toNat < 2^128)
     (hnz : bitmap.toNat ≠ 0) (hroot : root.toNat + 32 < 2^64)
     (hheap : heap.toNat ≤ root.toNat) (hfree : memLoad (UInt256.ofNat 64) mem = root)
@@ -24,19 +26,19 @@ theorem midnightHealthLoopStep_budget {I : ExecutionEnv} {g : Sat256} {s0 evm : 
     (hf : HealthSourceFrame frame m id user bitmap maxDebt debt)
     (hs : SourceState s0 I σ evm)
     (hb : TransferBudget budgetRoot credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨19847⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨19847⟩
       ([positionSlot id user + ⟨3⟩, market, bitmap, maxDebt] ++ R) mem aw rdata σ k C) :
-    (ExecBlock config frame evm healthLoopBody .reverted ∧ RDrev midnightBytecode g s0) ∨
+    (ExecBlock fork config frame evm healthLoopBody .reverted ∧ RDrev fork midnightBytecode g s0) ∨
     ∃ (evm' : State) (σ' : AccountMap) (frame' : Frame) (mem' out : ByteArray)
       (maxDebt' aw' : UInt256) (k' C' : Nat),
-      ExecBlock config frame evm healthLoopBody (.ok frame' evm') ∧
+      ExecBlock fork config frame evm healthLoopBody (.ok frame' evm') ∧
       SourceState s0 I σ' evm' ∧
       HealthSourceFrame frame' m id user (bitmapClear bitmap (bitmapMsb bitmap)) maxDebt' debt ∧
       MarketStored mem' market arrayPtr heap m ∧
       memLoad (UInt256.ofNat 64) mem' = root + UInt256.ofNat 32 ∧
       MemoryPrefix mem mem' root.toNat ∧
       TransferBudget budgetRoot credit mem' aw' C' ∧
-      RD midnightBytecode I g s0 ⟨19847⟩
+      RD fork midnightBytecode I g s0 ⟨19847⟩
         ([positionSlot id user + ⟨3⟩, market, bitmapClear bitmap (bitmapMsb bitmap), maxDebt'] ++ R)
         mem' aw' out σ' k' C' := by
   let index := bitmapMsb bitmap
@@ -52,7 +54,7 @@ theorem midnightHealthLoopStep_budget {I : ExecutionEnv} {g : Sat256} {s0 evm : 
   simp only [midnightBlocks.midnight_block_19863_stack, hm.arrayPtr] at rd2
   have hb2 := transferBudgetAt (root := budgetRoot) (credit := credit) rd2
     (by transfer_budget hb)
-  have hs1 := healthMsbCall (cfg := config) (evm := evm) hf.contract hf.bitmap
+  have hs1 := healthMsbCall (fork := fork) (cfg := config) (evm := evm) hf.contract hf.bitmap
   have hf1 : HealthSourceFrame frame₁ m id user bitmap maxDebt debt := hf.insert _ _ (by decide)
   have hcount : (UInt256.ofNat m.collaterals.length).toNat = m.collaterals.length :=
     UInt256.toNat_ofNat_of_lt (lt_trans hm.collateralCount (by decide))
@@ -63,7 +65,7 @@ theorem midnightHealthLoopStep_budget {I : ExecutionEnv} {g : Sat256} {s0 evm : 
     obtain ⟨cp, hcp, hcplo, hcplim, hwords⟩ := hm.collaterals.get index.toNat hindex
     let c := m.collaterals[index.toNat]
     let frame₂ := healthCollateralFrame frame₁ c
-    have hs2 : ExecStmt config frame₁ evm (healthLoopBody[1]!) (.ok frame₂ evm) :=
+    have hs2 : ExecStmt fork config frame₁ evm (healthLoopBody[1]!) (.ok frame₂ evm) :=
       ExecStmt.letDecl (evalHealthCollateralAt hf1.market (wordLocal_get ..) hindex)
     have hf2 : HealthSourceFrame frame₂ m id user bitmap maxDebt debt :=
       hf1.insert _ _ (by decide)
@@ -96,7 +98,7 @@ theorem midnightHealthLoopStep_budget {I : ExecutionEnv} {g : Sat256} {s0 evm : 
       have hc3 : frame₃.locals.get? "collateralParam" = some (Model.collateralValue c.value) := by
         simp only [frame₃, wordLocal_get_ne _ _ _ _ (show "price" ≠ "collateralParam" from by decide),
           frame₂, healthCollateralFrame, store_get_self]
-      have hsourceMath := healthArithmeticSource (evm := evm') hf3 hcanon hi3 hc3
+      have hsourceMath := healthArithmeticSource (fork := fork) (evm := evm') hf3 hcanon hi3 hc3
         (wordLocal_get ..) hi
       have hload : Stele.EVM.storageLoad evm' evm'.executionEnv.codeOwner =
           fun slot ↦ solcSlotWordAt slot σ' I := by

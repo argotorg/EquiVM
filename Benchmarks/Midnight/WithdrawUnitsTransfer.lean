@@ -3,6 +3,8 @@ import Benchmarks.Midnight.SafeTransferBudget
 import Benchmarks.Midnight.InitMarketDefaultsSource
 import Benchmarks.Midnight.RuntimeBlocks_017
 
+variable {fork : Ethereum.Fork}
+
 /-! The withdrawal event, token transfer, and empty ABI return. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,7 +18,7 @@ theorem withdrawUnitsEmit {frame : Frame} {m : MarketData} {evm : EVM.State}
     (hf : WithdrawUnitsSourceFrame frame m id user units receiver)
     (hd : frame.locals.get? "pendingFeeDecrease" = some (.int decrease.toNat))
     (hp : evm.executionEnv.perm = true) :
-    ABlock config evm frame (withdrawTransition.body.drop 16)
+    ABlock fork config evm frame (withdrawTransition.body.drop 16)
       frame (withdrawTransition.body.drop 17) := by
   refine ⟨fun h ↦ ExecBlock.consNormal (ExecStmt.emit (vals :=
     [.address evm.executionEnv.source, wordBytes32Value id, .int units.toNat,
@@ -46,23 +48,23 @@ theorem withdrawUnitsTransfer {I : ExecutionEnv} {g : UInt256} {s0 evm : State}
     (hzero800 : memLoad (UInt256.ofNat 800) mem = ⟨0⟩)
     (hb : TransferBudget root credit mem aw C) (hused : root.toNat ≤ mem.size)
     (hcredit : 4 * ((root.toNat + safeTransferCallAllocation false + 31) / 32) ≤ credit + 999921)
-    (hgas : midnightGasBound g) (hfork : I.fork ≥ .osaka)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨23236⟩
+    (hgas : midnightGasBound g) (hfork : fork ≥ .osaka)
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨23236⟩
       ([UInt256.ofNat m.loanToken.val, UInt256.ofNat receiver.val, units, UInt256.ofNat 3723] ++ R)
       mem aw rdata evm.accountMap k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (RDrev midnightBytecode (Sat256.ofUInt256 g) s0 ∧
-      ExecBlock config frame evm (withdrawTransition.body.drop 16) .reverted) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0 ∧
+      ExecBlock fork config frame evm (withdrawTransition.body.drop 16) .reverted) ∨
     ∃ frame' evm',
-      ExecBlock config frame evm (withdrawTransition.body.drop 16) (.ok frame' evm') ∧
-      RDret midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap ByteArray.empty := by
+      ExecBlock fork config frame evm (withdrawTransition.body.drop 16) (.ok frame' evm') ∧
+      RDret fork midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap ByteArray.empty := by
   simp only [List.cons_append, List.nil_append] at rd
   have hl : lookupCallable? frame.contract "SafeTransferLib_safeTransfer" =
       some (safeTransferFunctionFor false).toCallable := by
     rw [hf.contract]; exact safeTransferLookup false
   have sourcePrefix {result : ExecResult}
-      (ht : ExecBlock config frame evm (withdrawTransition.body.drop 17) result) :
-      ExecBlock config frame evm (withdrawTransition.body.drop 16) result :=
+      (ht : ExecBlock fork config frame evm (withdrawTransition.body.drop 17) result) :
+      ExecBlock fork config frame evm (withdrawTransition.body.drop 16) result :=
     (withdrawUnitsEmit hf hd (by rw [hs.env]; exact hperm)).run ht
   rcases safeTransferBudgeted false frame.immutables (token := m.loanToken) (sender := I.source)
       (recipient := receiver) (value := units) (by omega) (by omega) (by omega)

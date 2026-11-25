@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.InternalCall
 import Reasoning.VyperDispatch
 
+variable {fork : Ethereum.Fork}
+
 /-! The shared minimum helper and its branchless word implementation. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -23,7 +25,7 @@ def minFunction : FunctionDecl := contract.functions[11]!
 theorem minBodyReturns {cfg : Config} {frame : Frame} {evm : EVM.State} {x y : UInt256}
     (hx : frame.locals.get? "x" = some (.int x.toNat))
     (hy : frame.locals.get? "y" = some (.int y.toNat)) :
-    ExecFuncBody cfg frame evm minFunction.body
+    ExecFuncBody fork cfg frame evm minFunction.body
       (.returned frame evm (some [.int (wordMin x y).toNat])) := by
   apply ExecFuncBody.execBlockRet
   apply ABlock.start.returns
@@ -40,7 +42,7 @@ theorem callMin {cfg : Config} {frame : Frame} {evm : EVM.State}
     {x y : UInt256} {args : List Expr} {name : Ident}
     (hc : frame.contract = contract)
     (he : evalExprs? cfg frame evm args = .ok [.int x.toNat, .int y.toNat]) :
-    ExecStmt cfg frame evm (.internalCall "UtilsLib_min" args name)
+    ExecStmt fork cfg frame evm (.internalCall "UtilsLib_min" args name)
       (.ok (resumeAfterInternalCall frame name (some [.int (wordMin x y).toNat])) evm) := by
   apply internalCallFunctionReturn (callee := minFunction) (locals := minArguments x y) he
   · rw [hc]; rfl

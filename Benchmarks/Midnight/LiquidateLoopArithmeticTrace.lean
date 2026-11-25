@@ -2,6 +2,8 @@ import Benchmarks.Midnight.LiquidateRecoveryDivision
 import Benchmarks.Midnight.LiquidateLoopEntry
 import Benchmarks.Midnight.ZeroFloorSub
 
+variable {fork : Ethereum.Fork}
+
 /-! All arithmetic and the bitmap update in one liquidation collateral iteration. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -22,23 +24,23 @@ theorem midnightLiquidateLoopArithmetic {I : ExecutionEnv} {g : Sat256} {s0 : St
     {mem rdata : ByteArray} {aw maxDebt cp badDebt reverseRep rep price savedPrice pos dp dl
       borrower debtWord bitmap lltv cursor budgetRoot : UInt256}
     {credit : Nat} {σ : AccountMap} {k C : Nat} {R : List UInt256}
-    (hstack : R.length + 30 ≤ 1024) (hfork : I.fork ≥ .osaka)
+    (hstack : R.length + 30 ≤ 1024) (hfork : fork ≥ .osaka)
     (hbitmap : memLoad (UInt256.ofNat 704) mem = bitmap)
     (hi : (bitmapMsb bitmap).toNat < 128)
     (hlltv : memLoad (cp + UInt256.ofNat 32) mem = lltv)
     (hcursor : memLoad (cp + UInt256.ofNat 64) mem = cursor)
     (hb : TransferBudget budgetRoot credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨7967⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨7967⟩
       (maxDebt :: cp :: badDebt :: reverseRep :: rep :: price :: savedPrice :: pos :: dp :: dl ::
         borrower :: debtWord :: R) mem aw rdata σ k C) :
     let collateral := healthCollateralWord (fun slot ↦ solcSlotWordAt slot σ I)
       (pos + ⟨3⟩) (bitmapMsb bitmap)
     (¬ LiquidateLoopArithmeticSafe collateral price lltv cursor maxDebt ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     (LiquidateLoopArithmeticSafe collateral price lltv cursor maxDebt ∧ ∃ aw' k' C',
       TransferBudget budgetRoot credit
         (liquidateBitmapMemory mem (bitmapClear bitmap (bitmapMsb bitmap))) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨5340⟩
+      RD fork midnightBytecode I g s0 ⟨5340⟩
         (debtWord :: reverseRep :: rep :: (maxDebt + healthCollateralCapacity collateral price lltv) ::
           savedPrice :: pos :: dp :: dl :: borrower ::
           zeroFloorSubWord badDebt (liquidateRecoveryValue collateral price lltv cursor) :: R)

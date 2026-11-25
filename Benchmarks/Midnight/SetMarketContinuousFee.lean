@@ -6,6 +6,8 @@ import Benchmarks.Midnight.PairDecode
 import Benchmarks.Midnight.AddressDecode
 import Benchmarks.Midnight.MappingMemory
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `setMarketContinuousFee(bytes32,uint256)`
 
@@ -33,7 +35,7 @@ def marketFeeState (evm : EVM.State) (id value : UInt256) : EVM.State :=
     (setUint32Offset14Word (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner slot) value)
 
 theorem marketFeeBindAlias (evm : EVM.State) (id value : UInt256) :
-    ABlock config evm (calldataFrame contract (marketFeeArguments id value) ∅ evm)
+    ABlock fork config evm (calldataFrame contract (marketFeeArguments id value) ∅ evm)
       (setMarketContinuousFeeTransition.body.drop 3) (marketFeeFrame evm id value)
       (setMarketContinuousFeeTransition.body.drop 4) := by
   refine ⟨fun h ↦ ExecBlock.consNormal (ExecStmt.letStorage ?_) h⟩
@@ -88,7 +90,7 @@ theorem marketFeeAssign (evm : EVM.State) (id value : UInt256) :
 theorem marketFeeAuthReverts (evm : EVM.State) (id value : UInt256)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) (hauth : ¬ roleAllowed evm ⟨10⟩) :
-    ExecTransitionBody config contract evm (marketFeeArguments id value)
+    ExecTransitionBody fork config contract evm (marketFeeArguments id value)
       setMarketContinuousFeeTransition.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply guardedBodyBlock hwv hhi
@@ -101,7 +103,7 @@ theorem marketFeeBoundReverts (evm : EVM.State) (id value : UInt256)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) (hauth : roleAllowed evm ⟨10⟩)
     (hbound : ¬ value.toNat ≤ 317097919) :
-    ExecTransitionBody config contract evm (marketFeeArguments id value)
+    ExecTransitionBody fork config contract evm (marketFeeArguments id value)
       setMarketContinuousFeeTransition.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply guardedBodyBlock hwv hhi
@@ -119,7 +121,7 @@ theorem marketFeeReturns (evm : EVM.State) (id value : UInt256)
     (hbound : value.toNat ≤ 317097919)
     (hspace : marketTickSpacing (marketFeeWord evm id) ≠ ⟨0⟩)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (marketFeeArguments id value)
+    ExecTransitionBody fork config contract evm (marketFeeArguments id value)
       setMarketContinuousFeeTransition.body
       (.returned (marketFeeFrame evm id value)
         (marketFeeState evm id value) none) := by
@@ -150,7 +152,7 @@ theorem marketFeeStatic (evm : EVM.State) (id value : UInt256)
     (hbound : value.toNat ≤ 317097919)
     (hspace : marketTickSpacing (marketFeeWord evm id) ≠ ⟨0⟩)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (marketFeeArguments id value)
+    ExecTransitionBody fork config contract evm (marketFeeArguments id value)
       setMarketContinuousFeeTransition.body .staticViolation := by
   apply ExecFuncBody.execBlockStatic
   apply guardedBodyBlock hwv hhi
@@ -174,7 +176,7 @@ theorem marketFeeDisabledReverts (evm : EVM.State) (id value : UInt256)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) (hauth : roleAllowed evm ⟨10⟩)
     (hbound : value.toNat ≤ 317097919)
     (hspace : marketTickSpacing (marketFeeWord evm id) = ⟨0⟩) :
-    ExecTransitionBody config contract evm (marketFeeArguments id value)
+    ExecTransitionBody fork config contract evm (marketFeeArguments id value)
       setMarketContinuousFeeTransition.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply guardedBodyBlock hwv hhi
@@ -193,8 +195,8 @@ theorem marketFeeTraceStatic {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024) (hperm : I.perm = false)
-    (rd : RD midnightBytecode I g s0 ⟨16830⟩ (x0 :: x1 :: x2 :: R) mem aw rdata σ k C) :
-    RDstatic midnightBytecode g s0 := by
+    (rd : RD fork midnightBytecode I g s0 ⟨16830⟩ (x0 :: x1 :: x2 :: R) mem aw rdata σ k C) :
+    RDstatic fork midnightBytecode g s0 := by
   let r0 := rd
   have r1 := r0.dup1 (by native_decide) (by evm_ov)
   obtain ⟨_, _, r2⟩ := RD.sload r1 (by native_decide) (by evm_ov)
@@ -219,8 +221,8 @@ theorem marketFeeTraceReturn {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {slot value id : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024) (hperm : I.perm = true) (hvalue : value.toNat < 2 ^ 32)
-    (rd : RD midnightBytecode I g s0 ⟨16830⟩ (slot :: value :: id :: R) mem aw rdata σ k C) :
-    RDret midnightBytecode g s0
+    (rd : RD fork midnightBytecode I g s0 ⟨16830⟩ (slot :: value :: id :: R) mem aw rdata σ k C) :
+    RDret fork midnightBytecode g s0
       (sstoreAccountMap I.codeOwner σ slot (setUint32Offset14Word (solcSlotWordAt slot σ I) value))
       ByteArray.empty := by
   have hr := midnightBlocks.midnight_block_16830 hstack hperm rd
@@ -231,10 +233,10 @@ theorem marketFeeTraceReturn {I : ExecutionEnv} {g : Sat256} {s0 : State}
 /-- `setMarketContinuousFee(bytes32,uint256)`: the theorem `Correct.lean` routes selector 7 to. -/
 theorem midnightSetMarketContinuousFeeBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 7)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 7) rfl hsel
   have hd : dispatchMsg contract I.calldata = some setMarketContinuousFeeTransition := by
     apply midnightDispatch_setMarketContinuousFee <;>
@@ -252,7 +254,7 @@ theorem midnightSetMarketContinuousFeeBody {σ σ₀ A I} {g : UInt256}
         simp only [midnightBlocks.midnight_block_18819_fallthrough_stack] at rd3
         have rd4 := midnightBlocks.midnight_block_18832 (by simp) (by jump_dest) rd3
         simp only [midnightBlocks.midnight_block_18832_stack] at rd4
-        change RD _ _ _ _ _ [calldataWord I.calldata 36, calldataWord I.calldata 4,
+        change RD fork _ _ _ _ _ [calldataWord I.calldata 36, calldataWord I.calldata 4,
           solcSelectorWord I] midnightEntryMemory _ _ _ _ _ at rd4
         have hdec := midnightDecodePair_ok "id" "newContinuousFee"
           (by decide) (by decide) (by decide) (by decide) h68 hhi hsize
@@ -265,7 +267,7 @@ theorem midnightSetMarketContinuousFeeBody {σ σ₀ A I} {g : UInt256}
             show (⟨0⟩ : UInt256).toNat = 0 from rfl,
             show (UInt256.ofNat 32).toNat = 32 from rfl,
             wordAt0_fold, twoWordHash_fold, mappingMemory_fold, mappingMemory_hash] at rd5
-          change RD _ _ _ _ _ [solcMappingSlot ⟨1⟩ (calldataWord I.calldata 4),
+          change RD fork _ _ _ _ _ [solcMappingSlot ⟨1⟩ (calldataWord I.calldata 4),
             calldataWord I.calldata 36, calldataWord I.calldata 4, solcSelectorWord I] _ _ _ _ _ _ at rd5
           by_cases hbound : (calldataWord I.calldata 36).toNat ≤ 317097919
           · have rd6 := midnightBlocks.midnight_block_16803_fallthrough (by simp) (ugt_zero hbound) rd5

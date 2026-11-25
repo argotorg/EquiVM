@@ -3,6 +3,8 @@ import Benchmarks.Midnight.LiquidatorGateReturn
 import Benchmarks.Midnight.StaticCallBridgeGas
 import Benchmarks.Midnight.WordReplyMemory
 
+variable {fork : Ethereum.Fork}
+
 /-! The liquidator gate's STATICCALL agrees with the source's opaque external call. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -23,18 +25,18 @@ theorem midnightLiquidatorGateCall {I : ExecutionEnv} {g : Sat256} {s0 evm : Sta
     (hz : memLoad (UInt256.ofNat 800) mem = ⟨0⟩)
     (heval : evalExpr? config frame evm receiver = .ok (.address gate))
     (hs : SourceState s0 I σ evm) (hb : TransferBudget budgetRoot credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨8315⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨8315⟩
       (UInt256.ofNat gate.val :: solcAddrMask :: UInt256.ofNat 32 :: UInt256.ofNat 36 :: R)
       mem aw rdata σ k C) :
-    (ExecStmt config frame evm
+    (ExecStmt fork config frame evm
         (.externalCall receiver "canLiquidate" (.intLit 0) [.env .caller] "allowed" false)
-        .reverted ∧ RDrev midnightBytecode g s0) ∨
+        .reverted ∧ RDrev fork midnightBytecode g s0) ∨
     ∃ (evm' : State) (σ' : AccountMap) (out : ByteArray) (aw' : UInt256) (k' C' : Nat),
-      ExecStmt config frame evm
+      ExecStmt fork config frame evm
         (.externalCall receiver "canLiquidate" (.intLit 0) [.env .caller] "allowed" false)
         (.ok { frame with locals := (frame.locals.insert "allowed"
           (wordToElem .bool (calldataWord out 0))) } evm') ∧
-      typedCallViaEVM config evm gate "canLiquidate" 0 [.address I.source]
+      typedCallViaEVM fork config evm gate "canLiquidate" 0 [.address I.source]
         (true, evm', out) false ∧
       SourceState s0 I σ' evm' ∧ 32 ≤ out.size ∧
       (calldataWord out 0 = ⟨0⟩ ∨ calldataWord out 0 = ⟨1⟩) ∧
@@ -42,7 +44,7 @@ theorem midnightLiquidatorGateCall {I : ExecutionEnv} {g : Sat256} {s0 evm : Sta
       memLoad (UInt256.ofNat 64) (liquidatorGateResultMemory mem root I.source out) =
         root + UInt256.ofNat 32 ∧
       TransferBudget budgetRoot credit (liquidatorGateResultMemory mem root I.source out) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨8398⟩ (calldataWord out 0 :: R)
+      RD fork midnightBytecode I g s0 ⟨8398⟩ (calldataWord out 0 :: R)
         (liquidatorGateResultMemory mem root I.source out) aw' out σ' k' C' := by
   have ha : evalExprs? config frame evm [.env .caller] = .ok [.address I.source] := by
     simp [evalExprs?, evalExpr?, envValue, hs.env, bind, pure, EvalResult.bind]
@@ -94,7 +96,7 @@ theorem midnightLiquidatorGateCall {I : ExecutionEnv} {g : Sat256} {s0 evm : Sta
       rw [wordReplyMemory_size _ _ _ hcovered]; exact hcovered) (Or.inr (by omega)),
       wordReplyMemory_load _ _ _ hcovered h32]
   simp only [accountAddress_roundtrip] at hcall
-  have hsourceCall : typedCallViaEVM config evm (EVM.address gate.val) "canLiquidate" 0
+  have hsourceCall : typedCallViaEVM fork config evm (EVM.address gate.val) "canLiquidate" 0
       [.address I.source] (success, evm', out) false := by
     simpa only [address_of_val] using hcall
   rcases midnightLiquidatorGateReturn success hstack hout' (by omega) hz2 hword hb2 rd2 with

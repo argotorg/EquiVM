@@ -1,13 +1,15 @@
 import Benchmarks.Midnight.Common
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 /-! The creation attempt inside CREATE2 and its source-level counterpart. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Midnight
 
-def zeroCreate2Attempt (s : State) (initCode : ByteArray) (salt : UInt256) :
+def zeroCreate2Attempt (fork : Ethereum.Fork) (s : State) (initCode : ByteArray) (salt : UInt256) :
     AccountAddress × State × UInt256 × Bool × ByteArray :=
   let creator := s.accountMap.get? s.executionEnv.codeOwner |>.getD default
   let gas := UInt256.ofNat (L s.machineState.gasAvailable.toNat)
@@ -15,7 +17,7 @@ def zeroCreate2Attempt (s : State) (initCode : ByteArray) (salt : UInt256) :
   else if hc : (⟨0⟩ : UInt256) ≤
       (s.accountMap.get? s.executionEnv.codeOwner |>.option ⟨0⟩ (·.balance)) ∧
       s.executionEnv.depth.val < 1024 ∧ initCode.size ≤ 49152 then
-    let (addr, σ', gas', A', z, out) := Lambda s.executionEnv.fork
+    let (addr, σ', gas', A', z, out) := Lambda fork
       (s.accountMap.insert s.executionEnv.codeOwner {creator with nonce := creator.nonce + ⟨1⟩})
       s.σ₀ s.substate s.executionEnv.codeOwner s.executionEnv.sender gas
       (UInt256.ofNat s.executionEnv.gasPrice) ⟨0⟩ initCode
@@ -30,15 +32,15 @@ theorem zeroCreate2Attempt_source {cfg : Config} {name : Ident} {args : List Val
     (hs : SourceState s s.executionEnv s.accountMap evm)
     (hcode : cfg.creationCode name args = some initCode) :
     ∃ addr mid gas z out evm',
-      zeroCreate2Attempt s initCode salt = (addr, mid, gas, z, out) ∧
-      newViaEVM cfg evm name 0 args (some (Ethereum.UInt256.toByteArray salt))
+      zeroCreate2Attempt fork s initCode salt = (addr, mid, gas, z, out) ∧
+      newViaEVM fork cfg evm name 0 args (some (Ethereum.UInt256.toByteArray salt))
         (addr, evm', z) ∧
       mid.σ₀ = s.σ₀ ∧ mid.machineState.memory = s.machineState.memory ∧
       SourceState s s.executionEnv mid.accountMap evm' ∧
       (z = true → s.executionEnv.depth ≠ 1024 ∧ initCode.size ≤ 49152) := by
   let creator : Account := s.accountMap.get? s.executionEnv.codeOwner |>.getD default
   by_cases hn : creator.nonce.toNat ≥ 2^64 - 1
-  · have ha : zeroCreate2Attempt s initCode salt =
+  · have ha : zeroCreate2Attempt fork s initCode salt =
         (0, s, UInt256.ofNat (L s.machineState.gasAvailable.toNat), false, ByteArray.empty) := by
       unfold zeroCreate2Attempt
       exact if_pos hn
@@ -64,7 +66,7 @@ theorem zeroCreate2Attempt_source {cfg : Config} {name : Ident} {args : List Val
         apply Fin.ext
         simp only [Fin.val_add, Fin.val_one]
         exact (Nat.mod_eq_of_lt (by omega)).symm
-      let result := Lambda s.executionEnv.fork
+      let result := Lambda fork
         (s.accountMap.insert s.executionEnv.codeOwner {creator with nonce := creator.nonce + ⟨1⟩})
         s.σ₀ s.substate s.executionEnv.codeOwner s.executionEnv.sender
         (UInt256.ofNat (L s.machineState.gasAvailable.toNat))
@@ -80,7 +82,7 @@ theorem zeroCreate2Attempt_source {cfg : Config} {name : Ident} {args : List Val
         change (match result with
           | (a, σ, g, A, z, o) => (a, {s with accountMap := σ, substate := A}, g, z, o)) = _
         rw [hr]
-      · refine @newViaEVM.created cfg evm name 0 args _ (fun _ _ ↦ gas') (fun _ _ ↦ out)
+      · refine @newViaEVM.created fork cfg evm name 0 args _ (fun _ _ ↦ gas') (fun _ _ ↦ out)
           initCode ⟨0⟩ addr σ' A' z _ hcode ?_ wordOfInt_zero.symm ?_ rfl
         · unfold newCanCreate
           rw [← hs.accounts, hs.env, wordOfInt_zero]
@@ -90,7 +92,7 @@ theorem zeroCreate2Attempt_source {cfg : Config} {name : Ident} {args : List Val
     · have hc' : ¬ ((⟨0⟩ : UInt256) ≤
           (s.accountMap.get? s.executionEnv.codeOwner |>.option ⟨0⟩ (·.balance)) ∧
           s.executionEnv.depth.val < 1024 ∧ initCode.size ≤ 49152) := fun h ↦ hc h.2
-      have ha : zeroCreate2Attempt s initCode salt =
+      have ha : zeroCreate2Attempt fork s initCode salt =
           (0, s, UInt256.ofNat (L s.machineState.gasAvailable.toNat), false, ByteArray.empty) := by
         unfold zeroCreate2Attempt
         rw [if_neg hn, dif_neg hc']

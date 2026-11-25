@@ -3,6 +3,8 @@ import Benchmarks.Midnight.StaticCallBridgeGas
 import Benchmarks.Midnight.AddressDecode
 import Reasoning.VyperCalls
 
+variable {fork : Ethereum.Fork}
+
 /-! The health-loop oracle call, retaining the caller's memory funding. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -22,22 +24,22 @@ theorem midnightOracleCall_budget {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
     (heval : evalExpr? config frame evm receiver = .ok (.address oracle))
     (hs : SourceState s0 I σ evm)
     (hb : TransferBudget budgetRoot credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨19885⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨19885⟩
       ([cell, bitmap, maxDebt, base, market, index] ++ R) mem aw rdata σ k C) :
-    (ExecStmt config frame evm
+    (ExecStmt fork config frame evm
         (.externalCall receiver "price" (.intLit 0) [] "price" false) .reverted ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     ∃ (evm' : State) (σ' : AccountMap) (out : ByteArray) (aw' : UInt256) (k' C' : Nat),
-      ExecStmt config frame evm
+      ExecStmt fork config frame evm
         (.externalCall receiver "price" (.intLit 0) [] "price" false)
         (.ok { frame with locals := frame.locals.insert "price" (.int (calldataWord out 0).toNat) }
           evm') ∧
-      typedCallViaEVM config evm oracle "price" 0 [] (true, evm', out) false ∧
+      typedCallViaEVM fork config evm oracle "price" 0 [] (true, evm', out) false ∧
       SourceState s0 I σ' evm' ∧ 32 ≤ out.size ∧
       MemoryPrefix mem (oraclePriceMemory mem root out) root.toNat ∧
       memLoad (UInt256.ofNat 64) (oraclePriceMemory mem root out) = root + UInt256.ofNat 32 ∧
       TransferBudget budgetRoot credit (oraclePriceMemory mem root out) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨19940⟩
+      RD fork midnightBytecode I g s0 ⟨19940⟩
         ([⟨20011⟩, base, index, calldataWord out 0, cp, bitmap, maxDebt, base, market, index] ++ R)
         (oraclePriceMemory mem root out) aw' out σ' k' C' := by
   have rd1 := midnightBlocks.midnight_block_19885
@@ -74,7 +76,7 @@ theorem midnightOracleCall_budget {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
           show (UInt256.ofNat 32).toNat = 32 from rfl]
         omega)
   simp only [accountAddress_roundtrip] at hcall
-  have hsourceCall : typedCallViaEVM config evm (EVM.address oracle.val) "price" 0 []
+  have hsourceCall : typedCallViaEVM fork config evm (EVM.address oracle.val) "price" 0 []
       (success, evm', out) false := by simpa only [address_of_val] using hcall
   rcases midnightOracleReturn_budget (R := R) success (by omega) (by change out.size < 2^256; omega)
       hroot hb2 rd2 with ⟨hbad, hrev⟩ | ⟨htrue, h32, aw3, k3, C3, hb3, rd3⟩
@@ -101,7 +103,7 @@ theorem midnightOracleCall_budget {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
         rw [hn]
         exact h32)]
     simp only [hmin] at rd3 hb3
-    change RD midnightBytecode I g s0 ⟨19940⟩
+    change RD fork midnightBytecode I g s0 ⟨19940⟩
       ([⟨20011⟩, base, index, memLoad root (oraclePriceMemory mem root out), cp, bitmap,
         maxDebt, base, market, index] ++ R)
       (oraclePriceMemory mem root out) aw3 out σ' k3 C3 at rd3

@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.TakeBuyerDebtWrite
 
+variable {fork : Ethereum.Fork}
+
 /-! The market total-units store and the following saved asset reads. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -12,11 +14,11 @@ theorem midnightTakeMarketStore {credit : Nat} {I : ExecutionEnv} {g : Sat256} {
     {mem rdata : ByteArray} {aw value slot : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (hstack : R.length + 5 ≤ 1024)
     (hperm : I.perm = true) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨12566⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨12566⟩
       (value :: uint128Mask :: slot :: R) mem aw rdata σ k C) :
     ∃ k' C', MemoryFunding credit mem
         (M (M aw (UInt256.ofNat 416) ⟨32⟩) (UInt256.ofNat 256) ⟨32⟩) C' ∧
-      RD midnightBytecode I g s0 ⟨19447⟩
+      RD fork midnightBytecode I g s0 ⟨19447⟩
         (memLoad (UInt256.ofNat 256) mem :: memLoad (UInt256.ofNat 416) mem :: ⟨12598⟩ :: R)
         mem (M (M aw (UInt256.ofNat 416) ⟨32⟩) (UInt256.ofNat 256) ⟨32⟩) rdata
         (storeLow128Accounts σ I slot value) k' C' := by

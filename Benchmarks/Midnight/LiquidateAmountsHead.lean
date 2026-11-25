@@ -2,6 +2,8 @@ import Benchmarks.Midnight.LiquidateIncentive
 import Benchmarks.Midnight.LiquidateAmountsConversion
 import Benchmarks.Midnight.LiquidateRcf
 
+variable {fork : Ethereum.Fork}
+
 /-! Paired execution of liquidation's incentive, amount conversion, and recovery-threshold check. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -23,13 +25,13 @@ theorem liquidateAmountsHead {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f
     (hms : memLoad ⟨640⟩ mem = seized) (hmr : memLoad ⟨608⟩ mem = repaid)
     (hsize : 672 ≤ mem.size) (hs : SourceState s0 I σ evm)
     (hb : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨6477⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨6477⟩
       ([maxDebt, price, positionSlot id borrower, dp, dl, borrower, badDebt, receiverWord,
         mode, selector] ++ R) mem aw rdata σ k C) :
-    (ExecBlock config frame evm (liquidateAmountsBody.take 6) .reverted ∧
-      RDrev midnightBytecode g s0) ∨
+    (ExecBlock fork config frame evm (liquidateAmountsBody.take 6) .reverted ∧
+      RDrev fork midnightBytecode g s0) ∨
     ∃ frame' seized' repaid' mem' d0 d1 d2 d3 aw' k' C',
-      ExecBlock config frame evm (liquidateAmountsBody.take 6) (.ok frame' evm) ∧
+      ExecBlock fork config frame evm (liquidateAmountsBody.take 6) (.ok frame' evm) ∧
       LiquidateSourceFrame frame' m id index seized' repaid' borrower mode receiver callback data ∧
       LiquidateAccumulators frame' bitmap maxDebt price originalDebt badDebt ∧
       memLoad ⟨640⟩ mem' = seized' ∧ memLoad ⟨608⟩ mem' = repaid' ∧
@@ -37,7 +39,7 @@ theorem liquidateAmountsHead {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f
       (∀ read : UInt256, read.toNat + 32 ≤ mem.size →
         (read.toNat + 32 ≤ 608 ∨ 672 ≤ read.toNat) → memLoad read mem' = memLoad read mem) ∧
       TransferBudget root credit mem' aw' C' ∧
-      RD midnightBytecode I g s0 ⟨6744⟩
+      RD fork midnightBytecode I g s0 ⟨6744⟩
         ([d0, d1, d2, d3, positionSlot id borrower, dp, dl, borrower, badDebt,
           receiverWord, mode, selector] ++ R) mem' aw' rdata σ k' C' := by
   rcases liquidateIncentive (R := selector :: R)

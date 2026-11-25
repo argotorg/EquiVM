@@ -2,6 +2,8 @@ import Benchmarks.Midnight.CalldataSliceBounds
 import Benchmarks.Midnight.RuntimeBlocks_071
 import Benchmarks.Midnight.RuntimeBlocks_072
 
+variable {fork : Ethereum.Fork}
+
 /-! The shared calldata reference decoders for scalar arrays and bytes. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,11 +17,11 @@ theorem midnightCalldataSlice (isBytes : Bool) {I : ExecutionEnv} {g : Sat256} {
     {R : List UInt256} (hstack : R.length + 8 ≤ 1024)
     (hsize : I.calldata.size < UInt256.size) (hhead : head.toNat < 2^128)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 (if isBytes then ⟨18889⟩ else ⟨18841⟩)
+    (rd : RD fork midnightBytecode I g s0 (if isBytes then ⟨18889⟩ else ⟨18841⟩)
       (head :: UInt256.ofNat I.calldata.size :: ret :: R) mem aw rdata σ k C) :
-    (¬ CalldataSliceValid isBytes I.calldata head ∧ RDrev midnightBytecode g s0) ∨
+    (¬ CalldataSliceValid isBytes I.calldata head ∧ RDrev fork midnightBytecode g s0) ∨
     (CalldataSliceValid isBytes I.calldata head ∧ ∃ k' C', C ≤ C' ∧
-      RD midnightBytecode I g s0 ret
+      RD fork midnightBytecode I g s0 ret
         (calldataWord I.calldata head.toNat :: (head + UInt256.ofNat 32) :: R)
         mem aw rdata σ k' C') := by
   by_cases hh : I.calldata.size < 2^255 ∧ head.toNat + 32 ≤ I.calldata.size
@@ -27,7 +29,7 @@ theorem midnightCalldataSlice (isBytes : Bool) {I : ExecutionEnv} {g : Sat256} {
         (UInt256.slt (head + UInt256.ofNat 31) (UInt256.ofNat I.calldata.size)) = ⟨0⟩ := by
       rw [calldataSliceHeaderCheck hhead hsize, decide_eq_true hh]
       rfl
-    have rd1 : RD midnightBytecode I g s0 (if isBytes then ⟨18902⟩ else ⟨18854⟩)
+    have rd1 : RD fork midnightBytecode I g s0 (if isBytes then ⟨18902⟩ else ⟨18854⟩)
         (ret :: UInt256.ofNat I.calldata.size :: head :: R)
         mem aw rdata σ (k + 10) (C + 35) := by
       cases isBytes
@@ -38,7 +40,7 @@ theorem midnightCalldataSlice (isBytes : Bool) {I : ExecutionEnv} {g : Sat256} {
     · have hlen : UInt256.gt len
           (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 64))
             (UInt256.ofNat 1)) = ⟨0⟩ := ugt_zero (by change len.toNat ≤ 2^64 - 1; omega)
-      have rd2 : RD midnightBytecode I g s0 (if isBytes then ⟨18919⟩ else ⟨18871⟩)
+      have rd2 : RD fork midnightBytecode I g s0 (if isBytes then ⟨18919⟩ else ⟨18871⟩)
           (UInt256.ofNat I.calldata.size :: ret :: len :: head :: R)
           mem aw rdata σ (k + 10 + 12) (C + 35 + 43) := by
         cases isBytes
@@ -49,7 +51,7 @@ theorem midnightCalldataSlice (isBytes : Bool) {I : ExecutionEnv} {g : Sat256} {
       · have hgt : UInt256.gt (calldataSliceEndWord isBytes head len)
             (UInt256.ofNat I.calldata.size) = ⟨0⟩ :=
           ugt_zero (by rw [hend, UInt256.toNat_ofNat_of_lt hsize]; exact he)
-        have rd3 : RD midnightBytecode I g s0 (if isBytes then ⟨18933⟩ else ⟨18888⟩)
+        have rd3 : RD fork midnightBytecode I g s0 (if isBytes then ⟨18933⟩ else ⟨18888⟩)
             (ret :: len :: (head + UInt256.ofNat 32) :: R) mem aw rdata σ
             (k + 10 + 12 + (if isBytes then 11 else 13))
             (C + 35 + 43 + (if isBytes then 40 else 46)) := by

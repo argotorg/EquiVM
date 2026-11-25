@@ -2,6 +2,8 @@ import Benchmarks.Midnight.TouchMarketValidation
 import Benchmarks.Midnight.TouchMarketHeaderFunding
 import Benchmarks.Midnight.CollateralValidationLoopFunding
 
+variable {fork : Ethereum.Fork}
+
 /-! Funding through all fresh-market validation checks. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -19,16 +21,16 @@ theorem midnightTouchMarketValidation_funded {credit : Nat} {evm : EVM.State} {g
     (hl : frame.locals.get? "isLltvEnabled" = none)
     (hcu : frame.locals.get? "isLiquidationCursorEnabled" = none)
     (hfund : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode evm.executionEnv g s0 ⟨20764⟩
+    (rd : RD fork midnightBytecode evm.executionEnv g s0 ⟨20764⟩
       ((ptr + UInt256.ofNat 32) :: ptr :: id :: ret :: R) mem aw rdata evm.accountMap k C) :
-    (RDrev midnightBytecode g s0 ∧ ExecBlock config frame evm touchMarketInitBody .reverted) ∨
+    (RDrev fork midnightBytecode g s0 ∧ ExecBlock fork config frame evm touchMarketInitBody .reverted) ∨
     (∃ previous frame' mem' aw' k' C',
-      ABlock config evm frame touchMarketInitBody frame' (touchMarketInitBody.drop 7) ∧
+      ABlock fork config evm frame touchMarketInitBody frame' (touchMarketInitBody.drop 7) ∧
       CollateralSourceFrame frame' m m.collaterals.length previous ∧
       CollateralLocalsPreserved frame frame' ∧ MemoryPrefix mem mem' root.toNat ∧
       memLoad (UInt256.ofNat 64) mem' = memLoad (UInt256.ofNat 64) mem ∧
       MemoryFunding credit mem' aw' C' ∧
-      RD midnightBytecode evm.executionEnv g s0 ⟨21130⟩
+      RD fork midnightBytecode evm.executionEnv g s0 ⟨21130⟩
         (arrayPtr :: UInt256.ofNat previous.val :: ret :: ptr :: (ptr + UInt256.ofNat 96) :: id ::
           UInt256.ofNat m.collaterals.length :: R) mem' aw' rdata evm.accountMap k' C') := by
   rcases midnightTouchMarketHeader_funded m (by omega) hm hfund rd with ⟨hbad, hr⟩ | ⟨hs, aw1, k1, C1, hf1, rd1⟩

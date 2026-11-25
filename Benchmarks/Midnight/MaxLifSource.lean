@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.MaxLifTrace
 import Benchmarks.Midnight.PositionViewSourceBase
 
+variable {fork : Ethereum.Fork}
+
 /-! Source execution of `maxLif`, including each checked-arithmetic failure. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -61,7 +63,7 @@ theorem maxLifSourceReturns {cfg : Config} {frame : Frame} {evm : EVM.State}
     (hl : frame.locals.get? "lltv" = some (.int lltv.toNat))
     (hc : frame.locals.get? "liquidationCursor" = some (.int cursor.toNat))
     (hsafe : MaxLifSafe lltv cursor) :
-    ExecFuncBody cfg frame evm maxLifFunction.body
+    ExecFuncBody fork cfg frame evm maxLifFunction.body
       (.returned (wordLocal (wordLocal frame "__c0" (lifDiscount lltv cursor))
         "__c1" (maxLif lltv cursor)) evm (some [.int (maxLif lltv cursor).toNat])) := by
   rw [maxLif_body]
@@ -79,7 +81,7 @@ theorem maxLifSourceReverts {cfg : Config} {frame : Frame} {evm : EVM.State}
     (hl : frame.locals.get? "lltv" = some (.int lltv.toNat))
     (hc : frame.locals.get? "liquidationCursor" = some (.int cursor.toNat))
     (hbad : ¬ MaxLifSafe lltv cursor) :
-    ExecFuncBody cfg frame evm maxLifFunction.body .reverted := by
+    ExecFuncBody fork cfg frame evm maxLifFunction.body .reverted := by
   rw [maxLif_body]
   apply ExecFuncBody.execBlockRevert
   by_cases hsub : lltv.toNat ≤ lifScale.toNat
@@ -119,7 +121,7 @@ theorem callMaxLif {cfg : Config} {frame : Frame} {evm : EVM.State}
     (hc : frame.contract = contract)
     (he : evalExprs? cfg frame evm args = .ok [.int lltv.toNat, .int cursor.toNat])
     (hsafe : MaxLifSafe lltv cursor) :
-    ExecStmt cfg frame evm (.internalCall "maxLif" args name)
+    ExecStmt fork cfg frame evm (.internalCall "maxLif" args name)
       (.ok (wordLocal frame name (maxLif lltv cursor)) evm) := by
   apply internalCallFunctionReturn (callee := maxLifFunction)
     (locals := maxLifArguments lltv cursor) (value := some [.int (maxLif lltv cursor).toNat]) he
@@ -134,7 +136,7 @@ theorem callMaxLifRevert {cfg : Config} {frame : Frame} {evm : EVM.State}
     (hc : frame.contract = contract)
     (he : evalExprs? cfg frame evm args = .ok [.int lltv.toNat, .int cursor.toNat])
     (hbad : ¬ MaxLifSafe lltv cursor) :
-    ExecStmt cfg frame evm (.internalCall "maxLif" args name) .reverted := by
+    ExecStmt fork cfg frame evm (.internalCall "maxLif" args name) .reverted := by
   apply internalCallFunctionRevert (callee := maxLifFunction)
     (locals := maxLifArguments lltv cursor) he
   · rw [hc]; rfl

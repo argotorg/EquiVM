@@ -2,6 +2,8 @@ import Benchmarks.Midnight.ToMarketLastFields
 import Benchmarks.Midnight.ToMarketFirstFields
 import Benchmarks.Midnight.ToMarketEncodeReturn
 
+variable {fork : Ethereum.Fork}
+
 /-! Completing the stored-market decoder and returning its typed ABI result. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -32,11 +34,11 @@ theorem midnightToMarketFinishDecode {I : ExecutionEnv} {g : Sat256} {s0 : State
     (hdecode : decodeCollateralElements
       (calldataWord bytes (start + (calldataWord bytes (start + 96)).toNat)).toNat bytes
       (start + (calldataWord bytes (start + 96)).toNat + 32) = some cs)
-    (rd : RD midnightBytecode I g s0 ⟨1100⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨1100⟩
       (x0 :: x1 :: x2 :: x3 :: arrayPtr :: ptr :: anchor :: R) mem aw rdata σ k C) :
-    (decodeMarketData bytes start = none ∧ RDrev midnightBytecode g s0) ∨
+    (decodeMarketData bytes start = none ∧ RDrev fork midnightBytecode g s0) ∨
     (decodeMarketData bytes start = some (MarketData.at bytes start cs) ∧
-      RDret midnightBytecode g s0 σ (wordArrayBytes (MarketData.at bytes start cs).encodedWords)) := by
+      RDret fork midnightBytecode g s0 σ (wordArrayBytes (MarketData.at bytes start cs).encodedWords)) := by
   rcases midnightToMarketLastFields (by omega) hb hhead hanchor hregion hptr rd with
     ⟨hd, hr⟩ | ⟨he, hliq, aw1, k1, C1, rd1⟩
   · exact Or.inl ⟨hd, hr⟩

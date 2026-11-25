@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TakePriceGuard
 import Benchmarks.Midnight.ZeroFloorSub
 
+variable {fork : Ethereum.Fork}
+
 /-! Complete price rounding and prepare the time-dependent settlement-fee call. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -20,13 +22,13 @@ theorem midnightTakePricePrepare {credit : Nat} {I : ExecutionEnv} {g : Sat256} 
     (hroot : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (hid : memLoad (UInt256.ofNat 512) mem = id)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨11514⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨11514⟩
       (UInt256.div (tickPriceNumerator offer.tick.toNat)
           (tickPriceDenominator offer.tick.toNat) ::
         UInt256.ofNat 49999999999 :: UInt256.ofNat 100000000000 ::
         UInt256.ofNat 100000000000 :: ratifierPtr :: slot :: R) mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding credit (writeWord mem 800 ⟨0⟩) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨21835⟩
+      RD fork midnightBytecode I g s0 ⟨21835⟩
         (id :: takeTimeToMaturity I offer :: UInt256.ofNat 11556 :: UInt256.ofNat 11591 ::
           tickPriceWord offer.tick.toNat :: slot :: ratifierPtr :: takeTimeToMaturity I offer :: R)
         (writeWord mem 800 ⟨0⟩) aw' rdata σ k' C' := by

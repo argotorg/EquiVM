@@ -3,6 +3,8 @@ import Benchmarks.Midnight.AddressDecode
 import Benchmarks.Midnight.RuntimeBlocks_023
 import Benchmarks.Midnight.RuntimeBlocks_032
 
+variable {fork : Ethereum.Fork}
+
 /-! The liquidator gate address is read from the already validated calldata market. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -34,11 +36,11 @@ theorem midnightLiquidatorGateHead {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw : UInt256} {m : MarketData}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024) (hd : decodeCalldataMarket ee.calldata 4 = some m)
-    (rd : RD midnightBytecode ee g s0 ⟨5275⟩ R mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode ee g s0 ⟨5275⟩ R mem aw rdata σ k C) :
     (m.liquidatorGate = 0 ∧ ∃ k' C', C ≤ C' ∧
-      RD midnightBytecode ee g s0 ⟨5311⟩ R mem aw rdata σ k' C') ∨
+      RD fork midnightBytecode ee g s0 ⟨5311⟩ R mem aw rdata σ k' C') ∨
     (m.liquidatorGate ≠ 0 ∧ ∃ k' C', C ≤ C' ∧
-      RD midnightBytecode ee g s0 ⟨8315⟩
+      RD fork midnightBytecode ee g s0 ⟨8315⟩
         (UInt256.ofNat m.liquidatorGate.val :: solcAddrMask :: UInt256.ofNat 32 ::
           UInt256.ofNat 36 :: R) mem aw rdata σ k' C') := by
   have hw := decodeCalldataMarket_liquidatorGate hd
@@ -50,7 +52,7 @@ theorem midnightLiquidatorGateHead {ee : ExecutionEnv} {g : Sat256} {s0 : State}
   have rd2 := midnight_block_19691_fallthrough
     (by simp only [List.length_cons]; omega) (addressCheck_zero hc) rd1
   have rd3 := midnight_block_19709 (by simp only [List.length_cons]; omega) (by jump_dest) rd2
-  change RD midnightBytecode ee g s0 ⟨5296⟩
+  change RD fork midnightBytecode ee g s0 ⟨5296⟩
     (calldataWord ee.calldata (calldataWord ee.calldata 4 + UInt256.ofNat 228).toNat ::
       solcAddrMask :: R) mem aw rdata σ _ _ at rd3
   rw [hw] at rd3
@@ -78,7 +80,7 @@ theorem midnightLiquidatorGateHead {ee : ExecutionEnv} {g : Sat256} {s0 : State}
       (by simp only [List.length_cons]; omega) (addressCheck_zero hc) rd5
     have rd7 := midnight_block_19709 (by simp only [List.length_cons]; omega)
       (by jump_dest) rd6
-    change RD midnightBytecode ee g s0 ⟨8315⟩
+    change RD fork midnightBytecode ee g s0 ⟨8315⟩
       (calldataWord ee.calldata (calldataWord ee.calldata 4 + UInt256.ofNat 228).toNat ::
         solcAddrMask :: UInt256.ofNat 32 :: UInt256.ofNat 36 :: R)
       mem aw rdata σ _ _ at rd7

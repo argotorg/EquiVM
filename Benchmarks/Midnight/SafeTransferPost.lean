@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.SafeTransferPrepare
 import Benchmarks.Midnight.BoolMemoryDecode
 
+variable {fork : Ethereum.Fork}
+
 /-! Shared control flow after the safe-transfer return buffer has been allocated. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,8 +18,8 @@ def safeTransferDecodeReturnPC (isFrom : Bool) : UInt256 := if isFrom then ⟨23
 theorem safeTransferPostFailure (isFrom : Bool) {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw ptr : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 3 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 (safeTransferCheckPC isFrom)
-      (ptr :: ⟨0⟩ :: R) mem aw rdata σ k C) : RDrev midnightBytecode g s0 := by
+    (rd : RD fork midnightBytecode I g s0 (safeTransferCheckPC isFrom)
+      (ptr :: ⟨0⟩ :: R) mem aw rdata σ k C) : RDrev fork midnightBytecode g s0 := by
   cases isFrom with
   | false =>
     have rd1 := midnightBlocks.midnight_block_23319_taken hstack (by decide) (by jump_dest) rd
@@ -29,9 +31,9 @@ theorem safeTransferPostFailure (isFrom : Bool) {I : ExecutionEnv} {g : Sat256} 
 theorem safeTransferPostSuccessCharge (isFrom : Bool) {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw ptr : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 3 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 (safeTransferCheckPC isFrom)
+    (rd : RD fork midnightBytecode I g s0 (safeTransferCheckPC isFrom)
       (ptr :: ⟨1⟩ :: R) mem aw rdata σ k C) :
-    ∃ k' C', MemoryCharge 0 aw aw C C' ∧ RD midnightBytecode I g s0 (safeTransferLengthPC isFrom)
+    ∃ k' C', MemoryCharge 0 aw aw C C' ∧ RD fork midnightBytecode I g s0 (safeTransferLengthPC isFrom)
       (ptr :: R) mem aw rdata σ k' C' := by
   have h0 := MemoryCharge.refl aw C
   cases isFrom with
@@ -48,9 +50,9 @@ theorem safeTransferPostEmptyCharge (isFrom : Bool) {I : ExecutionEnv} {g : Sat2
     {mem : ByteArray} {aw ptr ret : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 6 ≤ 1024)
     (hempty : memLoad ptr mem = ⟨0⟩) (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 (safeTransferLengthPC isFrom)
+    (rd : RD fork midnightBytecode I g s0 (safeTransferLengthPC isFrom)
       (ptr :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', MemoryCharge 0 aw aw' C C' ∧ RD midnightBytecode I g s0 ret R mem aw' rdata σ k' C' := by
+    ∃ aw' k' C', MemoryCharge 0 aw aw' C C' ∧ RD fork midnightBytecode I g s0 ret R mem aw' rdata σ k' C' := by
   have h0 := MemoryCharge.refl aw C
   cases isFrom with
   | false =>
@@ -76,9 +78,9 @@ theorem safeTransferPostNonemptyCharge (isFrom : Bool) {I : ExecutionEnv} {g : S
     {mem : ByteArray} {aw ptr size : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 6 ≤ 1024)
     (hsize : memLoad ptr mem = size) (hne : size ≠ ⟨0⟩)
-    (rd : RD midnightBytecode I g s0 (safeTransferLengthPC isFrom)
+    (rd : RD fork midnightBytecode I g s0 (safeTransferLengthPC isFrom)
       (ptr :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', MemoryCharge 0 aw aw' C C' ∧ RD midnightBytecode I g s0 ⟨20432⟩
+    ∃ aw' k' C', MemoryCharge 0 aw aw' C C' ∧ RD fork midnightBytecode I g s0 ⟨20432⟩
       ((ptr + UInt256.ofNat 32) :: ((ptr + size) + UInt256.ofNat 32) ::
         safeTransferDecodeReturnPC isFrom :: R) mem aw' rdata σ k' C' := by
   have h0 := MemoryCharge.refl aw C
@@ -102,9 +104,9 @@ theorem safeTransferPostTrueCharge (isFrom : Bool) {I : ExecutionEnv} {g : Sat25
     {mem : ByteArray} {aw ret word : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 5 ≤ 1024)
     (hne : word ≠ ⟨0⟩) (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 (safeTransferDecodeReturnPC isFrom)
+    (rd : RD fork midnightBytecode I g s0 (safeTransferDecodeReturnPC isFrom)
       (word :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', MemoryCharge 0 aw aw C C' ∧ RD midnightBytecode I g s0 ret R mem aw rdata σ k' C' := by
+    ∃ k' C', MemoryCharge 0 aw aw C C' ∧ RD fork midnightBytecode I g s0 ret R mem aw rdata σ k' C' := by
   have h0 := MemoryCharge.refl aw C
   cases isFrom with
   | false =>
@@ -127,9 +129,9 @@ theorem safeTransferPostTrueCharge (isFrom : Bool) {I : ExecutionEnv} {g : Sat25
 theorem safeTransferPostSuccess (isFrom : Bool) {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw ptr : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 3 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 (safeTransferCheckPC isFrom)
+    (rd : RD fork midnightBytecode I g s0 (safeTransferCheckPC isFrom)
       (ptr :: ⟨1⟩ :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD midnightBytecode I g s0 (safeTransferLengthPC isFrom)
+    ∃ k' C', RD fork midnightBytecode I g s0 (safeTransferLengthPC isFrom)
       (ptr :: R) mem aw rdata σ k' C' := by
   obtain ⟨k', C', _, rd'⟩ := safeTransferPostSuccessCharge isFrom hstack rd
   exact ⟨k', C', rd'⟩
@@ -138,9 +140,9 @@ theorem safeTransferPostEmpty (isFrom : Bool) {I : ExecutionEnv} {g : Sat256} {s
     {mem : ByteArray} {aw ptr ret : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 6 ≤ 1024)
     (hempty : memLoad ptr mem = ⟨0⟩) (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 (safeTransferLengthPC isFrom)
+    (rd : RD fork midnightBytecode I g s0 (safeTransferLengthPC isFrom)
       (ptr :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g s0 ret R mem aw' rdata σ k' C' := by
+    ∃ aw' k' C', RD fork midnightBytecode I g s0 ret R mem aw' rdata σ k' C' := by
   obtain ⟨aw', k', C', _, rd'⟩ := safeTransferPostEmptyCharge isFrom hstack hempty hret rd
   exact ⟨aw', k', C', rd'⟩
 
@@ -148,9 +150,9 @@ theorem safeTransferPostNonempty (isFrom : Bool) {I : ExecutionEnv} {g : Sat256}
     {mem : ByteArray} {aw ptr size : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 6 ≤ 1024)
     (hsize : memLoad ptr mem = size) (hne : size ≠ ⟨0⟩)
-    (rd : RD midnightBytecode I g s0 (safeTransferLengthPC isFrom)
+    (rd : RD fork midnightBytecode I g s0 (safeTransferLengthPC isFrom)
       (ptr :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g s0 ⟨20432⟩
+    ∃ aw' k' C', RD fork midnightBytecode I g s0 ⟨20432⟩
       ((ptr + UInt256.ofNat 32) :: ((ptr + size) + UInt256.ofNat 32) ::
         safeTransferDecodeReturnPC isFrom :: R) mem aw' rdata σ k' C' := by
   obtain ⟨aw', k', C', _, rd'⟩ := safeTransferPostNonemptyCharge isFrom hstack hsize hne rd
@@ -160,17 +162,17 @@ theorem safeTransferPostTrue (isFrom : Bool) {I : ExecutionEnv} {g : Sat256} {s0
     {mem : ByteArray} {aw ret word : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 5 ≤ 1024)
     (hne : word ≠ ⟨0⟩) (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 (safeTransferDecodeReturnPC isFrom)
+    (rd : RD fork midnightBytecode I g s0 (safeTransferDecodeReturnPC isFrom)
       (word :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD midnightBytecode I g s0 ret R mem aw rdata σ k' C' := by
+    ∃ k' C', RD fork midnightBytecode I g s0 ret R mem aw rdata σ k' C' := by
   obtain ⟨k', C', _, rd'⟩ := safeTransferPostTrueCharge isFrom hstack hne hret rd
   exact ⟨k', C', rd'⟩
 
 theorem safeTransferPostFalse (isFrom : Bool) {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 4 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 (safeTransferDecodeReturnPC isFrom)
-      (⟨0⟩ :: R) mem aw rdata σ k C) : RDrev midnightBytecode g s0 := by
+    (rd : RD fork midnightBytecode I g s0 (safeTransferDecodeReturnPC isFrom)
+      (⟨0⟩ :: R) mem aw rdata σ k C) : RDrev fork midnightBytecode g s0 := by
   cases isFrom with
   | false =>
     have rd1 := midnightBlocks.midnight_block_23381

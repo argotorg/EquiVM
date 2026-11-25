@@ -4,6 +4,8 @@ import Benchmarks.Midnight.ScalarDecode
 import Benchmarks.Midnight.AddressDecode
 import Benchmarks.Midnight.WordArray
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `enableLiquidationCursor(uint256)`
 
@@ -22,8 +24,8 @@ theorem enableLiquidationCursorTraceStatic {I : ExecutionEnv} {g : Sat256} {s0 :
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024) (hperm : I.perm = false)
-    (rd : RD midnightBytecode I g s0 ⟨9343⟩ (x0 :: R) mem aw rdata σ k C) :
-    RDstatic midnightBytecode g s0 := by
+    (rd : RD fork midnightBytecode I g s0 ⟨9343⟩ (x0 :: R) mem aw rdata σ k C) :
+    RDstatic fork midnightBytecode g s0 := by
   let r0 := rd
   have r1 := r0.push1 (UInt256.ofNat 32) (by native_decide) (by evm_ov)
   have r2 := r1.dup2 (by native_decide) (by evm_ov)
@@ -51,9 +53,9 @@ theorem enableLiquidationCursorTraceStatic {I : ExecutionEnv} {g : Sat256} {s0 :
 
 theorem enableLiquidationCursorTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Nat} {aw value : UInt256}
     (hperm : I.perm = true)
-    (rd : RD midnightBytecode I g (initState σ σ₀ g A I) ⟨9343⟩
+    (rd : RD fork midnightBytecode I g (initState σ σ₀ g A I) ⟨9343⟩
       [value, solcSelectorWord I] midnightEntryMemory aw ByteArray.empty σ k C) :
-    RDret midnightBytecode g (initState σ σ₀ g A I)
+    RDret fork midnightBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ (solcMappingSlot ⟨8⟩ value)
         (UInt256.lor (UInt256.land (solcSlotWordAt (solcMappingSlot ⟨8⟩ value) σ I)
           (UInt256.lnot ⟨255⟩)) ⟨1⟩)) ByteArray.empty := by
@@ -67,7 +69,7 @@ theorem enableLiquidationCursorTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Na
       (writeWord (mappingMemory value ⟨8⟩) 832 value) = ⟨0⟩ := by
     rw [memLoad_writeWord_preserved _ _ _ _ (by rw [mappingMemory_size]; decide)
       (Or.inl (by decide)), mappingMemory_zero]
-  change RDret _ _ _ _ ((writeWord (mappingMemory value ⟨8⟩) 832 value).readWithPadding
+  change RDret fork _ _ _ _ ((writeWord (mappingMemory value ⟨8⟩) 832 value).readWithPadding
     (memLoad (UInt256.ofNat 800) (writeWord (mappingMemory value ⟨8⟩) 832 value)).toNat
     (memLoad (UInt256.ofNat 800) (writeWord (mappingMemory value ⟨8⟩) 832 value)).toNat) at hr
   simpa only [hz, show (⟨0⟩ : UInt256).toNat = 0 from rfl, byteArray_readWithPadding_zero] using hr
@@ -75,10 +77,10 @@ theorem enableLiquidationCursorTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Na
 /-- `enableLiquidationCursor(uint256)`: the theorem `Correct.lean` routes selector 25 to. -/
 theorem midnightEnableLiquidationCursorBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 25)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 25) rfl hsel
   have hd : dispatchMsg contract I.calldata = some enableLiquidationCursorTransition := by
     apply midnightDispatch_enableLiquidationCursor <;>
@@ -96,7 +98,7 @@ theorem midnightEnableLiquidationCursorBody {σ σ₀ A I} {g : UInt256}
         · obtain ⟨k3, C3, rd3⟩ := midnightBlocks.midnight_block_9306_fallthrough (by simp)
             (by rw [addressMask_computed]; exact u256_sub_eq_zero_iff_eq.mpr hauth) rd2
           simp only [midnightBlocks.midnight_block_9306_fallthrough_stack] at rd3
-          change RD _ _ _ _ _ [calldataWord I.calldata 4, solcSelectorWord I] _ _ _ _ _ _ at rd3
+          change RD fork _ _ _ _ _ [calldataWord I.calldata 4, solcSelectorWord I] _ _ _ _ _ _ at rd3
           by_cases hbound : (calldataWord I.calldata 4).toNat < 1000000000000000000
           · have rd4 := midnightBlocks.midnight_block_9327_fallthrough (by simp)
               (by rw [ult_one (a := calldataWord I.calldata 4) (b := UInt256.ofNat 1000000000000000000) hbound]; decide) rd3

@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.LiquidateThresholdTrace
 
+variable {fork : Ethereum.Fork}
+
 /-! Compare the actual repayment with the cap, reading its reserved memory word. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -13,15 +15,15 @@ theorem midnightLiquidateCapGuard {I : ExecutionEnv} {g : Sat256} {s0 : State}
       root : UInt256} {credit : Nat} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 14 ≤ 1024) (hm : memLoad (UInt256.ofNat 608) mem = repaid)
     (hb : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨7134⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨7134⟩
       ([cap, lif, price, pos, dp, dl, borrower, badDebt, receiver, mode, selector] ++ R)
       mem aw rdata σ k C) :
     (cap.toNat < repaid.toNat ∧ ∃ aw' k' C', TransferBudget root credit mem aw' C' ∧
-      RD midnightBytecode I g s0 ⟨7188⟩
+      RD fork midnightBytecode I g s0 ⟨7188⟩
         ([price, lif, cap, ⟨0⟩, pos, dp, dl, borrower, badDebt, receiver, mode, selector] ++ R)
         mem aw' rdata σ k' C') ∨
     (repaid.toNat ≤ cap.toNat ∧ ∃ aw' k' C', TransferBudget root credit mem aw' C' ∧
-      RD midnightBytecode I g s0 ⟨6744⟩
+      RD fork midnightBytecode I g s0 ⟨6744⟩
         ([selector, selector, selector, selector, pos, dp, dl, borrower, badDebt, receiver,
           mode, selector] ++ R) mem aw' rdata σ k' C') := by
   by_cases hlt : cap.toNat < repaid.toNat

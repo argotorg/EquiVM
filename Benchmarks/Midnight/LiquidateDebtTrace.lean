@@ -4,6 +4,8 @@ import Benchmarks.Midnight.RuntimeBlocks_022
 import Benchmarks.Midnight.RuntimeBlocks_023
 import Benchmarks.Midnight.RuntimeBlocks_033
 
+variable {fork : Ethereum.Fork}
+
 /-! Liquidation's debt guard reads the original packed debt word and retains its gas budget. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -19,9 +21,9 @@ theorem liquidateDebtRead_mono {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 10 ≤ 1024)
     (hdebt : low128 (solcSlotWordAt (x1 + ⟨2⟩) σ ee) ≠ ⟨0⟩)
-    (h : RD midnightBytecode ee g s0 ⟨5254⟩ (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: R)
+    (h : RD fork midnightBytecode ee g s0 ⟨5254⟩ (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: R)
       mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD midnightBytecode ee g s0 ⟨5275⟩
+    ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode ee g s0 ⟨5275⟩
       (x5 :: x0 :: x1 :: x2 :: x3 :: x4 :: solcSlotWordAt (x1 + ⟨2⟩) σ ee :: R)
       mem aw rdata σ k' C' := by
   have r1 := h.push1 (UInt256.ofNat 2) (by native_decide) (by evm_ov)
@@ -49,14 +51,14 @@ theorem midnightLiquidateDebtGuard {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {σ : AccountMap} {k C credit : Nat} {R : List UInt256}
     (hstack : R.length + 10 ≤ 1024)
     (hb : TransferBudget budgetRoot credit mem aw C)
-    (rd : RD midnightBytecode ee g s0 ⟨5254⟩
+    (rd : RD fork midnightBytecode ee g s0 ⟨5254⟩
       (UInt256.isZero (UInt256.isZero (calldataWord ee.calldata 100)) ::
         positionSlot id borrower :: dp :: dl :: borrower ::
         UInt256.isZero (calldataWord ee.calldata 100) :: R) mem aw rdata σ k C) :
     let debtWord := solcSlotWordAt (positionSlot id borrower + ⟨2⟩) σ ee
-    (low128 debtWord = ⟨0⟩ ∧ RDrev midnightBytecode g s0) ∨
+    (low128 debtWord = ⟨0⟩ ∧ RDrev fork midnightBytecode g s0) ∨
     (low128 debtWord ≠ ⟨0⟩ ∧ ∃ k' C', TransferBudget budgetRoot credit mem aw C' ∧
-      RD midnightBytecode ee g s0 ⟨5275⟩
+      RD fork midnightBytecode ee g s0 ⟨5275⟩
         (UInt256.isZero (calldataWord ee.calldata 100) ::
           UInt256.isZero (UInt256.isZero (calldataWord ee.calldata 100)) ::
           positionSlot id borrower :: dp :: dl :: borrower :: debtWord :: R)

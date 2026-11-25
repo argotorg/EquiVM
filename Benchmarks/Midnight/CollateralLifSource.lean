@@ -2,6 +2,8 @@ import Benchmarks.Midnight.CollateralLifTrace
 import Benchmarks.Midnight.MaxLifSource
 import Reasoning.VyperDispatch
 
+variable {fork : Ethereum.Fork}
+
 /-! Source proofs for the final arithmetic checks in one collateral-validation iteration. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -74,7 +76,7 @@ theorem collateralLifSource {cfg : Config} {frame : Frame} {evm : EVM.State}
     (hl : frame.locals.get? "lltv" = some (.int lltv.toNat))
     (hc : frame.locals.get? "liquidationCursor" = some (.int cursor.toNat))
     (hs : CollateralLifSafe lltv cursor) (rest : List Stmt) :
-    ABlock cfg evm frame (collateralLifChecks ++ rest)
+    ABlock fork cfg evm frame (collateralLifChecks ++ rest)
       (wordLocal frame "_maxLif" (maxLif lltv cursor)) rest := by
   have hargs : evalExprs? cfg frame evm [.var "lltv", .var "liquidationCursor"] =
       .ok [.int lltv.toNat, .int cursor.toNat] := by
@@ -92,7 +94,7 @@ theorem collateralLifSourceRevert {cfg : Config} {frame : Frame} {evm : EVM.Stat
     (hl : frame.locals.get? "lltv" = some (.int lltv.toNat))
     (hc : frame.locals.get? "liquidationCursor" = some (.int cursor.toNat))
     (hbad : ¬ CollateralLifSafe lltv cursor) (rest : List Stmt) :
-    ExecBlock cfg frame evm (collateralLifChecks ++ rest) .reverted := by
+    ExecBlock fork cfg frame evm (collateralLifChecks ++ rest) .reverted := by
   have hargs : evalExprs? cfg frame evm [.var "lltv", .var "liquidationCursor"] =
       .ok [.int lltv.toNat, .int cursor.toNat] := by
     simp only [evalExprs?, evalWordLocal hl, evalWordLocal hc, bind, pure, EvalResult.bind]

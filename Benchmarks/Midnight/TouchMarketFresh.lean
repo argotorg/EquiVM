@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TouchMarketInitialization
 import Benchmarks.Midnight.TouchMarketDeployment
 
+variable {fork : Ethereum.Fork}
+
 /-! The entire previously-uninitialized market branch. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -34,20 +36,20 @@ theorem midnightTouchMarketFresh {evm : EVM.State} {g : Sat256} {s0 : State}
     (hd : frame.locals.get? "defaultSettlementFeeCbp" = none)
     (hcont : frame.locals.get? "defaultContinuousFee" = none)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode evm.executionEnv g s0 ⟨20764⟩
+    (rd : RD fork midnightBytecode evm.executionEnv g s0 ⟨20764⟩
       ((ptr + UInt256.ofNat 32) :: ptr :: id :: ret :: R) mem aw rdata evm.accountMap k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (RDrev midnightBytecode g s0 ∧ ExecBlock config frame evm touchMarketInitBody .reverted) ∨
-    (RDstatic midnightBytecode g s0 ∧
-      ExecBlock config frame evm touchMarketInitBody .staticViolation) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (RDrev fork midnightBytecode g s0 ∧ ExecBlock fork config frame evm touchMarketInitBody .reverted) ∨
+    (RDstatic fork midnightBytecode g s0 ∧
+      ExecBlock fork config frame evm touchMarketInitBody .staticViolation) ∨
     ∃ frame' evm' σ' out mem' aw' k' C',
       frame'.locals.get? "id" = some (wordBytes32Value id) ∧
       SourceState s0 evm.executionEnv σ' evm' ∧
-      ExecBlock config frame evm touchMarketInitBody (.ok frame' evm') ∧
+      ExecBlock fork config frame evm touchMarketInitBody (.ok frame' evm') ∧
       MemoryPrefix mem mem' limit.toNat ∧
       memLoad (UInt256.ofNat 64) mem' =
         marketDeploymentFree (root + UInt256.ofNat 224) m ∧
-      RD midnightBytecode evm.executionEnv g s0 ret (id :: R) mem' aw' out σ' k' C' := by
+      RD fork midnightBytecode evm.executionEnv g s0 ret (id :: R) mem' aw' out σ' k' C' := by
   rcases midnightTouchMarketInitialization m (by omega) hm hlimit (by omega) hfree
     hc hmarket hbase hid hl hcu hd hcont rd with
     hrev | hstatic | ⟨f, mm, aw1, k1, C1, hperm, hfc, hfm, hfi, hsource, hp, hf, rd1⟩

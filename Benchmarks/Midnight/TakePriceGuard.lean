@@ -2,6 +2,8 @@ import Benchmarks.Midnight.TickPriceRuntime
 import Benchmarks.Midnight.TakeTickGuard
 import Benchmarks.Midnight.RuntimeBlocks_055
 
+variable {fork : Ethereum.Fork}
+
 /-! Tick range validation and price arithmetic at the take call site. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,10 +19,10 @@ theorem midnightTakePriceGuard {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s
     (ho : OfferStored mem ⟨832⟩ marketPtr arrayPtr callbackPtr root offer)
     (hroot : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨11413⟩ R mem aw rdata σ k C) :
-    (6744 < offer.tick.toNat ∧ RDrev midnightBytecode g s0) ∨
+    (rd : RD fork midnightBytecode I g s0 ⟨11413⟩ R mem aw rdata σ k C) :
+    (6744 < offer.tick.toNat ∧ RDrev fork midnightBytecode g s0) ∨
     (offer.tick.toNat ≤ 6744 ∧ ∃ aw' k' C', MemoryFunding credit mem aw' C' ∧
-      RD midnightBytecode I g s0 ⟨11514⟩
+      RD fork midnightBytecode I g s0 ⟨11514⟩
         (UInt256.div (tickPriceNumerator offer.tick.toNat)
             (tickPriceDenominator offer.tick.toNat) ::
           UInt256.ofNat 49999999999 :: UInt256.ofNat 100000000000 ::

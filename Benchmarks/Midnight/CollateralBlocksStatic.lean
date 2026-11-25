@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.CollateralBlocksGas
 
+variable {fork : Ethereum.Fork}
+
 /-! Static-call rejection at the collateral storage writes. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -11,8 +13,8 @@ set_option maxRecDepth 2000000
 theorem collateral_block_17274_static {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 15 ≤ 1024)
     (hperm : ee.perm = false)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 17274) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : RDstatic midnightBytecode g s0 := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 17274) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : RDstatic fork midnightBytecode g s0 := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.pop (by native_decide) (by evm_ov)
@@ -66,8 +68,8 @@ theorem collateral_block_17274_static {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
 theorem collateral_block_4593_static {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 : UInt256} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024)
     (hperm : ee.perm = false)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 4593) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : RDstatic midnightBytecode g s0 := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 4593) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
+    : RDstatic fork midnightBytecode g s0 := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.swap1 (by native_decide) (by evm_ov)

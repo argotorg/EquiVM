@@ -4,6 +4,8 @@ import Benchmarks.Midnight.CheckedUint128Gas
 import Benchmarks.Midnight.RuntimeBlocks_027
 import Benchmarks.Midnight.RuntimeBlocks_047
 
+variable {fork : Ethereum.Fork}
+
 /-! Computing the buyer's bounded debt subtraction before the first trade write. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -19,10 +21,10 @@ theorem midnightTakeBuyerDebtCalculate {I : ExecutionEnv} {g : Sat256} {s0 : Sta
       decrease ratifierPtr : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 19 ≤ 1024) (hd : buyerDebt.toNat < 2^128)
     (hunits : calldataWord I.calldata 68 = units)
-    (rd : RD midnightBytecode I g s0 ⟨12316⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨12316⟩
       ([buyerSlot, debt, buyerDebt, sellerSlot, marketSlot, decrease, ratifierPtr,
         zeroFloorSubWord units buyerDebt] ++ R) mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD midnightBytecode I g s0 ⟨12353⟩
+    ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode I g s0 ⟨12353⟩
       ([UInt256.sub buyerDebt (takeBuyerRepayment units buyerDebt), uint128Mask, buyerSlot,
         debt, ⟨12505⟩, ⟨2⟩, ⟨12517⟩, uint128Mask, sellerSlot, marketSlot, decrease,
         ratifierPtr, zeroFloorSubWord units buyerDebt] ++ R) mem aw rdata σ k' C' := by

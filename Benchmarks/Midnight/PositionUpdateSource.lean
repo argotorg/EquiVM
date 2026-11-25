@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.PositionUpdateWritesSource
 import Benchmarks.Midnight.PositionUpdateFeeSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Source execution of the state-changing position update after its checked calculations. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -23,7 +25,7 @@ theorem positionUpdateSourceReturns (evm : EVM.State) (imms : Store) (m : Market
     (hsum : (marketFeeCreditWord (positionUpdatedBalances evm m id user) id).toNat +
       (positionViewFee evm m id user).toNat < 2^128)
     (hperm : evm.executionEnv.perm = true) :
-    ExecFuncBody config (positionViewCallFrame imms m id user) evm positionUpdateFunction.body
+    ExecFuncBody fork config (positionViewCallFrame imms m id user) evm positionUpdateFunction.body
       (.returned (positionUpdateFinalFrame evm imms m id user) (positionUpdateFinalState evm m id user)
         (some (positionViewReturnValues (positionPostCredit evm id user) (positionPostPending evm id user)
           (positionViewFee evm m id user)))) := by
@@ -42,7 +44,7 @@ theorem positionUpdateSourceFeeReverts (evm : EVM.State) (imms : Store) (m : Mar
     (hsum : 2^128 ≤ (marketFeeCreditWord (positionUpdatedBalances evm m id user) id).toNat +
       (positionViewFee evm m id user).toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecFuncBody config (positionViewCallFrame imms m id user) evm positionUpdateFunction.body .reverted := by
+    ExecFuncBody fork config (positionViewCallFrame imms m id user) evm positionUpdateFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply (positionUpdateWritesPrefix evm imms m id user hcanon hsafe hc hp).run
   rcases positionUpdateWrites_get evm imms m id user with

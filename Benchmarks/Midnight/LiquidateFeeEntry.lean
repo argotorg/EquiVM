@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.LiquidateStorageGas
 
+variable {fork : Ethereum.Fork}
+
 /-! The total-unit store and branch into the remaining-fee calculation. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -13,16 +15,16 @@ theorem midnightLiquidateFeeEntry {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {k C credit : Nat} {R : List UInt256} (hstack : R.length + 6 ≤ 1024)
     (hp : I.perm = true) (hzero : memLoad (UInt256.ofNat 800) mem = ⟨0⟩)
     (hb : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨7603⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨7603⟩
       (value :: uint128Mask :: oldWord :: R) mem aw rdata σ k C) :
     let σ' := storeLow128Accounts σ I (memLoad (UInt256.ofNat 672) mem) value
     let loss := UInt256.shiftRight (solcSlotWordAt (memLoad (UInt256.ofNat 672) mem) σ' I) ⟨128⟩
     let fee := UInt256.shiftRight (solcSlotWordAt (memLoad (UInt256.ofNat 672) mem + ⟨1⟩) σ' I) ⟨128⟩
     ((UInt256.shiftRight oldWord ⟨128⟩).toNat < 2 ^ 128 - 1 ∧ ∃ aw' k' C',
-      TransferBudget root credit mem aw' C' ∧ RD midnightBytecode I g s0 ⟨7694⟩
+      TransferBudget root credit mem aw' C' ∧ RD fork midnightBytecode I g s0 ⟨7694⟩
         (fee :: oldWord :: complement128 loss :: R) mem aw' rdata σ' k' C') ∨
     (¬ (UInt256.shiftRight oldWord ⟨128⟩).toNat < 2 ^ 128 - 1 ∧ ∃ aw' k' C',
-      TransferBudget root credit mem aw' C' ∧ RD midnightBytecode I g s0 ⟨7735⟩
+      TransferBudget root credit mem aw' C' ∧ RD fork midnightBytecode I g s0 ⟨7735⟩
         (⟨0⟩ :: ⟨7768⟩ :: R) mem aw' rdata σ' k' C') := by
   dsimp only
   by_cases hl : (UInt256.shiftRight oldWord ⟨128⟩).toNat < 2 ^ 128 - 1

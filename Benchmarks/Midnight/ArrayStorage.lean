@@ -2,6 +2,8 @@ import Benchmarks.Midnight.NestedStorage
 import Benchmarks.Midnight.PackedFields
 import Reasoning.VyperBounded
 
+variable {fork : Ethereum.Fork}
+
 /-! Fixed-array bounds and packed-array reads for public getters. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -45,7 +47,7 @@ theorem guardedMappingArrayGetter {cfg : Config} {C : ContractDecl} {layout : St
     (hname : name ≠ "__calldata") (harg0 : name ≠ "arg0") (harg1 : name ≠ "arg1")
     (hi : index < length) (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) :
-    ExecTransitionBody cfg C evm (nestedMappingArguments arg0 (.int (Int.ofNat index)))
+    ExecTransitionBody fork cfg C evm (nestedMappingArguments arg0 (.int (Int.ofNat index)))
       (entryPrefix ++ [.return [.storage
         { base := name, steps := [.mindex (.var "arg0"), .aindex (.var "arg1")] }]])
       (.returned (calldataFrame C (nestedMappingArguments arg0 (.int (Int.ofNat index))) ∅ evm)
@@ -70,7 +72,7 @@ theorem guardedMappingArrayRevert {cfg : Config} {C : ContractDecl}
     (hname : name ≠ "__calldata") (harg0 : name ≠ "arg0") (harg1 : name ≠ "arg1")
     (hi : ¬ index < length) (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) :
-    ExecTransitionBody cfg C evm (nestedMappingArguments arg0 (.int (Int.ofNat index)))
+    ExecTransitionBody fork cfg C evm (nestedMappingArguments arg0 (.int (Int.ofNat index)))
       (entryPrefix ++ [.return [.storage
         { base := name, steps := [.mindex (.var "arg0"), .aindex (.var "arg1")] }]])
       .reverted := by

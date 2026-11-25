@@ -2,6 +2,8 @@ import Benchmarks.Midnight.CalldataWordArrayEncoder
 import Benchmarks.Midnight.ByteCopyMemory
 import Benchmarks.Midnight.ReturnData
 
+variable {fork : Ethereum.Fork}
+
 /-! The calldata bytes encoder, with its trailing zero word and retained gas credit. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -19,12 +21,12 @@ theorem midnightCalldataBytesEncoderFunded {credit : Nat} {I : ExecutionEnv} {g 
     (hlen : len.toNat < 2^64) (hout : output.toNat + len.toNat + 96 < UInt256.size)
     (hret : (D_J midnightBytecode 0).contains ret = true)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨19711⟩ (ptr :: len :: output :: ret :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨19711⟩ (ptr :: len :: output :: ret :: R)
       mem aw rdata σ k C) :
     ∃ aw' k' C', C ≤ C' ∧
       MemoryFunding credit
         (calldataBytesEncodeMemory mem I.calldata output.toNat ptr.toNat len.toNat) aw' C' ∧
-      RD midnightBytecode I g s0 ret
+      RD fork midnightBytecode I g s0 ret
         ((output + UInt256.ofNat (returnDataAllocation len.toNat)) :: R)
         (calldataBytesEncodeMemory mem I.calldata output.toNat ptr.toNat len.toNat)
         aw' rdata σ k' C' := by

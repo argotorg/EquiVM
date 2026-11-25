@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.TakeBuyerDebtWrite
 
+variable {fork : Ethereum.Fork}
+
 /-! Ordered buyer-credit storage blocks, retaining memory funding. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -12,9 +14,9 @@ set_option maxRecDepth 10000
 theorem midnightTakeBuyerCreditRead {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw value ret slot : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (hstack : R.length + 6 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 ⟨12399⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨12399⟩
       (value :: ret :: uint128Mask :: slot :: R) mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD midnightBytecode I g s0 ⟨20456⟩
+    ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode I g s0 ⟨20456⟩
       (low128 (solcSlotWordAt slot σ I) :: value :: ret :: uint128Mask :: slot :: R)
       mem aw rdata σ k' C' := by
   have r1 := rd.jumpdest (by native_decide) (by evm_ov)
@@ -31,11 +33,11 @@ theorem midnightTakeBuyerCreditStore {credit : Nat} {I : ExecutionEnv} {g : Sat2
     {mem rdata : ByteArray} {aw value buyerSlot sellerSlot w0 w1 w2 w3 : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 11 ≤ 1024)
     (hperm : I.perm = true) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨12408⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨12408⟩
       ([value, uint128Mask, buyerSlot, w0, w1, w2, w3, uint128Mask, sellerSlot] ++ R)
       mem aw rdata σ k C) :
     ∃ k' C', MemoryFunding credit mem (M aw (UInt256.ofNat 160) ⟨32⟩) C' ∧
-      RD midnightBytecode I g s0 ⟨19743⟩
+      RD fork midnightBytecode I g s0 ⟨19743⟩
         ([UInt256.shiftRight (solcSlotWordAt sellerSlot
             (storeLow128Accounts σ I buyerSlot value) I) (UInt256.ofNat 128),
           memLoad (UInt256.ofNat 160) mem, ⟨12437⟩, ⟨12469⟩, w0, w1, w2, w3,

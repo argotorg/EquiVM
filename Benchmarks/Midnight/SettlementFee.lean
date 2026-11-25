@@ -3,6 +3,8 @@ import Benchmarks.Midnight.PairDecode
 import Benchmarks.Midnight.SettlementTrace
 import Benchmarks.Midnight.SettlementCall
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `settlementFee(bytes32,uint256)`
 
@@ -20,10 +22,10 @@ set_option maxRecDepth 2000000
 theorem settlementFeeTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Nat} {aw : UInt256}
     {id time : UInt256}
     (hspace : marketTickSpacing (solcSlotWordAt (solcMappingSlot ⟨1⟩ id + ⟨2⟩) σ I) ≠ ⟨0⟩)
-    (rd : RD midnightBytecode I g (initState σ σ₀ g A I) ⟨21835⟩
+    (rd : RD fork midnightBytecode I g (initState σ σ₀ g A I) ⟨21835⟩
       [id, time, ⟨3755⟩, ⟨32⟩, solcSelectorWord I] midnightEntryMemory aw
       ByteArray.empty σ k C) :
-    RDret midnightBytecode g (initState σ σ₀ g A I) σ
+    RDret fork midnightBytecode g (initState σ σ₀ g A I) σ
       (settlementFeeValue (solcSlotWordAt (solcMappingSlot ⟨1⟩ id + ⟨2⟩) σ I) time).toByteArray := by
   obtain ⟨aw1, k1, C1, rd1⟩ := settlementInternalTrace (by simp)
     (by rw [midnightEntryMemory_size]; decide) (by jump_dest) hspace rd
@@ -34,10 +36,10 @@ theorem settlementFeeTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Nat} {aw : U
 /-- `settlementFee(bytes32,uint256)`: the theorem `Correct.lean` routes selector 35 to. -/
 theorem midnightSettlementFeeBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 35)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 35) rfl hsel
   have hd : dispatchMsg contract I.calldata = some settlementFeeTransition := by
     apply midnightDispatch_settlementFee <;>
@@ -68,7 +70,7 @@ theorem midnightSettlementFeeBody {σ σ₀ A I} {g : UInt256}
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (calldataWord I.calldata 4) (calldataWord I.calldata 36) hwv hhi hspace)
         · have hr := settlementFeeTraceReturn hspace rd5
-          have hbody := settlementFeeBodyReturns (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          have hbody := settlementFeeBodyReturns (fork := fork) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (calldataWord I.calldata 4) (calldataWord I.calldata 36) hwv hhi hspace
           exact hr.reEquivExecution hcode hd hdec hbody
             (returnEquiv_of_encode (uint256ReturnEncoding _))

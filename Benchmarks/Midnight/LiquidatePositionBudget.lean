@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.LiquidatePositionBlock
 
+variable {fork : Ethereum.Fork}
+
 /-! The position-lookup summary with memory funding retained at each memory operation. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,10 +19,10 @@ theorem liquidatePositionBlock_budget {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
     (hz : memLoad (UInt256.ofNat 800) mem = ⟨0⟩)
     (hc : borrower.toNat < EVM.addressModulus)
     (hb : TransferBudget budgetRoot credit mem aw C)
-    (h : RD midnightBytecode ee g s0 ⟨5161⟩ (id :: dl :: borrower :: dp :: R)
+    (h : RD fork midnightBytecode ee g s0 ⟨5161⟩ (id :: dl :: borrower :: dp :: R)
       mem aw rdata σ k C) :
     ∃ aw' k' C', TransferBudget budgetRoot credit (liquidatePositionMemory mem id borrower)
-      aw' C' ∧ RD midnightBytecode ee g s0
+      aw' C' ∧ RD fork midnightBytecode ee g s0
       (if calldataWord ee.calldata 100 = ⟨0⟩ then ⟨5248⟩ else ⟨8453⟩)
       (UInt256.isZero (calldataWord ee.calldata 100) ::
         UInt256.isZero (UInt256.isZero (calldataWord ee.calldata 100)) ::
@@ -132,7 +134,7 @@ theorem liquidatePositionBlock_budget {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
       (hb55.mono (by omega))
     change TransferBudget budgetRoot credit
       (midnight_block_5161_fallthrough_memory (mem := mem) (x0 := id) (x2 := borrower)) _ _ at hf
-    change RD midnightBytecode ee g s0 ⟨5248⟩
+    change RD fork midnightBytecode ee g s0 ⟨5248⟩
       (midnight_block_5161_fallthrough_stack (ee := ee) (mem := mem)
         (x0 := id) (x1 := dl) (x2 := borrower) (x3 := dp) (R := R))
       (midnight_block_5161_fallthrough_memory (mem := mem) (x0 := id) (x2 := borrower))
@@ -148,7 +150,7 @@ theorem liquidatePositionBlock_budget {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
       (hb55.mono (by omega))
     change TransferBudget budgetRoot credit
       (midnight_block_5161_fallthrough_memory (mem := mem) (x0 := id) (x2 := borrower)) _ _ at hf
-    change RD midnightBytecode ee g s0 ⟨8453⟩
+    change RD fork midnightBytecode ee g s0 ⟨8453⟩
       (midnight_block_5161_fallthrough_stack (ee := ee) (mem := mem)
         (x0 := id) (x1 := dl) (x2 := borrower) (x3 := dp) (R := R))
       (midnight_block_5161_fallthrough_memory (mem := mem) (x0 := id) (x2 := borrower))

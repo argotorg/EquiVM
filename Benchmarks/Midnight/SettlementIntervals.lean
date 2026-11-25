@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.Interpolation
 import Benchmarks.Midnight.SourceControl
 
+variable {fork : Ethereum.Fork}
+
 /-! Source assignments and interpolation for each settlement-fee interval. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -27,7 +29,7 @@ theorem settlementFeePair {frame : Frame} {evm : EVM.State} {id time start finis
     (hfinish : finish.toNat < 2 ^ 32)
     (hstart : start.toNat ≤ time.toNat) (htime : time.toNat ≤ finish.toNat)
     (hwidth : start.toNat < finish.toNat) :
-    ∃ frame', ExecBlock config frame evm (settlementFeePairBlock i.val) (.ok frame' evm) ∧
+    ∃ frame', ExecBlock fork config frame evm (settlementFeePairBlock i.val) (.ok frame' evm) ∧
       evalExpr? config frame' evm interpolationExpr = .ok (.int
         (interpolatedFee (scaledSettlementFee (marketFeeWord evm id) i.val)
           (scaledSettlementFee (marketFeeWord evm id) (i.val + 1)) time start finish).toNat) := by
@@ -66,7 +68,7 @@ theorem settlementFeeInterval {frame : Frame} {evm : EVM.State} {id time : UInt2
     (hu : frame.locals.get? "feeUpper" = some oldUpper)
     (hfinish : finish < 2 ^ 32)
     (hstart : start ≤ time.toNat) (htime : time.toNat ≤ finish) (hwidth : start < finish) :
-    ∃ frame', ExecBlock config frame evm (settlementFeeIntervalBlock i.val start finish)
+    ∃ frame', ExecBlock fork config frame evm (settlementFeeIntervalBlock i.val start finish)
       (.ok frame' evm) ∧
       evalExpr? config frame' evm interpolationExpr = .ok (.int
         (interpolatedFee (scaledSettlementFee (marketFeeWord evm id) i.val)

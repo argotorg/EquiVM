@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.FlashLoanArguments
 import Benchmarks.Midnight.AdminSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Source locals, the equal-length guard, and the flash-loan event. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -58,9 +60,9 @@ theorem flashLoanEntrySource {origin : EVM.State} {tokens assets : List UInt256}
     (hwv : origin.executionEnv.weiValue = ⟨0⟩)
     (hlimit : origin.executionEnv.calldata.size < calldataLimit)
     (hlen : tokens.length = assets.length)
-    (htail : ExecBlock config (flashLoanExternalFrame origin tokens assets callback data) origin
+    (htail : ExecBlock fork config (flashLoanExternalFrame origin tokens assets callback data) origin
       (flashLoanTransition.body.drop 4) result) :
-    ExecBlock config
+    ExecBlock fork config
       { contract := contract
         locals := flashLoanArguments tokens assets callback data
         immutables := ∅ }
@@ -75,7 +77,7 @@ theorem flashLoanLengthRevertSource {origin : EVM.State} {tokens assets : List U
     (hwv : origin.executionEnv.weiValue = ⟨0⟩)
     (hlimit : origin.executionEnv.calldata.size < calldataLimit)
     (hlen : tokens.length ≠ assets.length) :
-    ExecBlock config
+    ExecBlock fork config
       { contract := contract
         locals := flashLoanArguments tokens assets callback data
         immutables := ∅ }
@@ -98,7 +100,7 @@ theorem flashLoanEmit {frame : Frame} {evm : EVM.State} {tokens assets : List UI
     {callback : AccountAddress} {data : ByteArray}
     (hf : FlashLoanSourceFrame frame tokens assets callback data)
     (hp : evm.executionEnv.perm = true) :
-    ABlock config evm frame (flashLoanTransition.body.drop 4)
+    ABlock fork config evm frame (flashLoanTransition.body.drop 4)
       frame (flashLoanTransition.body.drop 5) :=
   ⟨fun h ↦ ExecBlock.consNormal (ExecStmt.emit hp (flashLoanEventArgs hf)) h⟩
 
@@ -106,7 +108,7 @@ theorem flashLoanEmitStatic {frame : Frame} {evm : EVM.State} {tokens assets : L
     {callback : AccountAddress} {data : ByteArray}
     (hf : FlashLoanSourceFrame frame tokens assets callback data)
     (hp : evm.executionEnv.perm = false) :
-    ExecBlock config frame evm (flashLoanTransition.body.drop 4) .staticViolation :=
+    ExecBlock fork config frame evm (flashLoanTransition.body.drop 4) .staticViolation :=
   ExecBlock.consStatic (ExecStmt.emitStatic (flashLoanEventArgs hf) hp)
 
 end Benchmarks.Midnight

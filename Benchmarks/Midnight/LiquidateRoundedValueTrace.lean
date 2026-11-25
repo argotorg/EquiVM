@@ -2,6 +2,8 @@ import Benchmarks.Midnight.LiquidateCollateralValueTrace
 import Benchmarks.Midnight.MaxLifGas
 import Benchmarks.Midnight.LiquidateScaleRoutines
 
+variable {fork : Ethereum.Fork}
+
 /-! Rounded-up collateral valuation before applying the liquidation incentive factor. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -22,13 +24,13 @@ theorem midnightLiquidateRoundedValue {I : ExecutionEnv} {g : Sat256} {s0 : Stat
     (hlltv : memLoad (cp + UInt256.ofNat 32) mem = lltv)
     (hcursor : memLoad (cp + UInt256.ofNat 64) mem = cursor)
     (hb : TransferBudget budgetRoot credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨8069⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨8069⟩
       (maxDebt :: collateral :: cp :: badDebt :: reverseRep :: rep :: price :: savedPrice :: pos :: R)
       mem aw rdata σ k C) :
-    (¬ MulDivUpSafe collateral price liquidatePriceScale ∧ RDrev midnightBytecode g s0) ∨
+    (¬ MulDivUpSafe collateral price liquidatePriceScale ∧ RDrev fork midnightBytecode g s0) ∨
     (MulDivUpSafe collateral price liquidatePriceScale ∧ ∃ aw' k' C',
       TransferBudget budgetRoot credit mem aw' C' ∧
-      RD midnightBytecode I g s0 ⟨24250⟩
+      RD fork midnightBytecode I g s0 ⟨24250⟩
         (lltv :: cursor :: ⟨8129⟩ :: liquidateRoundedValue collateral price :: badDebt ::
           reverseRep :: rep :: maxDebt :: savedPrice :: pos :: R)
         mem aw' rdata σ k' C') := by

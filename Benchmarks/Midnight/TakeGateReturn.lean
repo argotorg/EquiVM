@@ -4,6 +4,8 @@ import Benchmarks.Midnight.RuntimeBlocks_051
 import Benchmarks.Midnight.RuntimeBlocks_052
 import Benchmarks.Midnight.RuntimeBlocks_053
 
+variable {fork : Ethereum.Fork}
+
 /-! Both entry gates reject failed calls and malformed Boolean replies. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -33,20 +35,20 @@ theorem midnightTakeGateReturn {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s
     (hword : 32 ≤ out.size →
       memLoad root (writeWord mem 64 (root + UInt256.ofNat 32)) = calldataWord out 0)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 kind.resumePC
+    (rd : RD fork midnightBytecode I g s0 kind.resumePC
       ((if success then ⟨1⟩ else ⟨0⟩) :: root :: R) mem aw out σ k C) :
     ((success = false ∨ ¬ (32 ≤ out.size ∧
         (calldataWord out 0 = ⟨0⟩ ∨ calldataWord out 0 = ⟨1⟩))) ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     (success = true ∧ 32 ≤ out.size ∧
       (calldataWord out 0 = ⟨0⟩ ∨ calldataWord out 0 = ⟨1⟩) ∧ ∃ aw' k' C',
       MemoryFunding credit (writeWord mem 64 (root + UInt256.ofNat 32)) aw' C' ∧
-      RD midnightBytecode I g s0 kind.decodedPC (calldataWord out 0 :: R)
+      RD fork midnightBytecode I g s0 kind.decodedPC (calldataWord out 0 :: R)
         (writeWord mem 64 (root + UInt256.ofNat 32)) aw' out σ k' C') := by
   have hn : (UInt256.ofNat out.size).toNat = out.size := UInt256.toNat_ofNat_of_lt hout
   cases success with
   | false =>
-    have rd1 : RD midnightBytecode I g s0 ⟨13748⟩ (root :: ⟨0⟩ :: R)
+    have rd1 : RD fork midnightBytecode I g s0 ⟨13748⟩ (root :: ⟨0⟩ :: R)
         mem aw out σ (k + 5) (C + 22) := by
       cases kind with
       | credit =>
@@ -58,7 +60,7 @@ theorem midnightTakeGateReturn {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s
     exact Or.inl ⟨Or.inl rfl, midnight_block_13748
       (by simp only [List.length_cons]; omega) (by rw [hn]; change 0 + _ ≤ _; omega) rd1⟩
   | true =>
-    have rd2 : RD midnightBytecode I g s0 kind.lengthPC (root :: ⟨0⟩ :: R)
+    have rd2 : RD fork midnightBytecode I g s0 kind.lengthPC (root :: ⟨0⟩ :: R)
         mem aw out σ (k + 5 + 4) (C + 22 + 18) := by
       cases kind with
       | credit =>
@@ -75,7 +77,7 @@ theorem midnightTakeGateReturn {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s
     · have hcond : UInt256.gt (UInt256.ofNat 32) (UInt256.ofNat out.size) ≠ ⟨0⟩ := by
         rw [ugt_one (by rw [hn]; exact hshort)]
         decide
-      have rd3 : RD midnightBytecode I g s0 ⟨8404⟩
+      have rd3 : RD fork midnightBytecode I g s0 ⟨8404⟩
           (UInt256.ofNat 32 :: root :: kind.decodedPC :: R)
           mem aw out σ (k + 5 + 4 + 10) (C + 22 + 18 + 33) := by
         cases kind with
@@ -89,7 +91,7 @@ theorem midnightTakeGateReturn {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s
     · have h32 : 32 ≤ out.size := by omega
       have hcond := ugt_zero (a := UInt256.ofNat 32) (b := UInt256.ofNat out.size)
         (by rw [hn]; exact h32)
-      have rd4 : RD midnightBytecode I g s0 ⟨18444⟩
+      have rd4 : RD fork midnightBytecode I g s0 ⟨18444⟩
           (root :: UInt256.ofNat 32 :: UInt256.ofNat 8390 :: UInt256.ofNat 32 ::
             root :: kind.decodedPC :: R)
           mem aw out σ (k + 5 + 4 + 10 + 5) (C + 22 + 18 + 33 + 20) := by

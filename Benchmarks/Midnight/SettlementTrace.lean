@@ -3,6 +3,8 @@ import Benchmarks.Midnight.MappingMemory
 import Benchmarks.Midnight.RuntimeBlocks_063
 import Benchmarks.Midnight.RuntimeBlocks_081
 
+variable {fork : Ethereum.Fork}
+
 /-! The settlement-fee storage read, market guard, and internal routine. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,8 +17,8 @@ theorem settlementInternalTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length + 17 ≤ 1024) (hmem : 64 ≤ mem.size)
     (hret : (D_J midnightBytecode 0).contains ret = true)
     (hspace : marketTickSpacing (solcSlotWordAt (solcMappingSlot ⟨1⟩ id + ⟨2⟩) σ I) ≠ ⟨0⟩)
-    (rd : RD midnightBytecode I g s0 ⟨21835⟩ (id :: time :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g s0 ret
+    (rd : RD fork midnightBytecode I g s0 ⟨21835⟩ (id :: time :: ret :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork midnightBytecode I g s0 ret
       (settlementFeeValue (solcSlotWordAt (solcMappingSlot ⟨1⟩ id + ⟨2⟩) σ I) time :: R)
       (twoWordHashMem id ⟨1⟩ mem) aw' rdata σ k' C' := by
   have hh : keccakWord ⟨0⟩ (UInt256.ofNat 64)
@@ -41,8 +43,8 @@ theorem settlementInternalTraceRevert {I : ExecutionEnv} {g : Sat256} {s0 : Stat
     {id : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024) (hmem : 64 ≤ mem.size)
     (hspace : marketTickSpacing (solcSlotWordAt (solcMappingSlot ⟨1⟩ id + ⟨2⟩) σ I) = ⟨0⟩)
-    (rd : RD midnightBytecode I g s0 ⟨21835⟩ (id :: R) mem aw rdata σ k C) :
-    RDrev midnightBytecode g s0 := by
+    (rd : RD fork midnightBytecode I g s0 ⟨21835⟩ (id :: R) mem aw rdata σ k C) :
+    RDrev fork midnightBytecode g s0 := by
   have hh : keccakWord ⟨0⟩ (UInt256.ofNat 64)
       (twoWordHashMem id (UInt256.ofNat 1) mem) = solcMappingSlot ⟨1⟩ id :=
     twoWordHashMem_mapSlot_of_ge64 id (UInt256.ofNat 1) hmem

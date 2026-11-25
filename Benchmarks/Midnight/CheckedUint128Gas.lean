@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.CheckedUint128Add
 import Benchmarks.Midnight.RuntimeBlocks_018
 
+variable {fork : Ethereum.Fork}
+
 /-! Checked uint128 helpers retaining the cost already paid by their caller. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -14,8 +16,8 @@ theorem midnightCheckedSub128_mono {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {a b ret : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024) (ha : a.toNat < 2^128) (hb : b.toNat < 2^128)
     (hle : b.toNat ≤ a.toNat) (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨19743⟩ (a :: b :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD midnightBytecode I g s0 ret (UInt256.sub a b :: R) mem aw rdata σ k' C' := by
+    (rd : RD fork midnightBytecode I g s0 ⟨19743⟩ (a :: b :: ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode I g s0 ret (UInt256.sub a b :: R) mem aw rdata σ k' C' := by
   have hc : UInt256.gt (UInt256.sub a b) uint128Mask = ⟨0⟩ := by
     apply ugt_zero
     rw [usub_toNat hle]
@@ -32,8 +34,8 @@ theorem midnightToUint128_mono {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw value ret : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 5 ≤ 1024) (hvalue : value.toNat < 2^128)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨23403⟩ (value :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD midnightBytecode I g s0 ret (value :: R) mem aw rdata σ k' C' := by
+    (rd : RD fork midnightBytecode I g s0 ⟨23403⟩ (value :: ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode I g s0 ret (value :: R) mem aw rdata σ k' C' := by
   have hc : UInt256.gt value uint128Mask = ⟨0⟩ := by
     apply ugt_zero
     change value.toNat ≤ 340282366920938463463374607431768211455
@@ -48,8 +50,8 @@ theorem midnightToUint128_mono {I : ExecutionEnv} {g : Sat256} {s0 : State}
 theorem midnightToUint128Revert {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw value ret : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 5 ≤ 1024) (hvalue : 2^128 ≤ value.toNat)
-    (rd : RD midnightBytecode I g s0 ⟨23403⟩ (value :: ret :: R) mem aw rdata σ k C) :
-    RDrev midnightBytecode g s0 := by
+    (rd : RD fork midnightBytecode I g s0 ⟨23403⟩ (value :: ret :: R) mem aw rdata σ k C) :
+    RDrev fork midnightBytecode g s0 := by
   have hc : UInt256.gt value uint128Mask = ⟨1⟩ := by
     apply ugt_one
     change 340282366920938463463374607431768211455 < value.toNat
@@ -63,9 +65,9 @@ theorem midnightToUint128Revert {I : ExecutionEnv} {g : Sat256} {s0 : State}
 theorem midnightReadLow128Sub {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw amount ret slot : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 6 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 ⟨3993⟩ (amount :: ret :: uint128Mask :: slot :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨3993⟩ (amount :: ret :: uint128Mask :: slot :: R)
       mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD midnightBytecode I g s0 ⟨19743⟩
+    ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode I g s0 ⟨19743⟩
       (UInt256.land (solcSlotWordAt slot σ I) uint128Mask :: amount :: ret :: uint128Mask :: slot :: R)
       mem aw rdata σ k' C' := by
   have r1 := rd.jumpdest (by native_decide) (by evm_ov)

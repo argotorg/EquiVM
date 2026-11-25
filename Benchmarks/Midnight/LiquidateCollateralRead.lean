@@ -2,6 +2,8 @@ import Benchmarks.Midnight.LiquidateCollateralHead
 import Benchmarks.Midnight.CollateralCalldataBudget
 import Benchmarks.Midnight.CollateralRecordMemory
 
+variable {fork : Ethereum.Fork}
+
 /-! The liquidation loop checks its collateral index and copies the selected record. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -14,20 +16,20 @@ theorem midnightLiquidateCollateralRead {I : ExecutionEnv} {g : Sat256} {s0 : St
     {mem rdata : ByteArray}
     {aw debtWord reverseRep rep maxDebt price pos dp dl borrower badDebt bitmap root budgetRoot : UInt256}
     {credit : Nat} {m : MarketData} {σ : AccountMap} {k C : Nat} {R : List UInt256}
-    (hstack : R.length + 24 ≤ 1024) (hfork : I.fork ≥ .osaka)
+    (hstack : R.length + 24 ≤ 1024) (hfork : fork ≥ .osaka)
     (hd : decodeCalldataMarket I.calldata 4 = some m)
     (hbitmap : memLoad (UInt256.ofNat 704) mem = bitmap)
     (hbits : bitmap.toNat < 2^128) (hnz : bitmap.toNat ≠ 0)
     (hroot : root.toNat + 128 < 2^64) (hfree : memLoad (UInt256.ofNat 64) mem = root)
     (hb : TransferBudget budgetRoot credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨7846⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨7846⟩
       ([debtWord, reverseRep, rep, maxDebt, price, pos, dp, dl, borrower, badDebt] ++ R)
       mem aw rdata σ k C) :
-    (¬ (bitmapMsb bitmap).toNat < m.collaterals.length ∧ RDrev midnightBytecode g s0) ∨
+    (¬ (bitmapMsb bitmap).toNat < m.collaterals.length ∧ RDrev fork midnightBytecode g s0) ∨
     ∃ (hi : (bitmapMsb bitmap).toNat < m.collaterals.length) (aw' : UInt256) (k' C' : Nat),
       TransferBudget budgetRoot credit
         (collateralRecordMemory mem root m.collaterals[(bitmapMsb bitmap).toNat]) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨7896⟩
+      RD fork midnightBytecode I g s0 ⟨7896⟩
         ([root, maxDebt, badDebt, reverseRep, rep, ⟨4⟩, price, pos, dp, dl, borrower, debtWord] ++ R)
         (collateralRecordMemory mem root m.collaterals[(bitmapMsb bitmap).toNat]) aw' rdata σ k' C' := by
   let index := bitmapMsb bitmap

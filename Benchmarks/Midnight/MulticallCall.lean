@@ -3,6 +3,8 @@ import Benchmarks.Midnight.MulticallReturn
 import Benchmarks.Midnight.DelegateCallBridgeGas
 import Benchmarks.Midnight.TransferHeap
 
+variable {fork : Ethereum.Fork}
+
 /-! One delegate call, retaining the heap invariant for the next multicall iteration. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -18,20 +20,20 @@ theorem midnightMulticallCall {I : ExecutionEnv} {g : UInt256} {s0 evm : State}
     (hz : memLoad (UInt256.ofNat 800) mem = ⟨0⟩)
     (hdl : dl.toNat < 2^64)
     (hd : dl.toNat = 0 ∨ dp.toNat + dl.toNat ≤ I.calldata.size)
-    (hh : TransferHeap mem aw root C) (hgas : midnightGasBound g) (hfork : I.fork ≥ .osaka)
+    (hh : TransferHeap mem aw root C) (hgas : midnightGasBound g) (hfork : fork ≥ .osaka)
     (hs : SourceState s0 I σ evm)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨3662⟩
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨3662⟩
       (dl :: dp :: R) mem aw rdata σ k C) :
     let data := I.calldata.readWithPadding dp.toNat dl.toNat
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (∃ evm' success out, delegateCallViaEVM evm I.codeOwner data (success, evm', out) ∧
-      (success = false ∨ 2^64 ≤ out.size) ∧ RDrev midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (∃ evm' success out, delegateCallViaEVM fork evm I.codeOwner data (success, evm', out) ∧
+      (success = false ∨ 2^64 ≤ out.size) ∧ RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
     ∃ (evm' : State) (σ' : AccountMap) (out mem' : ByteArray) (root' retptr aw' : UInt256)
       (k' C' : Nat),
-      delegateCallViaEVM evm I.codeOwner data (true, evm', out) ∧ out.size < 2^64 ∧
+      delegateCallViaEVM fork evm I.codeOwner data (true, evm', out) ∧ out.size < 2^64 ∧
       SourceState s0 I σ' evm' ∧ MemoryPrefix mem mem' root.toNat ∧
       root.toNat ≤ root'.toNat ∧ TransferHeap mem' aw' root' C' ∧
-      RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨3707⟩
+      RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨3707⟩
         (retptr :: R) mem' aw' out σ' k' C' := by
   dsimp only
   rcases midnightMemoryPaid_headroom rd hh.funding.accounting.paid hgas hh.covered with
@@ -74,7 +76,7 @@ theorem midnightMulticallCall {I : ExecutionEnv} {g : UInt256} {s0 evm : State}
       hfork (by omega) with
     hoog | ⟨evm', σ', success, out, aw2, k2, C2, hcall, hs', rd2, hout, hcost, hcharge⟩
   · exact Or.inl hoog
-  have hcall' : delegateCallViaEVM evm I.codeOwner
+  have hcall' : delegateCallViaEVM fork evm I.codeOwner
       (I.calldata.readWithPadding dp.toNat dl.toNat) (success, evm', out) := by
     simpa only [accountAddress_roundtrip] using hcall
   have hfit : root.toNat + returnDataAllocation out.size < 2^64 := by

@@ -5,6 +5,8 @@ import Benchmarks.Midnight.MappingMemory
 import Benchmarks.Midnight.CollateralStorage
 import Benchmarks.Midnight.PackedArray
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `collateral(bytes32,address,uint256)`
 
@@ -23,7 +25,7 @@ theorem collateralBodyReturns (evm : EVM.State) (id user index : UInt256)
     (hcanon : user.toNat < EVM.addressModulus) (hi : index.toNat < 128)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) :
-    ExecTransitionBody config contract evm (collateralArguments id user index)
+    ExecTransitionBody fork config contract evm (collateralArguments id user index)
       collateralTransition.body
       (.returned (calldataFrame contract (collateralArguments id user index) ∅ evm) evm
         (some [.int (Int.ofNat (collateralWord
@@ -55,7 +57,7 @@ theorem collateralBodyReturns (evm : EVM.State) (id user index : UInt256)
 theorem collateralBodyReverts (evm : EVM.State) (id user index : UInt256)
     (hi : ¬ index.toNat < 128) (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) :
-    ExecTransitionBody config contract evm (collateralArguments id user index)
+    ExecTransitionBody fork config contract evm (collateralArguments id user index)
       collateralTransition.body .reverted := by
   apply guardedReturnReverts hwv hhi
   apply Reasoning.VyperBounded.evalExpr_storage_revert
@@ -64,11 +66,11 @@ theorem collateralBodyReverts (evm : EVM.State) (id user index : UInt256)
 
 theorem collateralTracePrepare {σ σ₀ A I} {g : Sat256} {k C : Nat} {user : UInt256}
     (hcanon : user.toNat < EVM.addressModulus)
-    (rd : RD midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 2035)
+    (rd : RD fork midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 2035)
       [user, solcSelectorWord I] midnightEntryMemory
       (M (M (UInt256.ofNat 0) (UInt256.ofNat 64) ⟨32⟩) (UInt256.ofNat 800) ⟨32⟩)
       ByteArray.empty σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 19480)
+    ∃ aw' k' C', RD fork midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 19480)
       [positionSlot (calldataWord I.calldata 4) user + ⟨3⟩, calldataWord I.calldata 68,
        UInt256.ofNat 2101, UInt256.ofNat (2^128 - 1), UInt256.ofNat 32, solcSelectorWord I]
       (nestedMappingMemory (calldataWord I.calldata 4) user ⟨0⟩) aw' ByteArray.empty σ k' C' := by
@@ -86,11 +88,11 @@ theorem collateralTracePrepare {σ σ₀ A I} {g : Sat256} {k C : Nat} {user : U
 theorem collateralTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Nat} {user : UInt256}
     {aw : UInt256}
     (hi : (calldataWord I.calldata 68).toNat < 128)
-    (rd : RD midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 19480)
+    (rd : RD fork midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 19480)
       [positionSlot (calldataWord I.calldata 4) user + ⟨3⟩, calldataWord I.calldata 68,
        UInt256.ofNat 2101, UInt256.ofNat (2^128 - 1), UInt256.ofNat 32, solcSelectorWord I]
       (nestedMappingMemory (calldataWord I.calldata 4) user ⟨0⟩) aw ByteArray.empty σ k C) :
-    RDret midnightBytecode g (initState σ σ₀ g A I) σ
+    RDret fork midnightBytecode g (initState σ σ₀ g A I) σ
       (collateralWord (fun slot ↦ solcSlotWordAt slot σ I)
         (calldataWord I.calldata 4) user (calldataWord I.calldata 68)).toByteArray := by
   obtain ⟨k1, C1, rd1⟩ := midnightUint128ArrayLocation (by simp) hi (by jump_dest) rd
@@ -101,10 +103,10 @@ theorem collateralTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Nat} {user : UI
 /-- `collateral(bytes32,address,uint256)`: the theorem `Correct.lean` routes selector 51 to. -/
 theorem midnightCollateralBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 51)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 51) rfl hsel
   have hd : dispatchMsg contract I.calldata = some collateralTransition := by
     apply midnightDispatch_collateral <;>
@@ -128,7 +130,7 @@ theorem midnightCollateralBody {σ σ₀ A I} {g : UInt256}
             (decodeAddressWord (by omega) hcanon) (decodeUint256Word h100)
           by_cases hi : (calldataWord I.calldata 68).toNat < 128
           · have hret := collateralTraceReturn hi rd5
-            have hbody := collateralBodyReturns
+            have hbody := collateralBodyReturns (fork := fork)
               (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               (calldataWord I.calldata 4) (calldataWord I.calldata 36)
               (calldataWord I.calldata 68) hcanon hi hwv hhi

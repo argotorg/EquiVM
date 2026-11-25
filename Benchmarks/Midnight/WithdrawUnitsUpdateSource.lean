@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.WithdrawUnitsSourceEntry
 
+variable {fork : Ethereum.Fork}
+
 /-! Withdrawal's market alias and internal position update, followed by its local bindings. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -38,7 +40,7 @@ theorem withdrawUnitsReady_get (origin : EVM.State) (m : MarketData)
 
 theorem withdrawUnitsAliasPrefix (origin evm : EVM.State) (m : MarketData)
     (user units : UInt256) (receiver : AccountAddress) :
-    ABlock config evm (withdrawUnitsAfterTouchFrame origin m user units receiver)
+    ABlock fork config evm (withdrawUnitsAfterTouchFrame origin m user units receiver)
       (withdrawTransition.body.drop 5) (withdrawUnitsAliasFrame origin m user units receiver)
       (withdrawTransition.body.drop 6) := by
   refine ⟨fun h ↦ ExecBlock.consNormal (ExecStmt.letStorage ?_) h⟩
@@ -61,7 +63,7 @@ theorem withdrawUnitsPositionArgs (origin evm : EVM.State) (m : MarketData)
 
 theorem withdrawUnitsReadyPrefix (origin evm : EVM.State) (m : MarketData)
     (user units : UInt256) (receiver : AccountAddress) (credit pending fee : UInt256) :
-    ABlock config evm
+    ABlock fork config evm
       (withdrawUnitsAfterPositionFrame origin m user units receiver credit pending fee)
       (withdrawTransition.body.drop 7)
       (withdrawUnitsReadyFrame origin m user units receiver credit pending fee)
@@ -76,12 +78,12 @@ theorem withdrawUnitsReadyPrefix (origin evm : EVM.State) (m : MarketData)
 theorem withdrawUnitsUpdateReturns {origin evm evm' : EVM.State} {m : MarketData}
     {user units credit pending fee : UInt256} {receiver : AccountAddress} {callee : Frame}
     {result : ExecResult}
-    (hbody : ExecFuncBody config (positionViewCallFrame ∅ m m.id user) evm
+    (hbody : ExecFuncBody fork config (positionViewCallFrame ∅ m m.id user) evm
       positionUpdateFunction.body (.returned callee evm'
         (some [.int credit.toNat, .int pending.toNat, .int fee.toNat])))
-    (htail : ExecBlock config (withdrawUnitsReadyFrame origin m user units receiver credit pending fee)
+    (htail : ExecBlock fork config (withdrawUnitsReadyFrame origin m user units receiver credit pending fee)
       evm' (withdrawTransition.body.drop 9) result) :
-    ExecBlock config (withdrawUnitsAfterTouchFrame origin m user units receiver) evm
+    ExecBlock fork config (withdrawUnitsAfterTouchFrame origin m user units receiver) evm
       (withdrawTransition.body.drop 5) result := by
   apply (withdrawUnitsAliasPrefix origin evm m user units receiver).run
   apply ExecBlock.consNormal (internalCallFunctionReturn (callee := positionUpdateFunction)
@@ -91,9 +93,9 @@ theorem withdrawUnitsUpdateReturns {origin evm evm' : EVM.State} {m : MarketData
 
 theorem withdrawUnitsUpdateReverts {origin evm : EVM.State} {m : MarketData}
     {user units : UInt256} {receiver : AccountAddress}
-    (hbody : ExecFuncBody config (positionViewCallFrame ∅ m m.id user) evm
+    (hbody : ExecFuncBody fork config (positionViewCallFrame ∅ m m.id user) evm
       positionUpdateFunction.body .reverted) :
-    ExecBlock config (withdrawUnitsAfterTouchFrame origin m user units receiver) evm
+    ExecBlock fork config (withdrawUnitsAfterTouchFrame origin m user units receiver) evm
       (withdrawTransition.body.drop 5) .reverted := by
   apply (withdrawUnitsAliasPrefix origin evm m user units receiver).run
   exact ExecBlock.consRevert (internalCallFunctionRevert (callee := positionUpdateFunction)
@@ -102,9 +104,9 @@ theorem withdrawUnitsUpdateReverts {origin evm : EVM.State} {m : MarketData}
 
 theorem withdrawUnitsUpdateStatic {origin evm : EVM.State} {m : MarketData}
     {user units : UInt256} {receiver : AccountAddress}
-    (hbody : ExecFuncBody config (positionViewCallFrame ∅ m m.id user) evm
+    (hbody : ExecFuncBody fork config (positionViewCallFrame ∅ m m.id user) evm
       positionUpdateFunction.body .staticViolation) :
-    ExecBlock config (withdrawUnitsAfterTouchFrame origin m user units receiver) evm
+    ExecBlock fork config (withdrawUnitsAfterTouchFrame origin m user units receiver) evm
       (withdrawTransition.body.drop 5) .staticViolation := by
   apply (withdrawUnitsAliasPrefix origin evm m user units receiver).run
   exact ExecBlock.consStatic (ExecStmt.internalCallStatic

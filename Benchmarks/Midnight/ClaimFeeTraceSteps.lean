@@ -2,6 +2,8 @@ import Benchmarks.Midnight.ClaimFeeState
 import Benchmarks.Midnight.ClaimFeeBlocksFunding
 import Benchmarks.Midnight.CheckedUint128Gas
 
+variable {fork : Ethereum.Fork}
+
 /-! Ordered claim-fee reads and writes, retaining the transfer's memory budget. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,10 +17,10 @@ theorem midnightClaimFeeReadCredit {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {credit k C : Nat} {R : List UInt256}
     (henv : evm.executionEnv = I) (hstack : R.length + 7 ≤ 1024)
     (hb : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨15604⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨15604⟩
       (amount :: solcMappingSlot ⟨1⟩ id :: R) mem aw rdata evm.accountMap k C) :
     ∃ k' C', TransferBudget root credit mem aw C' ∧
-      RD midnightBytecode I g s0 ⟨19743⟩
+      RD fork midnightBytecode I g s0 ⟨19743⟩
         (marketBalanceWord evm id 2 :: amount :: ⟨15626⟩ :: ⟨15658⟩ ::
           solcMappingSlot ⟨1⟩ id :: (solcMappingSlot ⟨1⟩ id + ⟨1⟩) :: R)
         mem aw rdata evm.accountMap k' C' := by
@@ -36,11 +38,11 @@ theorem midnightClaimFeeWriteCredit {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {credit k C : Nat} {R : List UInt256}
     (henv : evm.executionEnv = I) (hstack : R.length + 8 ≤ 1024) (hperm : I.perm = true)
     (hb : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨15626⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨15626⟩
       (claimFeeCredit evm id amount :: ⟨15658⟩ :: solcMappingSlot ⟨1⟩ id ::
         (solcMappingSlot ⟨1⟩ id + ⟨1⟩) :: R) mem aw rdata evm.accountMap k C) :
     ∃ k' C', TransferBudget root credit mem aw C' ∧
-      RD midnightBytecode I g s0 ⟨15658⟩
+      RD fork midnightBytecode I g s0 ⟨15658⟩
         (solcMappingSlot ⟨1⟩ id :: (solcMappingSlot ⟨1⟩ id + ⟨1⟩) :: R)
         mem aw rdata (claimFeeCreditState evm id amount).accountMap k' C' := by
   obtain ⟨k', C', hb', rd'⟩ := claim_block_15626_funded hstack hperm (by jump_dest) hb rd
@@ -59,16 +61,16 @@ theorem midnightClaimFeeWriteUnits {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {credit k C : Nat} {R : List UInt256}
     (henv : evm.executionEnv = I) (hstack : R.length + 13 ≤ 1024) (hperm : I.perm = true)
     (hb : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨15678⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨15678⟩
       ([claimFeeUnits evm id amount, uint128Mask, solcMappingSlot ⟨1⟩ id,
         solcMappingSlot ⟨1⟩ id + ⟨1⟩, id, market, ⟨64⟩, solcAddrMask, receiver,
         amount, ⟨15786⟩] ++ R) mem aw rdata (claimFeeCreditState evm id amount).accountMap k C) :
     ∃ k' C', TransferBudget root credit mem aw C' ∧
-      RD midnightBytecode I g s0 ⟨23403⟩
+      RD fork midnightBytecode I g s0 ⟨23403⟩
         ([amount, ⟨3993⟩, ⟨15714⟩, uint128Mask, solcMappingSlot ⟨1⟩ id + ⟨1⟩,
           id, market, ⟨64⟩, solcAddrMask, receiver, amount, ⟨15786⟩] ++ R)
         mem aw rdata (claimFeeUnitsState evm id amount).accountMap k' C' := by
-  change RD _ _ _ _ _ (_ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: R)
+  change RD fork _ _ _ _ _ (_ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: R)
     _ _ _ _ _ _ at rd
   obtain ⟨k', C', hb', rd'⟩ := claim_block_15678_funded
     (by simp only [List.length_cons]; omega) hperm (by jump_dest) hb rd
@@ -83,10 +85,10 @@ theorem midnightClaimFeeReadLow {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {evm : EVM.State} {mem rdata : ByteArray} {aw amount ret id : UInt256}
     {k C : Nat} {R : List UInt256} (i : Fin 3) (hi : i.val ≠ 2)
     (henv : evm.executionEnv = I) (hstack : R.length + 6 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 ⟨3993⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨3993⟩
       (amount :: ret :: uint128Mask :: marketBalanceSlot id i :: R)
       mem aw rdata evm.accountMap k C) :
-    ∃ k' C', C ≤ C' ∧ RD midnightBytecode I g s0 ⟨19743⟩
+    ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode I g s0 ⟨19743⟩
       (marketBalanceWord evm id i :: amount :: ret :: uint128Mask ::
         marketBalanceSlot id i :: R) mem aw rdata evm.accountMap k' C' := by
   obtain ⟨k', C', hC, rd'⟩ := midnightReadLow128Sub hstack rd
@@ -100,17 +102,17 @@ theorem midnightClaimFeeWriteWithdrawable {I : ExecutionEnv} {g : Sat256} {s0 : 
     {credit k C : Nat} {R : List UInt256}
     (henv : evm.executionEnv = I) (hstack : R.length + 12 ≤ 1024) (hperm : I.perm = true)
     (hfree : memLoad ⟨64⟩ mem = root) (hb : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨15714⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨15714⟩
       ([claimFeeWithdrawable evm id amount, uint128Mask, solcMappingSlot ⟨1⟩ id + ⟨1⟩,
         id, market, ⟨64⟩, solcAddrMask, receiver, amount, ⟨15786⟩] ++ R)
       mem aw rdata (claimFeeUnitsState evm id amount).accountMap k C) :
     ∃ aw' k' C', TransferBudget root credit (writeWord mem root.toNat amount) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨23236⟩
+      RD fork midnightBytecode I g s0 ⟨23236⟩
         ([UInt256.land (memLoad (market + ⟨64⟩) (writeWord mem root.toNat amount)) solcAddrMask,
           receiver, amount, ⟨15786⟩] ++ R)
         (writeWord mem root.toNat amount) aw' rdata (claimFeeFinalState evm id amount).accountMap
         k' C' := by
-  change RD _ _ _ _ _ (_ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: R)
+  change RD fork _ _ _ _ _ (_ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: R)
     _ _ _ _ _ _ at rd
   obtain ⟨k', C', hb', rd'⟩ := claim_block_15714_funded
     (by simp only [List.length_cons]; omega) hperm (by jump_dest) hb rd

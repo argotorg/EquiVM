@@ -3,6 +3,8 @@ import Benchmarks.Midnight.OfferHeapMemory
 import Benchmarks.Midnight.MemoryCreditPaid
 import Benchmarks.Midnight.RuntimeBlocks_077
 
+variable {fork : Ethereum.Fork}
+
 /-! The first six scalar fields of an ABI-encoded offer. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -85,11 +87,11 @@ theorem midnightOfferEncodeFirst_funded {credit : Nat} {I : ExecutionEnv} {g : S
     (hm : MemoryWords mem ptr.toNat (offer.words marketPtr callbackPtr))
     (hc : OfferCanonical offer) (hbelow : ptr.toNat + 480 ≤ output.toNat)
     (hout : output.toNat + 224 < UInt256.size) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨20160⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨20160⟩
       (finish :: ⟨20270⟩ :: ⟨448⟩ :: ⟨448⟩ :: output :: ptr :: R) mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding credit
         (writeWordArray mem (output.toNat + 32) offer.encodeFirstWords) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨20243⟩
+      RD fork midnightBytecode I g s0 ⟨20243⟩
         (ptr :: ⟨224⟩ :: solcAddrMask :: finish :: ⟨20270⟩ :: ⟨448⟩ :: ⟨448⟩ :: output :: ptr :: R)
         (writeWordArray mem (output.toNat + 32) offer.encodeFirstWords) aw' rdata σ k' C' := by
   have cover (active : UInt256) (hcovered : MemoryCovered mem active) :

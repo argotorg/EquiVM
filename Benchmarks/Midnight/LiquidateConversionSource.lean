@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.LiquidateConversion
 import Benchmarks.Midnight.LiquidateMaxLifSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Source execution of liquidation's seized-amount and repaid-amount branches. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -31,9 +33,9 @@ theorem liquidateSeizeSource {frame : Frame} {evm : State} {seized repaid price 
     (hp : frame.locals.get? "liquidatedCollatPrice" = some (.int price.toNat))
     (hl : frame.locals.get? "lif" = some (.int lif.toNat)) (hpos : 0 < seized.toNat) :
     (¬ LiquidateSeizeSafe seized price lif ∧
-      ExecStmt config frame evm (liquidateAmountsBody[4]!) .reverted) ∨
+      ExecStmt fork config frame evm (liquidateAmountsBody[4]!) .reverted) ∨
     (LiquidateSeizeSafe seized price lif ∧
-      ExecStmt config frame evm (liquidateAmountsBody[4]!)
+      ExecStmt fork config frame evm (liquidateAmountsBody[4]!)
         (.ok (liquidateSeizeFrame frame seized price lif) evm)) := by
   let value := mulDivUp seized price liquidatePriceScale
   let amount := liquidateRepaidAmount seized price lif
@@ -49,7 +51,7 @@ theorem liquidateSeizeSource {frame : Frame} {evm : State} {seized repaid price 
     simp only [evalExprs?, evalWordLocal hs, evalWordLocal hp, evalLiquidatePriceScale,
       bind, pure, EvalResult.bind]
   by_cases hfirst : MulDivUpSafe seized price liquidatePriceScale
-  · have hs0 := callMulDivUp (name := "__c19") hc ha0 hfirst
+  · have hs0 := callMulDivUp (fork := fork) (name := "__c19") hc ha0 hfirst
     have hl1 : f1.locals.get? "lif" = some (.int lif.toNat) := by
       simpa only [f1, wordLocal_get_ne _ _ _ _ (show "__c19" ≠ "lif" by decide)] using hl
     have hv1 : f1.locals.get? "__c19" = some (.int value.toNat) := wordLocal_get _ _ _
@@ -59,7 +61,7 @@ theorem liquidateSeizeSource {frame : Frame} {evm : State} {seized repaid price 
       simp only [evalExprs?, evalWordLocal hv1,
         evalLifScale, evalWordLocal hl1, bind, pure, EvalResult.bind]
     by_cases hsecond : MulDivUpSafe value lifScale lif
-    · have hs1 := callMulDivUp (frame := f1) (name := "__c20") hc ha1 hsecond
+    · have hs1 := callMulDivUp (fork := fork) (frame := f1) (name := "__c20") hc ha1 hsecond
       have hr2 : f2.locals.get? "repaidUnits" = some (.int repaid.toNat) := by
         simpa only [f2, f1,
           wordLocal_get_ne _ _ _ _ (show "__c20" ≠ "repaidUnits" by decide),
@@ -80,9 +82,9 @@ theorem liquidateRepaySource {frame : Frame} {evm : State} {seized repaid price 
     (hp : frame.locals.get? "liquidatedCollatPrice" = some (.int price.toNat))
     (hl : frame.locals.get? "lif" = some (.int lif.toNat)) (hz : seized.toNat = 0) :
     (¬ LiquidateRepaySafe repaid price lif ∧
-      ExecStmt config frame evm (liquidateAmountsBody[4]!) .reverted) ∨
+      ExecStmt fork config frame evm (liquidateAmountsBody[4]!) .reverted) ∨
     (LiquidateRepaySafe repaid price lif ∧
-      ExecStmt config frame evm (liquidateAmountsBody[4]!)
+      ExecStmt fork config frame evm (liquidateAmountsBody[4]!)
         (.ok (liquidateRepayFrame frame repaid price lif) evm)) := by
   let value := mulDivDown repaid lif lifScale
   let amount := liquidateSeizedAmount repaid price lif
@@ -97,7 +99,7 @@ theorem liquidateRepaySource {frame : Frame} {evm : State} {seized repaid price 
     simp only [evalExprs?, evalWordLocal hr, evalWordLocal hl, evalLifScale,
       bind, pure, EvalResult.bind]
   by_cases hfirst : repaid.toNat * lif.toNat < UInt256.size
-  · have hs0 := callMulDivDown (name := "__c21") hc ha0 hfirst (by decide)
+  · have hs0 := callMulDivDown (fork := fork) (name := "__c21") hc ha0 hfirst (by decide)
     have hp1 : f1.locals.get? "liquidatedCollatPrice" = some (.int price.toNat) := by
       simpa only [f1,
         wordLocal_get_ne _ _ _ _ (show "__c21" ≠ "liquidatedCollatPrice" by decide)] using hp
@@ -109,7 +111,7 @@ theorem liquidateRepaySource {frame : Frame} {evm : State} {seized repaid price 
       simp only [evalExprs?, evalWordLocal hv1,
         evalLiquidatePriceScale, evalWordLocal hp1, bind, pure, EvalResult.bind]
     by_cases hsecond : value.toNat * liquidatePriceScale.toNat < UInt256.size ∧ price ≠ ⟨0⟩
-    · have hs1 := callMulDivDown (frame := f1) (name := "__c22") hc ha1 hsecond.1 hsecond.2
+    · have hs1 := callMulDivDown (fork := fork) (frame := f1) (name := "__c22") hc ha1 hsecond.1 hsecond.2
       have hs2 : f2.locals.get? "seizedAssets" = some (.int seized.toNat) := by
         simpa only [f2, f1,
           wordLocal_get_ne _ _ _ _ (show "__c22" ≠ "seizedAssets" by decide),

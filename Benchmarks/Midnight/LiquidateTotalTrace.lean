@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.LiquidateStorageGas
 import Benchmarks.Midnight.CheckedUint128Gas
 
+variable {fork : Ethereum.Fork}
+
 /-! Loss-factor storage followed by the checked total-unit deduction. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,16 +17,16 @@ theorem midnightLiquidateTotal {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {σ : AccountMap} {k C credit : Nat} {R : List UInt256}
     (hstack : R.length + 17 ≤ 1024) (hp : I.perm = true)
     (hb : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨7541⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨7541⟩
       ([newLoss, ⟨7571⟩, oldWord, reverseRep, rep, maxDebt, price, pos, dp, dl, borrower, badDebt] ++ R)
       mem aw rdata σ k C) :
     let σ' := storeHigh128Accounts σ I (memLoad (UInt256.ofNat 672) mem) newLoss
     let total := low128 (solcSlotWordAt (memLoad (UInt256.ofNat 672) mem) σ' I)
     (¬ (badDebt.toNat < 2 ^ 128 ∧ badDebt.toNat ≤ total.toNat) ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     (badDebt.toNat < 2 ^ 128 ∧ badDebt.toNat ≤ total.toNat ∧ ∃ aw' k' C',
       TransferBudget root credit mem aw' C' ∧
-      RD midnightBytecode I g s0 ⟨7603⟩
+      RD fork midnightBytecode I g s0 ⟨7603⟩
         ([UInt256.sub total badDebt, uint128Mask, oldWord, reverseRep, rep,
           maxDebt, price, pos, dp, dl, borrower, badDebt] ++ R) mem aw' rdata σ' k' C') := by
   dsimp only
@@ -35,7 +37,7 @@ theorem midnightLiquidateTotal {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (by simp only [List.length_cons]; omega) hp (by jump_dest) hb rd
   simp only [midnightBlocks.midnight_block_7541_stack, uint128Mask_computed,
     shiftLeft128_highMask] at rd1
-  change RD midnightBytecode I g s0 ⟨7571⟩
+  change RD fork midnightBytecode I g s0 ⟨7571⟩
     ([oldWord, reverseRep, rep, maxDebt, price, pos, dp, dl, borrower, badDebt] ++ R)
     mem _ rdata σ' k1 C1 at rd1
   have rd2 := midnightBlocks.midnight_block_7571 (R := R)

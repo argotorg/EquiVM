@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.LiquidateCallback
 import Benchmarks.Midnight.LiquidateLoanTransfer
 
+variable {fork : Ethereum.Fork}
+
 /-! The optional callback, final loan-token pull, and liquidation return. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -28,18 +30,18 @@ theorem midnightLiquidateAfterTransfer {I : ExecutionEnv} {g : UInt256} {s0 evm 
     (hseized : memLoad (UInt256.ofNat 640) mem = seized)
     (hpaid : memLoad (UInt256.ofNat 608) mem = repaid)
     (hdl : dl.toNat < 2^64) (hdata : dp.toNat + dl.toNat ≤ I.calldata.size)
-    (hh : TransferHeap mem aw root C) (hgas : midnightGasBound g) (hfork : I.fork ≥ .osaka)
+    (hh : TransferHeap mem aw root C) (hgas : midnightGasBound g) (hfork : fork ≥ .osaka)
     (hs : SourceState s0 I σ evm)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨5755⟩
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨5755⟩
       ([dp, dl, borrower, badDebt, UInt256.ofNat receiver.val, UInt256.ofNat payer.val, saved] ++ R)
       mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (ExecBlock config frame evm (liquidateTransition.body.drop 22) .reverted ∧
-      RDrev midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (ExecBlock fork config frame evm (liquidateTransition.body.drop 22) .reverted ∧
+      RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
     ∃ frame' evm',
-      ExecBlock config frame evm (liquidateTransition.body.drop 22)
+      ExecBlock fork config frame evm (liquidateTransition.body.drop 22)
         (.returned frame' evm' (some [.int seized.toNat, .int repaid.toNat])) ∧
-      RDret midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap
+      RDret fork midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap
         (wordArrayBytes [seized, repaid]) := by
   have hclean : UInt256.land (memLoad (UInt256.ofNat 736) mem)
       (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) =
@@ -48,9 +50,9 @@ theorem midnightLiquidateAfterTransfer {I : ExecutionEnv} {g : UInt256} {s0 evm 
     exact addressWord_val_clean callback
   by_cases hcb : callback = 0
   · have sourcePrefix {result : ExecResult}
-        (ht : ExecBlock config frame evm (liquidateTransition.body.drop 23) result) :
-        ExecBlock config frame evm (liquidateTransition.body.drop 22) result := by
-      change ExecBlock config frame evm
+        (ht : ExecBlock fork config frame evm (liquidateTransition.body.drop 23) result) :
+        ExecBlock fork config frame evm (liquidateTransition.body.drop 22) result := by
+      change ExecBlock fork config frame evm
         (liquidateTransition.body[22]! :: liquidateTransition.body.drop 23) result
       rw [liquidateCallback_shape]
       exact .consNormal (.iteFalse (by rw [repayCallbackCondition_eval hf.callback]; simp [hcb])
@@ -93,15 +95,15 @@ theorem midnightLiquidateAfterTransfer {I : ExecutionEnv} {g : UInt256} {s0 evm 
       hoog | ⟨ht, hr⟩ | ⟨evm2, σ2, out, mem2, aw2, k2, C2, ht, hs2, hp2, hlo2, hh2, rd2⟩
     · exact Or.inl hoog
     · refine Or.inr (Or.inl ⟨?_, hr⟩)
-      change ExecBlock config frame evm
+      change ExecBlock fork config frame evm
         (liquidateTransition.body[22]! :: liquidateTransition.body.drop 23) .reverted
       rw [liquidateCallback_shape]
       exact .consRevert (.iteTrue hcond ht)
     · have sourcePrefix {result : ExecResult}
-          (htail : ExecBlock config (liquidateCallbackFrame frame (calldataWord out 0)) evm2
+          (htail : ExecBlock fork config (liquidateCallbackFrame frame (calldataWord out 0)) evm2
             (liquidateTransition.body.drop 23) result) :
-          ExecBlock config frame evm (liquidateTransition.body.drop 22) result := by
-        change ExecBlock config frame evm
+          ExecBlock fork config frame evm (liquidateTransition.body.drop 22) result := by
+        change ExecBlock fork config frame evm
           (liquidateTransition.body[22]! :: liquidateTransition.body.drop 23) result
         rw [liquidateCallback_shape]
         exact .consNormal (.iteTrue hcond ht) htail

@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.CollateralValidationLoop
 import Benchmarks.Midnight.TouchMarketHeaderTrace
 
+variable {fork : Ethereum.Fork}
+
 /-! The complete validation prefix of a previously uninitialized market. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -45,14 +47,14 @@ theorem touchMarketLoopFrame_preserved (frame : Frame) :
     (by decide)).trans (collateralInsert_preserved _ "i" (.int 0) (by decide))
 
 theorem touchMarketLoopInitSource (frame : Frame) (evm : EVM.State) :
-    ExecBlock config (touchMarketPreviousFrame frame) evm collateralLoopInit
+    ExecBlock fork config (touchMarketPreviousFrame frame) evm collateralLoopInit
       (.ok (touchMarketLoopFrame frame) evm) := by
   exact ExecBlock.consNormal (ExecStmt.letDecl (by simp only [evalExpr?, pure])) ExecBlock.nil
 
 theorem touchMarketPreviousPrefix {frame : Frame} {evm : EVM.State} {m : MarketData}
     (hm : frame.locals.get? "market" = some (Model.marketValue m.value))
     (hs : TouchMarketHeaderSafe evm.executionEnv m) :
-    ABlock config evm frame touchMarketInitBody (touchMarketPreviousFrame frame)
+    ABlock fork config evm frame touchMarketInitBody (touchMarketPreviousFrame frame)
       (touchMarketInitBody.drop 6) := by
   apply (touchMarketHeaderSource hm hs).letStep
   simp only [evalExpr?, pure, bind, EvalResult.bind, castValue?, EvalResult.ofOption]
@@ -67,15 +69,15 @@ theorem midnightTouchMarketValidation {evm : EVM.State} {g : Sat256} {s0 : State
     (hmarket : frame.locals.get? "market" = some (Model.marketValue m.value))
     (hl : frame.locals.get? "isLltvEnabled" = none)
     (hcu : frame.locals.get? "isLiquidationCursorEnabled" = none)
-    (rd : RD midnightBytecode evm.executionEnv g s0 ⟨20764⟩
+    (rd : RD fork midnightBytecode evm.executionEnv g s0 ⟨20764⟩
       ((ptr + UInt256.ofNat 32) :: ptr :: id :: ret :: R) mem aw rdata evm.accountMap k C) :
-    (RDrev midnightBytecode g s0 ∧ ExecBlock config frame evm touchMarketInitBody .reverted) ∨
+    (RDrev fork midnightBytecode g s0 ∧ ExecBlock fork config frame evm touchMarketInitBody .reverted) ∨
     (∃ previous frame' mem' aw' k' C',
-      ABlock config evm frame touchMarketInitBody frame' (touchMarketInitBody.drop 7) ∧
+      ABlock fork config evm frame touchMarketInitBody frame' (touchMarketInitBody.drop 7) ∧
       CollateralSourceFrame frame' m m.collaterals.length previous ∧
       CollateralLocalsPreserved frame frame' ∧ MemoryPrefix mem mem' root.toNat ∧
       memLoad (UInt256.ofNat 64) mem' = memLoad (UInt256.ofNat 64) mem ∧
-      RD midnightBytecode evm.executionEnv g s0 ⟨21130⟩
+      RD fork midnightBytecode evm.executionEnv g s0 ⟨21130⟩
         (arrayPtr :: UInt256.ofNat previous.val :: ret :: ptr :: (ptr + UInt256.ofNat 96) :: id ::
           UInt256.ofNat m.collaterals.length :: R) mem' aw' rdata evm.accountMap k' C') := by
   rcases midnightTouchMarketHeader m (by omega) hm rd with ⟨hbad, hr⟩ | ⟨hs, aw1, k1, C1, rd1⟩

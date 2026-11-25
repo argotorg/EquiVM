@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.CollateralCalldata
 import Benchmarks.Midnight.TransferBudget
 
+variable {fork : Ethereum.Fork}
+
 /-! Collateral calldata decoding retains the budget for later external calls. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,8 +17,8 @@ theorem midnightCalldataAddress_ok_budget {root : UInt256} {credit : Nat} {I : E
     (hcanon : (calldataWord I.calldata head.toNat).toNat < EVM.addressModulus)
     (hvalid : (D_J midnightBytecode 0).contains ret = true)
     (ha : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨18342⟩ (head :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', TransferBudget root credit mem aw C' ∧ RD midnightBytecode I g s0 ret (calldataWord I.calldata head.toNat :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨18342⟩ (head :: ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', TransferBudget root credit mem aw C' ∧ RD fork midnightBytecode I g s0 ret (calldataWord I.calldata head.toNat :: R)
       mem aw rdata σ k' C' := by
   have rd1 := midnightBlocks.midnight_block_18342_fallthrough hstack
     (addressCheck_zero hcanon) rd
@@ -32,9 +34,9 @@ theorem midnightAllocate128_budget {root : UInt256} {credit : Nat} {I : Executio
     (hc : allocationCheck ptr (ptr + UInt256.ofNat 128) = ⟨0⟩)
     (hret : (D_J midnightBytecode 0).contains ret = true)
     (ha : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨18417⟩ (ptr :: ret :: R) mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨18417⟩ (ptr :: ret :: R) mem aw rdata σ k C) :
     ∃ aw' k' C', TransferBudget root credit (writeWord mem 64 (ptr + UInt256.ofNat 128)) aw' C' ∧
-      RD midnightBytecode I g s0 ret R
+      RD fork midnightBytecode I g s0 ret R
         (writeWord mem 64 (ptr + UInt256.ofNat 128)) aw' rdata σ k' C' := by
   have rd1 := midnightBlocks.midnight_block_18417_fallthrough (by simpa using hstack) hc rd
   simp only [midnightBlocks.midnight_block_18417_fallthrough_stack] at rd1
@@ -51,13 +53,13 @@ theorem midnightCollateralCalldataCopy_budget {root : UInt256} {credit : Nat} {I
     (hhead : head.toNat + 128 < UInt256.size) (hptr : ptr.toNat + 128 < UInt256.size)
     (hvalid : (D_J midnightBytecode 0).contains ret = true)
     (ha : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨18524⟩ (ptr :: ret :: head :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨18524⟩ (ptr :: ret :: head :: R)
       mem aw rdata σ k C) :
-    (¬ CollateralData.canonicalAt I.calldata head.toNat ∧ RDrev midnightBytecode g s0) ∨
+    (¬ CollateralData.canonicalAt I.calldata head.toNat ∧ RDrev fork midnightBytecode g s0) ∨
     (CollateralData.canonicalAt I.calldata head.toNat ∧ ∃ aw' k' C',
       TransferBudget root credit
         (writeWordArray mem ptr.toNat (CollateralData.at I.calldata head.toNat).words) aw' C' ∧
-      RD midnightBytecode I g s0 ret (ptr :: R)
+      RD fork midnightBytecode I g s0 ret (ptr :: R)
         (writeWordArray mem ptr.toNat (CollateralData.at I.calldata head.toNat).words)
         aw' rdata σ k' C') := by
   have hh32 := uadd_word_ofNat_toNat head 32 (by omega)
@@ -124,15 +126,15 @@ theorem midnightCollateralCalldata_budget {root : UInt256} {credit : Nat} {I : E
     (hfree : memLoad (UInt256.ofNat 64) mem = ptr) (hptr : ptr.toNat < 2^64)
     (hvalid : (D_J midnightBytecode 0).contains ret = true)
     (ha : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨18500⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨18500⟩
       (head :: UInt256.ofNat I.calldata.size :: ret :: R) mem aw rdata σ k C) :
-    (¬ ptr.toNat + 128 < 2^64 ∧ RDrev midnightBytecode g s0) ∨
-    (¬ CollateralData.canonicalAt I.calldata head.toNat ∧ RDrev midnightBytecode g s0) ∨
+    (¬ ptr.toNat + 128 < 2^64 ∧ RDrev fork midnightBytecode g s0) ∨
+    (¬ CollateralData.canonicalAt I.calldata head.toNat ∧ RDrev fork midnightBytecode g s0) ∨
     (ptr.toNat + 128 < 2^64 ∧ CollateralData.canonicalAt I.calldata head.toNat ∧ ∃ aw' k' C',
       TransferBudget root credit
         (writeWordArray (writeWord mem 64 (ptr + UInt256.ofNat 128)) ptr.toNat
           (CollateralData.at I.calldata head.toNat).words) aw' C' ∧
-      RD midnightBytecode I g s0 ret (ptr :: R)
+      RD fork midnightBytecode I g s0 ret (ptr :: R)
         (writeWordArray (writeWord mem 64 (ptr + UInt256.ofNat 128)) ptr.toNat
           (CollateralData.at I.calldata head.toNat).words) aw' rdata σ k' C') := by
   have rd1 := midnightBlocks.midnight_block_18500_fallthrough (by omega)

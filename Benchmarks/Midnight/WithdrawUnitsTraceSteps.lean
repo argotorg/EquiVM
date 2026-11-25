@@ -2,6 +2,8 @@ import Benchmarks.Midnight.WithdrawUnitsBalanceState
 import Benchmarks.Midnight.WithdrawUnitsWriteBlocksGas
 import Benchmarks.Midnight.CheckedUint128Gas
 
+variable {fork : Ethereum.Fork}
+
 /-! Withdrawal's ordered balance reads and writes retain cumulative gas. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -13,10 +15,10 @@ set_option maxRecDepth 2000000
 theorem midnightWithdrawUnitsReadCredit {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {mem rdata : ByteArray} {aw units ret id user : UInt256} {k C : Nat} {R : List UInt256}
     (henv : evm.executionEnv = I) (hstack : R.length + 6 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 ⟨3993⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨3993⟩
       (units :: ret :: uint128Mask :: positionSlot id user :: R)
       mem aw rdata evm.accountMap k C) :
-    ∃ k' C', C ≤ C' ∧ RD midnightBytecode I g s0 ⟨19743⟩
+    ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode I g s0 ⟨19743⟩
       (positionFieldWord evm id user 0 :: units :: ret :: uint128Mask :: positionSlot id user :: R)
       mem aw rdata evm.accountMap k' C' := by
   obtain ⟨k', C', hc, rd'⟩ := midnightReadLow128Sub hstack rd
@@ -30,12 +32,12 @@ theorem midnightWithdrawUnitsWriteCredit {I : ExecutionEnv} {g : Sat256} {s0 evm
     {mem rdata : ByteArray} {aw units id user decrease market receiver : UInt256}
     {k C : Nat} {R : List UInt256}
     (henv : evm.executionEnv = I) (hstack : R.length + 14 ≤ 1024) (hperm : I.perm = true)
-    (rd : RD midnightBytecode I g s0 ⟨4002⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨4002⟩
       ([UInt256.sub (positionFieldWord evm id user 0) units, uint128Mask,
         positionSlot id user, solcMappingSlot ⟨1⟩ id, id, user, decrease, market,
         UInt256.ofNat 64, solcAddrMask, receiver, units] ++ R)
       mem aw rdata evm.accountMap k C) :
-    ∃ k' C', C ≤ C' ∧ RD midnightBytecode I g s0 ⟨23403⟩
+    ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode I g s0 ⟨23403⟩
       ([units, UInt256.ofNat 4027, solcMappingSlot ⟨1⟩ id, id, user, decrease,
         market, UInt256.ofNat 64, solcAddrMask, receiver, units] ++ R)
       mem aw rdata (withdrawUnitsCreditState evm id user units).accountMap k' C' := by
@@ -49,9 +51,9 @@ theorem midnightWithdrawUnitsWriteCredit {I : ExecutionEnv} {g : Sat256} {s0 evm
 theorem midnightWithdrawUnitsReadWithdrawable {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {mem rdata : ByteArray} {aw units id : UInt256} {k C : Nat} {R : List UInt256}
     (henv : evm.executionEnv = I) (hstack : R.length + 7 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 ⟨4027⟩ (units :: solcMappingSlot ⟨1⟩ id :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨4027⟩ (units :: solcMappingSlot ⟨1⟩ id :: R)
       mem aw rdata evm.accountMap k C) :
-    ∃ k' C', C ≤ C' ∧ RD midnightBytecode I g s0 ⟨19743⟩
+    ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode I g s0 ⟨19743⟩
       (marketBalanceWord evm id 1 :: units :: UInt256.ofNat 4052 :: uint128Mask ::
         (solcMappingSlot ⟨1⟩ id + ⟨1⟩) :: solcMappingSlot ⟨1⟩ id :: R)
       mem aw rdata evm.accountMap k' C' := by
@@ -67,12 +69,12 @@ theorem midnightWithdrawUnitsWriteWithdrawable {I : ExecutionEnv} {g : Sat256} {
     {mem rdata : ByteArray} {aw units id user decrease market receiver : UInt256}
     {k C : Nat} {R : List UInt256}
     (henv : evm.executionEnv = I) (hstack : R.length + 14 ≤ 1024) (hperm : I.perm = true)
-    (rd : RD midnightBytecode I g s0 ⟨4052⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨4052⟩
       ([UInt256.sub (marketBalanceWord (withdrawUnitsCreditState evm id user units) id 1) units,
         uint128Mask, solcMappingSlot ⟨1⟩ id + ⟨1⟩, solcMappingSlot ⟨1⟩ id, id, user, decrease,
         market, UInt256.ofNat 64, solcAddrMask, receiver, units] ++ R)
       mem aw rdata (withdrawUnitsCreditState evm id user units).accountMap k C) :
-    ∃ k' C', C ≤ C' ∧ RD midnightBytecode I g s0 ⟨23403⟩
+    ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode I g s0 ⟨23403⟩
       ([units, UInt256.ofNat 3993, UInt256.ofNat 4088, uint128Mask,
         solcMappingSlot ⟨1⟩ id, id, user, decrease, market, UInt256.ofNat 64,
         solcAddrMask, receiver, units] ++ R)

@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.FlashLoanCallbackABI
 import Benchmarks.Midnight.FlashLoanSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Source execution of the callback and its required bytes32 acknowledgement. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -58,9 +60,9 @@ theorem flashLoanMagicGuard_eval (frame : Frame) (evm : State) (value : UInt256)
 theorem flashLoanCallbackFailure {frame : Frame} {evm evm' : State} {tokens assets : List UInt256}
     {callback : AccountAddress} {data out : ByteArray}
     (hf : FlashLoanSourceFrame frame tokens assets callback data)
-    (hcall : typedCallViaEVM config evm callback "onFlashLoan" 0
+    (hcall : typedCallViaEVM fork config evm callback "onFlashLoan" 0
       (flashLoanCallbackArguments evm.executionEnv.source tokens assets data) (false, evm', out) true) :
-    ExecStmt config frame evm flashLoanCallbackStmt .reverted := by
+    ExecStmt fork config frame evm flashLoanCallbackStmt .reverted := by
   exact ExecStmt.externalCallFailure (target := callback) (Or.inl wordOfInt_zero)
     (by simp only [evalExpr?, hf.callback, EvalResult.ofOption])
     (by simp only [evalExpr?, pure]) (flashLoanCallbackArgs hf) (by simpa only [address_of_val] using hcall)
@@ -68,10 +70,10 @@ theorem flashLoanCallbackFailure {frame : Frame} {evm evm' : State} {tokens asse
 theorem flashLoanCallbackShort {frame : Frame} {evm evm' : State} {tokens assets : List UInt256}
     {callback : AccountAddress} {data out : ByteArray}
     (hf : FlashLoanSourceFrame frame tokens assets callback data)
-    (hcall : typedCallViaEVM config evm callback "onFlashLoan" 0
+    (hcall : typedCallViaEVM fork config evm callback "onFlashLoan" 0
       (flashLoanCallbackArguments evm.executionEnv.source tokens assets data) (true, evm', out) true)
     (hshort : out.size < 32) :
-    ExecStmt config frame evm flashLoanCallbackStmt .reverted := by
+    ExecStmt fork config frame evm flashLoanCallbackStmt .reverted := by
   exact ExecStmt.externalCallReturnDecodeRevert (target := callback) (Or.inl wordOfInt_zero)
     (by simp only [evalExpr?, hf.callback, EvalResult.ofOption])
     (by simp only [evalExpr?, pure]) (flashLoanCallbackArgs hf) (by simpa only [address_of_val] using hcall)
@@ -80,10 +82,10 @@ theorem flashLoanCallbackShort {frame : Frame} {evm evm' : State} {tokens assets
 theorem flashLoanCallbackSuccess {frame : Frame} {evm evm' : State} {tokens assets : List UInt256}
     {callback : AccountAddress} {data out : ByteArray}
     (hf : FlashLoanSourceFrame frame tokens assets callback data)
-    (hcall : typedCallViaEVM config evm callback "onFlashLoan" 0
+    (hcall : typedCallViaEVM fork config evm callback "onFlashLoan" 0
       (flashLoanCallbackArguments evm.executionEnv.source tokens assets data) (true, evm', out) true)
     (h32 : 32 ≤ out.size) :
-    ExecStmt config frame evm flashLoanCallbackStmt
+    ExecStmt fork config frame evm flashLoanCallbackStmt
       (.ok (flashLoanCallbackFrame frame (calldataWord out 0)) evm') := by
   exact ExecStmt.externalCallSuccess (target := callback) (Or.inl wordOfInt_zero)
     (by simp only [evalExpr?, hf.callback, EvalResult.ofOption])

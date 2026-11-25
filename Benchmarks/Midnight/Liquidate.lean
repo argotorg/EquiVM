@@ -5,6 +5,8 @@ import Benchmarks.Midnight.LiquidateCore
 import Benchmarks.Midnight.TouchMarketInternalFunding
 import Benchmarks.Midnight.RuntimeBlocks_019
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `liquidate((uint256,address,address,(address,uint256,uint256,address)[],uint256,uint256,address,address),uint256,uint256,uint256,address,bool,address,address,bytes)`
 
@@ -22,17 +24,17 @@ set_option maxRecDepth 2000000
 /-- `liquidate((uint256,address,address,(address,uint256,uint256,address)[],uint256,uint256,address,address),uint256,uint256,uint256,address,bool,address,address,bytes)`: the theorem `Correct.lean` routes selector 30 to. -/
 theorem midnightLiquidateBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 30)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 30) rfl hsel
   have hd : dispatchMsg contract I.calldata = some liquidateTransition := by
     apply midnightDispatch_liquidate <;>
       first | exact hsel | exact selectorNe_of_selIs hsel (by decide +kernel)
   obtain ⟨k, C, rd⟩ := midnightReachLiquidateBody
     (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) hcode hsz hsize hsel
-  change RD midnightBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+  change RD fork midnightBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
     ⟨4977⟩ [solcSelectorWord I] midnightEntryMemory (UInt256.ofNat 26) ByteArray.empty σ k C at rd
   have ha : MemoryAccounting midnightEntryMemory (UInt256.ofNat 26) C := by
     refine ⟨MemoryPaid.entry C, ?_⟩
@@ -99,10 +101,10 @@ theorem midnightLiquidateBody {σ σ₀ A I} {g : UInt256}
       rw [← hreceiver] at rd2
       have rd3 := midnightBlocks.midnight_block_4356 (by simp) (by jump_dest) rd2
       have ha3 := memoryAccountingAt rd3 (by memory_account ha2)
-      have rejectTouch (hr : RDrev midnightBytecode (Sat256.ofUInt256 g) origin)
-          (ht : ExecFuncBody config (touchMarketCallFrame ∅ m) origin
+      have rejectTouch (hr : RDrev fork midnightBytecode (Sat256.ofUInt256 g) origin)
+          (ht : ExecFuncBody fork config (touchMarketCallFrame ∅ m) origin
             touchMarketFunction.body .reverted) :
-          runtimeRefinementFor config contract σ σ₀ g A I := by
+          runtimeRefinementFor fork config contract σ σ₀ g A I := by
         apply hr.reEquivExecutionRevert hcode hd hdec
         apply ExecFuncBody.execBlockRevert
         apply guardedBodyBlock hwv hlimit
@@ -112,7 +114,7 @@ theorem midnightLiquidateBody {σ σ₀ A I} {g : UInt256}
       have finish {evm : State} {callee : Frame} {mem2 out : ByteArray}
           {free aw3 : UInt256} {credit k3 C3 : Nat}
           (hs : SourceState origin I evm.accountMap evm)
-          (htouch : ExecFuncBody config (touchMarketCallFrame ∅ m) origin touchMarketFunction.body
+          (htouch : ExecFuncBody fork config (touchMarketCallFrame ∅ m) origin touchMarketFunction.body
             (.returned callee evm (some [wordBytes32Value m.id])))
           (hp : MemoryPrefix mem' mem2 root.toNat)
           (hlo : root.toNat ≤ free.toNat)
@@ -120,19 +122,19 @@ theorem midnightLiquidateBody {σ σ₀ A I} {g : UInt256}
           (haligned : free.toNat % 32 = 0) (hspace : free.toNat ≤ mem2.size + 31)
           (hfund : MemoryFunding credit mem2 aw3 C3)
           (hcredit : 4 * ((free.toNat + 20831) / 32) ≤ credit + 999921)
-          (rd4 : RD midnightBytecode I (Sat256.ofUInt256 g) origin ⟨5161⟩
+          (rd4 : RD fork midnightBytecode I (Sat256.ofUInt256 g) origin ⟨5161⟩
             [m.id, dl, borrower, dp, UInt256.ofNat receiver.val, mode, solcSelectorWord I]
             mem2 aw3 out evm.accountMap k3 C3) :
-          runtimeRefinementFor config contract σ σ₀ g A I := by
+          runtimeRefinementFor fork config contract σ σ₀ g A I := by
         have hm2 := hm.preserve hp
         have keep (read : UInt256) (hr : 96 ≤ read.toNat) (hb : read.toNat + 32 ≤ 832) :
             memLoad read mem2 = memLoad read mem' :=
           hp.load read hr (by omega) (by omega)
         have sourcePrefix {result : ExecResult}
-            (hbody : ExecBlock config
+            (hbody : ExecBlock fork config
               (liquidateReadyFrame origin m index seized repaid borrower mode receiver callback data)
               evm (liquidateTransition.body.drop 6) result) :
-            ExecBlock config { contract := contract, locals := (liquidateArguments m index seized repaid
+            ExecBlock fork config { contract := contract, locals := (liquidateArguments m index seized repaid
               (AccountAddress.ofNat borrower.toNat) mode receiver callback data), immutables := ∅ }
               origin liquidateTransition.body result :=
           guardedBodyBlock hwv hlimit (liquidateAfterTouchSource htouch hbody)
@@ -144,7 +146,7 @@ theorem midnightLiquidateBody {σ σ₀ A I} {g : UInt256}
             ((keep _ (by decide) (by decide)).trans hcb) hv.1
             ((keep _ (by decide) (by decide)).trans hseized)
             ((keep _ (by decide) (by decide)).trans hrepaid)
-            hdl hdp hfund hcredit hgas hwf hs rd4 with
+            hdl hdp hfund hcredit hgas hfork hs rd4 with
           hoog | ⟨ht, hr⟩ | ⟨ht, hr⟩ | ⟨frame', evm', seized', repaid', ht, hr⟩
         · exact reEquiv_outOfGas (Xi_error_of_X (by rw [← hcode] at hoog; exact hoog))
         · exact hr.reEquivExecutionRevert hcode hd hdec

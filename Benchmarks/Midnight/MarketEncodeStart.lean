@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.MarketData
 import Benchmarks.Midnight.CollateralEncodeStep
 
+variable {fork : Ethereum.Fork}
+
 /-! Initial static fields and the collateral-array header of the market ABI encoder. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -118,8 +120,8 @@ theorem midnightMarketEncodeStart {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hnin : arrayPtr.toNat + 32 ≤ mem.size)
     (hbelow : ptr.toNat + 256 ≤ output.toNat) (harray : arrayPtr.toNat + 32 ≤ output.toNat)
     (hout : output.toNat + 288 < UInt256.size)
-    (rd : RD midnightBytecode I g s0 ⟨19181⟩ (ptr :: output :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g s0 ⟨19261⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨19181⟩ (ptr :: output :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork midnightBytecode I g s0 ⟨19261⟩
       (UInt256.ofNat 0 :: UInt256.ofNat m.collaterals.length :: (arrayPtr + UInt256.ofNat 32) ::
         ptr :: output :: (output + UInt256.ofNat 288) :: R)
       (marketEncodeHeadMemory mem output.toNat m) aw' rdata σ k' C' := by

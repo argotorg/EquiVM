@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.LiquidateSourceFrame
 
+variable {fork : Ethereum.Fork}
+
 /-! Source evaluation of the optional liquidator-gate call and its Boolean guard. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -34,26 +36,26 @@ theorem liquidatorGateGuard_eval {frame : Frame} {evm : State} {m : MarketData}
 theorem liquidatorGateSkipped {frame : Frame} {evm : State} {m : MarketData}
     (hm : frame.locals.get? "market" = some (Model.marketValue m.value))
     (hz : m.liquidatorGate = 0) :
-    ExecStmt config frame evm liquidatorGateStatement (.ok frame evm) := by
+    ExecStmt fork config frame evm liquidatorGateStatement (.ok frame evm) := by
   exact ExecStmt.iteFalse ((liquidatorGateGuard_eval hm).trans (by rw [hz]; rfl)) ExecBlock.nil
 
 theorem liquidatorGateFailed {frame : Frame} {evm : State} {m : MarketData}
     (hm : frame.locals.get? "market" = some (Model.marketValue m.value))
     (hn : m.liquidatorGate ≠ 0)
-    (hcall : ExecStmt config frame evm
+    (hcall : ExecStmt fork config frame evm
       (.externalCall (.field (.var "market") "liquidatorGate") "canLiquidate" (.intLit 0)
         [.env .caller] "allowed" false) .reverted) :
-    ExecStmt config frame evm liquidatorGateStatement .reverted := by
+    ExecStmt fork config frame evm liquidatorGateStatement .reverted := by
   exact ExecStmt.iteTrue ((liquidatorGateGuard_eval hm).trans (by rw [decide_eq_true hn]))
     (ExecBlock.consRevert hcall)
 
 theorem liquidatorGateDenied {frame : Frame} {evm evm' : State} {m : MarketData}
     (hm : frame.locals.get? "market" = some (Model.marketValue m.value))
     (hn : m.liquidatorGate ≠ 0)
-    (hcall : ExecStmt config frame evm
+    (hcall : ExecStmt fork config frame evm
       (.externalCall (.field (.var "market") "liquidatorGate") "canLiquidate" (.intLit 0)
         [.env .caller] "allowed" false) (.ok (liquidatorGateAllowedFrame frame ⟨0⟩) evm')) :
-    ExecStmt config frame evm liquidatorGateStatement .reverted := by
+    ExecStmt fork config frame evm liquidatorGateStatement .reverted := by
   refine ExecStmt.iteTrue ((liquidatorGateGuard_eval hm).trans (by rw [decide_eq_true hn]))
     (ExecBlock.consNormal hcall (ExecBlock.consRevert (ExecStmt.requireFalse ?_)))
   simp only [evalExpr?, liquidatorGateAllowedFrame, store_get_self, EvalResult.ofOption]
@@ -62,10 +64,10 @@ theorem liquidatorGateDenied {frame : Frame} {evm evm' : State} {m : MarketData}
 theorem liquidatorGateAllowed {frame : Frame} {evm evm' : State} {m : MarketData}
     (hm : frame.locals.get? "market" = some (Model.marketValue m.value))
     (hn : m.liquidatorGate ≠ 0)
-    (hcall : ExecStmt config frame evm
+    (hcall : ExecStmt fork config frame evm
       (.externalCall (.field (.var "market") "liquidatorGate") "canLiquidate" (.intLit 0)
         [.env .caller] "allowed" false) (.ok (liquidatorGateAllowedFrame frame ⟨1⟩) evm')) :
-    ExecStmt config frame evm liquidatorGateStatement
+    ExecStmt fork config frame evm liquidatorGateStatement
       (.ok (liquidatorGateAllowedFrame frame ⟨1⟩) evm') := by
   refine ExecStmt.iteTrue ((liquidatorGateGuard_eval hm).trans (by rw [decide_eq_true hn]))
     (ExecBlock.consNormal hcall (ExecBlock.consNormal (ExecStmt.requireTrue ?_) ExecBlock.nil))

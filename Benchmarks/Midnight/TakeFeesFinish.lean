@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TakeSellerFeeFinish
 import Benchmarks.Midnight.TakeBuyerPending
 
+variable {fork : Ethereum.Fork}
+
 /-! Both pending-fee calculations followed by the complete trade suffix. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -14,7 +16,7 @@ theorem midnightTakeFeesFinish {credit : Nat} {I : ExecutionEnv} {g : UInt256} {
     {aw root market arrayPtr callbackPtr offerRoot takerPtr ratifierPtr id units taker buyer seller
       time bought sold consumed increase decrease buyerDebt sellerDebt saved : UInt256}
     {offer : OfferData} {initialReceiver initialCallback : AccountAddress} {σ : AccountMap} {k C : Nat} {R : List UInt256}
-    (hstack : R.length + 33 ≤ 1024) (hfork : I.fork ≥ .osaka) (hgas : midnightGasBound g)
+    (hstack : R.length + 33 ≤ 1024) (hfork : fork ≥ .osaka) (hgas : midnightGasBound g)
     (hc : OfferCanonical offer)
     (hf : TakeSourceFrame frame offer id units taker initialReceiver initialCallback ratifierData data)
     (hbuyerCanon : buyer.toNat < EVM.addressModulus)
@@ -64,21 +66,21 @@ theorem midnightTakeFeesFinish {credit : Nat} {I : ExecutionEnv} {g : UInt256} {
     (hdecrease : decrease.toNat ≤ (positionFieldWord evm id seller 0).toNat)
     (hunits : calldataWord I.calldata 68 = units)
     (hs : SourceState s0 I σ evm)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨12118⟩
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨12118⟩
       ([sellerDebt, ⟨12138⟩, ⟨12144⟩, takePendingScale, ⟨12150⟩,
         positionFieldWord evm id seller 0, positionSlot id buyer, time, buyerDebt,
         positionSlot id seller,
         solcMappingSlot ⟨1⟩ id, decrease, ratifierPtr, increase, saved] ++ R)
       mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (ExecBlock config frame evm (takeTransition.body.drop 38) .staticViolation ∧
-      RDstatic midnightBytecode (Sat256.ofUInt256 g) s0) ∨
-    (ExecBlock config frame evm (takeTransition.body.drop 38) .reverted ∧
-      RDrev midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (ExecBlock fork config frame evm (takeTransition.body.drop 38) .staticViolation ∧
+      RDstatic fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+    (ExecBlock fork config frame evm (takeTransition.body.drop 38) .reverted ∧
+      RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
     ∃ frame' evm',
-      ExecBlock config frame evm (takeTransition.body.drop 38)
+      ExecBlock fork config frame evm (takeTransition.body.drop 38)
         (.returned frame' evm' (some [.int bought.toNat, .int sold.toNat])) ∧
-      RDret midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap
+      RDret fork midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap
         (wordArrayBytes [bought, sold]) := by
   have hs' : SourceState s0 I evm.accountMap evm := by rw [← hs.accounts]; exact hs
   rw [hs.accounts] at rd

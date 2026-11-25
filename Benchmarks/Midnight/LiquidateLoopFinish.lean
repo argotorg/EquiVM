@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.LiquidatePostLoop
 
+variable {fork : Ethereum.Fork}
+
 /-! Finish liquidation from the collateral loop with its retained memory funding. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -34,20 +36,20 @@ theorem midnightLiquidateLoopFinish {I : ExecutionEnv} {g : UInt256} {s0 evm : S
     (hdl : dl.toNat < 2^64) (hdata : dp.toNat + dl.toNat ≤ I.calldata.size)
     (hfund : MemoryFunding credit mem aw C)
     (hcredit : 4 * ((root.toNat + 20799) / 32) ≤ credit + 999921)
-    (hgas : midnightGasBound g) (hfork : I.fork ≥ .osaka) (hs : SourceState s0 I σ evm)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨5340⟩
+    (hgas : midnightGasBound g) (hfork : fork ≥ .osaka) (hs : SourceState s0 I σ evm)
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨5340⟩
       ([debtWord, UInt256.isZero (UInt256.isZero repaid), UInt256.isZero repaid, maxDebt, price,
         positionSlot id borrower, dp, dl, borrower, badDebt, UInt256.ofNat receiver.val, mode,
         saved] ++ R) mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (ExecBlock config frame evm (liquidateTransition.body.drop 14) .reverted ∧
-      RDrev midnightBytecode (Sat256.ofUInt256 g) s0) ∨
-    (ExecBlock config frame evm (liquidateTransition.body.drop 14) .staticViolation ∧
-      RDstatic midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (ExecBlock fork config frame evm (liquidateTransition.body.drop 14) .reverted ∧
+      RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+    (ExecBlock fork config frame evm (liquidateTransition.body.drop 14) .staticViolation ∧
+      RDstatic fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
     ∃ frame' evm' seized' repaid',
-      ExecBlock config frame evm (liquidateTransition.body.drop 14)
+      ExecBlock fork config frame evm (liquidateTransition.body.drop 14)
         (.returned frame' evm' (some [.int seized'.toNat, .int repaid'.toNat])) ∧
-      RDret midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap
+      RDret fork midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap
         (wordArrayBytes [seized', repaid']) := by
   rcases midnightLiquidateLoop hstack hfork hcanon hd 128 evm frame mem rdata aw root
       bitmap maxDebt price badDebt σ k C (by decide) hbits (by omega) hlo hheap hsize

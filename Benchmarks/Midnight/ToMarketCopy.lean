@@ -3,6 +3,8 @@ import Benchmarks.Midnight.BytesAllocation
 import Benchmarks.Midnight.ExtCodeCopy
 import Benchmarks.Midnight.AddressDecode
 
+variable {fork : Ethereum.Fork}
+
 /-! The stored-market reader through EXTCODECOPY and its bounded allocation. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -59,8 +61,8 @@ theorem toMarketCodeAllocation_bad {len : UInt256} (hs : len.toNat < 2^64)
 theorem midnightToMarketGetTick {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 ⟨737⟩ R midnightEntryMemory aw rdata σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g s0 ⟨846⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨737⟩ R midnightEntryMemory aw rdata σ k C) :
+    ∃ aw' k' C', RD fork midnightBytecode I g s0 ⟨846⟩
       (marketTickSpacing (solcSlotWordAt (solcMappingSlot ⟨1⟩ (calldataWord I.calldata 4) + ⟨2⟩)
         σ I) :: calldataWord I.calldata 4 :: R)
       (toMarketInitialMemory (calldataWord I.calldata 4)) aw' rdata σ k' C' := by
@@ -74,8 +76,8 @@ theorem midnightToMarketGetTick {I : ExecutionEnv} {g : Sat256} {s0 : State}
 theorem midnightToMarketCodeSize {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw id : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 ⟨851⟩ (id :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD midnightBytecode I g s0 ⟨19016⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨851⟩ (id :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork midnightBytecode I g s0 ⟨19016⟩
       (extCodeSizeWord σ id :: ⟨870⟩ :: extCodeSizeWord σ id ::
         UInt256.land solcAddrMask id :: R) mem aw rdata σ k' C' := by
   obtain ⟨k1, C1, rd1⟩ := midnightBlocks.midnight_block_851 hstack (by jump_dest) rd
@@ -87,9 +89,9 @@ theorem midnightToMarketCodeTooLarge {I : ExecutionEnv} {g : Sat256} {s0 : State
     {rdata : ByteArray} {aw id : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 11 ≤ 1024)
     (hlarge : ¬ (extCodeSizeWord σ id).toNat ≤ 18446744073709550464)
-    (rd : RD midnightBytecode I g s0 ⟨851⟩ (id :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨851⟩ (id :: R)
       (toMarketInitialMemory id) aw rdata σ k C) :
-    RDrev midnightBytecode g s0 := by
+    RDrev fork midnightBytecode g s0 := by
   obtain ⟨k1, C1, rd1⟩ := midnightToMarketCodeSize (by omega) rd
   by_cases hs : (extCodeSizeWord σ id).toNat < 2^64
   · obtain ⟨k2, C2, rd2⟩ := midnightBytesAllocationSize hs
@@ -106,9 +108,9 @@ theorem midnightToMarketCodeCopy {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {rdata : ByteArray} {aw id : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 11 ≤ 1024)
     (hsmall : (extCodeSizeWord σ id).toNat ≤ 18446744073709550464)
-    (rd : RD midnightBytecode I g s0 ⟨851⟩ (id :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨851⟩ (id :: R)
       (toMarketInitialMemory id) aw rdata σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g s0 ⟨900⟩ (⟨1088⟩ :: ⟨1120⟩ :: R)
+    ∃ aw' k' C', RD fork midnightBytecode I g s0 ⟨900⟩ (⟨1088⟩ :: ⟨1120⟩ :: R)
       (toMarketCodeMemory σ id) aw' rdata σ k' C' := by
   have hs : (extCodeSizeWord σ id).toNat < 2^64 := by omega
   obtain ⟨k1, C1, rd1⟩ := midnightToMarketCodeSize (by omega) rd
@@ -124,7 +126,7 @@ theorem midnightToMarketCodeCopy {I : ExecutionEnv} {g : Sat256} {s0 : State}
   have rd5 := midnightBlocks.midnight_block_884 (by omega) rd4
   simp only [midnightBlocks.midnight_block_884_stack,
     midnightBlocks.midnight_block_884_memory] at rd5
-  change RD midnightBytecode I g s0 ⟨899⟩
+  change RD fork midnightBytecode I g s0 ⟨899⟩
     (UInt256.land solcAddrMask id :: ⟨1120⟩ ::
       memLoad (UInt256.ofNat 800) (toMarketCodeBase id (extCodeSizeWord σ id)) ::
       extCodeSizeWord σ id :: ⟨1088⟩ :: ⟨1120⟩ :: R)
@@ -133,7 +135,7 @@ theorem midnightToMarketCodeCopy {I : ExecutionEnv} {g : Sat256} {s0 : State}
   obtain ⟨k6, C6, rd6⟩ := extCodeCopyReach rd5 (by native_decide)
     (by simp only [List.length_cons]; omega)
   simp only [externalCode_mask] at rd6
-  change RD midnightBytecode I g s0 ⟨900⟩ (⟨1088⟩ :: ⟨1120⟩ :: R)
+  change RD fork midnightBytecode I g s0 ⟨900⟩ (⟨1088⟩ :: ⟨1120⟩ :: R)
     ((externalCode σ id).write 0 (toMarketCodeBase id (extCodeSizeWord σ id))
       1120 (extCodeSizeWord σ id).toNat) _ rdata σ k6 C6 at rd6
   rw [toMarketCodeCopy_eq] at rd6

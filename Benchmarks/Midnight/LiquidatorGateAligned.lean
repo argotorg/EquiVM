@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.LiquidatorGate
 
+variable {fork : Ethereum.Fork}
+
 /-! The optional gate preserves free-pointer alignment. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -21,20 +23,20 @@ theorem midnightLiquidatorGateAligned {I : ExecutionEnv} {g : Sat256} {s0 evm : 
     (hmarket : frame.locals.get? "market" = some (Model.marketValue m.value))
     (hd : decodeCalldataMarket I.calldata 4 = some m)
     (hs : SourceState s0 I σ evm) (hb : TransferBudget budgetRoot credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨5275⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨5275⟩
       ([w0, w1, w2, w3, w4, w5, w6, w7, w8, w9] ++ R) mem aw rdata σ k C) :
-    (ExecStmt config frame evm liquidatorGateStatement .reverted ∧
-      RDrev midnightBytecode g s0) ∨
+    (ExecStmt fork config frame evm liquidatorGateStatement .reverted ∧
+      RDrev fork midnightBytecode g s0) ∨
     ∃ (frame' : Frame) (evm' : State) (σ' : AccountMap) (mem' rdata' : ByteArray)
       (root' aw' : UInt256) (k' C' : Nat),
-      ExecStmt config frame evm liquidatorGateStatement (.ok frame' evm') ∧
+      ExecStmt fork config frame evm liquidatorGateStatement (.ok frame' evm') ∧
       (frame' = frame ∨ frame' = liquidatorGateAllowedFrame frame ⟨1⟩) ∧
       SourceState s0 I σ' evm' ∧ accountStorageStateEq evm.accountMap evm'.accountMap ∧
       MemoryPrefix mem mem' root.toNat ∧
       root.toNat ≤ root'.toNat ∧ root'.toNat ≤ root.toNat + 32 ∧
       root'.toNat % 32 = root.toNat % 32 ∧
       memLoad (UInt256.ofNat 64) mem' = root' ∧ TransferBudget budgetRoot credit mem' aw' C' ∧
-      RD midnightBytecode I g s0 ⟨5311⟩
+      RD fork midnightBytecode I g s0 ⟨5311⟩
         ([w0, w1, w2, w3, w4, w5, w6, w7, w8, w9] ++ R) mem' aw' rdata' σ' k' C' := by
   rcases midnightLiquidatorGateHead (by
       simp only [List.length_append, List.length_cons, List.length_nil]; omega) hd rd with

@@ -4,6 +4,8 @@ import Benchmarks.Midnight.MarketBytesFunding
 import Benchmarks.Midnight.MarketInitcodeFunding
 import Benchmarks.Midnight.MarketPreimageFunding
 
+variable {fork : Ethereum.Fork}
+
 /-! The market-ID trace preserves incoming credit while deriving its temporary-buffer limits. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -19,11 +21,11 @@ theorem midnightMarketIdTrace_fundedCredit {credit : Nat} {I : ExecutionEnv} {g 
     (hn : m.collaterals.length < 2^64) (hroot : root.toNat ≤ mem.size)
     (hgas : midnightGasBound g.toUInt256) (ha0 : MemoryFunding credit mem aw C)
     (hfree : memLoad (UInt256.ofNat 64) mem = root)
-    (rd : RD midnightBytecode I g s0 ⟨20557⟩ (ptr :: R) mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (rd : RD fork midnightBytecode I g s0 ⟨20557⟩ (ptr :: R) mem aw rdata σ k C) :
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
     (root.toNat + 2 * m.encodingSize + 288 < 2^64 ∧
       ∃ aw' k' C', MemoryFunding (credit + 128 * m.collaterals.length) (marketIdWorkMemory mem root m) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨20728⟩
+      RD fork midnightBytecode I g s0 ⟨20728⟩
       (marketIdPreimagePtr root m :: (marketIdPreimagePtr root m + UInt256.ofNat 32) ::
         ptr :: (ptr + UInt256.ofNat 32) :: R)
       (marketIdWorkMemory mem root m) aw' rdata σ k' C') := by
@@ -60,7 +62,7 @@ theorem midnightMarketIdTrace_fundedCredit {credit : Nat} {I : ExecutionEnv} {g 
   have ha1 := memoryFundingAt (credit := credit) rd1 (by memory_fund ha0)
   obtain ⟨aw2, k2, C2, ha2, rd2⟩ := midnightSstore2Prefix_funded
     (by simp only [List.length_cons]; omega) hprefix hfree (by jump_dest) ha1 rd1
-  change RD _ _ _ _ _ _ mem1 _ _ _ _ _ at rd2
+  change RD fork _ _ _ _ _ _ mem1 _ _ _ _ _ at rd2
   change MemoryFunding credit mem1 _ _ at ha2
   have hf1 : memLoad (UInt256.ofNat 64) mem1 = ep := sstore2PrefixMemory_free mem hlo
   have hm1 := hm.preserve (sstore2PrefixMemory_prefix mem root)
@@ -78,7 +80,7 @@ theorem midnightMarketIdTrace_fundedCredit {credit : Nat} {I : ExecutionEnv} {g 
     (by rw [he]; omega) (by jump_dest) hgas ha3 rd3 with
     hoog | ⟨hfit1, aw4, k4, C4, ha4, rd4⟩
   · exact Or.inl hoog
-  change RD _ _ _ _ _ _ mem2 _ _ _ _ _ at rd4
+  change RD fork _ _ _ _ _ _ mem2 _ _ _ _ _ at rd4
   change MemoryFunding (credit + 128 * m.collaterals.length) mem2 _ _ at ha4
   have hp2 := marketBytesMemory_prefix mem1 ep m
   have hs1 : root.toNat + 64 ≤ mem1.size := sstore2PrefixMemory_size mem root
@@ -102,7 +104,7 @@ theorem midnightMarketIdTrace_fundedCredit {credit : Nat} {I : ExecutionEnv} {g 
     (by rw [hc, he]; omega) hf2 hpLen heLen (by jump_dest) hgas ha4 rd4 with
     hoog | ⟨hfit2, aw5, k5, C5, ha5, rd5⟩
   · exact Or.inl hoog
-  change RD _ _ _ _ _ _ mem3 _ _ _ _ _ at rd5
+  change RD fork _ _ _ _ _ _ mem3 _ _ _ _ _ at rd5
   change MemoryFunding (credit + 128 * m.collaterals.length) mem3 _ _ at ha5
   have hs3 : cp.toNat + 75 + m.encodingSize ≤ mem3.size :=
     marketInitcodeMemory_size mem2 cp root ep m (by have hs := hp2.size; omega) heSize

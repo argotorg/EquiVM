@@ -5,6 +5,8 @@ import Benchmarks.Midnight.CollateralPackedStore
 import Benchmarks.Midnight.CollateralBlocksStatic
 import Benchmarks.Midnight.RuntimeBlocks_019
 
+variable {fork : Ethereum.Fork}
+
 /-! Checked addition and the packed collateral-balance write. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,13 +19,13 @@ theorem supplyCollateralArithmetic {I : ExecutionEnv} {g : Sat256} {s0 evm : Sta
     {mem rdata : ByteArray} {aw unused0 unused1 old index id user token assets : UInt256}
     {k C : Nat} {R : List UInt256}
     (henv : evm.executionEnv = I) (hstack : R.length + 20 ≤ 1024) (hi : index.toNat < 128)
-    (rd : RD midnightBytecode I g s0 ⟨17124⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨17124⟩
       ([unused0, unused1, old, index, id, user, token, assets,
         positionSlot id user + UInt256.ofNat 3] ++ R) mem aw rdata evm.accountMap k C) :
-    (¬ old.toNat + assets.toNat < 2^128 ∧ RDrev midnightBytecode g s0) ∨
-    (old.toNat + assets.toNat < 2^128 ∧ I.perm = false ∧ RDstatic midnightBytecode g s0) ∨
+    (¬ old.toNat + assets.toNat < 2^128 ∧ RDrev fork midnightBytecode g s0) ∨
+    (old.toNat + assets.toNat < 2^128 ∧ I.perm = false ∧ RDstatic fork midnightBytecode g s0) ∨
     (old.toNat + assets.toNat < 2^128 ∧ I.perm = true ∧ ∃ k' C', C ≤ C' ∧
-      RD midnightBytecode I g s0 ⟨17152⟩
+      RD fork midnightBytecode I g s0 ⟨17152⟩
         ([id, token, user, token, assets, UInt256.ofNat 15786] ++ R) mem aw rdata
         (collateralWriteState evm id user index (old + assets)).accountMap k' C') := by
   have rd1 := midnightBlocks.midnight_block_17124 (R := R) (by omega) (by jump_dest) rd

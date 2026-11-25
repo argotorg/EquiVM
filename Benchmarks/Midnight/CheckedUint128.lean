@@ -3,6 +3,8 @@ import Benchmarks.Midnight.PackedUint128
 import Benchmarks.Midnight.PackedFields
 import Benchmarks.Midnight.RuntimeBlocks_075
 
+variable {fork : Ethereum.Fork}
+
 /-! Checked subtraction on canonical uint128 arguments. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,8 +18,8 @@ theorem midnightCheckedSub128 {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {a b ret : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024) (ha : a.toNat < 2^128) (hb : b.toNat < 2^128)
     (hle : b.toNat ≤ a.toNat) (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨19743⟩ (a :: b :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD midnightBytecode I g s0 ret (UInt256.sub a b :: R) mem aw rdata σ k' C' := by
+    (rd : RD fork midnightBytecode I g s0 ⟨19743⟩ (a :: b :: ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork midnightBytecode I g s0 ret (UInt256.sub a b :: R) mem aw rdata σ k' C' := by
   have hc : UInt256.gt (UInt256.sub a b) uint128Mask = ⟨0⟩ := by
     apply ugt_zero
     rw [usub_toNat hle]
@@ -35,8 +37,8 @@ theorem midnightCheckedSub128Revert {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {a b ret : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024) (ha : a.toNat < 2^128) (hb : b.toNat < 2^128)
     (hlt : a.toNat < b.toNat)
-    (rd : RD midnightBytecode I g s0 ⟨19743⟩ (a :: b :: ret :: R) mem aw rdata σ k C) :
-    RDrev midnightBytecode g s0 := by
+    (rd : RD fork midnightBytecode I g s0 ⟨19743⟩ (a :: b :: ret :: R) mem aw rdata σ k C) :
+    RDrev fork midnightBytecode g s0 := by
   have hc : UInt256.gt (UInt256.sub a b) uint128Mask = ⟨1⟩ := by
     apply ugt_one
     rw [usub_toNat_underflow hlt]

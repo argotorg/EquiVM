@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TakeBuyerPendingFinish
 import Benchmarks.Midnight.TakeBuyerDebt
 
+variable {fork : Ethereum.Fork}
+
 /-! All ordered take accounting writes, including the first write's static-mode check. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -14,7 +16,7 @@ theorem midnightTakeWrites {credit : Nat} {I : ExecutionEnv} {g : UInt256} {s0 e
     {aw root market arrayPtr callbackPtr offerRoot takerPtr ratifierPtr id units taker buyer seller
       buyerFee sellerFee bought sold consumed increase decrease buyerDebt sellerDebt saved : UInt256}
     {offer : OfferData} {initialReceiver initialCallback : AccountAddress} {σ : AccountMap} {k C : Nat} {R : List UInt256}
-    (hstack : R.length + 33 ≤ 1024) (hfork : I.fork ≥ .osaka) (hgas : midnightGasBound g)
+    (hstack : R.length + 33 ≤ 1024) (hfork : fork ≥ .osaka) (hgas : midnightGasBound g)
     (hc : OfferCanonical offer)
     (hf : TakeSourceFrame frame offer id units taker initialReceiver initialCallback ratifierData data)
     (hbuyerCanon : buyer.toNat < EVM.addressModulus)
@@ -65,19 +67,19 @@ theorem midnightTakeWrites {credit : Nat} {I : ExecutionEnv} {g : UInt256} {s0 e
     (hconsumed : memLoad (UInt256.ofNat 480) mem = consumed)
     (hunits : calldataWord I.calldata 68 = units)
     (hs : SourceState s0 I σ evm)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨12316⟩
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨12316⟩
       ([positionSlot id buyer, sellerDebt, buyerDebt, positionSlot id seller,
         solcMappingSlot ⟨1⟩ id, decrease, ratifierPtr, increase, saved] ++ R)
       mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (ExecBlock config frame evm (takeTransition.body.drop 46) .staticViolation ∧
-      RDstatic midnightBytecode (Sat256.ofUInt256 g) s0) ∨
-    (ExecBlock config frame evm (takeTransition.body.drop 46) .reverted ∧
-      RDrev midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (ExecBlock fork config frame evm (takeTransition.body.drop 46) .staticViolation ∧
+      RDstatic fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+    (ExecBlock fork config frame evm (takeTransition.body.drop 46) .reverted ∧
+      RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
     ∃ frame' evm',
-      ExecBlock config frame evm (takeTransition.body.drop 46)
+      ExecBlock fork config frame evm (takeTransition.body.drop 46)
         (.returned frame' evm' (some [.int bought.toNat, .int sold.toNat])) ∧
-      RDret midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap
+      RDret fork midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap
         (wordArrayBytes [bought, sold]) := by
   have hi : frame.locals.get? "buyerCreditIncrease" =
       some (.int (takeBuyerCreditIncrease evm id buyer units).toNat) := by

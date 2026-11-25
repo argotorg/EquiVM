@@ -4,6 +4,8 @@ import Benchmarks.Midnight.MemoryAccounting
 import Benchmarks.Midnight.RuntimeBlocks_022
 import Benchmarks.Midnight.RuntimeBlocks_069
 
+variable {fork : Ethereum.Fork}
+
 /-! The three address guards, boolean guard, and saved callback in liquidation's head. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,11 +18,11 @@ theorem midnightLiquidateScalars {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 10 ≤ 1024)
     (ha : MemoryAccounting mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨5029⟩ R mem aw rdata σ k C) :
-    (¬ LiquidateScalarsValid I.calldata ∧ RDrev midnightBytecode g s0) ∨
+    (rd : RD fork midnightBytecode I g s0 ⟨5029⟩ R mem aw rdata σ k C) :
+    (¬ LiquidateScalarsValid I.calldata ∧ RDrev fork midnightBytecode g s0) ∨
     (LiquidateScalarsValid I.calldata ∧ ∃ aw' k' C', C ≤ C' ∧
       MemoryAccounting (writeWord mem 736 (calldataWord I.calldata 228)) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨5095⟩
+      RD fork midnightBytecode I g s0 ⟨5095⟩
         (calldataWord I.calldata 132 :: calldataWord I.calldata 196 ::
           calldataWord I.calldata 164 :: R)
         (writeWord mem 736 (calldataWord I.calldata 228)) aw' rdata σ k' C') := by

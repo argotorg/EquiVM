@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.LiquidateSourceFrame
 import Benchmarks.Midnight.TouchMarketSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Liquidation's source entry and its market and position storage aliases. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -56,7 +58,7 @@ set_option maxHeartbeats 800000 in
 theorem liquidateReadyPrefix (origin evm : State) (m : MarketData)
     (index seized repaid borrower mode : UInt256) (receiver callback : AccountAddress)
     (data : ByteArray) :
-    ABlock config evm
+    ABlock fork config evm
       (liquidateAfterTouchFrame origin m index seized repaid borrower mode receiver callback data)
       (liquidateTransition.body.drop 4)
       (liquidateReadyFrame origin m index seized repaid borrower mode receiver callback data)
@@ -80,12 +82,12 @@ theorem liquidateReadyPrefix (origin evm : State) (m : MarketData)
 theorem liquidateAfterTouchSource {origin evm : State} {m : MarketData}
     {index seized repaid borrower mode : UInt256} {receiver callback : AccountAddress}
     {data : ByteArray} {callee : Frame} {result : ExecResult}
-    (htouch : ExecFuncBody config (touchMarketCallFrame ∅ m) origin touchMarketFunction.body
+    (htouch : ExecFuncBody fork config (touchMarketCallFrame ∅ m) origin touchMarketFunction.body
       (.returned callee evm (some [wordBytes32Value m.id])))
-    (htail : ExecBlock config
+    (htail : ExecBlock fork config
       (liquidateReadyFrame origin m index seized repaid borrower mode receiver callback data) evm
       (liquidateTransition.body.drop 6) result) :
-    ExecBlock config
+    ExecBlock fork config
       (liquidateExternalFrame origin m index seized repaid borrower mode receiver callback data)
       origin (liquidateTransition.body.drop 3) result := by
   apply ExecBlock.consNormal (internalCallFunctionReturn (callee := touchMarketFunction)

@@ -2,6 +2,8 @@ import Benchmarks.Midnight.MulticallEntry
 import Benchmarks.Midnight.PackedWrites
 import Benchmarks.Midnight.RuntimeBlocks_078
 
+variable {fork : Ethereum.Fork}
+
 /-! A checked reference to the calldata array of fixed-size collateral records. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -66,9 +68,9 @@ theorem midnightCollateralArrayReference {I : ExecutionEnv} {g : Sat256} {s0 : S
       (calldataWord I.calldata (base + calldataWord I.calldata field.toNat).toNat).toNat ≤
         I.calldata.size)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨20488⟩ (base :: field :: ret :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨20488⟩ (base :: field :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD midnightBytecode I g s0 ret
+    ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode I g s0 ret
       (calldataWord I.calldata (base + calldataWord I.calldata field.toNat).toNat ::
         (UInt256.ofNat 32 + (base + calldataWord I.calldata field.toNat)) :: R)
       mem aw rdata σ k' C' := by
@@ -98,9 +100,9 @@ theorem midnightCalldataCollateralIndex {I : ExecutionEnv} {g : Sat256} {s0 : St
     {mem rdata : ByteArray} {aw ptr count index ret : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 5 ≤ 1024) (hi : index.toNat < count.toNat)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨20541⟩ (ptr :: count :: index :: ret :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨20541⟩ (ptr :: count :: index :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD midnightBytecode I g s0 ret
+    ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode I g s0 ret
       ((UInt256.shiftLeft index ⟨7⟩ + ptr) :: R) mem aw rdata σ k' C' := by
   have hc : UInt256.isZero (UInt256.lt index count) = ⟨0⟩ := by
     rw [ult_one hi]

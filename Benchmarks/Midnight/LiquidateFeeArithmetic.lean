@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.LiquidateLossTrace
 
+variable {fork : Ethereum.Fork}
+
 /-! The remaining-fee ratio and its checked uint128 conversion. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,12 +18,12 @@ theorem midnightLiquidateFeeArithmetic {I : ExecutionEnv} {g : Sat256} {s0 : Sta
     {R : List UInt256} (hstack : R.length + 12 ≤ 1024)
     (hf : fee.toNat < 2 ^ 128) (hn : newLoss.toNat < 2 ^ 128)
     (ho : (UInt256.shiftRight oldWord ⟨128⟩).toNat < 2 ^ 128 - 1)
-    (rd : RD midnightBytecode I g s0 ⟨7694⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨7694⟩
       (fee :: oldWord :: complement128 newLoss :: R) mem aw rdata σ k C) :
     let remaining := liquidateRemainingFees fee (UInt256.shiftRight oldWord ⟨128⟩) newLoss
-    (2 ^ 128 ≤ remaining.toNat ∧ RDrev midnightBytecode g s0) ∨
+    (2 ^ 128 ≤ remaining.toNat ∧ RDrev fork midnightBytecode g s0) ∨
     (remaining.toNat < 2 ^ 128 ∧ ∃ k' C', C ≤ C' ∧
-      RD midnightBytecode I g s0 ⟨7735⟩ (remaining :: ⟨7768⟩ :: R) mem aw rdata σ k' C') := by
+      RD fork midnightBytecode I g s0 ⟨7735⟩ (remaining :: ⟨7768⟩ :: R) mem aw rdata σ k' C') := by
   dsimp only
   have rd1 := midnightBlocks.midnight_block_7694 (R := R) (by omega) (by jump_dest) rd
   simp only [midnightBlocks.midnight_block_7694_stack, uint128Mask_computed] at rd1

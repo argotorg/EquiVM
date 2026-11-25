@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.SupplySourceFrame
 
+variable {fork : Ethereum.Fork}
+
 /-! Source token lookup, position alias, and initial collateral read. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -47,7 +49,7 @@ theorem supplyTokenValue {frame : Frame} {m : MarketData} {user index assets : U
 theorem supplyPositionBind {frame : Frame} {m : MarketData} {user index assets : UInt256}
     (hf : SupplyTouchSourceFrame frame m user index assets) (evm : EVM.State)
     (token : AccountAddress) :
-    ExecStmt config (supplyTokenFrame frame token) evm (supplyCollateralTransition.body[6]!)
+    ExecStmt fork config (supplyTokenFrame frame token) evm (supplyCollateralTransition.body[6]!)
       (.ok (supplyPositionFrame frame m.id user token) evm) := by
   apply ExecStmt.letStorage
   apply resolvePositionAccount (frame := supplyTokenFrame frame token) "onBehalf"
@@ -61,10 +63,10 @@ theorem supplyReadSource {frame : Frame} {m : MarketData} {evm : EVM.State}
     (hf : SupplyTouchSourceFrame frame m user index assets)
     (hcanon : user.toNat < EVM.addressModulus) (hi : index.toNat < m.collaterals.length)
     (hi128 : index.toNat < 128)
-    (htail : ExecBlock config (supplyReadFrame frame m.id user
+    (htail : ExecBlock fork config (supplyReadFrame frame m.id user
       (collateralWord (EVM.storageLoad evm evm.executionEnv.codeOwner) m.id user index)
       m.collaterals[index.toNat].token) evm (supplyCollateralTransition.body.drop 8) result) :
-    ExecBlock config frame evm (supplyCollateralTransition.body.drop 5) result := by
+    ExecBlock fork config frame evm (supplyCollateralTransition.body.drop 5) result := by
   apply ExecBlock.consNormal (ExecStmt.letDecl (supplyTokenValue hf evm hi))
   apply ExecBlock.consNormal (supplyPositionBind hf evm _)
   apply ExecBlock.consNormal (ExecStmt.letDecl ?_) htail
@@ -77,7 +79,7 @@ theorem supplyReadSource {frame : Frame} {m : MarketData} {evm : EVM.State}
 theorem supplyReadRevert {frame : Frame} {m : MarketData} {evm : EVM.State}
     {user index assets : UInt256} (hf : SupplyTouchSourceFrame frame m user index assets)
     (hbad : ¬ index.toNat < m.collaterals.length ∨ ¬ index.toNat < 128) :
-    ExecBlock config frame evm (supplyCollateralTransition.body.drop 5) .reverted := by
+    ExecBlock fork config frame evm (supplyCollateralTransition.body.drop 5) .reverted := by
   by_cases hi : index.toNat < m.collaterals.length
   · have h128 : ¬ index.toNat < 128 := hbad.resolve_left (not_not.mpr hi)
     apply ExecBlock.consNormal (ExecStmt.letDecl (supplyTokenValue hf evm hi))

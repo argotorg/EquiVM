@@ -2,6 +2,8 @@ import Benchmarks.Midnight.TakeCreditChangesSource
 import Benchmarks.Midnight.ToUint128Source
 import Benchmarks.Midnight.TakeOfferGuardsSource
 
+variable {fork : Ethereum.Fork}
+
 /-! The buyer's pending fee includes two checked products and a checked narrowing cast. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -59,7 +61,7 @@ theorem takeBuyerPendingSource {frame : Frame} {evm : State} {id time increase :
     (ht : frame.locals.get? "timeToMaturity" = some (.int time.toNat))
     (hi : frame.locals.get? "buyerCreditIncrease" = some (.int increase.toNat))
     (hs : TakeBuyerPendingSafe (marketContinuousFee (marketFeeWord evm id)) time increase) :
-    ABlock config evm frame (takeTransition.body.drop 38)
+    ABlock fork config evm frame (takeTransition.body.drop 38)
       (takeBuyerPendingFrame frame (marketContinuousFee (marketFeeWord evm id)) time increase)
       (takeTransition.body.drop 40) := by
   rw [takeBuyerPending_shape]
@@ -77,7 +79,7 @@ theorem takeBuyerPendingSourceRevert {frame : Frame} {evm : State} {id time incr
     (ht : frame.locals.get? "timeToMaturity" = some (.int time.toNat))
     (hi : frame.locals.get? "buyerCreditIncrease" = some (.int increase.toNat))
     (hs : ¬ TakeBuyerPendingSafe (marketContinuousFee (marketFeeWord evm id)) time increase) :
-    ExecBlock config frame evm (takeTransition.body.drop 38) .reverted := by
+    ExecBlock fork config frame evm (takeTransition.body.drop 38) .reverted := by
   rw [takeBuyerPending_shape]
   by_cases hfit : (marketContinuousFee (marketFeeWord evm id)).toNat * time.toNat < UInt256.size
   · have hargs := evalTakeBuyerPendingArgs hm ht hi hfit

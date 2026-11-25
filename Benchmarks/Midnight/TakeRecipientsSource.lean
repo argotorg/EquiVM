@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.OfferSourceValues
 
+variable {fork : Ethereum.Fork}
+
 /-! Callback, payer, and receiver selection after the trade's accounting writes. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -138,7 +140,7 @@ theorem takeRecipientsSource {frame : Frame} {evm : State} {offer : OfferData}
     (ht : frame.locals.get? "takerCallback" = some (.address callback))
     (hb : frame.locals.get? "buyer" = some (.address buyer))
     (hr : frame.locals.get? "receiverIfTakerIsSeller" = some (.address receiver)) :
-    ABlock config evm frame (takeTransition.body.drop 60)
+    ABlock fork config evm frame (takeTransition.body.drop 60)
       (takeRecipientsFrame frame offer callback buyer evm.executionEnv.source receiver)
       (takeTransition.body.drop 64) := by
   have ho1 := (store_get_ne frame.locals (.address (takeBuyerCallback offer callback))

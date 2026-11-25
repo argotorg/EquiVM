@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.TakeSpread
 
+variable {fork : Ethereum.Fork}
+
 /-! Source checked arithmetic for the seller and buyer prices. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -68,7 +70,7 @@ theorem takeSpreadSource {frame : Frame} {evm : State} {offer : OfferData} {pric
     (hp : frame.locals.get? "offerPrice" = some (.int price.toNat))
     (hf : frame.locals.get? "_settlementFee" = some (.int fee.toNat))
     (hs : TakeSpreadSafe offer.buy price fee) :
-    ABlock config evm frame (takeTransition.body.drop 20)
+    ABlock fork config evm frame (takeTransition.body.drop 20)
       (takeSpreadFrame frame offer.buy price fee) (takeTransition.body.drop 22) := by
   rw [takeSpread_shape]
   have hf1 : (takeSellerFrame frame offer.buy price fee).locals.get? "_settlementFee" =
@@ -83,7 +85,7 @@ theorem takeSpreadSourceRevert {frame : Frame} {evm : State} {offer : OfferData}
     (hp : frame.locals.get? "offerPrice" = some (.int price.toNat))
     (hf : frame.locals.get? "_settlementFee" = some (.int fee.toNat))
     (hs : ¬ TakeSpreadSafe offer.buy price fee) :
-    ExecBlock config frame evm (takeTransition.body.drop 20) .reverted := by
+    ExecBlock fork config frame evm (takeTransition.body.drop 20) .reverted := by
   rw [takeSpread_shape]
   by_cases hsub : offer.buy ≠ ⟨0⟩ → fee.toNat ≤ price.toNat
   · have hadd : UInt256.size ≤ (takeSellerPrice offer.buy price fee).toNat + fee.toNat := by

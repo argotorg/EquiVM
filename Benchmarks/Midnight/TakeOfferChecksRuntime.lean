@@ -2,6 +2,8 @@ import Benchmarks.Midnight.TakeOfferChecksSource
 import Benchmarks.Midnight.TakeRatifierAuthorization
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 /-! The offer guards share the same memory and source state. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -21,12 +23,12 @@ theorem midnightTakeOfferChecksRuntime {credit : Nat} {I : ExecutionEnv} {g : Sa
     (hreceiver : memLoad (UInt256.ofNat 288) mem = UInt256.ofNat receiver.val)
     (hloss : (marketLossWord evm id).toNat < 2^128 - 1)
     (hs : SourceState s0 I σ evm) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨11009⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨11009⟩
       (ratifierPtr :: solcMappingSlot ⟨1⟩ id :: R) mem aw rdata σ k C) :
-    (¬ TakeOfferChecks evm offer id taker receiver ∧ RDrev midnightBytecode g s0) ∨
+    (¬ TakeOfferChecks evm offer id taker receiver ∧ RDrev fork midnightBytecode g s0) ∨
     (TakeOfferChecks evm offer id taker receiver ∧
       ∃ aw' k' C', MemoryFunding credit mem aw' C' ∧
-        RD midnightBytecode I g s0 ⟨11209⟩
+        RD fork midnightBytecode I g s0 ⟨11209⟩
           (ratifierPtr :: solcMappingSlot ⟨1⟩ id :: R) mem aw' rdata σ k' C') := by
   rcases midnightTakeCapsGuard (by simp only [List.length_cons]; omega)
       ho hc hoffer ha rd with ⟨hbad, hr⟩ | ⟨hcap, aw1, k1, C1, ha1, rd1⟩

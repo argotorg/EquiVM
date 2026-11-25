@@ -4,6 +4,8 @@ import Benchmarks.Midnight.PositionUpdateMemory
 import Benchmarks.Midnight.CollateralStorage
 import Benchmarks.Midnight.AddressDecode
 
+variable {fork : Ethereum.Fork}
+
 /-! Bounds checks, token lookup, and the initial packed collateral read. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -38,21 +40,21 @@ theorem midnightWithdrawCollateralRead {I : ExecutionEnv} {g : Sat256} {s0 : Sta
     (hz800 : memLoad (UInt256.ofNat 800) mem = ⟨0⟩)
     (hm : MarketStored mem market array limit m)
     (hb : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨4472⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨4472⟩
       ([id, user, UInt256.ofNat 4643, user, index, receiver, assets, market] ++ R) mem aw rdata σ k C) :
     ((¬ index.toNat < m.collaterals.length ∨ ¬ index.toNat < 128) ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     (∃ hi : index.toNat < m.collaterals.length, index.toNat < 128 ∧
       ∃ aw' k' C',
         TransferBudget root credit (positionReadMemory mem id user) aw' C' ∧
-        RD midnightBytecode I g s0 ⟨19447⟩
+        RD fork midnightBytecode I g s0 ⟨19447⟩
           ([collateralWord (fun slot ↦ solcSlotWordAt slot σ I) id user index,
             assets, UInt256.ofNat 4573, UInt256.ofNat 4624,
             positionSlot id user + UInt256.ofNat 3, index, positionSlot id user,
             market, id, user, UInt256.ofNat 4643, user,
             UInt256.ofNat m.collaterals[index.toNat].token.val, receiver, assets, id] ++ R)
           (positionReadMemory mem id user) aw' rdata σ k' C') := by
-  change RD midnightBytecode I g s0 ⟨4472⟩
+  change RD fork midnightBytecode I g s0 ⟨4472⟩
     (id :: user :: UInt256.ofNat 4643 :: user :: index :: receiver :: assets :: market :: R) mem aw rdata σ k C at rd
   have rd1 := midnightBlocks.midnight_block_4472 (R := R)
     (by omega) (by jump_dest) rd

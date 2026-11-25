@@ -2,6 +2,8 @@ import Benchmarks.Midnight.CollateralBlocksGas
 import Benchmarks.Midnight.TransferBudget
 import Benchmarks.Midnight.RuntimeBlocks_085
 
+variable {fork : Ethereum.Fork}
+
 /-! Position-update read blocks retain the caller's memory funding. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -29,13 +31,13 @@ theorem position_block_22775_taken_budget {ee : ExecutionEnv} {g : Sat256} {s0 :
       (UInt256.ofNat 128)) (UInt256.ofNat 1)))) ≠ (UInt256.ofNat 0))
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 23108) = true)
     (hb : TransferBudget budgetRoot credit mem aw C)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 22775) (x0 :: x1 :: x2 :: x3
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 22775) (x0 :: x1 :: x2 :: x3
       :: R) mem aw rdata σ k C)
     : ∃ (k' C' : ℕ), TransferBudget budgetRoot credit (midnight_block_22775_taken_memory (mem :=
       mem) (x1 := x1) (x2 := x2)) (M (M (M (M (M (M aw (⟨0⟩ : UInt256) (⟨32⟩ : UInt256))
       (UInt256.ofNat 32) (⟨32⟩ : UInt256)) (⟨0⟩ : UInt256) (UInt256.ofNat 64)) (⟨0⟩ : UInt256) (⟨32⟩
       : UInt256)) (UInt256.ofNat 32) (⟨32⟩ : UInt256)) (⟨0⟩ : UInt256) (UInt256.ofNat 64)) C' ∧
-      RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 23108)
+      RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 23108)
         (midnight_block_22775_taken_stack (ee := ee) (mem := mem) (σ := σ) (x0 := x0) (x1 := x1) (x2
         := x2) (x3 := x3) (R := R)) (midnight_block_22775_taken_memory (mem := mem) (x1 := x1) (x2
         := x2)) (M (M (M (M (M (M aw (⟨0⟩ : UInt256) (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ :
@@ -140,13 +142,13 @@ theorem position_block_22775_fallthrough_budget {ee : ExecutionEnv} {g : Sat256}
       (UInt256.ofNat 128)) (UInt256.ofNat 1))) (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1)
       (UInt256.ofNat 128)) (UInt256.ofNat 1)))) = (UInt256.ofNat 0))
     (hb : TransferBudget budgetRoot credit mem aw C)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 22775) (x0 :: x1 :: x2 :: x3
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 22775) (x0 :: x1 :: x2 :: x3
       :: R) mem aw rdata σ k C)
     : ∃ (k' C' : ℕ), TransferBudget budgetRoot credit (midnight_block_22775_fallthrough_memory (mem
       := mem) (x1 := x1) (x2 := x2)) (M (M (M (M (M (M aw (⟨0⟩ : UInt256) (⟨32⟩ : UInt256))
       (UInt256.ofNat 32) (⟨32⟩ : UInt256)) (⟨0⟩ : UInt256) (UInt256.ofNat 64)) (⟨0⟩ : UInt256) (⟨32⟩
       : UInt256)) (UInt256.ofNat 32) (⟨32⟩ : UInt256)) (⟨0⟩ : UInt256) (UInt256.ofNat 64)) C' ∧
-      RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 22854)
+      RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 22854)
         (midnight_block_22775_fallthrough_stack (ee := ee) (mem := mem) (σ := σ) (x0 := x0) (x1 :=
         x1) (x2 := x2) (x3 := x3) (R := R)) (midnight_block_22775_fallthrough_memory (mem := mem)
         (x1 := x1) (x2 := x2)) (M (M (M (M (M (M aw (⟨0⟩ : UInt256) (⟨32⟩ : UInt256)) (UInt256.ofNat
@@ -247,12 +249,12 @@ theorem position_block_22854_fallthrough_budget {ee : ExecutionEnv} {g : Sat256}
       (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128)) (UInt256.ofNat 1))) = (UInt256.ofNat
       0))
     (hb : TransferBudget budgetRoot credit mem aw C)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 22854) (x0 :: x1 :: x2 :: x3
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 22854) (x0 :: x1 :: x2 :: x3
       :: R) mem aw rdata σ k C)
     : ∃ (k' C' : ℕ), TransferBudget budgetRoot credit (midnight_block_22854_fallthrough_memory (mem
       := mem) (x0 := x0)) (M (M (M aw (⟨0⟩ : UInt256) (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ :
       UInt256)) (⟨0⟩ : UInt256) (UInt256.ofNat 64)) C' ∧
-      RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 22893)
+      RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 22893)
         (midnight_block_22854_fallthrough_stack (ee := ee) (mem := mem) (σ := σ) (x0 := x0) (x1 :=
         x1) (x2 := x2) (x3 := x3) (R := R)) (midnight_block_22854_fallthrough_memory (mem := mem)
         (x0 := x0)) (M (M (M aw (⟨0⟩ : UInt256) (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ :

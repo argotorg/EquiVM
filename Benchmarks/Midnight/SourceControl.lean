@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.InternalCall
 
+variable {fork : Ethereum.Fork}
+
 /-! Compositional source steps used by branching internal functions. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -11,7 +13,7 @@ theorem execLocalAssign {cfg : Config} {frame : Frame} {evm : EVM.State}
     {name : Ident} {old value : Value} {expr : Expr}
     (hget : frame.locals.get? name = some old)
     (heval : evalExpr? cfg frame evm expr = .ok value) :
-    ExecStmt cfg frame evm (.assign .localVar { base := name } expr)
+    ExecStmt fork cfg frame evm (.assign .localVar { base := name } expr)
       (.ok { frame with locals := frame.locals.insert name value } evm) := by
   apply ExecStmt.assign (Or.inl rfl) heval
   simp only [assignStorageRef?, hget, updateLocalPath?, bind, pure, EvalResult.bind]
@@ -37,8 +39,8 @@ theorem evalLocalGeNat {cfg : Config} {frame : Frame} {evm : EVM.State}
 theorem execElseIf {cfg : Config} {frame frame' : Frame} {evm evm' : EVM.State}
     {cond : Expr} {thenBody : List Stmt} {nested : Stmt}
     (heval : evalExpr? cfg frame evm cond = .ok (.bool false))
-    (hbody : ExecStmt cfg frame evm nested (.ok frame' evm')) :
-    ExecStmt cfg frame evm (.ite cond thenBody [nested]) (.ok frame' evm') :=
+    (hbody : ExecStmt fork cfg frame evm nested (.ok frame' evm')) :
+    ExecStmt fork cfg frame evm (.ite cond thenBody [nested]) (.ok frame' evm') :=
   ExecStmt.iteFalse heval (ExecBlock.consNormal hbody ExecBlock.nil)
 
 end Benchmarks.Midnight

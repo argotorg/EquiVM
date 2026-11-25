@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.MarketEncodeMemory
 import Benchmarks.Midnight.CollateralEncodeFunding
 
+variable {fork : Ethereum.Fork}
+
 /-! Complete market encoding with explicit payment for its memory. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -22,9 +24,9 @@ theorem midnightMarketEncoder_funded {credit : Nat} {I : ExecutionEnv} {g : Sat2
     (hout : output.toNat + 288 + 128 * m.collaterals.length < UInt256.size)
     (hret : (D_J midnightBytecode 0).contains ret = true)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨19181⟩ (ptr :: output :: ret :: R) mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨19181⟩ (ptr :: output :: ret :: R) mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding (credit + 128 * m.collaterals.length) (marketEncodeMemory mem output.toNat m) aw' C' ∧
-      RD midnightBytecode I g s0 ret
+      RD fork midnightBytecode I g s0 ret
       ((output + UInt256.ofNat (288 + 128 * m.collaterals.length)) :: R)
       (marketEncodeMemory mem output.toNat m) aw' rdata σ k' C' := by
   obtain ⟨aw1, k1, C1, ha1, rd1⟩ := midnightMarketEncodeStart_funded m

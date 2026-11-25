@@ -3,6 +3,8 @@ import Benchmarks.Midnight.PositionUpdateCall
 import Benchmarks.Midnight.MarketHeapAccess
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 /-! A position-update call preserves source state, allocated memory, and memory funding. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -36,20 +38,20 @@ theorem midnightPositionUpdateCall {credit : Nat} {I : ExecutionEnv} {g : Sat256
     (hfree : memLoad (UInt256.ofNat 64) mem = root)
     (hret : (D_J midnightBytecode 0).contains ret = true)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨23599⟩ (ptr :: id :: user :: ret :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨23599⟩ (ptr :: id :: user :: ret :: R)
       mem aw rdata evm.accountMap k C) :
-    (ExecStmt config frame evm (.internalCall "_updatePosition" args name) .reverted ∧
-      RDrev midnightBytecode g s0) ∨
-    (ExecStmt config frame evm (.internalCall "_updatePosition" args name) .staticViolation ∧
-      RDstatic midnightBytecode g s0) ∨
+    (ExecStmt fork config frame evm (.internalCall "_updatePosition" args name) .reverted ∧
+      RDrev fork midnightBytecode g s0) ∨
+    (ExecStmt fork config frame evm (.internalCall "_updatePosition" args name) .staticViolation ∧
+      RDstatic fork midnightBytecode g s0) ∨
     (let evm' := positionUpdateFinalState evm m id user
      let mem' := positionUpdateLogMemory mem root evm m id user
-     ExecStmt config frame evm (.internalCall "_updatePosition" args name)
+     ExecStmt fork config frame evm (.internalCall "_updatePosition" args name)
        (.ok (positionUpdateCallerFrame frame evm m id user name) evm') ∧
      SourceState s0 I evm'.accountMap evm' ∧ MemoryPrefix mem mem' root.toNat ∧
      memLoad (UInt256.ofNat 64) mem' = root ∧
      ∃ aw' k' C', MemoryFunding credit mem' aw' C' ∧
-       RD midnightBytecode I g s0 ret
+       RD fork midnightBytecode I g s0 ret
          (positionViewFee evm m id user :: positionNewPending evm m id user ::
            positionNewCredit evm m id user :: R) mem' aw' rdata evm'.accountMap k' C') := by
   have hoff : (ptr + UInt256.ofNat 128).toNat = ptr.toNat + 128 :=

@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.TakeCommit
 
+variable {fork : Ethereum.Fork}
+
 /-! The market total-units write followed by all remaining take steps. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -13,7 +15,7 @@ theorem midnightTakeMarketFinish {credit : Nat} {I : ExecutionEnv} {g : UInt256}
     {aw root market arrayPtr callbackPtr offerRoot takerPtr ratifierPtr id units taker buyer seller
       buyerFee sellerFee bought sold consumed increase decrease saved : UInt256}
     {offer : OfferData} {initialReceiver initialCallback : AccountAddress} {σ : AccountMap} {k C : Nat} {R : List UInt256}
-    (hstack : R.length + 33 ≤ 1024) (hfork : I.fork ≥ .osaka) (hgas : midnightGasBound g)
+    (hstack : R.length + 33 ≤ 1024) (hfork : fork ≥ .osaka) (hgas : midnightGasBound g)
     (hc : OfferCanonical offer)
     (hf : TakeSourceFrame frame offer id units taker initialReceiver initialCallback ratifierData data)
     (hbuyerCanon : buyer.toNat < EVM.addressModulus)
@@ -58,17 +60,17 @@ theorem midnightTakeMarketFinish {credit : Nat} {I : ExecutionEnv} {g : UInt256}
     (hconsumed : memLoad (UInt256.ofNat 480) mem = consumed)
     (hunits : calldataWord I.calldata 68 = units)
     (hs : SourceState s0 I σ evm)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨19536⟩
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨19536⟩
       ([marketBalanceWord evm id 0, increase, ⟨12561⟩, decrease, ⟨4204⟩, ⟨12566⟩,
         uint128Mask, solcMappingSlot ⟨1⟩ id, decrease, ratifierPtr, increase, saved] ++ R)
       mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (ExecBlock config frame evm (takeTransition.body.drop 56) .reverted ∧
-      RDrev midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (ExecBlock fork config frame evm (takeTransition.body.drop 56) .reverted ∧
+      RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
     ∃ frame' evm',
-      ExecBlock config frame evm (takeTransition.body.drop 56)
+      ExecBlock fork config frame evm (takeTransition.body.drop 56)
         (.returned frame' evm' (some [.int bought.toNat, .int sold.toNat])) ∧
-      RDret midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap
+      RDret fork midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap
         (wordArrayBytes [bought, sold]) := by
   rcases midnightTakeMarketTotal (R := [decrease, ratifierPtr, increase, saved] ++ R)
       (by simp only [List.length_append, List.length_cons, List.length_nil]; omega)

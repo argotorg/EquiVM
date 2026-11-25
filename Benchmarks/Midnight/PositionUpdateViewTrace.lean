@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.PositionViewTrace
 import Benchmarks.Midnight.PositionUpdateDecrease
 
+variable {fork : Ethereum.Fork}
+
 /-! The internal position update's call to the position-view routine. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,7 +18,7 @@ theorem midnightPositionUpdateView {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hlo : 64 ≤ (ptr + UInt256.ofNat 128).toNat)
     (hhi : (ptr + UInt256.ofNat 128).toNat + 32 ≤ mem.size)
     (hmaturity : memLoad (ptr + UInt256.ofNat 128) mem = maturity)
-    (rd : RD midnightBytecode I g s0 ⟨23599⟩ (ptr :: id :: user :: ret :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨23599⟩ (ptr :: id :: user :: ret :: R)
       mem aw rdata σ k C) :
     let w0 := solcSlotWordAt (positionSlot id user) σ I
     let w1 := solcSlotWordAt (positionSlot id user + ⟨1⟩) σ I
@@ -29,9 +31,9 @@ theorem midnightPositionUpdateView {I : ExecutionEnv} {g : Sat256} {s0 : State}
     let pc := slashCredit credit lastLoss loss
     let pp := slashPending credit pending pc
     let fee := positionAccruedFee pp lastAccrual maturity time
-    (¬ PositionViewSafe credit pending lastLoss loss lastAccrual maturity time ∧ RDrev midnightBytecode g s0) ∨
+    (¬ PositionViewSafe credit pending lastLoss loss lastAccrual maturity time ∧ RDrev fork midnightBytecode g s0) ∨
     (PositionViewSafe credit pending lastLoss loss lastAccrual maturity time ∧ ∃ aw' k' C',
-      RD midnightBytecode I g s0 ⟨23680⟩
+      RD fork midnightBytecode I g s0 ⟨23680⟩
         ([fee, UInt256.sub (low128 pp) fee, UInt256.sub (low128 pc) fee,
           updatePositionTopic, id, positionSlot id user, solcAddrMask, ret, ⟨96⟩, user] ++ R)
         (positionSlashMemory (positionReadMemory mem id user) id user lastLoss) aw' rdata σ k' C') := by

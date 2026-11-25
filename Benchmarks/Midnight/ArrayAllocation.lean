@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.AllocationArithmetic
 
+variable {fork : Ethereum.Fork}
+
 /-! Length checking and allocation arithmetic for arrays of memory pointers. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -48,8 +50,8 @@ theorem pointerArrayAllocation_end {ptr : UInt256} {n : Nat}
 theorem midnightPointerArrayLengthTooLarge {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw len : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hlarge : 2^64 ≤ len.toNat) (hstack : R.length + 4 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 ⟨18477⟩ (len :: R) mem aw rdata σ k C) :
-    RDrev midnightBytecode g s0 := by
+    (rd : RD fork midnightBytecode I g s0 ⟨18477⟩ (len :: R) mem aw rdata σ k C) :
+    RDrev fork midnightBytecode g s0 := by
   have hg : UInt256.gt len
       (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 64))
         (UInt256.ofNat 1)) = ⟨1⟩ := by
@@ -65,8 +67,8 @@ theorem midnightPointerArraySize {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {R : List UInt256}
     (hsmall : len.toNat < 2^64) (hstack : R.length + 5 ≤ 1024)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨18477⟩ (len :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD midnightBytecode I g s0 ret
+    (rd : RD fork midnightBytecode I g s0 ⟨18477⟩ (len :: ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork midnightBytecode I g s0 ret
       (UInt256.ofNat (pointerArrayAllocation len.toNat) :: R) mem aw rdata σ k' C' := by
   have hg : UInt256.gt len
       (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 64))

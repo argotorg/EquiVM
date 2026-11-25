@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.Create2Step
 
+variable {fork : Ethereum.Fork}
+
 /-! Reachability and source execution advance together across CREATE2. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -10,19 +12,19 @@ namespace Benchmarks.Midnight
 theorem zeroValueCreate2Bridge {cfg : Config} {name : Ident} {args : List Value}
     {code I g s0 pc R mem aw rdata σ k C evm} {offset size salt : UInt256}
     {initCode : ByteArray}
-    (rd : RD code I g s0 pc (⟨0⟩ :: offset :: size :: salt :: R) mem aw rdata σ k C)
+    (rd : RD fork code I g s0 pc (⟨0⟩ :: offset :: size :: salt :: R) mem aw rdata σ k C)
     (hs : SourceState s0 I σ evm)
     (hdec : decode code pc = some (.CREATE2, .none))
     (hperm : I.perm = true)
     (hcode : cfg.creationCode name args = some initCode)
     (hinit : mem.readWithPadding offset.toNat size.toNat = initCode)
     (hstack : R.length + 1 ≤ 1024) :
-    X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨
+    X fork (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨
     ∃ (evm' : State) (σ' : AccountMap) (addr : AccountAddress) (z : Bool)
       (out : ByteArray) (aw' : UInt256) (k' C' : Nat),
-      newViaEVM cfg evm name 0 args (some (Ethereum.UInt256.toByteArray salt)) (addr, evm', z) ∧
+      newViaEVM fork cfg evm name 0 args (some (Ethereum.UInt256.toByteArray salt)) (addr, evm', z) ∧
       SourceState s0 I σ' evm' ∧
-      RD code I g s0 (pc + ⟨1⟩) ((if z then UInt256.ofNat addr.val else ⟨0⟩) :: R)
+      RD fork code I g s0 (pc + ⟨1⟩) ((if z then UInt256.ofNat addr.val else ⟨0⟩) :: R)
         mem aw' out σ' k' C' := by
   rcases rd with hoog | ⟨s, hX, hc, hp, hstk, hg, hk, hC, hm, ha, hr, hσ, hI, hσ₀⟩
   · exact Or.inl hoog
@@ -54,8 +56,8 @@ theorem zeroValueCreate2Bridge {cfg : Config} {name : Ident} {args : List Value}
     have hpeel := X_peel (P := False) (f := g.toNat - k)
       (by simpa only [if_false] using hstep)
     rw [hc] at hpeel
-    have hX' : X (g.toNat + 1) (D_J code 0) s0 =
-        X (g.toNat + 1 - (k + 1)) (D_J code 0) s' := by
+    have hX' : X fork (g.toNat + 1) (D_J code 0) s0 =
+        X fork (g.toNat + 1 - (k + 1)) (D_J code 0) s' := by
       have hn : g.toNat + 1 - (k + 1) = g.toNat - k := by omega
       rw [hn]
       exact hX.trans (hfuel.symm ▸ (by simpa only [if_false] using hpeel))

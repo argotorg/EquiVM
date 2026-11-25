@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.MulticallMemory
 import Benchmarks.Midnight.RuntimeBlocks_017
 
+variable {fork : Ethereum.Fork}
+
 /-! The shared return-data decoder and the multicall success guard. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,16 +18,16 @@ theorem midnightMulticallReturn {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hfree : memLoad (UInt256.ofNat 64) mem = root)
     (hfit : out.size < 2^64 → out.size ≠ 0 →
       root.toNat + returnDataAllocation out.size < 2^64)
-    (rd : RD midnightBytecode I g s0 ⟨3693⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨3693⟩
       ((if success then ⟨1⟩ else ⟨0⟩) :: R) mem aw out σ k C) :
-    ((success = false ∨ 2^64 ≤ out.size) ∧ RDrev midnightBytecode g s0) ∨
+    ((success = false ∨ 2^64 ≤ out.size) ∧ RDrev fork midnightBytecode g s0) ∨
     (success = true ∧ out.size < 2^64 ∧
       MemoryPrefix mem (safeTransferOutputMem mem out root) root.toNat ∧
       memLoad (UInt256.ofNat 64) (safeTransferOutputMem mem out root) =
         safeTransferOutputPtr root out ∧
       ∃ aw' k' C', MemoryCharge (3 * ((out.size + 31) / 32)) aw aw' C C' ∧
         (MemoryCovered mem aw → MemoryCovered (safeTransferOutputMem mem out root) aw') ∧
-        RD midnightBytecode I g s0 ⟨3707⟩
+        RD fork midnightBytecode I g s0 ⟨3707⟩
           ((if out.size = 0 then UInt256.ofNat 96 else root) :: R)
           (safeTransferOutputMem mem out root) aw' out σ k' C') := by
   have rd1 := midnightBlocks.midnight_block_3693

@@ -2,6 +2,8 @@ import Benchmarks.Midnight.FlashLoanSource
 import Benchmarks.Midnight.CollateralSourceFrame
 import Benchmarks.Midnight.SafeTransferSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Source loop conditions, array arguments, and index updates for flash loans. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -46,9 +48,9 @@ theorem flashLoanSetIndex_get (frame : Frame) (i : Nat) :
 
 theorem flashLoanLoopStatement (isFrom : Bool) {frame : Frame} {evm : State}
     {result : ExecResult}
-    (h : ExecForLoop config (flashLoanSetIndex frame 0) evm flashLoanLoopCondition
+    (h : ExecForLoop fork config (flashLoanSetIndex frame 0) evm flashLoanLoopCondition
       flashLoanLoopPost (flashLoanLoopBody isFrom) result) :
-    ExecStmt config frame evm flashLoanTransition.body[if isFrom then 8 else 5]! result := by
+    ExecStmt fork config frame evm flashLoanTransition.body[if isFrom then 8 else 5]! result := by
   rw [flashLoanLoop_shape]
   apply ExecStmt.for (ExecBlock.consNormal (ExecStmt.letDecl ?_) ExecBlock.nil) h
   simp [evalExpr?, pure, Int.ofNat_eq_natCast]
@@ -64,7 +66,7 @@ theorem flashLoanLoopCondition_eval {frame : Frame} {evm : EVM.State}
 
 theorem flashLoanLoopPost_exec {frame : Frame} {evm : EVM.State} {i : Nat}
     (hi : frame.locals.get? "i" = some (.int (Int.ofNat i))) (hb : i + 1 < UInt256.size) :
-    ExecBlock config frame evm flashLoanLoopPost (.ok (flashLoanSetIndex frame (i + 1)) evm) := by
+    ExecBlock fork config frame evm flashLoanLoopPost (.ok (flashLoanSetIndex frame (i + 1)) evm) := by
   apply ExecBlock.consNormal (execLocalAssign hi ?_) ExecBlock.nil
   have hin : (UInt256.ofNat i).toNat = i := ulit_toNat' _ (by omega)
   have he := checkedAddSourceOk (cfg := config) (stele := frame) (evm := evm)

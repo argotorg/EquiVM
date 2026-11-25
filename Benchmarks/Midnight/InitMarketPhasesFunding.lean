@@ -2,6 +2,8 @@ import Benchmarks.Midnight.InitMarketStorageTrace
 import Benchmarks.Midnight.InitMarketStorageFundingBlocks
 import Benchmarks.Midnight.AllocationFunding
 
+variable {fork : Ethereum.Fork}
+
 /-! Funded summaries for the fresh-market initialization phases. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,11 +19,11 @@ theorem midnightInitMarketTick_funded {credit : Nat} {evm : EVM.State} {g : Sat2
     (hfree : memLoad (UInt256.ofNat 64) mem = root)
     (hperm : evm.executionEnv.perm = true)
     (hfund : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode evm.executionEnv g s0 ⟨21130⟩
+    (rd : RD fork midnightBytecode evm.executionEnv g s0 ⟨21130⟩
       (arrayPtr :: previous :: ret :: ptr :: (ptr + UInt256.ofNat 96) :: id :: count :: R)
       mem aw rdata evm.accountMap k C) :
     ∃ aw' k' C', MemoryFunding credit (writeWord (initMarketScratch mem id m.loanToken) root.toNat
-        (settlementFeeWord (initMarketDefaultWord evm id m.loanToken) 0)) aw' C' ∧ RD midnightBytecode evm.executionEnv g s0 ⟨21213⟩
+        (settlementFeeWord (initMarketDefaultWord evm id m.loanToken) 0)) aw' C' ∧ RD fork midnightBytecode evm.executionEnv g s0 ⟨21213⟩
       (initMarketDefaultWord evm id m.loanToken :: (root + UInt256.ofNat 32) :: root ::
         initMarketDefaultWord evm id m.loanToken :: (ptr + UInt256.ofNat 64) ::
         (solcMappingSlot ⟨1⟩ id + ⟨2⟩) :: ptr :: id :: ret :: R)
@@ -85,10 +87,10 @@ theorem midnightInitMarketFeeCopy_funded {credit : Nat} {I : ExecutionEnv} {g : 
     (hb : root.toNat + 224 < 2^64)
     (hfund : MemoryFunding credit
       (writeWord mem root.toNat (settlementFeeWord word 0)) aw C)
-    (rd : RD midnightBytecode I g s0 ⟨21213⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨21213⟩
       (word :: (root + UInt256.ofNat 32) :: root :: word :: R)
       (writeWord mem root.toNat (settlementFeeWord word 0)) aw rdata σ k C) :
-    ∃ aw' k' C', MemoryFunding credit (initMarketFeeMemory mem root word) aw' C' ∧ RD midnightBytecode I g s0 ⟨21305⟩
+    ∃ aw' k' C', MemoryFunding credit (initMarketFeeMemory mem root word) aw' C' ∧ RD fork midnightBytecode I g s0 ⟨21305⟩
       (root :: (root + UInt256.ofNat 32) :: (root + UInt256.ofNat 64) ::
         (root + UInt256.ofNat 96) :: (root + UInt256.ofNat 128) ::
         (root + UInt256.ofNat 160) :: (root + UInt256.ofNat 192) :: R)
@@ -127,12 +129,12 @@ theorem midnightInitMarketFirstFees_funded {credit : Nat} {I : ExecutionEnv} {g 
     {R : List UInt256} (hstack : R.length + 11 ≤ 1024) (hperm : I.perm = true)
     (hw : MemoryWords mem root.toNat (initMarketSettlementFeeWords word))
     (hfund : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨21305⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨21305⟩
       (root :: (root + UInt256.ofNat 32) :: (root + UInt256.ofNat 64) ::
         (root + UInt256.ofNat 96) :: (root + UInt256.ofNat 128) ::
         (root + UInt256.ofNat 160) :: (root + UInt256.ofNat 192) :: tokenPtr ::
         (solcMappingSlot ⟨1⟩ id + ⟨2⟩) :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', MemoryFunding credit mem aw' C' ∧ RD midnightBytecode I g s0 ⟨21420⟩
+    ∃ aw' k' C', MemoryFunding credit mem aw' C' ∧ RD fork midnightBytecode I g s0 ⟨21420⟩
       (UInt256.land (UInt256.lnot (UInt256.ofNat 1208907372870555465154560))
         (solcSlotWordAt (solcMappingSlot ⟨1⟩ id + ⟨2⟩)
           (initSettlementAccounts σ I id word 4) I) :: settlementFeeWord word 4 ::
@@ -176,7 +178,7 @@ theorem midnightInitMarketLastFees_funded {credit : Nat} {I : ExecutionEnv} {g :
     (hw : MemoryWords mem root.toNat (initMarketSettlementFeeWords word))
     (htoken : memLoad tokenPtr mem = UInt256.ofNat token.val)
     (hfund : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨21420⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨21420⟩
       (UInt256.land (UInt256.lnot (UInt256.ofNat 1208907372870555465154560))
         (solcSlotWordAt (solcMappingSlot ⟨1⟩ id + ⟨2⟩)
           (initSettlementAccounts σ I id word 4) I) :: settlementFeeWord word 4 ::
@@ -184,7 +186,7 @@ theorem midnightInitMarketLastFees_funded {credit : Nat} {I : ExecutionEnv} {g :
         (solcMappingSlot ⟨1⟩ id + ⟨2⟩) :: R)
       mem aw rdata (initSettlementAccounts σ I id word 4) k C) :
     ∃ aw' k' C', MemoryFunding credit
-      (twoWordHashMem (UInt256.ofNat token.val) (UInt256.ofNat 5) mem) aw' C' ∧ RD midnightBytecode I g s0 ⟨21514⟩
+      (twoWordHashMem (UInt256.ofNat token.val) (UInt256.ofNat 5) mem) aw' C' ∧ RD fork midnightBytecode I g s0 ⟨21514⟩
       (⟨0⟩ :: (solcMappingSlot ⟨1⟩ id + ⟨2⟩) :: R)
       (twoWordHashMem (UInt256.ofNat token.val) (UInt256.ofNat 5) mem)
       aw' rdata (initSettlementAccounts σ I id word 7) k' C' := by
@@ -221,12 +223,12 @@ theorem midnightInitMarketContinuous_funded {credit : Nat} {evm : EVM.State} {g 
     (hmem : 64 ≤ mem.size) (hperm : evm.executionEnv.perm = true)
     (hfund : MemoryFunding credit
       (twoWordHashMem (UInt256.ofNat token.val) (UInt256.ofNat 5) mem) aw C)
-    (rd : RD midnightBytecode evm.executionEnv g s0 ⟨21514⟩
+    (rd : RD fork midnightBytecode evm.executionEnv g s0 ⟨21514⟩
       (⟨0⟩ :: (solcMappingSlot ⟨1⟩ id + ⟨2⟩) :: R)
       (twoWordHashMem (UInt256.ofNat token.val) (UInt256.ofNat 5) mem)
       aw rdata evm.accountMap k C) :
     ∃ aw' k' C', MemoryFunding credit
-      (twoWordHashMem (UInt256.ofNat token.val) (UInt256.ofNat 5) mem) aw' C' ∧ RD midnightBytecode evm.executionEnv g s0 ⟨24347⟩
+      (twoWordHashMem (UInt256.ofNat token.val) (UInt256.ofNat 5) mem) aw' C' ∧ RD fork midnightBytecode evm.executionEnv g s0 ⟨24347⟩
       (UInt256.ofNat 21556 :: R)
       (twoWordHashMem (UInt256.ofNat token.val) (UInt256.ofNat 5) mem)
       aw' rdata (initMarketContinuous evm id token).accountMap k' C' := by

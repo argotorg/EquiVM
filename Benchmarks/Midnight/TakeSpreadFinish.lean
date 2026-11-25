@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TakeAmountsFinish
 import Benchmarks.Midnight.TakeSpreadSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Price spread followed by the complete trade suffix. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -14,7 +16,7 @@ theorem midnightTakeSpreadFinish {credit : Nat} {I : ExecutionEnv} {g : UInt256}
     {aw root market arrayPtr callbackPtr offerRoot takerPtr ratifierPtr id units taker
       time price fee saved : UInt256}
     {offer : OfferData} {initialReceiver initialCallback : AccountAddress} {σ : AccountMap} {k C : Nat} {R : List UInt256}
-    (hstack : R.length + 33 ≤ 1024) (hfork : I.fork ≥ .osaka) (hgas : midnightGasBound g)
+    (hstack : R.length + 33 ≤ 1024) (hfork : fork ≥ .osaka) (hgas : midnightGasBound g)
     (hc : OfferCanonical offer)
     (hf : TakeSourceFrame frame offer id units taker initialReceiver initialCallback ratifierData data)
     (htCanon : taker.toNat < EVM.addressModulus)
@@ -43,17 +45,17 @@ theorem midnightTakeSpreadFinish {credit : Nat} {I : ExecutionEnv} {g : UInt256}
     (htakerWord : memLoad (UInt256.ofNat 544) mem = taker)
     (hunits : calldataWord I.calldata 68 = units)
     (hs : SourceState s0 I σ evm)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨11556⟩
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨11556⟩
       ([fee, ⟨11591⟩, price, solcMappingSlot ⟨1⟩ id, ratifierPtr, time, saved] ++ R) mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (ExecBlock config frame evm (takeTransition.body.drop 20) .staticViolation ∧
-      RDstatic midnightBytecode (Sat256.ofUInt256 g) s0) ∨
-    (ExecBlock config frame evm (takeTransition.body.drop 20) .reverted ∧
-      RDrev midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (ExecBlock fork config frame evm (takeTransition.body.drop 20) .staticViolation ∧
+      RDstatic fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+    (ExecBlock fork config frame evm (takeTransition.body.drop 20) .reverted ∧
+      RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
     ∃ (bought sold : UInt256) (frame' : Frame) (evm' : State),
-      ExecBlock config frame evm (takeTransition.body.drop 20)
+      ExecBlock fork config frame evm (takeTransition.body.drop 20)
         (.returned frame' evm' (some [.int bought.toNat, .int sold.toNat])) ∧
-      RDret midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap
+      RDret fork midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap
         (wordArrayBytes [bought, sold]) := by
   rcases midnightTakeSpread (R := [solcMappingSlot ⟨1⟩ id, ratifierPtr, time, saved] ++ R)
       (by simp only [List.length_append, List.length_cons, List.length_nil]; omega)
@@ -61,7 +63,7 @@ theorem midnightTakeSpreadFinish {credit : Nat} {I : ExecutionEnv} {g : UInt256}
     ⟨hbad, hr⟩ | ⟨hsafe, aw1, k1, C1, ha1, rd1⟩
   · exact Or.inr (Or.inr (Or.inl
       ⟨takeSpreadSourceRevert hf.offerValue hfPrice hfFee hbad, hr⟩))
-  · have source1 := takeSpreadSource (evm := evm) hf.offerValue hfPrice hfFee hsafe
+  · have source1 := takeSpreadSource (fork := fork) (evm := evm) hf.offerValue hfPrice hfFee hsafe
     let frame1 := takeSpreadFrame frame offer.buy price fee
     have hget (name : Ident) (hb : name ≠ "buyerPrice") (hs : name ≠ "sellerPrice") :
         frame1.locals.get? name = frame.locals.get? name :=

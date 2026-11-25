@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.LiquidateLoopArithmeticSource
 import Benchmarks.Midnight.LiquidatePriceChoice
 
+variable {fork : Ethereum.Fork}
+
 /-! Price selection followed by the arithmetic tail of a liquidation iteration. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -28,9 +30,9 @@ theorem liquidateIterationSource {frame : Frame} {evm : State} {m : MarketData}
     let collateral := healthCollateralWord (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner)
       (positionSlot id borrower + ⟨3⟩) index
     (¬ LiquidateLoopArithmeticSafe collateral price c.lltv c.liquidationCursor maxDebt ∧
-      ExecBlock config frame evm (liquidateLoopBody.drop 3) .reverted) ∨
+      ExecBlock fork config frame evm (liquidateLoopBody.drop 3) .reverted) ∨
     (LiquidateLoopArithmeticSafe collateral price c.lltv c.liquidationCursor maxDebt ∧
-      ∃ frame', ExecBlock config frame evm (liquidateLoopBody.drop 3) (.ok frame' evm) ∧
+      ∃ frame', ExecBlock fork config frame evm (liquidateLoopBody.drop 3) (.ok frame' evm) ∧
         LiquidateSourceFrame frame' m id target seized repaid borrower mode receiver callback data ∧
         LiquidateAccumulators frame' (bitmapClear bitmap index)
           (maxDebt + healthCollateralCapacity collateral price c.lltv)
@@ -39,7 +41,7 @@ theorem liquidateIterationSource {frame : Frame} {evm : State} {m : MarketData}
             (liquidateRecoveryValue collateral price c.lltv c.liquidationCursor))) := by
   dsimp only
   let fp := liquidatePriceFrame frame index target price
-  have hs := liquidatePriceSource (evm := evm) hi hf.index hp ha.price
+  have hs := liquidatePriceSource (fork := fork) (evm := evm) hi hf.index hp ha.price
   have hf' : LiquidateSourceFrame fp m id target seized repaid borrower mode receiver callback data :=
     liquidatePriceFrame_arguments hf
   have ha' : LiquidateAccumulators fp bitmap maxDebt

@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.TakeBuyerUpdateValues
 
+variable {fork : Ethereum.Fork}
+
 /-! The conditional buyer update joins the source call to its runtime trace. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -26,23 +28,23 @@ theorem midnightTakeBuyerUpdate {credit : Nat} {I : ExecutionEnv} {g : Sat256}
     (hid : memLoad (UInt256.ofNat 512) mem = id)
     (hbuyer : memLoad (UInt256.ofNat 576) mem = buyer)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0
+    (rd : RD fork midnightBytecode I g s0
       (takeBuyerUpdatePC (positionFieldWord evm id buyer 0)
         (low128 (healthPositionWord evm id buyer)) units)
       (sellerSlot :: saved :: buyerSlot :: R) mem aw rdata evm.accountMap k C) :
-    (ExecBlock config frame evm (takeTransition.body.drop 32) .reverted ∧
-      RDrev midnightBytecode g s0) ∨
-    (ExecBlock config frame evm (takeTransition.body.drop 32) .staticViolation ∧
-      RDstatic midnightBytecode g s0) ∨
+    (ExecBlock fork config frame evm (takeTransition.body.drop 32) .reverted ∧
+      RDrev fork midnightBytecode g s0) ∨
+    (ExecBlock fork config frame evm (takeTransition.body.drop 32) .staticViolation ∧
+      RDstatic fork midnightBytecode g s0) ∨
     (let frame' := takeBuyerUpdateFrame frame evm offer id buyer units
      let evm' := takeBuyerUpdateState evm offer id buyer units
      let mem' := takeBuyerUpdateMemory mem root evm offer id buyer units
-     ExecStmt config frame evm takeBuyerUpdateStmt (.ok frame' evm') ∧
+     ExecStmt fork config frame evm takeBuyerUpdateStmt (.ok frame' evm') ∧
      TakeSourceFrame frame' offer id units taker receiver callback ratifierData data ∧
      SourceState s0 I evm'.accountMap evm' ∧ MemoryPrefix mem mem' root.toNat ∧
      memLoad (UInt256.ofNat 64) mem' = root ∧
      ∃ aw' k' C', MemoryFunding credit mem' aw' C' ∧
-       RD midnightBytecode I g s0 ⟨11966⟩ (sellerSlot :: saved :: buyerSlot :: R)
+       RD fork midnightBytecode I g s0 ⟨11966⟩ (sellerSlot :: saved :: buyerSlot :: R)
          mem' aw' rdata evm'.accountMap k' C') := by
   have he := evalTakeBuyerUpdateCondition hcanon hp hf.units hcredit
   have hf' := hf.buyerUpdate (buyer := buyer) (evm := evm)

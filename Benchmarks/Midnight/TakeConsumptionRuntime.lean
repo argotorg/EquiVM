@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.TakeConsumptionRead
 
+variable {fork : Ethereum.Fork}
+
 /-! Runtime consumption check, including overflow and cap failures. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -19,14 +21,14 @@ theorem midnightTakeConsumptionRuntime {credit : Nat} {I : ExecutionEnv} {g : Sa
     (hb : memLoad (UInt256.ofNat 256) mem = bought)
     (hs : memLoad (UInt256.ofNat 416) mem = sold)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨11681⟩ R mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨11681⟩ R mem aw rdata σ k C) :
     (¬ TakeConsumptionSafe (takeConsumedWord σ I offer) offer units bought sold ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     (TakeConsumptionSafe (takeConsumedWord σ I offer) offer units bought sold ∧
       ∃ aw' k' C',
         MemoryFunding credit (takeConsumptionMemory mem offer
           (takeConsumedWord σ I offer + takeConsumedDelta offer units bought sold)) aw' C' ∧
-        RD midnightBytecode I g s0 ⟨11826⟩ R
+        RD fork midnightBytecode I g s0 ⟨11826⟩ R
           (takeConsumptionMemory mem offer
             (takeConsumedWord σ I offer + takeConsumedDelta offer units bought sold))
           aw' rdata σ k' C') := by

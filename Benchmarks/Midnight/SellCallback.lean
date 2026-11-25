@@ -3,6 +3,8 @@ import Benchmarks.Midnight.SellCallbackReturn
 import Benchmarks.Midnight.SellCallbackSource
 import Benchmarks.Midnight.TypedCallFunding
 
+variable {fork : Ethereum.Fork}
+
 /-! The seller's typed external call and acknowledgement, preserving the allocated heap. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -34,20 +36,20 @@ theorem midnightSellCallback {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0 
     (hargs : evalExprs? config frame evm sellCallbackExprs =
       .ok (sellCallbackArguments m id assets units fee (AccountAddress.ofNat user.toNat) (AccountAddress.ofNat receiver.toNat) data))
     (ha : MemoryFunding credit mem aw C) (hs : SourceState s0 I σ evm)
-    (rd : RD midnightBytecode I g s0 ⟨13482⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨13482⟩
       ([UInt256.ofNat callback.val, ptr, ⟨32⟩, ⟨13626⟩] ++ R) mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (ExecBlock config frame evm [sellCallbackStmt, .require sellMagicGuard] .reverted ∧
-      RDrev midnightBytecode g s0) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (ExecBlock fork config frame evm [sellCallbackStmt, .require sellMagicGuard] .reverted ∧
+      RDrev fork midnightBytecode g s0) ∨
     ∃ (evm' : State) (σ' : AccountMap) (out mem' : ByteArray) (aw' : UInt256) (k' C' : Nat),
-      ExecBlock config frame evm [sellCallbackStmt, .require sellMagicGuard]
+      ExecBlock fork config frame evm [sellCallbackStmt, .require sellMagicGuard]
         (.ok (sellCallbackFrame frame (calldataWord out 0)) evm') ∧
       SourceState s0 I σ' evm' ∧ MemoryPrefix mem mem' root.toNat ∧
       memLoad (UInt256.ofNat 64) mem' = root + UInt256.ofNat 32 ∧
       root.toNat + 32 ≤ mem'.size ∧
       MemoryFunding (credit + 128 * m.collaterals.length + 3 * ((data.size + 31) / 32))
         mem' aw' C' ∧
-      RD midnightBytecode I g s0 ⟨13665⟩ R mem' aw' out σ' k' C' := by
+      RD fork midnightBytecode I g s0 ⟨13665⟩ R mem' aw' out σ' k' C' := by
   obtain ⟨gasArg, aw1, k1, C1, ha1, rd1⟩ := midnightSellCallbackPrepare m hstack hm hlimit
     (by omega) (by omega) hmem hd hbelow hmarket hfree hid haRead huRead hfRead hbRead
     hrRead hrcanon hf128 huser ha rd

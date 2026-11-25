@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TouchMarketFreshFunding
 import Benchmarks.Midnight.TouchMarketHashSpace
 
+variable {fork : Ethereum.Fork}
+
 /-! The bounded touchMarket routine retains funding, alignment and initialized extent. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -18,23 +20,23 @@ theorem midnightTouchMarketInternal_funded {evm : EVM.State} {g : Sat256} {s0 : 
     (hgas : midnightGasBound g.toUInt256) (ha : MemoryAccounting mem aw C)
     (hfree : memLoad (UInt256.ofNat 64) mem = root) (hw : evm.σ₀ = s0.σ₀)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode evm.executionEnv g s0 ⟨20557⟩ (ptr :: ret :: R)
+    (rd : RD fork midnightBytecode evm.executionEnv g s0 ⟨20557⟩ (ptr :: ret :: R)
       mem aw rdata evm.accountMap k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (RDrev midnightBytecode g s0 ∧ ExecFuncBody config (touchMarketCallFrame imms m)
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (RDrev fork midnightBytecode g s0 ∧ ExecFuncBody fork config (touchMarketCallFrame imms m)
       evm touchMarketFunction.body .reverted) ∨
-    (RDstatic midnightBytecode g s0 ∧ ExecFuncBody config (touchMarketCallFrame imms m)
+    (RDstatic fork midnightBytecode g s0 ∧ ExecFuncBody fork config (touchMarketCallFrame imms m)
       evm touchMarketFunction.body .staticViolation) ∨
     ∃ frame' evm' σ' out mem' free aw' k' C',
       SourceState s0 evm.executionEnv σ' evm' ∧
-      ExecFuncBody config (touchMarketCallFrame imms m) evm touchMarketFunction.body
+      ExecFuncBody fork config (touchMarketCallFrame imms m) evm touchMarketFunction.body
         (.returned frame' evm' (some [wordBytes32Value m.id])) ∧
       MemoryPrefix mem mem' root.toNat ∧ root.toNat ≤ free.toNat ∧ free.toNat < 2^64 ∧
       free.toNat ≤ root.toNat + 4 * m.encodingSize + 672 ∧
       memLoad (UInt256.ofNat 64) mem' = free ∧
       free.toNat % 32 = 0 ∧ free.toNat ≤ mem'.size + 31 ∧
       MemoryFunding 0 mem' aw' C' ∧
-      RD midnightBytecode evm.executionEnv g s0 ret (m.id :: R) mem' aw' out σ' k' C' := by
+      RD fork midnightBytecode evm.executionEnv g s0 ret (m.id :: R) mem' aw' out σ' k' C' := by
   have hb0 : root.toNat + 2 * m.encodingSize + 288 < 2^64 := by omega
   have hlo : 96 ≤ root.toNat := by
     have := hm.lower; have := hm.array; have := hm.extent; omega

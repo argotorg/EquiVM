@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.CalldataBytesEncoder
 import Benchmarks.Midnight.TransferBudget
 
+variable {fork : Ethereum.Fork}
+
 /-! Calldata bytes encoding with the transfer budget retained. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,12 +17,12 @@ theorem midnightCalldataBytesEncoderBudget {budgetRoot : UInt256} {credit : Nat}
     (hlen : len.toNat < 2^64) (hout : output.toNat + len.toNat + 96 < UInt256.size)
     (hret : (D_J midnightBytecode 0).contains ret = true)
     (ha : TransferBudget budgetRoot credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨19711⟩ (ptr :: len :: output :: ret :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨19711⟩ (ptr :: len :: output :: ret :: R)
       mem aw rdata σ k C) :
     ∃ aw' k' C', C ≤ C' ∧
       TransferBudget budgetRoot credit
         (calldataBytesEncodeMemory mem I.calldata output.toNat ptr.toNat len.toNat) aw' C' ∧
-      RD midnightBytecode I g s0 ret
+      RD fork midnightBytecode I g s0 ret
         ((output + UInt256.ofNat (returnDataAllocation len.toNat)) :: R)
         (calldataBytesEncodeMemory mem I.calldata output.toNat ptr.toNat len.toNat)
         aw' rdata σ k' C' := by

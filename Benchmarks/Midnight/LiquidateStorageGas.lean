@@ -3,6 +3,8 @@ import Benchmarks.Midnight.PositionUpdateStorage
 import Benchmarks.Midnight.StorageWriteGas
 import Benchmarks.Midnight.TransferBudget
 
+variable {fork : Ethereum.Fork}
+
 /-! Paid memory growth and storage gas in the liquidation bad-debt branch. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -18,8 +20,8 @@ theorem liquidate_block_7541_budget {ee : ExecutionEnv} {g : Sat256} {s0 : State
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains x1 = true)
     {root : UInt256} {credit : Nat}
     (hb : TransferBudget root credit mem aw C)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7541) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), TransferBudget root credit mem (M aw (UInt256.ofNat 672) (⟨32⟩ : UInt256)) C' ∧ RD Benchmarks.Midnight.midnightBytecode ee g s0 x1 (midnight_block_7541_stack (R := R)) mem (M aw (UInt256.ofNat 672) (⟨32⟩ : UInt256)) rdata (sstoreAccountMap ee.codeOwner σ (memLoad (UInt256.ofNat 672) mem) (UInt256.lor (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (memLoad (UInt256.ofNat 672) mem) (⟨0⟩ : UInt256))) (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128)) (UInt256.ofNat 1))) (UInt256.land (UInt256.shiftLeft x0 (UInt256.ofNat 128)) (UInt256.lnot (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128)) (UInt256.ofNat 1)))))) k' C' := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7541) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (k' C' : ℕ), TransferBudget root credit mem (M aw (UInt256.ofNat 672) (⟨32⟩ : UInt256)) C' ∧ RD fork Benchmarks.Midnight.midnightBytecode ee g s0 x1 (midnight_block_7541_stack (R := R)) mem (M aw (UInt256.ofNat 672) (⟨32⟩ : UInt256)) rdata (sstoreAccountMap ee.codeOwner σ (memLoad (UInt256.ofNat 672) mem) (UInt256.lor (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (memLoad (UInt256.ofNat 672) mem) (⟨0⟩ : UInt256))) (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128)) (UInt256.ofNat 1))) (UInt256.land (UInt256.shiftLeft x0 (UInt256.ofNat 128)) (UInt256.lnot (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128)) (UInt256.ofNat 1)))))) k' C' := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push2 (UInt256.ofNat 672) (by native_decide) (by evm_ov)
@@ -54,8 +56,8 @@ theorem liquidate_block_7591_budget {ee : ExecutionEnv} {g : Sat256} {s0 : State
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 19743) = true)
     {root : UInt256} {credit : Nat}
     (hb : TransferBudget root credit mem aw C)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7591) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), TransferBudget root credit mem (M aw (UInt256.ofNat 672) (⟨32⟩ : UInt256)) C' ∧ RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 19743) (midnight_block_7591_stack (ee := ee) (mem := mem) (σ := σ) (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem (M aw (UInt256.ofNat 672) (⟨32⟩ : UInt256)) rdata σ k' C' := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7591) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : ∃ (k' C' : ℕ), TransferBudget root credit mem (M aw (UInt256.ofNat 672) (⟨32⟩ : UInt256)) C' ∧ RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 19743) (midnight_block_7591_stack (ee := ee) (mem := mem) (σ := σ) (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem (M aw (UInt256.ofNat 672) (⟨32⟩ : UInt256)) rdata σ k' C' := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.dup3 (by native_decide) (by evm_ov)
@@ -77,8 +79,8 @@ theorem liquidate_block_7603_taken_budget {ee : ExecutionEnv} {g : Sat256} {s0 :
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 7774) = true)
     {root : UInt256} {credit : Nat}
     (hb : TransferBudget root credit mem aw C)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7603) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), TransferBudget root credit mem (M (M (M aw (UInt256.ofNat 672) (⟨32⟩ : UInt256)) (UInt256.ofNat 672) (⟨32⟩ : UInt256)) (UInt256.ofNat 800) (⟨32⟩ : UInt256)) C' ∧ RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7774) (midnight_block_7603_taken_stack (x2 := x2) (R := R)) mem (M (M (M aw (UInt256.ofNat 672) (⟨32⟩ : UInt256)) (UInt256.ofNat 672) (⟨32⟩ : UInt256)) (UInt256.ofNat 800) (⟨32⟩ : UInt256)) rdata (sstoreAccountMap ee.codeOwner σ (memLoad (UInt256.ofNat 672) mem) (UInt256.lor (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (memLoad (UInt256.ofNat 672) mem) (⟨0⟩ : UInt256))) (UInt256.lnot (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128)) (UInt256.ofNat 1)))) (UInt256.land x0 x1))) k' C' := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7603) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : ∃ (k' C' : ℕ), TransferBudget root credit mem (M (M (M aw (UInt256.ofNat 672) (⟨32⟩ : UInt256)) (UInt256.ofNat 672) (⟨32⟩ : UInt256)) (UInt256.ofNat 800) (⟨32⟩ : UInt256)) C' ∧ RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7774) (midnight_block_7603_taken_stack (x2 := x2) (R := R)) mem (M (M (M aw (UInt256.ofNat 672) (⟨32⟩ : UInt256)) (UInt256.ofNat 672) (⟨32⟩ : UInt256)) (UInt256.ofNat 800) (⟨32⟩ : UInt256)) rdata (sstoreAccountMap ee.codeOwner σ (memLoad (UInt256.ofNat 672) mem) (UInt256.lor (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (memLoad (UInt256.ofNat 672) mem) (⟨0⟩ : UInt256))) (UInt256.lnot (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128)) (UInt256.ofNat 1)))) (UInt256.land x0 x1))) k' C' := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.and (by native_decide) (by evm_ov)
@@ -123,8 +125,8 @@ theorem liquidate_block_7603_fallthrough_budget {ee : ExecutionEnv} {g : Sat256}
     (hcond : (UInt256.eq (⟨0⟩ : UInt256) (UInt256.lt (UInt256.shiftRight x2 (UInt256.ofNat 128)) (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128)) (UInt256.ofNat 1)))) = (UInt256.ofNat 0))
     {root : UInt256} {credit : Nat}
     (hb : TransferBudget root credit mem aw C)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7603) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), TransferBudget root credit mem (M (M (M aw (UInt256.ofNat 672) (⟨32⟩ : UInt256)) (UInt256.ofNat 672) (⟨32⟩ : UInt256)) (UInt256.ofNat 800) (⟨32⟩ : UInt256)) C' ∧ RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7650) (midnight_block_7603_fallthrough_stack (x2 := x2) (R := R)) mem (M (M (M aw (UInt256.ofNat 672) (⟨32⟩ : UInt256)) (UInt256.ofNat 672) (⟨32⟩ : UInt256)) (UInt256.ofNat 800) (⟨32⟩ : UInt256)) rdata (sstoreAccountMap ee.codeOwner σ (memLoad (UInt256.ofNat 672) mem) (UInt256.lor (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (memLoad (UInt256.ofNat 672) mem) (⟨0⟩ : UInt256))) (UInt256.lnot (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128)) (UInt256.ofNat 1)))) (UInt256.land x0 x1))) k' C' := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7603) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : ∃ (k' C' : ℕ), TransferBudget root credit mem (M (M (M aw (UInt256.ofNat 672) (⟨32⟩ : UInt256)) (UInt256.ofNat 672) (⟨32⟩ : UInt256)) (UInt256.ofNat 800) (⟨32⟩ : UInt256)) C' ∧ RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7650) (midnight_block_7603_fallthrough_stack (x2 := x2) (R := R)) mem (M (M (M aw (UInt256.ofNat 672) (⟨32⟩ : UInt256)) (UInt256.ofNat 672) (⟨32⟩ : UInt256)) (UInt256.ofNat 800) (⟨32⟩ : UInt256)) rdata (sstoreAccountMap ee.codeOwner σ (memLoad (UInt256.ofNat 672) mem) (UInt256.lor (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (memLoad (UInt256.ofNat 672) mem) (⟨0⟩ : UInt256))) (UInt256.lnot (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128)) (UInt256.ofNat 1)))) (UInt256.land x0 x1))) k' C' := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.and (by native_decide) (by evm_ov)
@@ -168,8 +170,8 @@ theorem liquidate_block_7650_fallthrough_budget {ee : ExecutionEnv} {g : Sat256}
     (hcond : (UInt256.gt (UInt256.sub (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128)) (UInt256.ofNat 1)) (UInt256.shiftRight (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (memLoad (UInt256.ofNat 672) mem) (⟨0⟩ : UInt256))) (UInt256.ofNat 128))) (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128)) (UInt256.ofNat 1))) = (UInt256.ofNat 0))
     {root : UInt256} {credit : Nat}
     (hb : TransferBudget root credit mem aw C)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7650) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), TransferBudget root credit mem (M (M aw (UInt256.ofNat 672) (⟨32⟩ : UInt256)) (UInt256.ofNat 672) (⟨32⟩ : UInt256)) C' ∧ RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7694) (midnight_block_7650_fallthrough_stack (ee := ee) (mem := mem) (σ := σ) (x0 := x0) (R := R)) mem (M (M aw (UInt256.ofNat 672) (⟨32⟩ : UInt256)) (UInt256.ofNat 672) (⟨32⟩ : UInt256)) rdata σ k' C' := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7650) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (k' C' : ℕ), TransferBudget root credit mem (M (M aw (UInt256.ofNat 672) (⟨32⟩ : UInt256)) (UInt256.ofNat 672) (⟨32⟩ : UInt256)) C' ∧ RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7694) (midnight_block_7650_fallthrough_stack (ee := ee) (mem := mem) (σ := σ) (x0 := x0) (R := R)) mem (M (M aw (UInt256.ofNat 672) (⟨32⟩ : UInt256)) (UInt256.ofNat 672) (⟨32⟩ : UInt256)) rdata σ k' C' := by
   let r0 := h
   have r1 := r0.push1 (UInt256.ofNat 1) (by native_decide) (by evm_ov)
   have r2 := r1.push2 (UInt256.ofNat 672) (by native_decide) (by evm_ov)
@@ -211,8 +213,8 @@ theorem liquidate_block_7735_budget {ee : ExecutionEnv} {g : Sat256} {s0 : State
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains x1 = true)
     {root : UInt256} {credit : Nat}
     (hb : TransferBudget root credit mem aw C)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7735) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), TransferBudget root credit mem (M aw (UInt256.ofNat 672) (⟨32⟩ : UInt256)) C' ∧ RD Benchmarks.Midnight.midnightBytecode ee g s0 x1 (midnight_block_7735_stack (R := R)) mem (M aw (UInt256.ofNat 672) (⟨32⟩ : UInt256)) rdata (sstoreAccountMap ee.codeOwner σ ((memLoad (UInt256.ofNat 672) mem) + (UInt256.ofNat 1)) (UInt256.lor (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((memLoad (UInt256.ofNat 672) mem) + (UInt256.ofNat 1)) (⟨0⟩ : UInt256))) (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128)) (UInt256.ofNat 1))) (UInt256.land (UInt256.shiftLeft x0 (UInt256.ofNat 128)) (UInt256.lnot (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128)) (UInt256.ofNat 1)))))) k' C' := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7735) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (k' C' : ℕ), TransferBudget root credit mem (M aw (UInt256.ofNat 672) (⟨32⟩ : UInt256)) C' ∧ RD fork Benchmarks.Midnight.midnightBytecode ee g s0 x1 (midnight_block_7735_stack (R := R)) mem (M aw (UInt256.ofNat 672) (⟨32⟩ : UInt256)) rdata (sstoreAccountMap ee.codeOwner σ ((memLoad (UInt256.ofNat 672) mem) + (UInt256.ofNat 1)) (UInt256.lor (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD ((memLoad (UInt256.ofNat 672) mem) + (UInt256.ofNat 1)) (⟨0⟩ : UInt256))) (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128)) (UInt256.ofNat 1))) (UInt256.land (UInt256.shiftLeft x0 (UInt256.ofNat 128)) (UInt256.lnot (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128)) (UInt256.ofNat 1)))))) k' C' := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push1 (UInt256.ofNat 1) (by native_decide) (by evm_ov)

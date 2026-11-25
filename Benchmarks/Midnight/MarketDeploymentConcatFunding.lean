@@ -2,6 +2,8 @@ import Benchmarks.Midnight.MarketInitcodeTrace
 import Benchmarks.Midnight.RuntimeBlocks_081
 import Benchmarks.Midnight.AllocationFunding
 
+variable {fork : Ethereum.Fork}
+
 /-! Concatenating the SSTORE2 prefix with the market payload before CREATE2. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -20,10 +22,10 @@ theorem midnightMarketDeploymentConcat_funded {credit : Nat} {I : ExecutionEnv} 
     (hprefix : memLoad prefixPtr mem = UInt256.ofNat 11)
     (hencoded : memLoad encoded mem = UInt256.ofNat m.encodingSize)
     (hfund : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨21601⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨21601⟩
       (encoded :: (encoded + UInt256.ofNat 32) :: prefixPtr :: R) mem aw rdata σ k C) :
     ∃ aw' k' C',
-      MemoryFunding credit (marketInitcodeMemory mem root prefixPtr encoded m) aw' C' ∧ RD midnightBytecode I g s0 ⟨21662⟩ (root :: (root + UInt256.ofNat 32) :: R)
+      MemoryFunding credit (marketInitcodeMemory mem root prefixPtr encoded m) aw' C' ∧ RD fork midnightBytecode I g s0 ⟨21662⟩ (root :: (root + UInt256.ofNat 32) :: R)
       (marketInitcodeMemory mem root prefixPtr encoded m) aw' rdata σ k' C' := by
   have ha (n : Nat) (hn : n ≤ m.encodingSize + 64) :
       (root + UInt256.ofNat n).toNat = root.toNat + n :=

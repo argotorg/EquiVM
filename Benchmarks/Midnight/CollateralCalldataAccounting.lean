@@ -2,6 +2,8 @@ import Benchmarks.Midnight.CollateralCopyAccounting
 import Benchmarks.Midnight.AllocationAccounting
 import Benchmarks.Midnight.AllocationArithmetic
 
+variable {fork : Ethereum.Fork}
+
 /-! Allocation and decoding of one in-bounds collateral argument. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,15 +19,15 @@ theorem midnightCollateralCalldata_accounted {I : ExecutionEnv} {g : Sat256} {s0
     (hfree : memLoad (UInt256.ofNat 64) mem = ptr) (hptr : ptr.toNat < 2^64)
     (hvalid : (D_J midnightBytecode 0).contains ret = true)
     (ha : MemoryAccounting mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨18500⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨18500⟩
       (head :: UInt256.ofNat I.calldata.size :: ret :: R) mem aw rdata σ k C) :
-    (¬ ptr.toNat + 128 < 2^64 ∧ RDrev midnightBytecode g s0) ∨
-    (¬ CollateralData.canonicalAt I.calldata head.toNat ∧ RDrev midnightBytecode g s0) ∨
+    (¬ ptr.toNat + 128 < 2^64 ∧ RDrev fork midnightBytecode g s0) ∨
+    (¬ CollateralData.canonicalAt I.calldata head.toNat ∧ RDrev fork midnightBytecode g s0) ∨
     (ptr.toNat + 128 < 2^64 ∧ CollateralData.canonicalAt I.calldata head.toNat ∧ ∃ aw' k' C',
       MemoryAccounting
         (writeWordArray (writeWord mem 64 (ptr + UInt256.ofNat 128)) ptr.toNat
           (CollateralData.at I.calldata head.toNat).words) aw' C' ∧
-      RD midnightBytecode I g s0 ret (ptr :: R)
+      RD fork midnightBytecode I g s0 ret (ptr :: R)
         (writeWordArray (writeWord mem 64 (ptr + UInt256.ofNat 128)) ptr.toNat
           (CollateralData.at I.calldata head.toNat).words) aw' rdata σ k' C') := by
   have rd1 := midnightBlocks.midnight_block_18500_fallthrough (by omega)

@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.MarketCalldataFirstFields
 import Benchmarks.Midnight.CalldataScalarAccounting
 
+variable {fork : Ethereum.Fork}
+
 /-! The bounds and length checks for a market's collateral calldata array. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,14 +17,14 @@ theorem midnightMarketCalldataArrayHeader_accounted {I : ExecutionEnv} {g : Sat2
     (hsize : I.calldata.size < 2^255) (hhead : head.toNat < 2^127)
     (hoff : (calldataWord I.calldata (head.toNat + 96)).toNat < 2^64)
     (ha : MemoryAccounting mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨18661⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨18661⟩
       (calldataWord I.calldata (head.toNat + 96) :: UInt256.ofNat I.calldata.size :: head :: R)
       mem aw rdata σ k C) :
-    (decodeMarketData I.calldata head.toNat = none ∧ RDrev midnightBytecode g s0) ∨
+    (decodeMarketData I.calldata head.toNat = none ∧ RDrev fork midnightBytecode g s0) ∨
     (head.toNat + (calldataWord I.calldata (head.toNat + 96)).toNat + 32 ≤ I.calldata.size ∧
       (calldataWord I.calldata
         (head.toNat + (calldataWord I.calldata (head.toNat + 96)).toNat)).toNat < 2^64 ∧
-      ∃ k' C', MemoryAccounting mem aw C' ∧ RD midnightBytecode I g s0 ⟨18684⟩
+      ∃ k' C', MemoryAccounting mem aw C' ∧ RD fork midnightBytecode I g s0 ⟨18684⟩
         (UInt256.ofNat (pointerArrayAllocation (calldataWord I.calldata
             (head.toNat + (calldataWord I.calldata (head.toNat + 96)).toNat)).toNat) ::
           calldataWord I.calldata (head.toNat + (calldataWord I.calldata (head.toNat + 96)).toNat) ::
@@ -50,7 +52,7 @@ theorem midnightMarketCalldataArrayHeader_accounted {I : ExecutionEnv} {g : Sat2
           rw [hs]; rfl) rd
     have rd2 := midnightBlocks.midnight_block_18674 (by
       simp only [List.length_cons]; omega) (by jump_dest) rd1
-    change RD midnightBytecode I g s0 ⟨18477⟩
+    change RD fork midnightBytecode I g s0 ⟨18477⟩
       (calldataWord I.calldata target.toNat :: ⟨18684⟩ :: calldataWord I.calldata target.toNat ::
         target :: UInt256.ofNat I.calldata.size :: head :: R) mem aw rdata σ _ _ at rd2
     rw [ht] at rd2

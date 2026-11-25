@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.Storage
 
+variable {fork : Ethereum.Fork}
+
 /-! Source evaluation for two-key public mapping getters. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -36,7 +38,7 @@ theorem guardedNestedMappingGetter
     (hname : name ≠ "__calldata") (harg0 : name ≠ "arg0") (harg1 : name ≠ "arg1")
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) :
-    ExecTransitionBody cfg C evm (nestedMappingArguments arg0 arg1)
+    ExecTransitionBody fork cfg C evm (nestedMappingArguments arg0 arg1)
       (entryPrefix ++ [.return [.storage
         { base := name, steps := [.mindex (.var "arg0"), .mindex (.var "arg1")] }]])
       (.returned (calldataFrame C (nestedMappingArguments arg0 arg1) ∅ evm) evm

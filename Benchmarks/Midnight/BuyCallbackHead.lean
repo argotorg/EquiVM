@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.BuyCallbackLayout
 import Benchmarks.Midnight.RuntimeBlocks_051
 
+variable {fork : Ethereum.Fork}
+
 /-! The buyer callback selector and the handoff to the market encoder. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,10 +19,10 @@ theorem midnightBuyCallbackHead {credit : Nat} {I : ExecutionEnv} {g : Sat256} {
     (hfree : memLoad (UInt256.ofNat 64) mem = root)
     (hid : memLoad (UInt256.ofNat 512) mem = id)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨13805⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨13805⟩
       ([callback, ptr, outputSize, ret] ++ R) mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding credit (buyCallbackHeaderMemory mem root.toNat id) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨19181⟩
+      RD fork midnightBytecode I g s0 ⟨19181⟩
         ([market, root + UInt256.ofNat 228, ⟨13868⟩, ptr, ret, root, solcAddrMask,
           ⟨0⟩, root, callback, root, outputSize, root] ++ R)
         (buyCallbackHeaderMemory mem root.toNat id) aw' rdata σ k' C' := by

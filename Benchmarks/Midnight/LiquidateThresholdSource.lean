@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.LiquidateRecoverableSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Saturating remainder and the final recovery-threshold requirement. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -20,9 +22,9 @@ theorem liquidateThresholdSource {frame : Frame} {evm : State} {m : MarketData}
     (hr : frame.locals.get? "maxRepaid" = some (.int cap.toNat)) :
     let remainder := zeroFloorSubWord repayable cap
     (¬ remainder.toNat < m.rcfThreshold.toNat ∧
-      ExecBlock config frame evm (liquidateThresholdBody.drop 2) .reverted) ∨
+      ExecBlock fork config frame evm (liquidateThresholdBody.drop 2) .reverted) ∨
     (remainder.toNat < m.rcfThreshold.toNat ∧
-      ExecBlock config frame evm (liquidateThresholdBody.drop 2)
+      ExecBlock fork config frame evm (liquidateThresholdBody.drop 2)
         (.ok (wordLocal frame "remainder" remainder) evm)) := by
   dsimp only
   let remainder := zeroFloorSubWord repayable cap
@@ -30,7 +32,7 @@ theorem liquidateThresholdSource {frame : Frame} {evm : State} {m : MarketData}
   have ha : evalExprs? config frame evm [.var "repayable", .var "maxRepaid"] =
       .ok [.int repayable.toNat, .int cap.toNat] := by
     simp only [evalExprs?, evalWordLocal hp, evalWordLocal hr, bind, pure, EvalResult.bind]
-  have hs0 : ExecStmt config frame evm (liquidateThresholdBody[2]!) (.ok f1 evm) :=
+  have hs0 : ExecStmt fork config frame evm (liquidateThresholdBody[2]!) (.ok f1 evm) :=
     callZeroFloorSub hc ha
   have hm1 : f1.locals.get? "market" = some (Model.marketValue m.value) := by
     simpa only [f1, wordLocal_get_ne _ _ _ _ (show "remainder" ≠ "market" by decide)] using hm

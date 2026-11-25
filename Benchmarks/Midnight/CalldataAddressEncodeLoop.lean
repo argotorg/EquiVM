@@ -3,6 +3,8 @@ import Benchmarks.Midnight.CalldataAddressEncodeStep
 import Benchmarks.Midnight.CalldataArrayWords
 import Benchmarks.Midnight.CollateralLoopMemory
 
+variable {fork : Ethereum.Fork}
+
 /-! The address-array encoder loop, including its element-validation failures. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -19,15 +21,15 @@ theorem midnightCalldataAddressEncodeLoopFunded {credit : Nat} {I : ExecutionEnv
     (hout : output.toNat + 32 * n < UInt256.size)
     (hret : (D_J midnightBytecode 0).contains ret = true)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨19561⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨19561⟩
       (index :: count :: ptr :: output :: ret :: R) mem aw rdata σ k C) :
     (¬ CanonicalAddressWords (calldataArrayWords I.calldata n ptr.toNat) ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     (CanonicalAddressWords (calldataArrayWords I.calldata n ptr.toNat) ∧
       ∃ aw' k' C', C ≤ C' ∧
       MemoryFunding credit
         (writeWordArray mem output.toNat (calldataArrayWords I.calldata n ptr.toNat)) aw' C' ∧
-      RD midnightBytecode I g s0 ret ((output + UInt256.ofNat (32 * n)) :: R)
+      RD fork midnightBytecode I g s0 ret ((output + UInt256.ofNat (32 * n)) :: R)
         (writeWordArray mem output.toNat (calldataArrayWords I.calldata n ptr.toNat))
         aw' rdata σ k' C') := by
   induction n generalizing mem aw index ptr output k C with
@@ -89,15 +91,15 @@ theorem midnightCalldataAddressEncodeLoop {I : ExecutionEnv} {g : Sat256} {s0 : 
     (hout : output.toNat + 32 * n < UInt256.size)
     (hret : (D_J midnightBytecode 0).contains ret = true)
     (ha : MemoryAccounting mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨19561⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨19561⟩
       (index :: count :: ptr :: output :: ret :: R) mem aw rdata σ k C) :
     (¬ CanonicalAddressWords (calldataArrayWords I.calldata n ptr.toNat) ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     (CanonicalAddressWords (calldataArrayWords I.calldata n ptr.toNat) ∧
       ∃ aw' k' C', C ≤ C' ∧
       MemoryAccounting
         (writeWordArray mem output.toNat (calldataArrayWords I.calldata n ptr.toNat)) aw' C' ∧
-      RD midnightBytecode I g s0 ret ((output + UInt256.ofNat (32 * n)) :: R)
+      RD fork midnightBytecode I g s0 ret ((output + UInt256.ofNat (32 * n)) :: R)
         (writeWordArray mem output.toNat (calldataArrayWords I.calldata n ptr.toNat))
         aw' rdata σ k' C') := by
   rcases midnightCalldataAddressEncodeLoopFunded n hstack hcount hptr hout hret (MemoryFunding.of_accounting ha) rd with

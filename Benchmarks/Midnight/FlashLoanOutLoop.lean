@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.FlashLoanOutStep
 import Benchmarks.Midnight.FlashLoanTransferLoop
 
+variable {fork : Ethereum.Fork}
+
 /-! The outgoing flash-loan transfer loop, including any failing token call. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -19,22 +21,22 @@ theorem midnightFlashLoanOutLoop (remaining : Nat) {I : ExecutionEnv} {g : UInt2
     (hf : FlashLoanSourceFrame frame (calldataArrayWords I.calldata tn.toNat tp.toNat)
       (calldataArrayWords I.calldata an.toNat ap.toNat) callback data)
     (hi : frame.locals.get? "i" = some (.int (Int.ofNat index.toNat)))
-    (hh : TransferHeap mem aw ptr C) (hgas : midnightGasBound g) (hfork : I.fork ≥ .osaka)
+    (hh : TransferHeap mem aw ptr C) (hgas : midnightGasBound g) (hfork : fork ≥ .osaka)
     (hs : SourceState s0 I σ evm)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨16258⟩
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨16258⟩
       (flashLoanOutLoopStack index tn tp (UInt256.ofNat callback.val) an ap dl dp ++ R)
       mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (ExecForLoop config frame evm flashLoanLoopCondition flashLoanLoopPost (flashLoanLoopBody false)
-      .reverted ∧ RDrev midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (ExecForLoop fork config frame evm flashLoanLoopCondition flashLoanLoopPost (flashLoanLoopBody false)
+      .reverted ∧ RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
     ∃ (frame' : Frame) (evm' : State) (σ' : AccountMap) (mem' rdata' : ByteArray)
       (aw' ptr' : UInt256) (k' C' : Nat),
-      ExecForLoop config frame evm flashLoanLoopCondition flashLoanLoopPost (flashLoanLoopBody false)
+      ExecForLoop fork config frame evm flashLoanLoopCondition flashLoanLoopPost (flashLoanLoopBody false)
         (.ok frame' evm') ∧
       SourceState s0 I σ' evm' ∧ TransferHeap mem' aw' ptr' C' ∧
       FlashLoanSourceFrame frame' (calldataArrayWords I.calldata tn.toNat tp.toNat)
         (calldataArrayWords I.calldata an.toNat ap.toNat) callback data ∧
-      RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨16266⟩
+      RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨16266⟩
         (flashLoanOutLoopStack tn tn tp (UInt256.ofNat callback.val) an ap dl dp ++ R)
         mem' aw' rdata' σ' k' C' := by
   exact midnightFlashLoanTransferLoop false remaining hstack hn hlen hcount htspan haspan

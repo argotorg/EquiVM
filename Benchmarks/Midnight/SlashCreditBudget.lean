@@ -2,6 +2,8 @@ import Benchmarks.Midnight.SlashCreditTrace
 import Benchmarks.Midnight.SlashCreditArithmeticGas
 import Benchmarks.Midnight.PositionReadBlocksBudget
 
+variable {fork : Ethereum.Fork}
+
 /-! Credit slashing retains the memory funding needed after a position update. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,14 +17,14 @@ theorem midnightSlashCredit_budget {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {R : List UInt256} (hstack : R.length + 16 ≤ 1024)
     (hsize : 64 ≤ mem.size) (hcanon : user.toNat < EVM.addressModulus)
     (hb : TransferBudget budgetRoot credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨22775⟩ (ptr :: id :: user :: ret :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨22775⟩ (ptr :: id :: user :: ret :: R)
       mem aw rdata σ k C) :
     let w0 := solcSlotWordAt (positionSlot id user) σ I
     let w1 := solcSlotWordAt (positionSlot id user + ⟨1⟩) σ I
     let loss := UInt256.shiftRight (solcSlotWordAt (solcMappingSlot ⟨1⟩ id) σ I) ⟨128⟩
     ∃ aw' k' C',
       TransferBudget budgetRoot credit (positionSlashMemory mem id user (low128 w1)) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨22948⟩
+      RD fork midnightBytecode I g s0 ⟨22948⟩
       ([w0, low128 w0, w1, slashCredit (low128 w0) (low128 w1) loss,
         ⟨23076⟩, ret, uint128Mask, ptr] ++ R)
       (positionSlashMemory mem id user (low128 w1)) aw' rdata σ k' C' := by
@@ -74,7 +76,7 @@ theorem midnightSlashCredit_budget {I : ExecutionEnv} {g : Sat256} {s0 : State}
       wordAt0_fold, twoWordHash_fold] at rd2 hb2
     unfold positionReadMemory at hh2
     rw [hh2] at rd2
-    change RD midnightBytecode I g s0 ⟨22893⟩
+    change RD fork midnightBytecode I g s0 ⟨22893⟩
       (low128 w1 :: w1 :: w0 :: complement128 loss :: ret :: low128 w0 :: ptr :: R)
       (twoWordHashMem id (UInt256.ofNat 1) (positionReadMemory mem id user)) _ rdata σ k2 C2 at rd2
     obtain ⟨k3, C3, hc3, rd3⟩ := midnightSlashCreditArithmetic_mono hstack (low128_lt _)

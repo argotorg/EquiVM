@@ -2,6 +2,8 @@ import Benchmarks.Midnight.InternalCall
 import Benchmarks.Midnight.SourceControl
 import Benchmarks.Midnight.PositionViewSourceBase
 
+variable {fork : Ethereum.Fork}
+
 /-! Saturating word subtraction and the source helper implementing it. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -34,7 +36,7 @@ abbrev zeroFloorSubFunction : FunctionDecl := contract.functions[5]!
 theorem zeroFloorSubSource {cfg : Config} {frame : Frame} {evm : State} {x y : UInt256}
     (hx : frame.locals.get? "x" = some (.int x.toNat))
     (hy : frame.locals.get? "y" = some (.int y.toNat)) :
-    ExecFuncBody cfg frame evm zeroFloorSubFunction.body
+    ExecFuncBody fork cfg frame evm zeroFloorSubFunction.body
       (.returned frame evm (some [.int (zeroFloorSubWord x y).toNat])) := by
   apply ExecFuncBody.execBlockRet
   apply ExecBlock.consReturn
@@ -58,7 +60,7 @@ theorem callZeroFloorSub {cfg : Config} {frame : Frame} {evm : State}
     {x y : UInt256} {args : List Expr} {name : Ident}
     (hc : frame.contract = contract)
     (ha : evalExprs? cfg frame evm args = .ok [.int x.toNat, .int y.toNat]) :
-    ExecStmt cfg frame evm (.internalCall "UtilsLib_zeroFloorSub" args name)
+    ExecStmt fork cfg frame evm (.internalCall "UtilsLib_zeroFloorSub" args name)
       (.ok (wordLocal frame name (zeroFloorSubWord x y)) evm) := by
   let locals := ((∅ : Store).insert "y" (.int y.toNat)).insert "x" (.int x.toNat)
   apply internalCallFunctionReturn (callee := zeroFloorSubFunction) (locals := locals)

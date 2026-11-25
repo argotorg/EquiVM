@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.MemoryPaid
 
+variable {fork : Ethereum.Fork}
+
 /-! Memory size and its cumulative gas payment, retained through runtime summaries. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -77,13 +79,13 @@ structure MemoryAccounting (mem : ByteArray) (aw : UInt256) (spent : Nat) : Prop
   covered : MemoryCovered mem aw
 
 theorem memoryAccountingAt {code I g s0 pc stk mem aw rdata σ k C}
-    (_rd : RD code I g s0 pc stk mem aw rdata σ k C)
+    (_rd : RD fork code I g s0 pc stk mem aw rdata σ k C)
     (h : MemoryAccounting mem aw C) : MemoryAccounting mem aw C := h
 
 theorem memoryAccounting_headroom {code I g s0 pc stk mem aw rdata σ k C}
-    (rd : RD code I g s0 pc stk mem aw rdata σ k C) (ha : MemoryAccounting mem aw C)
+    (rd : RD fork code I g s0 pc stk mem aw rdata σ k C) (ha : MemoryAccounting mem aw C)
     (hgas : midnightGasBound g.toUInt256) :
-    X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨ mem.size + 2^62 < 2^64 := by
+    X fork (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨ mem.size + 2^62 < 2^64 := by
   rcases midnightMemoryPaid_bound rd ha.paid hgas with hoog | hb
   · exact Or.inl hoog
   · have hs := ha.covered

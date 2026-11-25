@@ -2,6 +2,8 @@ import Benchmarks.Midnight.CollateralData
 import Benchmarks.Midnight.MemoryBytes
 import Benchmarks.Midnight.MemoryAddressDecode
 
+variable {fork : Ethereum.Fork}
+
 /-! One collateral tuple copied by the stored-market decoder. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -20,12 +22,12 @@ theorem midnightToMarketCollateral {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hbytes : MemoryBytes mem base bytes) (hhead : start + 128 ≤ bytes.size)
     (hread : readPtr.toNat = base + start)
     (hregion : base + bytes.size ≤ ptr.toNat) (hptr : ptr.toNat + 128 < 2^64)
-    (rd : RD midnightBytecode I g s0 ⟨1218⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨1218⟩
       (ptr :: writePtr :: UInt256.ofNat 32 :: UInt256.ofNat 128 :: x :: finish :: readPtr :: R)
       mem aw rdata σ k C) :
-    (¬ CollateralData.canonicalAt bytes start ∧ RDrev midnightBytecode g s0) ∨
+    (¬ CollateralData.canonicalAt bytes start ∧ RDrev fork midnightBytecode g s0) ∨
     (CollateralData.canonicalAt bytes start ∧
-      ∃ aw' k' C', RD midnightBytecode I g s0 ⟨1092⟩
+      ∃ aw' k' C', RD fork midnightBytecode I g s0 ⟨1092⟩
         ((writePtr + UInt256.ofNat 32) :: x :: finish :: (readPtr + UInt256.ofNat 128) :: R)
         (collateralCopyMemory mem ptr writePtr (CollateralData.at bytes start)) aw' rdata σ k' C') := by
   have load {m : ByteArray} (hb : MemoryBytes m base bytes) (off : Nat) (ho : off + 32 ≤ 128) :

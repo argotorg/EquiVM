@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.MarketHeapAccess
 import Benchmarks.Midnight.RuntimeBlocks_074
 
+variable {fork : Ethereum.Fork}
+
 /-! The bounds-checked index routine for arrays of pointers in memory. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -25,8 +27,8 @@ theorem midnightMemoryArrayIndex {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {R : List UInt256} (hstack : R.length + 5 ≤ 1024)
     (hi : index.toNat < 2^64) (hlt : index.toNat < (memLoad ptr mem).toNat)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨19460⟩ (ptr :: index :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g s0 ret
+    (rd : RD fork midnightBytecode I g s0 ⟨19460⟩ (ptr :: index :: ret :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork midnightBytecode I g s0 ret
       (((ptr + UInt256.ofNat 32) + UInt256.ofNat (32 * index.toNat)) :: R)
       mem aw' rdata σ k' C' := by
   have hc : UInt256.lt index (memLoad ptr mem) = ⟨1⟩ := ult_one hlt

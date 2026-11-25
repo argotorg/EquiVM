@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.CollateralEncodeStep
 import Benchmarks.Midnight.CollateralHeapMemory
 
+variable {fork : Ethereum.Fork}
+
 /-! The ABI encoder's collateral-array loop. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,9 +18,9 @@ theorem midnightCollateralEncodeLoop {I : ExecutionEnv} {g : Sat256} {s0 : State
     (hs : CollateralListStored mem writePtr limit cs)
     (hc : count.toNat = index.toNat + cs.length)
     (hbelow : limit ≤ output.toNat) (hout : output.toNat + 128 * cs.length < UInt256.size)
-    (rd : RD midnightBytecode I g s0 ⟨19261⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨19261⟩
       (index :: count :: writePtr :: market :: outputBase :: output :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g s0 ⟨19269⟩
+    ∃ aw' k' C', RD fork midnightBytecode I g s0 ⟨19269⟩
       (count :: count :: (writePtr + UInt256.ofNat (32 * cs.length)) :: market :: outputBase ::
         (output + UInt256.ofNat (128 * cs.length)) :: R)
       (writeWordArray mem output.toNat (cs.flatMap CollateralData.words)) aw' rdata σ k' C' := by

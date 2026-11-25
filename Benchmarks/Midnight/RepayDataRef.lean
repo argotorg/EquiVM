@@ -2,6 +2,8 @@ import Benchmarks.Midnight.CalldataArgumentSlice
 import Benchmarks.Midnight.CalldataSliceTrace
 import Benchmarks.Midnight.RuntimeBlocks_038
 
+variable {fork : Ethereum.Fork}
+
 /-! The repayment callback's calldata slice, retaining its two decoded accounts. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -14,10 +16,10 @@ theorem midnightRepayDataRef {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw x0 x1 : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 11 ≤ 1024)
     (hsize : I.calldata.size < UInt256.size)
-    (rd : RD midnightBytecode I g s0 ⟨9792⟩ (x0 :: x1 :: R) mem aw rdata σ k C) :
-    (¬ CalldataArgumentValid true I.calldata 132 ∧ RDrev midnightBytecode g s0) ∨
+    (rd : RD fork midnightBytecode I g s0 ⟨9792⟩ (x0 :: x1 :: R) mem aw rdata σ k C) :
+    (¬ CalldataArgumentValid true I.calldata 132 ∧ RDrev fork midnightBytecode g s0) ∨
     (CalldataArgumentValid true I.calldata 132 ∧ ∃ k' C', C ≤ C' ∧
-      RD midnightBytecode I g s0 ⟨9832⟩
+      RD fork midnightBytecode I g s0 ⟨9832⟩
         (calldataArgumentLength I.calldata 132 :: calldataArgumentPointer I.calldata 132 ::
           solcAddrMask :: x1 :: x0 :: R) mem aw rdata σ k' C') := by
   by_cases ho : (calldataWord I.calldata 132).toNat < 2^64
@@ -29,7 +31,7 @@ theorem midnightRepayDataRef {I : ExecutionEnv} {g : Sat256} {s0 : State}
     have rd2 := midnightBlocks.midnight_block_9811
       (by simp only [List.length_cons]; omega) (by jump_dest) rd1
     simp only [midnightBlocks.midnight_block_9811_stack, addressMask_computed] at rd2
-    change RD midnightBytecode I g s0 ⟨18889⟩
+    change RD fork midnightBytecode I g s0 ⟨18889⟩
       (calldataArgumentHead I.calldata 132 :: UInt256.ofNat I.calldata.size ::
         ⟨9832⟩ :: solcAddrMask :: x1 :: x0 :: R) mem aw rdata σ _ _ at rd2
     rcases midnightCalldataSlice true (by simp only [List.length_cons]; omega) hsize

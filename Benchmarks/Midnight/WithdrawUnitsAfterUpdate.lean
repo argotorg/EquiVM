@@ -4,6 +4,8 @@ import Benchmarks.Midnight.WithdrawUnitsFinalWrite
 import Benchmarks.Midnight.WithdrawUnitsTransfer
 import Benchmarks.Midnight.AddressDecode
 
+variable {fork : Ethereum.Fork}
+
 /-! Withdrawal after updating the position, through balance writes and the final transfer. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -29,17 +31,17 @@ theorem withdrawUnitsAfterUpdate {I : ExecutionEnv} {g : UInt256} {s0 evm : Stat
     (hb : TransferBudget root gasCredit mem aw C)
     (hcredit : 4 * ((root.toNat + safeTransferCallAllocation false + 31) / 32) ≤
       gasCredit + 999921)
-    (hgas : midnightGasBound g) (hfork : I.fork ≥ .osaka)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨3909⟩
+    (hgas : midnightGasBound g) (hfork : fork ≥ .osaka)
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨3909⟩
       ([fee, pending, credit, id, user, solcMappingSlot ⟨1⟩ id, market, UInt256.ofNat 64,
         solcAddrMask, UInt256.ofNat receiver.val, units, UInt256.ofNat 3723, saved] ++ R)
       mem aw rdata evm.accountMap k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (RDrev midnightBytecode (Sat256.ofUInt256 g) s0 ∧
-      ExecBlock config frame evm (withdrawTransition.body.drop 9) .reverted) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0 ∧
+      ExecBlock fork config frame evm (withdrawTransition.body.drop 9) .reverted) ∨
     ∃ frame' evm',
-      ExecBlock config frame evm (withdrawTransition.body.drop 9) (.ok frame' evm') ∧
-      RDret midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap ByteArray.empty := by
+      ExecBlock fork config frame evm (withdrawTransition.body.drop 9) (.ok frame' evm') ∧
+      RDret fork midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap ByteArray.empty := by
   rcases midnightWithdrawUnitsPending hs hf hcanon hperm (by omega) hmem hzero800 hz hb rd with
     ⟨hr, ht⟩ | ⟨frame1, evm1, decrease, aw1, k1, C1, hs1, hf1, hd128, hd, hif, hb1, rd1⟩
   · exact Or.inr (Or.inl ⟨hr, ht⟩)
@@ -80,7 +82,7 @@ theorem withdrawUnitsAfterUpdate {I : ExecutionEnv} {g : UInt256} {s0 evm : Stat
             omega))
       have hclean : UInt256.land (UInt256.ofNat m.loanToken.val) solcAddrMask =
           UInt256.ofNat m.loanToken.val := addressWord_val_clean m.loanToken
-      change RD _ _ _ _ _
+      change RD fork _ _ _ _ _
         ([UInt256.land (memLoad (market + UInt256.ofNat 64) mem3) solcAddrMask,
           UInt256.ofNat receiver.val, units, UInt256.ofNat 3723, saved] ++ R)
         mem3 _ _ _ _ _ at rd3
@@ -114,8 +116,8 @@ theorem withdrawUnitsAfterUpdate {I : ExecutionEnv} {g : UInt256} {s0 evm : Stat
         rw [wordLocal_get_ne _ _ _ _ (by decide), wordLocal_get_ne _ _ _ _ (by decide),
           wordLocal_get_ne _ _ _ _ (by decide), hd]
       have sourcePrefix {result : ExecResult}
-          (ht : ExecBlock config frame3 evm3 (withdrawTransition.body.drop 16) result) :
-          ExecBlock config frame evm (withdrawTransition.body.drop 9) result :=
+          (ht : ExecBlock fork config frame3 evm3 (withdrawTransition.body.drop 16) result) :
+          ExecBlock fork config frame evm (withdrawTransition.body.drop 9) result :=
         ExecBlock.consNormal hif (withdrawUnitsBalancesSource hf1 hcanon hsafe
           (by rw [hs1.env]; exact hperm) ht)
       simp only [List.cons_append, List.nil_append] at rd3

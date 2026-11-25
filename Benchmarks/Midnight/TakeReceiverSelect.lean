@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.TakeCallbackSelect
 
+variable {fork : Ethereum.Fork}
+
 /-! Runtime selection and storage of the transfer receiver. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -20,9 +22,9 @@ theorem midnightTakeReceiverSelect {credit : Nat} {I : ExecutionEnv} {g : Sat256
     (hoffer : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (hreceiver : memLoad (UInt256.ofNat 288) mem = UInt256.ofNat receiver.val)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨12775⟩ (offer.buy :: R) mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨12775⟩ (offer.buy :: R) mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding credit (takeReceiverMemory mem offer receiver) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨12792⟩ R
+      RD fork midnightBytecode I g s0 ⟨12792⟩ R
         (takeReceiverMemory mem offer receiver) aw' rdata σ k' C' := by
   have hmem : 416 ≤ mem.size := by
     have h := ho.words.size
@@ -47,7 +49,7 @@ theorem midnightTakeReceiverSelect {credit : Nat} {I : ExecutionEnv} {g : Sat256
       unfold midnight_block_12775_taken_memory
       memory_fund ha)
     change MemoryFunding credit (writeWord mem 128 ⟨0⟩) _ _ at ha1
-    change RD _ _ _ _ ⟨14064⟩ R (writeWord mem 128 ⟨0⟩) _ _ _ _ _ at rd1
+    change RD fork _ _ _ _ ⟨14064⟩ R (writeWord mem 128 ⟨0⟩) _ _ _ _ _ at rd1
     have rd2 := midnight_block_14064 (by omega) (by jump_dest) rd1
     have ha2 := memoryFundingAt (credit := credit) rd2 (by
       unfold midnight_block_14064_memory
@@ -62,7 +64,7 @@ theorem midnightTakeReceiverSelect {credit : Nat} {I : ExecutionEnv} {g : Sat256
       unfold midnight_block_12775_fallthrough_memory
       memory_fund ha)
     change MemoryFunding credit (writeWord mem 128 ⟨0⟩) _ _ at ha1
-    change RD _ _ _ _ ⟨12785⟩ R (writeWord mem 128 ⟨0⟩) _ _ _ _ _ at rd1
+    change RD fork _ _ _ _ ⟨12785⟩ R (writeWord mem 128 ⟨0⟩) _ _ _ _ _ at rd1
     have rd2 := midnight_block_12785 (by omega) rd1
     have ha2 := memoryFundingAt (credit := credit) rd2 (by
       unfold midnight_block_12785_memory

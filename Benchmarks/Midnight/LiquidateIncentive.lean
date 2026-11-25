@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.LiquidateLifFrames
 
+variable {fork : Ethereum.Fork}
+
 /-! Paired execution of collateral selection and liquidation-incentive computation. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,26 +19,26 @@ theorem liquidateIncentive {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {fra
     (ha : LiquidateAccumulators frame bitmap maxDebt price originalDebt badDebt)
     (he : evm.executionEnv = I) (hd : decodeCalldataMarket I.calldata 4 = some m)
     (hi : calldataWord I.calldata 36 = index) (hb : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨6477⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨6477⟩
       ([maxDebt, price, pos, dp, dl, borrower, badDebt, receiverWord, mode] ++ R)
       mem aw rdata σ k C) :
-    (ExecBlock config frame evm (liquidateAmountsBody.take 4) .reverted ∧
-      RDrev midnightBytecode g s0) ∨
+    (ExecBlock fork config frame evm (liquidateAmountsBody.take 4) .reverted ∧
+      RDrev fork midnightBytecode g s0) ∨
     ∃ frame' lltv lif k' C',
-      ExecBlock config frame evm (liquidateAmountsBody.take 4) (.ok frame' evm) ∧
+      ExecBlock fork config frame evm (liquidateAmountsBody.take 4) (.ok frame' evm) ∧
       LiquidateSourceFrame frame' m id index seized repaid borrower mode receiver callback data ∧
       LiquidateAccumulators frame' bitmap maxDebt price originalDebt badDebt ∧
       frame'.locals.get? "lltv" = some (.int lltv.toNat) ∧
       frame'.locals.get? "lif" = some (.int lif.toNat) ∧
       TransferBudget root credit mem aw C' ∧
-      RD midnightBytecode I g s0 ⟨6639⟩
+      RD fork midnightBytecode I g s0 ⟨6639⟩
         ([maxDebt, lltv, lif, price, pos, dp, dl, borrower, badDebt, receiverWord, mode] ++ R)
         mem aw rdata σ k' C' := by
   have htrace := midnightLiquidateMaxLif
     (R := [maxDebt, price, pos, dp, dl, borrower, badDebt, receiverWord, mode] ++ R)
     (by simp only [List.length_append, List.length_cons, List.length_nil]; omega) hd rd
   rw [hi] at htrace
-  have hsource := liquidateMaxLifSource (evm := evm)
+  have hsource := liquidateMaxLifSource (fork := fork) (evm := evm)
     hf.contract hf.market hf.index [liquidateAmountsBody[3]!]
   rcases htrace with ⟨hbad, hrev⟩ | ⟨hidx, hsafe, k1, C1, hc1, rd1⟩
   · rcases hsource with ⟨_, hsrev⟩ | ⟨hi', hs', _⟩
@@ -59,7 +61,7 @@ theorem liquidateIncentive {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {fra
         simp only [f1, liquidateMaxLifFrame,
           wordLocal_get_ne _ _ _ _ (show "lif" ≠ "lltv" by decide),
           wordLocal_get_ne _ _ _ _ (show "_maxLif" ≠ "lltv" by decide), wordLocal_get]
-      have hs1 := liquidateLifSource (evm := evm) hf1.contract hf1.market hf1.mode hx1 hl1
+      have hs1 := liquidateLifSource (fork := fork) (evm := evm) hf1.contract hf1.market hf1.mode hx1 hl1
       rw [he] at hs1
       rcases midnightLiquidateLif (R := R) (by omega) hd rd1 with
         ⟨hbad, hrev⟩ | ⟨hsafe, k2, C2, hc2, rd2⟩

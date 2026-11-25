@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.MulDivGas
 
+variable {fork : Ethereum.Fork}
+
 /-! The compiler's specialized rounded-up multiplication with a fixed 10^18 denominator. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -14,10 +16,10 @@ theorem midnightWmulUp {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw x y ret : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 7 ≤ 1024)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨24082⟩ (x :: y :: ret :: R) mem aw rdata σ k C) :
-    (¬ MulDivUpSafe x y takePriceScale ∧ RDrev midnightBytecode g s0) ∨
+    (rd : RD fork midnightBytecode I g s0 ⟨24082⟩ (x :: y :: ret :: R) mem aw rdata σ k C) :
+    (¬ MulDivUpSafe x y takePriceScale ∧ RDrev fork midnightBytecode g s0) ∨
     (MulDivUpSafe x y takePriceScale ∧ ∃ k' C', C ≤ C' ∧
-      RD midnightBytecode I g s0 ret (mulDivUp x y takePriceScale :: R)
+      RD fork midnightBytecode I g s0 ret (mulDivUp x y takePriceScale :: R)
         mem aw rdata σ k' C') := by
   have hp : UInt256.sub takePriceScale ⟨1⟩ = UInt256.ofNat 999999999999999999 := by
     decide +kernel

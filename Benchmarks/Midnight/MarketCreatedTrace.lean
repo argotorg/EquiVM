@@ -2,6 +2,8 @@ import Benchmarks.Midnight.MarketEncoder
 import Benchmarks.Midnight.MarketBytesMemory
 import Benchmarks.Midnight.RuntimeBlocks_081
 
+variable {fork : Ethereum.Fork}
+
 /-! Encode and emit MarketCreated, then return the market identifier. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -40,16 +42,16 @@ theorem midnightMarketCreated {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hlimit : limit.toNat ≤ root.toNat) (hb : root.toNat + m.encodingSize < UInt256.size)
     (hfree : memLoad (UInt256.ofNat 64) mem = root) (hperm : I.perm = true)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨21682⟩ (ptr :: id :: ret :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨21682⟩ (ptr :: id :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g s0 ret (id :: R)
+    ∃ aw' k' C', RD fork midnightBytecode I g s0 ret (id :: R)
       (marketCreatedMemory mem root m) aw' rdata σ k' C' := by
   have rd1 := midnightBlocks.midnight_block_21682
     (by simp only [List.length_cons]; omega) (by jump_dest) rd
   simp only [midnightBlocks.midnight_block_21682_stack,
     midnightBlocks.midnight_block_21682_memory, hfree] at rd1
   let mem1 := writeWord mem root.toNat (UInt256.ofNat 32)
-  change RD _ _ _ _ _ _ mem1 _ _ _ _ _ at rd1
+  change RD fork _ _ _ _ _ _ mem1 _ _ _ _ _ at rd1
   have hp : MemoryPrefix mem mem1 limit.toNat :=
     memoryPrefix_writeWord _ _ _ _ (Or.inl hlimit)
   have hm1 := hm.preserve hp

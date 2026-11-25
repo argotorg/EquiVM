@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TakeTickGuard
 import Benchmarks.Midnight.RuntimeBlocks_043
 
+variable {fork : Ethereum.Fork}
+
 /-! The offer time window and self-take restriction. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -20,10 +22,10 @@ theorem midnightTakeTimeGuard {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0
     (ho : OfferStored mem ⟨832⟩ marketPtr arrayPtr callbackPtr root offer)
     (hroot : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨11108⟩ R mem aw rdata σ k C) :
-    (¬ TakeTimeValid I offer ∧ RDrev midnightBytecode g s0) ∨
+    (rd : RD fork midnightBytecode I g s0 ⟨11108⟩ R mem aw rdata σ k C) :
+    (¬ TakeTimeValid I offer ∧ RDrev fork midnightBytecode g s0) ∨
     (TakeTimeValid I offer ∧ ∃ aw' k' C', MemoryFunding credit mem aw' C' ∧
-      RD midnightBytecode I g s0 ⟨11136⟩ R mem aw' rdata σ k' C') := by
+      RD fork midnightBytecode I g s0 ⟨11136⟩ R mem aw' rdata σ k' C') := by
   have hstart : memLoad ((⟨832⟩ : UInt256) + UInt256.ofNat 96) mem = offer.start :=
     ho.words.load_offset ⟨3, by change 3 < 15; decide⟩ rfl
   have hexpiry : memLoad ((⟨832⟩ : UInt256) + UInt256.ofNat 128) mem = offer.expiry :=
@@ -50,10 +52,10 @@ theorem midnightTakeSelfGuard {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0
     (hroot : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (htaker : memLoad (UInt256.ofNat 544) mem = taker)
     (hcanon : taker.toNat < EVM.addressModulus) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨11136⟩ R mem aw rdata σ k C) :
-    (UInt256.ofNat offer.maker.val = taker ∧ RDrev midnightBytecode g s0) ∨
+    (rd : RD fork midnightBytecode I g s0 ⟨11136⟩ R mem aw rdata σ k C) :
+    (UInt256.ofNat offer.maker.val = taker ∧ RDrev fork midnightBytecode g s0) ∨
     (UInt256.ofNat offer.maker.val ≠ taker ∧ ∃ aw' k' C', MemoryFunding credit mem aw' C' ∧
-      RD midnightBytecode I g s0 ⟨11171⟩ R mem aw' rdata σ k' C') := by
+      RD fork midnightBytecode I g s0 ⟨11171⟩ R mem aw' rdata σ k' C') := by
   have hm : memLoad ((⟨832⟩ : UInt256) + UInt256.ofNat 64) mem = UInt256.ofNat offer.maker.val :=
     ho.words.load_offset ⟨2, by change 2 < 15; decide⟩ rfl
   have hclean : UInt256.land (UInt256.ofNat offer.maker.val) solcAddrMask =

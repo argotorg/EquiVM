@@ -4,6 +4,8 @@ import Benchmarks.Midnight.OracleMemory
 import Benchmarks.Midnight.RuntimeBlocks_031
 import Benchmarks.Midnight.RuntimeBlocks_032
 
+variable {fork : Ethereum.Fork}
+
 /-! Decode the one-word oracle reply used in a liquidation loop iteration. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -18,13 +20,13 @@ theorem midnightLiquidateOracleReturn {I : ExecutionEnv} {g : Sat256} {s0 : Stat
     (hstack : R.length + 15 ≤ 1024) (hout : out.size < UInt256.size)
     (hroot : root.toNat + 32 < 2^64) (hz : memLoad (UInt256.ofNat 800) mem = ⟨0⟩)
     (hb : TransferBudget budgetRoot credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨7933⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨7933⟩
       ((if success then ⟨1⟩ else ⟨0⟩) :: maxDebt :: cp :: badDebt :: reverseRep :: rep :: root :: R)
       mem aw out σ k C) :
-    ((success = false ∨ out.size < 32) ∧ RDrev midnightBytecode g s0) ∨
+    ((success = false ∨ out.size < 32) ∧ RDrev fork midnightBytecode g s0) ∨
     (success = true ∧ 32 ≤ out.size ∧ ∃ aw' k' C',
       TransferBudget budgetRoot credit (writeWord mem 64 (root + UInt256.ofNat 32)) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨8252⟩
+      RD fork midnightBytecode I g s0 ⟨8252⟩
         (root :: cp :: badDebt :: reverseRep :: rep :: maxDebt :: R)
         (writeWord mem 64 (root + UInt256.ofNat 32)) aw' out σ k' C') := by
   have hn : (UInt256.ofNat out.size).toNat = out.size := UInt256.toNat_ofNat_of_lt hout

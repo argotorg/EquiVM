@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.CollateralLoopMemory
 import Benchmarks.Midnight.CollateralDecode
 
+variable {fork : Ethereum.Fork}
+
 /-! Inductive correctness of the stored-market collateral-decoding loop. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -19,16 +21,16 @@ theorem midnightToMarketCollateralLoop {I : ExecutionEnv} {g : Sat256} {s0 : Sta
     (hfinish : finish.toNat = readPtr.toNat + 128 * n)
     (hptr : ptr.toNat < 2^64) (hfree : memLoad (UInt256.ofNat 64) mem = ptr)
     (hwrite : base + bytes.size ≤ writePtr.toNat) (harray : writePtr.toNat + 32 * n ≤ ptr.toNat)
-    (rd : RD midnightBytecode I g s0 ⟨1092⟩ (writePtr :: x :: finish :: readPtr :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨1092⟩ (writePtr :: x :: finish :: readPtr :: R)
       mem aw rdata σ k C) :
-    (decodeCollateralElements n bytes start = none ∧ RDrev midnightBytecode g s0) ∨
-    (¬ ptr.toNat + 128 * n < 2^64 ∧ RDrev midnightBytecode g s0) ∨
+    (decodeCollateralElements n bytes start = none ∧ RDrev fork midnightBytecode g s0) ∨
+    (¬ ptr.toNat + 128 * n < 2^64 ∧ RDrev fork midnightBytecode g s0) ∨
     (∃ values : List CollateralData, decodeCollateralElements n bytes start = some values ∧
       ptr.toNat + 128 * n < 2^64 ∧
       MemoryBytes (collateralLoopMemory mem ptr writePtr values) base bytes ∧
       memLoad (UInt256.ofNat 64) (collateralLoopMemory mem ptr writePtr values) =
         ptr + UInt256.ofNat (128 * n) ∧
-      ∃ aw' k' C', RD midnightBytecode I g s0 ⟨1100⟩
+      ∃ aw' k' C', RD fork midnightBytecode I g s0 ⟨1100⟩
         ((writePtr + UInt256.ofNat (32 * n)) :: x :: finish :: (readPtr + UInt256.ofNat (128 * n)) :: R)
         (collateralLoopMemory mem ptr writePtr values) aw' rdata σ k' C') := by
   induction n generalizing mem ptr writePtr readPtr start aw k C with

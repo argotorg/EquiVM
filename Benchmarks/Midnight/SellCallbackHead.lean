@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.SellCallbackLayout
 import Benchmarks.Midnight.RuntimeBlocks_050
 
+variable {fork : Ethereum.Fork}
+
 /-! The seller callback selector and the handoff to the market encoder. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,10 +19,10 @@ theorem midnightSellCallbackHead {credit : Nat} {I : ExecutionEnv} {g : Sat256} 
     (hfree : memLoad (UInt256.ofNat 64) mem = root)
     (hid : memLoad (UInt256.ofNat 512) mem = id)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨13482⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨13482⟩
       ([callback, ptr, outputSize, ret] ++ R) mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding credit (sellCallbackHeaderMemory mem root.toNat id) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨19181⟩
+      RD fork midnightBytecode I g s0 ⟨19181⟩
         ([market, root + UInt256.ofNat 260, ⟨13539⟩, ptr, ret, root,
           ⟨0⟩, root, callback, root, outputSize, root] ++ R)
         (sellCallbackHeaderMemory mem root.toNat id) aw' rdata σ k' C' := by

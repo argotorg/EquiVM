@@ -3,6 +3,8 @@ import Benchmarks.Midnight.PositionBitmapStorage
 import Benchmarks.Midnight.BitmapArithmetic
 import Benchmarks.Midnight.PackedStorageSourceState
 
+variable {fork : Ethereum.Fork}
+
 /-! Clearing the liquidated collateral's bit preserves the other packed position field. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,10 +17,10 @@ theorem midnightLiquidateBitmapWrite {I : ExecutionEnv} {g : Sat256} {s0 evm : S
     {mem rdata : ByteArray} {aw id borrower index : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 7 ≤ 1024) (hp : I.perm = true)
     (hi : calldataWord I.calldata 36 = index) (hs : SourceState s0 I σ evm)
-    (rd : RD midnightBytecode I g s0 ⟨6952⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨6952⟩
       (positionSlot id borrower :: R) mem aw rdata σ k C) :
     ∃ k' C', C ≤ C' ∧
-      RD midnightBytecode I g s0 ⟨6833⟩ (positionSlot id borrower :: R) mem aw rdata
+      RD fork midnightBytecode I g s0 ⟨6833⟩ (positionSlot id borrower :: R) mem aw rdata
         (storeHigh128Accounts σ I (positionSlot id borrower + ⟨2⟩)
           (bitmapClear (positionBitmapWord evm id borrower) index)) k' C' := by
   obtain ⟨k', C', hc, rd'⟩ := liquidate_block_6952_mono hstack hp (by jump_dest) rd

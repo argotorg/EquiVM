@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.SettlementTrace
 import Benchmarks.Midnight.MemoryFunding
 
+variable {fork : Ethereum.Fork}
+
 /-! The settlement-fee storage read retains memory funding across SLOAD. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -14,9 +16,9 @@ theorem settlementRead_funded {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0
     (hstack : R.length + 4 ≤ 1024) (hmem : 64 ≤ mem.size)
     (hspace : marketTickSpacing (solcSlotWordAt (solcMappingSlot ⟨1⟩ id + ⟨2⟩) σ I) ≠ ⟨0⟩)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨21835⟩ (id :: R) mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨21835⟩ (id :: R) mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding credit (twoWordHashMem id ⟨1⟩ mem) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨21863⟩
+      RD fork midnightBytecode I g s0 ⟨21863⟩
         (solcSlotWordAt (solcMappingSlot ⟨1⟩ id + ⟨2⟩) σ I :: R)
         (twoWordHashMem id ⟨1⟩ mem) aw' rdata σ k' C' := by
   have hh : keccakWord ⟨0⟩ (UInt256.ofNat 64)

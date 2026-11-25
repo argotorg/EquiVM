@@ -2,6 +2,8 @@ import Benchmarks.Midnight.MarketDeploymentBytes
 import Benchmarks.Midnight.MarketDeploymentConcat
 import Benchmarks.Midnight.MarketIdWorkMemory
 
+variable {fork : Ethereum.Fork}
+
 /-! Construct the exact CREATE2 input while preserving the decoded market heap. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -23,14 +25,14 @@ theorem midnightMarketDeploymentPrepare {I : ExecutionEnv} {g : Sat256} {s0 : St
     (hm : MarketStored mem ptr arrayPtr limit m) (hlimit : limit.toNat ≤ root.toNat)
     (hb : root.toNat + 2 * m.encodingSize + 288 < 2^64)
     (hfree : memLoad (UInt256.ofNat 64) mem = root)
-    (rd : RD midnightBytecode I g s0 ⟨24347⟩ (UInt256.ofNat 21556 :: ptr :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨24347⟩ (UInt256.ofNat 21556 :: ptr :: R)
       mem aw rdata σ k C) :
     MemoryPrefix mem (marketDeploymentMemory mem root m) limit.toNat ∧
     memLoad (UInt256.ofNat 64) (marketDeploymentMemory mem root m) = marketDeploymentFree root m ∧
     (marketDeploymentMemory mem root m).readWithPadding
       (marketIdInitcodePtr root m + UInt256.ofNat 32).toNat
       (UInt256.ofNat (11 + m.encodingSize)).toNat = m.initcode ∧
-    ∃ aw' k' C', RD midnightBytecode I g s0 ⟨21667⟩
+    ∃ aw' k' C', RD fork midnightBytecode I g s0 ⟨21667⟩
       (⟨0⟩ :: (marketIdInitcodePtr root m + UInt256.ofNat 32) ::
         UInt256.ofNat (11 + m.encodingSize) :: ⟨0⟩ :: ptr :: R)
       (marketDeploymentMemory mem root m) aw' rdata σ k' C' := by
@@ -46,7 +48,7 @@ theorem midnightMarketDeploymentPrepare {I : ExecutionEnv} {g : Sat256} {s0 : St
   change cp.toNat = root.toNat + m.encodingSize + 96 at hc
   obtain ⟨aw1, k1, C1, rd1⟩ := midnightSstore2Prefix
     (by simp only [List.length_cons]; omega) (by omega) hfree (by jump_dest) rd
-  change RD _ _ _ _ _ _ mem1 _ _ _ _ _ at rd1
+  change RD fork _ _ _ _ _ _ mem1 _ _ _ _ _ at rd1
   have hf1 : memLoad (UInt256.ofNat 64) mem1 = ep := sstore2PrefixMemory_free mem hlo
   have hp1 := sstore2PrefixMemory_prefix mem root
   have hm1 := hm.preserve (hp1.mono hlimit)
@@ -59,7 +61,7 @@ theorem midnightMarketDeploymentPrepare {I : ExecutionEnv} {g : Sat256} {s0 : St
   obtain ⟨aw3, k3, C3, rd3⟩ := midnightMarketDeploymentBytes m
     (by simp only [List.length_cons]; omega) hm1 (by rw [he]; omega)
     (by rw [he]; omega) rd2
-  change RD _ _ _ _ _ _ mem2 _ _ _ _ _ at rd3
+  change RD fork _ _ _ _ _ _ mem2 _ _ _ _ _ at rd3
   have hp2 := marketBytesMemory_prefix mem1 ep m
   have hs1 : root.toNat + 64 ≤ mem1.size := sstore2PrefixMemory_size mem root
   have hpLen : memLoad root mem2 = UInt256.ofNat 11 := by
@@ -80,7 +82,7 @@ theorem midnightMarketDeploymentPrepare {I : ExecutionEnv} {g : Sat256} {s0 : St
     (by simp only [List.length_cons]; omega) (by rw [hc]; omega)
     (by have := hp2.size; omega) (by rw [hc]; omega) (by omega)
     (by rw [hc, he]; omega) hf2 hpLen heLen rd3
-  change RD _ _ _ _ _ _ mem3 _ _ _ _ _ at rd4
+  change RD fork _ _ _ _ _ _ mem3 _ _ _ _ _ at rd4
   have hcBytes : mem3.readWithPadding (cp.toNat + 32) (11 + m.encodingSize) = m.initcode :=
     marketInitcodeMemory_bytes mem2 m (by rw [hc]; omega) (by omega)
       (by have := hp2.size; omega) heSize (by rw [hc, he]; omega) hpBytes heBytes

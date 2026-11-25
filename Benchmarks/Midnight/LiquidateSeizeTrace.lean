@@ -4,6 +4,8 @@ import Benchmarks.Midnight.CheckedAddGas
 import Benchmarks.Midnight.RuntimeBlocks_027
 import Benchmarks.Midnight.TransferBudget
 
+variable {fork : Ethereum.Fork}
+
 /-! A specified seized amount determines the repaid amount by two rounded-up conversions. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,19 +18,19 @@ theorem midnightLiquidateSeize {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw seized maxDebt lltv lif price root : UInt256} {credit : Nat}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 14 ≤ 1024)
     (hm : memLoad ⟨640⟩ mem = seized) (hb : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨6648⟩ (maxDebt :: lltv :: lif :: price :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨6648⟩ (maxDebt :: lltv :: lif :: price :: R)
       mem aw rdata σ k C) :
-    (¬ LiquidateSeizeSafe seized price lif ∧ RDrev midnightBytecode g s0) ∨
+    (¬ LiquidateSeizeSafe seized price lif ∧ RDrev fork midnightBytecode g s0) ∨
     (LiquidateSeizeSafe seized price lif ∧ ∃ aw' k' C',
       TransferBudget root credit (writeWord mem 608 (liquidateRepaidAmount seized price lif)) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨6731⟩ (maxDebt :: lltv :: lif :: price :: R)
+      RD fork midnightBytecode I g s0 ⟨6731⟩ (maxDebt :: lltv :: lif :: price :: R)
         (writeWord mem 608 (liquidateRepaidAmount seized price lif)) aw' rdata σ k' C') := by
   have rd1 := midnightBlocks.midnight_block_6648 (R := R) (by omega) (by jump_dest) rd
   have hb1 := transferBudgetAt (root := root) (credit := credit) rd1 (by transfer_budget hb)
   rw [show UInt256.ofNat 640 = (⟨640⟩ : UInt256) from rfl] at hb1
   simp only [midnightBlocks.midnight_block_6648_stack,
     show UInt256.ofNat 640 = (⟨640⟩ : UInt256) from rfl, hm] at rd1
-  change RD midnightBytecode I g s0 ⟨20413⟩
+  change RD fork midnightBytecode I g s0 ⟨20413⟩
     (seized :: price :: ⟨6682⟩ :: ⟨6687⟩ :: liquidatePriceScale :: ⟨6693⟩ ::
       maxDebt :: lltv :: lif :: price :: R) mem _ rdata σ _ _ at rd1
   · by_cases hmprod : seized.toNat * price.toNat < UInt256.size

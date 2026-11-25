@@ -4,6 +4,8 @@ import Benchmarks.Midnight.SafeTransferPrepareFunding
 import Benchmarks.Midnight.AggregateMemoryGas
 import Benchmarks.Midnight.TransferGas
 
+variable {fork : Ethereum.Fork}
+
 /-! Safe-transfer refinement using the combined parent and child memory budget. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -23,18 +25,18 @@ theorem safeTransferFundedPreserving (isFrom : Bool) (imms : Store) {credit : Na
     (hcover : ptr.toNat ≤ 32 * aw.toNat) (halign : ptr.toNat % 32 = 0)
     (hcredit : 4 * ((ptr.toNat + safeTransferCallAllocation isFrom + 31) / 32) ≤
       credit + 999921)
-    (hgas : midnightGasBound g) (hfork : I.fork ≥ .osaka)
+    (hgas : midnightGasBound g) (hfork : fork ≥ .osaka)
     (hs : SourceState s0 I σ evm)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 (safeTransferEntryPC isFrom)
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 (safeTransferEntryPC isFrom)
       (safeTransferEntryStack isFrom token sender recipient value (ret :: R))
       mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (ExecFuncBody config (safeTransferFrame isFrom imms token sender recipient value) evm
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (ExecFuncBody fork config (safeTransferFrame isFrom imms token sender recipient value) evm
       (safeTransferFunctionFor isFrom).body .reverted ∧
-      RDrev midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+      RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
     ∃ (evm' : State) (σ' : AccountMap) (out mem' : ByteArray) (ptr' aw' : UInt256) (k' C' : Nat),
-      ExecFuncBody config (safeTransferFrame isFrom imms token sender recipient value) evm
+      ExecFuncBody fork config (safeTransferFrame isFrom imms token sender recipient value) evm
         (safeTransferFunctionFor isFrom).body
         (.returned (safeTransferCallFrame isFrom imms token sender recipient value true out) evm'
           none) ∧
@@ -44,7 +46,7 @@ theorem safeTransferFundedPreserving (isFrom : Bool) (imms : Store) {credit : Na
       MemoryFunding (credit + transferOutputWork out) mem' aw' C' ∧
       ptr'.toNat ≤ 32 * aw'.toNat ∧ ptr'.toNat % 32 = 0 ∧
       4 * ((ptr'.toNat - ptr.toNat) / 32) ≤ transferOutputWork out ∧
-      RD midnightBytecode I (Sat256.ofUInt256 g) s0 ret R mem' aw' out σ' k' C' := by
+      RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ret R mem' aw' out σ' k' C' := by
   rcases midnightMemoryPaid_headroom rd ha0.accounting.paid hgas hcover with hoog | hroom
   · exact Or.inl hoog
   have halloc : safeTransferCallAllocation isFrom ≤ 160 := by cases isFrom <;> decide
@@ -92,7 +94,7 @@ theorem safeTransferFundedPreserving (isFrom : Bool) (imms : Store) {credit : Na
         (hsmall.trans (by decide)) hfork (by simp only [List.length_cons]; omega) with
       hoog | ⟨evm', σ', success, out, aw2, k2, C2, hcall, hs', rd2, hout, hcost, hcharge⟩
     · exact Or.inl hoog
-    have hcall' : callViaEVM evm token 0 (safeTransferCalldata isFrom sender recipient value)
+    have hcall' : callViaEVM fork evm token 0 (safeTransferCalldata isFrom sender recipient value)
         (success, evm', out) true := by simpa only [accountAddress_roundtrip] using hcall
     have hcost' : out.size ≤ 1024 ∨
         C1 + 100 + forwardingMinimum (memoryCost ((out.size + 31) / 32)) ≤ g.toNat := by
@@ -181,25 +183,25 @@ theorem safeTransferFunded (isFrom : Bool) (imms : Store) {credit : Nat}
     (hcover : ptr.toNat ≤ 32 * aw.toNat) (halign : ptr.toNat % 32 = 0)
     (hcredit : 4 * ((ptr.toNat + safeTransferCallAllocation isFrom + 31) / 32) ≤
       credit + 999921)
-    (hgas : midnightGasBound g) (hfork : I.fork ≥ .osaka)
+    (hgas : midnightGasBound g) (hfork : fork ≥ .osaka)
     (hs : SourceState s0 I σ evm)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 (safeTransferEntryPC isFrom)
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 (safeTransferEntryPC isFrom)
       (safeTransferEntryStack isFrom token sender recipient value (ret :: R))
       mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (ExecFuncBody config (safeTransferFrame isFrom imms token sender recipient value) evm
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (ExecFuncBody fork config (safeTransferFrame isFrom imms token sender recipient value) evm
       (safeTransferFunctionFor isFrom).body .reverted ∧
-      RDrev midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+      RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
     ∃ (evm' : State) (σ' : AccountMap) (out mem' : ByteArray) (ptr' aw' : UInt256) (k' C' : Nat),
-      ExecFuncBody config (safeTransferFrame isFrom imms token sender recipient value) evm
+      ExecFuncBody fork config (safeTransferFrame isFrom imms token sender recipient value) evm
         (safeTransferFunctionFor isFrom).body
         (.returned (safeTransferCallFrame isFrom imms token sender recipient value true out) evm'
           none) ∧
       SourceState s0 I σ' evm' ∧ MemoryPrefix mem mem' ptr.toNat ∧
       memLoad (UInt256.ofNat 64) mem' = ptr' ∧ memLoad (UInt256.ofNat 96) mem' = ⟨0⟩ ∧
       ptr.toNat ≤ ptr'.toNat ∧ ptr'.toNat < 2 ^ 64 ∧
-      RD midnightBytecode I (Sat256.ofUInt256 g) s0 ret R mem' aw' out σ' k' C' := by
+      RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ret R mem' aw' out σ' k' C' := by
   rcases safeTransferFundedPreserving isFrom imms hstack hm hl hfree hzero ha0 hcover halign
       hcredit hgas hfork hs hret rd with hoog | hrev | hsuccess
   · exact Or.inl hoog

@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.LiquidateTotalTrace
 import Benchmarks.Midnight.LiquidateFees
 
+variable {fork : Ethereum.Fork}
+
 /-! The loss-factor, total-unit, and continuous-fee writes complete bad-debt recognition. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -22,20 +24,20 @@ theorem midnightLiquidateBadDebtTail {I : ExecutionEnv} {g : Sat256} {s0 evm : S
     (hzero : memLoad (UInt256.ofNat 800) mem = ⟨0⟩)
     (hp : I.perm = true) (hs : SourceState s0 I σ evm)
     (hb : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨7541⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨7541⟩
       ([newLoss, ⟨7571⟩, oldWord, reverseRep, rep, maxDebt, price, pos, dp, dl, borrower, badDebt] ++ R)
       mem aw rdata σ k C) :
     let evm1 := liquidateTotalState evm id newLoss badDebt
     let oldLoss := UInt256.shiftRight oldWord ⟨128⟩
     let amount := liquidateFeeValue evm1 id oldLoss
     let frame1 := wordLocal frame "__c14" badDebt
-    (ExecBlock config frame evm (liquidateBadDebtBody.drop 5) .reverted ∧
-      RDrev midnightBytecode g s0) ∨
+    (ExecBlock fork config frame evm (liquidateBadDebtBody.drop 5) .reverted ∧
+      RDrev fork midnightBytecode g s0) ∨
     (∃ σ' aw' k' C',
       SourceState s0 I σ' (marketBalanceStore evm1 id 2 amount) ∧
-      ExecBlock config frame evm (liquidateBadDebtBody.drop 5)
+      ExecBlock fork config frame evm (liquidateBadDebtBody.drop 5)
         (.ok (liquidateFeeFrame frame1 oldLoss amount) (marketBalanceStore evm1 id 2 amount)) ∧
-      TransferBudget root credit mem aw' C' ∧ RD midnightBytecode I g s0 ⟨7768⟩
+      TransferBudget root credit mem aw' C' ∧ RD fork midnightBytecode I g s0 ⟨7768⟩
         ([reverseRep, rep, maxDebt, price, pos, dp, dl, borrower, badDebt] ++ R)
         mem aw' rdata σ' k' C') := by
   dsimp only
@@ -50,7 +52,7 @@ theorem midnightLiquidateBadDebtTail {I : ExecutionEnv} {g : Sat256} {s0 evm : S
       (solcMappingSlot ⟨1⟩ id)) = _
     rw [hs0.storageRead]
     rfl
-  have hsource := liquidateTotalSource hc hm hl hd (by rw [hs.env]; exact hp)
+  have hsource := liquidateTotalSource (fork := fork) hc hm hl hd (by rw [hs.env]; exact hp)
   have hrun := midnightLiquidateTotal (R := R) (by omega) hp hb rd
   dsimp only at hrun hsource
   simp only [hslot] at hrun

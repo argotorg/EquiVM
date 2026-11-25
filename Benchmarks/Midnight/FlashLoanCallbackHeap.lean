@@ -2,6 +2,8 @@ import Benchmarks.Midnight.FlashLoanCallbackMagic
 import Benchmarks.Midnight.TransferHeap
 import Benchmarks.Midnight.WordReplyMemory
 
+variable {fork : Ethereum.Fork}
+
 /-! The heap invariant after decoding the callback's one-word acknowledgement. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -58,16 +60,16 @@ theorem midnightFlashLoanCallbackReturn {I : ExecutionEnv} {g : Sat256} {s0 : St
     (hzero : memLoad (UInt256.ofNat 96) mem = ⟨0⟩) (halign : root.toNat % 32 = 0)
     (ha : success = true → MemoryFunding (transferHeapCredit root + 4)
       (wordReplyMemory mem out root) aw C)
-    (rd : RD midnightBytecode I g s0 ⟨16368⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨16368⟩
       ((if success then ⟨1⟩ else ⟨0⟩) :: root :: R)
       (wordReplyMemory mem out root) aw out σ k C) :
     ((success = false ∨ out.size < 32 ∨ calldataWord out 0 ≠ flashLoanMagic) ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     (success = true ∧ 32 ≤ out.size ∧ calldataWord out 0 = flashLoanMagic ∧
       ∃ aw' k' C',
         TransferHeap (flashLoanCallbackResultMemory (wordReplyMemory mem out root) root)
           aw' (root + UInt256.ofNat 32) C' ∧
-        RD midnightBytecode I g s0 ⟨16403⟩ (⟨0⟩ :: R)
+        RD fork midnightBytecode I g s0 ⟨16403⟩ (⟨0⟩ :: R)
           (flashLoanCallbackResultMemory (wordReplyMemory mem out root) root) aw' out σ k' C') := by
   cases success with
   | false =>

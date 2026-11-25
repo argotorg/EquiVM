@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.MarketCreatedTrace
 import Benchmarks.Midnight.MarketEncoderFunding
 
+variable {fork : Ethereum.Fork}
+
 /-! Paid memory growth through the MarketCreated event. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,9 +19,9 @@ theorem midnightMarketCreated_funded {credit : Nat} {I : ExecutionEnv} {g : Sat2
     (hfree : memLoad (UInt256.ofNat 64) mem = root) (hperm : I.perm = true)
     (hret : (D_J midnightBytecode 0).contains ret = true)
     (hfund : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨21682⟩ (ptr :: id :: ret :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨21682⟩ (ptr :: id :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ aw' k' C', MemoryFunding credit (marketCreatedMemory mem root m) aw' C' ∧ RD midnightBytecode I g s0 ret (id :: R)
+    ∃ aw' k' C', MemoryFunding credit (marketCreatedMemory mem root m) aw' C' ∧ RD fork midnightBytecode I g s0 ret (id :: R)
       (marketCreatedMemory mem root m) aw' rdata σ k' C' := by
   have rd1 := midnightBlocks.midnight_block_21682
     (by simp only [List.length_cons]; omega) (by jump_dest) rd
@@ -29,7 +31,7 @@ theorem midnightMarketCreated_funded {credit : Nat} {I : ExecutionEnv} {g : Sat2
   simp only [midnightBlocks.midnight_block_21682_stack,
     midnightBlocks.midnight_block_21682_memory, hfree] at rd1 hfund1
   let mem1 := writeWord mem root.toNat (UInt256.ofNat 32)
-  change RD _ _ _ _ _ _ mem1 _ _ _ _ _ at rd1
+  change RD fork _ _ _ _ _ _ mem1 _ _ _ _ _ at rd1
   change MemoryFunding credit mem1 _ _ at hfund1
   have hp : MemoryPrefix mem mem1 limit.toNat :=
     memoryPrefix_writeWord _ _ _ _ (Or.inl hlimit)

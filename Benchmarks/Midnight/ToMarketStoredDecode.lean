@@ -2,6 +2,8 @@ import Benchmarks.Midnight.ToMarketDecodeHeader
 import Benchmarks.Midnight.ToMarketDecoder
 import Benchmarks.Midnight.ToMarketDataSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Stored-market execution using the source decoder and its exact allocation bound. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -14,13 +16,13 @@ theorem midnightToMarketStoredDecode {I : ExecutionEnv} {g : Sat256} {s0 : State
     {rdata : ByteArray} {aw id : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 25 ≤ 1024)
     (hsmall : (extCodeSizeWord σ id).toNat ≤ 18446744073709550464)
-    (rd : RD midnightBytecode I g s0 ⟨900⟩ (⟨1088⟩ :: ⟨1120⟩ :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨900⟩ (⟨1088⟩ :: ⟨1120⟩ :: R)
       (toMarketCodeMemory σ id) aw rdata σ k C) :
     ((∀ m, decodeStoredMarketData (externalCodePrefix σ id) = some m →
-        ¬ toMarketDataFits (extCodeSizeWord σ id).toNat m) ∧ RDrev midnightBytecode g s0) ∨
+        ¬ toMarketDataFits (extCodeSizeWord σ id).toNat m) ∧ RDrev fork midnightBytecode g s0) ∨
     (∃ m, decodeStoredMarketData (externalCodePrefix σ id) = some m ∧
       toMarketDataFits (extCodeSizeWord σ id).toNat m ∧
-      RDret midnightBytecode g s0 σ (wordArrayBytes m.encodedWords)) := by
+      RDret fork midnightBytecode g s0 σ (wordArrayBytes m.encodedWords)) := by
   have hs : (extCodeSizeWord σ id).toNat < 2^64 := by omega
   have hsize := externalCodePrefix_size σ id
   rcases midnightToMarketDecodeHeader (by omega) hs rd with

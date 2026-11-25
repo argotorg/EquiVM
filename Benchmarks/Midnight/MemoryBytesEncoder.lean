@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.MemoryByteString
 import Benchmarks.Midnight.RuntimeBlocks_077
 
+variable {fork : Ethereum.Fork}
+
 /-! The memory bytes ABI encoder, retaining its copy charge as memory funding. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -21,11 +23,11 @@ theorem midnightMemoryBytesEncoder_funded {credit : Nat} {I : ExecutionEnv} {g :
     (hload : memLoad ptr mem = UInt256.ofNat len)
     (hret : (D_J midnightBytecode 0).contains ret = true)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨20095⟩ (ptr :: output :: ret :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨20095⟩ (ptr :: output :: ret :: R)
       mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding (credit + 3 * ((len + 31) / 32))
         (memoryBytesEncodeMemory mem ptr.toNat output.toNat len) aw' C' ∧
-      RD midnightBytecode I g s0 ret
+      RD fork midnightBytecode I g s0 ret
         ((output + UInt256.ofNat (returnDataAllocation len)) :: R)
         (memoryBytesEncodeMemory mem ptr.toNat output.toNat len) aw' rdata σ k' C' := by
   have hlenWord : (UInt256.ofNat len).toNat = len := UInt256.toNat_ofNat_of_lt (by

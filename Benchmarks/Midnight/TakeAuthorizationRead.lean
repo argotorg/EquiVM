@@ -2,6 +2,8 @@ import Benchmarks.Midnight.SupplyAuthorizationTrace
 import Benchmarks.Midnight.MemoryFunding
 import Benchmarks.Midnight.RuntimeBlocks_056
 
+variable {fork : Ethereum.Fork}
+
 /-! The take authorization mapping read, retaining the cost of input byte copies. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,9 +17,9 @@ theorem midnightTakeAuthorizationSecondHash_funded {credit : Nat} {ee : Executio
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024) (hmem : 64 ≤ mem.size)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode ee g s0 ⟨15059⟩ (slot :: R) mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode ee g s0 ⟨15059⟩ (slot :: R) mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding credit (twoWordHashMem (solcSourceWord ee) slot mem) aw' C' ∧
-      RD midnightBytecode ee g s0 ⟨10951⟩
+      RD fork midnightBytecode ee g s0 ⟨10951⟩
         (UInt256.land (solcSlotWordAt (solcMappingSlot slot (solcSourceWord ee)) σ ee) ⟨255⟩ :: R)
         (twoWordHashMem (solcSourceWord ee) slot mem) aw' rdata σ k' C' := by
   let r0 := rd
@@ -61,9 +63,9 @@ theorem midnightTakeAuthorizationRead_funded {credit : Nat} {I : ExecutionEnv}
     (hstack : R.length + 5 ≤ 1024) (hmem : 64 ≤ mem.size)
     (huser : memLoad (UInt256.ofNat 544) mem = user)
     (hcanon : user.toNat < EVM.addressModulus) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨15028⟩ (check :: R) mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨15028⟩ (check :: R) mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding credit (supplyAuthorizationMemory mem I user) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨10951⟩
+      RD fork midnightBytecode I g s0 ⟨10951⟩
         (UInt256.land (solcSlotWordAt (authorizationSlot user (solcSourceWord I)) σ I) ⟨255⟩ :: R)
         (supplyAuthorizationMemory mem I user) aw' rdata σ k' C' := by
   have rd1 := midnightBlocks.midnight_block_15028 (by omega) (by jump_dest) rd

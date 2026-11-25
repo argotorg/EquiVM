@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.AdminSource
 import Benchmarks.Midnight.MappingMemory
 
+variable {fork : Ethereum.Fork}
+
 /-! Shared source proofs for enabling an LLTV or a liquidation cursor. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -82,7 +84,7 @@ theorem enableAuthEval (evm : EVM.State) (cursor : Bool) (key : UInt256) :
 theorem enableAuthReverts (evm : EVM.State) (cursor : Bool) (key : UInt256)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) (hauth : ¬ adminAllowed evm) :
-    ExecTransitionBody config contract evm (enableArguments cursor key) (enableBody cursor)
+    ExecTransitionBody fork config contract evm (enableArguments cursor key) (enableBody cursor)
       .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply guardedBodyBlock hwv hhi
@@ -94,7 +96,7 @@ theorem enableBoundReverts (evm : EVM.State) (cursor : Bool) (key : UInt256)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) (hauth : adminAllowed evm)
     (hbound : ¬ enableBound cursor key) :
-    ExecTransitionBody config contract evm (enableArguments cursor key) (enableBody cursor)
+    ExecTransitionBody fork config contract evm (enableArguments cursor key) (enableBody cursor)
       .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply guardedBodyBlock hwv hhi
@@ -108,7 +110,7 @@ theorem enableReturns (evm : EVM.State) (cursor : Bool) (key : UInt256)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) (hauth : adminAllowed evm)
     (hbound : enableBound cursor key) (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (enableArguments cursor key) (enableBody cursor)
+    ExecTransitionBody fork config contract evm (enableArguments cursor key) (enableBody cursor)
       (.returned (calldataFrame contract (enableArguments cursor key) ∅ evm)
         (enableState evm cursor key) none) := by
   apply ExecFuncBody.execBlockOK
@@ -128,7 +130,7 @@ theorem enableStatic (evm : EVM.State) (cursor : Bool) (key : UInt256)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) (hauth : adminAllowed evm)
     (hbound : enableBound cursor key) (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (enableArguments cursor key) (enableBody cursor)
+    ExecTransitionBody fork config contract evm (enableArguments cursor key) (enableBody cursor)
       .staticViolation := by
   apply ExecFuncBody.execBlockStatic
   apply guardedBodyBlock hwv hhi

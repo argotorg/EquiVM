@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.WithdrawUnitsReadBlocksBudget
 import Benchmarks.Midnight.PositionUpdateMemory
 
+variable {fork : Ethereum.Fork}
+
 /-! Withdrawal reads the updated position and branches on its credit balance. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,17 +17,17 @@ theorem midnightWithdrawUnitsRead {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length + 15 ≤ 1024) (hmem : 832 ≤ mem.size)
     (hzero : memLoad (UInt256.ofNat 800) mem = ⟨0⟩)
     (hb : TransferBudget root gasCredit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨3909⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨3909⟩
       ([fee, pending, credit, id, user, slot, market, UInt256.ofNat 64, solcAddrMask, receiver, units] ++ R)
       mem aw rdata σ k C) :
     let w := solcSlotWordAt (positionSlot id user) σ I
     ∃ aw' k' C',
       TransferBudget root gasCredit (positionReadMemory mem id user) aw' C' ∧
-      ((low128 w = ⟨0⟩ ∧ RD midnightBytecode I g s0 ⟨3971⟩
+      ((low128 w = ⟨0⟩ ∧ RD fork midnightBytecode I g s0 ⟨3971⟩
           ([w, low128 w, units, positionSlot id user, slot, id, user, ⟨0⟩, market, UInt256.ofNat 64,
             solcAddrMask, receiver, units] ++ R)
           (positionReadMemory mem id user) aw' rdata σ k' C') ∨
-        (low128 w ≠ ⟨0⟩ ∧ RD midnightBytecode I g s0 ⟨4177⟩
+        (low128 w ≠ ⟨0⟩ ∧ RD fork midnightBytecode I g s0 ⟨4177⟩
           ([w, low128 w, units, positionSlot id user, slot, id, user, ⟨0⟩, market, UInt256.ofNat 64,
             solcAddrMask, receiver, units] ++ R)
           (positionReadMemory mem id user) aw' rdata σ k' C')) := by

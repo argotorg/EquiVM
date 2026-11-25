@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.DelegateCallDepthLimit
 import Benchmarks.Midnight.GasOutputSpent
 
+variable {fork : Ethereum.Fork}
+
 /-! Source coupling for DELEGATECALLs, retaining the parent and child gas costs. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -10,21 +12,21 @@ namespace Benchmarks.Midnight
 -- LIBRARY CANDIDATE: source coupling for delegate calls with gas and output-size bounds.
 theorem delegateCallCostBridge {code I g s0 pc R mem aw rdata σ k C evm}
     {gasArg target inOffset inSize : UInt256} {calldata : ByteArray}
-    (rd : RD code I g s0 pc
+    (rd : RD fork code I g s0 pc
       (gasArg :: target :: inOffset :: inSize :: ⟨0⟩ :: ⟨0⟩ :: R)
       mem aw rdata σ k C)
     (hs : SourceState s0 I σ evm)
     (hdec : decode code pc = some (.DELEGATECALL, .none))
     (hcd : mem.readWithPadding inOffset.toNat inSize.toNat = calldata)
     (hsmall : calldata.size ≤ Ethereum.EVM.maxReturnDataSizeByGas)
-    (hfork : I.fork ≥ .osaka)
+    (hfork : fork ≥ .osaka)
     (hstack : R.length + 1 ≤ 1024) :
-    X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨
+    X fork (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨
     ∃ (evm' : EVM.State) (σ' : AccountMap) (z : Bool) (out : ByteArray) (aw' : UInt256)
       (k' C' : Nat),
-      delegateCallViaEVM evm (AccountAddress.ofUInt256 target) calldata (z, evm', out) ∧
+      delegateCallViaEVM fork evm (AccountAddress.ofUInt256 target) calldata (z, evm', out) ∧
       SourceState s0 I σ' evm' ∧
-      RD code I g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: R)
+      RD fork code I g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: R)
         mem aw' out σ' k' C' ∧
       out.size < 2 ^ 138 ∧
       (out.size ≤ max 1024 calldata.size ∨ C + 100 + forwardingMinimum (memoryCost ((out.size + 31) / 32)) ≤ g.toNat) ∧
@@ -45,7 +47,7 @@ theorem delegateCallCostBridge {code I g s0 pc R mem aw rdata σ k C evm}
   · obtain ⟨k', C', rd'⟩ := rd.delegateCallDepthLimit hdec hd hstack
     rw [hmem] at rd'
     let evm' := { evm with
-      substate := callSubstate evm.executionEnv.fork evm.accountMap
+      substate := callSubstate fork evm.accountMap
         (AccountAddress.ofUInt256 target) evm.substate }
     refine Or.inr ⟨evm', σ, false, ByteArray.empty, _, k', C', ?_,
       ⟨hs.world, hs.env, hs.accounts⟩, rd', by decide, Or.inl (Nat.zero_le _), Or.inl rfl⟩
@@ -70,9 +72,9 @@ theorem delegateCallCostBridge {code I g s0 pc R mem aw rdata σ k C evm}
       · simpa only [hs.env] using hd
     · exact Theta_returnData_size_lt_2pow138_of_eq _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
         hΘ hsmall
-    · have hb := theta_output_memoryCost_or_small I.fork σ s0.σ₀ AIn
+    · have hb := theta_output_memoryCost_or_small fork σ s0.σ₀ AIn
         I.source I.sender
-        I.codeOwner (toExecute I.fork σ (AccountAddress.ofUInt256 target))
+        I.codeOwner (toExecute fork σ (AccountAddress.ofUInt256 target))
         calldata callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ I.weiValue (I.depth + 1) I.header
         I.blobVersionedHashes I.blocks I.perm hfork
       rw [← hΘ] at hb
@@ -92,9 +94,9 @@ theorem delegateCallCostBridge {code I g s0 pc R mem aw rdata σ k C evm}
         rw [UInt256.toNat_ofNat_of_lt hb]
         exact MachineState.M_M_ge_active _ _ _ _ _
       · omega
-      · have hb := theta_output_memoryCost_remaining_or_small I.fork σ s0.σ₀ AIn
+      · have hb := theta_output_memoryCost_remaining_or_small fork σ s0.σ₀ AIn
           I.source I.sender
-          I.codeOwner (toExecute I.fork σ (AccountAddress.ofUInt256 target))
+          I.codeOwner (toExecute fork σ (AccountAddress.ofUInt256 target))
           calldata callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ I.weiValue (I.depth + 1) I.header
           I.blobVersionedHashes I.blocks I.perm hfork
         rw [← hΘ] at hb

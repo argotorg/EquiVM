@@ -2,6 +2,8 @@ import Benchmarks.Midnight.ToMarketHeapMemory
 import Benchmarks.Midnight.ToMarketCollateralLoop
 import Benchmarks.Midnight.ToMarketFinishDecode
 
+variable {fork : Ethereum.Fork}
+
 /-! Composing pointer-array allocation, collateral decoding, and the getter's final fields. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -28,14 +30,14 @@ theorem midnightToMarketArrayDecode {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hnword : n = calldataWord bytes (start + (calldataWord bytes (start + 96)).toNat))
     (hn : n.toNat < 2^64)
     (hheader : header.toNat = base + start + (calldataWord bytes (start + 96)).toNat)
-    (rd : RD midnightBytecode I g s0 ⟨1051⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨1051⟩
       (UInt256.ofNat (pointerArrayAllocation n.toNat) :: x :: finish :: n :: header :: ptr :: anchor :: R)
       mem aw rdata σ k C) :
     ((∀ m, decodeMarketData bytes start = some m →
-        ¬ ptr.toNat + 288 + 160 * m.collaterals.length < 2^64) ∧ RDrev midnightBytecode g s0) ∨
+        ¬ ptr.toNat + 288 + 160 * m.collaterals.length < 2^64) ∧ RDrev fork midnightBytecode g s0) ∨
     (∃ m, decodeMarketData bytes start = some m ∧
       ptr.toNat + 288 + 160 * m.collaterals.length < 2^64 ∧
-      RDret midnightBytecode g s0 σ (wordArrayBytes m.encodedWords)) := by
+      RDret fork midnightBytecode g s0 σ (wordArrayBytes m.encodedWords)) := by
   have count {m : MarketData} (hd : decodeMarketData bytes start = some m) :
       m.collaterals.length = n.toNat := by
     rw [decodeMarketData_collateralCount hd, hnword]

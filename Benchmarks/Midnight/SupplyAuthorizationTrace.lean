@@ -6,6 +6,8 @@ import Benchmarks.Midnight.MemoryAccounting
 import Benchmarks.Midnight.MarketBytesMemory
 import Benchmarks.Midnight.PositionUpdateMemory
 
+variable {fork : Ethereum.Fork}
+
 /-! The collateral-supply authorization guard, retaining its decoded memory and gas accounting. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -19,8 +21,8 @@ theorem supplyAuthorizationRead_accounted {ee : ExecutionEnv} {g : Sat256} {s0 :
     (hstack : R.length + 5 ≤ 1024)
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 17015) = true)
     (ha : MemoryAccounting mem aw C)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 17559) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), MemoryAccounting (midnight_block_17559_memory (ee := ee) (mem := mem) (x1 := x1)) (M (M (M (M (M (M aw (⟨0⟩ : UInt256) (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ : UInt256)) (⟨0⟩ : UInt256) (UInt256.ofNat 64)) (⟨0⟩ : UInt256) (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ : UInt256)) (⟨0⟩ : UInt256) (UInt256.ofNat 64)) C' ∧ RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 17015) (midnight_block_17559_stack (ee := ee) (mem := mem) (σ := σ) (x1 := x1) (R := R)) (midnight_block_17559_memory (ee := ee) (mem := mem) (x1 := x1)) (M (M (M (M (M (M aw (⟨0⟩ : UInt256) (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ : UInt256)) (⟨0⟩ : UInt256) (UInt256.ofNat 64)) (⟨0⟩ : UInt256) (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ : UInt256)) (⟨0⟩ : UInt256) (UInt256.ofNat 64)) rdata σ k' C' := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 17559) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (k' C' : ℕ), MemoryAccounting (midnight_block_17559_memory (ee := ee) (mem := mem) (x1 := x1)) (M (M (M (M (M (M aw (⟨0⟩ : UInt256) (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ : UInt256)) (⟨0⟩ : UInt256) (UInt256.ofNat 64)) (⟨0⟩ : UInt256) (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ : UInt256)) (⟨0⟩ : UInt256) (UInt256.ofNat 64)) C' ∧ RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 17015) (midnight_block_17559_stack (ee := ee) (mem := mem) (σ := σ) (x1 := x1) (R := R)) (midnight_block_17559_memory (ee := ee) (mem := mem) (x1 := x1)) (M (M (M (M (M (M aw (⟨0⟩ : UInt256) (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ : UInt256)) (⟨0⟩ : UInt256) (UInt256.ofNat 64)) (⟨0⟩ : UInt256) (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ : UInt256)) (⟨0⟩ : UInt256) (UInt256.ofNat 64)) rdata σ k' C' := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.pop (by native_decide) (by evm_ov)
@@ -77,25 +79,25 @@ theorem supplyAuthorizationGuard {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (evm : EVM.State) (henv : evm.executionEnv = I)
     (hstack : R.length + 6 ≤ 1024) (hmem : 96 ≤ mem.size)
     (hcanon : user.toNat < EVM.addressModulus) (ha : MemoryAccounting mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨17004⟩ (user :: solcAddrMask :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨17004⟩ (user :: solcAddrMask :: R)
       mem aw rdata evm.accountMap k C) :
-    (¬ onBehalfAllowed evm user ∧ RDrev midnightBytecode g s0) ∨
+    (¬ onBehalfAllowed evm user ∧ RDrev fork midnightBytecode g s0) ∨
     (onBehalfAllowed evm user ∧ ∃ mem' aw' k' C',
       MemoryPrefix mem mem' mem.size ∧ mem'.size = mem.size ∧
       memLoad ⟨64⟩ mem' = memLoad ⟨64⟩ mem ∧ MemoryAccounting mem' aw' C' ∧
-      RD midnightBytecode I g s0 ⟨17021⟩ (user :: R) mem' aw' rdata evm.accountMap k' C') := by
+      RD fork midnightBytecode I g s0 ⟨17021⟩ (user :: R) mem' aw' rdata evm.accountMap k' C') := by
   have finish {mem' aw' k' C' check}
       (hp : MemoryPrefix mem mem' mem.size) (hs : mem'.size = mem.size)
       (hf : memLoad ⟨64⟩ mem' = memLoad ⟨64⟩ mem)
       (ha' : MemoryAccounting mem' aw' C')
       (hc : check ≠ ⟨0⟩ ↔ onBehalfAllowed evm user)
-      (rd' : RD midnightBytecode I g s0 ⟨17015⟩ (check :: user :: R)
+      (rd' : RD fork midnightBytecode I g s0 ⟨17015⟩ (check :: user :: R)
         mem' aw' rdata evm.accountMap k' C') :
-      (¬ onBehalfAllowed evm user ∧ RDrev midnightBytecode g s0) ∨
+      (¬ onBehalfAllowed evm user ∧ RDrev fork midnightBytecode g s0) ∨
       (onBehalfAllowed evm user ∧ ∃ mem' aw' k' C',
         MemoryPrefix mem mem' mem.size ∧ mem'.size = mem.size ∧
         memLoad ⟨64⟩ mem' = memLoad ⟨64⟩ mem ∧ MemoryAccounting mem' aw' C' ∧
-        RD midnightBytecode I g s0 ⟨17021⟩ (user :: R) mem' aw' rdata evm.accountMap k' C') := by
+        RD fork midnightBytecode I g s0 ⟨17021⟩ (user :: R) mem' aw' rdata evm.accountMap k' C') := by
     by_cases hz : check = ⟨0⟩
     · have rr := midnight_block_17015_taken (by simp only [List.length_cons]; omega)
         (by rw [hz]; decide) (by jump_dest) rd'
@@ -137,7 +139,7 @@ theorem supplyAuthorizationGuard {I : ExecutionEnv} {g : Sat256} {s0 : State}
       show (UInt256.ofNat 32).toNat = 32 from rfl, wordAt0_fold, twoWordHash_fold,
       ] at rd2 ha2
     rw [hh1] at rd2 ha2
-    change RD midnightBytecode I g s0 ⟨17015⟩
+    change RD fork midnightBytecode I g s0 ⟨17015⟩
       (UInt256.land (solcSlotWordAt (keccakWord ⟨0⟩ (UInt256.ofNat 64)
         (supplyAuthorizationMemory mem I user)) evm.accountMap I) ⟨255⟩ :: user :: R)
       (supplyAuthorizationMemory mem I user) _ rdata evm.accountMap k2 C2 at rd2

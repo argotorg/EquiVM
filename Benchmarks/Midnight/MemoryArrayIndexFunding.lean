@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.ArrayIndexGas
 import Benchmarks.Midnight.FundingBudget
 
+variable {fork : Ethereum.Fork}
+
 /-! Memory funding through the array-index helper. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,8 +17,8 @@ theorem midnightMemoryArrayIndex_memoryFunded {credit : Nat} {I : ExecutionEnv} 
     (hi : index.toNat < 2^64) (hlt : index.toNat < (memLoad ptr mem).toNat)
     (hret : (D_J midnightBytecode 0).contains ret = true)
     (hfund : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨19460⟩ (ptr :: index :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', MemoryFunding credit mem aw' C' ∧ RD midnightBytecode I g s0 ret
+    (rd : RD fork midnightBytecode I g s0 ⟨19460⟩ (ptr :: index :: ret :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', MemoryFunding credit mem aw' C' ∧ RD fork midnightBytecode I g s0 ret
       (((ptr + UInt256.ofNat 32) + UInt256.ofNat (32 * index.toNat)) :: R)
       mem aw' rdata σ k' C' := by
   obtain ⟨aw', k', C', hb, rd'⟩ :=

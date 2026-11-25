@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TakeCreditSource
 import Benchmarks.Midnight.TakeBuyerUpdateSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Source frames and calls for the seller's conditional position update. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -58,7 +60,7 @@ theorem takeSellerCreditSource {frame : Frame} {evm : State} {id seller : UInt25
     (hi : frame.locals.get? "id" = some (wordBytes32Value id))
     (hs : frame.locals.get? "seller" = some (.address (AccountAddress.ofNat seller.toNat)))
     (hcanon : seller.toNat < EVM.addressModulus) :
-    ExecStmt config frame evm takeSellerCreditStmt
+    ExecStmt fork config frame evm takeSellerCreditStmt
       (.ok (takeSellerCreditFrame frame evm id seller) evm) := by
   apply callHasCredit hc _ hcanon
   simp only [evalExprs?, evalExpr?, hi, hs, EvalResult.ofOption, bind, EvalResult.bind, pure]

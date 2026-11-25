@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.TakeTradeGuardsSource
 
+variable {fork : Ethereum.Fork}
+
 /-! The maturity check permits an expired market only when no new seller debt is created. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,10 +17,10 @@ theorem midnightTakeMaturityGuard {credit : Nat} {I : ExecutionEnv} {g : Sat256}
     (ho : OfferStored mem ⟨832⟩ marketPtr arrayPtr callbackPtr root offer)
     (hoffer : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨12187⟩ (buyerSlot :: debt :: R) mem aw rdata σ k C) :
-    (¬ TakeMaturityAllowed I offer debt ∧ RDrev midnightBytecode g s0) ∨
+    (rd : RD fork midnightBytecode I g s0 ⟨12187⟩ (buyerSlot :: debt :: R) mem aw rdata σ k C) :
+    (¬ TakeMaturityAllowed I offer debt ∧ RDrev fork midnightBytecode g s0) ∨
     (TakeMaturityAllowed I offer debt ∧ ∃ aw' k' C', MemoryFunding credit mem aw' C' ∧
-      RD midnightBytecode I g s0 ⟨12212⟩ (buyerSlot :: debt :: R) mem aw' rdata σ k' C') := by
+      RD fork midnightBytecode I g s0 ⟨12212⟩ (buyerSlot :: debt :: R) mem aw' rdata σ k' C') := by
   have hm : memLoad (⟨832⟩ : UInt256) mem = marketPtr :=
     ho.words.load_offset ⟨0, by change 0 < 15; decide⟩ rfl
   have hread : memLoad (memLoad (memLoad (UInt256.ofNat 384) mem) mem + UInt256.ofNat 128) mem =

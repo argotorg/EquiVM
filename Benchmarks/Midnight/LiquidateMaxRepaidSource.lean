@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.LiquidateMaxRepaid
 import Benchmarks.Midnight.LiquidateMaxLifSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Source execution of the maximum-repayment calculation and every arithmetic failure. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -43,9 +45,9 @@ theorem liquidateMaxRepaidSource {frame : Frame} {evm : State} {id borrower maxD
     (hll : frame.locals.get? "lltv" = some (.int lltv.toNat)) :
     let debt := low128 (healthPositionWord evm id borrower)
     (¬ LiquidateMaxRepaidSafe debt maxDebt lif lltv ∧
-      ExecStmt config frame evm (liquidateRcfBody[0]!) .reverted) ∨
+      ExecStmt fork config frame evm (liquidateRcfBody[0]!) .reverted) ∨
     (LiquidateMaxRepaidSafe debt maxDebt lif lltv ∧
-      ExecStmt config frame evm (liquidateRcfBody[0]!)
+      ExecStmt fork config frame evm (liquidateRcfBody[0]!)
         (.ok (wordLocal frame "maxRepaid" (liquidateMaxRepaid debt maxDebt lif lltv)) evm)) := by
   dsimp only
   let debt := low128 (healthPositionWord evm id borrower)

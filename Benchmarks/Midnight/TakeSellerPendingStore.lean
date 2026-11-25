@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.TakeBuyerDebtWrite
 
+variable {fork : Ethereum.Fork}
+
 /-! The seller pending-fee store preserves the other live trade values. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -13,9 +15,9 @@ theorem midnightTakeSellerPendingStore {I : ExecutionEnv} {g : Sat256} {s0 : Sta
     {mem rdata : ByteArray} {aw value ret w0 w1 w2 w3 w4 slot : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 12 ≤ 1024)
     (hperm : I.perm = true) (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨12437⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨12437⟩
       ([value, ret, w0, w1, w2, w3, w4, slot] ++ R) mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD midnightBytecode I g s0 ret
+    ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode I g s0 ret
       ([w0, w1, w2, w3, w4, slot] ++ R) mem aw rdata
       (storeHigh128Accounts σ I slot value) k' C' := by
   simp only [List.cons_append, List.nil_append] at rd

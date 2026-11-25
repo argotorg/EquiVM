@@ -2,6 +2,8 @@ import Benchmarks.Midnight.LiquidateCallbackMarketPrefix
 import Benchmarks.Midnight.LiquidateCallbackFields
 import Benchmarks.Midnight.CalldataBytesEncodeMemory
 
+variable {fork : Ethereum.Fork}
+
 /-! Complete construction of liquidation's callback input buffer, up to CALL. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -47,13 +49,13 @@ theorem midnightLiquidateCallbackPrepare {credit : Nat} {I : ExecutionEnv} {g : 
     (hpaid : memLoad (UInt256.ofNat 608) mem = repaid)
     (hdl : dl.toNat < 2^64) (hdata : dp.toNat + dl.toNat ≤ I.calldata.size)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨5824⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨5824⟩
       ([dp, dl, borrower, badDebt, UInt256.ofNat receiver.val] ++ R) mem aw rdata σ k C) :
     ∃ gasArg aw' k' C',
       MemoryFunding (credit + 4)
         (liquidateCallbackMemory mem I.calldata root.toNat I.source m id index seized repaid borrower
           (UInt256.ofNat receiver.val) dp.toNat dl.toNat badDebt) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨6227⟩
+      RD fork midnightBytecode I g s0 ⟨6227⟩
         ([gasArg, UInt256.ofNat callback.val, ⟨0⟩, root,
           UInt256.ofNat (liquidateCallbackSize m dl.toNat), root, ⟨32⟩, root] ++ R)
         (liquidateCallbackMemory mem I.calldata root.toNat I.source m id index seized repaid borrower
@@ -101,7 +103,7 @@ theorem midnightLiquidateCallbackPrepare {credit : Nat} {I : ExecutionEnv} {g : 
   simp only [midnightBlocks.midnight_block_6199_stack, midnightBlocks.midnight_block_6199_memory,
     h292, word_add_sub_left, addressMask_computed] at hf
   change MemoryFunding (credit + 4) input _ _ ∧
-    RD midnightBytecode I g s0 ⟨6227⟩
+    RD fork midnightBytecode I g s0 ⟨6227⟩
       (_ :: UInt256.land (memLoad (UInt256.ofNat 736) input) solcAddrMask ::
         memLoad (UInt256.ofNat 800) input :: root ::
         UInt256.ofNat (liquidateCallbackSize m dl.toNat) :: root :: ⟨32⟩ :: root :: R)

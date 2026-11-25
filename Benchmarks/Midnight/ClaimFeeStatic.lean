@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.RuntimeBlocks_058
 
+variable {fork : Ethereum.Fork}
+
 /-! The first fee-claim assignment halts in a static call. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -11,8 +13,8 @@ set_option maxRecDepth 2000000
 theorem midnightClaimFeeStatic {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw value ret base slot : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 8 ≤ 1024) (hperm : I.perm = false)
-    (rd : RD midnightBytecode I g s0 ⟨15626⟩ (value :: ret :: base :: slot :: R)
-      mem aw rdata σ k C) : RDstatic midnightBytecode g s0 := by
+    (rd : RD fork midnightBytecode I g s0 ⟨15626⟩ (value :: ret :: base :: slot :: R)
+      mem aw rdata σ k C) : RDstatic fork midnightBytecode g s0 := by
   let r0 := rd
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.dup4 (by native_decide) (by evm_ov)

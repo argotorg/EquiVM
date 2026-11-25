@@ -4,6 +4,8 @@ import Benchmarks.Midnight.PairDecode
 import Benchmarks.Midnight.LockMemory
 import Benchmarks.Midnight.Allocation
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `liquidationLocked(bytes32,address)`
 
@@ -20,11 +22,11 @@ set_option maxRecDepth 2000000
 
 theorem liquidationLockedTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Nat} {user : UInt256}
     (hcanon : user.toNat < EVM.addressModulus)
-    (rd : RD midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 18224)
+    (rd : RD fork midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 18224)
       [user, UInt256.ofNat 15471, UInt256.ofNat 32, solcSelectorWord I] midnightEntryMemory
       (M (M (UInt256.ofNat 0) (UInt256.ofNat 64) ⟨32⟩) (UInt256.ofNat 800) ⟨32⟩)
       ByteArray.empty σ k C) :
-    RDret midnightBytecode g (initState σ σ₀ g A I) σ
+    RDret fork midnightBytecode g (initState σ σ₀ g A I) σ
       (UInt256.isZero (UInt256.isZero (codeOwnerTransientWord I σ
         (lockSlot liquidationLockBase (calldataWord I.calldata 4) user)))).toByteArray := by
   have rd1 := midnightBlocks.midnight_block_18224 (by simp) (by jump_dest) rd
@@ -35,12 +37,12 @@ theorem liquidationLockedTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Nat} {us
   simp only [midnightBlocks.midnight_block_23150_stack,
     midnightBlocks.midnight_block_23150_memory, hfp, addressMask_computed,
     solcAddrMask_clean hcanon] at rd2
-  change RD _ _ _ _ (UInt256.ofNat 18444)
+  change RD fork _ _ _ _ (UInt256.ofNat 18444)
     [UInt256.ofNat 832, UInt256.ofNat 128, UInt256.ofNat 23229,
      UInt256.ofNat 832, UInt256.ofNat 864, UInt256.ofNat 15471, UInt256.ofNat 32, solcSelectorWord I]
     (lockHashMemory (calldataWord I.calldata 4) user) aw2 ByteArray.empty σ k2 C2 at rd2
   obtain ⟨aw3, k3, C3, rd3⟩ := midnightAllocate (by simp) (by native_decide) (by jump_dest) rd2
-  change RD _ _ _ _ (UInt256.ofNat 23229)
+  change RD fork _ _ _ _ (UInt256.ofNat 23229)
     [UInt256.ofNat 832, UInt256.ofNat 864, UInt256.ofNat 15471, UInt256.ofNat 32, solcSelectorWord I]
     (lockReturnMemory (calldataWord I.calldata 4) user) aw3 ByteArray.empty σ k3 C3 at rd3
   obtain ⟨aw4, k4, C4, rd4⟩ := midnightBlocks.midnight_block_23229_packed
@@ -57,10 +59,10 @@ theorem liquidationLockedTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Nat} {us
 /-- `liquidationLocked(bytes32,address)`: the theorem `Correct.lean` routes selector 0 to. -/
 theorem midnightLiquidationLockedBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 0)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 0) rfl hsel
   have hd : dispatchMsg contract I.calldata = some liquidationLockedTransition := by
     apply midnightDispatch_liquidationLocked
@@ -80,7 +82,7 @@ theorem midnightLiquidationLockedBody {σ σ₀ A I} {g : UInt256}
           have hret := liquidationLockedTraceReturn hcanon rd4
           have hdec := midnightDecodeBytes32Address "id" "user"
             (by decide) (by decide) (by decide) (by decide) h68 hhi hsize hcanon
-          have hbody := liquidationLockedBodyReturns
+          have hbody := liquidationLockedBodyReturns (fork := fork)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (calldataWord I.calldata 4) (calldataWord I.calldata 36) hcanon hwv hhi
           exact hret.reEquivExecution hcode hd hdec hbody

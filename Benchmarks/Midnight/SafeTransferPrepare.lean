@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.SafeTransferMemory
 import Benchmarks.Midnight.AllocationArithmetic
 
+variable {fork : Ethereum.Fork}
+
 /-! The safe-transfer bytecode prefix, through calldata construction and allocation. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -40,9 +42,9 @@ theorem safeTransferPrepareCall (isFrom : Bool) {I : ExecutionEnv} {g : Sat256} 
     (hfit : ptr.toNat + safeTransferCallAllocation isFrom < 2 ^ 64)
     (hfree : memLoad (UInt256.ofNat 64) mem = ptr)
     (hcode : extCodeSizeWord σ (UInt256.ofNat token.val) ≠ ⟨0⟩)
-    (rd : RD midnightBytecode I g s0 (safeTransferEntryPC isFrom)
+    (rd : RD fork midnightBytecode I g s0 (safeTransferEntryPC isFrom)
       (safeTransferEntryStack isFrom token sender recipient value R) mem aw rdata σ k C) :
-    ∃ gasArg aw' k' C', RD midnightBytecode I g s0 (safeTransferCallPC isFrom)
+    ∃ gasArg aw' k' C', RD fork midnightBytecode I g s0 (safeTransferCallPC isFrom)
       (gasArg :: UInt256.ofNat token.val :: ⟨0⟩ :: (ptr + UInt256.ofNat 32) ::
         UInt256.ofNat (safeTransferCallSize isFrom) :: ⟨0⟩ :: ⟨0⟩ :: R)
       (safeTransferCallMem isFrom sender recipient value mem ptr) aw' rdata σ k' C' := by
@@ -58,7 +60,7 @@ theorem safeTransferPrepareCall (isFrom : Bool) {I : ExecutionEnv} {g : Sat256} 
   have hr := hclean recipient
   cases isFrom with
   | false =>
-    change RD _ _ _ _ ⟨23236⟩
+    change RD fork _ _ _ _ ⟨23236⟩
       (UInt256.ofNat token.val :: UInt256.ofNat recipient.val :: value :: R) _ _ _ _ _ _ at rd
     have hend : allocationEnd ptr (UInt256.ofNat 100) = ptr + UInt256.ofNat 128 :=
       safeTransferAllocationEnd false ptr
@@ -93,7 +95,7 @@ theorem safeTransferPrepareCall (isFrom : Bool) {I : ExecutionEnv} {g : Sat256} 
     simp only [midnightBlocks.midnight_block_23307_stack, hm.2.2.1] at rd5
     exact ⟨_, _, _, _, rd5⟩
   | true =>
-    change RD _ _ _ _ ⟨23444⟩
+    change RD fork _ _ _ _ ⟨23444⟩
       (UInt256.ofNat token.val :: UInt256.ofNat sender.val :: UInt256.ofNat recipient.val ::
         value :: R) _ _ _ _ _ _ at rd
     have hend : allocationEnd ptr (UInt256.ofNat 132) = ptr + UInt256.ofNat 160 :=
@@ -125,19 +127,19 @@ theorem safeTransferRevertNoCode (isFrom : Bool) {I : ExecutionEnv} {g : Sat256}
     {token sender recipient : AccountAddress} {value : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024)
     (hcode : extCodeSizeWord σ (UInt256.ofNat token.val) = ⟨0⟩)
-    (rd : RD midnightBytecode I g s0 (safeTransferEntryPC isFrom)
+    (rd : RD fork midnightBytecode I g s0 (safeTransferEntryPC isFrom)
       (safeTransferEntryStack isFrom token sender recipient value R) mem aw rdata σ k C) :
-    RDrev midnightBytecode g s0 := by
+    RDrev fork midnightBytecode g s0 := by
   cases isFrom with
   | false =>
-    change RD _ _ _ _ ⟨23236⟩
+    change RD fork _ _ _ _ ⟨23236⟩
       (UInt256.ofNat token.val :: UInt256.ofNat recipient.val :: value :: R) _ _ _ _ _ _ at rd
     obtain ⟨k1, C1, rd1⟩ := midnightBlocks.midnight_block_23236_taken
       (by omega) (by rw [hcode]; decide) (by jump_dest) rd
     exact midnightBlocks.midnight_block_23388
       (by simp only [midnightBlocks.midnight_block_23236_taken_stack, List.length_cons]; omega) rd1
   | true =>
-    change RD _ _ _ _ ⟨23444⟩
+    change RD fork _ _ _ _ ⟨23444⟩
       (UInt256.ofNat token.val :: UInt256.ofNat sender.val :: UInt256.ofNat recipient.val ::
         value :: R) _ _ _ _ _ _ at rd
     obtain ⟨k1, C1, rd1⟩ := midnightBlocks.midnight_block_23444_taken

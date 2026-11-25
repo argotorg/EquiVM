@@ -3,6 +3,8 @@ import Benchmarks.Midnight.WithdrawCollateralArithmetic
 import Benchmarks.Midnight.WithdrawBitmapPhase
 import Benchmarks.Midnight.WithdrawReadSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Collateral withdrawal through its balance update, ending at the health check. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -21,21 +23,21 @@ theorem withdrawBeforeHealth {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hstack : R.length + 28 ≤ 1024) (hmem : 832 ≤ mem.size)
     (hzero : memLoad (UInt256.ofNat 800) mem = ⟨0⟩)
     (hm : MarketStored mem market array limit m) (hb : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨4472⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨4472⟩
       ([m.id, user, UInt256.ofNat 4643, user, index, UInt256.ofNat receiver.val, assets,
         market, extra] ++ R) mem aw rdata evm.accountMap k C) :
-    (RDrev midnightBytecode g s0 ∧
-      ExecBlock config frame evm (withdrawCollateralTransition.body.drop 5) .reverted) ∨
-    (RDstatic midnightBytecode g s0 ∧
-      ExecBlock config frame evm (withdrawCollateralTransition.body.drop 5) .staticViolation) ∨
+    (RDrev fork midnightBytecode g s0 ∧
+      ExecBlock fork config frame evm (withdrawCollateralTransition.body.drop 5) .reverted) ∨
+    (RDstatic fork midnightBytecode g s0 ∧
+      ExecBlock fork config frame evm (withdrawCollateralTransition.body.drop 5) .staticViolation) ∨
     ∃ hi : index.toNat < m.collaterals.length, I.perm = true ∧
       ∃ frame' evm' aw' k' C',
         SourceState s0 I evm'.accountMap evm' ∧
         WithdrawSourceFrame frame' m m.id user index assets m.collaterals[index.toNat].token receiver ∧
         TransferBudget root credit (positionReadMemory mem m.id user) aw' C' ∧
-        (∀ result, ExecBlock config frame' evm' (withdrawCollateralTransition.body.drop 11) result →
-          ExecBlock config frame evm (withdrawCollateralTransition.body.drop 5) result) ∧
-        RD midnightBytecode I g s0 ⟨19775⟩
+        (∀ result, ExecBlock fork config frame' evm' (withdrawCollateralTransition.body.drop 11) result →
+          ExecBlock fork config frame evm (withdrawCollateralTransition.body.drop 5) result) ∧
+        RD fork midnightBytecode I g s0 ⟨19775⟩
           ([market, m.id, user, UInt256.ofNat 4643, user,
             UInt256.ofNat m.collaterals[index.toNat].token.val, UInt256.ofNat receiver.val,
             assets, m.id, extra] ++ R)

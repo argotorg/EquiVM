@@ -7,6 +7,8 @@ import Benchmarks.Midnight.PairDecode
 import Benchmarks.Midnight.AddressDecode
 import Benchmarks.Midnight.ScratchMemory
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `setMarketTickSpacing(bytes32,uint256)`
 
@@ -145,7 +147,7 @@ theorem tickCast (evm : EVM.State) (id value : UInt256) :
 
 theorem tickGuards (evm : EVM.State) (id value : UInt256) (hauth : roleAllowed evm ⟨12⟩)
     (hspace : marketTickSpacing (marketFeeWord evm id) ≠ ⟨0⟩) :
-    ABlock config evm (calldataFrame contract (tickArguments id value) ∅ evm)
+    ABlock fork config evm (calldataFrame contract (tickArguments id value) ∅ evm)
       (setMarketTickSpacingTransition.body.drop 3)
       (calldataFrame contract (tickArguments id value) ∅ evm)
       (setMarketTickSpacingTransition.body.drop 5) := by
@@ -160,7 +162,7 @@ theorem tickGuards (evm : EVM.State) (id value : UInt256) (hauth : roleAllowed e
 theorem tickAuthReverts (evm : EVM.State) (id value : UInt256)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) (hauth : ¬ roleAllowed evm ⟨12⟩) :
-    ExecTransitionBody config contract evm (tickArguments id value)
+    ExecTransitionBody fork config contract evm (tickArguments id value)
       setMarketTickSpacingTransition.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply guardedBodyBlock hwv hhi
@@ -172,7 +174,7 @@ theorem tickDisabledReverts (evm : EVM.State) (id value : UInt256)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) (hauth : roleAllowed evm ⟨12⟩)
     (hspace : marketTickSpacing (marketFeeWord evm id) = ⟨0⟩) :
-    ExecTransitionBody config contract evm (tickArguments id value)
+    ExecTransitionBody fork config contract evm (tickArguments id value)
       setMarketTickSpacingTransition.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply guardedBodyBlock hwv hhi
@@ -188,7 +190,7 @@ theorem tickChangeReverts (evm : EVM.State) (id value : UInt256)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) (hauth : roleAllowed evm ⟨12⟩)
     (hspace : marketTickSpacing (marketFeeWord evm id) ≠ ⟨0⟩)
     (hchange : ¬ tickChangeAllowed evm id value) :
-    ExecTransitionBody config contract evm (tickArguments id value)
+    ExecTransitionBody fork config contract evm (tickArguments id value)
       setMarketTickSpacingTransition.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply guardedBodyBlock hwv hhi
@@ -202,7 +204,7 @@ theorem tickReturns (evm : EVM.State) (id value : UInt256)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) (hauth : roleAllowed evm ⟨12⟩)
     (hspace : marketTickSpacing (marketFeeWord evm id) ≠ ⟨0⟩)
     (hchange : tickChangeAllowed evm id value) (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (tickArguments id value)
+    ExecTransitionBody fork config contract evm (tickArguments id value)
       setMarketTickSpacingTransition.body
       (.returned (calldataFrame contract (tickArguments id value) ∅ evm) (tickState evm id value) none) := by
   apply ExecFuncBody.execBlockOK
@@ -221,7 +223,7 @@ theorem tickStatic (evm : EVM.State) (id value : UInt256)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) (hauth : roleAllowed evm ⟨12⟩)
     (hspace : marketTickSpacing (marketFeeWord evm id) ≠ ⟨0⟩)
     (hchange : tickChangeAllowed evm id value) (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (tickArguments id value)
+    ExecTransitionBody fork config contract evm (tickArguments id value)
       setMarketTickSpacingTransition.body .staticViolation := by
   apply ExecFuncBody.execBlockStatic
   apply guardedBodyBlock hwv hhi
@@ -235,8 +237,8 @@ theorem tickTraceStatic {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 9 ≤ 1024) (hperm : I.perm = false)
-    (rd : RD midnightBytecode I g s0 ⟨1516⟩ (x0 :: x1 :: R) mem aw rdata σ k C) :
-    RDstatic midnightBytecode g s0 := by
+    (rd : RD fork midnightBytecode I g s0 ⟨1516⟩ (x0 :: x1 :: R) mem aw rdata σ k C) :
+    RDstatic fork midnightBytecode g s0 := by
   let r0 := rd
   have r1 := r0.push2 (UInt256.ofNat 800) (by native_decide) (by evm_ov)
   have r2 := r1.dup1 (by native_decide) (by evm_ov)
@@ -282,8 +284,8 @@ theorem tickTraceReturn {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {value id : UInt256} {R : List UInt256}
     (hm : EntryScratch mem) (hstack : R.length + 9 ≤ 1024)
     (hperm : I.perm = true) (hvalue : value.toNat < 2 ^ 8)
-    (rd : RD midnightBytecode I g s0 ⟨1516⟩ (value :: id :: R) mem aw rdata σ k C) :
-    RDret midnightBytecode g s0
+    (rd : RD fork midnightBytecode I g s0 ⟨1516⟩ (value :: id :: R) mem aw rdata σ k C) :
+    RDret fork midnightBytecode g s0
       (sstoreAccountMap I.codeOwner σ (solcMappingSlot ⟨1⟩ id + ⟨2⟩)
         (setUint8Offset18Word (solcSlotWordAt (solcMappingSlot ⟨1⟩ id + ⟨2⟩) σ I) value))
       ByteArray.empty := by
@@ -297,7 +299,7 @@ theorem tickTraceReturn {I : ExecutionEnv} {g : Sat256} {s0 : State}
     show UInt256.ofNat 255 = (⟨255⟩ : UInt256) from rfl,
     show UInt256.ofNat 144 = (⟨144⟩ : UInt256) from rfl,
     setUint8Offset18Word_solc _ _ hvalue] at hr
-  change RDret _ _ _ _ ((writeWord (twoWordHashMem id (UInt256.ofNat 1) mem) 832 value).readWithPadding
+  change RDret fork _ _ _ _ ((writeWord (twoWordHashMem id (UInt256.ofNat 1) mem) 832 value).readWithPadding
     (memLoad (UInt256.ofNat 800) (writeWord (twoWordHashMem id (UInt256.ofNat 1) mem) 832 value)).toNat
     (memLoad (UInt256.ofNat 800) (writeWord (twoWordHashMem id (UInt256.ofNat 1) mem) 832 value)).toNat) at hr
   simpa only [hm'.writeZero value, show (⟨0⟩ : UInt256).toNat = 0 from rfl,
@@ -308,8 +310,8 @@ theorem tickTraceMarket {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {value id : UInt256} {R : List UInt256}
     (hm : EntryScratch mem) (hstack : R.length + 6 ≤ 1024)
     (hspace : marketTickSpacing (solcSlotWordAt (solcMappingSlot ⟨1⟩ id + ⟨2⟩) σ I) ≠ ⟨0⟩)
-    (rd : RD midnightBytecode I g s0 ⟨1469⟩ (value :: id :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g s0 ⟨1502⟩ (value :: id :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨1469⟩ (value :: id :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork midnightBytecode I g s0 ⟨1502⟩ (value :: id :: R)
       (twoWordHashMem id (UInt256.ofNat 1) mem) aw' rdata σ k' C' := by
   have hm' := hm.hash id (UInt256.ofNat 1)
   obtain ⟨k', C', rd'⟩ := midnightBlocks.midnight_block_1469_fallthrough hstack (by
@@ -327,8 +329,8 @@ theorem tickTraceMarketRevert {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {value id : UInt256} {R : List UInt256}
     (hm : EntryScratch mem) (hstack : R.length + 6 ≤ 1024)
     (hspace : marketTickSpacing (solcSlotWordAt (solcMappingSlot ⟨1⟩ id + ⟨2⟩) σ I) = ⟨0⟩)
-    (rd : RD midnightBytecode I g s0 ⟨1469⟩ (value :: id :: R) mem aw rdata σ k C) :
-    RDrev midnightBytecode g s0 := by
+    (rd : RD fork midnightBytecode I g s0 ⟨1469⟩ (value :: id :: R) mem aw rdata σ k C) :
+    RDrev fork midnightBytecode g s0 := by
   have hm' := hm.hash id (UInt256.ofNat 1)
   obtain ⟨k', C', rd'⟩ := midnightBlocks.midnight_block_1469_taken hstack (by
     simp only [hm.zero, show (⟨0⟩ : UInt256).toNat = 0 from rfl,
@@ -342,8 +344,8 @@ theorem tickTraceModulo {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {value id : UInt256} {R : List UInt256}
     (hm : EntryScratch mem) (hstack : R.length + 9 ≤ 1024) (hvalue : value ≠ ⟨0⟩)
-    (rd : RD midnightBytecode I g s0 ⟨1502⟩ (value :: id :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g s0 ⟨1510⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨1502⟩ (value :: id :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork midnightBytecode I g s0 ⟨1510⟩
       (UInt256.isZero (UInt256.mod
         (marketTickSpacing (solcSlotWordAt (solcMappingSlot ⟨1⟩ id + ⟨2⟩) σ I)) value) :: value :: id :: R)
       (twoWordHashMem id (UInt256.ofNat 1) mem) aw' rdata σ k' C' := by
@@ -363,8 +365,8 @@ theorem tickTraceModulo {I : ExecutionEnv} {g : Sat256} {s0 : State}
 theorem tickTraceZero {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {id : UInt256} {R : List UInt256} (hstack : R.length + 5 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 ⟨1502⟩ (⟨0⟩ :: id :: R) mem aw rdata σ k C) :
-    RDrev midnightBytecode g s0 := by
+    (rd : RD fork midnightBytecode I g s0 ⟨1502⟩ (⟨0⟩ :: id :: R) mem aw rdata σ k C) :
+    RDrev fork midnightBytecode g s0 := by
   have hr1 := midnightBlocks.midnight_block_1502_fallthrough (by simp; omega) (by decide) rd
   simp only [midnightBlocks.midnight_block_1502_fallthrough_stack] at hr1
   have hr2 := midnightBlocks.midnight_block_1510_taken (by simp; omega) (by decide) (by jump_dest) hr1
@@ -374,10 +376,10 @@ theorem tickTraceZero {I : ExecutionEnv} {g : Sat256} {s0 : State}
 /-- `setMarketTickSpacing(bytes32,uint256)`: the theorem `Correct.lean` routes selector 53 to. -/
 theorem midnightSetMarketTickSpacingBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 53)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 53) rfl hsel
   have hd : dispatchMsg contract I.calldata = some setMarketTickSpacingTransition := by
     apply midnightDispatch_setMarketTickSpacing <;>
@@ -395,7 +397,7 @@ theorem midnightSetMarketTickSpacingBody {σ σ₀ A I} {g : UInt256}
         simp only [midnightBlocks.midnight_block_18819_fallthrough_stack] at rd3
         have rd4 := midnightBlocks.midnight_block_18832 (by simp) (by jump_dest) rd3
         simp only [midnightBlocks.midnight_block_18832_stack] at rd4
-        change RD _ _ _ _ _ [calldataWord I.calldata 36, calldataWord I.calldata 4,
+        change RD fork _ _ _ _ _ [calldataWord I.calldata 36, calldataWord I.calldata 4,
           solcSelectorWord I] midnightEntryMemory _ _ _ _ _ at rd4
         have hdec := midnightDecodePair_ok "id" "newTickSpacing"
           (by decide) (by decide) (by decide) (by decide) h68 hhi hsize

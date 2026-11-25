@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.PositionUpdateSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Internal position-update calls from arbitrary caller frames and argument expressions. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -21,9 +23,9 @@ theorem callPositionUpdate {frame callee : Frame} {evm evm' : State} {m : Market
     (he : evalExprs? config frame evm args =
       .ok [Model.marketValue m.value, wordBytes32Value id,
         .address (AccountAddress.ofNat user.toNat)])
-    (hx : ExecFuncBody config (positionViewCallFrame frame.immutables m id user) evm
+    (hx : ExecFuncBody fork config (positionViewCallFrame frame.immutables m id user) evm
       positionUpdateFunction.body (.returned callee evm' values)) :
-    ExecStmt config frame evm (.internalCall "_updatePosition" args name)
+    ExecStmt fork config frame evm (.internalCall "_updatePosition" args name)
       (.ok (resumeAfterInternalCall frame name values) evm') := by
   apply internalCallFunctionReturn (callee := positionUpdateFunction)
     (locals := positionViewArguments m id user) he
@@ -37,9 +39,9 @@ theorem callPositionUpdateRevert {frame : Frame} {evm : State} {m : MarketData}
     (he : evalExprs? config frame evm args =
       .ok [Model.marketValue m.value, wordBytes32Value id,
         .address (AccountAddress.ofNat user.toNat)])
-    (hx : ExecFuncBody config (positionViewCallFrame frame.immutables m id user) evm
+    (hx : ExecFuncBody fork config (positionViewCallFrame frame.immutables m id user) evm
       positionUpdateFunction.body .reverted) :
-    ExecStmt config frame evm (.internalCall "_updatePosition" args name) .reverted := by
+    ExecStmt fork config frame evm (.internalCall "_updatePosition" args name) .reverted := by
   apply internalCallFunctionRevert (callee := positionUpdateFunction)
     (locals := positionViewArguments m id user) he
   · rw [hc]; rfl
@@ -52,14 +54,14 @@ theorem callPositionUpdateStatic {frame : Frame} {evm : State} {m : MarketData}
     (he : evalExprs? config frame evm args =
       .ok [Model.marketValue m.value, wordBytes32Value id,
         .address (AccountAddress.ofNat user.toNat)])
-    (hx : ExecFuncBody config (positionViewCallFrame frame.immutables m id user) evm
+    (hx : ExecFuncBody fork config (positionViewCallFrame frame.immutables m id user) evm
       positionUpdateFunction.body .staticViolation) :
-    ExecStmt config frame evm (.internalCall "_updatePosition" args name) .staticViolation := by
+    ExecStmt fork config frame evm (.internalCall "_updatePosition" args name) .staticViolation := by
   apply ExecStmt.internalCallStatic (callee := positionUpdateFunction.toCallable)
     (locals := positionViewArguments m id user) he
   · rw [hc]; rfl
   · rfl
-  · change ExecFuncBody config { frame with locals := positionViewArguments m id user } evm
+  · change ExecFuncBody fork config { frame with locals := positionViewArguments m id user } evm
       positionUpdateFunction.body .staticViolation
     rwa [positionUpdateCallFrame m id user hc]
 

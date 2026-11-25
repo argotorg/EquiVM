@@ -2,6 +2,8 @@ import Benchmarks.Midnight.MulticallCall
 import Benchmarks.Midnight.MulticallTailTrace
 import Benchmarks.Midnight.RuntimeBlocks_016
 
+variable {fork : Ethereum.Fork}
+
 /-! A complete iteration of the multicall runtime loop. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,23 +19,23 @@ theorem midnightMulticallStep {I : ExecutionEnv} {g : UInt256} {s0 evm : State}
     (hsz : I.calldata.size < 2^255) (hspan : base.toNat + 32 * count.toNat ≤ I.calldata.size)
     (hm : 832 ≤ mem.size) (hl : 832 ≤ root.toNat)
     (hz : memLoad (UInt256.ofNat 800) mem = ⟨0⟩)
-    (hh : TransferHeap mem aw root C) (hgas : midnightGasBound g) (hfork : I.fork ≥ .osaka)
+    (hh : TransferHeap mem aw root C) (hgas : midnightGasBound g) (hfork : fork ≥ .osaka)
     (hs : SourceState s0 I σ evm)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨3605⟩
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨3605⟩
       (index :: base :: multicallTailBound I.calldata base :: count :: R) mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
     (¬ MulticallTailValid I.calldata base index.toNat ∧
-      RDrev midnightBytecode (Sat256.ofUInt256 g) s0) ∨
-    (∃ evm' success out, delegateCallViaEVM evm I.codeOwner
+      RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+    (∃ evm' success out, delegateCallViaEVM fork evm I.codeOwner
         (multicallBytesAt I.calldata base index.toNat) (success, evm', out) ∧
-      (success = false ∨ 2^64 ≤ out.size) ∧ RDrev midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+      (success = false ∨ 2^64 ≤ out.size) ∧ RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
     ∃ (evm' : State) (σ' : AccountMap) (out mem' : ByteArray) (root' aw' : UInt256) (k' C' : Nat),
       MulticallTailValid I.calldata base index.toNat ∧
-      delegateCallViaEVM evm I.codeOwner (multicallBytesAt I.calldata base index.toNat)
+      delegateCallViaEVM fork evm I.codeOwner (multicallBytesAt I.calldata base index.toNat)
         (true, evm', out) ∧ out.size < 2^64 ∧
       SourceState s0 I σ' evm' ∧ MemoryPrefix mem mem' root.toNat ∧
       root.toNat ≤ root'.toNat ∧ TransferHeap mem' aw' root' C' ∧
-      RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨3605⟩
+      RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨3605⟩
         ((index + ⟨1⟩) :: base :: multicallTailBound I.calldata base :: count :: R)
         mem' aw' out σ' k' C' := by
   have hc : UInt256.isZero (UInt256.lt index count) = ⟨0⟩ := by rw [ult_one hi]; rfl

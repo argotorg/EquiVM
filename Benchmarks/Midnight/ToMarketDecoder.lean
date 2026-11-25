@@ -2,6 +2,8 @@ import Benchmarks.Midnight.ToMarketAllocation
 import Benchmarks.Midnight.ToMarketArrayHeader
 import Benchmarks.Midnight.ToMarketArrayDecode
 
+variable {fork : Ethereum.Fork}
+
 /-! Complete stored-market decoding, allocation checks, and ABI return from pc 949. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -20,13 +22,13 @@ theorem midnightToMarketDecoder {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hfree : memLoad (UInt256.ofNat 64) mem = ptr)
     (hend : x.toNat + 32 = finish.toNat) (hfinish : finish.toNat = base + bytes.size)
     (hsmall : base + bytes.size < 2^128)
-    (rd : RD midnightBytecode I g s0 ⟨949⟩ (finish :: x :: anchor :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨949⟩ (finish :: x :: anchor :: R)
       mem aw rdata σ k C) :
     ((∀ m, decodeMarketData bytes start = some m →
-        ¬ ptr.toNat + 288 + 160 * m.collaterals.length < 2^64) ∧ RDrev midnightBytecode g s0) ∨
+        ¬ ptr.toNat + 288 + 160 * m.collaterals.length < 2^64) ∧ RDrev fork midnightBytecode g s0) ∨
     (∃ m, decodeMarketData bytes start = some m ∧
       ptr.toNat + 288 + 160 * m.collaterals.length < 2^64 ∧
-      RDret midnightBytecode g s0 σ (wordArrayBytes m.encodedWords)) := by
+      RDret fork midnightBytecode g s0 σ (wordArrayBytes m.encodedWords)) := by
   rcases midnightToMarketAllocation (by omega) hfree hptr rd with
     ⟨hcap, hr⟩ | ⟨hfit, aw1, k1, C1, rd1⟩
   · exact Or.inl ⟨fun _ _ ↦ by omega, hr⟩

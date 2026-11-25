@@ -3,6 +3,8 @@ import Benchmarks.Midnight.SlashPendingSource
 import Benchmarks.Midnight.PositionAccrualSource
 import Benchmarks.Midnight.PositionViewReturnSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Source frames and the initial storage-reading prefix of a position view. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -68,9 +70,9 @@ def positionViewResultFrame (evm : EVM.State) (imms : Store) (m : MarketData)
 
 theorem positionViewCreditPrefix (evm : EVM.State) (imms : Store) (m : MarketData)
     (id user : UInt256) (hcanon : user.toNat < EVM.addressModulus) :
-    ABlock config evm (positionViewCallFrame imms m id user) positionViewFunction.body
+    ABlock fork config evm (positionViewCallFrame imms m id user) positionViewFunction.body
       (positionViewCreditFrame evm imms m id user) (positionViewFunction.body.drop 4) := by
-  have ha : ABlock config evm (positionViewCallFrame imms m id user) positionViewFunction.body
+  have ha : ABlock fork config evm (positionViewCallFrame imms m id user) positionViewFunction.body
       (positionViewAliasFrame imms m id user) (positionViewFunction.body.drop 1) := by
     refine ⟨fun h ↦ ExecBlock.consNormal (ExecStmt.letStorage ?_) h⟩
     apply resolvePositionRef rfl
@@ -84,10 +86,10 @@ theorem positionViewCreditPrefix (evm : EVM.State) (imms : Store) (m : MarketDat
 
 theorem positionViewPendingPrefix (evm : EVM.State) (imms : Store) (m : MarketData)
     (id user : UInt256) (hcanon : user.toNat < EVM.addressModulus) :
-    ABlock config evm (positionViewCallFrame imms m id user) positionViewFunction.body
+    ABlock fork config evm (positionViewCallFrame imms m id user) positionViewFunction.body
       (positionViewPendingFrame evm imms m id user) (positionViewFunction.body.drop 7) := by
-  have hp := positionViewCreditPrefix evm imms m id user hcanon
-  have hs := slashCreditSource (frame := positionViewCreditFrame evm imms m id user)
+  have hp := positionViewCreditPrefix (fork := fork) evm imms m id user hcanon
+  have hs := slashCreditSource (fork := fork) (frame := positionViewCreditFrame evm imms m id user)
     (evm := evm) (id := id) (credit := positionFieldWord evm id user 0)
     (lastLoss := positionFieldWord evm id user 2) rfl
     (by simp [positionViewCreditFrame, wordLocal, positionViewAliasFrame, positionViewArguments,
@@ -115,10 +117,10 @@ theorem positionViewAccrualPrefix (evm : EVM.State) (imms : Store) (m : MarketDa
     (id user : UInt256) (hcanon : user.toNat < EVM.addressModulus)
     (hsafe : SlashPendingSafe (positionFieldWord evm id user 0) (positionFieldWord evm id user 1)
       (positionPostCredit evm id user)) :
-    ABlock config evm (positionViewCallFrame imms m id user) positionViewFunction.body
+    ABlock fork config evm (positionViewCallFrame imms m id user) positionViewFunction.body
       (positionViewAccrualStartFrame evm imms m id user) (positionViewFunction.body.drop 11) := by
-  have hp := positionViewPendingPrefix evm imms m id user hcanon
-  have hs := slashPendingSource (frame := positionViewPendingFrame evm imms m id user)
+  have hp := positionViewPendingPrefix (fork := fork) evm imms m id user hcanon
+  have hs := slashPendingSource (fork := fork) (frame := positionViewPendingFrame evm imms m id user)
     (evm := evm) (credit := positionFieldWord evm id user 0)
     (pending := positionFieldWord evm id user 1) (postCredit := positionPostCredit evm id user)
     (by simp [positionViewPendingFrame, wordLocal, positionViewCreditFrame,

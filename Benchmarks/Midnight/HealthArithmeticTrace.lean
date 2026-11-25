@@ -4,6 +4,8 @@ import Benchmarks.Midnight.CheckedArithmeticRevert
 import Benchmarks.Midnight.MulDivSource
 import Benchmarks.Midnight.RuntimeBlocks_076
 
+variable {fork : Ethereum.Fork}
+
 /-! The two checked collateral-value products and the checked debt-capacity sum. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -31,13 +33,13 @@ theorem midnightHealthArithmetic {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 22 ≤ 1024) (hi : index.toNat < 128)
     (hlltv : memLoad (cp + UInt256.ofNat 32) mem = lltv)
-    (rd : RD midnightBytecode I g s0 ⟨19940⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨19940⟩
       ([⟨20011⟩, base, index, price, cp, bitmap, maxDebt, base, market, index] ++ R)
       mem aw rdata σ k C) :
     let collateral := healthCollateralWord (fun slot ↦ solcSlotWordAt slot σ I) base index
-    (¬ HealthArithmeticSafe collateral price lltv maxDebt ∧ RDrev midnightBytecode g s0) ∨
+    (¬ HealthArithmeticSafe collateral price lltv maxDebt ∧ RDrev fork midnightBytecode g s0) ∨
     (HealthArithmeticSafe collateral price lltv maxDebt ∧ ∃ aw' k' C',
-      RD midnightBytecode I g s0 ⟨19847⟩
+      RD fork midnightBytecode I g s0 ⟨19847⟩
         ([base, market, bitmapClear bitmap index,
           maxDebt + healthCollateralCapacity collateral price lltv] ++ R)
         mem aw' rdata σ k' C') := by
@@ -54,7 +56,7 @@ theorem midnightHealthArithmetic {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (by simp only [List.length_cons]; omega) (by jump_dest) rd2
   simp only [midnightBlocks.midnight_block_7240_stack, (uint128ArrayIndexFacts index hi).2.2]
     at rd3
-  change RD midnightBytecode I g s0 ⟨20413⟩
+  change RD fork midnightBytecode I g s0 ⟨20413⟩
     (collateral :: price :: ⟨20001⟩ :: UInt256.ofNat 1000000000000000000000000000000000000 ::
       ⟨32⟩ :: cp :: ⟨20011⟩ :: UInt256.ofNat 1000000000000000000 :: maxDebt ::
       ⟨20018⟩ :: ⟨1⟩ :: bitmap :: UInt256.ofNat (2^128-1) :: base :: market :: index :: R)

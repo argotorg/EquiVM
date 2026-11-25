@@ -3,6 +3,8 @@ import Benchmarks.Midnight.PositionUpdateMemory
 import Benchmarks.Midnight.TransferBudget
 import Benchmarks.Midnight.RuntimeBlocks_039
 
+variable {fork : Ethereum.Fork}
+
 /-! Repayment's debt-slot read preserves the later transfer budget. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,10 +19,10 @@ theorem midnightRepayReadDebt {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length + 10 ≤ 1024) (hmem : 832 ≤ mem.size)
     (hz : memLoad (UInt256.ofNat 800) mem = ⟨0⟩)
     (hb : TransferBudget budgetRoot credit mem aw C)
-    (h : RD midnightBytecode ee g s0 ⟨9871⟩ (amount :: x1 :: id :: x3 :: user :: R)
+    (h : RD fork midnightBytecode ee g s0 ⟨9871⟩ (amount :: x1 :: id :: x3 :: user :: R)
       mem aw rdata σ k C) :
     ∃ aw' k' C', TransferBudget budgetRoot credit (positionReadMemory mem id user) aw' C' ∧
-      RD midnightBytecode ee g s0 ⟨19743⟩
+      RD fork midnightBytecode ee g s0 ⟨19743⟩
         (low128 (solcSlotWordAt (positionSlot id user + ⟨2⟩) σ ee) :: amount ::
           UInt256.ofNat 9925 :: uint128Mask :: (positionSlot id user + ⟨2⟩) ::
           x1 :: id :: x3 :: user :: R)
@@ -103,7 +105,7 @@ theorem midnightRepayReadDebt {ee : ExecutionEnv} {g : Sat256} {s0 : State}
   have hh2 : keccakWord ⟨0⟩ (UInt256.ofNat 64) (positionReadMemory mem id user) =
       positionSlot id user := twoWordHashMem_mapSlot_of_ge64 _ _ (by
         rw [twoWordHashMem_size_of_ge_64 _ _ (by omega)]; omega)
-  change RD midnightBytecode ee g s0 ⟨19743⟩
+  change RD fork midnightBytecode ee g s0 ⟨19743⟩
     (low128 (solcSlotWordAt (keccakWord ⟨0⟩ (UInt256.ofNat 64)
       (positionReadMemory mem id user) + ⟨2⟩) σ ee) :: amount :: UInt256.ofNat 9925 ::
       uint128Mask :: (keccakWord ⟨0⟩ (UInt256.ofNat 64)

@@ -2,6 +2,8 @@ import Benchmarks.Midnight.WithdrawUnitsRead
 import Benchmarks.Midnight.WithdrawUnitsPendingSource
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 /-! Coupling withdrawal's position read and pending-fee branch to source execution. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -21,20 +23,20 @@ theorem midnightWithdrawUnitsPending {I : ExecutionEnv} {g : Sat256} {s0 evm : S
     (hzero : memLoad (UInt256.ofNat 800) mem = ⟨0⟩)
     (hz : frame.locals.get? "pendingFeeDecrease" = some (.int 0))
     (hb : TransferBudget root gasCredit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨3909⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨3909⟩
       ([fee, pending, credit, id, user, solcMappingSlot ⟨1⟩ id, market, UInt256.ofNat 64,
         solcAddrMask, UInt256.ofNat receiver.val, units, ret, saved] ++ R)
       mem aw rdata evm.accountMap k C) :
-    (RDrev midnightBytecode g s0 ∧
-      ExecBlock config frame evm (withdrawTransition.body.drop 9) .reverted) ∨
+    (RDrev fork midnightBytecode g s0 ∧
+      ExecBlock fork config frame evm (withdrawTransition.body.drop 9) .reverted) ∨
     ∃ frame' evm' decrease aw' k' C',
       SourceState s0 I evm'.accountMap evm' ∧
       WithdrawUnitsSourceFrame frame' m id user units receiver ∧
       decrease.toNat < 2^128 ∧
       frame'.locals.get? "pendingFeeDecrease" = some (.int decrease.toNat) ∧
-      ExecStmt config frame evm (withdrawTransition.body[9]!) (.ok frame' evm') ∧
+      ExecStmt fork config frame evm (withdrawTransition.body[9]!) (.ok frame' evm') ∧
       TransferBudget root gasCredit (positionReadMemory mem id user) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨23403⟩
+      RD fork midnightBytecode I g s0 ⟨23403⟩
         ([units, UInt256.ofNat 3993, UInt256.ofNat 4002, uint128Mask,
           positionSlot id user, solcMappingSlot ⟨1⟩ id, id, user, decrease,
           market, UInt256.ofNat 64, solcAddrMask, UInt256.ofNat receiver.val, units, ret, saved] ++ R)
@@ -84,7 +86,7 @@ theorem midnightWithdrawUnitsPending {I : ExecutionEnv} {g : Sat256} {s0 evm : S
           (UInt256.sub (positionFieldWord evm id user 1) decrease) := by
         dsimp only [evm2]
         rw [storeHigh128_accounts, hs.env]
-      change RD _ _ _ _ _ _ _ _ _
+      change RD fork _ _ _ _ _ _ _ _ _
         (storeHigh128Accounts evm.accountMap I (positionSlot id user)
           (UInt256.sub (positionFieldWord evm id user 1) decrease)) _ _ at rd2
       rw [← ha] at rd2

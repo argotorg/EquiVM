@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.WithdrawBeforeHealth
 import Benchmarks.Midnight.WithdrawAfterHealth
 
+variable {fork : Ethereum.Fork}
+
 /-! Collateral withdrawal after the market touch, through its final return. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -28,18 +30,18 @@ theorem withdrawCollateralCore {I : ExecutionEnv} {g : UInt256} {s0 evm : State}
     (hb : TransferBudget budgetRoot credit mem aw C)
     (hcredit : 4 * ((budgetRoot.toNat + safeTransferCallAllocation false + 31) / 32) ≤
       credit + 999921)
-    (hgas : midnightGasBound g) (hfork : I.fork ≥ .osaka)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨4472⟩
+    (hgas : midnightGasBound g) (hfork : fork ≥ .osaka)
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨4472⟩
       ([m.id, user, UInt256.ofNat 4643, user, index, UInt256.ofNat receiver.val, assets,
         market, extra] ++ R) mem aw rdata evm.accountMap k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (RDrev midnightBytecode (Sat256.ofUInt256 g) s0 ∧
-      ExecBlock config frame evm (withdrawCollateralTransition.body.drop 5) .reverted) ∨
-    (RDstatic midnightBytecode (Sat256.ofUInt256 g) s0 ∧
-      ExecBlock config frame evm (withdrawCollateralTransition.body.drop 5) .staticViolation) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0 ∧
+      ExecBlock fork config frame evm (withdrawCollateralTransition.body.drop 5) .reverted) ∨
+    (RDstatic fork midnightBytecode (Sat256.ofUInt256 g) s0 ∧
+      ExecBlock fork config frame evm (withdrawCollateralTransition.body.drop 5) .staticViolation) ∨
     ∃ frame' evm',
-      ExecBlock config frame evm (withdrawCollateralTransition.body.drop 5) (.ok frame' evm') ∧
-      RDret midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap ByteArray.empty := by
+      ExecBlock fork config frame evm (withdrawCollateralTransition.body.drop 5) (.ok frame' evm') ∧
+      RDret fork midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap ByteArray.empty := by
   rcases withdrawBeforeHealth hs hf hreceiver hcanon (by omega) hmem hzero800 hm hb rd with
     ⟨hr, hs⟩ | ⟨hr, hs⟩ |
       ⟨hi, hperm, frame1, evm1, aw1, k1, C1, hs1, hf1, hb1, hprefix, rd1⟩

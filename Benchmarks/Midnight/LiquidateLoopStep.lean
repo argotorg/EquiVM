@@ -3,6 +3,8 @@ import Benchmarks.Midnight.LiquidateIterationMemory
 import Benchmarks.Midnight.LiquidateCollateralRead
 import Benchmarks.Midnight.LiquidateOracleCall
 
+variable {fork : Ethereum.Fork}
+
 /-! One complete liquidation collateral iteration, with matching source and bytecode outcomes. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,7 +19,7 @@ theorem midnightLiquidateLoopStep {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
       reverseRep rep dp dl receiverWord selector root budgetRoot aw : UInt256}
     {receiver callback : AccountAddress} {credit : Nat} {σ : AccountMap} {k C : Nat}
     {R : List UInt256}
-    (hstack : R.length + 33 ≤ 1024) (hfork : I.fork ≥ .osaka)
+    (hstack : R.length + 33 ≤ 1024) (hfork : fork ≥ .osaka)
     (hcanon : borrower.toNat < EVM.addressModulus)
     (hd : decodeCalldataMarket I.calldata 4 = some m)
     (hbits : bitmap.toNat < 2^128) (hnz : bitmap.toNat ≠ 0)
@@ -29,13 +31,13 @@ theorem midnightLiquidateLoopStep {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
       seized repaid borrower mode receiver callback data)
     (ha : LiquidateAccumulators frame bitmap maxDebt savedPrice originalDebt badDebt)
     (hs : SourceState s0 I σ evm) (hb : TransferBudget budgetRoot credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨5340⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨5340⟩
       ([debtWord, reverseRep, rep, maxDebt, savedPrice, positionSlot id borrower, dp, dl,
         borrower, badDebt, receiverWord, mode, selector] ++ R) mem aw rdata σ k C) :
-    (ExecBlock config frame evm liquidateLoopBody .reverted ∧ RDrev midnightBytecode g s0) ∨
+    (ExecBlock fork config frame evm liquidateLoopBody .reverted ∧ RDrev fork midnightBytecode g s0) ∨
     ∃ (evm' : State) (σ' : AccountMap) (frame' : Frame) (preMem out : ByteArray)
       (maxDebt' savedPrice' badDebt' aw' : UInt256) (k' C' : Nat),
-      ExecBlock config frame evm liquidateLoopBody (.ok frame' evm') ∧
+      ExecBlock fork config frame evm liquidateLoopBody (.ok frame' evm') ∧
       SourceState s0 I σ' evm' ∧ accountStorageStateEq evm.accountMap evm'.accountMap ∧
       LiquidateSourceFrame frame' m id (calldataWord I.calldata 36)
         seized repaid borrower mode receiver callback data ∧
@@ -45,7 +47,7 @@ theorem midnightLiquidateLoopStep {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
       memLoad (UInt256.ofNat 64) preMem = root + UInt256.ofNat 160 ∧
       TransferBudget budgetRoot credit
         (liquidateBitmapMemory preMem (bitmapClear bitmap (bitmapMsb bitmap))) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨5340⟩
+      RD fork midnightBytecode I g s0 ⟨5340⟩
         ([debtWord, reverseRep, rep, maxDebt', savedPrice', positionSlot id borrower, dp, dl,
           borrower, badDebt', receiverWord, mode, selector] ++ R)
         (liquidateBitmapMemory preMem (bitmapClear bitmap (bitmapMsb bitmap))) aw' out σ' k' C' := by
@@ -61,7 +63,7 @@ theorem midnightLiquidateLoopStep {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
     (by jump_dest) rd
   have hb1 := transferBudgetAt (root := budgetRoot) (credit := credit) rd1
     (by transfer_budget hb)
-  have hs1 : ExecStmt config frame evm (liquidateLoopBody[0]!) (.ok f1 evm) :=
+  have hs1 : ExecStmt fork config frame evm (liquidateLoopBody[0]!) (.ok f1 evm) :=
     healthMsbCall hf.contract ha.bitmap
   have hf1 : LiquidateSourceFrame f1 m id (calldataWord I.calldata 36)
       seized repaid borrower mode receiver callback data := hf.insert _ _ (by decide)
@@ -84,7 +86,7 @@ theorem midnightLiquidateLoopStep {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
   have hp2 : MemoryPrefix mem mem2 root.toNat := collateralRecordMemory_prefix mem root c
   have hw2 : MemoryWords mem2 root.toNat c.words :=
     collateralRecordMemory_words mem c (by change _ < 2^256; omega)
-  have hs2 : ExecStmt config f1 evm (liquidateLoopBody[1]!) (.ok f2 evm) :=
+  have hs2 : ExecStmt fork config f1 evm (liquidateLoopBody[1]!) (.ok f2 evm) :=
     ExecStmt.letDecl (evalHealthCollateralAt hf1.market (wordLocal_get frame "i" index) hi)
   have hf2 : LiquidateSourceFrame f2 m id (calldataWord I.calldata 36)
       seized repaid borrower mode receiver callback data := hf1.insert _ _ (by decide)
@@ -128,7 +130,7 @@ theorem midnightLiquidateLoopStep {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
     hm3.2.2.2.load_offset ⟨1, by simp [CollateralData.words]⟩ rfl
   have hcursor : memLoad (root + UInt256.ofNat 64) (liquidateIterationMemory mem root c out) =
       c.liquidationCursor := hm3.2.2.2.load_offset ⟨2, by simp [CollateralData.words]⟩ rfl
-  have hmath := liquidateIterationSource (evm := evm') hf3 ha3 hcanon hi3 hi128 hc3
+  have hmath := liquidateIterationSource (fork := fork) (evm := evm') hf3 ha3 hcanon hi3 hi128 hc3
     (wordLocal_get f2 "price" (calldataWord out 0))
   have hload : Stele.EVM.storageLoad evm' evm'.executionEnv.codeOwner =
       fun slot ↦ solcSlotWordAt slot σ' I := by

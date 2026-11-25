@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TakeReceiverGuard
 import Benchmarks.Midnight.TakeAuthorizationRead
 
+variable {fork : Ethereum.Fork}
+
 /-! The offer maker must authorize the ratifier, with input-copy funding retained. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -42,12 +44,12 @@ theorem midnightTakeRatifierAuthorization {credit : Nat} {I : ExecutionEnv}
     (ho : OfferStored mem ⟨832⟩ marketPtr arrayPtr callbackPtr root offer)
     (hroot : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨11209⟩ R mem aw rdata evm.accountMap k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨11209⟩ R mem aw rdata evm.accountMap k C) :
     (authorizationWord evm (UInt256.ofNat offer.maker.val) (UInt256.ofNat offer.ratifier.val) = ⟨0⟩ ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     (authorizationWord evm (UInt256.ofNat offer.maker.val) (UInt256.ofNat offer.ratifier.val) ≠ ⟨0⟩ ∧
       ∃ aw' k' C', MemoryFunding credit (takeRatifierMemory mem offer) aw' C' ∧
-        RD midnightBytecode I g s0 ⟨11276⟩ R
+        RD fork midnightBytecode I g s0 ⟨11276⟩ R
           (takeRatifierMemory mem offer) aw' rdata evm.accountMap k' C') := by
   subst I
   have hmaker : memLoad (UInt256.ofNat 64 + (⟨832⟩ : UInt256)) mem =

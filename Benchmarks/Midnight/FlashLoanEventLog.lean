@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.FlashLoanEventEncode
 import Benchmarks.Midnight.RuntimeBlocks_061
 
+variable {fork : Ethereum.Fork}
+
 /-! The flash-loan log and the start of its outgoing transfer loop. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -13,12 +15,12 @@ theorem midnightFlashLoanEventLog {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw finish root callback tn tp an ap dl dp : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 17 ≤ 1024)
     (hp : I.perm = true) (ha : MemoryAccounting mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨16253⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨16253⟩
       ([finish, root, root, flashLoanEventTopic, UInt256.ofNat I.source.val, callback] ++
         flashLoanAfterEventStack tn tp callback an ap dl dp ++ R)
       mem aw rdata σ k C) :
     ∃ aw' k' C', C ≤ C' ∧ MemoryAccounting mem aw' C' ∧
-      RD midnightBytecode I g s0 ⟨16258⟩
+      RD fork midnightBytecode I g s0 ⟨16258⟩
         (UInt256.ofNat 0 :: (flashLoanAfterEventStack tn tp callback an ap dl dp ++ R))
         mem aw' rdata σ k' C' := by
   have rd1 := midnightBlocks.midnight_block_16253
@@ -32,9 +34,9 @@ theorem midnightFlashLoanEventStatic {I : ExecutionEnv} {g : Sat256} {s0 : State
     {mem rdata : ByteArray} {aw x0 x1 x2 x3 x4 x5 : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 6 ≤ 1024)
     (hp : I.perm = false)
-    (rd : RD midnightBytecode I g s0 ⟨16253⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨16253⟩
       (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: R) mem aw rdata σ k C) :
-    RDstatic midnightBytecode g s0 := by
+    RDstatic fork midnightBytecode g s0 := by
   have rd1 := rd.jumpdest (by native_decide) (by evm_ov)
   have rd2 := rd1.sub (by native_decide) (by evm_ov)
   have rd3 := rd2.swap1 (by native_decide) (by evm_ov)

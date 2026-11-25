@@ -2,6 +2,8 @@ import Benchmarks.Midnight.MarketCollateralIndex
 import Benchmarks.Midnight.MaxLifGas
 import Benchmarks.Midnight.RuntimeBlocks_026
 
+variable {fork : Ethereum.Fork}
+
 /-! Read the selected collateral's parameters and compute its maximum liquidation incentive. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -18,12 +20,12 @@ theorem midnightLiquidateMaxLif {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw : UInt256} {m : MarketData} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 10 ≤ 1024)
     (hd : decodeCalldataMarket I.calldata 4 = some m)
-    (rd : RD midnightBytecode I g s0 ⟨6477⟩ R mem aw rdata σ k C) :
-    (¬ LiquidateMaxLifSafe m (calldataWord I.calldata 36) ∧ RDrev midnightBytecode g s0) ∨
+    (rd : RD fork midnightBytecode I g s0 ⟨6477⟩ R mem aw rdata σ k C) :
+    (¬ LiquidateMaxLifSafe m (calldataWord I.calldata 36) ∧ RDrev fork midnightBytecode g s0) ∨
     ∃ hi : (calldataWord I.calldata 36).toNat < m.collaterals.length,
       let c := m.collaterals[(calldataWord I.calldata 36).toNat]
       MaxLifSafe c.lltv c.liquidationCursor ∧ ∃ k' C', C ≤ C' ∧
-        RD midnightBytecode I g s0 ⟨6540⟩
+        RD fork midnightBytecode I g s0 ⟨6540⟩
           (maxLif c.lltv c.liquidationCursor :: c.lltv :: R) mem aw rdata σ k' C' := by
   have rd1 := midnightBlocks.midnight_block_6477 (R := R) (by omega) (by jump_dest) rd
   simp only [midnightBlocks.midnight_block_6477_stack] at rd1
@@ -34,7 +36,7 @@ theorem midnightLiquidateMaxLif {I : ExecutionEnv} {g : Sat256} {s0 : State}
   · have hf := marketCollateralPointer_fields hd hi
     have rd3 := midnightBlocks.midnight_block_6502 (R := R) (by omega) (by jump_dest) rd2
     simp only [midnightBlocks.midnight_block_6502_stack] at rd3
-    change RD midnightBytecode I g s0 ⟨20488⟩
+    change RD fork midnightBytecode I g s0 ⟨20488⟩
       ((⟨4⟩ + calldataWord I.calldata 4) :: (calldataWord I.calldata 4 + ⟨100⟩) ::
         ⟨5534⟩ :: ⟨6532⟩ :: ⟨64⟩ :: ⟨6540⟩ ::
         calldataWord I.calldata

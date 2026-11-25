@@ -3,6 +3,8 @@ import Benchmarks.Midnight.MarketCalldataArrayHeader
 import Benchmarks.Midnight.MarketCalldataArrayDecode
 import Benchmarks.Midnight.MemoryDecodeBounds
 
+variable {fork : Ethereum.Fork}
+
 /-! Complete runtime decoding of a market from ordinary-sized calldata. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -18,17 +20,17 @@ theorem midnightMarketCalldataDecoder {I : ExecutionEnv} {g : Sat256} {s0 : Stat
     (hlo : 96 ≤ ptr.toNat) (hptr : ptr.toNat < 2^64)
     (hfree : memLoad (UInt256.ofNat 64) mem = ptr)
     (hvalid : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨18574⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨18574⟩
       (head :: UInt256.ofNat I.calldata.size :: ret :: R) mem aw rdata σ k C) :
     ((∀ m, decodeMarketData I.calldata head.toNat = some m →
-        ¬ ptr.toNat + 288 + 160 * m.collaterals.length < 2^64) ∧ RDrev midnightBytecode g s0) ∨
+        ¬ ptr.toNat + 288 + 160 * m.collaterals.length < 2^64) ∧ RDrev fork midnightBytecode g s0) ∨
     (∃ m, decodeMarketData I.calldata head.toNat = some m ∧
       ptr.toNat + 288 + 160 * m.collaterals.length < 2^64 ∧
       ∃ mem' root aw' k' C',
         root.toNat = ptr.toNat + 288 + 160 * m.collaterals.length ∧
         MarketStored mem' ptr (ptr + UInt256.ofNat 256) root m ∧
         memLoad (UInt256.ofNat 64) mem' = root ∧
-        RD midnightBytecode I g s0 ret (ptr :: R) mem' aw' rdata σ k' C') := by
+        RD fork midnightBytecode I g s0 ret (ptr :: R) mem' aw' rdata σ k' C') := by
   have hcd : (UInt256.ofNat I.calldata.size).toNat = I.calldata.size :=
     UInt256.toNat_ofNat_of_lt (by change _ < 2^256; omega)
   have hcheck := signedDecodeCheck (finish := UInt256.ofNat I.calldata.size) (start := head)

@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.ReturnData
 
+variable {fork : Ethereum.Fork}
+
 /-! The common uint64 length check and bytes allocation size at PC 19016. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -25,8 +27,8 @@ theorem bytesAllocationEnd {ptr : UInt256} {size : Nat}
 theorem midnightBytesLengthTooLarge {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw len : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hlarge : 2^64 ≤ len.toNat) (hstack : R.length + 4 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 ⟨19016⟩ (len :: R) mem aw rdata σ k C) :
-    RDrev midnightBytecode g s0 := by
+    (rd : RD fork midnightBytecode I g s0 ⟨19016⟩ (len :: R) mem aw rdata σ k C) :
+    RDrev fork midnightBytecode g s0 := by
   have hgt : UInt256.gt len
       (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 64)) (UInt256.ofNat 1)) =
       ⟨1⟩ := by
@@ -43,8 +45,8 @@ theorem midnightBytesAllocationSize_charge {I : ExecutionEnv} {g : Sat256} {s0 :
     {R : List UInt256}
     (hsmall : len.toNat < 2^64) (hstack : R.length + 5 ≤ 1024)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨19016⟩ (len :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', MemoryCharge 0 aw aw C C' ∧ RD midnightBytecode I g s0 ret
+    (rd : RD fork midnightBytecode I g s0 ⟨19016⟩ (len :: ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', MemoryCharge 0 aw aw C C' ∧ RD fork midnightBytecode I g s0 ret
       (UInt256.ofNat (returnDataAllocation len.toNat) :: R) mem aw rdata σ k' C' := by
   have hgt : UInt256.gt len
       (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 64)) (UInt256.ofNat 1)) =
@@ -67,8 +69,8 @@ theorem midnightBytesAllocationSize {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {R : List UInt256}
     (hsmall : len.toNat < 2^64) (hstack : R.length + 5 ≤ 1024)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨19016⟩ (len :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD midnightBytecode I g s0 ret
+    (rd : RD fork midnightBytecode I g s0 ⟨19016⟩ (len :: ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork midnightBytecode I g s0 ret
       (UInt256.ofNat (returnDataAllocation len.toNat) :: R) mem aw rdata σ k' C' := by
   obtain ⟨k', C', _, rd'⟩ := midnightBytesAllocationSize_charge hsmall hstack hret rd
   exact ⟨k', C', rd'⟩

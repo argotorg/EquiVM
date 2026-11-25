@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.ToMarketCollateral
 import Benchmarks.Midnight.AllocationArithmetic
 
+variable {fork : Ethereum.Fork}
+
 /-! One iteration of collateral allocation, decoding, and pointer-array construction. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -22,12 +24,12 @@ theorem midnightToMarketLoopStep {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hmore : readPtr.toNat + 128 ≤ finish.toNat)
     (hregion : base + bytes.size ≤ ptr.toNat) (hptr : ptr.toNat < 2^64)
     (hfree : memLoad (UInt256.ofNat 64) mem = ptr)
-    (rd : RD midnightBytecode I g s0 ⟨1092⟩ (writePtr :: x :: finish :: readPtr :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨1092⟩ (writePtr :: x :: finish :: readPtr :: R)
       mem aw rdata σ k C) :
-    (¬ ptr.toNat + 128 < 2^64 ∧ RDrev midnightBytecode g s0) ∨
-    (¬ CollateralData.canonicalAt bytes start ∧ RDrev midnightBytecode g s0) ∨
+    (¬ ptr.toNat + 128 < 2^64 ∧ RDrev fork midnightBytecode g s0) ∨
+    (¬ CollateralData.canonicalAt bytes start ∧ RDrev fork midnightBytecode g s0) ∨
     (ptr.toNat + 128 < 2^64 ∧ CollateralData.canonicalAt bytes start ∧
-      ∃ aw' k' C', RD midnightBytecode I g s0 ⟨1092⟩
+      ∃ aw' k' C', RD fork midnightBytecode I g s0 ⟨1092⟩
         ((writePtr + UInt256.ofNat 32) :: x :: finish :: (readPtr + UInt256.ofNat 128) :: R)
         (collateralStepMemory mem ptr writePtr (CollateralData.at bytes start)) aw' rdata σ k' C') := by
   have hlt : UInt256.lt readPtr finish = ⟨1⟩ := ult_one (by omega)

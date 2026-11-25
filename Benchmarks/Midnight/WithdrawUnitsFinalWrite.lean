@@ -2,6 +2,8 @@ import Benchmarks.Midnight.WithdrawUnitsBalanceState
 import Benchmarks.Midnight.WithdrawUnitsTransferBlockBudget
 import Benchmarks.Midnight.MemoryWords
 
+variable {fork : Ethereum.Fork}
+
 /-! The final total-unit write and withdrawal event preserve transfer funding. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -20,14 +22,14 @@ theorem midnightWithdrawUnitsFinalWrite {I : ExecutionEnv} {g : Sat256} {s0 evm 
     (henv : evm.executionEnv = I) (hstack : R.length + 13 ≤ 1024) (hperm : I.perm = true)
     (hroot : root.toNat < 2^64) (hfree : memLoad (UInt256.ofNat 64) mem = root)
     (hdecrease : decrease.toNat < 2^128) (hb : TransferBudget root gasCredit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨4088⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨4088⟩
       ([UInt256.sub (marketBalanceWord (withdrawUnitsWithdrawableState evm id user units) id 0)
           units, uint128Mask, solcMappingSlot ⟨1⟩ id, id, user, decrease,
         market, UInt256.ofNat 64, solcAddrMask, receiver, units] ++ R)
       mem aw rdata (withdrawUnitsWithdrawableState evm id user units).accountMap k C) :
     let mm := withdrawUnitsLogMemory mem root I units decrease
     ∃ aw' k' C', TransferBudget root gasCredit mm aw' C' ∧
-      RD midnightBytecode I g s0 ⟨23236⟩
+      RD fork midnightBytecode I g s0 ⟨23236⟩
         ([UInt256.land (memLoad (market + UInt256.ofNat 64) mm) solcAddrMask,
           receiver, units] ++ R) mm aw' rdata (withdrawUnitsFinalState evm id user units).accountMap
         k' C' := by

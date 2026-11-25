@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TypedCallFunding
 import Benchmarks.Midnight.TransferBudget
 
+variable {fork : Ethereum.Fork}
+
 /-! A zero-value typed CALL preserves a transfer budget for buffers already in memory. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -14,7 +16,7 @@ theorem typedZeroValueCallBudget {budgetRoot : UInt256} {credit : Nat} {code : B
     {mem rdata : ByteArray} {aw : UInt256} {σ : AccountMap} {k C : Nat}
     {cfg : Config} {name : Ident} {args : List Value}
     {gasArg target inOffset inSize outOffset outSize : UInt256}
-    (rd : RD code I g s0 pc
+    (rd : RD fork code I g s0 pc
       (gasArg :: target :: ⟨0⟩ :: inOffset :: inSize :: outOffset :: outSize :: R)
       mem aw rdata σ k C)
     (hs : SourceState s0 I σ evm) (hdec : decode code pc = some (.CALL, .none))
@@ -24,11 +26,11 @@ theorem typedZeroValueCallBudget {budgetRoot : UInt256} {credit : Nat} {code : B
     (hstack : R.length + 1 ≤ 1024) (ha : TransferBudget budgetRoot credit mem aw C)
     (hin : inOffset.toNat + inSize.toNat ≤ mem.size)
     (hout : outOffset.toNat + outSize.toNat ≤ mem.size) :
-    X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨
+    X fork (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨
     ∃ (evm' : State) (σ' : AccountMap) (success : Bool) (out : ByteArray) (aw' : UInt256) (k' C' : Nat),
-      typedCallViaEVM cfg evm (AccountAddress.ofUInt256 target) name 0 args
+      typedCallViaEVM fork cfg evm (AccountAddress.ofUInt256 target) name 0 args
         (success, evm', out) true ∧ SourceState s0 I σ' evm' ∧
-      RD code I g s0 (pc + ⟨1⟩) ((if success then ⟨1⟩ else ⟨0⟩) :: R)
+      RD fork code I g s0 (pc + ⟨1⟩) ((if success then ⟨1⟩ else ⟨0⟩) :: R)
         (out.write 0 mem outOffset.toNat (min outSize (UInt256.ofNat out.size)).toNat)
         aw' out σ' k' C' ∧ out.size < 2^138 ∧
       (success = true → TransferBudget budgetRoot credit
@@ -36,7 +38,7 @@ theorem typedZeroValueCallBudget {budgetRoot : UInt256} {credit : Nat} {code : B
   by_cases hd : I.depth = 1024
   · obtain ⟨k', C', rd'⟩ := rd.callDepthLimit hdec hd hstack
     refine Or.inr ⟨{ evm with
-      substate := callSubstate evm.executionEnv.fork evm.accountMap
+      substate := callSubstate fork evm.accountMap
         (AccountAddress.ofUInt256 target) evm.substate }, σ,
       false, ByteArray.empty, _, k', C', ?_, ⟨hs.world, hs.env, hs.accounts⟩,
       rd', by decide, by simp⟩

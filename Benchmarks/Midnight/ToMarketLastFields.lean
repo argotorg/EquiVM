@@ -2,6 +2,8 @@ import Benchmarks.Midnight.MarketValueDecode
 import Benchmarks.Midnight.MemoryBytes
 import Benchmarks.Midnight.MemoryAddressDecode
 
+variable {fork : Ethereum.Fork}
+
 /-! The market fields decoded after the collateral loop. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -24,12 +26,12 @@ theorem midnightToMarketLastFields {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hbytes : MemoryBytes mem base bytes) (hhead : start + 256 ≤ bytes.size)
     (hanchor : anchor.toNat + 32 = base + start)
     (hregion : base + bytes.size ≤ ptr.toNat) (hptr : ptr.toNat + 256 < 2^64)
-    (rd : RD midnightBytecode I g s0 ⟨1100⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨1100⟩
       (x0 :: x1 :: x2 :: x3 :: arrayPtr :: ptr :: anchor :: R) mem aw rdata σ k C) :
-    (decodeMarketData bytes start = none ∧ RDrev midnightBytecode g s0) ∨
+    (decodeMarketData bytes start = none ∧ RDrev fork midnightBytecode g s0) ∨
     ((calldataWord bytes (start + 192)).toNat < EVM.addressModulus ∧
       (calldataWord bytes (start + 224)).toNat < EVM.addressModulus ∧
-      ∃ aw' k' C', RD midnightBytecode I g s0 ⟨1159⟩
+      ∃ aw' k' C', RD fork midnightBytecode I g s0 ⟨1159⟩
         (calldataWord bytes (start + 224) :: ptr :: ⟨1184⟩ ::
           x0 :: x1 :: x2 :: x3 :: arrayPtr :: ptr :: anchor :: R)
         (marketTailMemory mem ptr arrayPtr bytes start) aw' rdata σ k' C') := by
@@ -75,7 +77,7 @@ theorem midnightToMarketLastFields {I : ExecutionEnv} {g : Sat256} {s0 : State}
     have rd3 := midnightBlocks.midnight_block_1148
       (by simp only [List.length_cons]; omega) (by jump_dest) rd2
     simp only [midnightBlocks.midnight_block_1148_stack, midnightBlocks.midnight_block_1148_memory] at rd3
-    change RD midnightBytecode I g s0 ⟨23130⟩
+    change RD fork midnightBytecode I g s0 ⟨23130⟩
       ((anchor + UInt256.ofNat 256) :: ⟨1159⟩ :: ptr :: ⟨1184⟩ ::
         x0 :: x1 :: x2 :: x3 :: arrayPtr :: ptr :: anchor :: R) m4 _ rdata σ _ _ at rd3
     by_cases hl : (calldataWord bytes (start + 224)).toNat < EVM.addressModulus

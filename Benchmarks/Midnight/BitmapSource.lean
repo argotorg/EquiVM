@@ -2,6 +2,8 @@ import Benchmarks.Midnight.WordBitSource
 import Benchmarks.Midnight.CollateralLoopMemory
 import Reasoning.VyperDispatch
 
+variable {fork : Ethereum.Fork}
+
 /-! Source semantics of the bitmap helpers used by collateral health checks. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -21,7 +23,7 @@ theorem bitmapMsbLoopSource {cfg : Config} {evm : EVM.State} (n : Nat)
     (hn : n < UInt256.size) (frame : Frame) (res : UInt256)
     (hr : frame.locals.get? "res" = some (.int res.toNat))
     (hb : frame.locals.get? "bits" = some (.int n)) :
-    ∃ frame', ExecStmt cfg frame evm bitmapMsbLoop (.ok frame' evm) ∧
+    ∃ frame', ExecStmt fork cfg frame evm bitmapMsbLoop (.ok frame' evm) ∧
       frame'.locals.get? "res" = some (.int (res + UInt256.ofNat n.size).toNat) := by
   induction n using Nat.strong_induction_on generalizing frame res with
   | h n ih =>
@@ -37,7 +39,7 @@ theorem bitmapMsbLoopSource {cfg : Config} {evm : EVM.State} (n : Nat)
       let frame₂ := { frame₁ with locals := frame₁.locals.insert "bits" (.int (Int.ofNat (n / 2))) }
       have hb₁ : frame₁.locals.get? "bits" = some (.int n) := by
         simpa only [frame₁, store_get_ne _ _ (show ("res" == "bits") = false from rfl)] using hb
-      have hstep : ExecBlock cfg frame evm
+      have hstep : ExecBlock fork cfg frame evm
           [.assign .localVar { base := "res" }
             (.cast (.binary .add (.var "res") (.intLit 1)) (.elem (.int (.uint ⟨256, by decide⟩)))),
            .assign .localVar { base := "bits" }
@@ -68,7 +70,7 @@ theorem bitmapMsbLoopSource {cfg : Config} {evm : EVM.State} (n : Nat)
 
 theorem bitmapMsbSource {cfg : Config} {frame : Frame} {evm : EVM.State} {bitmap : UInt256}
     (hb : frame.locals.get? "bitmap" = some (.int bitmap.toNat)) :
-    ∃ frame', ExecFuncBody cfg frame evm bitmapMsbFunction.body
+    ∃ frame', ExecFuncBody fork cfg frame evm bitmapMsbFunction.body
       (.returned frame' evm (some [.int (bitmapMsb bitmap).toNat])) := by
   let maximum := UInt256.ofNat (2^256 - 1)
   let frame₁ := { frame with locals := frame.locals.insert "res" (.int maximum.toNat) }
@@ -104,7 +106,7 @@ theorem bitmapClearSource {cfg : Config} {frame : Frame} {evm : EVM.State}
     {bitmap bit : UInt256}
     (hb : frame.locals.get? "bitmap" = some (.int bitmap.toNat))
     (hi : frame.locals.get? "bit" = some (.int bit.toNat)) (hbit : bit.toNat < 256) :
-    ExecFuncBody cfg frame evm bitmapClearFunction.body
+    ExecFuncBody fork cfg frame evm bitmapClearFunction.body
       (.returned frame evm (some [.int (bitmapClear bitmap bit).toNat])) := by
   apply ExecFuncBody.execBlockRet
   apply ExecBlock.consReturn

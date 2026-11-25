@@ -4,6 +4,8 @@ import Benchmarks.Midnight.FlashLoanEventLog
 import Benchmarks.Midnight.FlashLoanTail
 import Benchmarks.Midnight.MarketEntryDecode
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `flashLoan(address[],uint256[],address,bytes)`
 
@@ -21,17 +23,17 @@ set_option maxRecDepth 2000000
 /-- `flashLoan(address[],uint256[],address,bytes)`: the theorem `Correct.lean` routes selector 9 to. -/
 theorem midnightFlashLoanBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 9)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 9) rfl hsel
   have hd : dispatchMsg contract I.calldata = some flashLoanTransition := by
     apply midnightDispatch_flashLoan <;>
       first | exact hsel | exact selectorNe_of_selIs hsel (by decide +kernel)
   obtain ⟨k, C, rd⟩ := midnightReachFlashLoanBody
     (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) hcode hsz hsize hsel
-  change RD midnightBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+  change RD fork midnightBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
     ⟨16032⟩ [solcSelectorWord I] midnightEntryMemory (UInt256.ofNat 26) ByteArray.empty σ k C at rd
   have ha : MemoryAccounting midnightEntryMemory (UInt256.ofNat 26) C := by
     refine ⟨MemoryPaid.entry C, ?_⟩
@@ -87,10 +89,10 @@ theorem midnightFlashLoanBody {σ σ₀ A I} {g : UInt256}
       have hf := flashLoanExternalFrame_spec origin (calldataArgumentWords I.calldata 4)
         (calldataArgumentWords I.calldata 36) callback (calldataArgumentBytes I.calldata 100)
       have sourcePrefix {result : ExecResult}
-          (htail : ExecBlock config (flashLoanExternalFrame origin (calldataArgumentWords I.calldata 4)
+          (htail : ExecBlock fork config (flashLoanExternalFrame origin (calldataArgumentWords I.calldata 4)
             (calldataArgumentWords I.calldata 36) callback (calldataArgumentBytes I.calldata 100)) origin
             (flashLoanTransition.body.drop 4) result) :
-          ExecBlock config
+          ExecBlock fork config
             { contract := contract
               locals := flashLoanArguments (calldataArgumentWords I.calldata 4)
                 (calldataArgumentWords I.calldata 36) callback (calldataArgumentBytes I.calldata 100)
@@ -123,7 +125,7 @@ theorem midnightFlashLoanBody {σ σ₀ A I} {g : UInt256}
           · exact MemoryFunding.of_accounting ha5
         rw [← hcb] at rd5
         rcases midnightFlashLoanTail (by simp) hlen.symm htn hdl (by omega) hap hdp hsize
-            hcanon hf hh hgas hwf (by exact ⟨rfl, rfl, rfl⟩) rd5 with
+            hcanon hf hh hgas hfork (by exact ⟨rfl, rfl, rfl⟩) rd5 with
           hoog | ⟨hbody, hr⟩ | ⟨frame', evm', σ', hbody, hs', hr⟩
         · exact reEquiv_outOfGas (Xi_error_of_X (by rw [← hcode] at hoog; exact hoog))
         · exact hr.reEquivExecutionRevert hcode hd hdec

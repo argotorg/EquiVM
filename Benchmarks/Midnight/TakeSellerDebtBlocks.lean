@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.TakeBuyerDebtWrite
 
+variable {fork : Ethereum.Fork}
+
 /-! Seller debt storage and the following ordered market-balance read. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -12,9 +14,9 @@ set_option maxRecDepth 10000
 theorem midnightTakeSellerDebtRead {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw value ret slot : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (hstack : R.length + 6 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 ⟨12505⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨12505⟩
       (value :: ⟨2⟩ :: ret :: uint128Mask :: slot :: R) mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD midnightBytecode I g s0 ⟨20456⟩
+    ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode I g s0 ⟨20456⟩
       (low128 (solcSlotWordAt (slot + ⟨2⟩) σ I) :: value :: ret :: uint128Mask ::
         (slot + ⟨2⟩) :: R) mem aw rdata σ k' C' := by
   have r1 := rd.jumpdest (by native_decide) (by evm_ov)
@@ -34,10 +36,10 @@ theorem midnightTakeSellerDebtStore {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw value slot marketSlot decrease ratifierPtr increase : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 12 ≤ 1024)
     (hperm : I.perm = true)
-    (rd : RD midnightBytecode I g s0 ⟨12517⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨12517⟩
       ([value, uint128Mask, slot, marketSlot, decrease, ratifierPtr, increase] ++ R)
       mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD midnightBytecode I g s0 ⟨19536⟩
+    ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode I g s0 ⟨19536⟩
       ([low128 (solcSlotWordAt marketSlot (storeLow128Accounts σ I slot value) I),
         increase, ⟨12561⟩, decrease, ⟨4204⟩, ⟨12566⟩, uint128Mask, marketSlot,
         decrease, ratifierPtr, increase] ++ R) mem aw rdata

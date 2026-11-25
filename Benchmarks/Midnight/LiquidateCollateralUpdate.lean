@@ -2,6 +2,8 @@ import Benchmarks.Midnight.LiquidateCollateralUpdateSource
 import Benchmarks.Midnight.LiquidateCollateralUpdateTrace
 import Benchmarks.Midnight.LiquidateLoopSourceEntry
 
+variable {fork : Ethereum.Fork}
+
 /-! Paired execution of liquidation's checked collateral subtraction and write. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -20,21 +22,21 @@ theorem liquidateCollateralUpdate {I : ExecutionEnv} {g : Sat256} {s0 evm : Stat
     (hcanon : borrower.toNat < EVM.addressModulus) (hi : calldataWord I.calldata 36 = index)
     (hseized : memLoad ⟨640⟩ mem = seized) (hs : SourceState s0 I σ evm)
     (hb : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨6744⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨6744⟩
       (d0 :: d1 :: d2 :: d3 :: positionSlot id borrower :: R) mem aw rdata σ k C) :
-    (ExecBlock config frame evm liquidateCollateralUpdateBody .reverted ∧
-      RDrev midnightBytecode g s0) ∨
-    (ExecBlock config frame evm liquidateCollateralUpdateBody .staticViolation ∧
-      RDstatic midnightBytecode g s0) ∨
+    (ExecBlock fork config frame evm liquidateCollateralUpdateBody .reverted ∧
+      RDrev fork midnightBytecode g s0) ∨
+    (ExecBlock fork config frame evm liquidateCollateralUpdateBody .staticViolation ∧
+      RDstatic fork midnightBytecode g s0) ∨
     (I.perm = true ∧ index.toNat < 128 ∧ ∃ frame' evm' σ' value aw' k' C',
-      ExecBlock config frame evm liquidateCollateralUpdateBody (.ok frame' evm') ∧
+      ExecBlock fork config frame evm liquidateCollateralUpdateBody (.ok frame' evm') ∧
       LiquidateSourceFrame frame' m id index seized repaid borrower mode receiver callback data ∧
       LiquidateAccumulators frame' bitmap maxDebt price originalDebt badDebt ∧
       frame'.locals.get? "newCollateral" = some (.int value.toNat) ∧ value.toNat < 2^128 ∧
       SourceState s0 I σ' evm' ∧ TransferBudget root credit mem aw' C' ∧
-      RD midnightBytecode I g s0 ⟨6820⟩
+      RD fork midnightBytecode I g s0 ⟨6820⟩
         (value :: uint128Mask :: positionSlot id borrower :: R) mem aw' rdata σ' k' C') := by
-  have hsource := liquidateCollateralUpdateSource (evm := evm) hf hcanon
+  have hsource := liquidateCollateralUpdateSource (fork := fork) (evm := evm) hf hcanon
   have htrace := midnightLiquidateCollateralUpdate hstack hi hseized hb rd
   have hload : (fun slot ↦ solcSlotWordAt slot σ I) =
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner :=

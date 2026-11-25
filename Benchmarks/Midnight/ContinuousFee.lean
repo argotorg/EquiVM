@@ -3,6 +3,8 @@ import Benchmarks.Midnight.ScalarDecode
 import Benchmarks.Midnight.MappingMemory
 import Benchmarks.Midnight.PackedFields
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `continuousFee(bytes32)`
 
@@ -20,7 +22,7 @@ set_option maxRecDepth 2000000
 theorem continuousFeeBodyReturns (evm : EVM.State) (key : UInt256)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) :
-    ExecTransitionBody config contract evm ((∅ : Store).insert "id" (wordBytes32Value key))
+    ExecTransitionBody fork config contract evm ((∅ : Store).insert "id" (wordBytes32Value key))
       continuousFeeTransition.body
       (.returned (calldataFrame contract ((∅ : Store).insert "id" (wordBytes32Value key)) ∅ evm)
         evm (some [.int (Int.ofNat (UInt256.land
@@ -41,11 +43,11 @@ theorem continuousFeeBodyReturns (evm : EVM.State) (key : UInt256)
   · exact storageLocLoad_uint32_offset14 evm _
 
 theorem continuousFeeTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Nat}
-    (rd : RD midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 3021)
+    (rd : RD fork midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 3021)
       [solcSelectorWord I] midnightEntryMemory
       (M (M (UInt256.ofNat 0) (UInt256.ofNat 64) ⟨32⟩) (UInt256.ofNat 800) ⟨32⟩)
       ByteArray.empty σ k C) :
-    RDret midnightBytecode g (initState σ σ₀ g A I) σ
+    RDret fork midnightBytecode g (initState σ σ₀ g A I) σ
       (UInt256.land (UInt256.shiftRight
         (solcSlotWordAt (solcMappingSlot ⟨1⟩ (calldataWord I.calldata 4) + ⟨2⟩) σ I)
         (UInt256.ofNat 112))
@@ -63,10 +65,10 @@ theorem continuousFeeTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Nat}
 /-- `continuousFee(bytes32)`: the theorem `Correct.lean` routes selector 41 to. -/
 theorem midnightContinuousFeeBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 41)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 41) rfl hsel
   have hd : dispatchMsg contract I.calldata = some continuousFeeTransition := by
     apply midnightDispatch_continuousFee <;>
@@ -81,7 +83,7 @@ theorem midnightContinuousFeeBody {σ σ₀ A I} {g : UInt256}
           (entrySizeCheck_ok (bytes := 32) h36 hhi hsize) rd1
         have hret := continuousFeeTraceReturn rd2
         have hdec := midnightDecodeBytes32 "id" (by decide) (by decide) h36 hhi hsize
-        have hbody := continuousFeeBodyReturns (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        have hbody := continuousFeeBodyReturns (fork := fork) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (calldataWord I.calldata 4) hwv hhi
         exact hret.reEquivExecution hcode hd hdec hbody
           (returnEquiv_of_encode (uintReturnEncoding ⟨32, by decide⟩ _

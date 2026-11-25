@@ -2,6 +2,8 @@ import Benchmarks.Midnight.TouchMarketSource
 import Benchmarks.Midnight.PositionUpdateTrace
 import Benchmarks.Midnight.MarketUserDecode
 
+variable {fork : Ethereum.Fork}
+
 /-! The public position update sequences market initialization and position accounting. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -32,11 +34,11 @@ theorem evalUpdatePositionCallArgs (evm evm' : EVM.State) (m : MarketData) (user
 
 theorem updatePositionAfterTouchSource {evm evm' : EVM.State} {m : MarketData} {user : UInt256}
     {frame : Frame} {result}
-    (htouch : ExecFuncBody config (touchMarketCallFrame ∅ m) evm touchMarketFunction.body
+    (htouch : ExecFuncBody fork config (touchMarketCallFrame ∅ m) evm touchMarketFunction.body
       (.returned frame evm' (some [wordBytes32Value m.id])))
-    (htail : ExecBlock config (updatePositionAfterTouchFrame evm m user) evm'
+    (htail : ExecBlock fork config (updatePositionAfterTouchFrame evm m user) evm'
       (updatePositionTransition.body.drop 4) result) :
-    ExecBlock config (updatePositionExternalFrame evm m user) evm
+    ExecBlock fork config (updatePositionExternalFrame evm m user) evm
       (updatePositionTransition.body.drop 3) result := by
   exact ExecBlock.consNormal (internalCallFunctionReturn (callee := touchMarketFunction)
     (locals := touchMarketArguments m) (evalUpdatePositionTouchArgs evm m user) rfl rfl htouch) htail
@@ -44,8 +46,8 @@ theorem updatePositionAfterTouchSource {evm evm' : EVM.State} {m : MarketData} {
 theorem updatePositionTouchReverts {evm : EVM.State} {m : MarketData} {user : UInt256}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit)
-    (hbody : ExecFuncBody config (touchMarketCallFrame ∅ m) evm touchMarketFunction.body .reverted) :
-    ExecTransitionBody config contract evm (marketUserArguments m (AccountAddress.ofNat user.toNat))
+    (hbody : ExecFuncBody fork config (touchMarketCallFrame ∅ m) evm touchMarketFunction.body .reverted) :
+    ExecTransitionBody fork config contract evm (marketUserArguments m (AccountAddress.ofNat user.toNat))
       updatePositionTransition.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply guardedBodyBlock hwv hhi
@@ -55,9 +57,9 @@ theorem updatePositionTouchReverts {evm : EVM.State} {m : MarketData} {user : UI
 theorem updatePositionTouchStatic {evm : EVM.State} {m : MarketData} {user : UInt256}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit)
-    (hbody : ExecFuncBody config (touchMarketCallFrame ∅ m) evm touchMarketFunction.body
+    (hbody : ExecFuncBody fork config (touchMarketCallFrame ∅ m) evm touchMarketFunction.body
       .staticViolation) :
-    ExecTransitionBody config contract evm (marketUserArguments m (AccountAddress.ofNat user.toNat))
+    ExecTransitionBody fork config contract evm (marketUserArguments m (AccountAddress.ofNat user.toNat))
       updatePositionTransition.body .staticViolation := by
   apply ExecFuncBody.execBlockStatic
   apply guardedBodyBlock hwv hhi
@@ -68,11 +70,11 @@ theorem updatePositionBodyReverts {evm evm' : EVM.State} {m : MarketData} {user 
     {frame : Frame}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit)
-    (htouch : ExecFuncBody config (touchMarketCallFrame ∅ m) evm touchMarketFunction.body
+    (htouch : ExecFuncBody fork config (touchMarketCallFrame ∅ m) evm touchMarketFunction.body
       (.returned frame evm' (some [wordBytes32Value m.id])))
-    (hbody : ExecFuncBody config (positionViewCallFrame ∅ m m.id user) evm'
+    (hbody : ExecFuncBody fork config (positionViewCallFrame ∅ m m.id user) evm'
       positionUpdateFunction.body .reverted) :
-    ExecTransitionBody config contract evm (marketUserArguments m (AccountAddress.ofNat user.toNat))
+    ExecTransitionBody fork config contract evm (marketUserArguments m (AccountAddress.ofNat user.toNat))
       updatePositionTransition.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply guardedBodyBlock hwv hhi
@@ -85,11 +87,11 @@ theorem updatePositionBodyStatic {evm evm' : EVM.State} {m : MarketData} {user :
     {frame : Frame}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit)
-    (htouch : ExecFuncBody config (touchMarketCallFrame ∅ m) evm touchMarketFunction.body
+    (htouch : ExecFuncBody fork config (touchMarketCallFrame ∅ m) evm touchMarketFunction.body
       (.returned frame evm' (some [wordBytes32Value m.id])))
-    (hbody : ExecFuncBody config (positionViewCallFrame ∅ m m.id user) evm'
+    (hbody : ExecFuncBody fork config (positionViewCallFrame ∅ m m.id user) evm'
       positionUpdateFunction.body .staticViolation) :
-    ExecTransitionBody config contract evm (marketUserArguments m (AccountAddress.ofNat user.toNat))
+    ExecTransitionBody fork config contract evm (marketUserArguments m (AccountAddress.ofNat user.toNat))
       updatePositionTransition.body .staticViolation := by
   apply ExecFuncBody.execBlockStatic
   apply guardedBodyBlock hwv hhi
@@ -101,12 +103,12 @@ theorem updatePositionBodyReturns {evm evm' evm'' : EVM.State} {m : MarketData}
     {user credit pending fee : UInt256} {touchFrame updateFrame : Frame}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit)
-    (htouch : ExecFuncBody config (touchMarketCallFrame ∅ m) evm touchMarketFunction.body
+    (htouch : ExecFuncBody fork config (touchMarketCallFrame ∅ m) evm touchMarketFunction.body
       (.returned touchFrame evm' (some [wordBytes32Value m.id])))
-    (hbody : ExecFuncBody config (positionViewCallFrame ∅ m m.id user) evm'
+    (hbody : ExecFuncBody fork config (positionViewCallFrame ∅ m m.id user) evm'
       positionUpdateFunction.body (.returned updateFrame evm''
         (some [.int credit.toNat, .int pending.toNat, .int fee.toNat]))) :
-    ExecTransitionBody config contract evm (marketUserArguments m (AccountAddress.ofNat user.toNat))
+    ExecTransitionBody fork config contract evm (marketUserArguments m (AccountAddress.ofNat user.toNat))
       updatePositionTransition.body
       (.returned (resumeAfterInternalCall (updatePositionAfterTouchFrame evm m user) "__c1"
         (some [.int credit.toNat, .int pending.toNat, .int fee.toNat])) evm''

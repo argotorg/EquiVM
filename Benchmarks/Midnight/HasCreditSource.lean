@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.NamedPositionSource
 
+variable {fork : Ethereum.Fork}
+
 /-! The internal credit predicate, with its mapping read and caller-local result. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,7 +18,7 @@ theorem hasCreditSource {frame : Frame} {evm : State} {id user : UInt256}
     (hid : frame.locals.get? "id" = some (wordBytes32Value id))
     (hu : frame.locals.get? "user" = some (.address (AccountAddress.ofNat user.toNat)))
     (hcanon : user.toNat < EVM.addressModulus) :
-    ExecFuncBody config frame evm hasCreditFunction.body
+    ExecFuncBody fork config frame evm hasCreditFunction.body
       (.returned frame evm (some [.bool (hasCreditValue evm id user)])) := by
   have he : evalExpr? config frame evm (.storage { base := "position", steps :=
       [.mindex (.var "id"), .mindex (.var "user"), .field "credit"] }) =
@@ -44,7 +46,7 @@ theorem callHasCredit {frame : Frame} {evm : State} {id user : UInt256}
     (he : evalExprs? config frame evm args =
       .ok [wordBytes32Value id, .address (AccountAddress.ofNat user.toNat)])
     (hcanon : user.toNat < EVM.addressModulus) :
-    ExecStmt config frame evm (.internalCall "hasCredit" args name)
+    ExecStmt fork config frame evm (.internalCall "hasCredit" args name)
       (.ok (resumeAfterInternalCall frame name (some [.bool (hasCreditValue evm id user)])) evm) := by
   apply internalCallFunctionReturn (callee := hasCreditFunction)
     (locals := hasCreditArguments id user) he

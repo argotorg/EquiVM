@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.RepayBalanceTrace
 import Benchmarks.Midnight.RepayTail
 
+variable {fork : Ethereum.Fork}
+
 /-! Repayment from the checked debt reduction to the final transfer. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -25,18 +27,18 @@ theorem midnightRepayCore {I : ExecutionEnv} {g : UInt256} {s0 evm : State}
     (hdl : dl.toNat < 2^64) (hd : dp.toNat + dl.toNat ≤ I.calldata.size)
     (hb : TransferBudget (root + UInt256.ofNat 32) credit mem aw C)
     (hcredit : 4 * (((root + UInt256.ofNat 32).toNat + safeTransferCallAllocation true + 31) / 32)
-      ≤ credit + 999921) (hgas : midnightGasBound g) (hfork : I.fork ≥ .osaka)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨9861⟩
+      ≤ credit + 999921) (hgas : midnightGasBound g) (hfork : fork ≥ .osaka)
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨9861⟩
       ([id, dp, dl, user, UInt256.ofNat callback.val, units, market, saved] ++ R)
       mem aw rdata evm.accountMap k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (RDrev midnightBytecode (Sat256.ofUInt256 g) s0 ∧
-      ExecBlock config frame evm (repayTransition.body.drop 5) .reverted) ∨
-    (RDstatic midnightBytecode (Sat256.ofUInt256 g) s0 ∧
-      ExecBlock config frame evm (repayTransition.body.drop 5) .staticViolation) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0 ∧
+      ExecBlock fork config frame evm (repayTransition.body.drop 5) .reverted) ∨
+    (RDstatic fork midnightBytecode (Sat256.ofUInt256 g) s0 ∧
+      ExecBlock fork config frame evm (repayTransition.body.drop 5) .staticViolation) ∨
     ∃ frame' evm',
-      ExecBlock config frame evm (repayTransition.body.drop 5) (.ok frame' evm') ∧
-      RDret midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap ByteArray.empty := by
+      ExecBlock fork config frame evm (repayTransition.body.drop 5) (.ok frame' evm') ∧
+      RDret fork midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap ByteArray.empty := by
   rcases midnightRepayBalances (R := saved :: R) hs.env hf hu
       (by simp only [List.length_cons]; omega) hmem hzero800 hb rd with
     ⟨hr, ht⟩ | ⟨hr, ht⟩ | ⟨hperm, hsafe, aw1, k1, C1, hb1, rd1⟩
@@ -87,11 +89,11 @@ theorem midnightRepayCore {I : ExecutionEnv} {g : UInt256} {s0 evm : State}
     have hz8001 : memLoad (UInt256.ofNat 800) mem1 = ⟨0⟩ := by
       rw [hp1.load (UInt256.ofNat 800) (by decide) hlower hmem, hzero800]
     have sourcePrefix {result : ExecResult}
-        (ht : ExecBlock config frame2 evm2 (repayTransition.body.drop 10) result) :
-        ExecBlock config frame evm (repayTransition.body.drop 5) result := by
+        (ht : ExecBlock fork config frame2 evm2 (repayTransition.body.drop 10) result) :
+        ExecBlock fork config frame evm (repayTransition.body.drop 5) result := by
       apply repayBalancesSource hf hu hsafe (by rw [hs.env]; exact hperm)
       apply repayPayerSource hf1
-      change ExecBlock config (repayPayerFrame frame1 evm2.executionEnv callback) evm2 _ _
+      change ExecBlock fork config (repayPayerFrame frame1 evm2.executionEnv callback) evm2 _ _
       rw [henv2]
       exact ht
     rcases midnightRepayTail hs2 hf2 hpayer hperm hstack hmem1 hm1 hlimit hroot hlower

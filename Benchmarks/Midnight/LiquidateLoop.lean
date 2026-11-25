@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.LiquidateLoopStep
 import Benchmarks.Midnight.LiquidateMemoryPreserved
 
+variable {fork : Ethereum.Fork}
+
 /-! The complete liquidation collateral loop terminates and preserves its transfer budget. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -13,7 +15,7 @@ theorem midnightLiquidateLoop {I : ExecutionEnv} {g : Sat256} {s0 : State} {m : 
     {id seized repaid borrower mode originalDebt debtWord reverseRep rep dp dl receiverWord
       selector budgetRoot heap : UInt256} {receiver callback : AccountAddress} {data : ByteArray}
     {credit : Nat} {R : List UInt256}
-    (hstack : R.length + 33 ≤ 1024) (hfork : I.fork ≥ .osaka)
+    (hstack : R.length + 33 ≤ 1024) (hfork : fork ≥ .osaka)
     (hcanon : borrower.toNat < EVM.addressModulus)
     (hd : decodeCalldataMarket I.calldata 4 = some m)
     (fuel : Nat) (evm : State) (frame : Frame) (mem rdata : ByteArray)
@@ -29,13 +31,13 @@ theorem midnightLiquidateLoop {I : ExecutionEnv} {g : Sat256} {s0 : State} {m : 
       seized repaid borrower mode receiver callback data)
     (ha : LiquidateAccumulators frame bitmap maxDebt savedPrice originalDebt badDebt)
     (hs : SourceState s0 I σ evm) (hb : TransferBudget budgetRoot credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨5340⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨5340⟩
       ([debtWord, reverseRep, rep, maxDebt, savedPrice, positionSlot id borrower, dp, dl,
         borrower, badDebt, receiverWord, mode, selector] ++ R) mem aw rdata σ k C) :
-    (ExecStmt config frame evm liquidateLoop .reverted ∧ RDrev midnightBytecode g s0) ∨
+    (ExecStmt fork config frame evm liquidateLoop .reverted ∧ RDrev fork midnightBytecode g s0) ∨
     ∃ (evm' : State) (σ' : AccountMap) (frame' : Frame) (mem' out : ByteArray)
       (root' maxDebt' savedPrice' badDebt' aw' : UInt256) (k' C' : Nat),
-      ExecStmt config frame evm liquidateLoop (.ok frame' evm') ∧
+      ExecStmt fork config frame evm liquidateLoop (.ok frame' evm') ∧
       SourceState s0 I σ' evm' ∧ accountStorageStateEq evm.accountMap evm'.accountMap ∧
       LiquidateSourceFrame frame' m id (calldataWord I.calldata 36)
         seized repaid borrower mode receiver callback data ∧
@@ -46,7 +48,7 @@ theorem midnightLiquidateLoop {I : ExecutionEnv} {g : Sat256} {s0 : State} {m : 
       root.toNat ≤ root'.toNat ∧ root'.toNat ≤ root.toNat + 160 * fuel ∧
       root'.toNat % 32 = root.toNat % 32 ∧
       LiquidateMemoryPreserved mem mem' root.toNat ∧ TransferBudget budgetRoot credit mem' aw' C' ∧
-      RD midnightBytecode I g s0 ⟨5358⟩
+      RD fork midnightBytecode I g s0 ⟨5358⟩
         ([debtWord, reverseRep, rep, maxDebt', savedPrice', positionSlot id borrower, dp, dl,
           borrower, badDebt', receiverWord, mode, selector] ++ R) mem' aw' out σ' k' C' := by
   induction fuel using Nat.strong_induction_on generalizing evm frame mem rdata aw root bitmap

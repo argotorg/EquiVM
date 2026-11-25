@@ -2,6 +2,8 @@ import Benchmarks.Midnight.LiquidateLoopSourceEntry
 import Benchmarks.Midnight.HealthArithmeticSource
 import Benchmarks.Midnight.LiquidateLoopArithmeticTrace
 
+variable {fork : Ethereum.Fork}
+
 /-! Source execution of collateral valuation and the debt-capacity update. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -47,9 +49,9 @@ theorem liquidateCollateralValueSource {frame : Frame} {evm : State}
     let collateral := healthCollateralWord (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner)
       (positionSlot id borrower + ⟨3⟩) index
     (¬ HealthArithmeticSafe collateral price c.lltv maxDebt ∧
-      ExecBlock config frame evm ((liquidateLoopBody.drop 4).take 4 ++ rest) .reverted) ∨
+      ExecBlock fork config frame evm ((liquidateLoopBody.drop 4).take 4 ++ rest) .reverted) ∨
     (HealthArithmeticSafe collateral price c.lltv maxDebt ∧
-      ABlock config evm frame ((liquidateLoopBody.drop 4).take 4 ++ rest)
+      ABlock fork config evm frame ((liquidateLoopBody.drop 4).take 4 ++ rest)
         (liquidateValueFrame frame collateral price c.lltv maxDebt) rest) := by
   dsimp only
   let collateral := healthCollateralWord (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner)
@@ -57,7 +59,7 @@ theorem liquidateCollateralValueSource {frame : Frame} {evm : State}
   let f0 := wordLocal frame "_collateral" collateral
   let f1 := wordLocal f0 "__c4" (healthPriceValue collateral price)
   let f2 := wordLocal f1 "__c5" (healthCollateralCapacity collateral price c.lltv)
-  have hs0 : ExecStmt config frame evm (liquidateLoopBody[4]!) (.ok f0 evm) :=
+  have hs0 : ExecStmt fork config frame evm (liquidateLoopBody[4]!) (.ok f0 evm) :=
     ExecStmt.letDecl (evalHealthCollateral hcontract hcanon hpos hi hindex)
   have hp0 : f0.locals.get? "price" = some (.int price.toNat) := by
     simpa [f0, wordLocal, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert] using hp
@@ -70,7 +72,7 @@ theorem liquidateCollateralValueSource {frame : Frame} {evm : State}
       evalWordLocal hp0, evalExpr?, pure, bind, EvalResult.bind]
     rfl
   by_cases hmul : collateral.toNat * price.toNat < UInt256.size
-  · have hs1 : ExecStmt config f0 evm (liquidateLoopBody[5]!) (.ok f1 evm) :=
+  · have hs1 : ExecStmt fork config f0 evm (liquidateLoopBody[5]!) (.ok f1 evm) :=
       callMulDivDown hcontract ha0 hmul (by decide)
     have hc1 : f1.locals.get? "_collateralParam" = some (Model.collateralValue c.value) := by
       simpa [f1, f0, wordLocal, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert] using hc
@@ -83,13 +85,13 @@ theorem liquidateCollateralValueSource {frame : Frame} {evm : State}
         evalExpr?, pure, bind, EvalResult.bind]
       rfl
     by_cases hmul2 : (healthPriceValue collateral price).toNat * c.lltv.toNat < UInt256.size
-    · have hs2 : ExecStmt config f1 evm (liquidateLoopBody[6]!) (.ok f2 evm) :=
+    · have hs2 : ExecStmt fork config f1 evm (liquidateLoopBody[6]!) (.ok f2 evm) :=
         callMulDivDown hcontract ha1 hmul2 (by decide)
       have hm2 : f2.locals.get? "maxDebt" = some (.int maxDebt.toNat) := by
         simpa [f2, f1, f0, wordLocal, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert] using hm
       by_cases hadd : maxDebt.toNat + (healthCollateralCapacity collateral price c.lltv).toNat <
           UInt256.size
-      · have hs3 : ExecStmt config f2 evm (liquidateLoopBody[7]!)
+      · have hs3 : ExecStmt fork config f2 evm (liquidateLoopBody[7]!)
             (.ok (liquidateValueFrame frame collateral price c.lltv maxDebt) evm) :=
           execLocalAssign hm2 (checkedAddSourceOk (evalWordLocal hm2)
             (evalWordLocal (wordLocal_get f1 "__c5" _)) hadd)

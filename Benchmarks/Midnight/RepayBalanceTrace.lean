@@ -3,6 +3,8 @@ import Benchmarks.Midnight.RepayWithdrawableRead
 import Benchmarks.Midnight.CheckedUint128Gas
 import Benchmarks.Midnight.CheckedExtraGas
 
+variable {fork : Ethereum.Fork}
+
 /-! Repayment's checked balance phase, including arithmetic and static failures. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -22,16 +24,16 @@ theorem midnightRepayBalances {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hcanon : user.toNat < EVM.addressModulus) (hstack : R.length + 16 ≤ 1024)
     (hmem : 832 ≤ mem.size) (hz : memLoad (UInt256.ofNat 800) mem = ⟨0⟩)
     (hb : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨9861⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨9861⟩
       ([id, dp, dl, user, UInt256.ofNat callback.val, units, market] ++ R)
       mem aw rdata evm.accountMap k C) :
-    (RDrev midnightBytecode g s0 ∧
-      ExecBlock config frame evm (repayTransition.body.drop 5) .reverted) ∨
-    (RDstatic midnightBytecode g s0 ∧
-      ExecBlock config frame evm (repayTransition.body.drop 5) .staticViolation) ∨
+    (RDrev fork midnightBytecode g s0 ∧
+      ExecBlock fork config frame evm (repayTransition.body.drop 5) .reverted) ∨
+    (RDstatic fork midnightBytecode g s0 ∧
+      ExecBlock fork config frame evm (repayTransition.body.drop 5) .staticViolation) ∨
     (I.perm = true ∧ RepayBalancesSafe evm id user units ∧ ∃ aw' k' C',
       TransferBudget root credit (repayBalanceMemory mem id user) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨9992⟩
+      RD fork midnightBytecode I g s0 ⟨9992⟩
         ([marketBalanceWord (repayDebtState evm id user units) id 1 + units,
           uint128Mask, solcMappingSlot ⟨1⟩ id + ⟨1⟩, dp, id, dl, user,
           UInt256.ofNat callback.val, units, market] ++ R)

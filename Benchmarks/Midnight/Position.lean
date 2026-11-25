@@ -6,6 +6,8 @@ import Benchmarks.Midnight.PositionStorage
 import Benchmarks.Midnight.NestedStorage
 import Benchmarks.Midnight.WordTuple
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `position(bytes32,address)`
 
@@ -48,7 +50,7 @@ theorem positionBodyReturns (evm : EVM.State) (id user : UInt256)
     (hcanon : user.toNat < EVM.addressModulus)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) :
-    ExecTransitionBody config contract evm (positionTupleArguments id user)
+    ExecTransitionBody fork config contract evm (positionTupleArguments id user)
       positionTransition.body
       (.returned (calldataFrame contract (positionTupleArguments id user) ∅ evm) evm
         (some (wordArrayValues (positionReturnWords
@@ -175,11 +177,11 @@ theorem positionBodyReturns (evm : EVM.State) (id user : UInt256)
 
 theorem positionTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Nat} {user : UInt256}
     (hcanon : user.toNat < EVM.addressModulus)
-    (rd : RD midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 9070)
+    (rd : RD fork midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 9070)
       [user, solcSelectorWord I] midnightEntryMemory
       (M (M (UInt256.ofNat 0) (UInt256.ofNat 64) ⟨32⟩) (UInt256.ofNat 800) ⟨32⟩)
       ByteArray.empty σ k C) :
-    RDret midnightBytecode g (initState σ σ₀ g A I) σ
+    RDret fork midnightBytecode g (initState σ σ₀ g A I) σ
       (wordArrayBytes (positionReturnWords (fun slot ↦ solcSlotWordAt slot σ I)
         (calldataWord I.calldata 4) user)) := by
   obtain ⟨aw1, k1, C1, rd1⟩ := midnightBlocks.midnight_block_9070_packed (by simp) rd
@@ -192,7 +194,7 @@ theorem positionTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Nat} {user : UInt
     nestedMappingMemory_fold, nestedMappingMemory_hash, nestedMappingMemory_freePtr] at rd1
   have hr := midnightBlocks.midnight_block_9160 (by simp) rd1
   simp only [uint128Mask_computed] at hr
-  change RDret _ _ _ _
+  change RDret fork _ _ _ _
     ((writeWordArray (nestedMappingMemory (calldataWord I.calldata 4) user ⟨0⟩) 832
       (positionReturnWords (fun slot ↦ solcSlotWordAt slot σ I)
         (calldataWord I.calldata 4) user)).readWithPadding 832 192) at hr
@@ -204,10 +206,10 @@ theorem positionTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Nat} {user : UInt
 /-- `position(bytes32,address)`: the theorem `Correct.lean` routes selector 27 to. -/
 theorem midnightPositionBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 27)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 27) rfl hsel
   have hd : dispatchMsg contract I.calldata = some positionTransition := by
     apply midnightDispatch_position <;>
@@ -227,7 +229,7 @@ theorem midnightPositionBody {σ σ₀ A I} {g : UInt256}
           have hret := positionTraceReturn hcanon rd4
           have hdec := midnightDecodeBytes32Address "arg0" "arg1"
             (by decide) (by decide) (by decide) (by decide) h68 hhi hsize hcanon
-          have hbody := positionBodyReturns
+          have hbody := positionBodyReturns (fork := fork)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (calldataWord I.calldata 4) (calldataWord I.calldata 36) hcanon hwv hhi
           exact hret.reEquivExecution hcode hd hdec hbody

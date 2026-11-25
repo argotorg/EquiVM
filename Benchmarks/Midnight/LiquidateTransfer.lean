@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.LiquidateTransferPrepare
 import Benchmarks.Midnight.LiquidateEventSource
 
+variable {fork : Ethereum.Fork}
+
 /-! The outgoing collateral transfer, including source reverts and the post-call heap. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -43,21 +45,21 @@ theorem midnightLiquidateTransfer {I : ExecutionEnv} {g : UInt256} {s0 evm : Sta
     (hd : decodeCalldataMarket I.calldata 4 = some m)
     (hi : calldataWord I.calldata 36 = index) (hidx : index.toNat < m.collaterals.length)
     (hseized : memLoad (UInt256.ofNat 640) mem = seized) (hh : TransferHeap mem aw root C)
-    (hgas : midnightGasBound g) (hfork : I.fork ≥ .osaka) (hs : SourceState s0 I σ evm)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨20488⟩
+    (hgas : midnightGasBound g) (hfork : fork ≥ .osaka) (hs : SourceState s0 I σ evm)
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨20488⟩
       ([⟨4⟩ + calldataWord I.calldata 4, calldataWord I.calldata 4 + ⟨100⟩,
         ⟨5734⟩, ⟨5750⟩, UInt256.ofNat receiver.val, ⟨5543⟩, ⟨5755⟩,
         dp, dl, borrower, badDebt, UInt256.ofNat receiver.val, UInt256.ofNat payer.val] ++ R)
       mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (ExecStmt config frame evm (liquidateTransition.body[21]!) .reverted ∧
-      RDrev midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (ExecStmt fork config frame evm (liquidateTransition.body[21]!) .reverted ∧
+      RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
     ∃ (evm' : State) (σ' : AccountMap) (out mem' : ByteArray) (root' aw' : UInt256) (k' C' : Nat),
-      ExecStmt config frame evm (liquidateTransition.body[21]!)
+      ExecStmt fork config frame evm (liquidateTransition.body[21]!)
         (.ok (liquidateTransferFrame frame) evm') ∧
       SourceState s0 I σ' evm' ∧ MemoryPrefix mem mem' root.toNat ∧
       root.toNat ≤ root'.toNat ∧ TransferHeap mem' aw' root' C' ∧
-      RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨5755⟩
+      RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨5755⟩
         ([dp, dl, borrower, badDebt, UInt256.ofNat receiver.val, UInt256.ofNat payer.val] ++ R)
         mem' aw' out σ' k' C' := by
   obtain ⟨aw1, k1, C1, hh1, rd1⟩ := midnightLiquidateTransferPrepare

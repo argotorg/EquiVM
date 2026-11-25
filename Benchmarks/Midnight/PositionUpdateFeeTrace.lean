@@ -2,6 +2,8 @@ import Benchmarks.Midnight.PositionUpdateWrites
 import Benchmarks.Midnight.CheckedUint128Add
 import Benchmarks.Midnight.MemoryWords
 
+variable {fork : Ethereum.Fork}
+
 /-! Checked fee-credit accumulation and the update event at the end of a position update. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,20 +19,20 @@ theorem midnightPositionUpdateFee {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hroot : root.toNat < 2^64) (hfree : memLoad (UInt256.ofNat 64) mem = root)
     (hfee : fee.toNat < 2^128) (hcd : creditDecrease.toNat < 2^128) (hpd : pendingDecrease.toNat < 2^128)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨23855⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨23855⟩
       ([pendingDecrease, user, solcAddrMask, ⟨96⟩, updatePositionTopic, id, creditDecrease,
         credit, ret, fee, pending] ++ R) mem aw rdata σ k C) :
     let oldFeeCredit := UInt256.shiftRight (solcSlotWordAt (solcMappingSlot ⟨1⟩ id + ⟨1⟩) σ I)
       (UInt256.ofNat 128)
-    (2^128 ≤ oldFeeCredit.toNat + fee.toNat ∧ RDrev midnightBytecode g s0) ∨
+    (2^128 ≤ oldFeeCredit.toNat + fee.toNat ∧ RDrev fork midnightBytecode g s0) ∨
     (oldFeeCredit.toNat + fee.toNat < 2^128 ∧ ∃ aw' k' C',
-      RD midnightBytecode I g s0 ret (fee :: pending :: credit :: R)
+      RD fork midnightBytecode I g s0 ret (fee :: pending :: credit :: R)
         (writeWordArray (twoWordHashMem id (UInt256.ofNat 1) mem) root.toNat
           [creditDecrease, pendingDecrease, fee]) aw' rdata
         (storeHigh128Accounts σ I (solcMappingSlot ⟨1⟩ id + ⟨1⟩) (oldFeeCredit + fee)) k' C') := by
   let oldFeeCredit := UInt256.shiftRight (solcSlotWordAt (solcMappingSlot ⟨1⟩ id + ⟨1⟩) σ I)
     (UInt256.ofNat 128)
-  change RD midnightBytecode I g s0 ⟨23855⟩
+  change RD fork midnightBytecode I g s0 ⟨23855⟩
     (pendingDecrease :: user :: solcAddrMask :: ⟨96⟩ :: updatePositionTopic :: id :: creditDecrease ::
       credit :: ret :: fee :: pending :: R) mem aw rdata σ k C at rd
   have rd1 := midnightBlocks.midnight_block_23855 (by simp only [List.length_cons]; omega) (by jump_dest) rd
@@ -45,7 +47,7 @@ theorem midnightPositionUpdateFee {I : ExecutionEnv} {g : Sat256} {s0 : State}
     show (⟨0⟩ : UInt256).toNat = 0 from rfl, show (UInt256.ofNat 32).toNat = 32 from rfl,
     wordAt0_fold, twoWordHash_fold, hh] at rd3
   simp only [show UInt256.ofNat 1 = (⟨1⟩ : UInt256) from rfl] at rd3
-  change RD _ _ _ _ _ (oldFeeCredit :: _) _ _ _ _ _ _ at rd3
+  change RD fork _ _ _ _ _ (oldFeeCredit :: _) _ _ _ _ _ _ at rd3
   by_cases hsum : oldFeeCredit.toNat + fee.toNat < 2^128
   · obtain ⟨k4, C4, rd4⟩ := midnightCheckedAdd128 (by simp only [List.length_cons]; omega)
       (shiftRight128_lt _) hfee hsum (by jump_dest) rd3

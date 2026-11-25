@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.LiquidateSourceFrame
 
+variable {fork : Ethereum.Fork}
+
 /-! Source evaluation of liquidation's input-consistency and nonzero-debt guards. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -39,7 +41,7 @@ theorem liquidateInputRevert {frame : Frame} {evm : State} {seized repaid : UInt
     (hs : frame.locals.get? "seizedAssets" = some (.int seized.toNat))
     (hr : frame.locals.get? "repaidUnits" = some (.int repaid.toNat))
     (hbad : ¬ (repaid = ⟨0⟩ ∨ seized = ⟨0⟩)) :
-    ExecBlock config frame evm (liquidateTransition.body.drop 6) .reverted := by
+    ExecBlock fork config frame evm (liquidateTransition.body.drop 6) .reverted := by
   apply ExecBlock.consRevert (ExecStmt.requireFalse ?_)
   exact (liquidateInputGuard_eval hs hr).trans (by rw [decide_eq_false hbad])
 
@@ -50,7 +52,7 @@ theorem liquidateDebtRevert {frame : Frame} {evm : State} {id borrower seized re
       some (.storageRef (positionRef id borrower) positionType))
     (hb : borrower.toNat < EVM.addressModulus) (hinput : repaid = ⟨0⟩ ∨ seized = ⟨0⟩)
     (hzero : low128 (healthPositionWord evm id borrower) = ⟨0⟩) :
-    ExecBlock config frame evm (liquidateTransition.body.drop 6) .reverted := by
+    ExecBlock fork config frame evm (liquidateTransition.body.drop 6) .reverted := by
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_)
     (ExecBlock.consRevert (ExecStmt.requireFalse ?_))
   · exact (liquidateInputGuard_eval hs hr).trans (by rw [decide_eq_true hinput])
@@ -64,8 +66,8 @@ theorem liquidateGuardsSource {frame : Frame} {evm : State} {id borrower seized 
       some (.storageRef (positionRef id borrower) positionType))
     (hb : borrower.toNat < EVM.addressModulus) (hinput : repaid = ⟨0⟩ ∨ seized = ⟨0⟩)
     (hdebt : 0 < (low128 (healthPositionWord evm id borrower)).toNat)
-    (htail : ExecBlock config frame evm (liquidateTransition.body.drop 8) result) :
-    ExecBlock config frame evm (liquidateTransition.body.drop 6) result := by
+    (htail : ExecBlock fork config frame evm (liquidateTransition.body.drop 8) result) :
+    ExecBlock fork config frame evm (liquidateTransition.body.drop 6) result := by
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_)
     (ExecBlock.consNormal (ExecStmt.requireTrue ?_) htail)
   · exact (liquidateInputGuard_eval hs hr).trans (by rw [decide_eq_true hinput])

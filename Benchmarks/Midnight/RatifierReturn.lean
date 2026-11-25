@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.RatifierDecode
 import Benchmarks.Midnight.RepayCallbackReturn
 
+variable {fork : Ethereum.Fork}
+
 /-! Ratifier acknowledgement validation, with the decoded reply's memory funding retained. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -13,12 +15,12 @@ theorem midnightRatifierMagic {credit : Nat} {I : ExecutionEnv} {g : Sat256}
     {s0 : State} {mem out : ByteArray} {aw value : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 6 ≤ 1024)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨11391⟩ (value :: flashLoanMagic :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨11391⟩ (value :: flashLoanMagic :: R)
       mem aw out σ k C) :
-    (value ≠ flashLoanMagic ∧ RDrev midnightBytecode g s0) ∨
+    (value ≠ flashLoanMagic ∧ RDrev fork midnightBytecode g s0) ∨
     (value = flashLoanMagic ∧ ∃ aw' k' C',
       MemoryFunding credit (flashLoanMagicMemory mem) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨11413⟩ R
+      RD fork midnightBytecode I g s0 ⟨11413⟩ R
         (flashLoanMagicMemory mem) aw' out σ k' C') := by
   have hm : memLoad ⟨0⟩ (midnightBytecode.write 24513 mem 0 32) = flashLoanMagic := by
     rw [flashLoanMagic_copy, flashLoanMagic_load]
@@ -48,16 +50,16 @@ theorem midnightRatifierReturn {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s
     (hout : out.size < UInt256.size) (hroot : root.toNat + 32 < 2^64)
     (hlower : 128 ≤ root.toNat) (hsize : root.toNat + 32 ≤ mem.size)
     (ha : MemoryFunding credit (wordReplyMemory mem out root) aw C)
-    (rd : RD midnightBytecode I g s0 ⟨11379⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨11379⟩
       ((if success then ⟨1⟩ else ⟨0⟩) :: root :: R)
       (wordReplyMemory mem out root) aw out σ k C) :
     ((success = false ∨ out.size < 32 ∨ calldataWord out 0 ≠ flashLoanMagic) ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     (success = true ∧ 32 ≤ out.size ∧ calldataWord out 0 = flashLoanMagic ∧
       ∃ aw' k' C',
         MemoryFunding credit
           (flashLoanCallbackResultMemory (wordReplyMemory mem out root) root) aw' C' ∧
-        RD midnightBytecode I g s0 ⟨11413⟩ R
+        RD fork midnightBytecode I g s0 ⟨11413⟩ R
           (flashLoanCallbackResultMemory (wordReplyMemory mem out root) root) aw' out σ k' C') := by
   rcases midnightRatifierDecode success hstack hout hroot hlower
       (by rw [wordReplyMemory_size _ _ _ hsize]; exact hsize)

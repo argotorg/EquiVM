@@ -3,6 +3,8 @@ import Benchmarks.Midnight.WithdrawBitmapSource
 import Benchmarks.Midnight.TransferBudget
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 /-! Joining the optional bitmap clear to the internal health check. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -19,29 +21,29 @@ theorem withdrawBitmapPhase {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hnew : frame.locals.get? "newCollateral" = some (.int newValue.toNat))
     (hcanon : user.toNat < EVM.addressModulus) (hi : index.toNat < 128)
     (hperm : I.perm = true) (hstack : R.length + 20 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 ⟨4624⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨4624⟩
       ([newValue, index, positionSlot id user, market, id, user, ret, user,
         UInt256.ofNat token.val, UInt256.ofNat receiver.val, assets, id, extra] ++ R)
       mem aw rdata evm.accountMap k C) :
     ∃ frame' evm' k' C', C ≤ C' ∧
       SourceState s0 I evm'.accountMap evm' ∧
       WithdrawSourceFrame frame' m id user index assets token receiver ∧
-      ExecStmt config frame evm (withdrawCollateralTransition.body[10]!) (.ok frame' evm') ∧
-      RD midnightBytecode I g s0 ⟨19775⟩
+      ExecStmt fork config frame evm (withdrawCollateralTransition.body[10]!) (.ok frame' evm') ∧
+      RD fork midnightBytecode I g s0 ⟨19775⟩
         ([market, id, user, ret, user, UInt256.ofNat token.val, UInt256.ofNat receiver.val,
           assets, id, extra] ++ R) mem aw rdata evm'.accountMap k' C' := by
   have hg := evalWithdrawClearGuard evm hf hnew
   simp only [List.cons_append, List.nil_append] at rd
   have finishFalse {k1 C1 : Nat} (hc : C ≤ C1)
       (hno : ¬ (newValue = ⟨0⟩ ∧ assets ≠ ⟨0⟩))
-      (rd1 : RD midnightBytecode I g s0 ⟨4631⟩
+      (rd1 : RD fork midnightBytecode I g s0 ⟨4631⟩
         ([⟨0⟩, index, positionSlot id user, market, id, user, ret, user,
           UInt256.ofNat token.val, UInt256.ofNat receiver.val, assets, id, extra] ++ R)
         mem aw rdata evm.accountMap k1 C1) :
       ∃ frame' evm' k' C', C ≤ C' ∧ SourceState s0 I evm'.accountMap evm' ∧
         WithdrawSourceFrame frame' m id user index assets token receiver ∧
-        ExecStmt config frame evm (withdrawCollateralTransition.body[10]!) (.ok frame' evm') ∧
-        RD midnightBytecode I g s0 ⟨19775⟩
+        ExecStmt fork config frame evm (withdrawCollateralTransition.body[10]!) (.ok frame' evm') ∧
+        RD fork midnightBytecode I g s0 ⟨19775⟩
           ([market, id, user, ret, user, UInt256.ofNat token.val, UInt256.ofNat receiver.val,
             assets, id, extra] ++ R) mem aw rdata evm'.accountMap k' C' := by
     simp only [List.cons_append, List.nil_append] at rd1

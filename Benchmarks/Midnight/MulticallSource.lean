@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.MulticallDecode
 import Benchmarks.Midnight.FlashLoanLoopSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Source evaluation of the multicall loop, its delegate call, and its guards. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -66,8 +68,8 @@ theorem delegateCallSource {cfg : Config} {frame : Frame} {evm evm' : State}
     {success data : Ident} {z : Bool}
     (hr : evalExpr? cfg frame evm receiver = .ok (.address target))
     (hd : evalExpr? cfg frame evm cdata = .ok (.bytes calldata))
-    (hc : delegateCallViaEVM evm target calldata (z, evm', out)) :
-    ExecStmt cfg frame evm (.delegateCall receiver cdata success data)
+    (hc : delegateCallViaEVM fork evm target calldata (z, evm', out)) :
+    ExecStmt fork cfg frame evm (.delegateCall receiver cdata success data)
       (.ok { frame with locals := (frame.locals.insert success (.bool z)).insert data (.bytes out) }
         evm') := by
   have ht : EVM.address target.val = target := by
@@ -82,11 +84,11 @@ theorem multicallSourceCall {frame : Frame} {evm evm' : State} {calls : List Byt
     {i : Nat} {success : Bool} {out : ByteArray}
     (hf : frame.locals.get? "calls" = some (.array (calls.map Value.bytes)))
     (hi : frame.locals.get? "i" = some (.int (Int.ofNat i))) (hb : i < calls.length)
-    (hc : delegateCallViaEVM evm evm.executionEnv.codeOwner calls[i] (success, evm', out))
+    (hc : delegateCallViaEVM fork evm evm.executionEnv.codeOwner calls[i] (success, evm', out))
     {result : ExecResult}
-    (htail : ExecBlock config (multicallCallFrame frame evm success out) evm'
+    (htail : ExecBlock fork config (multicallCallFrame frame evm success out) evm'
       (multicallLoopBody.drop 2) result) :
-    ExecBlock config frame evm multicallLoopBody result := by
+    ExecBlock fork config frame evm multicallLoopBody result := by
   refine ExecBlock.consNormal (stele' := multicallSelfFrame frame evm) (ExecStmt.letDecl ?_) ?_
   · simp only [evalExpr?, envValue, pure]
   apply ExecBlock.consNormal (stele' := multicallCallFrame frame evm success out) ?_ htail
@@ -125,9 +127,9 @@ theorem multicallSourceReturn {frame : Frame} {evm evm' : State} {calls : List B
     {i : Nat} {out : ByteArray}
     (hf : frame.locals.get? "calls" = some (.array (calls.map Value.bytes)))
     (hi : frame.locals.get? "i" = some (.int (Int.ofNat i))) (hb : i < calls.length)
-    (hc : delegateCallViaEVM evm evm.executionEnv.codeOwner calls[i] (true, evm', out))
+    (hc : delegateCallViaEVM fork evm evm.executionEnv.codeOwner calls[i] (true, evm', out))
     (hout : out.size < 2^64) :
-    ExecBlock config frame evm multicallLoopBody
+    ExecBlock fork config frame evm multicallLoopBody
       (.ok (multicallCallFrame frame evm true out) evm') := by
   apply multicallSourceCall hf hi hb hc
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
@@ -139,9 +141,9 @@ theorem multicallSourceRevert {frame : Frame} {evm evm' : State} {calls : List B
     {i : Nat} {success : Bool} {out : ByteArray}
     (hf : frame.locals.get? "calls" = some (.array (calls.map Value.bytes)))
     (hi : frame.locals.get? "i" = some (.int (Int.ofNat i))) (hb : i < calls.length)
-    (hc : delegateCallViaEVM evm evm.executionEnv.codeOwner calls[i] (success, evm', out))
+    (hc : delegateCallViaEVM fork evm evm.executionEnv.codeOwner calls[i] (success, evm', out))
     (hbad : success = false ∨ 2^64 ≤ out.size) :
-    ExecBlock config frame evm multicallLoopBody .reverted := by
+    ExecBlock fork config frame evm multicallLoopBody .reverted := by
   apply multicallSourceCall hf hi hb hc
   by_cases hout : out.size < 2^64
   · have hz : success = false := hbad.resolve_right (by omega)
@@ -155,9 +157,9 @@ theorem multicallSourceRevert {frame : Frame} {evm evm' : State} {calls : List B
     rw [multicallReturnGuard_eval, decide_eq_false hout]
 
 theorem multicallLoopStatement {frame : Frame} {evm : State} {result : ExecResult}
-    (h : ExecForLoop config (flashLoanSetIndex frame 0) evm multicallLoopCondition
+    (h : ExecForLoop fork config (flashLoanSetIndex frame 0) evm multicallLoopCondition
       flashLoanLoopPost multicallLoopBody result) :
-    ExecStmt config frame evm
+    ExecStmt fork config frame evm
       (.for [.letDecl "i" (some Model.u256) (.intLit 0)]
         multicallLoopCondition flashLoanLoopPost multicallLoopBody) result := by
   apply ExecStmt.for (ExecBlock.consNormal (ExecStmt.letDecl ?_) ExecBlock.nil) h

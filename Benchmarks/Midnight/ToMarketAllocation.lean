@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.AllocationArithmetic
 
+variable {fork : Ethereum.Fork}
+
 /-! Allocation of the decoded market record before its fields are read. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -13,9 +15,9 @@ theorem midnightToMarketAllocation {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {k C : Nat} {R : List UInt256}
     (hstack : R.length + 10 ≤ 1024)
     (hfree : memLoad (UInt256.ofNat 64) mem = ptr) (hptr : ptr.toNat < 2^64)
-    (rd : RD midnightBytecode I g s0 ⟨949⟩ (finish :: x :: anchor :: R) mem aw rdata σ k C) :
-    (¬ ptr.toNat + 256 < 2^64 ∧ RDrev midnightBytecode g s0) ∨
-    (ptr.toNat + 256 < 2^64 ∧ ∃ aw' k' C', RD midnightBytecode I g s0 ⟨961⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨949⟩ (finish :: x :: anchor :: R) mem aw rdata σ k C) :
+    (¬ ptr.toNat + 256 < 2^64 ∧ RDrev fork midnightBytecode g s0) ∨
+    (ptr.toNat + 256 < 2^64 ∧ ∃ aw' k' C', RD fork midnightBytecode I g s0 ⟨961⟩
       (x :: finish :: ptr :: anchor :: R) (writeWord mem 64 (ptr + UInt256.ofNat 256))
       aw' rdata σ k' C') := by
   have rd1 := midnightBlocks.midnight_block_949

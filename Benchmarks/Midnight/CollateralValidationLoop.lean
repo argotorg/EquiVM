@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.CollateralLoopSource
 import Benchmarks.Midnight.CollateralValidationTrace
 
+variable {fork : Ethereum.Fork}
+
 /-! The complete collateral-validation loop, coupling source execution with bytecode reachability. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -14,19 +16,19 @@ theorem midnightCollateralValidationLoop {evm : EVM.State} {g : Sat256} {s0 : St
     (i remaining : Nat) (hi : i + remaining = m.collaterals.length)
     (hstack : R.length + 15 ≤ 1024) (hm : MarketStored mem ptr arrayPtr root m)
     (hf : CollateralSourceFrame frame m i previous)
-    (rd : RD midnightBytecode evm.executionEnv g s0 ⟨20840⟩
+    (rd : RD fork midnightBytecode evm.executionEnv g s0 ⟨20840⟩
       (UInt256.ofNat previous.val :: ret :: ptr :: (ptr + UInt256.ofNat 96) :: id ::
         UInt256.ofNat i :: R) mem aw rdata evm.accountMap k C) :
-    (RDrev midnightBytecode g s0 ∧
-      ExecForLoop config frame evm collateralLoopCondition collateralLoopPost collateralLoopBody
+    (RDrev fork midnightBytecode g s0 ∧
+      ExecForLoop fork config frame evm collateralLoopCondition collateralLoopPost collateralLoopBody
         .reverted) ∨
     (∃ previous' frame' mem' aw' k' C',
       CollateralSourceFrame frame' m m.collaterals.length previous' ∧
       CollateralLocalsPreserved frame frame' ∧ MemoryPrefix mem mem' root.toNat ∧
       memLoad (UInt256.ofNat 64) mem' = memLoad (UInt256.ofNat 64) mem ∧
-      ExecForLoop config frame evm collateralLoopCondition collateralLoopPost collateralLoopBody
+      ExecForLoop fork config frame evm collateralLoopCondition collateralLoopPost collateralLoopBody
         (.ok frame' evm) ∧
-      RD midnightBytecode evm.executionEnv g s0 ⟨21130⟩
+      RD fork midnightBytecode evm.executionEnv g s0 ⟨21130⟩
         (arrayPtr :: UInt256.ofNat previous'.val :: ret :: ptr :: (ptr + UInt256.ofNat 96) :: id ::
           UInt256.ofNat m.collaterals.length :: R) mem' aw' rdata evm.accountMap k' C') := by
   induction remaining generalizing i previous frame mem aw k C with
@@ -50,10 +52,10 @@ theorem midnightCollateralValidationLoop {evm : EVM.State} {g : Sat256} {s0 : St
       ⟨hbad, hr⟩ | ⟨hs, aw1, k1, C1, rd1⟩
     · exact Or.inl ⟨hr, ExecForLoop.bodyRevert hcond
         (collateralValidationSourceRevert hf hlt rfl hbad)⟩
-    · have hbody := collateralValidationSource hf hlt rfl hs
+    · have hbody := collateralValidationSource (fork := fork) hf hlt rfl hs
       have hf1 := collateralStepFrame_inv hf c
       have hi64 : i < 2^64 := lt_trans hlt hm.collateralCount
-      have hpost := collateralPostSource (cfg := config) (evm := evm) hf1 (by
+      have hpost := collateralPostSource (fork := fork) (cfg := config) (evm := evm) hf1 (by
         change i + 1 < 2^256; omega)
       have hf2 := collateralPostFrame_inv hf1
       have hp := collateralValidationMemory_prefix mem c root.toNat

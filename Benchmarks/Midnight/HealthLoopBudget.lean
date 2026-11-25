@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.HealthLoopStepBudget
 
+variable {fork : Ethereum.Fork}
+
 /-! The health loop preserves its memory prefix, allocation bounds, and transfer funding. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -10,7 +12,7 @@ set_option maxRecDepth 2000000
 
 theorem midnightHealthLoop_budget {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {market arrayPtr heap id user debt budgetRoot : UInt256} {credit : Nat} {m : MarketData} {R : List UInt256}
-    (hstack : R.length + 22 ≤ 1024) (hfork : I.fork ≥ .osaka)
+    (hstack : R.length + 22 ≤ 1024) (hfork : fork ≥ .osaka)
     (hcanon : user.toNat < EVM.addressModulus)
     (fuel : Nat) (evm : State) (frame : Frame) (mem rdata : ByteArray)
     (aw root bitmap maxDebt : UInt256) (σ : AccountMap) (k C : Nat)
@@ -21,19 +23,19 @@ theorem midnightHealthLoop_budget {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hf : HealthSourceFrame frame m id user bitmap maxDebt debt)
     (hs : SourceState s0 I σ evm)
     (hb : TransferBudget budgetRoot credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨19847⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨19847⟩
       ([positionSlot id user + ⟨3⟩, market, bitmap, maxDebt] ++ R) mem aw rdata σ k C) :
-    (ExecStmt config frame evm healthLoop .reverted ∧ RDrev midnightBytecode g s0) ∨
+    (ExecStmt fork config frame evm healthLoop .reverted ∧ RDrev fork midnightBytecode g s0) ∨
     ∃ (evm' : State) (σ' : AccountMap) (frame' : Frame) (mem' out : ByteArray)
       (root' maxDebt' aw' : UInt256) (k' C' : Nat),
-      ExecStmt config frame evm healthLoop (.ok frame' evm') ∧
+      ExecStmt fork config frame evm healthLoop (.ok frame' evm') ∧
       SourceState s0 I σ' evm' ∧ HealthSourceFrame frame' m id user ⟨0⟩ maxDebt' debt ∧
       MarketStored mem' market arrayPtr heap m ∧
       memLoad (UInt256.ofNat 64) mem' = root' ∧ heap.toNat ≤ root'.toNat ∧ root'.toNat < 2^64 ∧
       root.toNat ≤ root'.toNat ∧ root'.toNat ≤ root.toNat + 32 * fuel ∧
       root'.toNat % 32 = root.toNat % 32 ∧ MemoryPrefix mem mem' root.toNat ∧
       TransferBudget budgetRoot credit mem' aw' C' ∧
-      RD midnightBytecode I g s0 ⟨19831⟩
+      RD fork midnightBytecode I g s0 ⟨19831⟩
         ([positionSlot id user + ⟨3⟩, market, ⟨0⟩, maxDebt'] ++ R) mem' aw' out σ' k' C' := by
   induction fuel using Nat.strong_induction_on generalizing evm frame mem rdata aw root bitmap
       maxDebt σ k C with

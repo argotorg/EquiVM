@@ -3,6 +3,8 @@ import Benchmarks.Midnight.TransferBudget
 import Benchmarks.Midnight.RuntimeBlocks_018
 import Benchmarks.Midnight.RuntimeBlocks_019
 
+variable {fork : Ethereum.Fork}
+
 /-! Withdrawal blocks retain the gas available for the final token transfer. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -18,9 +20,9 @@ theorem withdraw_units_block_4002_mono {ee : ExecutionEnv} {g : Sat256} {s0 : St
     (hstack : R.length + 14 ≤ 1024)
     (hperm : ee.perm = true)
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 23403) = true)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 4002) (x0 :: x1 :: x2 :: x3
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 4002) (x0 :: x1 :: x2 :: x3
       :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: R) mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), C ≤ C' ∧ RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 23403)
+    : ∃ (k' C' : ℕ), C ≤ C' ∧ RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 23403)
       (midnight_block_4002_stack (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8)
       (x9 := x9) (x10 := x10) (x11 := x11) (R := R)) mem aw rdata (sstoreAccountMap ee.codeOwner σ
       x2 (UInt256.lor (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac =>
@@ -54,9 +56,9 @@ theorem withdraw_units_block_4027_mono {ee : ExecutionEnv} {g : Sat256} {s0 : St
   List UInt256}
     (hstack : R.length + 7 ≤ 1024)
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 19743) = true)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 4027) (x0 :: x1 :: R) mem aw
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 4027) (x0 :: x1 :: R) mem aw
       rdata σ k C)
-    : ∃ (k' C' : ℕ), C ≤ C' ∧ RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 19743)
+    : ∃ (k' C' : ℕ), C ≤ C' ∧ RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 19743)
       (midnight_block_4027_stack (ee := ee) (σ := σ) (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ
       k' C' := by
   let r0 := h
@@ -87,9 +89,9 @@ theorem withdraw_units_block_4052_mono {ee : ExecutionEnv} {g : Sat256} {s0 : St
     (hstack : R.length + 14 ≤ 1024)
     (hperm : ee.perm = true)
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 23403) = true)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 4052) (x0 :: x1 :: x2 :: x3
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 4052) (x0 :: x1 :: x2 :: x3
       :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: R) mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), C ≤ C' ∧ RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 23403)
+    : ∃ (k' C' : ℕ), C ≤ C' ∧ RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 23403)
       (midnight_block_4052_stack (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8)
       (x9 := x9) (x10 := x10) (x11 := x11) (R := R)) mem aw rdata (sstoreAccountMap ee.codeOwner σ
       x2 (UInt256.lor (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac =>
@@ -130,9 +132,9 @@ theorem withdraw_units_block_4216_mono {ee : ExecutionEnv} {g : Sat256} {s0 : St
     (hstack : R.length + 7 ≤ 1024)
     (hperm : ee.perm = true)
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains x1 = true)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 4216) (x0 :: x1 :: x2 :: R)
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 4216) (x0 :: x1 :: x2 :: R)
       mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), C ≤ C' ∧ RD Benchmarks.Midnight.midnightBytecode ee g s0 x1
+    : ∃ (k' C' : ℕ), C ≤ C' ∧ RD fork Benchmarks.Midnight.midnightBytecode ee g s0 x1
       (midnight_block_4216_stack (x2 := x2) (R := R)) mem aw rdata (sstoreAccountMap ee.codeOwner σ
       x2 (UInt256.lor (UInt256.land (UInt256.lnot (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1)
       (UInt256.ofNat 128)) (UInt256.ofNat 1))) (UInt256.shiftLeft x0 (UInt256.ofNat 128)))

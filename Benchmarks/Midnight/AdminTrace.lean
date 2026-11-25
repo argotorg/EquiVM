@@ -4,6 +4,8 @@ import Benchmarks.Midnight.RuntimeBlocks_009
 import Benchmarks.Midnight.RuntimeBlocks_014
 import Benchmarks.Midnight.RuntimeBlocks_016
 
+variable {fork : Ethereum.Fork}
+
 /-! The three matching packed-address update blocks for administrative roles. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -18,8 +20,8 @@ theorem adminSetterTraceStatic {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {value : UInt256} {R : List UInt256} (i : Fin 3)
     (hstack : R.length + 5 ≤ 1024) (hperm : I.perm = false)
-    (rd : RD midnightBytecode I g s0 (adminSetterWritePC i) (value :: R) mem aw rdata σ k C) :
-    RDstatic midnightBytecode g s0 := by
+    (rd : RD fork midnightBytecode I g s0 (adminSetterWritePC i) (value :: R) mem aw rdata σ k C) :
+    RDstatic fork midnightBytecode g s0 := by
   -- These blocks share the same prefix, with only their PCs and storage slots varying.
   have r1 := rd.push1 (UInt256.ofNat 1) (by clear * - i; revert i; native_decide) (by evm_ov)
   have r2 := r1.push1 (UInt256.ofNat 1) (by clear * - i; revert i; native_decide) (by evm_ov)
@@ -43,9 +45,9 @@ theorem adminSetterTraceStatic {I : ExecutionEnv} {g : Sat256} {s0 : State}
 
 theorem adminSetterTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Nat} {aw value : UInt256}
     (i : Fin 3) (hperm : I.perm = true)
-    (rd : RD midnightBytecode I g (initState σ σ₀ g A I) (adminSetterWritePC i)
+    (rd : RD fork midnightBytecode I g (initState σ σ₀ g A I) (adminSetterWritePC i)
       [value, solcSelectorWord I] midnightEntryMemory aw ByteArray.empty σ k C) :
-    RDret midnightBytecode g (initState σ σ₀ g A I)
+    RDret fork midnightBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ (adminSetterSlot i)
         (setAddressOffset0Word (solcSlotWordAt (adminSetterSlot i) σ I) value))
       ByteArray.empty := by

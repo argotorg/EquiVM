@@ -4,6 +4,8 @@ import Benchmarks.Midnight.CheckedExtraGas
 import Benchmarks.Midnight.RuntimeBlocks_028
 import Benchmarks.Midnight.RuntimeBlocks_027
 
+variable {fork : Ethereum.Fork}
+
 /-! The maximum-repayment ratio, including denominator underflow and division by zero. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,10 +17,10 @@ set_option maxRecDepth 10000
 theorem midnightLiquidateRcfQuotient {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw product shortfall : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 8 ≤ 1024) (hx : shortfall.toNat < 2 ^ 128)
-    (rd : RD midnightBytecode I g s0 ⟨7047⟩ (product :: shortfall :: R) mem aw rdata σ k C) :
-    (¬ product.toNat < liquidatePriceScale.toNat ∧ RDrev midnightBytecode g s0) ∨
+    (rd : RD fork midnightBytecode I g s0 ⟨7047⟩ (product :: shortfall :: R) mem aw rdata σ k C) :
+    (¬ product.toNat < liquidatePriceScale.toNat ∧ RDrev fork midnightBytecode g s0) ∨
     (product.toNat < liquidatePriceScale.toNat ∧ ∃ k' C', C ≤ C' ∧
-      RD midnightBytecode I g s0 ⟨7134⟩
+      RD fork midnightBytecode I g s0 ⟨7134⟩
         (mulDivUp shortfall liquidatePriceScale (UInt256.sub liquidatePriceScale product) :: R)
         mem aw rdata σ k' C') := by
   by_cases hle : product.toNat ≤ liquidatePriceScale.toNat
@@ -35,7 +37,7 @@ theorem midnightLiquidateRcfQuotient {I : ExecutionEnv} {g : Sat256} {s0 : State
       exact checkedMulGuard hm
     have rd2 := midnightBlocks.midnight_block_7074_fallthrough (R := R) (by omega) hg2 rd1
     simp only [midnightBlocks.midnight_block_7074_fallthrough_stack] at rd2
-    change RD midnightBytecode I g s0 ⟨7108⟩
+    change RD fork midnightBytecode I g s0 ⟨7108⟩
       (UInt256.sub liquidatePriceScale product :: UInt256.mul liquidatePriceScale shortfall :: R)
       mem aw rdata σ _ _ at rd2
     rw [u256_mul_comm liquidatePriceScale shortfall] at rd2

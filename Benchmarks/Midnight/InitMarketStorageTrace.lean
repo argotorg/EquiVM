@@ -2,6 +2,8 @@ import Benchmarks.Midnight.InitMarketSource
 import Benchmarks.Midnight.InitMarketContinuousTrace
 import Benchmarks.Midnight.MarketBytesMemory
 
+variable {fork : Ethereum.Fork}
+
 /-! The complete storage initialization trace and its preserved heap. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -41,10 +43,10 @@ theorem midnightInitMarketStores {evm : EVM.State} {g : Sat256} {s0 : State}
     (hstack : R.length + 18 ≤ 1024) (hm : MarketStored mem ptr arrayPtr limit m)
     (hlimit : limit.toNat ≤ root.toNat) (hb : root.toNat + 224 < 2^64)
     (hfree : memLoad (UInt256.ofNat 64) mem = root) (hperm : evm.executionEnv.perm = true)
-    (rd : RD midnightBytecode evm.executionEnv g s0 ⟨21130⟩
+    (rd : RD fork midnightBytecode evm.executionEnv g s0 ⟨21130⟩
       (arrayPtr :: previous :: ret :: ptr :: (ptr + UInt256.ofNat 96) :: id :: count :: R)
       mem aw rdata evm.accountMap k C) :
-    ∃ aw' k' C', RD midnightBytecode evm.executionEnv g s0 ⟨24347⟩
+    ∃ aw' k' C', RD fork midnightBytecode evm.executionEnv g s0 ⟨24347⟩
       (UInt256.ofNat 21556 :: ptr :: id :: ret :: R)
       (initMarketStoreMemory mem root evm id m.loanToken) aw' rdata
       (initMarketStorageState evm id m.loanToken).accountMap k' C' := by
@@ -62,7 +64,7 @@ theorem midnightInitMarketStores {evm : EVM.State} {g : Sat256} {s0 : State}
   obtain ⟨aw1, k1, C1, rd1⟩ := midnightInitMarketTick m (by omega) hm hfree hperm rd
   obtain ⟨aw2, k2, C2, rd2⟩ := midnightInitMarketFeeCopy
     (by simp only [List.length_cons]; omega) hb rd1
-  change RD _ _ _ _ _ _ mm _ _ _ _ _ at rd2
+  change RD fork _ _ _ _ _ _ mm _ _ _ _ _ at rd2
   obtain ⟨aw3, k3, C3, rd3⟩ := midnightInitMarketFirstFees
     (by simp only [List.length_cons]; omega) hperm hw rd2
   obtain ⟨aw4, k4, C4, rd4⟩ := midnightInitMarketLastFees m.loanToken

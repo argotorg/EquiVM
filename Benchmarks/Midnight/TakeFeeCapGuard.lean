@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TakeCapsGuard
 import Benchmarks.Midnight.SettlementFields
 
+variable {fork : Ethereum.Fork}
+
 /-! The offer's continuous-fee cap, with the shared fee word retained for tick spacing. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -19,13 +21,13 @@ theorem midnightTakeFeeCapGuard {credit : Nat} {I : ExecutionEnv} {g : Sat256} {
     (ho : OfferStored mem ⟨832⟩ marketPtr arrayPtr callbackPtr root offer)
     (hroot : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨11051⟩ (ratifierPtr :: slot :: R) mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨11051⟩ (ratifierPtr :: slot :: R) mem aw rdata σ k C) :
     (¬ (marketContinuousFee (solcSlotWordAt (slot + UInt256.ofNat 2) σ I)).toNat ≤
-        offer.continuousFeeCap.toNat ∧ RDrev midnightBytecode g s0) ∨
+        offer.continuousFeeCap.toNat ∧ RDrev fork midnightBytecode g s0) ∨
     ((marketContinuousFee (solcSlotWordAt (slot + UInt256.ofNat 2) σ I)).toNat ≤
         offer.continuousFeeCap.toNat ∧
       ∃ aw' k' C', MemoryFunding credit mem aw' C' ∧
-        RD midnightBytecode I g s0 ⟨11080⟩
+        RD fork midnightBytecode I g s0 ⟨11080⟩
           (solcSlotWordAt (slot + UInt256.ofNat 2) σ I :: ratifierPtr :: slot :: R)
           mem aw' rdata σ k' C') := by
   have hcap : memLoad ((⟨832⟩ : UInt256) + UInt256.ofNat 448) mem = offer.continuousFeeCap :=

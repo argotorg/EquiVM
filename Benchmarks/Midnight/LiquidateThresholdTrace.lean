@@ -2,6 +2,8 @@ import Benchmarks.Midnight.LiquidateEligibilityTrace
 import Benchmarks.Midnight.ZeroFloorSub
 import Benchmarks.Midnight.RuntimeBlocks_029
 
+variable {fork : Ethereum.Fork}
+
 /-! The recovery-threshold comparison and the shared continuation after it succeeds. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -24,10 +26,10 @@ theorem midnightLiquidateRcfFinish {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw d0 d1 d2 flag pos dp dl borrower badDebt receiver mode selector : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 13 ≤ 1024)
     (hnz : flag ≠ ⟨0⟩)
-    (rd : RD midnightBytecode I g s0 ⟨7150⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨7150⟩
       ([d0, d1, d2, flag, pos, dp, dl, borrower, badDebt, receiver, mode, selector] ++ R)
       mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD midnightBytecode I g s0 ⟨6744⟩
+    ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode I g s0 ⟨6744⟩
       ([selector, selector, selector, selector, pos, dp, dl, borrower, badDebt, receiver,
         mode, selector] ++ R) mem aw rdata σ k' C' := by
   have rd1 := midnightBlocks.midnight_block_7150_fallthrough
@@ -41,13 +43,13 @@ theorem midnightLiquidateThreshold {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw repayable cap pos dp dl borrower badDebt receiver mode selector : UInt256}
     {m : MarketData} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 13 ≤ 1024) (hd : decodeCalldataMarket I.calldata 4 = some m)
-    (rd : RD midnightBytecode I g s0 ⟨7253⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨7253⟩
       ([repayable, cap, pos, dp, dl, borrower, badDebt, receiver, mode, selector] ++ R)
       mem aw rdata σ k C) :
     (¬ (zeroFloorSubWord repayable cap).toNat < m.rcfThreshold.toNat ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     ((zeroFloorSubWord repayable cap).toNat < m.rcfThreshold.toNat ∧ ∃ k' C', C ≤ C' ∧
-      RD midnightBytecode I g s0 ⟨6744⟩
+      RD fork midnightBytecode I g s0 ⟨6744⟩
         ([selector, selector, selector, selector, pos, dp, dl, borrower, badDebt, receiver,
           mode, selector] ++ R) mem aw rdata σ k' C') := by
   have rd1 := midnightBlocks.midnight_block_7253 (R := R) hstack (by jump_dest) rd

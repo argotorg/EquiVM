@@ -2,6 +2,8 @@ import Benchmarks.Midnight.RepaySourceEntry
 import Benchmarks.Midnight.RepayBalanceStorage
 import Benchmarks.Midnight.WithdrawUnitsBalanceSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Ordered checked debt reduction and withdrawable increase in repayment. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -40,9 +42,9 @@ theorem repayDebtSource {frame : Frame} {m : MarketData} {evm : EVM.State}
     (hcanon : user.toNat < EVM.addressModulus) (h128 : units.toNat < 2^128)
     (hle : units.toNat ≤ (low128 (healthPositionWord evm id user)).toNat)
     (hperm : evm.executionEnv.perm = true)
-    (htail : ExecBlock config (repayDebtFrame frame units) (repayDebtState evm id user units)
+    (htail : ExecBlock fork config (repayDebtFrame frame units) (repayDebtState evm id user units)
       (repayTransition.body.drop 7) result) :
-    ExecBlock config frame evm (repayTransition.body.drop 5) result := by
+    ExecBlock fork config frame evm (repayTransition.body.drop 5) result := by
   have hf1 := hf.insert "__c1" (.int units.toNat) (by decide)
   exact withdrawUnitsSubtractSource hf.contract hf.units
     (evalRepayDebt hf1.contract hf1.position hf1.idValue hf1.userValue hcanon)
@@ -55,10 +57,10 @@ theorem repayWithdrawableSource {frame : Frame} {m : MarketData} {evm : EVM.Stat
     (h128 : units.toNat < 2^128)
     (hsum : (marketBalanceWord evm id 1).toNat + units.toNat < 2^128)
     (hperm : evm.executionEnv.perm = true)
-    (htail : ExecBlock config (wordLocal frame "__c2" units)
+    (htail : ExecBlock fork config (wordLocal frame "__c2" units)
       (marketBalanceStore evm id 1 (marketBalanceWord evm id 1 + units))
       (repayTransition.body.drop 9) result) :
-    ExecBlock config frame evm (repayTransition.body.drop 7) result := by
+    ExecBlock fork config frame evm (repayTransition.body.drop 7) result := by
   have hf2 := hf.insert "__c2" (.int units.toNat) (by decide)
   have he : evalExprs? config frame evm [.var "units"] = .ok [.int units.toNat] := by
     simp only [evalExprs?, evalWordLocal hf.units, EvalResult.bind, bind, pure]
@@ -74,7 +76,7 @@ theorem repayWithdrawableOverflow {frame : Frame} {m : MarketData} {evm : EVM.St
     (hf : RepaySourceFrame frame m id user units callback data)
     (h128 : units.toNat < 2^128)
     (hsum : 2^128 ≤ (marketBalanceWord evm id 1).toNat + units.toNat) :
-    ExecBlock config frame evm (repayTransition.body.drop 7) .reverted := by
+    ExecBlock fork config frame evm (repayTransition.body.drop 7) .reverted := by
   have hf2 := hf.insert "__c2" (.int units.toNat) (by decide)
   have he : evalExprs? config frame evm [.var "units"] = .ok [.int units.toNat] := by
     simp only [evalExprs?, evalWordLocal hf.units, EvalResult.bind, bind, pure]
@@ -88,9 +90,9 @@ theorem repayBalancesSource {frame : Frame} {m : MarketData} {evm : EVM.State}
     (hf : RepaySourceFrame frame m id user units callback data)
     (hcanon : user.toNat < EVM.addressModulus) (hsafe : RepayBalancesSafe evm id user units)
     (hperm : evm.executionEnv.perm = true)
-    (htail : ExecBlock config (repayBalanceFrame frame units) (repayBalanceState evm id user units)
+    (htail : ExecBlock fork config (repayBalanceFrame frame units) (repayBalanceState evm id user units)
       (repayTransition.body.drop 9) result) :
-    ExecBlock config frame evm (repayTransition.body.drop 5) result := by
+    ExecBlock fork config frame evm (repayTransition.body.drop 5) result := by
   apply repayDebtSource hf hcanon hsafe.1 hsafe.2.1 hperm
   exact repayWithdrawableSource (hf.insert "__c1" (.int units.toNat) (by decide))
     hsafe.1 hsafe.2.2 (by simpa only [repayDebtState_env] using hperm) htail
@@ -101,7 +103,7 @@ theorem repayDebtStatic {frame : Frame} {m : MarketData} {evm : EVM.State}
     (hcanon : user.toNat < EVM.addressModulus) (h128 : units.toNat < 2^128)
     (hle : units.toNat ≤ (low128 (healthPositionWord evm id user)).toNat)
     (hperm : evm.executionEnv.perm = false) :
-    ExecBlock config frame evm (repayTransition.body.drop 5) .staticViolation := by
+    ExecBlock fork config frame evm (repayTransition.body.drop 5) .staticViolation := by
   have hf1 := hf.insert "__c1" (.int units.toNat) (by decide)
   have he : evalExprs? config frame evm [.var "units"] = .ok [.int units.toNat] := by
     simp only [evalExprs?, evalWordLocal hf.units, EvalResult.bind, bind, pure]

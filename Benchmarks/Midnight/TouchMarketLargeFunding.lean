@@ -2,6 +2,8 @@ import Benchmarks.Midnight.TouchMarketInternal
 import Benchmarks.Midnight.MarketIdFunding
 import Benchmarks.Midnight.MarketHashFunding
 
+variable {fork : Ethereum.Fork}
+
 /-! Large collateral lists either use an existing market or fail initialization. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -18,17 +20,17 @@ theorem midnightTouchMarketLarge_funded {evm : EVM.State} {g : Sat256} {s0 : Sta
     (ha : MemoryAccounting mem aw C)
     (hfree : memLoad (UInt256.ofNat 64) mem = root)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode evm.executionEnv g s0 ⟨20557⟩ (ptr :: ret :: R)
+    (rd : RD fork midnightBytecode evm.executionEnv g s0 ⟨20557⟩ (ptr :: ret :: R)
       mem aw rdata evm.accountMap k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (RDrev midnightBytecode g s0 ∧ ExecFuncBody config (touchMarketCallFrame imms m)
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (RDrev fork midnightBytecode g s0 ∧ ExecFuncBody fork config (touchMarketCallFrame imms m)
       evm touchMarketFunction.body .reverted) ∨
     (root.toNat + 2 * m.encodingSize + 288 < 2^64 ∧
-      ExecFuncBody config (touchMarketCallFrame imms m) evm touchMarketFunction.body
+      ExecFuncBody fork config (touchMarketCallFrame imms m) evm touchMarketFunction.body
         (.returned (touchMarketIdFrame imms m) evm (some [wordBytes32Value m.id])) ∧
       ∃ aw' k' C', MemoryFunding (128 * m.collaterals.length)
         (touchMarketHashMemory mem root m) aw' C' ∧
-        RD midnightBytecode evm.executionEnv g s0 ret (m.id :: R)
+        RD fork midnightBytecode evm.executionEnv g s0 ret (m.id :: R)
           (touchMarketHashMemory mem root m) aw' rdata evm.accountMap k' C') := by
   rcases midnightMarketIdTrace_funded m (by simp only [List.length_cons]; omega)
       hm hm.collateralCount hroot hgas ha hfree rd with

@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.RepayEvent
 
+variable {fork : Ethereum.Fork}
+
 /-! The Repay event retains the budget for the callback's successor heap. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -14,11 +16,11 @@ theorem midnightRepayEvent_budget {budgetRoot : UInt256} {I : ExecutionEnv} {g :
     (hstack : R.length + 15 ≤ 1024) (hperm : I.perm = true)
     (hroot : root.toNat < 2^64) (hfree : memLoad (UInt256.ofNat 64) mem = root)
     (hb : TransferBudget budgetRoot credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨10034⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨10034⟩
       ([repayHasCallback callback, id, dp, UInt256.ofNat callback.val, dl, user,
         UInt256.ofNat payer.val, units, market] ++ R) mem aw rdata σ k C) :
     ∃ aw' k' C', TransferBudget budgetRoot credit (repayEventMemory mem root units payer) aw' C' ∧
-      RD midnightBytecode I g s0 (repayAfterEventPC callback)
+      RD fork midnightBytecode I g s0 (repayAfterEventPC callback)
         ([id, dp, UInt256.ofNat callback.val, dl, user, UInt256.ofNat payer.val, units, market] ++ R)
         (repayEventMemory mem root units payer) aw' rdata σ k' C' := by
   have h32 : (root + UInt256.ofNat 32).toNat = root.toNat + 32 :=

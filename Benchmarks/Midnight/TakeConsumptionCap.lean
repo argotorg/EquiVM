@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TakeConsumptionMemory
 import Benchmarks.Midnight.RuntimeBlocks_054
 
+variable {fork : Ethereum.Fork}
+
 /-! The runtime cap checks store newConsumed and reject values above the selected limit. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -19,12 +21,12 @@ theorem midnightTakeConsumptionCap {credit : Nat} {I : ExecutionEnv} {g : Sat256
     (ho : OfferStored mem ⟨832⟩ marketPtr arrayPtr callbackPtr root offer)
     (hc : OfferCanonical offer) (hroot : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 (takeConsumptionCheckPC offer) (value :: R)
+    (rd : RD fork midnightBytecode I g s0 (takeConsumptionCheckPC offer) (value :: R)
       mem aw rdata σ k C) :
-    (¬ value.toNat ≤ (takeConsumedCap offer).toNat ∧ RDrev midnightBytecode g s0) ∨
+    (¬ value.toNat ≤ (takeConsumedCap offer).toNat ∧ RDrev fork midnightBytecode g s0) ∨
     (value.toNat ≤ (takeConsumedCap offer).toNat ∧
       ∃ aw' k' C', MemoryFunding credit (writeWord mem 480 value) aw' C' ∧
-        RD midnightBytecode I g s0 ⟨11826⟩ R (writeWord mem 480 value) aw' rdata σ k' C') := by
+        RD fork midnightBytecode I g s0 ⟨11826⟩ R (writeWord mem 480 value) aw' rdata σ k' C') := by
   have hm : 416 ≤ mem.size := by
     have hh := ho.words.size
     change 832 + 32 * 15 ≤ mem.size at hh

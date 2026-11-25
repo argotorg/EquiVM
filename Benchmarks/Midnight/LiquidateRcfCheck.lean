@@ -2,6 +2,8 @@ import Benchmarks.Midnight.LiquidateMaxRepaidStep
 import Benchmarks.Midnight.LiquidateCapGuard
 import Benchmarks.Midnight.LiquidateThresholdStep
 
+variable {fork : Ethereum.Fork}
+
 /-! The complete enabled recovery-threshold branch: repayment cap, optional valuation, and check. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -23,15 +25,15 @@ theorem liquidateRcfCheck {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {fram
     (hd : decodeCalldataMarket I.calldata 4 = some m) (hi : calldataWord I.calldata 36 = index)
     (hmr : memLoad (UInt256.ofNat 608) mem = repaid)
     (hs : SourceState s0 I σ evm) (hb : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨7014⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨7014⟩
       ([maxDebt, lltv, lif, price, positionSlot id borrower, dp, dl, borrower, badDebt,
         receiverWord, mode, selector] ++ R) mem aw rdata σ k C) :
-    (ExecBlock config frame evm liquidateRcfBody .reverted ∧ RDrev midnightBytecode g s0) ∨
-    ∃ frame' aw' k' C', ExecBlock config frame evm liquidateRcfBody (.ok frame' evm) ∧
+    (ExecBlock fork config frame evm liquidateRcfBody .reverted ∧ RDrev fork midnightBytecode g s0) ∨
+    ∃ frame' aw' k' C', ExecBlock fork config frame evm liquidateRcfBody (.ok frame' evm) ∧
       LiquidateSourceFrame frame' m id index seized repaid borrower mode receiver callback data ∧
       LiquidateAccumulators frame' bitmap maxDebt price originalDebt badDebt ∧
       TransferBudget root credit mem aw' C' ∧
-      RD midnightBytecode I g s0 ⟨6744⟩
+      RD fork midnightBytecode I g s0 ⟨6744⟩
         ([selector, selector, selector, selector, positionSlot id borrower, dp, dl, borrower,
           badDebt, receiverWord, mode, selector] ++ R) mem aw' rdata σ k' C' := by
   rcases liquidateMaxRepaidStep

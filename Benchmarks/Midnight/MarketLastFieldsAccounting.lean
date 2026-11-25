@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.CalldataScalarAccounting
 import Benchmarks.Midnight.MarketCalldataLastFields
 
+variable {fork : Ethereum.Fork}
+
 /-! The trailing market fields copied after the collateral calldata loop. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,13 +17,13 @@ theorem midnightMarketCalldataLastFields_accounted {I : ExecutionEnv} {g : Sat25
     (hhead : head.toNat + 256 < UInt256.size) (hptr : ptr.toNat + 256 < UInt256.size)
     (hvalid : (D_J midnightBytecode 0).contains ret = true)
     (ha : MemoryAccounting mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨18734⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨18734⟩
       (x0 :: x1 :: x2 :: x3 :: arrayPtr :: head :: ptr :: ret :: R) mem aw rdata σ k C) :
-    (decodeMarketData I.calldata head.toNat = none ∧ RDrev midnightBytecode g s0) ∨
+    (decodeMarketData I.calldata head.toNat = none ∧ RDrev fork midnightBytecode g s0) ∨
     ((calldataWord I.calldata (head.toNat + 192)).toNat < EVM.addressModulus ∧
       (calldataWord I.calldata (head.toNat + 224)).toNat < EVM.addressModulus ∧ ∃ aw' k' C',
       MemoryAccounting (marketLastMemory mem ptr arrayPtr I.calldata head.toNat) aw' C' ∧
-      RD midnightBytecode I g s0 ret R
+      RD fork midnightBytecode I g s0 ret R
         (marketLastMemory mem ptr arrayPtr I.calldata head.toNat) aw' rdata σ k' C') := by
   have hadd (off : Nat) (ho : off ≤ 224) :
       (head + UInt256.ofNat off).toNat = head.toNat + off :=

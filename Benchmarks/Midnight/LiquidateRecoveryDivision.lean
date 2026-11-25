@@ -3,6 +3,8 @@ import Benchmarks.Midnight.CheckedExtraGas
 import Benchmarks.Midnight.RuntimeBlocks_032
 import Benchmarks.Midnight.RuntimeBlocks_027
 
+variable {fork : Ethereum.Fork}
+
 /-! Checked rounded division by the liquidation incentive factor. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,10 +17,10 @@ set_option maxRecDepth 2000000
 theorem midnightLiquidateRecoveryDivision {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw value lif : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 10 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 ⟨8129⟩ (lif :: value :: R) mem aw rdata σ k C) :
-    (¬ MulDivUpSafe value lifScale lif ∧ RDrev midnightBytecode g s0) ∨
+    (rd : RD fork midnightBytecode I g s0 ⟨8129⟩ (lif :: value :: R) mem aw rdata σ k C) :
+    (¬ MulDivUpSafe value lifScale lif ∧ RDrev fork midnightBytecode g s0) ∨
     (MulDivUpSafe value lifScale lif ∧ ∃ k' C', C ≤ C' ∧
-      RD midnightBytecode I g s0 ⟨8165⟩ (mulDivUp value lifScale lif :: R)
+      RD fork midnightBytecode I g s0 ⟨8165⟩ (mulDivUp value lifScale lif :: R)
         mem aw rdata σ k' C') := by
   have rd1 := midnight_block_8129 (by omega) (by jump_dest) rd
   rcases midnightMulLifScale (by simp only [List.length_cons]; omega)

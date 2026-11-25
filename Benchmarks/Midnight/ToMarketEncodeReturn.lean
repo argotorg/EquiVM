@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.MarketEncoder
 
+variable {fork : Ethereum.Fork}
+
 /-! Completing the market record, ABI encoding it, and executing the getter's RETURN. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -20,9 +22,9 @@ theorem midnightToMarketEncodeReturn {I : ExecutionEnv} {g : Sat256} {s0 : State
     (hroot : arrayPtr.toNat + 32 ≤ root.toNat) (hsmall : root.toNat < 2^64)
     (hfree : memLoad (UInt256.ofNat 64) mem = root)
     (hout : root.toNat + 320 + 128 * m.collaterals.length < UInt256.size)
-    (rd : RD midnightBytecode I g s0 ⟨1159⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨1159⟩
       (UInt256.ofNat m.liquidatorGate.val :: ptr :: ⟨1184⟩ :: R) mem aw rdata σ k C) :
-    RDret midnightBytecode g s0 σ (wordArrayBytes m.encodedWords) := by
+    RDret fork midnightBytecode g s0 σ (wordArrayBytes m.encodedWords) := by
   have hlen : ((m.words arrayPtr).take 7).length = 7 := rfl
   have hp224 : (ptr + UInt256.ofNat 224).toNat = ptr.toNat + 224 :=
     uadd_word_ofNat_toNat _ _ (by change _ < 2^256; omega)
@@ -60,7 +62,7 @@ theorem midnightToMarketEncodeReturn {I : ExecutionEnv} {g : Sat256} {s0 : State
   have rd1 := midnightBlocks.midnight_block_1159 (by omega) (by jump_dest) rd
   simp only [midnightBlocks.midnight_block_1159_stack, midnightBlocks.midnight_block_1159_memory,
     hp224] at rd1
-  change RD midnightBytecode I g s0 ⟨19181⟩
+  change RD fork midnightBytecode I g s0 ⟨19181⟩
     (ptr :: (memLoad (UInt256.ofNat 64) doneMem + UInt256.ofNat 32) :: ⟨1184⟩ ::
       memLoad (UInt256.ofNat 64) doneMem :: memLoad (UInt256.ofNat 64) doneMem :: R)
     (writeWord doneMem (memLoad (UInt256.ofNat 64) doneMem).toNat (UInt256.ofNat 32))
@@ -101,7 +103,7 @@ theorem midnightToMarketEncodeReturn {I : ExecutionEnv} {g : Sat256} {s0 : State
     rw [usub_toNat (by rw [he]; omega), he, MarketData.encodedWords_length]
     omega
   rw [hl] at hret
-  change RDret midnightBytecode g s0 σ
+  change RDret fork midnightBytecode g s0 σ
     (finalMem.readWithPadding root.toNat (32 * m.encodedWords.length)) at hret
   rw [hfull.read] at hret
   exact hret

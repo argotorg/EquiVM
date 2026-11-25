@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TouchMarketValidationFunding
 import Benchmarks.Midnight.InitMarketStorageFunding
 
+variable {fork : Ethereum.Fork}
+
 /-! Validation and ordered writes bring both executions to market-code deployment. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -25,20 +27,20 @@ theorem midnightTouchMarketInitialization_funded {credit : Nat} {evm : EVM.State
     (hd : frame.locals.get? "defaultSettlementFeeCbp" = none)
     (hcont : frame.locals.get? "defaultContinuousFee" = none)
     (hfund : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode evm.executionEnv g s0 ⟨20764⟩
+    (rd : RD fork midnightBytecode evm.executionEnv g s0 ⟨20764⟩
       ((ptr + UInt256.ofNat 32) :: ptr :: id :: ret :: R) mem aw rdata evm.accountMap k C) :
-    (RDrev midnightBytecode g s0 ∧ ExecBlock config frame evm touchMarketInitBody .reverted) ∨
-    (RDstatic midnightBytecode g s0 ∧ ExecBlock config frame evm touchMarketInitBody .staticViolation) ∨
+    (RDrev fork midnightBytecode g s0 ∧ ExecBlock fork config frame evm touchMarketInitBody .reverted) ∨
+    (RDstatic fork midnightBytecode g s0 ∧ ExecBlock fork config frame evm touchMarketInitBody .staticViolation) ∨
     (∃ frame' mem' aw' k' C',
       evm.executionEnv.perm = true ∧ frame'.contract = contract ∧
       frame'.locals.get? "market" = some (Model.marketValue m.value) ∧
       frame'.locals.get? "id" = some (wordBytes32Value id) ∧
-      (∀ result, ExecBlock config frame' (initMarketStorageState evm id m.loanToken)
-        (touchMarketInitBody.drop 18) result → ExecBlock config frame evm touchMarketInitBody result) ∧
+      (∀ result, ExecBlock fork config frame' (initMarketStorageState evm id m.loanToken)
+        (touchMarketInitBody.drop 18) result → ExecBlock fork config frame evm touchMarketInitBody result) ∧
       MemoryPrefix mem mem' limit.toNat ∧
       memLoad (UInt256.ofNat 64) mem' = root + UInt256.ofNat 224 ∧
       MemoryFunding credit mem' aw' C' ∧
-      RD midnightBytecode evm.executionEnv g s0 ⟨24347⟩
+      RD fork midnightBytecode evm.executionEnv g s0 ⟨24347⟩
         (UInt256.ofNat 21556 :: ptr :: id :: ret :: R) mem' aw' rdata
         (initMarketStorageState evm id m.loanToken).accountMap k' C') := by
   rcases midnightTouchMarketValidation_funded m (by omega) hm hc hmarket hl hcu hfund rd with

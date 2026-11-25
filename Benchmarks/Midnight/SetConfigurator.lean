@@ -2,6 +2,8 @@ import Benchmarks.Midnight.Dispatch
 import Benchmarks.Midnight.AddressDecode
 import Benchmarks.Midnight.AdminSource
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `setConfigurator(address)`
 
@@ -20,8 +22,8 @@ theorem setConfiguratorTraceStatic {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {value old : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024) (hperm : I.perm = false)
-    (rd : RD midnightBytecode I g s0 ⟨4904⟩ (value :: old :: R) mem aw rdata σ k C) :
-    RDstatic midnightBytecode g s0 := by
+    (rd : RD fork midnightBytecode I g s0 ⟨4904⟩ (value :: old :: R) mem aw rdata σ k C) :
+    RDstatic fork midnightBytecode g s0 := by
   -- The successful block requires write permission; follow its prefix to the forbidden SSTORE.
   have r1 := rd.push1 (UInt256.ofNat 1) (by native_decide) (by evm_ov)
   have r2 := r1.push1 (UInt256.ofNat 1) (by native_decide) (by evm_ov)
@@ -44,10 +46,10 @@ theorem setConfiguratorTraceStatic {I : ExecutionEnv} {g : Sat256} {s0 : State}
 
 theorem setConfiguratorTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Nat} {aw value : UInt256}
     (hperm : I.perm = true)
-    (rd : RD midnightBytecode I g (initState σ σ₀ g A I) ⟨4904⟩
+    (rd : RD fork midnightBytecode I g (initState σ σ₀ g A I) ⟨4904⟩
       [value, solcSlotWordAt ⟨9⟩ σ I, solcSelectorWord I] midnightEntryMemory aw
       ByteArray.empty σ k C) :
-    RDret midnightBytecode g (initState σ σ₀ g A I)
+    RDret fork midnightBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ ⟨9⟩ (setAddressOffset0Word (solcSlotWordAt ⟨9⟩ σ I) value))
       ByteArray.empty := by
   have hr := midnightBlocks.midnight_block_4904 (by simp) hperm rd
@@ -58,10 +60,10 @@ theorem setConfiguratorTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Nat} {aw v
 /-- `setConfigurator(address)`: the theorem `Correct.lean` routes selector 31 to. -/
 theorem midnightSetConfiguratorBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 31)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 31) rfl hsel
   have hd : dispatchMsg contract I.calldata = some setConfiguratorTransition := by
     apply midnightDispatch_setConfigurator <;>
@@ -86,7 +88,7 @@ theorem midnightSetConfiguratorBody {σ σ₀ A I} {g : UInt256}
             simp only [midnightBlocks.midnight_block_4883_fallthrough_stack] at rd5
             by_cases hperm : I.perm = true
             · have hr := setConfiguratorTraceReturn hperm rd5
-              have hbody := adminAddressReturns (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+              have hbody := adminAddressReturns (fork := fork) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 "configurator" "newConfigurator" "SetConfigurator" ⟨9⟩ (calldataWord I.calldata 4)
                 hcanon (by decide) (by decide) (by decide) (by decide) rfl rfl hwv hhi hauth hperm
               exact hr.reEquivExecutionGen hcode hd hdec hbody

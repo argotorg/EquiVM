@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.SettlementIntervals
 
+variable {fork : Ethereum.Fork}
+
 /-! Source control flow of the settlement-fee internal function. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -50,7 +52,7 @@ theorem settlementChooseInterval {frame : Frame} {evm : EVM.State} {id time : UI
     (hl : frame.locals.get? "feeLower" = some (.int 0))
     (hu : frame.locals.get? "feeUpper" = some (.int 0))
     (hmax : time.toNat < 31104000) :
-    ∃ frame', ExecStmt config frame evm (settlementFeeFunction.body[7]!) (.ok frame' evm) ∧
+    ∃ frame', ExecStmt fork config frame evm (settlementFeeFunction.body[7]!) (.ok frame' evm) ∧
       evalExpr? config frame' evm interpolationExpr =
         .ok (.int (settlementFeeInterpolated (marketFeeWord evm id) time).toNat) := by
   by_cases h0 : time.toNat < 86400
@@ -125,7 +127,7 @@ def settlementInitialIntervals (imms : Store) (id time : UInt256) : Frame :=
       "end" (.int 31104000)).insert "feeLower" (.int 0)).insert "feeUpper" (.int 0) }
 
 theorem settlementBindAlias (evm : EVM.State) (imms : Store) (id time : UInt256) :
-    ABlock config evm (settlementCallFrame imms id time) settlementFeeFunction.body
+    ABlock fork config evm (settlementCallFrame imms id time) settlementFeeFunction.body
       (settlementAliasFrame imms id time) (settlementFeeFunction.body.drop 1) := by
   refine ⟨fun h ↦ ExecBlock.consNormal (ExecStmt.letStorage ?_) h⟩
   apply resolveBytes32Mapping
@@ -144,7 +146,7 @@ theorem evalSettlementRequire (evm : EVM.State) (imms : Store) (id time : UInt25
 
 theorem settlementFeeInternalReverts (evm : EVM.State) (imms : Store) (id time : UInt256)
     (hspace : marketTickSpacing (marketFeeWord evm id) = ⟨0⟩) :
-    ExecFuncBody config (settlementCallFrame imms id time) evm settlementFeeFunction.body
+    ExecFuncBody fork config (settlementCallFrame imms id time) evm settlementFeeFunction.body
       .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply (settlementBindAlias evm imms id time).requireRevert
@@ -153,13 +155,13 @@ theorem settlementFeeInternalReverts (evm : EVM.State) (imms : Store) (id time :
 
 theorem settlementFeeInternalReturns (evm : EVM.State) (imms : Store) (id time : UInt256)
     (hspace : marketTickSpacing (marketFeeWord evm id) ≠ ⟨0⟩) :
-    ∃ frame', ExecFuncBody config (settlementCallFrame imms id time) evm
+    ∃ frame', ExecFuncBody fork config (settlementCallFrame imms id time) evm
       settlementFeeFunction.body (.returned frame' evm
         (some [.int (settlementFeeValue (marketFeeWord evm id) time).toNat])) := by
   have hpositive : 0 < (marketTickSpacing (marketFeeWord evm id)).toNat := by
     by_contra h
     exact hspace (uint256_toNat_eq_zero (by omega))
-  have hprefix := (settlementBindAlias evm imms id time).requireStep
+  have hprefix := (settlementBindAlias (fork := fork) evm imms id time).requireStep
     ((evalSettlementRequire evm imms id time).trans (by rw [decide_eq_true hpositive]))
   have ht : (settlementAliasFrame imms id time).locals.get? "timeToMaturity" =
       some (.int time.toNat) := by

@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.OfferFirstBlocks
 
+variable {fork : Ethereum.Fork}
+
 /-! The fixed stores interleaved with the offer tail's canonical scalar readers. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -13,9 +15,9 @@ theorem midnightOfferStoreCallbackData {credit : Nat} {I : ExecutionEnv} {g : Sa
     {k C : Nat} {R : List UInt256} (hstack : R.length + 4 ≤ 1024)
     (hroot : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨10687⟩ (value :: rel :: R) mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨10687⟩ (value :: rel :: R) mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding credit (writeWord mem 1088 value) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨18342⟩
+      RD fork midnightBytecode I g s0 ⟨18342⟩
         ((rel + UInt256.ofNat 292) :: ⟨10709⟩ :: rel :: R)
         (writeWord mem 1088 value) aw' rdata σ k' C' := by
   have rd1 := midnightBlocks.midnight_block_10687 hstack (by jump_dest) rd
@@ -31,9 +33,9 @@ theorem midnightOfferStoreReceiver {credit : Nat} {I : ExecutionEnv} {g : Sat256
     {k C : Nat} {R : List UInt256} (hstack : R.length + 4 ≤ 1024)
     (hroot : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨10709⟩ (value :: rel :: R) mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨10709⟩ (value :: rel :: R) mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding credit (writeWord mem 1120 value) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨18342⟩
+      RD fork midnightBytecode I g s0 ⟨18342⟩
         ((rel + UInt256.ofNat 324) :: ⟨10731⟩ :: rel :: R)
         (writeWord mem 1120 value) aw' rdata σ k' C' := by
   have rd1 := midnightBlocks.midnight_block_10709 hstack (by jump_dest) rd
@@ -49,9 +51,9 @@ theorem midnightOfferStoreRatifier {credit : Nat} {I : ExecutionEnv} {g : Sat256
     {k C : Nat} {R : List UInt256} (hstack : R.length + 4 ≤ 1024)
     (hroot : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨10731⟩ (value :: rel :: R) mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨10731⟩ (value :: rel :: R) mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding credit (writeWord mem 1152 value) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨19003⟩
+      RD fork midnightBytecode I g s0 ⟨19003⟩
         ((rel + UInt256.ofNat 356) :: ⟨10753⟩ :: rel :: R)
         (writeWord mem 1152 value) aw' rdata σ k' C' := by
   have rd1 := midnightBlocks.midnight_block_10731 hstack (by jump_dest) rd
@@ -67,9 +69,9 @@ theorem midnightOfferStoreReduceOnly {credit : Nat} {I : ExecutionEnv} {g : Sat2
     {k C : Nat} {R : List UInt256} (hstack : R.length + 4 ≤ 1024)
     (hroot : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨10753⟩ (value :: rel :: R) mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨10753⟩ (value :: rel :: R) mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding credit (writeWord mem 1184 value) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨19113⟩
+      RD fork midnightBytecode I g s0 ⟨19113⟩
         ((rel + UInt256.ofNat 388) :: ⟨10775⟩ :: rel :: R)
         (writeWord mem 1184 value) aw' rdata σ k' C' := by
   have rd1 := midnightBlocks.midnight_block_10753 hstack (by jump_dest) rd
@@ -85,9 +87,9 @@ theorem midnightOfferStoreMaxUnits {credit : Nat} {I : ExecutionEnv} {g : Sat256
     {k C : Nat} {R : List UInt256} (hstack : R.length + 4 ≤ 1024)
     (hroot : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨10775⟩ (value :: rel :: R) mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨10775⟩ (value :: rel :: R) mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding credit (writeWord mem 1216 value) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨19113⟩
+      RD fork midnightBytecode I g s0 ⟨19113⟩
         ((rel + UInt256.ofNat 420) :: ⟨10795⟩ :: rel :: R)
         (writeWord mem 1216 value) aw' rdata σ k' C' := by
   have rd1 := midnightBlocks.midnight_block_10775 hstack (by jump_dest) rd

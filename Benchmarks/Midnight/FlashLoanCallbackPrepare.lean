@@ -2,6 +2,8 @@ import Benchmarks.Midnight.FlashLoanTransferRuntime
 import Benchmarks.Midnight.CalldataBytesEncoder
 import Benchmarks.Midnight.CalldataArrayCopyMemory
 
+variable {fork : Ethereum.Fork}
+
 /-! Building the three dynamic arguments of the flash-loan callback. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -32,13 +34,13 @@ theorem midnightFlashLoanCallbackPrepare {credit : Nat} {I : ExecutionEnv} {g : 
     (hc : CanonicalAddressWords (calldataArrayWords I.calldata tn.toNat tp.toNat))
     (hroot : root.toNat < 2^128) (hfree : memLoad (UInt256.ofNat 64) mem = root)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨16266⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨16266⟩
       (flashLoanOutLoopStack tn tn tp callback an ap dl dp ++ R) mem aw rdata σ k C) :
     ∃ gasArg aw' k' C', C ≤ C' ∧
       MemoryFunding (credit + 4)
         (flashLoanCallbackMemory mem I.calldata I.source root.toNat tp.toNat tn.toNat
           ap.toNat an.toNat dp.toNat dl.toNat) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨16367⟩
+      RD fork midnightBytecode I g s0 ⟨16367⟩
         ([gasArg, callback, ⟨0⟩, root,
           UInt256.ofNat (flashLoanCallbackSize tn.toNat an.toNat dl.toNat), root, ⟨32⟩,
           root, ap, callback, an, tp, tn] ++ R)

@@ -2,6 +2,8 @@ import Benchmarks.Midnight.FlashLoanMagicMemory
 import Benchmarks.Midnight.AllocationFunding
 import Benchmarks.Midnight.AllocationArithmetic
 
+variable {fork : Ethereum.Fork}
+
 /-! Callback failure and bytes32 decoding before the flash-loan magic-value check. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -18,13 +20,13 @@ theorem midnightFlashLoanCallbackDecode {credit : Nat} {I : ExecutionEnv} {g : S
     (hmem : root.toNat + 32 ≤ mem.size)
     (hread : 32 ≤ out.size → memLoad root mem = calldataWord out 0)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨16368⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨16368⟩
       ((if success then ⟨1⟩ else ⟨0⟩) :: root :: R) mem aw out σ k C) :
-    ((success = false ∨ out.size < 32) ∧ RDrev midnightBytecode g s0) ∨
+    ((success = false ∨ out.size < 32) ∧ RDrev fork midnightBytecode g s0) ∨
     (success = true ∧ 32 ≤ out.size ∧ ∃ aw' k' C',
       MemoryFunding credit
         (flashLoanMagicMemory (writeWord mem 64 (root + UInt256.ofNat 32))) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨16380⟩ (calldataWord out 0 :: flashLoanMagic :: R)
+      RD fork midnightBytecode I g s0 ⟨16380⟩ (calldataWord out 0 :: flashLoanMagic :: R)
         (flashLoanMagicMemory (writeWord mem 64 (root + UInt256.ofNat 32))) aw' out σ k' C') := by
   have hn : (UInt256.ofNat out.size).toNat = out.size := UInt256.toNat_ofNat_of_lt hout
   cases success with
@@ -103,7 +105,7 @@ theorem midnightFlashLoanCallbackDecode {credit : Nat} {I : ExecutionEnv} {g : S
       simp only [flashLoanMagic_copy, flashLoanMagic_load] at hf
       change MemoryFunding credit
           (flashLoanMagicMemory (writeWord mem 64 (root + UInt256.ofNat 32))) _ _ ∧
-        RD _ _ _ _ _
+        RD fork _ _ _ _ _
           (memLoad root (flashLoanMagicMemory (writeWord mem 64 (root + UInt256.ofNat 32))) ::
             flashLoanMagic :: R) _ _ _ _ _ _ at hf
       rw [hread'] at hf

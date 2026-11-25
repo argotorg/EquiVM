@@ -3,6 +3,8 @@ import Benchmarks.Midnight.MarketDecoderAccounting
 import Benchmarks.Midnight.MarketCalldataHugeRuntime
 import Benchmarks.Midnight.RuntimeBlocks_059
 
+variable {fork : Ethereum.Fork}
+
 /-! Decode updatePosition and enter the shared market initialization routine. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,9 +19,9 @@ theorem midnightUpdatePositionEntry {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hselector : ¬ 0xac9650d8 = (bytesToWord (I.calldata.toList.take 4)).toNat)
     (hfree : memLoad (UInt256.ofNat 64) mem = ⟨832⟩)
     (ha : MemoryAccounting mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨15853⟩ R mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨15853⟩ R mem aw rdata σ k C) :
     (config.externalABI.decodeCalldata? ["market", "user"] [Model.marketABI, Model.addr] I.calldata = none ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     (∃ m, config.externalABI.decodeCalldata? ["market", "user"] [Model.marketABI, Model.addr] I.calldata =
         some (marketUserArguments m (AccountAddress.ofNat (calldataWord I.calldata 36).toNat)) ∧
       68 ≤ I.calldata.size ∧ I.calldata.size < 2^255 ∧
@@ -27,11 +29,11 @@ theorem midnightUpdatePositionEntry {I : ExecutionEnv} {g : Sat256} {s0 : State}
       ∃ mem' root aw' k' C', root.toNat = 1120 + 160 * m.collaterals.length ∧
         MarketStored mem' ⟨832⟩ ⟨1088⟩ root m ∧ memLoad (UInt256.ofNat 64) mem' = root ∧
         root.toNat ≤ mem'.size ∧ MemoryAccounting mem' aw' C' ∧
-        RD midnightBytecode I g s0 ⟨20557⟩ (⟨832⟩ :: ⟨15919⟩ :: ⟨832⟩ :: calldataWord I.calldata 36 :: ⟨2594⟩ :: ⟨1184⟩ :: R)
+        RD fork midnightBytecode I g s0 ⟨20557⟩ (⟨832⟩ :: ⟨15919⟩ :: ⟨832⟩ :: calldataWord I.calldata 36 :: ⟨2594⟩ :: ⟨1184⟩ :: R)
           mem' aw' rdata σ k' C') := by
   have reject (hc : UInt256.slt (UInt256.lnot ⟨3⟩ + UInt256.ofNat I.calldata.size) ⟨64⟩ = ⟨1⟩) :
       config.externalABI.decodeCalldata? ["market", "user"] [Model.marketABI, Model.addr] I.calldata = none ∧
-        RDrev midnightBytecode g s0 := by
+        RDrev fork midnightBytecode g s0 := by
     refine ⟨midnightDecodeMarketUser_none_check h4
       (solcSLT_sub4_of_check (bit := true) hc), ?_⟩
     have rd1 := midnightBlocks.midnight_block_15853_taken (by omega)
@@ -57,7 +59,7 @@ theorem midnightUpdatePositionEntry {I : ExecutionEnv} {g : Sat256} {s0 : State}
       omega
     have rd2 := midnightBlocks.midnight_block_15865_fallthrough (by omega) hg rd1
     have rd3 := midnightBlocks.midnight_block_15882 (by omega) (by jump_dest) rd2
-    change RD midnightBytecode I g s0 ⟨18574⟩
+    change RD fork midnightBytecode I g s0 ⟨18574⟩
       ((UInt256.ofNat 4 + calldataWord I.calldata 4) :: UInt256.ofNat I.calldata.size ::
         ⟨15901⟩ :: ⟨2594⟩ :: ⟨1184⟩ :: R) mem aw rdata σ _ _ at rd3
     have ha3 := memoryAccountingAt rd3 (by memory_account ha)

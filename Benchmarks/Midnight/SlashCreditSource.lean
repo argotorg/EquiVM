@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.PositionViewSourceBase
 
+variable {fork : Ethereum.Fork}
+
 /-! Source execution of the credit-slashing branch. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -42,7 +44,7 @@ theorem slashCreditSource {frame : Frame} {evm : EVM.State} {id credit lastLoss 
     (hlast : frame.locals.get? "_lastLossFactor" = some (.int lastLoss.toNat))
     (hzero : frame.locals.get? "postSlashCredit" = some (.int 0))
     (hbound : credit.toNat < 2 ^ 128) :
-    ExecStmt config frame evm (positionViewFunction.body[4]!)
+    ExecStmt fork config frame evm (positionViewFunction.body[4]!)
       (.ok (slashCreditFrame frame credit lastLoss (marketLossWord evm id)) evm) := by
   by_cases hlt : lastLoss.toNat < 2 ^ 128 - 1
   · have hloss := evalComplement128 (evalMarketLoss (evm := evm) hc hbase hid) (shiftRight128_lt _)
@@ -64,7 +66,7 @@ theorem slashCreditSource {frame : Frame} {evm : EVM.State} {id credit lastLoss 
     simp only [slashCredit, hlt, if_true]
     apply ExecStmt.iteTrue
       ((evalLocalLtNat (2 ^ 128 - 1) hlast).trans (by rw [decide_eq_true hlt]))
-    have hcall := callMulDivDown hc hargs
+    have hcall := callMulDivDown (fork := fork) hc hargs
       (uint128_product_bound hbound (complement128_lt (shiftRight128_lt _))) hnz
       (name := "slashed")
     apply ExecBlock.consNormal hcall

@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.ArrayAllocation
 
+variable {fork : Ethereum.Fork}
+
 /-! Pointer-array allocation and bounds of its encoded collateral elements. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -45,14 +47,14 @@ theorem midnightToMarketArrayAllocation {I : ExecutionEnv} {g : Sat256} {s0 : St
     (hstack : R.length + 11 ≤ 1024)
     (hfree : memLoad (UInt256.ofNat 64) mem = ptr)
     (hptr : ptr.toNat < 2^64) (hn : n.toNat < 2^64) (hheader : header.toNat < 2^128)
-    (rd : RD midnightBytecode I g s0 ⟨1051⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨1051⟩
       (UInt256.ofNat (pointerArrayAllocation n.toNat) :: x :: finish :: n :: header :: R)
       mem aw rdata σ k C) :
-    (¬ ptr.toNat + pointerArrayAllocation n.toNat < 2^64 ∧ RDrev midnightBytecode g s0) ∨
-    (finish.toNat < header.toNat + 32 + 128 * n.toNat ∧ RDrev midnightBytecode g s0) ∨
+    (¬ ptr.toNat + pointerArrayAllocation n.toNat < 2^64 ∧ RDrev fork midnightBytecode g s0) ∨
+    (finish.toNat < header.toNat + 32 + 128 * n.toNat ∧ RDrev fork midnightBytecode g s0) ∨
     (ptr.toNat + pointerArrayAllocation n.toNat < 2^64 ∧
       header.toNat + 32 + 128 * n.toNat ≤ finish.toNat ∧
-      ∃ aw' k' C', RD midnightBytecode I g s0 ⟨1092⟩
+      ∃ aw' k' C', RD fork midnightBytecode I g s0 ⟨1092⟩
         ((ptr + UInt256.ofNat 32) :: x ::
           UInt256.ofNat (header.toNat + 32 + 128 * n.toNat) ::
           (UInt256.ofNat 32 + header) :: ptr :: R)

@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.FlashLoanTransferStep
 import Benchmarks.Midnight.FlashLoanLoopCallSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Both flash-loan token loops, including any failing token call. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -21,22 +23,22 @@ theorem midnightFlashLoanTransferLoop (isFrom : Bool) (remaining : Nat) {I : Exe
     (hf : FlashLoanSourceFrame frame (calldataArrayWords I.calldata tn.toNat tp.toNat)
       (calldataArrayWords I.calldata an.toNat ap.toNat) callback data)
     (hi : frame.locals.get? "i" = some (.int (Int.ofNat index.toNat)))
-    (hh : TransferHeap mem aw ptr C) (hgas : midnightGasBound g) (hfork : I.fork ≥ .osaka)
+    (hh : TransferHeap mem aw ptr C) (hgas : midnightGasBound g) (hfork : fork ≥ .osaka)
     (hs : SourceState s0 I σ evm)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 (flashLoanTransferLoopPC isFrom)
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 (flashLoanTransferLoopPC isFrom)
       (flashLoanTransferLoopStack isFrom index tn tp (UInt256.ofNat callback.val) an ap dl dp ++ R)
       mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (ExecForLoop config frame evm flashLoanLoopCondition flashLoanLoopPost (flashLoanLoopBody isFrom)
-      .reverted ∧ RDrev midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (ExecForLoop fork config frame evm flashLoanLoopCondition flashLoanLoopPost (flashLoanLoopBody isFrom)
+      .reverted ∧ RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
     ∃ (frame' : Frame) (evm' : State) (σ' : AccountMap) (mem' rdata' : ByteArray)
       (aw' ptr' : UInt256) (k' C' : Nat),
-      ExecForLoop config frame evm flashLoanLoopCondition flashLoanLoopPost (flashLoanLoopBody isFrom)
+      ExecForLoop fork config frame evm flashLoanLoopCondition flashLoanLoopPost (flashLoanLoopBody isFrom)
         (.ok frame' evm') ∧
       SourceState s0 I σ' evm' ∧ TransferHeap mem' aw' ptr' C' ∧
       FlashLoanSourceFrame frame' (calldataArrayWords I.calldata tn.toNat tp.toNat)
         (calldataArrayWords I.calldata an.toNat ap.toNat) callback data ∧
-      RD midnightBytecode I (Sat256.ofUInt256 g) s0 (flashLoanTransferExitPC isFrom)
+      RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 (flashLoanTransferExitPC isFrom)
         (flashLoanTransferLoopStack isFrom tn tn tp (UInt256.ofNat callback.val) an ap dl dp ++ R)
         mem' aw' rdata' σ' k' C' := by
   induction remaining generalizing index frame evm mem rdata aw ptr σ k C with
@@ -70,14 +72,14 @@ theorem midnightFlashLoanTransferLoop (isFrom : Bool) (remaining : Nat) {I : Exe
       simpa only [Bool.false_eq_true, if_false, htoken, hasset, hs.env,
         flashLoanTokenAt, flashLoanAssetAt, accountAddress_ofUInt256_eq_ofNat_toNat] using hbody
     · obtain ⟨evm1, σ1, out, mem1, ptr1, aw1, k1, C1, hbody, hs1, _, _, hh1, rd1⟩ := hsuccess
-      have hbody1 : ExecBlock config frame evm (flashLoanLoopBody isFrom)
+      have hbody1 : ExecBlock fork config frame evm (flashLoanLoopBody isFrom)
           (.ok (flashLoanLoopCallFrame isFrom frame) evm1) := by
         apply flashLoanLoopCallReturn isFrom hf hi hti hai
         simpa only [Bool.false_eq_true, if_false, htoken, hasset, hs.env,
           flashLoanTokenAt, flashLoanAssetAt, accountAddress_ofUInt256_eq_ofNat_toNat] using hbody
       have hf1 := flashLoanLoopCallFrame_spec isFrom hf
       have hi1 := flashLoanLoopCallFrame_index isFrom hi
-      have hpost := flashLoanLoopPost_exec (evm := evm1) hi1
+      have hpost := flashLoanLoopPost_exec (fork := fork) (evm := evm1) hi1
         (by change _ < 2 ^ 256; omega)
       have hf2 := flashLoanSetIndex_spec hf1 (index.toNat + 1)
       have hi2 : (flashLoanSetIndex (flashLoanLoopCallFrame isFrom frame) (index.toNat + 1)).locals.get?

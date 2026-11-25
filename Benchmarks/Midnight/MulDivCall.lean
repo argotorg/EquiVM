@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.MulDivSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Source-level calls to the checked multiplication and division helpers. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -14,7 +16,7 @@ theorem callMulDivDown {cfg : Config} {frame : Frame} {evm : EVM.State}
     (hc : frame.contract = contract)
     (he : evalExprs? cfg frame evm args = .ok [.int x.toNat, .int y.toNat, .int d.toNat])
     (hfit : x.toNat * y.toNat < UInt256.size) (hnz : d ≠ ⟨0⟩) :
-    ExecStmt cfg frame evm (.internalCall "UtilsLib_mulDivDown" args name)
+    ExecStmt fork cfg frame evm (.internalCall "UtilsLib_mulDivDown" args name)
       (.ok (resumeAfterInternalCall frame name (some [.int (mulDivDown x y d).toNat])) evm) := by
   apply internalCallFunctionReturn (callee := mulDivDownFunction) (locals := mulDivArguments x y d) he
   · rw [hc]; rfl
@@ -27,7 +29,7 @@ theorem callMulDivDownRevert {cfg : Config} {frame : Frame} {evm : EVM.State}
     (hc : frame.contract = contract)
     (he : evalExprs? cfg frame evm args = .ok [.int x.toNat, .int y.toNat, .int d.toNat])
     (hbad : ¬ (x.toNat * y.toNat < UInt256.size ∧ d ≠ ⟨0⟩)) :
-    ExecStmt cfg frame evm (.internalCall "UtilsLib_mulDivDown" args name) .reverted := by
+    ExecStmt fork cfg frame evm (.internalCall "UtilsLib_mulDivDown" args name) .reverted := by
   apply internalCallFunctionRevert (callee := mulDivDownFunction) (locals := mulDivArguments x y d) he
   · rw [hc]; rfl
   · rfl
@@ -39,7 +41,7 @@ theorem callMulDivUp {cfg : Config} {frame : Frame} {evm : EVM.State}
     (hc : frame.contract = contract)
     (he : evalExprs? cfg frame evm args = .ok [.int x.toNat, .int y.toNat, .int d.toNat])
     (hsafe : MulDivUpSafe x y d) :
-    ExecStmt cfg frame evm (.internalCall "UtilsLib_mulDivUp" args name)
+    ExecStmt fork cfg frame evm (.internalCall "UtilsLib_mulDivUp" args name)
       (.ok (resumeAfterInternalCall frame name (some [.int (mulDivUp x y d).toNat])) evm) := by
   apply internalCallFunctionReturn (callee := mulDivUpFunction) (locals := mulDivArguments x y d) he
   · rw [hc]; rfl
@@ -52,7 +54,7 @@ theorem callMulDivUpRevert {cfg : Config} {frame : Frame} {evm : EVM.State}
     (hc : frame.contract = contract)
     (he : evalExprs? cfg frame evm args = .ok [.int x.toNat, .int y.toNat, .int d.toNat])
     (hbad : ¬ MulDivUpSafe x y d) :
-    ExecStmt cfg frame evm (.internalCall "UtilsLib_mulDivUp" args name) .reverted := by
+    ExecStmt fork cfg frame evm (.internalCall "UtilsLib_mulDivUp" args name) .reverted := by
   apply internalCallFunctionRevert (callee := mulDivUpFunction) (locals := mulDivArguments x y d) he
   · rw [hc]; rfl
   · rfl

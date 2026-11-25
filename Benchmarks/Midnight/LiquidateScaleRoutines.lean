@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.LiquidateScales
 import Benchmarks.Midnight.MaxLifGas
 
+variable {fork : Ethereum.Fork}
+
 /-! Shared checked arithmetic routines for liquidation's fixed scales. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -13,11 +15,11 @@ theorem midnightAddPriceScalePred {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw x ret : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 4 ≤ 1024)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨19508⟩ (x :: ret :: R) mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨19508⟩ (x :: ret :: R) mem aw rdata σ k C) :
     (¬ x.toNat + (UInt256.sub liquidatePriceScale ⟨1⟩).toNat < UInt256.size ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     (x.toNat + (UInt256.sub liquidatePriceScale ⟨1⟩).toNat < UInt256.size ∧ ∃ k' C', C ≤ C' ∧
-      RD midnightBytecode I g s0 ret ((x + UInt256.sub liquidatePriceScale ⟨1⟩) :: R)
+      RD fork midnightBytecode I g s0 ret ((x + UInt256.sub liquidatePriceScale ⟨1⟩) :: R)
         mem aw rdata σ k' C') := by
   by_cases ha : x.toNat + (UInt256.sub liquidatePriceScale ⟨1⟩).toNat < UInt256.size
   · have hg : UInt256.gt x (x + UInt256.ofNat 999999999999999999999999999999999999) = ⟨0⟩ := by
@@ -41,10 +43,10 @@ theorem midnightMulLifScale {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw x ret : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 5 ≤ 1024)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨20377⟩ (x :: ret :: R) mem aw rdata σ k C) :
-    (¬ x.toNat * lifScale.toNat < UInt256.size ∧ RDrev midnightBytecode g s0) ∨
+    (rd : RD fork midnightBytecode I g s0 ⟨20377⟩ (x :: ret :: R) mem aw rdata σ k C) :
+    (¬ x.toNat * lifScale.toNat < UInt256.size ∧ RDrev fork midnightBytecode g s0) ∨
     (x.toNat * lifScale.toNat < UInt256.size ∧ ∃ k' C', C ≤ C' ∧
-      RD midnightBytecode I g s0 ret (UInt256.mul x lifScale :: R) mem aw rdata σ k' C') := by
+      RD fork midnightBytecode I g s0 ret (UInt256.mul x lifScale :: R) mem aw rdata σ k' C') := by
   by_cases hm : x.toNat * lifScale.toNat < UInt256.size
   · have rd1 := midnightBlocks.midnight_block_20377_fallthrough hstack (checkedMulGuardInline hm) rd
     simp only [midnightBlocks.midnight_block_20377_fallthrough_stack] at rd1

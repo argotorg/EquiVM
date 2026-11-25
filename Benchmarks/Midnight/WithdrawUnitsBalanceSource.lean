@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.WithdrawUnitsSourceFrame
 import Benchmarks.Midnight.ToUint128Source
 
+variable {fork : Ethereum.Fork}
+
 /-! Checked uint128 subtraction from a storage field after converting withdrawal units. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -24,8 +26,8 @@ theorem withdrawUnitsSubtractSource {frame : Frame} {evm evm' : EVM.State}
       (.int (UInt256.sub old units).toNat) = .ok (wordLocal frame name units, evm'))
     (hold : old.toNat < 2^128) (h128 : units.toNat < 2^128) (hle : units.toNat ≤ old.toNat)
     (hperm : evm.executionEnv.perm = true) {tail : List Stmt} {result : ExecResult}
-    (htail : ExecBlock config (wordLocal frame name units) evm' tail result) :
-    ExecBlock config frame evm (withdrawUnitsSubtractStmts name ref ++ tail) result := by
+    (htail : ExecBlock fork config (wordLocal frame name units) evm' tail result) :
+    ExecBlock fork config frame evm (withdrawUnitsSubtractStmts name ref ++ tail) result := by
   have he : evalExprs? config frame evm [.var "units"] = .ok [.int units.toNat] := by
     simp only [evalExprs?, evalWordLocal hu, EvalResult.bind, bind, pure]
   apply ExecBlock.consNormal (callToUint128 hc he h128 (name := name))
@@ -39,7 +41,7 @@ theorem withdrawUnitsSubtractUnderflow {frame : Frame} {evm : EVM.State}
     (hread : evalExpr? config (wordLocal frame name units) evm (.storage ref) =
       .ok (.int old.toNat))
     (h128 : units.toNat < 2^128) (hlt : old.toNat < units.toNat) (tail : List Stmt) :
-    ExecBlock config frame evm (withdrawUnitsSubtractStmts name ref ++ tail) .reverted := by
+    ExecBlock fork config frame evm (withdrawUnitsSubtractStmts name ref ++ tail) .reverted := by
   have he : evalExprs? config frame evm [.var "units"] = .ok [.int units.toNat] := by
     simp only [evalExprs?, evalWordLocal hu, EvalResult.bind, bind, pure]
   apply ExecBlock.consNormal (callToUint128 hc he h128 (name := name))

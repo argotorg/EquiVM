@@ -2,6 +2,8 @@ import Benchmarks.Midnight.TouchMarketFresh
 import Benchmarks.Midnight.TouchMarketInitializationFunding
 import Benchmarks.Midnight.TouchMarketDeploymentFunding
 
+variable {fork : Ethereum.Fork}
+
 /-! The fresh-market branch with retained funding and the final initialized extent. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -27,22 +29,22 @@ theorem midnightTouchMarketFresh_funded {credit : Nat} {evm : EVM.State} {g : Sa
     (hcont : frame.locals.get? "defaultContinuousFee" = none)
     (hret : (D_J midnightBytecode 0).contains ret = true)
     (hfund : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode evm.executionEnv g s0 ⟨20764⟩
+    (rd : RD fork midnightBytecode evm.executionEnv g s0 ⟨20764⟩
       ((ptr + UInt256.ofNat 32) :: ptr :: id :: ret :: R) mem aw rdata evm.accountMap k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (RDrev midnightBytecode g s0 ∧ ExecBlock config frame evm touchMarketInitBody .reverted) ∨
-    (RDstatic midnightBytecode g s0 ∧
-      ExecBlock config frame evm touchMarketInitBody .staticViolation) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (RDrev fork midnightBytecode g s0 ∧ ExecBlock fork config frame evm touchMarketInitBody .reverted) ∨
+    (RDstatic fork midnightBytecode g s0 ∧
+      ExecBlock fork config frame evm touchMarketInitBody .staticViolation) ∨
     ∃ frame' evm' σ' out mem' aw' k' C',
       frame'.locals.get? "id" = some (wordBytes32Value id) ∧
       SourceState s0 evm.executionEnv σ' evm' ∧
-      ExecBlock config frame evm touchMarketInitBody (.ok frame' evm') ∧
+      ExecBlock fork config frame evm touchMarketInitBody (.ok frame' evm') ∧
       MemoryPrefix mem mem' limit.toNat ∧
       memLoad (UInt256.ofNat 64) mem' =
         marketDeploymentFree (root + UInt256.ofNat 224) m ∧
       (marketDeploymentFree (root + UInt256.ofNat 224) m).toNat ≤ mem'.size ∧
       MemoryFunding credit mem' aw' C' ∧
-      RD midnightBytecode evm.executionEnv g s0 ret (id :: R) mem' aw' out σ' k' C' := by
+      RD fork midnightBytecode evm.executionEnv g s0 ret (id :: R) mem' aw' out σ' k' C' := by
   rcases midnightTouchMarketInitialization_funded m (by omega) hm hlimit (by omega) hfree
     hc hmarket hbase hid hl hcu hd hcont hfund rd with
     hrev | hstatic | ⟨f, mm, aw1, k1, C1, hperm, hfc, hfm, hfi, hsource, hp, hf, hfund1, rd1⟩

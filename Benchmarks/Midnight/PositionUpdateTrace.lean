@@ -3,6 +3,8 @@ import Benchmarks.Midnight.PositionUpdateViewTrace
 import Benchmarks.Midnight.PositionUpdateFeeTrace
 import Benchmarks.Midnight.PositionUpdateMemory
 
+variable {fork : Ethereum.Fork}
+
 /-! Coupling the complete internal position update to its source execution. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -21,20 +23,20 @@ theorem midnightPositionUpdateInternal {evm : EVM.State} {g : Sat256} {s0 : Stat
     (hrootlo : 96 ≤ root.toNat) (hroot : root.toNat < 2^64)
     (hfree : memLoad (UInt256.ofNat 64) mem = root)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode evm.executionEnv g s0 ⟨23599⟩ (ptr :: id :: user :: ret :: R)
+    (rd : RD fork midnightBytecode evm.executionEnv g s0 ⟨23599⟩ (ptr :: id :: user :: ret :: R)
       mem aw rdata evm.accountMap k C) :
     let credit := positionNewCredit evm m id user
     let pending := positionNewPending evm m id user
     let fee := positionViewFee evm m id user
-    (RDrev midnightBytecode g s0 ∧
-      ExecFuncBody config (positionViewCallFrame imms m id user) evm positionUpdateFunction.body .reverted) ∨
-    (RDstatic midnightBytecode g s0 ∧
-      ExecFuncBody config (positionViewCallFrame imms m id user) evm positionUpdateFunction.body .staticViolation) ∨
+    (RDrev fork midnightBytecode g s0 ∧
+      ExecFuncBody fork config (positionViewCallFrame imms m id user) evm positionUpdateFunction.body .reverted) ∨
+    (RDstatic fork midnightBytecode g s0 ∧
+      ExecFuncBody fork config (positionViewCallFrame imms m id user) evm positionUpdateFunction.body .staticViolation) ∨
     (credit.toNat < 2^128 ∧ pending.toNat < 2^128 ∧ fee.toNat < 2^128 ∧
-      ExecFuncBody config (positionViewCallFrame imms m id user) evm positionUpdateFunction.body
+      ExecFuncBody fork config (positionViewCallFrame imms m id user) evm positionUpdateFunction.body
         (.returned (positionUpdateFinalFrame evm imms m id user) (positionUpdateFinalState evm m id user)
           (some [.int credit.toNat, .int pending.toNat, .int fee.toNat])) ∧
-      ∃ aw' k' C', RD midnightBytecode evm.executionEnv g s0 ret (fee :: pending :: credit :: R)
+      ∃ aw' k' C', RD fork midnightBytecode evm.executionEnv g s0 ret (fee :: pending :: credit :: R)
         (positionUpdateLogMemory mem root evm m id user) aw' rdata
         (positionUpdateFinalState evm m id user).accountMap k' C') := by
   let credit := positionNewCredit evm m id user
@@ -44,9 +46,9 @@ theorem midnightPositionUpdateInternal {evm : EVM.State} {g : Sat256} {s0 : Stat
   have hscratch : 96 ≤ (positionUpdateScratch mem evm id user).size := by
     rw [positionUpdateScratch_size _ _ _ _ (by omega)]; exact hmem
   have hv := midnightPositionUpdateView hstack hcanon hlo hhi hmaturity rd
-  change (¬ PositionViewSourceSafe evm m id user ∧ RDrev midnightBytecode g s0) ∨
+  change (¬ PositionViewSourceSafe evm m id user ∧ RDrev fork midnightBytecode g s0) ∨
     (PositionViewSourceSafe evm m id user ∧ ∃ aw' k' C',
-      RD midnightBytecode evm.executionEnv g s0 ⟨23680⟩
+      RD fork midnightBytecode evm.executionEnv g s0 ⟨23680⟩
         ([fee, pending, credit, updatePositionTopic, id, positionSlot id user,
           solcAddrMask, ret, ⟨96⟩, user] ++ R)
         (positionUpdateScratch mem evm id user) aw' rdata evm.accountMap k' C') at hv
@@ -57,10 +59,10 @@ theorem midnightPositionUpdateInternal {evm : EVM.State} {g : Sat256} {s0 : Stat
     have hf128 : fee.toNat < 2^128 := positionAccruedFee_lt ..
     have hd := midnightPositionUpdateDecrease (by omega) hc128 hp128 rd1
     change (¬ (credit.toNat ≤ (positionFieldWord evm id user 0).toNat ∧
-        pending.toNat ≤ (positionFieldWord evm id user 1).toNat) ∧ RDrev midnightBytecode g s0) ∨
+        pending.toNat ≤ (positionFieldWord evm id user 1).toNat) ∧ RDrev fork midnightBytecode g s0) ∨
       (credit.toNat ≤ (positionFieldWord evm id user 0).toNat ∧
         pending.toNat ≤ (positionFieldWord evm id user 1).toNat ∧ ∃ k' C',
-        RD midnightBytecode evm.executionEnv g s0 ⟨23723⟩
+        RD fork midnightBytecode evm.executionEnv g s0 ⟨23723⟩
           ([positionPendingDecrease evm m id user, ⟨23855⟩, positionSlot id user, user, solcAddrMask,
             ⟨96⟩, updatePositionTopic, id, positionCreditDecrease evm m id user, credit, ret, fee, pending] ++ R)
           (positionUpdateScratch mem evm id user) aw1 rdata evm.accountMap k' C') at hd

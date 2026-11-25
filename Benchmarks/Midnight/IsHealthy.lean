@@ -3,6 +3,8 @@ import Benchmarks.Midnight.HealthInternal
 import Benchmarks.Midnight.IsHealthySource
 import Benchmarks.Midnight.MarketAccountEntry
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `isHealthy((uint256,address,address,(address,uint256,uint256,address)[],uint256,uint256,address,address),bytes32,address)`
 
@@ -20,17 +22,17 @@ set_option maxRecDepth 2000000
 /-- `isHealthy((uint256,address,address,(address,uint256,uint256,address)[],uint256,uint256,address,address),bytes32,address)`: the theorem `Correct.lean` routes selector 15 to. -/
 theorem midnightIsHealthyBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 15)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 15) rfl hsel
   have hd : dispatchMsg contract I.calldata = some isHealthyTransition := by
     apply midnightDispatch_isHealthy <;>
       first | exact hsel | exact selectorNe_of_selIs hsel (by decide +kernel)
   obtain ⟨k, C, rd⟩ := midnightReachIsHealthyBody
     (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) hcode hsz hsize hsel
-  change RD midnightBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+  change RD fork midnightBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
     ⟨15446⟩ [solcSelectorWord I] midnightEntryMemory (UInt256.ofNat 26) ByteArray.empty σ k C at rd
   have ha : MemoryAccounting midnightEntryMemory (UInt256.ofNat 26) C := by
     refine ⟨MemoryPaid.entry C, ?_⟩
@@ -57,14 +59,14 @@ theorem midnightIsHealthyBody {σ σ₀ A I} {g : UInt256}
         have rd4 := midnightBlocks.midnight_block_15465
           (by simp only [List.length_cons, List.length_nil]; omega) (by jump_dest) rd3
         rcases midnightHealthInternal (imms := ∅) (g := Sat256.ofUInt256 g)
-            (by simp only [List.length_cons, List.length_nil]; omega) hwf hu (by omega)
+            (by simp only [List.length_cons, List.length_nil]; omega) hfork hu (by omega)
             (by omega) hfree hm SourceState.init (by jump_dest) rd4 with
           ⟨hbody, hrev⟩ | ⟨evm', σ', frame', mem'', out, root', aw4, k4, C4, value,
             hbody, hs, hm', hfree', hheap', hroot', rd5⟩
         · exact hrev.reEquivExecutionRevert hcode hd hdec
             (isHealthyBodyReverts hwv hlimit hbody)
         · have hr := midnightBlocks.midnight_block_15471 (by simp) rd5
-          change RDret midnightBytecode (Sat256.ofUInt256 g)
+          change RDret fork midnightBytecode (Sat256.ofUInt256 g)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ'
             ((writeWord mem'' (memLoad (UInt256.ofNat 64) mem'').toNat
               (UInt256.isZero (UInt256.isZero (if value then ⟨1⟩ else ⟨0⟩)))).readWithPadding

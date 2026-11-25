@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.CheckedSubGas
 import Benchmarks.Midnight.SupplyCollateralArithmetic
 
+variable {fork : Ethereum.Fork}
+
 /-! Checked subtraction and the packed collateral-balance write. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -13,13 +15,13 @@ theorem withdrawCollateralArithmetic {I : ExecutionEnv} {g : Sat256} {s0 evm : S
     {k C : Nat} {R : List UInt256}
     (henv : evm.executionEnv = I) (hstack : R.length + 12 ≤ 1024) (hi : index.toNat < 128)
     (hold : old.toNat < 2^128) (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨19447⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨19447⟩
       ([old, assets, UInt256.ofNat 4573, ret, positionSlot id user + UInt256.ofNat 3, index] ++ R)
       mem aw rdata evm.accountMap k C) :
-    (old.toNat < assets.toNat ∧ RDrev midnightBytecode g s0) ∨
-    (assets.toNat ≤ old.toNat ∧ I.perm = false ∧ RDstatic midnightBytecode g s0) ∨
+    (old.toNat < assets.toNat ∧ RDrev fork midnightBytecode g s0) ∨
+    (assets.toNat ≤ old.toNat ∧ I.perm = false ∧ RDstatic fork midnightBytecode g s0) ∨
     (assets.toNat ≤ old.toNat ∧ I.perm = true ∧ ∃ k' C', C ≤ C' ∧
-      RD midnightBytecode I g s0 ret (UInt256.sub old assets :: index :: R) mem aw rdata
+      RD fork midnightBytecode I g s0 ret (UInt256.sub old assets :: index :: R) mem aw rdata
         (collateralWriteState evm id user index (UInt256.sub old assets)).accountMap k' C') := by
   simp only [List.cons_append, List.nil_append] at rd
   by_cases hle : assets.toNat ≤ old.toNat

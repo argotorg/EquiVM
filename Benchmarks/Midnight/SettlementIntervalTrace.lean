@@ -3,6 +3,8 @@ import Benchmarks.Midnight.SettlementSource
 import Benchmarks.Midnight.RuntimeBlocks_083
 import Benchmarks.Midnight.RuntimeBlocks_084
 
+variable {fork : Ethereum.Fork}
+
 /-! Bytecode branches selecting settlement-fee intervals. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -14,8 +16,8 @@ theorem settlementComputeTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {word time ret : UInt256} {R : List UInt256}
     (hstack : R.length + 17 ≤ 1024)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨21863⟩ (word :: time :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD midnightBytecode I g s0 ret
+    (rd : RD fork midnightBytecode I g s0 ⟨21863⟩ (word :: time :: ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork midnightBytecode I g s0 ret
       (settlementFeeValue word time :: R) mem aw rdata σ k' C' := by
   by_cases hlast : 31104000 ≤ time.toNat
   · have hc : UInt256.isZero (UInt256.lt time (UInt256.ofNat 31104000)) ≠ ⟨0⟩ := by

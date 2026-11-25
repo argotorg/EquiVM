@@ -3,6 +3,8 @@ import Benchmarks.Midnight.LiquidateBitmapTrace
 import Benchmarks.Midnight.LiquidateLoopSourceEntry
 import Benchmarks.Midnight.TransferBudget
 
+variable {fork : Ethereum.Fork}
+
 /-! Paired execution of the optional bitmap clear after the collateral write. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -23,27 +25,27 @@ theorem liquidateBitmap {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {frame 
     (hidx : index.toNat < 128) (hp : I.perm = true) (hi : calldataWord I.calldata 36 = index)
     (hseized : memLoad ⟨640⟩ mem = seized) (hs : SourceState s0 I σ evm)
     (hb : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨6820⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨6820⟩
       (value :: uint128Mask :: positionSlot id borrower :: R) mem aw rdata σ k C) :
     ∃ frame' evm' σ' aw' k' C',
-      ExecStmt config frame evm (liquidateAmountsBody[9]!) (.ok frame' evm') ∧
+      ExecStmt fork config frame evm (liquidateAmountsBody[9]!) (.ok frame' evm') ∧
       LiquidateSourceFrame frame' m id index seized repaid borrower mode receiver callback data ∧
       LiquidateAccumulators frame' bitmap maxDebt price originalDebt badDebt ∧
       SourceState s0 I σ' evm' ∧ TransferBudget root credit mem aw' C' ∧
-      RD midnightBytecode I g s0 ⟨6833⟩
+      RD fork midnightBytecode I g s0 ⟨6833⟩
         (positionSlot id borrower :: R) mem aw' rdata σ' k' C' := by
   have hg := evalLiquidateClearGuard (evm := evm) hn hf.seized
   have finishFalse {aw1 : UInt256} {k1 C1 : Nat}
       (hno : ¬ (value = ⟨0⟩ ∧ seized ≠ ⟨0⟩))
       (hb1 : TransferBudget root credit mem aw1 C1)
-      (rd1 : RD midnightBytecode I g s0 ⟨6828⟩
+      (rd1 : RD fork midnightBytecode I g s0 ⟨6828⟩
         (⟨0⟩ :: positionSlot id borrower :: R) mem aw1 rdata σ k1 C1) :
       ∃ frame' evm' σ' aw' k' C',
-        ExecStmt config frame evm (liquidateAmountsBody[9]!) (.ok frame' evm') ∧
+        ExecStmt fork config frame evm (liquidateAmountsBody[9]!) (.ok frame' evm') ∧
         LiquidateSourceFrame frame' m id index seized repaid borrower mode receiver callback data ∧
         LiquidateAccumulators frame' bitmap maxDebt price originalDebt badDebt ∧
         SourceState s0 I σ' evm' ∧ TransferBudget root credit mem aw' C' ∧
-        RD midnightBytecode I g s0 ⟨6833⟩
+        RD fork midnightBytecode I g s0 ⟨6833⟩
           (positionSlot id borrower :: R) mem aw' rdata σ' k' C' := by
     have rd2 := midnightBlocks.midnight_block_6828_fallthrough
       (by simp only [List.length_cons]; omega) rfl rd1
@@ -69,7 +71,7 @@ theorem liquidateBitmap {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {frame 
         (by omega) hp hi hs rd3
       let cleared := bitmapClear (positionBitmapWord evm id borrower) index
       have hs4 := SourceState.storeHigh128 hs (positionSlot id borrower + ⟨2⟩) cleared
-      have hx4 : ExecStmt config frame evm (liquidateAmountsBody[9]!)
+      have hx4 : ExecStmt fork config frame evm (liquidateAmountsBody[9]!)
           (.ok (wordLocal frame "__c28" cleared)
             (storeHigh128 evm (positionSlot id borrower + ⟨2⟩) cleared)) :=
         ExecStmt.iteTrue (hg.trans (by rw [decide_eq_true ⟨hz, hzseized⟩]))

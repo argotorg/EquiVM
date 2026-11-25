@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TakeAmountsSource
 import Benchmarks.Midnight.TakeAmountsMemory
 
+variable {fork : Ethereum.Fork}
+
 /-! Source/runtime correspondence for both take asset amounts. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -21,11 +23,11 @@ theorem midnightTakeAmounts {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0 e
     (ho : OfferStored mem ⟨832⟩ marketPtr arrayPtr callbackPtr root offer)
     (hroot : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (hunits : calldataWord I.calldata 68 = units) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨11591⟩ (buyerPrice :: sellerPrice :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨11591⟩ (buyerPrice :: sellerPrice :: R)
       mem aw rdata σ k C) :
-    (ExecBlock config frame evm (takeTransition.body.drop 22) .reverted ∧
-      RDrev midnightBytecode g s0) ∨
-    (ABlock config evm frame (takeTransition.body.drop 22)
+    (ExecBlock fork config frame evm (takeTransition.body.drop 22) .reverted ∧
+      RDrev fork midnightBytecode g s0) ∨
+    (ABlock fork config evm frame (takeTransition.body.drop 22)
         (takeAmountsFrame frame offer.buy units buyerPrice sellerPrice)
         (takeTransition.body.drop 25) ∧
       TakeSourceFrame (takeAmountsFrame frame offer.buy units buyerPrice sellerPrice)
@@ -33,7 +35,7 @@ theorem midnightTakeAmounts {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0 e
       ∃ aw' k' C',
         MemoryFunding credit (takeAmountsMemory mem (takeAmount offer.buy units buyerPrice)
           (takeAmount offer.buy units sellerPrice)) aw' C' ∧
-        RD midnightBytecode I g s0 ⟨11681⟩ R
+        RD fork midnightBytecode I g s0 ⟨11681⟩ R
           (takeAmountsMemory mem (takeAmount offer.buy units buyerPrice)
             (takeAmount offer.buy units sellerPrice)) aw' rdata σ k' C') := by
   have hbuy : memLoad (UInt256.ofNat 32 + memLoad (UInt256.ofNat 384) mem) mem = offer.buy := by

@@ -2,6 +2,8 @@ import Benchmarks.Midnight.TakeSellerDebtBlocks
 import Benchmarks.Midnight.TakeBuyerCredit
 import Benchmarks.Midnight.MarketBalanceFields
 
+variable {fork : Ethereum.Fork}
+
 /-! The seller debt increase completes the ordered position writes. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -34,18 +36,18 @@ theorem midnightTakeSellerDebt {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s
     (hd : frame.locals.get? "sellerDebtIncrease" = some (.int debt.toNat))
     (hcanon : seller.toNat < EVM.addressModulus) (hperm : I.perm = true)
     (hs : SourceState s0 I σ evm) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨23403⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨23403⟩
       ([debt, ⟨12505⟩, ⟨2⟩, ⟨12517⟩, uint128Mask, positionSlot id seller,
         solcMappingSlot ⟨1⟩ id, decrease, ratifierPtr, increase] ++ R) mem aw rdata σ k C) :
-    (ExecBlock config frame evm (takeTransition.body.drop 54) .reverted ∧
-      RDrev midnightBytecode g s0) ∨
+    (ExecBlock fork config frame evm (takeTransition.body.drop 54) .reverted ∧
+      RDrev fork midnightBytecode g s0) ∨
     ∃ σ' k' C',
-      (∀ result, ExecBlock config (takeSellerDebtWriteFrame frame debt)
+      (∀ result, ExecBlock fork config (takeSellerDebtWriteFrame frame debt)
           (takeSellerDebtWriteState evm id seller debt) (takeTransition.body.drop 56) result →
-        ExecBlock config frame evm (takeTransition.body.drop 54) result) ∧
+        ExecBlock fork config frame evm (takeTransition.body.drop 54) result) ∧
       SourceState s0 I σ' (takeSellerDebtWriteState evm id seller debt) ∧
       MemoryFunding credit mem aw C' ∧
-      RD midnightBytecode I g s0 ⟨19536⟩
+      RD fork midnightBytecode I g s0 ⟨19536⟩
         ([marketBalanceWord (takeSellerDebtWriteState evm id seller debt) id 0,
           increase, ⟨12561⟩, decrease, ⟨4204⟩, ⟨12566⟩, uint128Mask, solcMappingSlot ⟨1⟩ id,
           decrease, ratifierPtr, increase] ++ R) mem aw rdata σ' k' C' := by
@@ -53,7 +55,7 @@ theorem midnightTakeSellerDebt {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s
     simp only [evalExprs?, evalWordLocal hd, bind, pure, EvalResult.bind]
   simp only [List.cons_append, List.nil_append] at rd
   by_cases hd128 : debt.toNat < 2^128
-  · have hx0 := callToUint128 (name := "__c24") hc hargs hd128
+  · have hx0 := callToUint128 (fork := fork) (name := "__c24") hc hargs hd128
     have hp1 : (takeSellerDebtWriteFrame frame debt).locals.get? "sellerPos" =
         some (.storageRef (positionRef id seller) positionType) :=
       (store_get_ne _ _ (by decide)).trans hp

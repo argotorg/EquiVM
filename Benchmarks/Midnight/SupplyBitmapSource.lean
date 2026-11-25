@@ -2,6 +2,8 @@ import Benchmarks.Midnight.BitmapCountSource
 import Benchmarks.Midnight.PositionBitmapStorage
 import Benchmarks.Midnight.InternalCall
 
+variable {fork : Ethereum.Fork}
+
 /-! Source calls and assignment for the newly enabled collateral bitmap. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -20,7 +22,7 @@ theorem callBitmapSet {cfg : Config} {frame : Frame} {evm : EVM.State}
     (hc : frame.contract = contract)
     (he : evalExprs? cfg frame evm args = .ok [.int bitmap.toNat, .int bit.toNat])
     (hbit : bit.toNat < 256) :
-    ExecStmt cfg frame evm (.internalCall "UtilsLib_setBit" args name)
+    ExecStmt fork cfg frame evm (.internalCall "UtilsLib_setBit" args name)
       (.ok (wordLocal frame name (bitmapSet bitmap bit)) evm) := by
   let locals : Store := ((∅ : Store).insert "bit" (.int bit.toNat)).insert
     "bitmap" (.int bitmap.toNat)
@@ -37,7 +39,7 @@ theorem callBitmapCount {cfg : Config} {frame : Frame} {evm : EVM.State}
     (hc : frame.contract = contract)
     (he : evalExprs? cfg frame evm args = .ok [.int bitmap.toNat])
     (hbitmap : bitmap.toNat < 2^128) :
-    ExecStmt cfg frame evm (.internalCall "UtilsLib_countBits" args name)
+    ExecStmt fork cfg frame evm (.internalCall "UtilsLib_countBits" args name)
       (.ok (wordLocal frame name (bitmapCount bitmap)) evm) := by
   let locals : Store := (∅ : Store).insert "x" (.int bitmap.toNat)
   obtain ⟨frame', hf⟩ := bitmapCountSource (cfg := cfg) (evm := evm)
@@ -52,7 +54,7 @@ theorem supplyBitmapSetStmt {frame : Frame} {evm : EVM.State} {id user index : U
     (hc : frame.contract = contract) (hcanon : user.toNat < EVM.addressModulus)
     (hp : frame.locals.get? "_position" = some (.storageRef (positionRef id user) positionType))
     (hi : frame.locals.get? "collateralIndex" = some (.int index.toNat)) (hindex : index.toNat < 128) :
-    ExecStmt config frame evm (supplyNewCollateralBody[2]!)
+    ExecStmt fork config frame evm (supplyNewCollateralBody[2]!)
       (.ok (wordLocal frame "newCollateralBitmap"
         (bitmapSet (positionBitmapWord evm id user) index)) evm) := by
   apply callBitmapSet hc ?_ (by omega)
@@ -71,12 +73,12 @@ theorem supplyBitmapSource {frame : Frame} {evm : EVM.State} {id user index : UI
     (hp : frame.locals.get? "_position" = some (.storageRef (positionRef id user) positionType))
     (hi : frame.locals.get? "collateralIndex" = some (.int index.toNat)) (hindex : index.toNat < 128)
     (hperm : evm.executionEnv.perm = true)
-    (htail : ExecBlock config
+    (htail : ExecBlock fork config
       (supplyCountFrame frame (bitmapSet (positionBitmapWord evm id user) index))
       (storeHigh128 evm (positionSlot id user + ⟨2⟩)
         (bitmapSet (positionBitmapWord evm id user) index))
       (supplyNewCollateralBody.drop 5) result) :
-    ExecBlock config frame evm (supplyNewCollateralBody.drop 2) result := by
+    ExecBlock fork config frame evm (supplyNewCollateralBody.drop 2) result := by
   let bitmap := bitmapSet (positionBitmapWord evm id user) index
   have hp' : (supplyBitmapFrame frame bitmap).locals.get? "_position" =
       some (.storageRef (positionRef id user) positionType) := by
@@ -95,7 +97,7 @@ theorem supplyBitmapStatic {frame : Frame} {evm : EVM.State} {id user index : UI
     (hp : frame.locals.get? "_position" = some (.storageRef (positionRef id user) positionType))
     (hi : frame.locals.get? "collateralIndex" = some (.int index.toNat)) (hindex : index.toNat < 128)
     (hperm : evm.executionEnv.perm = false) :
-    ExecBlock config frame evm (supplyNewCollateralBody.drop 2) .staticViolation := by
+    ExecBlock fork config frame evm (supplyNewCollateralBody.drop 2) .staticViolation := by
   let bitmap := bitmapSet (positionBitmapWord evm id user) index
   have hp' : (supplyBitmapFrame frame bitmap).locals.get? "_position" =
       some (.storageRef (positionRef id user) positionType) := by

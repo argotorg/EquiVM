@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.TakeBuyerDebtRead
 
+variable {fork : Ethereum.Fork}
+
 /-! The buyer is updated when it has credit or the trade exceeds its existing debt. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -22,12 +24,12 @@ theorem midnightTakeBuyerUpdateGuard {credit : Nat} {I : ExecutionEnv} {g : Sat2
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024) (hu : calldataWord I.calldata 68 = units)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨11960⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨11960⟩
       ([UInt256.ofNat 14521, UInt256.isZero (takeHasCreditWord σ I id buyer),
         takeHasCreditWord σ I id buyer, positionSlot id seller, saved, positionSlot id buyer] ++ R)
       mem aw rdata σ k C) :
     ∃ k' C', MemoryFunding credit mem aw C' ∧
-      RD midnightBytecode I g s0
+      RD fork midnightBytecode I g s0
         (takeBuyerUpdatePC (low128 (solcSlotWordAt (positionSlot id buyer) σ I))
           (low128 (solcSlotWordAt (positionSlot id buyer + ⟨2⟩) σ I)) units)
         (positionSlot id seller :: saved :: positionSlot id buyer :: R)

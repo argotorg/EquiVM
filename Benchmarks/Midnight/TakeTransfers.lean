@@ -2,6 +2,8 @@ import Benchmarks.Midnight.TakeTransfersSource
 import Benchmarks.Midnight.TakeBuyCallback
 import Benchmarks.Midnight.MemoryCharge
 
+variable {fork : Ethereum.Fork}
+
 /-! The fee and seller token transfers, retaining memory for the seller callback. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -40,20 +42,20 @@ theorem midnightTakeTransfers {I : ExecutionEnv} {g : UInt256} {s0 evm : State}
     (hsold : memLoad (UInt256.ofNat 416) mem = sold)
     (hreceiver : memLoad (UInt256.ofNat 128) mem = UInt256.ofNat receiver.val)
     (hh : TransferHeap mem aw root C)
-    (hgas : midnightGasBound g) (hfork : I.fork ≥ .osaka) (hs : SourceState s0 I σ evm)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨13252⟩
+    (hgas : midnightGasBound g) (hfork : fork ≥ .osaka) (hs : SourceState s0 I σ evm)
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨13252⟩
       ([ignored, sellerCallback, UInt256.ofNat payer.val] ++ R) mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (ExecBlock config frame evm (takeTransition.body.drop 68) .reverted ∧
-      RDrev midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (ExecBlock fork config frame evm (takeTransition.body.drop 68) .reverted ∧
+      RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
     ∃ (evm' : State) (σ' : AccountMap) (mem' out : ByteArray) (root' aw' : UInt256) (k' C' : Nat),
-      (∀ result, ExecBlock config
+      (∀ result, ExecBlock fork config
           (resumeAfterInternalCall (resumeAfterInternalCall frame "__c28" none) "__c29" none)
           evm' (takeTransition.body.drop 70) result →
-        ExecBlock config frame evm (takeTransition.body.drop 68) result) ∧
+        ExecBlock fork config frame evm (takeTransition.body.drop 68) result) ∧
       SourceState s0 I σ' evm' ∧ MemoryPrefix mem mem' root.toNat ∧
       root.toNat ≤ root'.toNat ∧ TransferHeap mem' aw' root' C' ∧
-      RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨13329⟩
+      RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨13329⟩
         (sellerCallback :: solcAddrMask :: R) mem' aw' out σ' k' C' := by
   simp only [List.cons_append, List.nil_append] at rd
   have rd1 := midnightBlocks.midnight_block_13252 (by omega) (by jump_dest) rd
@@ -90,7 +92,7 @@ theorem midnightTakeTransfers {I : ExecutionEnv} {g : UInt256} {s0 evm : State}
       (safeTransferBind true offer.market.loanToken payer I.codeOwner (UInt256.sub bought sold))
       (by simpa only [safeTransferFrame, hc] using hx))
   · let frame1 := resumeAfterInternalCall frame "__c28" none
-    have hx1' : ExecStmt config frame evm
+    have hx1' : ExecStmt fork config frame evm
         (.internalCall "SafeTransferLib_safeTransferFrom" takeFeeTransferArgs "__c28")
         (.ok frame1 evm1) :=
       internalCallFunctionReturn he1 hl

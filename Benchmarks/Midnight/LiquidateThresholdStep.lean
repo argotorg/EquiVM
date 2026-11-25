@@ -3,6 +3,8 @@ import Benchmarks.Midnight.LiquidateThresholdTrace
 import Benchmarks.Midnight.LiquidateRecoverableTrace
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 /-! Paired execution of the recovery-threshold branch after repayment exceeds the cap. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -23,15 +25,15 @@ theorem liquidateThresholdStep {I : ExecutionEnv} {g : Sat256} {s0 evm : State} 
     (hcanon : borrower.toNat < EVM.addressModulus)
     (hd : decodeCalldataMarket I.calldata 4 = some m) (hi : calldataWord I.calldata 36 = index)
     (hs : SourceState s0 I σ evm) (hb : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨7188⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨7188⟩
       ([price, lif, cap, flag, positionSlot id borrower, dp, dl, borrower, badDebt,
         receiverWord, mode, selector] ++ R) mem aw rdata σ k C) :
-    (ExecBlock config frame evm liquidateThresholdBody .reverted ∧ RDrev midnightBytecode g s0) ∨
-    ∃ frame' k' C', ExecBlock config frame evm liquidateThresholdBody (.ok frame' evm) ∧
+    (ExecBlock fork config frame evm liquidateThresholdBody .reverted ∧ RDrev fork midnightBytecode g s0) ∨
+    ∃ frame' k' C', ExecBlock fork config frame evm liquidateThresholdBody (.ok frame' evm) ∧
       LiquidateSourceFrame frame' m id index seized repaid borrower mode receiver callback data ∧
       LiquidateAccumulators frame' bitmap maxDebt price originalDebt badDebt ∧
       TransferBudget root credit mem aw C' ∧
-      RD midnightBytecode I g s0 ⟨6744⟩
+      RD fork midnightBytecode I g s0 ⟨6744⟩
         ([selector, selector, selector, selector, positionSlot id borrower, dp, dl, borrower,
           badDebt, receiverWord, mode, selector] ++ R) mem aw rdata σ k' C' := by
   have htrace := midnightLiquidateRecoverable
@@ -40,7 +42,7 @@ theorem liquidateThresholdStep {I : ExecutionEnv} {g : Sat256} {s0 evm : State} 
   have hload : (fun slot ↦ solcSlotWordAt slot σ I) =
       Stele.EVM.storageLoad evm evm.executionEnv.codeOwner := funext (fun slot ↦ (hs.storageRead slot).symm)
   rw [hload] at htrace
-  have hsource := liquidateRecoverableSource (evm := evm)
+  have hsource := liquidateRecoverableSource (fork := fork) (evm := evm)
     hf.contract hcanon hf.position hf.index ha.price hl
   rcases htrace with ⟨hbad, hrev⟩ | ⟨hidx, hsafe, k1, C1, hc1, rd1⟩
   · rcases hsource with ⟨_, hsrev⟩ | ⟨hi', hs', _⟩
@@ -63,7 +65,7 @@ theorem liquidateThresholdStep {I : ExecutionEnv} {g : Sat256} {s0 evm : State} 
           wordLocal_get_ne _ _ _ _ (show "value" ≠ "maxRepaid" by decide)] using hcap
       have hrep1 : f1.locals.get? "repayable" =
           some (.int (liquidateRecoverable collateral price lif).toNat) := wordLocal_get _ _ _
-      have hs1 := liquidateThresholdSource (evm := evm) hf1.contract hf1.market hrep1 hcap1
+      have hs1 := liquidateThresholdSource (fork := fork) (evm := evm) hf1.contract hf1.market hrep1 hcap1
       rcases midnightLiquidateThreshold (R := R) (by omega) hd rd1 with
         ⟨hbad, hrev⟩ | ⟨hsafe, k2, C2, hc2, rd2⟩
       · rcases hs1 with ⟨_, hsrev⟩ | ⟨hsafe, _⟩

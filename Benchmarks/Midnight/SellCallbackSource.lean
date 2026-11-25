@@ -2,6 +2,8 @@ import Benchmarks.Midnight.TakeSellData
 import Benchmarks.Midnight.SellCallbackABI
 import Benchmarks.Midnight.FlashLoanCallbackSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Source statements and exact argument evaluation for the seller callback. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -66,30 +68,30 @@ variable {frame : Frame} {evm evm' : State} {m : MarketData}
 include ht ha
 
 theorem sellCallbackFailure
-    (hcall : typedCallViaEVM config evm callback "onSell" 0
+    (hcall : typedCallViaEVM fork config evm callback "onSell" 0
       (sellCallbackArguments m id assets units fee (AccountAddress.ofNat user.toNat) (AccountAddress.ofNat receiver.toNat) data)
       (false, evm', out) true) :
-    ExecStmt config frame evm sellCallbackStmt .reverted := by
+    ExecStmt fork config frame evm sellCallbackStmt .reverted := by
   exact ExecStmt.externalCallFailure (target := callback) (Or.inl wordOfInt_zero)
     (by simp only [evalExpr?, ht, EvalResult.ofOption])
     (by simp only [evalExpr?, pure]) ha
     (by simpa only [address_of_val] using hcall)
 
 theorem sellCallbackShort
-    (hcall : typedCallViaEVM config evm callback "onSell" 0
+    (hcall : typedCallViaEVM fork config evm callback "onSell" 0
       (sellCallbackArguments m id assets units fee (AccountAddress.ofNat user.toNat) (AccountAddress.ofNat receiver.toNat) data)
       (true, evm', out) true) (hshort : out.size < 32) :
-    ExecStmt config frame evm sellCallbackStmt .reverted := by
+    ExecStmt fork config frame evm sellCallbackStmt .reverted := by
   exact ExecStmt.externalCallReturnDecodeRevert (target := callback) (Or.inl wordOfInt_zero)
     (by simp only [evalExpr?, ht, EvalResult.ofOption])
     (by simp only [evalExpr?, pure]) ha
     (by simpa only [address_of_val] using hcall) (decodeSellCallback_short hshort)
 
 theorem sellCallbackSuccess
-    (hcall : typedCallViaEVM config evm callback "onSell" 0
+    (hcall : typedCallViaEVM fork config evm callback "onSell" 0
       (sellCallbackArguments m id assets units fee (AccountAddress.ofNat user.toNat) (AccountAddress.ofNat receiver.toNat) data)
       (true, evm', out) true) (h32 : 32 ≤ out.size) :
-    ExecStmt config frame evm sellCallbackStmt
+    ExecStmt fork config frame evm sellCallbackStmt
       (.ok (sellCallbackFrame frame (calldataWord out 0)) evm') := by
   exact ExecStmt.externalCallSuccess (target := callback) (Or.inl wordOfInt_zero)
     (by simp only [evalExpr?, ht, EvalResult.ofOption])

@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TakeConsumptionRuntime
 import Benchmarks.Midnight.TakeConsumptionSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Source/runtime correspondence for the consumed counter's increment and cap check. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -38,18 +40,18 @@ theorem midnightTakeConsumption {credit : Nat} {I : ExecutionEnv} {g : Sat256}
     (hbm : memLoad (UInt256.ofNat 256) mem = bought)
     (hsm : memLoad (UInt256.ofNat 416) mem = sold)
     (hstate : SourceState s0 I σ evm) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨11681⟩ R mem aw rdata σ k C) :
-    (ExecBlock config frame evm (takeTransition.body.drop 25) .reverted ∧
-      RDrev midnightBytecode g s0) ∨
+    (rd : RD fork midnightBytecode I g s0 ⟨11681⟩ R mem aw rdata σ k C) :
+    (ExecBlock fork config frame evm (takeTransition.body.drop 25) .reverted ∧
+      RDrev fork midnightBytecode g s0) ∨
     (let old := takeConsumedStored evm offer
      let value := old + takeConsumedDelta offer units bought sold
      value.toNat < 2^128 ∧
-     ABlock config evm frame (takeTransition.body.drop 25)
+     ABlock fork config evm frame (takeTransition.body.drop 25)
        (takeConsumptionFrame frame old offer units bought sold) (takeTransition.body.drop 27) ∧
      TakeSourceFrame (takeConsumptionFrame frame old offer units bought sold) offer id units taker
        receiver callback ratifierData data ∧
      ∃ aw' k' C', MemoryFunding credit (takeConsumptionMemory mem offer value) aw' C' ∧
-       RD midnightBytecode I g s0 ⟨11826⟩ R
+       RD fork midnightBytecode I g s0 ⟨11826⟩ R
          (takeConsumptionMemory mem offer value) aw' rdata σ k' C') := by
   have hword : takeConsumedStored evm offer = takeConsumedWord σ I offer := by
     unfold takeConsumedStored consumedStored takeConsumedWord

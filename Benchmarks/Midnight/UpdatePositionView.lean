@@ -4,6 +4,8 @@ import Benchmarks.Midnight.PositionViewCall
 import Benchmarks.Midnight.PositionViewTrace
 import Benchmarks.Midnight.ReturnThree128
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `updatePositionView((uint256,address,address,(address,uint256,uint256,address)[],uint256,uint256,address,address),bytes32,address)`
 
@@ -21,10 +23,10 @@ set_option maxRecDepth 2000000
 /-- `updatePositionView((uint256,address,address,(address,uint256,uint256,address)[],uint256,uint256,address,address),bytes32,address)`: the theorem `Correct.lean` routes selector 46 to. -/
 theorem midnightUpdatePositionViewBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 46)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 46) rfl hsel
   have hd : dispatchMsg contract I.calldata = some updatePositionViewTransition := by
     apply midnightDispatch_updatePositionView <;>
@@ -53,9 +55,9 @@ theorem midnightUpdatePositionViewBody {σ σ₀ A I} {g : UInt256}
       let fee := positionViewFee evm m id user
       have hrun := midnightPositionViewInternal (by simp)
         hu (by decide) (by change 960 + 32 ≤ mem'.size; omega) hm (by jump_dest) rd4
-      change (¬ PositionViewSourceSafe evm m id user ∧ RDrev midnightBytecode _ _) ∨
+      change (¬ PositionViewSourceSafe evm m id user ∧ RDrev fork midnightBytecode _ _) ∨
         (PositionViewSourceSafe evm m id user ∧ ∃ aw' k' C',
-          RD midnightBytecode I _ _ ⟨2594⟩
+          RD fork midnightBytecode I _ _ ⟨2594⟩
             (fee :: UInt256.sub (low128 pp) fee :: UInt256.sub (low128 pc) fee ::
               ⟨1184⟩ :: [solcSelectorWord I])
             (positionSlashMemory mem' id user (positionFieldWord evm id user 2))

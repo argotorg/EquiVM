@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.PositionViewSourceBase
 
+variable {fork : Ethereum.Fork}
+
 /-! The source tuple return and its checked-subtraction failures. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,7 +19,7 @@ theorem positionViewReturnSource {frame : Frame} {evm : EVM.State}
     (hf : frame.locals.get? "fee" = some (.int fee.toNat))
     (hcredit : fee.toNat ≤ (low128 postCredit).toNat)
     (hpending : fee.toNat ≤ (low128 postPending).toNat) :
-    ExecBlock config frame evm (positionViewFunction.body.drop 12)
+    ExecBlock fork config frame evm (positionViewFunction.body.drop 12)
       (.returned frame evm (some (positionViewReturnValues postCredit postPending fee))) := by
   have hcs := evalCheckedSub128 (evalCast128 (evalWordLocal (cfg := config) (evm := evm) hc))
     (evalWordLocal hf) (low128_lt _) hcredit
@@ -38,7 +40,7 @@ theorem positionViewReturnSourceRevert {frame : Frame} {evm : EVM.State}
     (hp : frame.locals.get? "postSlashPendingFee" = some (.int postPending.toNat))
     (hf : frame.locals.get? "fee" = some (.int fee.toNat))
     (hbad : ¬ (fee.toNat ≤ (low128 postCredit).toNat ∧ fee.toNat ≤ (low128 postPending).toNat)) :
-    ExecBlock config frame evm (positionViewFunction.body.drop 12) .reverted := by
+    ExecBlock fork config frame evm (positionViewFunction.body.drop 12) .reverted := by
   apply ExecBlock.consRevert
   apply ExecStmt.returnRevert
   change evalExprs? config frame evm

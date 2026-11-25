@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.OfferFirstBlocks
 import Benchmarks.Midnight.OfferDecodeFacts
 
+variable {fork : Ethereum.Fork}
+
 /-! The offer's market pointer and first seven scalar fields. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -25,8 +27,8 @@ theorem midnightOfferFirstFields {credit : Nat} {I : ExecutionEnv} {g : Sat256} 
     (hrel : rel.toNat < 2^64) (hm : 416 ≤ mem.size)
     (hroot : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨10530⟩ (market :: rel :: R) mem aw rdata σ k C) :
-    (decodeOfferData I.calldata (rel.toNat + 4) = none ∧ RDrev midnightBytecode g s0) ∨
+    (rd : RD fork midnightBytecode I g s0 ⟨10530⟩ (market :: rel :: R) mem aw rdata σ k C) :
+    (decodeOfferData I.calldata (rel.toNat + 4) = none ∧ RDrev fork midnightBytecode g s0) ∨
     ((calldataWord I.calldata (rel.toNat + 36) = ⟨0⟩ ∨
         calldataWord I.calldata (rel.toNat + 36) = ⟨1⟩) ∧
       (calldataWord I.calldata (rel.toNat + 68)).toNat < EVM.addressModulus ∧
@@ -34,7 +36,7 @@ theorem midnightOfferFirstFields {credit : Nat} {I : ExecutionEnv} {g : Sat256} 
       (calldataWord I.calldata (rel.toNat + 260)).toNat < 2^64 ∧
       ∃ aw' k' C',
         MemoryFunding credit (offerFirstMemory mem I.calldata (rel.toNat + 4) market) aw' C' ∧
-        RD midnightBytecode I g s0 ⟨10669⟩
+        RD fork midnightBytecode I g s0 ⟨10669⟩
           (rel :: calldataWord I.calldata (rel.toNat + 260) :: R)
           (offerFirstMemory mem I.calldata (rel.toNat + 4) market) aw' rdata σ k' C') := by
   have hadd (off : Nat) (ho : off ≤ 260) :
@@ -99,7 +101,7 @@ theorem midnightOfferFirstFields {credit : Nat} {I : ExecutionEnv} {g : Sat256} 
               offerFirstWords, writeWordArray, Nat.add_assoc, Nat.reduceAdd]
           change MemoryFunding credit
             (writeWord m3 1056 (calldataWord I.calldata (rel.toNat + 228))) _ _ at ha7
-          change RD midnightBytecode I g s0 ⟨10669⟩
+          change RD fork midnightBytecode I g s0 ⟨10669⟩
             (rel :: calldataWord I.calldata (rel.toNat + 260) :: R)
             (writeWord m3 1056 (calldataWord I.calldata (rel.toNat + 228))) _ rdata σ _ _ at rd7
           rw [he] at ha7 rd7

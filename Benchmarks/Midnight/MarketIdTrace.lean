@@ -3,6 +3,8 @@ import Benchmarks.Midnight.MarketInitcodeTrace
 import Benchmarks.Midnight.MarketIdPreimageTrace
 import Benchmarks.Midnight.MemoryPrefixWindow
 
+variable {fork : Ethereum.Fork}
+
 /-! The complete market-ID hashing path at the start of touchMarket. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -31,8 +33,8 @@ theorem midnightMarketIdTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hm : MarketStored mem ptr arrayPtr root m)
     (hb : root.toNat + 2 * m.encodingSize + 288 < 2^64)
     (hfree : memLoad (UInt256.ofNat 64) mem = root)
-    (rd : RD midnightBytecode I g s0 ⟨20557⟩ (ptr :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g s0 ⟨20728⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨20557⟩ (ptr :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork midnightBytecode I g s0 ⟨20728⟩
       (marketIdPreimagePtr root m :: (marketIdPreimagePtr root m + UInt256.ofNat 32) ::
         ptr :: (ptr + UInt256.ofNat 32) :: R)
       (marketIdWorkMemory mem root m) aw' rdata σ k' C' := by
@@ -60,7 +62,7 @@ theorem midnightMarketIdTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
   simp only [midnightBlocks.midnight_block_20557_stack, hmid] at rd1
   obtain ⟨aw2, k2, C2, rd2⟩ := midnightSstore2Prefix
     (by simp only [List.length_cons]; omega) (by omega) hfree (by jump_dest) rd1
-  change RD _ _ _ _ _ _ mem1 _ _ _ _ _ at rd2
+  change RD fork _ _ _ _ _ _ mem1 _ _ _ _ _ at rd2
   have hf1 : memLoad (UInt256.ofNat 64) mem1 = ep := sstore2PrefixMemory_free mem hlo
   have hm1 := hm.preserve (sstore2PrefixMemory_prefix mem root)
   have rd3 := midnightBlocks.midnight_block_20572 (by simp only [List.length_cons]; omega)
@@ -72,7 +74,7 @@ theorem midnightMarketIdTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
   obtain ⟨aw4, k4, C4, rd4⟩ := midnightMarketBytesEncode m
     (by simp only [List.length_cons]; omega) hm1 (by rw [he]; omega)
     (by rw [he]; omega) (by jump_dest) rd3
-  change RD _ _ _ _ _ _ mem2 _ _ _ _ _ at rd4
+  change RD fork _ _ _ _ _ _ mem2 _ _ _ _ _ at rd4
   have hp2 := marketBytesMemory_prefix mem1 ep m
   have hs1 : root.toNat + 64 ≤ mem1.size := sstore2PrefixMemory_size mem root
   have hpLen : memLoad root mem2 = UInt256.ofNat 11 := by
@@ -93,7 +95,7 @@ theorem midnightMarketIdTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (by simp only [List.length_cons]; omega) (by rw [hc]; omega)
     (by have := hp2.size; omega) (by rw [hc]; omega) (by omega)
     (by rw [hc, he]; omega) hf2 hpLen heLen (by jump_dest) rd4
-  change RD _ _ _ _ _ _ mem3 _ _ _ _ _ at rd5
+  change RD fork _ _ _ _ _ _ mem3 _ _ _ _ _ at rd5
   have hcBytes : mem3.readWithPadding (cp.toNat + 32) (11 + m.encodingSize) = m.initcode :=
     marketInitcodeMemory_bytes mem2 m (by rw [hc]; omega) (by omega)
       (by have := hp2.size; omega) heSize (by rw [hc, he]; omega) hpBytes heBytes

@@ -2,6 +2,8 @@ import Benchmarks.Midnight.InternalCall
 import Benchmarks.Midnight.PositionStorage
 import Reasoning.TransientStorage
 
+variable {fork : Ethereum.Fork}
+
 /-! Internal source helpers for Midnight's transient liquidation lock. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -28,7 +30,7 @@ def lockValue (evm : EVM.State) (base id user : UInt256) : Value :=
 
 theorem tGetBodyReturns (evm : EVM.State) (imms : Store) (base id user : UInt256)
     (hcanon : user.toNat < EVM.addressModulus) :
-    ExecFuncBody config { contract := contract, locals := tGetArguments base id user, immutables := imms }
+    ExecFuncBody fork config { contract := contract, locals := tGetArguments base id user, immutables := imms }
       evm tGetFunction.body
       (.returned { contract := contract, locals := tGetArguments base id user, immutables := imms }
         evm (some [lockValue evm base id user])) := by
@@ -124,7 +126,7 @@ theorem lockBodyArguments_user (id user : UInt256) :
 
 theorem liquidationLockedInternalReturns (evm : EVM.State) (imms : Store) (id user : UInt256)
     (hcanon : user.toNat < EVM.addressModulus) :
-    ExecFuncBody config { contract := contract, locals := lockBodyArguments id user, immutables := imms }
+    ExecFuncBody fork config { contract := contract, locals := lockBodyArguments id user, immutables := imms }
       evm liquidationLockedFunction.body
       (.returned (resumeAfterInternalCall
         { contract := contract, locals := lockBodyArguments id user, immutables := imms }
@@ -153,7 +155,7 @@ theorem liquidationLockedBodyReturns (evm : EVM.State) (id user : UInt256)
     (hcanon : user.toNat < EVM.addressModulus)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) :
-    ExecTransitionBody config contract evm (positionArguments id user) liquidationLockedTransition.body
+    ExecTransitionBody fork config contract evm (positionArguments id user) liquidationLockedTransition.body
       (.returned (resumeAfterInternalCall (calldataFrame contract (positionArguments id user) ∅ evm)
         "__r" (some [lockValue evm liquidationLockBase id user]))
         evm (some [lockValue evm liquidationLockBase id user])) := by

@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.TakeSellerPendingRuntime
 
+variable {fork : Ethereum.Fork}
+
 /-! Source/runtime correspondence for the seller's proportional pending-fee reduction. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -21,7 +23,7 @@ theorem midnightTakeSellerPending {gasCredit : Nat} {I : ExecutionEnv} {g : Sat2
       EVM.storageLoad evm evm.executionEnv.codeOwner (positionSlot id seller))
     (hle : decrease.toNat ≤ (positionFieldWord evm id seller 0).toNat)
     (ha : MemoryFunding gasCredit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨12150⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨12150⟩
       ([buyerFee, positionFieldWord evm id seller 0, buyerSlot, debt, buyerDebt, sellerSlot,
         marketSlot, decrease] ++ R) mem aw rdata evm.accountMap k C) :
     let credit := positionFieldWord evm id seller 0
@@ -30,10 +32,10 @@ theorem midnightTakeSellerPending {gasCredit : Nat} {I : ExecutionEnv} {g : Sat2
     let frame' := takeSellerPendingFrame frame credit pending decrease
     let mem' := takeSellerPendingMemory mem buyerFee value
     value.toNat < 2^128 ∧
-    ABlock config evm frame (takeTransition.body.drop 40) frame' (takeTransition.body.drop 42) ∧
+    ABlock fork config evm frame (takeTransition.body.drop 40) frame' (takeTransition.body.drop 42) ∧
     TakeSourceFrame frame' offer id units taker receiver callback ratifierData data ∧
     ∃ aw' k' C', MemoryFunding gasCredit mem' aw' C' ∧
-      RD midnightBytecode I g s0 ⟨12187⟩
+      RD fork midnightBytecode I g s0 ⟨12187⟩
         ([buyerSlot, debt, buyerDebt, sellerSlot, marketSlot, decrease] ++ R)
         mem' aw' rdata evm.accountMap k' C' := by
   obtain ⟨hbound, aw1, k1, C1, ha1, rd1⟩ :=

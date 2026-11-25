@@ -3,6 +3,8 @@ import Benchmarks.Midnight.SlashPendingTrace
 import Benchmarks.Midnight.PositionAccrualTrace
 import Benchmarks.Midnight.PositionViewFinish
 
+variable {fork : Ethereum.Fork}
+
 /-! Complete internal position-view bytecode trace, with every arithmetic revert path. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -19,7 +21,7 @@ theorem midnightPositionViewInternal {I : ExecutionEnv} {g : Sat256} {s0 : State
     (hhi : (ptr + UInt256.ofNat 128).toNat + 32 ≤ mem.size)
     (hmaturity : memLoad (ptr + UInt256.ofNat 128) mem = maturity)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨22775⟩ (ptr :: id :: user :: ret :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨22775⟩ (ptr :: id :: user :: ret :: R)
       mem aw rdata σ k C) :
     let w0 := solcSlotWordAt (positionSlot id user) σ I
     let w1 := solcSlotWordAt (positionSlot id user + ⟨1⟩) σ I
@@ -33,9 +35,9 @@ theorem midnightPositionViewInternal {I : ExecutionEnv} {g : Sat256} {s0 : State
     let pp := slashPending credit pending pc
     let fee := positionAccruedFee pp lastAccrual maturity time
     (¬ PositionViewSafe credit pending lastLoss loss lastAccrual maturity time ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     (PositionViewSafe credit pending lastLoss loss lastAccrual maturity time ∧
-      ∃ aw' k' C', RD midnightBytecode I g s0 ret
+      ∃ aw' k' C', RD fork midnightBytecode I g s0 ret
         (fee :: UInt256.sub (low128 pp) fee :: UInt256.sub (low128 pc) fee :: R)
         (positionSlashMemory mem id user lastLoss) aw' rdata σ k' C') := by
   obtain ⟨aw1, k1, C1, rd1⟩ := midnightSlashCredit (by omega) (by omega) hcanon rd

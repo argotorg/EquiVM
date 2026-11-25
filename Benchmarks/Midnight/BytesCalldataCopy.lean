@@ -3,6 +3,8 @@ import Benchmarks.Midnight.CalldataBytesEncodeMemory
 import Benchmarks.Midnight.CalldataSliceBounds
 import Benchmarks.Midnight.RuntimeBlocks_073
 
+variable {fork : Ethereum.Fork}
+
 /-! The checked materialized byte-string copy, including its memory payment. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -19,14 +21,14 @@ theorem midnightBytesCalldataCopy_funded {credit : Nat} {I : ExecutionEnv} {g : 
     (hbound : head.toNat + 32 + len.toNat ≤ I.calldata.size)
     (hret : (D_J midnightBytecode 0).contains ret = true)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨19080⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨19080⟩
       (UInt256.ofNat I.calldata.size :: head :: len :: ptr :: ret :: R)
       mem aw rdata σ k C) :
     ∃ aw' k' C', C ≤ C' ∧
       MemoryFunding (credit + 3 * ((len.toNat + 31) / 32))
         (calldataBytesEncodeMemory mem I.calldata ptr.toNat (head.toNat + 32) len.toNat)
         aw' C' ∧
-      RD midnightBytecode I g s0 ret (ptr :: R)
+      RD fork midnightBytecode I g s0 ret (ptr :: R)
         (calldataBytesEncodeMemory mem I.calldata ptr.toNat (head.toNat + 32) len.toNat)
         aw' rdata σ k' C' := by
   have he := calldataSliceEnd_toNat true hhead hlen

@@ -6,6 +6,8 @@ import Benchmarks.Midnight.AddressDecode
 import Benchmarks.Midnight.PackedArray
 import Benchmarks.Midnight.MappingMemory
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `setDefaultSettlementFee(address,uint256,uint256)`
 
@@ -90,7 +92,7 @@ theorem settlementDefaultAuthEval (evm : EVM.State) (token : UInt256) (index : N
 
 theorem settlementDefaultPrefix (evm : EVM.State) (token value : UInt256) (i : Fin 7)
     (hauth : roleAllowed evm ⟨10⟩) :
-    ABlock config evm (calldataFrame contract (settlementDefaultArguments token i.val value) ∅ evm)
+    ABlock fork config evm (calldataFrame contract (settlementDefaultArguments token i.val value) ∅ evm)
       (setDefaultSettlementFeeTransition.body.drop 3) (settlementDefaultFrame evm token value i)
       (setDefaultSettlementFeeTransition.body.drop 6) := by
   refine ⟨fun h ↦ ExecBlock.consNormal (ExecStmt.requireTrue ?_)
@@ -103,7 +105,7 @@ theorem settlementDefaultPrefix (evm : EVM.State) (token value : UInt256) (i : F
 theorem settlementDefaultGuards (evm : EVM.State) (token value : UInt256) (i : Fin 7)
     (hauth : roleAllowed evm ⟨10⟩) (hbound : value.toNat ≤ maxSettlementFeeValue i)
     (hmultiple : value.toNat % 1000000000000 = 0) :
-    ABlock config evm (calldataFrame contract (settlementDefaultArguments token i.val value) ∅ evm)
+    ABlock fork config evm (calldataFrame contract (settlementDefaultArguments token i.val value) ∅ evm)
       (setDefaultSettlementFeeTransition.body.drop 3) (settlementDefaultFrame evm token value i)
       (setDefaultSettlementFeeTransition.body.drop 8) := by
   refine ⟨fun h ↦ (settlementDefaultPrefix evm token value i hauth).run
@@ -154,7 +156,7 @@ theorem settlementDefaultAssign (evm : EVM.State) (token value : UInt256) (i : F
 theorem settlementDefaultAuthReverts (evm : EVM.State) (token : UInt256) (index : Nat) (value : UInt256)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hhi : evm.executionEnv.calldata.size < calldataLimit)
     (hauth : ¬ roleAllowed evm ⟨10⟩) :
-    ExecTransitionBody config contract evm (settlementDefaultArguments token index value)
+    ExecTransitionBody fork config contract evm (settlementDefaultArguments token index value)
       setDefaultSettlementFeeTransition.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply guardedBodyBlock hwv hhi
@@ -165,7 +167,7 @@ theorem settlementDefaultAuthReverts (evm : EVM.State) (token : UInt256) (index 
 theorem settlementDefaultIndexReverts (evm : EVM.State) (token : UInt256) (index : Nat) (value : UInt256)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hhi : evm.executionEnv.calldata.size < calldataLimit)
     (hauth : roleAllowed evm ⟨10⟩) (hindex : ¬ index ≤ 6) :
-    ExecTransitionBody config contract evm (settlementDefaultArguments token index value)
+    ExecTransitionBody fork config contract evm (settlementDefaultArguments token index value)
       setDefaultSettlementFeeTransition.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply guardedBodyBlock hwv hhi
@@ -179,7 +181,7 @@ theorem settlementDefaultIndexReverts (evm : EVM.State) (token : UInt256) (index
 theorem settlementDefaultBoundReverts (evm : EVM.State) (token value : UInt256) (i : Fin 7)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hhi : evm.executionEnv.calldata.size < calldataLimit)
     (hauth : roleAllowed evm ⟨10⟩) (hbound : ¬ value.toNat ≤ maxSettlementFeeValue i) :
-    ExecTransitionBody config contract evm (settlementDefaultArguments token i.val value)
+    ExecTransitionBody fork config contract evm (settlementDefaultArguments token i.val value)
       setDefaultSettlementFeeTransition.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply guardedBodyBlock hwv hhi
@@ -193,7 +195,7 @@ theorem settlementDefaultMultipleReverts (evm : EVM.State) (token value : UInt25
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hhi : evm.executionEnv.calldata.size < calldataLimit)
     (hauth : roleAllowed evm ⟨10⟩) (hbound : value.toNat ≤ maxSettlementFeeValue i)
     (hmultiple : value.toNat % 1000000000000 ≠ 0) :
-    ExecTransitionBody config contract evm (settlementDefaultArguments token i.val value)
+    ExecTransitionBody fork config contract evm (settlementDefaultArguments token i.val value)
       setDefaultSettlementFeeTransition.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply guardedBodyBlock hwv hhi
@@ -211,7 +213,7 @@ theorem settlementDefaultReturns (evm : EVM.State) (token value : UInt256) (i : 
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hhi : evm.executionEnv.calldata.size < calldataLimit)
     (hauth : roleAllowed evm ⟨10⟩) (hbound : value.toNat ≤ maxSettlementFeeValue i)
     (hmultiple : value.toNat % 1000000000000 = 0) (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (settlementDefaultArguments token i.val value)
+    ExecTransitionBody fork config contract evm (settlementDefaultArguments token i.val value)
       setDefaultSettlementFeeTransition.body
       (.returned (settlementDefaultFrame evm token value i) (settlementDefaultState evm token value i) none) := by
   apply ExecFuncBody.execBlockOK
@@ -232,7 +234,7 @@ theorem settlementDefaultStatic (evm : EVM.State) (token value : UInt256) (i : F
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hhi : evm.executionEnv.calldata.size < calldataLimit)
     (hauth : roleAllowed evm ⟨10⟩) (hbound : value.toNat ≤ maxSettlementFeeValue i)
     (hmultiple : value.toNat % 1000000000000 = 0) (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (settlementDefaultArguments token i.val value)
+    ExecTransitionBody fork config contract evm (settlementDefaultArguments token i.val value)
       setDefaultSettlementFeeTransition.body .staticViolation := by
   apply ExecFuncBody.execBlockStatic
   apply guardedBodyBlock hwv hhi
@@ -245,8 +247,8 @@ theorem settlementDefaultStoreStatic {I : ExecutionEnv} {g : Sat256} {s0 : State
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {x0 x1 x2 x3 x4 x5 x6 : UInt256} {R : List UInt256}
     (hstack : R.length + 12 ≤ 1024) (hperm : I.perm = false)
-    (rd : RD midnightBytecode I g s0 ⟨15348⟩ (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: R)
-      mem aw rdata σ k C) : RDstatic midnightBytecode g s0 := by
+    (rd : RD fork midnightBytecode I g s0 ⟨15348⟩ (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: R)
+      mem aw rdata σ k C) : RDstatic fork midnightBytecode g s0 := by
   let r0 := rd
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.dup2 (by native_decide) (by evm_ov)
@@ -276,8 +278,8 @@ theorem settlementDefaultTracePrepare {I : ExecutionEnv} {g : Sat256} {s0 : Stat
     {token value index : UInt256} {R : List UInt256}
     (hstack : R.length + 12 ≤ 1024) (hm : 64 ≤ mem.size)
     (hcanon : token.toNat < EVM.addressModulus) (hi : index.toNat < 7)
-    (rd : RD midnightBytecode I g s0 ⟨15283⟩ (token :: value :: index :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g s0 ⟨15348⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨15283⟩ (token :: value :: index :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork midnightBytecode I g s0 ⟨15348⟩
       (UInt256.ofNat (2 * index.toNat) :: solcMappingSlot ⟨4⟩ token :: value :: UInt256.ofNat 32 ::
         UInt256.ofNat 33574630258737581165192553333308920302038662582617165778577286065939461421092 ::
         token :: index :: R) (twoWordHashMem token ⟨4⟩ mem) aw' rdata σ k' C' := by
@@ -296,8 +298,8 @@ theorem settlementDefaultTraceReturn {I : ExecutionEnv} {g : Sat256} {s0 : State
     {token value index : UInt256} {R : List UInt256}
     (hstack : R.length + 12 ≤ 1024) (hm : 64 ≤ mem.size)
     (hcanon : token.toNat < EVM.addressModulus) (hi : index.toNat < 7) (hperm : I.perm = true)
-    (rd : RD midnightBytecode I g s0 ⟨15283⟩ (token :: value :: index :: R) mem aw rdata σ k C) :
-    RDret midnightBytecode g s0
+    (rd : RD fork midnightBytecode I g s0 ⟨15283⟩ (token :: value :: index :: R) mem aw rdata σ k C) :
+    RDret fork midnightBytecode g s0
       (sstoreAccountMap I.codeOwner σ (solcMappingSlot ⟨4⟩ token)
         (setUint16Word (solcSlotWordAt (solcMappingSlot ⟨4⟩ token) σ I)
           (settlementFeeQuotient value) ⟨index.toNat, by omega⟩)) ByteArray.empty := by
@@ -311,18 +313,18 @@ theorem settlementDefaultTraceStatic {I : ExecutionEnv} {g : Sat256} {s0 : State
     {token value index : UInt256} {R : List UInt256}
     (hstack : R.length + 12 ≤ 1024) (hm : 64 ≤ mem.size)
     (hcanon : token.toNat < EVM.addressModulus) (hi : index.toNat < 7) (hperm : I.perm = false)
-    (rd : RD midnightBytecode I g s0 ⟨15283⟩ (token :: value :: index :: R) mem aw rdata σ k C) :
-    RDstatic midnightBytecode g s0 := by
+    (rd : RD fork midnightBytecode I g s0 ⟨15283⟩ (token :: value :: index :: R) mem aw rdata σ k C) :
+    RDstatic fork midnightBytecode g s0 := by
   obtain ⟨aw1, k1, C1, rd1⟩ := settlementDefaultTracePrepare hstack hm hcanon hi rd
   exact settlementDefaultStoreStatic hstack hperm rd1
 
 /-- `setDefaultSettlementFee(address,uint256,uint256)`: the theorem `Correct.lean` routes selector 16 to. -/
 theorem midnightSetDefaultSettlementFeeBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 16)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 16) rfl hsel
   have hd : dispatchMsg contract I.calldata = some setDefaultSettlementFeeTransition := by
     apply midnightDispatch_setDefaultSettlementFee <;>
@@ -339,7 +341,7 @@ theorem midnightSetDefaultSettlementFeeBody {σ σ₀ A I} {g : UInt256}
         simp only [midnightBlocks.midnight_block_15214_stack] at rd3
         by_cases hcanon : (calldataWord I.calldata 4).toNat < EVM.addressModulus
         · obtain ⟨k4, C4, rd4⟩ := midnightAddress4_ok (by simp) (by jump_dest) hcanon rd3
-          change RD _ _ _ _ _ [calldataWord I.calldata 4, solcSelectorWord I]
+          change RD fork _ _ _ _ _ [calldataWord I.calldata 4, solcSelectorWord I]
             midnightEntryMemory _ _ _ _ _ at rd4
           have hdec := midnightDecodeTriple_ok "loanToken" "index" "newSettlementFee"
             (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) h100 hhi hsize
@@ -349,7 +351,7 @@ theorem midnightSetDefaultSettlementFeeBody {σ σ₀ A I} {g : UInt256}
           · obtain ⟨k5, C5, rd5⟩ := midnightBlocks.midnight_block_15221_fallthrough (by simp)
               (by rw [addressMask_computed]; exact u256_sub_eq_zero_iff_eq.mpr hauth) rd4
             simp only [midnightBlocks.midnight_block_15221_fallthrough_stack] at rd5
-            change RD _ _ _ _ _ [calldataWord I.calldata 4, calldataWord I.calldata 68,
+            change RD fork _ _ _ _ _ [calldataWord I.calldata 4, calldataWord I.calldata 68,
               calldataWord I.calldata 36, solcSelectorWord I] midnightEntryMemory _ _ _ _ _ at rd5
             by_cases hi : (calldataWord I.calldata 36).toNat ≤ 6
             · have rd6 := midnightBlocks.midnight_block_15248_fallthrough (by simp) (ugt_zero hi) rd5

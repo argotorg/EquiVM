@@ -2,6 +2,8 @@ import Benchmarks.Midnight.MarketIdSource
 import Benchmarks.Midnight.SettlementFields
 import Reasoning.VyperDispatch
 
+variable {fork : Ethereum.Fork}
+
 /-! The touchMarket call frame, market-ID call, and initialized-market branch. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -58,7 +60,7 @@ theorem evalMarketTick {frame : Frame} {evm : EVM.State} {id : UInt256}
   · exact storageLocLoad_uint8_offset18 evm _
 
 theorem touchMarketIdPrefix (evm : EVM.State) (imms : Store) (m : MarketData) :
-    ABlock config evm (touchMarketCallFrame imms m) touchMarketFunction.body
+    ABlock fork config evm (touchMarketCallFrame imms m) touchMarketFunction.body
       (touchMarketIdFrame imms m) (touchMarketFunction.body.drop 1) := by
   refine ⟨fun h ↦ ExecBlock.consNormal ?_ h⟩
   apply internalCallFunctionReturn (callee := marketIdFunction) (locals := touchMarketArguments m)
@@ -80,7 +82,7 @@ theorem touchMarketCondition_eval (evm : EVM.State) (imms : Store) (m : MarketDa
 
 theorem touchMarketExistingSource (evm : EVM.State) (imms : Store) (m : MarketData)
     (hinit : marketTickSpacing (marketFeeWord evm m.id) ≠ ⟨0⟩) :
-    ExecFuncBody config (touchMarketCallFrame imms m) evm touchMarketFunction.body
+    ExecFuncBody fork config (touchMarketCallFrame imms m) evm touchMarketFunction.body
       (.returned (touchMarketIdFrame imms m) evm (some [wordBytes32Value m.id])) := by
   apply ExecFuncBody.execBlockRet
   apply (touchMarketIdPrefix evm imms m).run

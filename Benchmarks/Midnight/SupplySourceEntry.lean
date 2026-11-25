@@ -3,6 +3,8 @@ import Benchmarks.Midnight.MarketIndexAmountDecode
 import Benchmarks.Midnight.TouchMarketSource
 import Benchmarks.Midnight.Authorization
 
+variable {fork : Ethereum.Fork}
+
 /-! Source authorization and market initialization for collateral supply. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -46,9 +48,9 @@ theorem supplyAfterAuthSource {origin : EVM.State} {m : MarketData} {user index 
     (hwv : origin.executionEnv.weiValue = ⟨0⟩)
     (hlimit : origin.executionEnv.calldata.size < calldataLimit)
     (hauth : onBehalfAllowed origin user)
-    (htail : ExecBlock config (supplyExternalFrame origin m user index assets) origin
+    (htail : ExecBlock fork config (supplyExternalFrame origin m user index assets) origin
       (supplyCollateralTransition.body.drop 4) result) :
-    ExecBlock config { contract := contract, locals := (marketIndexAmountArguments m index assets
+    ExecBlock fork config { contract := contract, locals := (marketIndexAmountArguments m index assets
       (AccountAddress.ofNat user.toNat)), immutables := ∅ } origin
       supplyCollateralTransition.body result := by
   apply guardedBodyBlock hwv hlimit
@@ -57,11 +59,11 @@ theorem supplyAfterAuthSource {origin : EVM.State} {m : MarketData} {user index 
 
 theorem supplyAfterTouchSource {origin evm : EVM.State} {m : MarketData} {user index assets : UInt256}
     {callee : Frame} {result : ExecResult}
-    (htouch : ExecFuncBody config (touchMarketCallFrame ∅ m) origin touchMarketFunction.body
+    (htouch : ExecFuncBody fork config (touchMarketCallFrame ∅ m) origin touchMarketFunction.body
       (.returned callee evm (some [wordBytes32Value m.id])))
-    (htail : ExecBlock config (supplyAfterTouchFrame origin m user index assets) evm
+    (htail : ExecBlock fork config (supplyAfterTouchFrame origin m user index assets) evm
       (supplyCollateralTransition.body.drop 5) result) :
-    ExecBlock config (supplyExternalFrame origin m user index assets) origin
+    ExecBlock fork config (supplyExternalFrame origin m user index assets) origin
       (supplyCollateralTransition.body.drop 4) result :=
   ExecBlock.consNormal (internalCallFunctionReturn (callee := touchMarketFunction)
     (locals := touchMarketArguments m) (supplyTouchArgs origin m user index assets) rfl rfl htouch) htail

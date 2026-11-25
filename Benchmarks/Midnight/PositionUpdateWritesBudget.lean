@@ -3,6 +3,8 @@ import Benchmarks.Midnight.PositionWriteBlocksBudget
 import Benchmarks.Midnight.CheckedUint128Gas
 import Benchmarks.Midnight.CheckedExtraGas
 
+variable {fork : Ethereum.Fork}
+
 /-! Position-update bookkeeping with retained transfer funding. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,17 +18,17 @@ theorem midnightPositionUpdateWrites_budget {I : ExecutionEnv} {g : Sat256} {s0 
     {budgetRoot : UInt256} {gasCredit : Nat} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 20 ≤ 1024) (hmem : 64 ≤ mem.size) (hperm : I.perm = true)
     (hb : TransferBudget budgetRoot gasCredit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨23723⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨23723⟩
       ([pendingDecrease, ⟨23855⟩, positionSlot id user, user, solcAddrMask, ⟨96⟩,
         updatePositionTopic, id, creditDecrease, credit, ret, fee, pending] ++ R) mem aw rdata σ k C) :
     ∃ aw' k' C',
       TransferBudget budgetRoot gasCredit (twoWordHashMem id (UInt256.ofNat 1) mem) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨23855⟩
+      RD fork midnightBytecode I g s0 ⟨23855⟩
       ([pendingDecrease, user, solcAddrMask, ⟨96⟩, updatePositionTopic, id, creditDecrease,
         credit, ret, fee, pending] ++ R)
       (twoWordHashMem id (UInt256.ofNat 1) mem) aw' rdata
       (positionUpdateAccounts σ I id user credit pending) k' C' := by
-  change RD midnightBytecode I g s0 ⟨23723⟩
+  change RD fork midnightBytecode I g s0 ⟨23723⟩
     (pendingDecrease :: ⟨23855⟩ :: positionSlot id user :: user :: solcAddrMask :: ⟨96⟩ ::
       updatePositionTopic :: id :: creditDecrease :: credit :: ret :: fee :: pending :: R)
     mem aw rdata σ k C at rd

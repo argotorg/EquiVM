@@ -2,6 +2,8 @@ import Benchmarks.Midnight.LiquidateEntryChecks
 import Benchmarks.Midnight.LiquidateEntryMemory
 import Benchmarks.Midnight.MarketDecoderPreserved
 
+variable {fork : Ethereum.Fork}
+
 /-! The complete liquidation entry decoder, preserving its reserved memory words. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -20,9 +22,9 @@ theorem midnightLiquidateEntry_decoded {I : ExecutionEnv} {g : Sat256} {s0 : Sta
     (hselector : ¬ 0xac9650d8 = (bytesToWord (I.calldata.toList.take 4)).toNat)
     (hmem : 832 ≤ mem.size) (hfree : memLoad (UInt256.ofNat 64) mem = ⟨832⟩)
     (ha : MemoryAccounting mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨4983⟩ R mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨4983⟩ R mem aw rdata σ k C) :
     (config.externalABI.decodeCalldata? liquidateNames liquidateTypes I.calldata = none ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     (∃ m, config.externalABI.decodeCalldata? liquidateNames liquidateTypes I.calldata =
         some (liquidateArguments m (calldataWord I.calldata 36) (calldataWord I.calldata 68)
           (calldataWord I.calldata 100) (AccountAddress.ofNat (calldataWord I.calldata 132).toNat)
@@ -38,7 +40,7 @@ theorem midnightLiquidateEntry_decoded {I : ExecutionEnv} {g : Sat256} {s0 : Sta
         MarketStored mem' ⟨832⟩ ⟨1088⟩ root m ∧ memLoad (UInt256.ofNat 64) mem' = root ∧
         root.toNat ≤ mem'.size ∧
         MemoryWords mem' 96 (memoryWordSnapshot (liquidateEntryMemory mem I.calldata) 96 23) ∧
-        MemoryAccounting mem' aw' C' ∧ RD midnightBytecode I g s0 ⟨4356⟩
+        MemoryAccounting mem' aw' C' ∧ RD fork midnightBytecode I g s0 ⟨4356⟩
           (⟨832⟩ :: ⟨5161⟩ :: calldataArgumentLength I.calldata 260 ::
             calldataWord I.calldata 132 :: calldataArgumentPointer I.calldata 260 ::
             calldataWord I.calldata 196 :: calldataWord I.calldata 164 :: R)
@@ -60,7 +62,7 @@ theorem midnightLiquidateEntry_decoded {I : ExecutionEnv} {g : Sat256} {s0 : Sta
   have ha2 := memoryAccountingAt rd2 (by
     simp only [midnightBlocks.midnight_block_5126_memory]
     memory_account ha1)
-  change RD midnightBytecode I g s0 ⟨18574⟩
+  change RD fork midnightBytecode I g s0 ⟨18574⟩
     ((UInt256.ofNat 4 + calldataWord I.calldata 4) :: UInt256.ofNat I.calldata.size ::
       ⟨4356⟩ :: ⟨5161⟩ :: calldataArgumentLength I.calldata 260 ::
       calldataWord I.calldata 132 :: calldataArgumentPointer I.calldata 260 ::
@@ -104,9 +106,9 @@ theorem midnightLiquidateEntry {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hselector : ¬ 0xac9650d8 = (bytesToWord (I.calldata.toList.take 4)).toNat)
     (hmem : 832 ≤ mem.size) (hfree : memLoad (UInt256.ofNat 64) mem = ⟨832⟩)
     (ha : MemoryAccounting mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨4983⟩ R mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨4983⟩ R mem aw rdata σ k C) :
     (config.externalABI.decodeCalldata? liquidateNames liquidateTypes I.calldata = none ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     (∃ m, config.externalABI.decodeCalldata? liquidateNames liquidateTypes I.calldata =
         some (liquidateArguments m (calldataWord I.calldata 36) (calldataWord I.calldata 68)
           (calldataWord I.calldata 100) (AccountAddress.ofNat (calldataWord I.calldata 132).toNat)
@@ -121,7 +123,7 @@ theorem midnightLiquidateEntry {I : ExecutionEnv} {g : Sat256} {s0 : State}
         MarketStored mem' ⟨832⟩ ⟨1088⟩ root m ∧ memLoad (UInt256.ofNat 64) mem' = root ∧
         root.toNat ≤ mem'.size ∧
         MemoryWords mem' 96 (memoryWordSnapshot (liquidateEntryMemory mem I.calldata) 96 23) ∧
-        MemoryAccounting mem' aw' C' ∧ RD midnightBytecode I g s0 ⟨4356⟩
+        MemoryAccounting mem' aw' C' ∧ RD fork midnightBytecode I g s0 ⟨4356⟩
           (⟨832⟩ :: ⟨5161⟩ :: calldataArgumentLength I.calldata 260 ::
             calldataWord I.calldata 132 :: calldataArgumentPointer I.calldata 260 ::
             calldataWord I.calldata 196 :: calldataWord I.calldata 164 :: R)

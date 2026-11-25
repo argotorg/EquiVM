@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.TakePositionsMemory
 
+variable {fork : Ethereum.Fork}
+
 /-! The short-circuited buyer update condition reads debt only when credit is zero. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -13,10 +15,10 @@ theorem midnightTakeBuyerDebtRead_mono {I : ExecutionEnv} {g : Sat256} {s0 : Sta
     {mem rdata : ByteArray} {aw old sellerSlot saved buyerSlot : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 ⟨14521⟩ (old :: sellerSlot :: saved :: buyerSlot :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨14521⟩ (old :: sellerSlot :: saved :: buyerSlot :: R)
       mem aw rdata σ k C) :
     ∃ k' C', C ≤ C' ∧
-      RD midnightBytecode I g s0 ⟨11961⟩
+      RD fork midnightBytecode I g s0 ⟨11961⟩
         (UInt256.gt (calldataWord I.calldata 68)
           (low128 (solcSlotWordAt (buyerSlot + ⟨2⟩) σ I)) :: sellerSlot :: saved :: buyerSlot :: R)
         mem aw rdata σ k' C' := by

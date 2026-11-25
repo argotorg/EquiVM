@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TakeFeeCapGuard
 import Benchmarks.Midnight.ModArithmetic
 
+variable {fork : Ethereum.Fork}
+
 /-! Checked modulo and tick accessibility for take. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,14 +18,14 @@ theorem midnightTakeTickGuard {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0
     (ho : OfferStored mem ⟨832⟩ marketPtr arrayPtr callbackPtr root offer)
     (hroot : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨11080⟩ (feeWord :: R) mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨11080⟩ (feeWord :: R) mem aw rdata σ k C) :
     ((marketTickSpacing feeWord = ⟨0⟩ ∨
         offer.tick.toNat % (marketTickSpacing feeWord).toNat ≠ 0) ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     (marketTickSpacing feeWord ≠ ⟨0⟩ ∧
       offer.tick.toNat % (marketTickSpacing feeWord).toNat = 0 ∧
       ∃ aw' k' C', MemoryFunding credit mem aw' C' ∧
-        RD midnightBytecode I g s0 ⟨11108⟩ R mem aw' rdata σ k' C') := by
+        RD fork midnightBytecode I g s0 ⟨11108⟩ R mem aw' rdata σ k' C') := by
   have ht : memLoad (UInt256.ofNat 160 + (⟨832⟩ : UInt256)) mem = offer.tick := by
     rw [u256_add_comm]
     exact ho.words.load_offset ⟨5, by change 5 < 15; decide⟩ rfl
@@ -31,7 +33,7 @@ theorem midnightTakeTickGuard {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0
   have ha1 := memoryFundingAt (credit := credit) rd1 (by memory_fund ha)
   simp only [midnightBlocks.midnight_block_11080_stack, hroot, ht,
     u256_land_comm (UInt256.ofNat 255)] at rd1 ha1
-  change RD midnightBytecode I g s0 ⟨20085⟩
+  change RD fork midnightBytecode I g s0 ⟨20085⟩
     (offer.tick :: marketTickSpacing feeWord :: ⟨11103⟩ :: R) mem _ rdata σ _ _ at rd1
   by_cases hz : marketTickSpacing feeWord = ⟨0⟩
   · have rr := midnightBlocks.midnight_block_20085_taken

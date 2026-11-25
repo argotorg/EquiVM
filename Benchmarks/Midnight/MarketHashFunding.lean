@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TouchMarketPrefix
 import Benchmarks.Midnight.MemoryFunding
 
+variable {fork : Ethereum.Fork}
+
 /-! Retaining non-memory work through the market hash and initialization check. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,17 +18,17 @@ theorem midnightMarketHashCheck_funded {credit : Nat} {evm : EVM.State} {g : Sat
     (hb : root.toNat + 2 * m.encodingSize + 288 < 2^64)
     (hret : (D_J midnightBytecode 0).contains ret = true)
     (ha : MemoryFunding credit (marketIdWorkMemory mem root m) aw C)
-    (rd : RD midnightBytecode evm.executionEnv g s0 ⟨20728⟩
+    (rd : RD fork midnightBytecode evm.executionEnv g s0 ⟨20728⟩
       (marketIdPreimagePtr root m :: (marketIdPreimagePtr root m + UInt256.ofNat 32) ::
         ptr :: (ptr + UInt256.ofNat 32) :: ret :: R)
       (marketIdWorkMemory mem root m) aw rdata evm.accountMap k C) :
     (marketTickSpacing (marketFeeWord evm m.id) ≠ ⟨0⟩ ∧
       ∃ aw' k' C', MemoryFunding credit (touchMarketHashMemory mem root m) aw' C' ∧
-        RD midnightBytecode evm.executionEnv g s0 ret (m.id :: R)
+        RD fork midnightBytecode evm.executionEnv g s0 ret (m.id :: R)
           (touchMarketHashMemory mem root m) aw' rdata evm.accountMap k' C') ∨
     (marketTickSpacing (marketFeeWord evm m.id) = ⟨0⟩ ∧
       ∃ aw' k' C', MemoryFunding credit (touchMarketHashMemory mem root m) aw' C' ∧
-        RD midnightBytecode evm.executionEnv g s0 ⟨20764⟩
+        RD fork midnightBytecode evm.executionEnv g s0 ⟨20764⟩
           ((ptr + UInt256.ofNat 32) :: ptr :: m.id :: ret :: R)
           (touchMarketHashMemory mem root m) aw' rdata evm.accountMap k' C') := by
   have hlen := marketIdWorkMemory_length mem m hlo hb

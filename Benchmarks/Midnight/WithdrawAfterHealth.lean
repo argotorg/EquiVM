@@ -2,6 +2,8 @@ import Benchmarks.Midnight.HealthInternalBudget
 import Benchmarks.Midnight.WithdrawHealthSource
 import Benchmarks.Midnight.WithdrawCollateralTransfer
 
+variable {fork : Ethereum.Fork}
+
 /-! Withdrawal from the internal health call through the final token transfer. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -29,16 +31,16 @@ theorem withdrawAfterHealth {I : ExecutionEnv} {g : UInt256} {s0 evm : State}
     (hb : TransferBudget budgetRoot credit mem aw C)
     (hcredit : 4 * ((budgetRoot.toNat + safeTransferCallAllocation false + 31) / 32) ≤
       credit + 999921)
-    (hgas : midnightGasBound g) (hfork : I.fork ≥ .osaka)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨19775⟩
+    (hgas : midnightGasBound g) (hfork : fork ≥ .osaka)
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨19775⟩
       ([market, id, user, UInt256.ofNat 4643, user, UInt256.ofNat token.val,
         UInt256.ofNat receiver.val, assets, id] ++ R) mem aw rdata evm.accountMap k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (RDrev midnightBytecode (Sat256.ofUInt256 g) s0 ∧
-      ExecBlock config frame evm (withdrawCollateralTransition.body.drop 11) .reverted) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0 ∧
+      ExecBlock fork config frame evm (withdrawCollateralTransition.body.drop 11) .reverted) ∨
     ∃ frame' evm',
-      ExecBlock config frame evm (withdrawCollateralTransition.body.drop 11) (.ok frame' evm') ∧
-      RDret midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap ByteArray.empty := by
+      ExecBlock fork config frame evm (withdrawCollateralTransition.body.drop 11) (.ok frame' evm') ∧
+      RDret fork midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap ByteArray.empty := by
   simp only [List.cons_append, List.nil_append] at rd
   rcases midnightHealthInternal_budget frame.immutables
       (by simp only [List.length_cons]; omega) hfork hcanon hroot hheap hfree hm hs
@@ -72,9 +74,9 @@ theorem withdrawAfterHealth {I : ExecutionEnv} {g : UInt256} {s0 evm : State}
       have hc1 : 4 * ((root1.toNat + safeTransferCallAllocation false + 31) / 32) ≤
           credit + 999921 := by omega
       have sourcePrefix {result : ExecResult}
-          (ht : ExecBlock config (withdrawHealthFrame frame true) evm1
+          (ht : ExecBlock fork config (withdrawHealthFrame frame true) evm1
             (withdrawCollateralTransition.body.drop 13) result) :
-          ExecBlock config frame evm (withdrawCollateralTransition.body.drop 11) result :=
+          ExecBlock fork config frame evm (withdrawCollateralTransition.body.drop 11) result :=
         ExecBlock.consNormal hcall (ExecBlock.consNormal
           (ExecStmt.requireTrue (withdrawHealthGuard true)) ht)
       rw [hs1.accounts] at rd2

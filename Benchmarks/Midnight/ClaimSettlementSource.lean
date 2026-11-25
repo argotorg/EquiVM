@@ -2,6 +2,8 @@ import Benchmarks.Midnight.SafeTransferSource
 import Benchmarks.Midnight.RoleSource
 import Benchmarks.Midnight.InternalCall
 
+variable {fork : Ethereum.Fork}
+
 /-! Source execution of the settlement-fee claim through its safe-transfer call. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -126,7 +128,7 @@ theorem claimSettlementBody_shape : claimSettlementFeeTransition.body = entryPre
 theorem claimSettlementUnauthorized (evm : State) (token : AccountAddress) (amount : UInt256)
     (receiver : AccountAddress) (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) (ha : ¬roleAllowed evm ⟨11⟩) :
-    ExecTransitionBody config contract evm (claimSettlementArguments token amount receiver)
+    ExecTransitionBody fork config contract evm (claimSettlementArguments token amount receiver)
       claimSettlementFeeTransition.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   rw [claimSettlementBody_shape]
@@ -139,7 +141,7 @@ theorem claimSettlementUnderflow (evm : State) (token : AccountAddress) (amount 
     (receiver : AccountAddress) (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) (ha : roleAllowed evm ⟨11⟩)
     (hunder : (claimSettlementBalance evm token).toNat < amount.toNat) :
-    ExecTransitionBody config contract evm (claimSettlementArguments token amount receiver)
+    ExecTransitionBody fork config contract evm (claimSettlementArguments token amount receiver)
       claimSettlementFeeTransition.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   rw [claimSettlementBody_shape]
@@ -157,7 +159,7 @@ theorem claimSettlementStatic (evm : State) (token : AccountAddress) (amount : U
     (hhi : evm.executionEnv.calldata.size < calldataLimit) (ha : roleAllowed evm ⟨11⟩)
     (hbound : amount.toNat ≤ (claimSettlementBalance evm token).toNat)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (claimSettlementArguments token amount receiver)
+    ExecTransitionBody fork config contract evm (claimSettlementArguments token amount receiver)
       claimSettlementFeeTransition.body .staticViolation := by
   apply ExecFuncBody.execBlockStatic
   rw [claimSettlementBody_shape]
@@ -175,9 +177,9 @@ theorem claimSettlementRun (evm : State) (token : AccountAddress) (amount : UInt
     (hhi : evm.executionEnv.calldata.size < calldataLimit) (ha : roleAllowed evm ⟨11⟩)
     (hbound : amount.toNat ≤ (claimSettlementBalance evm token).toNat)
     (hperm : evm.executionEnv.perm = true)
-    (htail : ExecBlock config (claimSettlementFrame evm token amount receiver)
+    (htail : ExecBlock fork config (claimSettlementFrame evm token amount receiver)
       (claimSettlementState evm token amount) [claimSettlementCall] result) :
-    ExecBlock config {
+    ExecBlock fork config {
       contract := contract, locals := claimSettlementArguments token amount receiver,
       immutables := ∅ } evm claimSettlementFeeTransition.body result := by
   rw [claimSettlementBody_shape]
@@ -214,9 +216,9 @@ theorem claimSettlementCallReverts (evm : State) (token : AccountAddress) (amoun
     (hhi : evm.executionEnv.calldata.size < calldataLimit) (ha : roleAllowed evm ⟨11⟩)
     (hbound : amount.toNat ≤ (claimSettlementBalance evm token).toNat)
     (hperm : evm.executionEnv.perm = true)
-    (hbody : ExecFuncBody config (safeTransferFrame false ∅ token sender receiver amount)
+    (hbody : ExecFuncBody fork config (safeTransferFrame false ∅ token sender receiver amount)
       (claimSettlementState evm token amount) (safeTransferFunctionFor false).body .reverted) :
-    ExecTransitionBody config contract evm (claimSettlementArguments token amount receiver)
+    ExecTransitionBody fork config contract evm (claimSettlementArguments token amount receiver)
       claimSettlementFeeTransition.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply claimSettlementRun evm token amount receiver hwv hhi ha hbound hperm
@@ -229,10 +231,10 @@ theorem claimSettlementReturns (evm evm' : State) (token : AccountAddress) (amou
     (hhi : evm.executionEnv.calldata.size < calldataLimit) (ha : roleAllowed evm ⟨11⟩)
     (hbound : amount.toNat ≤ (claimSettlementBalance evm token).toNat)
     (hperm : evm.executionEnv.perm = true)
-    (hbody : ExecFuncBody config (safeTransferFrame false ∅ token sender receiver amount)
+    (hbody : ExecFuncBody fork config (safeTransferFrame false ∅ token sender receiver amount)
       (claimSettlementState evm token amount) (safeTransferFunctionFor false).body
       (.returned (safeTransferCallFrame false ∅ token sender receiver amount true out) evm' none)) :
-    ExecTransitionBody config contract evm (claimSettlementArguments token amount receiver)
+    ExecTransitionBody fork config contract evm (claimSettlementArguments token amount receiver)
       claimSettlementFeeTransition.body
       (.returned (resumeAfterInternalCall (claimSettlementFrame evm token amount receiver) "__c0" none)
         evm' none) := by

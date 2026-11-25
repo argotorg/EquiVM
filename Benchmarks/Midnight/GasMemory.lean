@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.Common
 import Ethereum.Theory.ReturnDataBound
 
+variable {fork : Ethereum.Fork}
+
 /-! Quantitative memory accounting, retaining the actual initial gas budget. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -24,7 +26,7 @@ def memoryGas (state : State) : Nat :=
 
 theorem memoryGas_after_Z {validJumps : Array UInt256} {op : Operation}
     {state stateZ : State} {cost : Nat}
-    (hZ : Z validJumps op state = .ok (stateZ, cost)) :
+    (hZ : Z fork validJumps op state = .ok (stateZ, cost)) :
     Cₘ (UInt256.ofNat (memoryExpansionWords state op)) +
       stateZ.machineState.gasAvailable.toNat ≤ memoryGas state := by
   have hwords := memoryExpansionWords_lt_uint256_size state op
@@ -42,7 +44,7 @@ theorem memoryGas_after_Z {validJumps : Array UInt256} {op : Operation}
 
 theorem step_memoryGas_le_target {op : Operation} {arg : Option (UInt256 × Nat)}
     {state state' : State} {cost : Nat}
-    (hstep : step cost (op, arg) state = .ok state') :
+    (hstep : step fork cost (op, arg) state = .ok state') :
     memoryGas state' ≤ Cₘ (UInt256.ofNat (memoryExpansionWords state op)) +
       state.machineState.gasAvailable.toNat := by
   have hactive := step_activeWords_le_memoryExpansionWords hstep
@@ -54,15 +56,15 @@ theorem step_memoryGas_le_target {op : Operation} {arg : Option (UInt256 × Nat)
 
 theorem Xstep_memoryGas_le {validJumps : Array UInt256} {state state' : State}
     {halt : Option (HaltCause × ByteArray)}
-    (h : Xstep validJumps state = .ok (state', halt)) : memoryGas state' ≤ memoryGas state := by
+    (h : Xstep fork validJumps state = .ok (state', halt)) : memoryGas state' ≤ memoryGas state := by
   unfold Xstep at h
   cases hinstr : (decode state.executionEnv.code state.machineState.pc).getD (.STOP, none) with
   | mk op arg =>
     simp [hinstr, bind, Except.bind] at h
-    cases hZ : Z validJumps op state <;> simp [hZ] at h
+    cases hZ : Z fork validJumps op state <;> simp [hZ] at h
     rename_i z
     rcases z with ⟨stateZ, cost⟩
-    cases hstep : step cost (op, arg) { stateZ with executionEnv.depth := state.executionEnv.depth }
+    cases hstep : step fork cost (op, arg) { stateZ with executionEnv.depth := state.executionEnv.depth }
       <;> simp [hstep] at h
     rename_i stateStep
     have hsame := Z_stack_active_eq hZ
@@ -92,7 +94,7 @@ private theorem stack_eq_of_pop2 {stack tail : Stack UInt256} {a b : UInt256}
 
 theorem step_return_output_words {cost : Nat} {arg : Option (UInt256 × Nat)}
     {state state' : State} {op : Operation} (hop : op = .RETURN ∨ op = .REVERT)
-    (h : step cost (op, arg) state = .ok state') :
+    (h : step fork cost (op, arg) state = .ok state') :
     state'.machineState.H_return.size ≤ 32 * memoryExpansionWords state op := by
   rcases hop with rfl | rfl <;>
     (unfold step at h
@@ -115,8 +117,8 @@ theorem step_return_output_words {cost : Nat} {arg : Option (UInt256 × Nat)}
 theorem return_output_memoryCost {validJumps : Array UInt256} {op : Operation}
     {state stateZ state' : State} {cost : Nat} {arg : Option (UInt256 × Nat)}
     (hop : op = .RETURN ∨ op = .REVERT)
-    (hZ : Z validJumps op state = .ok (stateZ, cost))
-    (hstep : step cost (op, arg) { stateZ with executionEnv.depth := state.executionEnv.depth }
+    (hZ : Z fork validJumps op state = .ok (stateZ, cost))
+    (hstep : step fork cost (op, arg) { stateZ with executionEnv.depth := state.executionEnv.depth }
       = .ok state') :
     memoryCost ((state'.machineState.H_return.size + 31) / 32) ≤ memoryGas state := by
   have hs := step_return_output_words hop hstep
@@ -133,7 +135,7 @@ theorem return_output_memoryCost {validJumps : Array UInt256} {op : Operation}
 
 theorem Xstep_halt_output_memoryCost {validJumps : Array UInt256} {state state' : State}
     {cause : HaltCause} {out : ByteArray}
-    (h : Xstep validJumps state = .ok (state', some (cause, out))) :
+    (h : Xstep fork validJumps state = .ok (state', some (cause, out))) :
     memoryCost ((out.size + 31) / 32) ≤ memoryGas state := by
   unfold Xstep at h
   simp [bind, Except.bind] at h

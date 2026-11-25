@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.ToMarketFirstFields
 import Benchmarks.Midnight.ArrayAllocation
 
+variable {fork : Ethereum.Fork}
+
 /-! The stored-market collateral-array header bounds and uint64 length check. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,13 +19,13 @@ theorem midnightToMarketArrayHeader {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hanchor : anchor.toNat + 32 = base + start)
     (hfinish : finish.toNat = base + bytes.size) (hsmall : base + bytes.size < 2^128)
     (hoff : (calldataWord bytes (start + 96)).toNat < 2^64)
-    (rd : RD midnightBytecode I g s0 ⟨1022⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨1022⟩
       (calldataWord bytes (start + 96) :: x :: finish :: ptr :: anchor :: R)
       mem aw rdata σ k C) :
-    (decodeMarketData bytes start = none ∧ RDrev midnightBytecode g s0) ∨
+    (decodeMarketData bytes start = none ∧ RDrev fork midnightBytecode g s0) ∨
     (start + (calldataWord bytes (start + 96)).toNat + 32 ≤ bytes.size ∧
       (calldataWord bytes (start + (calldataWord bytes (start + 96)).toNat)).toNat < 2^64 ∧
-      ∃ k' C', RD midnightBytecode I g s0 ⟨1051⟩
+      ∃ k' C', RD fork midnightBytecode I g s0 ⟨1051⟩
         (UInt256.ofNat (pointerArrayAllocation
           (calldataWord bytes (start + (calldataWord bytes (start + 96)).toNat)).toNat) ::
           x :: finish :: calldataWord bytes (start + (calldataWord bytes (start + 96)).toNat) ::
@@ -56,7 +58,7 @@ theorem midnightToMarketArrayHeader {I : ExecutionEnv} {g : Sat256} {s0 : State}
       hbytes.load_word hh (by rw [ht]; omega)
     have rd2 := midnightBlocks.midnight_block_1040
       (by simp only [List.length_cons]; omega) (by jump_dest) rd1
-    change RD midnightBytecode I g s0 ⟨18477⟩
+    change RD fork midnightBytecode I g s0 ⟨18477⟩
       (memLoad target mem :: ⟨1051⟩ :: x :: finish :: memLoad target mem :: target :: ptr :: anchor :: R)
       mem (M aw target ⟨32⟩) rdata σ _ _ at rd2
     rw [hn] at rd2

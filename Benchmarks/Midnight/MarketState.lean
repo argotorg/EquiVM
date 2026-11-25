@@ -4,6 +4,8 @@ import Benchmarks.Midnight.MappingMemory
 import Benchmarks.Midnight.PackedFields
 import Benchmarks.Midnight.WordTuple
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `marketState(bytes32)`
 
@@ -51,7 +53,7 @@ theorem marketStateReturnEncoding (load : UInt256 → UInt256) (key : UInt256) :
 theorem marketStateBodyReturns (evm : EVM.State) (key : UInt256)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) :
-    ExecTransitionBody config contract evm ((∅ : Store).insert "arg0" (wordBytes32Value key))
+    ExecTransitionBody fork config contract evm ((∅ : Store).insert "arg0" (wordBytes32Value key))
       marketStateTransition.body
       (.returned (calldataFrame contract ((∅ : Store).insert "arg0" (wordBytes32Value key)) ∅ evm)
         evm (some (wordArrayValues (marketStateReturnWords
@@ -257,11 +259,11 @@ theorem marketStateBodyReturns (evm : EVM.State) (key : UInt256)
     marketStateReturnWords, marketStateReturnEntries, wordArrayValues, List.map_cons, List.map_nil]
 
 theorem marketStateTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Nat}
-    (rd : RD midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 2135)
+    (rd : RD fork midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 2135)
       [solcSelectorWord I] midnightEntryMemory
       (M (M (UInt256.ofNat 0) (UInt256.ofNat 64) ⟨32⟩) (UInt256.ofNat 800) ⟨32⟩)
       ByteArray.empty σ k C) :
-    RDret midnightBytecode g (initState σ σ₀ g A I) σ
+    RDret fork midnightBytecode g (initState σ σ₀ g A I) σ
       (wordArrayBytes (marketStateReturnWords (fun slot ↦ solcSlotWordAt slot σ I)
         (calldataWord I.calldata 4))) := by
   obtain ⟨aw1, k1, C1, rd1⟩ := midnightBlocks.midnight_block_2135_packed (by simp) rd
@@ -275,7 +277,7 @@ theorem marketStateTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Nat}
   simp only [midnightBlocks.midnight_block_2226_stack,
     midnightBlocks.midnight_block_2226_memory] at rd2
   have hr := midnightBlocks.midnight_block_2325 (by simp) rd2
-  change RDret _ _ _ _
+  change RDret fork _ _ _ _
     ((writeWordArray (mappingMemory (calldataWord I.calldata 4) ⟨1⟩) 832
       (marketStateReturnWords (fun slot ↦ solcSlotWordAt slot σ I)
         (calldataWord I.calldata 4))).readWithPadding 832 416) at hr
@@ -287,10 +289,10 @@ theorem marketStateTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Nat}
 /-- `marketState(bytes32)`: the theorem `Correct.lean` routes selector 50 to. -/
 theorem midnightMarketStateBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 50)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 50) rfl hsel
   have hd : dispatchMsg contract I.calldata = some marketStateTransition := by
     apply midnightDispatch_marketState <;>
@@ -305,7 +307,7 @@ theorem midnightMarketStateBody {σ σ₀ A I} {g : UInt256}
           (entrySizeCheck_ok (bytes := 32) h36 hhi hsize) rd1
         have hret := marketStateTraceReturn rd2
         have hdec := midnightDecodeBytes32 "arg0" (by decide) (by decide) h36 hhi hsize
-        have hbody := marketStateBodyReturns (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        have hbody := marketStateBodyReturns (fork := fork) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (calldataWord I.calldata 4) hwv hhi
         exact hret.reEquivExecution hcode hd hdec hbody
           (returnEquiv.returned rfl (marketStateReturnEncoding _ _))

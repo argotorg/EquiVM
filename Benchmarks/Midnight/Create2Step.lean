@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.Create2Attempt
 
+variable {fork : Ethereum.Fork}
+
 /-! Couple zero-value CREATE2 with source creation, including rejected creations. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -44,21 +46,21 @@ theorem zeroValueCreate2Step {cfg : Config} {name : Ident} {args : List Value}
     (hcode : cfg.creationCode name args =
       some (s.machineState.memory.readWithPadding offset.toNat size.toNat))
     (hov : R.length + 1 ≤ 1024) :
-    Xstep (D_J s.executionEnv.code 0) s = .error .OutOfGass ∨
+    Xstep fork (D_J s.executionEnv.code 0) s = .error .OutOfGass ∨
     ∃ (addr : AccountAddress) (evm' : State) (z : Bool) (s' : State),
-      newViaEVM cfg evm name 0 args (some (Ethereum.UInt256.toByteArray salt))
+      newViaEVM fork cfg evm name 0 args (some (Ethereum.UInt256.toByteArray salt))
         (addr, evm', z) ∧
-      Xstep (D_J s.executionEnv.code 0) s = .ok (s', none) ∧
+      Xstep fork (D_J s.executionEnv.code 0) s = .ok (s', none) ∧
       s'.executionEnv = s.executionEnv ∧ s'.σ₀ = s.σ₀ ∧
       s'.machineState.pc = s.machineState.pc + ⟨1⟩ ∧
       s'.machineState.stack = (if z then UInt256.ofNat addr.val else ⟨0⟩) :: R ∧
       s'.machineState.memory = s.machineState.memory ∧
       SourceState s s.executionEnv s'.accountMap evm' := by
-  have st := step_create2 s hd
+  have st := step_create2 (fork := fork) s hd
   rw [hstk] at st
   let charged := create2Charged s size
   let initCode := s.machineState.memory.readWithPadding offset.toNat size.toNat
-  change Xstep (D_J s.executionEnv.code 0) s =
+  change Xstep fork (D_J s.executionEnv.code 0) s =
     if s.machineState.gasAvailable.toNat < memoryExpansionCost s .CREATE2 then .error .OutOfGass
     else if (s.machineState.gasAvailable.subNat (memoryExpansionCost s .CREATE2)).toNat <
         GasConstants.Gcreate + GasConstants.Gkeccak256word * ((size.toNat + 31) / 32) +
@@ -66,7 +68,7 @@ theorem zeroValueCreate2Step {cfg : Config} {name : Ident} {args : List Value}
     else if R.length + 1 + 1 + 1 + 1 - 4 + 1 > 1024 then .error .StackOverflow
     else if ¬s.executionEnv.perm = true then .error .StaticModeViolation
     else if size > ⟨49152⟩ then .error .OutOfGass
-    else create2AfterAttempt charged offset size R (zeroCreate2Attempt charged initCode salt) at st
+    else create2AfterAttempt charged offset size R (zeroCreate2Attempt fork charged initCode salt) at st
   have hnoOverflow : ¬ R.length + 1 + 1 + 1 + 1 - 4 + 1 > 1024 := by omega
   simp only [hnoOverflow, hperm, not_true_eq_false, if_false] at st
   split at st

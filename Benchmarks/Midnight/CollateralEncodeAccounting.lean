@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.MarketEncodeAccounting
 import Benchmarks.Midnight.CollateralHeapMemory
 
+variable {fork : Ethereum.Fork}
+
 /-! Memory accounting through every collateral-array encoding iteration. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,11 +19,11 @@ theorem midnightCollateralEncodeLoop_accounted {I : ExecutionEnv} {g : Sat256} {
     (hc : count.toNat = index.toNat + cs.length)
     (hbelow : limit ≤ output.toNat) (hout : output.toNat + 128 * cs.length < UInt256.size)
     (ha : MemoryAccounting mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨19261⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨19261⟩
       (index :: count :: writePtr :: market :: outputBase :: output :: R) mem aw rdata σ k C) :
     ∃ aw' k' C',
       MemoryAccounting (writeWordArray mem output.toNat (cs.flatMap CollateralData.words)) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨19269⟩
+      RD fork midnightBytecode I g s0 ⟨19269⟩
       (count :: count :: (writePtr + UInt256.ofNat (32 * cs.length)) :: market :: outputBase ::
         (output + UInt256.ofNat (128 * cs.length)) :: R)
       (writeWordArray mem output.toNat (cs.flatMap CollateralData.words)) aw' rdata σ k' C' := by

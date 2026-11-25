@@ -4,6 +4,8 @@ import Benchmarks.Midnight.TouchMarketInternalCredit
 import Benchmarks.Midnight.MarketHeapExtent
 import Benchmarks.Midnight.TakeInputMemory
 
+variable {fork : Ethereum.Fork}
+
 /-! The internal market initialization followed by the complete take suffix. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,7 +18,7 @@ theorem midnightTakeAfterAuthFinish {credit : Nat} {origin : State} {g : UInt256
     {mem rdata ratifierData data : ByteArray}
     {aw callbackPtr ratifierPtr takerPtr root units taker saved : UInt256}
     {offer : OfferData} {receiver callback : AccountAddress} {k C : Nat} {R : List UInt256}
-    (hstack : R.length + 33 ≤ 1024) (hfork : origin.executionEnv.fork ≥ .osaka)
+    (hstack : R.length + 33 ≤ 1024) (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g) (hc : OfferCanonical offer)
     (htCanon : taker.toNat < EVM.addressModulus)
     (hi : TakeInputStored mem callbackPtr ratifierPtr takerPtr root offer ratifierData data)
@@ -30,20 +32,20 @@ theorem midnightTakeAfterAuthFinish {credit : Nat} {origin : State} {g : UInt256
     (hcallback : memLoad (UInt256.ofNat 192) mem = UInt256.ofNat callback.val)
     (htakerWord : memLoad (UInt256.ofNat 544) mem = taker)
     (hunits : calldataWord origin.executionEnv.calldata 68 = units)
-    (rd : RD midnightBytecode origin.executionEnv (Sat256.ofUInt256 g) origin ⟨10957⟩
+    (rd : RD fork midnightBytecode origin.executionEnv (Sat256.ofUInt256 g) origin ⟨10957⟩
       (ratifierPtr :: saved :: R) mem aw rdata origin.accountMap k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) origin = .error .OutOfGass ∨
-    (ExecBlock config (takeExternalFrame origin offer ratifierData units taker receiver callback data)
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) origin = .error .OutOfGass ∨
+    (ExecBlock fork config (takeExternalFrame origin offer ratifierData units taker receiver callback data)
         origin (takeTransition.body.drop 4) .staticViolation ∧
-      RDstatic midnightBytecode (Sat256.ofUInt256 g) origin) ∨
-    (ExecBlock config (takeExternalFrame origin offer ratifierData units taker receiver callback data)
+      RDstatic fork midnightBytecode (Sat256.ofUInt256 g) origin) ∨
+    (ExecBlock fork config (takeExternalFrame origin offer ratifierData units taker receiver callback data)
         origin (takeTransition.body.drop 4) .reverted ∧
-      RDrev midnightBytecode (Sat256.ofUInt256 g) origin) ∨
+      RDrev fork midnightBytecode (Sat256.ofUInt256 g) origin) ∨
     ∃ (bought sold : UInt256) (frame' : Frame) (evm' : State),
-      ExecBlock config (takeExternalFrame origin offer ratifierData units taker receiver callback data)
+      ExecBlock fork config (takeExternalFrame origin offer ratifierData units taker receiver callback data)
         origin (takeTransition.body.drop 4)
         (.returned frame' evm' (some [.int bought.toNat, .int sold.toNat])) ∧
-      RDret midnightBytecode (Sat256.ofUInt256 g) origin evm'.accountMap
+      RDret fork midnightBytecode (Sat256.ofUInt256 g) origin evm'.accountMap
         (wordArrayBytes [bought, sold]) := by
   rcases midnightMemoryPaid_small rd ha.accounting.paid hgas with hoog | haw
   · exact Or.inl hoog

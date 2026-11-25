@@ -4,6 +4,8 @@ import Benchmarks.Midnight.TripleDecode
 import Benchmarks.Midnight.UintDecode
 import Benchmarks.Midnight.PackedUint128
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `setConsumed(bytes32,uint128,address)`
 
@@ -136,7 +138,7 @@ theorem setConsumedAuthReverts (evm : EVM.State) (group amount user : UInt256)
     (hc : user.toNat < EVM.addressModulus)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hhi : evm.executionEnv.calldata.size < calldataLimit)
     (hauth : ¬ onBehalfAllowed evm user) :
-    ExecTransitionBody config contract evm (setConsumedArguments group amount user)
+    ExecTransitionBody fork config contract evm (setConsumedArguments group amount user)
       setConsumedTransition.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply guardedBodyBlock hwv hhi
@@ -148,7 +150,7 @@ theorem setConsumedBoundReverts (evm : EVM.State) (group amount user : UInt256)
     (hc : user.toNat < EVM.addressModulus)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hhi : evm.executionEnv.calldata.size < calldataLimit)
     (hauth : onBehalfAllowed evm user) (hbound : ¬ (consumedStored evm group user).toNat ≤ amount.toNat) :
-    ExecTransitionBody config contract evm (setConsumedArguments group amount user)
+    ExecTransitionBody fork config contract evm (setConsumedArguments group amount user)
       setConsumedTransition.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply guardedBodyBlock hwv hhi
@@ -163,7 +165,7 @@ theorem setConsumedReturns (evm : EVM.State) (group amount user : UInt256)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hhi : evm.executionEnv.calldata.size < calldataLimit)
     (hauth : onBehalfAllowed evm user) (hbound : (consumedStored evm group user).toNat ≤ amount.toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (setConsumedArguments group amount user)
+    ExecTransitionBody fork config contract evm (setConsumedArguments group amount user)
       setConsumedTransition.body
       (.returned (calldataFrame contract (setConsumedArguments group amount user) ∅ evm)
         (setConsumedState evm group amount user) none) := by
@@ -189,7 +191,7 @@ theorem setConsumedStatic (evm : EVM.State) (group amount user : UInt256)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hhi : evm.executionEnv.calldata.size < calldataLimit)
     (hauth : onBehalfAllowed evm user) (hbound : (consumedStored evm group user).toNat ≤ amount.toNat)
     (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (setConsumedArguments group amount user)
+    ExecTransitionBody fork config contract evm (setConsumedArguments group amount user)
       setConsumedTransition.body .staticViolation := by
   apply ExecFuncBody.execBlockStatic
   apply guardedBodyBlock hwv hhi
@@ -215,8 +217,8 @@ theorem setConsumedTraceBound {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {group amount user : UInt256} {R : List UInt256}
     (hm : EntryScratch mem) (hstack : R.length + 6 ≤ 1024)
     (hbound : (UInt256.land (solcSlotWordAt (consumedSlot group user) σ I) uint128Mask).toNat ≤ amount.toNat)
-    (rd : RD midnightBytecode I g s0 ⟨1772⟩ (amount :: group :: user :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g s0 ⟨1822⟩ (amount :: group :: user :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨1772⟩ (amount :: group :: user :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork midnightBytecode I g s0 ⟨1822⟩ (amount :: group :: user :: R)
       (consumedHashMemory mem group user) aw' rdata σ k' C' := by
   have hm1 := hm.hash user (UInt256.ofNat 2)
   have hm2 := hm1.hash group (solcMappingSlot (UInt256.ofNat 2) user)
@@ -237,8 +239,8 @@ theorem setConsumedTraceBoundRevert {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {group amount user : UInt256} {R : List UInt256}
     (hm : EntryScratch mem) (hstack : R.length + 6 ≤ 1024)
     (hbound : ¬ (UInt256.land (solcSlotWordAt (consumedSlot group user) σ I) uint128Mask).toNat ≤ amount.toNat)
-    (rd : RD midnightBytecode I g s0 ⟨1772⟩ (amount :: group :: user :: R) mem aw rdata σ k C) :
-    RDrev midnightBytecode g s0 := by
+    (rd : RD fork midnightBytecode I g s0 ⟨1772⟩ (amount :: group :: user :: R) mem aw rdata σ k C) :
+    RDrev fork midnightBytecode g s0 := by
   have hm1 := hm.hash user (UInt256.ofNat 2)
   have hm2 := hm1.hash group (solcMappingSlot (UInt256.ofNat 2) user)
   obtain ⟨k1, C1, rd1⟩ := midnightBlocks.midnight_block_1772_taken hstack (by
@@ -256,8 +258,8 @@ theorem setConsumedTraceReturn {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {group amount user : UInt256} {R : List UInt256}
     (hm : EntryScratch mem) (hstack : R.length + 8 ≤ 1024)
     (hperm : I.perm = true) (hamount : amount.toNat < 2 ^ 128)
-    (rd : RD midnightBytecode I g s0 ⟨1822⟩ (amount :: group :: user :: R) mem aw rdata σ k C) :
-    RDret midnightBytecode g s0
+    (rd : RD fork midnightBytecode I g s0 ⟨1822⟩ (amount :: group :: user :: R) mem aw rdata σ k C) :
+    RDret fork midnightBytecode g s0
       (sstoreAccountMap I.codeOwner σ (consumedSlot group user)
         (setUint128LowWord (solcSlotWordAt (consumedSlot group user) σ I) amount)) ByteArray.empty := by
   have hr := midnightBlocks.midnight_block_1822 hstack hperm rd
@@ -268,7 +270,7 @@ theorem setConsumedTraceReturn {I : ExecutionEnv} {g : Sat256} {s0 : State}
     hm1.zero, hm.hashValue user (UInt256.ofNat 2), hm2.zero,
     hm1.hashValue group (solcMappingSlot (UInt256.ofNat 2) user), uint128Mask_computed,
     hm2.freePtr] at hr
-  change RDret _ _ _ _ ((writeWord (consumedHashMemory mem group user) 832 amount).readWithPadding
+  change RDret fork _ _ _ _ ((writeWord (consumedHashMemory mem group user) 832 amount).readWithPadding
     (memLoad (UInt256.ofNat 800) (writeWord (consumedHashMemory mem group user) 832 amount)).toNat
     (memLoad (UInt256.ofNat 800) (writeWord (consumedHashMemory mem group user) 832 amount)).toNat) at hr
   simp only [consumedHashMemory, hm2.writeZero amount, show (⟨0⟩ : UInt256).toNat = 0 from rfl,
@@ -279,8 +281,8 @@ theorem setConsumedTraceStatic {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {group amount user : UInt256} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024) (hperm : I.perm = false)
-    (rd : RD midnightBytecode I g s0 ⟨1822⟩ (amount :: group :: user :: R)
-      mem aw rdata σ k C) : RDstatic midnightBytecode g s0 := by
+    (rd : RD fork midnightBytecode I g s0 ⟨1822⟩ (amount :: group :: user :: R)
+      mem aw rdata σ k C) : RDstatic fork midnightBytecode g s0 := by
   let r0 := rd
   have r1 := r0.dup3 (by native_decide) (by evm_ov)
   have r2 := r1.push2 (UInt256.ofNat 800) (by native_decide) (by evm_ov)
@@ -320,10 +322,10 @@ theorem setConsumedTraceStatic {I : ExecutionEnv} {g : Sat256} {s0 : State}
 /-- `setConsumed(bytes32,uint128,address)`: the theorem `Correct.lean` routes selector 52 to. -/
 theorem midnightSetConsumedBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 52)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 52) rfl hsel
   have hd : dispatchMsg contract I.calldata = some setConsumedTransition := by
     apply midnightDispatch_setConsumed <;>
@@ -336,13 +338,13 @@ theorem midnightSetConsumedBody {σ σ₀ A I} {g : UInt256}
     · by_cases h100 : 100 ≤ I.calldata.size
       · have rd2 := midnightBlocks.midnight_block_1702_fallthrough (by simp)
           (entrySizeCheck_ok (bytes := 96) h100 hhi hsize) rd1
-        change RD _ _ _ _ _ [solcSelectorWord I] midnightEntryMemory _ _ _ _ _ at rd2
+        change RD fork _ _ _ _ _ [solcSelectorWord I] midnightEntryMemory _ _ _ _ _ at rd2
         by_cases hamount : (calldataWord I.calldata 36).toNat < 2 ^ 128
         · have rd3 := midnightBlocks.midnight_block_1714_fallthrough (by simp)
             (by rw [uint128Mask_computed]
                 exact u256_sub_eq_zero_iff_eq.mpr (uint128Mask_clean hamount).symm) rd2
           simp only [midnightBlocks.midnight_block_1714_fallthrough_stack, uint128Mask_computed] at rd3
-          change RD _ _ _ _ _ [calldataWord I.calldata 4,
+          change RD fork _ _ _ _ _ [calldataWord I.calldata 4,
             UInt256.land (calldataWord I.calldata 36) uint128Mask, solcSelectorWord I] _ _ _ _ _ _ at rd3
           rw [uint128Mask_clean hamount] at rd3
           have rd4 := midnightBlocks.midnight_block_1739 (by simp) (by jump_dest) rd3

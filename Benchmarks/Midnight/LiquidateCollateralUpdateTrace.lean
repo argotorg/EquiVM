@@ -5,6 +5,8 @@ import Benchmarks.Midnight.Uint128Arithmetic
 import Benchmarks.Midnight.TransferBudget
 import Benchmarks.Midnight.RuntimeBlocks_028
 
+variable {fork : Ethereum.Fork}
+
 /-! Checked subtraction of seized collateral and its packed storage update. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -18,14 +20,14 @@ theorem midnightLiquidateCollateralUpdate {I : ExecutionEnv} {g : Sat256} {s0 : 
     {σ : AccountMap} {k C credit : Nat} {R : List UInt256} (hstack : R.length + 12 ≤ 1024)
     (hi : calldataWord I.calldata 36 = index) (hseized : memLoad ⟨640⟩ mem = seized)
     (hb : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨6744⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨6744⟩
       (d0 :: d1 :: d2 :: d3 :: positionSlot id borrower :: R) mem aw rdata σ k C) :
     let old := collateralWord (fun slot ↦ solcSlotWordAt slot σ I) id borrower index
     let safe := index.toNat < 128 ∧ seized.toNat < 2^128 ∧ seized.toNat ≤ old.toNat
-    (¬ safe ∧ RDrev midnightBytecode g s0) ∨
-    (safe ∧ I.perm = false ∧ RDstatic midnightBytecode g s0) ∨
+    (¬ safe ∧ RDrev fork midnightBytecode g s0) ∨
+    (safe ∧ I.perm = false ∧ RDstatic fork midnightBytecode g s0) ∨
     (safe ∧ I.perm = true ∧ ∃ aw' k' C', TransferBudget root credit mem aw' C' ∧
-      RD midnightBytecode I g s0 ⟨6820⟩
+      RD fork midnightBytecode I g s0 ⟨6820⟩
         (UInt256.sub old seized :: uint128Mask :: positionSlot id borrower :: R)
         mem aw' rdata (collateralWriteAccounts σ I id borrower index (UInt256.sub old seized))
         k' C') := by
@@ -44,7 +46,7 @@ theorem midnightLiquidateCollateralUpdate {I : ExecutionEnv} {g : Sat256} {s0 : 
     simp only [midnightBlocks.midnight_block_6775_stack,
       show UInt256.ofNat 640 = (⟨640⟩ : UInt256) from rfl, hseized,
       (uint128ArrayIndexFacts index hidx).2.2] at rd3
-    change RD midnightBytecode I g s0 ⟨23403⟩
+    change RD fork midnightBytecode I g s0 ⟨23403⟩
       (seized :: ⟨6795⟩ :: old :: ⟨6801⟩ :: uint128Mask :: positionSlot id borrower :: R)
       mem (M aw ⟨640⟩ ⟨32⟩) rdata σ k3 C3 at rd3
     have hb3 := transferBudgetAt (root := root) (credit := credit) rd3 (by

@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.MarketCreateTrace
 import Benchmarks.Midnight.Create2BridgeFunding
 
+variable {fork : Ethereum.Fork}
+
 /-! Market-code creation preserves the parent's memory funding. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,25 +18,25 @@ theorem midnightMarketCreate_funded {credit : Nat} {I : ExecutionEnv} {g : Sat25
     (hm : frame.locals.get? "market" = some (Model.marketValue m.value))
     (hinit : mem.readWithPadding offset.toNat size.toNat = m.initcode)
     (hfund : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨21667⟩ (⟨0⟩ :: offset :: size :: ⟨0⟩ :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨21667⟩ (⟨0⟩ :: offset :: size :: ⟨0⟩ :: R)
       mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (RDrev midnightBytecode g s0 ∧
-      ExecFuncBody config frame evm marketStoreCodeFunction.body .reverted) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (RDrev fork midnightBytecode g s0 ∧
+      ExecFuncBody fork config frame evm marketStoreCodeFunction.body .reverted) ∨
     ∃ (evm' : State) (σ' : AccountMap) (addr : AccountAddress)
       (out : ByteArray) (aw' : UInt256) (k' C' : Nat),
       addr ≠ 0 ∧ SourceState s0 I σ' evm' ∧
-      ExecFuncBody config frame evm marketStoreCodeFunction.body
+      ExecFuncBody fork config frame evm marketStoreCodeFunction.body
         (.returned (marketStoreCodeResultFrame frame addr) evm' (some [.address addr])) ∧
       MemoryFunding credit mem aw' C' ∧
-      RD midnightBytecode I g s0 ⟨21682⟩ R mem aw' out σ' k' C' := by
+      RD fork midnightBytecode I g s0 ⟨21682⟩ R mem aw' out σ' k' C' := by
   have hp : evm.executionEnv.perm = true := hs.env ▸ hperm
   rcases zeroValueCreate2BridgeFunded (cfg := config) (name := "SSTORE2")
     (args := [Model.marketValue m.value]) rd hs (by native_decide) hperm
     m.creationCode hinit (by omega) hfund with
     hoog | ⟨evm', σ', addr, z, out, aw', k', C', hnew, hs', hfund', rd'⟩
   · exact Or.inl hoog
-  change RD midnightBytecode I g s0 ⟨21668⟩
+  change RD fork midnightBytecode I g s0 ⟨21668⟩
     ((if z then UInt256.ofNat addr.val else ⟨0⟩) :: R) mem aw' out σ' k' C' at rd'
   cases z with
   | false =>

@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.LiquidateEligibility
 
+variable {fork : Ethereum.Fork}
+
 /-! Source execution of the liquidation lock lookup and eligibility requirement. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -19,9 +21,9 @@ theorem liquidateEligibilitySource {frame : Frame} {evm : State} {m : MarketData
     let lock := Stele.EVM.transientLoad evm evm.executionEnv.codeOwner
       (lockSlot liquidationLockBase id borrower)
     (¬ LiquidateEligible evm.executionEnv m lock mode originalDebt maxDebt ∧
-      ExecBlock config frame evm ((liquidateTransition.body.drop 15).take 2 ++ rest) .reverted) ∨
+      ExecBlock fork config frame evm ((liquidateTransition.body.drop 15).take 2 ++ rest) .reverted) ∨
     (LiquidateEligible evm.executionEnv m lock mode originalDebt maxDebt ∧
-      ABlock config evm frame ((liquidateTransition.body.drop 15).take 2 ++ rest)
+      ABlock fork config evm frame ((liquidateTransition.body.drop 15).take 2 ++ rest)
         (liquidateLockFrame frame evm id borrower) rest) := by
   dsimp only
   let f1 := liquidateLockFrame frame evm id borrower
@@ -31,7 +33,7 @@ theorem liquidateEligibilitySource {frame : Frame} {evm : State} {m : MarketData
       .ok [wordBytes32Value id, .address (AccountAddress.ofNat borrower.toNat)] := by
     simp only [evalExprs?, evalExpr?, hf.idValue, hf.borrowerValue,
       EvalResult.ofOption, pure, bind, EvalResult.bind]
-  have hcall : ExecStmt config frame evm (liquidateTransition.body[15]!) (.ok f1 evm) :=
+  have hcall : ExecStmt fork config frame evm (liquidateTransition.body[15]!) (.ok f1 evm) :=
     callLiquidationLocked hf.contract hargs hcanon
   have hf1 : LiquidateSourceFrame f1 m id target seized repaid borrower mode receiver callback data :=
     hf.insert _ _ (by decide)

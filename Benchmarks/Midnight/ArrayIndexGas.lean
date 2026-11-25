@@ -2,6 +2,8 @@ import Benchmarks.Midnight.MemoryArrayIndex
 import Benchmarks.Midnight.PackedArray
 import Benchmarks.Midnight.TransferBudget
 
+variable {fork : Ethereum.Fork}
+
 /-! Bounds-checked array locations retain the gas credit needed by later transfers. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,8 +17,8 @@ theorem midnightMemoryArrayIndex_funded {I : ExecutionEnv} {g : Sat256} {s0 : St
     (hi : index.toNat < 2^64) (hlt : index.toNat < (memLoad ptr mem).toNat)
     (hret : (D_J midnightBytecode 0).contains ret = true)
     (hb : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨19460⟩ (ptr :: index :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', TransferBudget root credit mem aw' C' ∧ RD midnightBytecode I g s0 ret
+    (rd : RD fork midnightBytecode I g s0 ⟨19460⟩ (ptr :: index :: ret :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', TransferBudget root credit mem aw' C' ∧ RD fork midnightBytecode I g s0 ret
       (((ptr + UInt256.ofNat 32) + UInt256.ofNat (32 * index.toNat)) :: R)
       mem aw' rdata σ k' C' := by
   have hc : UInt256.lt index (memLoad ptr mem) = ⟨1⟩ := ult_one hlt
@@ -33,8 +35,8 @@ theorem midnightUint128ArrayLocation_mono {I : ExecutionEnv} {g : Sat256} {s0 : 
     {slot index ret : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024)
     (hi : index.toNat < 128) (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨19480⟩ (slot :: index :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD midnightBytecode I g s0 ret
+    (rd : RD fork midnightBytecode I g s0 ⟨19480⟩ (slot :: index :: ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode I g s0 ret
       (UInt256.ofNat (16 * (index.toNat % 2)) :: (slot + UInt256.ofNat (index.toNat / 2)) :: R)
       mem aw rdata σ k' C' := by
   have hc : UInt256.isZero (UInt256.lt index ⟨128⟩) = ⟨0⟩ := by
@@ -50,8 +52,8 @@ theorem midnightMemoryArrayIndexRevert {I : ExecutionEnv} {g : Sat256} {s0 : Sta
     {mem rdata : ByteArray} {aw ptr index : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 5 ≤ 1024)
     (hlt : (memLoad ptr mem).toNat ≤ index.toNat)
-    (rd : RD midnightBytecode I g s0 ⟨19460⟩ (ptr :: index :: R) mem aw rdata σ k C) :
-    RDrev midnightBytecode g s0 := by
+    (rd : RD fork midnightBytecode I g s0 ⟨19460⟩ (ptr :: index :: R) mem aw rdata σ k C) :
+    RDrev fork midnightBytecode g s0 := by
   have rd1 := midnightBlocks.midnight_block_19460_taken (by omega)
     (by rw [ult_zero hlt]; decide) (by jump_dest) rd
   exact midnightBlocks.midnight_block_19161 (by simp only [List.length_cons]; omega) rd1
@@ -59,8 +61,8 @@ theorem midnightMemoryArrayIndexRevert {I : ExecutionEnv} {g : Sat256} {s0 : Sta
 theorem midnightUint128ArrayLocationRevert {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw slot index ret : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 5 ≤ 1024) (hi : 128 ≤ index.toNat)
-    (rd : RD midnightBytecode I g s0 ⟨19480⟩ (slot :: index :: ret :: R) mem aw rdata σ k C) :
-    RDrev midnightBytecode g s0 := by
+    (rd : RD fork midnightBytecode I g s0 ⟨19480⟩ (slot :: index :: ret :: R) mem aw rdata σ k C) :
+    RDrev fork midnightBytecode g s0 := by
   have rd1 := midnightBlocks.midnight_block_19480_taken hstack
     (by rw [ult_zero (a := index) (b := UInt256.ofNat 128) hi]; decide) (by jump_dest) rd
   exact midnightBlocks.midnight_block_19161 (by

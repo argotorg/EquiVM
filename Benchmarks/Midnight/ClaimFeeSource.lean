@@ -2,6 +2,8 @@ import Benchmarks.Midnight.ClaimFeeSourceFrames
 import Benchmarks.Midnight.ClaimFeeArithmeticSource
 import Benchmarks.Midnight.SafeTransferSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Source composition of continuous-fee claims. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -36,9 +38,9 @@ theorem claimFeeCreditSource {evm evm' : EVM.State} {m : MarketData} {amount rec
     {result : ExecResult} (hamount : amount.toNat < 2^128)
     (hle : amount.toNat ≤ (marketBalanceWord evm' m.id 2).toNat)
     (hperm : evm'.executionEnv.perm = true)
-    (htail : ExecBlock config (claimFeeCreditFrame evm m amount receiver)
+    (htail : ExecBlock fork config (claimFeeCreditFrame evm m amount receiver)
       (claimFeeCreditState evm' m.id amount) (claimContinuousFeeTransition.body.drop 8) result) :
-    ExecBlock config (claimFeeAliasFrame evm m amount receiver) evm'
+    ExecBlock fork config (claimFeeAliasFrame evm m amount receiver) evm'
       (claimContinuousFeeTransition.body.drop 6) result := by
   have hg := claimFeeAlias_get evm m amount receiver
   exact claimFeeSubtractSource 2 "__c1" (by decide) hg.1 hg.2.1 hg.2.2 hamount hle hperm htail
@@ -47,9 +49,9 @@ theorem claimFeeUnitsSource {evm evm' : EVM.State} {m : MarketData} {amount rece
     {result : ExecResult} (hamount : amount.toNat < 2^128)
     (hle : amount.toNat ≤ (marketBalanceWord (claimFeeCreditState evm' m.id amount) m.id 0).toNat)
     (hperm : evm'.executionEnv.perm = true)
-    (htail : ExecBlock config (claimFeeUnitsFrame evm m amount receiver)
+    (htail : ExecBlock fork config (claimFeeUnitsFrame evm m amount receiver)
       (claimFeeUnitsState evm' m.id amount) (claimContinuousFeeTransition.body.drop 10) result) :
-    ExecBlock config (claimFeeCreditFrame evm m amount receiver)
+    ExecBlock fork config (claimFeeCreditFrame evm m amount receiver)
       (claimFeeCreditState evm' m.id amount) (claimContinuousFeeTransition.body.drop 8) result := by
   have hg := claimFeeCredit_get evm m amount receiver
   exact claimFeeSubtractSource 0 "__c2" (by decide) hg.1 hg.2.1 hg.2.2 hamount hle
@@ -59,9 +61,9 @@ theorem claimFeeWithdrawableSource {evm evm' : EVM.State} {m : MarketData} {amou
     {result : ExecResult} (hamount : amount.toNat < 2^128)
     (hle : amount.toNat ≤ (marketBalanceWord (claimFeeUnitsState evm' m.id amount) m.id 1).toNat)
     (hperm : evm'.executionEnv.perm = true)
-    (htail : ExecBlock config (claimFeeFinalFrame evm m amount receiver)
+    (htail : ExecBlock fork config (claimFeeFinalFrame evm m amount receiver)
       (claimFeeFinalState evm' m.id amount) (claimContinuousFeeTransition.body.drop 12) result) :
-    ExecBlock config (claimFeeUnitsFrame evm m amount receiver)
+    ExecBlock fork config (claimFeeUnitsFrame evm m amount receiver)
       (claimFeeUnitsState evm' m.id amount) (claimContinuousFeeTransition.body.drop 10) result := by
   have hg := claimFeeUnits_get evm m amount receiver
   exact claimFeeSubtractSource 1 "__c3" (by decide) hg.1 hg.2.1 hg.2.2 hamount hle
@@ -69,7 +71,7 @@ theorem claimFeeWithdrawableSource {evm evm' : EVM.State} {m : MarketData} {amou
 
 theorem claimFeeEmitPrefix (evm evm' : EVM.State) (m : MarketData) (amount receiver : UInt256)
     (hperm : evm'.executionEnv.perm = true) :
-    ABlock config evm' (claimFeeFinalFrame evm m amount receiver)
+    ABlock fork config evm' (claimFeeFinalFrame evm m amount receiver)
       (claimContinuousFeeTransition.body.drop 12) (claimFeeFinalFrame evm m amount receiver)
       (claimContinuousFeeTransition.body.drop 13) := by
   refine ⟨fun h ↦ ExecBlock.consNormal (ExecStmt.emit (vals :=
@@ -93,12 +95,12 @@ theorem evalClaimFeeTransferArgs (evm evm' : EVM.State) (m : MarketData) (amount
 theorem claimFeeBodyBlock {evm evm' : EVM.State} {m : MarketData} {amount receiver : UInt256}
     {frame : Frame} {result : ExecResult}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hhi : evm.executionEnv.calldata.size < calldataLimit)
-    (htouch : ExecFuncBody config (touchMarketCallFrame ∅ m) evm touchMarketFunction.body
+    (htouch : ExecFuncBody fork config (touchMarketCallFrame ∅ m) evm touchMarketFunction.body
       (.returned frame evm' (some [wordBytes32Value m.id])))
     (hauth : roleAllowed evm' ⟨11⟩)
-    (htail : ExecBlock config (claimFeeAliasFrame evm m amount receiver) evm'
+    (htail : ExecBlock fork config (claimFeeAliasFrame evm m amount receiver) evm'
       (claimContinuousFeeTransition.body.drop 6) result) :
-    ExecBlock config { contract := contract, immutables := ∅, locals :=
+    ExecBlock fork config { contract := contract, immutables := ∅, locals :=
       marketAmountAccountArguments "receiver" m amount (AccountAddress.ofNat receiver.toNat) } evm
       claimContinuousFeeTransition.body result := by
   apply guardedBodyBlock hwv hhi

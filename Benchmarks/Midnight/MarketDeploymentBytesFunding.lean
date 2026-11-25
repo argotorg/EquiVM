@@ -3,6 +3,8 @@ import Benchmarks.Midnight.RuntimeBlocks_081
 import Benchmarks.Midnight.MarketEncoderFunding
 import Benchmarks.Midnight.AllocationFunding
 
+variable {fork : Ethereum.Fork}
+
 /-! ABI bytes encoding for the market-code deployment path. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -18,10 +20,10 @@ theorem midnightMarketDeploymentBytes_funded {credit : Nat} {I : ExecutionEnv} {
     (hlimit : limit.toNat ≤ root.toNat) (hb : root.toNat + m.encodingSize + 32 < 2^64)
     (hfund : MemoryFunding credit
       (writeWord mem (root.toNat + 32) (UInt256.ofNat 32)) aw C)
-    (rd : RD midnightBytecode I g s0 ⟨19181⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨19181⟩
       (ptr :: (root + UInt256.ofNat 64) :: ⟨21583⟩ :: root :: root :: R)
       (writeWord mem (root.toNat + 32) (UInt256.ofNat 32)) aw rdata σ k C) :
-    ∃ aw' k' C', MemoryFunding credit (marketBytesMemory mem root m) aw' C' ∧ RD midnightBytecode I g s0 ⟨21601⟩ (root :: R)
+    ∃ aw' k' C', MemoryFunding credit (marketBytesMemory mem root m) aw' C' ∧ RD fork midnightBytecode I g s0 ⟨21601⟩ (root :: R)
       (marketBytesMemory mem root m) aw' rdata σ k' C' := by
   have hroot : 96 ≤ root.toNat := by
     have := hm.lower; have := hm.array; have := hm.extent; omega

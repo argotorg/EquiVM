@@ -2,6 +2,8 @@ import Benchmarks.Midnight.LiquidateBadDebtSubtract
 import Benchmarks.Midnight.PositionUpdateStorage
 import Benchmarks.Midnight.CollateralBlocksGas
 
+variable {fork : Ethereum.Fork}
+
 /-! The packed debt write preserves paid gas and detects a static-context violation. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,14 +19,14 @@ local macro "liquidate_stack" : tactic =>
 theorem midnightLiquidateBadDebtWrite {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw value reverseRep rep maxDebt price pos dp dl borrower badDebt : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 21 ≤ 1024)
-    (h : RD midnightBytecode I g s0 ⟨7454⟩
+    (h : RD fork midnightBytecode I g s0 ⟨7454⟩
       ([value, uint128Mask, reverseRep, rep, maxDebt, price, pos, dp, dl, borrower, badDebt] ++ R)
       mem aw rdata σ k C) :
     let σ' := storeLow128Accounts σ I (pos + ⟨2⟩) value
     let marketWord := solcSlotWordAt (memLoad (UInt256.ofNat 672) mem) σ' I
-    (I.perm = false ∧ RDstatic midnightBytecode g s0) ∨
+    (I.perm = false ∧ RDstatic fork midnightBytecode g s0) ∨
     (I.perm = true ∧ ∃ k' C', C + memExpansionCost aw (UInt256.ofNat 672) ⟨32⟩ ≤ C' ∧
-      RD midnightBytecode I g s0 ⟨19421⟩
+      RD fork midnightBytecode I g s0 ⟨19421⟩
         ([UInt256.shiftRight marketWord ⟨128⟩, ⟨7523⟩, ⟨7530⟩, badDebt, ⟨6721⟩,
           low128 marketWord, ⟨7536⟩, ⟨4204⟩, ⟨7541⟩, ⟨7571⟩, marketWord,
           reverseRep, rep, maxDebt, price, pos, dp, dl, borrower, badDebt] ++ R)

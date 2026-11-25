@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.ToMarketSource
 import Benchmarks.Midnight.MarketValueDecode
 
+variable {fork : Ethereum.Fork}
+
 /-! Source execution stated using the typed result of stored-market decoding. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,7 +19,7 @@ theorem toMarketDataReturns (evm : State) (id : UInt256) (market : MarketData)
     (hcode : (extCodeSizeWord evm.accountMap id).toNat ≤ 18446744073709550464)
     (hdecode : decodeStoredMarketData (externalCodePrefix evm.accountMap id) = some market)
     (hfit : toMarketDataFits (extCodeSizeWord evm.accountMap id).toNat market) :
-    ExecTransitionBody config contract evm (toMarketArguments id) toMarketTransition.body
+    ExecTransitionBody fork config contract evm (toMarketArguments id) toMarketTransition.body
       (.returned (toMarketResultFrame evm id market.value (market.collaterals.map CollateralData.value))
         evm (some [market.value])) := by
   apply toMarketReturns evm id hwv hhi hinit hcode
@@ -33,7 +35,7 @@ theorem toMarketDataReverts (evm : State) (id : UInt256)
     (hcode : (extCodeSizeWord evm.accountMap id).toNat ≤ 18446744073709550464)
     (hbad : ∀ market, decodeStoredMarketData (externalCodePrefix evm.accountMap id) = some market →
       ¬ toMarketDataFits (extCodeSizeWord evm.accountMap id).toNat market) :
-    ExecTransitionBody config contract evm (toMarketArguments id) toMarketTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (toMarketArguments id) toMarketTransition.body .reverted := by
   cases hd : decodeStoredMarketData (externalCodePrefix evm.accountMap id) with
   | none =>
     apply toMarketDecodeReverts evm id hwv hhi hinit hcode

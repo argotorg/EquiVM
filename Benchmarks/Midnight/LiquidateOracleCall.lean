@@ -3,6 +3,8 @@ import Benchmarks.Midnight.StaticCallBridgeGas
 import Benchmarks.Midnight.AddressDecode
 import Benchmarks.Midnight.WordReplyMemory
 
+variable {fork : Ethereum.Fork}
+
 /-! The liquidation oracle STATICCALL agrees with the source call and preserves its budget. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -22,23 +24,23 @@ theorem midnightLiquidateOracleCall {I : ExecutionEnv} {g : Sat256} {s0 evm : St
     (horacle : memLoad (cp + UInt256.ofNat 96) mem = UInt256.ofNat oracle.val)
     (heval : evalExpr? config frame evm receiver = .ok (.address oracle))
     (hs : SourceState s0 I σ evm) (hb : TransferBudget budgetRoot credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨7896⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨7896⟩
       (cp :: maxDebt :: badDebt :: reverseRep :: rep :: UInt256.ofNat 4 :: R)
       mem aw rdata σ k C) :
-    (ExecStmt config frame evm
+    (ExecStmt fork config frame evm
         (.externalCall receiver "price" (.intLit 0) [] "price" false) .reverted ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     ∃ (evm' : State) (σ' : AccountMap) (out : ByteArray) (aw' : UInt256) (k' C' : Nat),
-      ExecStmt config frame evm
+      ExecStmt fork config frame evm
         (.externalCall receiver "price" (.intLit 0) [] "price" false)
         (.ok { frame with locals := frame.locals.insert "price" (.int (calldataWord out 0).toNat) }
           evm') ∧
-      typedCallViaEVM config evm oracle "price" 0 [] (true, evm', out) false ∧
+      typedCallViaEVM fork config evm oracle "price" 0 [] (true, evm', out) false ∧
       SourceState s0 I σ' evm' ∧ 32 ≤ out.size ∧
       MemoryPrefix mem (oraclePriceMemory mem root out) root.toNat ∧
       memLoad (UInt256.ofNat 64) (oraclePriceMemory mem root out) = root + UInt256.ofNat 32 ∧
       TransferBudget budgetRoot credit (oraclePriceMemory mem root out) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨8252⟩
+      RD fork midnightBytecode I g s0 ⟨8252⟩
         (root :: cp :: badDebt :: reverseRep :: rep :: maxDebt :: R)
         (oraclePriceMemory mem root out) aw' out σ' k' C' := by
   have rd1 := midnightBlocks.midnight_block_7896 (by omega) rd
@@ -81,7 +83,7 @@ theorem midnightLiquidateOracleCall {I : ExecutionEnv} {g : Sat256} {s0 evm : St
     rw [oracleCallMemory, memLoad_writeWord_preserved _ _ _ _ (by exact hm)
       (Or.inl (by exact hlower)), hz]
   simp only [accountAddress_roundtrip] at hcall
-  have hsourceCall : typedCallViaEVM config evm (EVM.address oracle.val) "price" 0 []
+  have hsourceCall : typedCallViaEVM fork config evm (EVM.address oracle.val) "price" 0 []
       (success, evm', out) false := by simpa only [address_of_val] using hcall
   rcases midnightLiquidateOracleReturn (R := R) success hstack hout' hroot hz' hb2 rd2 with
     ⟨hbad, hrev⟩ | ⟨htrue, h32, aw3, k3, C3, hb3, rd3⟩

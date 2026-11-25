@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.LiquidateAmountsGuard
 import Benchmarks.Midnight.PositionBitmapStorage
 
+variable {fork : Ethereum.Fork}
+
 /-! Source guard and optional bitmap clear after seizing collateral. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -42,7 +44,7 @@ theorem liquidateBitmapSource {frame : Frame} {evm : State} {m : MarketData}
     (hf : LiquidateSourceFrame frame m id index seized repaid borrower mode receiver callback data)
     (hcanon : borrower.toNat < EVM.addressModulus) (hi : index.toNat < 128)
     (hp : evm.executionEnv.perm = true) :
-    ExecBlock config frame evm liquidateClearBody
+    ExecBlock fork config frame evm liquidateClearBody
       (.ok (wordLocal frame "__c28" (bitmapClear (positionBitmapWord evm id borrower) index))
         (storeHigh128 evm (positionSlot id borrower + ⟨2⟩)
           (bitmapClear (positionBitmapWord evm id borrower) index))) := by

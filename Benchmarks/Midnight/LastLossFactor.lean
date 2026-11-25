@@ -4,6 +4,8 @@ import Benchmarks.Midnight.PairDecode
 import Benchmarks.Midnight.MappingMemory
 import Benchmarks.Midnight.PositionStorage
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `lastLossFactor(bytes32,address)`
 
@@ -22,7 +24,7 @@ theorem lastLossFactorBodyReturns (evm : EVM.State) (id user : UInt256)
     (hcanon : user.toNat < EVM.addressModulus)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) :
-    ExecTransitionBody config contract evm (positionArguments id user)
+    ExecTransitionBody fork config contract evm (positionArguments id user)
       lastLossFactorTransition.body
       (.returned (calldataFrame contract (positionArguments id user) ∅ evm) evm
         (some [.int (Int.ofNat (UInt256.land
@@ -45,11 +47,11 @@ theorem lastLossFactorBodyReturns (evm : EVM.State) (id user : UInt256)
 
 theorem lastLossFactorTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Nat} {user : UInt256}
     (hcanon : user.toNat < EVM.addressModulus)
-    (rd : RD midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 9519)
+    (rd : RD fork midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 9519)
       [user, solcSelectorWord I] midnightEntryMemory
       (M (M (UInt256.ofNat 0) (UInt256.ofNat 64) ⟨32⟩) (UInt256.ofNat 800) ⟨32⟩)
       ByteArray.empty σ k C) :
-    RDret midnightBytecode g (initState σ σ₀ g A I) σ
+    RDret fork midnightBytecode g (initState σ σ₀ g A I) σ
       (UInt256.land (solcSlotWordAt (positionSlot (calldataWord I.calldata 4) user + ⟨1⟩) σ I)
         (UInt256.ofNat (2^128 - 1))).toByteArray := by
   have hr := midnightBlocks.midnight_block_9519 (by simp) rd
@@ -65,10 +67,10 @@ theorem lastLossFactorTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Nat} {user 
 /-- `lastLossFactor(bytes32,address)`: the theorem `Correct.lean` routes selector 23 to. -/
 theorem midnightLastLossFactorBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 23)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 23) rfl hsel
   have hd : dispatchMsg contract I.calldata = some lastLossFactorTransition := by
     apply midnightDispatch_lastLossFactor <;>
@@ -88,7 +90,7 @@ theorem midnightLastLossFactorBody {σ σ₀ A I} {g : UInt256}
           have hret := lastLossFactorTraceReturn hcanon rd4
           have hdec := midnightDecodeBytes32Address "id" "user"
             (by decide) (by decide) (by decide) (by decide) h68 hhi hsize hcanon
-          have hbody := lastLossFactorBodyReturns
+          have hbody := lastLossFactorBodyReturns (fork := fork)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (calldataWord I.calldata 4) (calldataWord I.calldata 36) hcanon hwv hhi
           exact hret.reEquivExecution hcode hd hdec hbody

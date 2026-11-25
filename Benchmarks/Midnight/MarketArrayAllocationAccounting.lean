@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.ToMarketArrayAllocation
 import Benchmarks.Midnight.AllocationAccounting
 
+variable {fork : Ethereum.Fork}
+
 /-! Allocating the pointer array used by the calldata market decoder. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,15 +18,15 @@ theorem midnightMarketCalldataArrayAllocation_accounted {I : ExecutionEnv} {g : 
     (hfree : memLoad (UInt256.ofNat 64) mem = ptr)
     (hptr : ptr.toNat < 2^64) (hn : n.toNat < 2^64) (hheader : header.toNat < 2^128)
     (ha : MemoryAccounting mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨18684⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨18684⟩
       (UInt256.ofNat (pointerArrayAllocation n.toNat) :: n :: header :: finish :: R)
       mem aw rdata σ k C) :
-    (¬ ptr.toNat + pointerArrayAllocation n.toNat < 2^64 ∧ RDrev midnightBytecode g s0) ∨
-    (finish.toNat < header.toNat + 32 + 128 * n.toNat ∧ RDrev midnightBytecode g s0) ∨
+    (¬ ptr.toNat + pointerArrayAllocation n.toNat < 2^64 ∧ RDrev fork midnightBytecode g s0) ∨
+    (finish.toNat < header.toNat + 32 + 128 * n.toNat ∧ RDrev fork midnightBytecode g s0) ∨
     (ptr.toNat + pointerArrayAllocation n.toNat < 2^64 ∧
       header.toNat + 32 + 128 * n.toNat ≤ finish.toNat ∧
       ∃ aw' k' C', MemoryAccounting (marketArrayMemory mem ptr n) aw' C' ∧
-        RD midnightBytecode I g s0 ⟨18726⟩
+        RD fork midnightBytecode I g s0 ⟨18726⟩
         ((ptr + UInt256.ofNat 32) :: finish :: (UInt256.ofNat 32 + header) ::
           UInt256.ofNat (header.toNat + 32 + 128 * n.toNat) :: ptr :: R)
         (marketArrayMemory mem ptr n) aw' rdata σ k' C') := by

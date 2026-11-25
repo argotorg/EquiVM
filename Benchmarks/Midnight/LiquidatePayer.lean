@@ -2,6 +2,8 @@ import Benchmarks.Midnight.LiquidateAmountsGuard
 import Benchmarks.Midnight.RepayPayerSource
 import Benchmarks.Midnight.TransferBudget
 
+variable {fork : Ethereum.Fork}
+
 /-! The payer is the callback when present and the caller otherwise. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -12,7 +14,7 @@ set_option maxRecDepth 10000
 
 theorem liquidatePayerSource {frame : Frame} {evm : State} {callback : AccountAddress}
     (hc : frame.locals.get? "callback" = some (.address callback)) :
-    ExecStmt config frame evm (liquidateTransition.body[19]!)
+    ExecStmt fork config frame evm (liquidateTransition.body[19]!)
       (.ok (repayPayerFrame frame evm.executionEnv callback) evm) := by
   apply ExecStmt.letDecl
   rw [evalExpr?]
@@ -29,10 +31,10 @@ theorem midnightLiquidatePayer {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length + 12 ≤ 1024)
     (hcb : memLoad (UInt256.ofNat 736) mem = UInt256.ofNat callback.val)
     (hb : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨5480⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨5480⟩
       ([d0, d1, d2, dp, dl, borrower, badDebt, receiver, mode] ++ R) mem aw rdata σ k C) :
     ∃ aw' k' C', TransferBudget root credit mem aw' C' ∧
-      RD midnightBytecode I g s0 ⟨5508⟩
+      RD fork midnightBytecode I g s0 ⟨5508⟩
         ([mode, dp, dl, borrower, badDebt, receiver, UInt256.ofNat (repayPayer I callback).val] ++ R)
         mem aw' rdata σ k' C' := by
   have hc : UInt256.land

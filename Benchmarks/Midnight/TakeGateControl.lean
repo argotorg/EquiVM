@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.TakeGateDecision
 
+variable {fork : Ethereum.Fork}
+
 /-! Skipping an unnecessary gate and enforcing a decoded gate response. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -18,17 +20,17 @@ theorem midnightTakeGateHead {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0 
     (ho : OfferStored mem ⟨832⟩ marketPtr arrayPtr callbackPtr root offer)
     (hoffer : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 kind.startPC
+    (rd : RD fork midnightBytecode I g s0 kind.startPC
       ([buyerSlot, debt, buyerDebt, sellerSlot, marketSlot, decrease, ratifierPtr, increase] ++ R)
       mem aw rdata σ k C) :
     (¬ TakeGateNeeded offer (kind.delta increase debt) ∧ ∃ aw' k' C',
       MemoryFunding credit mem aw' C' ∧
-      RD midnightBytecode I g s0 kind.finishPC
+      RD fork midnightBytecode I g s0 kind.finishPC
         ([buyerSlot, debt, buyerDebt, sellerSlot, marketSlot, decrease, ratifierPtr, increase] ++ R)
         mem aw' rdata σ k' C') ∨
     (TakeGateNeeded offer (kind.delta increase debt) ∧ ∃ aw' k' C',
       MemoryFunding credit mem aw' C' ∧
-      RD midnightBytecode I g s0 kind.preparePC
+      RD fork midnightBytecode I g s0 kind.preparePC
         ([UInt256.ofNat offer.market.enterGate.val, ⟨0⟩, buyerSlot, debt, buyerDebt,
           sellerSlot, marketSlot, decrease, ratifierPtr, increase] ++ R)
         mem aw' rdata σ k' C') := by
@@ -37,7 +39,7 @@ theorem midnightTakeGateHead {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0 
   simp only [List.cons_append, List.nil_append] at rd1
   by_cases hn : TakeGateNeeded offer (kind.delta increase debt)
   · rw [if_pos hn] at rd1
-    have rd2 : RD midnightBytecode I g s0 kind.preparePC
+    have rd2 : RD fork midnightBytecode I g s0 kind.preparePC
         ([UInt256.ofNat offer.market.enterGate.val, ⟨0⟩, buyerSlot, debt, buyerDebt,
           sellerSlot, marketSlot, decrease, ratifierPtr, increase] ++ R)
         mem aw1 rdata σ (k1 + 5) (C1 + 20) := by
@@ -56,7 +58,7 @@ theorem midnightTakeGateHead {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0 
           (by decide) (by jump_dest) rd1
     exact Or.inr ⟨hn, _, _, _, ha1.mono (by omega), rd2⟩
   · rw [if_neg hn] at rd1
-    have rd3 : RD midnightBytecode I g s0 kind.finishPC
+    have rd3 : RD fork midnightBytecode I g s0 kind.finishPC
         ([buyerSlot, debt, buyerDebt, sellerSlot, marketSlot, decrease, ratifierPtr, increase] ++ R)
         mem aw1 rdata σ (k1 + 5 + 5) (C1 + 20 + 19) := by
       cases kind with
@@ -76,10 +78,10 @@ theorem midnightTakeGateRequire {credit : Nat} {I : ExecutionEnv} {g : Sat256} {
     {mem rdata : ByteArray} {aw junk word : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (kind : TakeGateKind) (hstack : R.length + 4 ≤ 1024)
     (hc : word = ⟨0⟩ ∨ word = ⟨1⟩) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 kind.joinPC (junk :: word :: R) mem aw rdata σ k C) :
-    (word = ⟨0⟩ ∧ RDrev midnightBytecode g s0) ∨
+    (rd : RD fork midnightBytecode I g s0 kind.joinPC (junk :: word :: R) mem aw rdata σ k C) :
+    (word = ⟨0⟩ ∧ RDrev fork midnightBytecode g s0) ∨
     (word = ⟨1⟩ ∧ ∃ k' C', MemoryFunding credit mem aw C' ∧
-      RD midnightBytecode I g s0 kind.finishPC R mem aw rdata σ k' C') := by
+      RD fork midnightBytecode I g s0 kind.finishPC R mem aw rdata σ k' C') := by
   rcases hc with hz | hone
   · refine Or.inl ⟨hz, ?_⟩
     subst word
@@ -101,14 +103,14 @@ theorem midnightTakeGateTail {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0 
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (kind : TakeGateKind)
     (hstack : R.length + 13 ≤ 1024) (hc : word = ⟨0⟩ ∨ word = ⟨1⟩)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 kind.decodedPC
+    (rd : RD fork midnightBytecode I g s0 kind.decodedPC
       ([word, w0, w1, w2, w3, w4, w5, w6, w7, w8] ++ R) mem aw rdata σ k C) :
-    (word = ⟨0⟩ ∧ RDrev midnightBytecode g s0) ∨
+    (word = ⟨0⟩ ∧ RDrev fork midnightBytecode g s0) ∨
     (word = ⟨1⟩ ∧ ∃ k' C', MemoryFunding credit mem aw C' ∧
-      RD midnightBytecode I g s0 kind.finishPC
+      RD fork midnightBytecode I g s0 kind.finishPC
         ([w0, w1, w2, w3, w4, w5, w6, w7, w8] ++ R) mem aw rdata σ k' C') := by
   simp only [List.cons_append, List.nil_append] at rd
-  have rd2 : RD midnightBytecode I g s0 kind.joinPC
+  have rd2 : RD fork midnightBytecode I g s0 kind.joinPC
       ([w8, word, w0, w1, w2, w3, w4, w5, w6, w7, w8] ++ R)
       mem aw rdata σ (k + 4 + 5) (C + 15 + 17) := by
     cases kind with

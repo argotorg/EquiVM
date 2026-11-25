@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.TakeConsumption
 
+variable {fork : Ethereum.Fork}
+
 /-! Buyer and seller addresses selected by the offer's direction. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -79,7 +81,7 @@ theorem takeParticipants_shape : takeTransition.body.drop 27 =
 theorem takeParticipantsSource {frame : Frame} {evm : State} {offer : OfferData} {taker : UInt256}
     (ho : frame.locals.get? "offer" = some (Model.offerValue offer.value))
     (ht : frame.locals.get? "taker" = some (.address (AccountAddress.ofNat taker.toNat))) :
-    ABlock config evm frame (takeTransition.body.drop 27) (takeParticipantsFrame frame offer taker)
+    ABlock fork config evm frame (takeTransition.body.drop 27) (takeParticipantsFrame frame offer taker)
       (takeTransition.body.drop 29) := by
   rw [takeParticipants_shape]
   exact ⟨fun h ↦ ExecBlock.consNormal (ExecStmt.letDecl (evalTakeBuyer ho ht))

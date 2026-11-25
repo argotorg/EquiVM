@@ -2,6 +2,8 @@ import Benchmarks.Midnight.CollateralBlocksGas
 import Benchmarks.Midnight.TransferBudget
 import Benchmarks.Midnight.RuntimeBlocks_088
 
+variable {fork : Ethereum.Fork}
+
 /-! Position-update write blocks retain the caller's memory funding. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -18,10 +20,10 @@ theorem position_block_23680_budget {ee : ExecutionEnv} {g : Sat256} {s0 : State
     (hstack : R.length + 19 ≤ 1024)
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 19743) = true)
     (hb : TransferBudget budgetRoot credit mem aw C)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 23680) (x0 :: x1 :: x2 :: x3
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 23680) (x0 :: x1 :: x2 :: x3
       :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: R) mem aw rdata σ k C)
     : ∃ (k' C' : ℕ), TransferBudget budgetRoot credit mem aw C' ∧
-      RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 19743)
+      RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 19743)
         (midnight_block_23680_stack (ee := ee) (σ := σ) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3)
         (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (x9 := x9) (R := R)) mem aw rdata σ
         k' C' := by
@@ -63,12 +65,12 @@ theorem position_block_23723_budget {ee : ExecutionEnv} {g : Sat256} {s0 : State
     (hstack : R.length + 20 ≤ 1024)
     (hperm : ee.perm = true)
     (hb : TransferBudget budgetRoot credit mem aw C)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 23723) (x0 :: x1 :: x2 :: x3
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 23723) (x0 :: x1 :: x2 :: x3
       :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: x12 :: R) mem aw rdata σ k C)
     : ∃ (k' C' : ℕ), TransferBudget budgetRoot credit (midnight_block_23723_memory (mem := mem) (x7
       := x7)) (M (M (M aw (⟨0⟩ : UInt256) (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ : UInt256))
       (⟨0⟩ : UInt256) (UInt256.ofNat 64)) C' ∧
-      RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 23809)
+      RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 23809)
         (midnight_block_23723_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 :=
         x5) (x6 := x6) (x7 := x7) (x8 := x8) (x9 := x9) (x10 := x10) (x11 := x11) (x12 := x12) (R :=
         R)) (midnight_block_23723_memory (mem := mem) (x7 := x7)) (M (M (M aw (⟨0⟩ : UInt256) (⟨32⟩
@@ -188,10 +190,10 @@ theorem position_block_23809_budget {ee : ExecutionEnv} {g : Sat256} {s0 : State
     (hperm : ee.perm = true)
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains x3 = true)
     (hb : TransferBudget budgetRoot credit mem aw C)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 23809) (x0 :: x1 :: x2 :: x3
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 23809) (x0 :: x1 :: x2 :: x3
       :: R) mem aw rdata σ k C)
     : ∃ (k' C' : ℕ), TransferBudget budgetRoot credit mem aw C' ∧
-      RD Benchmarks.Midnight.midnightBytecode ee g s0 x3 (midnight_block_23809_stack (R := R)) mem
+      RD fork Benchmarks.Midnight.midnightBytecode ee g s0 x3 (midnight_block_23809_stack (R := R)) mem
         aw rdata (sstoreAccountMap ee.codeOwner σ x2 (UInt256.lor (UInt256.land (σ.get? ee.codeOwner
         |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD x2 (⟨0⟩ : UInt256))) x0) (UInt256.land
         (UInt256.shiftLeft x1 (UInt256.ofNat 128)) (UInt256.lnot x0)))) k' C' := by
@@ -226,10 +228,10 @@ theorem position_block_23825_budget {ee : ExecutionEnv} {g : Sat256} {s0 : State
     (hperm : ee.perm = true)
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains x1 = true)
     (hb : TransferBudget budgetRoot credit mem aw C)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 23825) (x0 :: x1 :: R) mem
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 23825) (x0 :: x1 :: R) mem
       aw rdata σ k C)
     : ∃ (k' C' : ℕ), TransferBudget budgetRoot credit mem aw C' ∧
-      RD Benchmarks.Midnight.midnightBytecode ee g s0 x1 (midnight_block_23825_stack (R := R)) mem
+      RD fork Benchmarks.Midnight.midnightBytecode ee g s0 x1 (midnight_block_23825_stack (R := R)) mem
         aw rdata (sstoreAccountMap ee.codeOwner σ x0 (UInt256.lor (UInt256.land (UInt256.lnot
         (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128)) (UInt256.ofNat 1)))
         (UInt256.shiftLeft (UInt256.ofNat ee.header.timestamp) (UInt256.ofNat 128))) (UInt256.land
@@ -275,12 +277,12 @@ theorem position_block_23879_budget {ee : ExecutionEnv} {g : Sat256} {s0 : State
     (hstack : R.length + 14 ≤ 1024)
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 20456) = true)
     (hb : TransferBudget budgetRoot credit mem aw C)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 23879) (x0 :: x1 :: x2 :: x3
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 23879) (x0 :: x1 :: x2 :: x3
       :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: R) mem aw rdata σ k C)
     : ∃ (k' C' : ℕ), TransferBudget budgetRoot credit (midnight_block_23879_memory (mem := mem) (x9
       := x9)) (M (M (M aw (⟨0⟩ : UInt256) (⟨32⟩ : UInt256)) (UInt256.ofNat 32) (⟨32⟩ : UInt256))
       (⟨0⟩ : UInt256) (UInt256.ofNat 64)) C' ∧
-      RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 20456)
+      RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 20456)
         (midnight_block_23879_stack (ee := ee) (mem := mem) (σ := σ) (x0 := x0) (x1 := x1) (x2 :=
         x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (x8 := x8) (x9 := x9) (R := R))
         (midnight_block_23879_memory (mem := mem) (x9 := x9)) (M (M (M aw (⟨0⟩ : UInt256) (⟨32⟩ :
@@ -328,10 +330,10 @@ theorem position_block_23908_budget {ee : ExecutionEnv} {g : Sat256} {s0 : State
     (hperm : ee.perm = true)
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains x2 = true)
     (hb : TransferBudget budgetRoot credit mem aw C)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 23908) (x0 :: x1 :: x2 :: R)
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 23908) (x0 :: x1 :: x2 :: R)
       mem aw rdata σ k C)
     : ∃ (k' C' : ℕ), TransferBudget budgetRoot credit mem aw C' ∧
-      RD Benchmarks.Midnight.midnightBytecode ee g s0 x2 (midnight_block_23908_stack (R := R)) mem
+      RD fork Benchmarks.Midnight.midnightBytecode ee g s0 x2 (midnight_block_23908_stack (R := R)) mem
         aw rdata (sstoreAccountMap ee.codeOwner σ x1 (UInt256.lor (UInt256.land (UInt256.lnot
         (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128)) (UInt256.ofNat 1)))
         (UInt256.shiftLeft x0 (UInt256.ofNat 128))) (UInt256.land (UInt256.sub (UInt256.shiftLeft

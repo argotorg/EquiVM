@@ -3,6 +3,8 @@ import Benchmarks.Midnight.MarketCreateTrace
 import Benchmarks.Midnight.MarketCreatedTrace
 import Benchmarks.Midnight.MarketCreatedSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Complete the creation and event suffix of market initialization. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -22,19 +24,19 @@ theorem midnightTouchMarketDeployment {I : ExecutionEnv} {evm : EVM.State} {g : 
     (hmarket : frame.locals.get? "market" = some (Model.marketValue m.value))
     (hid : frame.locals.get? "id" = some (wordBytes32Value id))
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨24347⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨24347⟩
       (UInt256.ofNat 21556 :: ptr :: id :: ret :: R) mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (RDrev midnightBytecode g s0 ∧
-      ExecBlock config frame evm (touchMarketInitBody.drop 18) .reverted) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (RDrev fork midnightBytecode g s0 ∧
+      ExecBlock fork config frame evm (touchMarketInitBody.drop 18) .reverted) ∨
     ∃ (evm' : State) (σ' : AccountMap) (addr : AccountAddress)
       (out mem' : ByteArray) (aw' : UInt256) (k' C' : Nat),
       SourceState s0 I σ' evm' ∧
-      ExecBlock config frame evm (touchMarketInitBody.drop 18)
+      ExecBlock fork config frame evm (touchMarketInitBody.drop 18)
         (.ok (marketCreatedFrame frame addr) evm') ∧
       MemoryPrefix mem mem' limit.toNat ∧
       memLoad (UInt256.ofNat 64) mem' = marketDeploymentFree root m ∧
-      RD midnightBytecode I g s0 ret (id :: R) mem' aw' out σ' k' C' := by
+      RD fork midnightBytecode I g s0 ret (id :: R) mem' aw' out σ' k' C' := by
   obtain ⟨hp, hf, hi, aw1, k1, C1, rd1⟩ := midnightMarketDeploymentPrepare m
     (by simp only [List.length_cons]; omega) hm hlimit (by omega) hfree rd
   rcases midnightMarketCreate m (frame := touchMarketCallFrame frame.immutables m)

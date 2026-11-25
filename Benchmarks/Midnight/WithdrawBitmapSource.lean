@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.WithdrawSourceFrame
 import Benchmarks.Midnight.BitmapCallSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Source call and storage assignment for a cleared collateral bitmap bit. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -19,7 +21,7 @@ theorem withdrawBitmapSource {frame : Frame} {m : MarketData} {evm : EVM.State}
     (hf : WithdrawSourceFrame frame m id user index assets token receiver)
     (hcanon : user.toNat < EVM.addressModulus) (hi : index.toNat < 128)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config frame evm withdrawClearBody
+    ExecBlock fork config frame evm withdrawClearBody
       (.ok (wordLocal frame "__c2" (bitmapClear (positionBitmapWord evm id user) index))
         (storeHigh128 evm (positionSlot id user + ⟨2⟩)
           (bitmapClear (positionBitmapWord evm id user) index))) := by

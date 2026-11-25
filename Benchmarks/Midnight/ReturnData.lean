@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.AllocationArithmetic
 
+variable {fork : Ethereum.Fork}
+
 /-! The shared return-data extraction routine at PC 22728. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -50,8 +52,8 @@ theorem midnightReturnDataEmptyCharge {I : ExecutionEnv} {g : Sat256} {s0 : Stat
     {mem out : ByteArray} {aw ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hout : out.size = 0) (hstack : R.length + 3 ≤ 1024)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨22728⟩ (ret :: R) mem aw out σ k C) :
-    ∃ k' C', MemoryCharge 0 aw aw C C' ∧ RD midnightBytecode I g s0 ret (UInt256.ofNat 96 :: R) mem aw out σ k' C' := by
+    (rd : RD fork midnightBytecode I g s0 ⟨22728⟩ (ret :: R) mem aw out σ k C) :
+    ∃ k' C', MemoryCharge 0 aw aw C C' ∧ RD fork midnightBytecode I g s0 ret (UInt256.ofNat 96 :: R) mem aw out σ k' C' := by
   have rd1 := midnightBlocks.midnight_block_22728_taken
     (by simp only [List.length_cons]; omega) (by rw [hout]; decide) (by jump_dest) rd
   have rd2 := midnightBlocks.midnight_block_22770 (by omega) hret rd1
@@ -63,16 +65,16 @@ theorem midnightReturnDataEmpty {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem out : ByteArray} {aw ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hout : out.size = 0) (hstack : R.length + 3 ≤ 1024)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨22728⟩ (ret :: R) mem aw out σ k C) :
-    ∃ k' C', RD midnightBytecode I g s0 ret (UInt256.ofNat 96 :: R) mem aw out σ k' C' := by
+    (rd : RD fork midnightBytecode I g s0 ⟨22728⟩ (ret :: R) mem aw out σ k C) :
+    ∃ k' C', RD fork midnightBytecode I g s0 ret (UInt256.ofNat 96 :: R) mem aw out σ k' C' := by
   obtain ⟨k', C', _, rd'⟩ := midnightReturnDataEmptyCharge hout hstack hret rd
   exact ⟨k', C', rd'⟩
 
 theorem midnightReturnDataOversize {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem out : ByteArray} {aw ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hsize : out.size < UInt256.size) (hb : 2 ^ 64 ≤ out.size) (hstack : R.length + 7 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 ⟨22728⟩ (ret :: R) mem aw out σ k C) :
-    RDrev midnightBytecode g s0 := by
+    (rd : RD fork midnightBytecode I g s0 ⟨22728⟩ (ret :: R) mem aw out σ k C) :
+    RDrev fork midnightBytecode g s0 := by
   have hn : UInt256.ofNat out.size ≠ (⟨0⟩ : UInt256) := by
     intro he
     have hn := congrArg UInt256.toNat he
@@ -100,8 +102,8 @@ theorem midnightReturnDataPrepareCharge {I : ExecutionEnv} {g : Sat256} {s0 : St
     {mem out : ByteArray} {aw ptr ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hb : out.size < 2 ^ 64) (hn : out.size ≠ 0)
     (hfree : memLoad (UInt256.ofNat 64) mem = ptr) (hstack : R.length + 7 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 ⟨22728⟩ (ret :: R) mem aw out σ k C) :
-    ∃ aw' k' C', MemoryCharge (0) aw aw' C C' ∧ RD midnightBytecode I g s0 ⟨18444⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨22728⟩ (ret :: R) mem aw out σ k C) :
+    ∃ aw' k' C', MemoryCharge (0) aw aw' C C' ∧ RD fork midnightBytecode I g s0 ⟨18444⟩
       (ptr :: UInt256.ofNat (returnDataAllocation out.size) :: UInt256.ofNat 22759 ::
         UInt256.ofNat out.size :: ret :: ptr :: R) mem aw' out σ k' C' := by
   have hsize : out.size < UInt256.size := by change _ < 2 ^ 256; omega
@@ -138,8 +140,8 @@ theorem midnightReturnDataPrepare {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem out : ByteArray} {aw ptr ret : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hb : out.size < 2 ^ 64) (hn : out.size ≠ 0)
     (hfree : memLoad (UInt256.ofNat 64) mem = ptr) (hstack : R.length + 7 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 ⟨22728⟩ (ret :: R) mem aw out σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g s0 ⟨18444⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨22728⟩ (ret :: R) mem aw out σ k C) :
+    ∃ aw' k' C', RD fork midnightBytecode I g s0 ⟨18444⟩
       (ptr :: UInt256.ofNat (returnDataAllocation out.size) :: UInt256.ofNat 22759 ::
         UInt256.ofNat out.size :: ret :: ptr :: R) mem aw' out σ k' C' := by
   obtain ⟨aw', k', C', _, rd'⟩ := midnightReturnDataPrepareCharge hb hn hfree hstack rd
@@ -151,10 +153,10 @@ theorem midnightReturnDataCopyCharge {I : ExecutionEnv} {g : Sat256} {s0 : State
     (hfree : memLoad (UInt256.ofNat 64) mem = ptr) (hstack : R.length + 9 ≤ 1024)
     (hret : (D_J midnightBytecode 0).contains ret = true)
     (hfit : ptr.toNat + returnDataAllocation out.size < 2 ^ 64)
-    (rd : RD midnightBytecode I g s0 ⟨22728⟩ (ret :: R) mem aw out σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨22728⟩ (ret :: R) mem aw out σ k C) :
     ∃ aw' k' C', MemoryCharge (3 * ((out.size + 31) / 32)) aw aw' C C' ∧
       (96 ≤ mem.size → MemoryCovered mem aw → MemoryCovered (returnDataMem mem out ptr) aw') ∧
-      RD midnightBytecode I g s0 ret (ptr :: R)
+      RD fork midnightBytecode I g s0 ret (ptr :: R)
       (returnDataMem mem out ptr) aw' out σ k' C' := by
   obtain ⟨aw1, k1, C1, hc1, rd1⟩ := midnightReturnDataPrepareCharge hb hn hfree (by omega) rd
   have hend := returnDataAllocation_end hfit
@@ -198,8 +200,8 @@ theorem midnightReturnDataCopy {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hfree : memLoad (UInt256.ofNat 64) mem = ptr) (hstack : R.length + 9 ≤ 1024)
     (hret : (D_J midnightBytecode 0).contains ret = true)
     (hfit : ptr.toNat + returnDataAllocation out.size < 2 ^ 64)
-    (rd : RD midnightBytecode I g s0 ⟨22728⟩ (ret :: R) mem aw out σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g s0 ret (ptr :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨22728⟩ (ret :: R) mem aw out σ k C) :
+    ∃ aw' k' C', RD fork midnightBytecode I g s0 ret (ptr :: R)
       (returnDataMem mem out ptr) aw' out σ k' C' := by
   obtain ⟨aw', k', C', _, _, rd'⟩ := midnightReturnDataCopyCharge hb hn hfree hstack hret hfit rd
   exact ⟨aw', k', C', rd'⟩

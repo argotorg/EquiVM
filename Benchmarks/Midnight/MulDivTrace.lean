@@ -4,6 +4,8 @@ import Benchmarks.Midnight.RuntimeBlocks_027
 import Benchmarks.Midnight.RuntimeBlocks_082
 import Benchmarks.Midnight.RuntimeBlocks_089
 
+variable {fork : Ethereum.Fork}
+
 /-! Complete bytecode trace of multiplication followed by rounded-up division. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,9 +18,9 @@ theorem midnightMulDivUp {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw x y d ret : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 10 ≤ 1024)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨24124⟩ (x :: y :: d :: ret :: R) mem aw rdata σ k C) :
-    (¬ MulDivUpSafe x y d ∧ RDrev midnightBytecode g s0) ∨
-    (MulDivUpSafe x y d ∧ ∃ k' C', RD midnightBytecode I g s0 ret
+    (rd : RD fork midnightBytecode I g s0 ⟨24124⟩ (x :: y :: d :: ret :: R) mem aw rdata σ k C) :
+    (¬ MulDivUpSafe x y d ∧ RDrev fork midnightBytecode g s0) ∨
+    (MulDivUpSafe x y d ∧ ∃ k' C', RD fork midnightBytecode I g s0 ret
       (mulDivUp x y d :: R) mem aw rdata σ k' C') := by
   have rd1 := midnightBlocks.midnight_block_24124 (by
     simp only [List.length_cons]; omega) (by jump_dest) rd

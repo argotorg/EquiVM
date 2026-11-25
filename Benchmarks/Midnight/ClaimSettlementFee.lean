@@ -3,6 +3,8 @@ import Benchmarks.Midnight.ClaimSettlementTrace
 import Benchmarks.Midnight.AddressDecode
 import Benchmarks.Midnight.TripleDecode
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `claimSettlementFee(address,uint256,address)`
 
@@ -20,16 +22,16 @@ set_option maxRecDepth 2000000
 theorem claimSettlementBodyCore {σ σ₀ A I} {g : UInt256}
     {token receiver : AccountAddress} {amount aw : UInt256} {k C : Nat} {R : List UInt256}
     (hcode : I.code = midnightBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hhi : I.calldata.size < calldataLimit) (hgas : midnightGasBound g) (hfork : I.fork ≥ .osaka)
+    (hhi : I.calldata.size < calldataLimit) (hgas : midnightGasBound g) (hfork : fork ≥ .osaka)
     (hd : dispatchMsg contract I.calldata = some claimSettlementFeeTransition)
     (hdec : config.externalABI.decodeCalldata? (claimSettlementFeeTransition.params.map Param.name)
       (transitionSignature claimSettlementFeeTransition).paramTypes I.calldata =
       some (claimSettlementArguments token amount receiver))
     (hstack : R.length + 14 ≤ 1024)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       ⟨17674⟩ (UInt256.ofNat receiver.val :: amount :: UInt256.ofNat token.val :: R)
       midnightEntryMemory aw ByteArray.empty σ k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let evm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hs : SourceState evm I σ evm := SourceState.init
   have hbal : claimSettlementBalance evm token = solcSlotWordAt (claimSettlementSlot token) σ I := rfl
@@ -85,10 +87,10 @@ theorem claimSettlementBodyCore {σ σ₀ A I} {g : UInt256}
 /-- `claimSettlementFee(address,uint256,address)`: the theorem `Correct.lean` routes selector 4 to. -/
 theorem midnightClaimSettlementFeeBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 4)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 4) rfl hsel
   have hd : dispatchMsg contract I.calldata = some claimSettlementFeeTransition := by
     apply midnightDispatch_claimSettlementFee <;>
@@ -109,7 +111,7 @@ theorem midnightClaimSettlementFeeBody {σ σ₀ A I} {g : UInt256}
           simp only [midnightBlocks.midnight_block_17663_stack] at rd5
           by_cases hreceiver : (calldataWord I.calldata 68).toNat < EVM.addressModulus
           · obtain ⟨k6, C6, rd6⟩ := midnightAddress68_ok (by simp) (by jump_dest) hreceiver rd5
-            change RD _ _ _ _ _ [calldataWord I.calldata 68, calldataWord I.calldata 36,
+            change RD fork _ _ _ _ _ [calldataWord I.calldata 68, calldataWord I.calldata 36,
               calldataWord I.calldata 4, solcSelectorWord I] midnightEntryMemory _ _ _ _ _ at rd6
             have hdec := midnightDecodeTriple_ok "token" "amount" "receiver"
               (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
@@ -120,7 +122,7 @@ theorem midnightClaimSettlementFeeBody {σ σ₀ A I} {g : UInt256}
             have hr : UInt256.ofNat (AccountAddress.ofNat (calldataWord I.calldata 68).toNat).val =
                 calldataWord I.calldata 68 := addressWord_eq_ofNat_address hreceiver
             rw [← ht, ← hr] at rd6
-            exact claimSettlementBodyCore hcode hwv hhi hgas hwf hd hdec (by simp) rd6
+            exact claimSettlementBodyCore hcode hwv hhi hgas hfork hd hdec (by simp) rd6
           · have hr := midnightAddress68_revert (by simp) hreceiver rd5
             exact hr.reEquivDecodingFailed hcode hd
               (midnightDecodeTriple_none_right "token" "amount" "receiver" .address

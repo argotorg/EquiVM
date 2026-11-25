@@ -2,6 +2,8 @@ import Benchmarks.Midnight.MarketFeeCreditSource
 import Benchmarks.Midnight.ToUint128Source
 import Benchmarks.Midnight.PositionUpdateSourceFrames
 
+variable {fork : Ethereum.Fork}
+
 /-! Source fee-credit accumulation, event emission, and returned position values. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -22,7 +24,7 @@ theorem positionUpdateFeeSource {frame : Frame} {evm : EVM.State}
     (hpd : frame.locals.get? "pendingFeeDecrease" = some (.int pendingDecrease.toNat))
     (hfee128 : fee.toNat < 2^128) (hsum : (marketFeeCreditWord evm id).toNat + fee.toNat < 2^128)
     (hperm : evm.executionEnv.perm = true) :
-    ExecBlock config frame evm (positionUpdateFunction.body.drop 11)
+    ExecBlock fork config frame evm (positionUpdateFunction.body.drop 11)
       (.returned (wordLocal frame "__c1" fee) (positionUpdateFeeState evm id fee)
         (some [.int credit.toNat, .int pending.toNat, .int fee.toNat])) := by
   have he : evalExprs? config frame evm [.var "accruedFee"] = .ok [.int fee.toNat] := by
@@ -56,7 +58,7 @@ theorem positionUpdateFeeSourceRevert {frame : Frame} {evm : EVM.State} {id fee 
     (hid : frame.locals.get? "id" = some (wordBytes32Value id))
     (hfee : frame.locals.get? "accruedFee" = some (.int fee.toNat))
     (hfee128 : fee.toNat < 2^128) (hsum : 2^128 ≤ (marketFeeCreditWord evm id).toNat + fee.toNat) :
-    ExecBlock config frame evm (positionUpdateFunction.body.drop 11) .reverted := by
+    ExecBlock fork config frame evm (positionUpdateFunction.body.drop 11) .reverted := by
   have he : evalExprs? config frame evm [.var "accruedFee"] = .ok [.int fee.toNat] := by
     simp only [evalExprs?, evalWordLocal hfee, EvalResult.bind, bind, pure]
   refine ExecBlock.consNormal (callToUint128 hc he hfee128) ?_

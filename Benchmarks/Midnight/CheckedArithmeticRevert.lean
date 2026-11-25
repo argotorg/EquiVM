@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.CheckedArithmetic
 
+variable {fork : Ethereum.Fork}
+
 /-! Revert branches of the shared checked arithmetic routines. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -27,8 +29,8 @@ theorem midnightCheckedMulRevert {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {a b ret : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024) (hover : UInt256.size ≤ a.toNat * b.toNat)
-    (rd : RD midnightBytecode I g s0 ⟨20413⟩ (a :: b :: ret :: R) mem aw rdata σ k C) :
-    RDrev midnightBytecode g s0 := by
+    (rd : RD fork midnightBytecode I g s0 ⟨20413⟩ (a :: b :: ret :: R) mem aw rdata σ k C) :
+    RDrev fork midnightBytecode g s0 := by
   have rd1 := midnightBlocks.midnight_block_20413_taken hstack
     (by rw [checkedMulGuard_overflow hover]; decide) (by jump_dest) rd
   exact midnightBlocks.midnight_block_7302 (by
@@ -38,8 +40,8 @@ theorem midnightCheckedAddRevert {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {a b ret : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024) (hover : UInt256.size ≤ a.toNat + b.toNat)
-    (rd : RD midnightBytecode I g s0 ⟨19536⟩ (a :: b :: ret :: R) mem aw rdata σ k C) :
-    RDrev midnightBytecode g s0 := by
+    (rd : RD fork midnightBytecode I g s0 ⟨19536⟩ (a :: b :: ret :: R) mem aw rdata σ k C) :
+    RDrev fork midnightBytecode g s0 := by
   have hc : UInt256.gt a (a + b) = ⟨1⟩ := by
     rw [u256_add_comm a b]
     exact u256_gt_add_right_of_overflow a b hover
@@ -52,8 +54,8 @@ theorem midnightCheckedDivRevert {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {a ret : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 ⟨19391⟩ (a :: ⟨0⟩ :: ret :: R) mem aw rdata σ k C) :
-    RDrev midnightBytecode g s0 := by
+    (rd : RD fork midnightBytecode I g s0 ⟨19391⟩ (a :: ⟨0⟩ :: ret :: R) mem aw rdata σ k C) :
+    RDrev fork midnightBytecode g s0 := by
   have rd1 := midnightBlocks.midnight_block_19391_taken (by simp only [List.length_cons]; omega)
     (by decide) (by jump_dest) rd
   exact midnightBlocks.midnight_block_19401 (by simp only [List.length_cons]; omega) rd1

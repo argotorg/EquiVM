@@ -2,6 +2,8 @@ import Benchmarks.Midnight.HealthLoopBudget
 import Benchmarks.Midnight.HealthPrepareBudget
 import Benchmarks.Midnight.HealthSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Internal health refinement with retained allocation bounds and transfer funding. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -14,26 +16,26 @@ theorem midnightHealthInternal_budget (imms : Store)
     {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {mem rdata : ByteArray}
     {aw market arrayPtr heap root id user ret budgetRoot : UInt256} {credit : Nat} {m : MarketData}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
-    (hstack : R.length + 24 ≤ 1024) (hfork : I.fork ≥ .osaka)
+    (hstack : R.length + 24 ≤ 1024) (hfork : fork ≥ .osaka)
     (hcanon : user.toNat < EVM.addressModulus) (hroot : root.toNat + 4096 < 2^64)
     (hheap : heap.toNat ≤ root.toNat) (hfree : memLoad (UInt256.ofNat 64) mem = root)
     (hm : MarketStored mem market arrayPtr heap m) (hs : SourceState s0 I σ evm)
     (hret : (D_J midnightBytecode 0).contains ret = true)
     (hb : TransferBudget budgetRoot credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨19775⟩ (market :: id :: user :: ret :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨19775⟩ (market :: id :: user :: ret :: R)
       mem aw rdata σ k C) :
-    (ExecFuncBody config (healthCallFrame imms m id user) evm healthFunction.body .reverted ∧
-      RDrev midnightBytecode g s0) ∨
+    (ExecFuncBody fork config (healthCallFrame imms m id user) evm healthFunction.body .reverted ∧
+      RDrev fork midnightBytecode g s0) ∨
     ∃ (evm' : State) (σ' : AccountMap) (frame' : Frame) (mem' out : ByteArray)
       (root' aw' : UInt256) (k' C' : Nat) (value : Bool),
-      ExecFuncBody config (healthCallFrame imms m id user) evm healthFunction.body
+      ExecFuncBody fork config (healthCallFrame imms m id user) evm healthFunction.body
         (.returned frame' evm' (some [.bool value])) ∧
       SourceState s0 I σ' evm' ∧ MarketStored mem' market arrayPtr heap m ∧
       memLoad (UInt256.ofNat 64) mem' = root' ∧ heap.toNat ≤ root'.toNat ∧ root'.toNat < 2^64 ∧
       root.toNat ≤ root'.toNat ∧ root'.toNat ≤ root.toNat + 4096 ∧
       root'.toNat % 32 = root.toNat % 32 ∧ MemoryPrefix mem mem' root.toNat ∧
       TransferBudget budgetRoot credit mem' aw' C' ∧
-      RD midnightBytecode I g s0 ret ((if value then ⟨1⟩ else ⟨0⟩) :: R)
+      RD fork midnightBytecode I g s0 ret ((if value then ⟨1⟩ else ⟨0⟩) :: R)
         mem' aw' out σ' k' C' := by
   let w := solcSlotWordAt (positionSlot id user + ⟨2⟩) σ I
   have hword : healthPositionWord evm id user = w := hs.storageRead _
@@ -41,7 +43,7 @@ theorem midnightHealthInternal_budget (imms : Store)
     have := hm.words.size
     have := hm.lower
     omega
-  have hprefix := healthSourcePrefix evm imms m id user hcanon
+  have hprefix := healthSourcePrefix (fork := fork) evm imms m id user hcanon
   rw [hword] at hprefix
   have hp := positionReadMemory_prefix mem id user root.toNat
   have hm1 := hm.preserve (hp.mono hheap)

@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TakeGateControl
 import Benchmarks.Midnight.TakeGateCall
 
+variable {fork : Ethereum.Fork}
+
 /-! A complete entry gate, including the condition, static call, and require. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -25,21 +27,21 @@ theorem midnightTakeGate {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0 evm 
     (ho : OfferStored mem ⟨832⟩ marketPtr arrayPtr callbackPtr offerRoot offer)
     (hoffer : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 kind.startPC
+    (rd : RD fork midnightBytecode I g s0 kind.startPC
       ([buyerSlot, debt, buyerDebt, sellerSlot, marketSlot, decrease, ratifierPtr, increase,
         saved] ++ R) mem aw rdata σ k C) :
-    (ExecStmt config frame evm (takeGateStmt kind) .reverted ∧
-      RDrev midnightBytecode g s0) ∨
+    (ExecStmt fork config frame evm (takeGateStmt kind) .reverted ∧
+      RDrev fork midnightBytecode g s0) ∨
     ∃ (frame' : Frame) (evm' : State) (σ' : AccountMap) (mem' rdata' : ByteArray)
       (root' aw' : UInt256) (k' C' : Nat),
-      ExecStmt config frame evm (takeGateStmt kind) (.ok frame' evm') ∧
+      ExecStmt fork config frame evm (takeGateStmt kind) (.ok frame' evm') ∧
       (frame' = frame ∨ frame' = takeGateAllowedFrame frame ⟨1⟩) ∧
       SourceState s0 I σ' evm' ∧ accountStorageStateEq evm.accountMap evm'.accountMap ∧
       MemoryPrefix mem mem' root.toNat ∧
       root.toNat ≤ root'.toNat ∧ root'.toNat ≤ root.toNat + 32 ∧
       root'.toNat % 32 = root.toNat % 32 ∧
       memLoad (UInt256.ofNat 64) mem' = root' ∧ MemoryFunding credit mem' aw' C' ∧
-      RD midnightBytecode I g s0 kind.finishPC
+      RD fork midnightBytecode I g s0 kind.finishPC
         ([buyerSlot, debt, buyerDebt, sellerSlot, marketSlot, decrease, ratifierPtr, increase,
           saved] ++ R) mem' aw' rdata' σ' k' C' := by
   simp only [List.cons_append, List.nil_append] at rd

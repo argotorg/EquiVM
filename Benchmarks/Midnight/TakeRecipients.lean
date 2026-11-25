@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TakePayerSelect
 import Benchmarks.Midnight.TakeReceiverSelect
 
+variable {fork : Ethereum.Fork}
+
 /-! Source and runtime agreement through all trade-recipient choices. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -76,14 +78,14 @@ theorem midnightTakeRecipients {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s
     (hbuyer : memLoad (UInt256.ofNat 576) mem = UInt256.ofNat buyer.val)
     (hreceiver : memLoad (UInt256.ofNat 288) mem = UInt256.ofNat receiver.val)
     (hs : SourceState s0 I σ evm) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨12719⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨12719⟩
       ([offer.buy, decrease, ratifierPtr, increase] ++ R) mem aw rdata σ k C) :
     ∃ aw' k' C',
-      ABlock config evm frame (takeTransition.body.drop 60)
+      ABlock fork config evm frame (takeTransition.body.drop 60)
         (takeRecipientsFrame frame offer callback buyer I.source receiver)
         (takeTransition.body.drop 64) ∧
       MemoryFunding credit (takeReceiverMemory mem offer receiver) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨12792⟩
+      RD fork midnightBytecode I g s0 ⟨12792⟩
         ([decrease, increase, ratifierPtr, UInt256.ofNat (takeSellerCallback offer callback).val,
           UInt256.ofNat (takePayer offer callback buyer I.source).val,
           UInt256.ofNat (takeBuyerCallback offer callback).val] ++ R)

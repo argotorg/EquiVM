@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.Uint128Arithmetic
 import Benchmarks.Midnight.InternalCall
 
+variable {fork : Ethereum.Fork}
+
 /-! Source semantics of the checked uint128 conversion and fee addition. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -11,7 +13,7 @@ def toUint128Function : FunctionDecl := contract.functions[3]!
 
 theorem toUint128BodyReturns {cfg : Config} {frame : Frame} {evm : EVM.State} {value : UInt256}
     (hget : frame.locals.get? "x" = some (.int value.toNat)) (hvalue : value.toNat < 2^128) :
-    ExecFuncBody cfg frame evm toUint128Function.body
+    ExecFuncBody fork cfg frame evm toUint128Function.body
       (.returned frame evm (some [.int value.toNat])) := by
   apply ExecFuncBody.execBlockRet
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
@@ -30,7 +32,7 @@ theorem toUint128BodyReturns {cfg : Config} {frame : Frame} {evm : EVM.State} {v
 
 theorem toUint128BodyReverts {cfg : Config} {frame : Frame} {evm : EVM.State} {value : UInt256}
     (hget : frame.locals.get? "x" = some (.int value.toNat)) (hvalue : 2^128 ≤ value.toNat) :
-    ExecFuncBody cfg frame evm toUint128Function.body .reverted := by
+    ExecFuncBody fork cfg frame evm toUint128Function.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply ExecBlock.consRevert (ExecStmt.requireFalse ?_)
   have hle : ¬ (value.toNat : Int) ≤ 340282366920938463463374607431768211455 := by omega
@@ -42,7 +44,7 @@ theorem callToUint128 {cfg : Config} {frame : Frame} {evm : EVM.State}
     {value : UInt256} {args : List Expr} {name : Ident}
     (hc : frame.contract = contract) (he : evalExprs? cfg frame evm args = .ok [.int value.toNat])
     (hvalue : value.toNat < 2^128) :
-    ExecStmt cfg frame evm (.internalCall "UtilsLib_toUint128" args name)
+    ExecStmt fork cfg frame evm (.internalCall "UtilsLib_toUint128" args name)
       (.ok (resumeAfterInternalCall frame name (some [.int value.toNat])) evm) := by
   apply internalCallFunctionReturn (callee := toUint128Function)
     (locals := (∅ : Store).insert "x" (.int value.toNat)) he
@@ -54,7 +56,7 @@ theorem callToUint128Revert {cfg : Config} {frame : Frame} {evm : EVM.State}
     {value : UInt256} {args : List Expr} {name : Ident}
     (hc : frame.contract = contract) (he : evalExprs? cfg frame evm args = .ok [.int value.toNat])
     (hvalue : 2^128 ≤ value.toNat) :
-    ExecStmt cfg frame evm (.internalCall "UtilsLib_toUint128" args name) .reverted := by
+    ExecStmt fork cfg frame evm (.internalCall "UtilsLib_toUint128" args name) .reverted := by
   apply internalCallFunctionRevert (callee := toUint128Function)
     (locals := (∅ : Store).insert "x" (.int value.toNat)) he
   · rw [hc]; rfl

@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.HealthSourceFrame
 
+variable {fork : Ethereum.Fork}
+
 /-! Source execution of the arithmetic and bitmap-update part of a health iteration. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -20,7 +22,7 @@ theorem healthClearCall {cfg : Config} {frame : Frame} {evm : EVM.State} {bitmap
     (hc : frame.contract = contract)
     (hb : frame.locals.get? "_collateralBitmap" = some (.int bitmap.toNat))
     (hi : frame.locals.get? "i" = some (.int index.toNat)) (hindex : index.toNat < 256) :
-    ExecStmt cfg frame evm (healthLoopBody[6]!)
+    ExecStmt fork cfg frame evm (healthLoopBody[6]!)
       (.ok (wordLocal frame "__c4" (bitmapClear bitmap index)) evm) := by
   let locals : Store := ((∅ : Store).insert "bit" (.int index.toNat)).insert
     "bitmap" (.int bitmap.toNat)
@@ -70,9 +72,9 @@ theorem healthArithmeticSource {frame : Frame} {evm : EVM.State} {m : MarketData
     let collateral := healthCollateralWord (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner)
       (positionSlot id user + ⟨3⟩) index
     (¬ HealthArithmeticSafe collateral price c.lltv maxDebt ∧
-      ExecBlock config frame evm (healthLoopBody.drop 3) .reverted) ∨
+      ExecBlock fork config frame evm (healthLoopBody.drop 3) .reverted) ∨
     (HealthArithmeticSafe collateral price c.lltv maxDebt ∧
-      ExecBlock config frame evm (healthLoopBody.drop 3)
+      ExecBlock fork config frame evm (healthLoopBody.drop 3)
         (.ok (healthStepFrame frame collateral price c.lltv bitmap index maxDebt) evm) ∧
       HealthSourceFrame (healthStepFrame frame collateral price c.lltv bitmap index maxDebt)
         m id user (bitmapClear bitmap index)
@@ -82,7 +84,7 @@ theorem healthArithmeticSource {frame : Frame} {evm : EVM.State} {m : MarketData
     (positionSlot id user + ⟨3⟩) index
   have ha := healthFirstArgs (evm := evm) hf.contract hcanon hf.position hi hp hindex
   by_cases hmul : collateral.toNat * price.toNat < UInt256.size
-  · have hs1 := callMulDivDown (name := "__c2") hf.contract ha hmul (by decide)
+  · have hs1 := callMulDivDown (fork := fork) (name := "__c2") hf.contract ha hmul (by decide)
     have hf1 : HealthSourceFrame (wordLocal frame "__c2" (healthPriceValue collateral price))
         m id user bitmap maxDebt debt := hf.insert _ _ (by decide)
     have hc1 : (wordLocal frame "__c2" (healthPriceValue collateral price)).locals.get?
@@ -91,12 +93,12 @@ theorem healthArithmeticSource {frame : Frame} {evm : EVM.State} {m : MarketData
     have ha2 := healthSecondArgs (cfg := config) (evm := evm)
       (wordLocal_get frame "__c2" (healthPriceValue collateral price)) hc1
     by_cases hmul2 : (healthPriceValue collateral price).toNat * c.lltv.toNat < UInt256.size
-    · have hs2 := callMulDivDown (name := "__c3") hf1.contract ha2 hmul2 (by decide)
+    · have hs2 := callMulDivDown (fork := fork) (name := "__c3") hf1.contract ha2 hmul2 (by decide)
       have hf2 : HealthSourceFrame (healthProductFrame frame collateral price c.lltv)
           m id user bitmap maxDebt debt := hf1.insert _ _ (by decide)
       by_cases hadd : maxDebt.toNat +
           (healthCollateralCapacity collateral price c.lltv).toNat < UInt256.size
-      · have hs3 : ExecStmt config (healthProductFrame frame collateral price c.lltv) evm
+      · have hs3 : ExecStmt fork config (healthProductFrame frame collateral price c.lltv) evm
             (healthLoopBody[5]!) (.ok (wordLocal (healthProductFrame frame collateral price c.lltv)
               "maxDebt" (maxDebt + healthCollateralCapacity collateral price c.lltv)) evm) :=
           execLocalAssign hf2.maxDebt
@@ -109,7 +111,7 @@ theorem healthArithmeticSource {frame : Frame} {evm : EVM.State} {m : MarketData
             wordLocal_get_ne _ _ _ _ (show "maxDebt" ≠ "i" from by decide),
             wordLocal_get_ne _ _ _ _ (show "__c3" ≠ "i" from by decide),
             wordLocal_get_ne _ _ _ _ (show "__c2" ≠ "i" from by decide)] using hi
-        have hs4 := healthClearCall (cfg := config) (evm := evm)
+        have hs4 := healthClearCall (fork := fork) (cfg := config) (evm := evm)
           hf3.contract hf3.bitmap hi3 (by omega)
         have hf4 := hf3.insert "__c4" (.int (bitmapClear bitmap index).toNat) (by decide)
         refine Or.inr ⟨⟨hmul, hmul2, hadd⟩, ?_, hf4.setBitmap (bitmapClear bitmap index)⟩

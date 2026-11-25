@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.PositionViewSourceFrames
 
+variable {fork : Ethereum.Fork}
+
 /-! Complete source execution of the internal position-view function. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -47,7 +49,7 @@ theorem positionViewAccrualStart_pending (evm : EVM.State) (imms : Store) (m : M
 theorem positionViewAccrualStep (evm : EVM.State) (imms : Store) (m : MarketData) (id user : UInt256)
     (hsafe : PositionAccrualSafe (positionPostPending evm id user) (positionFieldWord evm id user 3)
       m.maturity (UInt256.ofNat evm.executionEnv.header.timestamp)) :
-    ExecStmt config (positionViewAccrualStartFrame evm imms m id user) evm
+    ExecStmt fork config (positionViewAccrualStartFrame evm imms m id user) evm
       (positionViewFunction.body[11]!) (.ok (positionViewResultFrame evm imms m id user) evm) := by
   apply positionAccrualSource
     (by simp [positionViewAccrualStartFrame, positionViewPendingDoneFrame, positionViewPendingFrame,
@@ -60,7 +62,7 @@ theorem positionViewAccrualStep (evm : EVM.State) (imms : Store) (m : MarketData
 theorem positionViewAccrualStepRevert (evm : EVM.State) (imms : Store) (m : MarketData) (id user : UInt256)
     (hbad : ¬ PositionAccrualSafe (positionPostPending evm id user) (positionFieldWord evm id user 3)
       m.maturity (UInt256.ofNat evm.executionEnv.header.timestamp)) :
-    ExecStmt config (positionViewAccrualStartFrame evm imms m id user) evm
+    ExecStmt fork config (positionViewAccrualStartFrame evm imms m id user) evm
       (positionViewFunction.body[11]!) .reverted := by
   apply positionAccrualSourceRevert
     (by simp [positionViewAccrualStartFrame, positionViewPendingDoneFrame, positionViewPendingFrame,
@@ -87,7 +89,7 @@ theorem positionViewResult_fee (evm : EVM.State) (imms : Store) (m : MarketData)
 
 theorem positionViewInternalReturns (evm : EVM.State) (imms : Store) (m : MarketData) (id user : UInt256)
     (hcanon : user.toNat < EVM.addressModulus) (hsafe : PositionViewSourceSafe evm m id user) :
-    ExecFuncBody config (positionViewCallFrame imms m id user) evm positionViewFunction.body
+    ExecFuncBody fork config (positionViewCallFrame imms m id user) evm positionViewFunction.body
       (.returned (positionViewResultFrame evm imms m id user) evm
         (some (positionViewReturnValues (positionPostCredit evm id user) (positionPostPending evm id user)
           (positionViewFee evm m id user)))) := by
@@ -100,11 +102,11 @@ theorem positionViewInternalReturns (evm : EVM.State) (imms : Store) (m : Market
 
 theorem positionViewInternalReverts (evm : EVM.State) (imms : Store) (m : MarketData) (id user : UInt256)
     (hcanon : user.toNat < EVM.addressModulus) (hbad : ¬ PositionViewSourceSafe evm m id user) :
-    ExecFuncBody config (positionViewCallFrame imms m id user) evm positionViewFunction.body .reverted := by
+    ExecFuncBody fork config (positionViewCallFrame imms m id user) evm positionViewFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   by_cases hp : SlashPendingSafe (positionFieldWord evm id user 0) (positionFieldWord evm id user 1)
       (positionPostCredit evm id user)
-  · have hprefix := positionViewAccrualPrefix evm imms m id user hcanon hp
+  · have hprefix := positionViewAccrualPrefix (fork := fork) evm imms m id user hcanon hp
     by_cases ha : PositionAccrualSafe (positionPostPending evm id user) (positionFieldWord evm id user 3)
         m.maturity (UInt256.ofNat evm.executionEnv.header.timestamp)
     · apply (sourceNormalStep hprefix (positionViewAccrualStep evm imms m id user ha)).run

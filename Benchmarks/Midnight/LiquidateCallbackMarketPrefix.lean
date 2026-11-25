@@ -2,6 +2,8 @@ import Benchmarks.Midnight.LiquidateCallbackHead
 import Benchmarks.Midnight.LiquidateCallbackArrayHead
 import Benchmarks.Midnight.LiquidateCallbackCollateralLoop
 
+variable {fork : Ethereum.Fork}
+
 /-! The callback header and complete collateral array, with the remaining scalar fields pending. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -29,12 +31,12 @@ theorem midnightLiquidateCallbackMarketPrefix {credit : Nat} {I : ExecutionEnv} 
     (hfree : memLoad (UInt256.ofNat 64) mem = root)
     (hid : memLoad (UInt256.ofNat 768) mem = id)
     (hz : memLoad (UInt256.ofNat 800) mem = ⟨0⟩) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨5824⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨5824⟩
       ([dp, dl, borrower, badDebt, receiver] ++ R) mem aw rdata σ k C) :
     ∃ aw' k' C',
       MemoryFunding (credit + 4)
         (liquidateCallbackMarketPrefixMemory mem root.toNat I.source id m) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨6050⟩
+      RD fork midnightBytecode I g s0 ⟨6050⟩
         ([UInt256.ofNat m.collaterals.length, liquidateCallbackArrayBase I.calldata,
           UInt256.ofNat (marketCollateralDataStart I.calldata) + UInt256.ofNat (128 * m.collaterals.length),
           borrower, receiver, dp, dl, root + UInt256.ofNat (612 + 128 * m.collaterals.length),

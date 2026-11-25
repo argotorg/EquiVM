@@ -2,6 +2,8 @@ import Benchmarks.Midnight.SafeTransferPrepare
 import Benchmarks.Midnight.AllocationFunding
 import Benchmarks.Midnight.AccountAccessGas
 
+variable {fork : Ethereum.Fork}
+
 /-! Safe-transfer calldata construction retaining prior non-memory work. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -18,11 +20,11 @@ theorem safeTransferPrepareCall_funded (isFrom : Bool) {credit : Nat} {I : Execu
     (hfree : memLoad (UInt256.ofNat 64) mem = ptr)
     (hcode : extCodeSizeWord σ (UInt256.ofNat token.val) ≠ ⟨0⟩)
     (ha0 : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 (safeTransferEntryPC isFrom)
+    (rd : RD fork midnightBytecode I g s0 (safeTransferEntryPC isFrom)
       (safeTransferEntryStack isFrom token sender recipient value R) mem aw rdata σ k C) :
     ∃ gasArg aw' k' C',
       MemoryFunding credit (safeTransferCallMem isFrom sender recipient value mem ptr) aw' C' ∧
-      RD midnightBytecode I g s0 (safeTransferCallPC isFrom)
+      RD fork midnightBytecode I g s0 (safeTransferCallPC isFrom)
       (gasArg :: UInt256.ofNat token.val :: ⟨0⟩ :: (ptr + UInt256.ofNat 32) ::
         UInt256.ofNat (safeTransferCallSize isFrom) :: ⟨0⟩ :: ⟨0⟩ :: R)
       (safeTransferCallMem isFrom sender recipient value mem ptr) aw' rdata σ k' C' := by
@@ -38,7 +40,7 @@ theorem safeTransferPrepareCall_funded (isFrom : Bool) {credit : Nat} {I : Execu
   have hr := hclean recipient
   cases isFrom with
   | false =>
-    change RD _ _ _ _ ⟨23236⟩
+    change RD fork _ _ _ _ ⟨23236⟩
       (UInt256.ofNat token.val :: UInt256.ofNat recipient.val :: value :: R) _ _ _ _ _ _ at rd
     have hend : allocationEnd ptr (UInt256.ofNat 100) = ptr + UInt256.ofNat 128 :=
       safeTransferAllocationEnd false ptr
@@ -90,7 +92,7 @@ theorem safeTransferPrepareCall_funded (isFrom : Bool) {credit : Nat} {I : Execu
     simp only [midnightBlocks.midnight_block_23307_stack, hm.2.2.1] at rd5 ha5
     exact ⟨_, _, _, _, ha5, rd5⟩
   | true =>
-    change RD _ _ _ _ ⟨23444⟩
+    change RD fork _ _ _ _ ⟨23444⟩
       (UInt256.ofNat token.val :: UInt256.ofNat sender.val :: UInt256.ofNat recipient.val ::
         value :: R) _ _ _ _ _ _ at rd
     have hend : allocationEnd ptr (UInt256.ofNat 132) = ptr + UInt256.ofNat 160 :=

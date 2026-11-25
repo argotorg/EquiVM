@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.RatifierABI
 
+variable {fork : Ethereum.Fork}
+
 /-! The dynamic byte buffer returned by source-level offer encoding. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -42,7 +44,7 @@ def takeEncodedOfferFrame (frame : Frame) (offer : OfferData) : Frame :=
 theorem takeEncodeOfferSource {frame : Frame} {evm : State} {offer : OfferData}
     (hc : OfferCanonical offer)
     (ho : frame.locals.get? "offer" = some (Model.offerValue offer.value)) :
-    ABlock config evm frame (takeTransition.body.drop 64) (takeEncodedOfferFrame frame offer)
+    ABlock fork config evm frame (takeTransition.body.drop 64) (takeEncodedOfferFrame frame offer)
       (takeTransition.body.drop 65) := by
   have he : evalExpr? config frame evm (.abiEncodeCall "encodeOffer" [.var "offer"]) =
       .ok (.bytes (offerBytes offer)) := by

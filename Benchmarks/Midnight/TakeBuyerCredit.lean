@@ -3,6 +3,8 @@ import Benchmarks.Midnight.TakeBuyerPendingWrite
 import Benchmarks.Midnight.TakeCreditSource
 import Benchmarks.Midnight.CheckedUint128Gas
 
+variable {fork : Ethereum.Fork}
+
 /-! The checked buyer credit increase and the subsequent seller pending-fee read. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -38,19 +40,19 @@ theorem midnightTakeBuyerCredit {credit : Nat} {I : ExecutionEnv} {g : Sat256} {
     (hi : frame.locals.get? "buyerCreditIncrease" = some (.int increase.toNat))
     (hcanon : buyer.toNat < EVM.addressModulus) (hperm : I.perm = true)
     (hs : SourceState s0 I σ evm) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨12386⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨12386⟩
       ([positionSlot id buyer, debt, ⟨12505⟩, ⟨2⟩, ⟨12517⟩, uint128Mask,
         positionSlot id seller, marketSlot, decrease, ratifierPtr, increase] ++ R)
       mem aw rdata σ k C) :
-    (ExecBlock config frame evm (takeTransition.body.drop 49) .reverted ∧
-      RDrev midnightBytecode g s0) ∨
+    (ExecBlock fork config frame evm (takeTransition.body.drop 49) .reverted ∧
+      RDrev fork midnightBytecode g s0) ∨
     ∃ σ' k' C', increase.toNat < 2^128 ∧
-      (∀ result, ExecBlock config (takeBuyerCreditWriteFrame frame increase)
+      (∀ result, ExecBlock fork config (takeBuyerCreditWriteFrame frame increase)
           (takeBuyerCreditWriteState evm id buyer increase) (takeTransition.body.drop 51) result →
-        ExecBlock config frame evm (takeTransition.body.drop 49) result) ∧
+        ExecBlock fork config frame evm (takeTransition.body.drop 49) result) ∧
       SourceState s0 I σ' (takeBuyerCreditWriteState evm id buyer increase) ∧
       MemoryFunding credit mem (M aw (UInt256.ofNat 160) ⟨32⟩) C' ∧
-      RD midnightBytecode I g s0 ⟨19743⟩
+      RD fork midnightBytecode I g s0 ⟨19743⟩
         ([positionFieldWord (takeBuyerCreditWriteState evm id buyer increase) id seller 1,
           memLoad (UInt256.ofNat 160) mem, ⟨12437⟩, ⟨12469⟩, debt, ⟨12505⟩, ⟨2⟩,
           ⟨12517⟩, uint128Mask, positionSlot id seller, marketSlot, decrease, ratifierPtr,
@@ -62,7 +64,7 @@ theorem midnightTakeBuyerCredit {credit : Nat} {I : ExecutionEnv} {g : Sat256} {
   have rd1 := midnightBlocks.midnight_block_12386 (by omega) (by jump_dest) rd
   simp only [midnightBlocks.midnight_block_12386_stack] at rd1
   by_cases hi128 : increase.toNat < 2^128
-  · have hx0 := callToUint128 (name := "__c22") hc hargs hi128
+  · have hx0 := callToUint128 (fork := fork) (name := "__c22") hc hargs hi128
     have hp1 : (takeBuyerCreditWriteFrame frame increase).locals.get? "buyerPos" =
         some (.storageRef (positionRef id buyer) positionType) :=
       (store_get_ne _ _ (by decide)).trans hp

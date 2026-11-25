@@ -2,6 +2,8 @@ import Benchmarks.Midnight.LockExchangeSource
 import Benchmarks.Midnight.TakeEventTrace
 import Benchmarks.Midnight.RuntimeBlocks_049
 
+variable {fork : Ethereum.Fork}
+
 /-! Setting the seller's liquidation lock before the buyer callback. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -18,7 +20,7 @@ theorem takeLockSource {frame : Frame} {evm : State} {id seller : UInt256}
     (hi : frame.locals.get? "id" = some (wordBytes32Value id))
     (hs : frame.locals.get? "seller" = some (.address (AccountAddress.ofNat seller.toNat)))
     (hp : evm.executionEnv.perm = true) :
-    ExecStmt config frame evm takeTransition.body[66]!
+    ExecStmt fork config frame evm takeTransition.body[66]!
       (.ok (takeLockFrame frame evm id seller)
         (lockExchangeState evm liquidationLockBase id seller true)) := by
   apply callLockExchange hc hcanon
@@ -36,11 +38,11 @@ theorem midnightTakeLockTrace {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0
     (hroot : 96 ≤ root.toNat) (hb : root.toNat + 128 < UInt256.size)
     (hcb : buyerCallback.toNat < EVM.addressModulus) (hp : I.perm = true)
     (ha : MemoryFunding credit (dynamicLockMemory mem root id seller) aw C)
-    (rd : RD midnightBytecode I g s0 ⟨13223⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨13223⟩
       ([root, sellerCallback, payer, buyerCallback] ++ R)
       (dynamicLockMemory mem root id seller) aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding credit (dynamicLockMemory mem root id seller) aw' C' ∧
-      RD midnightBytecode I g s0 (if buyerCallback = ⟨0⟩ then ⟨13252⟩ else ⟨13774⟩)
+      RD fork midnightBytecode I g s0 (if buyerCallback = ⟨0⟩ then ⟨13252⟩ else ⟨13774⟩)
         ([buyerCallback, sellerCallback, payer,
           codeOwnerTransientWord I σ (lockSlot liquidationLockBase id seller)] ++ R)
         (dynamicLockMemory mem root id seller) aw' rdata
@@ -73,17 +75,17 @@ theorem midnightTakeLock {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0 evm 
     (hcb : buyerCallback.toNat < EVM.addressModulus) (hp : I.perm = true)
     (hs : SourceState s0 I σ evm)
     (ha : MemoryFunding credit (dynamicLockMemory mem root id seller) aw C)
-    (rd : RD midnightBytecode I g s0 ⟨13223⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨13223⟩
       ([root, sellerCallback, payer, buyerCallback] ++ R)
       (dynamicLockMemory mem root id seller) aw rdata σ k C) :
     ∃ σ' aw' k' C',
-      (∀ result, ExecBlock config (takeLockFrame frame evm id seller)
+      (∀ result, ExecBlock fork config (takeLockFrame frame evm id seller)
           (lockExchangeState evm liquidationLockBase id seller true)
           (takeTransition.body.drop 67) result →
-        ExecBlock config frame evm (takeTransition.body.drop 66) result) ∧
+        ExecBlock fork config frame evm (takeTransition.body.drop 66) result) ∧
       SourceState s0 I σ' (lockExchangeState evm liquidationLockBase id seller true) ∧
       MemoryFunding credit (dynamicLockMemory mem root id seller) aw' C' ∧
-      RD midnightBytecode I g s0 (if buyerCallback = ⟨0⟩ then ⟨13252⟩ else ⟨13774⟩)
+      RD fork midnightBytecode I g s0 (if buyerCallback = ⟨0⟩ then ⟨13252⟩ else ⟨13774⟩)
         ([buyerCallback, sellerCallback, payer,
           Stele.EVM.transientLoad evm evm.executionEnv.codeOwner
             (lockSlot liquidationLockBase id seller)] ++ R)
@@ -92,7 +94,7 @@ theorem midnightTakeLock {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0 evm 
   rw [← sourceState_transientRead hs] at rd'
   refine ⟨_, aw', k', C', ?_, sourceState_transientWrite hs _ ⟨1⟩, ha', rd'⟩
   intro result hx
-  change ExecBlock config frame evm
+  change ExecBlock fork config frame evm
     (takeTransition.body[66]! :: takeTransition.body.drop 67) result
   exact ExecBlock.consNormal (takeLockSource hc hcanon hi hsel (by rw [hs.env]; exact hp)) hx
 

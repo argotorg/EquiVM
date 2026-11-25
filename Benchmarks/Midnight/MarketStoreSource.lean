@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.MarketIdSource
 import Reasoning.VyperDispatch
 
+variable {fork : Ethereum.Fork}
+
 /-! Source execution of the SSTORE2 deployment helper. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -57,9 +59,9 @@ theorem marketStoreCodeFailureSource {frame : Frame} {evm evm' : EVM.State} {m :
     {addr : AccountAddress}
     (hm : frame.locals.get? "market" = some (Model.marketValue m.value))
     (hperm : evm.executionEnv.perm = true)
-    (hnew : newViaEVM config evm "SSTORE2" 0 [Model.marketValue m.value]
+    (hnew : newViaEVM fork config evm "SSTORE2" 0 [Model.marketValue m.value]
       (some (Ethereum.UInt256.toByteArray ⟨0⟩)) (addr, evm', false)) :
-    ExecFuncBody config frame evm marketStoreCodeFunction.body .reverted := by
+    ExecFuncBody fork config frame evm marketStoreCodeFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   rw [marketStoreCodeFunction_body]
   refine ExecBlock.consNormal (ExecStmt.letDecl marketStoreZeroAddress) ?_
@@ -70,9 +72,9 @@ theorem marketStoreCodeFailureSource {frame : Frame} {evm evm' : EVM.State} {m :
 theorem marketStoreCodeZeroSource {frame : Frame} {evm evm' : EVM.State} {m : MarketData}
     (hm : frame.locals.get? "market" = some (Model.marketValue m.value))
     (hperm : evm.executionEnv.perm = true)
-    (hnew : newViaEVM config evm "SSTORE2" 0 [Model.marketValue m.value]
+    (hnew : newViaEVM fork config evm "SSTORE2" 0 [Model.marketValue m.value]
       (some (Ethereum.UInt256.toByteArray ⟨0⟩)) (0, evm', true)) :
-    ExecFuncBody config frame evm marketStoreCodeFunction.body .reverted := by
+    ExecFuncBody fork config frame evm marketStoreCodeFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   rw [marketStoreCodeFunction_body]
   refine ExecBlock.consNormal (ExecStmt.letDecl marketStoreZeroAddress) ?_
@@ -87,9 +89,9 @@ theorem marketStoreCodeSuccessSource {frame : Frame} {evm evm' : EVM.State} {m :
     {addr : AccountAddress}
     (hm : frame.locals.get? "market" = some (Model.marketValue m.value))
     (hperm : evm.executionEnv.perm = true) (haddr : addr ≠ 0)
-    (hnew : newViaEVM config evm "SSTORE2" 0 [Model.marketValue m.value]
+    (hnew : newViaEVM fork config evm "SSTORE2" 0 [Model.marketValue m.value]
       (some (Ethereum.UInt256.toByteArray ⟨0⟩)) (addr, evm', true)) :
-    ExecFuncBody config frame evm marketStoreCodeFunction.body
+    ExecFuncBody fork config frame evm marketStoreCodeFunction.body
       (.returned (marketStoreCodeResultFrame frame addr) evm' (some [.address addr])) := by
   apply ExecFuncBody.execBlockRet
   rw [marketStoreCodeFunction_body]

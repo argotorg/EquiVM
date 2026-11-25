@@ -4,6 +4,8 @@ import Benchmarks.Midnight.RuntimeBlocks_024
 import Benchmarks.Midnight.RuntimeBlocks_025
 import Benchmarks.Midnight.MemoryFunding
 
+variable {fork : Ethereum.Fork}
+
 /-! The collateral-array bounds checks, header, and initial callback-loop state. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -22,12 +24,12 @@ theorem midnightLiquidateCallbackArrayHead {credit : Nat} {I : ExecutionEnv} {g 
     (hstack : R.length + 14 ≤ 1024) (hd : decodeCalldataMarket I.calldata 4 = some m)
     (hroot : root.toNat < 2^128) (hlo : 832 ≤ root.toNat) (hsize : 832 ≤ mem.size)
     (hz : memLoad (UInt256.ofNat 800) mem = ⟨0⟩) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨5931⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨5931⟩
       ([UInt256.ofNat m.loanToken.val, solcAddrMask, borrower, receiver, dp, dl,
         root + UInt256.ofNat 580, badDebt, root] ++ R) mem aw rdata σ k C) :
     ∃ aw' k' C',
       MemoryFunding credit (liquidateCallbackArraySetupMemory mem root.toNat m) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨6038⟩
+      RD fork midnightBytecode I g s0 ⟨6038⟩
         ([⟨0⟩, liquidateCallbackArrayBase I.calldata,
           UInt256.ofNat (marketCollateralDataStart I.calldata), borrower, receiver, dp, dl,
           root + UInt256.ofNat 612, root, badDebt, root] ++ R)
@@ -44,13 +46,13 @@ theorem midnightLiquidateCallbackArrayHead {credit : Nat} {I : ExecutionEnv} {g 
     memory_fund ha)
   simp only [midnightBlocks.midnight_block_5931_fallthrough_memory, hclean, ho 388 (by decide)]
     at rd1 ha1
-  change RD midnightBytecode I g s0 ⟨5961⟩
+  change RD fork midnightBytecode I g s0 ⟨5961⟩
     ([liquidateCallbackArrayOffset I.calldata, borrower, receiver, dp, dl,
       root + UInt256.ofNat 580, badDebt, root] ++ R) _ _ rdata σ _ _ at rd1
   have rd2 := midnightBlocks.midnight_block_5961_fallthrough
     (R := [badDebt, root] ++ R)
     (by simp only [List.length_append, List.length_cons, List.length_nil]; omega) hcountGuard rd1
-  change RD midnightBytecode I g s0 ⟨5988⟩
+  change RD fork midnightBytecode I g s0 ⟨5988⟩
     ([root + UInt256.ofNat 580, liquidateCallbackArrayBase I.calldata,
       borrower, receiver, dp, dl, liquidateCallbackArrayBase I.calldata + UInt256.ofNat 36,
       badDebt, root] ++ R) _ _ rdata σ _ _ at rd2
@@ -58,7 +60,7 @@ theorem midnightLiquidateCallbackArrayHead {credit : Nat} {I : ExecutionEnv} {g 
     (R := [badDebt, root] ++ R)
     (by simp only [List.length_append, List.length_cons, List.length_nil]; omega) hend rd2
   have ha3 := memoryFundingAt (credit := credit) rd3 (ha1.mono (by omega))
-  change RD _ _ _ _ _ _ (writeWord mem (root.toNat + 388) (UInt256.ofNat m.loanToken.val))
+  change RD fork _ _ _ _ _ _ (writeWord mem (root.toNat + 388) (UInt256.ofNat m.loanToken.val))
     _ _ _ _ _ at rd3
   change MemoryFunding credit (writeWord mem (root.toNat + 388) (UInt256.ofNat m.loanToken.val))
     _ _ at ha3

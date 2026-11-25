@@ -3,6 +3,8 @@ import Benchmarks.Midnight.MulDivTrace
 import Benchmarks.Midnight.RuntimeBlocks_085
 import Benchmarks.Midnight.RuntimeBlocks_086
 
+variable {fork : Ethereum.Fork}
+
 /-! Success and revert paths for pending-fee slashing. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -14,13 +16,13 @@ set_option maxRecDepth 2000000
 theorem midnightSlashPending {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw word0 credit word1 postCredit ret ptr : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 20 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 ⟨22948⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨22948⟩
       (word0 :: credit :: word1 :: postCredit :: ⟨23076⟩ :: ret :: uint128Mask :: ptr :: R)
       mem aw rdata σ k C) :
     let pending := UInt256.shiftRight word0 ⟨128⟩
-    (¬ SlashPendingSafe credit pending postCredit ∧ RDrev midnightBytecode g s0) ∨
+    (¬ SlashPendingSafe credit pending postCredit ∧ RDrev fork midnightBytecode g s0) ∨
     (SlashPendingSafe credit pending postCredit ∧ ∃ k' C',
-      RD midnightBytecode I g s0 ⟨22992⟩
+      RD fork midnightBytecode I g s0 ⟨22992⟩
         (ptr :: ⟨128⟩ :: word1 :: postCredit :: ⟨23076⟩ :: ret :: uint128Mask ::
           slashPending credit pending postCredit :: R) mem aw rdata σ k' C') := by
   let pending := UInt256.shiftRight word0 ⟨128⟩

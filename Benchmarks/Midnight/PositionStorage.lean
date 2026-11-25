@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.PackedFields
 
+variable {fork : Ethereum.Fork}
+
 /-! Source evaluation shared by the scalar position getters. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -56,7 +58,7 @@ theorem guardedPositionFieldGetter
     (hload : storageLocLoad evm loc = value)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) :
-    ExecTransitionBody cfg C evm (positionArguments id user)
+    ExecTransitionBody fork cfg C evm (positionArguments id user)
       (entryPrefix ++ [.return [.storage { base := "position", steps :=
         [.mindex (.var "id"), .mindex (.var "user"), .field field] }]])
       (.returned (calldataFrame C (positionArguments id user) ∅ evm) evm (some [value])) := by

@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.LiquidatorGateAligned
 import Benchmarks.Midnight.LiquidateLoopFinish
 
+variable {fork : Ethereum.Fork}
+
 /-! The optional liquidator gate and all subsequent liquidation phases. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -34,20 +36,20 @@ theorem midnightLiquidateGateFinish {I : ExecutionEnv} {g : UInt256} {s0 evm : S
     (hdl : dl.toNat < 2^64) (hdata : dp.toNat + dl.toNat ≤ I.calldata.size)
     (hfund : MemoryFunding credit mem aw C)
     (hcredit : 4 * ((root.toNat + 20831) / 32) ≤ credit + 999921)
-    (hgas : midnightGasBound g) (hfork : I.fork ≥ .osaka) (hs : SourceState s0 I σ evm)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨5275⟩
+    (hgas : midnightGasBound g) (hfork : fork ≥ .osaka) (hs : SourceState s0 I σ evm)
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨5275⟩
       ([UInt256.isZero repaid, UInt256.isZero (UInt256.isZero repaid), positionSlot id borrower,
         dp, dl, borrower, debtWord, UInt256.ofNat receiver.val, mode, saved] ++ R)
       mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (ExecBlock config frame evm (liquidateTransition.body.drop 8) .reverted ∧
-      RDrev midnightBytecode (Sat256.ofUInt256 g) s0) ∨
-    (ExecBlock config frame evm (liquidateTransition.body.drop 8) .staticViolation ∧
-      RDstatic midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (ExecBlock fork config frame evm (liquidateTransition.body.drop 8) .reverted ∧
+      RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+    (ExecBlock fork config frame evm (liquidateTransition.body.drop 8) .staticViolation ∧
+      RDstatic fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
     ∃ frame' evm' seized' repaid',
-      ExecBlock config frame evm (liquidateTransition.body.drop 8)
+      ExecBlock fork config frame evm (liquidateTransition.body.drop 8)
         (.returned frame' evm' (some [.int seized'.toNat, .int repaid'.toNat])) ∧
-      RDret midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap
+      RDret fork midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap
         (wordArrayBytes [seized', repaid']) := by
   rcases midnightMemoryPaid_headroom rd hfund.accounting.paid hgas hcover with hoog | hroom
   · exact Or.inl hoog
@@ -67,7 +69,7 @@ theorem midnightLiquidateGateFinish {I : ExecutionEnv} {g : UInt256} {s0 evm : S
         rw [hs1.env, hs.env]
         exact (accountStorageStateEq_storage_getD hstorage I.codeOwner _ ⟨0⟩).symm
       exact he.trans hdebt
-    have hxentry := liquidateLoopSourceEntry (evm := evm1) hcanon hf1.position
+    have hxentry := liquidateLoopSourceEntry (fork := fork) (evm := evm1) hcanon hf1.position
     rw [hdebt1] at hxentry
     have hz1 : memLoad (UInt256.ofNat 800) mem1 = ⟨0⟩ :=
       (hp1.load (UInt256.ofNat 800) (by decide) hlo hsize).trans hz
@@ -86,9 +88,9 @@ theorem midnightLiquidateGateFinish {I : ExecutionEnv} {g : UInt256} {s0 evm : S
     have hm2 : MarketStored mem2 ⟨832⟩ ⟨1088⟩ heap m :=
       (hm.preserve (hp1.mono hheap)).writeWord_below _ (by decide)
     have sourcePrefix {result : ExecResult}
-        (ht : ExecBlock config (liquidateLoopInitialFrame f1 debtWord) evm1
+        (ht : ExecBlock fork config (liquidateLoopInitialFrame f1 debtWord) evm1
           (liquidateTransition.body.drop 14) result) :
-        ExecBlock config frame evm (liquidateTransition.body.drop 8) result :=
+        ExecBlock fork config frame evm (liquidateTransition.body.drop 8) result :=
       .consNormal hx1 (execBlock_append_ok hxentry ht)
     rcases midnightLiquidateLoopFinish hstack (liquidateLoopInitialFrame_arguments hf1)
         (liquidateLoopInitialFrame_accumulators f1 debtWord) hd hcs hcr (by omega)

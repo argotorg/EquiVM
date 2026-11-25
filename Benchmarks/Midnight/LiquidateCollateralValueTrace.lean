@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.HealthArithmeticBudget
 import Benchmarks.Midnight.RuntimeBlocks_031
 
+variable {fork : Ethereum.Fork}
+
 /-! The collateral-value products and debt-capacity sum in a liquidation iteration. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -14,8 +16,8 @@ set_option maxRecDepth 2000000
 theorem liquidate_block_7988_mono {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 x5 x6 x7 : UInt256} {R : List UInt256}
     (hstack : R.length + 11 ≤ 1024)
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 20413) = true)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7988) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: R) mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), C ≤ C' ∧ RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 20413) (midnight_block_7988_stack (ee := ee) (σ := σ) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (R := R)) mem aw rdata σ k' C' := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 7988) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: R) mem aw rdata σ k C)
+    : ∃ (k' C' : ℕ), C ≤ C' ∧ RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 20413) (midnight_block_7988_stack (ee := ee) (σ := σ) (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (x5 := x5) (x6 := x6) (x7 := x7) (R := R)) mem aw rdata σ k' C' := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.swap1 (by native_decide) (by evm_ov)
@@ -43,20 +45,20 @@ theorem midnightLiquidateCollateralValue {I : ExecutionEnv} {g : Sat256} {s0 : S
     {mem rdata : ByteArray}
     {aw maxDebt cp badDebt reverseRep rep price savedPrice pos bitmap lltv budgetRoot : UInt256}
     {credit : Nat} {σ : AccountMap} {k C : Nat} {R : List UInt256}
-    (hstack : R.length + 20 ≤ 1024) (hfork : I.fork ≥ .osaka)
+    (hstack : R.length + 20 ≤ 1024) (hfork : fork ≥ .osaka)
     (hbitmap : memLoad (UInt256.ofNat 704) mem = bitmap)
     (hi : (bitmapMsb bitmap).toNat < 128)
     (hlltv : memLoad (cp + UInt256.ofNat 32) mem = lltv)
     (hb : TransferBudget budgetRoot credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨7967⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨7967⟩
       (maxDebt :: cp :: badDebt :: reverseRep :: rep :: price :: savedPrice :: pos :: R)
       mem aw rdata σ k C) :
     let collateral := healthCollateralWord (fun slot ↦ solcSlotWordAt slot σ I)
       (pos + ⟨3⟩) (bitmapMsb bitmap)
-    (¬ HealthArithmeticSafe collateral price lltv maxDebt ∧ RDrev midnightBytecode g s0) ∨
+    (¬ HealthArithmeticSafe collateral price lltv maxDebt ∧ RDrev fork midnightBytecode g s0) ∨
     (HealthArithmeticSafe collateral price lltv maxDebt ∧ ∃ aw' k' C',
       TransferBudget budgetRoot credit mem aw' C' ∧
-      RD midnightBytecode I g s0 ⟨8069⟩
+      RD fork midnightBytecode I g s0 ⟨8069⟩
         ((maxDebt + healthCollateralCapacity collateral price lltv) :: collateral :: cp ::
           badDebt :: reverseRep :: rep :: price :: savedPrice :: pos :: R)
         mem aw' rdata σ k' C') := by
@@ -74,7 +76,7 @@ theorem midnightLiquidateCollateralValue {I : ExecutionEnv} {g : Sat256} {s0 : S
   simp only [midnight_block_7988_stack, uint128Mask_computed,
     (uint128ArrayIndexFacts (bitmapMsb bitmap) hi).2.2,
     u256_land_comm (UInt256.ofNat (2^128-1))] at rd3
-  change RD midnightBytecode I g s0 ⟨20413⟩
+  change RD fork midnightBytecode I g s0 ⟨20413⟩
     (collateral :: price :: ⟨8015⟩ :: maxDebt :: collateral :: cp :: badDebt :: reverseRep ::
       rep :: price :: savedPrice :: pos :: R) mem _ rdata σ k3 C3 at rd3
   have hb3 := hb1.mono (show _ ≤ C3 by omega)

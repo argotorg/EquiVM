@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.GasOutput
 import Benchmarks.Midnight.PrecompileOutput
 
+variable {fork : Ethereum.Fork}
+
 /-! Output memory is paid for by consumed gas, even when unused gas is returned to a caller. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -11,8 +13,8 @@ namespace Benchmarks.Midnight
 theorem return_output_memoryCost_remaining {validJumps : Array UInt256} {op : Operation}
     {state stateZ state' : State} {cost : Nat} {arg : Option (UInt256 × Nat)}
     (hop : op = .RETURN ∨ op = .REVERT)
-    (hZ : Z validJumps op state = .ok (stateZ, cost))
-    (hstep : step cost (op, arg) { stateZ with executionEnv.depth := state.executionEnv.depth }
+    (hZ : Z fork validJumps op state = .ok (stateZ, cost))
+    (hstep : step fork cost (op, arg) { stateZ with executionEnv.depth := state.executionEnv.depth }
       = .ok state') :
     memoryCost ((state'.machineState.H_return.size + 31) / 32) +
       state'.machineState.gasAvailable.toNat ≤ memoryGas state := by
@@ -31,7 +33,7 @@ theorem return_output_memoryCost_remaining {validJumps : Array UInt256} {op : Op
 
 theorem Xstep_halt_output_memoryCost_remaining {validJumps : Array UInt256}
     {state state' : State} {cause : HaltCause} {out : ByteArray}
-    (h : Xstep validJumps state = .ok (state', some (cause, out))) :
+    (h : Xstep fork validJumps state = .ok (state', some (cause, out))) :
     memoryCost ((out.size + 31) / 32) + state'.machineState.gasAvailable.toNat ≤
       memoryGas state := by
   have hg := Xstep_memoryGas_le h
@@ -82,7 +84,7 @@ def executionRemainingGas {α : Type} (gas : α → Nat) : ExecutionResult α �
 
 theorem X_output_memoryCost_remaining {fuel : Nat} {validJumps : Array UInt256}
     {state : State} {res : ExecutionResult State}
-    (h : X fuel validJumps state = .ok res) :
+    (h : X fork fuel validJumps state = .ok res) :
     memoryCost (((executionOutput res).size + 31) / 32) +
       executionRemainingGas (fun s ↦ s.machineState.gasAvailable.toNat) res ≤ memoryGas state := by
   induction fuel generalizing state with
@@ -90,7 +92,7 @@ theorem X_output_memoryCost_remaining {fuel : Nat} {validJumps : Array UInt256}
   | succ fuel ih =>
     unfold X at h
     simp [bind, Except.bind] at h
-    cases hstep : Xstep validJumps state with
+    cases hstep : Xstep fork validJumps state with
     | error e => simp [hstep] at h
     | ok stepResult =>
       rcases stepResult with ⟨state₁, ret⟩
@@ -106,12 +108,12 @@ theorem X_output_memoryCost_remaining {fuel : Nat} {validJumps : Array UInt256}
 
 theorem Xi_output_memoryCost_remaining {σ σ₀ : AccountMap} {g : UInt256} {A : Substate}
     {I : ExecutionEnv} {res : ExecutionResult (AccountMap × UInt256 × Substate)}
-    (h : Ξ σ σ₀ g A I = .ok res) :
+    (h : Ξ fork σ σ₀ g A I = .ok res) :
     memoryCost (((executionOutput res).size + 31) / 32) +
       executionRemainingGas (fun r ↦ r.2.1.toNat) res ≤ g.toNat := by
   unfold Ξ at h
   simp [bind, Except.bind] at h
-  cases hx : X (g.toNat + 1) (D_J I.code 0)
+  cases hx : X fork (g.toNat + 1) (D_J I.code 0)
       { (default : State) with
         accountMap := σ, σ₀ := σ₀, executionEnv := I, substate := A,
         machineState.gasAvailable := .ofUInt256 g } with
@@ -129,12 +131,12 @@ theorem Xi_output_memoryCost_remaining {σ σ₀ : AccountMap} {g : UInt256} {A 
 
 theorem Xi_tuple_output_memoryCost_remaining
     (σ σ₀ : AccountMap) (g : UInt256) (A : Substate) (I : ExecutionEnv) :
-    let result := match Ξ σ σ₀ g A I with
+    let result := match Ξ fork σ σ₀ g A I with
       | .error _ => (∅, (⟨0⟩ : UInt256), A, ByteArray.empty)
       | .ok (.revert g' out) => (∅, g', A, out)
       | .ok (.success (σ', g', A') out) => (σ', g', A', out)
     memoryCost ((result.2.2.2.size + 31) / 32) + result.2.1.toNat ≤ g.toNat := by
-  cases hxi : Ξ σ σ₀ g A I with
+  cases hxi : Ξ fork σ σ₀ g A I with
   | error err => simp [memoryCost]
   | ok xres =>
     cases xres with
@@ -159,7 +161,7 @@ theorem theta_code_output_memoryCost_remaining
   let I : ExecutionEnv :=
     { codeOwner := r, sender := o, gasPrice := p.toNat, calldata := d,
       source := s, weiValue := v', depth := e, perm := w, code := code,
-      header := H, blobVersionedHashes := blobVersionedHashes, blocks := blocks, fork := fork }
+      header := H, blobVersionedHashes := blobVersionedHashes, blocks := blocks}
   unfold Θ
   simpa only [σ'₁, σ₁, I] using Xi_tuple_output_memoryCost_remaining σ₁ σ₀ g A I
 

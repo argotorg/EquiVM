@@ -2,6 +2,8 @@ import Benchmarks.Midnight.ToMarketCopy
 import Benchmarks.Midnight.MarketDecode
 import Benchmarks.Midnight.MemoryDecodeBounds
 
+variable {fork : Ethereum.Fork}
+
 /-! Matching the stored-market decoder's root-offset and fixed-header checks. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -14,14 +16,14 @@ theorem midnightToMarketDecodeHeader {I : ExecutionEnv} {g : Sat256} {s0 : State
     {rdata : ByteArray} {aw id : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 12 ≤ 1024)
     (hsmall : (extCodeSizeWord σ id).toNat < 2^64)
-    (rd : RD midnightBytecode I g s0 ⟨900⟩ (⟨1088⟩ :: ⟨1120⟩ :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨900⟩ (⟨1088⟩ :: ⟨1120⟩ :: R)
       (toMarketCodeMemory σ id) aw rdata σ k C) :
     (config.externalABI.decodeValue? Model.marketABI (externalCodePrefix σ id) = none ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     (32 ≤ (extCodeSizeWord σ id).toNat ∧
       (calldataWord (externalCodePrefix σ id) 0).toNat < 2^64 ∧
       (calldataWord (externalCodePrefix σ id) 0).toNat + 256 ≤ (extCodeSizeWord σ id).toNat ∧
-      ∃ aw' k' C', RD midnightBytecode I g s0 ⟨949⟩
+      ∃ aw' k' C', RD fork midnightBytecode I g s0 ⟨949⟩
         (((⟨1088⟩ + extCodeSizeWord σ id) + ⟨32⟩) ::
           (⟨1088⟩ + extCodeSizeWord σ id) ::
           (⟨1088⟩ + calldataWord (externalCodePrefix σ id) 0) :: R)

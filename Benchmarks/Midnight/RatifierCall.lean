@@ -3,6 +3,8 @@ import Benchmarks.Midnight.RatifierSource
 import Benchmarks.Midnight.RatifierReturn
 import Benchmarks.Midnight.StaticCallBridgeGas
 
+variable {fork : Ethereum.Fork}
+
 /-! The full ratifier call: calldata construction, static call, decoding, and acknowledgement. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -29,17 +31,17 @@ theorem midnightRatifierCall {credit : Nat} {I : ExecutionEnv} {g : Sat256}
     (hdf : frame.locals.get? "ratifierData" = some (.bytes data))
     (htf : frame.locals.get? "taker" = some (.address taker))
     (hs : SourceState s0 I σ evm) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨11276⟩ (ratifierPtr :: R) mem aw rdata σ k C) :
-    (ExecBlock config frame evm [ratifierCallStmt, .require ratifierMagicGuard] .reverted ∧
-      RDrev midnightBytecode g s0) ∨
+    (rd : RD fork midnightBytecode I g s0 ⟨11276⟩ (ratifierPtr :: R) mem aw rdata σ k C) :
+    (ExecBlock fork config frame evm [ratifierCallStmt, .require ratifierMagicGuard] .reverted ∧
+      RDrev fork midnightBytecode g s0) ∨
     ∃ (evm' : State) (σ' : AccountMap) (mem' out : ByteArray) (aw' : UInt256) (k' C' : Nat),
-      ExecBlock config frame evm [ratifierCallStmt, .require ratifierMagicGuard]
+      ExecBlock fork config frame evm [ratifierCallStmt, .require ratifierMagicGuard]
         (.ok (ratifierCallFrame frame flashLoanMagic) evm') ∧ SourceState s0 I σ' evm' ∧
       MemoryPrefix mem mem' root.toNat ∧ memLoad (UInt256.ofNat 64) mem' = root + UInt256.ofNat 32 ∧
       root.toNat + 32 ≤ mem'.size ∧
       MemoryFunding (credit + 128 * offer.market.collaterals.length +
         3 * ((offer.callbackData.size + 31) / 32) + 3 * ((data.size + 31) / 32)) mem' aw' C' ∧
-      RD midnightBytecode I g s0 ⟨11413⟩ (ratifierPtr :: R) mem' aw' out σ' k' C' := by
+      RD fork midnightBytecode I g s0 ⟨11413⟩ (ratifierPtr :: R) mem' aw' out σ' k' C' := by
   have hout : root.toNat + ratifierCalldataSize offer data + 64 < UInt256.size := by
     change _ < 2^256
     omega
@@ -84,7 +86,7 @@ theorem midnightRatifierCall {credit : Nat} {I : ExecutionEnv} {g : Sat256}
   dsimp only [input] at hreply
   rw [hreply] at rd2
   rw [wordReplyMemory_eq _ out root hout'] at ha2
-  have hcall' : typedCallViaEVM config evm offer.ratifier "isRatified" 0
+  have hcall' : typedCallViaEVM fork config evm offer.ratifier "isRatified" 0
       (ratifierArguments offer data taker) (success, evm', out) false := by
     simpa only [accountAddress_roundtrip] using hcall
   rcases midnightRatifierReturn success (by change R.length + 12 ≤ 1024; omega)

@@ -2,6 +2,8 @@ import Benchmarks.Midnight.TakeSettlementRead
 import Benchmarks.Midnight.TakeConsumptionMemory
 import Benchmarks.Midnight.RuntimeBlocks_048
 
+variable {fork : Ethereum.Fork}
+
 /-! The ordered fee and consumed-counter writes preserve the offer heap. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -18,11 +20,11 @@ theorem midnightTakeAccountingStore {credit : Nat} {I : ExecutionEnv} {g : Sat25
     (hoffer : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (hvalue : memLoad (UInt256.ofNat 480) mem = value)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨12638⟩ (fee :: feeSlot :: R) mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨12638⟩ (fee :: feeSlot :: R) mem aw rdata σ k C) :
     ∃ aw' k' C',
       MemoryFunding credit (consumedHashMemory mem offer.group (UInt256.ofNat offer.maker.val))
         aw' C' ∧
-      RD midnightBytecode I g s0 ⟨12719⟩ (offer.buy :: R)
+      RD fork midnightBytecode I g s0 ⟨12719⟩ (offer.buy :: R)
         (consumedHashMemory mem offer.group (UInt256.ofNat offer.maker.val)) aw' rdata
         (storeLow128Accounts (sstoreAccountMap I.codeOwner σ feeSlot fee) I
           (consumedSlot offer.group (UInt256.ofNat offer.maker.val)) value) k' C' := by

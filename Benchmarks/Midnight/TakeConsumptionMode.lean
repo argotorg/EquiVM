@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TakeAmountsMemory
 import Benchmarks.Midnight.RuntimeBlocks_045
 
+variable {fork : Ethereum.Fork}
+
 /-! Initialize the new consumed amount and select the asset-cap or unit-cap path. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -19,9 +21,9 @@ theorem midnightTakeConsumptionMode {credit : Nat} {I : ExecutionEnv} {g : Sat25
     (ho : OfferStored mem ⟨832⟩ marketPtr arrayPtr callbackPtr root offer)
     (hc : OfferCanonical offer) (hroot : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨11681⟩ R mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨11681⟩ R mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding credit (writeWord mem 480 ⟨0⟩) aw' C' ∧
-      RD midnightBytecode I g s0 (takeConsumptionReadPC offer) R
+      RD fork midnightBytecode I g s0 (takeConsumptionReadPC offer) R
         (writeWord mem 480 ⟨0⟩) aw' rdata σ k' C' := by
   have hm : 416 ≤ mem.size := by
     have hh := ho.words.size

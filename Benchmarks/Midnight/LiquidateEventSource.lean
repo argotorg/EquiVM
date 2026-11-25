@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.LiquidatePayer
 import Benchmarks.Midnight.MarketLossStorage
 
+variable {fork : Ethereum.Fork}
+
 /-! Evaluation of the liquidation event and its selected collateral token. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -60,7 +62,7 @@ theorem liquidateEventIndexRevert {frame : Frame} {evm : State} {m : MarketData}
     {data : ByteArray}
     (hf : LiquidateSourceFrame frame m id index seized repaid borrower mode receiver callback data)
     (hidx : ¬ index.toNat < m.collaterals.length) :
-    ExecStmt config frame evm (liquidateTransition.body[20]!) .reverted := by
+    ExecStmt fork config frame evm (liquidateTransition.body[20]!) .reverted := by
   apply ExecStmt.emitArgsRevert
   change evalExprs? config frame evm liquidateEventArgs = .revert
   simp only [liquidateEventArgs, evalExprs?, evalLiquidateTokenRevert hf.market hf.index hidx,

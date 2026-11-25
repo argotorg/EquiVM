@@ -2,6 +2,8 @@ import Benchmarks.Midnight.TakeMaturityGuard
 import Benchmarks.Midnight.TakeReduceRead
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 /-! Both trade restrictions agree between source and runtime, including reverts. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -24,15 +26,15 @@ theorem midnightTakeTradeGuards {credit : Nat} {I : ExecutionEnv} {g : Sat256}
     (ho : OfferStored mem ⟨832⟩ marketPtr arrayPtr callbackPtr root offer)
     (hoffer : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨12187⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨12187⟩
       ([buyerSlot, debt, buyerDebt, sellerSlot, marketSlot, decrease, ratifierPtr, increase] ++ R)
       mem aw rdata evm.accountMap k C) :
-    (ExecBlock config frame evm (takeTransition.body.drop 42) .reverted ∧
-      RDrev midnightBytecode g s0) ∨
+    (ExecBlock fork config frame evm (takeTransition.body.drop 42) .reverted ∧
+      RDrev fork midnightBytecode g s0) ∨
     (TakeMaturityAllowed I offer debt ∧ TakeReduceAllowed offer increase debt ∧
-      ABlock config evm frame (takeTransition.body.drop 42) frame (takeTransition.body.drop 44) ∧
+      ABlock fork config evm frame (takeTransition.body.drop 42) frame (takeTransition.body.drop 44) ∧
       ∃ aw' k' C', MemoryFunding credit mem aw' C' ∧
-        RD midnightBytecode I g s0 ⟨12234⟩
+        RD fork midnightBytecode I g s0 ⟨12234⟩
           ([buyerSlot, debt, buyerDebt, sellerSlot, marketSlot, decrease, ratifierPtr, increase] ++ R)
           mem aw' rdata evm.accountMap k' C') := by
   simp only [List.cons_append, List.nil_append] at rd

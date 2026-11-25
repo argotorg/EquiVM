@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.LiquidateLoopSourceEntry
 import Benchmarks.Midnight.LiquidateOracleReturn
 
+variable {fork : Ethereum.Fork}
+
 /-! Save the oracle price only for the collateral selected for liquidation. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,7 +19,7 @@ theorem liquidatePriceSource {frame : Frame} {evm : State} {index target price o
     (ht : frame.locals.get? "collateralIndex" = some (.int target.toNat))
     (hp : frame.locals.get? "price" = some (.int price.toNat))
     (ho : frame.locals.get? "liquidatedCollatPrice" = some (.int oldPrice.toNat)) :
-    ExecStmt config frame evm (liquidateLoopBody[3]!)
+    ExecStmt fork config frame evm (liquidateLoopBody[3]!)
       (.ok (liquidatePriceFrame frame index target price) evm) := by
   have hc : evalExpr? config frame evm (.binary .eq (.var "i") (.var "collateralIndex")) =
       .ok (.bool (decide (index = target))) := by
@@ -65,14 +67,14 @@ theorem midnightLiquidatePriceChoice {I : ExecutionEnv} {g : Sat256} {s0 : State
     {mem rdata : ByteArray} {aw root cp badDebt reverseRep rep maxDebt oldPrice pos dp dl borrower
       debtWord receiver mode selector price bitmap budgetRoot : UInt256}
     {credit : Nat} {σ : AccountMap} {k C : Nat} {R : List UInt256}
-    (hstack : R.length + 20 ≤ 1024) (hfork : I.fork ≥ .osaka)
+    (hstack : R.length + 20 ≤ 1024) (hfork : fork ≥ .osaka)
     (hp : memLoad root mem = price) (hbitmap : memLoad (UInt256.ofNat 704) mem = bitmap)
     (hb : TransferBudget budgetRoot credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨8252⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨8252⟩
       ([root, cp, badDebt, reverseRep, rep, maxDebt, oldPrice, pos, dp, dl, borrower,
         debtWord, receiver, mode, selector] ++ R) mem aw rdata σ k C) :
     ∃ aw' k' C', TransferBudget budgetRoot credit mem aw' C' ∧
-      RD midnightBytecode I g s0 ⟨7967⟩
+      RD fork midnightBytecode I g s0 ⟨7967⟩
         ([maxDebt, cp, badDebt, reverseRep, rep, price,
           if bitmapMsb bitmap = calldataWord I.calldata 36 then price else oldPrice,
           pos, dp, dl, borrower, debtWord, receiver, mode, selector] ++ R)

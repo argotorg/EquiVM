@@ -4,6 +4,8 @@ import Benchmarks.Midnight.RuntimeBlocks_021
 import Benchmarks.Midnight.RuntimeBlocks_017
 import Benchmarks.Midnight.AddressDecode
 
+variable {fork : Ethereum.Fork}
+
 /-! The withdrawal event and token transfer, including the empty return. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -25,16 +27,16 @@ theorem withdrawCollateralTransfer {I : ExecutionEnv} {g : UInt256} {s0 evm : St
     (hzero800 : memLoad (UInt256.ofNat 800) mem = ⟨0⟩)
     (hb : TransferBudget root credit mem aw C)
     (hcredit : 4 * ((root.toNat + safeTransferCallAllocation false + 31) / 32) ≤ credit + 999921)
-    (hgas : midnightGasBound g) (hfork : I.fork ≥ .osaka)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨4649⟩
+    (hgas : midnightGasBound g) (hfork : fork ≥ .osaka)
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨4649⟩
       ([user, UInt256.ofNat token.val, UInt256.ofNat receiver.val, assets, id] ++ R)
       mem aw rdata evm.accountMap k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (RDrev midnightBytecode (Sat256.ofUInt256 g) s0 ∧
-      ExecBlock config frame evm (withdrawCollateralTransition.body.drop 13) .reverted) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0 ∧
+      ExecBlock fork config frame evm (withdrawCollateralTransition.body.drop 13) .reverted) ∨
     ∃ frame' evm',
-      ExecBlock config frame evm (withdrawCollateralTransition.body.drop 13) (.ok frame' evm') ∧
-      RDret midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap ByteArray.empty := by
+      ExecBlock fork config frame evm (withdrawCollateralTransition.body.drop 13) (.ok frame' evm') ∧
+      RDret fork midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap ByteArray.empty := by
   simp only [List.cons_append, List.nil_append] at rd
   have rd1 := midnightBlocks.midnight_block_4649 (by omega) hperm (by jump_dest) rd
   have hb1 := transferBudgetAt (root := root) (credit := credit) rd1 (by
@@ -81,8 +83,8 @@ theorem withdrawCollateralTransfer {I : ExecutionEnv} {g : UInt256} {s0 evm : St
       some (safeTransferFunctionFor false).toCallable := by
     rw [hf.contract]; exact safeTransferLookup false
   have sourcePrefix {result : ExecResult}
-      (ht : ExecBlock config frame evm (withdrawCollateralTransition.body.drop 14) result) :
-      ExecBlock config frame evm (withdrawCollateralTransition.body.drop 13) result :=
+      (ht : ExecBlock fork config frame evm (withdrawCollateralTransition.body.drop 14) result) :
+      ExecBlock fork config frame evm (withdrawCollateralTransition.body.drop 13) result :=
     (withdrawCollateralEmit hf (by rw [hs.env]; exact hperm)).run ht
   rcases safeTransferBudgeted false frame.immutables (token := token) (sender := I.source)
       (recipient := receiver) (value := assets) (by omega) (by omega) (by omega)

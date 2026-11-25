@@ -2,6 +2,8 @@ import Benchmarks.Midnight.BitmapCountArithmetic
 import Benchmarks.Midnight.RuntimeBlocks_065
 import Benchmarks.Midnight.Dispatch
 
+variable {fork : Ethereum.Fork}
+
 /-! The compiled bit-count computation and its sixteen-collateral guard. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -27,12 +29,12 @@ theorem bitmapCountGuard_eq (x : UInt256) :
 theorem midnightBitmapCountGuard {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw x : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 9 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 ⟨17385⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨17385⟩
       ([x, countMask1, x, countMask4, countMultiplier, UInt256.ofNat 255,
         UInt256.ofNat 16] ++ R) mem aw rdata σ k C) :
-    (16 < (bitmapCount x).toNat ∧ RDrev midnightBytecode g s0) ∨
+    (16 < (bitmapCount x).toNat ∧ RDrev fork midnightBytecode g s0) ∨
     ((bitmapCount x).toNat ≤ 16 ∧ ∃ k' C', C ≤ C' ∧
-      RD midnightBytecode I g s0 ⟨17462⟩ R mem aw rdata σ k' C') := by
+      RD fork midnightBytecode I g s0 ⟨17462⟩ R mem aw rdata σ k' C') := by
   by_cases hcount : (bitmapCount x).toNat ≤ 16
   · have rd1 := midnightBlocks.midnight_block_17385_fallthrough (R := R) hstack
       (by change bitmapCountGuard x = UInt256.ofNat 0

@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.PositionViewSource
 import Benchmarks.Midnight.MarketEntryDecode
 
+variable {fork : Ethereum.Fork}
+
 /-! The external wrapper calling the internal position-view function. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -20,7 +22,7 @@ theorem evalPositionViewCallArgs (evm : EVM.State) (m : MarketData) (id user : U
 theorem positionViewBodyReturns (evm : EVM.State) (m : MarketData) (id user : UInt256)
     (hcanon : user.toNat < EVM.addressModulus) (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) (hsafe : PositionViewSourceSafe evm m id user) :
-    ExecTransitionBody config contract evm
+    ExecTransitionBody fork config contract evm
       (marketIdUserArguments m id (AccountAddress.ofNat user.toNat)) updatePositionViewTransition.body
       (.returned (resumeAfterInternalCall (positionViewExternalFrame evm m id user) "result"
         (some (positionViewReturnValues (positionPostCredit evm id user) (positionPostPending evm id user)
@@ -41,7 +43,7 @@ theorem positionViewBodyReturns (evm : EVM.State) (m : MarketData) (id user : UI
 theorem positionViewBodyReverts (evm : EVM.State) (m : MarketData) (id user : UInt256)
     (hcanon : user.toNat < EVM.addressModulus) (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) (hbad : ¬ PositionViewSourceSafe evm m id user) :
-    ExecTransitionBody config contract evm
+    ExecTransitionBody fork config contract evm
       (marketIdUserArguments m id (AccountAddress.ofNat user.toNat)) updatePositionViewTransition.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply guardedBodyBlock hwv hhi

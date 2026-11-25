@@ -2,6 +2,8 @@ import Benchmarks.Midnight.RepayEvent
 import Benchmarks.Midnight.MarketEncoderFunding
 import Benchmarks.Midnight.CalldataBytesEncodeMemory
 
+variable {fork : Ethereum.Fork}
+
 /-! Runtime construction of the market and calldata-bytes arguments to onRepay. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -59,12 +61,12 @@ theorem midnightRepayCallbackPrepare {credit : Nat} {I : ExecutionEnv} {g : Sat2
     (hfree : memLoad (UInt256.ofNat 64) mem = root)
     (hdl : dl.toNat < 2^64) (hd : dp.toNat + dl.toNat ≤ I.calldata.size)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨10127⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨10127⟩
       ([id, dp, callback, dl, user, payer, units, market] ++ R) mem aw rdata σ k C) :
     ∃ gasArg aw' k' C',
       MemoryFunding (credit + 4 + 128 * m.collaterals.length)
         (repayCallbackMemory mem I.calldata root.toNat m id units user dp.toNat dl.toNat) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨10221⟩
+      RD fork midnightBytecode I g s0 ⟨10221⟩
         ([gasArg, callback, ⟨0⟩, root, UInt256.ofNat (repayCallbackSize m dl.toNat), root, ⟨32⟩,
           root, payer, units, market] ++ R)
         (repayCallbackMemory mem I.calldata root.toNat m id units user dp.toNat dl.toNat)
@@ -130,7 +132,7 @@ theorem midnightRepayCallbackPrepare {credit : Nat} {I : ExecutionEnv} {g : Sat2
   rw [show root.toNat + (452 + 128 * m.collaterals.length) =
     root.toNat + 452 + 128 * m.collaterals.length by omega] at hf
   change MemoryFunding _ (repayCallbackMemory mem I.calldata root.toNat m id units user
-      dp.toNat dl.toNat) _ _ ∧ RD _ _ _ _ _
+      dp.toNat dl.toNat) _ _ ∧ RD fork _ _ _ _ _
       (_ :: callback :: memLoad (UInt256.ofNat 800)
         (repayCallbackMemory mem I.calldata root.toNat m id units user dp.toNat dl.toNat) :: _)
       _ _ _ _ _ _ at hf

@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.FlashLoanCallback
 import Benchmarks.Midnight.FlashLoanTransferLoop
 
+variable {fork : Ethereum.Fork}
+
 /-! The complete flash-loan transfer, callback, and repayment sequence. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -21,17 +23,17 @@ theorem midnightFlashLoanTail {I : ExecutionEnv} {g : UInt256} {s0 evm : State}
     (hf : FlashLoanSourceFrame frame (calldataArrayWords I.calldata tn.toNat tp.toNat)
       (calldataArrayWords I.calldata an.toNat ap.toNat)
       callback (I.calldata.extract dp.toNat (dp.toNat + dl.toNat)))
-    (hh : TransferHeap mem aw root C) (hgas : midnightGasBound g) (hfork : I.fork ≥ .osaka)
+    (hh : TransferHeap mem aw root C) (hgas : midnightGasBound g) (hfork : fork ≥ .osaka)
     (hs : SourceState s0 I σ evm)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨16258⟩
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨16258⟩
       (flashLoanOutLoopStack ⟨0⟩ tn tp (UInt256.ofNat callback.val) an ap dl dp ++ R)
       mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (ExecBlock config frame evm (flashLoanTransition.body.drop 5) .reverted ∧
-      RDrev midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (ExecBlock fork config frame evm (flashLoanTransition.body.drop 5) .reverted ∧
+      RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
     ∃ (frame' : Frame) (evm' : State) (σ' : AccountMap),
-      ExecBlock config frame evm (flashLoanTransition.body.drop 5) (.ok frame' evm') ∧
-      SourceState s0 I σ' evm' ∧ RDret midnightBytecode (Sat256.ofUInt256 g) s0 σ' ByteArray.empty := by
+      ExecBlock fork config frame evm (flashLoanTransition.body.drop 5) (.ok frame' evm') ∧
+      SourceState s0 I σ' evm' ∧ RDret fork midnightBytecode (Sat256.ofUInt256 g) s0 σ' ByteArray.empty := by
   have houtshape : flashLoanTransition.body.drop 5 =
       flashLoanTransition.body[5]! :: flashLoanTransition.body.drop 6 := by decide +kernel
   have hinshape : flashLoanTransition.body.drop 8 = [flashLoanTransition.body[8]!] :=
@@ -46,8 +48,8 @@ theorem midnightFlashLoanTail {I : ExecutionEnv} {g : UInt256} {s0 evm : State}
     exact .consRevert (flashLoanLoopStatement false hloop)
   obtain ⟨frame1, evm1, σ1, mem1, rdata1, aw1, ptr1, k1, C1, hloop1, hs1, hh1, hf1, rd1⟩ := hsuccess
   have hprefix {result : ExecResult}
-      (htail : ExecBlock config frame1 evm1 (flashLoanTransition.body.drop 6) result) :
-      ExecBlock config frame evm (flashLoanTransition.body.drop 5) result := by
+      (htail : ExecBlock fork config frame1 evm1 (flashLoanTransition.body.drop 6) result) :
+      ExecBlock fork config frame evm (flashLoanTransition.body.drop 5) result := by
     rw [houtshape]
     exact .consNormal (flashLoanLoopStatement false hloop1) htail
   rcases midnightFlashLoanCallback hstack htn (by omega) hdl htp hap hdp hc hf1 hh1 hgas hs1 rd1 with
@@ -58,8 +60,8 @@ theorem midnightFlashLoanTail {I : ExecutionEnv} {g : UInt256} {s0 evm : State}
     exact execBlock_reverted_append hcall
   obtain ⟨frame2, evm2, σ2, mem2, out2, aw2, ptr2, k2, C2, hcall, hs2, hh2, hf2, rd2⟩ := hsuccess
   have prefix2 {result : ExecResult}
-      (htail : ExecBlock config frame2 evm2 (flashLoanTransition.body.drop 8) result) :
-      ExecBlock config frame evm (flashLoanTransition.body.drop 5) result := by
+      (htail : ExecBlock fork config frame2 evm2 (flashLoanTransition.body.drop 8) result) :
+      ExecBlock fork config frame evm (flashLoanTransition.body.drop 5) result := by
     apply hprefix
     rw [flashLoanCallback_shape]
     exact execBlock_append hcall htail

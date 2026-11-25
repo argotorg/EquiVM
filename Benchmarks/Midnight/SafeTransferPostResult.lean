@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.SafeTransferPost
 import Benchmarks.Midnight.SafeTransferSourceTail
 
+variable {fork : Ethereum.Fork}
+
 /-! Agreement between the transfer return-data predicate and the bytecode decoder. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -19,14 +21,14 @@ theorem safeTransferPostResultCharge (isFrom : Bool) {I : ExecutionEnv} {g : Sat
     (hsize : memLoad ptr mem = UInt256.ofNat out.size)
     (hword : 32 ≤ out.size → memLoad (ptr + UInt256.ofNat 32) mem = calldataWord out 0)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 (safeTransferLengthPC isFrom)
+    (rd : RD fork midnightBytecode I g s0 (safeTransferLengthPC isFrom)
       (ptr :: ret :: R) mem aw out σ k C) :
     ((out.size = 0 ∨ config.externalABI.decodeValue? abiBool out = some (.bool true)) ∧
-      ∃ aw' k' C', MemoryCharge 0 aw aw' C C' ∧ RD midnightBytecode I g s0 ret R mem aw' out σ k' C') ∨
+      ∃ aw' k' C', MemoryCharge 0 aw aw' C C' ∧ RD fork midnightBytecode I g s0 ret R mem aw' out σ k' C') ∨
     (out.size ≠ 0 ∧
       (config.externalABI.decodeValue? abiBool out = none ∨
         config.externalABI.decodeValue? abiBool out = some (.bool false)) ∧
-      RDrev midnightBytecode g s0) := by
+      RDrev fork midnightBytecode g s0) := by
   by_cases hempty : out.size = 0
   · exact Or.inl ⟨Or.inl hempty, safeTransferPostEmptyCharge isFrom (by omega)
       (by rw [hsize, hempty]; rfl) hret rd⟩
@@ -84,14 +86,14 @@ theorem safeTransferPostResult (isFrom : Bool) {I : ExecutionEnv} {g : Sat256} {
     (hsize : memLoad ptr mem = UInt256.ofNat out.size)
     (hword : 32 ≤ out.size → memLoad (ptr + UInt256.ofNat 32) mem = calldataWord out 0)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 (safeTransferLengthPC isFrom)
+    (rd : RD fork midnightBytecode I g s0 (safeTransferLengthPC isFrom)
       (ptr :: ret :: R) mem aw out σ k C) :
     ((out.size = 0 ∨ config.externalABI.decodeValue? abiBool out = some (.bool true)) ∧
-      ∃ aw' k' C', RD midnightBytecode I g s0 ret R mem aw' out σ k' C') ∨
+      ∃ aw' k' C', RD fork midnightBytecode I g s0 ret R mem aw' out σ k' C') ∨
     (out.size ≠ 0 ∧
       (config.externalABI.decodeValue? abiBool out = none ∨
         config.externalABI.decodeValue? abiBool out = some (.bool false)) ∧
-      RDrev midnightBytecode g s0) := by
+      RDrev fork midnightBytecode g s0) := by
   rcases safeTransferPostResultCharge isFrom hstack hb hsize hword hret rd with
     ⟨hg, aw', k', C', _, rd'⟩ | hbad
   · exact Or.inl ⟨hg, aw', k', C', rd'⟩

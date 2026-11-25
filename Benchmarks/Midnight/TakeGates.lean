@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.TakeGate
 
+variable {fork : Ethereum.Fork}
+
 /-! Both optional entry gates, preserving the trade locals, heap, and storage. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -45,15 +47,15 @@ theorem midnightTakeGates {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0 evm
     (ho : OfferStored mem ⟨832⟩ marketPtr arrayPtr callbackPtr offerRoot offer)
     (hoffer : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨12234⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨12234⟩
       ([buyerSlot, debt, buyerDebt, sellerSlot, marketSlot, decrease, ratifierPtr, increase,
         saved] ++ R) mem aw rdata σ k C) :
-    (ExecBlock config frame evm (takeTransition.body.drop 44) .reverted ∧
-      RDrev midnightBytecode g s0) ∨
+    (ExecBlock fork config frame evm (takeTransition.body.drop 44) .reverted ∧
+      RDrev fork midnightBytecode g s0) ∨
     ∃ (frame' : Frame) (evm' : State) (σ' : AccountMap) (mem' rdata' : ByteArray)
       (root' aw' : UInt256) (k' C' : Nat),
-      (∀ result, ExecBlock config frame' evm' (takeTransition.body.drop 46) result →
-        ExecBlock config frame evm (takeTransition.body.drop 44) result) ∧
+      (∀ result, ExecBlock fork config frame' evm' (takeTransition.body.drop 46) result →
+        ExecBlock fork config frame evm (takeTransition.body.drop 44) result) ∧
       TakeSourceFrame frame' offer id units taker receiver callback ratifierData data ∧
       (∀ name, name ≠ "allowed" → frame'.locals.get? name = frame.locals.get? name) ∧
       SourceState s0 I σ' evm' ∧ accountStorageStateEq evm.accountMap evm'.accountMap ∧
@@ -61,7 +63,7 @@ theorem midnightTakeGates {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0 evm
       root.toNat ≤ root'.toNat ∧ root'.toNat ≤ root.toNat + 64 ∧
       root'.toNat % 32 = root.toNat % 32 ∧
       memLoad (UInt256.ofNat 64) mem' = root' ∧ MemoryFunding credit mem' aw' C' ∧
-      RD midnightBytecode I g s0 ⟨12316⟩
+      RD fork midnightBytecode I g s0 ⟨12316⟩
         ([buyerSlot, debt, buyerDebt, sellerSlot, marketSlot, decrease, ratifierPtr, increase,
           saved] ++ R) mem' aw' rdata' σ' k' C' := by
   rcases midnightTakeGate .credit hstack (by omega) hlower hm hfree hbuyer hf.offerValue

@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.TakePositionReadSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Source preparation of the participant addresses and their position aliases. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -62,11 +64,11 @@ theorem takePositionPrepareSource {frame : Frame} {evm : State} {offer : OfferDa
     {id units taker : UInt256} {receiver callback : AccountAddress} {ratifierData data : ByteArray}
     (hf : TakeSourceFrame frame offer id units taker receiver callback ratifierData data)
     (ht : taker.toNat < EVM.addressModulus) :
-    ABlock config evm frame (takeTransition.body.drop 27)
+    ABlock fork config evm frame (takeTransition.body.drop 27)
       (takePositionPrepareFrame frame evm offer id taker) (takeTransition.body.drop 32) := by
   have hf1 := hf.participants
-  have h1 := takeParticipantsSource (evm := evm) hf.offerValue hf.taker
-  have h2 := takePositionReadSource (evm := evm) hf1.contract hf1.position hf1.idValue
+  have h1 := takeParticipantsSource (fork := fork) (evm := evm) hf.offerValue hf.taker
+  have h2 := takePositionReadSource (fork := fork) (evm := evm) hf1.contract hf1.position hf1.idValue
     (takeParticipantsFrame_buyer frame offer taker) (takeParticipantsFrame_seller frame offer taker)
     (takeBuyer_canonical ht)
   exact ⟨fun h ↦ h1.run (h2.run h)⟩

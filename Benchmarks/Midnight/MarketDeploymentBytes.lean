@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.MarketBytesTrace
 import Benchmarks.Midnight.RuntimeBlocks_081
 
+variable {fork : Ethereum.Fork}
+
 /-! ABI bytes encoding for the market-code deployment path. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -13,10 +15,10 @@ theorem midnightMarketDeploymentBytes {I : ExecutionEnv} {g : Sat256} {s0 : Stat
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (m : MarketData)
     (hstack : R.length + 19 ≤ 1024) (hm : MarketStored mem ptr arrayPtr limit m)
     (hlimit : limit.toNat ≤ root.toNat) (hb : root.toNat + m.encodingSize + 32 < 2^64)
-    (rd : RD midnightBytecode I g s0 ⟨19181⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨19181⟩
       (ptr :: (root + UInt256.ofNat 64) :: ⟨21583⟩ :: root :: root :: R)
       (writeWord mem (root.toNat + 32) (UInt256.ofNat 32)) aw rdata σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g s0 ⟨21601⟩ (root :: R)
+    ∃ aw' k' C', RD fork midnightBytecode I g s0 ⟨21601⟩ (root :: R)
       (marketBytesMemory mem root m) aw' rdata σ k' C' := by
   have hroot : 96 ≤ root.toNat := by
     have := hm.lower; have := hm.array; have := hm.extent; omega

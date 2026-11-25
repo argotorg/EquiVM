@@ -7,6 +7,8 @@ import Benchmarks.Midnight.CheckedArithmetic
 import Benchmarks.Midnight.RuntimeBlocks_027
 import Benchmarks.Midnight.RuntimeBlocks_085
 
+variable {fork : Ethereum.Fork}
+
 /-! The checked arithmetic used to slash a position's credit. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -20,12 +22,12 @@ theorem midnightSlashCreditArithmetic_mono {I : ExecutionEnv} {g : Sat256} {s0 :
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 16 ≤ 1024) (hcredit : credit.toNat < 2 ^ 128)
     (hloss : lossDiff.toNat < 2 ^ 128) (hlast : lastLoss.toNat < 2 ^ 128 - 1)
-    (rd : RD midnightBytecode I g s0 ⟨22893⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨22893⟩
       ([lastLoss, word1, word0, lossDiff, ret, credit, ptr] ++ R) mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD midnightBytecode I g s0 ⟨22948⟩
+    ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode I g s0 ⟨22948⟩
       ([word0, credit, word1, mulDivDown credit lossDiff (complement128 lastLoss),
         ⟨23076⟩, ret, uint128Mask, ptr] ++ R) mem aw rdata σ k' C' := by
-  change RD midnightBytecode I g s0 ⟨22893⟩
+  change RD fork midnightBytecode I g s0 ⟨22893⟩
     (lastLoss :: word1 :: word0 :: lossDiff :: ret :: credit :: ptr :: R)
     mem aw rdata σ k C at rd
   have rd1 := midnightBlocks.midnight_block_22893_fallthrough (by

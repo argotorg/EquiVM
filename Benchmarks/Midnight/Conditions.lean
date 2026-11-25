@@ -2,8 +2,9 @@ import Stele.Refine
 
 namespace Benchmarks.Midnight
 
-/-- The pinned runtime uses Osaka's CLZ instruction. No storage shape is assumed. -/
-def midnightWF : Stele.StorageWF := fun _ I => I.fork ≥ .osaka
+/-- The pinned runtime uses Osaka's CLZ instruction, an invalid instruction before Osaka: the
+    refinement is stated from Osaka on. No storage shape is assumed. -/
+abbrev midnightForks : Stele.ForkSet := Stele.forksFrom .osaka
 
 /-- Runtime gas limit authorized for the completed refinement proof. -/
 def midnightGasBound : Stele.GasBound := fun g =>

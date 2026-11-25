@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TakeCreditChangesRuntime
 import Benchmarks.Midnight.TakeBuyerPendingSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Read the continuous-fee rate without losing the storage-read cost. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,11 +17,11 @@ theorem midnightTakeContinuousRead_mono {I : ExecutionEnv} {g : Sat256} {s0 : St
       increase : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 17 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 ⟨12118⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨12118⟩
       ([debt, UInt256.ofNat 12138, UInt256.ofNat 12144, takePendingScale, UInt256.ofNat 12150,
         credit, buyerSlot, time, buyerDebt, sellerSlot, marketSlot, decrease, ratifierPtr,
         increase] ++ R) mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD midnightBytecode I g s0 ⟨20413⟩
+    ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode I g s0 ⟨20413⟩
       ([marketContinuousFee (solcSlotWordAt (marketSlot + ⟨2⟩) σ I), time,
         UInt256.ofNat 12138, UInt256.ofNat 12144, takePendingScale, UInt256.ofNat 12150,
         credit, buyerSlot, debt, buyerDebt, sellerSlot, marketSlot, decrease, ratifierPtr,

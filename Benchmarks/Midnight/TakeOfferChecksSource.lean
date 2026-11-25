@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.TakeOfferGuardsSource
 
+variable {fork : Ethereum.Fork}
+
 /-! The source offer checks, including every early revert before ratifier authorization. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -32,7 +34,7 @@ theorem takeOfferChecksSource {frame : Frame} {evm : State} {offer : OfferData} 
     (ht : frame.locals.get? "taker" = some (.address (AccountAddress.ofNat taker.toNat)))
     (hr : frame.locals.get? "receiverIfTakerIsSeller" = some (.address receiver))
     (hc : taker.toNat < EVM.addressModulus) (hs : TakeOfferChecks evm offer id taker receiver) :
-    ABlock config evm frame (takeTransition.body.drop 6) frame (takeTransition.body.drop 14) := by
+    ABlock fork config evm frame (takeTransition.body.drop 6) frame (takeTransition.body.drop 14) := by
   rw [takeOfferChecks_shape]
   exact ABlock.start
     |>.requireStep ((evalTakeLossGuard hm).trans (by rw [decide_eq_true hs.loss]))
@@ -52,7 +54,7 @@ theorem takeOfferChecksRevert {frame : Frame} {evm : State} {offer : OfferData} 
     (ht : frame.locals.get? "taker" = some (.address (AccountAddress.ofNat taker.toNat)))
     (hr : frame.locals.get? "receiverIfTakerIsSeller" = some (.address receiver))
     (hc : taker.toNat < EVM.addressModulus) (hbad : ¬ TakeOfferChecks evm offer id taker receiver) :
-    ExecBlock config frame evm (takeTransition.body.drop 6) .reverted := by
+    ExecBlock fork config frame evm (takeTransition.body.drop 6) .reverted := by
   rw [takeOfferChecks_shape]
   by_cases hl : (marketLossWord evm id).toNat < 2^128 - 1
   · apply ExecBlock.consNormal (ExecStmt.requireTrue ((evalTakeLossGuard hm).trans

@@ -4,6 +4,8 @@ import Benchmarks.Midnight.RuntimeBlocks_076
 import Benchmarks.Midnight.RuntimeBlocks_077
 import Benchmarks.Midnight.RuntimeBlocks_051
 
+variable {fork : Ethereum.Fork}
+
 /-! Oracle success, call failure, and malformed-return paths in the health-check loop. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,12 +19,12 @@ theorem midnightOracleReturn {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (success : Bool)
     (hstack : R.length + 18 ≤ 1024) (hout : out.size < UInt256.size)
     (hroot : root.toNat + 32 < 2^64)
-    (rd : RD midnightBytecode I g s0 ⟨19924⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨19924⟩
       ((if success then ⟨1⟩ else ⟨0⟩) :: root :: cp :: bitmap :: maxDebt :: base ::
         market :: index :: R) mem aw out σ k C) :
-    ((success = false ∨ out.size < 32) ∧ RDrev midnightBytecode g s0) ∨
+    ((success = false ∨ out.size < 32) ∧ RDrev fork midnightBytecode g s0) ∨
     (success = true ∧ 32 ≤ out.size ∧ ∃ aw' k' C',
-      RD midnightBytecode I g s0 ⟨19940⟩
+      RD fork midnightBytecode I g s0 ⟨19940⟩
         ([⟨20011⟩, base, index, memLoad root (writeWord mem 64 (root + UInt256.ofNat 32)),
           cp, bitmap, maxDebt, base, market, index] ++ R)
         (writeWord mem 64 (root + UInt256.ofNat 32)) aw' out σ k' C') := by

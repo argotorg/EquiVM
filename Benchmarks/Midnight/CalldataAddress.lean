@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.AddressDecode
 
+variable {fork : Ethereum.Fork}
+
 /-! The address decoder shared by dynamic calldata structures. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -13,8 +15,8 @@ theorem midnightCalldataAddress_ok {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {R : List UInt256} (hstack : R.length + 5 ≤ 1024)
     (hcanon : (calldataWord I.calldata head.toNat).toNat < EVM.addressModulus)
     (hvalid : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨18342⟩ (head :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD midnightBytecode I g s0 ret (calldataWord I.calldata head.toNat :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨18342⟩ (head :: ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork midnightBytecode I g s0 ret (calldataWord I.calldata head.toNat :: R)
       mem aw rdata σ k' C' := by
   have rd1 := midnightBlocks.midnight_block_18342_fallthrough hstack
     (addressCheck_zero hcanon) rd
@@ -26,8 +28,8 @@ theorem midnightCalldataAddress_bad {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw head ret : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 5 ≤ 1024)
     (hcanon : ¬ (calldataWord I.calldata head.toNat).toNat < EVM.addressModulus)
-    (rd : RD midnightBytecode I g s0 ⟨18342⟩ (head :: ret :: R) mem aw rdata σ k C) :
-    RDrev midnightBytecode g s0 := by
+    (rd : RD fork midnightBytecode I g s0 ⟨18342⟩ (head :: ret :: R) mem aw rdata σ k C) :
+    RDrev fork midnightBytecode g s0 := by
   have rd1 := midnightBlocks.midnight_block_18342_taken hstack
     (addressCheck_nonzero hcanon) (by jump_dest) rd
   exact midnightBlocks.midnight_block_6350 (by

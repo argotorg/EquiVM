@@ -4,6 +4,8 @@ import Benchmarks.Midnight.PairDecode
 import Benchmarks.Midnight.MappingMemory
 import Benchmarks.Midnight.PositionStorage
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `credit(bytes32,address)`
 
@@ -22,7 +24,7 @@ theorem creditBodyReturns (evm : EVM.State) (id user : UInt256)
     (hcanon : user.toNat < EVM.addressModulus)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) :
-    ExecTransitionBody config contract evm (positionArguments id user)
+    ExecTransitionBody fork config contract evm (positionArguments id user)
       creditTransition.body
       (.returned (calldataFrame contract (positionArguments id user) ∅ evm) evm
         (some [.int (Int.ofNat (UInt256.land
@@ -45,11 +47,11 @@ theorem creditBodyReturns (evm : EVM.State) (id user : UInt256)
 
 theorem creditTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Nat} {user : UInt256}
     (hcanon : user.toNat < EVM.addressModulus)
-    (rd : RD midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 2663)
+    (rd : RD fork midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 2663)
       [user, solcSelectorWord I] midnightEntryMemory
       (M (M (UInt256.ofNat 0) (UInt256.ofNat 64) ⟨32⟩) (UInt256.ofNat 800) ⟨32⟩)
       ByteArray.empty σ k C) :
-    RDret midnightBytecode g (initState σ σ₀ g A I) σ
+    RDret fork midnightBytecode g (initState σ σ₀ g A I) σ
       (UInt256.land (solcSlotWordAt (positionSlot (calldataWord I.calldata 4) user) σ I)
         (UInt256.ofNat (2^128 - 1))).toByteArray := by
   have hr := midnightBlocks.midnight_block_2663 (by simp) rd
@@ -65,10 +67,10 @@ theorem creditTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Nat} {user : UInt25
 /-- `credit(bytes32,address)`: the theorem `Correct.lean` routes selector 45 to. -/
 theorem midnightCreditBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 45)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 45) rfl hsel
   have hd : dispatchMsg contract I.calldata = some creditTransition := by
     apply midnightDispatch_credit <;>
@@ -88,7 +90,7 @@ theorem midnightCreditBody {σ σ₀ A I} {g : UInt256}
           have hret := creditTraceReturn hcanon rd4
           have hdec := midnightDecodeBytes32Address "id" "user"
             (by decide) (by decide) (by decide) (by decide) h68 hhi hsize hcanon
-          have hbody := creditBodyReturns
+          have hbody := creditBodyReturns (fork := fork)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (calldataWord I.calldata 4) (calldataWord I.calldata 36) hcanon hwv hhi
           exact hret.reEquivExecution hcode hd hdec hbody

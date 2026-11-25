@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.RepayBalanceSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Choosing repayment's payer and emitting its event. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -29,9 +31,9 @@ theorem repayCallbackCondition_eval {frame : Frame} {evm : State} {callback : Ac
 theorem repayPayerSource {frame : Frame} {m : MarketData} {evm : State}
     {id user units : UInt256} {callback : AccountAddress} {data : ByteArray} {result : ExecResult}
     (hf : RepaySourceFrame frame m id user units callback data)
-    (ht : ExecBlock config (repayPayerFrame frame evm.executionEnv callback) evm
+    (ht : ExecBlock fork config (repayPayerFrame frame evm.executionEnv callback) evm
       (repayTransition.body.drop 10) result) :
-    ExecBlock config frame evm (repayTransition.body.drop 9) result := by
+    ExecBlock fork config frame evm (repayTransition.body.drop 9) result := by
   apply ExecBlock.consNormal (ExecStmt.letDecl ?_) ht
   rw [evalExpr?]
   change (evalExpr? config frame evm repayCallbackCondition >>= _) = _
@@ -51,7 +53,7 @@ theorem repayEmitSource {frame : Frame} {m : MarketData} {evm : State}
     {id user units : UInt256} {callback : AccountAddress} {data : ByteArray} {payer : AccountAddress}
     (hf : RepaySourceFrame frame m id user units callback data)
     (hp : frame.locals.get? "payer" = some (.address payer)) (hperm : evm.executionEnv.perm = true) :
-    ABlock config evm frame (repayTransition.body.drop 10) frame (repayTransition.body.drop 11) := by
+    ABlock fork config evm frame (repayTransition.body.drop 10) frame (repayTransition.body.drop 11) := by
   refine ⟨fun ht ↦ ExecBlock.consNormal (ExecStmt.emit (vals :=
     [.address evm.executionEnv.source, wordBytes32Value id, .int units.toNat,
       .address (AccountAddress.ofNat user.toNat), .address payer]) hperm ?_) ht⟩

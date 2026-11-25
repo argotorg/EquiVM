@@ -5,6 +5,8 @@ import Benchmarks.Midnight.CheckedUint128Gas
 import Benchmarks.Midnight.PackedStorageSourceState
 import Benchmarks.Midnight.TransferBudget
 
+variable {fork : Ethereum.Fork}
+
 /-! The final checked debt subtraction and packed position write in liquidation. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -21,21 +23,21 @@ theorem liquidateDebtUpdate {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {fr
     (hf : LiquidateSourceFrame frame m id index seized repaid borrower mode receiver callback data)
     (hp : I.perm = true) (h128 : repaid.toNat < 2^128) (hcanon : borrower.toNat < EVM.addressModulus)
     (hs : SourceState s0 I σ evm) (hb : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨23403⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨23403⟩
       ([repaid, ⟨6914⟩, ⟨6925⟩, uint128Mask, ⟨2⟩, positionSlot id borrower, dp, dl,
         borrower, badDebt, receiverWord, mode, selector] ++ R) mem aw rdata σ k C) :
-    (ExecBlock config frame evm (liquidateAmountsBody.drop 12) .reverted ∧
-      RDrev midnightBytecode g s0) ∨
+    (ExecBlock fork config frame evm (liquidateAmountsBody.drop 12) .reverted ∧
+      RDrev fork midnightBytecode g s0) ∨
     (∃ evm' σ' k' C',
-      ExecBlock config frame evm (liquidateAmountsBody.drop 12)
+      ExecBlock fork config frame evm (liquidateAmountsBody.drop 12)
         (.ok (wordLocal frame "__c30" repaid) evm') ∧
       SourceState s0 I σ' evm' ∧ TransferBudget root credit mem aw C' ∧
-      RD midnightBytecode I g s0 ⟨5480⟩
+      RD fork midnightBytecode I g s0 ⟨5480⟩
         ([selector, selector, selector, dp, dl, borrower, badDebt, receiverWord, mode, selector] ++ R)
         mem aw rdata σ' k' C') := by
   have ha : evalExprs? config frame evm [.var "repaidUnits"] = .ok [.int repaid.toNat] := by
     simp only [evalExprs?, evalWordLocal hf.repaid, bind, pure, EvalResult.bind]
-  have hx0 := callToUint128 (name := "__c30") hf.contract ha h128
+  have hx0 := callToUint128 (fork := fork) (name := "__c30") hf.contract ha h128
   have hf1 := hf.insert "__c30" (.int repaid.toNat) (by decide)
   obtain ⟨k1, C1, hc1, rd1⟩ := midnightToUint128_mono
     (R := [⟨6925⟩, uint128Mask, ⟨2⟩, positionSlot id borrower, dp, dl,
@@ -65,7 +67,7 @@ theorem liquidateDebtUpdate {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {fr
     let evm1 := storeLow128 evm (positionSlot id borrower + ⟨2⟩) value
     let σ1 := storeLow128Accounts σ I (positionSlot id borrower + ⟨2⟩) value
     have hs1 : SourceState s0 I σ1 evm1 := SourceState.storeLow128 hs _ value
-    have hx1 : ExecStmt config (wordLocal frame "__c30" repaid) evm
+    have hx1 : ExecStmt fork config (wordLocal frame "__c30" repaid) evm
         (liquidateAmountsBody[13]!) (.ok (wordLocal frame "__c30" repaid) evm1) :=
       ExecStmt.assign (Or.inr (by rw [hs.env]; exact hp))
         (evalCheckedSub128 hr (evalWordLocal (wordLocal_get ..)) (low128_lt _) hle)

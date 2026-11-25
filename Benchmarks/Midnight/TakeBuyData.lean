@@ -4,6 +4,8 @@ import Benchmarks.Midnight.OfferHeapMemory
 import Benchmarks.Midnight.RuntimeBlocks_051
 import Benchmarks.Midnight.RuntimeBlocks_053
 
+variable {fork : Ethereum.Fork}
+
 /-! Selecting the maker or taker byte buffer for the buyer callback. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -51,9 +53,9 @@ theorem midnightTakeBuyerData {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0
     (hoffer : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (htaker : memLoad (UInt256.ofNat 320) mem = takerPtr)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨13774⟩ (callback :: R) mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨13774⟩ (callback :: R) mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding credit mem aw' C' ∧
-      RD midnightBytecode I g s0 ⟨13805⟩
+      RD fork midnightBytecode I g s0 ⟨13805⟩
         ([callback, takeBuyerDataPtr offer callbackPtr takerPtr, ⟨32⟩, ⟨13931⟩] ++ R)
         mem aw' rdata σ k' C' := by
   have hbuy : memLoad (UInt256.ofNat 32 + memLoad (UInt256.ofNat 384) mem) mem = offer.buy := by

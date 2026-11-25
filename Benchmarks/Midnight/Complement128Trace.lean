@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.CheckedSubGas
 import Benchmarks.Midnight.Uint128Arithmetic
 
+variable {fork : Ethereum.Fork}
+
 /-! The checked subtraction from the uint128 maximum, with accumulated gas preserved. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -13,9 +15,9 @@ theorem midnightComplement128 {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw value ret : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 5 ≤ 1024) (hvalue : value.toNat < 2 ^ 128)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨19421⟩ (value :: ret :: R) mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨19421⟩ (value :: ret :: R) mem aw rdata σ k C) :
     ∃ k' C', C ≤ C' ∧
-      RD midnightBytecode I g s0 ret (complement128 value :: R) mem aw rdata σ k' C' := by
+      RD fork midnightBytecode I g s0 ret (complement128 value :: R) mem aw rdata σ k' C' := by
   have rd1 := midnightBlocks.midnight_block_19421_fallthrough hstack
     (by rw [uint128Mask_computed]; exact complement128_guard hvalue) rd
   simp only [midnightBlocks.midnight_block_19421_fallthrough_stack,
@@ -27,8 +29,8 @@ theorem midnightComplement128 {I : ExecutionEnv} {g : Sat256} {s0 : State}
 theorem midnightComplement128Revert {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw value ret : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 5 ≤ 1024) (hvalue : 2 ^ 128 ≤ value.toNat)
-    (rd : RD midnightBytecode I g s0 ⟨19421⟩ (value :: ret :: R) mem aw rdata σ k C) :
-    RDrev midnightBytecode g s0 := by
+    (rd : RD fork midnightBytecode I g s0 ⟨19421⟩ (value :: ret :: R) mem aw rdata σ k C) :
+    RDrev fork midnightBytecode g s0 := by
   have hlt : uint128Mask.toNat < value.toNat := by
     change 340282366920938463463374607431768211455 < value.toNat
     omega

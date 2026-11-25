@@ -2,6 +2,8 @@ import Benchmarks.Midnight.MemoryArrayIndex
 import Benchmarks.Midnight.CalldataArrayWords
 import Benchmarks.Midnight.AddressDecode
 
+variable {fork : Ethereum.Fork}
+
 /-! Checked indexing and canonical-address reads for calldata arrays. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -48,9 +50,9 @@ theorem midnightCalldataIndex {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw ptr count index ret : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 5 ≤ 1024) (hi : index.toNat < count.toNat)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨19675⟩ (ptr :: count :: index :: ret :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨19675⟩ (ptr :: count :: index :: ret :: R)
       mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD midnightBytecode I g s0 ret
+    ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode I g s0 ret
       (calldataIndex ptr index :: R) mem aw rdata σ k' C' := by
   have hc : UInt256.isZero (UInt256.lt index count) = ⟨0⟩ := by
     rw [ult_one hi]
@@ -66,8 +68,8 @@ theorem midnightCalldataAddressRead {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {R : List UInt256} (hstack : R.length + 5 ≤ 1024)
     (hc : (calldataWord I.calldata head.toNat).toNat < EVM.addressModulus)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨5543⟩ (head :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD midnightBytecode I g s0 ret
+    (rd : RD fork midnightBytecode I g s0 ⟨5543⟩ (head :: ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode I g s0 ret
       (calldataWord I.calldata head.toNat :: R) mem aw rdata σ k' C' := by
   have rd1 := midnightBlocks.midnight_block_5543 (by simp only [List.length_cons]; omega)
     (by jump_dest) rd

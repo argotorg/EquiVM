@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.LiquidateCallbackMagic
 import Benchmarks.Midnight.RepayCallbackReturn
 
+variable {fork : Ethereum.Fork}
+
 /-! Liquidation's callback acknowledgement preserves its heap for the loan-token pull. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -18,16 +20,16 @@ theorem midnightLiquidateCallbackReturn {I : ExecutionEnv} {g : Sat256} {s0 : St
     (hz : memLoad (UInt256.ofNat 800) mem = ⟨0⟩) (halign : root.toNat % 32 = 0)
     (ha : success = true → MemoryFunding (transferHeapCredit root + 4)
       (wordReplyMemory mem out root) aw C)
-    (rd : RD midnightBytecode I g s0 ⟨6228⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨6228⟩
       ((if success then ⟨1⟩ else ⟨0⟩) :: root :: R)
       (wordReplyMemory mem out root) aw out σ k C) :
     ((success = false ∨ out.size < 32 ∨ calldataWord out 0 ≠ flashLoanMagic) ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     (success = true ∧ 32 ≤ out.size ∧ calldataWord out 0 = flashLoanMagic ∧
       ∃ aw' k' C',
         TransferHeap (flashLoanCallbackResultMemory (wordReplyMemory mem out root) root)
           aw' (root + UInt256.ofNat 32) C' ∧
-        RD midnightBytecode I g s0 ⟨6265⟩ R
+        RD fork midnightBytecode I g s0 ⟨6265⟩ R
           (flashLoanCallbackResultMemory (wordReplyMemory mem out root) root) aw' out σ k' C') := by
   have hz1 : memLoad (UInt256.ofNat 800) (wordReplyMemory mem out root) = ⟨0⟩ := by
     rw [wordReplyMemory_load_before _ _ _ _ hsize (by exact hlower), hz]

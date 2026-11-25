@@ -2,6 +2,8 @@ import Benchmarks.Midnight.MarketValueDecode
 import Benchmarks.Midnight.MemoryBytes
 import Benchmarks.Midnight.MemoryAddressDecode
 
+variable {fork : Ethereum.Fork}
+
 /-! The first three stored-market fields and the collateral-array offset check. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -23,13 +25,13 @@ theorem midnightToMarketFirstFields {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hbytes : MemoryBytes mem base bytes) (hhead : start + 256 ≤ bytes.size)
     (hanchor : anchor.toNat + 32 = base + start)
     (hregion : base + bytes.size ≤ ptr.toNat) (hptr : ptr.toNat + 256 < 2^64)
-    (rd : RD midnightBytecode I g s0 ⟨961⟩ (x :: y :: ptr :: anchor :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨961⟩ (x :: y :: ptr :: anchor :: R)
       mem aw rdata σ k C) :
-    (decodeMarketData bytes start = none ∧ RDrev midnightBytecode g s0) ∨
+    (decodeMarketData bytes start = none ∧ RDrev fork midnightBytecode g s0) ∨
     ((calldataWord bytes (start + 32)).toNat < EVM.addressModulus ∧
       (calldataWord bytes (start + 64)).toNat < EVM.addressModulus ∧
       (calldataWord bytes (start + 96)).toNat < 2^64 ∧
-      ∃ aw' k' C', RD midnightBytecode I g s0 ⟨1022⟩
+      ∃ aw' k' C', RD fork midnightBytecode I g s0 ⟨1022⟩
         (calldataWord bytes (start + 96) :: x :: y :: ptr :: anchor :: R)
         (marketFirstMemory mem ptr bytes start) aw' rdata σ k' C') := by
   have load {m : ByteArray} (hb : MemoryBytes m base bytes) (off : Nat) (ho : off + 32 ≤ 256) :
@@ -46,7 +48,7 @@ theorem midnightToMarketFirstFields {I : ExecutionEnv} {g : Sat256} {s0 : State}
   have rd1 := midnightBlocks.midnight_block_961 (by omega) (by jump_dest) rd
   simp only [midnightBlocks.midnight_block_961_stack, midnightBlocks.midnight_block_961_memory,
     h0] at rd1
-  change RD midnightBytecode I g s0 ⟨23130⟩
+  change RD fork midnightBytecode I g s0 ⟨23130⟩
     ((anchor + UInt256.ofNat 64) :: ⟨980⟩ :: x :: y :: ptr :: anchor :: R) m1 _ rdata σ _ _ at rd1
   by_cases hm : (calldataWord bytes (start + 32)).toNat < EVM.addressModulus
   · obtain ⟨aw2, k2, C2, rd2⟩ := midnightMemoryAddress_ok
@@ -61,7 +63,7 @@ theorem midnightToMarketFirstFields {I : ExecutionEnv} {g : Sat256} {s0 : State}
     have rd3 := midnightBlocks.midnight_block_980 (by omega) (by jump_dest) rd2
     simp only [midnightBlocks.midnight_block_980_stack, midnightBlocks.midnight_block_980_memory,
       hp32] at rd3
-    change RD midnightBytecode I g s0 ⟨23130⟩
+    change RD fork midnightBytecode I g s0 ⟨23130⟩
       ((anchor + UInt256.ofNat 96) :: ⟨997⟩ :: x :: y :: ptr :: anchor :: R) m2 _ rdata σ _ _ at rd3
     by_cases hl : (calldataWord bytes (start + 64)).toNat < EVM.addressModulus
     · obtain ⟨aw4, k4, C4, rd4⟩ := midnightMemoryAddress_ok

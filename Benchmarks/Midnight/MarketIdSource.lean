@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.MarketEncode
 import Benchmarks.Midnight.InternalCall
 
+variable {fork : Ethereum.Fork}
+
 /-! The source-level market identifier, including its exact CREATE2 preimage. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -114,7 +116,7 @@ theorem evalMarketId {frame : Frame} {evm : EVM.State} {m : MarketData}
 
 theorem marketIdSourceReturns {frame : Frame} {evm : EVM.State} {m : MarketData}
     (hm : frame.locals.get? "market" = some (Model.marketValue m.value)) :
-    ExecFuncBody config frame evm marketIdFunction.body
+    ExecFuncBody fork config frame evm marketIdFunction.body
       (.returned (marketIdInitcodeFrame frame m) evm (some [wordBytes32Value m.id])) := by
   apply ExecFuncBody.execBlockRet
   refine ExecBlock.consNormal (ExecStmt.letDecl (evalMarketEncoding hm)) ?_

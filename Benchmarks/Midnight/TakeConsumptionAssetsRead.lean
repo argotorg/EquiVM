@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TakeConsumptionMemory
 import Benchmarks.Midnight.RuntimeBlocks_045
 
+variable {fork : Ethereum.Fork}
+
 /-! The asset-cap path reads consumed and selects the buyer or seller asset amount. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -18,11 +20,11 @@ theorem midnightTakeConsumedAssetsRead {credit : Nat} {I : ExecutionEnv} {g : Sa
     (hstack : R.length + 5 ≤ 1024)
     (ho : OfferStored mem ⟨832⟩ marketPtr arrayPtr callbackPtr root offer)
     (hroot : memLoad (UInt256.ofNat 384) mem = ⟨832⟩) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨11710⟩ R mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨11710⟩ R mem aw rdata σ k C) :
     ∃ aw' k' C',
       MemoryFunding credit (consumedHashMemory mem offer.group (UInt256.ofNat offer.maker.val))
         aw' C' ∧
-      RD midnightBytecode I g s0 (takeConsumedAssetPC offer.buy)
+      RD fork midnightBytecode I g s0 (takeConsumedAssetPC offer.buy)
         (takeConsumedWord σ I offer :: UInt256.ofNat 11794 :: R)
         (consumedHashMemory mem offer.group (UInt256.ofNat offer.maker.val)) aw' rdata σ k' C' := by
   have hmem : 416 ≤ mem.size := by

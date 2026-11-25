@@ -4,6 +4,8 @@ import Benchmarks.Midnight.SourceControl
 import Benchmarks.Midnight.MarketData
 import Benchmarks.Midnight.MulDivCall
 
+variable {fork : Ethereum.Fork}
+
 /-! Source expressions and composition used by the position-view body. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,9 +17,9 @@ def positionViewFunction : FunctionDecl := contract.functions[25]!
 -- LIBRARY CANDIDATE: advance a source block through any normally completing statement.
 theorem sourceNormalStep {cfg : Config} {evm : EVM.State} {start frame frame' : Frame}
     {body rest : List Stmt} {stmt : Stmt}
-    (prev : ABlock cfg evm start body frame (stmt :: rest))
-    (hstmt : ExecStmt cfg frame evm stmt (.ok frame' evm)) :
-    ABlock cfg evm start body frame' rest :=
+    (prev : ABlock fork cfg evm start body frame (stmt :: rest))
+    (hstmt : ExecStmt fork cfg frame evm stmt (.ok frame' evm)) :
+    ABlock fork cfg evm start body frame' rest :=
   ⟨fun h ↦ prev.run (ExecBlock.consNormal hstmt h)⟩
 
 def wordLocal (frame : Frame) (name : Ident) (word : UInt256) : Frame :=

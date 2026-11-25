@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.CodeStorage
 
+variable {fork : Ethereum.Fork}
+
 /-! The EXTCODECOPY boundary in code-storage readers. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -27,7 +29,7 @@ theorem extCodeCopy_xstep {s : State} {code : ByteArray} {pc target dst src len 
     (hdec : decode code pc = some (.EXTCODECOPY, .none))
     (hstack : s.machineState.stack = target :: dst :: src :: len :: tail)
     (hov : tail.length ≤ 1024) :
-    Xstep (D_J code 0) s =
+    Xstep fork (D_J code 0) s =
       (if s.machineState.gasAvailable.toNat < memoryExpansionCost s .EXTCODECOPY then
         .error .OutOfGass
       else if (s.machineState.gasAvailable.subNat (memoryExpansionCost s .EXTCODECOPY)).toNat <
@@ -44,9 +46,9 @@ theorem extCodeCopy_xstep {s : State} {code : ByteArray} {pc target dst src len 
 theorem extCodeCopyReach {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc target dst src len : UInt256} {tail : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256} {accounts : AccountMap} {k C : Nat}
-    (h : RD code ee g s0 pc (target :: dst :: src :: len :: tail) mem aw rdata accounts k C)
+    (h : RD fork code ee g s0 pc (target :: dst :: src :: len :: tail) mem aw rdata accounts k C)
     (hdec : decode code pc = some (.EXTCODECOPY, .none)) (hov : tail.length ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (pc + ⟨1⟩) tail
+    ∃ k' C', RD fork code ee g s0 (pc + ⟨1⟩) tail
       ((externalCode accounts target).write src.toNat mem dst.toNat len.toNat)
       (M aw dst len) rdata accounts k' C' := by
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstack, hgas, hk, hC,
@@ -55,7 +57,7 @@ theorem extCodeCopyReach {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0
   have hmc : memoryExpansionCost s .EXTCODECOPY = memExpansionCost aw dst len := by
     simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstack,
       List.getElem!_cons_zero, List.getElem!_cons_succ, M, memExpansionCost]
-  have st := extCodeCopy_xstep hcode hpc hdec hstack hov
+  have st := extCodeCopy_xstep (fork := fork) hcode hpc hdec hstack hov
   rw [hmc, collapse_two_stage] at st
   let cost := memExpansionCost aw dst len +
     (Caccess (AccountAddress.ofUInt256 target) s.substate +

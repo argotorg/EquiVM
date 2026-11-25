@@ -2,6 +2,8 @@ import Benchmarks.Midnight.BitmapSource
 import Benchmarks.Midnight.InternalCall
 import Benchmarks.Midnight.PositionViewSourceBase
 
+variable {fork : Ethereum.Fork}
+
 /-! The shared source call to clear one collateral bitmap bit. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -14,7 +16,7 @@ theorem callBitmapClear {cfg : Config} {frame : Frame} {evm : EVM.State}
     (hc : frame.contract = contract)
     (he : evalExprs? cfg frame evm args = .ok [.int bitmap.toNat, .int bit.toNat])
     (hbit : bit.toNat < 256) :
-    ExecStmt cfg frame evm (.internalCall "UtilsLib_clearBit" args name)
+    ExecStmt fork cfg frame evm (.internalCall "UtilsLib_clearBit" args name)
       (.ok (wordLocal frame name (bitmapClear bitmap bit)) evm) := by
   let locals : Store := ((∅ : Store).insert "bit" (.int bit.toNat)).insert
     "bitmap" (.int bitmap.toNat)

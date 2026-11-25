@@ -4,6 +4,8 @@ import Benchmarks.Midnight.CalldataAddressRead
 import Benchmarks.Midnight.InitMarketDefaultsSource
 import Benchmarks.Midnight.TransferHeap
 
+variable {fork : Ethereum.Fork}
+
 /-! The final loan-token pull and return after liquidation's optional callback. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -35,16 +37,16 @@ theorem midnightLiquidateLoanTransfer {I : ExecutionEnv} {g : UInt256} {s0 evm :
     (hlo : 832 ≤ root.toNat) (hsize : 832 ≤ mem.size)
     (hseized : memLoad (UInt256.ofNat 640) mem = seized)
     (hpaid : memLoad (UInt256.ofNat 608) mem = repaid) (hh : TransferHeap mem aw root C)
-    (hgas : midnightGasBound g) (hfork : I.fork ≥ .osaka) (hs : SourceState s0 I σ evm)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨5773⟩
+    (hgas : midnightGasBound g) (hfork : fork ≥ .osaka) (hs : SourceState s0 I σ evm)
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨5773⟩
       ([x0, x1, x2, x3, x4, UInt256.ofNat payer.val] ++ R) mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (ExecBlock config frame evm (liquidateTransition.body.drop 23) .reverted ∧
-      RDrev midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (ExecBlock fork config frame evm (liquidateTransition.body.drop 23) .reverted ∧
+      RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
     ∃ frame' evm',
-      ExecBlock config frame evm (liquidateTransition.body.drop 23)
+      ExecBlock fork config frame evm (liquidateTransition.body.drop 23)
         (.returned frame' evm' (some [.int seized.toNat, .int repaid.toNat])) ∧
-      RDret midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap
+      RDret fork midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap
         (wordArrayBytes [seized, repaid]) := by
   simp only [List.cons_append, List.nil_append] at rd
   have rd1 := midnightBlocks.midnight_block_5773 (by omega) (by jump_dest) rd

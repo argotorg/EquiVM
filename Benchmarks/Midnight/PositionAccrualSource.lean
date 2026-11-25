@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.PositionViewSourceBase
 
+variable {fork : Ethereum.Fork}
+
 /-! Source execution and reverts of position fee accrual. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -76,7 +78,7 @@ theorem positionAccrualSource {frame : Frame} {evm : EVM.State} {m : MarketData}
     (ht : frame.locals.get? "accrualEnd" = some (.int (wordMin time m.maturity).toNat))
     (hz : frame.locals.get? "fee" = some (.int 0))
     (hsafe : PositionAccrualSafe pending last m.maturity time) :
-    ExecStmt config frame evm (positionViewFunction.body[11]!)
+    ExecStmt fork config frame evm (positionViewFunction.body[11]!)
       (.ok (positionAccrualFrame frame pending last m.maturity time) evm) := by
   by_cases hlt : last.toNat < m.maturity.toNat
   · obtain ⟨hsub, hprod⟩ := hsafe hlt
@@ -107,7 +109,7 @@ theorem positionAccrualSourceRevert {frame : Frame} {evm : EVM.State} {m : Marke
     (hl : frame.locals.get? "_lastAccrual" = some (.int last.toNat))
     (ht : frame.locals.get? "accrualEnd" = some (.int (wordMin time m.maturity).toNat))
     (hbad : ¬ PositionAccrualSafe pending last m.maturity time) :
-    ExecStmt config frame evm (positionViewFunction.body[11]!) .reverted := by
+    ExecStmt fork config frame evm (positionViewFunction.body[11]!) .reverted := by
   have hlt : last.toNat < m.maturity.toNat := by
     by_contra hn
     exact hbad (fun h ↦ False.elim (hn h))

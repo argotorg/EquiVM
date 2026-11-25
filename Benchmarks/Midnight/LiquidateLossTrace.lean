@@ -8,6 +8,8 @@ import Benchmarks.Midnight.RuntimeBlocks_030
 import Benchmarks.Midnight.RuntimeBlocks_027
 import Benchmarks.Midnight.RuntimeBlocks_019
 
+variable {fork : Ethereum.Fork}
+
 /-! Checked loss-factor arithmetic, including total-unit underflow and a zero divisor. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -20,12 +22,12 @@ theorem midnightLiquidateLoss {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw total loss badDebt : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 12 ≤ 1024)
     (ht : total.toNat < 2 ^ 128) (hl : loss.toNat < 2 ^ 128)
-    (rd : RD midnightBytecode I g s0 ⟨19421⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨19421⟩
       ([loss, ⟨7523⟩, ⟨7530⟩, badDebt, ⟨6721⟩, total, ⟨7536⟩, ⟨4204⟩, ⟨7541⟩] ++ R)
       mem aw rdata σ k C) :
-    (¬ (badDebt.toNat ≤ total.toNat ∧ total ≠ ⟨0⟩) ∧ RDrev midnightBytecode g s0) ∨
+    (¬ (badDebt.toNat ≤ total.toNat ∧ total ≠ ⟨0⟩) ∧ RDrev fork midnightBytecode g s0) ∨
     (badDebt.toNat ≤ total.toNat ∧ total ≠ ⟨0⟩ ∧ ∃ k' C', C ≤ C' ∧
-      RD midnightBytecode I g s0 ⟨7541⟩
+      RD fork midnightBytecode I g s0 ⟨7541⟩
         (liquidateNextLoss total loss badDebt :: R) mem aw rdata σ k' C') := by
   obtain ⟨k1, C1, hc1, rd1⟩ := midnightComplement128
     (R := ⟨7530⟩ :: badDebt :: ⟨6721⟩ :: total :: ⟨7536⟩ :: ⟨4204⟩ :: ⟨7541⟩ :: R)

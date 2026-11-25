@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.GasOutput
 
+variable {fork : Ethereum.Fork}
+
 /-! Osaka precompiles return at most 1024 bytes, apart from the identity precompile. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -162,23 +164,23 @@ lemma precompile_P256VERIFY_output_size_le_1024_or_calldata
 
 theorem precompile_EXPMOD_output_size_le_1024
     {σ : AccountMap} {g : UInt256} {A : Substate} {I : ExecutionEnv}
-    (hosaka : I.fork ≥ .osaka) : (Ξ_EXPMOD σ g A I).2.2.2.size ≤ 1024 := by
-  cases hreq : expmodRequiredGas I.fork I.calldata with
+    (hosaka : fork ≥ .osaka) : (Ξ_EXPMOD fork σ g A I).2.2.2.size ≤ 1024 := by
+  cases hreq : expmodRequiredGas fork I.calldata with
   | none => simp [Ξ_EXPMOD, hreq]
   | some gas =>
     have hlen : nat_of_slice I.calldata 64 32 ≤ 1024 := by
       by_contra hbig
       have hbig' : nat_of_slice I.calldata 64 32 > 1024 := by omega
-      have hlimit : I.fork.spec.eip7823 = true := by
-        cases hf : I.fork <;> first | rfl | simp [hf, Fork.le_def, Fork.rank] at hosaka
+      have hlimit : fork.spec.eip7823 = true := by
+        cases hf : fork <;> first | rfl | simp [hf, Fork.le_def, Fork.rank] at hosaka
       simp [expmodRequiredGas, hlimit, hbig'] at hreq
     exact precompile_EXPMOD_output_size_le_modulus_length.trans hlen
 
 theorem precompile_dispatch_output_size_le_1024_or_calldata
     (pc : AccountAddress) (σ : AccountMap) (g : UInt256) (A : Substate) (I : ExecutionEnv)
-    (hosaka : I.fork ≥ .osaka) :
-    (Ξ_PRECOMPILE pc σ g A I).2.2.2.size ≤ max 1024 I.calldata.size :=
-  Ξ_PRECOMPILE_induction (fun r ↦ r.2.2.2.size ≤ max 1024 I.calldata.size)
+    (hosaka : fork ≥ .osaka) :
+    (Ξ_PRECOMPILE fork pc σ g A I).2.2.2.size ≤ max 1024 I.calldata.size :=
+  Ξ_PRECOMPILE_induction fork (fun r ↦ r.2.2.2.size ≤ max 1024 I.calldata.size)
     precompile_ECREC_output_size_le_1024_or_calldata
     precompile_SHA256_output_size_le_1024_or_calldata
     precompile_RIP160_output_size_le_1024_or_calldata

@@ -2,6 +2,8 @@ import Benchmarks.Midnight.LiquidateRecoverable
 import Benchmarks.Midnight.LiquidateMaxRepaidSource
 import Benchmarks.Midnight.LiquidateConversionSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Source collateral lookup and rounded-down valuation for the recovery-threshold check. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -28,9 +30,9 @@ theorem liquidateRecoverableSource {frame : Frame} {evm : State} {id borrower in
     let collateral := healthCollateralWord (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner)
       (positionSlot id borrower + ⟨3⟩) index
     (¬ (index.toNat < 128 ∧ LiquidateRecoverableSafe collateral price lif) ∧
-      ExecBlock config frame evm (liquidateThresholdBody.take 2) .reverted) ∨
+      ExecBlock fork config frame evm (liquidateThresholdBody.take 2) .reverted) ∨
     (index.toNat < 128 ∧ LiquidateRecoverableSafe collateral price lif ∧
-      ExecBlock config frame evm (liquidateThresholdBody.take 2)
+      ExecBlock fork config frame evm (liquidateThresholdBody.take 2)
         (.ok (liquidateRecoverableFrame frame collateral price lif) evm)) := by
   dsimp only
   let collateral := healthCollateralWord (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner)
@@ -46,7 +48,7 @@ theorem liquidateRecoverableSource {frame : Frame} {evm : State} {id borrower in
         evalWordLocal hv, evalLiquidatePriceScale, bind, pure, EvalResult.bind]
       rfl
     by_cases hfirst : collateral.toNat * price.toNat < UInt256.size
-    · have hs0 := callMulDivDown (name := "value") hc ha0 hfirst (by decide)
+    · have hs0 := callMulDivDown (fork := fork) (name := "value") hc ha0 hfirst (by decide)
       have hv1 : f1.locals.get? "value" = some (.int value.toNat) := wordLocal_get _ _ _
       have hl1 : f1.locals.get? "lif" = some (.int lif.toNat) := by
         simpa only [f1, wordLocal_get_ne _ _ _ _ (show "value" ≠ "lif" by decide)] using hl

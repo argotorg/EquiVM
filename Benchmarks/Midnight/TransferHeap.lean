@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.SafeTransferFunding
 
+variable {fork : Ethereum.Fork}
+
 /-! The memory invariant preserved by repeated safe-transfer calls. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -40,24 +42,24 @@ theorem safeTransferHeap (isFrom : Bool) (imms : Store)
     {aw ptr ret : UInt256} {σ : AccountMap} {k C : Nat}
     {token sender recipient : AccountAddress} {value : UInt256} {R : List UInt256}
     (hstack : R.length + 14 ≤ 1024) (hh : TransferHeap mem aw ptr C)
-    (hgas : midnightGasBound g) (hfork : I.fork ≥ .osaka)
+    (hgas : midnightGasBound g) (hfork : fork ≥ .osaka)
     (hs : SourceState s0 I σ evm)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 (safeTransferEntryPC isFrom)
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 (safeTransferEntryPC isFrom)
       (safeTransferEntryStack isFrom token sender recipient value (ret :: R))
       mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (ExecFuncBody config (safeTransferFrame isFrom imms token sender recipient value) evm
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (ExecFuncBody fork config (safeTransferFrame isFrom imms token sender recipient value) evm
       (safeTransferFunctionFor isFrom).body .reverted ∧
-      RDrev midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+      RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
     ∃ (evm' : State) (σ' : AccountMap) (out mem' : ByteArray) (ptr' aw' : UInt256) (k' C' : Nat),
-      ExecFuncBody config (safeTransferFrame isFrom imms token sender recipient value) evm
+      ExecFuncBody fork config (safeTransferFrame isFrom imms token sender recipient value) evm
         (safeTransferFunctionFor isFrom).body
         (.returned (safeTransferCallFrame isFrom imms token sender recipient value true out) evm'
           none) ∧
       SourceState s0 I σ' evm' ∧ MemoryPrefix mem mem' ptr.toNat ∧
       ptr.toNat ≤ ptr'.toNat ∧ TransferHeap mem' aw' ptr' C' ∧
-      RD midnightBytecode I (Sat256.ofUInt256 g) s0 ret R mem' aw' out σ' k' C' := by
+      RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ret R mem' aw' out σ' k' C' := by
   have hcredit : 4 * ((ptr.toNat + safeTransferCallAllocation isFrom + 31) / 32) ≤
       transferHeapCredit ptr + 999921 := by
     have ha : safeTransferCallAllocation isFrom ≤ 160 := by cases isFrom <;> decide

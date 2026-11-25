@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TickExpModel
 import Benchmarks.Midnight.RuntimeBlocks_090
 
+variable {fork : Ethereum.Fork}
+
 /-! Runtime paths of the exponential helper, with cumulative gas costs retained. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -14,9 +16,9 @@ theorem midnightWExp_nonnegative {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {R : List UInt256} (hstack : R.length + 8 ≤ 1024)
     (hpos : UInt256.isZero (UInt256.slt x ⟨0⟩) ≠ ⟨0⟩)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨24388⟩ (x :: ret :: R) mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨24388⟩ (x :: ret :: R) mem aw rdata σ k C) :
     ∃ k' C', C ≤ C' ∧
-      RD midnightBytecode I g s0 ret (wExpPositiveWord x :: R) mem aw rdata σ k' C' := by
+      RD fork midnightBytecode I g s0 ret (wExpPositiveWord x :: R) mem aw rdata σ k' C' := by
   have rd1 := midnightBlocks.midnight_block_24388_taken
     (by simp only [List.length_cons]; omega) hpos (by jump_dest) rd
   have rd2 := midnightBlocks.midnight_block_24433 hstack hret rd1
@@ -30,9 +32,9 @@ theorem midnightWExp_negative {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hpos : UInt256.isZero (UInt256.slt (UInt256.sub ⟨0⟩ x) ⟨0⟩) ≠ ⟨0⟩)
     (hnz : wExpPositiveWord (UInt256.sub ⟨0⟩ x) ≠ ⟨0⟩)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨24388⟩ (x :: ret :: R) mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨24388⟩ (x :: ret :: R) mem aw rdata σ k C) :
     ∃ k' C', C ≤ C' ∧
-      RD midnightBytecode I g s0 ret
+      RD fork midnightBytecode I g s0 ret
         (UInt256.div (UInt256.ofNat 1000000000000000000000000000000000000)
           (wExpPositiveWord (UInt256.sub ⟨0⟩ x)) :: R) mem aw rdata σ k' C' := by
   have rd1 := midnightBlocks.midnight_block_24388_fallthrough

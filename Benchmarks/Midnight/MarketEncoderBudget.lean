@@ -2,6 +2,8 @@ import Benchmarks.Midnight.MarketEncoderFunding
 import Benchmarks.Midnight.MarketEncoder
 import Benchmarks.Midnight.TransferBudget
 
+variable {fork : Ethereum.Fork}
+
 /-! Market encoding with either a small transfer heap or retained memory funding. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -23,9 +25,9 @@ theorem midnightMarketEncoder_budget {budgetRoot : UInt256} {credit : Nat} {I : 
     (hout : output.toNat + 288 + 128 * m.collaterals.length < UInt256.size)
     (hret : (D_J midnightBytecode 0).contains ret = true)
     (ha : TransferBudget budgetRoot credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨19181⟩ (ptr :: output :: ret :: R) mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨19181⟩ (ptr :: output :: ret :: R) mem aw rdata σ k C) :
     ∃ aw' k' C', TransferBudget budgetRoot (credit + 128 * m.collaterals.length) (marketEncodeMemory mem output.toNat m) aw' C' ∧
-      RD midnightBytecode I g s0 ret
+      RD fork midnightBytecode I g s0 ret
       ((output + UInt256.ofNat (288 + 128 * m.collaterals.length)) :: R)
       (marketEncodeMemory mem output.toNat m) aw' rdata σ k' C' := by
   rcases ha with hsmall | ⟨halign, hfund⟩

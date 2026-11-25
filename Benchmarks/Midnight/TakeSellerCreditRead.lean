@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.TakePositionsMemory
 
+variable {fork : Ethereum.Fork}
+
 /-! Read the seller's credit after the possible buyer update. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -14,9 +16,9 @@ theorem midnightTakeSellerCreditRead {credit : Nat} {I : ExecutionEnv} {g : Sat2
     (hid : memLoad (UInt256.ofNat 512) mem = id)
     (hs : memLoad (UInt256.ofNat 448) mem = seller)
     (hcanon : seller.toNat < EVM.addressModulus) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨11966⟩ R mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨11966⟩ R mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding credit (positionReadMemory mem id seller) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨12021⟩ (takeHasCreditWord σ I id seller :: R)
+      RD fork midnightBytecode I g s0 ⟨12021⟩ (takeHasCreditWord σ I id seller :: R)
         (positionReadMemory mem id seller) aw' rdata σ k' C' := by
   have hh1 : keccakWord ⟨0⟩ (UInt256.ofNat 64) (twoWordHashMem id ⟨0⟩ mem) =
       solcMappingSlot ⟨0⟩ id := twoWordHashMem_mapSlot_of_ge64 _ _ (by omega)

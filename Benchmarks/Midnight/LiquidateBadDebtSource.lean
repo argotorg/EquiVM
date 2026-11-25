@@ -2,6 +2,8 @@ import Benchmarks.Midnight.LiquidateLoopSourceEntry
 import Benchmarks.Midnight.RepayBalanceStorage
 import Benchmarks.Midnight.PositionUpdateStorage
 
+variable {fork : Ethereum.Fork}
+
 /-! The first checked position-debt write when liquidation recognizes bad debt. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -37,7 +39,7 @@ theorem liquidateBadDebtWriteSource {frame : Frame} {evm : State} {id borrower b
     (hd : frame.locals.get? "badDebt" = some (.int badDebt.toNat))
     (hle : (low128 badDebt).toNat ≤ (low128 (healthPositionWord evm id borrower)).toNat)
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config frame evm (liquidateBadDebtBody[0]!)
+    ExecStmt fork config frame evm (liquidateBadDebtBody[0]!)
       (.ok frame (liquidateBadDebtState evm id borrower badDebt)) :=
   ExecStmt.assign (Or.inr hperm)
     (evalCheckedSub128 (evalHealthDebt hcanon hp) (evalCast128 (evalWordLocal hd)) (low128_lt _) hle)
@@ -49,7 +51,7 @@ theorem liquidateBadDebtWriteStatic {frame : Frame} {evm : State} {id borrower b
     (hd : frame.locals.get? "badDebt" = some (.int badDebt.toNat))
     (hle : (low128 badDebt).toNat ≤ (low128 (healthPositionWord evm id borrower)).toNat)
     (hperm : evm.executionEnv.perm = false) :
-    ExecStmt config frame evm (liquidateBadDebtBody[0]!) .staticViolation :=
+    ExecStmt fork config frame evm (liquidateBadDebtBody[0]!) .staticViolation :=
   ExecStmt.assignStatic
     (evalCheckedSub128 (evalHealthDebt hcanon hp) (evalCast128 (evalWordLocal hd)) (low128_lt _) hle)
     (assignHealthDebt _ hcanon hp) hperm
@@ -59,7 +61,7 @@ theorem liquidateBadDebtWriteUnderflow {frame : Frame} {evm : State} {id borrowe
     (hp : frame.locals.get? "_position" = some (.storageRef (positionRef id borrower) positionType))
     (hd : frame.locals.get? "badDebt" = some (.int badDebt.toNat))
     (hlt : (low128 (healthPositionWord evm id borrower)).toNat < (low128 badDebt).toNat) :
-    ExecStmt config frame evm (liquidateBadDebtBody[0]!) .reverted :=
+    ExecStmt fork config frame evm (liquidateBadDebtBody[0]!) .reverted :=
   ExecStmt.assignExprRevert (evalCheckedSubUnderflow ⟨128, by decide⟩ (evalHealthDebt hcanon hp)
     (evalCast128 (evalWordLocal hd)) hlt)
 

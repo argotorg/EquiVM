@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.CalldataScalarAccounting
 import Benchmarks.Midnight.ToMarketFirstFields
 
+variable {fork : Ethereum.Fork}
+
 /-! The first fields and dynamic offset of a market calldata record. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -14,14 +16,14 @@ theorem midnightMarketCalldataFirstFields_accounted {I : ExecutionEnv} {g : Sat2
     {R : List UInt256} (hstack : R.length + 11 ≤ 1024)
     (hhead : head.toNat + 256 < UInt256.size) (hptr : ptr.toNat + 256 < UInt256.size)
     (ha : MemoryAccounting mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨18601⟩ (head :: ptr :: ret :: finish :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨18601⟩ (head :: ptr :: ret :: finish :: R)
       mem aw rdata σ k C) :
-    (decodeMarketData I.calldata head.toNat = none ∧ RDrev midnightBytecode g s0) ∨
+    (decodeMarketData I.calldata head.toNat = none ∧ RDrev fork midnightBytecode g s0) ∨
     ((calldataWord I.calldata (head.toNat + 32)).toNat < EVM.addressModulus ∧
       (calldataWord I.calldata (head.toNat + 64)).toNat < EVM.addressModulus ∧
       (calldataWord I.calldata (head.toNat + 96)).toNat < 2^64 ∧ ∃ aw' k' C',
       MemoryAccounting (marketFirstMemory mem ptr I.calldata head.toNat) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨18661⟩
+      RD fork midnightBytecode I g s0 ⟨18661⟩
         (calldataWord I.calldata (head.toNat + 96) :: finish :: head :: ptr :: ret :: ptr :: R)
         (marketFirstMemory mem ptr I.calldata head.toNat) aw' rdata σ k' C') := by
   have hh32 := uadd_word_ofNat_toNat head 32 (by omega)

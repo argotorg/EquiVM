@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.LiquidateSourceFrame
 import Benchmarks.Midnight.HealthSourceFrame
 
+variable {fork : Ethereum.Fork}
+
 /-! The source declarations preceding liquidation's collateral loop. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -58,7 +60,7 @@ theorem liquidateLoopSourceEntry {frame : Frame} {evm : State} {id borrower : UI
     (hcanon : borrower.toNat < EVM.addressModulus)
     (hp : frame.locals.get? "_position" =
       some (.storageRef (positionRef id borrower) positionType)) :
-    ExecBlock config frame evm (liquidateTransition.body.drop 9 |>.take 5)
+    ExecBlock fork config frame evm (liquidateTransition.body.drop 9 |>.take 5)
       (.ok (liquidateLoopInitialFrame frame (healthPositionWord evm id borrower)) evm) := by
   let f1 := wordLocal frame "maxDebt" ⟨0⟩
   let f2 := wordLocal f1 "liquidatedCollatPrice" ⟨0⟩

@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.StaticCallGas
 
+variable {fork : Ethereum.Fork}
+
 /-! Typed source calls with their caller's cumulative gas bound retained. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.VyperDispatch
@@ -12,16 +14,16 @@ theorem typedStaticCallBridgeMono {code : ByteArray} {I : ExecutionEnv} {g : Sat
     {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ}
     {evm : EVM.State} {cfg : Config} {name : Ident} {args : List Value}
     {gasArg target inOffset inSize outOffset outSize : UInt256}
-    (h : RD code I g s0 pc (gasArg :: target :: inOffset :: inSize :: outOffset :: outSize :: R) mem aw rdata σ k C)
+    (h : RD fork code I g s0 pc (gasArg :: target :: inOffset :: inSize :: outOffset :: outSize :: R) mem aw rdata σ k C)
     (hs : SourceState s0 I σ evm)
     (hdec : decode code pc = some (.STATICCALL, .none))
     (hcd : cfg.externalABI.encode? name args = some (mem.readWithPadding inOffset.toNat inSize.toNat))
     (hsmall : inSize.toNat ≤ 2 ^ 64)
     (hov : R.length + 1 ≤ 1024) :
     ∃ (evm' : EVM.State) (σ' : AccountMap) (z : Bool) (out : ByteArray) (k' C' : ℕ),
-      typedCallViaEVM cfg evm (AccountAddress.ofUInt256 target) name 0 args (z, evm', out) false ∧
+      typedCallViaEVM fork cfg evm (AccountAddress.ofUInt256 target) name 0 args (z, evm', out) false ∧
       SourceState s0 I σ' evm' ∧ C ≤ C' ∧
-      RD code I g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: R)
+      RD fork code I g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: R)
         (out.write 0 mem outOffset.toNat (min outSize (UInt256.ofNat out.size)).toNat)
         (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat inSize.toNat) outOffset.toNat outSize.toNat))
         out σ' k' C' ∧
@@ -29,7 +31,7 @@ theorem typedStaticCallBridgeMono {code : ByteArray} {I : ExecutionEnv} {g : Sat
   by_cases hd : I.depth = 1024
   · obtain ⟨k', C', hc, rd⟩ := staticCallDepthLimitMono h hdec hd hov
     refine ⟨{ evm with
-      substate := callSubstate evm.executionEnv.fork evm.accountMap
+      substate := callSubstate fork evm.accountMap
         (AccountAddress.ofUInt256 target) evm.substate }, σ, false,
       ByteArray.empty, k', C', ?_, ⟨hs.world, hs.env, hs.accounts⟩, hc, rd, by decide⟩
     refine ⟨_, hcd, callViaEVM.callNotMade rfl rfl ?_⟩
@@ -46,9 +48,9 @@ theorem typedStaticCallBridgeMono {code : ByteArray} {I : ExecutionEnv} {g : Sat
           (le_trans hsmall Ethereum.EVM.pow_two_64_le_maxReturnDataSizeByGas))
     rw [hs.accounts, ← hs.world, ← hs.env] at hΘ
     have hΘ' : (σ', g'', A', z, out) =
-        Ethereum.EVM.Θ evm.executionEnv.fork evm.accountMap evm.σ₀ A_in
+        Ethereum.EVM.Θ fork evm.accountMap evm.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat evm.executionEnv.codeOwner)) evm.executionEnv.sender
-          (AccountAddress.ofUInt256 target) (toExecute evm.executionEnv.fork evm.accountMap (AccountAddress.ofUInt256 target))
+          (AccountAddress.ofUInt256 target) (toExecute fork evm.accountMap (AccountAddress.ofUInt256 target))
           callGas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding inOffset.toNat inSize.toNat) (evm.executionEnv.depth + 1)
           evm.executionEnv.header evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks

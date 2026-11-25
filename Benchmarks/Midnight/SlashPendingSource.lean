@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.PositionViewSourceBase
 
+variable {fork : Ethereum.Fork}
+
 /-! Source execution and reverts for pending-fee slashing. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -59,7 +61,7 @@ theorem slashPendingSource {frame : Frame} {evm : EVM.State} {credit pending pos
     (hpc : frame.locals.get? "postSlashCredit" = some (.int postCredit.toNat))
     (hzero : frame.locals.get? "postSlashPendingFee" = some (.int 0))
     (hsafe : SlashPendingSafe credit pending postCredit) :
-    ExecStmt config frame evm (positionViewFunction.body[7]!)
+    ExecStmt fork config frame evm (positionViewFunction.body[7]!)
       (.ok (slashPendingFrame frame credit pending postCredit) evm) := by
   by_cases hpos : 0 < credit.toNat
   · obtain ⟨hsub, hmul, hdecrease⟩ := hsafe hpos
@@ -91,7 +93,7 @@ theorem slashPendingSourceRevert {frame : Frame} {evm : EVM.State} {credit pendi
     (hpending : frame.locals.get? "_pendingFee" = some (.int pending.toNat))
     (hpc : frame.locals.get? "postSlashCredit" = some (.int postCredit.toNat))
     (hbad : ¬ SlashPendingSafe credit pending postCredit) :
-    ExecStmt config frame evm (positionViewFunction.body[7]!) .reverted := by
+    ExecStmt fork config frame evm (positionViewFunction.body[7]!) .reverted := by
   have hpos : 0 < credit.toNat := by
     by_contra hn
     exact hbad (fun h ↦ False.elim (hn h))

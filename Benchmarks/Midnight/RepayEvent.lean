@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.RepayWithdrawableWrite
 import Benchmarks.Midnight.TransferBudget
 
+variable {fork : Ethereum.Fork}
+
 /-! Repay event memory and the branch to its optional callback. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -21,11 +23,11 @@ theorem midnightRepayEvent {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length + 15 ≤ 1024) (hperm : I.perm = true)
     (hroot : root.toNat < 2^64) (hfree : memLoad (UInt256.ofNat 64) mem = root)
     (hb : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨10034⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨10034⟩
       ([repayHasCallback callback, id, dp, UInt256.ofNat callback.val, dl, user,
         UInt256.ofNat payer.val, units, market] ++ R) mem aw rdata σ k C) :
     ∃ aw' k' C', TransferBudget root credit (repayEventMemory mem root units payer) aw' C' ∧
-      RD midnightBytecode I g s0 (repayAfterEventPC callback)
+      RD fork midnightBytecode I g s0 (repayAfterEventPC callback)
         ([id, dp, UInt256.ofNat callback.val, dl, user, UInt256.ofNat payer.val, units, market] ++ R)
         (repayEventMemory mem root units payer) aw' rdata σ k' C' := by
   have h32 : (root + UInt256.ofNat 32).toNat = root.toNat + 32 :=

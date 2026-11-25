@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.MulticallStep
 import Benchmarks.Midnight.MulticallArrayDecode
 
+variable {fork : Ethereum.Fork}
+
 /-! A malformed later calldata tail still forces the complete multicall to revert. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -18,12 +20,12 @@ theorem midnightMulticallInvalidLoop (remaining : Nat) {I : ExecutionEnv} {g : U
     (hbad : ¬ MulticallTailsValid I.calldata base index.toNat remaining)
     (hm : 832 ≤ mem.size) (hl : 832 ≤ root.toNat)
     (hz : memLoad (UInt256.ofNat 800) mem = ⟨0⟩)
-    (hh : TransferHeap mem aw root C) (hgas : midnightGasBound g) (hfork : I.fork ≥ .osaka)
+    (hh : TransferHeap mem aw root C) (hgas : midnightGasBound g) (hfork : fork ≥ .osaka)
     (hs : SourceState s0 I σ evm)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨3605⟩
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨3605⟩
       (index :: base :: multicallTailBound I.calldata base :: count :: R) mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-      RDrev midnightBytecode (Sat256.ofUInt256 g) s0 := by
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+      RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0 := by
   induction remaining generalizing evm mem rdata aw root index σ k C with
   | zero => exact False.elim (hbad (by intro i hi; omega))
   | succ remaining ih =>

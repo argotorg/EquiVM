@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TickArithmetic
 import Benchmarks.Midnight.TickExpSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Source execution of tick-to-price, including its two rounding divisions. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,7 +17,7 @@ abbrev tickToPriceFunction : FunctionDecl := contract.functions[4]!
 theorem divHalfDownSource {cfg : Config} {frame : Frame} {evm : State} {x d : Int}
     (hx : frame.locals.get? "x" = some (.int x))
     (hd : frame.locals.get? "d" = some (.int d)) (hnz : d ≠ 0) :
-    ExecFuncBody cfg frame evm divHalfDownFunction.body
+    ExecFuncBody fork cfg frame evm divHalfDownFunction.body
       (.returned frame evm (some [.int (divHalfDownValue x d)])) := by
   apply ExecFuncBody.execBlockRet
   apply ExecBlock.consReturn
@@ -28,7 +30,7 @@ theorem callDivHalfDown {cfg : Config} {frame : Frame} {evm : State}
     {x d : Int} {args : List Expr} {name : Ident}
     (hc : frame.contract = contract) (he : evalExprs? cfg frame evm args = .ok [.int x, .int d])
     (hnz : d ≠ 0) :
-    ExecStmt cfg frame evm (.internalCall "TickLib_divHalfDownUnchecked" args name)
+    ExecStmt fork cfg frame evm (.internalCall "TickLib_divHalfDownUnchecked" args name)
       (.ok (resumeAfterInternalCall frame name (some [.int (divHalfDownValue x d)])) evm) := by
   let locals : Store := ((∅ : Store).insert "d" (.int d)).insert "x" (.int x)
   apply internalCallFunctionReturn (callee := divHalfDownFunction) (locals := locals) he
@@ -40,7 +42,7 @@ theorem callDivHalfDown {cfg : Config} {frame : Frame} {evm : State}
 theorem tickToPriceSource {cfg : Config} {frame : Frame} {evm : State} {tick : UInt256}
     (hc : frame.contract = contract) (ht : frame.locals.get? "tick" = some (.int tick.toNat))
     (hbound : tick.toNat ≤ 6744) :
-    ∃ frame', ExecFuncBody cfg frame evm tickToPriceFunction.body
+    ∃ frame', ExecFuncBody fork cfg frame evm tickToPriceFunction.body
       (.returned frame' evm (some [.int (tickPriceWord tick.toNat).toNat])) := by
   have hf := tickArithmeticFacts tick hbound
   have ht' := ht
@@ -52,20 +54,20 @@ theorem tickToPriceSource {cfg : Config} {frame : Frame} {evm : State} {tick : U
   let f1 := resumeAfterInternalCall frame "__c0" (some [.int (wExpValue x)])
   let f2 := resumeAfterInternalCall f1 "__c1" (some [.int first])
   let f3 := resumeAfterInternalCall f2 "__c2" (some [.int second])
-  have hcall1 : ExecStmt cfg frame evm tickToPriceFunction.body[1]! (.ok f1 evm) := by
+  have hcall1 : ExecStmt fork cfg frame evm tickToPriceFunction.body[1]! (.ok f1 evm) := by
     apply callWExp hc
     · simp [evalExprs?, evalExpr?, ht', EvalResult.ofOption, bind, pure, EvalResult.bind,
         evalBinaryOp?, castValue_int, x, tickExpArgument]
     · exact fun h ↦ (hf.1 h).2.2.2.1
     · exact fun h ↦ (hf.1 h).2.2.2.2
-  have hcall2 : ExecStmt cfg f1 evm tickToPriceFunction.body[2]! (.ok f2 evm) := by
+  have hcall2 : ExecStmt fork cfg f1 evm tickToPriceFunction.body[2]! (.ok f2 evm) := by
     apply callDivHalfDown (frame := f1) hc
     · simp only [evalExprs?, evalExpr?, f1, resumeAfterInternalCall, collapseReturns,
         store_get_self, EvalResult.ofOption, bind, pure, EvalResult.bind, evalBinaryOp?,
         castValue_int]
       rfl
     · exact hf.2.2.2.2.1
-  have hcall3 : ExecStmt cfg f2 evm tickToPriceFunction.body[3]! (.ok f3 evm) := by
+  have hcall3 : ExecStmt fork cfg f2 evm tickToPriceFunction.body[3]! (.ok f3 evm) := by
     apply callDivHalfDown (frame := f2) hc
     · simp only [evalExprs?, evalExpr?, f2, resumeAfterInternalCall, collapseReturns,
         store_get_self, EvalResult.ofOption, bind, pure, EvalResult.bind]
@@ -83,7 +85,7 @@ theorem tickToPriceSource {cfg : Config} {frame : Frame} {evm : State} {tick : U
 
 theorem tickToPriceRevert {cfg : Config} {frame : Frame} {evm : State} {tick : UInt256}
     (ht : frame.locals.get? "tick" = some (.int tick.toNat)) (hbound : 6744 < tick.toNat) :
-    ExecFuncBody cfg frame evm tickToPriceFunction.body .reverted := by
+    ExecFuncBody fork cfg frame evm tickToPriceFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply ExecBlock.consRevert (ExecStmt.requireFalse ?_)
   have hh : ¬ (tick.toNat : Int) ≤ 6744 := by omega
@@ -94,7 +96,7 @@ theorem callTickToPrice {cfg : Config} {frame : Frame} {evm : State}
     {tick : UInt256} {args : List Expr} {name : Ident}
     (hc : frame.contract = contract)
     (he : evalExprs? cfg frame evm args = .ok [.int tick.toNat]) (hbound : tick.toNat ≤ 6744) :
-    ExecStmt cfg frame evm (.internalCall "TickLib_tickToPrice" args name)
+    ExecStmt fork cfg frame evm (.internalCall "TickLib_tickToPrice" args name)
       (.ok (resumeAfterInternalCall frame name
         (some [.int (tickPriceWord tick.toNat).toNat])) evm) := by
   obtain ⟨frame', hbody⟩ := tickToPriceSource (cfg := cfg) (evm := evm)
@@ -106,7 +108,7 @@ theorem callTickToPriceRevert {cfg : Config} {frame : Frame} {evm : State}
     {tick : UInt256} {args : List Expr} {name : Ident}
     (hc : frame.contract = contract)
     (he : evalExprs? cfg frame evm args = .ok [.int tick.toNat]) (hbound : 6744 < tick.toNat) :
-    ExecStmt cfg frame evm (.internalCall "TickLib_tickToPrice" args name) .reverted := by
+    ExecStmt fork cfg frame evm (.internalCall "TickLib_tickToPrice" args name) .reverted := by
   apply internalCallFunctionRevert (callee := tickToPriceFunction)
     (locals := (∅ : Store).insert "tick" (.int tick.toNat)) he
   · rw [hc]; rfl

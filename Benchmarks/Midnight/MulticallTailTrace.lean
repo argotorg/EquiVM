@@ -2,6 +2,8 @@ import Benchmarks.Midnight.MulticallTailDecode
 import Benchmarks.Midnight.CalldataIndex
 import Benchmarks.Midnight.RuntimeBlocks_017
 
+variable {fork : Ethereum.Fork}
+
 /-! The three direct-calldata checks at the head of a multicall iteration. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -14,11 +16,11 @@ theorem midnightMulticallTail {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw base index : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 8 ≤ 1024)
     (hi : index.toNat < 2^64) (hspan : base.toNat + 32 * index.toNat < UInt256.size)
-    (rd : RD midnightBytecode I g s0 ⟨3614⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨3614⟩
       (index :: base :: multicallTailBound I.calldata base :: R) mem aw rdata σ k C) :
-    (¬ MulticallTailValid I.calldata base index.toNat ∧ RDrev midnightBytecode g s0) ∨
+    (¬ MulticallTailValid I.calldata base index.toNat ∧ RDrev fork midnightBytecode g s0) ∨
     (MulticallTailValid I.calldata base index.toNat ∧ ∃ k' C', C ≤ C' ∧
-      RD midnightBytecode I g s0 ⟨3662⟩
+      RD fork midnightBytecode I g s0 ⟨3662⟩
         (multicallTailLength I.calldata base index.toNat ::
           multicallTailPointer I.calldata base index.toNat :: index :: base ::
           multicallTailBound I.calldata base :: R) mem aw rdata σ k' C') := by
@@ -40,14 +42,14 @@ theorem midnightMulticallTail {I : ExecutionEnv} {g : Sat256} {s0 : State}
       rfl
     have rd1 := midnightBlocks.midnight_block_3614_fallthrough (by omega) hc rd
     simp only [midnightBlocks.midnight_block_3614_fallthrough_stack, hslot] at rd1
-    change RD _ _ _ _ _ (multicallTailOffset I.calldata base index.toNat :: index :: base ::
+    change RD fork _ _ _ _ _ (multicallTailOffset I.calldata base index.toNat :: index :: base ::
       multicallTailBound I.calldata base :: R) _ _ _ _ _ _ at rd1
     by_cases hn : (multicallTailLength I.calldata base index.toNat).toNat < 2^64
     · have hc2 : UInt256.gt (multicallTailLength I.calldata base index.toNat)
           (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 64))
             (UInt256.ofNat 1)) = ⟨0⟩ := ugt_zero (by change _ ≤ 2^64 - 1; omega)
       have rd2 := midnightBlocks.midnight_block_3630_fallthrough (by simp only [List.length_cons]; omega) hc2 rd1
-      change RD _ _ _ _ _ (multicallTailHead I.calldata base index.toNat ::
+      change RD fork _ _ _ _ _ (multicallTailHead I.calldata base index.toNat ::
         multicallTailLength I.calldata base index.toNat :: index :: base ::
         multicallTailBound I.calldata base :: R) _ _ _ _ _ _ at rd2
       by_cases he : UInt256.sgtBool (multicallTailPointer I.calldata base index.toNat)

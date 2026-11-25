@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.CheckedArithmetic
 
+variable {fork : Ethereum.Fork}
+
 /-! Unsigned modulo and the compiler's checked modulo routine. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -34,8 +36,8 @@ theorem midnightCheckedMod {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {a b ret : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024) (hb : b ≠ ⟨0⟩)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨20085⟩ (a :: b :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD midnightBytecode I g s0 ret (UInt256.mod a b :: R) mem aw rdata σ k' C' := by
+    (rd : RD fork midnightBytecode I g s0 ⟨20085⟩ (a :: b :: ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork midnightBytecode I g s0 ret (UInt256.mod a b :: R) mem aw rdata σ k' C' := by
   have rd1 := midnightBlocks.midnight_block_20085_fallthrough
     (by simp; omega) (isZero_eq_zero_of_ne hb) rd
   have rd2 := midnightBlocks.midnight_block_20092 (by simp; omega) hret rd1

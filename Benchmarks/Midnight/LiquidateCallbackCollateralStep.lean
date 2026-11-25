@@ -3,6 +3,8 @@ import Benchmarks.Midnight.CollateralData
 import Benchmarks.Midnight.RuntimeBlocks_025
 import Benchmarks.Midnight.RuntimeBlocks_026
 
+variable {fork : Ethereum.Fork}
+
 /-! One validated collateral record in liquidation's callback encoding loop. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,12 +18,12 @@ theorem midnightLiquidateCallbackCollateralStep {credit : Nat} {I : ExecutionEnv
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 24 ≤ 1024)
     (hptr : ptr.toNat + 128 < UInt256.size) (hout : output.toNat + 128 < UInt256.size)
     (hc : CollateralData.canonicalAt I.calldata ptr.toNat) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨6376⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨6376⟩
       ([index, base, ptr, a, b, c, d, output, root, badDebt, root] ++ R) mem aw rdata σ k C) :
     ∃ aw' k' C', C ≤ C' ∧
       MemoryFunding credit
         (writeWordArray mem output.toNat (CollateralData.at I.calldata ptr.toNat).words) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨6038⟩
+      RD fork midnightBytecode I g s0 ⟨6038⟩
         ([index + UInt256.ofNat 1, base, ptr + UInt256.ofNat 128, a, b, c, d, output + UInt256.ofNat 128,
           root, badDebt, root] ++ R)
         (writeWordArray mem output.toNat (CollateralData.at I.calldata ptr.toNat).words)

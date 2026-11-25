@@ -3,6 +3,8 @@ import Benchmarks.Midnight.PackedStorageSourceState
 import Benchmarks.Midnight.MemoryFunding
 import Benchmarks.Midnight.RuntimeBlocks_047
 
+variable {fork : Ethereum.Fork}
+
 /-! The first trade SSTORE, followed by the ordered read of buyer pending fees. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,12 +17,12 @@ theorem midnightTakeBuyerDebtWrite {credit : Nat} {I : ExecutionEnv} {g : Sat256
     {mem rdata : ByteArray} {aw value slot w0 w1 w2 : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (hstack : R.length + 11 ≤ 1024)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨12353⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨12353⟩
       ([value, uint128Mask, slot, w0, w1, ⟨2⟩, w2, uint128Mask] ++ R) mem aw rdata σ k C) :
-    (I.perm = false ∧ RDstatic midnightBytecode g s0) ∨
+    (I.perm = false ∧ RDstatic fork midnightBytecode g s0) ∨
     (I.perm = true ∧ ∃ k' C',
       MemoryFunding credit mem (M aw (UInt256.ofNat 224) ⟨32⟩) C' ∧
-      RD midnightBytecode I g s0 ⟨20456⟩
+      RD fork midnightBytecode I g s0 ⟨20456⟩
         ([UInt256.shiftRight
             (solcSlotWordAt slot (storeLow128Accounts σ I (slot + ⟨2⟩) value) I)
             (UInt256.ofNat 128), memLoad (UInt256.ofNat 224) mem, ⟨4216⟩, ⟨12386⟩,

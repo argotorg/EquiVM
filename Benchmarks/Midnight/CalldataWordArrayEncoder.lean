@@ -2,6 +2,8 @@ import Benchmarks.Midnight.MemoryFunding
 import Benchmarks.Midnight.CalldataAddressEncoder
 import Benchmarks.Midnight.MemoryArrayIndex
 
+variable {fork : Ethereum.Fork}
+
 /-! The bulk-copy encoder for a calldata array of uint256 words. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -21,12 +23,12 @@ theorem midnightCalldataWordArrayEncoderFunded {credit : Nat} {I : ExecutionEnv}
     (hout : output.toNat + 32 + 32 * count.toNat < UInt256.size)
     (hret : (D_J midnightBytecode 0).contains ret = true)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨19614⟩ (ptr :: count :: output :: ret :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨19614⟩ (ptr :: count :: output :: ret :: R)
       mem aw rdata σ k C) :
     ∃ aw' k' C', C ≤ C' ∧
       MemoryFunding credit
         (calldataArrayCopyMemory mem output.toNat I.calldata ptr.toNat count.toNat) aw' C' ∧
-      RD midnightBytecode I g s0 ret ((output + UInt256.ofNat (32 + 32 * count.toNat)) :: R)
+      RD fork midnightBytecode I g s0 ret ((output + UInt256.ofNat (32 + 32 * count.toNat)) :: R)
         (calldataArrayCopyMemory mem output.toNat I.calldata ptr.toNat count.toNat)
         aw' rdata σ k' C' := by
   have hc : UInt256.gt count
@@ -64,12 +66,12 @@ theorem midnightCalldataWordArrayEncoder {I : ExecutionEnv} {g : Sat256} {s0 : S
     (hout : output.toNat + 32 + 32 * count.toNat < UInt256.size)
     (hret : (D_J midnightBytecode 0).contains ret = true)
     (ha : MemoryAccounting mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨19614⟩ (ptr :: count :: output :: ret :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨19614⟩ (ptr :: count :: output :: ret :: R)
       mem aw rdata σ k C) :
     ∃ aw' k' C', C ≤ C' ∧
       MemoryAccounting
         (calldataArrayCopyMemory mem output.toNat I.calldata ptr.toNat count.toNat) aw' C' ∧
-      RD midnightBytecode I g s0 ret ((output + UInt256.ofNat (32 + 32 * count.toNat)) :: R)
+      RD fork midnightBytecode I g s0 ret ((output + UInt256.ofNat (32 + 32 * count.toNat)) :: R)
         (calldataArrayCopyMemory mem output.toNat I.calldata ptr.toNat count.toNat)
         aw' rdata σ k' C' := by
   obtain ⟨aw', k', C', hC, ha', rd'⟩ := midnightCalldataWordArrayEncoderFunded hstack hcount hout hret (MemoryFunding.of_accounting ha) rd

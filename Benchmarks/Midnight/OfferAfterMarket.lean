@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.OfferDecodedMemory
 
+variable {fork : Ethereum.Fork}
+
 /-! Decode the offer fields after its nested market, through the ratifier-data offset. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -22,10 +24,10 @@ theorem midnightOfferAfterMarket {credit : Nat} {I : ExecutionEnv} {g : Sat256} 
     (hroot : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (hfree : memLoad (UInt256.ofNat 64) mem = callbackPtr)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨10530⟩ (marketPtr :: rel :: R) mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨10530⟩ (marketPtr :: rel :: R) mem aw rdata σ k C) :
     ((∀ offer, decodeOfferData I.calldata (rel.toNat + 4) = some offer →
         ¬ callbackPtr.toNat + returnDataAllocation offer.callbackData.size < 2^64 ∨
-          decodeCalldataBytes I.calldata 36 = none) ∧ RDrev midnightBytecode g s0) ∨
+          decodeCalldataBytes I.calldata 36 = none) ∧ RDrev fork midnightBytecode g s0) ∨
     (∃ data,
       decodeOfferData I.calldata (rel.toNat + 4) =
         some (OfferData.at I.calldata (rel.toNat + 4) market data) ∧
@@ -34,7 +36,7 @@ theorem midnightOfferAfterMarket {credit : Nat} {I : ExecutionEnv} {g : Sat256} 
       ∃ aw' k' C',
         MemoryFunding (credit + 3 * ((data.size + 31) / 32))
           (offerDecodedMemory mem I.calldata (rel.toNat + 4) marketPtr callbackPtr) aw' C' ∧
-        RD midnightBytecode I g s0 ⟨10833⟩ (calldataWord I.calldata 36 :: R)
+        RD fork midnightBytecode I g s0 ⟨10833⟩ (calldataWord I.calldata 36 :: R)
           (offerDecodedMemory mem I.calldata (rel.toNat + 4) marketPtr callbackPtr)
           aw' rdata σ k' C') := by
   have hm : 416 ≤ mem.size := by

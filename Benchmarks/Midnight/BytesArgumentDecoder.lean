@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.BytesCalldataMemory
 import Benchmarks.Midnight.CalldataArgumentSlice
 
+variable {fork : Ethereum.Fork}
+
 /-! Materialized byte strings addressed by a top-level calldata argument. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -38,18 +40,18 @@ theorem midnightBytesArgumentDecoder {credit : Nat} {I : ExecutionEnv} {g : Sat2
     (hfree : memLoad (UInt256.ofNat 64) mem = ptr)
     (hvalid : (D_J midnightBytecode 0).contains ret = true)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨19043⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨19043⟩
       ((UInt256.ofNat 4 + calldataWord I.calldata slot) ::
         UInt256.ofNat I.calldata.size :: ret :: R) mem aw rdata σ k C) :
     ((∀ data, decodeCalldataBytes I.calldata slot = some data →
-        ¬ ptr.toNat + returnDataAllocation data.size < 2^64) ∧ RDrev midnightBytecode g s0) ∨
+        ¬ ptr.toNat + returnDataAllocation data.size < 2^64) ∧ RDrev fork midnightBytecode g s0) ∨
     (∃ data, decodeCalldataBytes I.calldata slot = some data ∧
       ptr.toNat + returnDataAllocation data.size < 2^64 ∧
       ∃ aw' k' C',
         MemoryFunding (credit + 3 * ((data.size + 31) / 32))
           (bytesCalldataMemory mem I.calldata ptr
             (4 + (calldataWord I.calldata slot).toNat)) aw' C' ∧
-        RD midnightBytecode I g s0 ret (ptr :: R)
+        RD fork midnightBytecode I g s0 ret (ptr :: R)
           (bytesCalldataMemory mem I.calldata ptr
             (4 + (calldataWord I.calldata slot).toNat)) aw' rdata σ k' C') := by
   have hh := calldataArgumentHead_toNat ho

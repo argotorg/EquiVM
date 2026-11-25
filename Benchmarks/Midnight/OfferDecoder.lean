@@ -4,6 +4,8 @@ import Benchmarks.Midnight.MarketDecoderPreserved
 import Benchmarks.Midnight.MarketCalldataHugeRuntime
 import Benchmarks.Midnight.MemorySnapshot
 
+variable {fork : Ethereum.Fork}
+
 /-! The complete offer decoder, including its nested market and callback data. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -18,10 +20,10 @@ theorem midnightOfferDecoder {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length + 32 ≤ 1024) (hsize : I.calldata.size < UInt256.size)
     (hmem : 832 ≤ mem.size) (hfree : memLoad (UInt256.ofNat 64) mem = ⟨832⟩)
     (ha : MemoryAccounting mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨10425⟩ R mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨10425⟩ R mem aw rdata σ k C) :
     ((∀ offer, decodeCalldataOffer I.calldata 4 = some offer →
         ¬ 1632 + 160 * offer.market.collaterals.length + paddedSize offer.callbackData.size <
-          2^64 ∨ decodeCalldataBytes I.calldata 36 = none) ∧ RDrev midnightBytecode g s0) ∨
+          2^64 ∨ decodeCalldataBytes I.calldata 36 = none) ∧ RDrev fork midnightBytecode g s0) ∨
     (∃ offer, decodeCalldataOffer I.calldata 4 = some offer ∧
       I.calldata.size < 2^255 ∧ (calldataWord I.calldata 36).toNat < 2^64 ∧
       ∃ mem' callbackPtr root aw' k' C',
@@ -32,7 +34,7 @@ theorem midnightOfferDecoder {I : ExecutionEnv} {g : Sat256} {s0 : State}
         memLoad (UInt256.ofNat 64) mem' = root ∧ root.toNat ≤ mem'.size ∧
         MemoryWords mem' 96 (memoryWordSnapshot (offerPrepareMemory mem) 96 23) ∧
         MemoryFunding (3 * ((offer.callbackData.size + 31) / 32)) mem' aw' C' ∧
-        RD midnightBytecode I g s0 ⟨10833⟩ (calldataWord I.calldata 36 :: R)
+        RD fork midnightBytecode I g s0 ⟨10833⟩ (calldataWord I.calldata 36 :: R)
           mem' aw' rdata σ k' C') := by
   rcases midnightOfferPrepare (by omega) hfree ha rd with
     ⟨hnone, hr⟩ | ⟨ho, hh, hmoff, aw1, k1, C1, ha1, rd1⟩

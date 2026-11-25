@@ -2,6 +2,8 @@ import Benchmarks.Midnight.LiquidateCollateralUpdate
 import Benchmarks.Midnight.LiquidateBitmap
 import Benchmarks.Midnight.LiquidateBalances
 
+variable {fork : Ethereum.Fork}
+
 /-! The collateral, bitmap, market-balance, and debt writes in the amount branch. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -21,19 +23,19 @@ theorem liquidateAmountsTail {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {f
     (hseized : memLoad ⟨640⟩ mem = seized) (hpaid : memLoad ⟨608⟩ mem = repaid)
     (hslot : memLoad ⟨672⟩ mem = solcMappingSlot ⟨1⟩ id)
     (hs : SourceState s0 I σ evm) (hb : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨6744⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨6744⟩
       ([d0, d1, d2, d3, positionSlot id borrower, dp, dl, borrower, badDebt,
         receiverWord, mode, selector] ++ R) mem aw rdata σ k C) :
-    (ExecBlock config frame evm (liquidateAmountsBody.drop 6) .reverted ∧
-      RDrev midnightBytecode g s0) ∨
-    (ExecBlock config frame evm (liquidateAmountsBody.drop 6) .staticViolation ∧
-      RDstatic midnightBytecode g s0) ∨
+    (ExecBlock fork config frame evm (liquidateAmountsBody.drop 6) .reverted ∧
+      RDrev fork midnightBytecode g s0) ∨
+    (ExecBlock fork config frame evm (liquidateAmountsBody.drop 6) .staticViolation ∧
+      RDstatic fork midnightBytecode g s0) ∨
     ∃ frame' evm' σ' aw' k' C',
-      ExecBlock config frame evm (liquidateAmountsBody.drop 6) (.ok frame' evm') ∧
+      ExecBlock fork config frame evm (liquidateAmountsBody.drop 6) (.ok frame' evm') ∧
       LiquidateSourceFrame frame' m id index seized repaid borrower mode receiver callback data ∧
       LiquidateAccumulators frame' bitmap maxDebt price originalDebt badDebt ∧
       SourceState s0 I σ' evm' ∧ TransferBudget root credit mem aw' C' ∧
-      RD midnightBytecode I g s0 ⟨5480⟩
+      RD fork midnightBytecode I g s0 ⟨5480⟩
         ([selector, selector, selector, dp, dl, borrower, badDebt, receiverWord, mode, selector] ++ R)
         mem aw' rdata σ' k' C' := by
   rcases liquidateCollateralUpdate

@@ -2,6 +2,8 @@ import Benchmarks.Midnight.CollateralValidation
 import Benchmarks.Midnight.MemoryArrayIndex
 import Benchmarks.Midnight.RuntimeBlocks_079
 
+variable {fork : Ethereum.Fork}
+
 /-! One full iteration of touchMarket's collateral-validation loop. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -14,11 +16,11 @@ theorem midnightCollateralValidationStep {evm : EVM.State} {g : Sat256} {s0 : St
     {R : List UInt256} (m : MarketData) (previous : AccountAddress) (c : CollateralData)
     (i : Nat) (hi : i < m.collaterals.length) (hc : m.collaterals[i] = c)
     (hstack : R.length + 15 ≤ 1024) (hm : MarketStored mem ptr arrayPtr root m)
-    (rd : RD midnightBytecode evm.executionEnv g s0 ⟨20840⟩
+    (rd : RD fork midnightBytecode evm.executionEnv g s0 ⟨20840⟩
       (UInt256.ofNat previous.val :: ret :: ptr :: (ptr + UInt256.ofNat 96) :: id ::
         UInt256.ofNat i :: R) mem aw rdata evm.accountMap k C) :
-    (¬ CollateralValid evm previous c ∧ RDrev midnightBytecode g s0) ∨
-    (CollateralValid evm previous c ∧ ∃ aw' k' C', RD midnightBytecode evm.executionEnv g s0 ⟨20840⟩
+    (¬ CollateralValid evm previous c ∧ RDrev fork midnightBytecode g s0) ∨
+    (CollateralValid evm previous c ∧ ∃ aw' k' C', RD fork midnightBytecode evm.executionEnv g s0 ⟨20840⟩
       (UInt256.ofNat c.token.val :: ret :: ptr :: (ptr + UInt256.ofNat 96) :: id ::
         UInt256.ofNat (i + 1) :: R) (collateralValidationMemory mem c) aw' rdata evm.accountMap k' C') := by
   have hi64 : i < 2^64 := lt_trans hi hm.collateralCount
@@ -86,7 +88,7 @@ theorem midnightCollateralValidationStep {evm : EVM.State} {g : Sat256} {s0 : St
           exact isZero_eq_zero_of_ne hen) rd6
       simp only [midnightBlocks.midnight_block_20895_fallthrough_stack,
         midnightBlocks.midnight_block_20895_fallthrough_memory, hcp, hlltv] at rd7
-      change RD _ _ _ _ _ _ mem1 _ _ _ _ _ at rd7
+      change RD fork _ _ _ _ _ _ mem1 _ _ _ _ _ at rd7
       have hm1 : MarketStored mem1 ptr arrayPtr root m :=
         hm.preserve (twoWordHashMem_prefix mem c.lltv (UInt256.ofNat 7) root.toNat)
       obtain ⟨cp1, hcp1, _, _, hw1⟩ := hm1.collaterals.get i hi
@@ -122,7 +124,7 @@ theorem midnightCollateralValidationStep {evm : EVM.State} {g : Sat256} {s0 : St
             exact isZero_eq_zero_of_ne hen2) rd9
         simp only [midnightBlocks.midnight_block_20932_fallthrough_stack,
           midnightBlocks.midnight_block_20932_fallthrough_memory, hcp1, hcursor] at rd10
-        change RD _ _ _ _ _ _ mem2 _ _ _ _ _ at rd10
+        change RD fork _ _ _ _ _ _ mem2 _ _ _ _ _ at rd10
         rcases midnightCollateralLif (by simp only [List.length_cons]; omega) rd10 with
           ⟨hbad, hr⟩ | ⟨hs, k11, C11, rd11⟩
         · exact Or.inl ⟨fun h ↦ hbad h.2.2.2, hr⟩

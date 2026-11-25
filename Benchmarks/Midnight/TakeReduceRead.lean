@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.TakeTradeGuardsSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Runtime selection of the delta constrained by a reduce-only offer. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -34,11 +36,11 @@ theorem midnightTakeReduceRead {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s
     (ho : OfferStored mem ⟨832⟩ marketPtr arrayPtr callbackPtr root offer)
     (hoffer : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨12212⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨12212⟩
       ([buyerSlot, debt, buyerDebt, sellerSlot, marketSlot, decrease, ratifierPtr, increase] ++ R)
       mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding credit mem aw' C' ∧
-      RD midnightBytecode I g s0 ⟨12228⟩
+      RD fork midnightBytecode I g s0 ⟨12228⟩
         ([takeReduceGuardWord offer increase debt, buyerSlot, debt, buyerDebt, sellerSlot,
           marketSlot, decrease, ratifierPtr, increase] ++ R) mem aw' rdata σ k' C' := by
   have hr : memLoad (memLoad (UInt256.ofNat 384) mem + UInt256.ofNat 352) mem =

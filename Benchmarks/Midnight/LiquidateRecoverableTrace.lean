@@ -4,6 +4,8 @@ import Benchmarks.Midnight.ArrayIndexGas
 import Benchmarks.Midnight.CheckedExtraGas
 import Benchmarks.Midnight.RuntimeBlocks_027
 
+variable {fork : Ethereum.Fork}
+
 /-! Read a packed collateral balance and compute how much debt it can repay. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,13 +18,13 @@ theorem midnightLiquidateRecoverable {I : ExecutionEnv} {g : Sat256} {s0 : State
     {mem rdata : ByteArray} {aw price lif cap flag pos index : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 15 ≤ 1024)
     (hi : calldataWord I.calldata 36 = index)
-    (rd : RD midnightBytecode I g s0 ⟨7188⟩ (price :: lif :: cap :: flag :: pos :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨7188⟩ (price :: lif :: cap :: flag :: pos :: R)
       mem aw rdata σ k C) :
     let collateral := healthCollateralWord (fun slot ↦ solcSlotWordAt slot σ I) (pos + ⟨3⟩) index
     (¬ (index.toNat < 128 ∧ LiquidateRecoverableSafe collateral price lif) ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     (index.toNat < 128 ∧ LiquidateRecoverableSafe collateral price lif ∧ ∃ k' C', C ≤ C' ∧
-      RD midnightBytecode I g s0 ⟨7253⟩
+      RD fork midnightBytecode I g s0 ⟨7253⟩
         (liquidateRecoverable collateral price lif :: cap :: pos :: R) mem aw rdata σ k' C') := by
   dsimp only
   let collateral := healthCollateralWord (fun slot ↦ solcSlotWordAt slot σ I) (pos + ⟨3⟩) index
@@ -37,7 +39,7 @@ theorem midnightLiquidateRecoverable {I : ExecutionEnv} {g : Sat256} {s0 : State
       (by simp only [List.length_cons]; omega) (by jump_dest) rd2
     simp only [midnightBlocks.midnight_block_7240_stack,
       (uint128ArrayIndexFacts index hidx).2.2] at rd3
-    change RD midnightBytecode I g s0 ⟨20413⟩
+    change RD fork midnightBytecode I g s0 ⟨20413⟩
       (collateral :: price :: ⟨6687⟩ :: liquidatePriceScale :: ⟨6721⟩ :: lif ::
         ⟨7253⟩ :: cap :: pos :: R) mem aw rdata σ k3 C3 at rd3
     by_cases hm : collateral.toNat * price.toNat < UInt256.size

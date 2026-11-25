@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.TakeLock
 
+variable {fork : Ethereum.Fork}
+
 /-! Source execution of restoring and reading the seller's liquidation lock. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -29,7 +31,7 @@ theorem takeUnlockSource {frame : Frame} {evm : State} {id seller : UInt256}
     (hi : frame.locals.get? "id" = some (wordBytes32Value id))
     (hs : frame.locals.get? "seller" = some (.address (AccountAddress.ofNat seller.toNat)))
     (hp : evm.executionEnv.perm = true) :
-    ExecStmt config frame evm takeUnlockStmt
+    ExecStmt fork config frame evm takeUnlockStmt
       (.ok (takeUnlockFrame frame evm id seller)
         (lockExchangeState evm liquidationLockBase id seller false)) := by
   apply callLockExchange hc hcanon
@@ -48,7 +50,7 @@ theorem takeLockedSource {frame : Frame} {evm : State} {id seller : UInt256}
     (hc : frame.contract = contract) (hcanon : seller.toNat < EVM.addressModulus)
     (hi : frame.locals.get? "id" = some (wordBytes32Value id))
     (hs : frame.locals.get? "seller" = some (.address (AccountAddress.ofNat seller.toNat))) :
-    ExecStmt config frame evm takeTransition.body[72]!
+    ExecStmt fork config frame evm takeTransition.body[72]!
       (.ok (takeLockedFrame frame evm id seller) evm) := by
   apply internalCallFunctionReturn (callee := liquidationLockedFunction)
     (locals := lockBodyArguments id seller)

@@ -3,6 +3,8 @@ import Benchmarks.Midnight.TakePricePrepare
 import Benchmarks.Midnight.OfferSourceValues
 import Benchmarks.Midnight.SettlementSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Source calls producing the offer price, time to maturity, and settlement fee. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -37,7 +39,7 @@ theorem takePriceSource {frame : Frame} {evm : State} {offer : OfferData}
     (hc : frame.contract = contract)
     (ho : frame.locals.get? "offer" = some (Model.offerValue offer.value))
     (hb : offer.tick.toNat ≤ 6744) :
-    ExecStmt config frame evm takeTransition.body[17]! (.ok (takePriceFrame frame offer) evm) := by
+    ExecStmt fork config frame evm takeTransition.body[17]! (.ok (takePriceFrame frame offer) evm) := by
   apply callTickToPrice hc _ hb
   simp only [evalExprs?, evalOfferTick ho, pure, bind, EvalResult.bind]
 
@@ -45,14 +47,14 @@ theorem takePriceSourceRevert {frame : Frame} {evm : State} {offer : OfferData}
     (hc : frame.contract = contract)
     (ho : frame.locals.get? "offer" = some (Model.offerValue offer.value))
     (hb : 6744 < offer.tick.toNat) :
-    ExecStmt config frame evm takeTransition.body[17]! .reverted := by
+    ExecStmt fork config frame evm takeTransition.body[17]! .reverted := by
   apply callTickToPriceRevert hc _ hb
   simp only [evalExprs?, evalOfferTick ho, pure, bind, EvalResult.bind]
 
 theorem takeTimeSource {frame : Frame} {evm : State} {offer : OfferData}
     (hc : frame.contract = contract)
     (ho : frame.locals.get? "offer" = some (Model.offerValue offer.value)) :
-    ExecStmt config (takePriceFrame frame offer) evm takeTransition.body[18]!
+    ExecStmt fork config (takePriceFrame frame offer) evm takeTransition.body[18]!
       (.ok (takeTimeFrame frame evm.executionEnv offer) evm) := by
   have ho1 : (takePriceFrame frame offer).locals.get? "offer" =
       some (Model.offerValue offer.value) := (store_get_ne _ _ (by decide)).trans ho
@@ -69,9 +71,9 @@ theorem callSettlementFee {frame : Frame} {evm : State} {id time : UInt256}
     {args : List Expr} {name : Ident} (hc : frame.contract = contract)
     (he : evalExprs? config frame evm args = .ok [wordBytes32Value id, .int time.toNat])
     (hspace : marketTickSpacing (marketFeeWord evm id) ≠ ⟨0⟩) :
-    ExecStmt config frame evm (.internalCall "settlementFee_body" args name)
+    ExecStmt fork config frame evm (.internalCall "settlementFee_body" args name)
       (.ok (wordLocal frame name (settlementFeeValue (marketFeeWord evm id) time)) evm) := by
-  obtain ⟨frame', hbody⟩ := settlementFeeInternalReturns evm frame.immutables id time hspace
+  obtain ⟨frame', hbody⟩ := settlementFeeInternalReturns (fork := fork) evm frame.immutables id time hspace
   apply internalCallFunctionReturn (callee := settlementFeeFunction)
     (locals := settlementFeeArguments id time)
     (value := some [.int (settlementFeeValue (marketFeeWord evm id) time).toNat]) he
@@ -88,7 +90,7 @@ theorem callSettlementFeeRevert {frame : Frame} {evm : State} {id time : UInt256
     {args : List Expr} {name : Ident} (hc : frame.contract = contract)
     (he : evalExprs? config frame evm args = .ok [wordBytes32Value id, .int time.toNat])
     (hspace : marketTickSpacing (marketFeeWord evm id) = ⟨0⟩) :
-    ExecStmt config frame evm (.internalCall "settlementFee_body" args name) .reverted := by
+    ExecStmt fork config frame evm (.internalCall "settlementFee_body" args name) .reverted := by
   apply internalCallFunctionRevert (callee := settlementFeeFunction)
     (locals := settlementFeeArguments id time) he
   · rw [hc]; rfl
@@ -118,7 +120,7 @@ theorem takePricingSource {frame : Frame} {evm : State} {offer : OfferData} {id 
     (hi : frame.locals.get? "id" = some (wordBytes32Value id))
     (hb : offer.tick.toNat ≤ 6744)
     (hspace : marketTickSpacing (marketFeeWord evm id) ≠ ⟨0⟩) :
-    ABlock config evm frame (takeTransition.body.drop 17)
+    ABlock fork config evm frame (takeTransition.body.drop 17)
       (takePricingFrame frame evm.executionEnv offer
         (settlementFeeValue (marketFeeWord evm id) (takeTimeToMaturity evm.executionEnv offer)))
       (takeTransition.body.drop 20) := by
@@ -134,7 +136,7 @@ theorem takePricingSourceRevert {frame : Frame} {evm : State} {offer : OfferData
     (ho : frame.locals.get? "offer" = some (Model.offerValue offer.value))
     (hi : frame.locals.get? "id" = some (wordBytes32Value id))
     (hbad : 6744 < offer.tick.toNat ∨ marketTickSpacing (marketFeeWord evm id) = ⟨0⟩) :
-    ExecBlock config frame evm (takeTransition.body.drop 17) .reverted := by
+    ExecBlock fork config frame evm (takeTransition.body.drop 17) .reverted := by
   rw [takePricing_shape]
   by_cases hb : offer.tick.toNat ≤ 6744
   · have hz : marketTickSpacing (marketFeeWord evm id) = ⟨0⟩ :=

@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.MulticallStep
 import Benchmarks.Midnight.MulticallSource
 
+variable {fork : Ethereum.Fork}
+
 /-! The valid-calldata multicall loop, with successful and reverting delegate calls. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -21,17 +23,17 @@ theorem midnightMulticallLoop (remaining : Nat) {I : ExecutionEnv} {g : UInt256}
     (hi : frame.locals.get? "i" = some (.int (Int.ofNat index.toNat)))
     (hm : 832 ≤ mem.size) (hl : 832 ≤ root.toNat)
     (hz : memLoad (UInt256.ofNat 800) mem = ⟨0⟩)
-    (hh : TransferHeap mem aw root C) (hgas : midnightGasBound g) (hfork : I.fork ≥ .osaka)
+    (hh : TransferHeap mem aw root C) (hgas : midnightGasBound g) (hfork : fork ≥ .osaka)
     (hs : SourceState s0 I σ evm)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨3605⟩
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨3605⟩
       (index :: base :: multicallTailBound I.calldata base :: count :: R) mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (ExecForLoop config frame evm multicallLoopCondition flashLoanLoopPost multicallLoopBody
-      .reverted ∧ RDrev midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (ExecForLoop fork config frame evm multicallLoopCondition flashLoanLoopPost multicallLoopBody
+      .reverted ∧ RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
     ∃ (frame' : Frame) (evm' : State) (σ' : AccountMap),
-      ExecForLoop config frame evm multicallLoopCondition flashLoanLoopPost multicallLoopBody
+      ExecForLoop fork config frame evm multicallLoopCondition flashLoanLoopPost multicallLoopBody
         (.ok frame' evm') ∧ SourceState s0 I σ' evm' ∧
-      RDret midnightBytecode (Sat256.ofUInt256 g) s0 σ' ByteArray.empty := by
+      RDret fork midnightBytecode (Sat256.ofUInt256 g) s0 σ' ByteArray.empty := by
   induction remaining generalizing evm frame mem rdata aw root index σ k C with
   | zero =>
     have hfalse : evalExpr? config frame evm multicallLoopCondition = .ok (.bool false) := by
@@ -66,7 +68,7 @@ theorem midnightMulticallLoop (remaining : Nat) {I : ExecutionEnv} {g : UInt256}
       simpa only [hs.env, hget] using hcall
     · obtain ⟨evm1, σ1, out, mem1, root1, aw1, k1, C1, _, hcall, hout,
         hs1, hp, hroot, hh1, rd1⟩ := hsuccess
-      have hbody : ExecBlock config frame evm multicallLoopBody
+      have hbody : ExecBlock fork config frame evm multicallLoopBody
           (.ok (multicallCallFrame frame evm true out) evm1) := by
         apply multicallSourceReturn hf hi hlen ?_ hout
         simpa only [hs.env, hget] using hcall
@@ -76,7 +78,7 @@ theorem midnightMulticallLoop (remaining : Nat) {I : ExecutionEnv} {g : UInt256}
       have hi1 : (multicallCallFrame frame evm true out).locals.get? "i" =
           some (.int (Int.ofNat index.toNat)) :=
         (multicallCallFrame_get "i" (by decide)).trans hi
-      have hpost := flashLoanLoopPost_exec (evm := evm1) hi1
+      have hpost := flashLoanLoopPost_exec (fork := fork) (evm := evm1) hi1
         (by change _ < 2^256; omega)
       have hf2 : (flashLoanSetIndex (multicallCallFrame frame evm true out)
           (index.toNat + 1)).locals.get? "calls" =

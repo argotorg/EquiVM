@@ -3,6 +3,8 @@ import Benchmarks.Midnight.TransferBudget
 import Benchmarks.Midnight.RuntimeBlocks_018
 import Benchmarks.Midnight.RuntimeBlocks_019
 
+variable {fork : Ethereum.Fork}
+
 /-! Withdrawal blocks retain the gas available for the final token transfer. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -20,14 +22,14 @@ theorem withdraw_units_block_4088_budget {ee : ExecutionEnv} {g : Sat256} {s0 : 
     (hperm : ee.perm = true)
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 23236) = true)
     (hb : TransferBudget budgetRoot credit mem aw C)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 4088) (x0 :: x1 :: x2 :: x3
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 4088) (x0 :: x1 :: x2 :: x3
       :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: R) mem aw rdata σ k C)
     : ∃ (k' C' : ℕ), TransferBudget budgetRoot credit (midnight_block_4088_memory (ee := ee) (mem :=
       mem) (x5 := x5) (x7 := x7) (x10 := x10)) (M (M (M (M (M (M aw x7 (⟨32⟩ : UInt256)) (memLoad x7
       mem) (⟨32⟩ : UInt256)) ((memLoad x7 mem) + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) ((memLoad x7
       mem) + x7) (⟨32⟩ : UInt256)) (memLoad x7 mem) (UInt256.ofNat 96)) (x6 + x7) (⟨32⟩ : UInt256))
       C' ∧
-      RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 23236)
+      RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 23236)
         (midnight_block_4088_stack (ee := ee) (mem := mem) (x5 := x5) (x6 := x6) (x7 := x7) (x8 :=
         x8) (x9 := x9) (x10 := x10) (R := R)) (midnight_block_4088_memory (ee := ee) (mem := mem)
         (x5 := x5) (x7 := x7) (x10 := x10)) (M (M (M (M (M (M aw x7 (⟨32⟩ : UInt256)) (memLoad x7

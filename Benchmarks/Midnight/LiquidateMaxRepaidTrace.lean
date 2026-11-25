@@ -3,6 +3,8 @@ import Benchmarks.Midnight.LiquidateRcfStorageGas
 import Benchmarks.Midnight.CheckedSubGas
 import Benchmarks.Midnight.Uint128Arithmetic
 
+variable {fork : Ethereum.Fork}
+
 /-! Read the current debt and compute the repayment cap used by the recovery-threshold check. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -14,19 +16,19 @@ set_option maxRecDepth 10000
 theorem midnightLiquidateMaxRepaid {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw maxDebt lltv lif price pos : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 11 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 ⟨7014⟩ (maxDebt :: lltv :: lif :: price :: pos :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨7014⟩ (maxDebt :: lltv :: lif :: price :: pos :: R)
       mem aw rdata σ k C) :
     let debt := low128 (solcSlotWordAt (pos + UInt256.ofNat 2) σ I)
-    (¬ LiquidateMaxRepaidSafe debt maxDebt lif lltv ∧ RDrev midnightBytecode g s0) ∨
+    (¬ LiquidateMaxRepaidSafe debt maxDebt lif lltv ∧ RDrev fork midnightBytecode g s0) ∨
     (LiquidateMaxRepaidSafe debt maxDebt lif lltv ∧ ∃ k' C', C ≤ C' ∧
-      RD midnightBytecode I g s0 ⟨7134⟩
+      RD fork midnightBytecode I g s0 ⟨7134⟩
         (liquidateMaxRepaid debt maxDebt lif lltv :: lif :: price :: pos :: R)
         mem aw rdata σ k' C') := by
   dsimp only
   let debt := low128 (solcSlotWordAt (pos + UInt256.ofNat 2) σ I)
   obtain ⟨k1, C1, hc1, rd1⟩ := midnight_block_7014_mono (R := R) (by omega) (by jump_dest) rd
   simp only [midnightBlocks.midnight_block_7014_stack, uint128Mask_computed] at rd1
-  change RD midnightBytecode I g s0 ⟨19447⟩
+  change RD fork midnightBytecode I g s0 ⟨19447⟩
     (debt :: maxDebt :: ⟨7040⟩ :: ⟨7047⟩ :: lltv :: lif :: price :: pos :: R)
     mem aw rdata σ k1 C1 at rd1
   by_cases hd : maxDebt.toNat ≤ debt.toNat

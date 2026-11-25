@@ -3,6 +3,8 @@ import Benchmarks.Midnight.TakeSourceFrame
 import Benchmarks.Midnight.OfferSourceValues
 import Benchmarks.Midnight.FlashLoanCallbackSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Source execution of the ratifier call and its bytes32 acknowledgement. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -51,9 +53,9 @@ theorem ratifierCallFailure {frame : Frame} {evm evm' : State} {offer : OfferDat
     (ho : frame.locals.get? "offer" = some (Model.offerValue offer.value))
     (hd : frame.locals.get? "ratifierData" = some (.bytes data))
     (ht : frame.locals.get? "taker" = some (.address taker))
-    (hcall : typedCallViaEVM config evm offer.ratifier "isRatified" 0
+    (hcall : typedCallViaEVM fork config evm offer.ratifier "isRatified" 0
       (ratifierArguments offer data taker) (false, evm', out) false) :
-    ExecStmt config frame evm ratifierCallStmt .reverted := by
+    ExecStmt fork config frame evm ratifierCallStmt .reverted := by
   exact ExecStmt.externalCallFailure (target := offer.ratifier) (Or.inl wordOfInt_zero)
     (evalOfferRatifier ho) (by simp only [evalExpr?, pure]) (ratifierCallArgs ho hd ht)
     (by simpa only [address_of_val] using hcall)
@@ -63,10 +65,10 @@ theorem ratifierCallShort {frame : Frame} {evm evm' : State} {offer : OfferData}
     (ho : frame.locals.get? "offer" = some (Model.offerValue offer.value))
     (hd : frame.locals.get? "ratifierData" = some (.bytes data))
     (ht : frame.locals.get? "taker" = some (.address taker))
-    (hcall : typedCallViaEVM config evm offer.ratifier "isRatified" 0
+    (hcall : typedCallViaEVM fork config evm offer.ratifier "isRatified" 0
       (ratifierArguments offer data taker) (true, evm', out) false)
     (hshort : out.size < 32) :
-    ExecStmt config frame evm ratifierCallStmt .reverted := by
+    ExecStmt fork config frame evm ratifierCallStmt .reverted := by
   exact ExecStmt.externalCallReturnDecodeRevert (target := offer.ratifier) (Or.inl wordOfInt_zero)
     (evalOfferRatifier ho) (by simp only [evalExpr?, pure]) (ratifierCallArgs ho hd ht)
     (by simpa only [address_of_val] using hcall) (decodeRatifierCall_short hshort)
@@ -76,10 +78,10 @@ theorem ratifierCallSuccess {frame : Frame} {evm evm' : State} {offer : OfferDat
     (ho : frame.locals.get? "offer" = some (Model.offerValue offer.value))
     (hd : frame.locals.get? "ratifierData" = some (.bytes data))
     (ht : frame.locals.get? "taker" = some (.address taker))
-    (hcall : typedCallViaEVM config evm offer.ratifier "isRatified" 0
+    (hcall : typedCallViaEVM fork config evm offer.ratifier "isRatified" 0
       (ratifierArguments offer data taker) (true, evm', out) false)
     (h32 : 32 ≤ out.size) :
-    ExecStmt config frame evm ratifierCallStmt
+    ExecStmt fork config frame evm ratifierCallStmt
       (.ok (ratifierCallFrame frame (calldataWord out 0)) evm') := by
   exact ExecStmt.externalCallSuccess (target := offer.ratifier) (Or.inl wordOfInt_zero)
     (evalOfferRatifier ho) (by simp only [evalExpr?, pure]) (ratifierCallArgs ho hd ht)

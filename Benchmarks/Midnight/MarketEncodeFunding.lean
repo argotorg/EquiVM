@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.MarketEncoder
 import Benchmarks.Midnight.MemoryFunding
 
+variable {fork : Ethereum.Fork}
+
 /-! Quantitative memory accounting for the market encoder's individual blocks. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -19,9 +21,9 @@ theorem midnightMarketEncodeStart_funded {credit : Nat} {I : ExecutionEnv} {g : 
     (hnin : arrayPtr.toNat + 32 ≤ mem.size)
     (hbelow : ptr.toNat + 256 ≤ output.toNat) (harray : arrayPtr.toNat + 32 ≤ output.toNat)
     (hout : output.toNat + 288 < UInt256.size) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨19181⟩ (ptr :: output :: R) mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨19181⟩ (ptr :: output :: R) mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding credit (marketEncodeHeadMemory mem output.toNat m) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨19261⟩
+      RD fork midnightBytecode I g s0 ⟨19261⟩
         (UInt256.ofNat 0 :: UInt256.ofNat m.collaterals.length :: (arrayPtr + UInt256.ofNat 32) ::
           ptr :: output :: (output + UInt256.ofNat 288) :: R)
         (marketEncodeHeadMemory mem output.toNat m) aw' rdata σ k' C' := by
@@ -41,10 +43,10 @@ theorem midnightCollateralEncodeStep_funded {credit : Nat} {I : ExecutionEnv} {g
     (hptr : memLoad writePtr mem = ptr) (hm : MemoryWords mem ptr.toNat c.words)
     (hbelow : ptr.toNat + 128 ≤ output.toNat) (hout : output.toNat + 128 < UInt256.size)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨19324⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨19324⟩
       (index :: count :: writePtr :: market :: outputBase :: output :: R) mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding (credit + 128) (writeWordArray mem output.toNat c.words) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨19261⟩
+      RD fork midnightBytecode I g s0 ⟨19261⟩
         ((index + UInt256.ofNat 1) :: count :: (writePtr + UInt256.ofNat 32) ::
           market :: outputBase :: (output + UInt256.ofNat 128) :: R)
         (writeWordArray mem output.toNat c.words) aw' rdata σ k' C' := by
@@ -64,10 +66,10 @@ theorem midnightMarketEncodeEnd_funded {credit : Nat} {I : ExecutionEnv} {g : Sa
     (hm : MemoryWords mem ptr.toNat (m.words arrayPtr))
     (hbelow : ptr.toNat + 256 ≤ output.toNat) (hout : output.toNat + 256 < UInt256.size)
     (hret : (D_J midnightBytecode 0).contains ret = true) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨19269⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨19269⟩
       (index :: count :: readPtr :: ptr :: output :: finish :: ret :: R) mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding credit (writeWordArray mem (output.toNat + 128) m.tailWords) aw' C' ∧
-      RD midnightBytecode I g s0 ret (finish :: R)
+      RD fork midnightBytecode I g s0 ret (finish :: R)
         (writeWordArray mem (output.toNat + 128) m.tailWords) aw' rdata σ k' C' := by
   have rd1 := midnightBlocks.midnight_block_19269 hstack hret rd
   have ha1 := memoryFundingAt (credit := credit) rd1 (by

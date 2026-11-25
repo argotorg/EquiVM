@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.PositionUpdateDecreaseSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Source execution of the four position-field assignments, including static rejection. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,9 +18,9 @@ theorem positionUpdateAssignmentsSource {frame : Frame} {evm : EVM.State}
     (hcredit : frame.locals.get? "newCredit" = some (.int credit.toNat))
     (hpending : frame.locals.get? "newPendingFee" = some (.int pending.toNat))
     (hcanon : user.toNat < EVM.addressModulus) (hperm : evm.executionEnv.perm = true)
-    (htail : ExecBlock config frame (positionUpdateState evm id user credit pending)
+    (htail : ExecBlock fork config frame (positionUpdateState evm id user credit pending)
       (positionUpdateFunction.body.drop 11) result) :
-    ExecBlock config frame evm (positionUpdateFunction.body.drop 7) result := by
+    ExecBlock fork config frame evm (positionUpdateFunction.body.drop 7) result := by
   let s1 := storeLow128 evm (positionSlot id user) credit
   let s2 := storeLow128 s1 (positionSlot id user + ⟨1⟩) (marketLossWord s1 id)
   let s3 := storeHigh128 s2 (positionSlot id user) pending
@@ -46,7 +48,7 @@ theorem positionUpdateAssignmentsStatic {frame : Frame} {evm : EVM.State} {id us
     (hp : frame.locals.get? "_position" = some (.storageRef (positionRef id user) positionType))
     (hcredit : frame.locals.get? "newCredit" = some (.int credit.toNat))
     (hcanon : user.toNat < EVM.addressModulus) (hperm : evm.executionEnv.perm = false) :
-    ExecBlock config frame evm (positionUpdateFunction.body.drop 7) .staticViolation := by
+    ExecBlock fork config frame evm (positionUpdateFunction.body.drop 7) .staticViolation := by
   apply ExecBlock.consStatic
   exact ExecStmt.assignStatic (evalWordLocal hcredit) (assignPositionAliasField 0 credit hcanon hp) hperm
 
@@ -70,7 +72,7 @@ theorem positionUpdateSourceStatic (evm : EVM.State) (imms : Store) (m : MarketD
     (hc : (positionNewCredit evm m id user).toNat ≤ (positionFieldWord evm id user 0).toNat)
     (hp : (positionNewPending evm m id user).toNat ≤ (positionFieldWord evm id user 1).toNat)
     (hperm : evm.executionEnv.perm = false) :
-    ExecFuncBody config (positionViewCallFrame imms m id user) evm positionUpdateFunction.body .staticViolation := by
+    ExecFuncBody fork config (positionViewCallFrame imms m id user) evm positionUpdateFunction.body .staticViolation := by
   apply ExecFuncBody.execBlockStatic
   apply (positionUpdateWritesPrefix evm imms m id user hcanon hsafe hc hp).run
   have hg := positionUpdateWrites_get evm imms m id user

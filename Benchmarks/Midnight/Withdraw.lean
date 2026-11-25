@@ -5,6 +5,8 @@ import Benchmarks.Midnight.WithdrawUnitsCore
 import Benchmarks.Midnight.TouchMarketCapacity
 import Benchmarks.Midnight.TouchMarketHashSpace
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `withdraw((uint256,address,address,(address,uint256,uint256,address)[],uint256,uint256,address,address),uint256,address,address)`
 
@@ -22,17 +24,17 @@ set_option maxRecDepth 2000000
 /-- `withdraw((uint256,address,address,(address,uint256,uint256,address)[],uint256,uint256,address,address),uint256,address,address)`: the theorem `Correct.lean` routes selector 34 to. -/
 theorem midnightWithdrawBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 34)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 34) rfl hsel
   have hd : dispatchMsg contract I.calldata = some withdrawTransition := by
     apply midnightDispatch_withdraw <;>
       first | exact hsel | exact selectorNe_of_selIs hsel (by decide +kernel)
   obtain ⟨k, C, rd⟩ := midnightReachWithdrawBody
     (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) hcode hsz hsize hsel
-  change RD midnightBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+  change RD fork midnightBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
     ⟨3763⟩ [solcSelectorWord I] midnightEntryMemory (UInt256.ofNat 26) ByteArray.empty σ k C at rd
   have ha : MemoryAccounting midnightEntryMemory (UInt256.ofNat 26) C := by
     refine ⟨MemoryPaid.entry C, ?_⟩
@@ -85,10 +87,10 @@ theorem midnightWithdrawBody {σ σ₀ A I} {g : UInt256}
         have rd4 := midnightBlocks.midnight_block_3857 (by simp) (by jump_dest) rd3
         have ha4 := memoryAccountingAt rd4 (by memory_account ha3)
         simp only [midnightBlocks.midnight_block_3857_stack, addressMask_computed] at rd4
-        have rejectTouch (hr : RDrev midnightBytecode (Sat256.ofUInt256 g) origin)
-            (hs : ExecFuncBody config (touchMarketCallFrame ∅ m) origin
+        have rejectTouch (hr : RDrev fork midnightBytecode (Sat256.ofUInt256 g) origin)
+            (hs : ExecFuncBody fork config (touchMarketCallFrame ∅ m) origin
               touchMarketFunction.body .reverted) :
-            runtimeRefinementFor config contract σ σ₀ g A I := by
+            runtimeRefinementFor fork config contract σ σ₀ g A I := by
           apply hr.reEquivExecutionRevert hcode hd hdec
           apply ExecFuncBody.execBlockRevert
           apply withdrawUnitsAfterAuthSource hu hwv hlimit hauth
@@ -97,7 +99,7 @@ theorem midnightWithdrawBody {σ σ₀ A I} {g : UInt256}
         have finish {evm : EVM.State} {frame : Frame} {mem3 out : ByteArray}
             {free aw4 : UInt256} {credit k4 C4 : Nat}
             (hs : SourceState origin I evm.accountMap evm)
-            (htouch : ExecFuncBody config (touchMarketCallFrame ∅ m) origin touchMarketFunction.body
+            (htouch : ExecFuncBody fork config (touchMarketCallFrame ∅ m) origin touchMarketFunction.body
               (.returned frame evm (some [wordBytes32Value m.id])))
             (hm3 : MarketStored mem3 ⟨832⟩ ⟨1088⟩ root m)
             (hroom : free.toNat < 2^64) (hlo : root.toNat ≤ free.toNat)
@@ -107,25 +109,25 @@ theorem midnightWithdrawBody {σ σ₀ A I} {g : UInt256}
             (hb : TransferBudget free credit mem3 aw4 C4)
             (hcredit : 4 * ((free.toNat + safeTransferCallAllocation false + 31) / 32)
               ≤ credit + 999921)
-            (rd5 : RD midnightBytecode I (Sat256.ofUInt256 g) origin ⟨3881⟩
+            (rd5 : RD fork midnightBytecode I (Sat256.ofUInt256 g) origin ⟨3881⟩
               [m.id, user, user, ⟨832⟩, UInt256.ofNat 64, solcAddrMask,
                 UInt256.ofNat receiver.val, units, UInt256.ofNat 3723, solcSelectorWord I]
               mem3 aw4 out evm.accountMap k4 C4) :
-            runtimeRefinementFor config contract σ σ₀ g A I := by
+            runtimeRefinementFor fork config contract σ σ₀ g A I := by
           have hmem3 : 832 ≤ mem3.size := by
             have hh := hm3.words.size
             change 832 + 32 * (m.words ⟨1088⟩).length ≤ mem3.size at hh
             omega
           have sourcePrefix {result : ExecResult}
-              (hbody : ExecBlock config (withdrawUnitsAfterTouchFrame origin m user units receiver) evm
+              (hbody : ExecBlock fork config (withdrawUnitsAfterTouchFrame origin m user units receiver) evm
                 (withdrawTransition.body.drop 5) result) :
-              ExecBlock config { contract := contract, locals := (marketUnitsReceiverArguments
+              ExecBlock fork config { contract := contract, locals := (marketUnitsReceiverArguments
                 m units (AccountAddress.ofNat user.toNat) receiver), immutables := ∅ }
                 origin withdrawTransition.body result :=
             withdrawUnitsAfterAuthSource hu hwv hlimit hauth (withdrawUnitsAfterTouchSource htouch hbody)
           rcases withdrawUnitsCore (origin := origin) (R := []) hs
               hu (by simp) hmem3 hm3 hroom (by omega) hlo hfree3 hz3 hz8003 hb
-              hcredit hgas hwf rd5 with
+              hcredit hgas hfork rd5 with
             hoog | ⟨hr, hbody⟩ | ⟨hr, hbody⟩ | ⟨frame', evm', hbody, hr⟩
           · exact reEquiv_outOfGas (Xi_error_of_X (by rw [← hcode] at hoog; exact hoog))
           · exact hr.reEquivExecutionRevert hcode hd hdec

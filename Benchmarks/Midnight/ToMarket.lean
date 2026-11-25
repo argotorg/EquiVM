@@ -2,6 +2,8 @@ import Benchmarks.Midnight.Dispatch
 import Benchmarks.Midnight.ScalarDecode
 import Benchmarks.Midnight.ToMarketStoredDecode
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `toMarket(bytes32)`
 
@@ -19,10 +21,10 @@ set_option maxRecDepth 2000000
 /-- `toMarket(bytes32)`: the theorem `Correct.lean` routes selector 55 to. -/
 theorem midnightToMarketBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 55)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 55) rfl hsel
   have hd : dispatchMsg contract I.calldata = some toMarketTransition := by
     apply midnightDispatch_toMarket <;>

@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.LiquidateRcfGuard
 import Benchmarks.Midnight.LiquidateRcfCheck
 
+variable {fork : Ethereum.Fork}
+
 /-! Source/runtime agreement for liquidation's conditional repayment-cap and recovery check. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -22,16 +24,16 @@ theorem liquidateRcf {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {frame : F
     (hd : decodeCalldataMarket I.calldata 4 = some m) (hi : calldataWord I.calldata 36 = index)
     (hmr : memLoad (UInt256.ofNat 608) mem = repaid)
     (hs : SourceState s0 I σ evm) (hb : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨6731⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨6731⟩
       ([maxDebt, lltv, lif, price, positionSlot id borrower, dp, dl, borrower, badDebt,
         receiverWord, mode, selector] ++ R) mem aw rdata σ k C) :
-    (ExecStmt config frame evm (liquidateAmountsBody[5]!) .reverted ∧ RDrev midnightBytecode g s0) ∨
+    (ExecStmt fork config frame evm (liquidateAmountsBody[5]!) .reverted ∧ RDrev fork midnightBytecode g s0) ∨
     ∃ frame' d0 d1 d2 d3 aw' k' C',
-      ExecStmt config frame evm (liquidateAmountsBody[5]!) (.ok frame' evm) ∧
+      ExecStmt fork config frame evm (liquidateAmountsBody[5]!) (.ok frame' evm) ∧
       LiquidateSourceFrame frame' m id index seized repaid borrower mode receiver callback data ∧
       LiquidateAccumulators frame' bitmap maxDebt price originalDebt badDebt ∧
       TransferBudget root credit mem aw' C' ∧
-      RD midnightBytecode I g s0 ⟨6744⟩
+      RD fork midnightBytecode I g s0 ⟨6744⟩
         ([d0, d1, d2, d3, positionSlot id borrower, dp, dl, borrower, badDebt,
           receiverWord, mode, selector] ++ R) mem aw' rdata σ k' C' := by
   have hcond := evalLiquidateRcfGuard (evm := evm) hf.mode hll

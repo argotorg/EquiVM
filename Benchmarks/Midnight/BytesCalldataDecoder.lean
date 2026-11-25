@@ -2,6 +2,8 @@ import Benchmarks.Midnight.BytesCalldataCopy
 import Benchmarks.Midnight.RelativeBytesDecode
 import Benchmarks.Midnight.AllocationFunding
 
+variable {fork : Ethereum.Fork}
+
 /-! Materialized bytes decoding with every malformed and oversized allocation branch. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -23,17 +25,17 @@ theorem midnightBytesCalldataDecoder_funded {credit : Nat} {I : ExecutionEnv} {g
     (hfree : memLoad (UInt256.ofNat 64) mem = ptr)
     (hret : (D_J midnightBytecode 0).contains ret = true)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨19043⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨19043⟩
       (head :: UInt256.ofNat I.calldata.size :: ret :: R) mem aw rdata σ k C) :
     ((∀ data, decodeBytesAt I.calldata head.toNat = some data →
         ¬ ptr.toNat + returnDataAllocation data.size < 2^64) ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     (∃ data, decodeBytesAt I.calldata head.toNat = some data ∧
       ptr.toNat + returnDataAllocation data.size < 2^64 ∧
       ∃ aw' k' C',
         MemoryFunding (credit + 3 * ((data.size + 31) / 32))
           (bytesCalldataMemory mem I.calldata ptr head.toNat) aw' C' ∧
-        RD midnightBytecode I g s0 ret (ptr :: R)
+        RD fork midnightBytecode I g s0 ret (ptr :: R)
           (bytesCalldataMemory mem I.calldata ptr head.toNat) aw' rdata σ k' C') := by
   by_cases hh : I.calldata.size < 2^255 ∧ head.toNat + 32 ≤ I.calldata.size
   · have hc : UInt256.isZero

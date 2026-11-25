@@ -3,6 +3,8 @@ import Benchmarks.Midnight.AllocationArithmetic
 import Benchmarks.Midnight.BoolMemoryDecode
 import Benchmarks.Midnight.RuntimeBlocks_033
 
+variable {fork : Ethereum.Fork}
+
 /-! Shared allocation and decoding of a fixed Boolean reply. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,8 +18,8 @@ theorem midnightBoolReplyShort {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem out : ByteArray} {aw root ret : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 10 ≤ 1024)
     (hshort : out.size < 32) (hroot : root.toNat + 32 < 2^64)
-    (rd : RD midnightBytecode I g s0 ⟨8404⟩ (UInt256.ofNat 32 :: root :: ret :: R)
-      mem aw out σ k C) : RDrev midnightBytecode g s0 := by
+    (rd : RD fork midnightBytecode I g s0 ⟨8404⟩ (UInt256.ofNat 32 :: root :: ret :: R)
+      mem aw out σ k C) : RDrev fork midnightBytecode g s0 := by
   have hn : (UInt256.ofNat out.size).toNat = out.size :=
     UInt256.toNat_ofNat_of_lt (by change out.size < 2^256; omega)
   have rd1 := midnight_block_8404 (by simp only [List.length_cons]; omega) (by jump_dest) rd
@@ -46,14 +48,14 @@ theorem midnightBoolReplyFull {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0
     (hret : (D_J midnightBytecode 0).contains ret = true)
     (hword : memLoad root (writeWord mem 64 (root + UInt256.ofNat 32)) = calldataWord out 0)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨18444⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨18444⟩
       (root :: UInt256.ofNat 32 :: UInt256.ofNat 8390 :: UInt256.ofNat 32 :: root :: ret :: R)
       mem aw out σ k C) :
     (¬ (calldataWord out 0 = ⟨0⟩ ∨ calldataWord out 0 = ⟨1⟩) ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     ((calldataWord out 0 = ⟨0⟩ ∨ calldataWord out 0 = ⟨1⟩) ∧ ∃ aw' k' C',
       MemoryFunding credit (writeWord mem 64 (root + UInt256.ofNat 32)) aw' C' ∧
-      RD midnightBytecode I g s0 ret (calldataWord out 0 :: R)
+      RD fork midnightBytecode I g s0 ret (calldataWord out 0 :: R)
         (writeWord mem 64 (root + UInt256.ofNat 32)) aw' out σ k' C') := by
   obtain ⟨aw1, k1, C1, ha1, rd1⟩ := midnightAllocate_funded
     (by simp only [List.length_cons]; omega)

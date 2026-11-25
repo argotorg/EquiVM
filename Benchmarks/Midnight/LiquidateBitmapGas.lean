@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.RuntimeBlocks_028
 import Benchmarks.Midnight.StorageWriteGas
 
+variable {fork : Ethereum.Fork}
+
 /-! Gas monotonicity for the optional liquidation bitmap write. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -14,8 +16,8 @@ theorem liquidate_block_6952_mono {ee : ExecutionEnv} {g : Sat256} {s0 : State} 
     (hstack : R.length + 7 ≤ 1024)
     (hperm : ee.perm = true)
     (hvalid : (D_J Benchmarks.Midnight.midnightBytecode 0).contains (UInt256.ofNat 6833) = true)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 6952) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), C ≤ C' ∧ RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 6833) (x0 :: R) mem aw rdata (sstoreAccountMap ee.codeOwner σ (x0 + (UInt256.ofNat 2)) (UInt256.lor (UInt256.land (UInt256.lnot (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128)) (UInt256.ofNat 1))) (UInt256.shiftLeft (UInt256.land (UInt256.shiftRight (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (x0 + (UInt256.ofNat 2)) (⟨0⟩ : UInt256))) (UInt256.ofNat 128)) (UInt256.lnot (UInt256.shiftLeft (UInt256.ofNat 1) (uInt256OfByteArray (ee.calldata.readBytes (UInt256.ofNat 36).toNat 32))))) (UInt256.ofNat 128))) (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (x0 + (UInt256.ofNat 2)) (⟨0⟩ : UInt256))) (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128)) (UInt256.ofNat 1))))) k' C' := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 6952) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (k' C' : ℕ), C ≤ C' ∧ RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 6833) (x0 :: R) mem aw rdata (sstoreAccountMap ee.codeOwner σ (x0 + (UInt256.ofNat 2)) (UInt256.lor (UInt256.land (UInt256.lnot (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128)) (UInt256.ofNat 1))) (UInt256.shiftLeft (UInt256.land (UInt256.shiftRight (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (x0 + (UInt256.ofNat 2)) (⟨0⟩ : UInt256))) (UInt256.ofNat 128)) (UInt256.lnot (UInt256.shiftLeft (UInt256.ofNat 1) (uInt256OfByteArray (ee.calldata.readBytes (UInt256.ofNat 36).toNat 32))))) (UInt256.ofNat 128))) (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (x0 + (UInt256.ofNat 2)) (⟨0⟩ : UInt256))) (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128)) (UInt256.ofNat 1))))) k' C' := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push1 (UInt256.ofNat 2) (by native_decide) (by evm_ov)

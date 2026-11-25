@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.OfferEncodeFirst
 import Benchmarks.Midnight.Uint128Arithmetic
 
+variable {fork : Ethereum.Fork}
+
 /-! The remaining scalar fields and return from the offer ABI encoder. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -98,11 +100,11 @@ theorem midnightOfferEncodeLast_funded {credit : Nat} {I : ExecutionEnv} {g : Sa
     (hc : OfferCanonical offer) (hbelow : ptr.toNat + 480 ≤ output.toNat)
     (hout : output.toNat + 480 < UInt256.size)
     (hret : (D_J midnightBytecode 0).contains ret = true) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨20270⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨20270⟩
       (finish :: ⟨448⟩ :: ⟨448⟩ :: output :: ptr :: ret :: R) mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding credit
         (writeWordArray mem (output.toNat + 288) offer.encodeLastWords) aw' C' ∧
-      RD midnightBytecode I g s0 ret (finish :: R)
+      RD fork midnightBytecode I g s0 ret (finish :: R)
         (writeWordArray mem (output.toNat + 288) offer.encodeLastWords) aw' rdata σ k' C' := by
   have add (off : Nat) (ho : off ≤ 448) :
       (output + UInt256.ofNat off).toNat = output.toNat + off :=

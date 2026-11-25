@@ -3,6 +3,8 @@ import Benchmarks.Midnight.MarketBytesMemory
 import Benchmarks.Midnight.AllocationArithmetic
 import Benchmarks.Midnight.RuntimeBlocks_078
 
+variable {fork : Ethereum.Fork}
+
 /-! Hashing the initialization code and assembling the final CREATE2 preimage. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -19,9 +21,9 @@ theorem midnightMarketIdPreimage {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hfree : memLoad (UInt256.ofNat 64) mem = root)
     (hlen : memLoad ptr mem = UInt256.ofNat (11 + m.encodingSize))
     (hbytes : mem.readWithPadding (ptr.toNat + 32) (11 + m.encodingSize) = m.initcode)
-    (rd : RD midnightBytecode I g s0 ⟨20659⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨20659⟩
       (ptr :: (ptr + UInt256.ofNat 32) :: UInt256.ofNat m.midnight.val :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g s0 ⟨20728⟩ (root :: (root + UInt256.ofNat 32) :: R)
+    ∃ aw' k' C', RD fork midnightBytecode I g s0 ⟨20728⟩ (root :: (root + UInt256.ofNat 32) :: R)
       (marketIdMemory mem root m) aw' rdata σ k' C' := by
   have hh : keccakWord (ptr + UInt256.ofNat 32) (UInt256.ofNat (11 + m.encodingSize)) mem =
       uInt256OfByteArray (KEC m.initcode) := by

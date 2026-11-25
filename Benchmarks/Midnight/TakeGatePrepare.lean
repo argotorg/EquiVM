@@ -2,6 +2,8 @@ import Benchmarks.Midnight.TakeGateMemory
 import Benchmarks.Midnight.TakeGateReturn
 import Benchmarks.Midnight.AddressDecode
 
+variable {fork : Ethereum.Fork}
+
 /-! Preparing the fixed calldata buffer for either entry gate. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -31,10 +33,10 @@ theorem midnightTakeGatePrepare {credit : Nat} {I : ExecutionEnv} {g : Sat256} {
     (hfree : memLoad (UInt256.ofNat 64) mem = root)
     (huser : memLoad kind.userOffset mem = UInt256.ofNat user.val)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 kind.preparePC (gate :: flag :: R)
+    (rd : RD fork midnightBytecode I g s0 kind.preparePC (gate :: flag :: R)
       mem aw rdata σ k C) :
     ∃ gas aw' k' C', MemoryFunding credit (takeGateCallMemory kind mem root user) aw' C' ∧
-      RD midnightBytecode I g s0 kind.callPC
+      RD fork midnightBytecode I g s0 kind.callPC
         (gas :: gate :: root :: UInt256.ofNat 36 :: root :: UInt256.ofNat 32 :: root :: R)
         (takeGateCallMemory kind mem root user) aw' rdata σ k' C' := by
   have hoff : kind.userOffset.toNat ≤ 576 := by cases kind <;> decide

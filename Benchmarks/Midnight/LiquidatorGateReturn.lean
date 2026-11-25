@@ -4,6 +4,8 @@ import Benchmarks.Midnight.BoolMemoryDecode
 import Benchmarks.Midnight.RuntimeBlocks_032
 import Benchmarks.Midnight.RuntimeBlocks_033
 
+variable {fork : Ethereum.Fork}
+
 /-! The liquidator gate's return-data length and Boolean canonicality checks. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -31,15 +33,15 @@ theorem midnightLiquidatorGateReturn {I : ExecutionEnv} {g : Sat256} {s0 : State
     (hword : 32 ≤ out.size →
       memLoad root (writeWord mem 64 (root + UInt256.ofNat 32)) = calldataWord out 0)
     (hb : TransferBudget budgetRoot credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨8342⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨8342⟩
       ((if success then ⟨1⟩ else ⟨0⟩) :: root :: R) mem aw out σ k C) :
     ((success = false ∨ ¬ (32 ≤ out.size ∧
         (calldataWord out 0 = ⟨0⟩ ∨ calldataWord out 0 = ⟨1⟩))) ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     (success = true ∧ 32 ≤ out.size ∧
       (calldataWord out 0 = ⟨0⟩ ∨ calldataWord out 0 = ⟨1⟩) ∧ ∃ aw' k' C',
       TransferBudget budgetRoot credit (writeWord mem 64 (root + UInt256.ofNat 32)) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨8398⟩ (calldataWord out 0 :: R)
+      RD fork midnightBytecode I g s0 ⟨8398⟩ (calldataWord out 0 :: R)
         (writeWord mem 64 (root + UInt256.ofNat 32)) aw' out σ k' C') := by
   have hn : (UInt256.ofNat out.size).toNat = out.size := UInt256.toNat_ofNat_of_lt hout
   cases success with

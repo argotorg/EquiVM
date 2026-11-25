@@ -2,6 +2,8 @@ import Benchmarks.Midnight.TakeAccountingStore
 import Benchmarks.Midnight.TakeAccountingSource
 import Benchmarks.Midnight.TakeMarketTotal
 
+variable {fork : Ethereum.Fork}
+
 /-! The final accounting updates before callbacks are selected and the trade is logged. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -44,17 +46,17 @@ theorem midnightTakeAccounting {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s
     (hoffer : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (hvalue : memLoad (UInt256.ofNat 480) mem = value)
     (hs : SourceState s0 I σ evm) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨19447⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨19447⟩
       (bought :: sold :: ⟨12598⟩ :: R) mem aw rdata σ k C) :
-    (ExecBlock config frame evm (takeTransition.body.drop 58) .reverted ∧
-      RDrev midnightBytecode g s0) ∨
+    (ExecBlock fork config frame evm (takeTransition.body.drop 58) .reverted ∧
+      RDrev fork midnightBytecode g s0) ∨
     ∃ σ' aw' k' C', sold.toNat ≤ bought.toNat ∧
-      (∀ result, ExecBlock config frame (takeAccountingState evm offer bought sold value)
+      (∀ result, ExecBlock fork config frame (takeAccountingState evm offer bought sold value)
           (takeTransition.body.drop 60) result →
-        ExecBlock config frame evm (takeTransition.body.drop 58) result) ∧
+        ExecBlock fork config frame evm (takeTransition.body.drop 58) result) ∧
       SourceState s0 I σ' (takeAccountingState evm offer bought sold value) ∧
       MemoryFunding credit (takeAccountingMemory mem offer) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨12719⟩ (offer.buy :: R)
+      RD fork midnightBytecode I g s0 ⟨12719⟩ (offer.buy :: R)
         (takeAccountingMemory mem offer) aw' rdata σ' k' C' := by
   have hefee := evalTakeSettlement (evm := evm) hc hn hof
   have heb := evalWordLocal (cfg := config) (evm := evm) hb

@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.BuyCallbackHead
 import Benchmarks.Midnight.Uint128Arithmetic
 
+variable {fork : Ethereum.Fork}
+
 /-! The fixed scalar arguments written after encoding the buyer callback's market. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -20,13 +22,13 @@ theorem midnightBuyCallbackFields {credit : Nat} {I : ExecutionEnv} {g : Sat256}
     (hbRead : memLoad (UInt256.ofNat 576) mem = user)
     (hf128 : fee.toNat < 2^128) (huser : user.toNat < EVM.addressModulus)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨13868⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨13868⟩
       ((root + UInt256.ofNat (516 + 128 * count)) :: ptr :: ret :: root :: solcAddrMask :: R)
       mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding credit
         (writeWordArray mem (root.toNat + 68)
           [assets, units, fee, user, UInt256.ofNat (512 + 128 * count)]) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨20095⟩
+      RD fork midnightBytecode I g s0 ⟨20095⟩
         (ptr :: (root + UInt256.ofNat (516 + 128 * count)) :: ret :: root :: solcAddrMask :: R)
         (writeWordArray mem (root.toNat + 68)
           [assets, units, fee, user, UInt256.ofNat (512 + 128 * count)]) aw' rdata σ k' C' := by
@@ -123,7 +125,7 @@ theorem midnightBuyCallbackFields {credit : Nat} {I : ExecutionEnv} {g : Sat256}
   have haFinal := memoryFundingAt (credit := credit) rFinal (ha44.mono (by omega))
   change MemoryFunding credit (writeWordArray mem (root.toNat + 68)
     [assets, units, fee, user, UInt256.ofNat (512 + 128 * count)]) _ _ at haFinal
-  change RD _ _ _ _ ⟨20095⟩ _ (writeWordArray mem (root.toNat + 68)
+  change RD fork _ _ _ _ ⟨20095⟩ _ (writeWordArray mem (root.toNat + 68)
     [assets, units, fee, user, UInt256.ofNat (512 + 128 * count)]) _ _ _ _ _ at rFinal
   exact ⟨_, _, _, haFinal, rFinal⟩
 

@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.LiquidateAmounts
 
+variable {fork : Ethereum.Fork}
+
 /-! The conditional amount calculation and storage-update phase of liquidation. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -22,16 +24,16 @@ theorem liquidateAmountsPhase {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {
     (hslot : memLoad ⟨672⟩ mem = solcMappingSlot ⟨1⟩ id)
     (hsize : 704 ≤ mem.size) (hs : SourceState s0 I σ evm)
     (hb : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨5468⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨5468⟩
       ([head, UInt256.isZero (UInt256.isZero repaid), UInt256.isZero repaid, maxDebt, price,
         positionSlot id borrower, dp, dl, borrower, badDebt, receiverWord, mode, selector] ++ R)
       mem aw rdata σ k C) :
-    (ExecStmt config frame evm (liquidateTransition.body[18]!) .reverted ∧
-      RDrev midnightBytecode g s0) ∨
-    (ExecStmt config frame evm (liquidateTransition.body[18]!) .staticViolation ∧
-      RDstatic midnightBytecode g s0) ∨
+    (ExecStmt fork config frame evm (liquidateTransition.body[18]!) .reverted ∧
+      RDrev fork midnightBytecode g s0) ∨
+    (ExecStmt fork config frame evm (liquidateTransition.body[18]!) .staticViolation ∧
+      RDstatic fork midnightBytecode g s0) ∨
     ∃ frame' evm' σ' seized' repaid' mem' d0 d1 d2 aw' k' C',
-      ExecStmt config frame evm (liquidateTransition.body[18]!) (.ok frame' evm') ∧
+      ExecStmt fork config frame evm (liquidateTransition.body[18]!) (.ok frame' evm') ∧
       LiquidateSourceFrame frame' m id index seized' repaid' borrower mode receiver callback data ∧
       LiquidateAccumulators frame' bitmap maxDebt price originalDebt badDebt ∧
       SourceState s0 I σ' evm' ∧ memLoad ⟨640⟩ mem' = seized' ∧ memLoad ⟨608⟩ mem' = repaid' ∧
@@ -39,7 +41,7 @@ theorem liquidateAmountsPhase {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {
       (∀ read : UInt256, read.toNat + 32 ≤ mem.size →
         (read.toNat + 32 ≤ 608 ∨ 672 ≤ read.toNat) → memLoad read mem' = memLoad read mem) ∧
       TransferBudget root credit mem' aw' C' ∧
-      RD midnightBytecode I g s0 ⟨5480⟩
+      RD fork midnightBytecode I g s0 ⟨5480⟩
         ([d0, d1, d2, dp, dl, borrower, badDebt, receiverWord, mode, selector] ++ R)
         mem' aw' rdata σ' k' C' := by
   have hg := evalLiquidateAmountsGuard (evm := evm) hf.seized hf.repaid

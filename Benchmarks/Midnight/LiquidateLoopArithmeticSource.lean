@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.LiquidateLoopSourceFinish
 
+variable {fork : Ethereum.Fork}
+
 /-! Source semantics and retained locals for the arithmetic part of a liquidation iteration. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -53,9 +55,9 @@ theorem liquidateLoopArithmeticSource {frame : Frame} {evm : State}
     let collateral := healthCollateralWord (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner)
       (positionSlot id borrower + ⟨3⟩) index
     (¬ LiquidateLoopArithmeticSafe collateral price c.lltv c.liquidationCursor maxDebt ∧
-      ExecBlock config frame evm (liquidateLoopBody.drop 4) .reverted) ∨
+      ExecBlock fork config frame evm (liquidateLoopBody.drop 4) .reverted) ∨
     (LiquidateLoopArithmeticSafe collateral price c.lltv c.liquidationCursor maxDebt ∧
-      ExecBlock config frame evm (liquidateLoopBody.drop 4)
+      ExecBlock fork config frame evm (liquidateLoopBody.drop 4)
         (.ok (liquidateArithmeticFrame frame collateral price c.lltv c.liquidationCursor
           maxDebt badDebt bitmap index) evm)) := by
   dsimp only
@@ -63,7 +65,7 @@ theorem liquidateLoopArithmeticSource {frame : Frame} {evm : State}
     (positionSlot id borrower + ⟨3⟩) index
   let fv := liquidateValueFrame frame collateral price c.lltv maxDebt
   let fr := liquidateRecoveryFrame fv collateral price c.lltv c.liquidationCursor
-  have hv := liquidateCollateralValueSource (evm := evm) hcontract hcanon hpos hi hindex hc hp hm
+  have hv := liquidateCollateralValueSource (fork := fork) (evm := evm) hcontract hcanon hpos hi hindex hc hp hm
     (liquidateLoopBody.drop 8)
   have hsplit1 : (liquidateLoopBody.drop 4).take 4 ++ liquidateLoopBody.drop 8 =
       liquidateLoopBody.drop 4 := by
@@ -88,7 +90,7 @@ theorem liquidateLoopArithmeticSource {frame : Frame} {evm : State}
       (show "maxDebt" ≠ "_collateral" from by decide),
       wordLocal_get_ne _ _ _ _ (show "__c5" ≠ "_collateral" from by decide),
       wordLocal_get_ne _ _ _ _ (show "__c4" ≠ "_collateral" from by decide), wordLocal_get]
-  have hr := liquidateRecoverySource (frame := fv) (evm := evm) (c := c)
+  have hr := liquidateRecoverySource (fork := fork) (frame := fv) (evm := evm) (c := c)
       (collateral := collateral) (price := price)
       hcontract hcv hcolv hpv (liquidateLoopBody.drop 11)
   have hsplit2 : (liquidateLoopBody.drop 8).take 3 ++ liquidateLoopBody.drop 11 =
@@ -132,7 +134,7 @@ theorem liquidateLoopArithmeticSource {frame : Frame} {evm : State}
   have hfc : fr.contract = contract := by
     simp only [fr, fv, liquidateRecoveryFrame, liquidateValueFrame, wordLocal]
     exact hcontract
-  have hfinish := @liquidateLoopSourceFinish fr evm badDebt
+  have hfinish := @liquidateLoopSourceFinish fork fr evm badDebt
     (liquidateRecoveryValue collateral price c.lltv c.liquidationCursor) bitmap index
     hfc hdr hcr hbr hir (hindex.trans (by decide))
   have hrest := ha2.run hfinish

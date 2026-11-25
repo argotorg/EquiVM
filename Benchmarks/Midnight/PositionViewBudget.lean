@@ -3,6 +3,8 @@ import Benchmarks.Midnight.SlashPendingGas
 import Benchmarks.Midnight.PositionAccrualBudget
 import Benchmarks.Midnight.PositionViewFinishGas
 
+variable {fork : Ethereum.Fork}
+
 /-! The position-view routine retains transfer funding on every successful path. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -21,7 +23,7 @@ theorem midnightPositionViewInternal_budget {I : ExecutionEnv} {g : Sat256} {s0 
     (hmaturity : memLoad (ptr + UInt256.ofNat 128) mem = maturity)
     (hret : (D_J midnightBytecode 0).contains ret = true)
     (hb : TransferBudget budgetRoot gasCredit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨22775⟩ (ptr :: id :: user :: ret :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨22775⟩ (ptr :: id :: user :: ret :: R)
       mem aw rdata σ k C) :
     let w0 := solcSlotWordAt (positionSlot id user) σ I
     let w1 := solcSlotWordAt (positionSlot id user + ⟨1⟩) σ I
@@ -35,12 +37,12 @@ theorem midnightPositionViewInternal_budget {I : ExecutionEnv} {g : Sat256} {s0 
     let pp := slashPending credit pending pc
     let fee := positionAccruedFee pp lastAccrual maturity time
     (¬ PositionViewSafe credit pending lastLoss loss lastAccrual maturity time ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     (PositionViewSafe credit pending lastLoss loss lastAccrual maturity time ∧
       ∃ aw' k' C',
         TransferBudget budgetRoot gasCredit
           (positionSlashMemory mem id user lastLoss) aw' C' ∧
-        RD midnightBytecode I g s0 ret
+        RD fork midnightBytecode I g s0 ret
         (fee :: UInt256.sub (low128 pp) fee :: UInt256.sub (low128 pc) fee :: R)
         (positionSlashMemory mem id user lastLoss) aw' rdata σ k' C') := by
   obtain ⟨aw1, k1, C1, hb1, rd1⟩ := midnightSlashCredit_budget (by omega) (by omega) hcanon hb rd

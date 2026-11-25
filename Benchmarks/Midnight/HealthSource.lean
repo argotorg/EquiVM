@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.HealthSourceFrame
 
+variable {fork : Ethereum.Fork}
+
 /-! The storage-reading prefix, debt guard, and Boolean return of the health function. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -27,10 +29,10 @@ def healthLoopFrame (imms : Store) (m : MarketData) (id user word : UInt256) : F
 
 theorem healthSourcePrefix (evm : EVM.State) (imms : Store) (m : MarketData)
     (id user : UInt256) (hcanon : user.toNat < EVM.addressModulus) :
-    ABlock config evm (healthCallFrame imms m id user) healthFunction.body
+    ABlock fork config evm (healthCallFrame imms m id user) healthFunction.body
       (healthDebtFrame imms m id user (healthPositionWord evm id user))
       (healthFunction.body.drop 3) := by
-  have ha : ABlock config evm (healthCallFrame imms m id user) healthFunction.body
+  have ha : ABlock fork config evm (healthCallFrame imms m id user) healthFunction.body
       (healthAliasFrame imms m id user) (healthFunction.body.drop 1) := by
     refine ⟨fun h ↦ ExecBlock.consNormal (ExecStmt.letStorage ?_) h⟩
     apply resolvePositionBorrower rfl
@@ -69,7 +71,7 @@ theorem evalHealthDebtGuard {cfg : Config} {frame : Frame} {evm : EVM.State} {de
 theorem healthSourceReturn {cfg : Config} {frame : Frame} {evm : EVM.State} {debt maxDebt : UInt256}
     (hd : frame.locals.get? "_debt" = some (.int debt.toNat))
     (hm : frame.locals.get? "maxDebt" = some (.int maxDebt.toNat)) :
-    ExecBlock cfg frame evm (healthFunction.body.drop 4)
+    ExecBlock fork cfg frame evm (healthFunction.body.drop 4)
       (.returned frame evm (some [.bool (decide (debt.toNat ≤ maxDebt.toNat))])) := by
   apply ExecBlock.consReturn
   apply ExecStmt.return

@@ -2,6 +2,8 @@ import Benchmarks.Midnight.LiquidateCallbackCollateralStep
 import Benchmarks.Midnight.CollateralDecodeCons
 import Benchmarks.Midnight.CollateralLoopMemory
 
+variable {fork : Ethereum.Fork}
+
 /-! All collateral records copied into liquidation's callback calldata. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -19,12 +21,12 @@ theorem midnightLiquidateCallbackCollateralLoop {credit : Nat} {I : ExecutionEnv
     (hout : output.toNat + 128 * cs.length < UInt256.size)
     (hd : decodeCollateralElements cs.length I.calldata ptr.toNat = some cs)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨6038⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨6038⟩
       ([index, base, ptr, a, b, c, d, output, root, badDebt, root] ++ R) mem aw rdata σ k C) :
     ∃ aw' k' C', C ≤ C' ∧
       MemoryFunding credit (writeWordArray mem output.toNat (cs.flatMap CollateralData.words))
         aw' C' ∧
-      RD midnightBytecode I g s0 ⟨6050⟩
+      RD fork midnightBytecode I g s0 ⟨6050⟩
         ([index + UInt256.ofNat cs.length, base, ptr + UInt256.ofNat (128 * cs.length),
           a, b, c, d, output + UInt256.ofNat (128 * cs.length), root, badDebt, root] ++ R)
         (writeWordArray mem output.toNat (cs.flatMap CollateralData.words)) aw' rdata σ k' C' := by

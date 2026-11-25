@@ -3,6 +3,8 @@ import Benchmarks.Midnight.CheckedMulGas
 import Benchmarks.Midnight.CheckedArithmeticRevert
 import Benchmarks.Midnight.CheckedUint128Gas
 
+variable {fork : Ethereum.Fork}
+
 /-! Checked products, division, and narrowing for the buyer's pending fee. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,13 +18,13 @@ theorem midnightTakeBuyerPendingRuntime {I : ExecutionEnv} {g : Sat256} {s0 : St
     {aw rate time credit buyerSlot debt buyerDebt sellerSlot marketSlot decrease ratifierPtr
       increase : UInt256} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 18 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 ⟨20413⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨20413⟩
       ([rate, time, UInt256.ofNat 12138, UInt256.ofNat 12144, takePendingScale, UInt256.ofNat 12150,
         credit, buyerSlot, debt, buyerDebt, sellerSlot, marketSlot, decrease, ratifierPtr,
         increase] ++ R) mem aw rdata σ k C) :
-    (¬ TakeBuyerPendingSafe rate time increase ∧ RDrev midnightBytecode g s0) ∨
+    (¬ TakeBuyerPendingSafe rate time increase ∧ RDrev fork midnightBytecode g s0) ∨
     (TakeBuyerPendingSafe rate time increase ∧ ∃ k' C', C ≤ C' ∧
-      RD midnightBytecode I g s0 ⟨12150⟩
+      RD fork midnightBytecode I g s0 ⟨12150⟩
         ([takeBuyerPendingValue rate time increase, credit, buyerSlot, debt, buyerDebt,
           sellerSlot, marketSlot, decrease, ratifierPtr, increase] ++ R)
         mem aw rdata σ k' C') := by

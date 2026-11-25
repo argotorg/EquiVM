@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TakeBuyerDebtCalculate
 import Benchmarks.Midnight.TakeBuyerDebtWrite
 
+variable {fork : Ethereum.Fork}
+
 /-! The buyer debt assignment agrees with the runtime, including static-mode rejection. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -22,28 +24,28 @@ theorem midnightTakeBuyerDebt {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0
     (hcanon : buyer.toNat < EVM.addressModulus)
     (hunits : calldataWord I.calldata 68 = units)
     (hs : SourceState s0 I σ evm) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨12316⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨12316⟩
       ([positionSlot id buyer, debt, low128 (healthPositionWord evm id buyer), sellerSlot,
         marketSlot, decrease, ratifierPtr, takeBuyerCreditIncrease evm id buyer units] ++ R)
       mem aw rdata σ k C) :
-    (ExecBlock config frame evm (takeTransition.body.drop 46) .staticViolation ∧
-      RDstatic midnightBytecode g s0) ∨
+    (ExecBlock fork config frame evm (takeTransition.body.drop 46) .staticViolation ∧
+      RDstatic fork midnightBytecode g s0) ∨
     (I.perm = true ∧ ∃ σ' k' C',
-      (∀ result, ExecBlock config
+      (∀ result, ExecBlock fork config
           (takeBuyerDebtFrame frame units (low128 (healthPositionWord evm id buyer)))
           (takeBuyerDebtState evm id buyer units) (takeTransition.body.drop 48) result →
-        ExecBlock config frame evm (takeTransition.body.drop 46) result) ∧
+        ExecBlock fork config frame evm (takeTransition.body.drop 46) result) ∧
       TakeSourceFrame (takeBuyerDebtFrame frame units (low128 (healthPositionWord evm id buyer)))
         offer id units taker receiver callback ratifierData data ∧
       SourceState s0 I σ' (takeBuyerDebtState evm id buyer units) ∧
       MemoryFunding credit mem (M aw (UInt256.ofNat 224) ⟨32⟩) C' ∧
-      RD midnightBytecode I g s0 ⟨20456⟩
+      RD fork midnightBytecode I g s0 ⟨20456⟩
         ([positionFieldWord (takeBuyerDebtState evm id buyer units) id buyer 1,
           memLoad (UInt256.ofNat 224) mem, ⟨4216⟩, ⟨12386⟩, positionSlot id buyer, debt,
           ⟨12505⟩, ⟨2⟩, ⟨12517⟩, uint128Mask, sellerSlot, marketSlot, decrease,
           ratifierPtr, takeBuyerCreditIncrease evm id buyer units] ++ R)
         mem (M aw (UInt256.ofNat 224) ⟨32⟩) rdata σ' k' C') := by
-  have hx0 := takeBuyerRepayCall (evm := evm) hf.contract hf.units hi (low128_lt _)
+  have hx0 := takeBuyerRepayCall (fork := fork) (evm := evm) hf.contract hf.units hi (low128_lt _)
   have hp1 : (takeBuyerDebtFrame frame units (low128 (healthPositionWord evm id buyer))).locals.get?
       "buyerPos" = some (.storageRef (positionRef id buyer) positionType) :=
     (store_get_ne _ _ (by decide)).trans hp
@@ -72,7 +74,7 @@ theorem midnightTakeBuyerDebt {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0
         (UInt256.ofNat 128)
       rw [hs'.storageRead]
       rfl
-    change RD midnightBytecode I g s0 ⟨20456⟩
+    change RD fork midnightBytecode I g s0 ⟨20456⟩
       ([UInt256.shiftRight (solcSlotWordAt (positionSlot id buyer) σ' I) (UInt256.ofNat 128),
         memLoad (UInt256.ofNat 224) mem, ⟨4216⟩, ⟨12386⟩, positionSlot id buyer, debt,
         ⟨12505⟩, ⟨2⟩, ⟨12517⟩, uint128Mask, sellerSlot, marketSlot, decrease,

@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.LiquidatePositionBudget
 import Benchmarks.Midnight.RuntimeBlocks_033
 
+variable {fork : Ethereum.Fork}
+
 /-! The liquidation input check and its short-circuit bytecode branches. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,10 +19,10 @@ theorem midnightLiquidatePosition {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hz : memLoad (UInt256.ofNat 800) mem = ⟨0⟩)
     (hc : borrower.toNat < EVM.addressModulus)
     (hb : TransferBudget budgetRoot credit mem aw C)
-    (rd : RD midnightBytecode ee g s0 ⟨5161⟩ (id :: dl :: borrower :: dp :: R)
+    (rd : RD fork midnightBytecode ee g s0 ⟨5161⟩ (id :: dl :: borrower :: dp :: R)
       mem aw rdata σ k C) :
     ∃ aw' k' C', TransferBudget budgetRoot credit (liquidatePositionMemory mem id borrower)
-      aw' C' ∧ RD midnightBytecode ee g s0 ⟨5248⟩
+      aw' C' ∧ RD fork midnightBytecode ee g s0 ⟨5248⟩
       ((if calldataWord ee.calldata 100 = ⟨0⟩ then ⟨1⟩
         else UInt256.isZero (calldataWord ee.calldata 68)) ::
         UInt256.isZero (UInt256.isZero (calldataWord ee.calldata 100)) ::
@@ -45,13 +47,13 @@ theorem midnightLiquidateInputGuard {ee : ExecutionEnv} {g : Sat256} {s0 : State
     (hz : memLoad (UInt256.ofNat 800) mem = ⟨0⟩)
     (hc : borrower.toNat < EVM.addressModulus)
     (hb : TransferBudget budgetRoot credit mem aw C)
-    (rd : RD midnightBytecode ee g s0 ⟨5161⟩ (id :: dl :: borrower :: dp :: R)
+    (rd : RD fork midnightBytecode ee g s0 ⟨5161⟩ (id :: dl :: borrower :: dp :: R)
       mem aw rdata σ k C) :
     (¬ (calldataWord ee.calldata 100 = ⟨0⟩ ∨ calldataWord ee.calldata 68 = ⟨0⟩) ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     ((calldataWord ee.calldata 100 = ⟨0⟩ ∨ calldataWord ee.calldata 68 = ⟨0⟩) ∧
       ∃ aw' k' C', TransferBudget budgetRoot credit (liquidatePositionMemory mem id borrower)
-        aw' C' ∧ RD midnightBytecode ee g s0 ⟨5254⟩
+        aw' C' ∧ RD fork midnightBytecode ee g s0 ⟨5254⟩
         (UInt256.isZero (UInt256.isZero (calldataWord ee.calldata 100)) ::
           positionSlot id borrower :: dp :: dl :: borrower ::
           UInt256.isZero (calldataWord ee.calldata 100) :: R)

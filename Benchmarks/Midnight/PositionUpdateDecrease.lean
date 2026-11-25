@@ -3,6 +3,8 @@ import Benchmarks.Midnight.PositionStorage
 import Benchmarks.Midnight.CheckedUint128
 import Benchmarks.Midnight.RuntimeBlocks_088
 
+variable {fork : Ethereum.Fork}
+
 /-! The two checked balance decreases preceding a position update. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -18,22 +20,22 @@ theorem midnightPositionUpdateDecrease {I : ExecutionEnv} {g : Sat256} {s0 : Sta
     {mem rdata : ByteArray} {aw id user credit pending fee ret : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 20 ≤ 1024)
     (hc : credit.toNat < 2^128) (hp : pending.toNat < 2^128)
-    (rd : RD midnightBytecode I g s0 ⟨23680⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨23680⟩
       ([fee, pending, credit, updatePositionTopic, id, positionSlot id user,
         solcAddrMask, ret, ⟨96⟩, user] ++ R) mem aw rdata σ k C) :
     let w := solcSlotWordAt (positionSlot id user) σ I
     let oldCredit := low128 w
     let oldPending := UInt256.shiftRight w (UInt256.ofNat 128)
-    (¬ (credit.toNat ≤ oldCredit.toNat ∧ pending.toNat ≤ oldPending.toNat) ∧ RDrev midnightBytecode g s0) ∨
+    (¬ (credit.toNat ≤ oldCredit.toNat ∧ pending.toNat ≤ oldPending.toNat) ∧ RDrev fork midnightBytecode g s0) ∨
     (credit.toNat ≤ oldCredit.toNat ∧ pending.toNat ≤ oldPending.toNat ∧
-      ∃ k' C', RD midnightBytecode I g s0 ⟨23723⟩
+      ∃ k' C', RD fork midnightBytecode I g s0 ⟨23723⟩
         ([UInt256.sub oldPending pending, ⟨23855⟩, positionSlot id user, user, solcAddrMask,
           ⟨96⟩, updatePositionTopic, id, UInt256.sub oldCredit credit, credit, ret, fee, pending] ++ R)
         mem aw rdata σ k' C') := by
   let w := solcSlotWordAt (positionSlot id user) σ I
   let oldCredit := low128 w
   let oldPending := UInt256.shiftRight w (UInt256.ofNat 128)
-  change RD midnightBytecode I g s0 ⟨23680⟩
+  change RD fork midnightBytecode I g s0 ⟨23680⟩
     (fee :: pending :: credit :: updatePositionTopic :: id :: positionSlot id user ::
       solcAddrMask :: ret :: ⟨96⟩ :: user :: R) mem aw rdata σ k C at rd
   obtain ⟨k1, C1, rd1⟩ := midnightBlocks.midnight_block_23680 (by omega) (by jump_dest) rd

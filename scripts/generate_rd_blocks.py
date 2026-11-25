@@ -730,7 +730,7 @@ def simulate(block: list[Instruction], branch: str | None,
             # holds only for environments at Osaka or later.
             a = stack.pop(0)
             stack.insert(0, f"(UInt256.clz {a})")
-            fork = require("hfork", "ee.fork ≥ .osaka")
+            fork = require("hfork", "fork ≥ .osaka")
             proof.append(f"  have {after} := {before}.clz {fork} {decode} {ov}")
         elif op in {0x08, 0x09}:
             a, b, c = stack.pop(0), stack.pop(0), stack.pop(0)

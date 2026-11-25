@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.LiquidateGrowthTrace
 import Benchmarks.Midnight.LiquidateGrowthSource
 
+variable {fork : Ethereum.Fork}
+
 /-! The mode-dependent liquidation incentive, in source and runtime execution. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -27,9 +29,9 @@ theorem liquidateLifSource {frame : Frame} {evm : State} {m : MarketData}
     (hl : frame.locals.get? "lif" = some (.int maximum.toNat)) :
     let timestamp := UInt256.ofNat evm.executionEnv.header.timestamp
     (¬ LiquidateLifSafe mode maximum timestamp m.maturity ∧
-      ExecStmt config frame evm (liquidateAmountsBody[3]!) .reverted) ∨
+      ExecStmt fork config frame evm (liquidateAmountsBody[3]!) .reverted) ∨
     (LiquidateLifSafe mode maximum timestamp m.maturity ∧
-      ExecStmt config frame evm (liquidateAmountsBody[3]!)
+      ExecStmt fork config frame evm (liquidateAmountsBody[3]!)
         (.ok (liquidateLifFrame frame mode maximum timestamp m.maturity) evm)) := by
   dsimp only
   by_cases hz : mode = ⟨0⟩
@@ -43,7 +45,7 @@ theorem liquidateLifSource {frame : Frame} {evm : State} {m : MarketData}
     · exact Or.inl ⟨fun h ↦ hbad (h hz), ExecStmt.iteTrue hcond hrev⟩
     · refine Or.inr ⟨fun _ ↦ hsafe, ?_⟩
       simpa only [liquidateLifFrame, if_neg hz] using
-        (show ExecStmt config frame evm (liquidateAmountsBody[3]!)
+        (show ExecStmt fork config frame evm (liquidateAmountsBody[3]!)
           (.ok (liquidateGrownFrame frame (liquidateGrownLif maximum
             (UInt256.ofNat evm.executionEnv.header.timestamp) m.maturity)) evm) from
           ExecStmt.iteTrue hcond hsource)
@@ -52,13 +54,13 @@ theorem midnightLiquidateLif {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw maximum lltv maxDebt price pos dp dl borrower badDebt receiver mode : UInt256}
     {m : MarketData} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 18 ≤ 1024) (hd : decodeCalldataMarket I.calldata 4 = some m)
-    (rd : RD midnightBytecode I g s0 ⟨6540⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨6540⟩
       ([maximum, lltv, maxDebt, price, pos, dp, dl, borrower, badDebt, receiver, mode] ++ R)
       mem aw rdata σ k C) :
     let timestamp := UInt256.ofNat I.header.timestamp
-    (¬ LiquidateLifSafe mode maximum timestamp m.maturity ∧ RDrev midnightBytecode g s0) ∨
+    (¬ LiquidateLifSafe mode maximum timestamp m.maturity ∧ RDrev fork midnightBytecode g s0) ∨
     (LiquidateLifSafe mode maximum timestamp m.maturity ∧ ∃ k' C', C ≤ C' ∧
-      RD midnightBytecode I g s0 ⟨6639⟩
+      RD fork midnightBytecode I g s0 ⟨6639⟩
         ([maxDebt, lltv, liquidateLif mode maximum timestamp m.maturity,
           price, pos, dp, dl, borrower, badDebt, receiver, mode] ++ R) mem aw rdata σ k' C') := by
   dsimp only

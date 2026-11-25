@@ -2,6 +2,8 @@ import Benchmarks.Midnight.LiquidateMaxRepaidTrace
 import Benchmarks.Midnight.LiquidateMaxRepaidSource
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 /-! Source/runtime agreement for the current-debt read and maximum repayment. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,14 +19,14 @@ theorem liquidateMaxRepaidStep {I : ExecutionEnv} {g : Sat256} {s0 evm : State} 
     (hl : frame.locals.get? "lif" = some (.int lif.toNat))
     (hll : frame.locals.get? "lltv" = some (.int lltv.toNat))
     (hs : SourceState s0 I σ evm) (hb : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨7014⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨7014⟩
       (maxDebt :: lltv :: lif :: price :: positionSlot id borrower :: R) mem aw rdata σ k C) :
     let cap := liquidateMaxRepaid (low128 (healthPositionWord evm id borrower)) maxDebt lif lltv
-    (ExecStmt config frame evm (liquidateRcfBody[0]!) .reverted ∧ RDrev midnightBytecode g s0) ∨
-    (ExecStmt config frame evm (liquidateRcfBody[0]!)
+    (ExecStmt fork config frame evm (liquidateRcfBody[0]!) .reverted ∧ RDrev fork midnightBytecode g s0) ∨
+    (ExecStmt fork config frame evm (liquidateRcfBody[0]!)
         (.ok (wordLocal frame "maxRepaid" cap) evm) ∧ ∃ k' C',
       TransferBudget root credit mem aw C' ∧
-      RD midnightBytecode I g s0 ⟨7134⟩
+      RD fork midnightBytecode I g s0 ⟨7134⟩
         (cap :: lif :: price :: positionSlot id borrower :: R) mem aw rdata σ k' C') := by
   dsimp only
   have hw : healthPositionWord evm id borrower =
@@ -32,7 +34,7 @@ theorem liquidateMaxRepaidStep {I : ExecutionEnv} {g : Sat256} {s0 evm : State} 
   have htrace := midnightLiquidateMaxRepaid hstack rd
   dsimp only at htrace
   rw [← hw] at htrace
-  have hsource := liquidateMaxRepaidSource (evm := evm) hc hcanon hp hm hl hll
+  have hsource := liquidateMaxRepaidSource (fork := fork) (evm := evm) hc hcanon hp hm hl hll
   rcases htrace with ⟨hbad, hrev⟩ | ⟨hsafe, k1, C1, hc1, rd1⟩
   · rcases hsource with ⟨_, hsrev⟩ | ⟨hsafe, _⟩
     · exact Or.inl ⟨hsrev, hrev⟩

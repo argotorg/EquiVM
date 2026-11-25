@@ -3,6 +3,8 @@ import Benchmarks.Midnight.Authorization
 import Benchmarks.Midnight.AddressDecode
 import Benchmarks.Midnight.ScratchMemory
 
+variable {fork : Ethereum.Fork}
+
 /-! The same caller-or-delegate bytecode sequence at the two setter entry points. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -20,9 +22,9 @@ theorem onBehalfSelfStep (consumed : Bool) {I : ExecutionEnv} {g : Sat256} {s0 :
     {arg0 arg1 user : UInt256} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024)
     (hcond : UInt256.isZero (UInt256.eq (UInt256.land user solcAddrMask) (solcSourceWord I)) = ⟨0⟩)
-    (rd : RD midnightBytecode I g s0 (onBehalfGuardPC consumed)
+    (rd : RD fork midnightBytecode I g s0 (onBehalfGuardPC consumed)
       (user :: solcAddrMask :: arg1 :: arg0 :: R) mem aw rdata σ k C) :
-    RD midnightBytecode I g s0 (onBehalfCheckPC consumed)
+    RD fork midnightBytecode I g s0 (onBehalfCheckPC consumed)
       (UInt256.eq (UInt256.land user solcAddrMask) (solcSourceWord I) :: arg0 :: arg1 ::
         UInt256.land user solcAddrMask :: R) mem aw rdata σ (k + 10) (C + 34) := by
   cases consumed
@@ -34,9 +36,9 @@ theorem onBehalfDelegateStep (consumed : Bool) {I : ExecutionEnv} {g : Sat256} {
     {arg0 arg1 user : UInt256} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024)
     (hcond : UInt256.isZero (UInt256.eq (UInt256.land user solcAddrMask) (solcSourceWord I)) ≠ ⟨0⟩)
-    (rd : RD midnightBytecode I g s0 (onBehalfGuardPC consumed)
+    (rd : RD fork midnightBytecode I g s0 (onBehalfGuardPC consumed)
       (user :: solcAddrMask :: arg1 :: arg0 :: R) mem aw rdata σ k C) :
-    RD midnightBytecode I g s0 (onBehalfReadPC consumed)
+    RD fork midnightBytecode I g s0 (onBehalfReadPC consumed)
       (UInt256.eq (UInt256.land user solcAddrMask) (solcSourceWord I) :: arg0 :: arg1 ::
         UInt256.land user solcAddrMask :: R) mem aw rdata σ (k + 10) (C + 34) := by
   cases consumed
@@ -47,9 +49,9 @@ theorem onBehalfReadStep (consumed : Bool) {I : ExecutionEnv} {g : Sat256} {s0 :
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {arg0 arg1 user : UInt256} {R : List UInt256}
     {check : UInt256} (hstack : R.length + 8 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 (onBehalfReadPC consumed)
+    (rd : RD fork midnightBytecode I g s0 (onBehalfReadPC consumed)
       (check :: arg0 :: arg1 :: user :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD midnightBytecode I g s0 (onBehalfCheckPC consumed)
+    ∃ k' C', RD fork midnightBytecode I g s0 (onBehalfCheckPC consumed)
       (midnightBlocks.midnight_block_3240_stack (ee := I) (mem := mem) (σ := σ)
         (x1 := arg0) (x2 := arg1) (x3 := user) (R := R))
       (midnightBlocks.midnight_block_3240_memory (ee := I) (mem := mem) (x3 := user))
@@ -69,12 +71,12 @@ theorem onBehalfTraceGuard (consumed : Bool) {I : ExecutionEnv} {g : Sat256} {s0
     {arg0 arg1 user : UInt256} {R : List UInt256}
     (hm : EntryScratch mem) (hstack : R.length + 8 ≤ 1024)
     (hcanon : user.toNat < EVM.addressModulus)
-    (rd : RD midnightBytecode I g s0 (onBehalfGuardPC consumed) (user :: solcAddrMask :: arg1 :: arg0 :: R)
+    (rd : RD fork midnightBytecode I g s0 (onBehalfGuardPC consumed) (user :: solcAddrMask :: arg1 :: arg0 :: R)
       mem aw rdata σ k C) :
     ∃ check mem' aw' k' C', EntryScratch mem' ∧
       (check ≠ ⟨0⟩ ↔ user = solcSourceWord I ∨
         UInt256.land (solcSlotWordAt (authorizationSlot user (solcSourceWord I)) σ I) ⟨255⟩ ≠ ⟨0⟩) ∧
-      RD midnightBytecode I g s0 (onBehalfCheckPC consumed) (check :: arg0 :: arg1 :: user :: R)
+      RD fork midnightBytecode I g s0 (onBehalfCheckPC consumed) (check :: arg0 :: arg1 :: user :: R)
         mem' aw' rdata σ k' C' := by
   by_cases hself : user = solcSourceWord I
   · have heq : UInt256.eq user (solcSourceWord I) = ⟨1⟩ := by

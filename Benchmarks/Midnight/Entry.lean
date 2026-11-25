@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.Common
 
+variable {fork : Ethereum.Fork}
+
 /-! Shared source entry guards and their signed EVM size tests. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -64,7 +66,7 @@ theorem guardedReturnBody {cfg : Config} {C : ContractDecl} {locals imms : Store
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit)
     (heval : evalExpr? cfg (calldataFrame C locals imms evm) evm expr = .ok value) :
-    ExecTransitionBody cfg C evm locals (entryPrefix ++ [.return [expr]])
+    ExecTransitionBody fork cfg C evm locals (entryPrefix ++ [.return [expr]])
       (.returned (calldataFrame C locals imms evm) evm (some [value])) imms := by
   apply ExecFuncBody.execBlockRet
   refine (ABlock.start.requireStep (evalCallvalueEq_true hwv)
@@ -78,7 +80,7 @@ theorem guardedReturnReverts {cfg : Config} {C : ContractDecl} {locals imms : St
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit)
     (heval : evalExpr? cfg (calldataFrame C locals imms evm) evm expr = .revert) :
-    ExecTransitionBody cfg C evm locals (entryPrefix ++ [.return [expr]]) .reverted imms := by
+    ExecTransitionBody fork cfg C evm locals (entryPrefix ++ [.return [expr]]) .reverted imms := by
   apply ExecFuncBody.execBlockRevert
   refine (ABlock.start.requireStep (evalCallvalueEq_true hwv)
     |>.letStep (value := .bytes evm.executionEnv.calldata)
@@ -94,7 +96,7 @@ theorem guardedReturnsBody {cfg : Config} {C : ContractDecl} {locals imms : Stor
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit)
     (heval : evalExprs? cfg (calldataFrame C locals imms evm) evm exprs = .ok values) :
-    ExecTransitionBody cfg C evm locals (entryPrefix ++ [.return exprs])
+    ExecTransitionBody fork cfg C evm locals (entryPrefix ++ [.return exprs])
       (.returned (calldataFrame C locals imms evm) evm (some values)) imms := by
   apply ExecFuncBody.execBlockRet
   refine (ABlock.start.requireStep (evalCallvalueEq_true hwv)
@@ -108,7 +110,7 @@ theorem calldataSizeBodyReverts {cfg : Config} {C : ContractDecl} {locals imms :
     {evm : EVM.State} {rest : List Stmt}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : ¬ evm.executionEnv.calldata.size < calldataLimit) :
-    ExecTransitionBody cfg C evm locals (entryPrefix ++ rest) .reverted imms := by
+    ExecTransitionBody fork cfg C evm locals (entryPrefix ++ rest) .reverted imms := by
   apply ExecFuncBody.execBlockRevert
   refine (ABlock.start.requireStep (evalCallvalueEq_true hwv)
     |>.letStep (value := .bytes evm.executionEnv.calldata)

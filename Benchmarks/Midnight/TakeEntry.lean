@@ -3,6 +3,8 @@ import Benchmarks.Midnight.TakeInputMemory
 import Benchmarks.Midnight.Entry
 import Benchmarks.Midnight.ScalarDecode
 
+variable {fork : Ethereum.Fork}
+
 /-! The complete take ABI decoder and its materialized input heap. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -21,9 +23,9 @@ theorem midnightTakeEntry {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hselector : ¬ 0xac9650d8 = (bytesToWord (I.calldata.toList.take 4)).toNat)
     (hmem : 832 ≤ mem.size) (hfree : memLoad (UInt256.ofNat 64) mem = ⟨832⟩)
     (ha : MemoryAccounting mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨10413⟩ R mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨10413⟩ R mem aw rdata σ k C) :
     (config.externalABI.decodeCalldata? takeNames takeTypes I.calldata = none ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     (∃ offer ratifierData data,
       config.externalABI.decodeCalldata? takeNames takeTypes I.calldata =
         some (takeArguments offer ratifierData (calldataWord I.calldata 68)
@@ -46,12 +48,12 @@ theorem midnightTakeEntry {I : ExecutionEnv} {g : Sat256} {s0 : State}
         MemoryWords mem' 96 (memoryWordSnapshot (takeEntryMemory mem I.calldata) 96 23) ∧
         MemoryFunding (3 * ((offer.callbackData.size + 31) / 32) +
           3 * ((ratifierData.size + 31) / 32) + 3 * ((data.size + 31) / 32)) mem' aw' C' ∧
-        RD midnightBytecode I g s0 ⟨10925⟩ (takerPtr :: ratifierPtr :: R)
+        RD fork midnightBytecode I g s0 ⟨10925⟩ (takerPtr :: ratifierPtr :: R)
           mem' aw' rdata σ k' C') := by
   have reject (hc : UInt256.slt (UInt256.lnot ⟨3⟩ + UInt256.ofNat I.calldata.size)
       ⟨224⟩ = ⟨1⟩) :
       config.externalABI.decodeCalldata? takeNames takeTypes I.calldata = none ∧
-        RDrev midnightBytecode g s0 := by
+        RDrev fork midnightBytecode g s0 := by
     refine ⟨midnightDecodeTake_none_check h4 (solcSLT_sub4_of_check (bit := true) hc), ?_⟩
     have rr := midnightBlocks.midnight_block_10413_taken (by omega)
       (by change UInt256.slt (UInt256.lnot ⟨3⟩ + _) ⟨224⟩ ≠ ⟨0⟩

@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TakePositionAliases
 import Benchmarks.Midnight.HasCreditSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Source aliases and the first credit predicate before updating the buyer's position. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,7 +19,7 @@ theorem takePositionReadSource {frame : Frame} {evm : State} {id buyer seller : 
     (hb : frame.locals.get? "buyer" = some (.address (AccountAddress.ofNat buyer.toNat)))
     (hs : frame.locals.get? "seller" = some (.address (AccountAddress.ofNat seller.toNat)))
     (hcanon : buyer.toNat < EVM.addressModulus) :
-    ABlock config evm frame (takeTransition.body.drop 29)
+    ABlock fork config evm frame (takeTransition.body.drop 29)
       (takePositionReadFrame frame evm id buyer seller) (takeTransition.body.drop 32) := by
   have hi1 : (takePositionAliasesFrame frame id buyer seller).locals.get? "id" =
       some (wordBytes32Value id) :=

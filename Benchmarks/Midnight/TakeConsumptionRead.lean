@@ -2,6 +2,8 @@ import Benchmarks.Midnight.TakeConsumptionUnitsRead
 import Benchmarks.Midnight.TakeConsumptionAssetsRead
 import Benchmarks.Midnight.TakeConsumptionCap
 
+variable {fork : Ethereum.Fork}
+
 /-! Both consumed-counter paths reach the same checked-addition routine. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -20,9 +22,9 @@ theorem midnightTakeConsumptionRead {credit : Nat} {I : ExecutionEnv} {g : Sat25
     (hb : memLoad (UInt256.ofNat 256) mem = bought)
     (hs : memLoad (UInt256.ofNat 416) mem = sold)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨11681⟩ R mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨11681⟩ R mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding credit (takeConsumptionReadMemory mem offer) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨19536⟩
+      RD fork midnightBytecode I g s0 ⟨19536⟩
         (takeConsumedWord σ I offer :: takeConsumedDelta offer units bought sold ::
           takeConsumptionCheckPC offer :: R)
         (takeConsumptionReadMemory mem offer) aw' rdata σ k' C' := by
@@ -44,7 +46,7 @@ theorem midnightTakeConsumptionRead {credit : Nat} {I : ExecutionEnv} {g : Sat25
   · simp only [takeConsumptionReadPC, if_neg hz] at rd1
     obtain ⟨aw2, k2, C2, ha2, rd2⟩ := midnightTakeConsumedAssetsRead hstack ho1 hroot1 ha1 rd1
     change MemoryFunding credit (takeConsumptionReadMemory mem offer) aw2 C2 at ha2
-    change RD midnightBytecode I g s0 (takeConsumedAssetPC offer.buy)
+    change RD fork midnightBytecode I g s0 (takeConsumedAssetPC offer.buy)
       (takeConsumedWord σ I offer :: UInt256.ofNat 11794 :: R)
       (takeConsumptionReadMemory mem offer) aw2 rdata σ k2 C2 at rd2
     by_cases hbuy : offer.buy = ⟨0⟩

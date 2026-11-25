@@ -4,6 +4,8 @@ import Benchmarks.Midnight.RepayCallbackReturn
 import Benchmarks.Midnight.RepayCallbackSource
 import Benchmarks.Midnight.TypedCallBudget
 
+variable {fork : Ethereum.Fork}
+
 /-! Repayment's external callback, its acknowledgement, and the retained transfer budget. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -27,20 +29,20 @@ theorem midnightRepayCallback {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hf : RepaySourceFrame frame m id user units callback
       (I.calldata.extract dp.toNat (dp.toNat + dl.toNat)))
     (hb : TransferBudget budgetRoot credit mem aw C) (hs : SourceState s0 I σ evm)
-    (rd : RD midnightBytecode I g s0 ⟨10127⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨10127⟩
       ([id, dp, UInt256.ofNat callback.val, dl, user, payer, units, market] ++ R)
       mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (ExecBlock config frame evm [repayCallbackStmt, .require repayMagicGuard] .reverted ∧
-      RDrev midnightBytecode g s0) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (ExecBlock fork config frame evm [repayCallbackStmt, .require repayMagicGuard] .reverted ∧
+      RDrev fork midnightBytecode g s0) ∨
     ∃ (evm' : State) (σ' : AccountMap) (out mem' : ByteArray) (aw' : UInt256) (k' C' : Nat),
-      ExecBlock config frame evm [repayCallbackStmt, .require repayMagicGuard]
+      ExecBlock fork config frame evm [repayCallbackStmt, .require repayMagicGuard]
         (.ok (repayCallbackFrame frame (calldataWord out 0)) evm') ∧
       SourceState s0 I σ' evm' ∧ MemoryPrefix mem mem' root.toNat ∧
       memLoad (UInt256.ofNat 64) mem' = root + UInt256.ofNat 32 ∧
       root.toNat + 32 ≤ mem'.size ∧
       TransferBudget budgetRoot (credit + 4 + 128 * m.collaterals.length) mem' aw' C' ∧
-      RD midnightBytecode I g s0 ⟨10259⟩ ([payer, units, market] ++ R)
+      RD fork midnightBytecode I g s0 ⟨10259⟩ ([payer, units, market] ++ R)
         mem' aw' out σ' k' C' := by
   obtain ⟨gasArg, aw1, k1, C1, hb1, rd1⟩ := midnightRepayCallbackPrepare_budget m hstack hm
     hlimit (by omega) hlower hmem hz hfree hdl hd hb rd

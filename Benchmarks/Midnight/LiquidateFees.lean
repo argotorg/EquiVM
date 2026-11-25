@@ -3,6 +3,8 @@ import Benchmarks.Midnight.LiquidateFeeEntry
 import Benchmarks.Midnight.LiquidateFeeStore
 import Benchmarks.Midnight.PackedStorageSourceState
 
+variable {fork : Ethereum.Fork}
+
 /-! Source/runtime agreement for the final remaining-fee phase of bad-debt recognition. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -21,23 +23,23 @@ theorem midnightLiquidateFees {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {
     (hl : frame.locals.get? "_lossFactor" = some (.int (UInt256.shiftRight oldWord ⟨128⟩).toNat))
     (hs : SourceState s0 I (storeLow128Accounts σ I (solcMappingSlot ⟨1⟩ id) value) evm)
     (hb : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨7603⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨7603⟩
       (value :: uint128Mask :: oldWord :: R) mem aw rdata σ k C) :
     let oldLoss := UInt256.shiftRight oldWord ⟨128⟩
     let amount := liquidateFeeValue evm id oldLoss
     let evm' := marketBalanceStore evm id 2 amount
-    (ExecBlock config frame evm (liquidateBadDebtBody.drop 8) .reverted ∧
-      RDrev midnightBytecode g s0) ∨
+    (ExecBlock fork config frame evm (liquidateBadDebtBody.drop 8) .reverted ∧
+      RDrev fork midnightBytecode g s0) ∨
     (∃ σ' aw' k' C', SourceState s0 I σ' evm' ∧
-      ExecBlock config frame evm (liquidateBadDebtBody.drop 8)
+      ExecBlock fork config frame evm (liquidateBadDebtBody.drop 8)
         (.ok (liquidateFeeFrame frame oldLoss amount) evm') ∧
       TransferBudget root credit mem aw' C' ∧
-      RD midnightBytecode I g s0 ⟨7768⟩ R mem aw' rdata σ' k' C') := by
+      RD fork midnightBytecode I g s0 ⟨7768⟩ R mem aw' rdata σ' k' C') := by
   dsimp only
   let oldLoss := UInt256.shiftRight oldWord ⟨128⟩
   let σ1 := storeLow128Accounts σ I (solcMappingSlot ⟨1⟩ id) value
   have heperm : evm.executionEnv.perm = true := hs.env ▸ hp
-  have hsource := liquidateFeesSource hc hm hl heperm
+  have hsource := liquidateFeesSource (fork := fork) hc hm hl heperm
   have hfee : marketBalanceWord evm id 2 = UInt256.shiftRight
       (solcSlotWordAt (solcMappingSlot ⟨1⟩ id + ⟨1⟩) σ1 I) ⟨128⟩ := by
     change UInt256.shiftRight (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner

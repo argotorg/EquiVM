@@ -17,6 +17,8 @@ namespace Benchmarks.Midnight
 def diffTarget : Target :=
   { name := "Midnight", contract := contract, config := config, runtime := midnightBytecode,
     initcode := some midnightCreationBytecode,
+    -- compiled for `evmVersion: osaka`: the runtime uses CLZ, an invalid instruction before Osaka
+    fork := .osaka,
     callees := midnightCallees, words := [1, 4, 3372, 10 ^ 18, 10 ^ 36] }
 
 end Benchmarks.Midnight

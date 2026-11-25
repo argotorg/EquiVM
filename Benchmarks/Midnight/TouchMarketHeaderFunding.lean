@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TouchMarketHeaderTrace
 import Benchmarks.Midnight.MemoryFunding
 
+variable {fork : Ethereum.Fork}
+
 /-! Funding retained by the header checks for a fresh market. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -13,11 +15,11 @@ theorem midnightTouchMarketHeader_funded {credit : Nat} {I : ExecutionEnv} {g : 
     {s0 : State} {mem rdata : ByteArray} {aw ptr arrayPtr root id ret : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (m : MarketData) (hstack : R.length + 9 ≤ 1024)
     (hm : MarketStored mem ptr arrayPtr root m) (hfund : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨20764⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨20764⟩
       ((ptr + UInt256.ofNat 32) :: ptr :: id :: ret :: R) mem aw rdata σ k C) :
-    (¬ TouchMarketHeaderSafe I m ∧ RDrev midnightBytecode g s0) ∨
+    (¬ TouchMarketHeaderSafe I m ∧ RDrev fork midnightBytecode g s0) ∨
     (TouchMarketHeaderSafe I m ∧ ∃ aw' k' C', MemoryFunding credit mem aw' C' ∧
-      RD midnightBytecode I g s0 ⟨20840⟩
+      RD fork midnightBytecode I g s0 ⟨20840⟩
         (⟨0⟩ :: ret :: ptr :: (ptr + UInt256.ofNat 96) :: id :: ⟨0⟩ :: R)
         mem aw' rdata σ k' C') := by
   rcases midnightTouchMarketHeader m hstack hm rd with hbad | ⟨hsafe, _⟩

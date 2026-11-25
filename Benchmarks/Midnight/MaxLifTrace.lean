@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.MulDivTrace
 
+variable {fork : Ethereum.Fork}
+
 /-! Arithmetic preconditions and complete bytecode execution of `maxLif`. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -45,10 +47,10 @@ theorem midnightMaxLif {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw lltv cursor ret : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 8 ≤ 1024)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨24250⟩ (lltv :: cursor :: ret :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨24250⟩ (lltv :: cursor :: ret :: R)
       mem aw rdata σ k C) :
-    (¬ MaxLifSafe lltv cursor ∧ RDrev midnightBytecode g s0) ∨
-    (MaxLifSafe lltv cursor ∧ ∃ k' C', RD midnightBytecode I g s0 ret
+    (¬ MaxLifSafe lltv cursor ∧ RDrev fork midnightBytecode g s0) ∨
+    (MaxLifSafe lltv cursor ∧ ∃ k' C', RD fork midnightBytecode I g s0 ret
       (maxLif lltv cursor :: R) mem aw rdata σ k' C') := by
   by_cases hsub : lltv.toNat ≤ lifScale.toNat
   · have rd1 := midnightBlocks.midnight_block_24250_fallthrough (by

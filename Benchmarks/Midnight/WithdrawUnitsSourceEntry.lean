@@ -4,6 +4,8 @@ import Benchmarks.Midnight.MarketUnitsReceiverDecode
 import Benchmarks.Midnight.TouchMarketSource
 import Benchmarks.Midnight.Authorization
 
+variable {fork : Ethereum.Fork}
+
 /-! Source authorization and market initialization for unit withdrawal. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -40,9 +42,9 @@ theorem withdrawUnitsAfterAuthSource {origin : EVM.State} {m : MarketData} {user
     (hwv : origin.executionEnv.weiValue = ⟨0⟩)
     (hlimit : origin.executionEnv.calldata.size < calldataLimit)
     (hauth : onBehalfAllowed origin user)
-    (htail : ExecBlock config (withdrawUnitsExternalFrame origin m user units receiver) origin
+    (htail : ExecBlock fork config (withdrawUnitsExternalFrame origin m user units receiver) origin
       (withdrawTransition.body.drop 4) result) :
-    ExecBlock config { contract := contract, locals := (marketUnitsReceiverArguments m units
+    ExecBlock fork config { contract := contract, locals := (marketUnitsReceiverArguments m units
       (AccountAddress.ofNat user.toNat) receiver), immutables := ∅ } origin
       withdrawTransition.body result := by
   apply guardedBodyBlock hwv hlimit
@@ -52,11 +54,11 @@ theorem withdrawUnitsAfterAuthSource {origin : EVM.State} {m : MarketData} {user
 
 theorem withdrawUnitsAfterTouchSource {origin evm : EVM.State} {m : MarketData} {user units : UInt256} {receiver : AccountAddress}
     {callee : Frame} {result : ExecResult}
-    (htouch : ExecFuncBody config (touchMarketCallFrame ∅ m) origin touchMarketFunction.body
+    (htouch : ExecFuncBody fork config (touchMarketCallFrame ∅ m) origin touchMarketFunction.body
       (.returned callee evm (some [wordBytes32Value m.id])))
-    (htail : ExecBlock config (withdrawUnitsAfterTouchFrame origin m user units receiver) evm
+    (htail : ExecBlock fork config (withdrawUnitsAfterTouchFrame origin m user units receiver) evm
       (withdrawTransition.body.drop 5) result) :
-    ExecBlock config (withdrawUnitsExternalFrame origin m user units receiver) origin
+    ExecBlock fork config (withdrawUnitsExternalFrame origin m user units receiver) origin
       (withdrawTransition.body.drop 4) result :=
   ExecBlock.consNormal (internalCallFunctionReturn (callee := touchMarketFunction)
     (locals := touchMarketArguments m) (withdrawUnitsTouchArgs origin m user units receiver) rfl rfl htouch) htail

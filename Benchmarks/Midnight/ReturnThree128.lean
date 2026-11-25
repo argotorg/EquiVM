@@ -4,6 +4,8 @@ import Benchmarks.Midnight.WordTuple
 import Benchmarks.Midnight.RuntimeBlocks_008
 import Benchmarks.Midnight.RuntimeBlocks_013
 
+variable {fork : Ethereum.Fork}
+
 /-! The position-view ABI encoder for three uint128 return values. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,8 +19,8 @@ theorem midnightReturnThree128 {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {R : List UInt256} (hstack : R.length + 9 ≤ 1024)
     (hroot : root.toNat < 2 ^ 64) (hfree : memLoad (UInt256.ofNat 64) mem = root)
     (ha : a.toNat < 2 ^ 128) (hb : b.toNat < 2 ^ 128) (hc : c.toNat < 2 ^ 128)
-    (rd : RD midnightBytecode I g s0 ⟨2594⟩ (c :: b :: a :: ⟨1184⟩ :: R) mem aw rdata σ k C) :
-    RDret midnightBytecode g s0 σ (wordArrayBytes [a, b, c]) := by
+    (rd : RD fork midnightBytecode I g s0 ⟨2594⟩ (c :: b :: a :: ⟨1184⟩ :: R) mem aw rdata σ k C) :
+    RDret fork midnightBytecode g s0 σ (wordArrayBytes [a, b, c]) := by
   have rd1 := midnightBlocks.midnight_block_2594 hstack (by jump_dest) rd
   simp only [midnightBlocks.midnight_block_2594_stack, hfree] at rd1
   have hr := midnightBlocks.midnight_block_1184 (by omega) rd1

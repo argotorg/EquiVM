@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TakeConsumptionMemory
 import Benchmarks.Midnight.RuntimeBlocks_054
 
+variable {fork : Ethereum.Fork}
+
 /-! The unit-cap path reads the low 128 bits of the consumed mapping with funding retained. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,11 +17,11 @@ theorem midnightTakeConsumedUnitsRead {credit : Nat} {I : ExecutionEnv} {g : Sat
     (hstack : R.length + 5 ≤ 1024)
     (ho : OfferStored mem ⟨832⟩ marketPtr arrayPtr callbackPtr root offer)
     (hroot : memLoad (UInt256.ofNat 384) mem = ⟨832⟩) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨14604⟩ R mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨14604⟩ R mem aw rdata σ k C) :
     ∃ aw' k' C',
       MemoryFunding credit (consumedHashMemory mem offer.group (UInt256.ofNat offer.maker.val))
         aw' C' ∧
-      RD midnightBytecode I g s0 ⟨19536⟩
+      RD fork midnightBytecode I g s0 ⟨19536⟩
         (takeConsumedWord σ I offer :: calldataWord I.calldata 68 :: UInt256.ofNat 14672 :: R)
         (consumedHashMemory mem offer.group (UInt256.ofNat offer.maker.val)) aw' rdata σ k' C' := by
   have hmem : 416 ≤ mem.size := by

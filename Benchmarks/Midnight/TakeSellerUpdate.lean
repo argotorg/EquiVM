@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TakeSellerUpdateSource
 import Benchmarks.Midnight.TakeSellerCreditRead
 
+variable {fork : Ethereum.Fork}
+
 /-! The seller update reads credit from the state left by the buyer update. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -26,20 +28,20 @@ theorem midnightTakeSellerUpdate {credit : Nat} {I : ExecutionEnv} {g : Sat256}
     (hid : memLoad (UInt256.ofNat 512) mem = id)
     (hsellerMem : memLoad (UInt256.ofNat 448) mem = seller)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨11966⟩ R mem aw rdata evm.accountMap k C) :
-    (ExecBlock config frame evm (takeTransition.body.drop 33) .reverted ∧
-      RDrev midnightBytecode g s0) ∨
-    (ExecBlock config frame evm (takeTransition.body.drop 33) .staticViolation ∧
-      RDstatic midnightBytecode g s0) ∨
+    (rd : RD fork midnightBytecode I g s0 ⟨11966⟩ R mem aw rdata evm.accountMap k C) :
+    (ExecBlock fork config frame evm (takeTransition.body.drop 33) .reverted ∧
+      RDrev fork midnightBytecode g s0) ∨
+    (ExecBlock fork config frame evm (takeTransition.body.drop 33) .staticViolation ∧
+      RDstatic fork midnightBytecode g s0) ∨
     (let frame' := takeSellerUpdateFrame frame evm offer id seller
      let evm' := takeSellerUpdateState evm offer id seller
      let mem' := takeSellerUpdateMemory mem root evm offer id seller
-     ExecBlock config frame evm takeSellerUpdateBody (.ok frame' evm') ∧
+     ExecBlock fork config frame evm takeSellerUpdateBody (.ok frame' evm') ∧
      TakeSourceFrame frame' offer id units taker receiver callback ratifierData data ∧
      SourceState s0 I evm'.accountMap evm' ∧ MemoryPrefix mem mem' root.toNat ∧
      memLoad (UInt256.ofNat 64) mem' = root ∧
      ∃ aw' k' C', MemoryFunding credit mem' aw' C' ∧
-       RD midnightBytecode I g s0 ⟨12026⟩ R mem' aw' rdata evm'.accountMap k' C') := by
+       RD fork midnightBytecode I g s0 ⟨12026⟩ R mem' aw' rdata evm'.accountMap k' C') := by
   have hmem : 1312 ≤ mem.size := by
     have hw := ho.words.size
     change 832 + 32 * 15 ≤ mem.size at hw
@@ -59,7 +61,7 @@ theorem midnightTakeSellerUpdate {credit : Nat} {I : ExecutionEnv} {g : Sat256}
   have hm1 : memLoad (⟨832⟩ : UInt256) (positionReadMemory mem id seller) = marketPtr :=
     ho1.words.load_offset ⟨0, by change 0 < 15; decide⟩ rfl
   have hprefix := positionReadMemory_prefix mem id seller root.toNat
-  have hxCredit := takeSellerCreditSource (evm := evm) hf.contract hf.idValue hseller hcanon
+  have hxCredit := takeSellerCreditSource (fork := fork) (evm := evm) hf.contract hf.idValue hseller hcanon
   have hfCredit := hf.sellerCredit (evm := evm) (seller := seller)
   have hsellerCredit := (takeSellerCreditFrame_get frame evm id seller "seller"
     (by decide)).trans hseller

@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TakeUnlockSource
 import Benchmarks.Midnight.DynamicLockTrace
 
+variable {fork : Ethereum.Fork}
+
 /-! Restore the captured lock state before the final health check. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -21,17 +23,17 @@ theorem midnightTakeUnlock {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0 ev
     (hid : memLoad (UInt256.ofNat 512) mem = id)
     (hseller : memLoad (UInt256.ofNat 448) mem = seller)
     (ha : MemoryFunding credit mem aw C) (hs : SourceState s0 I σ evm)
-    (rd : RD midnightBytecode I g s0 ⟨13336⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨13336⟩
       (ignored :: wasLocked :: R) mem aw rdata σ k C) :
     ∃ (frame' : Frame) (evm' : State) (σ' : AccountMap) (mem' : ByteArray)
       (root' aw' : UInt256) (k' C' : Nat),
-      ExecStmt config frame evm takeTransition.body[71]! (.ok frame' evm') ∧
+      ExecStmt fork config frame evm takeTransition.body[71]! (.ok frame' evm') ∧
       frame'.contract = frame.contract ∧
       (∀ name, name ≠ "__c31" → frame'.locals.get? name = frame.locals.get? name) ∧
       SourceState s0 I σ' evm' ∧ MemoryPrefix mem mem' root.toNat ∧
       (root' = root ∨ root' = root + UInt256.ofNat 128) ∧
       memLoad (UInt256.ofNat 64) mem' = root' ∧ MemoryFunding credit mem' aw' C' ∧
-      RD midnightBytecode I g s0 ⟨13343⟩ R mem' aw' rdata σ' k' C' := by
+      RD fork midnightBytecode I g s0 ⟨13343⟩ R mem' aw' rdata σ' k' C' := by
   have he := takeUnlockCondition_eval (evm := evm) hw
   rw [takeUnlock_shape]
   by_cases hz : wasLocked = ⟨0⟩
@@ -72,12 +74,12 @@ theorem midnightTakeReadLock {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0 
     (hid : memLoad (UInt256.ofNat 512) mem = id)
     (hseller : memLoad (UInt256.ofNat 448) mem = seller)
     (ha : MemoryFunding credit mem aw C) (hs : SourceState s0 I σ evm)
-    (rd : RD midnightBytecode I g s0 ⟨13343⟩ R mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨13343⟩ R mem aw rdata σ k C) :
     ∃ aw' k' C',
-      ExecStmt config frame evm takeTransition.body[72]!
+      ExecStmt fork config frame evm takeTransition.body[72]!
         (.ok (takeLockedFrame frame evm id seller) evm) ∧
       MemoryFunding credit (dynamicLockMemory mem root id seller) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨13359⟩
+      RD fork midnightBytecode I g s0 ⟨13359⟩
         (Stele.EVM.transientLoad evm evm.executionEnv.codeOwner
           (lockSlot liquidationLockBase id seller) :: R)
         (dynamicLockMemory mem root id seller) aw' rdata σ k' C' := by

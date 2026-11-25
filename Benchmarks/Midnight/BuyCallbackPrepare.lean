@@ -2,6 +2,8 @@ import Benchmarks.Midnight.BuyCallbackFields
 import Benchmarks.Midnight.BuyCallbackMemory
 import Benchmarks.Midnight.MarketEncoderFunding
 
+variable {fork : Ethereum.Fork}
+
 /-! Complete construction of the buyer callback input and CALL stack. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -27,12 +29,12 @@ theorem midnightBuyCallbackPrepare {credit : Nat} {I : ExecutionEnv} {g : Sat256
     (hbRead : memLoad (UInt256.ofNat 576) mem = user)
     (hf128 : fee.toNat < 2^128) (huser : user.toNat < EVM.addressModulus)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨13805⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨13805⟩
       ([UInt256.ofNat callback.val, ptr, ⟨32⟩, ⟨13931⟩] ++ R) mem aw rdata σ k C) :
     ∃ gasArg aw' k' C',
       MemoryFunding (credit + 128 * m.collaterals.length + 3 * ((data.size + 31) / 32))
         (buyCallbackMemory mem root.toNat m id assets units fee user ptr.toNat data.size) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨13936⟩
+      RD fork midnightBytecode I g s0 ⟨13936⟩
         ([gasArg, UInt256.ofNat callback.val, ⟨0⟩, root, UInt256.ofNat (buyCallbackSize m data.size),
           root, ⟨32⟩, root] ++ R)
         (buyCallbackMemory mem root.toNat m id assets units fee user ptr.toNat data.size)

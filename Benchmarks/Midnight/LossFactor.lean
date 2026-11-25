@@ -3,6 +3,8 @@ import Benchmarks.Midnight.ScalarDecode
 import Benchmarks.Midnight.MappingMemory
 import Benchmarks.Midnight.PackedFields
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `lossFactor(bytes32)`
 
@@ -20,7 +22,7 @@ set_option maxRecDepth 2000000
 theorem lossFactorBodyReturns (evm : EVM.State) (key : UInt256)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) :
-    ExecTransitionBody config contract evm ((∅ : Store).insert "id" (wordBytes32Value key))
+    ExecTransitionBody fork config contract evm ((∅ : Store).insert "id" (wordBytes32Value key))
       lossFactorTransition.body
       (.returned (calldataFrame contract ((∅ : Store).insert "id" (wordBytes32Value key)) ∅ evm)
         evm (some [.int (Int.ofNat (UInt256.shiftRight
@@ -39,15 +41,15 @@ theorem lossFactorBodyReturns (evm : EVM.State) (key : UInt256)
   · exact storageLocLoad_uint128_high evm _
 
 theorem lossFactorTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Nat}
-    (rd : RD midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 15820)
+    (rd : RD fork midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 15820)
       [solcSelectorWord I] midnightEntryMemory
       (M (M (UInt256.ofNat 0) (UInt256.ofNat 64) ⟨32⟩) (UInt256.ofNat 800) ⟨32⟩)
       ByteArray.empty σ k C) :
-    RDret midnightBytecode g (initState σ σ₀ g A I) σ
+    RDret fork midnightBytecode g (initState σ σ₀ g A I) σ
       (UInt256.shiftRight (solcSlotWordAt (solcMappingSlot ⟨1⟩ (calldataWord I.calldata 4)) σ I)
         (UInt256.ofNat 128)).toByteArray := by
   have hr := midnightBlocks.midnight_block_15820 (by simp) rd
-  change RDret _ _ _ _
+  change RDret fork _ _ _ _
     ((writeWord (mappingMemory (calldataWord I.calldata 4) ⟨1⟩)
       (memLoad (UInt256.ofNat 64) (mappingMemory (calldataWord I.calldata 4) ⟨1⟩)).toNat
       (UInt256.shiftRight (solcSlotWordAt (keccakWord ⟨0⟩ (UInt256.ofNat 64)
@@ -60,10 +62,10 @@ theorem lossFactorTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Nat}
 /-- `lossFactor(bytes32)`: the theorem `Correct.lean` routes selector 13 to. -/
 theorem midnightLossFactorBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 13)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 13) rfl hsel
   have hd : dispatchMsg contract I.calldata = some lossFactorTransition := by
     apply midnightDispatch_lossFactor <;>
@@ -78,7 +80,7 @@ theorem midnightLossFactorBody {σ σ₀ A I} {g : UInt256}
           (entrySizeCheck_ok (bytes := 32) h36 hhi hsize) rd1
         have hret := lossFactorTraceReturn rd2
         have hdec := midnightDecodeBytes32 "id" (by decide) (by decide) h36 hhi hsize
-        have hbody := lossFactorBodyReturns (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        have hbody := lossFactorBodyReturns (fork := fork) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (calldataWord I.calldata 4) hwv hhi
         exact hret.reEquivExecution hcode hd hdec hbody
           (returnEquiv_of_encode (uintReturnEncoding ⟨128, by decide⟩ _

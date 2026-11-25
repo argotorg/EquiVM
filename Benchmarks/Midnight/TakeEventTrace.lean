@@ -3,6 +3,8 @@ import Benchmarks.Midnight.TakeEventPrepare
 import Benchmarks.Midnight.AllocationFunding
 import Benchmarks.Midnight.AllocationArithmetic
 
+variable {fork : Ethereum.Fork}
+
 /-! The complete trade event trace, ending at the transient-lock exchange. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -25,13 +27,13 @@ theorem midnightTakeEventTrace {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s
     (hseller : memLoad (UInt256.ofNat 448) mem = seller)
     (hcanon : seller.toNat < EVM.addressModulus)
     (hperm : I.perm = true) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨12838⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨12838⟩
       ([encodedPtr, encodedDataPtr, decrease, increase, ratifierPtr,
         sellerCallback, payer, buyerCallback] ++ R) mem aw rdata σ k C) :
     ∃ eventMem aw' k' C', MemoryPrefix mem eventMem root.toNat ∧
       MemoryFunding (credit + 3 * ((ratifierData.size + 31) / 32))
         (dynamicLockMemory eventMem root id seller) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨13223⟩ ([root, sellerCallback, payer, buyerCallback] ++ R)
+      RD fork midnightBytecode I g s0 ⟨13223⟩ ([root, sellerCallback, payer, buyerCallback] ++ R)
         (dynamicLockMemory eventMem root id seller) aw' rdata σ k' C' := by
   have hbound : root.toNat + 480 < UInt256.size := by change _ < 2^256; omega
   have h480 : (root + UInt256.ofNat 480).toNat = root.toNat + 480 :=

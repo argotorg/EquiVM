@@ -3,6 +3,8 @@ import Benchmarks.Midnight.CalldataAddressFunding
 import Benchmarks.Midnight.CollateralLoopMemory
 import Benchmarks.Midnight.RuntimeBlocks_025
 
+variable {fork : Ethereum.Fork}
+
 /-! The callback's final market fields and scalar argument stores. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -20,7 +22,7 @@ theorem midnightLiquidateCallbackFields {credit : Nat} {I : ExecutionEnv} {g : S
     (hcanon : borrower.toNat < EVM.addressModulus)
     (hseized : memLoad (UInt256.ofNat 640) mem = seized)
     (hpaid : memLoad (UInt256.ofNat 608) mem = repaid) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨6050⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨6050⟩
       ([x0, x1, x2, borrower, UInt256.ofNat receiver.val, dp, dl,
         root + UInt256.ofNat (612 + 128 * m.collaterals.length), root, badDebt, root] ++ R)
       mem aw rdata σ k C) :
@@ -28,7 +30,7 @@ theorem midnightLiquidateCallbackFields {credit : Nat} {I : ExecutionEnv} {g : S
       MemoryFunding credit
         (liquidateCallbackFieldsMemory mem root.toNat m index seized repaid borrower
           (UInt256.ofNat receiver.val)) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨19711⟩
+      RD fork midnightBytecode I g s0 ⟨19711⟩
         ([dp, dl, root + UInt256.ofNat (612 + 128 * m.collaterals.length), ⟨6199⟩,
           badDebt, root, root, ⟨32⟩, root] ++ R)
         (liquidateCallbackFieldsMemory mem root.toNat m index seized repaid borrower

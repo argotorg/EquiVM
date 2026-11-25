@@ -6,6 +6,8 @@ import Benchmarks.Midnight.TripleDecode
 import Benchmarks.Midnight.MappingMemory
 import Benchmarks.Midnight.AddressDecode
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `setMarketSettlementFee(bytes32,uint256,uint256)`
 
@@ -98,7 +100,7 @@ theorem settlementMarketAuthEval (evm : EVM.State) (id : UInt256) (index : Nat) 
     (by simp [settlementMarketAlias, calldataFrame, settlementMarketArguments]) rfl rfl
 
 theorem settlementMarketBindAlias (evm : EVM.State) (id : UInt256) (index : Nat) (value : UInt256) :
-    ABlock config evm (calldataFrame contract (settlementMarketArguments id index value) ∅ evm)
+    ABlock fork config evm (calldataFrame contract (settlementMarketArguments id index value) ∅ evm)
       (setMarketSettlementFeeTransition.body.drop 3) (settlementMarketAlias evm id index value)
       (setMarketSettlementFeeTransition.body.drop 4) := by
   refine ⟨fun h ↦ ExecBlock.consNormal (ExecStmt.letStorage ?_) h⟩
@@ -112,7 +114,7 @@ theorem settlementMarketBindAlias (evm : EVM.State) (id : UInt256) (index : Nat)
 
 theorem settlementMarketPrefix (evm : EVM.State) (id value : UInt256) (i : Fin 7)
     (hauth : roleAllowed evm ⟨10⟩) :
-    ABlock config evm (settlementMarketAlias evm id i.val value)
+    ABlock fork config evm (settlementMarketAlias evm id i.val value)
       (setMarketSettlementFeeTransition.body.drop 4) (settlementMarketFrame evm id value i)
       (setMarketSettlementFeeTransition.body.drop 7) := by
   refine ⟨fun h ↦ ExecBlock.consNormal (ExecStmt.requireTrue ?_)
@@ -125,7 +127,7 @@ theorem settlementMarketPrefix (evm : EVM.State) (id value : UInt256) (i : Fin 7
 theorem settlementMarketGuards (evm : EVM.State) (id value : UInt256) (i : Fin 7)
     (hauth : roleAllowed evm ⟨10⟩) (hbound : value.toNat ≤ maxSettlementFeeValue i)
     (hmultiple : value.toNat % 1000000000000 = 0) :
-    ABlock config evm (settlementMarketAlias evm id i.val value)
+    ABlock fork config evm (settlementMarketAlias evm id i.val value)
       (setMarketSettlementFeeTransition.body.drop 4) (settlementMarketFrame evm id value i)
       (setMarketSettlementFeeTransition.body.drop 9) := by
   refine ⟨fun h ↦ (settlementMarketPrefix evm id value i hauth).run
@@ -138,7 +140,7 @@ theorem settlementMarketGuards (evm : EVM.State) (id value : UInt256) (i : Fin 7
 theorem settlementMarketAuthReverts (evm : EVM.State) (id : UInt256) (index : Nat) (value : UInt256)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hhi : evm.executionEnv.calldata.size < calldataLimit)
     (hauth : ¬ roleAllowed evm ⟨10⟩) :
-    ExecTransitionBody config contract evm (settlementMarketArguments id index value)
+    ExecTransitionBody fork config contract evm (settlementMarketArguments id index value)
       setMarketSettlementFeeTransition.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply guardedBodyBlock hwv hhi
@@ -150,7 +152,7 @@ theorem settlementMarketAuthReverts (evm : EVM.State) (id : UInt256) (index : Na
 theorem settlementMarketIndexReverts (evm : EVM.State) (id : UInt256) (index : Nat) (value : UInt256)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hhi : evm.executionEnv.calldata.size < calldataLimit)
     (hauth : roleAllowed evm ⟨10⟩) (hindex : ¬ index ≤ 6) :
-    ExecTransitionBody config contract evm (settlementMarketArguments id index value)
+    ExecTransitionBody fork config contract evm (settlementMarketArguments id index value)
       setMarketSettlementFeeTransition.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply guardedBodyBlock hwv hhi
@@ -165,7 +167,7 @@ theorem settlementMarketIndexReverts (evm : EVM.State) (id : UInt256) (index : N
 theorem settlementMarketBoundReverts (evm : EVM.State) (id value : UInt256) (i : Fin 7)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hhi : evm.executionEnv.calldata.size < calldataLimit)
     (hauth : roleAllowed evm ⟨10⟩) (hbound : ¬ value.toNat ≤ maxSettlementFeeValue i) :
-    ExecTransitionBody config contract evm (settlementMarketArguments id i.val value)
+    ExecTransitionBody fork config contract evm (settlementMarketArguments id i.val value)
       setMarketSettlementFeeTransition.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply guardedBodyBlock hwv hhi
@@ -180,7 +182,7 @@ theorem settlementMarketMultipleReverts (evm : EVM.State) (id value : UInt256) (
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hhi : evm.executionEnv.calldata.size < calldataLimit)
     (hauth : roleAllowed evm ⟨10⟩) (hbound : value.toNat ≤ maxSettlementFeeValue i)
     (hmultiple : value.toNat % 1000000000000 ≠ 0) :
-    ExecTransitionBody config contract evm (settlementMarketArguments id i.val value)
+    ExecTransitionBody fork config contract evm (settlementMarketArguments id i.val value)
       setMarketSettlementFeeTransition.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply guardedBodyBlock hwv hhi
@@ -226,10 +228,10 @@ theorem settlementMarketAssign {frame : Frame} (evm : EVM.State) (id value : UIn
 
 theorem settlementMarketSelect {frame : Frame} {evm : EVM.State} {result : ExecResult}
     (i : Fin 7) (hindex : frame.locals.get? "index" = some (.int (Int.ofNat i.val)))
-    (hbranch : ExecStmt config frame evm
+    (hbranch : ExecStmt fork config frame evm
       (.assign .storage { base := "_marketState", steps :=
         [.field ("settlementFeeCbp" ++ toString i.val)] } (.var "newSettlementFeeCbp")) result) :
-    ExecStmt config frame evm (setMarketSettlementFeeTransition.body[11]!) result := by
+    ExecStmt fork config frame evm (setMarketSettlementFeeTransition.body[11]!) result := by
   have he (n : Nat) : evalExpr? config frame evm (.binary .eq (.var "index") (.intLit n)) =
       .ok (.bool (decide (i.val = n))) := by
     simp only [evalExpr?, hindex, EvalResult.ofOption, bind, pure, EvalResult.bind,
@@ -298,7 +300,7 @@ theorem settlementMarketDisabledReverts (evm : EVM.State) (id value : UInt256) (
     (hauth : roleAllowed evm ⟨10⟩) (hbound : value.toNat ≤ maxSettlementFeeValue i)
     (hmultiple : value.toNat % 1000000000000 = 0)
     (hspace : marketTickSpacing (marketFeeWord evm id) = ⟨0⟩) :
-    ExecTransitionBody config contract evm (settlementMarketArguments id i.val value)
+    ExecTransitionBody fork config contract evm (settlementMarketArguments id i.val value)
       setMarketSettlementFeeTransition.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply guardedBodyBlock hwv hhi
@@ -313,7 +315,7 @@ theorem settlementMarketWritePrefix (evm : EVM.State) (id value : UInt256) (i : 
     (hauth : roleAllowed evm ⟨10⟩) (hbound : value.toNat ≤ maxSettlementFeeValue i)
     (hmultiple : value.toNat % 1000000000000 = 0)
     (hspace : marketTickSpacing (marketFeeWord evm id) ≠ ⟨0⟩) :
-    ABlock config evm (settlementMarketAlias evm id i.val value)
+    ABlock fork config evm (settlementMarketAlias evm id i.val value)
       (setMarketSettlementFeeTransition.body.drop 4) (settlementMarketWriteFrame evm id value i)
       (setMarketSettlementFeeTransition.body.drop 11) := by
   have hpos : 0 < (marketTickSpacing (marketFeeWord evm id)).toNat := by
@@ -349,7 +351,7 @@ theorem settlementMarketReturns (evm : EVM.State) (id value : UInt256) (i : Fin 
     (hauth : roleAllowed evm ⟨10⟩) (hbound : value.toNat ≤ maxSettlementFeeValue i)
     (hmultiple : value.toNat % 1000000000000 = 0)
     (hspace : marketTickSpacing (marketFeeWord evm id) ≠ ⟨0⟩) (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (settlementMarketArguments id i.val value)
+    ExecTransitionBody fork config contract evm (settlementMarketArguments id i.val value)
       setMarketSettlementFeeTransition.body
       (.returned (settlementMarketWriteFrame evm id value i) (settlementMarketState evm id value i) none) := by
   apply ExecFuncBody.execBlockOK
@@ -381,7 +383,7 @@ theorem settlementMarketStatic (evm : EVM.State) (id value : UInt256) (i : Fin 7
     (hauth : roleAllowed evm ⟨10⟩) (hbound : value.toNat ≤ maxSettlementFeeValue i)
     (hmultiple : value.toNat % 1000000000000 = 0)
     (hspace : marketTickSpacing (marketFeeWord evm id) ≠ ⟨0⟩) (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (settlementMarketArguments id i.val value)
+    ExecTransitionBody fork config contract evm (settlementMarketArguments id i.val value)
       setMarketSettlementFeeTransition.body .staticViolation := by
   apply ExecFuncBody.execBlockStatic
   apply guardedBodyBlock hwv hhi
@@ -399,10 +401,10 @@ theorem settlementMarketStoreStatic {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {data slot : UInt256} {R : List UInt256} (i : Fin 7)
     (hstack : R.length + 5 ≤ 1024) (hperm : I.perm = false)
-    (rd : RD midnightBytecode I g s0 (settlementMarketStorePC i) (data :: slot :: R)
-      mem aw rdata σ k C) : RDstatic midnightBytecode g s0 := by
+    (rd : RD fork midnightBytecode I g s0 (settlementMarketStorePC i) (data :: slot :: R)
+      mem aw rdata σ k C) : RDstatic fork midnightBytecode g s0 := by
   fin_cases i
-  · change RD _ _ _ _ (UInt256.ofNat 8632) _ _ _ _ _ _ _ at rd
+  · change RD fork _ _ _ _ (UInt256.ofNat 8632) _ _ _ _ _ _ _ at rd
     let r0 := rd
     have r1 := r0.push2 (UInt256.ofNat 65535) (by native_decide) (by evm_ov)
     have r2 := r1.and (by native_decide) (by evm_ov)
@@ -414,7 +416,7 @@ theorem settlementMarketStoreStatic {I : ExecutionEnv} {g : Sat256} {s0 : State}
     have r8 := r7.or (by native_decide) (by evm_ov)
     have r9 := r8.swap1 (by native_decide) (by evm_ov)
     exact r9.sstoreStatic hperm (by native_decide) (by evm_ov)
-  · change RD _ _ _ _ (UInt256.ofNat 8669) _ _ _ _ _ _ _ at rd
+  · change RD fork _ _ _ _ (UInt256.ofNat 8669) _ _ _ _ _ _ _ at rd
     let r0 := rd
     have r1 := r0.dup2 (by native_decide) (by evm_ov)
     obtain ⟨_, _, r2⟩ := RD.sload r1 (by native_decide) (by evm_ov)
@@ -431,7 +433,7 @@ theorem settlementMarketStoreStatic {I : ExecutionEnv} {g : Sat256} {s0 : State}
     have r13 := r12.or (by native_decide) (by evm_ov)
     have r14 := r13.swap1 (by native_decide) (by evm_ov)
     exact r14.sstoreStatic hperm (by native_decide) (by evm_ov)
-  · change RD _ _ _ _ (UInt256.ofNat 8706) _ _ _ _ _ _ _ at rd
+  · change RD fork _ _ _ _ (UInt256.ofNat 8706) _ _ _ _ _ _ _ at rd
     let r0 := rd
     have r1 := r0.dup2 (by native_decide) (by evm_ov)
     obtain ⟨_, _, r2⟩ := RD.sload r1 (by native_decide) (by evm_ov)
@@ -448,7 +450,7 @@ theorem settlementMarketStoreStatic {I : ExecutionEnv} {g : Sat256} {s0 : State}
     have r13 := r12.or (by native_decide) (by evm_ov)
     have r14 := r13.swap1 (by native_decide) (by evm_ov)
     exact r14.sstoreStatic hperm (by native_decide) (by evm_ov)
-  · change RD _ _ _ _ (UInt256.ofNat 8747) _ _ _ _ _ _ _ at rd
+  · change RD fork _ _ _ _ (UInt256.ofNat 8747) _ _ _ _ _ _ _ at rd
     let r0 := rd
     have r1 := r0.dup2 (by native_decide) (by evm_ov)
     obtain ⟨_, _, r2⟩ := RD.sload r1 (by native_decide) (by evm_ov)
@@ -465,7 +467,7 @@ theorem settlementMarketStoreStatic {I : ExecutionEnv} {g : Sat256} {s0 : State}
     have r13 := r12.or (by native_decide) (by evm_ov)
     have r14 := r13.swap1 (by native_decide) (by evm_ov)
     exact r14.sstoreStatic hperm (by native_decide) (by evm_ov)
-  · change RD _ _ _ _ (UInt256.ofNat 8792) _ _ _ _ _ _ _ at rd
+  · change RD fork _ _ _ _ (UInt256.ofNat 8792) _ _ _ _ _ _ _ at rd
     let r0 := rd
     have r1 := r0.dup2 (by native_decide) (by evm_ov)
     obtain ⟨_, _, r2⟩ := RD.sload r1 (by native_decide) (by evm_ov)
@@ -482,7 +484,7 @@ theorem settlementMarketStoreStatic {I : ExecutionEnv} {g : Sat256} {s0 : State}
     have r13 := r12.or (by native_decide) (by evm_ov)
     have r14 := r13.swap1 (by native_decide) (by evm_ov)
     exact r14.sstoreStatic hperm (by native_decide) (by evm_ov)
-  · change RD _ _ _ _ (UInt256.ofNat 8841) _ _ _ _ _ _ _ at rd
+  · change RD fork _ _ _ _ (UInt256.ofNat 8841) _ _ _ _ _ _ _ at rd
     let r0 := rd
     have r1 := r0.dup2 (by native_decide) (by evm_ov)
     obtain ⟨_, _, r2⟩ := RD.sload r1 (by native_decide) (by evm_ov)
@@ -503,7 +505,7 @@ theorem settlementMarketStoreStatic {I : ExecutionEnv} {g : Sat256} {s0 : State}
     have r17 := r16.or (by native_decide) (by evm_ov)
     have r18 := r17.swap1 (by native_decide) (by evm_ov)
     exact r18.sstoreStatic hperm (by native_decide) (by evm_ov)
-  · change RD _ _ _ _ (UInt256.ofNat 8887) _ _ _ _ _ _ _ at rd
+  · change RD fork _ _ _ _ (UInt256.ofNat 8887) _ _ _ _ _ _ _ at rd
     let r0 := rd
     have r1 := r0.jumpdest (by native_decide) (by evm_ov)
     have r2 := r1.dup2 (by native_decide) (by evm_ov)
@@ -530,15 +532,15 @@ theorem settlementMarketStoreStep {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {data slot value len topic id selector : UInt256} {R : List UInt256} (i : Fin 7)
     (hstack : R.length + 12 ≤ 1024) (hperm : I.perm = true) (hdata : data.toNat < 2 ^ 16)
-    (rd : RD midnightBytecode I g s0 (settlementMarketStorePC i)
+    (rd : RD fork midnightBytecode I g s0 (settlementMarketStorePC i)
       (data :: slot :: value :: len :: topic :: id :: UInt256.ofNat i.val :: selector :: R)
       mem aw rdata σ k C) :
-    ∃ k' C', RD midnightBytecode I g s0 ⟨8646⟩
+    ∃ k' C', RD fork midnightBytecode I g s0 ⟨8646⟩
       (value :: len :: topic :: id :: UInt256.ofNat i.val :: selector :: R) mem aw rdata
       (sstoreAccountMap I.codeOwner σ slot
         (setUint16Word (solcSlotWordAt slot σ I) data ⟨i.val, by omega⟩)) k' C' := by
   fin_cases i
-  · change RD _ _ _ _ (UInt256.ofNat 8632) _ _ _ _ _ _ _ at rd
+  · change RD fork _ _ _ _ (UInt256.ofNat 8632) _ _ _ _ _ _ _ at rd
     obtain ⟨k1, C1, rd1⟩ := midnightBlocks.midnight_block_8632 (by simp; omega) hperm rd
     have hc : UInt256.land (UInt256.ofNat 65535) data = data := by
       rw [u256_land_comm]
@@ -559,7 +561,7 @@ theorem settlementMarketStoreStep {I : ExecutionEnv} {g : Sat256} {s0 : State}
     simp only [solcSlotWordAt, solcSlotWord] at he
     rw [← he] at rd1
     exact ⟨_, _, rd1⟩
-  · change RD _ _ _ _ (UInt256.ofNat 8669) _ _ _ _ _ _ _ at rd
+  · change RD fork _ _ _ _ (UInt256.ofNat 8669) _ _ _ _ _ _ _ at rd
     obtain ⟨k1, C1, rd1⟩ := midnightBlocks.midnight_block_8669 (by simp; omega) hperm (by jump_dest) rd
     have he := setUint16Word_solc (solcSlotWordAt slot σ I) data ⟨1, by decide⟩ hdata
     change UInt256.lor
@@ -569,7 +571,7 @@ theorem settlementMarketStoreStep {I : ExecutionEnv} {g : Sat256} {s0 : State}
     simp only [solcSlotWordAt, solcSlotWord] at he
     rw [he] at rd1
     exact ⟨_, _, rd1⟩
-  · change RD _ _ _ _ (UInt256.ofNat 8706) _ _ _ _ _ _ _ at rd
+  · change RD fork _ _ _ _ (UInt256.ofNat 8706) _ _ _ _ _ _ _ at rd
     obtain ⟨k1, C1, rd1⟩ := midnightBlocks.midnight_block_8706 (by simp; omega) hperm (by jump_dest) rd
     have he := setUint16Word_solc (solcSlotWordAt slot σ I) data ⟨2, by decide⟩ hdata
     change UInt256.lor
@@ -579,7 +581,7 @@ theorem settlementMarketStoreStep {I : ExecutionEnv} {g : Sat256} {s0 : State}
     simp only [solcSlotWordAt, solcSlotWord] at he
     rw [he] at rd1
     exact ⟨_, _, rd1⟩
-  · change RD _ _ _ _ (UInt256.ofNat 8747) _ _ _ _ _ _ _ at rd
+  · change RD fork _ _ _ _ (UInt256.ofNat 8747) _ _ _ _ _ _ _ at rd
     obtain ⟨k1, C1, rd1⟩ := midnightBlocks.midnight_block_8747 (by simp; omega) hperm (by jump_dest) rd
     have he := setUint16Word_solc (solcSlotWordAt slot σ I) data ⟨3, by decide⟩ hdata
     change UInt256.lor
@@ -589,7 +591,7 @@ theorem settlementMarketStoreStep {I : ExecutionEnv} {g : Sat256} {s0 : State}
     simp only [solcSlotWordAt, solcSlotWord] at he
     rw [he] at rd1
     exact ⟨_, _, rd1⟩
-  · change RD _ _ _ _ (UInt256.ofNat 8792) _ _ _ _ _ _ _ at rd
+  · change RD fork _ _ _ _ (UInt256.ofNat 8792) _ _ _ _ _ _ _ at rd
     obtain ⟨k1, C1, rd1⟩ := midnightBlocks.midnight_block_8792 (by simp; omega) hperm (by jump_dest) rd
     have he := setUint16Word_solc (solcSlotWordAt slot σ I) data ⟨4, by decide⟩ hdata
     change UInt256.lor
@@ -599,7 +601,7 @@ theorem settlementMarketStoreStep {I : ExecutionEnv} {g : Sat256} {s0 : State}
     simp only [solcSlotWordAt, solcSlotWord] at he
     rw [he] at rd1
     exact ⟨_, _, rd1⟩
-  · change RD _ _ _ _ (UInt256.ofNat 8841) _ _ _ _ _ _ _ at rd
+  · change RD fork _ _ _ _ (UInt256.ofNat 8841) _ _ _ _ _ _ _ at rd
     obtain ⟨k1, C1, rd1⟩ := midnightBlocks.midnight_block_8841 (by simp; omega) hperm (by jump_dest) rd
     have he := setUint16Word_solc (solcSlotWordAt slot σ I) data ⟨5, by decide⟩ hdata
     change UInt256.lor
@@ -609,7 +611,7 @@ theorem settlementMarketStoreStep {I : ExecutionEnv} {g : Sat256} {s0 : State}
     simp only [solcSlotWordAt, solcSlotWord] at he
     rw [he] at rd1
     exact ⟨_, _, rd1⟩
-  · change RD _ _ _ _ (UInt256.ofNat 8887) _ _ _ _ _ _ _ at rd
+  · change RD fork _ _ _ _ (UInt256.ofNat 8887) _ _ _ _ _ _ _ at rd
     obtain ⟨k1, C1, rd1⟩ := midnightBlocks.midnight_block_8887 (by simp; omega) hperm (by jump_dest) rd
     have he := setUint16Word_solc (solcSlotWordAt slot σ I) data ⟨6, by decide⟩ hdata
     change UInt256.lor
@@ -626,9 +628,9 @@ theorem settlementMarketSelectTrace {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {slot value id selector : UInt256} {R : List UInt256} (i : Fin 7)
     (hstack : R.length + 12 ≤ 1024) (hdata : (settlementFeeQuotient value).toNat < 2 ^ 16)
-    (rd : RD midnightBytecode I g s0 ⟨8578⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨8578⟩
       (slot :: value :: id :: UInt256.ofNat i.val :: selector :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD midnightBytecode I g s0 (settlementMarketStorePC i)
+    ∃ k' C', RD fork midnightBytecode I g s0 (settlementMarketStorePC i)
       (settlementFeeQuotient value :: slot :: value :: UInt256.ofNat 32 ::
         UInt256.ofNat 95478613538024357837750991820630627609211208098872063290803888276690345025047 ::
         id :: UInt256.ofNat i.val :: selector :: R) mem aw rdata σ k' C' := by
@@ -685,9 +687,9 @@ theorem settlementMarketSelectWordTrace {I : ExecutionEnv} {g : Sat256} {s0 : St
     {slot value id index selector : UInt256} {R : List UInt256}
     (hstack : R.length + 12 ≤ 1024) (hi : index.toNat < 7)
     (hdata : (settlementFeeQuotient value).toNat < 2 ^ 16)
-    (rd : RD midnightBytecode I g s0 ⟨8578⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨8578⟩
       (slot :: value :: id :: index :: selector :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD midnightBytecode I g s0 (settlementMarketStorePC ⟨index.toNat, hi⟩)
+    ∃ k' C', RD fork midnightBytecode I g s0 (settlementMarketStorePC ⟨index.toNat, hi⟩)
       (settlementFeeQuotient value :: slot :: value :: UInt256.ofNat 32 ::
         UInt256.ofNat 95478613538024357837750991820630627609211208098872063290803888276690345025047 ::
         id :: UInt256.ofNat index.toNat :: selector :: R) mem aw rdata σ k' C' := by
@@ -701,16 +703,16 @@ theorem settlementMarketTraceReturn {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hdata : (settlementFeeQuotient value).toNat < 2 ^ 16) (hperm : I.perm = true)
     (hmem : memLoad (UInt256.ofNat 64) mem = ⟨1056⟩)
     (hzero : memLoad (UInt256.ofNat 800) (writeWord mem 1056 value) = ⟨0⟩)
-    (rd : RD midnightBytecode I g s0 ⟨8578⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨8578⟩
       (slot :: value :: id :: index :: selector :: R) mem aw rdata σ k C) :
-    RDret midnightBytecode g s0
+    RDret fork midnightBytecode g s0
       (sstoreAccountMap I.codeOwner σ slot (setUint16Word (solcSlotWordAt slot σ I)
         (settlementFeeQuotient value) ⟨index.toNat, by omega⟩)) ByteArray.empty := by
   obtain ⟨k1, C1, rd1⟩ := settlementMarketSelectWordTrace hstack hi hdata rd
   obtain ⟨k2, C2, rd2⟩ := settlementMarketStoreStep ⟨index.toNat, hi⟩ hstack hperm hdata rd1
   have hr := midnightBlocks.midnight_block_8646 (by simp; omega) hperm rd2
   simp only [hmem] at hr
-  change RDret _ _ _ _ ((writeWord mem 1056 value).readWithPadding
+  change RDret fork _ _ _ _ ((writeWord mem 1056 value).readWithPadding
     (memLoad (UInt256.ofNat 800) (writeWord mem 1056 value)).toNat
     (memLoad (UInt256.ofNat 800) (writeWord mem 1056 value)).toNat) at hr
   simpa only [hzero, show (⟨0⟩ : UInt256).toNat = 0 from rfl,
@@ -721,19 +723,19 @@ theorem settlementMarketTraceStatic {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {slot value id index selector : UInt256} {R : List UInt256}
     (hstack : R.length + 12 ≤ 1024) (hi : index.toNat < 7)
     (hdata : (settlementFeeQuotient value).toNat < 2 ^ 16) (hperm : I.perm = false)
-    (rd : RD midnightBytecode I g s0 ⟨8578⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨8578⟩
       (slot :: value :: id :: index :: selector :: R) mem aw rdata σ k C) :
-    RDstatic midnightBytecode g s0 := by
+    RDstatic fork midnightBytecode g s0 := by
   obtain ⟨k1, C1, rd1⟩ := settlementMarketSelectWordTrace hstack hi hdata rd
   exact settlementMarketStoreStatic ⟨index.toNat, hi⟩ (by simp; omega) hperm rd1
 
 /-- `setMarketSettlementFee(bytes32,uint256,uint256)`: the theorem `Correct.lean` routes selector 29 to. -/
 theorem midnightSetMarketSettlementFeeBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 29)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 29) rfl hsel
   have hd : dispatchMsg contract I.calldata = some setMarketSettlementFeeTransition := by
     apply midnightDispatch_setMarketSettlementFee <;>
@@ -746,7 +748,7 @@ theorem midnightSetMarketSettlementFeeBody {σ σ₀ A I} {g : UInt256}
     · by_cases h100 : 100 ≤ I.calldata.size
       · have rd2 := midnightBlocks.midnight_block_8469_fallthrough (by simp)
           (entrySizeCheck_ok (bytes := 96) h100 hhi hsize) rd1
-        change RD _ _ _ _ _ [solcSelectorWord I] midnightEntryMemory _ _ _ _ _ at rd2
+        change RD fork _ _ _ _ _ [solcSelectorWord I] midnightEntryMemory _ _ _ _ _ at rd2
         have hdec := midnightDecodeTriple_ok "id" "index" "newSettlementFee"
           (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) h100 hhi hsize
           (decodeBytes32Word (off := 4) (by omega))
@@ -759,7 +761,7 @@ theorem midnightSetMarketSettlementFeeBody {σ σ₀ A I} {g : UInt256}
             show (⟨0⟩ : UInt256).toNat = 0 from rfl,
             show (UInt256.ofNat 32).toNat = 32 from rfl, wordAt0_fold, twoWordHash_fold,
             mappingMemory_fold, mappingMemory_zero, mappingMemory_hash] at rd3
-          change RD _ _ _ _ _ [solcMappingSlot ⟨1⟩ (calldataWord I.calldata 4),
+          change RD fork _ _ _ _ _ [solcMappingSlot ⟨1⟩ (calldataWord I.calldata 4),
             calldataWord I.calldata 68, calldataWord I.calldata 4, calldataWord I.calldata 36,
             solcSelectorWord I] (mappingMemory (calldataWord I.calldata 4) ⟨1⟩) _ _ _ _ _ at rd3
           by_cases hi : (calldataWord I.calldata 36).toNat ≤ 6

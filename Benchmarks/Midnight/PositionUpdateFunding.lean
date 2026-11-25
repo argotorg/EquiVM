@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.PositionUpdateInternalBudget
 
+variable {fork : Ethereum.Fork}
+
 /-! The position update preserves unconditional memory funding. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -20,27 +22,27 @@ theorem midnightPositionUpdateInternal_funded {evm : EVM.State} {g : Sat256} {s0
     (hfree : memLoad (UInt256.ofNat 64) mem = root)
     (hret : (D_J midnightBytecode 0).contains ret = true)
     (ha : MemoryFunding gasCredit mem aw C)
-    (rd : RD midnightBytecode evm.executionEnv g s0 ⟨23599⟩ (ptr :: id :: user :: ret :: R)
+    (rd : RD fork midnightBytecode evm.executionEnv g s0 ⟨23599⟩ (ptr :: id :: user :: ret :: R)
       mem aw rdata evm.accountMap k C) :
     let credit := positionNewCredit evm m id user
     let pending := positionNewPending evm m id user
     let fee := positionViewFee evm m id user
-    (RDrev midnightBytecode g s0 ∧
-      ExecFuncBody config (positionViewCallFrame imms m id user) evm positionUpdateFunction.body
+    (RDrev fork midnightBytecode g s0 ∧
+      ExecFuncBody fork config (positionViewCallFrame imms m id user) evm positionUpdateFunction.body
         .reverted) ∨
-    (RDstatic midnightBytecode g s0 ∧
-      ExecFuncBody config (positionViewCallFrame imms m id user) evm positionUpdateFunction.body
+    (RDstatic fork midnightBytecode g s0 ∧
+      ExecFuncBody fork config (positionViewCallFrame imms m id user) evm positionUpdateFunction.body
         .staticViolation) ∨
     (evm.executionEnv.perm = true ∧
       credit.toNat < 2^128 ∧ pending.toNat < 2^128 ∧ fee.toNat < 2^128 ∧
-      ExecFuncBody config (positionViewCallFrame imms m id user) evm positionUpdateFunction.body
+      ExecFuncBody fork config (positionViewCallFrame imms m id user) evm positionUpdateFunction.body
         (.returned (positionUpdateFinalFrame evm imms m id user)
           (positionUpdateFinalState evm m id user)
           (some [.int credit.toNat, .int pending.toNat, .int fee.toNat])) ∧
       ∃ aw' k' C',
         MemoryFunding gasCredit
           (positionUpdateLogMemory mem root evm m id user) aw' C' ∧
-        RD midnightBytecode evm.executionEnv g s0 ret (fee :: pending :: credit :: R)
+        RD fork midnightBytecode evm.executionEnv g s0 ret (fee :: pending :: credit :: R)
         (positionUpdateLogMemory mem root evm m id user) aw' rdata
         (positionUpdateFinalState evm m id user).accountMap k' C') := by
   have hb : TransferBudget (UInt256.ofNat (2^62)) gasCredit mem aw C :=

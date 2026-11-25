@@ -4,6 +4,8 @@ import Benchmarks.Midnight.InitMarketDefaultsSource
 import Benchmarks.Midnight.RuntimeBlocks_039
 import Benchmarks.Midnight.RuntimeBlocks_017
 
+variable {fork : Ethereum.Fork}
+
 /-! Repayment's final loan-token transfer and empty ABI return. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -36,16 +38,16 @@ theorem midnightRepayTransfer {I : ExecutionEnv} {g : UInt256} {s0 evm : State}
     (hzero800 : memLoad (UInt256.ofNat 800) mem = ⟨0⟩)
     (hb : TransferBudget root credit mem aw C) (hused : root.toNat ≤ mem.size)
     (hcredit : 4 * ((root.toNat + safeTransferCallAllocation true + 31) / 32) ≤ credit + 999921)
-    (hgas : midnightGasBound g) (hfork : I.fork ≥ .osaka)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨10100⟩
+    (hgas : midnightGasBound g) (hfork : fork ≥ .osaka)
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨10100⟩
       ([x0, x1, x2, x3, x4, UInt256.ofNat payer.val, units, market] ++ R)
       mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (RDrev midnightBytecode (Sat256.ofUInt256 g) s0 ∧
-      ExecBlock config frame evm (repayTransition.body.drop 12) .reverted) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0 ∧
+      ExecBlock fork config frame evm (repayTransition.body.drop 12) .reverted) ∨
     ∃ frame' evm',
-      ExecBlock config frame evm (repayTransition.body.drop 12) (.ok frame' evm') ∧
-      RDret midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap ByteArray.empty := by
+      ExecBlock fork config frame evm (repayTransition.body.drop 12) (.ok frame' evm') ∧
+      RDret fork midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap ByteArray.empty := by
   simp only [List.cons_append, List.nil_append] at rd
   have rd1 := midnightBlocks.midnight_block_10100 (by omega) (by jump_dest) rd
   have hb1 := transferBudgetAt (root := root) (credit := credit) rd1 (by transfer_budget hb)

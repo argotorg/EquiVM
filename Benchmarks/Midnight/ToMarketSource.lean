@@ -3,6 +3,8 @@ import Benchmarks.Midnight.InternalCall
 import Reasoning.ExternalCall
 import Benchmarks.Midnight.CodeStorage
 
+variable {fork : Ethereum.Fork}
+
 /-! Value-level evaluation of the stored-market getter and its explicit size guards. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -127,7 +129,7 @@ theorem toMarketUninitialized (evm : State) (id : UInt256)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit)
     (hzero : ¬ 0 < (marketTickSpacing (marketFeeWord evm id)).toNat) :
-    ExecTransitionBody config contract evm (toMarketArguments id) toMarketTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (toMarketArguments id) toMarketTransition.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   rw [toMarketBody_shape]
   apply guardedBodyBlock hwv hhi
@@ -139,7 +141,7 @@ theorem toMarketCodeTooLarge (evm : State) (id : UInt256)
     (hhi : evm.executionEnv.calldata.size < calldataLimit)
     (hinit : 0 < (marketTickSpacing (marketFeeWord evm id)).toNat)
     (hlarge : ¬ (extCodeSizeWord evm.accountMap id).toNat ≤ 18446744073709550464) :
-    ExecTransitionBody config contract evm (toMarketArguments id) toMarketTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (toMarketArguments id) toMarketTransition.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   rw [toMarketBody_shape]
   apply guardedBodyBlock hwv hhi
@@ -175,11 +177,11 @@ theorem toMarketCodeRun (evm : State) (id : UInt256) {result : ExecResult}
     (hhi : evm.executionEnv.calldata.size < calldataLimit)
     (hinit : 0 < (marketTickSpacing (marketFeeWord evm id)).toNat)
     (hcode : (extCodeSizeWord evm.accountMap id).toNat ≤ 18446744073709550464)
-    (htail : ExecBlock config (toMarketCodeFrame evm id) evm
+    (htail : ExecBlock fork config (toMarketCodeFrame evm id) evm
       [.letDecl "decoded" none (.abiDecode Model.marketABI (.var "code")),
        .letDecl "collaterals" none (.tupleGet (.var "decoded") 3),
        .require toMarketCapacityExpr, .return [.var "decoded"]] result) :
-    ExecBlock config { contract := contract, locals := toMarketArguments id } evm
+    ExecBlock fork config { contract := contract, locals := toMarketArguments id } evm
       toMarketTransition.body result := by
   rw [toMarketBody_shape]
   apply guardedBodyBlock hwv hhi
@@ -197,7 +199,7 @@ theorem toMarketDecodeReverts (evm : State) (id : UInt256)
     (hcode : (extCodeSizeWord evm.accountMap id).toNat ≤ 18446744073709550464)
     (hdecode : config.externalABI.decodeValue? Model.marketABI
       (externalCodePrefix evm.accountMap id) = none) :
-    ExecTransitionBody config contract evm (toMarketArguments id) toMarketTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (toMarketArguments id) toMarketTransition.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply toMarketCodeRun evm id hwv hhi hinit hcode
   apply ExecBlock.consRevert (ExecStmt.letDeclRevert _)
@@ -224,9 +226,9 @@ theorem toMarketDecodedRun (evm : State) (id : UInt256) {decoded : Value}
     (hdecode : config.externalABI.decodeValue? Model.marketABI
       (externalCodePrefix evm.accountMap id) = some decoded)
     (hcoll : tupleGetValue? decoded 3 = .ok (.array collaterals))
-    (htail : ExecBlock config (toMarketResultFrame evm id decoded collaterals) evm
+    (htail : ExecBlock fork config (toMarketResultFrame evm id decoded collaterals) evm
       [.require toMarketCapacityExpr, .return [.var "decoded"]] result) :
-    ExecBlock config { contract := contract, locals := toMarketArguments id } evm
+    ExecBlock fork config { contract := contract, locals := toMarketArguments id } evm
       toMarketTransition.body result := by
   apply toMarketCodeRun evm id hwv hhi hinit hcode
   refine ExecBlock.consNormal (ExecStmt.letDecl (value := decoded) ?_) ?_
@@ -261,7 +263,7 @@ theorem toMarketCapacityReverts (evm : State) (id : UInt256) {decoded : Value}
     (hcoll : tupleGetValue? decoded 3 = .ok (.array collaterals))
     (hcap : ¬ ((extCodeSizeWord evm.accountMap id).toNat + 31) / 32 * 32 +
       160 * collaterals.length + 1408 < 2^64) :
-    ExecTransitionBody config contract evm (toMarketArguments id) toMarketTransition.body .reverted := by
+    ExecTransitionBody fork config contract evm (toMarketArguments id) toMarketTransition.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply toMarketDecodedRun evm id hwv hhi hinit hcode hdecode hcoll
   exact .consRevert (.requireFalse
@@ -278,7 +280,7 @@ theorem toMarketReturns (evm : State) (id : UInt256) {decoded : Value}
     (hcoll : tupleGetValue? decoded 3 = .ok (.array collaterals))
     (hcap : ((extCodeSizeWord evm.accountMap id).toNat + 31) / 32 * 32 +
       160 * collaterals.length + 1408 < 2^64) :
-    ExecTransitionBody config contract evm (toMarketArguments id) toMarketTransition.body
+    ExecTransitionBody fork config contract evm (toMarketArguments id) toMarketTransition.body
       (.returned (toMarketResultFrame evm id decoded collaterals) evm (some [decoded])) := by
   apply ExecFuncBody.execBlockRet
   apply toMarketDecodedRun evm id hwv hhi hinit hcode hdecode hcoll

@@ -2,6 +2,8 @@ import Benchmarks.Midnight.RatifierABI
 import Benchmarks.Midnight.OfferEncodeMemory
 import Benchmarks.Midnight.RuntimeBlocks_043
 
+variable {fork : Ethereum.Fork}
+
 /-! The runtime preparation of the ratifier's complete call buffer. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -43,12 +45,12 @@ theorem midnightRatifierPrepare {credit : Nat} {I : ExecutionEnv} {g : Sat256}
     (hptr : memLoad (UInt256.ofNat 384) mem = ptr)
     (htaker : memLoad (UInt256.ofNat 544) mem = UInt256.ofNat taker.val)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨11276⟩ (ratifierPtr :: R) mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨11276⟩ (ratifierPtr :: R) mem aw rdata σ k C) :
     ∃ gasArg aw' k' C',
       MemoryFunding (credit + 128 * offer.market.collaterals.length +
         3 * ((offer.callbackData.size + 31) / 32) + 3 * ((data.size + 31) / 32))
         (ratifierInputMemory mem root callbackPtr ratifierPtr offer data taker) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨11378⟩
+      RD fork midnightBytecode I g s0 ⟨11378⟩
         ([gasArg, UInt256.ofNat offer.ratifier.val, root,
           UInt256.ofNat (ratifierCalldataSize offer data), root, ⟨32⟩, root, ratifierPtr] ++ R)
         (ratifierInputMemory mem root callbackPtr ratifierPtr offer data taker) aw' rdata σ k' C' := by
@@ -87,7 +89,7 @@ theorem midnightRatifierPrepare {credit : Nat} {I : ExecutionEnv} {g : Sat256}
     addressMask_computed, solcAddrMask_clean (addressWord_canonical offer.ratifier),
     hsel, hn 4 (by omega)] at rd0
   change MemoryFunding credit head _ _ at ha0
-  change RD midnightBytecode I g s0 ⟨20131⟩
+  change RD fork midnightBytecode I g s0 ⟨20131⟩
     (memLoad (UInt256.ofNat 384) head :: (root + UInt256.ofNat 100) ::
       UInt256.ofNat 11338 :: UInt256.ofNat 11356 :: root :: root ::
       UInt256.ofNat offer.ratifier.val :: root :: UInt256.ofNat 32 :: root :: ratifierPtr :: R)

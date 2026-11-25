@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TouchMarketSourceBase
 import Benchmarks.Midnight.PositionViewSourceBase
 
+variable {fork : Ethereum.Fork}
+
 /-! The chain, address, maturity, and collateral-count checks before market initialization. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -103,7 +105,7 @@ theorem evalTouchMarketCount {cfg : Config} {frame : Frame} {evm : EVM.State} {m
 theorem touchMarketHeaderSource {frame : Frame} {evm : EVM.State} {m : MarketData}
     (hm : frame.locals.get? "market" = some (Model.marketValue m.value))
     (hs : TouchMarketHeaderSafe evm.executionEnv m) :
-    ABlock config evm frame touchMarketInitBody frame (touchMarketInitBody.drop 5) := by
+    ABlock fork config evm frame touchMarketInitBody frame (touchMarketInitBody.drop 5) := by
   rw [touchMarketHeader_shape]
   exact ABlock.start
     |>.requireStep ((evalTouchMarketChain hm).trans (by rw [decide_eq_true hs.1]))
@@ -116,7 +118,7 @@ theorem touchMarketHeaderSource {frame : Frame} {evm : EVM.State} {m : MarketDat
 theorem touchMarketHeaderRevert {frame : Frame} {evm : EVM.State} {m : MarketData}
     (hm : frame.locals.get? "market" = some (Model.marketValue m.value))
     (hbad : ¬ TouchMarketHeaderSafe evm.executionEnv m) :
-    ExecBlock config frame evm touchMarketInitBody .reverted := by
+    ExecBlock fork config frame evm touchMarketInitBody .reverted := by
   rw [touchMarketHeader_shape]
   by_cases hc : m.chainId.toNat = Ethereum.chainId
   · apply ExecBlock.consNormal (ExecStmt.requireTrue

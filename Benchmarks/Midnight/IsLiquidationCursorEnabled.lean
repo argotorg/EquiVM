@@ -2,6 +2,8 @@ import Benchmarks.Midnight.Dispatch
 import Benchmarks.Midnight.ScalarDecode
 import Benchmarks.Midnight.MappingMemory
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `isLiquidationCursorEnabled(uint256)`
 
@@ -19,7 +21,7 @@ set_option maxRecDepth 2000000
 theorem isLiquidationCursorEnabledBodyReturns (evm : EVM.State) (key : UInt256)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) :
-    ExecTransitionBody config contract evm ((∅ : Store).insert "arg0" (.int key.toNat))
+    ExecTransitionBody fork config contract evm ((∅ : Store).insert "arg0" (.int key.toNat))
       isLiquidationCursorEnabledTransition.body
       (.returned (calldataFrame contract ((∅ : Store).insert "arg0" (.int key.toNat)) ∅ evm) evm
         (some [wordToElem .bool (UInt256.land
@@ -31,16 +33,16 @@ theorem isLiquidationCursorEnabledBodyReturns (evm : EVM.State) (key : UInt256)
   rw [keyValueToWord_uint256]
 
 theorem isLiquidationCursorEnabledTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Nat}
-    (rd : RD midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 9459)
+    (rd : RD fork midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 9459)
       [solcSelectorWord I] midnightEntryMemory
       (M (M (UInt256.ofNat 0) (UInt256.ofNat 64) ⟨32⟩) (UInt256.ofNat 800) ⟨32⟩)
       ByteArray.empty σ k C) :
-    RDret midnightBytecode g (initState σ σ₀ g A I) σ
+    RDret fork midnightBytecode g (initState σ σ₀ g A I) σ
       (UInt256.isZero (UInt256.isZero (UInt256.land
         (solcSlotWordAt (solcMappingSlot ⟨8⟩ (calldataWord I.calldata 4)) σ I) ⟨255⟩))).toByteArray := by
   have hr := midnightBlocks.midnight_block_9459 (by simp) rd
   simp only [midnightEntryMemory_zero] at hr
-  change RDret _ _ _ _
+  change RDret fork _ _ _ _
     ((writeWord (mappingMemory (calldataWord I.calldata 4) ⟨8⟩)
       (memLoad (UInt256.ofNat 64) (mappingMemory (calldataWord I.calldata 4) ⟨8⟩)).toNat
       (UInt256.isZero (UInt256.isZero (UInt256.land
@@ -54,10 +56,10 @@ theorem isLiquidationCursorEnabledTraceReturn {σ σ₀ A I} {g : Sat256} {k C :
 /-- `isLiquidationCursorEnabled(uint256)`: the theorem `Correct.lean` routes selector 24 to. -/
 theorem midnightIsLiquidationCursorEnabledBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 24)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 24) rfl hsel
   have hd : dispatchMsg contract I.calldata = some isLiquidationCursorEnabledTransition := by
     apply midnightDispatch_isLiquidationCursorEnabled <;>
@@ -72,7 +74,7 @@ theorem midnightIsLiquidationCursorEnabledBody {σ σ₀ A I} {g : UInt256}
           (entrySizeCheck_ok (bytes := 32) h36 hhi hsize) rd1
         have hret := isLiquidationCursorEnabledTraceReturn rd2
         have hdec := midnightDecodeUint256 "arg0" (by decide) (by decide) h36 hhi hsize
-        have hbody := isLiquidationCursorEnabledBodyReturns (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        have hbody := isLiquidationCursorEnabledBodyReturns (fork := fork) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (calldataWord I.calldata 4) hwv hhi
         exact hret.reEquivExecution hcode hd hdec hbody
           (returnEquiv_of_encode (boolWordReturnEncoding

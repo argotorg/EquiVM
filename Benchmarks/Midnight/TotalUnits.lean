@@ -2,6 +2,8 @@ import Benchmarks.Midnight.Dispatch
 import Benchmarks.Midnight.ScalarDecode
 import Benchmarks.Midnight.MappingMemory
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `totalUnits(bytes32)`
 
@@ -19,7 +21,7 @@ set_option maxRecDepth 2000000
 theorem totalUnitsBodyReturns (evm : EVM.State) (key : UInt256)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) :
-    ExecTransitionBody config contract evm ((∅ : Store).insert "id" (wordBytes32Value key))
+    ExecTransitionBody fork config contract evm ((∅ : Store).insert "id" (wordBytes32Value key))
       totalUnitsTransition.body
       (.returned (calldataFrame contract ((∅ : Store).insert "id" (wordBytes32Value key)) ∅ evm)
         evm (some [.int (Int.ofNat (UInt256.land
@@ -38,18 +40,18 @@ theorem totalUnitsBodyReturns (evm : EVM.State) (key : UInt256)
   · exact storageLocLoad_uint_offset0 evm _ 16 ⟨128, by decide⟩ (by decide) (by decide)
 
 theorem totalUnitsTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Nat}
-    (rd : RD midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 15943)
+    (rd : RD fork midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 15943)
       [solcSelectorWord I] midnightEntryMemory
       (M (M (UInt256.ofNat 0) (UInt256.ofNat 64) ⟨32⟩) (UInt256.ofNat 800) ⟨32⟩)
       ByteArray.empty σ k C) :
-    RDret midnightBytecode g (initState σ σ₀ g A I) σ
+    RDret fork midnightBytecode g (initState σ σ₀ g A I) σ
       (UInt256.land (solcSlotWordAt (solcMappingSlot ⟨1⟩ (calldataWord I.calldata 4)) σ I)
         (UInt256.ofNat (2^128 - 1))).toByteArray := by
   have hr := midnightBlocks.midnight_block_15943 (by simp) rd
   have hmask : UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128))
       (UInt256.ofNat 1) = UInt256.ofNat (2^128 - 1) := by native_decide
   simp only [hmask] at hr
-  change RDret _ _ _ _
+  change RDret fork _ _ _ _
     ((writeWord (mappingMemory (calldataWord I.calldata 4) ⟨1⟩)
       (memLoad (UInt256.ofNat 64) (mappingMemory (calldataWord I.calldata 4) ⟨1⟩)).toNat
       (UInt256.land (solcSlotWordAt (keccakWord ⟨0⟩ (UInt256.ofNat 64)
@@ -62,10 +64,10 @@ theorem totalUnitsTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Nat}
 /-- `totalUnits(bytes32)`: the theorem `Correct.lean` routes selector 11 to. -/
 theorem midnightTotalUnitsBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 11)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 11) rfl hsel
   have hd : dispatchMsg contract I.calldata = some totalUnitsTransition := by
     apply midnightDispatch_totalUnits <;>
@@ -80,7 +82,7 @@ theorem midnightTotalUnitsBody {σ σ₀ A I} {g : UInt256}
           (entrySizeCheck_ok (bytes := 32) h36 hhi hsize) rd1
         have hret := totalUnitsTraceReturn rd2
         have hdec := midnightDecodeBytes32 "id" (by decide) (by decide) h36 hhi hsize
-        have hbody := totalUnitsBodyReturns (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        have hbody := totalUnitsBodyReturns (fork := fork) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (calldataWord I.calldata 4) hwv hhi
         exact hret.reEquivExecution hcode hd hdec hbody
           (returnEquiv_of_encode (uintReturnEncoding ⟨128, by decide⟩ _

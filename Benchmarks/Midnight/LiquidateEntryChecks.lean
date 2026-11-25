@@ -4,6 +4,8 @@ import Benchmarks.Midnight.LiquidateDataRef
 import Benchmarks.Midnight.CalldataHeadCheck
 import Benchmarks.Midnight.RuntimeBlocks_021
 
+variable {fork : Ethereum.Fork}
+
 /-! The liquidation entry checks before materializing its market argument. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -20,15 +22,15 @@ theorem midnightLiquidateEntryChecks {I : ExecutionEnv} {g : Sat256} {s0 : State
     (hsize : I.calldata.size < UInt256.size)
     (hselector : ¬ 0xac9650d8 = (bytesToWord (I.calldata.toList.take 4)).toNat)
     (ha : MemoryAccounting mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨4983⟩ R mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨4983⟩ R mem aw rdata σ k C) :
     (config.externalABI.decodeCalldata? liquidateNames liquidateTypes I.calldata = none ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     (292 ≤ I.calldata.size ∧ (calldataWord I.calldata 4).toNat < 2^64 ∧
       LiquidateScalarsValid I.calldata ∧ CalldataArgumentValid true I.calldata 260 ∧
       config.externalABI.decodeCalldata? liquidateNames liquidateTypes I.calldata =
         decodeLiquidateArguments I.calldata ∧
       ∃ aw' k' C', MemoryAccounting (writeWord mem 736 (calldataWord I.calldata 228)) aw' C' ∧
-        RD midnightBytecode I g s0 ⟨5126⟩
+        RD fork midnightBytecode I g s0 ⟨5126⟩
           (calldataArgumentLength I.calldata 260 :: calldataArgumentPointer I.calldata 260 ::
             calldataWord I.calldata 132 :: calldataWord I.calldata 196 ::
             calldataWord I.calldata 164 :: R)
@@ -36,7 +38,7 @@ theorem midnightLiquidateEntryChecks {I : ExecutionEnv} {g : Sat256} {s0 : State
   have reject (hc : UInt256.slt (UInt256.lnot ⟨3⟩ + UInt256.ofNat I.calldata.size)
       ⟨288⟩ = ⟨1⟩) :
       config.externalABI.decodeCalldata? liquidateNames liquidateTypes I.calldata = none ∧
-        RDrev midnightBytecode g s0 := by
+        RDrev fork midnightBytecode g s0 := by
     refine ⟨midnightDecodeLiquidate_none_check h4 (solcSLT_sub4_of_check (bit := true) hc), ?_⟩
     have rr := midnightBlocks.midnight_block_4983_taken (by omega)
       (by change UInt256.slt (UInt256.lnot ⟨3⟩ + _) ⟨288⟩ ≠ ⟨0⟩

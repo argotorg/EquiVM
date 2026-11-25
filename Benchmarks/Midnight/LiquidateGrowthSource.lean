@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.LiquidateGrowth
 import Benchmarks.Midnight.LiquidateMaxLifSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Source evaluation of the checked post-maturity incentive expression. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -92,8 +94,8 @@ theorem liquidateGrowthSource {frame : Frame} {evm : State} {m : MarketData}
     let timestamp := UInt256.ofNat evm.executionEnv.header.timestamp
     let body := [.internalCall "UtilsLib_min" [.var "_maxLif", liquidateGrowthExpr] "grown",
       .assign .localVar { base := "lif" } (.var "grown")]
-    (¬ LiquidateGrowthSafe maximum timestamp m.maturity ∧ ExecBlock config frame evm body .reverted) ∨
-    (LiquidateGrowthSafe maximum timestamp m.maturity ∧ ExecBlock config frame evm body
+    (¬ LiquidateGrowthSafe maximum timestamp m.maturity ∧ ExecBlock fork config frame evm body .reverted) ∨
+    (LiquidateGrowthSafe maximum timestamp m.maturity ∧ ExecBlock fork config frame evm body
       (.ok (liquidateGrownFrame frame (liquidateGrownLif maximum timestamp m.maturity)) evm)) := by
   dsimp only
   by_cases hsafe : LiquidateGrowthSafe maximum (UInt256.ofNat evm.executionEnv.header.timestamp)
@@ -106,7 +108,7 @@ theorem liquidateGrowthSource {frame : Frame} {evm : State} {m : MarketData}
             m.maturity).toNat] := by
       simp only [evalExprs?, evalWordLocal hx, evalLiquidateGrowth hm hx hsafe,
         bind, pure, EvalResult.bind]
-    have hs0 : ExecStmt config frame evm
+    have hs0 : ExecStmt fork config frame evm
         (.internalCall "UtilsLib_min" [.var "_maxLif", liquidateGrowthExpr] "grown")
         (.ok (wordLocal frame "grown" grown) evm) := callMin hc ha
     have hl1 : (wordLocal frame "grown" grown).locals.get? "lif" = some (.int oldLif.toNat) := by

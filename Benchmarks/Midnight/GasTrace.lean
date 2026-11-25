@@ -58,12 +58,12 @@ def run : IO UInt32 := do
       (1024, true, false), (0, true, true), (0, false, false), (0, false, true)] do
     let initial := state n buy assets
     -- Warm all keys/accounts observed by a preliminary run, then measure again.
-    let first := runTrace initial 100000
+    let first := runTrace target.fork initial 100000
     let warm := first.boundaries.foldl (fun (a : Substate) b =>
       { a with
         accessedAccounts := b.after.substate.accessedAccounts
         accessedStorageKeys := b.after.substate.accessedStorageKeys }) initial.substate
-    let trace := runTrace { initial with substate := warm } 100000
+    let trace := runTrace target.fork { initial with substate := warm } 100000
     IO.println s!"n={n}, buy={buy}, assets={assets}, steps={trace.steps}, calls={trace.boundaries.length}"
     for b in trace.boundaries do
       let μ := b.before.machineState

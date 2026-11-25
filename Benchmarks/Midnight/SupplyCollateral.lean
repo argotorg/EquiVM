@@ -6,6 +6,8 @@ import Benchmarks.Midnight.SupplyCollateralCore
 import Benchmarks.Midnight.TouchMarketCapacity
 import Benchmarks.Midnight.TouchMarketHashSpace
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `supplyCollateral((uint256,address,address,(address,uint256,uint256,address)[],uint256,uint256,address,address),uint256,uint256,address)`
 
@@ -24,17 +26,17 @@ set_option maxHeartbeats 200000
 /-- `supplyCollateral((uint256,address,address,(address,uint256,uint256,address)[],uint256,uint256,address,address),uint256,uint256,address)`: the theorem `Correct.lean` routes selector 6 to. -/
 theorem midnightSupplyCollateralBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 6)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 6) rfl hsel
   have hd : dispatchMsg contract I.calldata = some supplyCollateralTransition := by
     apply midnightDispatch_supplyCollateral <;>
       first | exact hsel | exact selectorNe_of_selIs hsel (by decide +kernel)
   obtain ⟨k, C, rd⟩ := midnightReachSupplyCollateralBody
     (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) hcode hsz hsize hsel
-  change RD midnightBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+  change RD fork midnightBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
     ⟨16934⟩ [solcSelectorWord I] midnightEntryMemory (UInt256.ofNat 26) ByteArray.empty σ k C at rd
   have ha : MemoryAccounting midnightEntryMemory (UInt256.ofNat 26) C := by
     refine ⟨MemoryPaid.entry C, ?_⟩
@@ -80,10 +82,10 @@ theorem midnightSupplyCollateralBody {σ σ₀ A I} {g : UInt256}
         have rd4 := midnightBlocks.midnight_block_17021 (by simp) (by jump_dest) rd3
         have ha4 := memoryAccountingAt rd4 (by memory_account ha3)
         simp only [midnightBlocks.midnight_block_17021_stack] at rd4
-        have rejectTouch (hr : RDrev midnightBytecode (Sat256.ofUInt256 g) origin)
-            (hs : ExecFuncBody config (touchMarketCallFrame ∅ m) origin
+        have rejectTouch (hr : RDrev fork midnightBytecode (Sat256.ofUInt256 g) origin)
+            (hs : ExecFuncBody fork config (touchMarketCallFrame ∅ m) origin
               touchMarketFunction.body .reverted) :
-            runtimeRefinementFor config contract σ σ₀ g A I := by
+            runtimeRefinementFor fork config contract σ σ₀ g A I := by
           apply hr.reEquivExecutionRevert hcode hd hdec
           apply ExecFuncBody.execBlockRevert
           apply supplyAfterAuthSource hu hwv hlimit hauth
@@ -92,7 +94,7 @@ theorem midnightSupplyCollateralBody {σ σ₀ A I} {g : UInt256}
         have finish {evm : EVM.State} {frame : Frame} {mem3 out : ByteArray}
             {free aw4 : UInt256} {credit k4 C4 : Nat}
             (hs : SourceState origin I evm.accountMap evm)
-            (htouch : ExecFuncBody config (touchMarketCallFrame ∅ m) origin touchMarketFunction.body
+            (htouch : ExecFuncBody fork config (touchMarketCallFrame ∅ m) origin touchMarketFunction.body
               (.returned frame evm (some [wordBytes32Value m.id])))
             (hm3 : MarketStored mem3 ⟨832⟩ ⟨1088⟩ root m)
             (hroom : free.toNat + 32 < 2^64) (hlo : 128 ≤ free.toNat)
@@ -101,23 +103,23 @@ theorem midnightSupplyCollateralBody {σ σ₀ A I} {g : UInt256}
             (hb : TransferBudget (free + UInt256.ofNat 32) credit mem3 aw4 C4)
             (hcredit : 4 * (((free + UInt256.ofNat 32).toNat + safeTransferCallAllocation true + 31) / 32)
               ≤ credit + 999921)
-            (rd5 : RD midnightBytecode I (Sat256.ofUInt256 g) origin ⟨17031⟩
+            (rd5 : RD fork midnightBytecode I (Sat256.ofUInt256 g) origin ⟨17031⟩
               [m.id, UInt256.ofNat 96, user, index, assets, ⟨832⟩, solcSelectorWord I]
               mem3 aw4 out evm.accountMap k4 C4) :
-            runtimeRefinementFor config contract σ σ₀ g A I := by
+            runtimeRefinementFor fork config contract σ σ₀ g A I := by
           have hmem3 : 128 ≤ mem3.size := by
             have hh := hm3.words.size
             change 832 + 32 * (m.words ⟨1088⟩).length ≤ mem3.size at hh
             omega
           have sourcePrefix {result : ExecResult}
-              (hbody : ExecBlock config (supplyAfterTouchFrame origin m user index assets) evm
+              (hbody : ExecBlock fork config (supplyAfterTouchFrame origin m user index assets) evm
                 (supplyCollateralTransition.body.drop 5) result) :
-              ExecBlock config { contract := contract, locals := (marketIndexAmountArguments
+              ExecBlock fork config { contract := contract, locals := (marketIndexAmountArguments
                 m index assets (AccountAddress.ofNat user.toNat)), immutables := ∅ }
                 origin supplyCollateralTransition.body result :=
             supplyAfterAuthSource hu hwv hlimit hauth (supplyAfterTouchSource htouch hbody)
           rcases supplyCollateralCore (R := []) hs (supplyAfterTouch_get origin m user index assets)
-              hu (by simp) hmem3 hm3 hroom hlo hfree3 hz3 hb hcredit hgas hwf rd5 with
+              hu (by simp) hmem3 hm3 hroom hlo hfree3 hz3 hb hcredit hgas hfork rd5 with
             hoog | ⟨hr, hbody⟩ | ⟨hr, hbody⟩ | ⟨frame', evm', hbody, hr⟩
           · exact reEquiv_outOfGas (Xi_error_of_X (by rw [← hcode] at hoog; exact hoog))
           · exact hr.reEquivExecutionRevert hcode hd hdec

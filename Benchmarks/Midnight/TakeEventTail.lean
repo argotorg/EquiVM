@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.TakeEventHead
 
+variable {fork : Ethereum.Fork}
+
 /-! The remaining fixed words of the trade event, preserving the allocated heap. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -69,10 +71,10 @@ theorem midnightTakeEventTail {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 7 ≤ 1024)
     (hb : root.toNat + 416 < UInt256.size) (hlo : 160 ≤ root.toNat) (hm : 160 ≤ mem.size)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨12970⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨12970⟩
       ([finish, difference, maker, root] ++ R) mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding credit (takeEventTailMemory mem I root difference) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨13067⟩
+      RD fork midnightBytecode I g s0 ⟨13067⟩
         ([root, ⟨416⟩, UInt256.land (memLoad (UInt256.ofNat 128) mem) solcAddrMask,
           finish, maker, root] ++ R)
         (takeEventTailMemory mem I root difference) aw' rdata σ k' C' := by
@@ -154,7 +156,7 @@ theorem midnightTakeEventTail {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0
   have ha1 := memoryFundingAt (credit := credit) rFinal (ha61.mono (by omega))
   have rd1 := rFinal
   change MemoryFunding credit (takeEventTailMemory mem I root difference) _ _ at ha1
-  change RD _ _ _ _ ⟨13067⟩
+  change RD fork _ _ _ _ ⟨13067⟩
     (root :: ⟨416⟩ :: UInt256.land
       (memLoad (UInt256.ofNat 128) (takeEventTailMemory mem I root difference)) solcAddrMask ::
       finish :: maker :: root :: R) (takeEventTailMemory mem I root difference) _ _ _ _ _ at rd1

@@ -3,6 +3,8 @@ import Benchmarks.Midnight.TransferBudget
 import Benchmarks.Midnight.HealthStorage
 import Benchmarks.Midnight.RuntimeBlocks_023
 
+variable {fork : Ethereum.Fork}
+
 /-! Initialize liquidation's collateral bitmap and running debt values. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -31,12 +33,12 @@ theorem midnightLiquidateLoopEntry {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {credit : Nat} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 11 ≤ 1024) (hz : memLoad (UInt256.ofNat 800) mem = ⟨0⟩)
     (hb : TransferBudget budgetRoot credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨5311⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨5311⟩
       ([rep, reverseRep, pos, dp, dl, borrower, debtWord] ++ R) mem aw rdata σ k C) :
     ∃ aw' k' C',
       TransferBudget budgetRoot credit
         (liquidateBitmapMemory mem (UInt256.shiftRight debtWord ⟨128⟩)) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨5340⟩
+      RD fork midnightBytecode I g s0 ⟨5340⟩
         ([debtWord, reverseRep, rep, ⟨0⟩, ⟨0⟩, pos, dp, dl, borrower, low128 debtWord] ++ R)
         (liquidateBitmapMemory mem (UInt256.shiftRight debtWord ⟨128⟩)) aw' rdata σ k' C' := by
   have rd1 := midnightBlocks.midnight_block_5311 hstack rd

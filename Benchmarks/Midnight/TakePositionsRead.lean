@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.TakePositionsMemory
 
+variable {fork : Ethereum.Fork}
+
 /-! Compute the two position slots and read the buyer's credit, retaining memory funding. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,9 +19,9 @@ theorem midnightTakePositionsRead {credit : Nat} {I : ExecutionEnv} {g : Sat256}
     (hs : memLoad (UInt256.ofNat 448) mem = seller)
     (hbc : buyer.toNat < EVM.addressModulus) (hsc : seller.toNat < EVM.addressModulus)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨11880⟩ (saved :: R) mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨11880⟩ (saved :: R) mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding credit (takePositionsMemory mem id buyer seller) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨11960⟩
+      RD fork midnightBytecode I g s0 ⟨11960⟩
         ([UInt256.ofNat 14521, UInt256.isZero (takeHasCreditWord σ I id buyer),
           takeHasCreditWord σ I id buyer, positionSlot id seller, saved, positionSlot id buyer] ++ R)
         (takePositionsMemory mem id buyer seller) aw' rdata σ k' C' := by

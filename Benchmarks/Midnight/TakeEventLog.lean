@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TakeEventTail
 import Benchmarks.Midnight.DynamicLockMemory
 
+variable {fork : Ethereum.Fork}
+
 /-! Emitting the trade log and constructing the subsequent transient-lock key. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -42,12 +44,12 @@ theorem midnightTakeEventLog {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0 
     (hseller : memLoad (UInt256.ofNat 448) mem = seller)
     (hcanon : seller.toNat < EVM.addressModulus)
     (hperm : I.perm = true) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨13067⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨13067⟩
       ([root, ⟨416⟩, receiver, finish, maker, root, callback, payer] ++ R)
       mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding credit
         (dynamicLockHashMemory (takeEventLogMemory mem root receiver payer) root id seller) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨18444⟩
+      RD fork midnightBytecode I g s0 ⟨18444⟩
         ([root, ⟨128⟩, ⟨13223⟩, root, callback, payer] ++ R)
         (dynamicLockHashMemory (takeEventLogMemory mem root receiver payer) root id seller)
         aw' rdata σ k' C' := by
@@ -84,7 +86,7 @@ theorem midnightTakeEventLog {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0 
   have r13 := RD.genMstore r12 (by native_decide) (by evm_ov)
   have ha13 := memoryFundingAt (credit := credit) r13 (by memory_fund ha)
   change MemoryFunding credit logMem _ _ at ha13
-  change RD _ _ _ _ _ _ logMem _ _ _ _ _ at r13
+  change RD fork _ _ _ _ _ _ logMem _ _ _ _ _ at r13
   have r14 := r13.pushConst (UInt256.ofNat 85728119599629476005759388951245938408922412091434260513249924659539733299184) (width := 32) (op := .PUSH32) (by decide) (by native_decide) (by evm_ov)
   have r15 := r14.push1 (UInt256.ofNat 1) (by native_decide) (by evm_ov)
   have r16 := r15.push1 (UInt256.ofNat 1) (by native_decide) (by evm_ov)
@@ -117,7 +119,7 @@ theorem midnightTakeEventLog {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0 
   have r38 := RD.genMstore r37 (by native_decide) (by evm_ov)
   have ha38 := memoryFundingAt (credit := credit) r38 (by memory_fund ha34)
   simp only [h32] at r38 ha38
-  change RD _ _ _ _ _ _ (writeWord logMem (root.toNat + 32) id) _ _ _ _ _ at r38
+  change RD fork _ _ _ _ _ _ (writeWord logMem (root.toNat + 32) id) _ _ _ _ _ at r38
   change MemoryFunding credit (writeWord logMem (root.toNat + 32) id) _ _ at ha38
   have r39 := r38.push1 (UInt256.ofNat 1) (by native_decide) (by evm_ov)
   have r40 := r39.push1 (UInt256.ofNat 1) (by native_decide) (by evm_ov)
@@ -155,7 +157,7 @@ theorem midnightTakeEventLog {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0 
   have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 18444)) r63 (by native_decide)
   have haFinal := memoryFundingAt (credit := credit) rFinal (ha58.mono (by omega))
   change MemoryFunding credit (dynamicLockHashMemory logMem root id seller) _ _ at haFinal
-  change RD _ _ _ _ ⟨18444⟩
+  change RD fork _ _ _ _ ⟨18444⟩
     ([root, ⟨128⟩, ⟨13223⟩, root, callback, payer] ++ R)
     (dynamicLockHashMemory logMem root id seller) _ _ _ _ _ at rFinal
   exact ⟨_, _, _, haFinal, rFinal⟩

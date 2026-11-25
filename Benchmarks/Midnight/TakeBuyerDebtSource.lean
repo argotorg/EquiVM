@@ -2,6 +2,8 @@ import Benchmarks.Midnight.NamedPositionAssign
 import Benchmarks.Midnight.TakeCreditChangesSource
 import Benchmarks.Midnight.ToUint128Source
 
+variable {fork : Ethereum.Fork}
+
 /-! The buyer's debt repayment is bounded by the saved uint128 debt. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -39,7 +41,7 @@ theorem takeBuyerRepayCall {frame : Frame} {evm : State} {units debt : UInt256}
     (hi : frame.locals.get? "buyerCreditIncrease" =
       some (.int (zeroFloorSubWord units debt).toNat))
     (hd : debt.toNat < 2^128) :
-    ExecStmt config frame evm takeTransition.body[46]!
+    ExecStmt fork config frame evm takeTransition.body[46]!
       (.ok (takeBuyerDebtFrame frame units debt) evm) := by
   have hb := takeBuyerRepayment_bounds units debt
   apply callToUint128 hc
@@ -54,7 +56,7 @@ theorem takeBuyerDebtWrite {frame : Frame} {evm : State} {id buyer units : UInt2
     (hr : frame.locals.get? "__c21" =
       some (.int (takeBuyerRepayment units (low128 (healthPositionWord evm id buyer))).toNat))
     (hperm : evm.executionEnv.perm = true) :
-    ExecStmt config frame evm takeTransition.body[47]!
+    ExecStmt fork config frame evm takeTransition.body[47]!
       (.ok frame (takeBuyerDebtState evm id buyer units)) :=
   ExecStmt.assign (Or.inr hperm)
     (evalCheckedSub128 (evalNamedPositionDebt hc hp) (evalWordLocal hr) (low128_lt _)
@@ -67,7 +69,7 @@ theorem takeBuyerDebtWriteStatic {frame : Frame} {evm : State} {id buyer units :
     (hr : frame.locals.get? "__c21" =
       some (.int (takeBuyerRepayment units (low128 (healthPositionWord evm id buyer))).toNat))
     (hperm : evm.executionEnv.perm = false) :
-    ExecStmt config frame evm takeTransition.body[47]! .staticViolation :=
+    ExecStmt fork config frame evm takeTransition.body[47]! .staticViolation :=
   ExecStmt.assignStatic
     (evalCheckedSub128 (evalNamedPositionDebt hc hp) (evalWordLocal hr) (low128_lt _)
       (takeBuyerRepayment_bounds units (low128 (healthPositionWord evm id buyer))).2)

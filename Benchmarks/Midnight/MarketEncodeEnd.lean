@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.MarketData
 import Benchmarks.Midnight.CollateralEncodeStep
 
+variable {fork : Ethereum.Fork}
+
 /-! The final four static fields of the market ABI encoding. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -77,9 +79,9 @@ theorem midnightMarketEncodeEnd {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hm : MemoryWords mem ptr.toNat (m.words arrayPtr))
     (hbelow : ptr.toNat + 256 ≤ output.toNat) (hout : output.toNat + 256 < UInt256.size)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨19269⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨19269⟩
       (index :: count :: readPtr :: ptr :: output :: finish :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g s0 ret (finish :: R)
+    ∃ aw' k' C', RD fork midnightBytecode I g s0 ret (finish :: R)
       (writeWordArray mem (output.toNat + 128) m.tailWords) aw' rdata σ k' C' := by
   have rd1 := midnightBlocks.midnight_block_19269 hstack hret rd
   simp only [midnightBlocks.midnight_block_19269_stack, marketEncodeTailBlock_shape,

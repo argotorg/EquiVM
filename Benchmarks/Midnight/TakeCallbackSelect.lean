@@ -2,6 +2,8 @@ import Benchmarks.Midnight.TakeAccountingStore
 import Benchmarks.Midnight.TakeRecipientsSource
 import Benchmarks.Midnight.RuntimeBlocks_053
 
+variable {fork : Ethereum.Fork}
+
 /-! Runtime selection of buyer and seller callback addresses. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -19,10 +21,10 @@ theorem midnightTakeCallbackSelect {credit : Nat} {I : ExecutionEnv} {g : Sat256
     (hoffer : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (hcallback : memLoad (UInt256.ofNat 192) mem = UInt256.ofNat callback.val)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨12719⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨12719⟩
       ([offer.buy, decrease, ratifierPtr, increase] ++ R) mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding credit mem aw' C' ∧
-      RD midnightBytecode I g s0 ⟨12757⟩
+      RD fork midnightBytecode I g s0 ⟨12757⟩
         ([decrease, increase, ratifierPtr, UInt256.ofNat (takeSellerCallback offer callback).val,
           offer.buy, UInt256.ofNat (takeBuyerCallback offer callback).val] ++ R)
         mem aw' rdata σ k' C' := by

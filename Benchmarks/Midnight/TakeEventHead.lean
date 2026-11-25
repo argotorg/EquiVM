@@ -2,6 +2,8 @@ import Benchmarks.Midnight.TakeEventArithmetic
 import Benchmarks.Midnight.MemoryBytesEncodeMemory
 import Benchmarks.Midnight.RuntimeBlocks_048
 
+variable {fork : Ethereum.Fork}
+
 /-! The fixed prefix of the trade event's ABI buffer. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -30,12 +32,12 @@ theorem midnightTakeEventHead {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 11 ≤ 1024)
     (hb : root.toNat + 192 < UInt256.size)
     (hfree : memLoad (UInt256.ofNat 64) mem = root) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨12921⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨12921⟩
       ([group, ratifier, ptr, buy, difference, maker, hash] ++ R) mem aw rdata σ k C) :
     ∃ aw' k' C',
       MemoryFunding credit
         (takeEventHeadMemory mem root (UInt256.ofNat I.source.val) hash buy group ratifier) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨20095⟩
+      RD fork midnightBytecode I g s0 ⟨20095⟩
         ([ptr, root + UInt256.ofNat 480, ⟨12970⟩, difference, maker, root] ++ R)
         (takeEventHeadMemory mem root (UInt256.ofNat I.source.val) hash buy group ratifier)
         aw' rdata σ k' C' := by

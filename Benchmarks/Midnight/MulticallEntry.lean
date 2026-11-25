@@ -2,6 +2,8 @@ import Benchmarks.Midnight.MulticallDecode
 import Benchmarks.Midnight.CalldataSliceTrace
 import Benchmarks.Midnight.RuntimeBlocks_016
 
+variable {fork : Ethereum.Fork}
+
 /-! The multicall entry guards and its outer calldata-array reference. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,19 +17,19 @@ theorem midnightMulticallEntry {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length + 8 ≤ 1024) (h4 : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hselector : (bytesToWord (I.calldata.toList.take 4)).toNat = 0xac9650d8)
-    (rd : RD midnightBytecode I g s0 ⟨3548⟩ R mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨3548⟩ R mem aw rdata σ k C) :
     (config.externalABI.decodeCalldata? ["calls"] [.dynamicArray .bytes] I.calldata = none ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     (CalldataArgumentValid false I.calldata 4 ∧
       config.externalABI.decodeCalldata? ["calls"] [.dynamicArray .bytes] I.calldata =
         decodeMulticallArguments I.calldata ∧
-      ∃ k' C', C ≤ C' ∧ RD midnightBytecode I g s0 ⟨3590⟩
+      ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode I g s0 ⟨3590⟩
         (calldataArgumentLength I.calldata 4 :: calldataArgumentPointer I.calldata 4 :: R)
         mem aw rdata σ k' C') := by
   have reject (hc : UInt256.slt (UInt256.lnot ⟨3⟩ + UInt256.ofNat I.calldata.size)
       ⟨32⟩ = ⟨1⟩) :
       config.externalABI.decodeCalldata? ["calls"] [.dynamicArray .bytes] I.calldata = none ∧
-        RDrev midnightBytecode g s0 := by
+        RDrev fork midnightBytecode g s0 := by
     refine ⟨midnightDecodeMulticall_none_check h4 (solcSLT_sub4_of_check (bit := true) hc), ?_⟩
     have rr := midnightBlocks.midnight_block_3548_taken (by omega)
       (by change UInt256.slt (UInt256.lnot ⟨3⟩ + _) ⟨32⟩ ≠ ⟨0⟩

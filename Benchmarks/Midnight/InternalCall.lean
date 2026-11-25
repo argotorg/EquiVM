@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.Entry
 
+variable {fork : Ethereum.Fork}
+
 /-! Source composition for entry guards and single-result internal calls. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -10,8 +12,8 @@ theorem guardedBodyBlock {cfg : Config} {C : ContractDecl} {locals imms : Store}
     {evm : EVM.State} {body : List Stmt} {result : ExecResult}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit)
-    (hbody : ExecBlock cfg (calldataFrame C locals imms evm) evm body result) :
-    ExecBlock cfg { contract := C, locals := locals, immutables := imms } evm
+    (hbody : ExecBlock fork cfg (calldataFrame C locals imms evm) evm body result) :
+    ExecBlock fork cfg { contract := C, locals := locals, immutables := imms } evm
       (entryPrefix ++ body) result := by
   refine (ABlock.start.requireStep (evalCallvalueEq_true hwv)
     |>.letStep (value := .bytes evm.executionEnv.calldata)
@@ -22,7 +24,7 @@ theorem guardedBodyBlock {cfg : Config} {C : ContractDecl} {locals imms : Store}
 
 theorem returnInternalResult {cfg : Config} {frame : Frame} {evm : EVM.State}
     (name : Ident) (value : Value) :
-    ExecBlock cfg (resumeAfterInternalCall frame name (some [value])) evm [.return [.var name]]
+    ExecBlock fork cfg (resumeAfterInternalCall frame name (some [value])) evm [.return [.var name]]
       (.returned (resumeAfterInternalCall frame name (some [value])) evm (some [value])) := by
   apply ExecBlock.consReturn
   apply ExecStmt.return

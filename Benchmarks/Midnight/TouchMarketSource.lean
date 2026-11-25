@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TouchMarketSourceBase
 import Benchmarks.Midnight.MarketOnlyDecode
 
+variable {fork : Ethereum.Fork}
+
 /-! The public touchMarket wrapper and propagation of its internal result. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -20,9 +22,9 @@ theorem evalTouchMarketCallArgs (evm : EVM.State) (m : MarketData) :
 theorem touchMarketBodyReturns {evm evm' : EVM.State} {m : MarketData} {frame : Frame}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit)
-    (hbody : ExecFuncBody config (touchMarketCallFrame ∅ m) evm touchMarketFunction.body
+    (hbody : ExecFuncBody fork config (touchMarketCallFrame ∅ m) evm touchMarketFunction.body
       (.returned frame evm' (some [wordBytes32Value m.id]))) :
-    ExecTransitionBody config contract evm (marketOnlyArguments m) touchMarketTransition.body
+    ExecTransitionBody fork config contract evm (marketOnlyArguments m) touchMarketTransition.body
       (.returned (resumeAfterInternalCall (touchMarketExternalFrame evm m) "__r"
         (some [wordBytes32Value m.id])) evm' (some [wordBytes32Value m.id])) := by
   apply ExecFuncBody.execBlockRet
@@ -34,8 +36,8 @@ theorem touchMarketBodyReturns {evm evm' : EVM.State} {m : MarketData} {frame : 
 theorem touchMarketBodyReverts {evm : EVM.State} {m : MarketData}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit)
-    (hbody : ExecFuncBody config (touchMarketCallFrame ∅ m) evm touchMarketFunction.body .reverted) :
-    ExecTransitionBody config contract evm (marketOnlyArguments m) touchMarketTransition.body
+    (hbody : ExecFuncBody fork config (touchMarketCallFrame ∅ m) evm touchMarketFunction.body .reverted) :
+    ExecTransitionBody fork config contract evm (marketOnlyArguments m) touchMarketTransition.body
       .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply guardedBodyBlock hwv hhi
@@ -45,9 +47,9 @@ theorem touchMarketBodyReverts {evm : EVM.State} {m : MarketData}
 theorem touchMarketBodyStatic {evm : EVM.State} {m : MarketData}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit)
-    (hbody : ExecFuncBody config (touchMarketCallFrame ∅ m) evm touchMarketFunction.body
+    (hbody : ExecFuncBody fork config (touchMarketCallFrame ∅ m) evm touchMarketFunction.body
       .staticViolation) :
-    ExecTransitionBody config contract evm (marketOnlyArguments m) touchMarketTransition.body
+    ExecTransitionBody fork config contract evm (marketOnlyArguments m) touchMarketTransition.body
       .staticViolation := by
   apply ExecFuncBody.execBlockStatic
   apply guardedBodyBlock hwv hhi

@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TakeSellerCreditBlocks
 import Benchmarks.Midnight.TakeBuyerCredit
 
+variable {fork : Ethereum.Fork}
+
 /-! Checked narrowing and subtraction of the seller's credit. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -26,18 +28,18 @@ theorem midnightTakeSellerCredit {credit : Nat} {I : ExecutionEnv} {g : Sat256} 
     (hd : frame.locals.get? "sellerCreditDecrease" = some (.int decrease.toNat))
     (hcanon : seller.toNat < EVM.addressModulus) (hperm : I.perm = true)
     (hs : SourceState s0 I σ evm) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨12469⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨12469⟩
       ([debt, ⟨12505⟩, ⟨2⟩, ⟨12517⟩, uint128Mask, positionSlot id seller, marketSlot,
         decrease] ++ R) mem aw rdata σ k C) :
-    (ExecBlock config frame evm (takeTransition.body.drop 52) .reverted ∧
-      RDrev midnightBytecode g s0) ∨
+    (ExecBlock fork config frame evm (takeTransition.body.drop 52) .reverted ∧
+      RDrev fork midnightBytecode g s0) ∨
     ∃ σ' k' C', decrease.toNat < 2^128 ∧
-      (∀ result, ExecBlock config (takeSellerCreditWriteFrame frame decrease)
+      (∀ result, ExecBlock fork config (takeSellerCreditWriteFrame frame decrease)
           (takeSellerCreditWriteState evm id seller decrease) (takeTransition.body.drop 54) result →
-        ExecBlock config frame evm (takeTransition.body.drop 52) result) ∧
+        ExecBlock fork config frame evm (takeTransition.body.drop 52) result) ∧
       SourceState s0 I σ' (takeSellerCreditWriteState evm id seller decrease) ∧
       MemoryFunding credit mem aw C' ∧
-      RD midnightBytecode I g s0 ⟨23403⟩
+      RD fork midnightBytecode I g s0 ⟨23403⟩
         ([debt, ⟨12505⟩, ⟨2⟩, ⟨12517⟩, uint128Mask, positionSlot id seller, marketSlot,
           decrease] ++ R) mem aw rdata σ' k' C' := by
   have hargs : evalExprs? config frame evm [.var "sellerCreditDecrease"] =
@@ -47,7 +49,7 @@ theorem midnightTakeSellerCredit {credit : Nat} {I : ExecutionEnv} {g : Sat256} 
   have rd1 := midnightBlocks.midnight_block_12469 (by omega) (by jump_dest) rd
   simp only [midnightBlocks.midnight_block_12469_stack] at rd1
   by_cases hd128 : decrease.toNat < 2^128
-  · have hx0 := callToUint128 (name := "__c23") hc hargs hd128
+  · have hx0 := callToUint128 (fork := fork) (name := "__c23") hc hargs hd128
     have hp1 : (takeSellerCreditWriteFrame frame decrease).locals.get? "sellerPos" =
         some (.storageRef (positionRef id seller) positionType) :=
       (store_get_ne _ _ (by decide)).trans hp

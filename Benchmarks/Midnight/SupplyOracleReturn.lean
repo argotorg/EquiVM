@@ -2,6 +2,8 @@ import Benchmarks.Midnight.OracleReturnTrace
 import Benchmarks.Midnight.AllocationBudget
 import Benchmarks.Midnight.RuntimeBlocks_065
 
+variable {fork : Ethereum.Fork}
+
 /-! Oracle return decoding for supply collateral, with the caller's budget retained. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,12 +18,12 @@ theorem supplyOracleReturn {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length + 11 ≤ 1024) (hout : out.size < UInt256.size)
     (hroot : root.toNat + 32 < 2^64)
     (hb : TransferBudget budgetRoot credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨17264⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨17264⟩
       ((if success then ⟨1⟩ else ⟨0⟩) :: root :: base :: R) mem aw out σ k C) :
-    ((success = false ∨ out.size < 32) ∧ RDrev midnightBytecode g s0) ∨
+    ((success = false ∨ out.size < 32) ∧ RDrev fork midnightBytecode g s0) ∨
     (success = true ∧ 32 ≤ out.size ∧ ∃ aw' k' C',
       TransferBudget budgetRoot credit (writeWord mem 64 (root + UInt256.ofNat 32)) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨17274⟩ (UInt256.ofNat 255 :: base :: R)
+      RD fork midnightBytecode I g s0 ⟨17274⟩ (UInt256.ofNat 255 :: base :: R)
         (writeWord mem 64 (root + UInt256.ofNat 32)) aw' out σ k' C') := by
   have hn : (UInt256.ofNat out.size).toNat = out.size := UInt256.toNat_ofNat_of_lt hout
   cases success with

@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.OfferTailFields
 import Benchmarks.Midnight.CalldataArgumentSlice
 
+variable {fork : Ethereum.Fork}
+
 /-! Store the final offer caps and check the ratifier-data offset. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -21,13 +23,13 @@ theorem midnightOfferLastFields {credit : Nat} {I : ExecutionEnv} {g : Sat256} {
     (hrel : rel.toNat < 2^64) (hm : 416 ≤ mem.size)
     (hroot : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨10795⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨10795⟩
       (calldataWord I.calldata (rel.toNat + 420) :: rel :: ⟨452⟩ :: R) mem aw rdata σ k C) :
-    (decodeCalldataBytes I.calldata 36 = none ∧ RDrev midnightBytecode g s0) ∨
+    (decodeCalldataBytes I.calldata 36 = none ∧ RDrev fork midnightBytecode g s0) ∨
     ((calldataWord I.calldata 36).toNat < 2^64 ∧
       ∃ aw' k' C',
         MemoryFunding credit (offerLastMemory mem I.calldata (rel.toNat + 4)) aw' C' ∧
-        RD midnightBytecode I g s0 ⟨10833⟩ (calldataWord I.calldata 36 :: R)
+        RD fork midnightBytecode I g s0 ⟨10833⟩ (calldataWord I.calldata 36 :: R)
           (offerLastMemory mem I.calldata (rel.toNat + 4)) aw' rdata σ k' C') := by
   by_cases ho : (calldataWord I.calldata 36).toNat < 2^64
   · have hc : UInt256.gt (calldataWord I.calldata 36)

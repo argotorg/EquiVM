@@ -3,6 +3,8 @@ import Benchmarks.Midnight.ClaimFeeStatic
 import Benchmarks.Midnight.ClaimFeeSource
 import Benchmarks.Midnight.AddressDecode
 
+variable {fork : Ethereum.Fork}
+
 /-! Matching checked arithmetic and static rejection before the claim's token transfer. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,23 +18,23 @@ theorem midnightClaimFeeArithmetic {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {aw root amount market receiver : UInt256} {credit k C : Nat} {R : List UInt256}
     (henv : evm.executionEnv = I) (hstack : R.length + 18 ≤ 1024)
     (hfree : memLoad ⟨64⟩ mem = root) (hb : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨15580⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨15580⟩
       ([solcMappingSlot ⟨1⟩ m.id, m.id, receiver, amount, market] ++ R)
       mem aw rdata evm.accountMap k C) :
-    (RDrev midnightBytecode g s0 ∧
-      ExecBlock config (claimFeeAliasFrame origin m amount receiver) evm
+    (RDrev fork midnightBytecode g s0 ∧
+      ExecBlock fork config (claimFeeAliasFrame origin m amount receiver) evm
         (claimContinuousFeeTransition.body.drop 6) .reverted) ∨
-    (RDstatic midnightBytecode g s0 ∧
-      ExecBlock config (claimFeeAliasFrame origin m amount receiver) evm
+    (RDstatic fork midnightBytecode g s0 ∧
+      ExecBlock fork config (claimFeeAliasFrame origin m amount receiver) evm
         (claimContinuousFeeTransition.body.drop 6) .staticViolation) ∨
     (ClaimFeeArithmeticSafe evm m.id amount ∧ I.perm = true ∧
       ∃ aw' k' C', TransferBudget root credit (writeWord mem root.toNat amount) aw' C' ∧
-        RD midnightBytecode I g s0 ⟨23236⟩
+        RD fork midnightBytecode I g s0 ⟨23236⟩
           ([UInt256.land (memLoad (market + ⟨64⟩) (writeWord mem root.toNat amount)) solcAddrMask,
             receiver, amount, ⟨15786⟩] ++ R)
           (writeWord mem root.toNat amount) aw' rdata
           (claimFeeFinalState evm m.id amount).accountMap k' C') := by
-  change RD _ _ _ _ _ (_ :: _ :: _ :: _ :: _ :: R) _ _ _ _ _ _ at rd
+  change RD fork _ _ _ _ _ (_ :: _ :: _ :: _ :: _ :: R) _ _ _ _ _ _ at rd
   have rd1 := midnightBlocks.midnight_block_15580 (by omega) (by jump_dest) rd
   simp only [midnightBlocks.midnight_block_15580_stack, addressMask_computed] at rd1
   have hb1 := transferBudgetAt (root := root) (credit := credit) rd1 (hb.mono (by omega))

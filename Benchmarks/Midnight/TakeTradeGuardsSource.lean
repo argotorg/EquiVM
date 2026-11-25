@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.TakeOfferGuardsSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Maturity and reduce-only restrictions on the computed trade deltas. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -109,7 +111,7 @@ theorem takeTradeGuardsSource {frame : Frame} {evm : State} {offer : OfferData}
     (hd : frame.locals.get? "sellerDebtIncrease" = some (.int debt.toNat))
     (hm : TakeMaturityAllowed evm.executionEnv offer debt)
     (hr : TakeReduceAllowed offer increase debt) :
-    ABlock config evm frame (takeTransition.body.drop 42) frame (takeTransition.body.drop 44) := by
+    ABlock fork config evm frame (takeTransition.body.drop 42) frame (takeTransition.body.drop 44) := by
   rw [takeTradeGuards_shape]
   exact ⟨fun h ↦ ExecBlock.consNormal
     (ExecStmt.requireTrue ((evalTakeMaturityGuard ho hd).trans (by rw [decide_eq_true hm])))
@@ -123,7 +125,7 @@ theorem takeTradeGuardsSourceRevert {frame : Frame} {evm : State} {offer : Offer
     (hd : frame.locals.get? "sellerDebtIncrease" = some (.int debt.toNat))
     (hbad : ¬ (TakeMaturityAllowed evm.executionEnv offer debt ∧
       TakeReduceAllowed offer increase debt)) :
-    ExecBlock config frame evm (takeTransition.body.drop 42) .reverted := by
+    ExecBlock fork config frame evm (takeTransition.body.drop 42) .reverted := by
   rw [takeTradeGuards_shape]
   by_cases hm : TakeMaturityAllowed evm.executionEnv offer debt
   · exact ExecBlock.consNormal

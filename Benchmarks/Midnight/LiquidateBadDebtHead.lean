@@ -4,6 +4,8 @@ import Benchmarks.Midnight.LiquidateLossTrace
 import Benchmarks.Midnight.PackedStorageSourceState
 import Benchmarks.Midnight.TransferBudget
 
+variable {fork : Ethereum.Fork}
+
 /-! The initial position-debt write and loss-factor calculation agree with the source. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -27,21 +29,21 @@ theorem midnightLiquidateBadDebtHead {I : ExecutionEnv} {g : Sat256} {s0 evm : S
     (hdebt : healthPositionWord evm id borrower = debtWord)
     (hslot : memLoad (UInt256.ofNat 672) mem = solcMappingSlot ⟨1⟩ id)
     (hs : SourceState s0 I σ evm) (hb : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨7431⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨7431⟩
       ([debtWord, reverseRep, rep, maxDebt, price, positionSlot id borrower, dp, dl, borrower, badDebt] ++ R)
       mem aw rdata σ k C) :
     let evm' := liquidateBadDebtState evm id borrower badDebt
     let word := liquidateBadDebtMarketWord evm id borrower badDebt
     let total := low128 word
     let loss := UInt256.shiftRight word ⟨128⟩
-    (ExecBlock config frame evm (liquidateBadDebtBody.take 5) .reverted ∧
-      RDrev midnightBytecode g s0) ∨
-    (ExecBlock config frame evm (liquidateBadDebtBody.take 5) .staticViolation ∧
-      RDstatic midnightBytecode g s0) ∨
+    (ExecBlock fork config frame evm (liquidateBadDebtBody.take 5) .reverted ∧
+      RDrev fork midnightBytecode g s0) ∨
+    (ExecBlock fork config frame evm (liquidateBadDebtBody.take 5) .staticViolation ∧
+      RDstatic fork midnightBytecode g s0) ∨
     (I.perm = true ∧ ∃ σ' aw' k' C', SourceState s0 I σ' evm' ∧
-      ExecBlock config frame evm (liquidateBadDebtBody.take 5)
+      ExecBlock fork config frame evm (liquidateBadDebtBody.take 5)
         (.ok (liquidateLossFrame frame total loss badDebt) evm') ∧
-      TransferBudget root credit mem aw' C' ∧ RD midnightBytecode I g s0 ⟨7541⟩
+      TransferBudget root credit mem aw' C' ∧ RD fork midnightBytecode I g s0 ⟨7541⟩
         ([liquidateNextLoss total loss badDebt, ⟨7571⟩, word, reverseRep, rep, maxDebt,
           price, positionSlot id borrower, dp, dl, borrower, badDebt] ++ R)
         mem aw' rdata σ' k' C') := by
@@ -67,7 +69,7 @@ theorem midnightLiquidateBadDebtHead {I : ExecutionEnv} {g : Sat256} {s0 evm : S
         simpa only [evm1, σ1, liquidateBadDebtState, hdebt] using
           SourceState.storeLow128 hs (positionSlot id borrower + ⟨2⟩)
             (UInt256.sub (low128 debtWord) (low128 badDebt))
-      have hex1 : ExecStmt config frame evm (liquidateBadDebtBody[0]!) (.ok frame evm1) :=
+      have hex1 : ExecStmt fork config frame evm (liquidateBadDebtBody[0]!) (.ok frame evm1) :=
         liquidateBadDebtWriteSource hcanon hp hd (by rw [hdebt]; exact hle)
           (by rw [hs.env]; exact htrue)
       have hw : word = solcSlotWordAt (memLoad (UInt256.ofNat 672) mem) σ1 I := by
@@ -75,7 +77,7 @@ theorem midnightLiquidateBadDebtHead {I : ExecutionEnv} {g : Sat256} {s0 evm : S
         exact hs1.storageRead _
       have htotal : marketBalanceWord evm1 id 0 = total := rfl
       have hloss : marketLossWord evm1 id = loss := rfl
-      have hsrc := liquidateLossSource (evm := evm1) hc hm hd []
+      have hsrc := liquidateLossSource (fork := fork) (evm := evm1) hc hm hd []
       simp only [htotal, hloss, List.append_nil] at hsrc
       have hb1 := hb.mono hc1
       have hb2 : TransferBudget root credit mem (M aw (UInt256.ofNat 672) ⟨32⟩) C2 := by

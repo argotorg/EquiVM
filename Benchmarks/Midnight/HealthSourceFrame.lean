@@ -2,6 +2,8 @@ import Benchmarks.Midnight.HealthStorage
 import Benchmarks.Midnight.BitmapSource
 import Benchmarks.Midnight.CollateralSourceFrame
 
+variable {fork : Ethereum.Fork}
+
 /-! Source frames and expression values for the collateral health loop. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -60,7 +62,7 @@ theorem evalHealthLoopCond {cfg : Config} {frame : Frame} {evm : EVM.State} {bit
 theorem healthMsbCall {cfg : Config} {frame : Frame} {evm : EVM.State} {bitmap : UInt256}
     (hc : frame.contract = contract)
     (hb : frame.locals.get? "_collateralBitmap" = some (.int bitmap.toNat)) :
-    ExecStmt cfg frame evm (healthLoopBody[0]!)
+    ExecStmt fork cfg frame evm (healthLoopBody[0]!)
       (.ok (wordLocal frame "i" (bitmapMsb bitmap)) evm) := by
   let locals : Store := (∅ : Store).insert "bitmap" (.int bitmap.toNat)
   obtain ⟨frame', hf⟩ := bitmapMsbSource (cfg := cfg) (evm := evm)

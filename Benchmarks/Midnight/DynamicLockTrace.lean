@@ -5,6 +5,8 @@ import Benchmarks.Midnight.AllocationArithmetic
 import Benchmarks.Midnight.RuntimeBlocks_086
 import Benchmarks.Midnight.RuntimeBlocks_089
 
+variable {fork : Ethereum.Fork}
+
 /-! Read a liquidation lock, optionally clearing it, at an arbitrary allocated heap. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -21,10 +23,10 @@ theorem midnightDynamicLock {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0 :
     (hfree : memLoad (UInt256.ofNat 64) mem = root)
     (hret : (D_J midnightBytecode 0).contains ret = true)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 (if clear then ⟨24160⟩ else ⟨23150⟩)
+    (rd : RD fork midnightBytecode I g s0 (if clear then ⟨24160⟩ else ⟨23150⟩)
       (id :: user :: ret :: R) mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding credit (dynamicLockMemory mem root id user) aw' C' ∧
-      RD midnightBytecode I g s0 ret
+      RD fork midnightBytecode I g s0 ret
         (codeOwnerTransientWord I σ (lockSlot liquidationLockBase id user) :: R)
         (dynamicLockMemory mem root id user) aw' rdata
         (if clear then tstoreAccountMap I.codeOwner σ (lockSlot liquidationLockBase id user) ⟨0⟩
@@ -39,7 +41,7 @@ theorem midnightDynamicLock {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0 :
     simp only [dynamicLockHashMemory, writeWordArray, Reasoning.Theory.writeWord, Nat.add_assoc]
     rfl
   have head : ∃ aw1 k1 C1, MemoryFunding credit (dynamicLockHashMemory mem root id user) aw1 C1 ∧
-      RD midnightBytecode I g s0 ⟨18444⟩
+      RD fork midnightBytecode I g s0 ⟨18444⟩
         ([root, ⟨128⟩, if clear then ⟨24239⟩ else ⟨23229⟩, root,
           root + UInt256.ofNat 32, ret] ++ R)
         (dynamicLockHashMemory mem root id user) aw1 rdata σ k1 C1 := by
@@ -71,7 +73,7 @@ theorem midnightDynamicLock {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0 :
   have he : allocationEnd root (⟨128⟩ : UInt256) = root + UInt256.ofNat 128 := rfl
   rw [he] at rd2 ha2
   change MemoryFunding credit (dynamicLockMemory mem root id user) aw2 C2 at ha2
-  change RD midnightBytecode I g s0 (if clear then ⟨24239⟩ else ⟨23229⟩)
+  change RD fork midnightBytecode I g s0 (if clear then ⟨24239⟩ else ⟨23229⟩)
     (root :: (root + UInt256.ofNat 32) :: ret :: R)
     (dynamicLockMemory mem root id user) aw2 rdata σ k2 C2 at rd2
   have hl := dynamicLockMemory_length mem id user hlo

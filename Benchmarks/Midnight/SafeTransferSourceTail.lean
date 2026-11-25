@@ -2,6 +2,8 @@ import Benchmarks.Midnight.Common
 import Reasoning.ExternalCall
 import Reasoning.ABIComposite
 
+variable {fork : Ethereum.Fork}
+
 /-! The common return-data checks of both safe token-transfer functions. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -86,14 +88,14 @@ theorem safeTransferCondition_bad {frame : Frame} {evm : EVM.State} {out : ByteA
 
 theorem safeTransferTail_oversize {frame : Frame} {evm : EVM.State} {out : ByteArray}
     (hout : frame.locals.get? "returndata" = some (.bytes out)) (hb : 2 ^ 64 ≤ out.size) :
-    ExecBlock config frame evm safeTransferTail .reverted := by
+    ExecBlock fork config frame evm safeTransferTail .reverted := by
   exact .consRevert (.requireFalse
     ((safeTransferCap_eval hout).trans (by rw [decide_eq_false (by omega)])))
 
 theorem safeTransferTail_callFailure {frame : Frame} {evm : EVM.State} {out : ByteArray}
     (hout : frame.locals.get? "returndata" = some (.bytes out))
     (hz : frame.locals.get? "success" = some (.bool false)) :
-    ExecBlock config frame evm safeTransferTail .reverted := by
+    ExecBlock fork config frame evm safeTransferTail .reverted := by
   by_cases hb : out.size < 2 ^ 64
   · apply ExecBlock.consNormal (ExecStmt.requireTrue
       ((safeTransferCap_eval hout).trans (by rw [decide_eq_true hb])))
@@ -106,7 +108,7 @@ theorem safeTransferTail_decodeFailure {frame : Frame} {evm : EVM.State} {out : 
     (hz : frame.locals.get? "success" = some (.bool true)) (hne : out.size ≠ 0)
     (hd : config.externalABI.decodeValue? abiBool out = none ∨
       config.externalABI.decodeValue? abiBool out = some (.bool false)) :
-    ExecBlock config frame evm safeTransferTail .reverted := by
+    ExecBlock fork config frame evm safeTransferTail .reverted := by
   by_cases hb : out.size < 2 ^ 64
   · apply ExecBlock.consNormal (ExecStmt.requireTrue
       ((safeTransferCap_eval hout).trans (by rw [decide_eq_true hb])))
@@ -120,7 +122,7 @@ theorem safeTransferTail_success {frame : Frame} {evm : EVM.State} {out : ByteAr
     (hout : frame.locals.get? "returndata" = some (.bytes out))
     (hz : frame.locals.get? "success" = some (.bool true)) (hb : out.size < 2 ^ 64)
     (hd : out.size = 0 ∨ config.externalABI.decodeValue? abiBool out = some (.bool true)) :
-    ExecBlock config frame evm safeTransferTail (.ok frame evm) := by
+    ExecBlock fork config frame evm safeTransferTail (.ok frame evm) := by
   apply ExecBlock.consNormal (ExecStmt.requireTrue
     ((safeTransferCap_eval hout).trans (by rw [decide_eq_true hb])))
   apply ExecBlock.consNormal (ExecStmt.iteFalse (safeTransferFailure_eval hz) ExecBlock.nil)

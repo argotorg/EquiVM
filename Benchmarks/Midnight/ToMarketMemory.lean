@@ -2,6 +2,8 @@ import Benchmarks.Midnight.ScratchMemory
 import Benchmarks.Midnight.AllocationArithmetic
 import Benchmarks.Midnight.SettlementFields
 
+variable {fork : Ethereum.Fork}
+
 /-! Initial market allocation and mapping scratch space for the stored-market reader. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -65,9 +67,9 @@ theorem midnightToMarketInitialize {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {id : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 ⟨751⟩ (⟨832⟩ :: id :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨751⟩ (⟨832⟩ :: id :: R)
       toMarketAllocatedMemory aw rdata σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g s0 ⟨846⟩
+    ∃ aw' k' C', RD fork midnightBytecode I g s0 ⟨846⟩
       (marketTickSpacing (solcSlotWordAt (solcMappingSlot ⟨1⟩ id + ⟨2⟩) σ I) :: id :: R)
       (toMarketInitialMemory id) aw' rdata σ k' C' := by
   obtain ⟨aw1, k1, C1, rd1⟩ := midnightBlocks.midnight_block_751_packed hstack rd

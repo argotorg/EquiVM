@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.GasMemory
 import Benchmarks.Midnight.Conditions
 
+variable {fork : Ethereum.Fork}
+
 /-! Explicit memory-payment facts to retain alongside reachability summaries. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -35,8 +37,8 @@ theorem MemoryPaid.entry (spent : Nat) : MemoryPaid 79 (UInt256.ofNat 26) spent 
   omega
 
 theorem memoryPaid_gasBound {code I g s0 pc stk mem aw rdata σ k C allowance}
-    (rd : RD code I g s0 pc stk mem aw rdata σ k C) (hp : MemoryPaid allowance aw C) :
-    X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨
+    (rd : RD fork code I g s0 pc stk mem aw rdata σ k C) (hp : MemoryPaid allowance aw C) :
+    X fork (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨
       memoryCost aw.toNat ≤ g.toNat + allowance := by
   rcases rd with hoog | ⟨s, _, _, _, _, _, _, hC, _⟩
   · exact Or.inl hoog
@@ -45,9 +47,9 @@ theorem memoryPaid_gasBound {code I g s0 pc stk mem aw rdata σ k C allowance}
     exact Or.inr (by rw [he]; unfold MemoryPaid at hp; omega)
 
 theorem midnightMemoryPaid_bound {code I g s0 pc stk mem aw rdata σ k C}
-    (rd : RD code I g s0 pc stk mem aw rdata σ k C) (hp : MemoryPaid 79 aw C)
+    (rd : RD fork code I g s0 pc stk mem aw rdata σ k C) (hp : MemoryPaid 79 aw C)
     (hgas : midnightGasBound g.toUInt256) :
-    X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨ aw.toNat < 3 * 2^57 := by
+    X fork (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨ aw.toNat < 3 * 2^57 := by
   rcases memoryPaid_gasBound rd hp with hoog | hcost
   · exact Or.inl hoog
   · right
@@ -60,9 +62,9 @@ theorem midnightMemoryPaid_bound {code I g s0 pc stk mem aw rdata σ k C}
     omega
 
 theorem midnightMemoryPaid_small {code I g s0 pc stk mem aw rdata σ k C}
-    (rd : RD code I g s0 pc stk mem aw rdata σ k C) (hp : MemoryPaid 79 aw C)
+    (rd : RD fork code I g s0 pc stk mem aw rdata σ k C) (hp : MemoryPaid 79 aw C)
     (hgas : midnightGasBound g.toUInt256) :
-    X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨ aw.toNat < 100000 := by
+    X fork (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨ aw.toNat < 100000 := by
   rcases memoryPaid_gasBound rd hp with hoog | hcost
   · exact Or.inl hoog
   · right
@@ -74,9 +76,9 @@ theorem midnightMemoryPaid_small {code I g s0 pc stk mem aw rdata σ k C}
 
 theorem midnightMemoryPaid_headroom {code I g s0 pc stk mem aw rdata σ k C}
     {root : UInt256}
-    (rd : RD code I g s0 pc stk mem aw rdata σ k C) (hp : MemoryPaid 79 aw C)
+    (rd : RD fork code I g s0 pc stk mem aw rdata σ k C) (hp : MemoryPaid 79 aw C)
     (hgas : midnightGasBound g.toUInt256) (hroot : root.toNat ≤ 32 * aw.toNat) :
-    X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨ root.toNat + 2^62 < 2^64 := by
+    X fork (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨ root.toNat + 2^62 < 2^64 := by
   rcases midnightMemoryPaid_bound rd hp hgas with hoog | haw
   · exact Or.inl hoog
   · exact Or.inr (by omega)

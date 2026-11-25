@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.TakeAmountCall
 
+variable {fork : Ethereum.Fork}
+
 /-! Source execution of both asset calculations in the selected offer branch. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -51,9 +53,9 @@ theorem takeAmountsBranchSource {frame : Frame} {evm : State}
     (hb : frame.locals.get? "buyerPrice" = some (.int buyerPrice.toNat))
     (hs : frame.locals.get? "sellerPrice" = some (.int sellerPrice.toNat))
     (hsafe : TakeAmountSafe buy units buyerPrice ∧ TakeAmountSafe buy units sellerPrice) :
-    ExecBlock config (takeAmountsInit frame) evm (takeAmountsBranch buy)
+    ExecBlock fork config (takeAmountsInit frame) evm (takeAmountsBranch buy)
       (.ok (takeAmountsFrame frame buy units buyerPrice sellerPrice) evm) := by
-  have hbuyer := takeAmountStepSource (cfg := config) (evm := evm) (frame := takeAmountsInit frame)
+  have hbuyer := takeAmountStepSource (fork := fork) (cfg := config) (evm := evm) (frame := takeAmountsInit frame)
     (name := "bought") (target := "buyerAssets") hc
     ((takeAmountsInit_get frame "units" (by decide) (by decide)).trans hu)
     ((takeAmountsInit_get frame "buyerPrice" (by decide) (by decide)).trans hb)
@@ -73,9 +75,9 @@ theorem takeAmountsBranchRevert {frame : Frame} {evm : State}
     (hb : frame.locals.get? "buyerPrice" = some (.int buyerPrice.toNat))
     (hs : frame.locals.get? "sellerPrice" = some (.int sellerPrice.toNat))
     (hbad : ¬ (TakeAmountSafe buy units buyerPrice ∧ TakeAmountSafe buy units sellerPrice)) :
-    ExecBlock config (takeAmountsInit frame) evm (takeAmountsBranch buy) .reverted := by
+    ExecBlock fork config (takeAmountsInit frame) evm (takeAmountsBranch buy) .reverted := by
   by_cases hsafe : TakeAmountSafe buy units buyerPrice
-  · have hbuyer := takeAmountStepSource (cfg := config) (evm := evm)
+  · have hbuyer := takeAmountStepSource (fork := fork) (cfg := config) (evm := evm)
       (frame := takeAmountsInit frame)
       (name := "bought") (target := "buyerAssets") hc
       ((takeAmountsInit_get frame "units" (by decide) (by decide)).trans hu)
@@ -101,14 +103,14 @@ theorem takeAmountsSource {frame : Frame} {evm : State} {offer : OfferData}
     (hs : frame.locals.get? "sellerPrice" = some (.int sellerPrice.toNat))
     (hsafe : TakeAmountSafe offer.buy units buyerPrice ∧
       TakeAmountSafe offer.buy units sellerPrice) :
-    ABlock config evm frame (takeTransition.body.drop 22)
+    ABlock fork config evm frame (takeTransition.body.drop 22)
       (takeAmountsFrame frame offer.buy units buyerPrice sellerPrice)
       (takeTransition.body.drop 25) := by
   have he := evalOfferBuy (cfg := config) (evm := evm)
     ((takeAmountsInit_get frame "offer" (by decide) (by decide)).trans ho)
   rw [wordToElemBool] at he
-  have hx := takeAmountsBranchSource (evm := evm) hc hu hb hs hsafe
-  have hi : ExecStmt config (takeAmountsInit frame) evm
+  have hx := takeAmountsBranchSource (fork := fork) (evm := evm) hc hu hb hs hsafe
+  have hi : ExecStmt fork config (takeAmountsInit frame) evm
       (.ite (.field (.var "offer") "buy") (takeAmountsBranch ⟨1⟩) (takeAmountsBranch ⟨0⟩))
       (.ok (takeAmountsFrame frame offer.buy units buyerPrice sellerPrice) evm) := by
     by_cases hbuy : offer.buy = ⟨0⟩
@@ -131,12 +133,12 @@ theorem takeAmountsSourceRevert {frame : Frame} {evm : State} {offer : OfferData
     (hs : frame.locals.get? "sellerPrice" = some (.int sellerPrice.toNat))
     (hbad : ¬ (TakeAmountSafe offer.buy units buyerPrice ∧
       TakeAmountSafe offer.buy units sellerPrice)) :
-    ExecBlock config frame evm (takeTransition.body.drop 22) .reverted := by
+    ExecBlock fork config frame evm (takeTransition.body.drop 22) .reverted := by
   have he := evalOfferBuy (cfg := config) (evm := evm)
     ((takeAmountsInit_get frame "offer" (by decide) (by decide)).trans ho)
   rw [wordToElemBool] at he
-  have hx := takeAmountsBranchRevert (evm := evm) hc hu hb hs hbad
-  have hi : ExecStmt config (takeAmountsInit frame) evm
+  have hx := takeAmountsBranchRevert (fork := fork) (evm := evm) hc hu hb hs hbad
+  have hi : ExecStmt fork config (takeAmountsInit frame) evm
       (.ite (.field (.var "offer") "buy") (takeAmountsBranch ⟨1⟩) (takeAmountsBranch ⟨0⟩))
       .reverted := by
     by_cases hbuy : offer.buy = ⟨0⟩

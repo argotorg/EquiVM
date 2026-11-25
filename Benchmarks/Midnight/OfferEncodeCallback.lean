@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.OfferEncodeFirst
 
+variable {fork : Ethereum.Fork}
+
 /-! The callback address and dynamic callback-data offset in an encoded offer. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -20,12 +22,12 @@ theorem midnightOfferEncodeCallback_funded {credit : Nat} {I : ExecutionEnv} {g 
     (hm : MemoryWords mem ptr.toNat (offer.words marketPtr callbackPtr))
     (hbelow : ptr.toNat + 480 ≤ output.toNat) (hout : output.toNat + 288 < UInt256.size)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨20243⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨20243⟩
       (ptr :: ⟨224⟩ :: solcAddrMask :: finish :: ⟨20270⟩ :: ⟨448⟩ :: ⟨448⟩ :: output :: ptr :: R)
       mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding credit
         (offerEncodeCallbackMemory mem output (UInt256.sub finish output) offer) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨20095⟩
+      RD fork midnightBytecode I g s0 ⟨20095⟩
         (callbackPtr :: finish :: ⟨20270⟩ :: ⟨448⟩ :: ⟨448⟩ :: output :: ptr :: R)
         (offerEncodeCallbackMemory mem output (UInt256.sub finish output) offer)
         aw' rdata σ k' C' := by

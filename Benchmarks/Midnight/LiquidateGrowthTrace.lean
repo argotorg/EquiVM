@@ -6,6 +6,8 @@ import Benchmarks.Midnight.CheckedArithmeticRevert
 import Benchmarks.Midnight.RuntimeBlocks_026
 import Benchmarks.Midnight.RuntimeBlocks_027
 
+variable {fork : Ethereum.Fork}
+
 /-! Runtime arithmetic for the post-maturity liquidation incentive. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -18,12 +20,12 @@ theorem midnightLiquidateGrowth {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw maximum lltv maxDebt : UInt256} {m : MarketData}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 10 ≤ 1024) (hd : decodeCalldataMarket I.calldata 4 = some m)
-    (rd : RD midnightBytecode I g s0 ⟨6547⟩ (maximum :: lltv :: maxDebt :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨6547⟩ (maximum :: lltv :: maxDebt :: R)
       mem aw rdata σ k C) :
     let timestamp := UInt256.ofNat I.header.timestamp
-    (¬ LiquidateGrowthSafe maximum timestamp m.maturity ∧ RDrev midnightBytecode g s0) ∨
+    (¬ LiquidateGrowthSafe maximum timestamp m.maturity ∧ RDrev fork midnightBytecode g s0) ∨
     (LiquidateGrowthSafe maximum timestamp m.maturity ∧ ∃ k' C', C ≤ C' ∧
-      RD midnightBytecode I g s0 ⟨6639⟩
+      RD fork midnightBytecode I g s0 ⟨6639⟩
         (maxDebt :: lltv :: liquidateGrownLif maximum timestamp m.maturity :: R)
         mem aw rdata σ k' C') := by
   dsimp only

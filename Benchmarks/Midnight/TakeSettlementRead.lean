@@ -2,6 +2,8 @@ import Benchmarks.Midnight.TakeGateDecision
 import Benchmarks.Midnight.TakeBuyerDebtWrite
 import Benchmarks.Midnight.ClaimSettlementSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Reading the settlement-fee balance after all position and market writes. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -21,9 +23,9 @@ theorem midnightTakeSettlementRead {credit : Nat} {I : ExecutionEnv} {g : Sat256
     (ho : OfferStored mem ⟨832⟩ marketPtr arrayPtr callbackPtr root offer)
     (hoffer : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨12598⟩ (value :: R) mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨12598⟩ (value :: R) mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding credit (takeSettlementMemory mem offer) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨19536⟩
+      RD fork midnightBytecode I g s0 ⟨19536⟩
         (solcSlotWordAt (claimSettlementSlot offer.market.loanToken) σ I :: value ::
           ⟨12638⟩ :: claimSettlementSlot offer.market.loanToken :: R)
         (takeSettlementMemory mem offer) aw' rdata σ k' C' := by

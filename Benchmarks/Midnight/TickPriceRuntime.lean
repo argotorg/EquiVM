@@ -3,6 +3,8 @@ import Benchmarks.Midnight.TickExpRuntime
 import Benchmarks.Midnight.CheckedExtraGas
 import Benchmarks.Midnight.RuntimeBlocks_044
 
+variable {fork : Ethereum.Fork}
+
 /-! Runtime tick-to-price arithmetic up to the final fixed-step rounding block. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -14,15 +16,15 @@ set_option maxRecDepth 10000
 theorem midnightTickPriceCore {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw tick : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 13 ≤ 1024) (hbound : tick.toNat ≤ 6744)
-    (rd : RD midnightBytecode I g s0 ⟨11430⟩ (tick :: R) mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD midnightBytecode I g s0 ⟨11514⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨11430⟩ (tick :: R) mem aw rdata σ k C) :
+    ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode I g s0 ⟨11514⟩
       (UInt256.div (tickPriceNumerator tick.toNat) (tickPriceDenominator tick.toNat) ::
         UInt256.ofNat 49999999999 :: UInt256.ofNat 100000000000 ::
         UInt256.ofNat 100000000000 :: R) mem aw rdata σ k' C' := by
   have hf := tickArithmeticFacts tick hbound
   have rd1 := midnightBlocks.midnight_block_11430 (by omega) (by jump_dest) rd
   simp only [midnightBlocks.midnight_block_11430_stack] at rd1
-  have hexp : ∃ k2 C2, C + 43 ≤ C2 ∧ RD midnightBytecode I g s0 ⟨11467⟩
+  have hexp : ∃ k2 C2, C + 43 ≤ C2 ∧ RD fork midnightBytecode I g s0 ⟨11467⟩
       (tickExpWord tick.toNat :: UInt256.ofNat 11514 :: UInt256.ofNat 49999999999 ::
         UInt256.ofNat 100000000000 :: UInt256.ofNat 100000000000 :: R)
       mem aw rdata σ k2 C2 := by

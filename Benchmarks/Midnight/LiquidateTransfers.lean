@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.LiquidateTransfer
 import Benchmarks.Midnight.LiquidateAfterTransfer
 
+variable {fork : Ethereum.Fork}
+
 /-! Both liquidation transfers and the intervening optional callback. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -28,20 +30,20 @@ theorem midnightLiquidateTransfers {I : ExecutionEnv} {g : UInt256} {s0 evm : St
     (hseized : memLoad (UInt256.ofNat 640) mem = seized)
     (hpaid : memLoad (UInt256.ofNat 608) mem = repaid)
     (hdl : dl.toNat < 2^64) (hdata : dp.toNat + dl.toNat ≤ I.calldata.size)
-    (hh : TransferHeap mem aw root C) (hgas : midnightGasBound g) (hfork : I.fork ≥ .osaka)
+    (hh : TransferHeap mem aw root C) (hgas : midnightGasBound g) (hfork : fork ≥ .osaka)
     (hs : SourceState s0 I σ evm)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨20488⟩
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨20488⟩
       ([⟨4⟩ + calldataWord I.calldata 4, calldataWord I.calldata 4 + ⟨100⟩,
         ⟨5734⟩, ⟨5750⟩, UInt256.ofNat receiver.val, ⟨5543⟩, ⟨5755⟩,
         dp, dl, borrower, badDebt, UInt256.ofNat receiver.val, UInt256.ofNat payer.val, saved] ++ R)
       mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (ExecBlock config frame evm (liquidateTransition.body.drop 21) .reverted ∧
-      RDrev midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (ExecBlock fork config frame evm (liquidateTransition.body.drop 21) .reverted ∧
+      RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
     ∃ frame' evm',
-      ExecBlock config frame evm (liquidateTransition.body.drop 21)
+      ExecBlock fork config frame evm (liquidateTransition.body.drop 21)
         (.returned frame' evm' (some [.int seized.toNat, .int repaid.toNat])) ∧
-      RDret midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap
+      RDret fork midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap
         (wordArrayBytes [seized, repaid]) := by
   rcases midnightLiquidateTransfer (R := saved :: R)
       (by simp only [List.length_cons]; omega) hf hd hi hidx hseized hh hgas hfork hs rd with

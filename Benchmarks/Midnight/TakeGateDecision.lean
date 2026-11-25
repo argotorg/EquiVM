@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TakeGatePrepare
 import Benchmarks.Midnight.TakeGateSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Runtime evaluation of the gate-address and trade-delta conditions. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -53,11 +55,11 @@ theorem midnightTakeGateDecision {credit : Nat} {I : ExecutionEnv} {g : Sat256} 
     (ho : OfferStored mem ⟨832⟩ marketPtr arrayPtr callbackPtr root offer)
     (hoffer : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 kind.startPC
+    (rd : RD fork midnightBytecode I g s0 kind.startPC
       ([buyerSlot, debt, buyerDebt, sellerSlot, marketSlot, decrease, ratifierPtr, increase] ++ R)
       mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding credit mem aw' C' ∧
-      RD midnightBytecode I g s0 kind.branchPC
+      RD fork midnightBytecode I g s0 kind.branchPC
         ([UInt256.ofNat offer.market.enterGate.val,
           takeGateSkipWord offer (kind.delta increase debt), buyerSlot, debt, buyerDebt,
           sellerSlot, marketSlot, decrease, ratifierPtr, increase] ++ R)

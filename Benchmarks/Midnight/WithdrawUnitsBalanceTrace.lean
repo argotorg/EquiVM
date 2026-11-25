@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.WithdrawUnitsTraceSteps
 import Benchmarks.Midnight.ClaimFeeTraceSteps
 
+variable {fork : Ethereum.Fork}
+
 /-! Matching all checked balance reductions before withdrawal's final write and transfer. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,16 +19,16 @@ theorem midnightWithdrawUnitsBalances {I : ExecutionEnv} {g : Sat256} {s0 evm : 
     (hf : WithdrawUnitsSourceFrame frame m id user units receiver)
     (hcanon : user.toNat < EVM.addressModulus) (hperm : I.perm = true)
     (hstack : R.length + 24 ≤ 1024) (hb : TransferBudget root gasCredit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨23403⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨23403⟩
       ([units, UInt256.ofNat 3993, UInt256.ofNat 4002, uint128Mask,
         positionSlot id user, solcMappingSlot ⟨1⟩ id, id, user, decrease,
         market, UInt256.ofNat 64, solcAddrMask, UInt256.ofNat receiver.val, units] ++ R)
       mem aw rdata evm.accountMap k C) :
-    (RDrev midnightBytecode g s0 ∧
-      ExecBlock config frame evm (withdrawTransition.body.drop 10) .reverted) ∨
+    (RDrev fork midnightBytecode g s0 ∧
+      ExecBlock fork config frame evm (withdrawTransition.body.drop 10) .reverted) ∨
     (WithdrawUnitsBalancesSafe evm id user units ∧ ∃ k' C',
       TransferBudget root gasCredit mem aw C' ∧
-      RD midnightBytecode I g s0 ⟨4088⟩
+      RD fork midnightBytecode I g s0 ⟨4088⟩
         ([UInt256.sub (marketBalanceWord (withdrawUnitsWithdrawableState evm id user units) id 0)
             units, uint128Mask, solcMappingSlot ⟨1⟩ id, id, user, decrease,
           market, UInt256.ofNat 64, solcAddrMask, UInt256.ofNat receiver.val, units] ++ R)
@@ -47,9 +49,9 @@ theorem midnightWithdrawUnitsBalances {I : ExecutionEnv} {g : Sat256} {s0 evm : 
         h128 hc (by jump_dest) rd2
       obtain ⟨k4, C4, hc4, rd4⟩ := midnightWithdrawUnitsWriteCredit henv (by omega) hperm rd3
       have sourceCredit {result : ExecResult}
-          (ht : ExecBlock config (withdrawUnitsCreditFrame frame units)
+          (ht : ExecBlock fork config (withdrawUnitsCreditFrame frame units)
             (withdrawUnitsCreditState evm id user units) (withdrawTransition.body.drop 12) result) :
-          ExecBlock config frame evm (withdrawTransition.body.drop 10) result :=
+          ExecBlock fork config frame evm (withdrawTransition.body.drop 10) result :=
         withdrawUnitsSubtractSource hf.contract hf.units
           (evalPositionAliasField 0 hcanon hf1.position)
           (assignPositionAliasField 0 _ hcanon hf1.position)
@@ -68,10 +70,10 @@ theorem midnightWithdrawUnitsBalances {I : ExecutionEnv} {g : Sat256} {s0 evm : 
         obtain ⟨k8, C8, hc8, rd8⟩ := midnightWithdrawUnitsWriteWithdrawable henv
           (by omega) hperm rd7
         have sourceWithdrawable {result : ExecResult}
-            (ht : ExecBlock config (withdrawUnitsWithdrawableFrame frame units)
+            (ht : ExecBlock fork config (withdrawUnitsWithdrawableFrame frame units)
               (withdrawUnitsWithdrawableState evm id user units)
               (withdrawTransition.body.drop 14) result) :
-            ExecBlock config (withdrawUnitsCreditFrame frame units)
+            ExecBlock fork config (withdrawUnitsCreditFrame frame units)
               (withdrawUnitsCreditState evm id user units)
               (withdrawTransition.body.drop 12) result :=
           withdrawUnitsSubtractSource hf1.contract hf1.units

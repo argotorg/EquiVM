@@ -2,6 +2,8 @@ import Benchmarks.Midnight.OfferDecodeFacts
 import Benchmarks.Midnight.AllocationAccounting
 import Benchmarks.Midnight.RuntimeBlocks_040
 
+variable {fork : Ethereum.Fork}
+
 /-! The external offer header, fixed record allocation, and nested market pointer. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -34,14 +36,14 @@ theorem midnightOfferPrepare {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length + 10 ≤ 1024)
     (hfree : memLoad (UInt256.ofNat 64) mem = ⟨832⟩)
     (ha : MemoryAccounting mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨10425⟩ R mem aw rdata σ k C) :
-    (decodeCalldataOffer I.calldata 4 = none ∧ RDrev midnightBytecode g s0) ∨
+    (rd : RD fork midnightBytecode I g s0 ⟨10425⟩ R mem aw rdata σ k C) :
+    (decodeCalldataOffer I.calldata 4 = none ∧ RDrev fork midnightBytecode g s0) ∨
     ((calldataWord I.calldata 4).toNat < 2^64 ∧
       UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) (calldataWord I.calldata 4) +
         UInt256.lnot (UInt256.ofNat 3)) (UInt256.ofNat 480) = UInt256.ofNat 0 ∧
       (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat < 2^64 ∧
       ∃ aw' k' C', MemoryAccounting (offerPrepareMemory mem) aw' C' ∧
-        RD midnightBytecode I g s0 ⟨18574⟩
+        RD fork midnightBytecode I g s0 ⟨18574⟩
           ((calldataWord I.calldata 4 +
               calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat) + UInt256.ofNat 4) ::
             UInt256.ofNat I.calldata.size :: ⟨10530⟩ :: calldataWord I.calldata 4 :: R)

@@ -76,7 +76,7 @@ class GeneratorTests(unittest.TestCase):
         # Two CLZs in one block that ends in STOP: a single summary theorem, whose one fork
         # hypothesis is shared by every CLZ of the block.
         rendered = units("60011e60021e00")
-        self.assertEqual(rendered.count("(hfork : ee.fork ≥ .osaka)"), 1)
+        self.assertEqual(rendered.count("(hfork : fork ≥ .osaka)"), 1)
         self.assertEqual(rendered.count(".clz hfork (by native_decide) (by evm_ov)"), 2)
         self.assertNotIn("Unsupported instruction boundary", rendered)
         # A block that falls through keeps the count on its output stack.

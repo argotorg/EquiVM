@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.FlashLoanEventMemory
 import Benchmarks.Midnight.RuntimeBlocks_060
 
+variable {fork : Ethereum.Fork}
+
 /-! Preparing the flash-loan event, with validation of every token address. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -23,16 +25,16 @@ theorem midnightFlashLoanEventEncode {I : ExecutionEnv} {g : Sat256} {s0 : State
     (hcallback : callback.toNat < EVM.addressModulus)
     (hroot : root.toNat < 2^128) (hfree : memLoad (UInt256.ofNat 64) mem = root)
     (ha : MemoryAccounting mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨16162⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨16162⟩
       (dp :: dl :: ap :: callback :: an :: tp :: tn :: R) mem aw rdata σ k C) :
     (¬ CanonicalAddressWords (calldataArrayWords I.calldata tn.toNat tp.toNat) ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     (CanonicalAddressWords (calldataArrayWords I.calldata tn.toNat tp.toNat) ∧
       ∃ aw' k' C', C ≤ C' ∧
       MemoryAccounting
         (flashLoanEventMemory mem I.calldata root.toNat tp.toNat tn.toNat ap.toNat an.toNat)
         aw' C' ∧
-      RD midnightBytecode I g s0 ⟨16253⟩
+      RD fork midnightBytecode I g s0 ⟨16253⟩
         ([root + UInt256.ofNat (128 + 32 * tn.toNat + 32 * an.toNat), root, root,
           flashLoanEventTopic, UInt256.ofNat I.source.val, callback] ++
           flashLoanAfterEventStack tn tp callback an ap dl dp ++ R)

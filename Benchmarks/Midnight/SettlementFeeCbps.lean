@@ -5,6 +5,8 @@ import Benchmarks.Midnight.WordArray
 import Benchmarks.Midnight.Allocation
 import Benchmarks.Midnight.MappingMemory
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `settlementFeeCbps(bytes32)`
 
@@ -99,7 +101,7 @@ theorem evalSettlementFeeField (evm : EVM.State) (id : UInt256) (i : Fin 7) :
 theorem settlementFeeCbpsBodyReturns (evm : EVM.State) (id : UInt256)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) :
-    ExecTransitionBody config contract evm ((∅ : Store).insert "id" (wordBytes32Value id))
+    ExecTransitionBody fork config contract evm ((∅ : Store).insert "id" (wordBytes32Value id))
       settlementFeeCbpsTransition.body
       (.returned (calldataFrame contract ((∅ : Store).insert "id" (wordBytes32Value id)) ∅ evm)
         evm (some [.array (wordArrayValues (settlementFeeWords
@@ -126,11 +128,11 @@ theorem settlementFeeCbpsBodyReturns (evm : EVM.State) (id : UInt256)
 
 theorem settlementFeeCbpsAllocated {σ σ₀ A I} {g : Sat256} {k C : Nat}
     (hsize : I.calldata.size < UInt256.size)
-    (rd : RD midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 17810)
+    (rd : RD fork midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 17810)
       [solcSelectorWord I] midnightEntryMemory
       (M (M (UInt256.ofNat 0) (UInt256.ofNat 64) ⟨32⟩) (UInt256.ofNat 800) ⟨32⟩)
       ByteArray.empty σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 17843)
+    ∃ aw' k' C', RD fork midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 17843)
       [calldataWord I.calldata 4, ⟨1056⟩, solcSelectorWord I]
       (writeWord (writeWord midnightEntryMemory 64 ⟨1056⟩) 64 ⟨1280⟩)
       aw' ByteArray.empty σ k' C' := by
@@ -161,9 +163,9 @@ theorem settlementFeeCbpsAllocated {σ σ₀ A I} {g : Sat256} {k C : Nat}
 theorem settlementFeeCbpsPrepared {σ σ₀ A I} {g : Sat256} {k C : Nat}
     {mem : ByteArray} {aw : UInt256} {id : UInt256}
     (hsize : mem.size = 832) (hfp : memLoad (UInt256.ofNat 64) mem = ⟨1280⟩)
-    (rd : RD midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 17843)
+    (rd : RD fork midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 17843)
       [id, ⟨1056⟩, solcSelectorWord I] mem aw ByteArray.empty σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 17950)
+    ∃ aw' k' C', RD fork midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 17950)
       [⟨1280⟩, ⟨0⟩, ⟨1056⟩, ⟨1280⟩, solcSelectorWord I]
       (feePreparedMemory (twoWordHashMem id ⟨1⟩ mem) id
         (solcSlotWordAt (solcMappingSlot ⟨1⟩ id + ⟨2⟩) σ I)) aw' ByteArray.empty σ k' C' := by
@@ -195,7 +197,7 @@ theorem settlementFeeCbpsPrepared {σ σ₀ A I} {g : Sat256} {k C : Nat}
     dsimp only [buffer]
     rw [← settlementFeeWord_zero word]
     rfl
-  change RD midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 17950)
+  change RD fork midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 17950)
     [memLoad (UInt256.ofNat 64) buffer, ⟨0⟩, ⟨1056⟩, memLoad (UInt256.ofNat 64) buffer, solcSelectorWord I]
     buffer _ ByteArray.empty σ _ _ at rd2
   rw [hmem] at rd2
@@ -210,11 +212,11 @@ theorem settlementFeeCopyStep {σ σ₀ A I} {g : Sat256} {k C : Nat}
     {mem : ByteArray} {aw : UInt256} (i : Fin 7) (word : UInt256)
     (hlt : word.toNat < EVM.twoPow 16)
     (hread : memLoad (UInt256.ofNat (1056 + 32 * i.val)) mem = word)
-    (rd : RD midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 17950)
+    (rd : RD fork midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 17950)
       [UInt256.ofNat (1280 + 32 * i.val), UInt256.ofNat i.val,
         UInt256.ofNat (1056 + 32 * i.val), ⟨1280⟩, solcSelectorWord I]
       mem aw ByteArray.empty σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 17950)
+    ∃ aw' k' C', RD fork midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 17950)
       [UInt256.ofNat (1280 + 32 * (i.val + 1)), UInt256.ofNat (i.val + 1),
         UInt256.ofNat (1056 + 32 * (i.val + 1)), ⟨1280⟩, solcSelectorWord I]
       (writeWord mem (1280 + 32 * i.val) word) aw' ByteArray.empty σ k' C' := by
@@ -265,12 +267,12 @@ theorem feeCopyMemory_source {base : ByteArray} (id word : UInt256) (n : Nat)
 
 theorem settlementFeeCopyLoop {σ σ₀ A I} {g : Sat256} {k C : Nat}
     {base : ByteArray} {aw : UInt256} (id word : UInt256) (hsize : base.size = 832)
-    (rd : RD midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 17950)
+    (rd : RD fork midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 17950)
       [⟨1280⟩, ⟨0⟩, ⟨1056⟩, ⟨1280⟩, solcSelectorWord I]
       (feePreparedMemory base id word) aw ByteArray.empty σ k C) :
-    RDret midnightBytecode g (initState σ σ₀ g A I) σ (wordArrayBytes (settlementFeeWords word)) := by
+    RDret fork midnightBytecode g (initState σ σ₀ g A I) σ (wordArrayBytes (settlementFeeWords word)) := by
   have hloop : ∀ n, n ≤ 7 → ∃ aw' k' C',
-      RD midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 17950)
+      RD fork midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 17950)
         [UInt256.ofNat (1280 + 32 * n), UInt256.ofNat n,
           UInt256.ofNat (1056 + 32 * n), ⟨1280⟩, solcSelectorWord I]
         (feeCopyMemory base id word n) aw' ByteArray.empty σ k' C' := by
@@ -294,11 +296,11 @@ theorem settlementFeeCopyLoop {σ σ₀ A I} {g : Sat256} {k C : Nat}
 
 theorem settlementFeeCbpsTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Nat}
     (hsize : I.calldata.size < UInt256.size)
-    (rd : RD midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 17810)
+    (rd : RD fork midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 17810)
       [solcSelectorWord I] midnightEntryMemory
       (M (M (UInt256.ofNat 0) (UInt256.ofNat 64) ⟨32⟩) (UInt256.ofNat 800) ⟨32⟩)
       ByteArray.empty σ k C) :
-    RDret midnightBytecode g (initState σ σ₀ g A I) σ
+    RDret fork midnightBytecode g (initState σ σ₀ g A I) σ
       (wordArrayBytes (settlementFeeWords
         (solcSlotWordAt (solcMappingSlot ⟨1⟩ (calldataWord I.calldata 4) + ⟨2⟩) σ I))) := by
   obtain ⟨aw1, k1, C1, rd1⟩ := settlementFeeCbpsAllocated hsize rd
@@ -312,10 +314,10 @@ theorem settlementFeeCbpsTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Nat}
 /-- `settlementFeeCbps(bytes32)`: the theorem `Correct.lean` routes selector 3 to. -/
 theorem midnightSettlementFeeCbpsBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 3)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 3) rfl hsel
   have hd : dispatchMsg contract I.calldata = some settlementFeeCbpsTransition := by
     apply midnightDispatch_settlementFeeCbps <;>
@@ -330,7 +332,7 @@ theorem midnightSettlementFeeCbpsBody {σ σ₀ A I} {g : UInt256}
           (entrySizeCheck_ok (bytes := 32) h36 hhi hsize) rd1
         have hret := settlementFeeCbpsTraceReturn hsize rd2
         have hdec := midnightDecodeBytes32 "id" (by decide) (by decide) h36 hhi hsize
-        have hbody := settlementFeeCbpsBodyReturns (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        have hbody := settlementFeeCbpsBodyReturns (fork := fork) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (calldataWord I.calldata 4) hwv hhi
         exact hret.reEquivExecution hcode hd hdec hbody
           (returnEquiv_of_encode (settlementFeeReturnEncoding _))

@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.MemoryAccounting
 
+variable {fork : Ethereum.Fork}
+
 /-! Memory payment with a retained lower bound on non-memory work. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -34,7 +36,7 @@ theorem MemoryFunding.mono {credit mem aw spent spent'}
   ⟨h.paid.trans (Nat.add_le_add_right hle 79), h.covered⟩
 
 theorem memoryFundingAt {credit code I g s0 pc stk mem aw rdata σ k C}
-    (_rd : RD code I g s0 pc stk mem aw rdata σ k C)
+    (_rd : RD fork code I g s0 pc stk mem aw rdata σ k C)
     (h : MemoryFunding credit mem aw C) : MemoryFunding credit mem aw C := h
 
 macro "memory_fund" h:ident : tactic => `(tactic|

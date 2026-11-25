@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.MarketCalldataPrepare
 
+variable {fork : Ethereum.Fork}
+
 /-! Oversized calldata is rejected by the runtime market decoder. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -14,9 +16,9 @@ theorem midnightMarketCalldataHuge {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hsize : I.calldata.size < UInt256.size) (hhuge : 2^255 ≤ I.calldata.size)
     (hhead : head.toNat < 2^127) (hptr : ptr.toNat < 2^64)
     (hfree : memLoad (UInt256.ofNat 64) mem = ptr)
-    (rd : RD midnightBytecode I g s0 ⟨18574⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨18574⟩
       (head :: UInt256.ofNat I.calldata.size :: ret :: R) mem aw rdata σ k C) :
-    RDrev midnightBytecode g s0 := by
+    RDrev fork midnightBytecode g s0 := by
   by_cases hcheck : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) head)
       (UInt256.ofNat 256) = ⟨0⟩
   · have rd1 := midnightBlocks.midnight_block_18574_fallthrough (by omega) hcheck rd

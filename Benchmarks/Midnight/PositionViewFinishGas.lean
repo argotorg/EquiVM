@@ -2,6 +2,8 @@ import Benchmarks.Midnight.PositionViewValues
 import Benchmarks.Midnight.CheckedUint128Gas
 import Benchmarks.Midnight.RuntimeBlocks_086
 
+variable {fork : Ethereum.Fork}
+
 /-! The final position-view subtractions retain accumulated costs. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -14,13 +16,13 @@ theorem midnightPositionViewFinish_mono {I : ExecutionEnv} {g : Sat256} {s0 : St
     {mem rdata : ByteArray} {aw postCredit postPending fee ret : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 12 ≤ 1024)
     (hfee : fee.toNat < 2 ^ 128) (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨23063⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨23063⟩
       (postCredit :: uint128Mask :: fee :: ⟨23069⟩ :: uint128Mask :: fee ::
         ⟨23076⟩ :: ret :: fee :: postPending :: R) mem aw rdata σ k C) :
     (¬ (fee.toNat ≤ (low128 postCredit).toNat ∧ fee.toNat ≤ (low128 postPending).toNat) ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     (fee.toNat ≤ (low128 postCredit).toNat ∧ fee.toNat ≤ (low128 postPending).toNat ∧
-      ∃ k' C', C ≤ C' ∧ RD midnightBytecode I g s0 ret
+      ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode I g s0 ret
         (fee :: UInt256.sub (low128 postPending) fee :: UInt256.sub (low128 postCredit) fee :: R)
         mem aw rdata σ k' C') := by
   have rd1 := midnightBlocks.midnight_block_23063 (by

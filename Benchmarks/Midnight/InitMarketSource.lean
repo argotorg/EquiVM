@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.InitMarketDefaultsSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Source execution of the ordered initialization writes and static-call rejection. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -26,7 +28,7 @@ def initMarketStorageState (evm : EVM.State) (id : UInt256) (token : AccountAddr
 theorem initMarketAliasPrefix {frame : Frame} {evm : EVM.State} {id : UInt256}
     (hc : frame.contract = contract) (hbase : frame.locals.get? "marketState" = none)
     (hid : frame.locals.get? "id" = some (wordBytes32Value id)) :
-    ABlock config evm frame (touchMarketInitBody.drop 7) (initMarketAliasFrame frame id)
+    ABlock fork config evm frame (touchMarketInitBody.drop 7) (initMarketAliasFrame frame id)
       (touchMarketInitBody.drop 8) := by
   refine ⟨fun h ↦ ExecBlock.consNormal (ExecStmt.letStorage ?_) h⟩
   exact resolveBytes32Mapping hbase hid (by rw [hc]; rfl)
@@ -46,7 +48,7 @@ theorem initMarketSourceStatic {frame : Frame} {evm : EVM.State} {id : UInt256}
     (hc : frame.contract = contract) (hbase : frame.locals.get? "marketState" = none)
     (hid : frame.locals.get? "id" = some (wordBytes32Value id))
     (hperm : evm.executionEnv.perm = false) :
-    ExecBlock config frame evm (touchMarketInitBody.drop 7) .staticViolation := by
+    ExecBlock fork config frame evm (touchMarketInitBody.drop 7) .staticViolation := by
   apply (initMarketAliasPrefix hc hbase hid).run
   exact ExecBlock.consStatic (ExecStmt.assignStatic (by simp only [evalExpr?, pure])
     (assignInitMarketTick (store_get_self _ _ _)) hperm)
@@ -56,11 +58,11 @@ theorem initMarketSourceFees {frame : Frame} {evm : EVM.State} {id word : UInt25
       some (.storageRef (marketStateRef id) marketStateType))
     (hfees : frame.locals.get? "_defaultSettlementFeeCbp" = some (settlementFeesValue word))
     (hperm : evm.executionEnv.perm = true)
-    (htail : ExecBlock config frame (initSettlementState evm id word 7)
+    (htail : ExecBlock fork config frame (initSettlementState evm id word 7)
       (touchMarketInitBody.drop 17) result) :
-    ExecBlock config frame evm (touchMarketInitBody.drop 10) result := by
+    ExecBlock fork config frame evm (touchMarketInitBody.drop 10) result := by
   have hstep (n : Fin 7) :
-      ExecStmt config frame (initSettlementState evm id word n.val)
+      ExecStmt fork config frame (initSettlementState evm id word n.val)
         (.assign .storage { base := "_marketState", steps :=
           [.field ("settlementFeeCbp" ++ toString n.val)] }
           (.index (.var "_defaultSettlementFeeCbp") (.intLit n.val)))
@@ -142,9 +144,9 @@ theorem initMarketSourceStores {frame : Frame} {evm : EVM.State} {m : MarketData
     (hd : frame.locals.get? "defaultSettlementFeeCbp" = none)
     (hcont : frame.locals.get? "defaultContinuousFee" = none)
     (hperm : evm.executionEnv.perm = true)
-    (htail : ExecBlock config (initMarketFeesFrame frame id (initMarketDefaultWord evm id m.loanToken))
+    (htail : ExecBlock fork config (initMarketFeesFrame frame id (initMarketDefaultWord evm id m.loanToken))
       (initMarketStorageState evm id m.loanToken) (touchMarketInitBody.drop 18) result) :
-    ExecBlock config frame evm (touchMarketInitBody.drop 7) result := by
+    ExecBlock fork config frame evm (touchMarketInitBody.drop 7) result := by
   let d := initMarketDefaultWord evm id m.loanToken
   let f := initMarketFeesFrame frame id d
   let s := initSettlementState (initMarketTick evm id) id d 7

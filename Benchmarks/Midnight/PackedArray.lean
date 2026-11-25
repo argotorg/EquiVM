@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.Dispatch
 import Benchmarks.Midnight.PackedFields
 
+variable {fork : Ethereum.Fork}
+
 /-! Shared bytecode routines locating elements of packed fixed arrays. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -28,8 +30,8 @@ theorem midnightUint16ArrayLocation {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {slot index ret : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024)
     (hi : index.toNat < 7) (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨19133⟩ (slot :: index :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD midnightBytecode I g s0 ret (UInt256.ofNat (2 * index.toNat) :: slot :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨19133⟩ (slot :: index :: ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork midnightBytecode I g s0 ret (UInt256.ofNat (2 * index.toNat) :: slot :: R)
       mem aw rdata σ k' C' := by
   have hc : UInt256.isZero (UInt256.lt index ⟨7⟩) = ⟨0⟩ := by
     rw [ult_one hi]; rfl
@@ -66,8 +68,8 @@ theorem midnightUint128ArrayLocation {I : ExecutionEnv} {g : Sat256} {s0 : State
     {slot index ret : UInt256} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024)
     (hi : index.toNat < 128) (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨19480⟩ (slot :: index :: ret :: R) mem aw rdata σ k C) :
-    ∃ k' C', RD midnightBytecode I g s0 ret
+    (rd : RD fork midnightBytecode I g s0 ⟨19480⟩ (slot :: index :: ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD fork midnightBytecode I g s0 ret
       (UInt256.ofNat (16 * (index.toNat % 2)) :: (slot + UInt256.ofNat (index.toNat / 2)) :: R)
       mem aw rdata σ k' C' := by
   have hc : UInt256.isZero (UInt256.lt index ⟨128⟩) = ⟨0⟩ := by

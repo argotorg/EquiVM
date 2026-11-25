@@ -2,6 +2,8 @@ import Benchmarks.Midnight.MulticallMemory
 import Benchmarks.Midnight.MemoryFunding
 import Benchmarks.Midnight.RuntimeBlocks_017
 
+variable {fork : Ethereum.Fork}
+
 /-! The calldata copy and DELEGATECALL arguments for one multicall iteration. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -19,11 +21,11 @@ theorem midnightMulticallPrepare {credit : Nat} {I : ExecutionEnv} {g : Sat256}
     (hfree : memLoad (UInt256.ofNat 64) mem = root)
     (hz : memLoad (UInt256.ofNat 800) mem = ⟨0⟩)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨3662⟩ (dl :: dp :: R) mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨3662⟩ (dl :: dp :: R) mem aw rdata σ k C) :
     ∃ gasArg aw' k' C',
       MemoryFunding (credit + 67 + 3 * ((dl.toNat + 31) / 32))
         (copyZeroMemory I.calldata mem dp.toNat root.toNat dl.toNat) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨3692⟩
+      RD fork midnightBytecode I g s0 ⟨3692⟩
         (gasArg :: UInt256.ofNat I.codeOwner.val :: root :: dl :: ⟨0⟩ :: ⟨0⟩ :: R)
         (copyZeroMemory I.calldata mem dp.toNat root.toNat dl.toNat) aw' rdata σ k' C' := by
   have hn : (root + dl).toNat = root.toNat + dl.toNat := by
@@ -43,7 +45,7 @@ theorem midnightMulticallPrepare {credit : Nat} {I : ExecutionEnv} {g : Sat256}
     rd1 (by memory_fund ha)
   simp only [hn] at rd1 ha1
   change MemoryFunding _ (copyZeroMemory I.calldata mem dp.toNat root.toNat dl.toNat) _ _ at ha1
-  change RD _ _ _ _ _
+  change RD fork _ _ _ _ _
     (_ :: UInt256.ofNat I.codeOwner.val :: root :: dl ::
       memLoad (UInt256.ofNat 800) (copyZeroMemory I.calldata mem dp.toNat root.toNat dl.toNat) ::
       memLoad (UInt256.ofNat 800) (copyZeroMemory I.calldata mem dp.toNat root.toNat dl.toNat) :: R)

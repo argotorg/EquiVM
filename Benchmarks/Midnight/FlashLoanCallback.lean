@@ -3,6 +3,8 @@ import Benchmarks.Midnight.FlashLoanCallbackHeap
 import Benchmarks.Midnight.FlashLoanCallbackSource
 import Benchmarks.Midnight.TypedCallFunding
 
+variable {fork : Ethereum.Fork}
+
 /-! The flash-loan callback, including ABI failures and the required acknowledgement. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -25,20 +27,20 @@ theorem midnightFlashLoanCallback {I : ExecutionEnv} {g : UInt256} {s0 evm : Sta
       callback (I.calldata.extract dp.toNat (dp.toNat + dl.toNat)))
     (hh : TransferHeap mem aw root C) (hgas : midnightGasBound g)
     (hs : SourceState s0 I σ evm)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨16266⟩
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨16266⟩
       (flashLoanOutLoopStack tn tn tp (UInt256.ofNat callback.val) an ap dl dp ++ R)
       mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (ExecBlock config frame evm [flashLoanCallbackStmt, .require flashLoanMagicGuard]
-      .reverted ∧ RDrev midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (ExecBlock fork config frame evm [flashLoanCallbackStmt, .require flashLoanMagicGuard]
+      .reverted ∧ RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
     ∃ (frame' : Frame) (evm' : State) (σ' : AccountMap) (mem' out : ByteArray)
       (aw' ptr' : UInt256) (k' C' : Nat),
-      ExecBlock config frame evm [flashLoanCallbackStmt, .require flashLoanMagicGuard]
+      ExecBlock fork config frame evm [flashLoanCallbackStmt, .require flashLoanMagicGuard]
         (.ok frame' evm') ∧ SourceState s0 I σ' evm' ∧ TransferHeap mem' aw' ptr' C' ∧
       FlashLoanSourceFrame frame' (calldataArrayWords I.calldata tn.toNat tp.toNat)
         (calldataArrayWords I.calldata an.toNat ap.toNat)
         callback (I.calldata.extract dp.toNat (dp.toNat + dl.toNat)) ∧
-      RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨16403⟩
+      RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨16403⟩
         (flashLoanInLoopStack ⟨0⟩ tn tp (UInt256.ofNat callback.val) an ap ++ R)
         mem' aw' out σ' k' C' := by
   rcases midnightMemoryPaid_headroom rd hh.funding.accounting.paid hgas hh.covered with
@@ -90,7 +92,7 @@ theorem midnightFlashLoanCallback {I : ExecutionEnv} {g : UInt256} {s0 evm : Sta
   change out.write 0 input root.toNat (min (⟨32⟩ : UInt256) (UInt256.ofNat out.size)).toNat =
     wordReplyMemory input out root at hreply
   rw [hreply] at rd2 ha2
-  have hcall' : typedCallViaEVM config evm callback "onFlashLoan" 0
+  have hcall' : typedCallViaEVM fork config evm callback "onFlashLoan" 0
       (flashLoanCallbackArguments evm.executionEnv.source
         (calldataArrayWords I.calldata tn.toNat tp.toNat)
         (calldataArrayWords I.calldata an.toNat ap.toNat)

@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.MarketCollateralToken
 import Benchmarks.Midnight.TransferHeap
 
+variable {fork : Ethereum.Fork}
+
 /-! The collateral-token lookup and amount load before the outgoing liquidation transfer. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,12 +17,12 @@ theorem midnightLiquidateTransferPrepare {I : ExecutionEnv} {g : Sat256} {s0 : S
     (hstack : R.length + 14 ≤ 1024) (hd : decodeCalldataMarket I.calldata 4 = some m)
     (hi : calldataWord I.calldata 36 = index) (hidx : index.toNat < m.collaterals.length)
     (hseized : memLoad (UInt256.ofNat 640) mem = seized) (hh : TransferHeap mem aw root C)
-    (rd : RD midnightBytecode I g s0 ⟨20488⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨20488⟩
       ([⟨4⟩ + calldataWord I.calldata 4, calldataWord I.calldata 4 + ⟨100⟩,
         ⟨5734⟩, ⟨5750⟩, UInt256.ofNat receiver.val, ⟨5543⟩, ⟨5755⟩] ++ R)
       mem aw rdata σ k C) :
     ∃ aw' k' C', TransferHeap mem aw' root C' ∧
-      RD midnightBytecode I g s0 (safeTransferEntryPC false)
+      RD fork midnightBytecode I g s0 (safeTransferEntryPC false)
         (safeTransferEntryStack false m.collaterals[index.toNat].token I.source receiver
           seized (⟨5755⟩ :: R)) mem aw' rdata σ k' C' := by
   simp only [List.cons_append, List.nil_append] at rd

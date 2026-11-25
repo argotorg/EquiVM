@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.MarketEncodeMemory
 import Benchmarks.Midnight.CollateralEncodeLoop
 
+variable {fork : Ethereum.Fork}
+
 /-! Correctness of the runtime's complete market ABI encoder. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -21,8 +23,8 @@ theorem midnightMarketEncoder {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hlimit : limit ≤ output.toNat)
     (hout : output.toNat + 288 + 128 * m.collaterals.length < UInt256.size)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨19181⟩ (ptr :: output :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g s0 ret
+    (rd : RD fork midnightBytecode I g s0 ⟨19181⟩ (ptr :: output :: ret :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork midnightBytecode I g s0 ret
       ((output + UInt256.ofNat (288 + 128 * m.collaterals.length)) :: R)
       (marketEncodeMemory mem output.toNat m) aw' rdata σ k' C' := by
   obtain ⟨aw1, k1, C1, rd1⟩ := midnightMarketEncodeStart m

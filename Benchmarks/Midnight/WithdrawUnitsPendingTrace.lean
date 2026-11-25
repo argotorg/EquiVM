@@ -3,6 +3,8 @@ import Benchmarks.Midnight.MulDivGas
 import Benchmarks.Midnight.CheckedUint128Gas
 import Benchmarks.Midnight.PositionUpdateStorage
 
+variable {fork : Ethereum.Fork}
+
 /-! Checked proportional pending-fee reduction in a withdrawal. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -21,13 +23,13 @@ theorem midnightWithdrawPendingReduction {I : ExecutionEnv} {g : Sat256} {s0 : S
     {mem rdata : ByteArray} {aw w units slot marketSlot id user extra : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 18 ≤ 1024) (hperm : I.perm = true)
-    (rd : RD midnightBytecode I g s0 ⟨4177⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨4177⟩
       ([w, low128 w, units, slot, marketSlot, id, user, extra] ++ R) mem aw rdata σ k C) :
     let pending := UInt256.shiftRight w (UInt256.ofNat 128)
     let decrease := mulDivUp pending units (low128 w)
-    (¬ WithdrawPendingSafe w units ∧ RDrev midnightBytecode g s0) ∨
+    (¬ WithdrawPendingSafe w units ∧ RDrev fork midnightBytecode g s0) ∨
     (WithdrawPendingSafe w units ∧ ∃ k' C', C ≤ C' ∧
-      RD midnightBytecode I g s0 ⟨4248⟩
+      RD fork midnightBytecode I g s0 ⟨4248⟩
         ([slot, marketSlot, id, user, decrease] ++ R) mem aw rdata
         (storeHigh128Accounts σ I slot (UInt256.sub pending decrease)) k' C') := by
   simp only [List.cons_append, List.nil_append] at rd

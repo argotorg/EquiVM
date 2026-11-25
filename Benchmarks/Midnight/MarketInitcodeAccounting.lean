@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.MarketInitcodeTrace
 import Benchmarks.Midnight.AllocationAccounting
 
+variable {fork : Ethereum.Fork}
+
 /-! Initialization-code concatenation with allocation limits justified by gas payment. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -21,12 +23,12 @@ theorem midnightMarketInitcodeConcat_accounted {I : ExecutionEnv} {g : Sat256} {
     (hencoded : memLoad encoded mem = UInt256.ofNat m.encodingSize)
     (hret : (D_J midnightBytecode 0).contains ret = true)
     (hgas : midnightGasBound g.toUInt256) (ha0 : MemoryAccounting mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨20604⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨20604⟩
       (encoded :: ret :: (encoded + UInt256.ofNat 32) :: prefixPtr :: R) mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
     (root.toNat + m.encodingSize + 64 < 2^64 ∧
       ∃ aw' k' C', MemoryAccounting (marketInitcodeMemory mem root prefixPtr encoded m) aw' C' ∧
-      RD midnightBytecode I g s0 ret (root :: (root + UInt256.ofNat 32) :: R)
+      RD fork midnightBytecode I g s0 ret (root :: (root + UInt256.ofNat 32) :: R)
       (marketInitcodeMemory mem root prefixPtr encoded m) aw' rdata σ k' C') := by
   have hword : UInt256.size = 2^256 := rfl
   have ha (n : Nat) (hn : n ≤ m.encodingSize + 64) :

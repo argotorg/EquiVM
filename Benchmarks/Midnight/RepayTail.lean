@@ -2,6 +2,8 @@ import Benchmarks.Midnight.RepayEventBudget
 import Benchmarks.Midnight.RepayCallback
 import Benchmarks.Midnight.RepayTransfer
 
+variable {fork : Ethereum.Fork}
+
 /-! Repayment's event, optional callback, and final token transfer. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -28,16 +30,16 @@ theorem midnightRepayTail {I : ExecutionEnv} {g : UInt256} {s0 evm : State}
     (hd : dp.toNat + dl.toNat ≤ I.calldata.size)
     (hb : TransferBudget (root + UInt256.ofNat 32) credit mem aw C)
     (hcredit : 4 * (((root + UInt256.ofNat 32).toNat + safeTransferCallAllocation true + 31) / 32)
-      ≤ credit + 999921) (hgas : midnightGasBound g) (hfork : I.fork ≥ .osaka)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨10034⟩
+      ≤ credit + 999921) (hgas : midnightGasBound g) (hfork : fork ≥ .osaka)
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨10034⟩
       ([repayHasCallback callback, id, dp, UInt256.ofNat callback.val, dl, user,
         UInt256.ofNat payer.val, units, market, saved] ++ R) mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (RDrev midnightBytecode (Sat256.ofUInt256 g) s0 ∧
-      ExecBlock config frame evm (repayTransition.body.drop 10) .reverted) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0 ∧
+      ExecBlock fork config frame evm (repayTransition.body.drop 10) .reverted) ∨
     ∃ frame' evm',
-      ExecBlock config frame evm (repayTransition.body.drop 10) (.ok frame' evm') ∧
-      RDret midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap ByteArray.empty := by
+      ExecBlock fork config frame evm (repayTransition.body.drop 10) (.ok frame' evm') ∧
+      RDret fork midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap ByteArray.empty := by
   have hn32 : (root + UInt256.ofNat 32).toNat = root.toNat + 32 :=
     uadd_word_ofNat_toNat _ _ (by change _ < 2^256; omega)
   obtain ⟨aw1, k1, C1, hb1, rd1⟩ := midnightRepayEvent_budget (R := saved :: R)
@@ -67,13 +69,13 @@ theorem midnightRepayTail {I : ExecutionEnv} {g : UInt256} {s0 evm : State}
   have hloan1 : memLoad (market + UInt256.ofNat 64) mem1 = UInt256.ofNat m.loanToken.val :=
     hm1.words.load_word ⟨2, by simp [MarketData.words]⟩ (by simpa using hmarket)
   have emitPrefix {result : ExecResult}
-      (ht : ExecBlock config frame evm (repayTransition.body.drop 11) result) :
-      ExecBlock config frame evm (repayTransition.body.drop 10) result :=
+      (ht : ExecBlock fork config frame evm (repayTransition.body.drop 11) result) :
+      ExecBlock fork config frame evm (repayTransition.body.drop 10) result :=
     (repayEmitSource hf hpayer (by rw [hs.env]; exact hperm)).run ht
   by_cases hcb : callback = 0
   · have sourcePrefix {result : ExecResult}
-        (ht : ExecBlock config frame evm (repayTransition.body.drop 12) result) :
-        ExecBlock config frame evm (repayTransition.body.drop 10) result := by
+        (ht : ExecBlock fork config frame evm (repayTransition.body.drop 12) result) :
+        ExecBlock fork config frame evm (repayTransition.body.drop 10) result := by
       apply emitPrefix
       rw [repayCallback_shape]
       exact .consNormal (.iteFalse (by rw [repayCallbackCondition_eval hf.callback]; simp [hcb])
@@ -101,9 +103,9 @@ theorem midnightRepayTail {I : ExecutionEnv} {g : UInt256} {s0 evm : State}
     · exact Or.inr (Or.inl ⟨hr, emitPrefix (by
         rw [repayCallback_shape]; exact .consRevert (.iteTrue hcond ht))⟩)
     · have sourcePrefix {result : ExecResult}
-          (htail : ExecBlock config (repayCallbackFrame frame (calldataWord out 0)) evm2
+          (htail : ExecBlock fork config (repayCallbackFrame frame (calldataWord out 0)) evm2
             (repayTransition.body.drop 12) result) :
-          ExecBlock config frame evm (repayTransition.body.drop 10) result := by
+          ExecBlock fork config frame evm (repayTransition.body.drop 10) result := by
         apply emitPrefix
         rw [repayCallback_shape]
         exact .consNormal (.iteTrue hcond ht) htail

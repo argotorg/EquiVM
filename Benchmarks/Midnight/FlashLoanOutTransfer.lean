@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.CalldataIndex
 import Benchmarks.Midnight.FlashLoanEventEncode
 
+variable {fork : Ethereum.Fork}
+
 /-! Calldata reads and stack rearrangement for one outgoing flash-loan transfer. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -20,9 +22,9 @@ theorem midnightFlashLoanOutTransferPrepare {I : ExecutionEnv} {g : Sat256} {s0 
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 20 ≤ 1024) (ht : index.toNat < tn.toNat) (ha : index.toNat < an.toNat)
     (hc : (calldataWord I.calldata (calldataIndex tp index).toNat).toNat < EVM.addressModulus)
-    (rd : RD midnightBytecode I g s0 ⟨16258⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨16258⟩
       (flashLoanOutLoopStack index tn tp callback an ap dl dp ++ R) mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD midnightBytecode I g s0 ⟨23236⟩
+    ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode I g s0 ⟨23236⟩
       ([calldataWord I.calldata (calldataIndex tp index).toNat, callback,
         calldataWord I.calldata (calldataIndex ap index).toNat, ⟨16580⟩] ++
         flashLoanOutTransferTail index tn tp callback an ap dl dp ++ R)
@@ -51,9 +53,9 @@ theorem midnightFlashLoanOutTransferReturn {I : ExecutionEnv} {g : Sat256} {s0 :
     {mem rdata : ByteArray} {aw index tn tp callback an ap dl dp : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 13 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 ⟨16580⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨16580⟩
       (flashLoanOutTransferTail index tn tp callback an ap dl dp ++ R) mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD midnightBytecode I g s0 ⟨16258⟩
+    ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode I g s0 ⟨16258⟩
       (flashLoanOutLoopStack (index + ⟨1⟩) tn tp callback an ap dl dp ++ R)
       mem aw rdata σ k' C' := by
   have rd1 := midnightBlocks.midnight_block_16580 hstack (by jump_dest) rd

@@ -2,6 +2,8 @@ import Benchmarks.Midnight.Dispatch
 import Benchmarks.Midnight.WordArray
 import Benchmarks.Midnight.MemoryCharge
 
+variable {fork : Ethereum.Fork}
+
 /-! Shared allocation routines from the Midnight runtime. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -22,8 +24,8 @@ theorem midnightAllocateCharge {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length + 6 ≤ 1024)
     (hc : allocationCheck ptr (allocationEnd ptr size) = ⟨0⟩)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨18444⟩ (ptr :: size :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', MemoryCharge 0 aw aw' C C' ∧ RD midnightBytecode I g s0 ret R
+    (rd : RD fork midnightBytecode I g s0 ⟨18444⟩ (ptr :: size :: ret :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', MemoryCharge 0 aw aw' C C' ∧ RD fork midnightBytecode I g s0 ret R
       (writeWord mem 64 (allocationEnd ptr size)) aw' rdata σ k' C' := by
   have rd1 := midnightBlocks.midnight_block_18444_fallthrough (by simpa using hstack) hc rd
   simp only [midnightBlocks.midnight_block_18444_fallthrough_stack] at rd1
@@ -38,8 +40,8 @@ theorem midnightAllocate {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length + 6 ≤ 1024)
     (hc : allocationCheck ptr (allocationEnd ptr size) = ⟨0⟩)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨18444⟩ (ptr :: size :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g s0 ret R
+    (rd : RD fork midnightBytecode I g s0 ⟨18444⟩ (ptr :: size :: ret :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork midnightBytecode I g s0 ret R
       (writeWord mem 64 (allocationEnd ptr size)) aw' rdata σ k' C' := by
   obtain ⟨aw', k', C', _, rd'⟩ := midnightAllocateCharge hstack hc hret rd
   exact ⟨aw', k', C', rd'⟩
@@ -50,8 +52,8 @@ theorem midnightAllocate224 {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length + 6 ≤ 1024)
     (hc : allocationCheck ptr (ptr + UInt256.ofNat 224) = ⟨0⟩)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨18362⟩ (ptr :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g s0 ret R
+    (rd : RD fork midnightBytecode I g s0 ⟨18362⟩ (ptr :: ret :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork midnightBytecode I g s0 ret R
       (writeWord mem 64 (ptr + UInt256.ofNat 224)) aw' rdata σ k' C' := by
   have rd1 := midnightBlocks.midnight_block_18362_fallthrough (by simpa using hstack) hc rd
   simp only [midnightBlocks.midnight_block_18362_fallthrough_stack] at rd1
@@ -64,8 +66,8 @@ theorem midnightAllocate256 {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length + 6 ≤ 1024)
     (hc : allocationCheck ptr (ptr + UInt256.ofNat 256) = ⟨0⟩)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨18389⟩ (ptr :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g s0 ret R
+    (rd : RD fork midnightBytecode I g s0 ⟨18389⟩ (ptr :: ret :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork midnightBytecode I g s0 ret R
       (writeWord mem 64 (ptr + UInt256.ofNat 256)) aw' rdata σ k' C' := by
   have rd1 := midnightBlocks.midnight_block_18389_fallthrough (by simpa using hstack) hc rd
   simp only [midnightBlocks.midnight_block_18389_fallthrough_stack] at rd1
@@ -78,8 +80,8 @@ theorem midnightAllocate128 {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length + 6 ≤ 1024)
     (hc : allocationCheck ptr (ptr + UInt256.ofNat 128) = ⟨0⟩)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨18417⟩ (ptr :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g s0 ret R
+    (rd : RD fork midnightBytecode I g s0 ⟨18417⟩ (ptr :: ret :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork midnightBytecode I g s0 ret R
       (writeWord mem 64 (ptr + UInt256.ofNat 128)) aw' rdata σ k' C' := by
   have rd1 := midnightBlocks.midnight_block_18417_fallthrough (by simpa using hstack) hc rd
   simp only [midnightBlocks.midnight_block_18417_fallthrough_stack] at rd1
@@ -92,8 +94,8 @@ theorem midnightAllocate128Revert {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {ptr : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
     (hc : allocationCheck ptr (ptr + UInt256.ofNat 128) ≠ ⟨0⟩)
-    (rd : RD midnightBytecode I g s0 ⟨18417⟩ (ptr :: R) mem aw rdata σ k C) :
-    RDrev midnightBytecode g s0 := by
+    (rd : RD fork midnightBytecode I g s0 ⟨18417⟩ (ptr :: R) mem aw rdata σ k C) :
+    RDrev fork midnightBytecode g s0 := by
   have rd1 := midnightBlocks.midnight_block_18417_taken hstack hc (by jump_dest) rd
   exact midnightBlocks.midnight_block_15087 (by
     simp only [midnightBlocks.midnight_block_18417_taken_stack, List.length_cons]; omega) rd1
@@ -104,8 +106,8 @@ theorem midnightAllocate256Revert {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {ptr : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
     (hc : allocationCheck ptr (ptr + UInt256.ofNat 256) ≠ ⟨0⟩)
-    (rd : RD midnightBytecode I g s0 ⟨18389⟩ (ptr :: R) mem aw rdata σ k C) :
-    RDrev midnightBytecode g s0 := by
+    (rd : RD fork midnightBytecode I g s0 ⟨18389⟩ (ptr :: R) mem aw rdata σ k C) :
+    RDrev fork midnightBytecode g s0 := by
   have rd1 := midnightBlocks.midnight_block_18389_taken hstack hc (by jump_dest) rd
   exact midnightBlocks.midnight_block_15087 (by
     simp only [midnightBlocks.midnight_block_18389_taken_stack, List.length_cons]; omega) rd1
@@ -116,8 +118,8 @@ theorem midnightAllocateRevert {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {ptr size : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
     (hc : allocationCheck ptr (allocationEnd ptr size) ≠ ⟨0⟩)
-    (rd : RD midnightBytecode I g s0 ⟨18444⟩ (ptr :: size :: R) mem aw rdata σ k C) :
-    RDrev midnightBytecode g s0 := by
+    (rd : RD fork midnightBytecode I g s0 ⟨18444⟩ (ptr :: size :: R) mem aw rdata σ k C) :
+    RDrev fork midnightBytecode g s0 := by
   have rd1 := midnightBlocks.midnight_block_18444_taken hstack hc (by jump_dest) rd
   simp only [midnightBlocks.midnight_block_18444_taken_stack] at rd1
   exact midnightBlocks.midnight_block_15087 (by simp only [List.length_cons]; omega) rd1

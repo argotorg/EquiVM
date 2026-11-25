@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.Dispatch
 import Benchmarks.Midnight.Storage
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `tickSpacingSetter()`
 
@@ -18,7 +20,7 @@ set_option maxRecDepth 2000000
 theorem tickSpacingSetterBodyReturns (evm : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) :
-    ExecTransitionBody config contract evm ∅ tickSpacingSetterTransition.body
+    ExecTransitionBody fork config contract evm ∅ tickSpacingSetterTransition.body
       (.returned (calldataFrame contract ∅ ∅ evm) evm
         (some [.address (AccountAddress.ofNat
           (UInt256.land (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩)
@@ -28,10 +30,10 @@ theorem tickSpacingSetterBodyReturns (evm : EVM.State)
 /-- `tickSpacingSetter()`: the theorem `Correct.lean` routes selector 28 to. -/
 theorem midnightTickSpacingSetterBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 28)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 28) rfl hsel
   have hd : dispatchMsg contract I.calldata = some tickSpacingSetterTransition := by
     apply midnightDispatch_tickSpacingSetter <;>
@@ -41,7 +43,7 @@ theorem midnightTickSpacingSetterBody {σ σ₀ A I} {g : UInt256}
     midnightDecodeEmpty hsz
   obtain ⟨k, C, rd⟩ := midnightReachTickSpacingSetterBody
     (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) hcode hsz hsize hsel
-  change RD _ _ _ _ _ _ midnightEntryMemory _ _ _ _ _ at rd
+  change RD fork _ _ _ _ _ _ midnightEntryMemory _ _ _ _ _ at rd
   by_cases hwv : I.weiValue = ⟨0⟩
   · have rd1 := midnightBlocks.midnight_block_9004_fallthrough (by simp) hwv rd
     by_cases hhi : I.calldata.size < calldataLimit
@@ -49,15 +51,15 @@ theorem midnightTickSpacingSetterBody {σ σ₀ A I} {g : UInt256}
         (by simpa only [midnightEntryMemory_zero] using
           entrySizeCheck_ok (bytes := 0) hsz hhi hsize) rd1
       have hr := midnightBlocks.midnight_block_9024 (by simp) rd2
-      have hret : RDret midnightBytecode (Sat256.ofUInt256 g)
+      have hret : RDret fork midnightBytecode (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
           (UInt256.land (solcSlotWordAt ⟨12⟩ σ I) solcAddrMask).toByteArray := by
-        change RDret _ _ _ _
+        change RDret fork _ _ _ _
           ((writeWord midnightEntryMemory (memLoad ⟨64⟩ midnightEntryMemory).toNat
             (UInt256.land (solcSlotWordAt ⟨12⟩ σ I) solcAddrMask)).readWithPadding
             (memLoad ⟨64⟩ midnightEntryMemory).toNat 32) at hr
         simpa only [midnightReturnWord_freePtr] using hr
-      have hbody := tickSpacingSetterBodyReturns (initState σ σ₀ (Sat256.ofUInt256 g) A I) hwv hhi
+      have hbody := tickSpacingSetterBodyReturns (fork := fork) (initState σ σ₀ (Sat256.ofUInt256 g) A I) hwv hhi
       exact hret.reEquivExecution hcode hd hdec hbody
         (returnEquiv_of_encode (solcAddressReturnEncoding rfl (solcSlotWordAt ⟨12⟩ σ I)))
     · have rd2 := midnightBlocks.midnight_block_9010_taken (by simp)

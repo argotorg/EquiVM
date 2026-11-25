@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.CollateralSourceFrame
 
+variable {fork : Ethereum.Fork}
+
 /-! Source execution and reverts of one collateral-validation iteration. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -31,7 +33,7 @@ theorem collateralTokenPrefix {frame : Frame} {evm : EVM.State}
     {m : MarketData} {i : Nat} {previous : AccountAddress} {c : CollateralData}
     (h : CollateralSourceFrame frame m i previous) (hi : i < m.collaterals.length)
     (hc : m.collaterals[i] = c) :
-    ABlock config evm frame collateralLoopBody (collateralTokenFrame frame c)
+    ABlock fork config evm frame collateralLoopBody (collateralTokenFrame frame c)
       (collateralLoopBody.drop 1) :=
   ABlock.start.letStep (evalCollateralField h hi hc "token" (.address c.token) rfl)
 
@@ -39,7 +41,7 @@ theorem collateralLltvPrefix {frame : Frame} {evm : EVM.State}
     {m : MarketData} {i : Nat} {previous : AccountAddress} {c : CollateralData}
     (h : CollateralSourceFrame frame m i previous) (hi : i < m.collaterals.length)
     (hc : m.collaterals[i] = c) (ho : previous.val < c.token.val) :
-    ABlock config evm frame collateralLoopBody (collateralLltvFrame frame c)
+    ABlock fork config evm frame collateralLoopBody (collateralLltvFrame frame c)
       (collateralLoopBody.drop 3) := by
   exact ((collateralTokenPrefix h hi hc).requireStep
     ((evalCollateralTokenOrder (collateralTokenFrame_inv h c).previous (store_get_self _ _ _)).trans
@@ -51,7 +53,7 @@ theorem collateralCursorPrefix {frame : Frame} {evm : EVM.State}
     (h : CollateralSourceFrame frame m i previous) (hi : i < m.collaterals.length)
     (hc : m.collaterals[i] = c) (ho : previous.val < c.token.val)
     (hl : collateralEnabledWord evm false c.lltv ≠ ⟨0⟩) :
-    ABlock config evm frame collateralLoopBody (collateralCursorFrame frame c)
+    ABlock fork config evm frame collateralLoopBody (collateralCursorFrame frame c)
       (collateralLoopBody.drop 5) := by
   have hlf := collateralLltvFrame_inv h c
   exact ((collateralLltvPrefix h hi hc ho).requireStep
@@ -65,7 +67,7 @@ theorem collateralChecksPrefix {frame : Frame} {evm : EVM.State}
     (hc : m.collaterals[i] = c) (ho : previous.val < c.token.val)
     (hl : collateralEnabledWord evm false c.lltv ≠ ⟨0⟩)
     (hcu : collateralEnabledWord evm true c.liquidationCursor ≠ ⟨0⟩) :
-    ABlock config evm frame collateralLoopBody (collateralCursorFrame frame c)
+    ABlock fork config evm frame collateralLoopBody (collateralCursorFrame frame c)
       (collateralLoopBody.drop 6) := by
   have hcf := collateralCursorFrame_inv h c
   exact (collateralCursorPrefix h hi hc ho hl).requireStep
@@ -86,7 +88,7 @@ theorem collateralValidationSource {frame : Frame} {evm : EVM.State}
     {m : MarketData} {i : Nat} {previous : AccountAddress} {c : CollateralData}
     (h : CollateralSourceFrame frame m i previous) (hi : i < m.collaterals.length)
     (hc : m.collaterals[i] = c) (hs : CollateralValid evm previous c) :
-    ExecBlock config frame evm collateralLoopBody (.ok (collateralStepFrame frame c) evm) := by
+    ExecBlock fork config frame evm collateralLoopBody (.ok (collateralStepFrame frame c) evm) := by
   apply (collateralChecksPrefix h hi hc hs.1 hs.2.1 hs.2.2.1).run
   rw [collateralLoopBody_tail]
   apply (collateralLifSource (collateralCursorFrame_inv h c).contract
@@ -98,7 +100,7 @@ theorem collateralValidationSourceRevert {frame : Frame} {evm : EVM.State}
     {m : MarketData} {i : Nat} {previous : AccountAddress} {c : CollateralData}
     (h : CollateralSourceFrame frame m i previous) (hi : i < m.collaterals.length)
     (hc : m.collaterals[i] = c) (hbad : ¬ CollateralValid evm previous c) :
-    ExecBlock config frame evm collateralLoopBody .reverted := by
+    ExecBlock fork config frame evm collateralLoopBody .reverted := by
   by_cases ho : previous.val < c.token.val
   · by_cases hl : collateralEnabledWord evm false c.lltv ≠ ⟨0⟩
     · by_cases hcu : collateralEnabledWord evm true c.liquidationCursor ≠ ⟨0⟩

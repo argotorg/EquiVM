@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.RepayDebtRead
 
+variable {fork : Ethereum.Fork}
+
 /-! The withdrawable read follows repayment's debt write. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -14,10 +16,10 @@ theorem midnightRepayReadWithdrawable {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
     (hstack : R.length + 8 ≤ 1024) (hmem : 832 ≤ mem.size)
     (hz : memLoad (UInt256.ofNat 800) mem = ⟨0⟩)
     (hb : TransferBudget budgetRoot credit mem aw C)
-    (h : RD midnightBytecode ee g s0 ⟨9950⟩ (amount :: x1 :: id :: R)
+    (h : RD fork midnightBytecode ee g s0 ⟨9950⟩ (amount :: x1 :: id :: R)
       mem aw rdata σ k C) :
     ∃ aw' k' C', TransferBudget budgetRoot credit (twoWordHashMem id ⟨1⟩ mem) aw' C' ∧
-      RD midnightBytecode ee g s0 ⟨20456⟩
+      RD fork midnightBytecode ee g s0 ⟨20456⟩
         (low128 (solcSlotWordAt (solcMappingSlot ⟨1⟩ id + ⟨1⟩) σ ee) :: amount ::
           UInt256.ofNat 9992 :: uint128Mask :: (solcMappingSlot ⟨1⟩ id + ⟨1⟩) :: x1 :: id :: R)
         (twoWordHashMem id ⟨1⟩ mem) aw' rdata σ k' C' := by

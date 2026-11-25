@@ -2,6 +2,8 @@ import Benchmarks.Midnight.LiquidateEventSource
 import Benchmarks.Midnight.LiquidateEventTrace
 import Benchmarks.Midnight.MarketCollateralToken
 
+variable {fork : Ethereum.Fork}
+
 /-! Paired execution of the liquidation event and its collateral-index check. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -24,20 +26,20 @@ theorem liquidateEvent {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {frame :
     (hseized : memLoad (UInt256.ofNat 640) mem = seized)
     (hpaid : memLoad (UInt256.ofNat 608) mem = repaid)
     (hs : SourceState s0 I σ evm) (hb : TransferBudget budgetRoot credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨5508⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨5508⟩
       ([mode, dp, dl, borrower, badDebt, UInt256.ofNat receiver.val, UInt256.ofNat payer.val] ++ R)
       mem aw rdata σ k C) :
-    (ExecStmt config frame evm (liquidateTransition.body[20]!) .reverted ∧
-      RDrev midnightBytecode g s0) ∨
-    (ExecStmt config frame evm (liquidateTransition.body[20]!) .staticViolation ∧
-      RDstatic midnightBytecode g s0) ∨
+    (ExecStmt fork config frame evm (liquidateTransition.body[20]!) .reverted ∧
+      RDrev fork midnightBytecode g s0) ∨
+    (ExecStmt fork config frame evm (liquidateTransition.body[20]!) .staticViolation ∧
+      RDstatic fork midnightBytecode g s0) ∨
     (index.toNat < m.collaterals.length ∧ I.perm = true ∧ ∃ mem' aw' k' C',
-      ExecStmt config frame evm (liquidateTransition.body[20]!) (.ok frame evm) ∧
+      ExecStmt fork config frame evm (liquidateTransition.body[20]!) (.ok frame evm) ∧
       mem.size ≤ mem'.size ∧
       (∀ read : UInt256, read.toNat + 32 ≤ mem.size → read.toNat + 32 ≤ root.toNat →
         memLoad read mem' = memLoad read mem) ∧
       TransferBudget budgetRoot credit mem' aw' C' ∧
-      RD midnightBytecode I g s0 ⟨20488⟩
+      RD fork midnightBytecode I g s0 ⟨20488⟩
         ([⟨4⟩ + calldataWord I.calldata 4, calldataWord I.calldata 4 + ⟨100⟩,
           ⟨5734⟩, ⟨5750⟩, UInt256.ofNat receiver.val, ⟨5543⟩, ⟨5755⟩, dp, dl, borrower, badDebt,
           UInt256.ofNat receiver.val, UInt256.ofNat payer.val] ++ R) mem' aw' rdata σ k' C') := by

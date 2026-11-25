@@ -2,6 +2,8 @@ import Benchmarks.Midnight.SupplyBitmapSource
 import Benchmarks.Midnight.SupplyBitmapTrace
 import Benchmarks.Midnight.TransferBudget
 
+variable {fork : Ethereum.Fork}
+
 /-! Paired source and bytecode execution of the bitmap phase. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -18,19 +20,19 @@ theorem supplyBitmapPhase {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     (hp : frame.locals.get? "_position" = some (.storageRef (positionRef id user) positionType))
     (hi : frame.locals.get? "collateralIndex" = some (.int index.toNat)) (hindex : index.toNat < 128)
     (hb : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨17274⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨17274⟩
       (ignored :: positionSlot id user :: index :: R) mem aw rdata evm.accountMap k C) :
-    (RDrev midnightBytecode g s0 ∧
-      ExecBlock config frame evm (supplyNewCollateralBody.drop 2) .reverted) ∨
-    (RDstatic midnightBytecode g s0 ∧
-      ExecBlock config frame evm (supplyNewCollateralBody.drop 2) .staticViolation) ∨
+    (RDrev fork midnightBytecode g s0 ∧
+      ExecBlock fork config frame evm (supplyNewCollateralBody.drop 2) .reverted) ∨
+    (RDstatic fork midnightBytecode g s0 ∧
+      ExecBlock fork config frame evm (supplyNewCollateralBody.drop 2) .staticViolation) ∨
     (I.perm = true ∧ ∃ k' C',
       let bitmap := bitmapSet (positionBitmapWord evm id user) index
       let evm' := storeHigh128 evm (positionSlot id user + ⟨2⟩) bitmap
       TransferBudget root credit mem aw C' ∧
-      ExecBlock config frame evm (supplyNewCollateralBody.drop 2)
+      ExecBlock fork config frame evm (supplyNewCollateralBody.drop 2)
         (.ok (supplyCountFrame frame bitmap) evm') ∧
-      RD midnightBytecode I g s0 ⟨17462⟩ (index :: R) mem aw rdata evm'.accountMap k' C') := by
+      RD fork midnightBytecode I g s0 ⟨17462⟩ (index :: R) mem aw rdata evm'.accountMap k' C') := by
   rcases supplyBitmapWrite evm henv hstack hindex rd with ⟨hperm, hr⟩ |
     ⟨hperm, k1, C1, hmono, rd1⟩
   · exact Or.inr (Or.inl ⟨hr, supplyBitmapStatic hc hcanon hp hi hindex

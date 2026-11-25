@@ -2,6 +2,8 @@ import Benchmarks.Midnight.TakeHealthSource
 import Benchmarks.Midnight.HealthInternalBudget
 import Benchmarks.Midnight.FundingBudget
 
+variable {fork : Ethereum.Fork}
+
 /-! The optional final health call, its requirement, and take's ABI return. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -13,7 +15,7 @@ set_option maxRecDepth 10000
 theorem midnightTakeHealth {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     {frame : Frame} {mem rdata : ByteArray} {aw root market arrayPtr heap id seller locked
       bought sold : UInt256} {offer : OfferData} {σ : AccountMap} {k C : Nat} {R : List UInt256}
-    (hstack : R.length + 24 ≤ 1024) (hfork : I.fork ≥ .osaka)
+    (hstack : R.length + 24 ≤ 1024) (hfork : fork ≥ .osaka)
     (hc : frame.contract = contract) (hcanon : seller.toNat < EVM.addressModulus)
     (hfOffer : frame.locals.get? "offer" = some (Model.offerValue offer.value))
     (hfId : frame.locals.get? "id" = some (wordBytes32Value id))
@@ -30,13 +32,13 @@ theorem midnightTakeHealth {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0 ev
     (hbought : memLoad (UInt256.ofNat 256) mem = bought)
     (hsold : memLoad (UInt256.ofNat 416) mem = sold)
     (ha : MemoryFunding credit mem aw C) (hs : SourceState s0 I σ evm)
-    (rd : RD midnightBytecode I g s0 ⟨13359⟩ (locked :: R) mem aw rdata σ k C) :
-    (ExecBlock config frame evm (takeTransition.body.drop 73) .reverted ∧
-      RDrev midnightBytecode g s0) ∨
+    (rd : RD fork midnightBytecode I g s0 ⟨13359⟩ (locked :: R) mem aw rdata σ k C) :
+    (ExecBlock fork config frame evm (takeTransition.body.drop 73) .reverted ∧
+      RDrev fork midnightBytecode g s0) ∨
     ∃ frame' evm',
-      ExecBlock config frame evm (takeTransition.body.drop 73)
+      ExecBlock fork config frame evm (takeTransition.body.drop 73)
         (.returned frame' evm' (some [.int bought.toNat, .int sold.toNat])) ∧
-      RDret midnightBytecode g s0 evm'.accountMap (wordArrayBytes [bought, sold]) := by
+      RDret fork midnightBytecode g s0 evm'.accountMap (wordArrayBytes [bought, sold]) := by
   have he := takeHealthCondition_eval (evm := evm) hfLocked
   rw [takeHealth_shape]
   by_cases hz : locked = ⟨0⟩
@@ -58,7 +60,7 @@ theorem midnightTakeHealth {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0 ev
     · refine Or.inl ⟨ExecBlock.consRevert (ExecStmt.iteTrue hcond (ExecBlock.consRevert ?_)), hr⟩
       apply internalCallFunctionRevert hargs hlookup rfl
       simpa only [healthCallFrame, hc] using hx
-    · have hcall : ExecStmt config frame evm takeHealthStmt
+    · have hcall : ExecStmt fork config frame evm takeHealthStmt
           (.ok (takeHealthFrame frame value) evm1) := by
         apply internalCallFunctionReturn (callee := healthFunction)
           (locals := healthArguments offer.market id seller) (value := some [.bool value])

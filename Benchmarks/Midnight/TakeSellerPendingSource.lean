@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TakeBuyerPendingSource
 import Benchmarks.Midnight.MulDivUpBounded
 
+variable {fork : Ethereum.Fork}
+
 /-! The proportional seller pending-fee reduction fits in uint128. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -83,7 +85,7 @@ theorem takeSellerPendingSource {frame : Frame} {evm : State} {id seller decreas
     (hd : frame.locals.get? "sellerCreditDecrease" = some (.int decrease.toNat))
     (hcanon : seller.toNat < EVM.addressModulus)
     (hle : decrease.toNat ≤ (positionFieldWord evm id seller 0).toNat) :
-    ABlock config evm frame (takeTransition.body.drop 40)
+    ABlock fork config evm frame (takeTransition.body.drop 40)
       (takeSellerPendingFrame frame (positionFieldWord evm id seller 0)
         (positionFieldWord evm id seller 1) decrease) (takeTransition.body.drop 42) := by
   have hp1 : (takeSellerPendingInit frame).locals.get? "sellerPos" =
@@ -92,7 +94,7 @@ theorem takeSellerPendingSource {frame : Frame} {evm : State} {id seller decreas
   have hd1 : (takeSellerPendingInit frame).locals.get? "sellerCreditDecrease" =
       some (.int decrease.toNat) := (store_get_ne _ _ (by decide)).trans hd
   have he := evalTakeSellerPendingCondition (evm := evm) hp1 hcanon
-  have hinit : ExecStmt config frame evm takeTransition.body[40]!
+  have hinit : ExecStmt fork config frame evm takeTransition.body[40]!
       (.ok (takeSellerPendingInit frame) evm) :=
     ExecStmt.letDecl (by simp only [evalExpr?, pure]; rfl)
   rw [takeSellerPending_shape]

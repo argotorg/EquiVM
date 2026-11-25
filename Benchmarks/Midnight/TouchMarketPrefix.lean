@@ -3,6 +3,8 @@ import Benchmarks.Midnight.TouchMarketSourceBase
 import Benchmarks.Midnight.RuntimeBlocks_079
 import Benchmarks.Midnight.MappingMemory
 
+variable {fork : Ethereum.Fork}
+
 /-! Market-ID calculation followed by the existing-market check in touchMarket. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -27,13 +29,13 @@ theorem midnightTouchMarketPrefix {evm : EVM.State} {g : Sat256} {s0 : State}
     (hb : root.toNat + 2 * m.encodingSize + 288 < 2^64)
     (hfree : memLoad (UInt256.ofNat 64) mem = root)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode evm.executionEnv g s0 ⟨20557⟩ (ptr :: ret :: R)
+    (rd : RD fork midnightBytecode evm.executionEnv g s0 ⟨20557⟩ (ptr :: ret :: R)
       mem aw rdata evm.accountMap k C) :
     (marketTickSpacing (marketFeeWord evm m.id) ≠ ⟨0⟩ ∧
-      ∃ aw' k' C', RD midnightBytecode evm.executionEnv g s0 ret (m.id :: R)
+      ∃ aw' k' C', RD fork midnightBytecode evm.executionEnv g s0 ret (m.id :: R)
         (touchMarketHashMemory mem root m) aw' rdata evm.accountMap k' C') ∨
     (marketTickSpacing (marketFeeWord evm m.id) = ⟨0⟩ ∧
-      ∃ aw' k' C', RD midnightBytecode evm.executionEnv g s0 ⟨20764⟩
+      ∃ aw' k' C', RD fork midnightBytecode evm.executionEnv g s0 ⟨20764⟩
         ((ptr + UInt256.ofNat 32) :: ptr :: m.id :: ret :: R)
         (touchMarketHashMemory mem root m) aw' rdata evm.accountMap k' C') := by
   have hlo : 96 ≤ root.toNat := by

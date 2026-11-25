@@ -3,6 +3,8 @@ import Benchmarks.Midnight.CheckedExtraGas
 import Benchmarks.Midnight.RuntimeBlocks_029
 import Benchmarks.Midnight.TransferBudget
 
+variable {fork : Ethereum.Fork}
+
 /-! A specified repayment determines the seized amount by two rounded-down conversions. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,12 +17,12 @@ theorem midnightLiquidateRepay {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw repaid maxDebt lltv lif price root : UInt256} {credit : Nat}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 12 ≤ 1024)
     (hr : calldataWord I.calldata 100 = repaid) (hb : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨7339⟩ (maxDebt :: lltv :: lif :: price :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨7339⟩ (maxDebt :: lltv :: lif :: price :: R)
       mem aw rdata σ k C) :
-    (¬ LiquidateRepaySafe repaid price lif ∧ RDrev midnightBytecode g s0) ∨
+    (¬ LiquidateRepaySafe repaid price lif ∧ RDrev fork midnightBytecode g s0) ∨
     (LiquidateRepaySafe repaid price lif ∧ ∃ aw' k' C',
       TransferBudget root credit (writeWord mem 640 (liquidateSeizedAmount repaid price lif)) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨6731⟩ (maxDebt :: lltv :: lif :: price :: R)
+      RD fork midnightBytecode I g s0 ⟨6731⟩ (maxDebt :: lltv :: lif :: price :: R)
         (writeWord mem 640 (liquidateSeizedAmount repaid price lif)) aw' rdata σ k' C') := by
   have rd1 := midnightBlocks.midnight_block_7339
     (R := price :: R) (by simp only [List.length_cons]; omega) (by jump_dest) rd

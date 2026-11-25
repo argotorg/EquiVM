@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.LiquidateLoopSourceEntry
 import Benchmarks.Midnight.LockSource
 
+variable {fork : Ethereum.Fork}
+
 /-! The transient lock and maturity-or-health condition controlling liquidation. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -28,7 +30,7 @@ theorem callLiquidationLocked {frame : Frame} {evm : State} {id user : UInt256}
     (ha : evalExprs? config frame evm args =
       .ok [wordBytes32Value id, .address (AccountAddress.ofNat user.toNat)])
     (hcanon : user.toNat < EVM.addressModulus) :
-    ExecStmt config frame evm (.internalCall "liquidationLocked_body" args name)
+    ExecStmt fork config frame evm (.internalCall "liquidationLocked_body" args name)
       (.ok { frame with locals := (frame.locals.insert name
         (lockValue evm liquidationLockBase id user)) } evm) := by
   apply internalCallFunctionReturn (callee := liquidationLockedFunction)

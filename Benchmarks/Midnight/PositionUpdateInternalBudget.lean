@@ -5,6 +5,8 @@ import Benchmarks.Midnight.PositionUpdateDecreaseBudget
 import Benchmarks.Midnight.PositionUpdateWritesBudget
 import Benchmarks.Midnight.PositionUpdateMemory
 
+variable {fork : Ethereum.Fork}
+
 /-! The complete position update with retained transfer funding and source execution. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -25,24 +27,24 @@ theorem midnightPositionUpdateInternal_budget {evm : EVM.State} {g : Sat256} {s0
     (hfree : memLoad (UInt256.ofNat 64) mem = root)
     (hret : (D_J midnightBytecode 0).contains ret = true)
     (hb : TransferBudget budgetRoot gasCredit mem aw C)
-    (rd : RD midnightBytecode evm.executionEnv g s0 ⟨23599⟩ (ptr :: id :: user :: ret :: R)
+    (rd : RD fork midnightBytecode evm.executionEnv g s0 ⟨23599⟩ (ptr :: id :: user :: ret :: R)
       mem aw rdata evm.accountMap k C) :
     let credit := positionNewCredit evm m id user
     let pending := positionNewPending evm m id user
     let fee := positionViewFee evm m id user
-    (RDrev midnightBytecode g s0 ∧
-      ExecFuncBody config (positionViewCallFrame imms m id user) evm positionUpdateFunction.body .reverted) ∨
-    (RDstatic midnightBytecode g s0 ∧
-      ExecFuncBody config (positionViewCallFrame imms m id user) evm positionUpdateFunction.body .staticViolation) ∨
+    (RDrev fork midnightBytecode g s0 ∧
+      ExecFuncBody fork config (positionViewCallFrame imms m id user) evm positionUpdateFunction.body .reverted) ∨
+    (RDstatic fork midnightBytecode g s0 ∧
+      ExecFuncBody fork config (positionViewCallFrame imms m id user) evm positionUpdateFunction.body .staticViolation) ∨
     (evm.executionEnv.perm = true ∧
       credit.toNat < 2^128 ∧ pending.toNat < 2^128 ∧ fee.toNat < 2^128 ∧
-      ExecFuncBody config (positionViewCallFrame imms m id user) evm positionUpdateFunction.body
+      ExecFuncBody fork config (positionViewCallFrame imms m id user) evm positionUpdateFunction.body
         (.returned (positionUpdateFinalFrame evm imms m id user) (positionUpdateFinalState evm m id user)
           (some [.int credit.toNat, .int pending.toNat, .int fee.toNat])) ∧
       ∃ aw' k' C',
         TransferBudget budgetRoot gasCredit
           (positionUpdateLogMemory mem root evm m id user) aw' C' ∧
-        RD midnightBytecode evm.executionEnv g s0 ret (fee :: pending :: credit :: R)
+        RD fork midnightBytecode evm.executionEnv g s0 ret (fee :: pending :: credit :: R)
         (positionUpdateLogMemory mem root evm m id user) aw' rdata
         (positionUpdateFinalState evm m id user).accountMap k' C') := by
   let credit := positionNewCredit evm m id user
@@ -52,10 +54,10 @@ theorem midnightPositionUpdateInternal_budget {evm : EVM.State} {g : Sat256} {s0
   have hscratch : 96 ≤ (positionUpdateScratch mem evm id user).size := by
     rw [positionUpdateScratch_size _ _ _ _ (by omega)]; exact hmem
   have hv := midnightPositionUpdateView_budget hstack hcanon hlo hhi hmaturity hb rd
-  change (¬ PositionViewSourceSafe evm m id user ∧ RDrev midnightBytecode g s0) ∨
+  change (¬ PositionViewSourceSafe evm m id user ∧ RDrev fork midnightBytecode g s0) ∨
     (PositionViewSourceSafe evm m id user ∧ ∃ aw' k' C',
       TransferBudget budgetRoot gasCredit (positionUpdateScratch mem evm id user) aw' C' ∧
-      RD midnightBytecode evm.executionEnv g s0 ⟨23680⟩
+      RD fork midnightBytecode evm.executionEnv g s0 ⟨23680⟩
         ([fee, pending, credit, updatePositionTopic, id, positionSlot id user,
           solcAddrMask, ret, ⟨96⟩, user] ++ R)
         (positionUpdateScratch mem evm id user) aw' rdata evm.accountMap k' C') at hv
@@ -66,11 +68,11 @@ theorem midnightPositionUpdateInternal_budget {evm : EVM.State} {g : Sat256} {s0
     have hf128 : fee.toNat < 2^128 := positionAccruedFee_lt ..
     have hd := midnightPositionUpdateDecrease_budget (by omega) hc128 hp128 hb1 rd1
     change (¬ (credit.toNat ≤ (positionFieldWord evm id user 0).toNat ∧
-        pending.toNat ≤ (positionFieldWord evm id user 1).toNat) ∧ RDrev midnightBytecode g s0) ∨
+        pending.toNat ≤ (positionFieldWord evm id user 1).toNat) ∧ RDrev fork midnightBytecode g s0) ∨
       (credit.toNat ≤ (positionFieldWord evm id user 0).toNat ∧
         pending.toNat ≤ (positionFieldWord evm id user 1).toNat ∧ ∃ k' C',
         TransferBudget budgetRoot gasCredit (positionUpdateScratch mem evm id user) aw1 C' ∧
-        RD midnightBytecode evm.executionEnv g s0 ⟨23723⟩
+        RD fork midnightBytecode evm.executionEnv g s0 ⟨23723⟩
           ([positionPendingDecrease evm m id user, ⟨23855⟩, positionSlot id user, user, solcAddrMask,
             ⟨96⟩, updatePositionTopic, id, positionCreditDecrease evm m id user, credit, ret, fee, pending] ++ R)
           (positionUpdateScratch mem evm id user) aw1 rdata evm.accountMap k' C') at hd

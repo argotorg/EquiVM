@@ -3,6 +3,8 @@ import Benchmarks.Midnight.ClaimFeeArithmeticTrace
 import Benchmarks.Midnight.SafeTransferBudget
 import Benchmarks.Midnight.MappingMemory
 
+variable {fork : Ethereum.Fork}
+
 /-! Continuous-fee claim execution after the market initialization call returns. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,13 +18,13 @@ theorem claimFeeBodyCore {σ σ₀ A I} {g : UInt256} {evm : EVM.State} {m : Mar
     {amount receiver root aw : UInt256} {mem rdata : ByteArray} {credit k C : Nat}
     {touchFrame : Frame} {R : List UInt256}
     (hcode : I.code = midnightBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hhi : I.calldata.size < calldataLimit) (hgas : midnightGasBound g) (hfork : I.fork ≥ .osaka)
+    (hhi : I.calldata.size < calldataLimit) (hgas : midnightGasBound g) (hfork : fork ≥ .osaka)
     (hd : dispatchMsg contract I.calldata = some claimContinuousFeeTransition)
     (hdec : config.externalABI.decodeCalldata? (claimContinuousFeeTransition.params.map Param.name)
       (transitionSignature claimContinuousFeeTransition).paramTypes I.calldata =
       some (marketAmountAccountArguments "receiver" m amount (AccountAddress.ofNat receiver.toNat)))
     (henv : evm.executionEnv = I) (hworld : evm.σ₀ = σ₀)
-    (htouch : ExecFuncBody config (touchMarketCallFrame ∅ m)
+    (htouch : ExecFuncBody fork config (touchMarketCallFrame ∅ m)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) touchMarketFunction.body
       (.returned touchFrame evm (some [wordBytes32Value m.id])))
     (hstack : R.length + 18 ≤ 1024) (hreceiver : receiver.toNat < EVM.addressModulus)
@@ -31,10 +33,10 @@ theorem claimFeeBodyCore {σ σ₀ A I} {g : UInt256} {evm : EVM.State} {m : Mar
     (hloan : memLoad ⟨896⟩ mem = UInt256.ofNat m.loanToken.val)
     (hbudget : TransferBudget root credit mem aw C)
     (hcredit : 4 * ((root.toNat + safeTransferCallAllocation false + 31) / 32) ≤ credit + 999921)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g)
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨15549⟩
       (m.id :: receiver :: amount :: ⟨832⟩ :: R) mem aw rdata evm.accountMap k C) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   let origin := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hrole : roleAllowed evm ⟨11⟩ ↔
       solcSourceWord I = UInt256.land (solcSlotWordAt ⟨11⟩ evm.accountMap I) solcAddrMask := by
@@ -86,7 +88,7 @@ theorem claimFeeBodyCore {σ σ₀ A I} {g : UInt256} {evm : EVM.State} {m : Mar
         rw [memLoad_writeWord_preserved _ _ _ _ (by rw [hsize1]; exact hmem)
           (Or.inl hl), memLoad_twoWordHashMem (mem := mem) m.id ⟨1⟩ ⟨896⟩ (by decide) hmem, hloan]
         exact addressWord_val_clean m.loanToken
-      change RD _ _ _ _ _
+      change RD fork _ _ _ _ _
         ([UInt256.land (memLoad (⟨832⟩ + ⟨64⟩) mm) solcAddrMask, receiver, amount, ⟨15786⟩] ++ R)
         mm _ _ _ _ _ at rd2
       rw [ht, ← addressWord_eq_ofNat_address hreceiver] at rd2
@@ -99,9 +101,9 @@ theorem claimFeeBodyCore {σ σ₀ A I} {g : UInt256} {evm : EVM.State} {m : Mar
           show (2 : Fin 3).val = 2 from rfl, if_true, if_false, show ¬ (0 : Nat) = 2 from by decide,
           show ¬ (1 : Nat) = 2 from by decide] using hworld
       have sourcePrefix {result : ExecResult}
-          (tail : ExecBlock config (claimFeeFinalFrame origin m amount receiver)
+          (tail : ExecBlock fork config (claimFeeFinalFrame origin m amount receiver)
             (claimFeeFinalState evm m.id amount) (claimContinuousFeeTransition.body.drop 13) result) :
-          ExecBlock config { contract := contract, immutables := ∅, locals :=
+          ExecBlock fork config { contract := contract, immutables := ∅, locals :=
             marketAmountAccountArguments "receiver" m amount (AccountAddress.ofNat receiver.toNat) }
             origin claimContinuousFeeTransition.body result := by
         apply claimFeeBodyBlock hwv hhi htouch hauth

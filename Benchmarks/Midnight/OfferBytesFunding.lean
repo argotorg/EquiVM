@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.OfferBytesMemory
 import Benchmarks.Midnight.MarketBytesFunding
 
+variable {fork : Ethereum.Fork}
+
 /-! Offer encoding retains gas funding and checks its dynamic allocation. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -33,16 +35,16 @@ theorem midnightOfferBytesEncode_funded {credit : Nat} {I : ExecutionEnv} {g : S
     (hret : (D_J midnightBytecode 0).contains ret = true)
     (hgas : midnightGasBound g.toUInt256)
     (ha : MemoryFunding credit (writeWord mem (root.toNat + 32) (UInt256.ofNat 32)) aw C)
-    (rd : RD midnightBytecode I g s0 ⟨20131⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨20131⟩
       (ptr :: (root + UInt256.ofNat 64) :: ⟨12824⟩ :: root :: ret :: root :: R)
       (writeWord mem (root.toNat + 32) (UInt256.ofNat 32)) aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
     (root.toNat + offerBytesSize offer + 32 + 2^62 < 2^64 ∧
       ∃ aw' k' C',
         MemoryFunding (credit + 128 * offer.market.collaterals.length +
           3 * ((offer.callbackData.size + 31) / 32))
           (offerBytesMemory mem root callbackPtr offer) aw' C' ∧
-        RD midnightBytecode I g s0 ret (root :: R)
+        RD fork midnightBytecode I g s0 ret (root :: R)
           (offerBytesMemory mem root callbackPtr offer) aw' rdata σ k' C') := by
   have h64 : (root + UInt256.ofNat 64).toNat = root.toNat + 64 :=
     uadd_word_ofNat_toNat _ _ (by omega)

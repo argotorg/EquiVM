@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.TakeParticipantsMemory
 
+variable {fork : Ethereum.Fork}
+
 /-! Runtime selection and storage of the buyer and seller addresses. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,9 +18,9 @@ theorem midnightTakeParticipantsRuntime {credit : Nat} {I : ExecutionEnv} {g : S
     (hroot : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (htaker : memLoad (UInt256.ofNat 544) mem = taker)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨11826⟩ R mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨11826⟩ R mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryFunding credit (takeParticipantsMemory mem offer taker) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨11880⟩ R
+      RD fork midnightBytecode I g s0 ⟨11880⟩ R
         (takeParticipantsMemory mem offer taker) aw' rdata σ k' C' := by
   have hm : 576 ≤ mem.size := by
     have hh := ho.words.size
@@ -47,7 +49,7 @@ theorem midnightTakeParticipantsRuntime {credit : Nat} {I : ExecutionEnv} {g : S
     simp only [midnightBlocks.midnight_block_11826_taken_memory] at rd1
     have ha1 := memoryFundingAt (credit := credit) rd1 (by memory_fund ha)
     change MemoryFunding credit (takeParticipantsInitMemory mem) _ _ at ha1
-    change RD midnightBytecode I g s0 ⟨14545⟩ R
+    change RD fork midnightBytecode I g s0 ⟨14545⟩ R
       (takeParticipantsInitMemory mem) _ rdata σ _ _ at rd1
     have rd2 := midnightBlocks.midnight_block_14545 (by omega) (by jump_dest) rd1
     have ha2 := memoryFundingAt (credit := credit) rd2 (by
@@ -66,7 +68,7 @@ theorem midnightTakeParticipantsRuntime {credit : Nat} {I : ExecutionEnv} {g : S
     simp only [midnightBlocks.midnight_block_11826_fallthrough_memory] at rd1
     have ha1 := memoryFundingAt (credit := credit) rd1 (by memory_fund ha)
     change MemoryFunding credit (takeParticipantsInitMemory mem) _ _ at ha1
-    change RD midnightBytecode I g s0 ⟨11851⟩ R
+    change RD fork midnightBytecode I g s0 ⟨11851⟩ R
       (takeParticipantsInitMemory mem) _ rdata σ _ _ at rd1
     have rd2 := midnightBlocks.midnight_block_11851 (by omega) rd1
     have ha2 := memoryFundingAt (credit := credit) rd2 (by

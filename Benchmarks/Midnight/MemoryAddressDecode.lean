@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.AddressDecode
 
+variable {fork : Ethereum.Fork}
+
 /-! Canonical address validation for memory ABI decoders at PC 23130. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -14,8 +16,8 @@ theorem midnightMemoryAddress_ok {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length + 5 ≤ 1024)
     (hcanon : (memLoad off mem).toNat < EVM.addressModulus)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨23130⟩ (off :: ret :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g s0 ret (memLoad off mem :: R) mem aw' rdata σ k' C' := by
+    (rd : RD fork midnightBytecode I g s0 ⟨23130⟩ (off :: ret :: R) mem aw rdata σ k C) :
+    ∃ aw' k' C', RD fork midnightBytecode I g s0 ret (memLoad off mem :: R) mem aw' rdata σ k' C' := by
   have rd1 := midnightBlocks.midnight_block_23130_fallthrough hstack (addressCheck_zero hcanon) rd
   simp only [midnightBlocks.midnight_block_23130_fallthrough_stack] at rd1
   have rd2 := midnightBlocks.midnight_block_23149 (by simp only [List.length_cons]; omega) hret rd1
@@ -26,8 +28,8 @@ theorem midnightMemoryAddress_bad {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
     (hcanon : ¬ (memLoad off mem).toNat < EVM.addressModulus)
-    (rd : RD midnightBytecode I g s0 ⟨23130⟩ (off :: ret :: R) mem aw rdata σ k C) :
-    RDrev midnightBytecode g s0 := by
+    (rd : RD fork midnightBytecode I g s0 ⟨23130⟩ (off :: ret :: R) mem aw rdata σ k C) :
+    RDrev fork midnightBytecode g s0 := by
   have rd1 := midnightBlocks.midnight_block_23130_taken hstack (addressCheck_nonzero hcanon)
     (by jump_dest) rd
   simp only [midnightBlocks.midnight_block_23130_taken_stack] at rd1

@@ -2,6 +2,8 @@ import Benchmarks.Midnight.PositionBitmapStorage
 import Benchmarks.Midnight.BitmapCountTrace
 import Benchmarks.Midnight.CollateralBlocksStatic
 
+variable {fork : Ethereum.Fork}
+
 /-! The supply-collateral bitmap write, including the static-call exit. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -14,12 +16,12 @@ theorem supplyBitmapWrite {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (evm : EVM.State) (henv : evm.executionEnv = I)
     {mem rdata : ByteArray} {aw ignored id user index : UInt256} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 15 ≤ 1024) (hi : index.toNat < 128)
-    (rd : RD midnightBytecode I g s0 ⟨17274⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨17274⟩
       (ignored :: positionSlot id user :: index :: R) mem aw rdata evm.accountMap k C) :
-    (I.perm = false ∧ RDstatic midnightBytecode g s0) ∨
+    (I.perm = false ∧ RDstatic fork midnightBytecode g s0) ∨
     (I.perm = true ∧ ∃ k' C', C ≤ C' ∧
       let bitmap := bitmapSet (positionBitmapWord evm id user) index
-      RD midnightBytecode I g s0 ⟨17385⟩
+      RD fork midnightBytecode I g s0 ⟨17385⟩
         ([bitmap, countMask1, bitmap, countMask4, countMultiplier, UInt256.ofNat 255,
           UInt256.ofNat 16, index] ++ R) mem aw rdata
         (storeHigh128 evm (positionSlot id user + ⟨2⟩) bitmap).accountMap k' C') := by

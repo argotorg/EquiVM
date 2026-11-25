@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.MarketCollateralIndex
 import Benchmarks.Midnight.CalldataAddressRead
 
+variable {fork : Ethereum.Fork}
+
 /-! The selected collateral's token address in decoded market calldata. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -23,10 +25,10 @@ theorem midnightMarketCollateralToken {I : ExecutionEnv} {g : Sat256} {s0 : Stat
     {mem rdata : ByteArray} {aw : UInt256} {m : MarketData} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 8 ≤ 1024)
     (hd : decodeCalldataMarket I.calldata 4 = some m)
-    (rd : RD midnightBytecode I g s0 ⟨5508⟩ R mem aw rdata σ k C) :
-    (¬ (calldataWord I.calldata 36).toNat < m.collaterals.length ∧ RDrev midnightBytecode g s0) ∨
+    (rd : RD fork midnightBytecode I g s0 ⟨5508⟩ R mem aw rdata σ k C) :
+    (¬ (calldataWord I.calldata 36).toNat < m.collaterals.length ∧ RDrev fork midnightBytecode g s0) ∨
     ∃ hi : (calldataWord I.calldata 36).toNat < m.collaterals.length,
-      ∃ k' C', C ≤ C' ∧ RD midnightBytecode I g s0 ⟨5548⟩
+      ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode I g s0 ⟨5548⟩
         (UInt256.ofNat m.collaterals[(calldataWord I.calldata 36).toNat].token.val :: R)
         mem aw rdata σ k' C' := by
   have rd1 := midnightBlocks.midnight_block_5508 (R := R) (by omega) (by jump_dest) rd

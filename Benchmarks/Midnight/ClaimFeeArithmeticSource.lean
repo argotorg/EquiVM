@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.ClaimFeeState
 import Benchmarks.Midnight.ToUint128Source
 
+variable {fork : Ethereum.Fork}
+
 /-! Source semantics of each checked subtraction in a continuous-fee claim. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -21,9 +23,9 @@ theorem claimFeeSubtractSource {frame : Frame} {evm : EVM.State} {id amount : UI
     (hm : frame.locals.get? "_marketState" = some (.storageRef (marketStateRef id) marketStateType))
     (hamount : amount.toNat < 2^128) (hle : amount.toNat ≤ (marketBalanceWord evm id i).toNat)
     (hperm : evm.executionEnv.perm = true) {tail : List Stmt} {result : ExecResult}
-    (htail : ExecBlock config (wordLocal frame name amount)
+    (htail : ExecBlock fork config (wordLocal frame name amount)
       (marketBalanceStore evm id i (UInt256.sub (marketBalanceWord evm id i) amount)) tail result) :
-    ExecBlock config frame evm (claimFeeSubtractStmts i name ++ tail) result := by
+    ExecBlock fork config frame evm (claimFeeSubtractStmts i name ++ tail) result := by
   have he : evalExprs? config frame evm [.var "amount"] = .ok [.int amount.toNat] := by
     simp only [evalExprs?, evalWordLocal ha, EvalResult.bind, bind, pure]
   refine ExecBlock.consNormal (callToUint128 hc he hamount) ?_
@@ -42,7 +44,7 @@ theorem claimFeeSubtractUnderflow {frame : Frame} {evm : EVM.State} {id amount :
     (hm : frame.locals.get? "_marketState" = some (.storageRef (marketStateRef id) marketStateType))
     (hamount : amount.toNat < 2^128) (hlt : (marketBalanceWord evm id i).toNat < amount.toNat)
     (tail : List Stmt) :
-    ExecBlock config frame evm (claimFeeSubtractStmts i name ++ tail) .reverted := by
+    ExecBlock fork config frame evm (claimFeeSubtractStmts i name ++ tail) .reverted := by
   have he : evalExprs? config frame evm [.var "amount"] = .ok [.int amount.toNat] := by
     simp only [evalExprs?, evalWordLocal ha, EvalResult.bind, bind, pure]
   refine ExecBlock.consNormal (callToUint128 hc he hamount) ?_
@@ -60,7 +62,7 @@ theorem claimFeeSubtractStatic {frame : Frame} {evm : EVM.State} {id amount : UI
     (hm : frame.locals.get? "_marketState" = some (.storageRef (marketStateRef id) marketStateType))
     (hamount : amount.toNat < 2^128) (hle : amount.toNat ≤ (marketBalanceWord evm id i).toNat)
     (hperm : evm.executionEnv.perm = false) (tail : List Stmt) :
-    ExecBlock config frame evm (claimFeeSubtractStmts i name ++ tail) .staticViolation := by
+    ExecBlock fork config frame evm (claimFeeSubtractStmts i name ++ tail) .staticViolation := by
   have he : evalExprs? config frame evm [.var "amount"] = .ok [.int amount.toNat] := by
     simp only [evalExprs?, evalWordLocal ha, EvalResult.bind, bind, pure]
   refine ExecBlock.consNormal (callToUint128 hc he hamount) ?_

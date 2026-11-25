@@ -575,9 +575,9 @@ def stClz (s : State) (a : UInt256) (t : List UInt256) : State :=
 theorem clz_xstep {s : State} {code : ByteArray} {pcv a : UInt256} {t : List UInt256}
     (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
     (hdec : decode code pcv = some (.CLZ, .none))
-    (hfork : s.executionEnv.fork ≥ .osaka)
+    (hfork : fork ≥ .osaka)
     (hstk : s.machineState.stack = a :: t) (hov : t.length + 1 ≤ 1024) :
-    Xstep (D_J code 0) s
+    Xstep fork (D_J code 0) s
       = (if s.machineState.gasAvailable.toNat < 5 then .error .OutOfGass
          else .ok (stClz s a t, .none)) := by
   have hd : decode s.executionEnv.code s.machineState.pc = some (.CLZ, .none) := by
@@ -585,8 +585,8 @@ theorem clz_xstep {s : State} {code : ByteArray} {pcv a : UInt256} {t : List UIn
   rw [← hcode, step_clz s hd, hstk]
   have hov' : ¬ ((a :: t).length - 1 + 1 > 1024) := by
     simp only [List.length_cons]; omega
-  have hclz : s.executionEnv.fork.spec.eip7939 = true := by
-    cases hf : s.executionEnv.fork <;> first | rfl | simp [hf, Fork.le_def, Fork.rank] at hfork
+  have hclz : fork.spec.eip7939 = true := by
+    cases hf : fork <;> first | rfl | simp [hf, Fork.le_def, Fork.rank] at hfork
   simp only [if_neg hov', hclz, if_true, GasConstants.Glow, stClz]
 
 /-! ### MSTORE (two-stage cost `memExp + 3`, pc += 1, pops 2) -/

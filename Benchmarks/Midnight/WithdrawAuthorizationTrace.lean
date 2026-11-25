@@ -3,6 +3,8 @@ import Benchmarks.Midnight.RuntimeBlocks_020
 import Benchmarks.Midnight.RuntimeBlocks_021
 import Benchmarks.Midnight.RuntimeBlocks_011
 
+variable {fork : Ethereum.Fork}
+
 /-! Authorization for collateral withdrawal, including the cached scratch-memory address. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,9 +19,9 @@ theorem withdrawAuthorizationRead_accounted {ee : ExecutionEnv} {g : Sat256} {s0
     (hz : memLoad (UInt256.ofNat 800) mem = ⟨0⟩)
     (hvalid : (D_J midnightBytecode 0).contains (UInt256.ofNat 4454) = true)
     (ha : MemoryAccounting mem aw C)
-    (h : RD midnightBytecode ee g s0 ⟨4811⟩ (x0 :: x1 :: x2 :: R) mem aw rdata σ k C) :
+    (h : RD fork midnightBytecode ee g s0 ⟨4811⟩ (x0 :: x1 :: x2 :: R) mem aw rdata σ k C) :
     ∃ aw' k' C', MemoryAccounting (supplyAuthorizationMemory mem ee x2) aw' C' ∧
-      RD midnightBytecode ee g s0 ⟨4454⟩
+      RD fork midnightBytecode ee g s0 ⟨4454⟩
         (UInt256.land (solcSlotWordAt (authorizationSlot x2 (solcSourceWord ee)) σ ee) ⟨255⟩ ::
           x1 :: x2 :: R) (supplyAuthorizationMemory mem ee x2) aw' rdata σ k' C' := by
   let r0 := h
@@ -75,7 +77,7 @@ theorem withdrawAuthorizationRead_accounted {ee : ExecutionEnv} {g : Sat256} {s0
       authorizationSlot x2 (solcSourceWord ee) :=
     twoWordHashMem_mapSlot_of_ge64 _ _ (by
       rw [twoWordHashMem_size_of_ge_64 _ _ (by omega)]; omega)
-  change RD midnightBytecode ee g s0 ⟨4454⟩
+  change RD fork midnightBytecode ee g s0 ⟨4454⟩
     (UInt256.land (solcSlotWordAt (keccakWord ⟨0⟩ (UInt256.ofNat 64)
       (supplyAuthorizationMemory mem ee x2)) σ ee) ⟨255⟩ :: x1 :: x2 :: R)
     (supplyAuthorizationMemory mem ee x2) _ rdata σ _ _ at rFinal
@@ -89,25 +91,25 @@ theorem withdrawAuthorizationGuard {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length + 8 ≤ 1024) (hmem : 832 ≤ mem.size)
     (hz800 : memLoad (UInt256.ofNat 800) mem = ⟨0⟩)
     (hcanon : user.toNat < EVM.addressModulus) (ha : MemoryAccounting mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨4432⟩ (receiver :: index :: user :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨4432⟩ (receiver :: index :: user :: R)
       mem aw rdata evm.accountMap k C) :
-    (¬ onBehalfAllowed evm user ∧ RDrev midnightBytecode g s0) ∨
+    (¬ onBehalfAllowed evm user ∧ RDrev fork midnightBytecode g s0) ∨
     (onBehalfAllowed evm user ∧ ∃ mem' aw' k' C',
       MemoryPrefix mem mem' mem.size ∧ mem'.size = mem.size ∧
       memLoad ⟨64⟩ mem' = memLoad ⟨64⟩ mem ∧ MemoryAccounting mem' aw' C' ∧
-      RD midnightBytecode I g s0 ⟨4460⟩ (user :: user :: index :: receiver :: R) mem' aw' rdata evm.accountMap k' C') := by
+      RD fork midnightBytecode I g s0 ⟨4460⟩ (user :: user :: index :: receiver :: R) mem' aw' rdata evm.accountMap k' C') := by
   have finish {mem' aw' k' C' check}
       (hp : MemoryPrefix mem mem' mem.size) (hs : mem'.size = mem.size)
       (hf : memLoad ⟨64⟩ mem' = memLoad ⟨64⟩ mem)
       (ha' : MemoryAccounting mem' aw' C')
       (hc : check ≠ ⟨0⟩ ↔ onBehalfAllowed evm user)
-      (rd' : RD midnightBytecode I g s0 ⟨4454⟩ (check :: user :: user :: index :: receiver :: R)
+      (rd' : RD fork midnightBytecode I g s0 ⟨4454⟩ (check :: user :: user :: index :: receiver :: R)
         mem' aw' rdata evm.accountMap k' C') :
-      (¬ onBehalfAllowed evm user ∧ RDrev midnightBytecode g s0) ∨
+      (¬ onBehalfAllowed evm user ∧ RDrev fork midnightBytecode g s0) ∨
       (onBehalfAllowed evm user ∧ ∃ mem' aw' k' C',
         MemoryPrefix mem mem' mem.size ∧ mem'.size = mem.size ∧
         memLoad ⟨64⟩ mem' = memLoad ⟨64⟩ mem ∧ MemoryAccounting mem' aw' C' ∧
-        RD midnightBytecode I g s0 ⟨4460⟩ (user :: user :: index :: receiver :: R) mem' aw' rdata evm.accountMap k' C') := by
+        RD fork midnightBytecode I g s0 ⟨4460⟩ (user :: user :: index :: receiver :: R) mem' aw' rdata evm.accountMap k' C') := by
     by_cases hz : check = ⟨0⟩
     · have rr := midnight_block_4454_taken (by simp only [List.length_cons]; omega)
         (by rw [hz]; decide) (by jump_dest) rd'

@@ -3,6 +3,8 @@ import Benchmarks.Midnight.AllocationBudget
 import Benchmarks.Midnight.AllocationArithmetic
 import Benchmarks.Midnight.LiquidateLoop
 
+variable {fork : Ethereum.Fork}
+
 /-! Allocate and encode the transient lock key after liquidation's collateral loop. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -19,10 +21,10 @@ theorem midnightLiquidateLockAllocation {I : ExecutionEnv} {g : Sat256} {s0 : St
     (hfree : memLoad (UInt256.ofNat 64) mem = root)
     (hid : memLoad (UInt256.ofNat 768) mem = id)
     (hb : TransferBudget budgetRoot credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨5358⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨5358⟩
       ([x0, x1, x2, x3, x4, x5, x6, x7, borrower] ++ R) mem aw rdata σ k C) :
     ∃ aw' k' C', TransferBudget budgetRoot credit (dynamicLockMemory mem root id borrower) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨5442⟩
+      RD fork midnightBytecode I g s0 ⟨5442⟩
         ([root, x0, x1, x2, x3, x4, x5, x6, x7, borrower] ++ R)
         (dynamicLockMemory mem root id borrower) aw' rdata σ k' C' := by
   have rd1 := midnightBlocks.midnight_block_5358 (R := R) (by omega) (by jump_dest) rd

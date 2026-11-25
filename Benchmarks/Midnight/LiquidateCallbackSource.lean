@@ -2,6 +2,8 @@ import Benchmarks.Midnight.LiquidatePayer
 import Benchmarks.Midnight.LiquidateCallbackABI
 import Benchmarks.Midnight.FlashLoanCallbackSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Source execution of liquidation's optional callback and acknowledgement check. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -62,10 +64,10 @@ theorem liquidateCallbackFailure {frame : Frame} {evm evm' : State} {m : MarketD
     {data out : ByteArray}
     (hf : LiquidateSourceFrame frame m id index seized repaid borrower mode receiver callback data)
     (hb : frame.locals.get? "badDebt" = some (.int badDebt.toNat))
-    (hcall : typedCallViaEVM config evm callback "onLiquidate" 0
+    (hcall : typedCallViaEVM fork config evm callback "onLiquidate" 0
       (liquidateCallbackArguments evm.executionEnv.source m id index seized repaid
         (AccountAddress.ofNat borrower.toNat) receiver data badDebt) (false, evm', out) true) :
-    ExecStmt config frame evm liquidateCallbackStmt .reverted := by
+    ExecStmt fork config frame evm liquidateCallbackStmt .reverted := by
   exact ExecStmt.externalCallFailure (target := callback) (Or.inl wordOfInt_zero)
     (by simp only [evalExpr?, hf.callback, EvalResult.ofOption])
     (by simp only [evalExpr?, pure]) (liquidateCallbackArgs hf hb)
@@ -76,11 +78,11 @@ theorem liquidateCallbackShort {frame : Frame} {evm evm' : State} {m : MarketDat
     {data out : ByteArray}
     (hf : LiquidateSourceFrame frame m id index seized repaid borrower mode receiver callback data)
     (hb : frame.locals.get? "badDebt" = some (.int badDebt.toNat))
-    (hcall : typedCallViaEVM config evm callback "onLiquidate" 0
+    (hcall : typedCallViaEVM fork config evm callback "onLiquidate" 0
       (liquidateCallbackArguments evm.executionEnv.source m id index seized repaid
         (AccountAddress.ofNat borrower.toNat) receiver data badDebt) (true, evm', out) true)
     (hshort : out.size < 32) :
-    ExecStmt config frame evm liquidateCallbackStmt .reverted := by
+    ExecStmt fork config frame evm liquidateCallbackStmt .reverted := by
   exact ExecStmt.externalCallReturnDecodeRevert (target := callback) (Or.inl wordOfInt_zero)
     (by simp only [evalExpr?, hf.callback, EvalResult.ofOption])
     (by simp only [evalExpr?, pure]) (liquidateCallbackArgs hf hb)
@@ -91,11 +93,11 @@ theorem liquidateCallbackSuccess {frame : Frame} {evm evm' : State} {m : MarketD
     {data out : ByteArray}
     (hf : LiquidateSourceFrame frame m id index seized repaid borrower mode receiver callback data)
     (hb : frame.locals.get? "badDebt" = some (.int badDebt.toNat))
-    (hcall : typedCallViaEVM config evm callback "onLiquidate" 0
+    (hcall : typedCallViaEVM fork config evm callback "onLiquidate" 0
       (liquidateCallbackArguments evm.executionEnv.source m id index seized repaid
         (AccountAddress.ofNat borrower.toNat) receiver data badDebt) (true, evm', out) true)
     (h32 : 32 ≤ out.size) :
-    ExecStmt config frame evm liquidateCallbackStmt
+    ExecStmt fork config frame evm liquidateCallbackStmt
       (.ok (liquidateCallbackFrame frame (calldataWord out 0)) evm') := by
   exact ExecStmt.externalCallSuccess (target := callback) (Or.inl wordOfInt_zero)
     (by simp only [evalExpr?, hf.callback, EvalResult.ofOption])

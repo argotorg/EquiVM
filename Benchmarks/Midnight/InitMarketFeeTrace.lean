@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.InitMarketFeeMemory
 
+variable {fork : Ethereum.Fork}
+
 /-! The packed settlement-fee writes during market initialization. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -12,12 +14,12 @@ theorem midnightInitMarketFirstFees {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw root word id tokenPtr : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 11 ≤ 1024) (hperm : I.perm = true)
     (hw : MemoryWords mem root.toNat (initMarketSettlementFeeWords word))
-    (rd : RD midnightBytecode I g s0 ⟨21305⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨21305⟩
       (root :: (root + UInt256.ofNat 32) :: (root + UInt256.ofNat 64) ::
         (root + UInt256.ofNat 96) :: (root + UInt256.ofNat 128) ::
         (root + UInt256.ofNat 160) :: (root + UInt256.ofNat 192) :: tokenPtr ::
         (solcMappingSlot ⟨1⟩ id + ⟨2⟩) :: R) mem aw rdata σ k C) :
-    ∃ aw' k' C', RD midnightBytecode I g s0 ⟨21420⟩
+    ∃ aw' k' C', RD fork midnightBytecode I g s0 ⟨21420⟩
       (UInt256.land (UInt256.lnot (UInt256.ofNat 1208907372870555465154560))
         (solcSlotWordAt (solcMappingSlot ⟨1⟩ id + ⟨2⟩)
           (initSettlementAccounts σ I id word 4) I) :: settlementFeeWord word 4 ::
@@ -59,14 +61,14 @@ theorem midnightInitMarketLastFees {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hstack : R.length + 7 ≤ 1024) (hperm : I.perm = true)
     (hw : MemoryWords mem root.toNat (initMarketSettlementFeeWords word))
     (htoken : memLoad tokenPtr mem = UInt256.ofNat token.val)
-    (rd : RD midnightBytecode I g s0 ⟨21420⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨21420⟩
       (UInt256.land (UInt256.lnot (UInt256.ofNat 1208907372870555465154560))
         (solcSlotWordAt (solcMappingSlot ⟨1⟩ id + ⟨2⟩)
           (initSettlementAccounts σ I id word 4) I) :: settlementFeeWord word 4 ::
         (root + UInt256.ofNat 160) :: (root + UInt256.ofNat 192) :: tokenPtr ::
         (solcMappingSlot ⟨1⟩ id + ⟨2⟩) :: R)
       mem aw rdata (initSettlementAccounts σ I id word 4) k C) :
-    ∃ aw' k' C', RD midnightBytecode I g s0 ⟨21514⟩
+    ∃ aw' k' C', RD fork midnightBytecode I g s0 ⟨21514⟩
       (⟨0⟩ :: (solcMappingSlot ⟨1⟩ id + ⟨2⟩) :: R)
       (twoWordHashMem (UInt256.ofNat token.val) (UInt256.ofNat 5) mem)
       aw' rdata (initSettlementAccounts σ I id word 7) k' C' := by

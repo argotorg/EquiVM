@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.CallForwardingGas
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 /-! DELEGATECALL witnesses retaining the 63/64 forwarding cap and the parent cost. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -13,7 +15,7 @@ theorem delegateCallWithForwardingCost {code : ByteArray} {ee : ExecutionEnv} {g
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : ℕ}
     {gasArg target inOffset inSize outOffset outSize : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc
+    (h : RD fork code ee g s0 pc
           (gasArg :: target :: inOffset :: inSize :: outOffset :: outSize :: t)
           mem aw rdata σ k C)
     (hdec : decode code pc = some (.DELEGATECALL, .none))
@@ -22,24 +24,24 @@ theorem delegateCallWithForwardingCost {code : ByteArray} {ee : ExecutionEnv} {g
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ ee.fork σ s0.σ₀ A_in
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ fork σ s0.σ₀ A_in
           ee.source ee.sender
-          ee.codeOwner (toExecute ee.fork σ (AccountAddress.ofUInt256 target))
+          ee.codeOwner (toExecute fork σ (AccountAddress.ofUInt256 target))
           callGas (UInt256.ofNat ee.gasPrice) ⟨0⟩ ee.weiValue
           (mem.readWithPadding inOffset.toNat inSize.toNat) (ee.depth + 1) ee.header ee.blobVersionedHashes ee.blocks ee.perm ∧
-        (X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨
+        (X fork (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨
           C + 100 ≤ C' ∧
           Cₘ (UInt256.ofNat (MachineState.M
             (MachineState.M aw.toNat inOffset.toNat inSize.toNat)
             outOffset.toNat outSize.toNat)) + C + 100 + (callGas.toNat - g''.toNat) ≤
               Cₘ aw + C'))
-      ∧ RD code ee g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: t)
+      ∧ RD fork code ee g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: t)
           (o.write 0 mem outOffset.toNat (min outSize (UInt256.ofNat o.size)).toNat)
           (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat inSize.toNat)
             outOffset.toNat outSize.toNat))
           o σ' k' C'
       ∧ o.size < UInt256.size
-      ∧ (X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨
+      ∧ (X fork (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨
         C + 100 + forwardingMinimum callGas.toNat ≤ g.toNat) := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
@@ -54,7 +56,7 @@ theorem delegateCallWithForwardingCost {code : ByteArray} {ee : ExecutionEnv} {g
     have hd : decode s.executionEnv.code s.machineState.pc = some (.DELEGATECALL, .none) := by
       rw [hcode, hpc]; exact hdec
     have hdepth' : s.executionEnv.depth.val < 1024 := by rw [hee]; exact hdepth
-    have st := step_delegatecall s hd
+    have st := step_delegatecall (fork := fork) s hd
     rw [hstk] at st
     have hovF : (t.length + 1 + 1 + 1 + 1 + 1 + 1 - 6 + 1 > 1024) = False := eq_false (by omega)
     have hdepthLt : s.executionEnv.depth < 1024 := by rw [Fin.lt_def]; exact hdepth'
@@ -82,24 +84,24 @@ theorem delegateCallWithForwardingCost {code : ByteArray} {ee : ExecutionEnv} {g
       -- the gas-refund arithmetic (`C' = g - SUCC.gas`), and the Θ-link by tuple-eta.
       rename_i hP
       set mc := memoryExpansionCost s Operation.DELEGATECALL with hmc
-      set gc := Ccall s.executionEnv.fork (AccountAddress.ofUInt256 target) s.executionEnv.codeOwner { val := 0 } gasArg
+      set gc := Ccall fork (AccountAddress.ofUInt256 target) s.executionEnv.codeOwner { val := 0 } gasArg
         s.accountMap
         { pc := s.machineState.pc, stack := s.machineState.stack, execLength := s.machineState.execLength,
           gasAvailable := s.machineState.gasAvailable.subNat mc,
           activeWords := s.machineState.activeWords, memory := s.machineState.memory,
           returnData := s.machineState.returnData, H_return := s.machineState.H_return } s.substate with hgc
-      set G := Ccallgas s.executionEnv.fork (AccountAddress.ofUInt256 target) s.executionEnv.codeOwner { val := 0 } gasArg
+      set G := Ccallgas fork (AccountAddress.ofUInt256 target) s.executionEnv.codeOwner { val := 0 } gasArg
         s.accountMap
         { pc := s.machineState.pc, stack := s.machineState.stack, execLength := s.machineState.execLength + 1,
           gasAvailable := s.machineState.gasAvailable.subNat mc,
           activeWords := s.machineState.activeWords, memory := s.machineState.memory,
           returnData := s.machineState.returnData, H_return := s.machineState.H_return } s.substate with hG
       set cg := UInt256.ofNat G with hcg
-      set ce := Cextra s.executionEnv.fork (AccountAddress.ofUInt256 target) s.executionEnv.codeOwner { val := 0 }
+      set ce := Cextra fork (AccountAddress.ofUInt256 target) s.executionEnv.codeOwner { val := 0 }
         s.accountMap s.substate with hce
-      set θs := Θ s.executionEnv.fork s.accountMap s.σ₀ (callSubstate s.executionEnv.fork s.accountMap (AccountAddress.ofUInt256 target) s.substate)
+      set θs := Θ fork s.accountMap s.σ₀ (callSubstate fork s.accountMap (AccountAddress.ofUInt256 target) s.substate)
         s.executionEnv.source s.executionEnv.sender
-        s.executionEnv.codeOwner (toExecute s.executionEnv.fork s.accountMap (AccountAddress.ofUInt256 target))
+        s.executionEnv.codeOwner (toExecute fork s.accountMap (AccountAddress.ofUInt256 target))
         cg (UInt256.ofNat s.executionEnv.gasPrice) { val := 0 } s.executionEnv.weiValue
         (s.machineState.memory.readWithPadding inOffset.toNat inSize.toNat) (s.executionEnv.depth + 1)
         s.executionEnv.header s.executionEnv.blobVersionedHashes s.executionEnv.blocks
@@ -114,10 +116,10 @@ theorem delegateCallWithForwardingCost {code : ByteArray} {ee : ExecutionEnv} {g
       have hretle : θs.2.1.toNat ≤ cg.toNat := by
         rw [hθs]
         exact Theta_returnedGas_le s.accountMap s.σ₀
-          (callSubstate s.executionEnv.fork s.accountMap
+          (callSubstate fork s.accountMap
             (AccountAddress.ofUInt256 target) s.substate)
           s.executionEnv.source s.executionEnv.sender
-          s.executionEnv.codeOwner (toExecute s.executionEnv.fork s.accountMap (AccountAddress.ofUInt256 target))
+          s.executionEnv.codeOwner (toExecute fork s.accountMap (AccountAddress.ofUInt256 target))
           cg (UInt256.ofNat s.executionEnv.gasPrice) { val := 0 } s.executionEnv.weiValue
           (s.machineState.memory.readWithPadding inOffset.toNat inSize.toNat) (s.executionEnv.depth + 1)
           s.executionEnv.header s.executionEnv.blobVersionedHashes s.executionEnv.blocks s.executionEnv.perm
@@ -167,7 +169,7 @@ theorem delegateCallWithForwardingCost {code : ByteArray} {ee : ExecutionEnv} {g
       rw [show g.toNat - k = g.toNat + 1 - (k + 1) from by omega] at hXP
       -- assemble the conclusion
       refine ⟨θs.1, θs.2.2.2.1, θs.2.2.2.2,
-        (callSubstate s.executionEnv.fork s.accountMap (AccountAddress.ofUInt256 target) s.substate), cg, k + 1,
+        (callSubstate fork s.accountMap (AccountAddress.ofUInt256 target) s.substate), cg, k + 1,
         C + callCharge, ⟨θs.2.1, θs.2.2.1, ?_, ?_⟩, ?_, ?_, ?_⟩
       · -- Θ-link: rewrite cursor fields to the world/ee/acc form, then tuple-eta
         rw [← hee, ← hσ, ← hmem, ← hw1, ← hθs]
@@ -202,11 +204,11 @@ theorem delegateCallWithForwardingCost {code : ByteArray} {ee : ExecutionEnv} {g
         · exact hσ₀
       · rw [hθs]
         exact Ethereum.EVM.theta_projection_output_size_lt_uint256
-          (fork := s.executionEnv.fork)
-          s.accountMap s.σ₀ (callSubstate s.executionEnv.fork s.accountMap (AccountAddress.ofUInt256 target) s.substate)
+          (fork := fork)
+          s.accountMap s.σ₀ (callSubstate fork s.accountMap (AccountAddress.ofUInt256 target) s.substate)
           s.executionEnv.source
           s.executionEnv.sender s.executionEnv.codeOwner
-          (toExecute s.executionEnv.fork s.accountMap (AccountAddress.ofUInt256 target))
+          (toExecute fork s.accountMap (AccountAddress.ofUInt256 target))
           (s.machineState.memory.readWithPadding inOffset.toNat inSize.toNat)
           cg (UInt256.ofNat s.executionEnv.gasPrice) { val := 0 } s.executionEnv.weiValue
           (s.executionEnv.depth + 1) s.executionEnv.header s.executionEnv.blobVersionedHashes s.executionEnv.blocks s.executionEnv.perm

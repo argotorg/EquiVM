@@ -4,6 +4,8 @@ import Benchmarks.Midnight.BitmapArithmetic
 import Benchmarks.Midnight.TransferBudget
 import Benchmarks.Midnight.RuntimeBlocks_031
 
+variable {fork : Ethereum.Fork}
+
 /-! Reload the validated market's collateral array and select the highest active bit. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -29,15 +31,15 @@ theorem midnightLiquidateCollateralHead {I : ExecutionEnv} {g : Sat256} {s0 : St
     {mem rdata : ByteArray}
     {aw debtWord reverseRep rep maxDebt price pos dp dl borrower badDebt bitmap budgetRoot : UInt256}
     {credit : Nat} {m : MarketData} {σ : AccountMap} {k C : Nat} {R : List UInt256}
-    (hstack : R.length + 24 ≤ 1024) (hfork : I.fork ≥ .osaka)
+    (hstack : R.length + 24 ≤ 1024) (hfork : fork ≥ .osaka)
     (hd : decodeCalldataMarket I.calldata 4 = some m)
     (hbitmap : memLoad (UInt256.ofNat 704) mem = bitmap)
     (hb : TransferBudget budgetRoot credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨7846⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨7846⟩
       ([debtWord, reverseRep, rep, maxDebt, price, pos, dp, dl, borrower, badDebt] ++ R)
       mem aw rdata σ k C) :
     ∃ aw' k' C', TransferBudget budgetRoot credit mem aw' C' ∧
-      RD midnightBytecode I g s0 ⟨20541⟩
+      RD fork midnightBytecode I g s0 ⟨20541⟩
         ([UInt256.ofNat (marketCollateralDataStart I.calldata),
           UInt256.ofNat m.collaterals.length, bitmapMsb bitmap, ⟨7891⟩,
           UInt256.ofNat I.calldata.size, ⟨7896⟩, maxDebt, badDebt, reverseRep, rep, ⟨4⟩,
@@ -69,7 +71,7 @@ theorem midnightLiquidateCollateralHead {I : ExecutionEnv} {g : Sat256} {s0 : St
       UInt256.ofNat m.collaterals.length := by
     rw [hhead, hl, u256_ofNat_toNat]
   have rd1 := midnightBlocks.midnight_block_7846 (R := R) (by omega) (by jump_dest) rd
-  change RD midnightBytecode I g s0 ⟨20488⟩
+  change RD fork midnightBytecode I g s0 ⟨20488⟩
     ([base, field, ⟨7873⟩, ⟨7891⟩, ⟨7896⟩, maxDebt, badDebt, reverseRep, rep, ⟨4⟩,
       price, pos, dp, dl, borrower, debtWord] ++ R) mem aw rdata σ _ _ at rd1
   obtain ⟨k2, C2, hc2, rd2⟩ := midnightCollateralArrayReference

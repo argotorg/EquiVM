@@ -4,6 +4,8 @@ import Benchmarks.Midnight.RuntimeBlocks_027
 import Benchmarks.Midnight.RuntimeBlocks_085
 import Benchmarks.Midnight.RuntimeBlocks_086
 
+variable {fork : Ethereum.Fork}
+
 /-! Fee accrual, including time underflow and multiplication overflow. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,15 +18,15 @@ theorem midnightPositionAccrual {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw ptr word1 postCredit ret postPending maturity : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 20 ≤ 1024)
     (hmaturity : memLoad (ptr + UInt256.ofNat 128) mem = maturity)
-    (rd : RD midnightBytecode I g s0 ⟨22992⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨22992⟩
       (ptr :: UInt256.ofNat 128 :: word1 :: postCredit :: ⟨23076⟩ :: ret :: uint128Mask ::
         postPending :: R) mem aw rdata σ k C) :
     let last := UInt256.shiftRight word1 (UInt256.ofNat 128)
     let time := UInt256.ofNat I.header.timestamp
-    (¬ PositionAccrualSafe postPending last maturity time ∧ RDrev midnightBytecode g s0) ∨
+    (¬ PositionAccrualSafe postPending last maturity time ∧ RDrev fork midnightBytecode g s0) ∨
     (PositionAccrualSafe postPending last maturity time ∧ ∃ aw' k' C',
       let fee := positionAccruedFee postPending last maturity time
-      RD midnightBytecode I g s0 ⟨23063⟩
+      RD fork midnightBytecode I g s0 ⟨23063⟩
         (postCredit :: uint128Mask :: fee :: ⟨23069⟩ :: uint128Mask :: fee ::
           ⟨23076⟩ :: ret :: fee :: postPending :: R) mem aw' rdata σ k' C') := by
   by_cases hlast : (UInt256.shiftRight word1 (UInt256.ofNat 128)).toNat < maturity.toNat

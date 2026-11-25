@@ -6,6 +6,8 @@ import Benchmarks.Midnight.RuntimeBlocks_020
 import Benchmarks.Midnight.AddressDecode
 import Benchmarks.Midnight.RuntimeBlocks_069
 
+variable {fork : Ethereum.Fork}
+
 /-! Collateral-withdrawal decoding, with the reserved memory words retained. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -22,9 +24,9 @@ theorem midnightWithdrawCollateralEntry {I : ExecutionEnv} {g : Sat256} {s0 : St
     (hkeep : MemoryWords mem base words) (hbase : 96 ≤ base)
     (hbelow : base + 32 * words.length ≤ 832)
     (ha : MemoryAccounting mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨4367⟩ R mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨4367⟩ R mem aw rdata σ k C) :
     (config.externalABI.decodeCalldata? ["market", "collateralIndex", "assets", "onBehalf", "receiver"] [Model.marketABI, Model.u256, Model.u256, Model.addr, Model.addr] I.calldata = none ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     (∃ m, config.externalABI.decodeCalldata? ["market", "collateralIndex", "assets", "onBehalf", "receiver"] [Model.marketABI, Model.u256, Model.u256, Model.addr, Model.addr] I.calldata =
         some (marketIndexAmountReceiverArguments m (calldataWord I.calldata 36) (calldataWord I.calldata 68) (AccountAddress.ofNat (calldataWord I.calldata 100).toNat) (AccountAddress.ofNat (calldataWord I.calldata 132).toNat)) ∧
       164 ≤ I.calldata.size ∧ I.calldata.size < 2^255 ∧
@@ -33,11 +35,11 @@ theorem midnightWithdrawCollateralEntry {I : ExecutionEnv} {g : Sat256} {s0 : St
       ∃ mem' root aw' k' C', root.toNat = 1120 + 160 * m.collaterals.length ∧
         MarketStored mem' ⟨832⟩ ⟨1088⟩ root m ∧ memLoad (UInt256.ofNat 64) mem' = root ∧
         root.toNat ≤ mem'.size ∧ MemoryWords mem' base words ∧ MemoryAccounting mem' aw' C' ∧
-        RD midnightBytecode I g s0 ⟨4432⟩ (calldataWord I.calldata 132 :: calldataWord I.calldata 36 :: calldataWord I.calldata 100 :: calldataWord I.calldata 68 :: ⟨832⟩ :: R)
+        RD fork midnightBytecode I g s0 ⟨4432⟩ (calldataWord I.calldata 132 :: calldataWord I.calldata 36 :: calldataWord I.calldata 100 :: calldataWord I.calldata 68 :: ⟨832⟩ :: R)
           mem' aw' rdata σ k' C') := by
   have reject (hc : UInt256.slt (UInt256.lnot ⟨3⟩ + UInt256.ofNat I.calldata.size) ⟨160⟩ = ⟨1⟩) :
       config.externalABI.decodeCalldata? ["market", "collateralIndex", "assets", "onBehalf", "receiver"] [Model.marketABI, Model.u256, Model.u256, Model.addr, Model.addr] I.calldata = none ∧
-        RDrev midnightBytecode g s0 := by
+        RDrev fork midnightBytecode g s0 := by
     refine ⟨midnightDecodeMarketIndexAmountReceiver_none_check h4
       (solcSLT_sub4_of_check (bit := true) hc), ?_⟩
     have rd1 := midnightBlocks.midnight_block_4367_taken (by omega)
@@ -63,7 +65,7 @@ theorem midnightWithdrawCollateralEntry {I : ExecutionEnv} {g : Sat256} {s0 : St
       omega
     have rd2 := midnightBlocks.midnight_block_4379_fallthrough (by omega) hg rd1
     have rd3 := midnightBlocks.midnight_block_4396 (by omega) (by jump_dest) rd2
-    change RD midnightBytecode I g s0 ⟨18574⟩
+    change RD fork midnightBytecode I g s0 ⟨18574⟩
       ((UInt256.ofNat 4 + calldataWord I.calldata 4) :: UInt256.ofNat I.calldata.size ::
         ⟨4409⟩ :: R) mem aw rdata σ _ _ at rd3
     have ha3 := memoryAccountingAt rd3 (by memory_account ha)

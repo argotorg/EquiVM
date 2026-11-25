@@ -2,6 +2,8 @@ import Benchmarks.Midnight.BuyCallbackMagic
 import Benchmarks.Midnight.RepayCallbackReturn
 import Benchmarks.Midnight.FundingBudget
 
+variable {fork : Ethereum.Fork}
+
 /-! Buyer callback reply decoding and acknowledgement. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,16 +18,16 @@ theorem midnightBuyCallbackReturn {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hsize : root.toNat + 32 ≤ mem.size)
     (hb : success = true → TransferBudget budgetRoot credit
       (wordReplyMemory mem out root) aw C)
-    (rd : RD midnightBytecode I g s0 ⟨13937⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨13937⟩
       ((if success then ⟨1⟩ else ⟨0⟩) :: root :: R)
       (wordReplyMemory mem out root) aw out σ k C) :
     ((success = false ∨ out.size < 32 ∨ calldataWord out 0 ≠ flashLoanMagic) ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     (success = true ∧ 32 ≤ out.size ∧ calldataWord out 0 = flashLoanMagic ∧
       ∃ aw' k' C',
         TransferBudget budgetRoot credit
           (flashLoanCallbackResultMemory (wordReplyMemory mem out root) root) aw' C' ∧
-        RD midnightBytecode I g s0 ⟨13971⟩ R
+        RD fork midnightBytecode I g s0 ⟨13971⟩ R
           (flashLoanCallbackResultMemory (wordReplyMemory mem out root) root) aw' out σ k' C') := by
   rcases midnightBuyCallbackDecode success hstack hout hroot (by omega)
       (by rw [wordReplyMemory_size _ _ _ hsize]; exact hsize)

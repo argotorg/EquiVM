@@ -3,6 +3,8 @@ import Benchmarks.Midnight.MemoryArrayIndexFunding
 import Benchmarks.Midnight.CollateralLifGas
 import Benchmarks.Midnight.CollateralValidationStorageFunding
 
+variable {fork : Ethereum.Fork}
+
 /-! A collateral-validation iteration retaining paid memory growth. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,13 +19,13 @@ theorem midnightCollateralValidationStep_funded {credit : Nat} {evm : EVM.State}
     (i : Nat) (hi : i < m.collaterals.length) (hc : m.collaterals[i] = c)
     (hstack : R.length + 15 ≤ 1024) (hm : MarketStored mem ptr arrayPtr root m)
     (hfund : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode evm.executionEnv g s0 ⟨20840⟩
+    (rd : RD fork midnightBytecode evm.executionEnv g s0 ⟨20840⟩
       (UInt256.ofNat previous.val :: ret :: ptr :: (ptr + UInt256.ofNat 96) :: id ::
         UInt256.ofNat i :: R) mem aw rdata evm.accountMap k C) :
-    (¬ CollateralValid evm previous c ∧ RDrev midnightBytecode g s0) ∨
+    (¬ CollateralValid evm previous c ∧ RDrev fork midnightBytecode g s0) ∨
     (CollateralValid evm previous c ∧ ∃ aw' k' C',
       MemoryFunding credit (collateralValidationMemory mem c) aw' C' ∧
-      RD midnightBytecode evm.executionEnv g s0 ⟨20840⟩
+      RD fork midnightBytecode evm.executionEnv g s0 ⟨20840⟩
       (UInt256.ofNat c.token.val :: ret :: ptr :: (ptr + UInt256.ofNat 96) :: id ::
         UInt256.ofNat (i + 1) :: R) (collateralValidationMemory mem c) aw' rdata evm.accountMap k' C') := by
   have hi64 : i < 2^64 := lt_trans hi hm.collateralCount
@@ -95,7 +97,7 @@ theorem midnightCollateralValidationStep_funded {credit : Nat} {evm : EVM.State}
           exact isZero_eq_zero_of_ne hen) hf6 rd6
       simp only [midnightBlocks.midnight_block_20895_fallthrough_stack,
         midnightBlocks.midnight_block_20895_fallthrough_memory, hcp, hlltv] at rd7 hf7
-      change RD _ _ _ _ _ _ mem1 _ _ _ _ _ at rd7
+      change RD fork _ _ _ _ _ _ mem1 _ _ _ _ _ at rd7
       change MemoryFunding credit mem1 aw7 C7 at hf7
       have hm1 : MarketStored mem1 ptr arrayPtr root m :=
         hm.preserve (twoWordHashMem_prefix mem c.lltv (UInt256.ofNat 7) root.toNat)
@@ -133,7 +135,7 @@ theorem midnightCollateralValidationStep_funded {credit : Nat} {evm : EVM.State}
             exact isZero_eq_zero_of_ne hen2) hf9 rd9
         simp only [midnightBlocks.midnight_block_20932_fallthrough_stack,
           midnightBlocks.midnight_block_20932_fallthrough_memory, hcp1, hcursor] at rd10 hf10
-        change RD _ _ _ _ _ _ mem2 _ _ _ _ _ at rd10
+        change RD fork _ _ _ _ _ _ mem2 _ _ _ _ _ at rd10
         change MemoryFunding credit mem2 aw10 C10 at hf10
         rcases midnightCollateralLif_mono (by simp only [List.length_cons]; omega) rd10 with
           ⟨hbad, hr⟩ | ⟨hs, k11, C11, hc11, rd11⟩

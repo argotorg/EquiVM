@@ -2,6 +2,8 @@ import Benchmarks.Midnight.RuntimeBlocks_080
 import Benchmarks.Midnight.MemoryFunding
 import Benchmarks.Midnight.StorageWriteGas
 
+variable {fork : Ethereum.Fork}
+
 /-! Funding through the collateral configuration reads. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,8 +17,8 @@ theorem midnight_block_20895_fallthrough_funded {ee : ExecutionEnv} {g : Sat256}
     (hstack : R.length + 4 ≤ 1024)
     (hcond : (UInt256.isZero (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (keccakWord (⟨0⟩ : UInt256) (UInt256.ofNat 64) ((UInt256.ofNat 7).toByteArray.write 0 ((memLoad ((memLoad x0 mem) + x1) mem).toByteArray.write 0 mem (⟨0⟩ : UInt256).toNat 32) (UInt256.ofNat 32).toNat 32)) (⟨0⟩ : UInt256))) (UInt256.ofNat 255))) = (UInt256.ofNat 0))
     {credit : Nat} (hfund : MemoryFunding credit mem aw C)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 20895) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), MemoryFunding credit (midnight_block_20895_fallthrough_memory (mem := mem) (x0 := x0) (x1 := x1)) aw' C' ∧ RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 20920) (midnight_block_20895_fallthrough_stack (mem := mem) (x0 := x0) (x1 := x1) (R := R)) (midnight_block_20895_fallthrough_memory (mem := mem) (x0 := x0) (x1 := x1)) aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 20895) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), MemoryFunding credit (midnight_block_20895_fallthrough_memory (mem := mem) (x0 := x0) (x1 := x1)) aw' C' ∧ RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 20920) (midnight_block_20895_fallthrough_stack (mem := mem) (x0 := x0) (x1 := x1) (R := R)) (midnight_block_20895_fallthrough_memory (mem := mem) (x0 := x0) (x1 := x1)) aw' rdata σ k' C' := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := RD.genMload r1 (by native_decide) (by evm_ov)
@@ -48,8 +50,8 @@ theorem midnight_block_20932_fallthrough_funded {ee : ExecutionEnv} {g : Sat256}
     (hstack : R.length + 4 ≤ 1024)
     (hcond : (UInt256.isZero (UInt256.land (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (keccakWord (⟨0⟩ : UInt256) (UInt256.ofNat 64) ((UInt256.ofNat 8).toByteArray.write 0 ((memLoad ((memLoad x0 mem) + x1) mem).toByteArray.write 0 mem (⟨0⟩ : UInt256).toNat 32) (UInt256.ofNat 32).toNat 32)) (⟨0⟩ : UInt256))) (UInt256.ofNat 255))) = (UInt256.ofNat 0))
     {credit : Nat} (hfund : MemoryFunding credit mem aw C)
-    (h : RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 20932) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), MemoryFunding credit (midnight_block_20932_fallthrough_memory (mem := mem) (x0 := x0) (x1 := x1)) aw' C' ∧ RD Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 20957) (midnight_block_20932_fallthrough_stack (mem := mem) (x0 := x0) (x1 := x1) (R := R)) (midnight_block_20932_fallthrough_memory (mem := mem) (x0 := x0) (x1 := x1)) aw' rdata σ k' C' := by
+    (h : RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 20932) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), MemoryFunding credit (midnight_block_20932_fallthrough_memory (mem := mem) (x0 := x0) (x1 := x1)) aw' C' ∧ RD fork Benchmarks.Midnight.midnightBytecode ee g s0 (UInt256.ofNat 20957) (midnight_block_20932_fallthrough_stack (mem := mem) (x0 := x0) (x1 := x1) (R := R)) (midnight_block_20932_fallthrough_memory (mem := mem) (x0 := x0) (x1 := x1)) aw' rdata σ k' C' := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := RD.genMload r1 (by native_decide) (by evm_ov)

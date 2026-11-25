@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.TakeBuyerDebtWrite
 
+variable {fork : Ethereum.Fork}
+
 /-! Reading and writing the seller's credit after the pending-fee update. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -12,9 +14,9 @@ set_option maxRecDepth 10000
 theorem midnightTakeSellerCreditBalanceRead {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw value ret w0 w1 w2 w3 w4 slot : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256} (hstack : R.length + 11 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 ⟨12482⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨12482⟩
       ([value, ret, uint128Mask, w0, w1, w2, w3, w4, slot] ++ R) mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD midnightBytecode I g s0 ⟨19743⟩
+    ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode I g s0 ⟨19743⟩
       ([low128 (solcSlotWordAt slot σ I), value, ret, uint128Mask, w0, w1, w2, w3, w4, slot] ++ R)
       mem aw rdata σ k' C' := by
   simp only [List.cons_append, List.nil_append] at rd
@@ -32,9 +34,9 @@ theorem midnightTakeSellerCreditStore {I : ExecutionEnv} {g : Sat256} {s0 : Stat
     {mem rdata : ByteArray} {aw value w0 w1 w2 w3 slot : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 9 ≤ 1024)
     (hperm : I.perm = true)
-    (rd : RD midnightBytecode I g s0 ⟨12491⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨12491⟩
       ([value, uint128Mask, w0, w1, w2, w3, uint128Mask, slot] ++ R) mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD midnightBytecode I g s0 ⟨23403⟩
+    ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode I g s0 ⟨23403⟩
       ([w0, w1, w2, w3, uint128Mask, slot] ++ R) mem aw rdata
       (storeLow128Accounts σ I slot value) k' C' := by
   simp only [List.cons_append, List.nil_append] at rd

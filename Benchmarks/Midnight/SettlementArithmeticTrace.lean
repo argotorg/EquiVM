@@ -3,6 +3,8 @@ import Benchmarks.Midnight.CheckedArithmetic
 import Benchmarks.Midnight.RuntimeBlocks_030
 import Benchmarks.Midnight.RuntimeBlocks_082
 
+variable {fork : Ethereum.Fork}
+
 /-! The shared bytecode suffix evaluating the settlement-fee interpolation. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -18,11 +20,11 @@ theorem settlementInterpolationTrace {I : ExecutionEnv} {g : Sat256} {s0 : State
     (hstart : start.toNat ≤ time.toNat) (htime : time.toNat ≤ finish.toNat)
     (hwidth : start.toNat < finish.toNat)
     (hret : (D_J midnightBytecode 0).contains ret = true)
-    (rd : RD midnightBytecode I g s0 ⟨21993⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨21993⟩
       ([start, ⟨16777215⟩, ⟨22009⟩, finish, ⟨7530⟩, upper, ⟨22015⟩, time,
         ⟨22021⟩, ⟨4294967295⟩, ⟨22027⟩, lower, ⟨22033⟩, ret] ++ R)
       mem aw rdata σ k C) :
-    ∃ k' C', RD midnightBytecode I g s0 ret
+    ∃ k' C', RD fork midnightBytecode I g s0 ret
       (interpolatedFee lower upper time start finish :: R) mem aw rdata σ k' C' := by
   have hs : UInt256.land start ⟨16777215⟩ = start :=
     u256LandMaskCleanOfToNat start _ (by decide) hstart24

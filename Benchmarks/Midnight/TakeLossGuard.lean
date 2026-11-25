@@ -3,6 +3,8 @@ import Benchmarks.Midnight.RuntimeBlocks_042
 import Benchmarks.Midnight.Uint128Arithmetic
 import Benchmarks.Midnight.LiquidatePositionMemory
 
+variable {fork : Ethereum.Fork}
+
 /-! Save the market id and reject a saturated loss factor before evaluating an offer. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -18,13 +20,13 @@ set_option maxHeartbeats 800000 in
 theorem midnightTakeLossGuard {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw id ratifierPtr : UInt256} {σ : AccountMap} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 5 ≤ 1024) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨10969⟩ (id :: ratifierPtr :: R) mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨10969⟩ (id :: ratifierPtr :: R) mem aw rdata σ k C) :
     ((¬ (UInt256.shiftRight (solcSlotWordAt (solcMappingSlot ⟨1⟩ id) σ I)
-        (UInt256.ofNat 128)).toNat < 2^128 - 1) ∧ RDrev midnightBytecode g s0) ∨
+        (UInt256.ofNat 128)).toNat < 2^128 - 1) ∧ RDrev fork midnightBytecode g s0) ∨
     ((UInt256.shiftRight (solcSlotWordAt (solcMappingSlot ⟨1⟩ id) σ I)
         (UInt256.ofNat 128)).toNat < 2^128 - 1 ∧
       ∃ aw' k' C', MemoryFunding credit (takeMarketMemory mem id) aw' C' ∧
-        RD midnightBytecode I g s0 ⟨11009⟩ (ratifierPtr :: solcMappingSlot ⟨1⟩ id :: R)
+        RD fork midnightBytecode I g s0 ⟨11009⟩ (ratifierPtr :: solcMappingSlot ⟨1⟩ id :: R)
           (takeMarketMemory mem id) aw' rdata σ k' C') := by
   have hstore : memLoad (UInt256.ofNat 512)
       (id.toByteArray.write 0 mem (UInt256.ofNat 512).toNat 32) = id :=

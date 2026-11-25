@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.SellCallbackDecode
 
+variable {fork : Ethereum.Fork}
+
 /-! The seller callback magic-value requirement. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -12,12 +14,12 @@ theorem midnightSellCallbackMagic {budgetRoot : UInt256} {credit : Nat} {I : Exe
     {s0 : State} {mem out : ByteArray} {aw value : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 6 ≤ 1024)
     (ha : TransferBudget budgetRoot credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨13643⟩ (value :: flashLoanMagic :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨13643⟩ (value :: flashLoanMagic :: R)
       mem aw out σ k C) :
-    (value ≠ flashLoanMagic ∧ RDrev midnightBytecode g s0) ∨
+    (value ≠ flashLoanMagic ∧ RDrev fork midnightBytecode g s0) ∨
     (value = flashLoanMagic ∧ ∃ aw' k' C',
       TransferBudget budgetRoot credit (flashLoanMagicMemory mem) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨13665⟩ R
+      RD fork midnightBytecode I g s0 ⟨13665⟩ R
         (flashLoanMagicMemory mem) aw' out σ k' C') := by
   have hm : memLoad ⟨0⟩ (midnightBytecode.write 24513 mem 0 32) = flashLoanMagic := by
     rw [flashLoanMagic_copy, flashLoanMagic_load]

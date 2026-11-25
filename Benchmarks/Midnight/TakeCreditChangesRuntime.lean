@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TakeCreditChangesSource
 import Benchmarks.Midnight.CheckedSubGas
 
+variable {fork : Ethereum.Fork}
+
 /-! Runtime credit and debt deltas, retaining the cost of both storage reads. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -19,7 +21,7 @@ theorem midnightTakeCreditChangesRuntime {credit : Nat} {I : ExecutionEnv} {g : 
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 17 ≤ 1024) (hu : calldataWord I.calldata 68 = units)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨12026⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨12026⟩
       (sellerSlot :: marketSlot :: buyerSlot :: ratifierPtr :: time :: R)
       mem aw rdata σ k C) :
     let sellerCredit := low128 (solcSlotWordAt sellerSlot σ I)
@@ -27,7 +29,7 @@ theorem midnightTakeCreditChangesRuntime {credit : Nat} {I : ExecutionEnv} {g : 
     let sellerDecrease := wordMin units sellerCredit
     let mem' := takeCreditChangesMemory mem (solcSlotWordAt sellerSlot σ I)
     ∃ aw' k' C', MemoryFunding credit mem' aw' C' ∧
-      RD midnightBytecode I g s0 ⟨12118⟩
+      RD fork midnightBytecode I g s0 ⟨12118⟩
         ([UInt256.sub units sellerDecrease, UInt256.ofNat 12138, UInt256.ofNat 12144,
           UInt256.ofNat 1000000000000000000, UInt256.ofNat 12150, sellerCredit, buyerSlot, time,
           buyerDebt, sellerSlot, marketSlot, sellerDecrease, ratifierPtr,

@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.CollateralValidationSource
 
+variable {fork : Ethereum.Fork}
+
 /-! The loop condition, increment, and preservation of source locals during validation. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -64,7 +66,7 @@ theorem evalCollateralLoopCondition {cfg : Config} {frame : Frame} {evm : EVM.St
 theorem collateralPostSource {cfg : Config} {frame : Frame} {evm : EVM.State}
     {m : MarketData} {i : Nat} {previous : AccountAddress}
     (h : CollateralSourceFrame frame m i previous) (hfit : i + 1 < UInt256.size) :
-    ExecBlock cfg frame evm collateralLoopPost (.ok (collateralPostFrame frame i) evm) := by
+    ExecBlock fork cfg frame evm collateralLoopPost (.ok (collateralPostFrame frame i) evm) := by
   apply ExecBlock.consNormal (execLocalAssign h.index ?_) ExecBlock.nil
   have hin : (UInt256.ofNat i).toNat = i := ulit_toNat' _ (by omega)
   have he := checkedAddSourceOk (cfg := cfg) (stele := frame) (evm := evm)

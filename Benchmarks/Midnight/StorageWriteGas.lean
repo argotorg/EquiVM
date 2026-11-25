@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.Common
 
+variable {fork : Ethereum.Fork}
+
 /-! Retaining cumulative gas payment through persistent writes. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -11,17 +13,17 @@ theorem sstoreMono {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : ℕ}
     {slot val : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (slot :: val :: t) mem aw rdata σ k C)
+    (h : RD fork code ee g s0 pc (slot :: val :: t) mem aw rdata σ k C)
     (hperm : ee.perm = true)
     (hdec : decode code pc = some (.SSTORE, .none))
     (hov : t.length ≤ 1024) :
-    ∃ k' C', C ≤ C' ∧ RD code ee g s0 (pc + ⟨1⟩) t mem aw rdata
+    ∃ k' C', C ≤ C' ∧ RD fork code ee g s0 (pc + ⟨1⟩) t mem aw rdata
       (sstoreAccountMap ee.codeOwner σ slot val) k' C' := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
   · exact ⟨k, C, le_rfl, Or.inl hoog⟩
   · have hperms : s.executionEnv.perm = true := by rw [hee]; exact hperm
-    have st := sstore_xstep hcode hpc hdec hperms hstk hov
+    have st := sstore_xstep (fork := fork) hcode hpc hdec hperms hstk hov
     have hmax : Csstore s ≤ max (Csstore s) (GasConstants.Gcallstipend + 1) := le_max_left _ _
     have hpos := Reasoning.Theory.Csstore_pos s
     by_cases gg : g.toNat < C + max (Csstore s) (GasConstants.Gcallstipend + 1)

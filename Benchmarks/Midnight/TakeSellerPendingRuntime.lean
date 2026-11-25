@@ -2,6 +2,8 @@ import Benchmarks.Midnight.TakeSellerPendingMemory
 import Benchmarks.Midnight.MulDivGas
 import Benchmarks.Midnight.CheckedUint128Gas
 
+variable {fork : Ethereum.Fork}
+
 /-! Runtime proportional fee reduction, including the zero-credit branch. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -18,14 +20,14 @@ theorem midnightTakeSellerPendingRuntime {gasCredit : Nat} {I : ExecutionEnv} {g
     (hw : memLoad (UInt256.ofNat 352) mem = sellerWord)
     (hle : decrease.toNat ≤ (low128 sellerWord).toNat)
     (ha : MemoryFunding gasCredit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨12150⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨12150⟩
       ([buyerFee, low128 sellerWord, buyerSlot, debt, buyerDebt, sellerSlot, marketSlot,
         decrease] ++ R) mem aw rdata σ k C) :
     let value := takeSellerPendingValue (low128 sellerWord)
       (UInt256.shiftRight sellerWord (UInt256.ofNat 128)) decrease
     let mem' := takeSellerPendingMemory mem buyerFee value
     value.toNat < 2^128 ∧ ∃ aw' k' C', MemoryFunding gasCredit mem' aw' C' ∧
-      RD midnightBytecode I g s0 ⟨12187⟩
+      RD fork midnightBytecode I g s0 ⟨12187⟩
         ([buyerSlot, debt, buyerDebt, sellerSlot, marketSlot, decrease] ++ R)
         mem' aw' rdata σ k' C' := by
   have hbound := takeSellerPendingValue_lt (low128_lt sellerWord) (shiftRight128_lt sellerWord) hle
@@ -38,7 +40,7 @@ theorem midnightTakeSellerPendingRuntime {gasCredit : Nat} {I : ExecutionEnv} {g
     have ha1 := memoryFundingAt (credit := gasCredit) rd1 (by memory_fund ha)
     change MemoryFunding gasCredit (takeSellerPendingInitMemory mem buyerFee) _ _ at ha1
     simp only [midnightBlocks.midnight_block_12150_taken_stack] at rd1
-    change RD midnightBytecode I g s0 ⟨14453⟩ _
+    change RD fork midnightBytecode I g s0 ⟨14453⟩ _
       (takeSellerPendingInitMemory mem buyerFee) _ rdata σ _ _ at rd1
     have rd2 := midnightBlocks.midnight_block_14453
       (by simp only [List.length_cons]; omega) (by jump_dest) rd1
@@ -54,7 +56,7 @@ theorem midnightTakeSellerPendingRuntime {gasCredit : Nat} {I : ExecutionEnv} {g
     simp only [midnightBlocks.midnight_block_12150_fallthrough_memory] at rd1
     have ha1 := memoryFundingAt (credit := gasCredit) rd1 (by memory_fund ha)
     change MemoryFunding gasCredit (takeSellerPendingInitMemory mem buyerFee) _ _ at ha1
-    change RD midnightBytecode I g s0 ⟨12164⟩
+    change RD fork midnightBytecode I g s0 ⟨12164⟩
       (low128 sellerWord :: buyerSlot :: debt :: buyerDebt :: sellerSlot :: marketSlot ::
         decrease :: R)
       (takeSellerPendingInitMemory mem buyerFee) _ rdata σ _ _ at rd1

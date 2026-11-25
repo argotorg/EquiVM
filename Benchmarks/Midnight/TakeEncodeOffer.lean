@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.OfferBytesFunding
 
+variable {fork : Ethereum.Fork}
+
 /-! The trade's complete offer-encoding step, up to event preparation. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -18,14 +20,14 @@ theorem midnightTakeEncodeOffer {credit : Nat} {I : ExecutionEnv} {g : Sat256} {
     (hoffer : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (hfree : memLoad (UInt256.ofNat 64) mem = root)
     (hgas : midnightGasBound g.toUInt256) (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨12792⟩ R mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (rd : RD fork midnightBytecode I g s0 ⟨12792⟩ R mem aw rdata σ k C) :
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
     (root.toNat + offerBytesSize offer + 32 + 2^62 < 2^64 ∧
       ∃ aw' k' C',
         MemoryFunding (credit + 128 * offer.market.collaterals.length +
           3 * ((offer.callbackData.size + 31) / 32))
           (offerBytesMemory mem root callbackPtr offer) aw' C' ∧
-        RD midnightBytecode I g s0 ⟨12838⟩ (root :: (root + UInt256.ofNat 32) :: R)
+        RD fork midnightBytecode I g s0 ⟨12838⟩ (root :: (root + UInt256.ofNat 32) :: R)
           (offerBytesMemory mem root callbackPtr offer) aw' rdata σ k' C') := by
   have hroot : 416 ≤ root.toNat := by
     have h1 := ho.layout
@@ -50,7 +52,7 @@ theorem midnightTakeEncodeOffer {credit : Nat} {I : ExecutionEnv} {g : Sat256} {
     memory_fund ha)
   simp only [midnightBlocks.midnight_block_12792_stack,
     midnightBlocks.midnight_block_12792_memory, hfree, h32] at rd1 ha1
-  change RD _ _ _ _ ⟨20131⟩
+  change RD fork _ _ _ _ ⟨20131⟩
     (memLoad (UInt256.ofNat 384) (writeWord mem (root.toNat + 32) (UInt256.ofNat 32)) ::
       (root + UInt256.ofNat 64) :: ⟨12824⟩ :: root :: ⟨12838⟩ :: root ::
       (root + UInt256.ofNat 32) :: R)

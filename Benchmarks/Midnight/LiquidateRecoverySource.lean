@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.LiquidateCollateralSource
 import Benchmarks.Midnight.MaxLifSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Source execution of the rounded collateral recovery calculation. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -24,9 +26,9 @@ theorem liquidateRecoverySource {frame : Frame} {evm : State}
     (hcol : frame.locals.get? "_collateral" = some (.int collateral.toNat))
     (hp : frame.locals.get? "price" = some (.int price.toNat)) (rest : List Stmt) :
     (¬ LiquidateRecoverySafe collateral price c.lltv c.liquidationCursor ∧
-      ExecBlock config frame evm ((liquidateLoopBody.drop 8).take 3 ++ rest) .reverted) ∨
+      ExecBlock fork config frame evm ((liquidateLoopBody.drop 8).take 3 ++ rest) .reverted) ∨
     (LiquidateRecoverySafe collateral price c.lltv c.liquidationCursor ∧
-      ABlock config evm frame ((liquidateLoopBody.drop 8).take 3 ++ rest)
+      ABlock fork config evm frame ((liquidateLoopBody.drop 8).take 3 ++ rest)
         (liquidateRecoveryFrame frame collateral price c.lltv c.liquidationCursor) rest) := by
   let f1 := wordLocal frame "__c6" (liquidateRoundedValue collateral price)
   let f2 := wordLocal f1 "__c7" (maxLif c.lltv c.liquidationCursor)
@@ -37,7 +39,7 @@ theorem liquidateRecoverySource {frame : Frame} {evm : State}
       pure, bind, EvalResult.bind]
     rfl
   by_cases hs1 : MulDivUpSafe collateral price liquidatePriceScale
-  · have hstep1 : ExecStmt config frame evm (liquidateLoopBody[8]!) (.ok f1 evm) :=
+  · have hstep1 : ExecStmt fork config frame evm (liquidateLoopBody[8]!) (.ok f1 evm) :=
       callMulDivUp hcontract ha0 hs1
     have hc1 : f1.locals.get? "_collateralParam" = some (Model.collateralValue c.value) := by
       simpa [f1, wordLocal, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert] using hc
@@ -48,7 +50,7 @@ theorem liquidateRecoverySource {frame : Frame} {evm : State}
       simp only [evalExprs?, evalLiquidateLltv hc1, evalLiquidateCursor hc1,
         pure, bind, EvalResult.bind]
     by_cases hs2 : MaxLifSafe c.lltv c.liquidationCursor
-    · have hstep2 : ExecStmt config f1 evm (liquidateLoopBody[9]!) (.ok f2 evm) :=
+    · have hstep2 : ExecStmt fork config f1 evm (liquidateLoopBody[9]!) (.ok f2 evm) :=
         callMaxLif hcontract ha1 hs2
       have hc6 : f2.locals.get? "__c6" =
           some (.int (liquidateRoundedValue collateral price).toNat) := by
@@ -64,7 +66,7 @@ theorem liquidateRecoverySource {frame : Frame} {evm : State}
           pure, bind, EvalResult.bind]
       by_cases hs3 : MulDivUpSafe (liquidateRoundedValue collateral price) lifScale
           (maxLif c.lltv c.liquidationCursor)
-      · have hstep3 : ExecStmt config f2 evm (liquidateLoopBody[10]!)
+      · have hstep3 : ExecStmt fork config f2 evm (liquidateLoopBody[10]!)
             (.ok (liquidateRecoveryFrame frame collateral price c.lltv c.liquidationCursor) evm) :=
           callMulDivUp hcontract ha2 hs3
         exact Or.inr ⟨⟨hs1, hs2, hs3⟩, ⟨fun h ↦ ExecBlock.consNormal hstep1

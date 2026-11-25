@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.WithdrawUnitsBalanceSource
 
+variable {fork : Ethereum.Fork}
+
 /-! The states reached by the three ordered withdrawal balance writes. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -51,9 +53,9 @@ theorem withdrawUnitsBalancesSource {frame : Frame} {m : MarketData} {evm : EVM.
     (hcanon : user.toNat < EVM.addressModulus)
     (hsafe : WithdrawUnitsBalancesSafe evm id user units)
     (hperm : evm.executionEnv.perm = true)
-    (htail : ExecBlock config (withdrawUnitsFinalFrame frame units)
+    (htail : ExecBlock fork config (withdrawUnitsFinalFrame frame units)
       (withdrawUnitsFinalState evm id user units) (withdrawTransition.body.drop 16) result) :
-    ExecBlock config frame evm (withdrawTransition.body.drop 10) result := by
+    ExecBlock fork config frame evm (withdrawTransition.body.drop 10) result := by
   have hf1 := hf.insert "__c4" (.int units.toNat) (by decide)
   have hf2 := hf1.insert "__c5" (.int units.toNat) (by decide)
   have hf3 := hf2.insert "__c6" (.int units.toNat) (by decide)

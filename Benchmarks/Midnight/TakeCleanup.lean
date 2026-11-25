@@ -2,6 +2,8 @@ import Benchmarks.Midnight.TakeUnlock
 import Benchmarks.Midnight.TakeHealth
 import Benchmarks.Midnight.TakeTransfers
 
+variable {fork : Ethereum.Fork}
+
 /-! The complete take suffix from lock restoration through the health check and return. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,7 +19,7 @@ theorem midnightTakeCleanup {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0 e
     {frame : Frame} {mem rdata : ByteArray} {aw root market arrayPtr callbackPtr offerRoot
       id seller wasLocked ignored bought sold : UInt256} {offer : OfferData}
     {σ : AccountMap} {k C : Nat} {R : List UInt256}
-    (hstack : R.length + 24 ≤ 1024) (hfork : I.fork ≥ .osaka)
+    (hstack : R.length + 24 ≤ 1024) (hfork : fork ≥ .osaka)
     (hc : frame.contract = contract) (hcanon : seller.toNat < EVM.addressModulus)
     (hfOffer : frame.locals.get? "offer" = some (Model.offerValue offer.value))
     (hfId : frame.locals.get? "id" = some (wordBytes32Value id))
@@ -35,14 +37,14 @@ theorem midnightTakeCleanup {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0 e
     (hbought : memLoad (UInt256.ofNat 256) mem = bought)
     (hsold : memLoad (UInt256.ofNat 416) mem = sold)
     (ha : MemoryFunding credit mem aw C) (hs : SourceState s0 I σ evm)
-    (rd : RD midnightBytecode I g s0 ⟨13336⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨13336⟩
       (ignored :: wasLocked :: R) mem aw rdata σ k C) :
-    (ExecBlock config frame evm (takeTransition.body.drop 71) .reverted ∧
-      RDrev midnightBytecode g s0) ∨
+    (ExecBlock fork config frame evm (takeTransition.body.drop 71) .reverted ∧
+      RDrev fork midnightBytecode g s0) ∨
     ∃ frame' evm',
-      ExecBlock config frame evm (takeTransition.body.drop 71)
+      ExecBlock fork config frame evm (takeTransition.body.drop 71)
         (.returned frame' evm' (some [.int bought.toNat, .int sold.toNat])) ∧
-      RDret midnightBytecode g s0 evm'.accountMap (wordArrayBytes [bought, sold]) := by
+      RDret fork midnightBytecode g s0 evm'.accountMap (wordArrayBytes [bought, sold]) := by
   obtain ⟨frame1, evm1, σ1, mem1, root1, aw1, k1, C1,
       hx1, hc1, hf1, hs1, hp1, hroot1, hfree1, ha1, rd1⟩ :=
     midnightTakeUnlock (by omega) hc hcanon hfId hfSeller hfWasLocked (by omega)
@@ -75,8 +77,8 @@ theorem midnightTakeCleanup {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0 e
   have hmarket : memLoad (memLoad (UInt256.ofNat 384) mem2) mem2 = market := by
     rw [(hread2 _ (by decide) (by decide)).trans hoffer]
     exact ho2.words.load_offset ⟨0, by change 0 < 15; decide⟩ rfl
-  have sourcePrefix {result} (hx : ExecBlock config frame2 evm1 (takeTransition.body.drop 73) result) :
-      ExecBlock config frame evm (takeTransition.body.drop 71) result := by
+  have sourcePrefix {result} (hx : ExecBlock fork config frame2 evm1 (takeTransition.body.drop 73) result) :
+      ExecBlock fork config frame evm (takeTransition.body.drop 71) result := by
     rw [takeCleanup_shape]
     exact ExecBlock.consNormal hx1 (ExecBlock.consNormal hx2 hx)
   rcases midnightTakeHealth (frame := frame2) (root := root2) hstack hfork (hc1.trans hc) hcanon

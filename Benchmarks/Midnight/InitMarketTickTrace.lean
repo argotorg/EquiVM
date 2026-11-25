@@ -3,6 +3,8 @@ import Benchmarks.Midnight.MarketHeapAccess
 import Benchmarks.Midnight.PositionUpdateMemory
 import Benchmarks.Midnight.RuntimeBlocks_081
 
+variable {fork : Ethereum.Fork}
+
 /-! The first market write and the subsequent default-settlement-fee read. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -31,10 +33,10 @@ theorem midnightInitMarketTick {evm : EVM.State} {g : Sat256} {s0 : State}
     (hstack : R.length + 9 ≤ 1024) (hm : MarketStored mem ptr arrayPtr limit m)
     (hfree : memLoad (UInt256.ofNat 64) mem = root)
     (hperm : evm.executionEnv.perm = true)
-    (rd : RD midnightBytecode evm.executionEnv g s0 ⟨21130⟩
+    (rd : RD fork midnightBytecode evm.executionEnv g s0 ⟨21130⟩
       (arrayPtr :: previous :: ret :: ptr :: (ptr + UInt256.ofNat 96) :: id :: count :: R)
       mem aw rdata evm.accountMap k C) :
-    ∃ aw' k' C', RD midnightBytecode evm.executionEnv g s0 ⟨21213⟩
+    ∃ aw' k' C', RD fork midnightBytecode evm.executionEnv g s0 ⟨21213⟩
       (initMarketDefaultWord evm id m.loanToken :: (root + UInt256.ofNat 32) :: root ::
         initMarketDefaultWord evm id m.loanToken :: (ptr + UInt256.ofNat 64) ::
         (solcMappingSlot ⟨1⟩ id + ⟨2⟩) :: ptr :: id :: ret :: R)
@@ -91,9 +93,9 @@ theorem midnightInitMarketStatic {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw x0 x1 x2 x3 x4 x5 x6 : UInt256} {σ : AccountMap}
     {k C : Nat} {R : List UInt256}
     (hstack : R.length + 9 ≤ 1024) (hperm : I.perm = false)
-    (rd : RD midnightBytecode I g s0 ⟨21130⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨21130⟩
       (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: R) mem aw rdata σ k C) :
-    RDstatic midnightBytecode g s0 := by
+    RDstatic fork midnightBytecode g s0 := by
   have r1 := rd.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.pop (by native_decide) (by evm_ov)
   have r3 := r2.pop (by native_decide) (by evm_ov)

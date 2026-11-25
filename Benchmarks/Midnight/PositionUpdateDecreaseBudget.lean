@@ -3,6 +3,8 @@ import Benchmarks.Midnight.PositionWriteBlocksBudget
 import Benchmarks.Midnight.CheckedUint128Gas
 import Benchmarks.Midnight.CheckedExtraGas
 
+variable {fork : Ethereum.Fork}
+
 /-! Position-update bookkeeping with retained transfer funding. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,22 +18,22 @@ theorem midnightPositionUpdateDecrease_budget {I : ExecutionEnv} {g : Sat256} {s
     {budgetRoot : UInt256} {gasCredit : Nat} {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 20 ≤ 1024)
     (hc : credit.toNat < 2^128) (hp : pending.toNat < 2^128)
     (hb : TransferBudget budgetRoot gasCredit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨23680⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨23680⟩
       ([fee, pending, credit, updatePositionTopic, id, positionSlot id user,
         solcAddrMask, ret, ⟨96⟩, user] ++ R) mem aw rdata σ k C) :
     let w := solcSlotWordAt (positionSlot id user) σ I
     let oldCredit := low128 w
     let oldPending := UInt256.shiftRight w (UInt256.ofNat 128)
-    (¬ (credit.toNat ≤ oldCredit.toNat ∧ pending.toNat ≤ oldPending.toNat) ∧ RDrev midnightBytecode g s0) ∨
+    (¬ (credit.toNat ≤ oldCredit.toNat ∧ pending.toNat ≤ oldPending.toNat) ∧ RDrev fork midnightBytecode g s0) ∨
     (credit.toNat ≤ oldCredit.toNat ∧ pending.toNat ≤ oldPending.toNat ∧
-      ∃ k' C', TransferBudget budgetRoot gasCredit mem aw C' ∧ RD midnightBytecode I g s0 ⟨23723⟩
+      ∃ k' C', TransferBudget budgetRoot gasCredit mem aw C' ∧ RD fork midnightBytecode I g s0 ⟨23723⟩
         ([UInt256.sub oldPending pending, ⟨23855⟩, positionSlot id user, user, solcAddrMask,
           ⟨96⟩, updatePositionTopic, id, UInt256.sub oldCredit credit, credit, ret, fee, pending] ++ R)
         mem aw rdata σ k' C') := by
   let w := solcSlotWordAt (positionSlot id user) σ I
   let oldCredit := low128 w
   let oldPending := UInt256.shiftRight w (UInt256.ofNat 128)
-  change RD midnightBytecode I g s0 ⟨23680⟩
+  change RD fork midnightBytecode I g s0 ⟨23680⟩
     (fee :: pending :: credit :: updatePositionTopic :: id :: positionSlot id user ::
       solcAddrMask :: ret :: ⟨96⟩ :: user :: R) mem aw rdata σ k C at rd
   obtain ⟨k1, C1, hb1, rd1⟩ := position_block_23680_budget (by omega) (by jump_dest) hb rd

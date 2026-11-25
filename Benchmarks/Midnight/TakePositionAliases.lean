@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TakeParticipantsSource
 import Benchmarks.Midnight.NamedPositionSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Named storage aliases for the two positions used by take. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -21,7 +23,7 @@ theorem takePositionAliasesSource {frame : Frame} {evm : State} {id buyer seller
     (hi : frame.locals.get? "id" = some (wordBytes32Value id))
     (hb : frame.locals.get? "buyer" = some (.address (AccountAddress.ofNat buyer.toNat)))
     (hs : frame.locals.get? "seller" = some (.address (AccountAddress.ofNat seller.toNat))) :
-    ABlock config evm frame (takeTransition.body.drop 29)
+    ABlock fork config evm frame (takeTransition.body.drop 29)
       (takePositionAliasesFrame frame id buyer seller) (takeTransition.body.drop 31) := by
   refine ⟨fun h ↦ ExecBlock.consNormal
     (ExecStmt.letStorage (resolveNamedPositionRef hc hp hi hb))

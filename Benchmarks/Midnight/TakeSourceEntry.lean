@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.TakeSourceFrame
 import Benchmarks.Midnight.CallerAuthorization
 
+variable {fork : Ethereum.Fork}
+
 /-! Take's source authorization and nested market initialization. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -57,10 +59,10 @@ theorem takeAfterAuthSource {origin : State} {offer : OfferData} {ratifierData :
     {result : ExecResult} (hcanon : taker.toNat < EVM.addressModulus)
     (hwv : origin.executionEnv.weiValue = ⟨0⟩)
     (hlimit : origin.executionEnv.calldata.size < calldataLimit) (hauth : onBehalfAllowed origin taker)
-    (htail : ExecBlock config
+    (htail : ExecBlock fork config
       (takeExternalFrame origin offer ratifierData units taker receiver callback data) origin
       (takeTransition.body.drop 4) result) :
-    ExecBlock config { contract := contract, locals := (takeArguments offer ratifierData units
+    ExecBlock fork config { contract := contract, locals := (takeArguments offer ratifierData units
       (AccountAddress.ofNat taker.toNat) receiver callback data), immutables := ∅ }
       origin takeTransition.body result := by
   apply guardedBodyBlock hwv hlimit
@@ -71,12 +73,12 @@ theorem takeAfterAuthSource {origin : State} {offer : OfferData} {ratifierData :
 theorem takeAfterTouchSource {origin evm : State} {offer : OfferData} {ratifierData : ByteArray}
     {units taker : UInt256} {receiver callback : AccountAddress} {data : ByteArray}
     {callee : Frame} {result : ExecResult}
-    (htouch : ExecFuncBody config (touchMarketCallFrame ∅ offer.market) origin touchMarketFunction.body
+    (htouch : ExecFuncBody fork config (touchMarketCallFrame ∅ offer.market) origin touchMarketFunction.body
       (.returned callee evm (some [wordBytes32Value offer.market.id])))
-    (htail : ExecBlock config
+    (htail : ExecBlock fork config
       (takeAfterTouchFrame origin offer ratifierData units taker receiver callback data) evm
       (takeTransition.body.drop 5) result) :
-    ExecBlock config (takeExternalFrame origin offer ratifierData units taker receiver callback data)
+    ExecBlock fork config (takeExternalFrame origin offer ratifierData units taker receiver callback data)
       origin (takeTransition.body.drop 4) result :=
   ExecBlock.consNormal (internalCallFunctionReturn (callee := touchMarketFunction)
     (locals := touchMarketArguments offer.market)

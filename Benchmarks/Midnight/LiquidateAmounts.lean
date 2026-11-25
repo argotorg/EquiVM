@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.LiquidateAmountsHead
 import Benchmarks.Midnight.LiquidateAmountsTail
 
+variable {fork : Ethereum.Fork}
+
 /-! Complete paired execution of the nonzero liquidation-amount branch. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -23,14 +25,14 @@ theorem liquidateAmounts {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {frame
     (hslot : memLoad ⟨672⟩ mem = solcMappingSlot ⟨1⟩ id)
     (hsize : 704 ≤ mem.size) (hs : SourceState s0 I σ evm)
     (hb : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨6477⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨6477⟩
       ([maxDebt, price, positionSlot id borrower, dp, dl, borrower, badDebt, receiverWord,
         mode, selector] ++ R) mem aw rdata σ k C) :
-    (ExecBlock config frame evm liquidateAmountsBody .reverted ∧ RDrev midnightBytecode g s0) ∨
-    (ExecBlock config frame evm liquidateAmountsBody .staticViolation ∧
-      RDstatic midnightBytecode g s0) ∨
+    (ExecBlock fork config frame evm liquidateAmountsBody .reverted ∧ RDrev fork midnightBytecode g s0) ∨
+    (ExecBlock fork config frame evm liquidateAmountsBody .staticViolation ∧
+      RDstatic fork midnightBytecode g s0) ∨
     ∃ frame' evm' σ' seized' repaid' mem' aw' k' C',
-      ExecBlock config frame evm liquidateAmountsBody (.ok frame' evm') ∧
+      ExecBlock fork config frame evm liquidateAmountsBody (.ok frame' evm') ∧
       LiquidateSourceFrame frame' m id index seized' repaid' borrower mode receiver callback data ∧
       LiquidateAccumulators frame' bitmap maxDebt price originalDebt badDebt ∧
       SourceState s0 I σ' evm' ∧ memLoad ⟨640⟩ mem' = seized' ∧ memLoad ⟨608⟩ mem' = repaid' ∧
@@ -38,7 +40,7 @@ theorem liquidateAmounts {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {frame
       (∀ read : UInt256, read.toNat + 32 ≤ mem.size →
         (read.toNat + 32 ≤ 608 ∨ 672 ≤ read.toNat) → memLoad read mem' = memLoad read mem) ∧
       TransferBudget root credit mem' aw' C' ∧
-      RD midnightBytecode I g s0 ⟨5480⟩
+      RD fork midnightBytecode I g s0 ⟨5480⟩
         ([selector, selector, selector, dp, dl, borrower, badDebt, receiverWord, mode, selector] ++ R)
         mem' aw' rdata σ' k' C' := by
   rcases liquidateAmountsHead hstack hf ha hcanon hd hi hcs hcr hms hmr (by omega) hs hb rd with

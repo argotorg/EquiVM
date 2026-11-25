@@ -2,6 +2,8 @@ import Benchmarks.Midnight.FlashLoanOutTransfer
 import Benchmarks.Midnight.FlashLoanInTransfer
 import Benchmarks.Midnight.SafeTransferPrepare
 
+variable {fork : Ethereum.Fork}
+
 /-! The common runtime interface for outgoing transfers and incoming repayments. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -40,10 +42,10 @@ theorem midnightFlashLoanTransferPrepare (isFrom : Bool) {I : ExecutionEnv} {g :
     {callback : AccountAddress} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 20 ≤ 1024) (ht : index.toNat < tn.toNat) (ha : index.toNat < an.toNat)
     (hc : (calldataWord I.calldata (calldataIndex tp index).toNat).toNat < EVM.addressModulus)
-    (rd : RD midnightBytecode I g s0 (flashLoanTransferLoopPC isFrom)
+    (rd : RD fork midnightBytecode I g s0 (flashLoanTransferLoopPC isFrom)
       (flashLoanTransferLoopStack isFrom index tn tp (UInt256.ofNat callback.val) an ap dl dp ++ R)
       mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD midnightBytecode I g s0 (safeTransferEntryPC isFrom)
+    ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode I g s0 (safeTransferEntryPC isFrom)
       (safeTransferEntryStack isFrom (flashLoanTokenAt I.calldata tp index)
         (if isFrom then callback else I.source) (if isFrom then I.codeOwner else callback)
         (flashLoanAssetAt I.calldata ap index)
@@ -68,9 +70,9 @@ theorem midnightFlashLoanTransferPrepare (isFrom : Bool) {I : ExecutionEnv} {g :
 theorem midnightFlashLoanTransferReturn (isFrom : Bool) {I : ExecutionEnv} {g : Sat256}
     {s0 : State} {mem rdata : ByteArray} {aw index tn tp callback an ap dl dp : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 13 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 (flashLoanTransferReturnPC isFrom)
+    (rd : RD fork midnightBytecode I g s0 (flashLoanTransferReturnPC isFrom)
       (flashLoanTransferTail isFrom index tn tp callback an ap dl dp ++ R) mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD midnightBytecode I g s0 (flashLoanTransferLoopPC isFrom)
+    ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode I g s0 (flashLoanTransferLoopPC isFrom)
       (flashLoanTransferLoopStack isFrom (index + ⟨1⟩) tn tp callback an ap dl dp ++ R)
       mem aw rdata σ k' C' := by
   cases isFrom with
@@ -80,9 +82,9 @@ theorem midnightFlashLoanTransferReturn (isFrom : Bool) {I : ExecutionEnv} {g : 
 theorem midnightFlashLoanTransferExit (isFrom : Bool) {I : ExecutionEnv} {g : Sat256}
     {s0 : State} {mem rdata : ByteArray} {aw tn tp callback an ap dl dp : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 24 ≤ 1024)
-    (rd : RD midnightBytecode I g s0 (flashLoanTransferLoopPC isFrom)
+    (rd : RD fork midnightBytecode I g s0 (flashLoanTransferLoopPC isFrom)
       (flashLoanTransferLoopStack isFrom tn tn tp callback an ap dl dp ++ R) mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD midnightBytecode I g s0 (flashLoanTransferExitPC isFrom)
+    ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode I g s0 (flashLoanTransferExitPC isFrom)
       (flashLoanTransferLoopStack isFrom tn tn tp callback an ap dl dp ++ R) mem aw rdata σ k' C' := by
   cases isFrom with
   | false =>

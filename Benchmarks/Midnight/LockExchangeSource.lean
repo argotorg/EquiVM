@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.LockSource
 import Reasoning.ExternalCall
 
+variable {fork : Ethereum.Fork}
+
 /-! Source evaluation of the transient lock exchange used around trade callbacks. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -94,7 +96,7 @@ theorem lockExchangeBody {frame : Frame} {evm : State} {base id user : UInt256} 
     (hi : frame.locals.get? "key1" = some (wordBytes32Value id))
     (hu : frame.locals.get? "key2" = some (.address (AccountAddress.ofNat user.toNat)))
     (hv : frame.locals.get? "value" = some (.bool value)) (hp : evm.executionEnv.perm = true) :
-    ExecFuncBody config frame evm tExchangeFunction.body
+    ExecFuncBody fork config frame evm tExchangeFunction.body
       (.returned (lockExchangeFrame frame evm base id user)
         (lockExchangeState evm base id user value) (some [lockValue evm base id user])) := by
   have hb' : (lockExchangeFrame frame evm base id user).locals.get? "baseSlot" =
@@ -133,7 +135,7 @@ theorem callLockExchange {frame : Frame} {evm : State} {base id user : UInt256}
     (he : evalExprs? config frame evm args = .ok
       [.int base.toNat, wordBytes32Value id, .address (AccountAddress.ofNat user.toNat), .bool value])
     (hp : evm.executionEnv.perm = true) :
-    ExecStmt config frame evm (.internalCall "UtilsLib_tExchange" args name)
+    ExecStmt fork config frame evm (.internalCall "UtilsLib_tExchange" args name)
       (.ok (resumeAfterInternalCall frame name (some [lockValue evm base id user]))
         (lockExchangeState evm base id user value)) := by
   apply internalCallFunctionReturn (callee := tExchangeFunction)

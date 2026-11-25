@@ -4,6 +4,8 @@ import Benchmarks.Midnight.TakePositionsRead
 import Benchmarks.Midnight.TakeBuyerUpdateGuard
 import Benchmarks.Midnight.TakeCreditSource
 
+variable {fork : Ethereum.Fork}
+
 /-! Select the participants, form both storage aliases, and reach the buyer update branch. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -24,13 +26,13 @@ theorem midnightTakePositionPrepare {credit : Nat} {I : ExecutionEnv} {g : Sat25
     (htaker : memLoad (UInt256.ofNat 544) mem = taker)
     (hu : calldataWord I.calldata 68 = units)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨11826⟩ (saved :: R) mem aw rdata evm.accountMap k C) :
-    ABlock config evm frame (takeTransition.body.drop 27)
+    (rd : RD fork midnightBytecode I g s0 ⟨11826⟩ (saved :: R) mem aw rdata evm.accountMap k C) :
+    ABlock fork config evm frame (takeTransition.body.drop 27)
       (takePositionPrepareFrame frame evm offer id taker) (takeTransition.body.drop 32) ∧
     TakeSourceFrame (takePositionPrepareFrame frame evm offer id taker) offer id units taker
       receiver callback ratifierData data ∧
     ∃ aw' k' C', MemoryFunding credit (takePositionPrepareMemory mem offer id taker) aw' C' ∧
-      RD midnightBytecode I g s0
+      RD fork midnightBytecode I g s0
         (takeBuyerUpdatePC (positionFieldWord evm id (takeBuyer offer taker) 0)
           (low128 (healthPositionWord evm id (takeBuyer offer taker))) units)
         (positionSlot id (takeSeller offer taker) :: saved ::

@@ -2,6 +2,8 @@ import Benchmarks.Midnight.WithdrawCollateralBlocksGas
 import Benchmarks.Midnight.PositionBitmapStorage
 import Benchmarks.Midnight.BitmapArithmetic
 
+variable {fork : Ethereum.Fork}
+
 /-! Clearing a collateral bitmap bit after its balance has been withdrawn. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -13,10 +15,10 @@ theorem withdrawBitmapWrite {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (evm : EVM.State) (henv : evm.executionEnv = I)
     {mem rdata : ByteArray} {aw id user index : UInt256} {k C : Nat}
     {R : List UInt256} (hstack : R.length + 7 ≤ 1024) (hperm : I.perm = true)
-    (rd : RD midnightBytecode I g s0 ⟨4742⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨4742⟩
       (index :: positionSlot id user :: R) mem aw rdata evm.accountMap k C) :
     ∃ k' C', C ≤ C' ∧
-      RD midnightBytecode I g s0 ⟨4795⟩ R mem aw rdata
+      RD fork midnightBytecode I g s0 ⟨4795⟩ R mem aw rdata
         (storeHigh128 evm (positionSlot id user + ⟨2⟩)
           (bitmapClear (positionBitmapWord evm id user) index)).accountMap k' C' := by
   obtain ⟨k', C', hc, rd1⟩ := withdrawal_block_4742_mono hstack hperm (by jump_dest) rd

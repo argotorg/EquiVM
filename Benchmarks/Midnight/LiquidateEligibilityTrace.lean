@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.LiquidateLockAllocation
 import Benchmarks.Midnight.LiquidateEligibility
 
+variable {fork : Ethereum.Fork}
+
 /-! The runtime lock, maturity, and health checks following the collateral loop. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -28,14 +30,14 @@ theorem midnightLiquidateEligibility {I : ExecutionEnv} {g : Sat256} {s0 : State
     (hhash : keccakWord (root + UInt256.ofNat 32) ⟨96⟩ mem =
       lockSlot liquidationLockBase id borrower)
     (hb : TransferBudget budgetRoot credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨5442⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨5442⟩
       ([root, debtWord, reverseRep, rep, maxDebt, price, pos, dp, dl, borrower, badDebt,
         receiver, mode] ++ R) mem aw rdata σ k C) :
     let lock := codeOwnerTransientWord I σ (lockSlot liquidationLockBase id borrower)
-    (¬ LiquidateEligible I m lock mode (low128 debtWord) maxDebt ∧ RDrev midnightBytecode g s0) ∨
+    (¬ LiquidateEligible I m lock mode (low128 debtWord) maxDebt ∧ RDrev fork midnightBytecode g s0) ∨
     (LiquidateEligible I m lock mode (low128 debtWord) maxDebt ∧ ∃ aw' k' C',
       TransferBudget budgetRoot credit mem aw' C' ∧
-      RD midnightBytecode I g s0 ⟨5463⟩
+      RD fork midnightBytecode I g s0 ⟨5463⟩
         ([debtWord, reverseRep, rep, maxDebt, price, pos, dp, dl, borrower, badDebt,
           receiver, mode] ++ R) mem aw' rdata σ k' C') := by
   dsimp only
@@ -62,7 +64,7 @@ theorem midnightLiquidateEligibility {I : ExecutionEnv} {g : Sat256} {s0 : State
       have hb3 := transferBudgetAt (root := budgetRoot) (credit := credit) rd3
         (by transfer_budget hb1)
       simp only [midnightBlocks.midnight_block_7829_stack, uint128Mask_computed] at rd3
-      change RD midnightBytecode I g s0 ⟨5457⟩
+      change RD fork midnightBytecode I g s0 ⟨5457⟩
         (UInt256.gt (low128 debtWord) maxDebt :: [debtWord, reverseRep, rep, maxDebt,
           price, pos, dp, dl, borrower, badDebt, receiver, mode] ++ R) mem _ rdata σ _ _ at rd3
       by_cases hhealth : maxDebt.toNat < (low128 debtWord).toNat
@@ -91,7 +93,7 @@ theorem midnightLiquidateEligibility {I : ExecutionEnv} {g : Sat256} {s0 : State
         (by jump_dest) rd2
       have hb3 := transferBudgetAt (root := budgetRoot) (credit := credit) rd3
         (by transfer_budget hb1)
-      change RD midnightBytecode I g s0 ⟨5457⟩
+      change RD fork midnightBytecode I g s0 ⟨5457⟩
         (UInt256.gt (UInt256.ofNat I.header.timestamp)
           (calldataWord I.calldata (calldataWord I.calldata 4 + UInt256.ofNat 132).toNat) ::
           [debtWord, reverseRep, rep, maxDebt, price, pos, dp, dl, borrower, badDebt,

@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.HealthSource
 import Benchmarks.Midnight.MarketAccountDecode
 
+variable {fork : Ethereum.Fork}
+
 /-! The external health wrapper calls the internal predicate and returns its Boolean. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -22,8 +24,8 @@ theorem evalIsHealthyCallArgs (evm : EVM.State) (m : MarketData) (id user : UInt
 theorem isHealthyBodyReverts {evm : EVM.State} {m : MarketData} {id user : UInt256}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit)
-    (hbody : ExecFuncBody config (healthCallFrame ∅ m id user) evm healthFunction.body .reverted) :
-    ExecTransitionBody config contract evm
+    (hbody : ExecFuncBody fork config (healthCallFrame ∅ m id user) evm healthFunction.body .reverted) :
+    ExecTransitionBody fork config contract evm
       (marketIdAccountArguments "borrower" m id (AccountAddress.ofNat user.toNat))
       isHealthyTransition.body .reverted := by
   apply ExecFuncBody.execBlockRevert
@@ -35,9 +37,9 @@ theorem isHealthyBodyReturns {evm evm' : EVM.State} {m : MarketData} {id user : 
     {frame : Frame} {value : Bool}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit)
-    (hbody : ExecFuncBody config (healthCallFrame ∅ m id user) evm healthFunction.body
+    (hbody : ExecFuncBody fork config (healthCallFrame ∅ m id user) evm healthFunction.body
       (.returned frame evm' (some [.bool value]))) :
-    ExecTransitionBody config contract evm
+    ExecTransitionBody fork config contract evm
       (marketIdAccountArguments "borrower" m id (AccountAddress.ofNat user.toNat))
       isHealthyTransition.body
       (.returned (resumeAfterInternalCall (isHealthyExternalFrame evm m id user) "__r"

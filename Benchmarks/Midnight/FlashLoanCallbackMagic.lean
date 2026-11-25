@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.FlashLoanCallbackDecode
 
+variable {fork : Ethereum.Fork}
+
 /-! The callback magic-value requirement and entry to the repayment loop. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -12,12 +14,12 @@ theorem midnightFlashLoanCallbackMagic {credit : Nat} {I : ExecutionEnv} {g : Sa
     {s0 : State} {mem out : ByteArray} {aw value : UInt256}
     {σ : AccountMap} {k C : Nat} {R : List UInt256} (hstack : R.length + 6 ≤ 1024)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨16380⟩ (value :: flashLoanMagic :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨16380⟩ (value :: flashLoanMagic :: R)
       mem aw out σ k C) :
-    (value ≠ flashLoanMagic ∧ RDrev midnightBytecode g s0) ∨
+    (value ≠ flashLoanMagic ∧ RDrev fork midnightBytecode g s0) ∨
     (value = flashLoanMagic ∧ ∃ aw' k' C',
       MemoryFunding credit (flashLoanMagicMemory mem) aw' C' ∧
-      RD midnightBytecode I g s0 ⟨16403⟩ (⟨0⟩ :: R)
+      RD fork midnightBytecode I g s0 ⟨16403⟩ (⟨0⟩ :: R)
         (flashLoanMagicMemory mem) aw' out σ k' C') := by
   have hm : memLoad ⟨0⟩ (midnightBytecode.write 24513 mem 0 32) = flashLoanMagic := by
     rw [flashLoanMagic_copy, flashLoanMagic_load]

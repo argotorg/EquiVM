@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.CalldataScalarAccounting
 import Benchmarks.Midnight.CollateralData
 
+variable {fork : Ethereum.Fork}
+
 /-! A collateral record copied from calldata into its allocated memory region. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,13 +17,13 @@ theorem midnightCollateralCalldataCopy_accounted {I : ExecutionEnv} {g : Sat256}
     (hhead : head.toNat + 128 < UInt256.size) (hptr : ptr.toNat + 128 < UInt256.size)
     (hvalid : (D_J midnightBytecode 0).contains ret = true)
     (ha : MemoryAccounting mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨18524⟩ (ptr :: ret :: head :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨18524⟩ (ptr :: ret :: head :: R)
       mem aw rdata σ k C) :
-    (¬ CollateralData.canonicalAt I.calldata head.toNat ∧ RDrev midnightBytecode g s0) ∨
+    (¬ CollateralData.canonicalAt I.calldata head.toNat ∧ RDrev fork midnightBytecode g s0) ∨
     (CollateralData.canonicalAt I.calldata head.toNat ∧ ∃ aw' k' C',
       MemoryAccounting
         (writeWordArray mem ptr.toNat (CollateralData.at I.calldata head.toNat).words) aw' C' ∧
-      RD midnightBytecode I g s0 ret (ptr :: R)
+      RD fork midnightBytecode I g s0 ret (ptr :: R)
         (writeWordArray mem ptr.toNat (CollateralData.at I.calldata head.toNat).words)
         aw' rdata σ k' C') := by
   have hh32 := uadd_word_ofNat_toNat head 32 (by omega)

@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.BuyCallback
 
+variable {fork : Ethereum.Fork}
+
 /-! The optional buyer callback rejoins the two token transfers. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -54,16 +56,16 @@ theorem midnightTakeBuyCallback {credit : Nat} {I : ExecutionEnv} {g : Sat256}
     (hfUser : frame.locals.get? "buyer" = some (.address (AccountAddress.ofNat user.toNat)))
     (ht : frame.locals.get? "buyerCallback" = some (.address callback))
     (ha : MemoryFunding credit mem aw C) (hs : SourceState s0 I σ evm)
-    (rd : RD midnightBytecode I g s0
+    (rd : RD fork midnightBytecode I g s0
       (if UInt256.ofNat callback.val = ⟨0⟩ then ⟨13252⟩ else ⟨13774⟩)
       ([UInt256.ofNat callback.val, sellerCallback, payer, wasLocked, saved] ++ R)
       mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (ExecStmt config frame evm takeTransition.body[67]! .reverted ∧
-      RDrev midnightBytecode g s0) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (ExecStmt fork config frame evm takeTransition.body[67]! .reverted ∧
+      RDrev fork midnightBytecode g s0) ∨
     ∃ (frame' : Frame) (evm' : State) (σ' : AccountMap) (mem' out : ByteArray)
       (root' aw' ignored : UInt256) (k' C' : Nat),
-      ExecStmt config frame evm takeTransition.body[67]! (.ok frame' evm') ∧
+      ExecStmt fork config frame evm takeTransition.body[67]! (.ok frame' evm') ∧
       frame'.contract = frame.contract ∧
       (∀ name, name ≠ "buyerCallbackData" → name ≠ "__c27" →
         frame'.locals.get? name = frame.locals.get? name) ∧
@@ -71,7 +73,7 @@ theorem midnightTakeBuyCallback {credit : Nat} {I : ExecutionEnv} {g : Sat256}
       (root' = root ∨ root' = root + UInt256.ofNat 32) ∧
       root'.toNat ≤ mem'.size ∧
       memLoad (UInt256.ofNat 64) mem' = root' ∧ MemoryFunding credit mem' aw' C' ∧
-      RD midnightBytecode I g s0 ⟨13252⟩
+      RD fork midnightBytecode I g s0 ⟨13252⟩
         ([ignored, sellerCallback, payer, wasLocked, saved] ++ R) mem' aw' out σ' k' C' := by
   rw [takeBuyStmt_shape]
   have hc := takeBuyCondition_eval (evm := evm) ht
@@ -115,7 +117,7 @@ theorem midnightTakeBuyCallback {credit : Nat} {I : ExecutionEnv} {g : Sat256}
       ((hget _ (by decide)).trans hfAssets) ((hget _ (by decide)).trans hfUnits)
       ((hget _ (by decide)).trans hfFee) ((hget _ (by decide)).trans hfUser)
       (by exact store_get_self _ _ _)
-    have hdecl : ExecStmt config frame evm
+    have hdecl : ExecStmt fork config frame evm
         (.letDecl "buyerCallbackData" (some .bytes) takeBuyerDataExpr) (.ok frame1 evm) :=
       ExecStmt.letDecl (evalTakeBuyerData hfOffer hfData)
     have hcond : evalExpr? config frame evm takeBuyCondition = .ok (.bool true) := by

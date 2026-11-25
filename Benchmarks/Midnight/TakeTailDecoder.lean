@@ -2,6 +2,8 @@ import Benchmarks.Midnight.TakeScalarsMemory
 import Benchmarks.Midnight.BytesArgumentDecoder
 import Benchmarks.Midnight.TakeDecodeFacts
 
+variable {fork : Ethereum.Fork}
+
 /-! The ratifier data, scalar arguments, and taker callback data following the decoded offer. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -26,9 +28,9 @@ theorem midnightTakeTailDecoder {credit : Nat} {I : ExecutionEnv} {g : Sat256} {
       paddedSize offer.callbackData.size) (hcap : ratifierPtr.toNat < 2^64)
     (hfree : memLoad (UInt256.ofNat 64) mem = ratifierPtr)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨10833⟩ (calldataWord I.calldata 36 :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨10833⟩ (calldataWord I.calldata 36 :: R)
       mem aw rdata σ k C) :
-    (decodeTakeArguments I.calldata = none ∧ RDrev midnightBytecode g s0) ∨
+    (decodeTakeArguments I.calldata = none ∧ RDrev fork midnightBytecode g s0) ∨
     (∃ ratifierData data,
       decodeCalldataBytes I.calldata 36 = some ratifierData ∧ TakeScalarsValid I.calldata ∧
       decodeCalldataBytes I.calldata 196 = some data ∧
@@ -40,7 +42,7 @@ theorem midnightTakeTailDecoder {credit : Nat} {I : ExecutionEnv} {g : Sat256} {
           3 * ((data.size + 31) / 32))
           (takeTailMemory mem I.calldata ratifierPtr (returnDataPtr ratifierPtr ratifierData.size))
           aw' C' ∧
-        RD midnightBytecode I g s0 ⟨10925⟩
+        RD fork midnightBytecode I g s0 ⟨10925⟩
           (returnDataPtr ratifierPtr ratifierData.size :: ratifierPtr :: R)
           (takeTailMemory mem I.calldata ratifierPtr (returnDataPtr ratifierPtr ratifierData.size))
           aw' rdata σ k' C') := by

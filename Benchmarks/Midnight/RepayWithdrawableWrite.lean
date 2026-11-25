@@ -3,6 +3,8 @@ import Benchmarks.Midnight.CollateralBlocksGas
 import Benchmarks.Midnight.RuntimeBlocks_039
 import Benchmarks.Midnight.RuntimeBlocks_040
 
+variable {fork : Ethereum.Fork}
+
 /-! The withdrawable write and selection of the payer before the Repay event. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,10 +17,10 @@ theorem midnightRepayWriteWithdrawable {ee : ExecutionEnv} {g : Sat256} {s0 : St
     {mem rdata : ByteArray} {aw value slot dp id dl user : UInt256}
     {callback : AccountAddress} {σ : AccountMap} {k C : Nat} {R : List UInt256}
     (hstack : R.length + 12 ≤ 1024) (hperm : ee.perm = true)
-    (h : RD midnightBytecode ee g s0 ⟨9992⟩
+    (h : RD fork midnightBytecode ee g s0 ⟨9992⟩
       (value :: uint128Mask :: slot :: dp :: id :: dl :: user :: UInt256.ofNat callback.val :: R)
       mem aw rdata σ k C) :
-    ∃ k' C', C ≤ C' ∧ RD midnightBytecode ee g s0 ⟨10034⟩
+    ∃ k' C', C ≤ C' ∧ RD fork midnightBytecode ee g s0 ⟨10034⟩
       (repayHasCallback callback :: id :: dp :: UInt256.ofNat callback.val :: dl :: user ::
         UInt256.ofNat (repayPayer ee callback).val :: R)
       mem aw rdata (storeLow128Accounts σ ee slot value) k' C' := by

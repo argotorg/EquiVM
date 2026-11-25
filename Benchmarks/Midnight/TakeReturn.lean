@@ -3,6 +3,8 @@ import Benchmarks.Midnight.MemoryWords
 import Benchmarks.Midnight.WordTuple
 import Benchmarks.Midnight.RuntimeBlocks_049
 
+variable {fork : Ethereum.Fork}
+
 /-! Take's two-word ABI return and source return statement. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -22,7 +24,7 @@ theorem takeReturnEncoding (bought sold : UInt256) :
 theorem takeReturnSource {frame : Frame} {evm : State} {bought sold : UInt256}
     (hb : frame.locals.get? "buyerAssets" = some (.int bought.toNat))
     (hs : frame.locals.get? "sellerAssets" = some (.int sold.toNat)) :
-    ExecStmt config frame evm (takeTransition.body[74]!)
+    ExecStmt fork config frame evm (takeTransition.body[74]!)
       (.returned frame evm (some [.int bought.toNat, .int sold.toNat])) := by
   apply ExecStmt.return
   simp only [evalExprs?, evalExpr?, hb, hs, EvalResult.ofOption, EvalResult.bind, bind, pure]
@@ -34,8 +36,8 @@ theorem midnightTakeReturn {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hfree : memLoad (UInt256.ofNat 64) mem = root)
     (hbought : memLoad (UInt256.ofNat 256) mem = bought)
     (hpaid : memLoad (UInt256.ofNat 416) mem = sold)
-    (rd : RD midnightBytecode I g s0 ⟨13372⟩ R mem aw rdata σ k C) :
-    RDret midnightBytecode g s0 σ (wordArrayBytes [bought, sold]) := by
+    (rd : RD fork midnightBytecode I g s0 ⟨13372⟩ R mem aw rdata σ k C) :
+    RDret fork midnightBytecode g s0 σ (wordArrayBytes [bought, sold]) := by
   have hr := midnightBlocks.midnight_block_13372 hstack rd
   have h32 : (root + UInt256.ofNat 32).toNat = root.toNat + 32 :=
     uadd_word_ofNat_toNat _ _ (by change _ < 2^256; omega)
@@ -43,7 +45,7 @@ theorem midnightTakeReturn {I : ExecutionEnv} {g : Sat256} {s0 : State}
     rw [memLoad_writeWord_preserved _ _ _ _ (by change 448 ≤ mem.size; omega)
       (Or.inl (by change 448 ≤ root.toNat; omega)), hpaid]
   simp only [hfree, hbought, h32] at hr
-  change RDret midnightBytecode g s0 σ
+  change RDret fork midnightBytecode g s0 σ
     ((writeWord (writeWord mem root.toNat bought) (root.toNat + 32)
       (memLoad (UInt256.ofNat 416) (writeWord mem root.toNat bought))).readWithPadding
       root.toNat 64) at hr

@@ -2,6 +2,8 @@ import Benchmarks.Midnight.Word128BitSource
 import Benchmarks.Midnight.BitmapCountArithmetic
 import Benchmarks.Midnight.PositionViewSourceBase
 
+variable {fork : Ethereum.Fork}
+
 /-! Once-for-all source proofs of the bitmap setter and count helper. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,7 +19,7 @@ theorem bitmapSetSource {cfg : Config} {frame : Frame} {evm : EVM.State}
     {bitmap bit : UInt256}
     (hb : frame.locals.get? "bitmap" = some (.int bitmap.toNat))
     (hi : frame.locals.get? "bit" = some (.int bit.toNat)) (hbit : bit.toNat < 256) :
-    ExecFuncBody cfg frame evm bitmapSetFunction.body
+    ExecFuncBody fork cfg frame evm bitmapSetFunction.body
       (.returned frame evm (some [.int (bitmapSet bitmap bit).toNat])) := by
   apply ExecFuncBody.execBlockRet
   apply ExecBlock.consReturn
@@ -33,7 +35,7 @@ theorem bitmapSetSource {cfg : Config} {frame : Frame} {evm : EVM.State}
 theorem bitmapCountSource {cfg : Config} {frame : Frame} {evm : EVM.State}
     {x : UInt256} (hx : x.toNat < 2^128)
     (hget : frame.locals.get? "x" = some (.int x.toNat)) :
-    ∃ frame', ExecFuncBody cfg frame evm bitmapCountFunction.body
+    ∃ frame', ExecFuncBody fork cfg frame evm bitmapCountFunction.body
       (.returned frame' evm (some [.int (bitmapCount x).toNat])) := by
   let x1 := bitmapCount1 x
   let x2 := bitmapCount2 x1

@@ -2,6 +2,8 @@ import Benchmarks.Midnight.OfferSourceValues
 import Benchmarks.Midnight.TakeCapsGuard
 import Benchmarks.Midnight.MarketLossStorage
 
+variable {fork : Ethereum.Fork}
+
 /-! The source market alias, saturated-loss check, and mutually exclusive offer caps. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,7 +19,7 @@ def takeMarketAliasFrame (frame : Frame) (id : UInt256) : Frame :=
 theorem takeMarketAliasPrefix {frame : Frame} {evm : State} {offer : OfferData}
     {id units taker : UInt256} {receiver callback : AccountAddress} {ratifierData data : ByteArray}
     (hf : TakeSourceFrame frame offer id units taker receiver callback ratifierData data) :
-    ABlock config evm frame (takeTransition.body.drop 5) (takeMarketAliasFrame frame id)
+    ABlock fork config evm frame (takeTransition.body.drop 5) (takeMarketAliasFrame frame id)
       (takeTransition.body.drop 6) := by
   refine ⟨fun h ↦ ExecBlock.consNormal (ExecStmt.letStorage ?_) h⟩
   apply resolveBytes32Mapping
@@ -62,14 +64,14 @@ theorem evalTakeCapsGuard {frame : Frame} {evm : State} {offer : OfferData}
 theorem takeLossRevert {frame : Frame} {evm : State} {id : UInt256}
     (hm : frame.locals.get? "_marketState" = some (.storageRef (marketStateRef id) marketStateType))
     (hbad : ¬ (marketLossWord evm id).toNat < 2^128 - 1) :
-    ExecBlock config frame evm (takeTransition.body.drop 6) .reverted :=
+    ExecBlock fork config frame evm (takeTransition.body.drop 6) .reverted :=
   ExecBlock.consRevert (ExecStmt.requireFalse ((evalTakeLossGuard hm).trans
     (by rw [decide_eq_false hbad])))
 
 theorem takeCapsRevert {frame : Frame} {evm : State} {offer : OfferData}
     (ho : frame.locals.get? "offer" = some (Model.offerValue offer.value))
     (hbad : ¬ TakeCapsValid offer) :
-    ExecBlock config frame evm (takeTransition.body.drop 7) .reverted :=
+    ExecBlock fork config frame evm (takeTransition.body.drop 7) .reverted :=
   ExecBlock.consRevert (ExecStmt.requireFalse ((evalTakeCapsGuard ho).trans
     (by rw [decide_eq_false hbad])))
 
@@ -78,8 +80,8 @@ theorem takeLossCapsSource {frame : Frame} {evm : State} {offer : OfferData} {id
     (hm : frame.locals.get? "_marketState" = some (.storageRef (marketStateRef id) marketStateType))
     (ho : frame.locals.get? "offer" = some (Model.offerValue offer.value))
     (hl : (marketLossWord evm id).toNat < 2^128 - 1) (hc : TakeCapsValid offer)
-    (htail : ExecBlock config frame evm (takeTransition.body.drop 8) result) :
-    ExecBlock config frame evm (takeTransition.body.drop 6) result :=
+    (htail : ExecBlock fork config frame evm (takeTransition.body.drop 8) result) :
+    ExecBlock fork config frame evm (takeTransition.body.drop 6) result :=
   ExecBlock.consNormal (ExecStmt.requireTrue ((evalTakeLossGuard hm).trans
     (by rw [decide_eq_true hl])))
     (ExecBlock.consNormal (ExecStmt.requireTrue ((evalTakeCapsGuard ho).trans

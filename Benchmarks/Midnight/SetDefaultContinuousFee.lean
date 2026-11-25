@@ -4,6 +4,8 @@ import Benchmarks.Midnight.PairDecode
 import Benchmarks.Midnight.AddressDecode
 import Benchmarks.Midnight.MappingMemory
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `setDefaultContinuousFee(address,uint256)`
 
@@ -75,7 +77,7 @@ theorem defaultFeeAssign (evm : EVM.State) (token value : UInt256)
 theorem defaultFeeAuthReverts (evm : EVM.State) (token value : UInt256)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) (hauth : ¬ roleAllowed evm ⟨10⟩) :
-    ExecTransitionBody config contract evm (defaultFeeArguments token value)
+    ExecTransitionBody fork config contract evm (defaultFeeArguments token value)
       setDefaultContinuousFeeTransition.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply guardedBodyBlock hwv hhi
@@ -87,7 +89,7 @@ theorem defaultFeeBoundReverts (evm : EVM.State) (token value : UInt256)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) (hauth : roleAllowed evm ⟨10⟩)
     (hbound : ¬ value.toNat ≤ 317097919) :
-    ExecTransitionBody config contract evm (defaultFeeArguments token value)
+    ExecTransitionBody fork config contract evm (defaultFeeArguments token value)
       setDefaultContinuousFeeTransition.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply guardedBodyBlock hwv hhi
@@ -103,7 +105,7 @@ theorem defaultFeeReturns (evm : EVM.State) (token value : UInt256)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) (hauth : roleAllowed evm ⟨10⟩)
     (hbound : value.toNat ≤ 317097919) (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (defaultFeeArguments token value)
+    ExecTransitionBody fork config contract evm (defaultFeeArguments token value)
       setDefaultContinuousFeeTransition.body
       (.returned (calldataFrame contract (defaultFeeArguments token value) ∅ evm)
         (defaultFeeState evm token value) none) := by
@@ -127,7 +129,7 @@ theorem defaultFeeStatic (evm : EVM.State) (token value : UInt256)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) (hauth : roleAllowed evm ⟨10⟩)
     (hbound : value.toNat ≤ 317097919) (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (defaultFeeArguments token value)
+    ExecTransitionBody fork config contract evm (defaultFeeArguments token value)
       setDefaultContinuousFeeTransition.body .staticViolation := by
   apply ExecFuncBody.execBlockStatic
   apply guardedBodyBlock hwv hhi
@@ -144,8 +146,8 @@ theorem defaultFeeTraceStatic {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024) (hperm : I.perm = false)
-    (rd : RD midnightBytecode I g s0 ⟨18110⟩ (x0 :: x1 :: R) mem aw rdata σ k C) :
-    RDstatic midnightBytecode g s0 := by
+    (rd : RD fork midnightBytecode I g s0 ⟨18110⟩ (x0 :: x1 :: R) mem aw rdata σ k C) :
+    RDstatic fork midnightBytecode g s0 := by
   let r0 := rd
   have r1 := r0.push1 (UInt256.ofNat 32) (by native_decide) (by evm_ov)
   have r2 := r1.push1 (UInt256.ofNat 1) (by native_decide) (by evm_ov)
@@ -180,9 +182,9 @@ theorem defaultFeeTraceStatic {I : ExecutionEnv} {g : Sat256} {s0 : State}
 
 theorem defaultFeeTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Nat} {aw token value : UInt256}
     (hcanon : token.toNat < EVM.addressModulus) (hperm : I.perm = true)
-    (rd : RD midnightBytecode I g (initState σ σ₀ g A I) ⟨18110⟩
+    (rd : RD fork midnightBytecode I g (initState σ σ₀ g A I) ⟨18110⟩
       [token, value, solcSelectorWord I] midnightEntryMemory aw ByteArray.empty σ k C) :
-    RDret midnightBytecode g (initState σ σ₀ g A I)
+    RDret fork midnightBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ (solcMappingSlot ⟨5⟩ token)
         (setUint32Offset0Word (solcSlotWordAt (solcMappingSlot ⟨5⟩ token) σ I) value))
       ByteArray.empty := by
@@ -195,10 +197,10 @@ theorem defaultFeeTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Nat} {aw token 
 /-- `setDefaultContinuousFee(address,uint256)`: the theorem `Correct.lean` routes selector 1 to. -/
 theorem midnightSetDefaultContinuousFeeBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 1)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 1) rfl hsel
   have hd : dispatchMsg contract I.calldata = some setDefaultContinuousFeeTransition := by
     apply midnightDispatch_setDefaultContinuousFee <;>
@@ -222,7 +224,7 @@ theorem midnightSetDefaultContinuousFeeBody {σ σ₀ A I} {g : UInt256}
           · obtain ⟨k5, C5, rd5⟩ := midnightBlocks.midnight_block_18076_fallthrough (by simp)
               (by rw [addressMask_computed]; exact u256_sub_eq_zero_iff_eq.mpr hauth) rd4
             simp only [midnightBlocks.midnight_block_18076_fallthrough_stack] at rd5
-            change RD _ _ _ _ _ [calldataWord I.calldata 4, calldataWord I.calldata 36,
+            change RD fork _ _ _ _ _ [calldataWord I.calldata 4, calldataWord I.calldata 36,
               solcSelectorWord I] _ _ _ _ _ _ at rd5
             by_cases hbound : (calldataWord I.calldata 36).toNat ≤ 317097919
             · have rd6 := midnightBlocks.midnight_block_18099_fallthrough (by simp)

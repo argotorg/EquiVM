@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.DispatchRuntime_001
 
+variable {fork : Ethereum.Fork}
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Midnight
@@ -10,14 +12,14 @@ set_option maxRecDepth 2000000
 theorem midnightReachContinuousFeeBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = midnightBytecode) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (midnightSelBytes 41)) :
-    ∃ k C, RD (midnightBytecode) I g (initState σ σ₀ g A I) (UInt256.ofNat 3003)
+    ∃ k C, RD fork (midnightBytecode) I g (initState σ σ₀ g A I) (UInt256.ofNat 3003)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((⟨0⟩ : UInt256).toByteArray.write 0 ((UInt256.ofNat 832).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32) (UInt256.ofNat 800).toNat 32)
       (M (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (UInt256.ofNat 800) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨3226368152⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xc0 0x4e 0x78 0x98 ⟨3226368152⟩ (by native_decide)
       (by simpa [midnightSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := midnightBlocks.midnight_block_0_taken (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by jump_dest) rd0
   have rd2 := midnightBlocks.midnight_block_18_fallthrough (by simp [midnightBlocks.midnight_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨454344818⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := midnightBlocks.midnight_block_40_fallthrough (by simp [midnightBlocks.midnight_block_0_taken_memory, midnightBlocks.midnight_block_18_fallthrough_stack, midnightBlocks.midnight_block_18_fallthrough_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨559259243⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -67,14 +69,14 @@ theorem midnightReachContinuousFeeBody {σ σ₀ A I} {g : Sat256}
 theorem midnightReachDefaultSettlementFeeCbpBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = midnightBytecode) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (midnightSelBytes 42)) :
-    ∃ k C, RD (midnightBytecode) I g (initState σ σ₀ g A I) (UInt256.ofNat 2923)
+    ∃ k C, RD fork (midnightBytecode) I g (initState σ σ₀ g A I) (UInt256.ofNat 2923)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((⟨0⟩ : UInt256).toByteArray.write 0 ((UInt256.ofNat 832).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32) (UInt256.ofNat 800).toNat 32)
       (M (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (UInt256.ofNat 800) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨3247392730⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xc1 0x8f 0x47 0xda ⟨3247392730⟩ (by native_decide)
       (by simpa [midnightSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := midnightBlocks.midnight_block_0_taken (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by jump_dest) rd0
   have rd2 := midnightBlocks.midnight_block_18_fallthrough (by simp [midnightBlocks.midnight_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨454344818⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := midnightBlocks.midnight_block_40_fallthrough (by simp [midnightBlocks.midnight_block_0_taken_memory, midnightBlocks.midnight_block_18_fallthrough_stack, midnightBlocks.midnight_block_18_fallthrough_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨559259243⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -125,14 +127,14 @@ theorem midnightReachDefaultSettlementFeeCbpBody {σ σ₀ A I} {g : Sat256}
 theorem midnightReachSetFeeClaimerBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = midnightBytecode) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (midnightSelBytes 43)) :
-    ∃ k C, RD (midnightBytecode) I g (initState σ σ₀ g A I) (UInt256.ofNat 2804)
+    ∃ k C, RD fork (midnightBytecode) I g (initState σ σ₀ g A I) (UInt256.ofNat 2804)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((⟨0⟩ : UInt256).toByteArray.write 0 ((UInt256.ofNat 832).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32) (UInt256.ofNat 800).toNat 32)
       (M (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (UInt256.ofNat 800) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨3282881864⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xc3 0xac 0xcd 0x48 ⟨3282881864⟩ (by native_decide)
       (by simpa [midnightSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := midnightBlocks.midnight_block_0_taken (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by jump_dest) rd0
   have rd2 := midnightBlocks.midnight_block_18_fallthrough (by simp [midnightBlocks.midnight_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨454344818⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := midnightBlocks.midnight_block_40_fallthrough (by simp [midnightBlocks.midnight_block_0_taken_memory, midnightBlocks.midnight_block_18_fallthrough_stack, midnightBlocks.midnight_block_18_fallthrough_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨559259243⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -184,14 +186,14 @@ theorem midnightReachSetFeeClaimerBody {σ σ₀ A I} {g : Sat256}
 theorem midnightReachPendingFeeBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = midnightBytecode) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (midnightSelBytes 44)) :
-    ∃ k C, RD (midnightBytecode) I g (initState σ σ₀ g A I) (UInt256.ofNat 2724)
+    ∃ k C, RD fork (midnightBytecode) I g (initState σ σ₀ g A I) (UInt256.ofNat 2724)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((⟨0⟩ : UInt256).toByteArray.write 0 ((UInt256.ofNat 832).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32) (UInt256.ofNat 800).toNat 32)
       (M (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (UInt256.ofNat 800) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨3322700401⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xc6 0x0c 0x62 0x71 ⟨3322700401⟩ (by native_decide)
       (by simpa [midnightSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := midnightBlocks.midnight_block_0_taken (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by jump_dest) rd0
   have rd2 := midnightBlocks.midnight_block_18_fallthrough (by simp [midnightBlocks.midnight_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨454344818⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := midnightBlocks.midnight_block_40_fallthrough (by simp [midnightBlocks.midnight_block_0_taken_memory, midnightBlocks.midnight_block_18_fallthrough_stack, midnightBlocks.midnight_block_18_fallthrough_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨559259243⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -244,14 +246,14 @@ theorem midnightReachPendingFeeBody {σ σ₀ A I} {g : Sat256}
 theorem midnightReachCreditBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = midnightBytecode) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (midnightSelBytes 45)) :
-    ∃ k C, RD (midnightBytecode) I g (initState σ σ₀ g A I) (UInt256.ofNat 2638)
+    ∃ k C, RD fork (midnightBytecode) I g (initState σ σ₀ g A I) (UInt256.ofNat 2638)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((⟨0⟩ : UInt256).toByteArray.write 0 ((UInt256.ofNat 832).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32) (UInt256.ofNat 800).toNat 32)
       (M (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (UInt256.ofNat 800) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨3391646649⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xca 0x28 0x6b 0xb9 ⟨3391646649⟩ (by native_decide)
       (by simpa [midnightSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := midnightBlocks.midnight_block_0_taken (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by jump_dest) rd0
   have rd2 := midnightBlocks.midnight_block_18_fallthrough (by simp [midnightBlocks.midnight_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨454344818⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := midnightBlocks.midnight_block_40_fallthrough (by simp [midnightBlocks.midnight_block_0_taken_memory, midnightBlocks.midnight_block_18_fallthrough_stack, midnightBlocks.midnight_block_18_fallthrough_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨559259243⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -305,14 +307,14 @@ theorem midnightReachCreditBody {σ σ₀ A I} {g : Sat256}
 theorem midnightReachUpdatePositionViewBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = midnightBytecode) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (midnightSelBytes 46)) :
-    ∃ k C, RD (midnightBytecode) I g (initState σ σ₀ g A I) (UInt256.ofNat 2568)
+    ∃ k C, RD fork (midnightBytecode) I g (initState σ σ₀ g A I) (UInt256.ofNat 2568)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((⟨0⟩ : UInt256).toByteArray.write 0 ((UInt256.ofNat 832).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32) (UInt256.ofNat 800).toNat 32)
       (M (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (UInt256.ofNat 800) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨3571337588⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xd4 0xde 0x49 0x74 ⟨3571337588⟩ (by native_decide)
       (by simpa [midnightSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := midnightBlocks.midnight_block_0_taken (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by jump_dest) rd0
   have rd2 := midnightBlocks.midnight_block_18_fallthrough (by simp [midnightBlocks.midnight_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨454344818⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := midnightBlocks.midnight_block_40_fallthrough (by simp [midnightBlocks.midnight_block_0_taken_memory, midnightBlocks.midnight_block_18_fallthrough_stack, midnightBlocks.midnight_block_18_fallthrough_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨559259243⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -367,14 +369,14 @@ theorem midnightReachUpdatePositionViewBody {σ σ₀ A I} {g : Sat256}
 theorem midnightReachTickSpacingBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = midnightBytecode) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (midnightSelBytes 47)) :
-    ∃ k C, RD (midnightBytecode) I g (initState σ σ₀ g A I) (UInt256.ofNat 2511)
+    ∃ k C, RD fork (midnightBytecode) I g (initState σ σ₀ g A I) (UInt256.ofNat 2511)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((⟨0⟩ : UInt256).toByteArray.write 0 ((UInt256.ofNat 832).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32) (UInt256.ofNat 800).toNat 32)
       (M (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (UInt256.ofNat 800) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨3683958825⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xdb 0x94 0xc0 0x29 ⟨3683958825⟩ (by native_decide)
       (by simpa [midnightSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := midnightBlocks.midnight_block_0_taken (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by jump_dest) rd0
   have rd2 := midnightBlocks.midnight_block_18_fallthrough (by simp [midnightBlocks.midnight_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨454344818⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := midnightBlocks.midnight_block_40_fallthrough (by simp [midnightBlocks.midnight_block_0_taken_memory, midnightBlocks.midnight_block_18_fallthrough_stack, midnightBlocks.midnight_block_18_fallthrough_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨559259243⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -430,14 +432,14 @@ theorem midnightReachTickSpacingBody {σ σ₀ A I} {g : Sat256}
 theorem midnightReachLastAccrualBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = midnightBytecode) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (midnightSelBytes 48)) :
-    ∃ k C, RD (midnightBytecode) I g (initState σ σ₀ g A I) (UInt256.ofNat 2428)
+    ∃ k C, RD fork (midnightBytecode) I g (initState σ σ₀ g A I) (UInt256.ofNat 2428)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((⟨0⟩ : UInt256).toByteArray.write 0 ((UInt256.ofNat 832).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32) (UInt256.ofNat 800).toNat 32)
       (M (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (UInt256.ofNat 800) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨3792607844⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xe2 0x0e 0x9a 0x64 ⟨3792607844⟩ (by native_decide)
       (by simpa [midnightSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := midnightBlocks.midnight_block_0_taken (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by jump_dest) rd0
   have rd2 := midnightBlocks.midnight_block_18_fallthrough (by simp [midnightBlocks.midnight_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨454344818⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := midnightBlocks.midnight_block_40_fallthrough (by simp [midnightBlocks.midnight_block_0_taken_memory, midnightBlocks.midnight_block_18_fallthrough_stack, midnightBlocks.midnight_block_18_fallthrough_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨559259243⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -494,14 +496,14 @@ theorem midnightReachLastAccrualBody {σ σ₀ A I} {g : Sat256}
 theorem midnightReachConsumedBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = midnightBytecode) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (midnightSelBytes 49)) :
-    ∃ k C, RD (midnightBytecode) I g (initState σ σ₀ g A I) (UInt256.ofNat 2339)
+    ∃ k C, RD fork (midnightBytecode) I g (initState σ σ₀ g A I) (UInt256.ofNat 2339)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((⟨0⟩ : UInt256).toByteArray.write 0 ((UInt256.ofNat 832).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32) (UInt256.ofNat 800).toNat 32)
       (M (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (UInt256.ofNat 800) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨3802004392⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xe2 0x9d 0xfb 0xa8 ⟨3802004392⟩ (by native_decide)
       (by simpa [midnightSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := midnightBlocks.midnight_block_0_taken (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by jump_dest) rd0
   have rd2 := midnightBlocks.midnight_block_18_fallthrough (by simp [midnightBlocks.midnight_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨454344818⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := midnightBlocks.midnight_block_40_fallthrough (by simp [midnightBlocks.midnight_block_0_taken_memory, midnightBlocks.midnight_block_18_fallthrough_stack, midnightBlocks.midnight_block_18_fallthrough_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨559259243⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -559,14 +561,14 @@ theorem midnightReachConsumedBody {σ σ₀ A I} {g : Sat256}
 theorem midnightReachMarketStateBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = midnightBytecode) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (midnightSelBytes 50)) :
-    ∃ k C, RD (midnightBytecode) I g (initState σ σ₀ g A I) (UInt256.ofNat 2117)
+    ∃ k C, RD fork (midnightBytecode) I g (initState σ σ₀ g A I) (UInt256.ofNat 2117)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((⟨0⟩ : UInt256).toByteArray.write 0 ((UInt256.ofNat 832).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32) (UInt256.ofNat 800).toNat 32)
       (M (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (UInt256.ofNat 800) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨3939670795⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xea 0xd2 0x9b 0x0b ⟨3939670795⟩ (by native_decide)
       (by simpa [midnightSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := midnightBlocks.midnight_block_0_taken (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by jump_dest) rd0
   have rd2 := midnightBlocks.midnight_block_18_fallthrough (by simp [midnightBlocks.midnight_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨454344818⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := midnightBlocks.midnight_block_40_fallthrough (by simp [midnightBlocks.midnight_block_0_taken_memory, midnightBlocks.midnight_block_18_fallthrough_stack, midnightBlocks.midnight_block_18_fallthrough_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨559259243⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -625,14 +627,14 @@ theorem midnightReachMarketStateBody {σ σ₀ A I} {g : Sat256}
 theorem midnightReachCollateralBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = midnightBytecode) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (midnightSelBytes 51)) :
-    ∃ k C, RD (midnightBytecode) I g (initState σ σ₀ g A I) (UInt256.ofNat 2010)
+    ∃ k C, RD fork (midnightBytecode) I g (initState σ σ₀ g A I) (UInt256.ofNat 2010)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((⟨0⟩ : UInt256).toByteArray.write 0 ((UInt256.ofNat 832).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32) (UInt256.ofNat 800).toNat 32)
       (M (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (UInt256.ofNat 800) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨3973891885⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xec 0xdc 0xc7 0x2d ⟨3973891885⟩ (by native_decide)
       (by simpa [midnightSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := midnightBlocks.midnight_block_0_taken (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by jump_dest) rd0
   have rd2 := midnightBlocks.midnight_block_18_fallthrough (by simp [midnightBlocks.midnight_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨454344818⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := midnightBlocks.midnight_block_40_fallthrough (by simp [midnightBlocks.midnight_block_0_taken_memory, midnightBlocks.midnight_block_18_fallthrough_stack, midnightBlocks.midnight_block_18_fallthrough_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨559259243⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -692,14 +694,14 @@ theorem midnightReachCollateralBody {σ σ₀ A I} {g : Sat256}
 theorem midnightReachSetConsumedBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = midnightBytecode) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (midnightSelBytes 52)) :
-    ∃ k C, RD (midnightBytecode) I g (initState σ σ₀ g A I) (UInt256.ofNat 1696)
+    ∃ k C, RD fork (midnightBytecode) I g (initState σ σ₀ g A I) (UInt256.ofNat 1696)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((⟨0⟩ : UInt256).toByteArray.write 0 ((UInt256.ofNat 832).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32) (UInt256.ofNat 800).toNat 32)
       (M (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (UInt256.ofNat 800) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨4028612716⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xf0 0x1f 0xc0 0x6c ⟨4028612716⟩ (by native_decide)
       (by simpa [midnightSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := midnightBlocks.midnight_block_0_taken (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by jump_dest) rd0
   have rd2 := midnightBlocks.midnight_block_18_fallthrough (by simp [midnightBlocks.midnight_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨454344818⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := midnightBlocks.midnight_block_40_fallthrough (by simp [midnightBlocks.midnight_block_0_taken_memory, midnightBlocks.midnight_block_18_fallthrough_stack, midnightBlocks.midnight_block_18_fallthrough_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨559259243⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -760,14 +762,14 @@ theorem midnightReachSetConsumedBody {σ σ₀ A I} {g : Sat256}
 theorem midnightReachSetMarketTickSpacingBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = midnightBytecode) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (midnightSelBytes 53)) :
-    ∃ k C, RD (midnightBytecode) I g (initState σ σ₀ g A I) (UInt256.ofNat 1436)
+    ∃ k C, RD fork (midnightBytecode) I g (initState σ σ₀ g A I) (UInt256.ofNat 1436)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((⟨0⟩ : UInt256).toByteArray.write 0 ((UInt256.ofNat 832).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32) (UInt256.ofNat 800).toNat 32)
       (M (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (UInt256.ofNat 800) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨4085160868⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xf3 0x7e 0x9b 0xa4 ⟨4085160868⟩ (by native_decide)
       (by simpa [midnightSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := midnightBlocks.midnight_block_0_taken (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by jump_dest) rd0
   have rd2 := midnightBlocks.midnight_block_18_fallthrough (by simp [midnightBlocks.midnight_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨454344818⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := midnightBlocks.midnight_block_40_fallthrough (by simp [midnightBlocks.midnight_block_0_taken_memory, midnightBlocks.midnight_block_18_fallthrough_stack, midnightBlocks.midnight_block_18_fallthrough_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨559259243⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -829,14 +831,14 @@ theorem midnightReachSetMarketTickSpacingBody {σ σ₀ A I} {g : Sat256}
 theorem midnightReachSetTickSpacingSetterBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = midnightBytecode) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (midnightSelBytes 54)) :
-    ∃ k C, RD (midnightBytecode) I g (initState σ σ₀ g A I) (UInt256.ofNat 1296)
+    ∃ k C, RD fork (midnightBytecode) I g (initState σ σ₀ g A I) (UInt256.ofNat 1296)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((⟨0⟩ : UInt256).toByteArray.write 0 ((UInt256.ofNat 832).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32) (UInt256.ofNat 800).toNat 32)
       (M (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (UInt256.ofNat 800) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨4088223582⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xf3 0xad 0x57 0x5e ⟨4088223582⟩ (by native_decide)
       (by simpa [midnightSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := midnightBlocks.midnight_block_0_taken (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by jump_dest) rd0
   have rd2 := midnightBlocks.midnight_block_18_fallthrough (by simp [midnightBlocks.midnight_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨454344818⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := midnightBlocks.midnight_block_40_fallthrough (by simp [midnightBlocks.midnight_block_0_taken_memory, midnightBlocks.midnight_block_18_fallthrough_stack, midnightBlocks.midnight_block_18_fallthrough_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨559259243⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -899,14 +901,14 @@ theorem midnightReachSetTickSpacingSetterBody {σ σ₀ A I} {g : Sat256}
 theorem midnightReachToMarketBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = midnightBytecode) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (midnightSelBytes 55)) :
-    ∃ k C, RD (midnightBytecode) I g (initState σ σ₀ g A I) (UInt256.ofNat 719)
+    ∃ k C, RD fork (midnightBytecode) I g (initState σ σ₀ g A I) (UInt256.ofNat 719)
       [(UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes (⟨0⟩ : UInt256).toNat 32)) (UInt256.ofNat 224))]
       ((⟨0⟩ : UInt256).toByteArray.write 0 ((UInt256.ofNat 832).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32) (UInt256.ofNat 800).toNat 32)
       (M (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (UInt256.ofNat 800) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨4229959788⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xfc 0x20 0x10 0x6c ⟨4229959788⟩ (by native_decide)
       (by simpa [midnightSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := midnightBlocks.midnight_block_0_taken (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by jump_dest) rd0
   have rd2 := midnightBlocks.midnight_block_18_fallthrough (by simp [midnightBlocks.midnight_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨454344818⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := midnightBlocks.midnight_block_40_fallthrough (by simp [midnightBlocks.midnight_block_0_taken_memory, midnightBlocks.midnight_block_18_fallthrough_stack, midnightBlocks.midnight_block_18_fallthrough_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨559259243⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -970,14 +972,14 @@ theorem midnightReachToMarketBody {σ σ₀ A I} {g : Sat256}
 theorem midnightReachContinuousFeeCreditBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = midnightBytecode) (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (midnightSelBytes 56)) :
-    ∃ k C, RD (midnightBytecode) I g (initState σ σ₀ g A I) (UInt256.ofNat 658)
+    ∃ k C, RD fork (midnightBytecode) I g (initState σ σ₀ g A I) (UInt256.ofNat 658)
       []
       ((⟨0⟩ : UInt256).toByteArray.write 0 ((UInt256.ofNat 832).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32) (UInt256.ofNat 800).toNat 32)
       (M (M (UInt256.ofNat 0) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (UInt256.ofNat 800) (⟨32⟩ : UInt256)) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨4247778087⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xfd 0x2f 0xf3 0x27 ⟨4247778087⟩ (by native_decide)
       (by simpa [midnightSelBytes] using hsel)
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := midnightBlocks.midnight_block_0_taken (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by jump_dest) rd0
   have rd2 := midnightBlocks.midnight_block_18_fallthrough (by simp [midnightBlocks.midnight_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨454344818⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd1
   have rd3 := midnightBlocks.midnight_block_40_fallthrough (by simp [midnightBlocks.midnight_block_0_taken_memory, midnightBlocks.midnight_block_18_fallthrough_stack, midnightBlocks.midnight_block_18_fallthrough_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨559259243⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [hword]; native_decide)) rd2
@@ -1042,8 +1044,8 @@ theorem midnightReachContinuousFeeCreditBody {σ σ₀ A I} {g : Sat256}
 theorem midnightX_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = midnightBytecode)
     (hshort : I.calldata.size < 4) :
-    RDrev (midnightBytecode) g (initState σ σ₀ g A I) := by
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+    RDrev fork (midnightBytecode) g (initState σ σ₀ g A I) := by
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := midnightBlocks.midnight_block_0_fallthrough (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) rd0
   have rd2 := midnightBlocks.midnight_block_15 (by simp [midnightBlocks.midnight_block_0_fallthrough_memory]) rd1
   simpa [midnightBlocks.midnight_block_0_fallthrough_memory] using rd2
@@ -1053,8 +1055,8 @@ theorem midnightX_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = midnightBytecode)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 57 → (midnightSelBytes i == I.calldata.extract 0 4) = false) :
-    RDrev (midnightBytecode) g (initState σ σ₀ g A I) := by
-  have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
+    RDrev fork (midnightBytecode) g (initState σ σ₀ g A I) := by
+  have rd0 := RD.initState (fork := fork) (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd1 := midnightBlocks.midnight_block_0_taken (by simp) (by first | exact lt_four_eq_zero_of_ge hsz hsize | exact lt_four_ne_zero_of_lt hshort | exact isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort) | (rw [lt_four_eq_zero_of_ge hsz hsize]; decide) | (rw [isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hshort)]; decide)) (by jump_dest) rd0
   have rd2 := midnightBlocks.midnight_block_18_fallthrough (by simp [midnightBlocks.midnight_block_0_taken_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨454344818⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [solcSelectorWord, liquidationLockedEvmSelector hsz, hnm 0 (by omega)]; decide)) rd1
   have rd3 := midnightBlocks.midnight_block_40_fallthrough (by simp [midnightBlocks.midnight_block_0_taken_memory, midnightBlocks.midnight_block_18_fallthrough_stack, midnightBlocks.midnight_block_18_fallthrough_memory]) (by simpa [solcSelectorWord] using (show (UInt256.eq ⟨559259243⟩ (solcSelectorWord I)) = ⟨0⟩ by rw [solcSelectorWord, setDefaultContinuousFeeEvmSelector hsz, hnm 1 (by omega)]; decide)) rd2

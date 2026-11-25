@@ -5,6 +5,8 @@ import Benchmarks.Midnight.BoolDecode
 import Benchmarks.Midnight.AddressDecode
 import Benchmarks.Midnight.ScratchMemory
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `setIsAuthorized(address,bool,address)`
 
@@ -91,7 +93,7 @@ theorem setAuthorizationReverts (evm : EVM.State) (authorized flag user : UInt25
     (hc : user.toNat < EVM.addressModulus)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hhi : evm.executionEnv.calldata.size < calldataLimit)
     (hauth : ¬ onBehalfAllowed evm user) :
-    ExecTransitionBody config contract evm (setAuthorizationArguments authorized flag user)
+    ExecTransitionBody fork config contract evm (setAuthorizationArguments authorized flag user)
       setIsAuthorizedTransition.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   apply guardedBodyBlock hwv hhi
@@ -103,7 +105,7 @@ theorem setAuthorizationReturns (evm : EVM.State) (authorized flag user : UInt25
     (hc0 : authorized.toNat < EVM.addressModulus) (hc1 : user.toNat < EVM.addressModulus)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hhi : evm.executionEnv.calldata.size < calldataLimit)
     (hauth : onBehalfAllowed evm user) (hperm : evm.executionEnv.perm = true) :
-    ExecTransitionBody config contract evm (setAuthorizationArguments authorized flag user)
+    ExecTransitionBody fork config contract evm (setAuthorizationArguments authorized flag user)
       setIsAuthorizedTransition.body
       (.returned (calldataFrame contract (setAuthorizationArguments authorized flag user) ∅ evm)
         (setAuthorizationState evm authorized flag user) none) := by
@@ -126,7 +128,7 @@ theorem setAuthorizationStatic (evm : EVM.State) (authorized flag user : UInt256
     (hc0 : authorized.toNat < EVM.addressModulus) (hc1 : user.toNat < EVM.addressModulus)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hhi : evm.executionEnv.calldata.size < calldataLimit)
     (hauth : onBehalfAllowed evm user) (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody config contract evm (setAuthorizationArguments authorized flag user)
+    ExecTransitionBody fork config contract evm (setAuthorizationArguments authorized flag user)
       setIsAuthorizedTransition.body .staticViolation := by
   apply ExecFuncBody.execBlockStatic
   apply guardedBodyBlock hwv hhi
@@ -142,9 +144,9 @@ theorem setAuthorizationTraceReturn {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {authorized flag user : UInt256} {R : List UInt256}
     (hm : EntryScratch mem) (hstack : R.length + 8 ≤ 1024) (hperm : I.perm = true)
     (hcanon : authorized.toNat < EVM.addressModulus) (hbool : flag = ⟨0⟩ ∨ flag = ⟨1⟩)
-    (rd : RD midnightBytecode I g s0 ⟨3136⟩ (authorized :: flag :: user :: R)
+    (rd : RD fork midnightBytecode I g s0 ⟨3136⟩ (authorized :: flag :: user :: R)
       mem aw rdata σ k C) :
-    RDret midnightBytecode g s0
+    RDret fork midnightBytecode g s0
       (sstoreAccountMap I.codeOwner σ (authorizationSlot user authorized)
         (setBoolOffset0Word (solcSlotWordAt (authorizationSlot user authorized) σ I) flag))
       ByteArray.empty := by
@@ -159,7 +161,7 @@ theorem setAuthorizationTraceReturn {I : ExecutionEnv} {g : Sat256} {s0 : State}
   have hc : UInt256.land flag (UInt256.ofNat 255) = UInt256.isZero (UInt256.isZero flag) := by
     rcases hbool with rfl | rfl <;> decide
   rw [hc, u256_lor_comm] at hr
-  change RDret _ _ _ _ ((writeWord
+  change RDret fork _ _ _ _ ((writeWord
     (twoWordHashMem authorized (solcMappingSlot (UInt256.ofNat 3) user)
       (twoWordHashMem user (UInt256.ofNat 3) mem)) 832 flag).readWithPadding
     (memLoad (UInt256.ofNat 800) (writeWord
@@ -175,8 +177,8 @@ theorem setAuthorizationTraceStatic {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : Nat}
     {authorized flag user : UInt256} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024) (hperm : I.perm = false)
-    (rd : RD midnightBytecode I g s0 ⟨3136⟩ (authorized :: flag :: user :: R)
-      mem aw rdata σ k C) : RDstatic midnightBytecode g s0 := by
+    (rd : RD fork midnightBytecode I g s0 ⟨3136⟩ (authorized :: flag :: user :: R)
+      mem aw rdata σ k C) : RDstatic fork midnightBytecode g s0 := by
   let r0 := rd
   have r1 := r0.push1 (UInt256.ofNat 1) (by native_decide) (by evm_ov)
   have r2 := r1.push1 (UInt256.ofNat 1) (by native_decide) (by evm_ov)
@@ -220,10 +222,10 @@ theorem setAuthorizationTraceStatic {I : ExecutionEnv} {g : Sat256} {s0 : State}
 /-- `setIsAuthorized(address,bool,address)`: the theorem `Correct.lean` routes selector 40 to. -/
 theorem midnightSetIsAuthorizedBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 40)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 40) rfl hsel
   have hd : dispatchMsg contract I.calldata = some setIsAuthorizedTransition := by
     apply midnightDispatch_setIsAuthorized <;>
@@ -236,7 +238,7 @@ theorem midnightSetIsAuthorizedBody {σ σ₀ A I} {g : UInt256}
     · by_cases h100 : 100 ≤ I.calldata.size
       · have rd2 := midnightBlocks.midnight_block_3069_fallthrough (by simp)
           (entrySizeCheck_ok (bytes := 96) h100 hhi hsize) rd1
-        change RD _ _ _ _ _ [solcSelectorWord I] midnightEntryMemory _ _ _ _ _ at rd2
+        change RD fork _ _ _ _ _ [solcSelectorWord I] midnightEntryMemory _ _ _ _ _ at rd2
         have rd3 := midnightBlocks.midnight_block_3081 (by simp) (by jump_dest) rd2
         simp only [midnightBlocks.midnight_block_3081_stack] at rd3
         by_cases hc0 : (calldataWord I.calldata 4).toNat < EVM.addressModulus
@@ -245,7 +247,7 @@ theorem midnightSetIsAuthorizedBody {σ σ₀ A I} {g : UInt256}
           · have hclean := (boolWordClean_iff (calldataWord I.calldata 36)).mpr hb
             have rd5 := midnightBlocks.midnight_block_3088_fallthrough (by simp)
               (u256_sub_eq_zero_iff_eq.mpr hclean.symm) rd4
-            change RD _ _ _ _ _ [UInt256.isZero (UInt256.isZero (calldataWord I.calldata 36)),
+            change RD fork _ _ _ _ _ [UInt256.isZero (UInt256.isZero (calldataWord I.calldata 36)),
               calldataWord I.calldata 4, solcSelectorWord I] _ _ _ _ _ _ at rd5
             rw [hclean] at rd5
             have rd6 := midnightBlocks.midnight_block_3103 (by simp) (by jump_dest) rd5

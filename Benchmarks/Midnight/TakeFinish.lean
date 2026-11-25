@@ -3,6 +3,8 @@ import Benchmarks.Midnight.TakeEncodeOffer
 import Benchmarks.Midnight.TakeEventSource
 import Benchmarks.Midnight.TakeLock
 
+variable {fork : Ethereum.Fork}
+
 /-! Offer encoding, the trade event, and the lock followed by the completed take suffix. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,7 +19,7 @@ theorem midnightTakeFinish {credit : Nat} {I : ExecutionEnv} {g : UInt256} {s0 e
       buyerFee sellerFee bought sold consumed increase decrease saved : UInt256}
     {offer : OfferData} {initialReceiver initialCallback receiver buyerCallback sellerCallback payer :
       AccountAddress} {σ : AccountMap} {k C : Nat} {R : List UInt256}
-    (hstack : R.length + 33 ≤ 1024) (hfork : I.fork ≥ .osaka) (hgas : midnightGasBound g)
+    (hstack : R.length + 33 ≤ 1024) (hfork : fork ≥ .osaka) (hgas : midnightGasBound g)
     (hc : OfferCanonical offer)
     (hf : TakeSourceFrame frame offer id units taker initialReceiver initialCallback ratifierData data)
     (hbuyerCanon : buyer.toNat < EVM.addressModulus)
@@ -60,17 +62,17 @@ theorem midnightTakeFinish {credit : Nat} {I : ExecutionEnv} {g : UInt256} {s0 e
     (hbuyerFee : memLoad (UInt256.ofNat 224) mem = buyerFee)
     (hunits : calldataWord I.calldata 68 = units)
     (hs : SourceState s0 I σ evm)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨12792⟩
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨12792⟩
       ([decrease, increase, ratifierPtr, UInt256.ofNat sellerCallback.val,
         UInt256.ofNat payer.val, UInt256.ofNat buyerCallback.val, saved] ++ R)
       mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (ExecBlock config frame evm (takeTransition.body.drop 64) .reverted ∧
-      RDrev midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (ExecBlock fork config frame evm (takeTransition.body.drop 64) .reverted ∧
+      RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
     ∃ frame' evm',
-      ExecBlock config frame evm (takeTransition.body.drop 64)
+      ExecBlock fork config frame evm (takeTransition.body.drop 64)
         (.returned frame' evm' (some [.int bought.toNat, .int sold.toNat])) ∧
-      RDret midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap
+      RDret fork midnightBytecode (Sat256.ofUInt256 g) s0 evm'.accountMap
         (wordArrayBytes [bought, sold]) := by
   rcases midnightTakeEncodeOffer (g := Sat256.ofUInt256 g)
       (by change R.length + 33 ≤ 1024; exact hstack)
@@ -149,9 +151,9 @@ theorem midnightTakeFinish {credit : Nat} {I : ExecutionEnv} {g : UInt256} {s0 e
       rw [← accountAddress_ofUInt256_eq_ofNat_toNat]
       exact accountAddress_roundtrip receiver
     have sourcePrefix result
-        (hx : ExecBlock config frame3 (lockExchangeState evm liquidationLockBase id seller true)
+        (hx : ExecBlock fork config frame3 (lockExchangeState evm liquidationLockBase id seller true)
           (takeTransition.body.drop 67) result) :
-        ExecBlock config frame evm (takeTransition.body.drop 64) result := by
+        ExecBlock fork config frame evm (takeTransition.body.drop 64) result := by
       apply (takeEncodeOfferSource hc hf.offerValue).run
       rw [takeEvent_shape]
       exact ExecBlock.consNormal (ExecStmt.emit (by rw [hs.env]; exact hperm) hevent)

@@ -1,6 +1,8 @@
 import Benchmarks.Midnight.Dispatch
 import Benchmarks.Midnight.Storage
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `configurator()`
 
@@ -18,7 +20,7 @@ set_option maxRecDepth 2000000
 theorem configuratorBodyReturns (evm : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) :
-    ExecTransitionBody config contract evm ∅ configuratorTransition.body
+    ExecTransitionBody fork config contract evm ∅ configuratorTransition.body
       (.returned (calldataFrame contract ∅ ∅ evm) evm
         (some [.address (AccountAddress.ofNat
           (UInt256.land (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨9⟩)
@@ -28,10 +30,10 @@ theorem configuratorBodyReturns (evm : EVM.State)
 /-- `configurator()`: the theorem `Correct.lean` routes selector 5 to. -/
 theorem midnightConfiguratorBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 5)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 5) rfl hsel
   have hd : dispatchMsg contract I.calldata = some configuratorTransition := by
     apply midnightDispatch_configurator <;>
@@ -47,15 +49,15 @@ theorem midnightConfiguratorBody {σ σ₀ A I} {g : UInt256}
     · have rd2 := midnightBlocks.midnight_block_17606_fallthrough (by simp)
         (entrySizeCheck_ok (bytes := 0) hsz hhi hsize) rd1
       have hr := midnightBlocks.midnight_block_17617 (by simp) rd2
-      have hret : RDret midnightBytecode (Sat256.ofUInt256 g)
+      have hret : RDret fork midnightBytecode (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
           (UInt256.land (solcSlotWordAt ⟨9⟩ σ I) solcAddrMask).toByteArray := by
-        change RDret _ _ _ _
+        change RDret fork _ _ _ _
           ((writeWord midnightEntryMemory (memLoad ⟨64⟩ midnightEntryMemory).toNat
             (UInt256.land (solcSlotWordAt ⟨9⟩ σ I) solcAddrMask)).readWithPadding
             (memLoad ⟨64⟩ midnightEntryMemory).toNat 32) at hr
         simpa only [midnightReturnWord_freePtr] using hr
-      have hbody := configuratorBodyReturns (initState σ σ₀ (Sat256.ofUInt256 g) A I) hwv hhi
+      have hbody := configuratorBodyReturns (fork := fork) (initState σ σ₀ (Sat256.ofUInt256 g) A I) hwv hhi
       exact hret.reEquivExecution hcode hd hdec hbody
         (returnEquiv_of_encode (solcAddressReturnEncoding rfl (solcSlotWordAt ⟨9⟩ σ I)))
     · have rd2 := midnightBlocks.midnight_block_17606_taken (by simp)

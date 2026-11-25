@@ -4,6 +4,8 @@ import Benchmarks.Midnight.MemoryFunding
 import Benchmarks.Midnight.RuntimeBlocks_042
 import Benchmarks.Midnight.RuntimeBlocks_055
 
+variable {fork : Ethereum.Fork}
+
 /-! Exactly one of an offer's assets and units caps must be nonzero. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -42,10 +44,10 @@ theorem midnightTakeCapsGuard {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0
     (ho : OfferStored mem ⟨832⟩ marketPtr arrayPtr callbackPtr root offer)
     (hc : OfferCanonical offer) (hroot : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨11009⟩ R mem aw rdata σ k C) :
-    (¬ TakeCapsValid offer ∧ RDrev midnightBytecode g s0) ∨
+    (rd : RD fork midnightBytecode I g s0 ⟨11009⟩ R mem aw rdata σ k C) :
+    (¬ TakeCapsValid offer ∧ RDrev fork midnightBytecode g s0) ∨
     (TakeCapsValid offer ∧ ∃ aw' k' C', MemoryFunding credit mem aw' C' ∧
-      RD midnightBytecode I g s0 ⟨11051⟩ R mem aw' rdata σ k' C') := by
+      RD fork midnightBytecode I g s0 ⟨11051⟩ R mem aw' rdata σ k' C') := by
   have hassets : memLoad ((⟨832⟩ : UInt256) + UInt256.ofNat 416) mem = offer.maxAssets :=
     ho.words.load_offset ⟨13, by change 13 < 15; decide⟩ rfl
   have hunits : memLoad ((⟨832⟩ : UInt256) + UInt256.ofNat 384) mem = offer.maxUnits :=

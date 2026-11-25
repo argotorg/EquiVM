@@ -2,6 +2,8 @@ import Benchmarks.Midnight.RepayCallbackMagic
 import Benchmarks.Midnight.FlashLoanCallbackHeap
 import Benchmarks.Midnight.MemoryPrefix
 
+variable {fork : Ethereum.Fork}
+
 /-! Repayment acknowledgement decoding and preservation of allocated market memory. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -57,16 +59,16 @@ theorem midnightRepayCallbackReturn {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hzero : memLoad (UInt256.ofNat 800) mem = ⟨0⟩)
     (hb : success = true → TransferBudget budgetRoot credit
       (wordReplyMemory mem out root) aw C)
-    (rd : RD midnightBytecode I g s0 ⟨10222⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨10222⟩
       ((if success then ⟨1⟩ else ⟨0⟩) :: root :: R)
       (wordReplyMemory mem out root) aw out σ k C) :
     ((success = false ∨ out.size < 32 ∨ calldataWord out 0 ≠ flashLoanMagic) ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     (success = true ∧ 32 ≤ out.size ∧ calldataWord out 0 = flashLoanMagic ∧
       ∃ aw' k' C',
         TransferBudget budgetRoot credit
           (flashLoanCallbackResultMemory (wordReplyMemory mem out root) root) aw' C' ∧
-        RD midnightBytecode I g s0 ⟨10259⟩ R
+        RD fork midnightBytecode I g s0 ⟨10259⟩ R
           (flashLoanCallbackResultMemory (wordReplyMemory mem out root) root) aw' out σ k' C') := by
   have hz : memLoad (UInt256.ofNat 800) (wordReplyMemory mem out root) = ⟨0⟩ := by
     rw [wordReplyMemory_load_before _ _ _ _ hsize (by exact hlower), hzero]

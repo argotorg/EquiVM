@@ -2,6 +2,8 @@ import Benchmarks.Midnight.Dispatch
 import Benchmarks.Midnight.AddressDecode
 import Benchmarks.Midnight.MappingMemory
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `claimableSettlementFee(address)`
 
@@ -20,7 +22,7 @@ theorem claimableSettlementFeeBodyReturns (evm : EVM.State) (key : UInt256)
     (hcanon : key.toNat < EVM.addressModulus)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) :
-    ExecTransitionBody config contract evm
+    ExecTransitionBody fork config contract evm
       ((∅ : Store).insert "arg0" (.address (AccountAddress.ofNat key.toNat)))
       claimableSettlementFeeTransition.body
       (.returned (calldataFrame contract
@@ -39,11 +41,11 @@ theorem claimableSettlementFeeBodyReturns (evm : EVM.State) (key : UInt256)
 
 theorem claimableSettlementFeeTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Nat} {key : UInt256}
     (hcanon : key.toNat < EVM.addressModulus)
-    (rd : RD midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 16009)
+    (rd : RD fork midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 16009)
       [key, solcAddrMask, solcSelectorWord I] midnightEntryMemory
       (M (M (UInt256.ofNat 0) (UInt256.ofNat 64) ⟨32⟩) (UInt256.ofNat 800) ⟨32⟩)
       ByteArray.empty σ k C) :
-    RDret midnightBytecode g (initState σ σ₀ g A I) σ
+    RDret fork midnightBytecode g (initState σ σ₀ g A I) σ
       (solcSlotWordAt (solcMappingSlot ⟨6⟩ key) σ I).toByteArray := by
   have hr := midnightBlocks.midnight_block_16009 (by simp) rd
   simp only [solcAddrMask_clean hcanon] at hr
@@ -56,10 +58,10 @@ theorem claimableSettlementFeeTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Nat
 /-- `claimableSettlementFee(address)`: the theorem `Correct.lean` routes selector 10 to. -/
 theorem midnightClaimableSettlementFeeBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 10)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 10) rfl hsel
   have hd : dispatchMsg contract I.calldata = some claimableSettlementFeeTransition := by
     apply midnightDispatch_claimableSettlementFee <;>
@@ -79,7 +81,7 @@ theorem midnightClaimableSettlementFeeBody {σ σ₀ A I} {g : UInt256}
           have hret := claimableSettlementFeeTraceReturn hcanon rd4
           have hdec := midnightDecodeAddress "arg0" (by decide) (by decide)
             h36 hhi hsize hcanon
-          have hbody := claimableSettlementFeeBodyReturns
+          have hbody := claimableSettlementFeeBodyReturns (fork := fork)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) (calldataWord I.calldata 4) hcanon hwv hhi
           exact hret.reEquivExecution hcode hd hdec hbody
             (returnEquiv_of_encode (uint256ReturnEncoding _))

@@ -2,6 +2,8 @@ import Benchmarks.Midnight.SupplySourceFrame
 import Benchmarks.Midnight.ToUint128Source
 import Benchmarks.Midnight.CollateralPackedStore
 
+variable {fork : Ethereum.Fork}
+
 /-! The checked balance update and source event for collateral supply. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -27,7 +29,7 @@ theorem supplyAddRevert {frame : Frame} {m : MarketData} {evm : EVM.State}
     {id user index assets old : UInt256} {token : AccountAddress}
     (hf : SupplySourceFrame frame m id user index assets old token)
     (hfit : ¬ old.toNat + assets.toNat < 2^128) :
-    ExecBlock config frame evm (supplyCollateralTransition.body.drop 9) .reverted := by
+    ExecBlock fork config frame evm (supplyCollateralTransition.body.drop 9) .reverted := by
   apply ExecBlock.consRevert
   by_cases h256 : old.toNat + assets.toNat < UInt256.size
   · apply callToUint128Revert hf.contract (supplyAddArgs hf h256)
@@ -57,10 +59,10 @@ theorem supplyAddSource {frame : Frame} {m : MarketData} {evm : EVM.State}
     (hf : SupplySourceFrame frame m id user index assets old token)
     (hcanon : user.toNat < EVM.addressModulus) (hi : index.toNat < 128)
     (hfit : old.toNat + assets.toNat < 2^128) (hp : evm.executionEnv.perm = true)
-    (htail : ExecBlock config (wordLocal frame "__c4" (old + assets))
+    (htail : ExecBlock fork config (wordLocal frame "__c4" (old + assets))
       (collateralWriteState evm id user index (old + assets))
       (supplyCollateralTransition.body.drop 11) result) :
-    ExecBlock config frame evm (supplyCollateralTransition.body.drop 9) result := by
+    ExecBlock fork config frame evm (supplyCollateralTransition.body.drop 9) result := by
   have h256 : old.toNat + assets.toNat < UInt256.size := by change _ < 2^256; omega
   have hn : (old + assets).toNat = old.toNat + assets.toNat := addWord_toNat _ _ h256
   apply ExecBlock.consNormal (callToUint128 hf.contract (supplyAddArgs hf h256)
@@ -73,7 +75,7 @@ theorem supplyAddStatic {frame : Frame} {m : MarketData} {evm : EVM.State}
     (hf : SupplySourceFrame frame m id user index assets old token)
     (hcanon : user.toNat < EVM.addressModulus) (hi : index.toNat < 128)
     (hfit : old.toNat + assets.toNat < 2^128) (hp : evm.executionEnv.perm = false) :
-    ExecBlock config frame evm (supplyCollateralTransition.body.drop 9) .staticViolation := by
+    ExecBlock fork config frame evm (supplyCollateralTransition.body.drop 9) .staticViolation := by
   have h256 : old.toNat + assets.toNat < UInt256.size := by change _ < 2^256; omega
   have hn : (old + assets).toNat = old.toNat + assets.toNat := addWord_toNat _ _ h256
   apply ExecBlock.consNormal (callToUint128 hf.contract (supplyAddArgs hf h256)
@@ -85,7 +87,7 @@ theorem supplyCollateralEmit {frame : Frame} {m : MarketData} {evm : EVM.State}
     {id user index assets old : UInt256} {token : AccountAddress}
     (hf : SupplySourceFrame frame m id user index assets old token)
     (hp : evm.executionEnv.perm = true) :
-    ABlock config evm frame (supplyCollateralTransition.body.drop 11)
+    ABlock fork config evm frame (supplyCollateralTransition.body.drop 11)
       frame (supplyCollateralTransition.body.drop 12) := by
   refine ⟨fun h ↦ ExecBlock.consNormal (ExecStmt.emit (vals :=
     [.address evm.executionEnv.source, wordBytes32Value id, .address token, .int assets.toNat,

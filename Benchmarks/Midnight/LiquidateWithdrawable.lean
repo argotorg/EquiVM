@@ -7,6 +7,8 @@ import Benchmarks.Midnight.CheckedUint128Gas
 import Benchmarks.Midnight.PackedStorageSourceState
 import Benchmarks.Midnight.TransferBudget
 
+variable {fork : Ethereum.Fork}
+
 /-! Checked conversion and increase of the market's withdrawable balance. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -23,14 +25,14 @@ theorem liquidateWithdrawable {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {
     (hp : I.perm = true) (hpaid : memLoad ⟨608⟩ mem = repaid)
     (hslot : memLoad ⟨672⟩ mem = solcMappingSlot ⟨1⟩ id)
     (hs : SourceState s0 I σ evm) (hb : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨6833⟩ R mem aw rdata σ k C) :
-    (ExecBlock config frame evm ((liquidateAmountsBody.drop 10).take 2) .reverted ∧
-      RDrev midnightBytecode g s0) ∨
+    (rd : RD fork midnightBytecode I g s0 ⟨6833⟩ R mem aw rdata σ k C) :
+    (ExecBlock fork config frame evm ((liquidateAmountsBody.drop 10).take 2) .reverted ∧
+      RDrev fork midnightBytecode g s0) ∨
     (repaid.toNat < 2^128 ∧ ∃ evm' σ' aw' k' C',
-      ExecBlock config frame evm ((liquidateAmountsBody.drop 10).take 2)
+      ExecBlock fork config frame evm ((liquidateAmountsBody.drop 10).take 2)
         (.ok (wordLocal frame "__c29" repaid) evm') ∧
       SourceState s0 I σ' evm' ∧ TransferBudget root credit mem aw' C' ∧
-      RD midnightBytecode I g s0 ⟨23403⟩
+      RD fork midnightBytecode I g s0 ⟨23403⟩
         (repaid :: ⟨6914⟩ :: ⟨6925⟩ :: uint128Mask :: ⟨2⟩ :: R) mem aw' rdata σ' k' C') := by
   have ha : evalExprs? config frame evm [.var "repaidUnits"] = .ok [.int repaid.toNat] := by
     simp only [evalExprs?, evalWordLocal hf.repaid, bind, pure, EvalResult.bind]
@@ -39,7 +41,7 @@ theorem liquidateWithdrawable {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {
   simp only [midnightBlocks.midnight_block_6833_stack,
     show UInt256.ofNat 608 = (⟨608⟩ : UInt256) from rfl, hpaid] at rd1 hb1
   by_cases h128 : repaid.toNat < 2^128
-  · have hx0 := callToUint128 (name := "__c29") hf.contract ha h128
+  · have hx0 := callToUint128 (fork := fork) (name := "__c29") hf.contract ha h128
     have hf1 := hf.insert "__c29" (.int repaid.toNat) (by decide)
     obtain ⟨k2, C2, hc2, rd2⟩ := midnightToUint128_mono
       (by omega) h128 (by jump_dest) rd1
@@ -72,7 +74,7 @@ theorem liquidateWithdrawable {I : ExecutionEnv} {g : Sat256} {s0 evm : State} {
       let σ1 := storeLow128Accounts σ I (solcMappingSlot ⟨1⟩ id + ⟨1⟩) (old + repaid)
       have hs1 : SourceState s0 I σ1 evm1 :=
         SourceState.storeLow128 hs _ (old + repaid)
-      have hx1 : ExecStmt config (wordLocal frame "__c29" repaid) evm
+      have hx1 : ExecStmt fork config (wordLocal frame "__c29" repaid) evm
           (liquidateAmountsBody[11]!) (.ok (wordLocal frame "__c29" repaid) evm1) :=
         ExecStmt.assign (Or.inr (by rw [hs.env]; exact hp))
           (evalCheckedAdd128 (evalMarketBalance 1 hf1.marketState)

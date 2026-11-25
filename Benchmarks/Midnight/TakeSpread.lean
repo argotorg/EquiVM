@@ -2,6 +2,8 @@ import Benchmarks.Midnight.TakePricing
 import Benchmarks.Midnight.CheckedAddGas
 import Benchmarks.Midnight.CheckedSubGas
 
+variable {fork : Ethereum.Fork}
+
 /-! Checked seller and buyer prices after the settlement fee is known. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -26,20 +28,20 @@ theorem midnightTakeSpread {credit : Nat} {I : ExecutionEnv} {g : Sat256} {s0 : 
     (ho : OfferStored mem ⟨832⟩ marketPtr arrayPtr callbackPtr root offer)
     (hroot : memLoad (UInt256.ofNat 384) mem = ⟨832⟩)
     (ha : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨11556⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨11556⟩
       (fee :: UInt256.ofNat 11591 :: price :: R) mem aw rdata σ k C) :
-    (¬ TakeSpreadSafe offer.buy price fee ∧ RDrev midnightBytecode g s0) ∨
+    (¬ TakeSpreadSafe offer.buy price fee ∧ RDrev fork midnightBytecode g s0) ∨
     (TakeSpreadSafe offer.buy price fee ∧ ∃ aw' k' C', MemoryFunding credit mem aw' C' ∧
-      RD midnightBytecode I g s0 ⟨11591⟩
+      RD fork midnightBytecode I g s0 ⟨11591⟩
         (takeBuyerPrice offer.buy price fee :: takeSellerPrice offer.buy price fee :: R)
         mem aw' rdata σ k' C') := by
   have hbuy : memLoad ((⟨832⟩ : UInt256) + UInt256.ofNat 32) mem = offer.buy :=
     ho.words.load_offset ⟨1, by change 1 < 15; decide⟩ rfl
   have hstage :
-      (offer.buy ≠ ⟨0⟩ ∧ price.toNat < fee.toNat ∧ RDrev midnightBytecode g s0) ∨
+      (offer.buy ≠ ⟨0⟩ ∧ price.toNat < fee.toNat ∧ RDrev fork midnightBytecode g s0) ∨
       ((offer.buy ≠ ⟨0⟩ → fee.toNat ≤ price.toNat) ∧
         ∃ aw' k' C', MemoryFunding credit mem aw' C' ∧
-          RD midnightBytecode I g s0 ⟨11585⟩
+          RD fork midnightBytecode I g s0 ⟨11585⟩
             (fee :: UInt256.ofNat 11591 :: takeSellerPrice offer.buy price fee :: R)
             mem aw' rdata σ k' C') := by
     by_cases hb : offer.buy = ⟨0⟩

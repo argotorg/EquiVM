@@ -5,6 +5,8 @@ import Benchmarks.Midnight.MappingMemory
 import Benchmarks.Midnight.ArrayStorage
 import Benchmarks.Midnight.PackedArray
 
+variable {fork : Ethereum.Fork}
+
 /-!
 # Midnight `defaultSettlementFeeCbp(address,uint256)`
 
@@ -33,7 +35,7 @@ theorem defaultSettlementFeeBodyReturns (evm : EVM.State) (loanToken : UInt256) 
     (hcanon : loanToken.toNat < EVM.addressModulus)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) :
-    ExecTransitionBody config contract evm (defaultSettlementFeeArguments loanToken index.val)
+    ExecTransitionBody fork config contract evm (defaultSettlementFeeArguments loanToken index.val)
       defaultSettlementFeeCbpTransition.body
       (.returned (calldataFrame contract (defaultSettlementFeeArguments loanToken index.val) ∅ evm)
         evm (some [.int (Int.ofNat (UInt256.land (UInt256.shiftRight
@@ -69,7 +71,7 @@ theorem defaultSettlementFeeBodyReturns (evm : EVM.State) (loanToken : UInt256) 
 theorem defaultSettlementFeeBodyReverts (evm : EVM.State) (loanToken : UInt256) (index : Nat)
     (hi : ¬ index < 7) (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hhi : evm.executionEnv.calldata.size < calldataLimit) :
-    ExecTransitionBody config contract evm (defaultSettlementFeeArguments loanToken index)
+    ExecTransitionBody fork config contract evm (defaultSettlementFeeArguments loanToken index)
       defaultSettlementFeeCbpTransition.body .reverted := by
   exact guardedMappingArrayRevert evm _ (.address (AccountAddress.ofNat loanToken.toNat)) index
     rfl rfl (by decide) (by decide) (by decide) hi hwv hhi
@@ -77,11 +79,11 @@ theorem defaultSettlementFeeBodyReverts (evm : EVM.State) (loanToken : UInt256) 
 theorem defaultSettlementFeeTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Nat} {key : UInt256}
     (hcanon : key.toNat < EVM.addressModulus)
     (hi : (calldataWord I.calldata 36).toNat < 7)
-    (rd : RD midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 2948)
+    (rd : RD fork midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 2948)
       [key, solcSelectorWord I] midnightEntryMemory
       (M (M (UInt256.ofNat 0) (UInt256.ofNat 64) ⟨32⟩) (UInt256.ofNat 800) ⟨32⟩)
       ByteArray.empty σ k C) :
-    RDret midnightBytecode g (initState σ σ₀ g A I) σ
+    RDret fork midnightBytecode g (initState σ σ₀ g A I) σ
       (UInt256.land (UInt256.shiftRight (solcSlotWordAt (solcMappingSlot ⟨4⟩ key) σ I)
         (UInt256.ofNat (16 * (calldataWord I.calldata 36).toNat))) ⟨65535⟩).toByteArray := by
   have hc : UInt256.isZero (UInt256.lt (calldataWord I.calldata 36) (UInt256.ofNat 7)) = ⟨0⟩ := by
@@ -103,11 +105,11 @@ theorem defaultSettlementFeeTraceReturn {σ σ₀ A I} {g : Sat256} {k C : Nat} 
 
 theorem defaultSettlementFeeTraceRevert {σ σ₀ A I} {g : Sat256} {k C : Nat} {key : UInt256}
     (hi : ¬ (calldataWord I.calldata 36).toNat < 7)
-    (rd : RD midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 2948)
+    (rd : RD fork midnightBytecode I g (initState σ σ₀ g A I) (UInt256.ofNat 2948)
       [key, solcSelectorWord I] midnightEntryMemory
       (M (M (UInt256.ofNat 0) (UInt256.ofNat 64) ⟨32⟩) (UInt256.ofNat 800) ⟨32⟩)
       ByteArray.empty σ k C) :
-    RDrev midnightBytecode g (initState σ σ₀ g A I) := by
+    RDrev fork midnightBytecode g (initState σ σ₀ g A I) := by
   have hc : UInt256.isZero (UInt256.lt (calldataWord I.calldata 36) (UInt256.ofNat 7)) ≠ ⟨0⟩ := by
     rw [ult_zero (show (UInt256.ofNat 7).toNat ≤ (calldataWord I.calldata 36).toNat from
       Nat.le_of_not_lt hi)]
@@ -119,10 +121,10 @@ theorem defaultSettlementFeeTraceRevert {σ σ₀ A I} {g : Sat256} {k C : Nat} 
 /-- `defaultSettlementFeeCbp(address,uint256)`: the theorem `Correct.lean` routes selector 42 to. -/
 theorem midnightDefaultSettlementFeeCbpBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwf : midnightWF σ I)
+    (hfork : fork ≥ .osaka)
     (hgas : midnightGasBound g)
     (hsel : selIs I (midnightSelBytes 42)) :
-    runtimeRefinementFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor fork config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 42) rfl hsel
   have hd : dispatchMsg contract I.calldata = some defaultSettlementFeeCbpTransition := by
     apply midnightDispatch_defaultSettlementFeeCbp <;>
@@ -144,7 +146,7 @@ theorem midnightDefaultSettlementFeeCbpBody {σ σ₀ A I} {g : UInt256}
             (decodeAddressWord (by omega) hcanon) (decodeUint256Word h68)
           by_cases hi : (calldataWord I.calldata 36).toNat < 7
           · have hret := defaultSettlementFeeTraceReturn hcanon hi rd4
-            have hbody := defaultSettlementFeeBodyReturns
+            have hbody := defaultSettlementFeeBodyReturns (fork := fork)
               (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               (calldataWord I.calldata 4) ⟨(calldataWord I.calldata 36).toNat, hi⟩ hcanon hwv hhi
             exact hret.reEquivExecution hcode hd hdec hbody

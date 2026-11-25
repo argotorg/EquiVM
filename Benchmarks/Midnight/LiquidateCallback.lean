@@ -3,6 +3,8 @@ import Benchmarks.Midnight.LiquidateCallbackReturn
 import Benchmarks.Midnight.LiquidateCallbackSource
 import Benchmarks.Midnight.TypedCallFunding
 
+variable {fork : Ethereum.Fork}
+
 /-! Liquidation's callback and acknowledgement preserve the final-transfer heap. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -30,18 +32,18 @@ theorem midnightLiquidateCallback {I : ExecutionEnv} {g : UInt256} {s0 evm : Sta
     (hpaid : memLoad (UInt256.ofNat 608) mem = repaid)
     (hdl : dl.toNat < 2^64) (hdata : dp.toNat + dl.toNat ≤ I.calldata.size)
     (hh : TransferHeap mem aw root C) (hgas : midnightGasBound g) (hs : SourceState s0 I σ evm)
-    (rd : RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨5824⟩
+    (rd : RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨5824⟩
       ([dp, dl, borrower, badDebt, UInt256.ofNat receiver.val] ++ R) mem aw rdata σ k C) :
-    X (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
-    (ExecBlock config frame evm [liquidateCallbackStmt, .require liquidateMagicGuard] .reverted ∧
-      RDrev midnightBytecode (Sat256.ofUInt256 g) s0) ∨
+    X fork (g.toNat + 1) (D_J midnightBytecode 0) s0 = .error .OutOfGass ∨
+    (ExecBlock fork config frame evm [liquidateCallbackStmt, .require liquidateMagicGuard] .reverted ∧
+      RDrev fork midnightBytecode (Sat256.ofUInt256 g) s0) ∨
     ∃ (evm' : State) (σ' : AccountMap) (out mem' : ByteArray) (aw' : UInt256) (k' C' : Nat),
-      ExecBlock config frame evm [liquidateCallbackStmt, .require liquidateMagicGuard]
+      ExecBlock fork config frame evm [liquidateCallbackStmt, .require liquidateMagicGuard]
         (.ok (liquidateCallbackFrame frame (calldataWord out 0)) evm') ∧
       SourceState s0 I σ' evm' ∧ MemoryPrefix mem mem' root.toNat ∧
       root.toNat ≤ (root + UInt256.ofNat 32).toNat ∧
       TransferHeap mem' aw' (root + UInt256.ofNat 32) C' ∧
-      RD midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨6265⟩ R mem' aw' out σ' k' C' := by
+      RD fork midnightBytecode I (Sat256.ofUInt256 g) s0 ⟨6265⟩ R mem' aw' out σ' k' C' := by
   rcases midnightMemoryPaid_headroom rd hh.funding.accounting.paid hgas hh.covered with
     hoog | hroom
   · exact Or.inl hoog

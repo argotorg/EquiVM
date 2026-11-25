@@ -101,22 +101,24 @@ def main():
     original_signature = skeleton.body_signature
     def signature(c, t, global_guard):
         return original_signature(c, t, global_guard).replace(
-            "    (hsel :", "    (hwf : midnightWF σ I)\n"
+            "    (hsel :", "    (hfork : fork ≥ .osaka)\n"
             "    (hgas : midnightGasBound g)\n    (hsel :")
     skeleton.body_signature = signature
     original_correct = skeleton.render_correct
     def correct(c, global_guard):
         result = original_correct(c, global_guard)
         result = result.replace("runtimeRefinement config",
-            "runtimeRefinementWithWF midnightWF midnightGasBound config")
+            "runtimeRefinementWithWFOn midnightForks trivialStorageWF midnightGasBound config")
         result = result.replace("contractRefinement config",
-            "contractRefinementWF midnightWF midnightGasBound config")
-        result = result.replace("contractRefinement.of_constant", "contractRefinementWF.of_constant")
-        result = result.replace("fun σ σ₀ g A I hcode hsize ↦",
-            "fun σ σ₀ g A I hcode hsize hwf hgas ↦")
+            "contractRefinementWFOn midnightForks trivialStorageWF midnightGasBound config")
+        result = result.replace(f"contractRefinement.of_constant {c.prefix}ConstructorCorrect",
+            "contractRefinementWF.of_constant\n"
+            f"    ({c.prefix}ConstructorCorrect.mono fun fork _ => supportedForks_mem fork)")
+        result = result.replace("fun fork _hfork σ σ₀ g A I hcode hsize ↦",
+            "fun fork hfork σ σ₀ g A I hcode hsize _ hgas ↦")
         for t in c.transitions:
             before = f"{c.prefix}{t.cap}Body hcode hsize"
-            result = result.replace(before, before + " hwf hgas")
+            result = result.replace(before, before + " hfork hgas")
         return result
     skeleton.render_correct = correct
     if args.all:

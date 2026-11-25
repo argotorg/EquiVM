@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.InitMarketFeeTrace
 
+variable {fork : Ethereum.Fork}
+
 /-! The final initialization write reads the continuous fee after the settlement writes. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -46,11 +48,11 @@ theorem midnightInitMarketContinuous {evm : EVM.State} {g : Sat256} {s0 : State}
     {mem rdata : ByteArray} {aw id : UInt256} {k C : Nat} {R : List UInt256}
     (token : AccountAddress) (hstack : R.length + 5 ≤ 1024)
     (hmem : 64 ≤ mem.size) (hperm : evm.executionEnv.perm = true)
-    (rd : RD midnightBytecode evm.executionEnv g s0 ⟨21514⟩
+    (rd : RD fork midnightBytecode evm.executionEnv g s0 ⟨21514⟩
       (⟨0⟩ :: (solcMappingSlot ⟨1⟩ id + ⟨2⟩) :: R)
       (twoWordHashMem (UInt256.ofNat token.val) (UInt256.ofNat 5) mem)
       aw rdata evm.accountMap k C) :
-    ∃ aw' k' C', RD midnightBytecode evm.executionEnv g s0 ⟨24347⟩
+    ∃ aw' k' C', RD fork midnightBytecode evm.executionEnv g s0 ⟨24347⟩
       (UInt256.ofNat 21556 :: R)
       (twoWordHashMem (UInt256.ofNat token.val) (UInt256.ofNat 5) mem)
       aw' rdata (initMarketContinuous evm id token).accountMap k' C' := by

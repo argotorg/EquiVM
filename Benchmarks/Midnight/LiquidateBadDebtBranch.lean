@@ -2,6 +2,8 @@ import Benchmarks.Midnight.LiquidateBadDebtHead
 import Benchmarks.Midnight.LiquidateBadDebtTail
 import Benchmarks.Midnight.LiquidateBadDebtFrames
 
+variable {fork : Ethereum.Fork}
+
 /-! The complete nonzero-bad-debt branch, including all arithmetic and static failures. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -22,16 +24,16 @@ theorem midnightLiquidateBadDebtBranch {I : ExecutionEnv} {g : Sat256} {s0 evm :
     (hslot : memLoad (UInt256.ofNat 672) mem = solcMappingSlot ⟨1⟩ id)
     (hzero : memLoad (UInt256.ofNat 800) mem = ⟨0⟩)
     (hs : SourceState s0 I σ evm) (hb : TransferBudget root credit mem aw C)
-    (rd : RD midnightBytecode I g s0 ⟨7431⟩
+    (rd : RD fork midnightBytecode I g s0 ⟨7431⟩
       ([debtWord, reverseRep, rep, maxDebt, price, positionSlot id borrower, dp, dl, borrower, badDebt] ++ R)
       mem aw rdata σ k C) :
-    (ExecBlock config frame evm liquidateBadDebtBody .reverted ∧ RDrev midnightBytecode g s0) ∨
-    (ExecBlock config frame evm liquidateBadDebtBody .staticViolation ∧ RDstatic midnightBytecode g s0) ∨
+    (ExecBlock fork config frame evm liquidateBadDebtBody .reverted ∧ RDrev fork midnightBytecode g s0) ∨
+    (ExecBlock fork config frame evm liquidateBadDebtBody .staticViolation ∧ RDstatic fork midnightBytecode g s0) ∨
     (∃ frame' evm' σ' aw' k' C', SourceState s0 I σ' evm' ∧
-      ExecBlock config frame evm liquidateBadDebtBody (.ok frame' evm') ∧
+      ExecBlock fork config frame evm liquidateBadDebtBody (.ok frame' evm') ∧
       LiquidateSourceFrame frame' m id index seized repaid borrower mode receiver callback data ∧
       LiquidateAccumulators frame' bitmap maxDebt price originalDebt badDebt ∧
-      TransferBudget root credit mem aw' C' ∧ RD midnightBytecode I g s0 ⟨7768⟩
+      TransferBudget root credit mem aw' C' ∧ RD fork midnightBytecode I g s0 ⟨7768⟩
         ([reverseRep, rep, maxDebt, price, positionSlot id borrower, dp, dl, borrower, badDebt] ++ R)
         mem aw' rdata σ' k' C') := by
   rcases midnightLiquidateBadDebtHead hstack hcanon hf.contract hf.position hf.marketState
@@ -68,7 +70,7 @@ theorem midnightLiquidateBadDebtBranch {I : ExecutionEnv} {g : Sat256} {s0 evm :
         liquidateFeeFrame_arguments (hf1.insert "__c14" (.int badDebt.toNat) (by decide))
       have ha2 : LiquidateAccumulators frame2 bitmap maxDebt price originalDebt badDebt :=
         liquidateFeeFrame_accumulators (ha1.insert "__c14" (.int badDebt.toNat) (by decide))
-      have hex : ExecBlock config frame evm liquidateBadDebtBody
+      have hex : ExecBlock fork config frame evm liquidateBadDebtBody
           (.ok frame2 (marketBalanceStore evm2 id 2 amount)) := by
         simpa only [List.take_append_drop] using execBlock_append_ok hex1 hex2
       exact Or.inr (Or.inr ⟨frame2, _, σ2, aw2, k2, C2, hs2, hex, hf2, ha2, hb2, rd2⟩)

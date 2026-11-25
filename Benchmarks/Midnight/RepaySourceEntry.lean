@@ -2,6 +2,8 @@ import Benchmarks.Midnight.RepayDecode
 import Benchmarks.Midnight.TouchMarketSource
 import Benchmarks.Midnight.Authorization
 
+variable {fork : Ethereum.Fork}
+
 /-! Repayment locals, source authorization, and market initialization. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -72,9 +74,9 @@ theorem repayAfterAuthSource {origin : State} {m : MarketData} {user units : UIn
     {callback : AccountAddress} {data : ByteArray} {result : ExecResult}
     (hcanon : user.toNat < EVM.addressModulus) (hwv : origin.executionEnv.weiValue = ⟨0⟩)
     (hlimit : origin.executionEnv.calldata.size < calldataLimit) (hauth : onBehalfAllowed origin user)
-    (htail : ExecBlock config (repayExternalFrame origin m user units callback data) origin
+    (htail : ExecBlock fork config (repayExternalFrame origin m user units callback data) origin
       (repayTransition.body.drop 4) result) :
-    ExecBlock config
+    ExecBlock fork config
       { contract := contract
         locals := repayArguments m units (AccountAddress.ofNat user.toNat) callback data
         immutables := ∅ } origin repayTransition.body result := by
@@ -85,11 +87,11 @@ theorem repayAfterAuthSource {origin : State} {m : MarketData} {user units : UIn
 
 theorem repayAfterTouchSource {origin evm : State} {m : MarketData} {user units : UInt256}
     {callback : AccountAddress} {data : ByteArray} {callee : Frame} {result : ExecResult}
-    (htouch : ExecFuncBody config (touchMarketCallFrame ∅ m) origin touchMarketFunction.body
+    (htouch : ExecFuncBody fork config (touchMarketCallFrame ∅ m) origin touchMarketFunction.body
       (.returned callee evm (some [wordBytes32Value m.id])))
-    (htail : ExecBlock config (repayAfterTouchFrame origin m user units callback data) evm
+    (htail : ExecBlock fork config (repayAfterTouchFrame origin m user units callback data) evm
       (repayTransition.body.drop 5) result) :
-    ExecBlock config (repayExternalFrame origin m user units callback data) origin
+    ExecBlock fork config (repayExternalFrame origin m user units callback data) origin
       (repayTransition.body.drop 4) result :=
   ExecBlock.consNormal (internalCallFunctionReturn (callee := touchMarketFunction)
     (locals := touchMarketArguments m) (repayTouchArgs origin m user units callback data)

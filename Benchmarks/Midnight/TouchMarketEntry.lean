@@ -3,6 +3,8 @@ import Benchmarks.Midnight.MarketCalldataDecoder
 import Benchmarks.Midnight.MarketCalldataHugeRuntime
 import Benchmarks.Midnight.RuntimeBlocks_019
 
+variable {fork : Ethereum.Fork}
+
 /-! Decode the public touchMarket argument and enter its shared routine. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,19 +18,19 @@ theorem midnightTouchMarketEntry {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (hsize : I.calldata.size < UInt256.size)
     (hselector : ¬ 0xac9650d8 = (bytesToWord (I.calldata.toList.take 4)).toNat)
     (hfree : memLoad (UInt256.ofNat 64) mem = ⟨832⟩)
-    (rd : RD midnightBytecode I g s0 ⟨4309⟩ R mem aw rdata σ k C) :
+    (rd : RD fork midnightBytecode I g s0 ⟨4309⟩ R mem aw rdata σ k C) :
     (config.externalABI.decodeCalldata? ["market"] [Model.marketABI] I.calldata = none ∧
-      RDrev midnightBytecode g s0) ∨
+      RDrev fork midnightBytecode g s0) ∨
     (∃ m, config.externalABI.decodeCalldata? ["market"] [Model.marketABI] I.calldata =
         some (marketOnlyArguments m) ∧
       36 ≤ I.calldata.size ∧ I.calldata.size < 2^255 ∧
       ∃ mem' root aw' k' C', root.toNat = 1120 + 160 * m.collaterals.length ∧
         MarketStored mem' ⟨832⟩ ⟨1088⟩ root m ∧ memLoad (UInt256.ofNat 64) mem' = root ∧
-        RD midnightBytecode I g s0 ⟨20557⟩ (⟨832⟩ :: ⟨3755⟩ :: ⟨32⟩ :: R)
+        RD fork midnightBytecode I g s0 ⟨20557⟩ (⟨832⟩ :: ⟨3755⟩ :: ⟨32⟩ :: R)
           mem' aw' rdata σ k' C') := by
   have reject (hc : UInt256.slt (UInt256.lnot ⟨3⟩ + UInt256.ofNat I.calldata.size) ⟨32⟩ = ⟨1⟩) :
       config.externalABI.decodeCalldata? ["market"] [Model.marketABI] I.calldata = none ∧
-        RDrev midnightBytecode g s0 := by
+        RDrev fork midnightBytecode g s0 := by
     refine ⟨midnightDecodeMarketOnly_none_check h4
       (solcSLT_sub4_of_check (bit := true) hc), ?_⟩
     have rd1 := midnightBlocks.midnight_block_4309_taken (by omega)
@@ -54,7 +56,7 @@ theorem midnightTouchMarketEntry {I : ExecutionEnv} {g : Sat256} {s0 : State}
       omega
     have rd2 := midnightBlocks.midnight_block_4321_fallthrough (by omega) hg rd1
     have rd3 := midnightBlocks.midnight_block_4338 (by omega) (by jump_dest) rd2
-    change RD midnightBytecode I g s0 ⟨18574⟩
+    change RD fork midnightBytecode I g s0 ⟨18574⟩
       ((UInt256.ofNat 4 + calldataWord I.calldata 4) :: UInt256.ofNat I.calldata.size ::
         ⟨4356⟩ :: ⟨3755⟩ :: ⟨32⟩ :: R) mem aw rdata σ _ _ at rd3
     have hh : (UInt256.ofNat 4 + calldataWord I.calldata 4).toNat =

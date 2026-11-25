@@ -1,5 +1,7 @@
 import Benchmarks.Midnight.InitMarketPhasesFunding
 
+variable {fork : Ethereum.Fork}
+
 /-! Complete initialization with memory funding retained. -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,11 +17,11 @@ theorem midnightInitMarketStores_funded {credit : Nat} {evm : EVM.State} {g : Sa
     (hlimit : limit.toNat ≤ root.toNat) (hb : root.toNat + 224 < 2^64)
     (hfree : memLoad (UInt256.ofNat 64) mem = root) (hperm : evm.executionEnv.perm = true)
     (hfund : MemoryFunding credit mem aw C)
-    (rd : RD midnightBytecode evm.executionEnv g s0 ⟨21130⟩
+    (rd : RD fork midnightBytecode evm.executionEnv g s0 ⟨21130⟩
       (arrayPtr :: previous :: ret :: ptr :: (ptr + UInt256.ofNat 96) :: id :: count :: R)
       mem aw rdata evm.accountMap k C) :
     ∃ aw' k' C',
-      MemoryFunding credit (initMarketStoreMemory mem root evm id m.loanToken) aw' C' ∧ RD midnightBytecode evm.executionEnv g s0 ⟨24347⟩
+      MemoryFunding credit (initMarketStoreMemory mem root evm id m.loanToken) aw' C' ∧ RD fork midnightBytecode evm.executionEnv g s0 ⟨24347⟩
       (UInt256.ofNat 21556 :: ptr :: id :: ret :: R)
       (initMarketStoreMemory mem root evm id m.loanToken) aw' rdata
       (initMarketStorageState evm id m.loanToken).accountMap k' C' := by
@@ -37,7 +39,7 @@ theorem midnightInitMarketStores_funded {credit : Nat} {evm : EVM.State} {g : Sa
   obtain ⟨aw1, k1, C1, hfund1, rd1⟩ := midnightInitMarketTick_funded m (by omega) hm hfree hperm hfund rd
   obtain ⟨aw2, k2, C2, hfund2, rd2⟩ := midnightInitMarketFeeCopy_funded
     (by simp only [List.length_cons]; omega) hb hfund1 rd1
-  change RD _ _ _ _ _ _ mm _ _ _ _ _ at rd2
+  change RD fork _ _ _ _ _ _ mm _ _ _ _ _ at rd2
   change MemoryFunding credit mm aw2 C2 at hfund2
   obtain ⟨aw3, k3, C3, hfund3, rd3⟩ := midnightInitMarketFirstFees_funded
     (by simp only [List.length_cons]; omega) hperm hw hfund2 rd2
