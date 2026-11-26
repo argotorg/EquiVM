@@ -35,6 +35,10 @@ to the template, as in Vyper's immutable scheme. Its summaries execute
 ``template ++ suffix``. Only instructions entirely inside the fixed template
 receive summaries; suffix bytes still affect CODECOPY and CODESIZE.
 Build the imported Lean modules before running this mode.
+
+With ``--disassembly <M>.Bytecode`` (the contract's bytecode file, see ``gen_bytecode.py``)
+the decode fact of each rule comes from the disassembly instead of a decoding tactic, and a
+jump to a literal ``JUMPDEST`` needs no ``hvalid`` hypothesis.
 """
 
 from __future__ import annotations
@@ -48,9 +52,10 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Iterable
 
-from bytecode_io import parse_bytecode_text, read_bytecode
+from bytecode_io import parse_bytecode_text, read_bytecode, read_bytecode_file
 
 
+ROOT = Path(__file__).resolve().parent.parent
 TERMINATORS = {0x00, 0x56, 0x57, 0xF3, 0xFD, 0xFE, 0xFF}
 MAX_SUMMARY_INSTRUCTIONS = 64
 
@@ -560,6 +565,22 @@ def block_cost(costs: Iterable[str | int]) -> str:
     return "0" if not terms else " + ".join(f"({term})" for term in terms)
 
 
+@dataclass(frozen=True)
+class Step:
+    """One line of the rule chain.
+
+    The line has the placeholder ``__DEC__`` for the decode fact and ``__VALID__`` for the proof
+    that a jump target is valid.  ``decode`` and ``valid`` are what goes there without a
+    disassembly: a decoding tactic and the ``hvalid`` hypothesis.  ``guard`` is the hypothesis
+    that bounds a RETURNDATACOPY, and ``gas_hint`` the gas counter before a GAS, if it is exact.
+    """
+    rule: str
+    decode: str = ""
+    valid: str | None = None
+    guard: str | None = None
+    gas_hint: str | None = None
+
+
 @dataclass
 class Summary:
     stack_in: list[str]
@@ -581,6 +602,10 @@ class Summary:
     mloads: list[tuple[str, str, str]]
     word_writes: list[tuple[str, str, str, str]]
     return_window: tuple[str, str, str] | None
+    # one per line of ``proof``
+    steps: list[Step]
+    # the jump target, if it is a literal
+    jump_target: int | None
 
 
 def simulate(block: list[Instruction], branch: str | None,
@@ -607,6 +632,8 @@ def simulate(block: list[Instruction], branch: str | None,
     mloads: list[tuple[str, str, str]] = []
     word_writes: list[tuple[str, str, str, str]] = []
     return_window: tuple[str, str, str] | None = None
+    steps: list[Step] = []
+    jump_target: int | None = None
     steps_done = 0
     full_copy_pcs = {
         block[i + 3].pc for i in range(len(block) - 3)
@@ -629,6 +656,11 @@ def simulate(block: list[Instruction], branch: str | None,
         extra_hypotheses.append((name, proposition))
         return name
 
+    def emit(line: str, rule: str, **fields: str) -> None:
+        """Append a line of the rule chain and its ``Step``."""
+        proof.append(line)
+        steps.append(Step(rule, legacy_decode, **fields))
+
     def next_r() -> tuple[str, str]:
         nonlocal rno
         before = f"r{rno}"
@@ -642,14 +674,14 @@ def simulate(block: list[Instruction], branch: str | None,
         jump table, then lift that fact to the actual prefix-plus-tail code.
         Runtime summaries retain their existing full-code hypothesis.
         """
+        nonlocal jump_target
+        jump_target = static_word_value(dest) if is_static_word(dest) else None
         if creation_prefix is None:
             return require("hvalid", f"(D_J __CODE__ 0).contains {dest} = true")
         valid = require(
             "hvalid", f"(D_J {creation_prefix} 0).contains {dest} = true"
         )
-        return (
-            f"(j tail {dest} {valid})"
-        )
+        return f"(j tail {dest} {valid})"
 
     index = 0
     narrow_sites = immutable_sites is not None and any(
@@ -679,12 +711,14 @@ def simulate(block: list[Instruction], branch: str | None,
                     f"{lean_operation(ins)}, {lean_decode_arg(ins)}, "
                     "immutableLayout_inBounds, immutableTemplate_size64))"
                 )
+        # the decode fact is filled in by `chain_lines`
+        legacy_decode, decode = decode, "__DEC__"
         ov = "(by evm_ov)"
         step_pc = ins.size
 
         if op == 0x5F:
             stack.insert(0, WORD0)
-            proof.append(f"  have {after} := {before}.push0 {decode} {ov}")
+            emit(f"  have {after} := {before}.push0 {decode} {ov}", "push0")
         elif 0x60 <= op <= 0x7F:
             assert ins.argument is not None
             value = (f"(immWords {json.dumps(immutable_sites[ins.pc + 1][1])})"
@@ -695,43 +729,43 @@ def simulate(block: list[Instruction], branch: str | None,
                 value = f"(Layout.siteWord {ins.width} {value})"
             stack.insert(0, value)
             if ins.width in {1, 2, 4, 20}:
-                call = f"{before}.push{ins.width} {value} {decode} {ov}"
+                rule = f"push{ins.width}"
+                call = f"{before}.{rule} {value} {decode} {ov}"
             else:
+                rule = "pushConst"
                 call = (
                     f"{before}.pushConst {value} (width := {ins.width}) "
                     f"(op := .PUSH{ins.width}) (by decide) {decode} {ov}"
                 )
-            proof.append(f"  have {after} := {call}")
+            emit(f"  have {after} := {call}", rule)
         elif 0x80 <= op <= 0x8F:
             n = op - 0x7F
             stack.insert(0, stack[n - 1])
-            call = f"{before}.dup{n}"
-            proof.append(f"  have {after} := {call} {decode} {ov}")
+            emit(f"  have {after} := {before}.dup{n} {decode} {ov}", f"dup{n}")
         elif 0x90 <= op <= 0x9F:
             n = op - 0x8F
             stack[0], stack[n] = stack[n], stack[0]
-            call = f"{before}.swap{n}"
-            proof.append(f"  have {after} := {call} {decode} {ov}")
+            emit(f"  have {after} := {before}.swap{n} {decode} {ov}", f"swap{n}")
         elif op in BINOPS:
             a, b = stack.pop(0), stack.pop(0)
             stack.insert(0, BINOPS[op](a, b))
-            proof.append(f"  have {after} := {before}.{ins.name} {decode} {ov}")
+            emit(f"  have {after} := {before}.{ins.name} {decode} {ov}", ins.name)
         elif op == 0x15:
             a = stack.pop(0)
             stack.insert(0, f"(UInt256.isZero {a})")
-            proof.append(f"  have {after} := {before}.iszero {decode} {ov}")
+            emit(f"  have {after} := {before}.iszero {decode} {ov}", "iszero")
         elif op == 0x19:
             a = stack.pop(0)
             stack.insert(0, f"(UInt256.lnot {a})")
-            proof.append(f"  have {after} := {before}.not {decode} {ov}")
+            emit(f"  have {after} := {before}.not {decode} {ov}", "not")
         elif op in {0x08, 0x09}:
             a, b, c = stack.pop(0), stack.pop(0), stack.pop(0)
             fn = "UInt256.addMod" if op == 0x08 else "UInt256.mulMod"
             stack.insert(0, f"({fn} {a} {b} {c})")
-            proof.append(f"  have {after} := {before}.{ins.name} {decode} {ov}")
+            emit(f"  have {after} := {before}.{ins.name} {decode} {ov}", ins.name)
         elif op == 0x50:
             stack.pop(0)
-            proof.append(f"  have {after} := {before}.pop {decode} {ov}")
+            emit(f"  have {after} := {before}.pop {decode} {ov}", "pop")
         elif op in {0x30, 0x33, 0x34, 0x36, 0x38, 0x3D, 0x42, 0x43, 0x44, 0x45, 0x46, 0x48}:
             pushed = {
                 0x30: "(UInt256.ofNat ee.codeOwner.val)",
@@ -748,11 +782,11 @@ def simulate(block: list[Instruction], branch: str | None,
                 0x48: "(UInt256.ofNat ee.header.baseFeePerGas)",
             }[op]
             stack.insert(0, pushed)
-            proof.append(f"  have {after} := {before}.{ins.name} {decode} {ov}")
+            emit(f"  have {after} := {before}.{ins.name} {decode} {ov}", ins.name)
         elif op == 0x35:
             a = stack.pop(0)
             stack.insert(0, f"(uInt256OfByteArray (ee.calldata.readBytes {a}.toNat 32))")
-            proof.append(f"  have {after} := {before}.calldataload {decode} {ov}")
+            emit(f"  have {after} := {before}.calldataload {decode} {ov}", "calldataload")
         elif op == 0x51:
             a = stack.pop(0)
             load = f"(memLoad {a} {mem})"
@@ -760,7 +794,7 @@ def simulate(block: list[Instruction], branch: str | None,
             stack.insert(0, load)
             costs.append(f"memExpansionCost {aw} {a} {WORD32}")
             aw = f"(M {aw} {a} {WORD32})"
-            proof.append(f"  have {after} := RD.genMload {before} {decode} {ov}")
+            emit(f"  have {after} := RD.genMload {before} {decode} {ov}", "genMload")
         elif op == 0x52:
             a, b = stack.pop(0), stack.pop(0)
             costs.append(f"memExpansionCost {aw} {a} {WORD32}")
@@ -768,13 +802,13 @@ def simulate(block: list[Instruction], branch: str | None,
             mem = f"({b}.toByteArray.write 0 {mem} {a}.toNat 32)"
             word_writes.append((b, a, base, mem))
             aw = f"(M {aw} {a} {WORD32})"
-            proof.append(f"  have {after} := RD.genMstore {before} {decode} {ov}")
+            emit(f"  have {after} := RD.genMstore {before} {decode} {ov}", "genMstore")
         elif op == 0x53:
             a, b = stack.pop(0), stack.pop(0)
             costs.append(f"memExpansionCost {aw} {a} {WORD1}")
             mem = f"((⟨#[UInt8.ofNat {b}.toNat]⟩ : ByteArray).write 0 {mem} {a}.toNat 1)"
             aw = f"(M {aw} {a} {WORD1})"
-            proof.append(f"  have {after} := RD.genMstore8 {before} {decode} {ov}")
+            emit(f"  have {after} := RD.genMstore8 {before} {decode} {ov}", "genMstore8")
         elif op == 0x20:
             a, b = stack.pop(0), stack.pop(0)
             stack.insert(0, f"(keccakWord {a} {b} {mem})")
@@ -783,7 +817,7 @@ def simulate(block: list[Instruction], branch: str | None,
                 f"30 + 6 * (({b}.toNat + 31) / 32)"
             )
             aw = f"(M {aw} {a} {b})"
-            proof.append(f"  have {after} := RD.genKeccak256 {before} {decode} {ov}")
+            emit(f"  have {after} := RD.genKeccak256 {before} {decode} {ov}", "genKeccak256")
         elif op in {0x37, 0x39}:
             a, b, c = stack.pop(0), stack.pop(0), stack.pop(0)
             source = "ee.calldata" if op == 0x37 else "__CODE__"
@@ -794,68 +828,73 @@ def simulate(block: list[Instruction], branch: str | None,
             costs.append(f"memExpansionCost {aw} {a} {c}")
             costs.append(f"3 + 3 * (({c}.toNat + 31) / 32)")
             aw = f"(M {aw} {a} {c})"
-            theorem = "RD.genCalldatacopy" if op == 0x37 else "RD.genCodecopy"
-            proof.append(f"  have {after} := {theorem} {before} {decode} {ov}")
+            rule = "genCalldatacopy" if op == 0x37 else "genCodecopy"
+            emit(f"  have {after} := RD.{rule} {before} {decode} {ov}", rule)
         elif op == 0x5E:
             a, b, c = stack.pop(0), stack.pop(0), stack.pop(0)
             mem = f"({mem}.write {b}.toNat {mem} {a}.toNat {c}.toNat)"
             costs.append(f"mcopyExpansionCost {aw} {a} {b} {c}")
             costs.append(f"3 + 3 * (({c}.toNat + 31) / 32)")
             aw = f"(Mmcopy {aw} {a} {b} {c})"
-            proof.append(f"  have {after} := RD.genMcopy {before} {decode} {ov}")
+            emit(f"  have {after} := RD.genMcopy {before} {decode} {ov}", "genMcopy")
         elif op == 0x3E:
             a, b, c = stack.pop(0), stack.pop(0), stack.pop(0)
             mem = f"(rdata.write {b}.toNat {mem} {a}.toNat {c}.toNat)"
             costs.append(f"memExpansionCost {aw} {a} {c}")
             costs.append(f"3 + 3 * (({c}.toNat + 31) / 32)")
             aw = f"(M {aw} {a} {c})"
-            guard_name = (
-                "(by\n"
-                "    have hz : UInt256.ofNat 0 = (⟨0⟩ : UInt256) := by decide\n"
-                "    simpa only [hz] using returnDataCopyFullGuard rdata)"
-                if ins.pc in full_copy_pcs else require(
+            if ins.pc in full_copy_pcs:
+                # `RETURNDATACOPY(0, 0, RETURNDATASIZE)`: the bound holds for any return data
+                guard = "(returnDataCopyFullGuard rdata)"
+                guard_name = (
+                    "(by\n"
+                    "    have hz : UInt256.ofNat 0 = (⟨0⟩ : UInt256) := by decide\n"
+                    "    simpa only [hz] using returnDataCopyFullGuard rdata)"
+                )
+            else:
+                guard = guard_name = require(
                     f"hguard{sum(name.startswith('hguard') for name, _ in extra_hypotheses)}",
                     f"{b}.toNat + {c}.toNat ≤ rdata.size",
                 )
-            )
-            proof.append(
-                f"  have {after} := RD.genReturndatacopy {before} {decode} {guard_name} {ov}"
+            emit(
+                f"  have {after} := RD.genReturndatacopy {before} {decode} {guard_name} {ov}",
+                "genReturndatacopy", guard=guard,
             )
         elif op == 0x54:
             slot = stack.pop(0)
             stack.insert(0, f"({world_map}.get? ee.codeOwner |>.option {WORD0} (fun ac => ac.storage.getD {slot} {WORD0}))")
-            proof.append(f"  obtain ⟨_, _, {after}⟩ := RD.sload {before} {decode} {ov}")
+            emit(f"  obtain ⟨_, _, {after}⟩ := RD.sload {before} {decode} {ov}", "sload")
             existential = True
         elif op == 0x55:
             slot, value = stack.pop(0), stack.pop(0)
             perm = require("hperm", "ee.perm = true")
-            proof.append(f"  obtain ⟨_, _, {after}⟩ := RD.sstore {before} {perm} {decode} {ov}")
+            emit(f"  obtain ⟨_, _, {after}⟩ := RD.sstore {before} {perm} {decode} {ov}", "sstore")
             world_map = f"(sstoreAccountMap ee.codeOwner {world_map} {slot} {value})"
             existential = True
         elif op == 0x5C:
             slot = stack.pop(0)
             stack.insert(0, f"({world_map}.get? ee.codeOwner |>.option {WORD0} (fun ac => ac.tstorage.getD {slot} {WORD0}))")
-            proof.append(f"  have {after} := {before}.tload {decode} {ov}")
+            emit(f"  have {after} := {before}.tload {decode} {ov}", "tload")
         elif op == 0x5D:
             slot, value = stack.pop(0), stack.pop(0)
             perm = require("hperm", "ee.perm = true")
             world_map = f"(tstoreAccountMap ee.codeOwner {world_map} {slot} {value})"
-            proof.append(f"  have {after} := {before}.tstore {perm} {decode} {ov}")
+            emit(f"  have {after} := {before}.tstore {perm} {decode} {ov}", "tstore")
         elif op == 0x3B:
             target = stack.pop(0)
             stack.insert(0, f"(extCodeSizeWord {world_map} {target})")
-            proof.append(f"  obtain ⟨_, _, {after}⟩ := {before}.extcodesize {decode} {ov}")
+            emit(f"  obtain ⟨_, _, {after}⟩ := {before}.extcodesize {decode} {ov}", "extcodesize")
             existential = True
         elif op in {0x31, 0x3F}:
             target = stack.pop(0)
             word = "balanceWord" if op == 0x31 else "extCodeHashWord"
             stack.insert(0, f"({word} {world_map} {target})")
-            proof.append(f"  obtain ⟨_, _, {after}⟩ := {before}.{ins.name} {decode} {ov}")
+            emit(f"  obtain ⟨_, _, {after}⟩ := {before}.{ins.name} {decode} {ov}", ins.name)
             existential = True
         elif op == 0x40:
             n = stack.pop(0)
             stack.insert(0, f"(blockHashWord ee {n})")
-            proof.append(f"  have {after} := {before}.blockhash {decode} {ov}")
+            emit(f"  have {after} := {before}.blockhash {decode} {ov}", "blockhash")
         elif op == 0x5A:
             if existential:
                 gas_word = f"gasWord{len(existential_words)}"
@@ -865,56 +904,57 @@ def simulate(block: list[Instruction], branch: str | None,
                 # behind existential eliminations.  RD.gas still determines the
                 # pushed word from that hidden C; leave the theorem's gas-word
                 # witness for Lean to infer from the resulting cursor.
-                proof.append(f"  have {after} := RD.genGas {before} {decode} {ov}")
+                emit(f"  have {after} := RD.genGas {before} {decode} {ov}", "genGas")
             else:
                 cumulative = block_cost(costs)
                 stack.insert(0, f"((g.subNat (C + ({cumulative}) + 2)).toUInt256)")
-                proof.append(
+                hint = f"C + ({cumulative})"
+                emit(
                     f"  have {after} := RD.genGas "
                     f"(RD.normalizeCounters (k' := k + {steps_done}) "
-                    f"(C' := C + ({cumulative})) {before} (by omega) (by omega)) "
-                    f"{decode} {ov}"
+                    f"(C' := {hint}) {before} (by omega) (by omega)) "
+                    f"{decode} {ov}",
+                    "genGas", gas_hint=hint,
                 )
         elif op == 0x5B:
-            proof.append(f"  have {after} := {before}.jumpdest {decode} {ov}")
+            emit(f"  have {after} := {before}.jumpdest {decode} {ov}", "jumpdest")
         elif op == 0x56:
             dest = stack.pop(0)
             valid = valid_jump(dest)
-            proof.append(f"  have {after} := {before}.jump {decode} {valid} {ov}")
+            emit(f"  have {after} := {before}.jump {decode} __VALID__ {ov}", "jump", valid=valid)
             pc = dest
         elif op == 0x57:
             dest, cond = stack.pop(0), stack.pop(0)
             if branch == "taken":
                 cond_hyp = require("hcond", f"{cond} ≠ {u256_nat(0)}")
                 valid = valid_jump(dest)
-                proof.append(
-                    f"  have {after} := {before}.jumpiT {decode} {cond_hyp} {valid} {ov}"
-                )
+                emit(f"  have {after} := {before}.jumpiT {decode} {cond_hyp} __VALID__ {ov}",
+                     "jumpiT", valid=valid)
                 pc = dest
             elif branch == "fallthrough":
                 cond_hyp = require("hcond", f"{cond} = {u256_nat(0)}")
-                proof.append(f"  have {after} := {before}.jumpiNT {decode} {cond_hyp} {ov}")
+                emit(f"  have {after} := {before}.jumpiNT {decode} {cond_hyp} {ov}", "jumpiNT")
             else:
                 raise AssertionError("JUMPI requires a branch")
         elif op == 0x00:
-            proof.append(f"  exact {before}.stop {decode} {ov}")
+            emit(f"  exact {before}.stop {decode} {ov}", "stop")
             terminal = "RDret fork __CODE__ g s0 " + world_map + " ByteArray.empty"
             break
         elif op == 0xFE:
-            proof.append(f"  exact RD.invalid {before} {decode}")
+            emit(f"  exact RD.invalid {before} {decode}", "invalid")
             terminal = "RDinvalid fork __CODE__ g s0"
             break
         elif op in {0xF3, 0xFD}:
             off, length = stack.pop(0), stack.pop(0)
             if op == 0xF3:
                 return_window = (off, length, mem)
-                proof.append(f"  exact RD.genRet {before} {decode} {ov}")
+                emit(f"  exact RD.genRet {before} {decode} {ov}", "genRet")
                 terminal = (
                     f"RDret fork __CODE__ g s0 {world_map} "
                     f"({mem}.readWithPadding {off}.toNat {length}.toNat)"
                 )
             else:
-                proof.append(f"  exact RD.genRev {before} {decode} {ov}")
+                emit(f"  exact RD.genRev {before} {decode} {ov}", "genRev")
                 terminal = "RDrev fork __CODE__ g s0"
             break
         elif op in {0xA0, 0xA1, 0xA2, 0xA3, 0xA4}:
@@ -929,8 +969,8 @@ def simulate(block: list[Instruction], branch: str | None,
                 else f"375 + 8 * {length}.toNat + {topics} * 375"
             )
             aw = f"(M {aw} {off} {length})"
-            theorem = f"RD.gen{ins.name.capitalize()}"
-            proof.append(f"  have {after} := {theorem} {before} {decode} {perm} {ov}")
+            rule = f"gen{ins.name.capitalize()}"
+            emit(f"  have {after} := RD.{rule} {before} {decode} {perm} {ov}", rule)
         else:
             raise ValueError(f"no generator rule for {ins.name} at pc {ins.pc}")
 
@@ -958,7 +998,162 @@ def simulate(block: list[Instruction], branch: str | None,
 
     return Summary(initial, stack, mem, aw, world_map, pc, costs, proof, existential,
                    terminal, extra_hypotheses, branch, max_stack_prefix, existential_words,
-                   f"r{rno}", codecopies, mloads, word_writes, return_window)
+                   f"r{rno}", codecopies, mloads, word_writes, return_window, steps,
+                   jump_target)
+
+
+@dataclass(frozen=True)
+class Disassembly:
+    """The disassembly of a contract, for generating rule chains.
+
+    ``module`` is the namespace of the bytecode file (`<M>.Bytecode` or `<M>.CreationBytecode`)
+    and ``import_module`` the Lean module to import, if it has a different name.  ``where`` maps
+    the offset of an instruction to the offset of its section and its index in that section.
+    """
+    module: str
+    where: dict[int, tuple[int, int]]
+    # `tail` for creation code, `suffix` for a Vyper runtime, `None` if nothing follows the code
+    tail: str | None = None
+    # with a tail, sections from this offset on are not covered (`lim` in the bytecode file)
+    limit: int | None = None
+    # the number of complete instructions in the section at `limit` (see `decodes_last`)
+    last_count: int = 0
+    import_module: str | None = None
+
+    @property
+    def lean_import(self) -> str:
+        return self.import_module or self.module
+
+    @staticmethod
+    def of(module: str, code: bytes, tail: str | None = None,
+           import_module: str | None = None) -> "Disassembly":
+        where = section_positions(code)
+        limit = None
+        last_count = 0
+        if tail is not None:
+            ends: dict[int, int] = {}
+            for pc, (section, _) in where.items():
+                op = code[pc]
+                ends[section] = pc + 1 + (op - 0x5F if 0x60 <= op <= 0x7F else 0)
+            limit = min((sec for sec, end in ends.items() if end > len(code)),
+                        default=len(code) + 1)
+            last_count = sum(1 for sec, _ in where.values() if sec == limit) - 1
+        return Disassembly(module, where, tail, limit, last_count, import_module)
+
+
+def lean_source(module: str) -> Path:
+    """The source file of a module of this package."""
+    return (ROOT / Path(*module.split("."))).with_suffix(".lean")
+
+
+def disassembly_of_module(import_module: str, code: bytes,
+                          tail: str | None = None) -> Disassembly:
+    """The disassembly in the Lean module ``import_module``.  The namespace is read from the
+    file, and is the module name if the file is not a bytecode file."""
+    found = read_bytecode_file(lean_source(import_module))
+    if found is not None and found.followed_by != tail:
+        raise ValueError(f"the bytecode file {import_module} is followed by "
+                         f"{found.followed_by!r}, the code mode by {tail!r}")
+    return Disassembly.of(found.namespace if found else import_module, code, tail, import_module)
+
+
+def directory_disassembly(directory: Path, module: str, code: bytes, creation: bool = False,
+                          tail: str | None = None) -> Disassembly | None:
+    """The disassembly of the runtime (`Bytecode.lean`) or creation code (`CreationBytecode.lean`)
+    of a contract directory, or ``None`` if that file is missing or is not a bytecode file.
+    ``tail`` has to match the file: creation code always has a `tail`, and a Vyper runtime with
+    immutables has ``tail="suffix"``."""
+    stem = "CreationBytecode" if creation else "Bytecode"
+    found = read_bytecode_file(directory / f"{stem}.lean")
+    if found is None:
+        return None
+    tail = "tail" if creation else tail
+    if found.followed_by != tail:
+        raise ValueError(f"{directory / stem}.lean is followed by {found.followed_by!r}, "
+                         f"the code mode by {tail!r}")
+    return Disassembly.of(found.namespace, code, tail, f"{module}.{stem}")
+
+
+def bytecode_imports(directory: Path, module: str, creation: bool = False) -> list[str]:
+    """The module of the directory's runtime (or creation) bytecode file, if the file exists."""
+    stem = "CreationBytecode" if creation else "Bytecode"
+    return [f"{module}.{stem}"] if (directory / f"{stem}.lean").exists() else []
+
+
+def section_positions(code: bytes) -> dict[int, tuple[int, int]]:
+    """Offset -> (section offset, index in section).  Sections start at 0 and at every JUMPDEST."""
+    where: dict[int, tuple[int, int]] = {}
+    pc = start = index = 0
+    while pc < len(code):
+        op = code[pc]
+        if op == 0x5B and pc != 0:
+            start, index = pc, 0
+        where[pc] = (start, index)
+        index += 1
+        pc += 1 + (op - 0x5F if 0x60 <= op <= 0x7F else 0)
+    return where
+
+
+@dataclass(frozen=True)
+class ChainFacts:
+    """What the rule chain of a block takes from the disassembly.
+
+    ``start`` is a proof of `Decodes code σ (UInt256.ofNat pc) is` for the first instruction of
+    the block.  ``valid`` is a proof that the literal jump target is a valid jump destination, or
+    ``None`` if the target is not a literal or does not start a section.
+    """
+    start: str
+    valid: str | None
+
+
+def chain_facts(block: list[Instruction], summary: Summary, disassembly: Disassembly | None,
+                words: str) -> ChainFacts | None:
+    """The facts for a block, or ``None`` if the disassembly does not cover it.  ``words`` is the
+    argument of the bytecode file's theorems (` immWords`, ` tail` or ` suffix`)."""
+    if disassembly is None or block[0].pc not in disassembly.where:
+        return None
+    section, index = disassembly.where[block[0].pc]
+    decodes = f"{disassembly.module}.decodes_code{words} (t := {section}) rfl"
+    if disassembly.limit is not None and section >= disassembly.limit:
+        # the section that ends in a truncated push: only its complete instructions
+        if section != disassembly.limit or index + len(block) > disassembly.last_count:
+            return None
+        decodes = f"{disassembly.module}.decodes_last{words}"
+    # the block starts inside a section (a JUMPI fall-through, or a long block that was split)
+    start = (decodes if index == 0 and not decodes.startswith(f"{disassembly.module}.decodes_last")
+             else f"({decodes}).drop {index} {block[0].pc} rfl")
+    valid = None
+    target = summary.jump_target
+    if target is not None and disassembly.where.get(target, (None, None))[1] == 0:
+        # the target starts a section, so it is a JUMPDEST
+        valid = f"({disassembly.module}.jumpdest_code{words} (t := {target}) rfl rfl)"
+    return ChainFacts(start, valid)
+
+
+def peel_step(ins: Instruction, step: Step) -> str:
+    """The step past ``ins``: `next w rfl`, where `w` is its width.  `pushConst` states the width
+    as `Nat.succ n`, so the step does too."""
+    if 0x60 <= ins.opcode <= 0x7F:
+        if step.rule == "pushConst":
+            return f"next (Nat.succ {ins.width}) rfl"
+        return f"next {ins.size} rfl"
+    return "next 1 rfl"
+
+
+def chain_lines(block: list[Instruction], summary: Summary, facts: ChainFacts | None,
+                valid: str | None = None) -> list[str]:
+    """The rule chain with its decode facts filled in.  With ``facts`` they come from the
+    disassembly, one instruction at a time; otherwise from the decoding tactics.  ``valid``
+    replaces the statement's ``hvalid`` in a JUMP/JUMPI."""
+    lines = [f"  have d0 := {facts.start}"] if facts is not None else []
+    for k, (line, step) in enumerate(zip(summary.proof, summary.steps)):
+        line = line.replace("__DEC__", f"d{k}.head" if facts is not None else step.decode)
+        if step.valid is not None:
+            line = line.replace("__VALID__", valid or step.valid)
+        lines.append(line)
+        if facts is not None and k + 1 < len(summary.steps):
+            lines.append(f"  have d{k + 1} := d{k}.{peel_step(block[k], step)}")
+    return lines
 
 
 def render_summary(prefix: str, code_term: str, block: list[Instruction], summary: Summary,
@@ -966,7 +1161,8 @@ def render_summary(prefix: str, code_term: str, block: list[Instruction], summar
                    creation_code_size: int | None = None,
                    immutable_sites: dict[int, tuple[int, str]] | None = None,
                    layout_term: str | None = None,
-                   runtime_suffix: bool = False) -> str:
+                   runtime_suffix: bool = False,
+                   disassembly: Disassembly | None = None) -> str:
     name = summary_name(prefix, block, summary.branch)
     xs = " ".join(summary.stack_in)
     xbinder = f" {{{xs} : UInt256}}" if xs else ""
@@ -1022,6 +1218,15 @@ def render_summary(prefix: str, code_term: str, block: list[Instruction], summar
             )
     result = result.replace("__CODE__", effective_code_term)
 
+    words = (f" {disassembly.tail}" if disassembly is not None and disassembly.tail
+             else " immWords" if immutable_sites is not None else "")
+    facts = chain_facts(block, summary, disassembly, words)
+    if facts is not None and facts.valid is not None:
+        # the literal jump target is looked up in the disassembly
+        assumptions = [a for a in assumptions if not a.startswith("(hvalid :")]
+        summary = replace(summary, extra_hypotheses=[
+            (hyp, term) for hyp, term in summary.extra_hypotheses if hyp != "hvalid"])
+
     lines = []
     if final_defs is not None:
         lines.extend(final_defs.lines)
@@ -1034,30 +1239,26 @@ def render_summary(prefix: str, code_term: str, block: list[Instruction], summar
     lines.extend(f"    {a}" for a in assumptions)
     lines.append(f"    : {result} := by")
     lines.append("  let r0 := h")
-    if creation_code:
+    proof = chain_lines(block, summary, facts, facts.valid if facts is not None else None)
+    if creation_code and any("hcreationCodeSize" in line for line in proof):
         if creation_code_size is None:
             raise ValueError("creation code size is required in creation mode")
         lines.append(
             f"  have hcreationCodeSize : {code_term}.size = {creation_code_size} := "
             "by native_decide"
         )
-    lines.extend(step.replace("__CODE__", effective_code_term)
+    lines.extend(line.replace("__CODE__", effective_code_term)
                  .replace("__TEMPLATE__", code_term).replace("__LAYOUT__", layout_term or "")
-                 for step in summary.proof)
+                 for line in proof)
     if not summary.terminal:
+        # The offset at the end of the chain is a sum, or the jump target.  It is definitionally equal
+        # to the literal in the statement, so the last fact closes the goal.
         last = summary.last_cursor
-        if is_static_word(summary.pc):
-            lines.append(
-                f"  have rFinal := RD.normalizePC (pc' := {summary.pc}) "
-                f"{last} (by native_decide)"
-            )
-            last = "rFinal"
         if summary.existential_counters:
             witnesses = ["_"] * len(summary.existential_words) + ["_", "_", last]
             lines.append(f"  exact ⟨{', '.join(witnesses)}⟩")
         else:
             lines.append(f"  exact RD.normalizeCounters {last} (by omega) (by omega)")
-    if not summary.terminal:
         lines.append("")
         lines.extend(
             render_packed_summary(name, params, assumptions, effective_code_term, summary,
@@ -1116,9 +1317,19 @@ def same_word_term(left: str, right: str) -> bool:
     return left == right or (value is not None and value == static_word_value(right))
 
 
+def vyper_chain(block: list[Instruction], summary: Summary, layout_term: str,
+                disassembly: Disassembly | None) -> list[str]:
+    """The rule chain of a Vyper immutable summary.  The statement keeps its ``hvalid``."""
+    facts = chain_facts(block, summary, disassembly, f" ({layout_term}.suffixWords immWords)")
+    if facts is not None:
+        facts = replace(facts, valid=None)
+    return chain_lines(block, summary, facts)
+
+
 def render_vyper_suffix_return(prefix: str, code_term: str, block: list[Instruction],
                                summary: Summary, layout_term: str,
-                               suffix_size: int, code_size: int) -> str | None:
+                               suffix_size: int, code_size: int,
+                               disassembly: Disassembly | None = None) -> str | None:
     """Render an exact copy and return of the whole Vyper immutable suffix."""
     if summary.stack_in or summary.extra_hypotheses or summary.existential_counters:
         return None
@@ -1142,7 +1353,7 @@ def render_vyper_suffix_return(prefix: str, code_term: str, block: list[Instruct
              f"    (hstack : R.length + {summary.max_stack_prefix} ≤ 1024)",
              f"    (h : RD fork {code} ee g s0 {u256_nat(block[0].pc)} R mem aw rdata σ k C) :",
              f"    RDret fork {code} g s0 σ ({suffix}) := by",
-             f"  have hcode : {code_term}.size = {code_size} := by native_decide",
+             f"  have hcode : {code_term}.size = {code_size} := by decide +kernel",
              f"  have hsize : ({suffix}).size = {layout_term}.size :=",
              f"    Reasoning.VyperImmutables.Layout.suffixWords_size {layout_term} immWords",
              f"  have hread : ({write.replace('__CODE__', code)}.readWithPadding "
@@ -1152,7 +1363,7 @@ def render_vyper_suffix_return(prefix: str, code_term: str, block: list[Instruct
              f"(layout := {layout_term}) (template := {code_term})",
              f"      (mem := mem) (suffix := {suffix}) hsize (by decide) {dest}.toNat",
              "  let r0 := h"]
-    for step in summary.proof:
+    for step in vyper_chain(block, summary, layout_term, disassembly):
         step = step.replace("__TEMPLATE__, suffix,",
                             f"__TEMPLATE__, {layout_term}.suffixWords immWords,")
         step = step.replace("__CODE__", code).replace("__TEMPLATE__", code_term)
@@ -1167,7 +1378,8 @@ def render_vyper_suffix_return(prefix: str, code_term: str, block: list[Instruct
 
 def render_vyper_scalar_return(prefix: str, code_term: str, block: list[Instruction],
                                summary: Summary, layout_term: str,
-                               scalar_slots: dict[int, str], code_size: int) -> str | None:
+                               scalar_slots: dict[int, str], code_size: int,
+                               disassembly: Disassembly | None = None) -> str | None:
     """Render an exact 32-byte suffix copy followed by RETURN as one word-byte theorem."""
     if summary.stack_in or summary.extra_hypotheses or summary.existential_counters:
         return None
@@ -1194,14 +1406,14 @@ def render_vyper_scalar_return(prefix: str, code_term: str, block: list[Instruct
              f"    (hstack : R.length + {summary.max_stack_prefix} ≤ 1024)",
              f"    (h : RD fork {code} ee g s0 {u256_nat(block[0].pc)} R mem aw rdata σ k C) :",
              f"    RDret fork {code} g s0 σ ({word}).toByteArray := by",
-             f"  have hcode : {code_term}.size = {code_size} := by native_decide",
+             f"  have hcode : {code_term}.size = {code_size} := by decide +kernel",
              f"  have hcopy : {write.replace('__CODE__', code)} = {named_write} := by",
              f"    simpa [hcode] using {module}.immutableCopyWord_{ident} immWords mem {dest}.toNat",
              f"  have hread : ({named_write}.readWithPadding {dest}.toNat {length}.toNat) =",
              f"      ({word}).toByteArray := by",
              f"    simpa using Reasoning.VyperImmutables.copy_word_read ({word}) mem {dest}.toNat",
              "  let r0 := h"]
-    for step in summary.proof:
+    for step in vyper_chain(block, summary, layout_term, disassembly):
         step = step.replace("__TEMPLATE__, suffix,",
                             f"__TEMPLATE__, {layout_term}.suffixWords immWords,")
         step = step.replace("__CODE__", code).replace("__TEMPLATE__", code_term)
@@ -1217,11 +1429,12 @@ def render_vyper_scalar_return(prefix: str, code_term: str, block: list[Instruct
 
 def render_vyper_scalar_summary(prefix: str, code_term: str, block: list[Instruction],
                                 summary: Summary, layout_term: str,
-                                scalar_slots: dict[int, str], code_size: int) -> str:
+                                scalar_slots: dict[int, str], code_size: int,
+                                disassembly: Disassembly | None = None) -> str:
     """Render named Vyper suffix copies in the original block theorem."""
     if summary.terminal:
         direct = render_vyper_scalar_return(prefix, code_term, block, summary,
-                                            layout_term, scalar_slots, code_size)
+                                            layout_term, scalar_slots, code_size, disassembly)
         if direct is not None:
             return direct
     name = summary_name(prefix, block, summary.branch)
@@ -1303,7 +1516,7 @@ def render_vyper_scalar_summary(prefix: str, code_term: str, block: list[Instruc
               f"theorem {name} {params}"]
     lines += [f"    {assumption}" for assumption in assumptions]
     lines += [f"    : {result} := by",
-              f"  have hcode : {code_term}.size = {code_size} := by native_decide"]
+              f"  have hcode : {code_term}.size = {code_size} := by decide +kernel"]
     for i, (write, key, base, dest, _) in enumerate(copies):
         ident = re.sub(r"[^A-Za-z0-9_]", "_", key)
         lines += [f"  have hcopy{i} : {write.replace('__CODE__', code)} = "
@@ -1329,7 +1542,7 @@ def render_vyper_scalar_summary(prefix: str, code_term: str, block: list[Instruc
         lines += [f"    try simp only [hload{i}]" for i in range(len(loads))]
         lines.append(f"    exact {hyp}")
     lines.append("  let r0 := h")
-    for step in summary.proof:
+    for step in vyper_chain(block, summary, layout_term, disassembly):
         for hyp in changed_hyps:
             step = re.sub(rf"\b{re.escape(hyp)}\b", f"{hyp}_raw", step)
         step = step.replace("__TEMPLATE__, suffix,",
@@ -1338,10 +1551,6 @@ def render_vyper_scalar_summary(prefix: str, code_term: str, block: list[Instruc
             step = f"  have {summary.last_cursor} := " + step[len("  exact "):]
         lines.append(step.replace("__CODE__", code).replace("__TEMPLATE__", code_term))
     last = summary.last_cursor
-    if not summary.terminal and is_static_word(summary.pc):
-        lines.append(f"  have rFinal := RD.normalizePC (pc' := {summary.pc}) "
-                     f"{last} (by native_decide)")
-        last = "rFinal"
     if summary.terminal or summary.existential_counters:
         lines.append(f"  have hraw := {last}")
     else:
@@ -1401,7 +1610,8 @@ def generate_unit_records(code: bytes, prefix: str, code_term: str,
                           runtime_suffix: bool = False,
                           vyper_scalar_slots: dict[int, str] | None = None,
                           vyper_layout_term: str | None = None,
-                          vyper_suffix_size: int | None = None) -> list[GeneratedUnit]:
+                          vyper_suffix_size: int | None = None,
+                          disassembly: Disassembly | None = None) -> list[GeneratedUnit]:
     """Generate theorem/comment units with index metadata and no module wrapper."""
     if runtime_suffix and (creation_code or immutable_sites is not None or layout_term is not None):
         raise ValueError("runtime suffix and other patch modes are separate")
@@ -1410,6 +1620,13 @@ def generate_unit_records(code: bytes, prefix: str, code_term: str,
     if (vyper_scalar_slots is not None or vyper_suffix_size is not None) and (
             not runtime_suffix or not vyper_layout_term):
         raise ValueError("Vyper immutable mode requires a runtime suffix and layout term")
+    if disassembly is not None and immutable_sites is not None and any(
+            w != 32 for w, _ in immutable_sites.values()):
+        raise ValueError("disassembly mode covers 32-byte immutables only")
+    if (disassembly is not None
+            and (disassembly.tail is None) != (not (creation_code or runtime_suffix))):
+        raise ValueError("disassembly mode: the bytecode file's tail does not match the code "
+                         "mode")
     prefix = lean_ident(prefix)
     analyzed_code = code if keep_metadata else strip_solidity_metadata(code)
     discovered_blocks = blocks(disassemble(analyzed_code))
@@ -1417,10 +1634,10 @@ def generate_unit_records(code: bytes, prefix: str, code_term: str,
         ins for block in discovered_blocks for ins in block if not instruction_is_supported(ins)
     ]
     if fail_on_unsupported and unsupported:
-        listing = ", ".join(
+        found = ", ".join(
             f"pc {ins.pc}: {ins.name} (0x{ins.opcode:02x})" for ins in unsupported
         )
-        raise ValueError(f"unsupported instructions: {listing}")
+        raise ValueError(f"unsupported instructions: {found}")
 
     units: list[GeneratedUnit] = []
     for block in discovered_blocks:
@@ -1454,15 +1671,16 @@ def generate_unit_records(code: bytes, prefix: str, code_term: str,
                                    for src, _, length, _, _ in summary.codecopies))
                 suffix_return = (render_vyper_suffix_return(
                     prefix, code_term, piece, summary, vyper_layout_term,
-                    vyper_suffix_size, len(code)) if vyper_suffix_size is not None and
+                    vyper_suffix_size, len(code), disassembly)
+                    if vyper_suffix_size is not None and
                     summary.terminal else None)
                 rendered = (suffix_return if suffix_return is not None else
                             render_vyper_scalar_summary(
                                 prefix, code_term, piece, summary, vyper_layout_term,
-                                vyper_scalar_slots, len(code)) if scalar_copy else
+                                vyper_scalar_slots, len(code), disassembly) if scalar_copy else
                             render_summary(prefix, code_term, piece, summary, creation_code,
                                            len(code) if creation_code else None, immutable_sites,
-                                           layout_term, runtime_suffix))
+                                           layout_term, runtime_suffix, disassembly))
                 units.append(GeneratedUnit(
                     rendered,
                     theorem_names,
@@ -1480,13 +1698,15 @@ def generate_units(code: bytes, prefix: str, code_term: str,
                    runtime_suffix: bool = False,
                    vyper_scalar_slots: dict[int, str] | None = None,
                    vyper_layout_term: str | None = None,
-                   vyper_suffix_size: int | None = None) -> list[str]:
+                   vyper_suffix_size: int | None = None,
+                   disassembly: Disassembly | None = None) -> list[str]:
     """Generate theorem/comment units without a Lean module wrapper."""
     return [
         unit.text for unit in generate_unit_records(
             code, prefix, code_term, fail_on_unsupported, keep_metadata,
             max_summary_instructions, creation_code, immutable_sites, layout_term,
-            runtime_suffix, vyper_scalar_slots, vyper_layout_term, vyper_suffix_size
+            runtime_suffix, vyper_scalar_slots, vyper_layout_term, vyper_suffix_size,
+            disassembly
         )
     ]
 
@@ -1613,7 +1833,8 @@ def render_module(prefix: str, imports: list[str], units: list[Unit],
                   layout_term: str | None = None,
                   runtime_suffix: bool = False,
                   max_rec_depth: int | None = None,
-                  namespace: str | None = None) -> str:
+                  namespace: str | None = None,
+                  disassembly: Disassembly | None = None) -> str:
     """Wrap generated units as an independently elaboratable Lean module."""
     prefix = lean_ident(prefix)
     namespace = namespace or f"{prefix}Blocks"
@@ -1622,25 +1843,41 @@ def render_module(prefix: str, imports: list[str], units: list[Unit],
         output.append("import Reasoning.Initcode")
     if immutable_sites is not None:
         output.append("import Reasoning.Immutables")
-    output.extend(f"import {module}" for module in imports)
+    # a bytecode file that is also in `imports` is imported only once
+    output.extend(f"import {module}" for module in imports
+                  if disassembly is None or module != disassembly.lean_import)
+    if disassembly is not None:
+        output += [f"import {disassembly.lean_import}"]
     output += ["", "variable {fork : Ethereum.Fork}", "", "open Stele ABI Ethereum Ethereum.EVM",
                "open Reasoning.Theory Reasoning.Reach", "",
                f"namespace {namespace}", ""]
     if max_rec_depth is not None:
         output += [f"set_option maxRecDepth {max_rec_depth}", ""]
-    elif runtime_suffix:
+    elif runtime_suffix or (disassembly is not None and immutable_sites is None):
+        # block proofs look their section up in the tree
         output += ["set_option maxRecDepth 10000", ""]
     if immutable_sites is not None:
         if code_term is None or code is None or not layout_term:
             raise ValueError("immutable mode requires template code and an imported Lean layout term")
         output += ["open Reasoning.Immutables", "set_option maxRecDepth 10000", ""]
-        output += render_immutable_helpers(code, code_term, layout_term, units,
+        helpers = render_immutable_helpers(code, code_term, layout_term, units,
                                            immutable_sites)
+        if disassembly is not None:
+            # The bytecode file already states the layout facts in this namespace.  Only the decode
+            # lemmas of immutable pushes are kept, for blocks proved without the disassembly.
+            cut = next((i for i, line in enumerate(helpers)
+                        if line.startswith("theorem immutableDecode_")), len(helpers))
+            helpers = (helpers[cut:] if any("immutableDecode_" in unit_text(unit)
+                                            for unit in units) else [])
+        output += helpers
     if creation_code:
         if code_term is None:
             raise ValueError("code term is required in creation mode")
+        if any("exact d tail" in unit_text(unit) for unit in units):
+            # the decoding tactic, for summaries proved without the disassembly
+            output.append(
+                f"private abbrev d := Reasoning.Theory.decode_append_left_of_decode {code_term}")
         output += [
-            f"private abbrev d := Reasoning.Theory.decode_append_left_of_decode {code_term}",
             f"private abbrev j := Reasoning.Theory.D_J_contains_append_left {code_term}",
             "",
         ]
@@ -1757,12 +1994,13 @@ def write_outputs(output: Path, prefix: str, imports: list[str], units: list[Uni
                   layout_term: str | None = None,
                   runtime_suffix: bool = False,
                   max_rec_depth: int | None = None,
-                  namespace: str | None = None) -> list[Path]:
+                  namespace: str | None = None,
+                  disassembly: Disassembly | None = None) -> list[Path]:
     index_entries: list[IndexEntry] = []
     if shard_size is None:
         module_text = render_module(prefix, imports, units, creation_code,
                                     code_term, immutable_sites, code, layout_term,
-                                    runtime_suffix, max_rec_depth, namespace)
+                                    runtime_suffix, max_rec_depth, namespace, disassembly)
         output.write_text(module_text, encoding="utf-8")
         index_entries.extend(module_index_entries(output.name, module_text, units))
         (index_output or default_index_output(output)).write_text(
@@ -1778,7 +2016,7 @@ def write_outputs(output: Path, prefix: str, imports: list[str], units: list[Uni
         path = output.with_name(f"{output.stem}_{index:0{width}d}{suffix}")
         module_text = render_module(prefix, imports, shard, creation_code,
                                     code_term, immutable_sites, code, layout_term,
-                                    runtime_suffix, max_rec_depth, namespace)
+                                    runtime_suffix, max_rec_depth, namespace, disassembly)
         path.write_text(module_text, encoding="utf-8")
         index_entries.extend(module_index_entries(path.name, module_text, shard))
         paths.append(path)
@@ -1820,6 +2058,11 @@ def main(argv: list[str] | None = None) -> int:
                              "--code-term ++ tail, lifting decodes and jumps from --code-term")
     parser.add_argument("--layout-term",
                         help="imported Lean Layout term for immutable-aware runtime summaries")
+    parser.add_argument("--disassembly",
+                        help="Lean module of the code's bytecode file (scripts/gen_bytecode.py), "
+                             "e.g. <M>.Bytecode: the summaries' rule chains take their decode "
+                             "facts and literal jump destinations from its disassembly, "
+                             "without native_decide; its namespace is read from the file")
     parser.add_argument("--runtime-suffix", action="store_true",
                         help="summarize template ++ arbitrary appended runtime data")
     args = parser.parse_args(argv)
@@ -1836,15 +2079,20 @@ def main(argv: list[str] | None = None) -> int:
         layout_term = args.layout_term
         immutable_sites = (read_lean_layout(layout_term, imports, code)
                            if layout_term is not None else None)
+        disassembly = (disassembly_of_module(args.disassembly, code,
+                                             "tail" if args.creation_code else
+                                             "suffix" if args.runtime_suffix else None)
+                       if args.disassembly is not None else None)
         units = generate_unit_records(code, args.name, args.code_term,
                                       args.fail_on_unsupported, args.keep_metadata,
                                       args.max_summary_instructions,
                                       args.creation_code, immutable_sites,
-                                      layout_term, args.runtime_suffix)
+                                      layout_term, args.runtime_suffix, disassembly=disassembly)
         paths = write_outputs(args.output, args.name, imports, units,
                               args.shard_size, args.creation_code, args.code_term,
                               args.index_output, immutable_sites, code,
-                              layout_term, args.runtime_suffix, namespace=args.namespace)
+                              layout_term, args.runtime_suffix, namespace=args.namespace,
+                              disassembly=disassembly)
     except (OSError, ValueError) as error:
         parser.error(str(error))
     if args.shard_size is not None:

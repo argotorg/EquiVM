@@ -21,6 +21,14 @@ from generate_rd_blocks import disassemble  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 
+def needs_converted(test, directory: str) -> None:
+    """Skip the test until ``directory`` has a generated `Bytecode.lean`."""
+    from bytecode_io import is_bytecode_file
+    root = Path(__file__).resolve().parent.parent
+    if not is_bytecode_file(root / directory / "Bytecode.lean"):
+        test.skipTest(f"{directory} is not converted yet")
+
+
 def tiny_runtime() -> bytes:
     from bytecode_io import read_bytecode
     return read_bytecode(ROOT / "Examples/TinyImmutable/runtime.hex")
@@ -31,11 +39,230 @@ class JumpDestTests(unittest.TestCase):
         # PUSH2 0x5b5b JUMPDEST: only the real JUMPDEST at pc 3 counts.
         self.assertEqual(et.jump_dests(bytes.fromhex("615b5b5b")), [3])
 
-    def test_matches_checked_in_table(self) -> None:
-        text = (ROOT / "Benchmarks/Dss/Pot/Bytecode.lean").read_text(encoding="utf-8")
+    def test_matches_checked_in_bytecode_file(self) -> None:
+        needs_converted(self, "Benchmarks/Dss/Pot")
+        # the Python scan and the bytecode file cut the same sections
+        from bytecode_io import bytecode_file_bytes, read_bytecode, read_bytecode_file
+        pot = ROOT / "Benchmarks/Dss/Pot"
+        file = read_bytecode_file(pot / "Bytecode.lean")
+        code = read_bytecode(pot / "runtime.hex")
+        self.assertEqual(bytecode_file_bytes(file), code)
+        starts = sorted({sec for sec, index in rd.section_positions(code).values()
+                         if index == 0 and code[sec] == 0x5B})
+        self.assertEqual(starts, et.jump_dests(code))
+        self.assertEqual(file.valid_jumps, "Benchmarks.Dss.Pot.validJumps")
+        self.assertNotIn("native_decide", (pot / "Bytecode.lean").read_text(encoding="utf-8"))
+
+
+class BytecodeFileTests(unittest.TestCase):
+    """`scaffold.py lean` writes the bytecode files and `check` compares them with the hex."""
+
+    DIR = ROOT / "Tests/Pipeline/VyperRegistry"
+    MODULE = "Tests.Pipeline.VyperRegistry"
+
+    def test_lean_writes_the_bytecode_files(self) -> None:
+        needs_converted(self, "Tests/Pipeline/VyperRegistry")
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            for name in ("runtime.hex", "creation.hex", "Registry.build.json", "Registry.abi.json",
+                         "Selectors.lean"):
+                if (self.DIR / name).exists():
+                    shutil.copy(self.DIR / name, d / name)
+            self.assertEqual(scaffold.main(["lean", "--dir", tmp, "--module", self.MODULE]), 0)
+            for name in ("Bytecode.lean", "CreationBytecode.lean"):
+                text = (d / name).read_text(encoding="utf-8")
+                self.assertEqual(text, (self.DIR / name).read_text(encoding="utf-8"))
+                self.assertNotIn("native_decide", text)
+                self.assertNotIn("validJumps", text)
+            # existing files are kept without --force
+            (d / "Bytecode.lean").write_text("-- edited\n")
+            self.assertEqual(scaffold.main(["lean", "--dir", tmp, "--module", self.MODULE]), 0)
+            self.assertEqual((d / "Bytecode.lean").read_text(), "-- edited\n")
+            self.assertEqual(scaffold.main(["lean", "--dir", tmp, "--module", self.MODULE,
+                                            "--force"]), 0)
+            self.assertIn("namespace Tests.Pipeline.VyperRegistry.Bytecode",
+                          (d / "Bytecode.lean").read_text())
+
+    def test_valid_jumps_and_constant_namespace(self) -> None:
+        import gen_bytecode
+        from bytecode_io import parse_bytecode_file
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            code = bytes.fromhex("6005565b005b00")  # PUSH1 5 JUMP JUMPDEST STOP JUMPDEST STOP
+            (d / "runtime.hex").write_text(code.hex())
+            text = gen_bytecode.render_bytecode_file(d, "Examples.Foo", "Foo", "foo", None,
+                                                     constant_namespace="",
+                                                     valid_jumps="fooValidJumps",
+                                                     provenance="Compiled by hand.")
+            self.assertIn("Compiled by hand.", text)
+            self.assertNotIn("native_decide", text)
+            self.assertIn("eval% EVM.Disassembly.Tree.ofSections (sectionsOf fooBytecode [])", text)
+            file = parse_bytecode_file(text, d / "Bytecode.lean")
+            self.assertEqual((file.namespace, file.hex_name, file.code, file.bytecode,
+                              file.valid_jumps, file.followed_by, file.layout,
+                              file.imports),
+                             ("Examples.Foo.Bytecode", "runtime.hex", code,
+                              "fooBytecode", "fooValidJumps", None, None,
+                              ("Reasoning.Disassembly.Facts",)))
+            # creation code is followed by its constructor arguments
+            (d / "creation.hex").write_text(code.hex())
+            ctor = parse_bytecode_file(gen_bytecode.render_bytecode_file(
+                d, "Examples.Foo", "Foo", "foo", None, creation=True), d / "x.lean")
+            self.assertEqual((ctor.namespace, ctor.hex_name, ctor.code, ctor.bytecode,
+                              ctor.creation, ctor.followed_by),
+                             ("Examples.Foo.CreationBytecode", "creation.hex", code,
+                              "Examples.Foo.fooCreationBytecode", True, "tail"))
+
+    def test_byte_lines(self) -> None:
+        # the bytes are written `BYTES_PER_LINE` per line; the parser reads them back
+        import gen_bytecode
+        from bytecode_io import parse_bytecode_file
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            code = bytes(range(256)) * 3
+            (d / "runtime.hex").write_text("0x" + code.hex().upper() + "\n")
+            text = gen_bytecode.render_bytecode_file(d, "M", "Foo", "foo", None)
+            body = text[text.index("⟨#[") + 3:text.index("]⟩")]
+            self.assertEqual([len(line.strip().rstrip(",").split(", ")) for line in body.splitlines()[1:]],
+                             [gen_bytecode.BYTES_PER_LINE] * 48)
+            self.assertTrue(all(len(line) <= 100 for line in text.splitlines()))
+            self.assertEqual(parse_bytecode_file(text).code, code)
+            (d / "runtime.hex").write_text("")
+            self.assertEqual(parse_bytecode_file(gen_bytecode.render_bytecode_file(
+                d, "M", "Foo", "foo", None)).code, b"")
+
+    def test_parse_bytes_literal(self) -> None:
+        # the literal's body: `0x..` bytes separated by commas and whitespace
+        from bytecode_io import parse_bytes_literal
+        self.assertEqual(parse_bytes_literal("\n  0x60, 0x80,\n  0x0a"), bytes.fromhex("60800a"))
+        self.assertEqual(parse_bytes_literal(""), b"")
+        with self.assertRaisesRegex(ValueError, "not a byte literal"):
+            parse_bytes_literal("0x60, 96")
+        with self.assertRaisesRegex(ValueError, "not a byte literal"):
+            parse_bytes_literal("0x600")
+
+    def test_immutables_name_the_layout(self) -> None:
+        # solc immutables: `names` is only written if the build JSON's order is not the default
+        import gen_bytecode
+        from bytecode_io import parse_bytecode_file
+        build = {"compiler": {}, "immutables": [{"name": "a", "offsets": [10, 50]},
+                                                {"name": "b", "offsets": [30]}]}
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            (d / "runtime.hex").write_text("7f" + "ff" * 32 + "00" * 99)
+            file = parse_bytecode_file(
+                gen_bytecode.render_bytecode_file(d, "M", "Foo", "foo", build), d / "x")
+            self.assertEqual((file.layout, file.names, file.blocks, file.imports),
+                             ("M.immutableLayout", (), "fooBlocks",
+                              ("M.ImmutableCode", "Reasoning.Disassembly.Facts")))
+            # the literal is the template: the sites' 32 bytes zeroed
+            self.assertEqual(file.code, bytes.fromhex("7f" + "ff" * 9 + "00" * 122))
+            build["layoutSites"] = [(30, "b"), (10, "a"), (50, "a")]
+            file = parse_bytecode_file(
+                gen_bytecode.render_bytecode_file(d, "M", "Foo", "foo", build), d / "x")
+            self.assertEqual(file.names, ("a", "b"))
+
+    def test_parse_bytecode_file(self) -> None:
+        needs_converted(self, "Benchmarks/Morpho/MorphoBlue")
+        from bytecode_io import (bytecode_file_constants, bytecode_file_namespace,
+                                 parse_bytecode_file)
+        text = (ROOT / "Benchmarks/Morpho/MorphoBlue/Bytecode.lean").read_text(encoding="utf-8")
+        self.assertEqual(bytecode_file_namespace(text), "Benchmarks.Morpho.MorphoBlue.Bytecode")
+        self.assertEqual(bytecode_file_constants(text),
+                         ["Benchmarks.Morpho.MorphoBlue.morphoBytecode"])
+        file = parse_bytecode_file(text)
+        self.assertEqual((file.layout, file.blocks, file.imports[0]),
+                         ("Benchmarks.Morpho.MorphoBlue.immutableLayout", "morphoBlocks",
+                          "Benchmarks.Morpho.MorphoBlue.ImmutableCode"))
         from bytecode_io import read_bytecode
-        code = read_bytecode(ROOT / "Benchmarks/Dss/Pot/runtime.hex")
-        self.assertEqual(scaffold.lean_jump_table(text, "validJumps"), et.jump_dests(code))
+        self.assertEqual(file.code,
+                         read_bytecode(ROOT / "Benchmarks/Morpho/MorphoBlue/runtime.template.hex"))
+        self.assertIsNone(parse_bytecode_file("namespace A.Bytecode\nend A.Bytecode\n"))
+        named = text.replace(
+            "def names : List String := eval% keyOrder Benchmarks.Morpho.MorphoBlue.immutableLayout.sites",
+            'def names : List String := ["X", "Y"]')
+        self.assertEqual(parse_bytecode_file(named).names, ("X", "Y"))
+        with self.assertRaises(ValueError):
+            parse_bytecode_file(text.replace("0x60, 0x80", "0x60, 0xzz", 1))
+
+    def test_read_bytecode_of_a_bytecode_file(self) -> None:
+        needs_converted(self, "Tests/Pipeline/VyperRegistry")
+        from bytecode_io import is_bytecode_file, read_bytecode
+        self.assertTrue(is_bytecode_file(self.DIR / "Bytecode.lean"))
+        self.assertFalse(is_bytecode_file(ROOT / "Examples/TinyImmutable/runtime.hex"))
+        self.assertEqual(read_bytecode(self.DIR / "Bytecode.lean", "registryBytecode"),
+                         read_bytecode(self.DIR / "runtime.hex"))
+        self.assertEqual(read_bytecode(self.DIR / "CreationBytecode.lean", "registryCreationBytecode"),
+                         read_bytecode(self.DIR / "creation.hex"))
+        with self.assertRaises(ValueError):
+            read_bytecode(self.DIR / "Bytecode.lean", "registryCreationBytecode")
+        # the sites are zeroed whatever the hex file has there (Morpho's runtime.hex is mainnet code)
+        morpho = ROOT / "Benchmarks/Morpho/MorphoBlue"
+        self.assertEqual(read_bytecode(morpho / "Bytecode.lean", "morphoBytecode"),
+                         read_bytecode(morpho / "runtime.template.hex"))
+        self.assertNotEqual(read_bytecode(morpho / "runtime.hex"),
+                            read_bytecode(morpho / "runtime.template.hex"))
+
+    def test_hex_file_is_compared(self) -> None:
+        needs_converted(self, "Tests/Pipeline/VyperRegistry")
+        # `check_bytecode_hex` compares the bytes with the hex file
+        from bytecode_io import check_bytecode_hex, read_bytecode, read_bytecode_file
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            for name in ("Bytecode.lean", "runtime.hex"):
+                shutil.copy(self.DIR / name, d / name)
+            file = read_bytecode_file(d / "Bytecode.lean")
+            check_bytecode_hex(file)
+            code = read_bytecode(d / "runtime.hex")
+            (d / "runtime.hex").write_text("00" + (d / "runtime.hex").read_text())
+            with self.assertRaisesRegex(ValueError, "differ from .*first difference at byte 0"):
+                check_bytecode_hex(file)
+            self.assertEqual(read_bytecode(d / "Bytecode.lean", "registryBytecode"), code)
+            (d / "runtime.hex").unlink()
+            with self.assertRaisesRegex(ValueError, "does not exist"):
+                check_bytecode_hex(file)
+            self.assertEqual(read_bytecode(d / "Bytecode.lean", "registryBytecode"), code)
+
+    def test_check_bytecode_file(self) -> None:
+        needs_converted(self, "Benchmarks/Morpho/MorphoBlue")
+        morpho = ROOT / "Benchmarks/Morpho/MorphoBlue"
+        build = json.loads((morpho / "Morpho.build.json").read_text())
+        ok: list[str] = []
+        failures: list[str] = []
+        scaffold.check_bytecode_file(morpho / "Bytecode.lean",
+                                     "Benchmarks.Morpho.MorphoBlue.morphoBytecode",
+                                     "Benchmarks.Morpho.MorphoBlue.Bytecode", "runtime.hex", build,
+                                     ok, failures)
+        self.assertEqual(failures, [])
+        self.assertTrue(any("layout sites match the build JSON" in line
+                            or "layout sites not compared" in line for line in ok))
+        failures = []
+        scaffold.check_bytecode_file(morpho / "CreationBytecode.lean",
+                                     "Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode",
+                                     "Benchmarks.Morpho.MorphoBlue.CreationBytecode", "creation.hex",
+                                     build, [], failures)
+        self.assertEqual(failures, [])
+        # a wrong constant, a missing tail, a hex file whose bytes are not the bytecode file's
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            for name in ("Bytecode.lean", "runtime.hex"):
+                shutil.copy(self.DIR / name, d / name)
+            shutil.copy(self.DIR / "runtime.hex", d / "creation.hex")
+            failures = []
+            scaffold.check_bytecode_file(d / "Bytecode.lean",
+                                         "Tests.Pipeline.VyperRegistry.otherBytecode",
+                                         "Tests.Pipeline.VyperRegistry.Bytecode", "creation.hex",
+                                         None, [], failures)
+            self.assertTrue(any("otherBytecode" in line for line in failures))
+            self.assertTrue(any("expected tail" in line and "`creation` flag wrong" in line
+                                for line in failures))
+            (d / "runtime.hex").write_text("00" + (d / "runtime.hex").read_text())
+            failures = []
+            scaffold.check_bytecode_file(d / "Bytecode.lean",
+                                         "Tests.Pipeline.VyperRegistry.registryBytecode",
+                                         "Tests.Pipeline.VyperRegistry.Bytecode", "runtime.hex",
+                                         None, [], failures)
+            self.assertTrue(any("differ from" in line for line in failures))
 
 
 class SourceMapTests(unittest.TestCase):

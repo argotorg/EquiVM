@@ -13,6 +13,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import check_all_benchmark_blocks as benchmarks
 import generate_rd_blocks as rd
 
+def needs_converted(test, directory: str) -> None:
+    """Skip the test until ``directory`` has a generated `Bytecode.lean`."""
+    from bytecode_io import is_bytecode_file
+    root = Path(__file__).resolve().parent.parent
+    if not is_bytecode_file(root / directory / "Bytecode.lean"):
+        test.skipTest(f"{directory} is not converted yet")
+
 
 def units(hex_code: str, **kwargs: object) -> str:
     return "\n".join(rd.generate_units(
@@ -89,6 +96,174 @@ class GeneratorTests(unittest.TestCase):
         self.assertNotIn("theorem immutableDecode_33", rendered)
         self.assertIn("(D_J (Contract.layout.runtime template immWords) 0)", rendered)
         self.assertIn("immutableRuntime_size", rendered)
+
+    def test_disassembly_mode_peels_the_section(self) -> None:
+        code = bytes.fromhex("60806040525f3560e01c5b5033ff")
+        disassembly = rd.Disassembly("Sample.Bytecode", rd.section_positions(code))
+        rendered = units(code.hex(), disassembly=disassembly)
+        # first block: the section at 0, one instruction per rule
+        self.assertIn("have d0 := Sample.Bytecode.decodes_code (t := 0) rfl\n",
+                      rendered)
+        self.assertIn("have r1 := r0.push1 (UInt256.ofNat 128) d0.head (by evm_ov)", rendered)
+        self.assertIn("have d1 := d0.next 2 rfl", rendered)
+        self.assertIn("have r3 := RD.genMstore r2 d2.head (by evm_ov)", rendered)
+        self.assertIn("have d3 := d2.next 1 rfl", rendered)
+        self.assertNotIn("native_decide", rendered)
+        self.assertNotIn("normalizePC", rendered)
+        self.assertNotIn("__DEC__", rendered)
+        # the second block starts at the JUMPDEST at 10
+        self.assertIn("have d0 := Sample.Bytecode.decodes_code (t := 10) rfl\n", rendered)
+        self.assertEqual(rd.section_positions(code)[11], (10, 1))
+
+    def test_disassembly_mode_enters_mid_section(self) -> None:
+        # PUSH0; PUSH1 5; JUMPI; STOP; JUMPDEST; STOP: the fall-through block starts at instruction 3 of section 0
+        code = bytes.fromhex("5f600557005b00")
+        disassembly = rd.Disassembly.of("Sample.Bytecode", code)
+        rendered = units(code.hex(), disassembly=disassembly)
+        self.assertIn("(Sample.Bytecode.decodes_code (t := 0) rfl).drop 3 4 rfl", rendered)
+        # the literal target of the taken branch is looked up in the disassembly
+        self.assertIn(".jumpiT d2.head hcond (Sample.Bytecode.jumpdest_code (t := 5) rfl rfl)",
+                      rendered)
+        self.assertNotIn("native_decide", rendered)
+
+    def test_disassembly_mode_covers_transient_storage(self) -> None:
+        # PUSH0; TLOAD; PUSH0; TSTORE; STOP
+        code = bytes.fromhex("5f5c5f5d00")
+        disassembly = rd.Disassembly.of("Sample.Bytecode", code)
+        rendered = units(code.hex(), disassembly=disassembly)
+        self.assertIn("Sample.Bytecode.decodes_code (t := 0) rfl", rendered)
+        self.assertIn("hperm", rendered)
+        self.assertNotIn("native_decide", rendered)
+
+    def test_disassembly_mode_covers_mod_sdiv_mcopy(self) -> None:
+        # PUSH0; PUSH0; MOD; PUSH0; SDIV; PUSH0; PUSH0; PUSH0; MCOPY; STOP
+        code = bytes.fromhex("5f5f065f055f5f5f5e00")
+        disassembly = rd.Disassembly.of("Sample.Bytecode", code)
+        rendered = units(code.hex(), disassembly=disassembly)
+        self.assertIn("Sample.Bytecode.decodes_code (t := 0) rfl", rendered)
+        self.assertNotIn("native_decide", rendered)
+
+    def test_disassembly_mode_covers_byte(self) -> None:
+        # PUSH0; PUSH0; BYTE; STOP
+        code = bytes.fromhex("5f5f1a00")
+        disassembly = rd.Disassembly.of("Sample.Bytecode", code)
+        rendered = units(code.hex(), disassembly=disassembly)
+        self.assertIn("Sample.Bytecode.decodes_code (t := 0) rfl", rendered)
+        self.assertNotIn("native_decide", rendered)
+
+    def test_disassembly_mode_covers_sar_signextend_mulmod(self) -> None:
+        # PUSH0; PUSH0; SAR; PUSH0; SIGNEXTEND; PUSH0; PUSH0; MULMOD; STOP
+        code = bytes.fromhex("5f5f1d5f0b5f5f0900")
+        disassembly = rd.Disassembly.of("Sample.Bytecode", code)
+        rendered = units(code.hex(), disassembly=disassembly)
+        self.assertIn("Sample.Bytecode.decodes_code (t := 0) rfl", rendered)
+        self.assertNotIn("native_decide", rendered)
+
+    def test_disassembly_mode_covers_exp(self) -> None:
+        # PUSH0; PUSH0; EXP; STOP
+        code = bytes.fromhex("5f5f0a00")
+        disassembly = rd.Disassembly.of("Sample.Bytecode", code)
+        rendered = units(code.hex(), disassembly=disassembly)
+        self.assertIn("Sample.Bytecode.decodes_code (t := 0) rfl", rendered)
+        self.assertNotIn("native_decide", rendered)
+
+    def test_disassembly_mode_covers_basefee_and_mstore8(self) -> None:
+        # BASEFEE; PUSH0; MSTORE8; STOP
+        code = bytes.fromhex("485f5300")
+        disassembly = rd.Disassembly.of("Sample.Bytecode", code)
+        rendered = units(code.hex(), disassembly=disassembly)
+        self.assertIn("Sample.Bytecode.decodes_code (t := 0) rfl", rendered)
+        self.assertNotIn("native_decide", rendered)
+
+    def test_disassembly_mode_copies_the_whole_return_data(self) -> None:
+        # RETURNDATASIZE; PUSH0; PUSH0; RETURNDATACOPY; RETURNDATASIZE; PUSH0; REVERT
+        code = bytes.fromhex("3d5f5f3e3d5ffd")
+        disassembly = rd.Disassembly.of("Sample.Bytecode", code)
+        rendered = units(code.hex(), disassembly=disassembly)
+        self.assertIn("returnDataCopyFullGuard rdata", rendered)
+        self.assertNotIn("native_decide", rendered)
+
+    def test_disassembly_mode_keeps_the_statement(self) -> None:
+        code = "60806040525f3560e01c"
+        disassembly = rd.Disassembly("Sample.Bytecode", rd.section_positions(bytes.fromhex(code)))
+        statement = lambda text: text.split(" := by")[0]
+        self.assertEqual(statement(units(code)), statement(units(code, disassembly=disassembly)))
+
+    def test_disassembly_mode_needs_a_tail_for_creation_code(self) -> None:
+        disassembly = rd.Disassembly("Sample.Bytecode", {})
+        with self.assertRaises(ValueError):
+            units("6000", creation_code=True, disassembly=disassembly)
+
+    def test_disassembly_mode_for_creation_code_passes_the_tail(self) -> None:
+        code = bytes.fromhex("5b600356")
+        disassembly = rd.Disassembly.of("Sample.CreationBytecode", code, "tail")
+        rendered = units(code.hex(), creation_code=True, disassembly=disassembly)
+        self.assertIn("Sample.CreationBytecode.decodes_code tail (t := 0) rfl", rendered)
+        # 3 does not start a section, so `hvalid` stays
+        self.assertIn(".jump d2.head (j tail (UInt256.ofNat 3) hvalid)", rendered)
+        self.assertNotIn("private abbrev d ", rendered)
+        self.assertNotIn("native_decide", rendered)
+
+    def test_disassembly_mode_enters_a_cut_short_last_section_through_its_prefix(self) -> None:
+        # JUMPDEST, POP, then a PUSH2 with only one data byte
+        code = bytes.fromhex("5b506100")
+        disassembly = rd.Disassembly.of("Sample.CreationBytecode", code, "tail")
+        self.assertEqual((disassembly.limit, disassembly.last_count), (0, 2))
+        rendered = units(code.hex(), creation_code=True, disassembly=disassembly)
+        self.assertIn("(Sample.CreationBytecode.decodes_last tail).drop 0 0 rfl", rendered)
+        self.assertNotIn("native_decide", rendered)
+
+    def test_disassembly_mode_proves_literal_jump_targets(self) -> None:
+        # PUSH1 3; JUMP; JUMPDEST; then a jump through a stack word
+        code = bytes.fromhex("6003565b56")
+        disassembly = rd.Disassembly.of("Sample.Bytecode", code)
+        rendered = units(code.hex(), disassembly=disassembly)
+        first, second = rendered.split("theorem sample_block_3 ")
+        # a literal target needs no hypothesis, also in the packed form
+        self.assertNotIn("hvalid", first)
+        self.assertIn(".jump d1.head (Sample.Bytecode.jumpdest_code (t := 3) rfl rfl)", first)
+        # a target taken from the stack still needs it
+        self.assertIn("(hvalid : (D_J sampleCode 0).contains x0 = true)", second)
+        self.assertIn(".jump d1.head hvalid", second)
+        # without a disassembly the statement is as before
+        self.assertIn("(hvalid : (D_J sampleCode 0).contains (UInt256.ofNat 3) = true)", units(code.hex()))
+
+    def test_bytecode_file_is_imported_once_under_its_namespace(self) -> None:
+        # `Bytecode.lean` also defines the bytecode constant, so it is imported only once
+        code = bytes.fromhex("6003565b00")
+        disassembly = rd.Disassembly.of("Sample.Bytecode", code, None, "Sample.Bytecode")
+        units_ = rd.generate_unit_records(code, "sample", "Sample.sampleBytecode",
+                                          disassembly=disassembly)
+        text = rd.render_module("sample", ["Sample.Bytecode", "Other"], units_,
+                                disassembly=disassembly)
+        imports = [line for line in text.splitlines() if line.startswith("import ")]
+        self.assertEqual(imports, ["import Reasoning.Reach", "import Other",
+                                   "import Sample.Bytecode"])
+        self.assertIn("Sample.Bytecode.jumpdest_code (t := 3) rfl rfl", text)
+
+    def test_directory_disassembly_by_content(self) -> None:
+        needs_converted(self, "Benchmarks/Morpho/MorphoBlue")
+        root = Path(__file__).resolve().parent.parent
+        morpho = root / "Benchmarks/Morpho/MorphoBlue"
+        module = "Benchmarks.Morpho.MorphoBlue"
+        runtime = bytes.fromhex((morpho / "runtime.hex").read_text().strip())
+        disassembly = rd.directory_disassembly(morpho, module, runtime)
+        self.assertEqual((disassembly.module, disassembly.lean_import, disassembly.tail),
+                         (f"{module}.Bytecode", f"{module}.Bytecode", None))
+        creation = bytes.fromhex((morpho / "creation.hex").read_text().strip())
+        ctor = rd.directory_disassembly(morpho, module, creation, creation=True)
+        self.assertEqual((ctor.module, ctor.lean_import, ctor.tail),
+                         (f"{module}.CreationBytecode", f"{module}.CreationBytecode", "tail"))
+        self.assertEqual(rd.bytecode_imports(morpho, module), [f"{module}.Bytecode"])
+        self.assertEqual(rd.bytecode_imports(morpho, module, creation=True),
+                         [f"{module}.CreationBytecode"])
+        # a directory without the file has no disassembly and nothing to import
+        empty = root / "Examples/CtorStore"
+        self.assertIsNone(rd.directory_disassembly(empty, "Examples.CtorStore", b"", creation=True))
+        self.assertEqual(rd.bytecode_imports(empty, "Examples.CtorStore", creation=True), [])
+        # the command line's `--disassembly <module>` reads the namespace from the file
+        self.assertEqual(rd.disassembly_of_module(f"{module}.Bytecode", runtime).module,
+                         f"{module}.Bytecode")
 
     def test_immutable_mode_requires_imported_layout_term(self) -> None:
         with self.assertRaisesRegex(ValueError, "imported Lean layout term"):
@@ -242,6 +417,20 @@ class GeneratorTests(unittest.TestCase):
                         self.assertNotIn("namespace sampleBlocks\n", rendered)
 
 
+def minimal_bytecode_file(module: str, constant: str, layout: str | None = None,
+                          layout_import: str | None = None) -> str:
+    """Just enough of a bytecode file (`gen_bytecode.py`) for the benchmark discovery."""
+    imports = f"import {layout_import}\n" if layout_import else ""
+    sites = f"(siteNumbers {layout}.sites names)" if layout else "[]"
+    facts = (f"theorem _root_.sampleBlocks.immutableTemplate_size : {constant}.size = 1 := by\n"
+             "  decide +kernel\n\n" if layout else "")
+    return (f"{imports}import Reasoning.Disassembly.Facts\n\n"
+            f"def {constant} : ByteArray := ⟨#[0x00]⟩\n\nnamespace {module}.Bytecode\n\n"
+            "noncomputable def tree : EVM.Disassembly.Tree :=\n"
+            f"  eval% EVM.Disassembly.Tree.ofSections (sectionsOf {constant} {sites})\n\n"
+            f"{facts}end {module}.Bytecode\n")
+
+
 class BenchmarkInputTests(unittest.TestCase):
     def test_discovery_is_independent_of_temporary_scaffolds(self) -> None:
         for with_scaffolds in (False, True):
@@ -253,28 +442,29 @@ class BenchmarkInputTests(unittest.TestCase):
                                     if with_scaffolds else [])
                 for path in reversed(paths):
                     path.parent.mkdir(parents=True)
-                    path.touch()
+                    path.write_text(minimal_bytecode_file("M", "M.mBytecode"), encoding="utf-8")
+                # a Bytecode.lean that is not a bytecode file is not a benchmark
+                (root / "Other").mkdir()
+                (root / "Other/Bytecode.lean").write_text("-- not a bytecode file\n")
                 self.assertEqual(benchmarks.benchmark_paths(root), expected)
 
-    def test_layout_module_supports_both_benchmark_formats(self) -> None:
-        for files, expected in (((), None),
-                                (("Immutables.lean",), "Immutables.lean"),
-                                (("Immutables.lean", "ImmutableCode.lean"), "ImmutableCode.lean")):
-            with self.subTest(files=files), tempfile.TemporaryDirectory() as tmp:
+    def test_inputs_come_from_the_bytecode_file(self) -> None:
+        # the constant, blocks namespace and layout come from the bytecode file
+        for layout, layout_import in ((None, None),
+                                      ("Sample.Immutables.immutableLayout", "Benchmarks.Sample.Immutables"),
+                                      ("Sample.immutableLayout", "Benchmarks.Sample.ImmutableCode")):
+            with self.subTest(layout=layout), tempfile.TemporaryDirectory() as tmp:
                 root = Path(tmp)
                 path = root / "Benchmarks/Sample/Bytecode.lean"
                 path.parent.mkdir(parents=True)
-                path.write_text("namespace Sample\ndef sampleBytecode : ByteArray := ⟨#[0]⟩\n",
-                                encoding="utf-8")
-                for name in files:
-                    path.with_name(name).touch()
+                path.write_text(minimal_bytecode_file("Benchmarks.Sample", "Sample.sampleBytecode",
+                                                      layout, layout_import), encoding="utf-8")
                 with patch.object(benchmarks, "ROOT", root):
-                    self.assertEqual(
-                        benchmarks.benchmark_inputs(path),
-                        ("Sample.sampleBytecode", "Benchmarks.Sample.Bytecode",
-                         path.with_name(expected) if expected else None),
-                    )
-
+                    file, module, layout_module = benchmarks.benchmark_inputs(path)
+                self.assertEqual((file.bytecode, module, layout_module, file.layout,
+                                  file.blocks),
+                                 ("Sample.sampleBytecode", "Benchmarks.Sample.Bytecode",
+                                  layout_import, layout, "sampleBlocks" if layout else None))
 
 if __name__ == "__main__":
     unittest.main()

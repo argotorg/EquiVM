@@ -62,7 +62,7 @@ jobs:
         run: |
           python3 -m unittest scripts/test_generate_rd_blocks.py
           python3 scripts/check_all_benchmark_blocks.py \
-            --contract UniswapV3/Pool \
+            --contract EAS/Attester \
             --jobs 4
 
       # These End dispatch consumers previously overflowed Lean's default stack.

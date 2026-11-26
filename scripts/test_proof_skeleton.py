@@ -16,6 +16,13 @@ from evm_tools import dispatcher  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 
+def needs_converted(test, directory: str) -> None:
+    """Skip the test until ``directory`` has a generated `Bytecode.lean`."""
+    from bytecode_io import is_bytecode_file
+    root = Path(__file__).resolve().parent.parent
+    if not is_bytecode_file(root / directory / "Bytecode.lean"):
+        test.skipTest(f"{directory} is not converted yet")
+
 
 def fake_contract(directory: Path, name: str, prefix: str) -> ps.Contract:
     return ps.Contract(directory, name, "X", "X", prefix, [], False, False, [], (0, 8, 0), [],
@@ -68,11 +75,36 @@ class ImmutableTests(unittest.TestCase):
         c = fake_contract(ROOT / "Examples/TinyImmutable", "TinyImmutable", "tinyImmutable")
         c.immutables = [ps.Immutable("owner", "address"), ps.Immutable("scale", "uint256")]
         common = ps.render_common(c)
-        self.assertIn("D_J (deployedRuntime v) 0 = D_J tinyImmutableBytecode 0", common)
-        self.assertIn("D_J (immutableLayout.runtime tinyImmutableBytecode (wordsOf (immStore v))) 0 = "
-                      "D_J tinyImmutableBytecode 0", common)
+        # jump validity comes from the disassembly
+        self.assertIn("theorem tinyImmutableJumpdest (v : TinyImmutableImmutables)", common)
+        self.assertIn("(D_J (deployedRuntime v) 0).contains pc = true", common)
+        self.assertIn("Bytecode.jumpdest_code (wordsOf (immStore v)) h hjd pc.val.isLt", common)
+        self.assertNotIn("native_decide", common)
+        self.assertNotIn("PatchedValidJumps", common)
         gen = ps.ProofGen(c, ps.Dispatcher(c, None))
-        self.assertIn("tinyImmutablePatchedValidJumpsRuntime v", gen.valid_proof())
+        self.assertEqual(gen.valid_proof(), "(by exact tinyImmutableJumpdest v rfl rfl)")
+
+    def test_plain_contract_jumpdest_and_creation_import(self) -> None:
+        c = fake_contract(ROOT / "Examples/TinyImmutable", "TinyImmutable", "tinyImmutable")
+        common = ps.render_common(c)
+        self.assertIn("(D_J tinyImmutableBytecode 0).contains pc = true", common)
+        self.assertIn("  have hj := Bytecode.jumpdest_code h hjd pc.val.isLt", common)
+        self.assertNotIn("native_decide", common)
+        self.assertIn("import X.CreationBytecode", ps.render_constructor(c))
+
+    def test_blocks_without_hvalid_get_no_argument(self) -> None:
+        needs_converted(self, "Benchmarks/Morpho/MorphoBlue")
+        # a literal jump target needs no `hvalid`, so the dispatcher passes none
+        directory = ROOT / "Benchmarks/Morpho/MorphoBlue"
+        hyps = ps.block_hypotheses(directory)
+        self.assertIsNotNone(hyps)
+        self.assertEqual(hyps["morpho_block_0_taken"], ["hstack", "hcond", "h"])
+        c = fake_contract(directory, "Morpho", "morpho")
+        c.block_hyps = hyps
+        gen = ps.ProofGen(c, ps.Dispatcher(c, None))
+        self.assertFalse(gen.takes("morpho_block_0_taken", "hvalid"))
+        c.block_hyps = None
+        self.assertTrue(gen.takes("morpho_block_0_taken", "hvalid"))
 
 
 class VyperSpecTests(unittest.TestCase):
