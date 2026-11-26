@@ -40,20 +40,10 @@ theorem fromBytes'_replicate_zero (k : ℕ) : fromBytes' (List.replicate k (0 : 
 
 /-- Appending high-order zero bytes does not change the little-endian value. -/
 theorem fromBytes'_append_zeros (l : List UInt8) (k : ℕ) :
-    fromBytes' (l ++ List.replicate k 0) = fromBytes' l := by
-  induction l with
-  | nil => simpa using fromBytes'_replicate_zero k
-  | cons b bs ih => simp only [List.cons_append, fromBytes']; rw [ih]
+    fromBytes' (l ++ List.replicate k 0) = fromBytes' l := EVM.fromBytes'_append_zeros l k
 
-/-- The little-endian round-trip `fromBytes' (toBytes' x) = x` (evmlean's version is `private`,
-    so it is proved here). -/
-theorem fromBytes'_toBytes' (x : ℕ) : fromBytes' (toBytes' x) = x := by
-  match x with
-  | .zero => simp [toBytes', fromBytes']
-  | .succ n =>
-    unfold toBytes' fromBytes'
-    simp [UInt8.size]
-    exact Nat.mod_add_div _ _
+/-- The little-endian round-trip `fromBytes' (toBytes' x) = x` (evmlean's version is `private`). -/
+theorem fromBytes'_toBytes' (x : ℕ) : fromBytes' (toBytes' x) = x := EVM.fromBytes'_toBytes' x
 
 /-- Nonnegative integers are embedded as their natural-value EVM word. -/
 theorem wordOfInt_nonneg (i : Int) (h0 : 0 ≤ i) :
@@ -141,24 +131,8 @@ theorem fromBytes'_take_wordLE_land_mask (w : UInt256) (n : Nat) (hbits : 8 * n 
 /-! ## 2. `ByteArray.toList` = `data.toList`, and the `fromByteArrayBigEndian ∘ toByteArray` round-trip -/
 
 /-- `ByteArray.toList` (the reversing `loop`) equals `data.toList`. -/
-theorem byteArray_toList_eq (b : ByteArray) : b.toList = b.data.toList := by
-  show ByteArray.toList.loop b 0 [] = _
-  suffices h : ∀ i r, ByteArray.toList.loop b i r = r.reverse ++ b.data.toList.drop i by
-    simpa using h 0 []
-  intro i r
-  induction i, r using ByteArray.toList.loop.induct (bs := b) with
-  | case1 i r hlt ih =>
-    rw [ByteArray.toList.loop, if_pos hlt, ih, List.reverse_cons, List.append_assoc]
-    congr 1
-    have hi : i < b.data.size := hlt
-    have hlen : i < b.data.toList.length := by rw [Array.length_toList]; exact hi
-    have hget : b.get! i = b.data.toList[i]'hlen := by
-      rw [Array.getElem_toList]; exact getElem!_pos b.data i hi
-    rw [hget, List.singleton_append, List.getElem_cons_drop]
-  | case2 i r hge =>
-    rw [ByteArray.toList.loop, if_neg hge]
-    have : b.data.toList.length ≤ i := by rw [Array.length_toList]; exact Nat.le_of_not_lt hge
-    rw [List.drop_eq_nil_of_le this, List.append_nil]
+theorem byteArray_toList_eq (b : ByteArray) : b.toList = b.data.toList :=
+  EVM.byteArray_toList_eq_data b
 
 /-- Size of the internal accumulator used by `List.toByteArray`. -/
 theorem list_toByteArray_loop_size (xs : List UInt8) (acc : ByteArray) :
@@ -2201,8 +2175,7 @@ theorem wordAt0Mem_read0_of_size_96 {mem : ByteArray} (word : UInt256)
     rw [toByteArray_size])
 
 theorem word_toBytesBE_length_32 (w : UInt256) :
-    (EVM.Word.toBytesBE w).length = 32 := by
-  simpa using word_toBytesBE_toByteArray_size w
+    (EVM.Word.toBytesBE w).length = 32 := EVM.Word.toBytesBE_length w
 
 theorem byteArray_write_from_ge_eq_no_gap_bound (src base : ByteArray) (srcAddr destAddr len : ℕ)
     (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size)
@@ -2930,10 +2903,8 @@ theorem byteArray_extract0_toList (b : ByteArray) (r : ℕ) :
     (b.extract 0 r).toList = b.toList.take r := by
   rw [byteArray_toList_eq, byteArray_toList_eq, ByteArray.data_extract, Array.toList_extract]; simp
 
-theorem fromBytesBE_word (w : UInt256) : fromBytesBigEndian (EVM.Word.toBytesBE w) = w.toNat := by
-  have h := congrArg fromByteArrayBigEndian (word_toBytesBE_toByteArray_eq_toByteArray w)
-  simpa [fromByteArrayBigEndian, byteArray_toList_eq] using
-    h.trans (fromByteArrayBigEndian_toByteArray w)
+theorem fromBytesBE_word (w : UInt256) : fromBytesBigEndian (EVM.Word.toBytesBE w) = w.toNat :=
+  EVM.Word.fromBytesBigEndian_toBytesBE w
 
 theorem bytesBE_extract_high (w : UInt256) (r : ℕ) (hr : r ≤ 32) :
     fromBytesBigEndian ((w.toByteArray.extract 0 r).toList) = w.toNat / 2 ^ (8 * (32 - r)) := by

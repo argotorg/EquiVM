@@ -1,5 +1,6 @@
 import Ethereum.Semantics
 import EVM.Types
+import EVM.Lemmas
 import Mathlib.Data.Nat.Bitwise
 import Mathlib.Data.Nat.Digits.Defs
 import Mathlib.Data.Nat.Digits.Lemmas
@@ -37,11 +38,7 @@ theorem u256_inj {a b : UInt256} (h : a.toNat = b.toNat) : a = b := by
   cases a; cases b; simp only [UInt256.toNat] at h; exact congrArg UInt256.mk (Fin.ext h)
 
 /-- Rebuilding a word from its in-range `toNat` gives the same word. -/
-theorem u256_ofNat_toNat (a : UInt256) : UInt256.ofNat a.toNat = a := by
-  apply u256_inj
-  show (Fin.ofNat _ a.toNat).val = a.toNat
-  simp only [Fin.ofNat]
-  exact Nat.mod_eq_of_lt a.val.isLt
+theorem u256_ofNat_toNat (a : UInt256) : UInt256.ofNat a.toNat = a := EVM.Word.ofNat_toNat a
 
 /-! `UInt256` numerals are stored through `Fin.ofNat`, so `simp` does not always reduce their
     `toNat` projection. Normalize closed word literals (including those inside a larger goal),
