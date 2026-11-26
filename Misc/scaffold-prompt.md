@@ -53,8 +53,9 @@ differential suite cannot tell apart from it, and the proof skeleton the proving
    scripts/scaffold.py all --dir <Dir> --solc <solc> --main <Main.sol> --contract <Name> \
        --runs <n> [--via-ir] [--evm-version <v>] --module <Module>
    ```
-   Compiles and pins the artifacts, writes `Bytecode.lean`, `Selectors.lean`, the immutable
-   modules, `DiffTarget.lean` (registered in `Tests/DiffTest/Generated.lean`), the block
+   Compiles and pins the artifacts, writes the bytecode files `Bytecode.lean` and
+   `CreationBytecode.lean` (the runtime and creation bytecode with kernel-checked disassembly),
+   `Selectors.lean`, the immutable modules, `DiffTarget.lean` (registered in `Tests/DiffTest/Generated.lean`), the block
    summaries, and checks them. Every check line must read `ok`. A contract with transient
    storage needs `--evm-version cancun` (or later) and solc 0.8.28 or later.
    For Vyper 0.4.3, pin the entire local import tree (`.vy` and `.vyi`) under `<Dir>/contracts`

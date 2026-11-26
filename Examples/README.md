@@ -2,7 +2,8 @@
 
 Contracts used to develop and exercise the framework. Each directory holds one contract:
 its Stele specification (`Spec.lean`, with Solidity-like surface syntax in `SpecSyntax.lean`),
-the exact compiled bytecode as a Lean byte array (`Bytecode.lean`), and the refinement proof,
+the exact compiled bytecode with its kernel-checked disassembly (`Bytecode.lean`), and the
+refinement proof,
 assembled in `Correct.lean`. The top-level theorem of each example is named in the table.
 
 All proofs are complete.
@@ -32,8 +33,12 @@ All proofs are complete.
 
 - `Spec.lean` — the Stele contract: storage layout, transitions, external-call hooks.
 - `SpecSyntax.lean` — the same spec in Solidity-like surface syntax, proved equal to `Spec.lean`.
-- `Bytecode.lean` — the compiled bytecode as a byte array, with the compiler invocation recorded
-  in the header, plus the verified jump-destination table.
+- `Bytecode.lean` (`CreationBytecode.lean`) — the compiled runtime (creation) bytecode and its
+  disassembly, written by `scripts/gen_bytecode.py`: the bytes of `runtime.hex` (`creation.hex`) as
+  one `ByteArray` literal and the kernel-checked table of instructions computed from them
+  (`#print <Module>.Bytecode.tree` shows the instructions), with the compiler invocation recorded in the header, plus the jump-destination facts (`@[valid_jumps]`, proved
+  from the disassembly). Selector facts are in `Selectors.lean`; a hand-assembled initcode, where an
+  example uses one, in `Initcode.lean`.
 - `Correct.lean` — the top-level theorem; per-function proofs live in sibling files.
 - `.sol`/`.vy` sources are checked in next to the Lean files.
 

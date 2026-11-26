@@ -10,6 +10,14 @@ Most declarations are in `Reasoning.Theory`. The EVM trace layer (`RD`, `evm_run
 `Reasoning.Theory.RpowBase` namespaces for the two source-variable conventions.
 `Immutables.lean` uses `Reasoning.Immutables` for immutable layouts and decoding.
 `JumpDest.lean` has no namespace (it defines a tactic and an attribute).
+`Disassembly/` is in `Reasoning.Disassembly`; it builds on the decoding of a contract's bytecode into a
+checked disassembly, which is in `EVM/Disassembly/` (namespace `EVM.Disassembly`): `Instr`, `scan`,
+`cut` and `Checked bytes sections` (`Basic.lean`), what `Checked` gives about the deployed code
+`filled bytes σ table` (`Sound.lean`: `Decodes`, `Checked.decodes_lookup`,
+`Checked.jumpdest_iff`), the table as a search tree (`Tree.lean`), the untrusted functions a
+bytecode file runs with `eval%` to compute its tree (`Compute.lean`: `sectionsOf`,
+`Tree.ofSections`, the `ToExpr` instances), and the whole `JUMPDEST` set (`JumpTable.lean`: `Checked.D_J_filled`,
+`Checked.contains_eq`).
 
 Some existing helpers use `native_decide`; refactors should not introduce additional axiom
 dependencies.
@@ -25,7 +33,10 @@ dependencies.
 | `Reach.lean` | The EVM trace layer. `RD` (reached-or-out-of-gas invariant), one forward step lemma per opcode (`RD.<op>`), `CALL`/`STATICCALL` with the callee treated as an opaque `Θ` result, terminal forms `RDret`/`RDrev` with the `reEquiv_*` case builders for `runtimeRefinementFor` and the `reEquivElim` eliminators, `Cursor`/`RDc`, and the `evm_run` macro that chains steps with auto-discharged decode/overflow side conditions. |
 | `ABI.lean` | Calldata decoding and return-value encoding: per-shape decode lemmas (address/uint256/bool/bytes32/string/dynamic-array combinations), decode-mode variants, failure cases (short, huge, non-canonical), return encodings. |
 | `MemCascade.lean` | Word-write cascades, sparse writes, scratch-memory shapes, and read/size preservation, including two-word preimages written in either order. |
-| `JumpDest.lean` | The `@[valid_jumps]` attribute and `jump_dest` tactic discharging jump-target validity (via `native_decide`, deliberately). |
+| `JumpDest.lean` | The `@[valid_jumps]` attribute and `jump_dest` tactic discharging jump-target validity: rewrite by the contract's `@[valid_jumps]` equation (membership as a lookup in the tree of the contract's sections; a bytecode file written with `gen_bytecode.py --valid-jumps`, proved by `EVM/Disassembly/JumpTable.lean`), then `decide +kernel`. A bytecode file also gives each destination through its `jumpdest_code`. |
+| `Disassembly/Immutables.lean` | The code the block summaries name (`fooBytecode`, or `layout.runtime fooBytecode words`) is the sections' filled code, from a closed check. |
+| `Disassembly/Appended.lean` | The disassembly's facts for code followed by arbitrary data (`creationBytecode ++ tail`, a Vyper `template ++ suffix`): sections that end inside the code decode the same, and their `JUMPDEST`s stay valid jump destinations. |
+| `Disassembly/Facts.lean` | What a contract's `Bytecode.lean` / `CreationBytecode.lean` (plain Lean written by `scripts/gen_bytecode.py`) states, as generic lemmas its one-line theorems apply: the bytecode constant is one `ByteArray` literal; `tree` is computed from it when the file is elaborated (Mathlib's `eval%` running `EVM/Disassembly/Compute.lean`, not trusted), `table := tree.flat []`, and `check : Checked bytes sections` is proved by `decide +kernel`; `decodes_tree`, `jumpdest_tree`, `decodes_appended_tree`, `jumpdest_appended_tree`, `decodes_last_tree` and `contains_eq_tree` give `decodes_code`, `jumpdest_code`, `decodes_last` and the `@[valid_jumps]` theorem. `#print <M>.Bytecode.tree` shows the sections. |
 | `Initcode.lean` | Constructor-time facts: decode of the initcode prefix, jump-table survival, constructor-argument arithmetic. |
 | `Solc.lean` | Compiler-emitted code shapes, proved once: selector dispatch, ABI length checks, free-memory-pointer and revert memory, the 160-bit address mask, getter/store routines, reentrancy locks, checked arithmetic, event logs, high-level call combinators. |
 | `Storage.lean` | Storage maps: `ExtTreeMap` lookup/update facts, `StorageLoc` load/store for the Solidity value encodings, the bytes/string storage layout, account-map equality/`EVMStateEquiv` with `SLOAD`/`SSTORE` preservation. |

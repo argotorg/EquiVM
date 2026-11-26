@@ -84,8 +84,11 @@ Each benchmark directory contains:
 
 - `Spec.lean` — the Stele contract: storage layout, transitions, typed external-call hooks.
 - `SpecSyntax.lean` — the same spec in Solidity-like surface syntax, proved equal to `Spec.lean`.
-- `Bytecode.lean` — the compiled creation/runtime bytecode as Lean byte arrays with the verified
-  jump-destination table.
+- `Bytecode.lean` — the compiled bytecode: the runtime with its kernel-checked disassembly (with
+  `CreationBytecode.lean` for the creation code), as `scripts/scaffold.py lean` writes it: the
+  bytes of `runtime.hex` as one `ByteArray` literal, and the table of instructions computed from
+  them when the file is built (`eval%`) and checked by the kernel; `#print <Module>.Bytecode.tree`
+  shows the instructions.
 - `Selectors.lean` — proofs of concrete 4-byte function selectors.
 - `Constructor.lean` / `Correct.lean` — constructor and runtime equivalence; `…ContractCorrect`
   bundles both. Scaffolds and active proof targets retain `sorry` for unfinished obligations.

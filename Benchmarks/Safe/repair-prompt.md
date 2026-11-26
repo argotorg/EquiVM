@@ -23,7 +23,9 @@ Do not consult any other version of this proof: no other EquiVM checkout, branch
 
 1. Replace `Benchmarks/Safe/<TARGET>/contracts/` with the fetched sources. Recompile with the
    command in the copy's README. Replace `runtime.hex`, `creation.hex`, `Safe.abi.json`;
-   regenerate `sources.sha256` and `Bytecode.lean` (same names, same format); then run
+   regenerate `sources.sha256`, `Bytecode.lean` and `CreationBytecode.lean`
+   (`scripts/gen_bytecode.py --dir Benchmarks/Safe/<TARGET> --force`, then again with
+   `--creation`); then run
    `python3 scripts/audit_safe.py --dir Benchmarks/Safe/<TARGET> --solc <solc> --write`, which
    regenerates the block summaries (`Blocks/`, `Blocks.lean`), `ArtifactChecks.lean` and
    `AuditManifest.json`. If it reports stale block shards, delete those files in `Blocks/` and

@@ -24,7 +24,8 @@
        From here on work only in `Benchmarks/Safe/Runs1e6/`; never touch `Main`.
     1. Recompile with the command in the copy's README, changing only `--optimize-runs 200` to
        `--optimize-runs 1000000`. Replace `runtime.hex`, `creation.hex`, `Safe.abi.json`;
-       regenerate `Bytecode.lean` (same names, same format); `contracts/` and `sources.sha256`
+       regenerate `Bytecode.lean` and `CreationBytecode.lean` (`scripts/gen_bytecode.py --dir
+       Benchmarks/Safe/Runs1e6 --force`, then again with `--creation`); `contracts/` and `sources.sha256`
        stay as they are. Then run
        `python3 scripts/audit_safe.py --dir Benchmarks/Safe/Runs1e6 --runs 1000000 --solc <solc> --write`,
        which regenerates the block summaries (`Blocks/`, `Blocks.lean`), `ArtifactChecks.lean` and

@@ -25,7 +25,7 @@ Every contract directory follows this structure (`Examples/<C>/` or
 | `SpecSyntax.lean` | **the specification**: the contract in `solidity%` surface syntax | user |
 | `Immutables.lean` | contracts with immutables only: the valuation structure + read exprs | user |
 | `Spec.lean` | derived assembly: `def contract := Syntax.contractSyntax`, named transition handles, storage layout, `Config` | agent |
-| `Bytecode.lean` | runtime/creation bytes as chunked `ByteArray`s + jump-dest facts, transcribed from the `.hex` files | agent |
+| `Bytecode.lean`, `CreationBytecode.lean` | runtime / creation bytecode and its disassembly, generated from the `.hex` files by `scripts/scaffold.py lean` | scripts |
 | `Selectors.lean` | selector table, `selIs`/`selWord`, and ABI selector theorems | agent |
 | `Common.lean` | single proof import point; re-exports contract modules and shared reasoning, and holds cross-file helpers | agent |
 | `Storage.lean` | contract-wide storage load/store facts (contracts with storage) | agent |
@@ -52,8 +52,8 @@ assumption and its justification, and is imported only by modules that use it.
 
 1. **Compile & pin** (user). Build with the contract's original compiler
    settings, save `creation.hex`/`runtime.hex`/ABI/storage/AST JSON, write
-   `sources.sha256`, and record the exact command and compiler version (it ends
-   up in `Bytecode.lean`'s header). Bytecode provenance is arbitrary — the
+   `sources.sha256`, and record the exact command and compiler version
+   (`scaffold.py compile` writes it to `<C>.build.json`). Bytecode provenance is arbitrary — the
    proof targets whatever was actually deployed, optimizer included.
 2. **Specification** (user). Author the contract in `solidity%` surface syntax
    (see `Stele/Notation.lean` header for the language). For the most part it
@@ -62,7 +62,8 @@ assumption and its justification, and is imported only by modules that use it.
    also get an `Immutables.lean` valuation.
 3. **Generated scaffold** (scripts, see `scripts/README.md`; an agent runs steps 3 and 4 from
    `Misc/scaffold-prompt.md`). `scripts/scaffold.py`
-   compiles and pins the artifacts, writes `Bytecode.lean`, `Selectors.lean` and the
+   compiles and pins the artifacts, writes the bytecode files `Bytecode.lean` and
+   `CreationBytecode.lean`, `Selectors.lean` and the
    immutables modules, and generates the block summaries; `scripts/bytecode_report.py`
    writes the bytecode report the audit works from; `scripts/sol2stele.py` (solc) or
    `scripts/vy2stele.py` (Vyper) drafts `SpecSyntax.lean` from the compiler's AST (with holes); `scripts/proof_skeleton.py` writes
