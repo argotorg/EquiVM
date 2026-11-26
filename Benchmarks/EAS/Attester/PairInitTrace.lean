@@ -41,7 +41,7 @@ theorem pairInitStep321 : PairInitStep fork 321 359 ⟨96⟩ := by
       rw [ulit_toNat' _ (by omega)] at hz'
       change n - 1 = 0 at hz'; omega
     obtain ⟨aw', k', C', h'⟩ := attesterRuntime_block_321_taken_packed hstack hnz
-      (by rw [attesterRuntime_validJumps]; native_decide) h
+      h
     refine ⟨aw', k', C', ?_⟩
     simpa only [if_neg hn1, attesterRuntime_block_321_taken_stack,
       attesterRuntime_block_321_taken_memory, hptr, ofNat_add_words, hsub,
@@ -69,7 +69,7 @@ theorem pairInitStep536 : PairInitStep fork 536 573 ⟨0⟩ := by
       rw [ulit_toNat' _ (by omega)] at hz'
       change n - 1 = 0 at hz'; omega
     obtain ⟨aw', k', C', h'⟩ := attesterRuntime_block_536_taken_packed hstack hnz
-      (by rw [attesterRuntime_validJumps]; native_decide) h
+      h
     refine ⟨aw', k', C', ?_⟩
     simpa only [if_neg hn1, attesterRuntime_block_536_taken_stack,
       attesterRuntime_block_536_taken_memory, hptr, ofNat_add_words, hsub,
@@ -97,7 +97,7 @@ theorem pairInitStep1063 : PairInitStep fork 1063 1101 ⟨96⟩ := by
       rw [ulit_toNat' _ (by omega)] at hz'
       change n - 1 = 0 at hz'; omega
     obtain ⟨aw', k', C', h'⟩ := attesterRuntime_block_1063_taken_packed hstack hnz
-      (by rw [attesterRuntime_validJumps]; native_decide) h
+      h
     refine ⟨aw', k', C', ?_⟩
     simpa only [if_neg hn1, attesterRuntime_block_1063_taken_stack,
       attesterRuntime_block_1063_taken_memory, hptr, ofNat_add_words, hsub,

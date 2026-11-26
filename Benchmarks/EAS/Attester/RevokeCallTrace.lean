@@ -42,7 +42,7 @@ theorem revokeReachCall {words : String → UInt256} {I g s0 σ k C sel schema u
     (by change UInt256.isZero (UInt256.isZero
           (extCodeSizeWord σ (UInt256.land solcAddrMask (words "_eas")))) ≠ ⟨0⟩
         rw [isZero_eq_zero_of_ne hne]; decide)
-    (by rw [attesterRuntime_validJumps]; native_decide) h
+    h
   simp only [attesterRuntime_block_2321_taken_stack, revokeMemory_freePtr] at h'
   have h'' := attesterRuntime_block_2378 (by simp) h'
   exact ⟨_, _, _, _, h''⟩
@@ -61,9 +61,9 @@ theorem revokeAfterCallSuccess {words : String → UInt256} {I g s0 σ k C mem a
       [⟨1⟩, x0, x1, x2, x3, x4, ⟨100⟩, sel] mem aw out σ k C) :
     RDret fork (immutableLayout.runtime attesterBytecode words) g s0 σ ByteArray.empty := by
   have h' := attesterRuntime_block_2382_taken (by simp) (by decide)
-    (by rw [attesterRuntime_validJumps]; native_decide) h
+    h
   have h'' := attesterRuntime_block_2398 (by simp)
-    (by rw [attesterRuntime_validJumps]; native_decide) h'
+    (by exact attesterJumpdest _ rfl rfl) h'
   exact attesterRuntime_block_100 (by simp [attesterRuntime_block_2398_stack]) h''
 
 end Benchmarks.EAS.Attester

@@ -29,7 +29,7 @@ theorem multiAttestPrepare {words : String → UInt256} {I g s0 σ k C aw R}
   have heap := (multiAttestBuiltMemory_heap hc hshape hrows).congr (mem' := pre)
     (by intro off hlo hhi; exact hp.load_preserved hlo hhi (by omega) (by omega))
   obtain ⟨aw', k', C', h'⟩ := attesterRuntime_block_1657_packed (by omega)
-    (by rw [attesterRuntime_validJumps]; native_decide) h
+    h
   have hstart : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨3304⟩
       ([UInt256.ofNat (multiAttestBuiltFree I.calldata + 4), ⟨128⟩, ⟨1772⟩,
         ⟨1152239886⟩, UInt256.land (words "_eas") solcAddrMask, ⟨128⟩] ++ R)
@@ -43,7 +43,7 @@ theorem multiAttestPrepare {words : String → UInt256} {I g s0 σ k C aw R}
     hstart (by simp only [List.length_append, List.length_cons, List.length_nil]; omega)
     heap (by change multiAttestBuiltFree I.calldata ≤ pre.size; have := hp.size; omega)
     (by omega) he.2
-    (by rw [attesterRuntime_validJumps]; native_decide)
+    (by exact attesterJumpdest _ rfl rfl)
 
 theorem multiAttestReachCall {words : String → UInt256} {I g s0 σ k C aw R}
     (h : RD fork (immutableLayout.runtime attesterBytecode words) I g s0 ⟨1772⟩

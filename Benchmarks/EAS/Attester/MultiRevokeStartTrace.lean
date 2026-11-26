@@ -30,9 +30,9 @@ theorem attesterMultiRevokeReachDecode {words : String → UInt256} {σ σ₀ A 
   have rd81 := attesterRuntime_block_26_taken (by decide)
     (by change UInt256.eq ⟨0x13fde550⟩ (solcSelectorWord I) ≠ ⟨0⟩
         rw [attesterMultiRevokeEvmSelector hsz, hsel]; decide)
-    (by rw [attesterRuntime_validJumps]; native_decide) rd26
+    rd26
   have rd2482 := attesterRuntime_block_81 (by simp [attesterRuntime_block_26_taken_stack])
-    (by rw [attesterRuntime_validJumps]; native_decide) rd81
+    rd81
   exact ⟨_, _, rd2482⟩
 
 theorem multiRevokeRequire {words : String → UInt256} {I g s0 σ mem aw out k C R}
@@ -47,7 +47,7 @@ theorem multiRevokeRequire {words : String → UInt256} {I g s0 σ mem aw out k 
   · subst n
     have h' := attesterRuntime_block_195_taken (R := schemaData :: R)
       (by simp only [List.length_cons]; omega) (by decide)
-      (by rw [attesterRuntime_validJumps]; native_decide) h
+      h
     have h'' := attesterRuntime_block_209_fallthrough
       (by simp only [List.length_cons]; omega) (by decide) h'
     exact .inl ⟨.inl rfl, attesterRuntime_block_215
@@ -59,7 +59,7 @@ theorem multiRevokeRequire {words : String → UInt256} {I g s0 σ mem aw out k 
   · subst m
     have h''' := attesterRuntime_block_209_taken
       (by simp only [List.length_cons]; omega)
-      (by rw [u256_eq_refl]; decide) (by rw [attesterRuntime_validJumps]; native_decide) h''
+      (by rw [u256_eq_refl]; decide) h''
     exact .inr ⟨hn, rfl, _, _, h'''⟩
   · have h''' := attesterRuntime_block_209_fallthrough
       (by simp only [List.length_cons]; omega)
@@ -78,11 +78,11 @@ theorem multiRevokeBodyView {words : String → UInt256} {I g s0 σ mem aw out k
             UInt256.ofNat (arrayCount I.calldata 4),
                 UInt256.ofNat (arrayDataNat I.calldata 4)] ++ R)
           mem aw out σ k' C') := by
-  rcases attesterMultiHeads h hstack (by rw [attesterRuntime_validJumps]; native_decide) with
+  rcases attesterMultiHeads h hstack (by exact attesterJumpdest _ rfl rfl) with
       hbad | ⟨hc, k', C', h'⟩
   · exact .inl hbad
   have h'' := attesterRuntime_block_95 (by simp only [List.length_cons]; omega)
-    (by rw [attesterRuntime_validJumps]; native_decide) h'
+    h'
   refine .inr ⟨hc, k' + 3, C' + 12, ?_⟩
   simpa only [arrayCount_word,
     arrayData_eq_ofNat (uint64Bound_of_isZero_gt hc.firstOffset),

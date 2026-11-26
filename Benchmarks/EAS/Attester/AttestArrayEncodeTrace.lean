@@ -49,7 +49,7 @@ theorem attestArrayEncodeStep3441 {words : String → UInt256} {I g s0 σ mem aw
   dsimp only [pre, Reasoning.Theory.writeWord] at hslot'
   obtain ⟨aw1, k1, C1, h1⟩ := attesterRuntime_block_3450_packed
     (by simp only [List.append]; omega)
-    (by rw [attesterRuntime_validJumps]; native_decide) h'
+    h'
   simp only [attesterRuntime_block_3450_stack, attesterRuntime_block_3450_memory,
     hdelta, ulit_toNat' _ (by omega : table < UInt256.size), hslot'] at h1
   obtain ⟨aw2, k2, C2, h2⟩ := attestCellEncode3109
@@ -57,10 +57,10 @@ theorem attestArrayEncodeStep3441 {words : String → UInt256} {I g s0 σ mem aw
       UInt256.ofNat (base + 32 + 32 * i), a, b, c, d, UInt256.ofNat origin] ++ R)
     h1 (by simp only [List.length_append, List.length_cons, List.length_nil]; omega)
     hc' (le_trans hsize hp.size) (by omega) hfit
-    (by rw [attesterRuntime_validJumps]; native_decide)
+    (by exact attesterJumpdest _ rfl rfl)
   obtain ⟨aw3, k3, C3, h3⟩ := attesterRuntime_block_3499_packed
     (by simp only [List.append, List.length_cons]; omega)
-    (by rw [attesterRuntime_validJumps]; native_decide) h2
+    h2
   refine ⟨aw3, k3, C3, ?_⟩
   simpa only [attesterRuntime_block_3499_stack, ofNat_add_words,
     show 1 + i = i + 1 by omega, show 32 + table = table + 32 by omega,
@@ -93,7 +93,7 @@ theorem attestArrayEncodeRun3441 {words : String → UInt256} {I g s0 σ mem aw 
           a, b, c, d, UInt256.ofNat origin] ++ R)
         (by simp only [List.length_append, List.length_cons, List.length_nil]; omega)
         (by rw [ult_zero (Nat.le_refl _)]; decide)
-        (by rw [attesterRuntime_validJumps]; native_decide) h
+        h
       exact ⟨aw', k', C', h'⟩
   | succ remaining ih =>
       obtain ⟨aw', k', C', h'⟩ := attestArrayEncodeStep3441 h hstack heap hsize ht

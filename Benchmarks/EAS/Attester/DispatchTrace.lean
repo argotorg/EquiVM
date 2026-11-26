@@ -24,7 +24,7 @@ theorem attesterRuntimeReachSelector {words : String → UInt256} {σ σ₀ A I}
       ⟨26⟩ [] solcFreePtrMem ⟨3⟩ ByteArray.empty σ k C := by
   have rd0 := RD.initState (fork := fork) (σ := σ) (σ₀ := σ₀) (g := g) (A := A) hcode
   have rd16 := attesterRuntime_block_0_taken (by decide) (by rw [hvalue]; decide)
-    (by rw [attesterRuntime_validJumps]; native_decide) rd0
+    rd0
   have rd26 := attesterRuntime_block_16_fallthrough (by decide)
     (lt_four_eq_zero_of_ge hsz hsize) rd16
   exact ⟨_, _, rd26⟩
@@ -35,9 +35,9 @@ theorem attesterRuntimeRevertShort {words : String → UInt256} {σ σ₀ A I} {
     RDrev fork (immutableLayout.runtime attesterBytecode words) g (initState σ σ₀ g A I) := by
   have rd0 := RD.initState (fork := fork) (σ := σ) (σ₀ := σ₀) (g := g) (A := A) hcode
   have rd16 := attesterRuntime_block_0_taken (by decide) (by rw [hvalue]; decide)
-    (by rw [attesterRuntime_validJumps]; native_decide) rd0
+    rd0
   have rd76 := attesterRuntime_block_16_taken (by decide) (lt_four_ne_zero_of_lt hshort)
-    (by rw [attesterRuntime_validJumps]; native_decide) rd16
+    rd16
   exact attesterRuntime_block_76 (by decide) rd76
 
 theorem attesterRuntimeReach43 {words : String → UInt256} {σ σ₀ A I} {g : Sat256}

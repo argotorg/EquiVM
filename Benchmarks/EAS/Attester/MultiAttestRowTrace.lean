@@ -35,7 +35,7 @@ theorem multiAttestOuterStore {words : String → UInt256} {I g s0 σ mem aw out
   have hlt : UInt256.lt (UInt256.ofNat i) (UInt256.ofNat n) = ⟨1⟩ :=
     ult_one (by rw [ulit_toNat' _ hifit, ulit_toNat' _ hnfit]; exact hi)
   obtain ⟨aw', k', C', h'⟩ := attesterRuntime_block_1567_taken_packed (R := R) hstack
-    (by rw [hlt]; decide) (by rw [attesterRuntime_validJumps]; native_decide) h
+    (by rw [hlt]; decide) h
   simp only [attesterRuntime_block_1567_taken_stack, attesterRuntime_block_1567_taken_memory,
     hptr, ofNat_add_words] at h'
   have hfields : attesterRuntime_block_1597_taken_memory (ee := I)
@@ -63,11 +63,11 @@ theorem multiAttestOuterStore {words : String → UInt256} {I g s0 σ mem aw out
               (UInt256.ofNat 64).toNat 32) (x0 := UInt256.ofNat i)
             (x2 := UInt256.ofNat schemaPtr) (x3 := UInt256.ofNat free) (x5 := dataBase))) ≠ _
         rw [hfields, hload, hlt]; decide)
-    (by rw [attesterRuntime_validJumps]; native_decide) h'
+    h'
   simp only [attesterRuntime_block_1597_taken_stack, hfields] at h''
   obtain ⟨awf, kf, Cf, hf'⟩ := attesterRuntime_block_1631_packed
     (by simp only [List.length_cons]; omega)
-    (by rw [attesterRuntime_validJumps]; native_decide) h''
+    h''
   simp only [attesterRuntime_block_1631_stack, attesterRuntime_block_1631_memory,
     ofNat_mul_words, ofNat_add_words, ulit_toNat' _ hbifit] at hf'
   refine ⟨awf, kf, Cf, ?_⟩

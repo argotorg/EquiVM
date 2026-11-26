@@ -40,12 +40,12 @@ theorem multiAttestReachReturnDecoder {words : String → UInt256} {I g s0 σ k 
   have hfp := multiAttestEncodedMemory_freePtr hc hshape hrows
   have h1 := attesterRuntime_block_1787_taken
     (by simp only [List.append, List.length_cons]; omega) (by decide)
-    (by rw [attesterRuntime_validJumps]; native_decide) h
+    h
   obtain ⟨aw2, k2, C2, h2⟩ := attesterRuntime_block_1803_packed
     (by simp only [List.append]; omega)
     (by rw [show (UInt256.ofNat 0).toNat = 0 from rfl, Nat.zero_add,
           ulit_toNat' out.size (by change out.size < 2 ^ 256; omega)])
-    (by rw [attesterRuntime_validJumps]; native_decide) h1
+    h1
   refine ⟨aw2, k2, C2, ?_⟩
   simpa only [attesterRuntime_block_1803_stack, hfp, ofNat_add_words,
     returnArrayInputMemory_summary (out := out) hfp (by omega), List.append] using h2

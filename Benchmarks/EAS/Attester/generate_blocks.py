@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Regenerate immutable-aware runtime and constructor-prefix RD summaries."""
+"""Regenerate immutable-aware runtime and constructor-prefix RD summaries.
+
+`Bytecode.lean` / `CreationBytecode.lean` are the bytecode files (`scripts/gen_bytecode.py`): they
+define the bytecode constants, and the summaries' rule chains take their decode facts from the
+disassembly (`--no-disassembly`: from decoding tactics).
+"""
 
 from pathlib import Path
 import argparse
@@ -16,28 +21,33 @@ import generate_rd_blocks as blocks
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true", help="compare without rewriting artifacts")
+    parser.add_argument("--no-disassembly", action="store_true",
+                        help="prove by rule chains even when the bytecode files exist")
     args = parser.parse_args()
     temporary = tempfile.TemporaryDirectory(prefix="eas-blocks-")
     output = Path(temporary.name) if args.check else ROOT / "Blocks"
     output.mkdir(exist_ok=True)
-    imports = ["Benchmarks.EAS.Attester.Bytecode",
-               "Benchmarks.EAS.Attester.Immutables"]
+    module = "Benchmarks.EAS.Attester"
     layout = "Benchmarks.EAS.Attester.Immutables.immutableLayout"
     runtime = bytes.fromhex((ROOT / "runtime.hex").read_text())
     creation = bytes.fromhex((ROOT / "creation.hex").read_text())
     if not creation.endswith(runtime):
         raise ValueError("creation artifact must end with the runtime template")
     runtime_offset = len(creation) - len(runtime)
-    sites = blocks.read_lean_layout(layout, imports, runtime)
+    sites = blocks.read_lean_layout(layout, ["Benchmarks.EAS.Attester.Immutables"], runtime)
     paths = []
     for kind, code in [("Runtime", runtime), ("Creation", creation)]:
         is_creation = kind == "Creation"
         term = "Benchmarks.EAS.Attester.attester" + ("Creation" if is_creation else "") + "Bytecode"
         name = "attester" + kind
+        disassembly = (blocks.directory_disassembly(ROOT, module, code, creation=is_creation)
+                       if not args.no_disassembly else None)
+        imports = blocks.bytecode_imports(ROOT, module, is_creation) + [
+            "Benchmarks.EAS.Attester.Immutables"]
         units = blocks.generate_unit_records(
             code, name, term, creation_code=is_creation,
             immutable_sites=None if is_creation else sites,
-            layout_term=None if is_creation else layout)
+            layout_term=None if is_creation else layout, disassembly=disassembly)
         if is_creation:
             # The remainder is data copied by CODECOPY, not constructor instructions.
             units = [u for u in units if u.pcs and max(u.pcs) < runtime_offset]
@@ -50,7 +60,7 @@ def main():
             output / f"{kind}.lean", name, imports, units, 20,
             creation_code=is_creation, code_term=term,
             immutable_sites=None if is_creation else sites, code=code,
-            layout_term=None if is_creation else layout)
+            layout_term=None if is_creation else layout, disassembly=disassembly)
         # Only remove obsolete files owned by this generator.
         if not args.check:
             for previous in output.glob(f"{kind}_*.lean"):

@@ -95,7 +95,7 @@ theorem multiRevokeOuterRun {words : String → UInt256} {I g s0 σ mem aw out k
   exact attesterRuntime_block_367_taken_packed
     (R := UInt256.ofNat n :: secondData :: UInt256.ofNat n :: UInt256.ofNat schemaPtr :: R)
     (by simp only [List.length_cons]; omega) (by rw [ult_zero (Nat.le_refl _)]; decide)
-    (by rw [attesterRuntime_validJumps]; native_decide) h'
+    h'
 
 theorem multiRevokeOuterRevert {words : String → UInt256} {I g s0 σ mem aw out k C R}
     {free base n schemaPtr : Nat} {secondData : UInt256}

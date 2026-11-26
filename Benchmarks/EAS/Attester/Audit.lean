@@ -1,4 +1,8 @@
+import Benchmarks.EAS.Attester.Spec
+import Ethereum.Semantics
+import Reasoning.JumpDest
 import Benchmarks.EAS.Attester.Bytecode
+import Benchmarks.EAS.Attester.CreationBytecode
 
 /-- The fork these executable checks run the bytecode and the specification under. -/
 private def fork : Ethereum.Fork := .cancun

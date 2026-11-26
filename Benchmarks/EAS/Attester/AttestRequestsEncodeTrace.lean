@@ -49,7 +49,7 @@ theorem attestRequestsEncodeStep3344 {words : String → UInt256} {I g s0 σ mem
   obtain ⟨awf, kf, Cf, hdone⟩ := attesterRuntime_block_3521_packed
     (R := ⟨0⟩ :: UInt256.ofNat origin :: R)
     (by simp only [List.length_cons]; omega)
-    (by rw [attesterRuntime_validJumps]; native_decide) h'''
+    h'''
   refine ⟨awf, kf, Cf, ?_⟩
   simpa only [attesterRuntime_block_3521_stack, attestRequestEncodedMemory, ofNat_add_words,
     show 1 + i = i + 1 by omega, show 32 + table = table + 32 by omega,
@@ -83,7 +83,7 @@ theorem attestRequestsEncodeRun3344 {words : String → UInt256} {I g s0 σ mem 
         (R := [UInt256.ofNat table, UInt256.ofNat dst, ⟨0⟩, UInt256.ofNat origin] ++ R)
         (by simp only [List.length_cons, List.length_nil, List.length_append]; omega)
         (by rw [ult_zero (Nat.le_refl _)]; decide)
-        (by rw [attesterRuntime_validJumps]; native_decide) h
+        h
       exact ⟨aw, k + 7, C + 26, h'⟩
   | succ remaining ih =>
       have hend := attestRequestsEncodedEnd_lower (dst + 96 + 288 * counts i) counts (i + 1)

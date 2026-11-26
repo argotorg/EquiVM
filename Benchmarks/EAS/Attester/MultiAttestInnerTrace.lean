@@ -42,7 +42,7 @@ theorem multiAttestInnerStep {words : String → UInt256} {I g s0 σ mem aw out 
     (R := UInt256.ofNat n :: UInt256.ofNat cdptr :: R)
     (by simp only [List.length_cons]; omega) (by rw [hlt]; rfl) h
   obtain ⟨aw', k', C', h''⟩ := attesterRuntime_block_1388_taken_packed (R := R)
-    hstack (by rw [hlt]; decide) (by rw [attesterRuntime_validJumps]; native_decide) h'
+    hstack (by rw [hlt]; decide) h'
   have hh : attesterRuntime_block_1388_taken_memory (mem := mem) =
       attestCellHeaderMemory mem free := by
     simp only [attesterRuntime_block_1388_taken_memory, hptr, ofNat_add_words,
@@ -54,7 +54,7 @@ theorem multiAttestInnerStep {words : String → UInt256} {I g s0 σ mem aw out 
   simp only [attesterRuntime_block_1388_taken_stack, hh, hptr, ofNat_add_words] at h''
   obtain ⟨aw1, k1, C1, h1⟩ := attesterRuntime_block_1480_packed
     (by simp only [List.length_cons]; omega)
-    (by rw [attesterRuntime_validJumps]; native_decide) h''
+    h''
   have hhptr := attestCellHeaderMemory_freePtr (mem := mem) (free := free) (by omega)
   have hpptr := attestCellPayloadMemory_freePtr (mem := mem) (free := free)
     (input := calldataWord I.calldata (cdptr + 32 * i)) (by omega)
@@ -99,11 +99,11 @@ theorem multiAttestInnerStep {words : String → UInt256} {I g s0 σ mem aw out 
             (x0 := UInt256.ofNat (32 + (32 + (free + 192))))
             (x1 := UInt256.ofNat (32 + (32 + (32 + (32 + free))))))) ≠ _
         rw [hfields, hload, hlt]; decide)
-    (by rw [attesterRuntime_validJumps]; native_decide) h1
+    h1
   simp only [attesterRuntime_block_1505_taken_stack, hfields] at h2
   obtain ⟨aw3, k3, C3, h3⟩ := attesterRuntime_block_1548_packed
     (by simp only [List.length_cons]; omega)
-    (by rw [attesterRuntime_validJumps]; native_decide) h2
+    h2
   simp only [attesterRuntime_block_1548_stack, attesterRuntime_block_1548_memory,
     ofNat_add_words, ofNat_mul_words, ulit_toNat' _ hbifit] at h3
   refine ⟨aw3, k3, C3, ?_⟩
@@ -135,7 +135,7 @@ theorem multiAttestInnerRun {words : String → UInt256} {I g s0 σ mem aw out k
         (R := UInt256.ofNat n :: UInt256.ofNat cdptr :: R)
         (by simp only [List.length_cons]; omega)
         (by rw [ult_zero (Nat.le_refl _)]; decide)
-        (by rw [attesterRuntime_validJumps]; native_decide) h
+        h
       exact ⟨aw', k', C', h'⟩
   | succ remaining ih =>
       obtain ⟨aw', k', C', h'⟩ := multiAttestInnerStep h hstack hbase hin hspan hlen hptr

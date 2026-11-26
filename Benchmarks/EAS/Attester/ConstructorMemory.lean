@@ -21,8 +21,9 @@ def constructorPatchedMemory (eas : AccountAddress) : ByteArray :=
   writeCascade attesterBytecode [(824, UInt256.ofNat eas.val), (1719, UInt256.ofNat eas.val),
     (1888, UInt256.ofNat eas.val), (2289, UInt256.ofNat eas.val)]
 
-theorem constructorCreation_size : attesterCreationBytecode.size = 4057 := by native_decide
-theorem constructorRuntime_size : attesterBytecode.size = 3865 := by native_decide
+theorem constructorCreation_size : attesterCreationBytecode.size = 4057 := by decide +kernel
+theorem constructorRuntime_size : attesterBytecode.size = 3865 :=
+  attesterRuntimeBlocks.immutableTemplate_size
 
 theorem constructorCode_size (eas : AccountAddress) : (constructorCode eas).size = 4089 := by
   rw [constructorCode, ByteArray.size_append, constructorCreation_size, toByteArray_size]

@@ -23,7 +23,7 @@ theorem attesterDecodeTwoWords {words : String → UInt256} {ee : ExecutionEnv}
     (by change UInt256.isZero (UInt256.slt (UInt256.sub (UInt256.ofNat ee.calldata.size)
           ⟨4⟩) ⟨64⟩) ≠ ⟨0⟩
         rw [solcDecodeLenCheckOk_4_64 hlen hhi hsize]; decide)
-    (by rw [attesterRuntime_validJumps]; native_decide) h
+    h
   have rdRet := attesterRuntime_block_2681 (by omega) hvalid rd2681
   exact ⟨_, _, rdRet⟩
 

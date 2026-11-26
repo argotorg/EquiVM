@@ -32,16 +32,16 @@ theorem constructorReachBody {σ σ₀ A I} {g : Sat256} (eas : AccountAddress)
       [UInt256.ofNat eas.val] (constructorABIMemory eas) aw ByteArray.empty σ k C := by
   have h0 := RD.initState (fork := fork) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode
   obtain ⟨aw1, k1, C1, h1⟩ := attesterCreation_block_0_taken_packed
-    (by simp) (by rw [hv]; decide) (by native_decide) h0
+    (by simp) (by rw [hv]; decide) h0
   change RD fork _ _ _ _ _ [I.weiValue] constructorFreeMemory _ _ _ _ _ at h1
   obtain ⟨aw2, k2, C2, h2⟩ := attesterCreation_block_15_packed
-    (by simp) (by native_decide) h1
+    (by simp) h1
   have hs : (attesterCreationBytecode ++ (UInt256.ofNat eas.val).toByteArray).size = 4089 :=
     constructorCode_size eas
   simp only [attesterCreation_block_15_stack, constructorFreeMemory_load, hs,
     show UInt256.sub (UInt256.ofNat 4089) (UInt256.ofNat 4057) = (⟨32⟩ : UInt256) from by decide,
     show (⟨160⟩ : UInt256) + ⟨32⟩ = ⟨192⟩ from by decide, constructorABI_summary] at h2
-  have h3 := attesterCreation_block_98_taken (by simp) (by decide) (by native_decide) h2
+  have h3 := attesterCreation_block_98_taken (by simp) (by decide) h2
   simp only [attesterCreation_block_98_taken_stack] at h3
   have hmask : UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160))
       (UInt256.ofNat 1) = solcAddrMask := by decide
@@ -51,10 +51,12 @@ theorem constructorReachBody {σ σ₀ A I} {g : Sat256} (eas : AccountAddress)
     constructorABIMemory_load eas
   obtain ⟨aw4, k4, C4, h4⟩ := attesterCreation_block_115_taken_packed
     (by simp) (by rw [hload, hmask, hclean, uInt256_eq_self]; decide)
-    (by native_decide) h3
+    h3
   simp only [attesterCreation_block_115_taken_stack, hload] at h4
   obtain ⟨aw5, k5, C5, h5⟩ := attesterCreation_block_137_packed
-    (by simp) (by native_decide) h4
+    (by simp) (by
+      have hj := CreationBytecode.jumpdest_code ByteArray.empty (t := 44) rfl rfl
+      rwa [ByteArray.append_empty] at hj) h4
   exact ⟨aw5, k5, C5, h5⟩
 
 theorem constructorZeroTrace {σ σ₀ A I} {g : Sat256} (eas : AccountAddress)
@@ -83,9 +85,9 @@ theorem constructorSuccessTrace {σ σ₀ A I} {g : Sat256} (eas : AccountAddres
     rw [ulit_toNat' _ hfit] at hnat
     exact hz (Fin.ext hnat)
   have h1 := attesterCreation_block_44_taken (by simp)
-    (by rw [hmask, u256_land_comm, easWord_mask]; exact hne) (by native_decide) h
+    (by rw [hmask, u256_land_comm, easWord_mask]; exact hne) h
   obtain ⟨aw2, k2, C2, h2⟩ := attesterCreation_block_82_packed
-    (by simp) (by native_decide) h1
+    (by simp) h1
   simp only [attesterCreation_block_82_stack, attesterCreation_block_82_memory, hmask,
     easWord_mask] at h2
   change RD fork _ _ _ _ _ [] (constructorMemory eas) _ _ _ _ _ at h2

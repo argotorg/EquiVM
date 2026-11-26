@@ -57,7 +57,7 @@ theorem attesterNestedView {words : String → UInt256} {ee : ExecutionEnv}
       (by simp only [attesterRuntime_block_2790_fallthrough_stack, List.length_cons]; omega) h'
   have h' := attesterRuntime_block_2790_taken (x1 := entry)
     (by simp only [List.length_cons]; omega) hhead
-    (by rw [attesterRuntime_validJumps]; native_decide) h
+    h
   by_cases hlen : UInt256.isZero (UInt256.gt
       (calldataWord ee.calldata (nestedHead ee.calldata base entry).toNat)
       (UInt256.ofNat 18446744073709551615)) = UInt256.ofNat 0
@@ -69,7 +69,7 @@ theorem attesterNestedView {words : String → UInt256} {ee : ExecutionEnv}
       (by simp only [attesterRuntime_block_2843_fallthrough_stack, List.length_cons]; omega) h''
   have h'' := attesterRuntime_block_2843_taken (x3 := base)
     (x0 := calldataWord ee.calldata entry.toNat) (by simp only [List.length_cons]; omega) hlen
-    (by rw [attesterRuntime_validJumps]; native_decide) h'
+    h'
   by_cases hend : UInt256.isZero (UInt256.sgt (UInt256.ofNat 32 + nestedHead ee.calldata base entry)
       (UInt256.sub (UInt256.ofNat ee.calldata.size)
         (UInt256.shiftLeft (calldataWord ee.calldata (nestedHead ee.calldata base entry).toNat)
@@ -81,7 +81,7 @@ theorem attesterNestedView {words : String → UInt256} {ee : ExecutionEnv}
     exact attesterRuntime_block_2890
       (by simp only [attesterRuntime_block_2870_fallthrough_stack, List.length_cons]; omega) h'''
   have h''' := attesterRuntime_block_2870_taken (by simp only [List.length_cons]; omega) hend
-    (by rw [attesterRuntime_validJumps]; native_decide) h''
+    h''
   have hret := attesterRuntime_block_2475 (by omega) hvalid h'''
   exact .inr ⟨⟨hhead, hlen, hend⟩, _, _, hret⟩
 

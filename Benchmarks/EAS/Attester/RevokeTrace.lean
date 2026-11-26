@@ -31,9 +31,9 @@ theorem attesterRevokeReachDecode {words : String → UInt256} {σ σ₀ A I} {g
   have rd176 := attesterRuntime_block_65_taken (by decide)
     (by change UInt256.eq ⟨0xc2664610⟩ (solcSelectorWord I) ≠ ⟨0⟩
         rw [attesterRevokeEvmSelector hsz, hsel]; decide)
-    (by rw [attesterRuntime_validJumps]; native_decide) rd65
+    rd65
   have rd2662 := attesterRuntime_block_176 (by simp)
-    (by rw [attesterRuntime_validJumps]; native_decide) rd176
+    rd176
   exact ⟨_, _, rd2662⟩
 
 theorem attesterRevokeReachBody {words : String → UInt256} {σ σ₀ A I} {g : Sat256}
@@ -47,9 +47,9 @@ theorem attesterRevokeReachBody {words : String → UInt256} {σ σ₀ A I} {g :
       ⟨2187⟩ [calldataWord I.calldata 36, calldataWord I.calldata 4, ⟨100⟩, solcSelectorWord I]
       solcFreePtrMem ⟨3⟩ ByteArray.empty σ k' C' := by
   obtain ⟨k', C', rd190⟩ := attesterDecodeTwoWords h (by simp)
-    (by rw [attesterRuntime_validJumps]; native_decide) hlen hhi hsize
+    (by exact attesterJumpdest _ rfl rfl) hlen hhi hsize
   have rd2187 := attesterRuntime_block_190 (by simp)
-    (by rw [attesterRuntime_validJumps]; native_decide) rd190
+    rd190
   exact ⟨_, _, rd2187⟩
 
 end Benchmarks.EAS.Attester

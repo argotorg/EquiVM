@@ -117,7 +117,7 @@ theorem pairRequestsEncodeStep2934 {words : String → UInt256} {I g s0 σ mem a
   have hdone := attesterRuntime_block_3073
     (R := ⟨0⟩ :: UInt256.ofNat origin :: R)
     (by simp only [List.length_cons]; omega)
-    (by rw [attesterRuntime_validJumps]; native_decide) h'''
+    h'''
   refine ⟨aw'', k'' + 20, C'' + 59, ?_⟩
   simpa only [attesterRuntime_block_3073_stack, pairRequestEncodedMemory, ofNat_add_words,
     show 1 + i = i + 1 by omega, show 32 + table = table + 32 by omega,
@@ -149,7 +149,7 @@ theorem pairRequestsEncodeRun2934 {words : String → UInt256} {I g s0 σ mem aw
         (R := [UInt256.ofNat table, UInt256.ofNat dst, ⟨0⟩, UInt256.ofNat origin] ++ R)
         (by simp only [List.length_cons, List.length_nil, List.length_append]; omega)
         (by rw [ult_zero (Nat.le_refl _)]; decide)
-        (by rw [attesterRuntime_validJumps]; native_decide) h
+        h
       exact ⟨aw, k + 7, C + 26, h'⟩
   | succ remaining ih =>
       have hend := pairRequestsEncodedEnd_lower (dst + 96 + 64 * counts i) counts (i + 1) remaining
