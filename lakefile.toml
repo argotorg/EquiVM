@@ -15,9 +15,11 @@ name = "ABI"
 [[lean_lib]]
 name = "Stele"
 
+# see `Benchmarks` below
 [[lean_lib]]
 name = "Examples"
 globs = ["Examples.+"]
+weakLeanArgs = ["--tstack=32768"]
 
 [[lean_lib]]
 name = "Reasoning"
@@ -27,9 +29,12 @@ globs = ["Reasoning.+"]
 name = "Proofs"
 globs = ["Proofs.+"]
 
+# The kernel check of a bytecode file recurses once per byte and overflows the default 8 MB
+# stack at about 6.5 KB of bytecode. 32 MB is enough for the 24 KB limit of EIP-170.
 [[lean_lib]]
 name = "Benchmarks"
 globs = ["Benchmarks.*"]
+weakLeanArgs = ["--tstack=32768"]
 
 [[lean_lib]]
 name = "Tests"
